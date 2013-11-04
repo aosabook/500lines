@@ -1,4 +1,14 @@
-500lines
-========
+*500 Lines or Less*
+===================
 
-500 Lines or Less
+This is the source for the book *500 Lines or Less*,
+the fourth in the [Architecture of Open Source Applications](http://aosabook.org) series.
+In this volume,
+authors will implement small versions of real applications
+that show off their key architectural features.
+As with other books in the series,
+all written material will be covered by the Creative Commons - Attribution license,
+and all code by the MIT License:
+please see the [license description](LICENSE.md) for details.
+In addition,
+all royalties from paid-for versions will all go to Amnesty International.
