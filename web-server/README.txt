@@ -1,3 +1,7 @@
+Author: Greg Wilson
+Project: Web Server
+Requirements: Python
+
 This directory holds a simple web server in Python, which I am
 building up in stages.  Each sub-directory holds a more complex
 version; the final chapter will discuss the changes between these
