@@ -41,4 +41,12 @@ Contributors
     <td>@gvwilson</td>
     <td>gvwilson@third-bit.com</td>
   </tr>
+  <tr>
+    <td>Taavi Burns</td>
+    <td>Human</td>
+    <td>data-store</td>
+    <td>@taavi</td>
+    <td>@jaaaarel</td>
+    <td></td>
+  </tr>
 </table>
