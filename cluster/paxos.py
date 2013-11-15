@@ -118,7 +118,7 @@ class Processor(threading.Thread):
                 # two instances from requesting the same round on the same processor.
                 round=len(self.values)
                 self.values[round] = None
-                self.send(self, 'request', value=value, round=round)
+                self.send(self, 'REQUEST', value=value, round=round)
                 self._values_cond.wait()
                 if self.values[round] is not None and self.values[round] != value:
                     logging.warning("request failed at round %d; retrying" % round)
@@ -135,29 +135,29 @@ class Processor(threading.Thread):
     # actions
 
     @log_proposer_state
-    def do_request(self, value, round):
+    def do_REQUEST(self, value, round):
         n =  self.next_n()
         quorum = random.sample(Processor.network, self.quorum)
         logging.info("beginning round %d with value %r and quorum %r" %
                 (round, value, [p.name for p in quorum]))
         self.active_proposals[round] = dict(
                 n=n, value=value, quorum=quorum, promises={}, have_accepted=False)
-        self.send(quorum, 'prepare', proposer=self, n=n, round=round)
+        self.send(quorum, 'PREPARE', proposer=self, n=n, round=round)
         # if this request fails, make_request will re-invoke us
 
     @log_acceptor_state
-    def do_prepare(self, proposer, n, round):
+    def do_PREPARE(self, proposer, n, round):
         promise = self.promises[round]
         if promise is None or n > promise:
             self.promises[round] = n
             last_accept = self.last_accepts[round]
             prev_n = last_accept['n'] if last_accept else -1
             prev_value = last_accept['value'] if last_accept else None
-            self.send(proposer, 'promise', round=round, responder=self,
+            self.send(proposer, 'PROMISE', round=round, responder=self,
                     prev_n=prev_n, prev_value=prev_value)
 
     @log_proposer_state
-    def do_promise(self, round, responder, prev_n, prev_value):
+    def do_PROMISE(self, round, responder, prev_n, prev_value):
         active_proposal = self.active_proposals[round]
         if not active_proposal or active_proposal['have_accepted']:
             return
@@ -173,21 +173,20 @@ class Processor(threading.Thread):
                 if prom['prev_n'] > largest_n:
                     value, largest_n = prom['prev_value'], prom['prev_n']
             quorum = random.sample(Processor.network, self.quorum)
-            self.send(quorum, 'accept_request', round=round, n=active_proposal['n'], value=value)
+            self.send(quorum, 'PROPOSE', round=round, n=active_proposal['n'], value=value, proposer=self)
 
     @log_acceptor_state
-    def do_accept_request(self, round, n, value):
+    def do_PROPOSE(self, round, n, value, proposer):
         promise = self.promises[round]
         if n < promise:
             return
         last_accept = self.last_accepts[round]
         if not last_accept or last_accept['n'] < n:
             self.last_accepts[round] = {'n': n, 'value': value}
-        learners = Processor.network
-        self.send(learners, 'accepted', round=round, n=n, value=value)
+        self.send(Processor.network, 'ACCEPT', round=round, n=n, value=value)
 
     @log_learner_state
-    def do_accepted(self, round, n, value):
+    def do_ACCEPT(self, round, n, value):
         accept_reqs_by_n = self.accept_reqs_by_n[round]
         if accept_reqs_by_n is None:
             accept_reqs_by_n = self.accept_reqs_by_n[round] = {}
