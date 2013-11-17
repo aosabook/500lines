@@ -34,6 +34,14 @@ Contributors
     <td>mikedebo@gmail.com</td>
   </tr>
   <tr>
+    <td>Dustin Mitchell</td>
+    <td>Mozilla</td>
+    <td>cluster</td>
+    <td>@djmitche</td>
+    <td>&nbsp;</td>
+    <td>dustin@mozila.com</td>
+  </tr>
+  <tr>
     <td>Greg Wilson</td>
     <td>Mozilla</td>
     <td>web-server</td>
