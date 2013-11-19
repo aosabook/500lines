@@ -65,8 +65,8 @@ handle_info(init, State=#state{ sock=Sock, i_have=BitSet }) ->
 handle_info({tcp_closed, TSock}, State=#state{ sock=TSock}) ->
     {stop, normal, State};
 
-handle_info({tcp, TSock, Packet}, State=#state{ sock=TSock }) ->
-    Message = torrent_protocol:decode_packet(Packet),
+handle_info({tcp, TSock, Packet}, State=#state{ sock=TSock, info=Info }) ->
+    Message = torrent_protocol:decode_packet(Packet, Info),
     io:format("~p received ~P~n", [self(), Message, 16]),
     {ok, State2} = handle_incoming(Message, State#state{ last_seen=os:timestamp() }),
     inet:setopts(TSock, [{active,once}]),
@@ -196,20 +196,20 @@ send(Msg, State) ->
 
 send1({interest, Interest}, State=#state{ im_interested=Interest }) ->
     {ok, State};
-send1({interest, Interest}=Message, State=#state{ sock=Sock }) ->
-    ok = gen_tcp:send(Sock, torrent_protocol:encode_packet(Message)),
+send1({interest, Interest}=Message, State=#state{ sock=Sock, info=Info }) ->
+    ok = gen_tcp:send(Sock, torrent_protocol:encode_packet(Message, Info)),
     {ok, State#state{ im_interested=Interest }};
 send1({choke, Choke}, State=#state{ peer_is_choked=Choke }) ->
     {ok, State};
-send1({choke, Choke}=Message, State=#state{ sock=Sock }) ->
-    ok = gen_tcp:send(Sock, torrent_protocol:encode_packet(Message)),
+send1({choke, Choke}=Message, State=#state{ sock=Sock, info=Info }) ->
+    ok = gen_tcp:send(Sock, torrent_protocol:encode_packet(Message, Info)),
     {ok, State#state{ peer_is_choked=Choke }};
 send1({request, _, _, _}=Message, State=#state{ im_interested=false, im_choked=Choked }) ->
     Choked = false, %% assertion
     {ok, State2} = send({interest, true}, State),
     send(Message, State2);
-send1(Message, State=#state{ sock=Sock }) ->
-    ok = gen_tcp:send(Sock, torrent_protocol:encode_packet(Message)),
+send1(Message, State=#state{ sock=Sock, info=Info }) ->
+    ok = gen_tcp:send(Sock, torrent_protocol:encode_packet(Message, Info)),
     {ok, State}.
 
 
