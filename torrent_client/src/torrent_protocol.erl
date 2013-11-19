@@ -49,7 +49,8 @@ decode_packet(<<5,Bits/binary>>, Info) -> {bitfield, binary_to_ordset(Bits, Info
 decode_packet(<<6,Index:32,Offset:32,Length:32>>, _Info) -> {request, Index, Offset, Length};
 decode_packet(<<7,Index:32,Offset:32,PieceData/binary>>, _Info) -> {block, Index, Offset, PieceData};
 decode_packet(<<8,Index:32,Begin:32,Length:32>>, _Info) -> {cancel, Index, Begin, Length};
-decode_packet(<<>>, _Info) -> keep_alive.
+decode_packet(<<>>, _Info) -> keep_alive;
+decode_packet(<<20,Msg,Payload/binary>>, _Info) -> {ok, Dict} = bencode:decode(Payload), {extended, Msg, Dict}.
 
 encode_packet({choke, true}, _Info)       -> <<0>>;
 encode_packet({choke, false}, _Info)      -> <<1>>;

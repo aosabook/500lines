@@ -260,6 +260,8 @@ handle_incoming({request, _, _, _}, State=#state{ peer_is_choked=true }) ->
 handle_incoming({request, _, _, _}=Request, State=#state{ inq=QIn }) ->
     {ok, State#state{ inq=queue:in(Request, QIn) }};
 handle_incoming(keep_alive, State) ->
+    {ok, State};
+handle_incoming({extended, _, _}, State) ->
     {ok, State}.
 
 
