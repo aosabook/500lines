@@ -6,10 +6,11 @@
 -behavior(gen_server).
 -export([init/1,terminate/2,handle_call/3,handle_cast/2,handle_info/2]).
 -export([download/1,downloaded/2,find/1,piece_offset/2,piece_sha/2,piece_length/2]).
+-export([verify_piece/3]).
 
 -record(state, { info       :: #info{},
                  peers = [] :: [{binary(), pid()}],
-                 have       :: bitset:bitset(),
+                 have = [],
                  file,
                  missing = [],
                  complete = false :: boolean(),
@@ -61,9 +62,9 @@ handle_cast({downloaded, Index}, State=#state{ info=Info, peers=Peers, have=Have
     [ torrent_peer:coordinator_have(PeerPID, Index) || {_,PeerPID} <- Peers ],
     Missing2 = ordsets:del_element(Index, Missing),
     io:format("** got ~p, now have ~p / ~p, missing=~p~n", [Index, Info#info.num_pieces-ordsets:size(Missing), Info#info.num_pieces, Missing2]),
-    case Missing2 of
-      [] -> {stop, {shutdown, file_is_complete}};
-      _  -> {noreply, State#state{ have = bitset:set(Have, Index), missing = Missing2}}
+    case Missing2 == [] of
+      true  -> {stop, {shutdown, file_is_complete}};
+      false -> {noreply, State#state{ have = ordsets:add_element(Index, Have), missing = Missing2}}
     end.
 
 handle_info({'EXIT', PID, _}, State) ->
@@ -161,27 +162,22 @@ init_download_file(State = #state{ info=#info{ name=FileName, total_length=Lengt
             case file:read_file_info(DownloadName) of
                 {ok, #file_info{ size=Length }} ->
                     {ok, F}  = file:open(DownloadName, [read,write]),
-                    verify_pieces(0, State#state{ file=F, have=bitset:new(PieceCount)  });
+                    All = lists:seq(0, PieceCount-1),
+                    Have = lists:flatten(rpc:pmap({?MODULE, verify_piece}, [F, State#state.info], All)),
+                    {ok, State#state{ file=F, have=Have, missing=ordsets:subtract(All, Have) }};
                 {error, enoent} ->
                     {ok, F} = file:open(DownloadName, [read,write]),
                     {ok, _} = file:position(F, {bof, Length}),
                     ok = file:truncate(F),
-                    {ok, State#state{ file=F,
-                                       missing=lists:seq(0, PieceCount),
-                                       have=bitset:new(PieceCount) }}
+                    {ok, State#state{ file=F, missing=lists:seq(0, PieceCount-1) }}
             end
     end.
 
-
-%% verify a file
-verify_pieces(Index, State=#state{ info=#info{ num_pieces=Index }, missing=Missing }) ->
-    io:format("verify done. missing=~p~n", [Missing]),
-    {ok, State#state{ missing=ordsets:from_list(Missing)}};
-verify_pieces(Index, State=#state{ file=File, have=Have, missing=Missing, info=Info }) ->
+verify_piece(Index, File, Info) ->
     {ok, Data} = file:pread(File, piece_offset(Index, Info), piece_length(Index, Info)),
     case crypto:hash(sha, Data) == piece_sha(Index, Info) of
-        true  -> verify_pieces(Index+1, State#state{ have=bitset:set(Have, Index) });
-        false -> verify_pieces(Index+1, State#state{ missing=[Index|Missing] })
+        true  -> Index;
+        false -> []
     end.
 
 piece_sha(N, #info{ piece_hashes=Hashes }) ->

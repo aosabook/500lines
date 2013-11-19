@@ -48,6 +48,7 @@ start(TSock, Info, File, Have, Owner) ->
     {ok, PID}.
 
 init([Sock,Info,File,Have,Owner]) ->
+    random:seed(erlang:now()),
     Blocks = ets:new(torrent_blocks, [ordered_set]),
     {ok, #state{ blocks=Blocks, sock=Sock, info=Info, file=File, i_have=Have, owner=Owner }}.
 
@@ -56,7 +57,7 @@ handle_info(init, State=#state{ sock=Sock, i_have=BitSet }) ->
     Timer = erlang:start_timer(5000+random:uniform(10000), self(), ten_sec_timer),
     State1 = State#state{ timer =  Timer },
     ok = inet:setopts(Sock, [{active, once}, {packet, 4}]),
-    case bitset:is_empty(BitSet) of
+    case BitSet == [] of
         true  -> State3 = State1;
         false -> {ok, State3} = send({bitfield, BitSet},State1)
     end,
@@ -67,7 +68,7 @@ handle_info({tcp_closed, TSock}, State=#state{ sock=TSock}) ->
 
 handle_info({tcp, TSock, Packet}, State=#state{ sock=TSock, info=Info }) ->
     Message = torrent_protocol:decode_packet(Packet, Info),
-    io:format("~p received ~P~n", [self(), Message, 16]),
+    % io:format("~p received ~P~n", [self(), Message, 16]),
     {ok, State2} = handle_incoming(Message, State#state{ last_seen=os:timestamp() }),
     inet:setopts(TSock, [{active,once}]),
     do_work(State2);
@@ -82,7 +83,7 @@ handle_cast({have, Index}, State=#state{ want=Want, i_have=HereSet }) ->
         false -> {ok, State2} = send({have, Index}, State);
         true  -> {ok, State2} = cancel(Index, State)
     end,
-    do_work(State2#state{ i_have=bitset:set(HereSet, Index), want=ordsets:del_element(Index, Want) });
+    do_work(State2#state{ i_have=ordsets:add_element(Index, HereSet), want=ordsets:del_element(Index, Want) });
 
 handle_cast({download, Index}, State=#state{ info=Info }) ->
     {ok, State2} = send({interest, true}, State),
@@ -223,11 +224,11 @@ handle_incoming({choke, true}, State=#state{ inflight=InFlight, outq=QOut }) ->
 handle_incoming({choke, false}, State) ->
     {ok, State#state{ im_choked=false }};
 handle_incoming({bitfield, PeerHas}, State=#state{ i_have = IHave }) ->
-    Want = bitset:to_ordset( bitset:bit_andnot(PeerHas, IHave) ),
+    Want = ordsets:subtract(PeerHas, IHave),
     io:format("~p WANT: ~p~n", [self(), Want]),
     {ok, State#state{ want=Want }};
 handle_incoming({have, Index}, State=#state{ want=Want, outq=QOut, i_have = IHave }) ->
-    case bitset:is_set(IHave, Index) of
+    case ordsets:is_element(Index, IHave) of
       true  -> {ok, State};
       false -> (queue:len(QOut) < 10 * ?MAX_INFLIGHT_REQUESTS) andalso download(self(), Index),
                {ok, State#state{ want=ordsets:add_element(Index, Want) }}
