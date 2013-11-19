@@ -9,12 +9,13 @@
 -export([verify_piece/3]).
 
 -record(state, { info       :: #info{},
-                 peers = [] :: [{binary(), pid()}],
+                 peers = [] :: [pid()],
                  have = [],
                  file,
                  missing = [],
                  complete = false :: boolean(),
-                 tracker_timer
+                 tracker_timer,
+                 blocks :: ets:tid()
                  }).
 
 download(TorrentFile) ->
@@ -33,21 +34,19 @@ find(InfoHash) ->
         [] -> false
     end.
 
-new_peer(PID, Sock, PeerID) ->
-    gen_server:cast(PID, {new_peer, Sock, PeerID}).
-
 downloaded(PID, Index) ->
     gen_server:cast(PID, {downloaded, Index}).
 
 init([Info]) ->
     % erlang:process_flag(trap_exit, true),
-    true = ets:insert(torrent_owners, {Info#info.info_hash, self()}),
-    true = ets:insert(torrent_stats, {Info#info.info_hash, 0, 0}),
-    {ok, State=#state{ missing=Missing }} = init_download_file(#state{ info=Info }),
-    case Missing of
-      [] -> {stop, {shutdown, file_is_complete}};
-      _  -> track(started, State)
-    end.
+  Blocks = ets:new(torrent_blocks, [public,ordered_set]),
+  true = ets:insert(torrent_owners, {Info#info.info_hash, self()}),
+  true = ets:insert(torrent_stats, {Info#info.info_hash, 0, 0}),
+  {ok, State=#state{ missing=Missing }} = init_download_file(#state{ info=Info, blocks=Blocks }),
+  case Missing of
+    [] -> {stop, {shutdown, file_is_complete}};
+    _  -> track(started, State)
+  end.
 
 terminate(_Reason, #state{ info=Info }) ->
     ets:delete(torrent_owners, Info#info.info_hash),
@@ -55,21 +54,21 @@ terminate(_Reason, #state{ info=Info }) ->
 
 handle_call(_Call,_,State) -> {stop, {error, unexpected_call, _Call}, State}.
 
-handle_cast({new_peer, TSock, PeerID}, State=#state{ info=Info, have=Have, file=File }) ->
-    {ok, PeerPID} = torrent_peer:start(TSock, Info, File, Have, self()),
-    {noreply, State#state{ peers=orddict:store(PeerID, PeerPID, State#state.peers ) }};
 handle_cast({downloaded, Index}, State=#state{ info=Info, peers=Peers, have=Have, missing = Missing }) ->
-    [ torrent_peer:coordinator_have(PeerPID, Index) || {_,PeerPID} <- Peers ],
     Missing2 = ordsets:del_element(Index, Missing),
-    io:format("** got ~p, now have ~p / ~p, missing=~p~n", [Index, Info#info.num_pieces-ordsets:size(Missing), Info#info.num_pieces, Missing2]),
+    Have2 = ordsets:add_element(Index, Have),
+    io:format("**** got ~p, now have ~p / ~p~n", [Index, ordsets:size(Have2), Info#info.num_pieces]),
     case Missing2 == [] of
-      true  -> {stop, {shutdown, file_is_complete}, State};
-      false -> {noreply, State#state{ have = ordsets:add_element(Index, Have), missing = Missing2}}
+      true  -> [ erlang:exit(PeerPID, shutdown) || PeerPID <- Peers ],
+               io:format("download done!~n"),
+               {stop, {shutdown, file_is_complete}, State};
+      false -> [ torrent_peer:coordinator_have(PeerPID, Index) || PeerPID <- Peers ],
+               {noreply, State#state{ have = Have2, missing = Missing2}}
     end.
 
-handle_info({'EXIT', PID, _}, State) ->
-  %% peer died?
-  {ok, State#state{ peers=lists:keydelete(PID, 2, State#state.peers) }};
+handle_info({'DOWN', _, process, PID, Info}, State) ->
+    io:format("peer ~p died ~p~n", [PID, Info]),
+    {noreply, State#state{ peers=lists:delete(PID, State#state.peers) }};
 
 handle_info(update_tracker, State) ->
     {ok, State2} = track(empty, State),
@@ -101,48 +100,37 @@ track(Event, State=#state{ info=#info{ piece_length=PieceLength, tracker_url=Tra
                         {ok, Interval} -> Timer=erlang:send_after(Interval * 1000, self(), update_tracker);
                         false          -> Timer=none
                     end,
-                    case catch connect_peers(ClientID, InfoHash, bencode:get(Response, <<"peers">>)) of
-                        Res -> io:format("~p -> ~p", [self(), Res])
-                    end,
-                    {ok, State#state{ tracker_timer=Timer }}
+                    case connect_peers(ClientID, State, bencode:get(Response, <<"peers">>)) of
+                        Peers -> {ok, State#state{ tracker_timer=Timer, peers=Peers }}
+                    end
             end;
         Error ->
             io:format("error ~p~n", [Error]),
             exit(tracker)
     end.
 
-connect_peers(ClientID, InfoHash, Peers) when is_binary(Peers) ->
-  [ connect({H3,H2,H1,H0}, Port, ClientID, InfoHash) || <<H3,H2,H1,H0,Port:16>> <= Peers ];
-connect_peers(ClientID, InfoHash, Peers) ->
+connect_peers(ClientID, State, Peers) when is_binary(Peers) ->
+  [ connect({H3,H2,H1,H0}, Port, ClientID, State) || <<H3,H2,H1,H0,Port:16>> <= Peers ];
+connect_peers(ClientID, State, Peers) ->
   [ connect(binary_to_list(bencode:get(Peer, <<"ip">>)),
-    bencode:get(Peer, <<"port">>), ClientID, InfoHash) || Peer <- Peers].
+    bencode:get(Peer, <<"port">>), ClientID, State) || Peer <- Peers].
 
-connect(Host, Port, ClientID, InfoHash) ->
-    Owner = self(),
-  proc_lib:spawn( fun() ->
-    case torrent_protocol:connect(Host, Port, ClientID, InfoHash)
-    of
-        {ok, {Sock, PeerID}} ->
-            io:format("~p connected to ~p ~p~n", [self(), Sock, erlang:port_info(Sock)]),
-            ok = gen_tcp:controlling_process(Sock, Owner),
-            new_peer(Owner, Sock, PeerID);
-        {error, _Error} ->
-            io:format("did not connected to ~p:~p => ~p~n", [Host, Port, _Error]),
-            ok
-    end
-                      end).
+connect(Host, Port, ClientID, #state{ info=Info, file=File, have=Have, blocks=Blocks }) ->
+  PID = torrent_peer:start(Host, Port, ClientID, Info, File, Have, Blocks, self()),
+  _ = erlang:monitor(process, PID),
+  PID.
 
 read_torrent_file(TorrentFileName) ->
     {ok, TorrentData} = file:read_file(TorrentFileName),
     {ok, TorrentDict} = bencode:decode(TorrentData),
-    {ok, InfoDict}    = bencode:find(TorrentDict, <<"info">>),
+    {ok, InfoDict}    = bencode:find(TorrentDict, info),
     {ok, Encoded}     = bencode:encode(InfoDict),
-    {ok, Length}      = bencode:find(InfoDict, <<"length">>),
-    {ok, Name}        = bencode:find(InfoDict, <<"name">>),
+    {ok, Length}      = bencode:find(InfoDict, length),
+    {ok, Name}        = bencode:find(InfoDict, name),
     FileName          = unicode:characters_to_list(Name, utf8),
-    {ok, PieceLength} = bencode:find(InfoDict, <<"piece length">>),
-    {ok, PieceHashes} = bencode:find(InfoDict, <<"pieces">>),
-    {ok, TrackerURL}  = bencode:find(TorrentDict, <<"announce">>),
+    {ok, PieceLength} = bencode:find(InfoDict, 'piece length'),
+    {ok, PieceHashes} = bencode:find(InfoDict, pieces),
+    {ok, TrackerURL}  = bencode:find(TorrentDict, announce),
     PieceCount = byte_size(PieceHashes) div 20,
     InfoHash          = crypto:hash(sha, Encoded),
     #info{ info_hash=InfoHash, tracker_url=TrackerURL, name=FileName,

@@ -2,7 +2,8 @@
 
 -behavior(gen_server).
 
--export([init/1, handle_info/2, handle_cast/2, start/5, terminate/2]).
+-export([handle_info/2, handle_cast/2, terminate/2]).
+-export([init/4, start/8]).
 -export([download/2, coordinator_have/2]).
 
 -include("torrent.hrl").
@@ -41,37 +42,32 @@ coordinator_have(PeerPID, Index) -> gen_server:cast(PeerPID, {have, Index}).
 
 %% gen_server logic
 
-start(TSock, Info, File, Have, Owner) ->
-    {ok, PID} = gen_server:start(?MODULE, [TSock,Info,File,Have,Owner], []),
-    gen_tcp:controlling_process(TSock, PID),
-    PID ! init,
-    {ok, PID}.
+start(Host, Port, ClientID, Info, File, Have, Blocks, Owner) ->
+  proc_lib:spawn(?MODULE, init, [Host, Port, ClientID,
+    #state{ info=Info, file=File, i_have=Have, owner=Owner, blocks=Blocks }]).
 
-init([Sock,Info,File,Have,Owner]) ->
-    random:seed(erlang:now()),
-    Blocks = ets:new(torrent_blocks, [ordered_set]),
-    {ok, #state{ blocks=Blocks, sock=Sock, info=Info, file=File, i_have=Have, owner=Owner }}.
-
-handle_info(init, State=#state{ sock=Sock, i_have=BitSet }) ->
-    %% initialize
-    Timer = erlang:start_timer(5000+random:uniform(10000), self(), ten_sec_timer),
-    State1 = State#state{ timer =  Timer },
-    ok = inet:setopts(Sock, [{active, once}, {packet, 4}]),
-    case BitSet == [] of
-        true  -> State3 = State1;
-        false -> {ok, State3} = send({bitfield, BitSet},State1)
-    end,
-    do_work(State3);
-
-handle_info({tcp_closed, TSock}, State=#state{ sock=TSock}) ->
-    {stop, normal, State};
+init(Host, Port, ClientID, State0=#state{ info=Info, i_have=Have }) ->
+  {ok, {Sock, PeerID}} = torrent_protocol:connect(Host, Port, ClientID, Info#info.info_hash),
+  random:seed(erlang:now()),
+  Timer = erlang:start_timer(5000+random:uniform(10000), self(), ten_sec_timer),
+  State = State0#state{ sock=Sock, timer=Timer },
+  ok = inet:setopts(Sock, [{active, once}, {packet, 4}]),
+  case Have == [] of
+    true  -> State2 = State;
+    false -> {ok, State2} = send({bitfield, Have}, State)
+  end,
+  {_, State3} = do_work(State2),
+  gen_server:enter_loop(?MODULE, [], State3).
 
 handle_info({tcp, TSock, Packet}, State=#state{ sock=TSock, info=Info }) ->
-    Message = torrent_protocol:decode_packet(Packet, Info),
-    % io:format("~p received ~P~n", [self(), Message, 16]),
-    {ok, State2} = handle_incoming(Message, State#state{ last_seen=os:timestamp() }),
-    inet:setopts(TSock, [{active,once}]),
-    do_work(State2);
+  Message = torrent_protocol:decode_packet(Packet, Info),
+  {ok, State2} = handle_incoming(Message, State#state{ last_seen=os:timestamp() }),
+  inet:setopts(TSock, [{active,once}]),
+  do_work(State2);
+handle_info({tcp_closed, TSock}, State=#state{ sock=TSock}) ->
+  {stop, {shutdown, tcp_closed}, State};
+handle_info({tcp_error, TSock, _Reason}, State=#state{ sock=TSock}) ->
+  {stop, {shutdown, {tcp_error, _Reason}}, State};
 
 handle_info({timeout, _, ten_sec_timer}, State=#state{ upload_allowance=Rest, upload_bps=DataPerSecond }) ->
     Timer = erlang:start_timer(10000, self(), ten_sec_timer),
@@ -80,22 +76,23 @@ handle_info({timeout, _, ten_sec_timer}, State=#state{ upload_allowance=Rest, up
 
 handle_cast({have, Index}, State=#state{ want=Want, i_have=HereSet }) ->
     case ordsets:is_element(Index, Want) of
-        false -> {ok, State2} = send({have, Index}, State);
-        true  -> {ok, State2} = cancel(Index, State)
+      true  -> {ok, State2} = cancel(Index, State);
+        false -> {ok, State2} = send({have, Index}, State)
     end,
     do_work(State2#state{ i_have=ordsets:add_element(Index, HereSet), want=ordsets:del_element(Index, Want) });
 
-handle_cast({download, Index}, State=#state{ info=Info }) ->
-    {ok, State2} = send({interest, true}, State),
+handle_cast({download, Index}, State=#state{ im_interested=AlreadyInterested, info=Info }) ->
+    case AlreadyInterested of true->State2=State; false->{ok, State2}=send({interest, true}, State) end,
     PieceLength = torrent_file:piece_length(Index, Info),
     Offsets0 = lists:seq(0, PieceLength-1, ?BLOCK_SIZE),
-    io:format("~p downloading ~p; length=~p; blocks=~p~n", [self(), Index, PieceLength, length(Offsets0)]),
+    {Head, Tail} = lists:split(random:uniform(length(Offsets0)), Offsets0),
+%    io:format("~p downloading ~p; length=~p; blocks=~p~n", [self(), Index, PieceLength, length(Offsets0)]),
     QOut2 = lists:foldl(fun(Offset,Q) ->
                                Length = min(?BLOCK_SIZE, PieceLength-Offset),
                                queue:in({request, Index, Offset, Length}, Q)
                        end,
                        State2#state.outq,
-                       Offsets0),
+                       Tail ++ Head),
     do_work(State2#state{ outq=QOut2 }).
 
 terminate(_Reason, _State) ->
@@ -104,7 +101,8 @@ terminate(_Reason, _State) ->
 
 %% Internal functions
 
-cancel(Index, State=#state{ inflight = InFlight }) ->
+cancel(Index, State=#state{ inflight=InFlight, blocks=Blocks, info=Info }) ->
+  ets:match_delete(Blocks, {{Info#info.info_hash, Index, '_'}, '_'}),
   ToCancel = ordsets:filter(fun({request, I, _, _}) -> I==Index end, InFlight),
   {ok, State1} = ordsets:fold(fun({request, I, O, L}, {ok, State0}) -> send({cancel, I, O, L}, State0) end,
     {ok, State},
@@ -124,6 +122,7 @@ do_work(State) ->
 request_work(State=#state{ outq=QOut, inflight=InFlight, want=Want }) ->
     case (Want /= []) andalso (queue:len(QOut) + ordsets:size(InFlight)) < ?MAX_INFLIGHT_REQUESTS of
         true ->
+%            io:format("~p #want=~p, #qout=~p, #inflight=~p~n", [self(), length(Want), queue:len(QOut), length(InFlight)]),
             download(self(), lists:nth( random:uniform(length(Want)) , Want)),
             {ok, State};
         false ->
@@ -191,29 +190,15 @@ send_replies(State=#state{ inq=Q,
 send_replies(State) ->
     {ok, State}.
 
-send(Msg, State) ->
- %io:format("~p sending ~p~n", [self(), Msg]),
- send1(Msg, State).
-
-send1({interest, Interest}, State=#state{ im_interested=Interest }) ->
-    {ok, State};
-send1({interest, Interest}=Message, State=#state{ sock=Sock, info=Info }) ->
+send({interest, Interest}=Message, State=#state{ sock=Sock, info=Info }) ->
     ok = gen_tcp:send(Sock, torrent_protocol:encode_packet(Message, Info)),
     {ok, State#state{ im_interested=Interest }};
-send1({choke, Choke}, State=#state{ peer_is_choked=Choke }) ->
-    {ok, State};
-send1({choke, Choke}=Message, State=#state{ sock=Sock, info=Info }) ->
+send({choke, Choke}=Message, State=#state{ sock=Sock, info=Info }) ->
     ok = gen_tcp:send(Sock, torrent_protocol:encode_packet(Message, Info)),
     {ok, State#state{ peer_is_choked=Choke }};
-send1({request, _, _, _}=Message, State=#state{ im_interested=false, im_choked=Choked }) ->
-    Choked = false, %% assertion
-    {ok, State2} = send({interest, true}, State),
-    send(Message, State2);
-send1(Message, State=#state{ sock=Sock, info=Info }) ->
+send(Message, State=#state{ sock=Sock, info=Info }) ->
     ok = gen_tcp:send(Sock, torrent_protocol:encode_packet(Message, Info)),
     {ok, State}.
-
-
 
 %% Handle incoming traffic
 
@@ -225,12 +210,11 @@ handle_incoming({choke, false}, State) ->
     {ok, State#state{ im_choked=false }};
 handle_incoming({bitfield, PeerHas}, State=#state{ i_have = IHave }) ->
     Want = ordsets:subtract(PeerHas, IHave),
-    io:format("~p WANT: ~p~n", [self(), Want]),
     {ok, State#state{ want=Want }};
 handle_incoming({have, Index}, State=#state{ want=Want, outq=QOut, i_have = IHave }) ->
     case ordsets:is_element(Index, IHave) of
       true  -> {ok, State};
-      false -> (queue:len(QOut) < 10 * ?MAX_INFLIGHT_REQUESTS) andalso download(self(), Index),
+      false -> case (queue:len(QOut) < 10 * ?MAX_INFLIGHT_REQUESTS) of true -> download(self(), Index); _ -> ok end,
                {ok, State#state{ want=ordsets:add_element(Index, Want) }}
     end;
 handle_incoming({cancel, Index, Offset, Length}, State=#state{ inq=QIn }) ->
@@ -239,11 +223,11 @@ handle_incoming({cancel, Index, Offset, Length}, State=#state{ inq=QIn }) ->
 handle_incoming({block, Index, Offset, Data},
                 State=#state{ blocks=Blocks, owner=Owner, file=File, info=Info, inflight=InFlight }) ->
     ets:update_counter(torrent_stats, Info#info.info_hash, {2, byte_size(Data)}),
-    true = ets:insert(Blocks,{{Index,Offset},Data}),
-    PieceData = ets:match(Blocks, {{Index,'_'}, '$1'}),
+    true = ets:insert(Blocks,{{Info#info.info_hash,Index,Offset},Data}),
+    PieceData = ets:match(Blocks, {{Info#info.info_hash,Index,'_'}, '$1'}),
     case iolist_size(PieceData) == torrent_file:piece_length(Index, Info) of
       true ->
-        ets:match_delete(Blocks, {{Index,'_'}, '_'}),
+        ets:match_delete(Blocks, {{Info#info.info_hash,Index,'_'}, '_'}),
         case torrent_file:piece_sha(Index, Info) == crypto:hash(sha, PieceData) of
           true  -> file:pwrite(File, torrent_file:piece_offset(Index, Info), PieceData),
             io:format("~p ** completed ~p~n", [self(), Index]),
