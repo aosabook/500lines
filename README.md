@@ -42,6 +42,14 @@ Contributors
     <td>dustin@mozila.com</td>
   </tr>
   <tr>
+    <td>Audrey Tang</td>
+    <td>g0v.tw, Socialtext, Apple</td>
+    <td>spreadsheet</td>
+    <td>@audreyt</td>
+    <td>@audreyt</td>
+    <td>audreyt@audreyt.org</td>
+  </tr>
+  <tr>
     <td>Greg Wilson</td>
     <td>Mozilla</td>
     <td>web-server</td>
