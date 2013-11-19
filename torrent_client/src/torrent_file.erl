@@ -63,7 +63,7 @@ handle_cast({downloaded, Index}, State=#state{ info=Info, peers=Peers, have=Have
     Missing2 = ordsets:del_element(Index, Missing),
     io:format("** got ~p, now have ~p / ~p, missing=~p~n", [Index, Info#info.num_pieces-ordsets:size(Missing), Info#info.num_pieces, Missing2]),
     case Missing2 == [] of
-      true  -> {stop, {shutdown, file_is_complete}};
+      true  -> {stop, {shutdown, file_is_complete}, State};
       false -> {noreply, State#state{ have = ordsets:add_element(Index, Have), missing = Missing2}}
     end.
 
