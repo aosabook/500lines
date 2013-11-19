@@ -5,7 +5,7 @@
 
 -behavior(gen_server).
 -export([init/1,terminate/2,handle_call/3,handle_cast/2,handle_info/2]).
--export([download/1,downloaded/2,find/1,piece_offset/2,piece_sha/2,piece_length/2]).
+-export([download/1,downloaded/2,piece_offset/2,piece_sha/2,piece_length/2]).
 -export([verify_piece/3]).
 
 -record(state, { info       :: #info{},
@@ -21,17 +21,11 @@
 download(TorrentFile) ->
     ok = application:ensure_started(torrent_client),
     Info = read_torrent_file(TorrentFile),
-    case torrent_file:find(Info#info.info_hash) of
-        {ok, PID} ->
+    case gproc:lookup_pids({n,l,Info#info.info_hash}) of
+        [PID] ->
             {ok, PID};
-        false ->
+        [] ->
             gen_server:start_link(?MODULE, [Info], [])
-    end.
-
-find(InfoHash) ->
-    case ets:lookup(torrent_owners, InfoHash) of
-        [{InfoHash,PID}] -> {ok, PID};
-        [] -> false
     end.
 
 downloaded(PID, Index) ->
@@ -39,8 +33,8 @@ downloaded(PID, Index) ->
 
 init([Info]) ->
     % erlang:process_flag(trap_exit, true),
+  gproc:add_local_name(Info#info.info_hash),
   Blocks = ets:new(torrent_blocks, [public,ordered_set]),
-  true = ets:insert(torrent_owners, {Info#info.info_hash, self()}),
   true = ets:insert(torrent_stats, {Info#info.info_hash, 0, 0}),
   {ok, State=#state{ missing=Missing }} = init_download_file(#state{ info=Info, blocks=Blocks }),
   case Missing of
@@ -49,7 +43,6 @@ init([Info]) ->
   end.
 
 terminate(_Reason, #state{ info=Info }) ->
-    ets:delete(torrent_owners, Info#info.info_hash),
     ok.
 
 handle_call(_Call,_,State) -> {stop, {error, unexpected_call, _Call}, State}.

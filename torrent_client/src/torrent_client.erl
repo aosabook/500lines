@@ -14,14 +14,14 @@ start() ->
   application:start(torrent_client).
 
 start_link() ->
-  ok = application:ensure_started(inets),
-  ok = application:ensure_started(crypto),
+    ok = application:ensure_started(inets),
+    ok = application:ensure_started(crypto),
+    ok = application:ensure_started(gproc),
     proc_lib:start_link(?MODULE, init, [self()]).
 
 init(Caller) ->
     erlang:register(torrent_client, self()),
 
-    ets:new(torrent_owners, [public,named_table]),
     ets:new(torrent_stats,  [public,named_table]),
 
     Rand = crypto:rand_bytes(12),
