@@ -36,6 +36,23 @@ they should discuss the decisions and tradeoffs software architects make when cr
 *   When should the application allow for or rely on plugins,
     and how should they be configured and loaded?
 
+Contribution Guidelines
+-----------------------
+
+Writing for a book like this should be fun, so we're trying to keep process to
+minimum. Here is our basic set of procedural guidelines:
+
+1. When you start coding, try to submit one pull request early (e.g. somewhere
+   between 50-100 lines), so that we can catch any early problems that we never
+   thought about.
+
+2. After that first commit, feel free to submit pull requests as often or as
+   infrequently as you like.
+
+3. When you are done your "first draft" of your code, do let us know in the
+   commit message, or by emailing us directly (emails below). We'll assign a
+   reviewer or two to your work at that time.
+
 Contributors
 ------------
 
