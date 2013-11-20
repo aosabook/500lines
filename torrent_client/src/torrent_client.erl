@@ -2,7 +2,10 @@
 
 -include("torrent.hrl").
 
--export([start_link/0, client_info/0, init/1, start/0]).
+-export([start_link/0, client_info/0, init/1, start/0, download/1]).
+
+download(TorrentFile) ->
+  torrent_owner:download(TorrentFile).
 
 client_info() ->
   {ok, PeerID} = application:get_env(torrent_client, peer_id),
@@ -51,9 +54,9 @@ init_socket(IP,Port) ->
     end.
 
 accept_loop(ListenSock, ClientID) ->
-    case torrent_protocol:accept(ListenSock, ClientID, fun(InfoHash)-> torrent_file:find(InfoHash) end) of
+    case torrent_protocol:accept(ListenSock, ClientID, fun(InfoHash)-> torrent_owner:find(InfoHash) end) of
         {ok, {TSock, FilePID, PeerID}} ->
             gen_tcp:controlling_process(TSock, FilePID),
-            torrent_file:new_peer(FilePID, TSock, PeerID),
+            torrent_owner:new_peer(FilePID, TSock, PeerID),
             accept_loop(ListenSock, ClientID)
     end.

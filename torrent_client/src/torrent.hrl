@@ -1,5 +1,5 @@
 
--record(info, { tracker_url  :: string(),
+-record(torrent_info, { tracker_url  :: binary(),
                 info_hash    :: binary(),
                 name         :: string(),
                 piece_length :: pos_integer(),
@@ -12,6 +12,4 @@
                   ip         :: inet:ip_address(),
                   port       :: inet:port_number() }).
 
--define(MAX_INFLIGHT_REQUESTS, 20).
 -define(BLOCK_SIZE, (1 bsl 14)).
--define(UPLOAD_BYTES_PER_SECOND, 1024 * 50).
