@@ -97,4 +97,12 @@ Contributors
     <td>@gvwilson</td>
     <td>gvwilson@third-bit.com</td>
   </tr>
+  <tr>
+    <td>Kresten Krab Thorup</td>
+    <td>Trifork</td>
+    <td>torrent client</td>
+    <td>@krestenkrab</td>
+    <td>@drkrab</td>
+    <td>krab@trifork.com</td>
+  </tr>
 </table>
