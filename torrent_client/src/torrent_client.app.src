@@ -7,6 +7,6 @@
                   kernel,
                   stdlib
                  ]},
-  {mod, { torrent_client_app, []}},
+  {mod, { torrent_client, []}},
   {env, []}
  ]}.

@@ -10,9 +10,9 @@
 -include_lib("plain_fsm/include/plain_fsm.hrl").
 
 -record(state, {
-          owner                                :: pid(),
+          manager                              :: pid(),
           sock                                 :: undefined|gen_tcp:socket(),
-          blocks                               :: ets:tid(),
+          blocks_tab                           :: ets:tid(),
           info                                 :: #torrent_info{},
           file                                 :: file:io_device(),
           im_choked           = true           :: boolean(),
@@ -28,7 +28,7 @@
           timer                                :: reference()
 }).
 
--define(MAX_INFLIGHT_REQUESTS, 20).
+-define(MAX_INFLIGHT_REQUESTS, 30).
 -define(UPLOAD_BYTES_PER_SECOND, 1024 * 50).
 
 %% API
@@ -39,9 +39,9 @@ piece_finished(PeerPID, Index) -> PeerPID ! {finished, Index}.
 
 code_change(_OldVsn, State, _Extra) -> {ok, State, [{cont, fun main_loop/1}]}.
 
-start(Host, Port, ClientID, Info, File, Have, Blocks, Owner) ->
+start(Host, Port, ClientID, Info, File, Have, Blocks, Manager) ->
   plain_fsm:spawn(?MODULE, fun()-> init(Host, Port, ClientID,
-    #state{ info=Info, file=File, have=Have, owner=Owner, blocks=Blocks} ) end).
+    #state{ info=Info, file=File, have=Have, manager=Manager, blocks_tab=Blocks} ) end).
 
 init(Host, Port, ClientID, State0=#state{ info=Info=#torrent_info{ info_hash=InfoHash }, have=Have }) ->
   erlang:process_flag(trap_exit, true),
@@ -66,10 +66,9 @@ main_loop(State=#state{ sock=Sock, info=Info, upload_allowance=Allowance, want=W
   Parent = plain_fsm:info(parent),
   receive
     {tcp, Sock, Packet} ->
-      Message = torrent_protocol:decode_packet(Packet, Info),
-      {ok, State2} = handle_incoming(Message, State),
-      inet:setopts(Sock, [{active,once}]),
-      do_work(State2);
+       Message = torrent_protocol:decode_packet(Packet, Info),
+       inet:setopts(Sock, [{active,once}]),
+       handle_incoming(Message, State);
     {tcp_closed, Sock} ->
       exit({shutdown, tcp_closed});
     {tcp_error, Sock, Reason} ->
@@ -101,7 +100,7 @@ do_work(State) ->
   {ok, State5} = send_replies(State4),
   main_loop(State5).
 
-cancel(Index, State=#state{ inflight=InFlight, blocks=Blocks, info=Info }) ->
+cancel(Index, State=#state{ inflight=InFlight, blocks_tab=Blocks, info=Info }) ->
   ets:match_delete(Blocks, {{Info#torrent_info.info_hash, Index, '_'}, '_'}),
   ToCancel = ordsets:filter(fun({request, I, _, _}) -> I==Index end, InFlight),
   {ok, State1} = ordsets:fold(fun({request, I, O, L}, {ok, State0}) -> send({cancel, I, O, L}, State0) end,
@@ -195,54 +194,55 @@ send(Message, State=#state{ sock=Sock, info=Info }) ->
 
 %% Handle incoming traffic
 
-handle_incoming({interest, Bool}, State) ->
-  {ok, State#state{ peer_is_interested=Bool }};
-handle_incoming({choke, true}, State=#state{ inflight=InFlight, outq=OutQ }) ->
-  {ok, State#state{ im_choked=true, inflight=[], outq=ordsets:fold(fun queue:in_r/2, OutQ, InFlight)  }};
-handle_incoming({choke, false}, State) ->
-  {ok, State#state{ im_choked=false }};
-handle_incoming({bitfield, PeerHave}, State=#state{ have = Have }) ->
-  Want = ordsets:subtract(PeerHave, Have),
-  {ok, State#state{ want=Want }};
-handle_incoming({have, Index}, State=#state{ want=Want, have=Have }) ->
-  case ordsets:is_element(Index, Have) of
-    true  -> {ok, State};
-    false -> request_piece(Index, State#state{ want=ordsets:add_element(Index, Want) })
-  end;
-handle_incoming({cancel, Index, Offset, Length}, State=#state{ inq=QIn }) ->
-  QIn2 = queue:filter(fun({request, I, O, L}) when I==Index, O==Offset, L==Length -> false; (_) -> true end, QIn),
-  {ok, State#state{ inq=QIn2 }};
-handle_incoming({block, Index, Offset, Data},
-    State=#state{ blocks=Blocks, owner=Owner, file=File, info=Info, inflight=InFlight, want=Want }) ->
-  BlockLength = byte_size(Data),
-  InfoHash = Info#torrent_info.info_hash,
-  State2 = State#state{ inflight=ordsets:del_element({request,Index,Offset,BlockLength}, InFlight) },
-  gproc:update_counter({c,l,{InfoHash, download}}, BlockLength),
-  true = ets:insert(Blocks,{{InfoHash,Index,Offset},Data}),
-  PieceData = ets:match(Blocks, {{InfoHash,Index,'_'}, '$1'}),
-  case iolist_size(PieceData) == torrent_file:piece_length(Index, Info) of
-    true ->
-      ets:match_delete(Blocks, {{InfoHash,Index,'_'}, '_'}),
-      case torrent_file:piece_sha(Index, Info) == crypto:hash(sha, PieceData) of
-        true  ->
-          file:pwrite(File, torrent_file:piece_offset(Index, Info), PieceData),
-          torrent_owner:downloaded(Owner, Index),
-          {ok, State2#state{ want=ordsets:del_element(Index, Want) }};
-        false ->
-          io:format("~p ** BAD! ~p~n", [self(), Index]),
-          {ok, State2}
-      end;
-    false ->
-      {ok, State2}
-  end;
-handle_incoming({request, _, _, _}, State=#state{ peer_is_choked=true }) ->
-  io:format("~p ignored incoming request~n", [self()]),
-  {ok, State}; % ignore
-handle_incoming({request, _, _, _}=Request, State=#state{ inq=InQ }) ->
-  io:format("~p received ~p~n", [self(), Request]),
-  {ok, State#state{ inq=queue:in(Request, InQ) }};
-handle_incoming(keep_alive, State) ->
-  {ok, State};
-handle_incoming({extended, _, _}, State) ->
-  {ok, State}.
+handle_incoming(Message, State=#state{ inflight=InFlight, inq=InQ, outq=OutQ, have=IHave, want=Want, info=Info }) ->
+    State3 =
+    case Message of
+        {interest, IsInterested} ->
+            State#state{ peer_is_interested=IsInterested };
+        {choke, true}  ->
+            State#state{ im_choked=true, inflight=[], outq=ordsets:fold(fun queue:in_r/2, OutQ, InFlight) };
+        {choke, false} ->
+            State#state{ im_choked=false };
+        {bitfield, PeerHave} ->
+            State#state{ want=ordsets:subtract(PeerHave, IHave) };
+        {have, Index} ->
+            case ordsets:is_element(Index, IHave) of
+                true  -> State;
+                false -> {ok, S} = request_piece(Index, State#state{ want=ordsets:add_element(Index, Want) }), S
+            end;
+        {request, _, _, _} when State#state.peer_is_choked ->
+            State; % ignore
+        {request, _, _, _}=Req ->
+            State#state{ inq=queue:in(Req, InQ) };
+        {cancel, Index, Offset, Length} ->
+            State#state{ inq=queue:filter(fun(Req) -> Req =/= {request, Index, Offset, Length} end, InQ)};
+        {block, Index, Offset, Data} ->
+            BlockTab = State#state.blocks_tab,
+            BlockLength = byte_size(Data),
+            InfoHash = Info#torrent_info.info_hash,
+            State2 = State#state{ inflight=ordsets:del_element({request,Index,Offset,BlockLength}, InFlight) },
+            gproc:update_counter({c,l,{InfoHash, download}}, BlockLength),
+                true = ets:insert(BlockTab,{{InfoHash,Index,Offset},Data}),
+            PieceData = ets:match(BlockTab, {{InfoHash,Index,'_'}, '$1'}),
+            case iolist_size(PieceData) == torrent_file:piece_length(Index, Info) of
+                true ->
+                    ets:match_delete(BlockTab, {{InfoHash,Index,'_'}, '_'}),
+                    case torrent_file:piece_sha(Index, Info) == crypto:hash(sha, PieceData) of
+                        true  ->
+                            file:pwrite(State#state.file, torrent_file:piece_offset(Index, Info), PieceData),
+                            torrent_client:downloaded(State#state.manager, Index),
+                            State2#state{ want=ordsets:del_element(Index, Want) };
+                        false ->
+                            io:format("~p ** BAD! ~p~n", [self(), Index]),
+                            State2
+                    end;
+                false ->
+                    State2
+            end;
+        keep_alive ->
+            State;
+        {extended, _, _} ->
+            State
+    end,
+    do_work(State3).
 

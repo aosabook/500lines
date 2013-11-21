@@ -54,10 +54,10 @@ decode_packet(<<20,Msg,Payload/binary>>, _Info) -> {ok, Dict} = bencode:decode(P
 
 encode_packet({choke, true}, _Info)       -> <<0>>;
 encode_packet({choke, false}, _Info)      -> <<1>>;
-encode_packet({interest, true}, _Info)  -> <<2>>;
-encode_packet({interest, false}, _Info) -> <<3>>;
+encode_packet({interest, true}, _Info)    -> <<2>>;
+encode_packet({interest, false}, _Info)   -> <<3>>;
 encode_packet({have, Index}, _Info)       -> <<4, Index:32>>;
-encode_packet({bitfield, BitSet}, Info)  -> [5, ordset_to_binary(BitSet, Info#torrent_info.num_pieces)];
+encode_packet({bitfield, BitSet}, Info)   -> [5, ordset_to_binary(BitSet, Info#torrent_info.num_pieces)];
 encode_packet({request, Index, Offset, Length}, _Info) -> <<6,Index:32,Offset:32,Length:32>>;
 encode_packet({block, Index, Offset, Data}, _Info) -> [<<7,Index:32,Offset:32>>, Data];
 encode_packet({cancel, Index, Offset, Length}, _Info) -> <<8,Index:32,Offset:32,Length:32>>;
