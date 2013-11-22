@@ -21,7 +21,7 @@ class Client(object):
 
 
 def sequence_generator(state, input):
-    return state+input, range(state, state+input)
+    return state + input, range(state, state + input)
 
 
 if __name__ == "__main__":

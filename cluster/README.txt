@@ -5,6 +5,8 @@ Requirements: Python
 This directory holds a simple implementation of a replicated state machine
 that can also feed clients information on cluster membership.
 
-* aa_statemachine.py -- illustrates the state machine client API
-* bb_network.py -- introduces a network of communicating processors
-* cc_replicated.py -- a replicated state machine with consensus and a fixed membership
+* statemachine.py -- illustrates the state machine client API
+* network.py -- handles network communication
+* client.py -- a simple client
+* member_single.py -- a non-clustered member server, talking to the client
+* member_replicated.py -- a replicated state machine with consensus and a fixed membership
