@@ -43,10 +43,10 @@ Contributors
   </tr>
   <tr>
     <td>Taavi Burns</td>
-    <td>Human</td>
+    <td>Points.com</td>
     <td>data-store</td>
     <td>@taavi</td>
     <td>@jaaaarel</td>
-    <td></td>
+    <td>taavi.burns@points.com</td>
   </tr>
 </table>
