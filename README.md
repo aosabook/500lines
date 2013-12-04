@@ -105,4 +105,12 @@ Contributors
     <td>@drkrab</td>
     <td>krab@trifork.com</td>
   </tr>
+  <tr>
+    <td>Taavi Burns</td>
+    <td>Points.com</td>
+    <td>data-store</td>
+    <td>@taavi</td>
+    <td>@jaaaarel</td>
+    <td>taavi.burns@points.com</td>
+  </tr>
 </table>
