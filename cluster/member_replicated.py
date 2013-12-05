@@ -3,7 +3,8 @@ import sys
 import uuid
 import random
 import logging
-from member_single import Member, sequence_generator
+from member_single import Member
+from statemachine import sequence_generator
 
 # Fix in final copy:
 #  - include repeated classes

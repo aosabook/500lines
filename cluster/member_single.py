@@ -1,6 +1,6 @@
-import sys
 import logging
 from network import Node
+from statemachine import sequence_generator
 
 # Remove from final copy:
 #  - logging
@@ -22,10 +22,6 @@ class Member(Node):
 
     def do_INVOKE(self, input, caller):
         self.send([caller], 'INVOKED', output=self.invoke(input))
-
-
-def sequence_generator(state, input):
-    return state + input, range(state, state + input)
 
 
 if __name__ == "__main__":
