@@ -1,9 +1,8 @@
-from flufl.enum import Enum
 import sys
-import uuid
-import random
 import logging
-from member_single import Member
+import deterministic_network
+import unittest
+from collections import namedtuple, defaultdict
 from statemachine import sequence_generator
 
 # Fix in final copy:
@@ -12,36 +11,10 @@ from statemachine import sequence_generator
 #  - remove logging stuff
 
 
-def log_acceptor_state(fn):
-    def wrap(self, **kwargs):
-        round = kwargs['round']
-        rv = fn(self, **kwargs)
-        self.logger.debug("ACCEPTOR STATE@%d - %r" % (round, dict(
-            last_accept=self.last_accepts[round],
-            promise=self.promises[round])))
-        return rv
-    return wrap
-
-
-def log_proposer_state(fn):
-    def wrap(self, **kwargs):
-        rv = fn(self, **kwargs)
-        for round in range(0, len(self.values)):
-            self.logger.debug("PROPOSER STATE@%d - %r" % (round, dict(
-                active_proposal=self.active_proposals[round])))
-        return rv
-    return wrap
-
-
-def log_learner_state(fn):
-    def wrap(self, **kwargs):
-        round = kwargs['round']
-        rv = fn(self, **kwargs)
-        self.logger.debug("LEARNER STATE@%d - %r" % (round, dict(
-            accept_reqs_by_n=self.accept_reqs_by_n[round],
-            values=self.values[round])))
-        return rv
-    return wrap
+Proposal = namedtuple('Proposal', ['caller', 'cid', 'input'])
+Ballot = namedtuple('Ballot', ['n', 'leader'])
+ScoutId = namedtuple('ScoutId', ['address', 'ballot_num'])
+CommanderId = namedtuple('CommanderId', ['address', 'slot', 'proposal'])
 
 
 class defaultlist(list):
@@ -57,180 +30,330 @@ class defaultlist(list):
         list.__setitem__(self, i, v)
 
 
-Modes = Enum('Modes', ('Initialized', 'Joining', 'Active'))
+class Replica(deterministic_network.Node):
 
-def only_in_mode(*modes):
-    modes = set(modes)
-    def wrap(fn):
-        def replacement(self, *args, **kwargs):
-            if self.mode not in modes:
-                return
-            return fn(self, *args, **kwargs)
-        return replacement
-    return wrap
+    def __init__(self):
+        super(Replica, self).__init__()
+        self.replica_execute_fn = None
+        self.replica_state = None
+        self.replica_slot_num = 0
+        self.replica_proposals = defaultlist()
+        self.replica_decisions = defaultlist()
 
+    def replica_log(self, msg):
+        self.logger.info("R: slot_num=%d proposals=%r decisions=%r\n| %s"
+                % (self.replica_slot_num, self.replica_proposals, self.replica_decisions, msg))
 
-class ClusterMember(Member):
+    def initialize_replica(self, execute_fn, initial_value):
+        self.replica_execute_fn = execute_fn
+        self.state = initial_value
 
-    namespace = uuid.UUID('7e0d7720-fa98-4270-94ff-650a2c25f3f0')
-    def __init__(self, execute_fn):
-        Member.__init__(self, execute_fn)
-        self.unique_id = uuid.uuid3(self.namespace, self.address).int
+    def invoke(self, input):
+        self.state, output = self.replica_execute_fn(self.state, input)
+        return output
 
-        # member
-        self.mode = Modes.Initialized
-        self.peers = [self.address]
+    def propose(self, proposal):
+        slot = max(len(self.replica_proposals),
+                    len(self.replica_decisions))
+        self.replica_log("proposing %s at slot %d" % (proposal, slot))
+        self.replica_proposals[slot] = proposal
+        self.send(self.cluster_members, 'PROPOSE', slot=slot, proposal=proposal)
 
-        # acceptor
-        self.last_accepts = defaultlist()
-        self.promises = defaultlist()
-
-        # proposer
-        self.biggest_n = (0, 0)
-        self.active_proposals = defaultlist()
-
-        # learner
-        self.accept_reqs_by_n = defaultlist()
-        self.last_invoked = -1
-        self.waiting_clients = defaultlist()
-        self.values = defaultlist()
-
-    def start(self, initial_value=None, cluster_members=[]):
-        assert self.mode is Modes.Initialized
-        if initial_value is not None:
-            self.state = initial_value
-            self.mode = Modes.Active
+    def do_INVOKE(self, caller, cid, input):
+        proposal = Proposal(caller, cid, input)
+        if proposal not in self.replica_proposals:
+            self.propose(proposal)
         else:
-            self.state = None
-            self.mode = Modes.Joining
-            self.send(cluster_members, 'ADD_MEMBER', new_member=self.address)
-        self.run()
+            slot = self.replica_proposals.index(proposal)
+            self.replica_log("proposal %s already proposed in slot %d" % (proposal, slot))
 
-    @property
-    def quorum(self):
-        return len(self.peers) / 2 + 1
-
-    def next_n(self):
-        n = (self.biggest_n[0] + 1, self.unique_id)
-        self.biggest_n = n
-        return n[0] * 65536 + n[1]
-
-    @only_in_mode(Modes.Active)
-    def do_ADD_MEMBER(self, new_member):
-        self.peers.append(new_member)
-        self.send([new_member], 'JOIN_CLUSTER',
-                state=self.state,
-                last_invoked=self.last_invoked,
-                peers=self.peers)
-        self.send(self.peers, 'UPDATE_PEERS',
-                peers=self.peers)
-
-    @only_in_mode(Modes.Joining)
-    def do_JOIN_CLUSTER(self, state, last_invoked, peers):
-        self.mode = Modes.Active
-        self.state = state
-        self.last_invoked = last_invoked
-        self.peers = list(set(peers) | set(self.peers))
-
-    @only_in_mode(Modes.Active)
-    def do_UPDATE_PEERS(self, peers):
-        self.peers = list(set(peers) | set(self.peers))
-
-    @only_in_mode(Modes.Active)
-    @log_proposer_state
-    def do_INVOKE(self, input, caller):
-        round = len(self.values)
-        self.waiting_clients[round] = caller
-        self.values.append(None)
-        n = self.next_n()
-        quorum = random.sample(self.peers, self.quorum)
-        self.logger.info("beginning round %d with value %r and quorum %r" %
-                         (round, input, quorum))
-        self.active_proposals[round] = dict(
-            n=n, value=input, quorum=quorum, promises={}, have_accepted=False)
-        self.send(quorum, 'PREPARE', proposer=self.address, n=n, round=round)
-        # if this request fails, make_request will re-invoke us
-
-    @log_acceptor_state
-    def do_PREPARE(self, proposer, n, round):
-        promise = self.promises[round]
-        if promise is None or n > promise:
-            self.promises[round] = n
-            last_accept = self.last_accepts[round]
-            prev_n = last_accept['n'] if last_accept else -1
-            prev_value = last_accept['value'] if last_accept else None
-            self.send(
-                [proposer], 'PROMISE', round=round, responder=self.address,
-                prev_n=prev_n, prev_value=prev_value)
-
-    @log_proposer_state
-    def do_PROMISE(self, round, responder, prev_n, prev_value):
-        active_proposal = self.active_proposals[round]
-        if not active_proposal or active_proposal['have_accepted']:
+    def do_DECISION(self, slot, proposal):
+        if self.replica_decisions[slot] is not None:
+            assert self.replica_decisions[slot] == proposal
             return
-        promises = active_proposal['promises']
-        promises[responder] = dict(prev_n=prev_n, prev_value=prev_value)
-        if len(promises) >= self.quorum:
-            self.logger.info("received %d responses in round %d: %r" %
-                             (len(promises), round, promises))
-            # find the value of the largest-numbered proposal returned to us, defaulting
-            # to our own value if none is given
-            value = active_proposal['value']
-            largest_n = -1
-            for prom in promises.values():
-                if prom['prev_n'] > largest_n:
-                    value, largest_n = prom['prev_value'], prom['prev_n']
-            quorum = random.sample(self.peers, self.quorum)
-            self.send(quorum, 'PROPOSE', round=round,
-                      n=active_proposal['n'], value=value, proposer=self.address)
+        self.replica_decisions[slot] = proposal
 
-    @log_acceptor_state
-    def do_PROPOSE(self, round, n, value, proposer):
-        promise = self.promises[round]
-        if n < promise:
+        # execute any pending, decided proposals, eliminating duplicates
+        while True:
+            decided_proposal = self.replica_decisions[self.replica_slot_num]
+            if not decided_proposal:
+                break  # not decided yet
+
+            # re-propose any of our proposals which have lost in their slot
+            our_proposal = self.replica_proposals[self.replica_slot_num]
+            if our_proposal is not None and our_proposal != decided_proposal:
+                self.propose(our_proposal)
+
+            if decided_proposal in self.replica_decisions[:self.replica_slot_num]:
+                continue  # duplicate
+            self.replica_log("invoking %r" % (decided_proposal,))
+            output = self.invoke(decided_proposal.input)
+            self.send([proposal.caller], 'INVOKED',
+                    cid=decided_proposal.cid, output=output)
+            self.replica_slot_num += 1
+
+
+class Acceptor(deterministic_network.Node):
+
+    def __init__(self):
+        super(Acceptor, self).__init__()
+        self.acceptor_ballot_num = Ballot(-1, -1)
+        self.acceptor_accepted = defaultdict()  # { (b,s) : p }
+
+    def acceptor_log(self, msg):
+        self.logger.info("A: ballot_num=%r accepted=%r\n| %s"
+                % (self.acceptor_ballot_num, sorted(self.acceptor_accepted.items()), msg))
+
+    def do_PREPARE(self, scout_id, ballot_num):  # p1a
+        if ballot_num > self.acceptor_ballot_num:
+            self.acceptor_ballot_num = ballot_num
+        self.send([scout_id.address], 'PROMISE',  # p1b
+                  scout_id=scout_id,
+                  acceptor=self.address,
+                  ballot_num=self.acceptor_ballot_num,
+                  accepted=self.acceptor_accepted)
+
+    def do_ACCEPT(self, commander_id, ballot_num, slot, proposal):  # p2a
+        if ballot_num >= self.acceptor_ballot_num:
+            self.acceptor_ballot_num = ballot_num
+            self.acceptor_accepted[(ballot_num,slot)] = proposal
+        self.send([commander_id.address], 'ACCEPTED',  # p2b
+                  commander_id=commander_id,
+                  acceptor=self.address,
+                  ballot_num=self.acceptor_ballot_num)
+
+
+class AcceptorTests(unittest.TestCase):
+
+    def setUp(self):
+        self.acc = Acceptor()
+        self.sent = []
+        self.acc.send = lambda *args, **kwargs : self.sent.append((args, kwargs))
+
+    def assertSent(self, nodes, message, **kwargs):
+        self.assertEqual(self.sent.pop(0), ((nodes, message), kwargs))
+
+    def test_prepare_no_adopt(self):
+        self.acc.acceptor_ballot_num = (11, 20)
+        self.acc.do_PREPARE(leader='ldr', ballot_num=(10, 20))
+        self.assertSent(['ldr'], 'PROMISE',
+                acceptor=self.acc.address,
+                ballot_num=(11, 20),
+                accepted={})
+        self.assertEqual(self.acc.acceptor_ballot_num, (11, 20))
+
+    def test_prepare_adopt(self):
+        self.acc.do_PREPARE(leader='ldr', ballot_num=(10, 20))
+        self.assertSent(['ldr'], 'PROMISE',
+                acceptor=self.acc.address,
+                ballot_num=(10, 20),
+                accepted={})
+        self.assertEqual(self.acc.acceptor_ballot_num, (10, 20))
+
+    def test_accept(self):
+        p = Proposal(caller='clt', cid=1234, input='data')
+        c = CommanderId(address='ldr', slot=8, proposal=p)
+        self.acc.do_ACCEPT(commander_id=c, ballot_num=(10, 20), slot=8, proposal=p)
+        self.assertSent(['ldr'], 'ACCEPTED',
+                commander_id=c,
+                acceptor=self.acc.address,
+                ballot_num=(10, 20))
+        self.assertEqual(self.acc.acceptor_ballot_num, (10, 20))
+        self.assertEqual(self.acc.acceptor_accepted, {((10, 20), 8) : p})
+
+    def test_accept_not(self):
+        p = Proposal(caller='clt', cid=1234, input='data')
+        c = CommanderId(address='ldr', slot=8, proposal=p)
+        self.acc.acceptor_ballot_num = (11, 20)
+        self.acc.do_ACCEPT(commander_id=c, ballot_num=(10, 20), slot=8, proposal=p)
+        self.assertSent(['ldr'], 'ACCEPTED',
+                commander_id=c,
+                acceptor=self.acc.address,
+                ballot_num=(11, 20))
+        self.assertEqual(self.acc.acceptor_ballot_num, (11, 20))
+        self.assertEqual(self.acc.acceptor_accepted, {})
+
+
+class Scout(object):
+
+    # scouts are indexed by ballot num, but need slot/proposal to send to
+    # acceptor for proper
+    PREPARE_RETRANSMIT = 1
+
+    def __init__(self, node, ballot_num):
+        self.node = node
+        self.scout_id = ScoutId(self.node.address, ballot_num)
+        self.scout_ballot_num = ballot_num
+        self.scout_pvals = defaultdict()
+        self.scout_accepted = set([])
+        self.scout_quorum = len(node.cluster_members) / 2 + 1
+        self.retransmit_timer = None
+
+    def scout_log(self, msg):
+        self.node.logger.info("S: ballot_num=%r pvals=%r len(accepted)=%d\n| %s"
+                % (self.scout_ballot_num, sorted(self.scout_pvals.items()),
+                    len(self.scout_accepted), msg))
+
+    def start(self):
+        self.scout_log("starting")
+        self.send_prepare()
+
+    def send_prepare(self):
+        self.node.send(self.node.cluster_members, 'PREPARE',  # p1a
+                       scout_id=self.scout_id,
+                       ballot_num=self.scout_ballot_num)
+        self.retransmit_timer = self.node.set_timer(self.PREPARE_RETRANSMIT, self.send_prepare)
+
+    def finished(self, adopted, ballot_num):
+        self.node.cancel_timer(self.retransmit_timer)
+        self.scout_log("finished - adopted" if adopted else "finished - preempted")
+        self.node.scout_finished(adopted, ballot_num, self.scout_pvals)
+
+    def do_PROMISE(self, acceptor, ballot_num, accepted):  # p1b
+        if ballot_num == self.scout_ballot_num:
+            self.scout_log("got matching promise; need %d" % self.scout_quorum)
+            self.scout_pvals.update(accepted)
+            self.scout_accepted.add(acceptor)
+            if len(self.scout_accepted) >= self.scout_quorum:
+                self.finished(True, ballot_num)
+        else:
+            # ballot_num > self.scout_ballot_num; responses to other scouts don't
+            # result in a call oto this method
+            self.finished(False, ballot_num)
+
+
+class Commander(object):
+
+    def __init__(self, node, ballot_num, slot, proposal):
+        self.node = node
+        self.commander_ballot_num = ballot_num
+        self.commander_slot = slot
+        self.commander_proposal = proposal
+        self.commander_id = CommanderId(node.address, slot, proposal)
+        self.commander_accepted = set([])
+        self.commander_quorum = len(node.cluster_members) / 2 + 1
+
+    def commander_log(self, msg):
+        self.node.logger.info("C: ballot_num=%r slot=%d proposal=%r len(accepted)=%d\n| %s"
+                % (self.commander_ballot_num, self.commander_slot, self.commander_proposal, len(self.commander_accepted), msg))
+
+    def start(self):
+        self.node.send(self.node.cluster_members, 'ACCEPT',  # p2a
+                       commander_id=self.commander_id,
+                       ballot_num=self.commander_ballot_num,
+                       slot=self.commander_slot,
+                       proposal=self.commander_proposal)
+
+    def do_ACCEPTED(self, acceptor, ballot_num):  # p2b
+        if ballot_num == self.commander_ballot_num:
+            self.commander_accepted.add(acceptor)
+            if len(self.commander_accepted) >= self.commander_quorum:
+                self.node.send(self.node.cluster_members, 'DECISION',
+                               slot=self.commander_slot,
+                               proposal=self.commander_proposal)
+                del self.node.leader_commanders[self.commander_id]
+        else:
+            self.node.commander_finished(self.commander_id, ballot_num)
+
+
+class Leader(deterministic_network.Node):
+
+    def __init__(self):
+        super(Leader, self).__init__()
+        self.leader_ballot_num = Ballot(0, self.unique_id)
+        self.leader_active = False
+        self.leader_proposals = defaultlist()
+        self.leader_commanders = {}
+        self.leader_scout = None
+
+    def leader_log(self, msg):
+        self.logger.info("L: ballot_num=%r active=%r proposals=%r commanders=%r scout=%r\n| %s"
+                % (self.leader_ballot_num, self.leader_active, self.leader_proposals, self.leader_commanders, self.leader_scout, msg))
+
+    def start(self):
+        self.spawn_scout(self.leader_ballot_num)
+
+    def spawn_scout(self, ballot_num):
+        assert not self.leader_scout
+        sct = self.leader_scout = Scout(self, ballot_num)
+        sct.start()
+
+    def scout_finished(self, adopted, ballot_num, pvals):
+        self.leader_scout = None
+        if adopted:
+            # pvals is a defaultlist of (slot, proposal) by ballot num; we need the
+            # highest ballot number for each slot.  TODO: this is super inefficient!
+            last_by_slot = defaultlist()
+            for b, s in reversed(sorted(pvals.keys())):
+                p = pvals[b, s]
+                if last_by_slot[s] is not None:
+                    last_by_slot[s] = p
+            for s, p in enumerate(last_by_slot):
+                if p is not None:
+                    self.leader_proposals[s] = p
+            for s, p in enumerate(self.leader_proposals):
+                if p is not None:
+                    self.spawn_commander(ballot_num, s, p)
+            self.leader_log("becoming active")
+            self.leader_active = True
+        else:
+            self.preempted(ballot_num)
+
+    def commander_finished(self, commander_id, ballot_num):
+        del self.leader_commanders[commander_id]
+        self.preempted(ballot_num)
+
+    def preempted(self, ballot_num):
+        self.leader_log("preempted by %r" % (ballot_num,))
+        if ballot_num > self.leader_ballot_num:
+            self.leader_log("becoming inactive")
+            self.leader_active = False
+            self.leader_ballot_num = Ballot(ballot_num.n + 1, self.unique_id)
+            if not self.leader_scout:
+                self.spawn_scout(self.leader_ballot_num)
+
+    def spawn_commander(self, ballot_num, slot, proposal):
+        cmd = Commander(self, ballot_num, slot, proposal)
+        if cmd.commander_id in self.leader_commanders:
             return
-        last_accept = self.last_accepts[round]
-        if not last_accept or last_accept['n'] < n:
-            self.last_accepts[round] = {'n': n, 'value': value}
-        self.send(self.peers, 'ACCEPT', round=round, n=n, value=value)
+        self.leader_commanders[cmd.commander_id] = cmd
+        cmd.start()
 
-    @log_learner_state
-    def do_ACCEPT(self, round, n, value):
-        accept_reqs_by_n = self.accept_reqs_by_n[round]
-        if accept_reqs_by_n is None:
-            accept_reqs_by_n = self.accept_reqs_by_n[round] = {}
-        count = accept_reqs_by_n[n] = accept_reqs_by_n.get(n, 0) + 1
-        if count < self.quorum:
-            return
-        self.logger.info(
-            "received %d accepts in round %d for proposal n=%d/value=%r; learning" %
-            (count, round, n, value))
-        self.learn(round, value)
+    def do_PROPOSE(self, slot, proposal):
+        if self.leader_proposals[slot] is None:
+            self.leader_proposals[slot] = proposal
+            if self.leader_active:
+                self.spawn_commander(self.leader_ballot_num, slot, proposal)
+            else:
+                self.logger.debug("not active - not starting commander")
+        else:
+            self.logger.debug("slot already full")
 
-    def learn(self, round, value):
-        if self.values[round] != value:
-            assert self.values[round] is None, "values[%d] is already %r" % (
-                round, self.values[round])
-            self.values[round] = value
-        # catch up on the log as far as we can go, sending INVOKED messages
-        # where necessary
-        for i in xrange(self.last_invoked + 1, len(self.values)):
-            if self.values[i] is None:
-                break
-            output = self.invoke(self.values[i])
-            self.last_invoked = i
-            if self.waiting_clients[i]:
-                self.send([self.waiting_clients[i]], 'INVOKED', output=output)
+    def do_PROMISE(self, scout_id, acceptor, ballot_num, accepted):
+        sct = self.leader_scout
+        if sct and scout_id == sct.scout_id:
+            sct.do_PROMISE(acceptor, ballot_num, accepted)
+
+    def do_ACCEPTED(self, commander_id, acceptor, ballot_num):
+        cmd = self.leader_commanders.get(commander_id)
+        if cmd:
+            cmd.do_ACCEPTED(acceptor, ballot_num)
+
+
+
+class ClusterMember(Replica, Acceptor, Leader):
+
+    def __init__(self, cluster_members):
+        # TODO: for now, this has a static list of cluster members
+        super(ClusterMember, self).__init__()
+        self.cluster_members = cluster_members
 
 
 if __name__ == "__main__":
     logging.basicConfig(
         format="%(asctime)s %(name)s %(message)s", level=logging.DEBUG)
-    member = ClusterMember(sequence_generator)
-    print member.address
-    cluster_members = sys.argv[1:]
-    if cluster_members:
-        member.start(cluster_members=cluster_members)
-    else:
-        print "starting new cluster"
-        member.start(initial_value=0)
+    deterministic_network.Node.port = int(sys.argv[1])
+    cluster_members = sys.argv[2:]
+    member = ClusterMember(cluster_members)
+    member.initialize_replica(sequence_generator, initial_value=0)
+    member.run()
