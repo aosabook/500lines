@@ -113,4 +113,12 @@ Contributors
     <td>@jaaaarel</td>
     <td>taavi.burns@points.com</td>
   </tr>
+  <tr>
+    <td>Allison Kaptur</td>
+    <td>Hacker School</td>
+    <td>byterun</td>
+    <td>@akaptur</td>
+    <td>@akaptur</td>
+    <td>allison.kaptur@gmail.com</td>
+  </tr>
 </table>
