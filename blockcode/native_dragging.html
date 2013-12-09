@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<title>Native Dragging Test</title>
+	<style>
+		html, body{
+			height: 100%;
+			padding: 0;
+			border: 0;
+			margin: 0;
+		}
+		div{
+			border: 1px inset #021429;
+			border-radius: 7px;
+		}
+		h1, h2, h3, h4, h5, h6{
+			text-align: center;
+		}
+		.menu{
+			background-color: PeachPuff;
+			width: 24%;
+			height: 85%;
+			float: left;
+			margin-left: 10px;
+		}
+		.menu.over{
+			background-color: BurlyWood;
+		}
+		.script{
+			background-color: LightSteelBlue;
+			width: 73%;
+			height: 85%;
+			float: right;
+			margin-right: 10px;
+		}
+		.script.over{
+			background-color: CadetBlue;
+		}
+		.block{
+			padding: 20px;
+			margin: 10px;
+			cursor: move;
+		}
+		.menu .block{
+			background-color: Coral;
+		}
+		.script .block{
+			background-color: DodgerBlue;
+		}
+	</style>
+</head>
+<body>
+	<h1>Native Dragging Test</h1>
+	<div class="menu">
+		<h2>Menu</h2>
+		<div class="block" draggable="true">Pen Down</div>
+		<div class="block" draggable="true">Pen Up</div>
+		<div class="block" draggable="true">Forward 10</div>
+		<div class="block" draggable="true">Rotate 5</div>
+		<div class="block" draggable="true">Repeat X</div>
+	</div>
+	<div class="script">
+		<h2>Script</h2>
+	</div>
+	<script>
+		'use strict';
+		// Remove namespace for matches
+	    if (document.body.matches){
+	        window.matches = function matches(elem, selector){ 
+	        	return elem.matches(selector); };
+	    }else if(document.body.mozMatchesSelector){
+	        window.matches = function matches(elem, selector){ 
+	        	return elem.mozMatchesSelector(selector); };
+	    }else if (document.body.webkitMatchesSelector){
+	        window.matches = function matches(elem, selector){ 
+	        	return elem.webkitMatchesSelector(selector); };
+	    }else if (document.body.msMatchesSelector){
+	        window.matches = function matches(elem, selector){ 
+	        	return elem.msMatchesSelector(selector); };
+	    }else if(document.body.oMatchesSelector){
+	        window.matches = function matches(elem, selector){ 
+	        	return elem.oMatchesSelector(selector); };
+	    }
+	    function closest(elem, selector){
+	        while(elem){
+	            if (matches(elem, selector)) return elem;
+	            elem = elem.parentElement;
+	        }
+	        return null;
+	    };
+
+		function elname(el){
+			return el.localName + '.' + el.className;
+		}
+		function evlog(ev){
+			console.log(ev.type + ': ' + elname(ev.target));
+		}
+		var dragTarget = null;
+		var dragType = null;
+		document.addEventListener('dragstart', function(evt){
+			if (!matches(evt.target, '.block')) return;
+			if (matches(evt.target, '.menu .block')){
+				dragType = 'menu';
+			}else{
+				dragType = 'script';
+			}
+			evt.target.style.opacity = '0.4';
+			dragTarget = evt.target;
+			// For dragging to take place in Firefox, we have to set this, even if we don't use it
+			evt.dataTransfer.setData('text/html', evt.target.outerHTML);
+			if (matches(evt.target, '.menu .block')){
+				evt.dataTransfer.effectAllowed = 'copy';
+			}else{
+				evt.dataTransfer.effectAllowed = 'move';
+			}
+			evlog(evt);
+		}, false);
+		document.addEventListener('drag', function(evt){
+			// this is where we can set the cursor to show where the element will end up
+			// evlog(evt);
+		}, false);
+		document.addEventListener('dragenter', function(evt){
+			// evlog(evt);
+			if (matches(evt.target, '.menu, .script')){
+				evt.target.classList.add('over');
+			}else{
+				if (!matches(evt.target, '.menu *, .script *')){
+					var over = document.querySelector('.over');
+					if (over){
+						over.classList.remove('over');
+					}
+					evt.target.classList.remove('over');
+					console.log('left all drag targets');
+				}else{
+					console.log('mysterious');
+				}
+			}
+			if (evt.preventDefault) {
+    			evt.preventDefault(); // Necessary. Allows us to drop.
+  			}
+			return false;
+		}, false);
+		// document.addEventListener('dragleave', function(evt){
+		// 	evlog(evt);
+		// 	// this event is useless
+		// }, false);
+		document.addEventListener('dragover', function(evt){
+			evlog(evt);
+			if (!matches(evt.target, '.menu, .menu *, .script, .script *')) return;
+			if (evt.preventDefault) {
+    			evt.preventDefault(); // Necessary. Allows us to drop.
+  			}
+  			if (dragType === 'menu'){
+				evt.dataTransfer.dropEffect = 'copy';  // See the section on the DataTransfer object.
+			}else{
+				evt.dataTransfer.dropEffect = 'move';
+			}
+			return false;
+		}, false);
+		document.addEventListener('drop', function(evt){
+			if (!matches(evt.target, '.menu, .menu *, .script, .script *')) return;
+			var dropTarget = closest(evt.target, '.menu, .script');
+			var dropType = 'script';
+			if (matches(dropTarget, '.menu')){
+				dropType = 'menu';
+			}
+			if (evt.stopPropagation) {
+			    evt.stopPropagation(); // stops the browser from redirecting.
+  			}
+  			if (dragType === 'script' && dropType === 'menu'){
+	  			// If dragging from script to menu, delete dragTarget
+	  			dragTarget.parentElement.removeChild(dragTarget);
+  			}else if (dragType ==='script' && dropType === 'script'){
+	  			// If dragging from script to script, move dragTarget
+	  			// simulate proper moving with appendChild for now
+	  			dropTarget.appendChild(dragTarget);
+  			}else if (dragType === 'menu' && dropType === 'script'){
+				// If dragging from menu to script, copy dragTarget
+				var newNode = dragTarget.cloneNode(true);
+				newNode.removeAttribute('style');
+				dropTarget.appendChild(newNode);
+			}else{
+	  			// If dragging from menu to menu, do nothing
+			}
+			evlog(evt);
+		}, false);
+		document.addEventListener('dragend', function(evt){
+			evt.target.style.opacity = '1.0';
+			evlog(evt);
+		}, false);
+	</script>
+</body>
+</html>
