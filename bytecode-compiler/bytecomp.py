@@ -34,7 +34,9 @@ class CodeGen(ast.NodeVisitor):
 
     def compile(self, node):
         bytecode = self.visit(node)
-        bytecode += (opc.POP_TOP, opc.LOAD_CONST,) + encode(self.constants[None]) + (opc.RETURN_VALUE,)
+        bytecode = self.sequence([bytecode,
+                                  ((opc.LOAD_CONST,) + encode(self.constants[None])
+                                   + (opc.RETURN_VALUE,))])
         argcount = 0
         kwonlyargcount = 0
         nlocals = 0
@@ -51,6 +53,13 @@ class CodeGen(ast.NodeVisitor):
                     collect(self.varnames),
                     filename, name, firstlineno, lnotab,
                     freevars=(), cellvars=())
+
+    def sequence(self, codes):  # TODO: use join method?
+        result = ()
+        for code in codes:
+            if result: result += (opc.POP_TOP,)
+            result += code
+        return result
 
     def visits(self, nodes):
         return sum(map(self.visit, nodes), ())
@@ -72,9 +81,12 @@ class CodeGen(ast.NodeVisitor):
         return self.visit(node.value)
 
     def visit_Module(self, node):
-        return self.visits(node.body)
+        return self.sequence(map(self.visit, node.body))
 
-ast5 = ast.parse("print(2+3)")
+ast5 = ast.parse("""
+print(2+3, 137)
+print(pow(2, 16))
+""")
 code5 = CodeGen().compile(ast5)
 dis(code5)
 
