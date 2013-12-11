@@ -5,6 +5,7 @@ Byte-compile trivial programs like "print(2+3)".
 import ast
 from collections import defaultdict
 from dis import dis, opmap 
+from types import CodeType, FunctionType
 
 def make_table():
     table = defaultdict(lambda: len(table))
@@ -17,10 +18,6 @@ class Struct:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
 opc = Struct(**opmap)   # in Py3.4, opc = Enum('opc', opmap)
-
-def dummy(): pass
-Function = type(dummy)
-Code = type(dummy.__code__)
 
 def encode(u):
     return (u % 256, u // 256)
@@ -46,13 +43,13 @@ class CodeGen(ast.NodeVisitor):
         name = 'the_name'
         firstlineno = 1
         lnotab = b''
-        return Code(argcount, kwonlyargcount, nlocals, stacksize, flags,
-                    bytes(bytecode),
-                    collect(self.constants),
-                    collect(self.names),
-                    collect(self.varnames),
-                    filename, name, firstlineno, lnotab,
-                    freevars=(), cellvars=())
+        return CodeType(argcount, kwonlyargcount, nlocals, stacksize, flags,
+                        bytes(bytecode),
+                        collect(self.constants),
+                        collect(self.names),
+                        collect(self.varnames),
+                        filename, name, firstlineno, lnotab,
+                        freevars=(), cellvars=())
 
     def sequence(self, codes):  # TODO: use join method?
         result = ()
@@ -97,5 +94,5 @@ print(ast.dump(ast5))
 code5 = CodeGen().compile(ast5)
 dis(code5)
 
-f = Function(code5, globals())
+f = FunctionType(code5, globals())
 f()   # It's alive!
