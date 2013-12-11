@@ -80,13 +80,20 @@ class CodeGen(ast.NodeVisitor):
     def visit_Expr(self, node):
         return self.visit(node.value)
 
+    def visit_Assign(self, node):
+        assert 1 == len(node.targets)
+        assert isinstance(node.targets[0], ast.Name)
+        return self.visit(node.value) + (opc.DUP_TOP, opc.STORE_GLOBAL,) + encode(self.names[node.targets[0].id])
+
     def visit_Module(self, node):
         return self.sequence(map(self.visit, node.body))
 
 ast5 = ast.parse("""
-print(2+3, 137)
+a = 2+3
+print(a, 137)
 print(pow(2, 16))
 """)
+print(ast.dump(ast5))
 code5 = CodeGen().compile(ast5)
 dis(code5)
 
