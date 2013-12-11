@@ -85,14 +85,15 @@ class CodeGen(ast.NodeVisitor):
     def visit_Module(self, node):
         return self.sequence(map(self.visit, node.body))
 
-ast5 = ast.parse("""
+if __name__ == '__main__':
+    eg_ast = ast.parse("""
 a = 2+3
 print(a, 137)
 print(pow(2, 16))
-""")
-print(ast.dump(ast5))
-code5 = CodeGen().compile(ast5)
-dis(code5)
+    """)
+    print(ast.dump(eg_ast))
+    eg_code = CodeGen().compile(eg_ast)
+    dis(eg_code)
 
-f = FunctionType(code5, globals())
-f()   # It's alive!
+    f = FunctionType(eg_code, globals())
+    f()   # It's alive!
