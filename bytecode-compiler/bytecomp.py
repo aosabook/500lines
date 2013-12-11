@@ -40,12 +40,16 @@ class CodeGen(ast.NodeVisitor):
         nlocals = 0
         stacksize = 10          # XXX
         flags = 67
+        filename = '<stdin>'
+        name = 'the_name'
+        firstlineno = 1
+        lnotab = b''
         return Code(argcount, kwonlyargcount, nlocals, stacksize, flags,
                     bytes(bytecode),
                     collect(self.constants),
                     collect(self.names),
                     collect(self.varnames),
-                    '<stdin>', 'the_name', 1, b'',
+                    filename, name, firstlineno, lnotab,
                     freevars=(), cellvars=())
 
     def visits(self, nodes):
