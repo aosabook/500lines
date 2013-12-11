@@ -7,20 +7,13 @@ from collections import defaultdict
 from dis import dis, opmap 
 from types import CodeType, FunctionType
 
-def make_table():
-    table = defaultdict(lambda: len(table))
-    return table
+class Opcodes: pass
+opc = Opcodes()
+opc.__dict__.update(opmap)
 
-def collect(table):
-    return tuple(sorted(table, key=table.get))
-
-class Struct:
-    def __init__(self, **kwargs):
-        self.__dict__.update(kwargs)
-opc = Struct(**opmap)   # in Py3.4, opc = Enum('opc', opmap)
-
-def encode(u):
-    return (u % 256, u // 256)
+def bytecomp(node, f_globals):
+    code = CodeGen().compile(node)
+    return FunctionType(code, f_globals)
 
 class CodeGen(ast.NodeVisitor):
 
@@ -85,6 +78,17 @@ class CodeGen(ast.NodeVisitor):
     def visit_Module(self, node):
         return self.sequence(map(self.visit, node.body))
 
+def make_table():
+    table = defaultdict(lambda: len(table))
+    return table
+
+def collect(table):
+    return tuple(sorted(table, key=table.get))
+
+def encode(u):
+    return (u % 256, u // 256)
+
+
 if __name__ == '__main__':
     eg_ast = ast.parse("""
 a = 2+3
@@ -92,8 +96,6 @@ print(a, 137)
 print(pow(2, 16))
     """)
     print(ast.dump(eg_ast))
-    eg_code = CodeGen().compile(eg_ast)
-    dis(eg_code)
-
-    f = FunctionType(eg_code, globals())
+    f = bytecomp(eg_ast, globals())
+    dis(f)
     f()   # It's alive!
