@@ -1,0 +1,44 @@
+html, body{
+	height: 100%;
+	padding: 0;
+	border: 0;
+	margin: 0;
+}
+div{
+	border: 1px inset #021429;
+	border-radius: 7px;
+}
+h1, h2, h3, h4, h5, h6{
+	text-align: center;
+}
+.menu{
+	background-color: PeachPuff;
+	width: 24%;
+	height: 85%;
+	float: left;
+	margin-left: 10px;
+}
+.menu.over{
+	background-color: BurlyWood;
+}
+.script{
+	background-color: LightSteelBlue;
+	width: 73%;
+	height: 85%;
+	float: right;
+	margin-right: 10px;
+}
+.script.over{
+	background-color: CadetBlue;
+}
+.block{
+	padding: 20px;
+	margin: 10px;
+	cursor: move;
+}
+.menu .block{
+	background-color: Coral;
+}
+.script .block{
+	background-color: DodgerBlue;
+}
