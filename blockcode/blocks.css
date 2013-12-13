@@ -23,18 +23,29 @@ h1, h2, h3, h4, h5, h6{
 }
 .script{
 	background-color: LightSteelBlue;
-	width: 73%;
+	width: 24%;
 	height: 85%;
-	float: right;
+	float: left;
+	margin-left: 10px;
 	margin-right: 10px;
 }
 .script.over{
 	background-color: CadetBlue;
 }
+.turtle-canvas{
+	background-color: white;
+	width: 46%;
+	height: 85%;
+	float: right;
+	margin-right: 10px;
+}
 .block{
 	padding: 20px;
 	margin: 10px;
 	cursor: move;
+}
+.block.running{
+	outline: 2px solid red;
 }
 .menu .block{
 	background-color: Coral;
