@@ -21,16 +21,6 @@
         return null;
     };
 
-    /* Debugging only, remove soon */
-	function elname(el){
-		return el.localName + '.' + el.className;
-	}
-
-	/* Debugging only, remove soon */
-	function evlog(ev){
-		console.log(ev.type + ': ' + elname(ev.target));
-	}
-
 	var dragTarget = null;
 	var dragType = null;
 
@@ -50,7 +40,7 @@
 		}else{
 			evt.dataTransfer.effectAllowed = 'move';
 		}
-		evlog(evt);
+		// evlog(evt);
 	}
 	document.addEventListener('dragstart', dragStart, false);
 
@@ -71,9 +61,9 @@
 					over.classList.remove('over');
 				}
 				evt.target.classList.remove('over');
-				console.log('left all drag targets');
+				// console.log('left all drag targets');
 			}else{
-				console.log('mysterious');
+				// console.log('mysterious');
 			}
 		}
 		if (evt.preventDefault) {
@@ -84,7 +74,7 @@
 	document.addEventListener('dragenter', dragEnter, false);
 
 	function dragOver(evt){
-		evlog(evt);
+		// evlog(evt);
 		if (!matches(evt.target, '.menu, .menu *, .script, .script *')) return;
 		if (evt.preventDefault) {
 			evt.preventDefault(); // Necessary. Allows us to drop.
@@ -107,15 +97,15 @@
 		}
 		if (evt.stopPropagation) {
 		    evt.stopPropagation(); // stops the browser from redirecting.
-			}
-			if (dragType === 'script' && dropType === 'menu'){
-  			// If dragging from script to menu, delete dragTarget
-  			dragTarget.parentElement.removeChild(dragTarget);
-			}else if (dragType ==='script' && dropType === 'script'){
+		}
+		if (dragType === 'script' && dropType === 'menu'){
+			// If dragging from script to menu, delete dragTarget
+			dragTarget.parentElement.removeChild(dragTarget);
+		}else if (dragType ==='script' && dropType === 'script'){
   			// If dragging from script to script, move dragTarget
   			// simulate proper moving with appendChild for now
   			dropTarget.appendChild(dragTarget);
-			}else if (dragType === 'menu' && dropType === 'script'){
+		}else if (dragType === 'menu' && dropType === 'script'){
 			// If dragging from menu to script, copy dragTarget
 			var newNode = dragTarget.cloneNode(true);
 			newNode.removeAttribute('style');
@@ -123,13 +113,13 @@
 		}else{
   			// If dragging from menu to menu, do nothing
 		}
-		evlog(evt);
+		// evlog(evt);
 	};
 	document.addEventListener('drop', drop, false);
 
 	function dragEnd(evt){
 		evt.target.style.opacity = '1.0';
-		evlog(evt);
+		// evlog(evt);
 	}
 	document.addEventListener('dragend', dragEnd, false);
 })(window);
