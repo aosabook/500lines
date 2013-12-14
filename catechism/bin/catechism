@@ -1,0 +1,7 @@
+#!/bin/bash
+
+set -e
+
+find trials -name '*_trial.rb' | xargs bundle exec ruby
+
+echo "All trials passed."
