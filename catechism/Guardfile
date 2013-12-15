@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
 
 guard :shell do
-  watch(/^trials\/(.*)_trial\.rb/) {|m| `bin/catechism #{m[0]}` }
+  watch(/^trials\/(.*)_trial\.rb/) {|m| `bin/catechism run_trial #{m[0]}` }
 end

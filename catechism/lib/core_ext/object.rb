@@ -1,5 +1,5 @@
 class Object
-  def it(description, &block)
-    Catechism::ItBlock.new(description).instance_eval(&block) if block_given?
+  def describe(description, &block)
+    Catechism::DescribeBlock.new(description).instance_eval(&block) if block_given?
   end
 end

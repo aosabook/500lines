@@ -1,7 +1,5 @@
-#!/bin/bash
-
-set -e
-
-find trials -name '*_trial.rb' | xargs bundle exec ruby
-
-echo "All trials passed."
+#!/usr/bin/env ruby
+lib = File.expand_path('../../lib', __FILE__)
+$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+require "catechism"
+Catechism::Cli.start
