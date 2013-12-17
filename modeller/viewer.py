@@ -1,6 +1,6 @@
 #! /usr/bin/env python
-
 from OpenGLContext import testingcontext
+from OpenGLContext import quaternion
 from OpenGLContext.arrays import *
 from OpenGLContext.scenegraph.basenodes import Sphere
 BaseContext = testingcontext.getInteractive()
@@ -14,7 +14,13 @@ OBJ_PLANE = 1
 class TestContext(BaseContext):
     def OnInit(self):
         self.MakePlane()
-        pass
+        self.rotation = quaternion.fromEuler()
+        glPushMatrix()
+        glLoadIdentity()
+        glTranslatef(0, 0, -20)
+        self.translation = glGetFloatv(GL_MODELVIEW_MATRIX)
+        glPopMatrix()
+
     def Lights(self, mode = None):
         """ called by default rendering process iff there is no scenegraph present """
         glEnable(GL_LIGHTING)
@@ -86,21 +92,23 @@ class TestContext(BaseContext):
 
         glEnable(GL_LIGHTING)
         glEnable(GL_LIGHT0)
-        glLightfv(GL_LIGHT0, GL_POSITION, GLfloat_4(0, 15, -15, 1))
-        glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, GLfloat_3(0, -1, 1))
+        glLightfv(GL_LIGHT0, GL_POSITION, GLfloat_4(0, 0, -15, 1))
+        glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, GLfloat_3(0, 0, 1))
 
         glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE)
         glEnable( GL_COLOR_MATERIAL)
 
         glClearColor(0.4, 0.4, 0.4, 0.0);
         glClear(GL_COLOR_BUFFER_BIT)
-        gluLookAt(0, 10, -10,
-                    0, 0, 0,
-                    0, 1, 0)
-
+        glMatrixMode(GL_MODELVIEW)
+        glPushMatrix()
+        glLoadIdentity()
+        glMultMatrixf(self.translation)
+        glMultMatrixf(self.rotation.matrix(inverse=True))
 
         glCallList(OBJ_PLANE)
 #        self.MakePlane()
+        glPopMatrix()
 
 if __name__=="__main__":
     TestContext.ContextMainLoop()
