@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+
+guard :shell do
+  watch(/^trials\/(.*)_trial\.rb/) {|m| `bin/catechism run_trial #{m[0]}` }
+  watch(/^(lib\/.*)\.rb/) {|m| `bin/catechism run_trial trials/#{m[1]}_trial.rb` }
+end
