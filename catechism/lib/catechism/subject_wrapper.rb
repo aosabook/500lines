@@ -15,8 +15,8 @@ class Catechism::SubjectWrapper < Struct.new(:subject)
     raise matcher.failure_message unless matcher.valid?
   end
 
-  def to_raise_error
-    matcher = Catechism::Matchers::RaiseError.new(subject, negated)
+  def to_raise_error(error_class = StandardError)
+    matcher = Catechism::Matchers::RaiseError.new(subject, error_class, negated)
     raise matcher.failure_message unless matcher.valid?
   end
 

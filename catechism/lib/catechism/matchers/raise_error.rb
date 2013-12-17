@@ -1,9 +1,9 @@
 module Catechism::Matchers
-  class RaiseError < Struct.new(:subject, :negated)
+  class RaiseError < Struct.new(:subject, :error_class, :negated)
     def raised?
       begin
         subject.call
-      rescue StandardError => e
+      rescue error_class => e
         return true
       end
       false
@@ -15,9 +15,9 @@ module Catechism::Matchers
 
     def failure_message
       if negated
-        "Expected no error to be raised, but an error was raised"
+        "Expected no error to be raised, but #{error_class.name} was raised :("
       else
-        "Expected error to be raised, but no error was raised"
+        "Expected #{error_class.name} to be raised, but it was not raised :("
       end
     end
   end
