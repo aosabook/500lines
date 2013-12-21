@@ -85,7 +85,7 @@
 
 	function dragEnter(evt){
 		// evlog(evt);
-		if (matches(evt.target, '.menu, .script')){
+		if (matches(evt.target, '.menu, .script, .content')){
 			evt.target.classList.add('over');
 		}else{
 			if (!matches(evt.target, '.menu *, .script *')){
@@ -105,7 +105,7 @@
 
 	function dragOver(evt){
 		// evlog(evt);
-		if (!matches(evt.target, '.menu, .menu *, .script, .script *')) return;
+		if (!matches(evt.target, '.menu, .menu *, .script, .script *, .content')) return;
 		if (evt.preventDefault) {
 			evt.preventDefault(); // Necessary. Allows us to drop.
 			}
@@ -119,8 +119,9 @@
 	document.addEventListener('dragover', dragOver, false);
 
 	function drop(evt){
-		if (!matches(evt.target, '.menu, .menu *, .script, .script *')) return;
-		var dropTarget = closest(evt.target, '.menu, .script');
+		if (!matches(evt.target, '.menu, .menu *, .script, .script *, .container, .container *')) return;
+		var dropTarget = closest(evt.target, '.menu, .script, .container');
+		console.log('dropTarget: %s', dropTarget.textContent);
 		var dropType = 'script';
 		if (matches(dropTarget, '.menu')){
 			dropType = 'menu';

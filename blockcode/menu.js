@@ -56,7 +56,17 @@
 
 	function repeat(block){
 		var count = value(block);
-		// FIXME: Actually repeat the contained blocks
+		var children = [].slice.call(block.querySelector('.container').children);
+		for (var i = 0; i < count; i++){
+			runBlocks(children);
+		}
+	}
+
+	function runBlocks(blocks){
+		var evt = new CustomEvent('run', {bubbles: true, cancelable: false});
+		blocks.forEach(function(block){
+			block.dispatchEvent(evt);
+		});
 	}
 
 	function run(){
@@ -65,10 +75,7 @@
 			scriptDirty = false;
 			clear();
 			var blocks = [].slice.call(document.querySelectorAll('.script > .block'));
-			var evt = new CustomEvent('run', {bubbles: true, cancelable: false});
-			blocks.forEach(function(block){
-				block.dispatchEvent(evt);
-			});
+			runBlocks(blocks);
 			turtle.draw();
 		}
 		requestAnimationFrame(run);

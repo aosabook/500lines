@@ -4,7 +4,7 @@ html, body{
 	border: 0;
 	margin: 0;
 }
-.menu, .script{
+.menu, .script, .block{
 	border: 1px inset #021429;
 	border-radius: 7px;
 }
@@ -64,6 +64,7 @@ h1, h2, h3, h4, h5, h6{
 	background-color: Coral;
 }
 .script .block{
+	margin: 5px;
 	background-color: DodgerBlue;
 }
 
@@ -76,6 +77,7 @@ h1, h2, h3, h4, h5, h6{
 .container{
 	margin-left: 20px;
 	padding-bottom: 10px;
+	/*padding-top: 5px;*/
 	border: 0;
 	background-color: LightSteelBlue;
 	border-bottom-right-radius: 0;
@@ -91,10 +93,3 @@ h1, h2, h3, h4, h5, h6{
 	background-color: CadetBlue;
 }
 
-.pseudo-cursor{
-	position: absolute;
-	width: 10px;
-	height: 10px;
-	border: 1px solid yellow;
-	pointer-events: none;
-}
