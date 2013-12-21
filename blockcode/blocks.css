@@ -1,0 +1,95 @@
+html, body{
+	height: 100%;
+	padding: 0;
+	border: 0;
+	margin: 0;
+}
+.menu, .script, .block{
+	border: 1px inset #021429;
+	border-radius: 7px;
+}
+h1, h2, h3, h4, h5, h6{
+	text-align: center;
+}
+.menu-column{
+	width: 24%;
+	height: 85%;
+	float: left;
+	margin-left: 10px;
+	overflow-y: auto;
+}
+.menu{
+	background-color: PeachPuff;
+}
+.menu.over{
+	background-color: BurlyWood;
+}
+.script-column{
+	width: 24%;
+	height: 85%;
+	float: left;
+	margin-left: 10px;
+	margin-right: 10px;
+	overflow-y: auto;
+}
+.script{
+	background-color: LightSteelBlue;
+	height: 100%;
+}
+.script.over{
+	background-color: CadetBlue;
+}
+.turtle-canvas{
+	background-color: white;
+	width: 46%;
+	height: 85%;
+	float: right;
+	margin-right: 10px;
+}
+.block{
+	padding: 5px;
+	margin: 10px;
+	cursor: move;
+}
+.block.running{
+	outline: 2px solid red;
+}
+.block.next{
+	outline: 2px solid green;
+}
+.block.dragging{
+	opacity: 0.4;
+}
+.menu .block{
+	background-color: Coral;
+}
+.script .block{
+	margin: 5px;
+	background-color: DodgerBlue;
+}
+
+.block input{
+	margin-left: 1em;
+	width: 5em;
+	margin-bottom: 5px;
+}
+
+.container{
+	margin-left: 20px;
+	padding-bottom: 10px;
+	/*padding-top: 5px;*/
+	border: 0;
+	background-color: LightSteelBlue;
+	border-bottom-right-radius: 0;
+	border-top-right-radius: 0;
+	margin-right: -6px;
+}
+
+.menu .container{
+	background-color: PeachPuff;
+}
+
+.over .container{
+	background-color: CadetBlue;
+}
+
