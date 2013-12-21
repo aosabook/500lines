@@ -15,6 +15,7 @@
 		}
 		scriptRegistry[name] = fn;
 		menu.appendChild(item);
+		return item;
 	}
 
 	function value(block){
@@ -53,21 +54,30 @@
 		global.turtle.show();
 	}
 
-	function run(){
-		console.log('run()');
-		clear();
-		var blocks = [].slice.call(document.querySelectorAll('.script > .block'));
-		var evt = new CustomEvent('run', {bubbles: true, cancelable: false});
-		blocks.forEach(function(block){
-			block.dispatchEvent(evt);
-		});
-		turtle.draw();
+	function repeat(block){
+		var count = value(block);
+		// FIXME: Actually repeat the contained blocks
 	}
+
+	function run(){
+		// debounce
+		if (scriptDirty){
+			scriptDirty = false;
+			clear();
+			var blocks = [].slice.call(document.querySelectorAll('.script > .block'));
+			var evt = new CustomEvent('run', {bubbles: true, cancelable: false});
+			blocks.forEach(function(block){
+				block.dispatchEvent(evt);
+			});
+			turtle.draw();
+		}
+		requestAnimationFrame(run);
+	}
+	requestAnimationFrame(run);
 
 	function runEach(evt){
 		var elem = evt.target;
 		if (!matches(elem, '.script .block')) return;
-		console.log('run %o', scriptRegistry[elem.dataset.name]);
 		elem.classList.add('running');
 		scriptRegistry[elem.dataset.name](elem);
 		elem.classList.remove('running');
@@ -81,10 +91,20 @@
 	menuItem('Pen down', penDown);
 	menuItem('Hide turtle', hideTurtle);
 	menuItem('Show turtle', showTurtle);
+	var repeatItem = menuItem('Repeat', repeat, 10);
+	var container = document.createElement('div');
+	container.className = 'container';
+	repeatItem.appendChild(container.cloneNode(true));
 
-	document.addEventListener('drop', run, false);
+	var scriptDirty = false;
+	function runSoon(){
+		console.log('runSoon: %o', runSoon.caller);
+		scriptDirty = true;
+	}
+
+	document.addEventListener('drop', runSoon, false);
 	var script = document.querySelector('.script');
 	script.addEventListener('run', runEach, false);
-	script.addEventListener('change', run, false);
-
+	script.addEventListener('change', runSoon, false);
+	script.addEventListener('keyup', runSoon, false);
 })(window);

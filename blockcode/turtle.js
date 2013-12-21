@@ -35,6 +35,7 @@
 
 	Turtle.prototype.draw = function draw(){
 		// draw the turtle. Default turtle is a triangle
+		var pen = this.pen;
 		if (this.visible){
 			this.penUp();
 			this.forward(5);
@@ -48,7 +49,9 @@
 			this.left(30);
 			this.penUp();
 			this.forward(-5);
-			this.penDown();
+			if (pen){
+				this.penDown();
+			}
 		}
 	}
 
@@ -80,7 +83,6 @@
 			ctx.moveTo(start.x, start.y);
 			ctx.lineTo(this.position.x, this.position.y);
 			ctx.stroke();
-			console.log('lineTo(%s, %s)', this.position.x, this.position.y);
 		}
 	}
 
@@ -91,7 +93,6 @@
 	function clear(){
 		ctx.save();
 		ctx.fillStyle = 'white';
-		console.log('ctx.fillRect(0,0,%s,%s', WIDTH, HEIGHT);
 		ctx.fillRect(0,0,WIDTH,HEIGHT);
 		ctx.restore();
 		ctx.moveTo(turtle.position.x, turtle.position.y);
