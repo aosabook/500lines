@@ -1,25 +1,28 @@
 (function(global){
 
+	function elem(name, attrs, children){
+		children = children || [];
+		var e = document.createElement(name);
+		Object.keys(attrs).forEach(function(attr){
+			e.setAttribute(attr, attrs[attr]);
+		});
+		children.forEach(function(child){
+			e.appendChild(child);
+		})
+		return e;
+	}
+
 	function createBlock(name, value, contents){
-		var item = document.createElement('div');
-		item.className = 'block';
-		item.setAttribute('draggable', 'true');
+		var item = elem('div', {'class': 'block', draggable: true})
 		item.textContent = name;
 		item.dataset.name = name;
 		if (value !== undefined){
-			var val = document.createElement('input');
-			val.setAttribute('type', 'number');
-			val.value = value;
-			item.appendChild(val);
+			item.appendChild(elem('input', {type: 'number', value: value}));
 		}
 		if (Array.isArray(contents)){
-			var container = document.createElement('div');
-			container.className = 'container';
-			item.appendChild(container);
-			// FIXME, where should we convert from script to DOM?
-			contents.forEach(function(block){
-				container.appendChild(block);
-			});
+			item.appendChild(elem('div', {'class': 'container'}, contents.map(function(block){
+				return createBlock.apply(null, block);
+			})));
 		}
 		return item;		
 	}
@@ -42,29 +45,35 @@
 		}
 	}
 
-	function blockScript(block, indent){
-		if (indent === undefined){
-			indent = '';
-		}
-		var script = [
-			indent,
-			block.dataset.name
-		];
+	function blockScript(block){
+		var script = [block.dataset.name];
 		var value = blockValue(block);
 		if (value !== null){
-			script.push(' ' + value);
+			script.push(value);
 		}
 		var contents = blockContents(block);
 		if (contents !== null){
-			script.push('[')
-			extendedScript = contents.map(function(child){
-				return blockScript(child, indent+'  ');
-			});
-			extendedScript.unshift(script.join(''));
-			extendedScript.push(indent + ']');
-		}else{
-			return script.join('');
+			script.push(contents.map(blockScript));
 		}
+		return script;
+	}
+
+	function blockFromScript(script){
+		return createBlock.apply(null, script);
+	}
+
+	function saveLocal(){
+		var blocks = [].slice.call(document.querySelectorAll('.script > .block'));
+		var script = blocks.map(blockScript);
+		localStorage._blockCode = JSON.stringify(script);
+	}
+
+	function restoreLocal(){
+		if (!localStorage['_blockCode']) return;
+		var scriptElem = document.querySelector('.script');
+		JSON.parse(localStorage._blockCode).forEach(function(block){
+			scriptElem.appendChild(createBlock.apply(null, block));
+		});
 	}
 
 	function runBlocks(blocks){
@@ -80,7 +89,13 @@
 		value: blockValue,
 		contents: blockContents,
 		script: blockScript,
-		run: runBlocks
+		run: runBlocks,
+		fromScript: blockFromScript,
+		saveLocal: saveLocal,
+		restoreLocal: restoreLocal
 	}
+
+	window.addEventListener('unload', saveLocal, false);
+	window.addEventListener('load', restoreLocal, false);
 
 })(window);
