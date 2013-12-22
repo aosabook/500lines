@@ -1,81 +1,59 @@
 (function(global){
 	var menu = document.querySelector('.menu');
 	var scriptRegistry = {};
-	function menuItem(name, fn, value){
-		var item = document.createElement('div');
-		item.className = 'block';
-		item.setAttribute('draggable', 'true');
-		item.textContent = name;
-		item.dataset.name = name;
-		if (value !== undefined){
-			var val = document.createElement('input');
-			val.setAttribute('type', typeof value);
-			val.value = value;
-			item.appendChild(val);
-		}
+	function menuItem(name, fn, value, contents){
+		var item = Block.create(name, value, contents);
 		scriptRegistry[name] = fn;
 		menu.appendChild(item);
 		return item;
 	}
 
-	function value(block){
-		return parseInt(block.querySelector('input').value, 10);
-	}
-
 	function forward(block){
-		global.turtle.forward(value(block));
+		turtle.forward(Block.value(block));
 	}
 
 	function back(block){
-		global.turtle.forward(-value(block));
+		turtle.forward(-Block.value(block));
 	}
 
 	function left(block){
-		global.turtle.left(value(block));
+		turtle.left(Block.value(block));
 	}
 
 	function right(block){
-		global.turtle.left(-value(block));
+		turtle.left(-Block.value(block));
 	}
 
 	function penUp(){
-		global.turtle.penUp();
+		turtle.penUp();
 	}
 
 	function penDown(){
-		global.turtle.penDown();
+		turtle.penDown();
 	}
 
 	function hideTurtle(){
-		global.turtle.hide();
+		turtle.hide();
 	}
 
 	function showTurtle(){
-		global.turtle.show();
+		turtle.show();
 	}
 
 	function repeat(block){
-		var count = value(block);
-		var children = [].slice.call(block.querySelector('.container').children);
+		var count = Block.value(block);
+		var children = Block.contents(block);
 		for (var i = 0; i < count; i++){
-			runBlocks(children);
+			Block.run(children);
 		}
 	}
-
-	function runBlocks(blocks){
-		var evt = new CustomEvent('run', {bubbles: true, cancelable: false});
-		blocks.forEach(function(block){
-			block.dispatchEvent(evt);
-		});
-	}
-
 	function run(){
 		// debounce
 		if (scriptDirty){
 			scriptDirty = false;
 			clear();
 			var blocks = [].slice.call(document.querySelectorAll('.script > .block'));
-			runBlocks(blocks);
+			Block.run(blocks);
 			turtle.draw();
 		}
 		requestAnimationFrame(run);
@@ -98,10 +76,7 @@
 	menuItem('Pen down', penDown);
 	menuItem('Hide turtle', hideTurtle);
 	menuItem('Show turtle', showTurtle);
-	var repeatItem = menuItem('Repeat', repeat, 10);
-	var container = document.createElement('div');
-	container.className = 'container';
-	repeatItem.appendChild(container.cloneNode(true));
+	menuItem('Repeat', repeat, 10, []);
 
 	var scriptDirty = false;
 	function runSoon(){
