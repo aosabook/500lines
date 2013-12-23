@@ -1,5 +1,8 @@
 (function(global){
 
+	// Shorthand function to create elements easily
+	// While also setting their attributes and adding child elements
+	//
 	function elem(name, attrs, children){
 		children = children || [];
 		var e = document.createElement(name);
@@ -12,6 +15,9 @@
 		return e;
 	}
 
+	// This can be used to create blocks for the menu, or
+	// for restoring blocks saved in files or localStorage
+	//
 	function createBlock(name, value, contents){
 		var item = elem('div', {'class': 'block', draggable: true})
 		item.textContent = name;
@@ -27,6 +33,9 @@
 		return item;		
 	}
 
+	// Simply retrieve the child blocks of a container block. Always returns a list
+	// if called on a container block, always returns null on a simple block
+	//
 	function blockContents(block){
 		var container = block.querySelector('.container');
 		if (container){
@@ -36,15 +45,26 @@
 		}
 	}
 
+	// Return the numerical value of the input on a block, if the block has
+	// an input field of type number, or string for other input type, null if there
+	// is no input element for the block.
+	//
 	function blockValue(block){
-		var input = block.querySelector('input[type=number]');
+		var input = block.querySelector('input');
 		if (input){
-			return Number(input.value);
+			if (input.type === 'number'){
+				return Number(input.value);
+			}else{
+				return input.value;
+			}
 		}else{
 			return null;
 		}
 	}
 
+	// Returns the script of a block as a structure suitable for stringifying with JSON.
+	// Used for saving blocks in a form they can easily be restored from
+	//
 	function blockScript(block){
 		var script = [block.dataset.name];
 		var value = blockValue(block);
@@ -58,41 +78,46 @@
 		return script;
 	}
 
-	function blockFromScript(script){
-		return createBlock.apply(null, script);
-	}
-
+	// Handler to save the current script in localStorage on page refresh
+	//
 	function saveLocal(){
 		var blocks = [].slice.call(document.querySelectorAll('.script > .block'));
 		var script = blocks.map(blockScript);
 		localStorage._blockCode = JSON.stringify(script);
 	}
 
+	// Handler to restore the current script on page refresh
+	//
 	function restoreLocal(){
 		if (!localStorage['_blockCode']) return;
 		var scriptElem = document.querySelector('.script');
 		JSON.parse(localStorage._blockCode).forEach(function(block){
 			scriptElem.appendChild(createBlock.apply(null, block));
 		});
+		menu.runSoon();
 	}
 
+	// Send a custom event to an element
+	function trigger(name, target){
+		target.dispatchEvent(new CustomEvent(name, {bubbles: true, cancelable: false}));
+	}
+
+	// Handler to run an array of blocks by sending each block the "run" event
+	//
 	function runBlocks(blocks){
-		var evt = new CustomEvent('run', {bubbles: true, cancelable: false});
 		blocks.forEach(function(block){
-			block.dispatchEvent(evt);
+			trigger('run', block);
 		});
 	}
 
-
+	// Expose some functions outside this file. 
 	global.Block = {
 		create: createBlock,
 		value: blockValue,
 		contents: blockContents,
 		script: blockScript,
 		run: runBlocks,
-		fromScript: blockFromScript,
-		saveLocal: saveLocal,
-		restoreLocal: restoreLocal
+		trigger: trigger
 	}
 
 	window.addEventListener('unload', saveLocal, false);

@@ -16,10 +16,10 @@ h1, h2, h3, h4, h5, h6{
 	height: 85%;
 	float: left;
 	margin-left: 10px;
-	overflow-y: auto;
 }
 .menu{
 	background-color: PeachPuff;
+	overflow-y: auto;
 }
 .menu.over{
 	background-color: BurlyWood;
@@ -30,16 +30,16 @@ h1, h2, h3, h4, h5, h6{
 	float: left;
 	margin-left: 10px;
 	margin-right: 10px;
-	overflow-y: auto;
 }
 .script{
 	background-color: LightSteelBlue;
-	height: 100%;
+	height: 94%;
+	overflow-y: auto;
 }
 .script.over{
 	background-color: CadetBlue;
 }
-.turtle-canvas{
+.canvas{
 	background-color: white;
 	width: 46%;
 	height: 85%;

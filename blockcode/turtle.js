@@ -1,93 +1,146 @@
-(function(global){
+(function(){
+	'use strict';
 
-	var canvas = document.querySelector('.turtle-canvas');
+	//
+	// This is the implmentation of the turtle block language. It exposes no globals of its own
+	// 
+
+	// Variables for managing the canvas itself
+	//
+	var canvas = document.querySelector('.canvas');
+	var script = document.querySelector('.script');
+	var ctx = canvas.getContext('2d');
 	canvas.setAttribute('width', canvas.scrollWidth);
 	canvas.setAttribute('height', canvas.scrollHeight);
-	var ctx = canvas.getContext('2d');
 	var WIDTH = canvas.scrollWidth;
 	var HEIGHT = canvas.scrollHeight;
+
+	function onResize(evt){
+		canvas.setAttribute('width', canvas.scrollWidth);
+		canvas.setAttribute('height', canvas.scrollHeight);
+		WIDTH = canvas.scrollWidth;
+		HEIGHT = canvas.scrollHeight;
+		menu.runSoon();
+	}
+
+	// Save some handier references to frequently-used parts of Math
 	var cos = Math.cos, sin = Math.sin, sqrt = Math.sqrt, PI = Math.PI;
 	var DEGREE = PI / 180;
 
+	// State (we could embed this in an object if we wanted to support more than one turtle)
+	var position, direction, visible, pen, color;
+	function reset(){
+		recenter();
+		direction = deg2rad(90); // facing "up"		
+		visible = true;
+		pen = true; // when pen is true we draw, otherwise we move without drawing
+		color = 'black';
+	}
+
+	function recenter(){
+		console.log('recenter (%s,%s)', WIDTH, HEIGHT);
+		position = {x: WIDTH/2, y: HEIGHT/2};
+	}
+
+	var saveStack = [];
+	function save(){
+		saveStack.push({
+			position: position,
+			direction: direction,
+			visible: visible,
+			pen: pen,
+			color: color
+		})
+	}
+	function restore(){
+		var oldState = saveState.pop();
+		if (oldState){
+			position = oldState.position;
+			direction = oldState.direction;
+			visible = oldState.visible;
+			pen = oldState.pen;
+			color = oldState.color;
+		}
+	}
+
+	// Utility so we can work with degrees, but draw in radians
 	function deg2rad(degrees){
 		return DEGREE * degrees;
 	}
 
-	function rad2deg(radians){
-		return radians / DEGREE;
-	}
-
-	function Turtle(){
-		this.reset();
-	}
-
-	Turtle.prototype.reset = function reset(){
-		this.position = {x: WIDTH/2, y: HEIGHT/2};
-		this.direction = deg2rad(90);
-		this.visible = true;
-		this.pen = true;
-		this.color = 'black';
-	}
-
-	Turtle.prototype.getDirection = function getDirection(){
-		return rad2deg(this.direction);
-	}
-
-	Turtle.prototype.draw = function draw(){
+	function drawTurtle(){
 		// draw the turtle. Default turtle is a triangle
-		var pen = this.pen;
-		if (this.visible){
-			this.penUp();
-			this.forward(5);
-			this.penDown();
-			this.left(-150);
-			this.forward(12);
-			this.left(-120);
-			this.forward(12);
-			this.left(-120);
-			this.forward(12);
-			this.left(30);
-			this.penUp();
-			this.forward(-5);
-			if (pen){
-				this.penDown();
+		var userPen = pen; // save pen state
+		if (visible){
+			penUp();
+			moveForward(5);
+			penDown();
+			turn(-150);
+			moveForward(12);
+			turn(-120);
+			moveForward(12);
+			turn(-120);
+			moveForward(12);
+			turn(30);
+			penUp();
+			moveForward(-5);
+			if (userPen){
+				penDown(); // restore pen state
 			}
 		}
 	}
 
-	Turtle.prototype.penUp = function penup(){
-		this.pen = false;
+	function penUp(){
+		pen = false;
 	}
 
-	Turtle.prototype.penDown = function pendown(){
-		this.pen = true;
+	function penDown(){
+		pen = true;
 	}
 
-	Turtle.prototype.hide = function hide(){
-		this.visible = false;
+	function hideTurtle(){
+		visible = false;
 	}
 
-	Turtle.prototype.show = function show(){
-		this.visible = true;
+	function showTurtle(){
+		visible = true;
 	}
 
-	Turtle.prototype.forward = function(distance){
-		var start = this.position;
-		this.position = {
-			x: cos(this.direction) * distance + start.x,
-			y: -sin(this.direction) * distance + start.y
+	// internal function
+	function moveForward(distance){
+		var start = position;
+		position = {
+			x: cos(direction) * distance + start.x,
+			y: -sin(direction) * distance + start.y
 		}
-		if (this.pen){
-			ctx.lineStyle = this.color;
+		if (pen){
+			ctx.lineStyle = color;
 			ctx.beginPath();
 			ctx.moveTo(start.x, start.y);
-			ctx.lineTo(this.position.x, this.position.y);
+			ctx.lineTo(position.x, position.y);
 			ctx.stroke();
 		}
 	}
 
-	Turtle.prototype.left = function left(degrees){
-		this.direction += deg2rad(degrees);
+	function forward(block){
+		moveForward(Block.value(block));
+	}
+
+	function back(block){
+		moveForward(-Block.value(block));
+	}
+
+	// internal function for turning
+	function turn(degrees){
+		direction += deg2rad(degrees);
+	}
+
+	function left(block){
+		turn(Block.value(block));
+	}
+
+	function right(block){
+		turn(-Block.value(block));
 	}
 
 	function clear(){
@@ -95,14 +148,33 @@
 		ctx.fillStyle = 'white';
 		ctx.fillRect(0,0,WIDTH,HEIGHT);
 		ctx.restore();
-		ctx.moveTo(turtle.position.x, turtle.position.y);
-		turtle.reset();
-		// turtle.draw();
+		reset();
+		ctx.moveTo(position.x, position.y);
 	}
+
 	// initialization
-	global.clear = clear;
-	global.turtle = new Turtle();
-	global.ctx = ctx;
 	clear();
-	turtle.draw();
+	drawTurtle();
+
+	// Set up menu for the turtle language
+	//
+	menu.item('Left', left, 5);
+	menu.item('Right', right, 5);
+	menu.item('Forward', forward, 10);
+	menu.item('Back', back, 10);
+	menu.item('Pen up', penUp);
+	menu.item('Pen down', penDown);
+	menu.item('Back to center', recenter);
+	menu.item('Save', save);
+	menu.item('Restore', restore);
+	menu.item('Hide turtle', hideTurtle);
+	menu.item('Show turtle', showTurtle);
+
+	// Handler to run before script runs, always clear canvas first
+	//
+	script.addEventListener('beforeRun', clear, false);
+	// Handler to run after script runs, show turtle if visible
+	script.addEventListener('afterRun', drawTurtle, false);
+	window.addEventListener('resize', onResize, false);
+
 })(window);

@@ -119,8 +119,8 @@
 	document.addEventListener('dragover', dragOver, false);
 
 	function drop(evt){
-		if (!matches(evt.target, '.menu, .menu *, .script, .script *, .container, .container *')) return;
-		var dropTarget = closest(evt.target, '.container, .menu, .script');
+		if (!matches(evt.target, '.menu, .menu *, .script, .script *')) return;
+		var dropTarget = closest(evt.target, '.script .container, .menu, .script');
 		console.log('dropTarget: %s', dropTarget.textContent);
 		var dropType = 'script';
 		if (matches(dropTarget, '.menu')){
@@ -156,9 +156,7 @@
 	document.addEventListener('drop', drop, false);
 
 	function dragEnd(evt){
-		// clean up dragging styles
-		// this looks like a goog place for a helper class
-		// evt.target.style.opacity = '1.0';
+		// this looks like a good place for a helper class
 		var dragging = document.querySelector('.dragging');
 		if (dragging){
 			dragging.classList.remove('dragging');
