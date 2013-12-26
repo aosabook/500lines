@@ -113,4 +113,12 @@ Contributors
     <td>@jaaaarel</td>
     <td>taavi.burns@points.com</td>
   </tr>
+  <tr>
+    <td>Dessy Daskalov</td>
+    <td>greengagemobile.com</td>
+    <td>pedometer</td>
+    <td>@dessy</td>
+    <td>@dess_e</td>
+    <td>dessy.daskalov@gmail.com</td>
+  </tr>
 </table>
