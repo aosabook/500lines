@@ -21,35 +21,35 @@ class PedometerTest < Test::Unit::TestCase
     flunk
   end
 
-  def test_count_steps
+  def test_measure_steps
     pedometer = Pedometer.new(File.read('test/data/results-0-steps.txt'))
-    pedometer.count_steps
+    pedometer.measure_steps
     assert_equal 0, pedometer.steps
 
     pedometer = Pedometer.new(File.read('test/data/results-15-steps.txt'))
-    pedometer.count_steps
+    pedometer.measure_steps
     assert_equal 15, pedometer.steps
   end
 
-  def test_count_distance_before_steps
+  def test_measure_distance_before_steps
     pedometer = Pedometer.new(File.read('test/data/results-0-steps.txt'))
-    pedometer.count_distance
+    pedometer.measure_distance
     assert_equal 0, pedometer.distance
     
     pedometer = Pedometer.new(File.read('test/data/results-15-steps.txt'))
-    pedometer.count_distance
+    pedometer.measure_distance
     assert_equal 0, pedometer.distance
   end
 
-  def test_count_distance_after_steps_steps
+  def test_measure_distance_after_steps_steps
     pedometer = Pedometer.new(File.read('test/data/results-0-steps.txt'))
-    pedometer.count_steps
-    pedometer.count_distance
+    pedometer.measure_steps
+    pedometer.measure_distance
     assert_equal 0, pedometer.distance
     
     pedometer = Pedometer.new(File.read('test/data/results-15-steps.txt'))
-    pedometer.count_steps
-    pedometer.count_distance
+    pedometer.measure_steps
+    pedometer.measure_distance
     assert_equal 13.5, pedometer.distance
   end
 

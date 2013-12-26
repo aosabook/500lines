@@ -18,21 +18,21 @@ class Pedometer
   # - Request info in metric vs. imperial
   # - Request info in different reporting formats
   def results
-    count_steps
-    count_distance
+    measure_steps
+    measure_distance
     
     { :steps => @steps, :distance => @distance }
   end
 
   # -- Counters -------------------------------------------------------------
 
-  def count_steps
+  def measure_steps
     @parsed_data.each do |x, y, z|
       @steps += 1 if (x > CAP || y > CAP || z > CAP)
     end
   end
 
-  def count_distance
+  def measure_distance
     # TODO: Get stride length from user object
     stride_length = 0.9 # average stride length in meters
     @distance = stride_length * @steps
