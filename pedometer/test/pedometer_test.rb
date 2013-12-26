@@ -41,7 +41,7 @@ class PedometerTest < Test::Unit::TestCase
     assert_equal 0, pedometer.distance
   end
 
-  def test_measure_distance_after_steps_steps
+  def test_measure_distance_after_steps
     pedometer = Pedometer.new(File.read('test/data/results-0-steps.txt'))
     pedometer.measure_steps
     pedometer.measure_distance
@@ -58,7 +58,7 @@ class PedometerTest < Test::Unit::TestCase
     assert_equal ({ :steps => 0, :distance => 0}), pedometer.results
 
     pedometer = Pedometer.new(File.read('test/data/results-15-steps.txt'))
-    assert_equal ({ :steps => 15, :distance => 13.5}), pedometer.results
+    assert_equal ({ :steps => 15, :distance => 0.0135}), pedometer.results
   end
 
 end

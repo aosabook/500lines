@@ -34,7 +34,7 @@ class Pedometer
 
   def measure_distance
     # TODO: Get stride length from user object
-    stride_length = 0.9 # average stride length in meters
+    stride_length = 0.0009 # average stride length in km
     @distance = stride_length * @steps
   end
 
