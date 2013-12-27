@@ -14,7 +14,12 @@ class PedometerTest < Test::Unit::TestCase
   end
 
   def test_create_no_input
-    flunk
+    pedometer = Pedometer.new('')
+
+    assert_equal 0, pedometer.steps
+    assert_equal 0, pedometer.distance
+    assert_equal '', pedometer.raw_data
+    assert_equal [], pedometer.parsed_data
   end
 
   def test_create_bad_input
@@ -50,7 +55,7 @@ class PedometerTest < Test::Unit::TestCase
     pedometer = Pedometer.new(File.read('test/data/results-15-steps.txt'))
     pedometer.measure_steps
     pedometer.measure_distance
-    assert_equal 13.5, pedometer.distance
+    assert_equal 0.0135, pedometer.distance
   end
 
   def test_results
