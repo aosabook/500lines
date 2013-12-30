@@ -15,8 +15,7 @@ class PedometerTest < Test::Unit::TestCase
   end
 
   def test_metrics_with_params
-    input = "x,y,z;0.123,-0.123,5;"
-    get '/metrics', :data => input
+    get '/metrics', :data => "x,y,z;0.123,-0.123,5;"
     assert_equal '{"steps":1,"distance":0.0009}', last_response.body
   end
 
