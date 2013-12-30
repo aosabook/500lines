@@ -8,8 +8,11 @@ class User
   def initialize(params)
     params ||= {}
 
-    @system = (SYSTEM.include? params[:system].to_s.downcase) ? params[:system].to_s.downcase : 'metric'
-    @gender = params[:gender].to_s.downcase if GENDER.include? params[:gender].to_s.downcase
+    system_params = params[:system].to_s.downcase
+    gender_params = params[:gender].to_s.downcase
+
+    @system = (SYSTEM.include? system_params) ? system_params : 'metric'
+    @gender = gender_params if GENDER.include? gender_params
     @height = params[:height]
     @stride = params[:stride] || calculate_stride
   end
