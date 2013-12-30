@@ -18,13 +18,17 @@ class Pedometer
   # - Request info in metric vs. imperial
   # - Request info in different reporting formats
   def results
-    measure_steps
-    measure_distance
+    measure
     
     { :steps => @steps, :distance => @distance }
   end
 
   # -- Counters -------------------------------------------------------------
+
+  def measure
+    measure_steps
+    measure_distance    
+  end
 
   def measure_steps
     @parsed_data.each do |x, y, z|
