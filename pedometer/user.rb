@@ -1,17 +1,21 @@
 class User
 
-  # TODO: Limit gender and system to specific values
+  GENDER = ['male', 'female']
+  SYSTEM = ['metric', 'imperial']
+
   attr_accessor :gender, :height, :stride, :system
 
   def initialize(params)
     params ||= {}
 
-    @gender = params[:gender]
+    @system = (SYSTEM.include? params[:system].to_s.downcase) ? params[:system].to_s.downcase : 'metric'
+    @gender = params[:gender].to_s.downcase if GENDER.include? params[:gender].to_s.downcase
     @height = params[:height]
     @stride = params[:stride] || calculate_stride
-    @system = params[:system] || 'metric'
   end
 
+
+  # TODO calculate stride based on measurement system
   def calculate_stride
     # avg: 74 cm
     # avg male: 78 cm
