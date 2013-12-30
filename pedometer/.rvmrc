@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+# This is an RVM Project .rvmrc file, used to automatically load the ruby
+# development environment upon cd'ing into the directory
+
+# First we specify our desired <ruby>[@<gemset>], the @gemset name is optional.
+environment_id="ruby-2.1.0@pedometer"
+
+#
+# First we attempt to load the desired environment directly from the environment
+# file, this is very fast and efficicent compared to running through the entire
+# CLI and selector. If you want feedback on which environment was used then
+# insert the word 'use' after --create as this triggers verbose mode.
+#
+if [[ -d "${rvm_path:-$HOME/.rvm}/environments" \
+  && -s "${rvm_path:-$HOME/.rvm}/environments/$environment_id" ]] ; then
+  \. "${rvm_path:-$HOME/.rvm}/environments/$environment_id"
+else
+  # If the environment file has not yet been created, use the RVM CLI to select.
+  rvm --create use  "$environment_id"
+fi
+
+rvm wrapper "$environment_id" textmate
+echo $MY_RUBY_HOME

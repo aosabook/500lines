@@ -1,5 +1,3 @@
-require 'user'
-
 class Pedometer
 
   CAP = 1.2
