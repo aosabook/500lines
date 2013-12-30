@@ -1,5 +1,5 @@
 require 'test/unit'
-require './pedometer.rb'
+require './models/pedometer.rb'
 
 class PedometerTest < Test::Unit::TestCase
 

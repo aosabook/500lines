@@ -1,5 +1,5 @@
 require 'test/unit'
-require './user.rb'
+require './models/user.rb'
 
 class UserTest < Test::Unit::TestCase
 
