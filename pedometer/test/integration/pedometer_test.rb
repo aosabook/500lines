@@ -10,16 +10,19 @@ class PedometerTest < Test::Unit::TestCase
   end
 
   def test_metrics_no_params
+    flunk
     get '/metrics'
     assert_equal '{"steps":0,"distance":0.0}', last_response.body
   end
 
   def test_metrics_with_params
-    get '/metrics', :data => "x,y,z;0.123,-0.123,5;"
+    get '/metrics', :data => "0.123,-0.123,5;"
     assert_equal '{"steps":1,"distance":0.0009}', last_response.body
   end
 
-  def test_metrics_with_bad_params
-    flunk
+  def test_metrics_bad_params
+    flunk 
+    get '/metrics', :data => "bad input"
+    assert_equal '{"steps":1,"distance":0.0009}', last_response.body
   end
 end

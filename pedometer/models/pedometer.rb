@@ -10,20 +10,16 @@ class Pedometer
     @steps    = 0
     @distance = 0
 
+    verify_data_format
     parse_raw_data
   end
+
+  # -- Measurement Methods --------------------------------------------------
 
   # TODO: Introduce user object passed in to:
   # - Get stride length, height, etc.
   # - Request info in metric vs. imperial
   # - Request info in different reporting formats
-  def results
-    measure
-    
-    { :steps => @steps, :distance => @distance }
-  end
-
-  # -- Counters -------------------------------------------------------------
 
   def measure
     measure_steps
@@ -42,11 +38,17 @@ class Pedometer
     @distance = stride_length * @steps
   end
 
-  # -- Parsers --------------------------------------------------------------
+  # -- Data Manipulation ----------------------------------------------------
+
+  def verify_data_format
+    regexp = Regexp.new(/^((-?\d+(?:\.\d+)?,){2}-?\d+(?:\.\d+)?;)+$/)
+    unless regexp.match(@raw_data)
+      raise "Bad Input. Ensure data is a series of comma separated x,y,z coordiantes separated by semi colons."
+    end
+  end
 
   def parse_raw_data
-    rows = @raw_data.gsub('x,y,z;', '').split(';')
-    @parsed_data = rows.inject([]) do |a, row|
+    @parsed_data = @raw_data.split(';').inject([]) do |a, row|
       a << row.split(',').map { |coord| coord.to_f.abs }
       a
     end

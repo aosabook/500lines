@@ -17,7 +17,6 @@ class User
     @stride = params[:stride] || calculate_stride
   end
 
-
   # TODO calculate stride based on measurement system
   def calculate_stride
     # avg: 74 cm
