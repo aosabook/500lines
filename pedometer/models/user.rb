@@ -3,21 +3,24 @@ class User
   GENDER = ['male', 'female']
   SYSTEM = ['metric', 'imperial']
 
-  attr_accessor :gender, :height, :stride, :system
+  attr_accessor :system, :gender, :rate, :height, :stride
 
   def initialize(params = {})
     params = {} unless params.kind_of? Hash
 
     system_params = params[:system].to_s.downcase
     gender_params = params[:gender].to_s.downcase
+    rate_params   = params[:rate].to_f.round
+    stride_params = params[:stride].to_f.round(2)
 
     @system = (SYSTEM.include? system_params) ? system_params : 'metric'
     @gender = gender_params if GENDER.include? gender_params
+    @rate   = (rate_params > 0) ? rate_params : 5
     @height = params[:height]
-    @stride = params[:stride] || calculate_stride
+    @stride = (stride_params > 30) ? stride_params : calculate_stride
   end
 
-  # TODO calculate stride based on measurement system
+  # TODO: calculate stride based on measurement system
   def calculate_stride
     # avg: 74 cm
     # avg male: 78 cm
