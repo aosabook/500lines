@@ -6,18 +6,32 @@ class PedometerTest < Test::Unit::TestCase
   # -- Creation Tests -------------------------------------------------------
 
   def test_create
-    input = "0.123,-0.123,5;"
-    pedometer = Pedometer.new(input)
+    user = User.new
+    input = '0.123,-0.123,5;'
+    pedometer = Pedometer.new(input, user)
     
     assert_equal 0, pedometer.steps
     assert_equal 0, pedometer.distance
-
+    
     assert_equal 0, pedometer.time
     assert_equal 'seconds', pedometer.interval
-
+    
     assert_equal input, pedometer.raw_data
     assert_equal [[0.123, 0.123, 5.0]], pedometer.parsed_data
+    assert_equal user, pedometer.user
   end
+
+  def test_create_no_user
+    pedometer = Pedometer.new('0.123,-0.123,5;')
+    assert pedometer.user.kind_of? User
+  end
+
+  def test_create_bad_user
+    pedometer = Pedometer.new('0.123,-0.123,5;', 'bad user')
+    assert pedometer.user.kind_of? User
+  end
+
+  # -- Creation Failure Tests -----------------------------------------------
 
   def test_create_nil_input
     message = "Bad Input. Ensure data is a series of comma separated x,y,z coordiantes separated by semicolons."
@@ -77,15 +91,17 @@ class PedometerTest < Test::Unit::TestCase
   end
 
   def test_measure_distance_after_steps
-    pedometer = Pedometer.new(File.read('test/data/results-0-steps.txt'))
+    user = User.new
+
+    pedometer = Pedometer.new(File.read('test/data/results-0-steps.txt'), user)
     pedometer.measure_steps
     pedometer.measure_distance
     assert_equal 0, pedometer.distance
     
-    pedometer = Pedometer.new(File.read('test/data/results-15-steps.txt'))
+    pedometer = Pedometer.new(File.read('test/data/results-15-steps.txt'), user)
     pedometer.measure_steps
     pedometer.measure_distance
-    assert_equal 0.0135, pedometer.distance
+    assert_equal 1350, pedometer.distance
   end
 
   def test_measure_time_seconds
@@ -122,7 +138,7 @@ class PedometerTest < Test::Unit::TestCase
     pedometer = Pedometer.new(File.read('test/data/results-15-steps.txt'))
     pedometer.measure
     assert_equal 15, pedometer.steps
-    assert_equal 0.0135, pedometer.distance
+    assert_equal 1350, pedometer.distance
     assert_equal 5.8, pedometer.time
     assert_equal 'seconds', pedometer.interval
   end

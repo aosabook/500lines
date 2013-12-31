@@ -1,16 +1,19 @@
+require './models/user.rb'
+
 class Pedometer
 
   CAP = 1.2
 
-  attr_reader :raw_data, :parsed_data
+  attr_reader :raw_data, :parsed_data, :user
   attr_reader :steps, :distance, :time, :interval
 
-  def initialize(mobile_output)
+  def initialize(mobile_output, user = nil)
     @raw_data = mobile_output
     @steps    = 0
     @distance = 0
     @time     = 0
     @interval = 'seconds'
+    @user     = (user.kind_of? User) ? user : User.new
 
     verify_data_format
     parse_raw_data
@@ -37,7 +40,7 @@ class Pedometer
 
   def measure_distance
     # TODO: Get stride length from user object
-    stride_length = 0.0009 # average stride length in km
+    stride_length = 90 # average stride length in cm
     @distance = stride_length * @steps
   end
 
