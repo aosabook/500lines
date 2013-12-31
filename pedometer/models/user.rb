@@ -37,7 +37,7 @@ class User
       (@gender == 'male') ? 78 : 70
     else
       74
-    end
+    end.round(2)
   end
 
 end

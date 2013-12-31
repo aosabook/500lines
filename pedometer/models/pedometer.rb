@@ -7,8 +7,8 @@ class Pedometer
   attr_reader :raw_data, :parsed_data, :user
   attr_reader :steps, :distance, :time, :interval
 
-  def initialize(mobile_output, user = nil)
-    @raw_data = mobile_output
+  def initialize(data, user = nil)
+    @raw_data = data
     @steps    = 0
     @distance = 0
     @time     = 0
@@ -42,8 +42,7 @@ class Pedometer
   end
 
   def measure_time
-    # TODO: Get sampling rate from user object
-    sampling_rate = 5.0 # samples/second
+    sampling_rate = @user.rate.round(1)
     seconds = @parsed_data.count/sampling_rate
 
     if seconds > 3600

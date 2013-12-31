@@ -4,7 +4,8 @@ require './models/pedometer.rb'
 
 get '/metrics' do
   begin
-    @pedometer = Pedometer.new(params[:data])
+    user = User.new(params[:user])
+    @pedometer = Pedometer.new(params[:data], user)
     @pedometer.measure    
     [200, jbuilder(:index)]
   rescue Exception => e

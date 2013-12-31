@@ -92,7 +92,7 @@ class PedometerTest < Test::Unit::TestCase
 
   def test_measure_distance_after_steps
     user = User.new(:stride => 65)
-
+    
     pedometer = Pedometer.new(File.read('test/data/results-0-steps.txt'), user)
     pedometer.measure_steps
     pedometer.measure_distance
@@ -105,33 +105,39 @@ class PedometerTest < Test::Unit::TestCase
   end
 
   def test_measure_time_seconds
-    pedometer = Pedometer.new(File.read('test/data/results-15-steps.txt'))
+    user = User.new(:rate => 4)
+    pedometer = Pedometer.new(File.read('test/data/results-15-steps.txt'), user)
     pedometer.measure_time
-    assert_equal 5.8, pedometer.time
+    
+    assert_equal 7.25, pedometer.time
     assert_equal 'seconds', pedometer.interval
   end
 
-  def measure_time_minutes
+  def test_measure_time_minutes
+    user = User.new(:rate => 4)
     # Fake out 1000 samples
-    pedometer = Pedometer.new(1000.times.inject('') {|a| a+='1,1,1;';a})
+    pedometer = Pedometer.new(1000.times.inject('') {|a| a+='1,1,1;';a}, user)    
     pedometer.measure_time
-    assert_equal 3.33, pedometer.time
+    
+    assert_equal 4.17, pedometer.time
     assert_equal 'minutes', pedometer.interval
   end
 
-  def measure_time_hours
-    # Fake out 20000 samples
-    pedometer = Pedometer.new(20000.times.inject('') {|a| a+='1,1,1;';a})
+  def test_measure_time_hours
+    user = User.new(:rate => 4)
+    # Fake out 15000 samples
+    pedometer = Pedometer.new(15000.times.inject('') {|a| a+='1,1,1;';a}, user)
     pedometer.measure_time
-    assert_equal 1.11, pedometer.time
+
+    assert_equal 1.04, pedometer.time
     assert_equal 'hours', pedometer.interval
   end
 
   def test_measure
     user = User.new(:stride => 65)
-
     pedometer = Pedometer.new(File.read('test/data/results-0-steps.txt'), user)
     pedometer.measure
+
     assert_equal 0, pedometer.steps
     assert_equal 0, pedometer.distance
     assert_equal 0.2, pedometer.time
@@ -139,6 +145,7 @@ class PedometerTest < Test::Unit::TestCase
     
     pedometer = Pedometer.new(File.read('test/data/results-15-steps.txt'), user)
     pedometer.measure
+
     assert_equal 15, pedometer.steps
     assert_equal 975, pedometer.distance
     assert_equal 5.8, pedometer.time
