@@ -57,7 +57,7 @@ class UserTest < Test::Unit::TestCase
     assert_equal 74, User.new(:stride => 30).stride
     assert_equal 74, User.new(:stride => -1).stride
     
-    assert_equal 80, User.new(:stride => 80).stride
+    assert_equal 80,    User.new(:stride => 80).stride
     assert_equal 75.25, User.new(:stride => 75.25).stride
     assert_equal 75.56, User.new(:stride => 75.5555).stride
   end
