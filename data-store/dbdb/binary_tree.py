@@ -1,9 +1,3 @@
-# TODO: Leave the getitem and setitem stuff to the db wrapper. We need a richer
-# interface at this level.
-
-# Here, we can also make it something closer to a persistent data structure.
-# Maybe with mutability when actualizing persistence.
-
 class BinaryTree(object):
     def __init__(self):
         self._tree = None
@@ -19,52 +13,45 @@ class BinaryTree(object):
                 return node.value
         raise KeyError
 
-    def set_tree(self, new_tree):
-        self._tree = new_tree
-
     def set(self, key, value):
-        setter = self.set_tree
-        node = self._tree
+        self._tree = self._insert(self._tree, key, value)
 
-        while node is not None:
-            if key < node.key:
-                setter = node.set_left
-                node = node.left
-            elif node.key < key:
-                setter = node.set_right
-                node = node.right
-            else:
-                break
-
-        if node:
-            # Found a node, therefore it's a value overwrite
-            node.value = value
+    def _insert(self, node, key, value):
+        if node is None:
+            return BinaryNode(None, key, value, None)
+        elif key < node.key:
+            return BinaryNode.from_node(node, left=self._insert(node.left, key, value))
+        elif node.key < key:
+            return BinaryNode.from_node(node, right=self._insert(node.right, key, value))
         else:
-            setter(BinaryNode(None, key, value, None))
+            return BinaryNode.from_node(node, value=value)
 
     def pop(self, key):
-        setter = self.set_tree
-        node = self._tree
+        self._tree = self._delete(self._tree, key)
 
-        while node is not None:
-            if key < node.key:
-                setter = node.set_left
-                node = node.left
-            elif node.key < key:
-                setter = node.set_right
-                node = node.right
+    def _delete(self, node, key):
+        if node is None:
+            raise KeyError
+        elif key < node.key:
+            return BinaryNode.from_node(node, left=self._delete(node.left, key))
+        elif node.key < key:
+            return BinaryNode.from_node(node, right=self._delete(node.right, key))
+        else:
+            if node.left and node.right:
+                replacement = self._find_max(node.left)
+                return BinaryNode(
+                    self._delete(node.left, replacement.key),
+                    replacement.key,
+                    replacement.value,
+                    node.right,
+                )
             else:
-                if not node.left and not node.right:
-                    setter(None)
-                elif node.left and not node.right:
-                    setter(node.left)
-                elif not node.left and node.right:
-                    setter(node.right)
-                else:
-                    raise NotImplementedError
-                return
+                return node.left or node.right
 
-        raise KeyError
+    def _find_max(self, node):
+        while node.right:
+            node = node.right
+        return node
 
     def __str__(self):
         import pprint
@@ -74,17 +61,20 @@ class BinaryTree(object):
 
 
 class BinaryNode(object):
+    @classmethod
+    def from_node(cls, node, **kwargs):
+        return cls(
+            left=kwargs.get('left', node.left),
+            key=kwargs.get('key', node.key),
+            value=kwargs.get('value', node.value),
+            right=kwargs.get('right', node.right),
+        )
+
     def __init__(self, left, key, value, right):
         self.left = left
         self.key = key
         self.value = value
         self.right = right
-
-    def set_left(self, new_left):
-        self.left = new_left
-
-    def set_right(self, new_right):
-        self.right = new_right
 
     def to_dict(self):
         return {(self.key, self.value): {
