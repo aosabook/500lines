@@ -10,19 +10,22 @@ class PedometerTest < Test::Unit::TestCase
   end
 
   def test_metrics_no_params
-    flunk
     get '/metrics'
-    assert_equal '{"steps":0,"distance":0.0}', last_response.body
+    expected = 'Bad Input. Ensure data is a series of comma separated x,y,z coordiantes separated by semicolons.'
+    assert_equal 400, last_response.status
+    assert_equal expected, last_response.body
   end
 
-  def test_metrics_with_params
+  def test_metrics
     get '/metrics', :data => "0.123,-0.123,5;"
+    assert_equal 200, last_response.status
     assert_equal '{"steps":1,"distance":0.0009,"time":"0.2 seconds"}', last_response.body
   end
 
-  def test_metrics_bad_params
-    flunk 
+  def test_metrics_bad_input
     get '/metrics', :data => "bad input"
-    assert_equal '{"steps":1,"distance":0.0009}', last_response.body
+    expected = 'Bad Input. Ensure data is a series of comma separated x,y,z coordiantes separated by semicolons.'
+    assert_equal 400, last_response.status
+    assert_equal expected, last_response.body
   end
 end
