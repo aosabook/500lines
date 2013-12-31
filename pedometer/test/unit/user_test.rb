@@ -3,8 +3,17 @@ require './models/user.rb'
 
 class UserTest < Test::Unit::TestCase
 
-  def test_create_no_parameters
-    user = User.new(nil)
+  def test_create_no_params
+    user = User.new
+    
+    assert_nil user.gender
+    assert_nil user.height
+    assert_equal 74, user.stride
+    assert_equal 'metric', user.system
+  end
+
+  def test_create_bad_params
+    user = User.new('bad params')
     
     assert_nil user.gender
     assert_nil user.height
@@ -28,11 +37,8 @@ class UserTest < Test::Unit::TestCase
     assert_equal 'metric', User.new(:system => 1).system
   end
 
-  def test_create_bad_input
-    flunk
-  end
-
   def test_calculate_stride
+    assert_equal 74,   User.new.stride
     assert_equal 74,   User.new(nil).stride
     assert_equal 78,   User.new(:gender => 'male').stride
     assert_equal 70,   User.new(:gender => 'female').stride

@@ -5,8 +5,8 @@ class User
 
   attr_accessor :gender, :height, :stride, :system
 
-  def initialize(params)
-    params ||= {}
+  def initialize(params = {})
+    params = {} unless params.kind_of? Hash
 
     system_params = params[:system].to_s.downcase
     gender_params = params[:gender].to_s.downcase
