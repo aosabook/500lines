@@ -116,11 +116,15 @@ class PedometerTest < Test::Unit::TestCase
     pedometer.measure
     assert_equal 0, pedometer.steps
     assert_equal 0, pedometer.distance
+    assert_equal 0.2, pedometer.time
+    assert_equal 'seconds', pedometer.interval
     
     pedometer = Pedometer.new(File.read('test/data/results-15-steps.txt'))
     pedometer.measure
     assert_equal 15, pedometer.steps
     assert_equal 0.0135, pedometer.distance
+    assert_equal 5.8, pedometer.time
+    assert_equal 'seconds', pedometer.interval
   end
 
 end

@@ -26,6 +26,7 @@ class Pedometer
   def measure
     measure_steps
     measure_distance
+    measure_time
   end
 
   def measure_steps
@@ -44,7 +45,7 @@ class Pedometer
     # TODO: Get sampling rate from user object
     sampling_rate = 5.0 # samples/second
     seconds = @parsed_data.count/sampling_rate
-    
+
     if seconds > 3600
       @time = (seconds/3600).round(2)
       @interval = 'hours'

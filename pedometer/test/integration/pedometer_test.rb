@@ -17,7 +17,7 @@ class PedometerTest < Test::Unit::TestCase
 
   def test_metrics_with_params
     get '/metrics', :data => "0.123,-0.123,5;"
-    assert_equal '{"steps":1,"distance":0.0009}', last_response.body
+    assert_equal '{"steps":1,"distance":0.0009,"time":"0.2 seconds"}', last_response.body
   end
 
   def test_metrics_bad_params
