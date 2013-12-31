@@ -22,7 +22,6 @@ class Pedometer
   # -- Measurement Methods --------------------------------------------------
 
   # TODO: Introduce user object passed in to:
-  # - Get stride length, height, etc.
   # - Request info in metric vs. imperial
   # - Request info in different reporting formats
 
@@ -39,9 +38,7 @@ class Pedometer
   end
 
   def measure_distance
-    # TODO: Get stride length from user object
-    stride_length = 90 # average stride length in cm
-    @distance = stride_length * @steps
+    @distance = @user.stride * @steps
   end
 
   def measure_time

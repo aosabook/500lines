@@ -91,7 +91,7 @@ class PedometerTest < Test::Unit::TestCase
   end
 
   def test_measure_distance_after_steps
-    user = User.new
+    user = User.new(:stride => 65)
 
     pedometer = Pedometer.new(File.read('test/data/results-0-steps.txt'), user)
     pedometer.measure_steps
@@ -101,7 +101,7 @@ class PedometerTest < Test::Unit::TestCase
     pedometer = Pedometer.new(File.read('test/data/results-15-steps.txt'), user)
     pedometer.measure_steps
     pedometer.measure_distance
-    assert_equal 1350, pedometer.distance
+    assert_equal 975, pedometer.distance
   end
 
   def test_measure_time_seconds
@@ -128,17 +128,19 @@ class PedometerTest < Test::Unit::TestCase
   end
 
   def test_measure
-    pedometer = Pedometer.new(File.read('test/data/results-0-steps.txt'))
+    user = User.new(:stride => 65)
+
+    pedometer = Pedometer.new(File.read('test/data/results-0-steps.txt'), user)
     pedometer.measure
     assert_equal 0, pedometer.steps
     assert_equal 0, pedometer.distance
     assert_equal 0.2, pedometer.time
     assert_equal 'seconds', pedometer.interval
     
-    pedometer = Pedometer.new(File.read('test/data/results-15-steps.txt'))
+    pedometer = Pedometer.new(File.read('test/data/results-15-steps.txt'), user)
     pedometer.measure
     assert_equal 15, pedometer.steps
-    assert_equal 1350, pedometer.distance
+    assert_equal 975, pedometer.distance
     assert_equal 5.8, pedometer.time
     assert_equal 'seconds', pedometer.interval
   end
