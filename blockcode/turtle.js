@@ -38,7 +38,6 @@
 	}
 
 	function recenter(){
-		console.log('recenter (%s,%s)', WIDTH, HEIGHT);
 		position = {x: WIDTH/2, y: HEIGHT/2};
 	}
 

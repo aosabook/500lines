@@ -1,6 +1,7 @@
 (function(global){
 	'use strict';
 	// Remove namespace for matches
+	// This is a lot of code just to get functionality that is already built-in
     if (document.body.matches){
         global.matches = function matches(elem, selector){ return elem.matches(selector); };
     }else if(document.body.mozMatchesSelector){
@@ -13,6 +14,9 @@
         global.matches = function matches(elem, selector){ return elem.oMatchesSelector(selector); };
     }
 
+    // Emulate one of the handiest methods in all of jQuery
+    // that isn't already built in to the browser yet
+    //
     global.closest = function closest(elem, selector){
         while(elem){
             if (matches(elem, selector)) return elem;
@@ -21,13 +25,19 @@
         return null;
     };
 
+    // Another polyfill for built-in functionality, just to get rid of namespaces in older
+    // browsers, or to emulate it for browsers that don't have requestAnimationFrame yet
     global.requestAnimationFrame = global.requestAnimationFrame || global.mozRequestAnimationFrame || global.msRequestAnimationFrame || global.webkitRequestAnimationFrame || function(fn){
     	setTimeout(fn, 20);
     };
 
-	var dragTarget = null;
-	var dragType = null;
-	var scriptBlocks = [];
+    // When we're dragging, we'll need to reference these from different stages
+    // of the dragging callback dance
+    //
+	var dragTarget = null; // Block we're dragging
+	var dragType = null; // Are we dragging from the menu or from the script?
+	var scriptBlocks = []; // Blocks in the script, sorted by position
+	var nextBlock = null; // Block we'll be inserting before
 
 	function dragStart(evt){
 		if (!matches(evt.target, '.block')) return;
@@ -39,9 +49,10 @@
 		evt.target.classList.add('dragging');
 		dragTarget = evt.target;
 		scriptBlocks = [].slice.call(document.querySelectorAll('.script .block:not(.dragging)'));
-		scriptBlocks.sort(function(a,b){
-			return a.getBoundingClientRect().top - b.getBoundingClientRect().top;
-		});
+		// scriptBlocks.sort(function(a,b){
+		// 	console.log('sort value: %s', b.getBoundingClientRect().top - a.getBoundingClientRect().top)
+		// 	return a.getBoundingClientRect().top - b.getBoundingClientRect().top;
+		// });
 		// For dragging to take place in Firefox, we have to set this, even if we don't use it
 		evt.dataTransfer.setData('text/html', evt.target.outerHTML);
 		if (matches(evt.target, '.menu .block')){
@@ -53,10 +64,7 @@
 	}
 	document.addEventListener('dragstart', dragStart, false);
 
-	// Block we'll be inserting before
-	var nextBlock = null;
-
-	function drag(evt){
+	function findPosition(evt){
 		// Find which block we should insert the dragged block before
 		var prevBlock = nextBlock;
 		nextBlock = null;
@@ -81,7 +89,7 @@
 			}
 		}
 	}
-	document.addEventListener('drag', drag, false);
+	document.addEventListener('drag', function(){}, false);
 
 	function dragEnter(evt){
 		// evlog(evt);
@@ -121,7 +129,10 @@
 	function drop(evt){
 		if (!matches(evt.target, '.menu, .menu *, .script, .script *')) return;
 		var dropTarget = closest(evt.target, '.script .container, .menu, .script');
-		console.log('dropTarget: %s', dropTarget.textContent);
+		// find position on drop vs. drag because of bug in Firefox drag event (no clientX, etc)
+		// should also improve drag performance, but doesn't give opportunity to provide user
+		// feedback during drag
+		findPosition(evt);
 		var dropType = 'script';
 		if (matches(dropTarget, '.menu')){
 			dropType = 'menu';
