@@ -10,5 +10,5 @@ def connect(dbname):
     if dbname == ':memory:':
         f = StringIO()
     else:
-        f = open(dbname, 'w+b')
+        f = open(dbname, 'r+b')
     return DBDB(f)
