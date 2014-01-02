@@ -66,3 +66,6 @@ class Storage(object):
         self._seek_superblock()
         root_address = self._read_integer()
         return root_address
+
+    def close(self):
+        self._f.close()

@@ -1,10 +1,17 @@
-import cPickle as pickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 
 class BinaryTree(object):
     def __init__(self, storage):
         self._storage = storage
         self._tree_ref = NodeRef(address=self._storage.get_root_address())
+
+    def commit(self):
+        self._tree_ref.store(self._storage)
+        self._storage.commit_root_address(self._tree_ref.address)
 
     def get(self, key):
         node = self._tree_ref.get(self._storage)
