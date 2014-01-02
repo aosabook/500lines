@@ -2,64 +2,113 @@ import cPickle as pickle
 
 
 class BinaryTree(object):
-    def __init__(self):
-        self._tree = None
+    def __init__(self, storage):
+        self._storage = storage
+        self._tree_ref = NodeRef(address=self._storage.get_root_address())
 
     def get(self, key):
-        node = self._tree
+        node = self._tree_ref.get(self._storage)
         while node is not None:
             if key < node.key:
-                node = node.left
+                node = node.left_ref.get(self._storage)
             elif node.key < key:
-                node = node.right
+                node = node.right_ref.get(self._storage)
             else:
                 return node.value
         raise KeyError
 
     def set(self, key, value):
-        self._tree = self._insert(self._tree, key, value)
+        self._tree_ref = self._insert(
+            self._tree_ref.get(self._storage), key, value)
 
     def _insert(self, node, key, value):
         if node is None:
-            return BinaryNode(None, key, value, None)
+            new_node = BinaryNode(NodeRef(), key, value, NodeRef())
         elif key < node.key:
-            return BinaryNode.from_node(node, left=self._insert(node.left, key, value))
+            new_node = BinaryNode.from_node(
+                node,
+                left_ref=self._insert(
+                    node.left_ref.get(self._storage), key, value))
         elif node.key < key:
-            return BinaryNode.from_node(node, right=self._insert(node.right, key, value))
+            new_node = BinaryNode.from_node(
+                node,
+                right_ref=self._insert(
+                    node.right_ref.get(self._storage), key, value))
         else:
-            return BinaryNode.from_node(node, value=value)
+            new_node = BinaryNode.from_node(node, value=value)
+        return NodeRef(node=new_node)
 
     def pop(self, key):
-        self._tree = self._delete(self._tree, key)
+        self._tree_ref = self._delete(
+            self._tree_ref.get(self._storage), key)
 
     def _delete(self, node, key):
         if node is None:
             raise KeyError
         elif key < node.key:
-            return BinaryNode.from_node(node, left=self._delete(node.left, key))
+            new_node = BinaryNode.from_node(
+                node,
+                left_ref=self._delete(
+                    node.left_ref.get(self._storage), key))
         elif node.key < key:
-            return BinaryNode.from_node(node, right=self._delete(node.right, key))
+            new_node = BinaryNode.from_node(
+                node,
+                right_ref=self._delete(
+                    node.right_ref.get(self._storage), key))
         else:
-            if node.left and node.right:
-                replacement = self._find_max(node.left)
-                return BinaryNode(
-                    self._delete(node.left, replacement.key),
+            left = node.left_ref.get(self._storage)
+            right = node.right_ref.get(self._storage)
+            if left and right:
+                replacement = self._find_max(left)
+                new_node = BinaryNode(
+                    self._delete(
+                        node.left_ref.get(self._storage), replacement.key),
                     replacement.key,
                     replacement.value,
-                    node.right,
+                    node.right_ref,
                 )
+            elif left:
+                return node.left_ref
             else:
-                return node.left or node.right
+                return node.right_ref
+        return NodeRef(node=new_node)
 
     def _find_max(self, node):
-        while node.right:
-            node = node.right
-        return node
+        while True:
+            next_node = node.right_ref.get(self._storage)
+            if next_node is None:
+                return node
+            node = next_node
 
-    def __str__(self):
-        import pprint
-        return "BinaryTree<\n{}\n>".format(
-            pprint.pformat(self._tree and self._tree.to_dict())
+
+class NodeRef(object):
+    def __init__(self, node=None, address=0):
+        self._node = node
+        self._address = address
+
+    @property
+    def address(self):
+        return self._address
+
+    def get(self, storage):
+        if self._node is None and self._address:
+            self._node = self._node_from_string(storage.read(self._address))
+        return self._node
+
+    def store(self, storage):
+        if self._node is not None and not self._address:
+            self._node.left_ref.store(storage)
+            self._node.right_ref.store(storage)
+            self._address = storage.write(self._node._to_string())
+
+    @classmethod
+    def _node_from_string(cls, string):
+        d = pickle.loads(string)
+        return BinaryNode(
+            cls(address=d['left']),
+            d['key'],
+            d['value'],
+            cls(address=d['right']),
         )
 
 
@@ -67,47 +116,22 @@ class BinaryNode(object):
     @classmethod
     def from_node(cls, node, **kwargs):
         return cls(
-            left=kwargs.get('left', node.left),
+            left_ref=kwargs.get('left_ref', node.left_ref),
             key=kwargs.get('key', node.key),
             value=kwargs.get('value', node.value),
-            right=kwargs.get('right', node.right),
+            right_ref=kwargs.get('right_ref', node.right_ref),
         )
 
-    def __init__(self, left, key, value, right, address=None):
-        self._left = left
+    def __init__(self, left_ref, key, value, right_ref):
+        self.left_ref = left_ref
         self.key = key
         self.value = value
-        self._right = right
-        self.address = address
-
-    @property
-    def left(self):
-        return self._left
-
-    @property
-    def right(self):
-        return self._right
-
-    def to_dict(self):
-        return {(self.key, self.value): {
-            'left': self.left and self.left.to_dict(),
-            'right': self.right and self.right.to_dict(),
-        }}
-
-    @classmethod
-    def from_string(cls, string):
-        raise NotImplemented
+        self.right_ref = right_ref
 
     def _to_string(self):
         return pickle.dumps({
-            'left': self.left and self.left.address,
+            'left': self.left_ref.address,
             'key': self.key,
             'value': self.value,
-            'right': self.right and self.right.address,
+            'right': self.right_ref.address,
         })
-
-    def persist(self, persister):
-        for node in [self.left, self.right]:
-            if node and node.address is None:
-                node.persist(persister)
-        self.address = persister.write(self._to_string())
