@@ -10,8 +10,19 @@ that disk addresses can be written to the parent nodes, and commit is an atomic
 update to a superblock, which just points at the new root node.
 
 A real implementation would probably use a B+ or B* tree, but that's not an
-interesting detail for us. Consider replacing the provided naive binary tree
-with a B+/B* tree as an exercise for the reader.
+interesting detail for us. Replacing the provided naive binary tree with a
+B+/B* tree is left as an exercise for the reader.
 
 Concurrent (dirty) readers are inherently supported. Serialized fully
 transactional updates are supported.
+
+
+.. todo:: Compaction.
+
+.. todo:: Truncation on crash recovery.
+
+.. todo:: Consider msgpack to avoid having to do the length-delimiting ourselves.
+
+.. todo:: Stress and crash tests.
+
+.. todo:: File locking to serialize writes.
