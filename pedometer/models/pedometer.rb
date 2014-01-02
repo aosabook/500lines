@@ -1,10 +1,11 @@
 require './models/user.rb'
+require 'mathn'
 
 class Pedometer
 
   CAP = 1.2
 
-  attr_reader :raw_data, :parsed_data, :user
+  attr_reader :raw_data, :parsed_data, :combined_data, :user
   attr_reader :steps, :distance, :time, :interval
 
   def initialize(data, user = nil)
@@ -19,11 +20,11 @@ class Pedometer
     parse_raw_data
   end
 
-  # -- Measurement Methods --------------------------------------------------
-
   # TODO: Introduce user object passed in to:
   # - Request info in metric vs. imperial
   # - Request info in different reporting formats
+  
+  # -- Measurement  ---------------------------------------------------------
 
   def measure
     measure_steps
@@ -69,6 +70,11 @@ class Pedometer
   def parse_raw_data
     @parsed_data = @raw_data.split(';').inject([]) do |a, row|
       a << row.split(',').map { |coord| coord.to_f.abs }
+      a
+    end
+
+   @combined_data = @parsed_data.inject([]) do |a, data|
+      a << Math.sqrt((data[0]**2) + (data[1]**2) + (data[2]**2)).round(2)
       a
     end
   end

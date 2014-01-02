@@ -7,7 +7,7 @@ class PedometerTest < Test::Unit::TestCase
 
   def test_create
     user = User.new
-    input = '0.123,-0.123,5;'
+    input = '0.123,-0.123,5;0.456,-0.789,0.111;'
     pedometer = Pedometer.new(input, user)
     
     assert_equal 0, pedometer.steps
@@ -17,7 +17,8 @@ class PedometerTest < Test::Unit::TestCase
     assert_equal 'seconds', pedometer.interval
     
     assert_equal input, pedometer.raw_data
-    assert_equal [[0.123, 0.123, 5.0]], pedometer.parsed_data
+    assert_equal [[0.123, 0.123, 5.0],[0.456,0.789,0.111]], pedometer.parsed_data
+    assert_equal [5.00, 0.92], pedometer.combined_data
     assert_equal user, pedometer.user
   end
 
