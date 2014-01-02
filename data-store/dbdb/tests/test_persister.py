@@ -7,7 +7,6 @@ from dbdb.persister import Persister
 
 
 class TestPersister(object):
-    EMPTY_SUPERBLOCK = ('\x00' * Persister.SUPERBLOCK_SIZE)
 
     def setup(self):
         self.f = StringIO()
@@ -19,9 +18,10 @@ class TestPersister(object):
         return superblock, data
 
     def test_init_ensures_superblock(self):
+        EMPTY_SUPERBLOCK = ('\x00' * Persister.SUPERBLOCK_SIZE)
         self.f.seek(0, os.SEEK_END)
         value = self.f.getvalue()
-        eq_(value, self.EMPTY_SUPERBLOCK)
+        eq_(value, EMPTY_SUPERBLOCK)
 
     def test_write(self):
         self.p.write('ABCDE')
@@ -33,4 +33,29 @@ class TestPersister(object):
         self.f.seek(Persister.SUPERBLOCK_SIZE)
         self.f.write('\x00\x00\x00\x00\x00\x00\x00\x0801234567')
         value = self.p.read(Persister.SUPERBLOCK_SIZE)
-        eq_('01234567', value)
+        eq_(value, '01234567')
+
+    def test_commit_root_address(self):
+        self.p.commit_root_address(257)
+        root_bytes = self.f.getvalue()[:8]
+        eq_(root_bytes, '\x00\x00\x00\x00\x00\x00\x01\x01')
+
+    def test_get_root_address(self):
+        self.f.seek(0)
+        self.f.write('\x00\x00\x00\x00\x00\x00\x02\x02')
+        root_address = self.p.get_root_address()
+        eq_(root_address, 514)
+
+    def test_workflow(self):
+        a1 = self.p.write('one')
+        a2 = self.p.write('two')
+        self.p.commit_root_address(a2)
+        a3 = self.p.write('three')
+        eq_(self.p.get_root_address(), a2)
+        a4 = self.p.write('four')
+        self.p.commit_root_address(a4)
+        eq_(self.p.read(a1), 'one')
+        eq_(self.p.read(a2), 'two')
+        eq_(self.p.read(a3), 'three')
+        eq_(self.p.read(a4), 'four')
+        eq_(self.p.get_root_address(), a4)
