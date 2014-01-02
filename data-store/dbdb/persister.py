@@ -1,3 +1,11 @@
+# This started as a very thin wrapper around a file object, with intent to
+# provide an object address on write() and a superblock. But as I was writing
+# it, I realised that the user really wouldn't want to deal with the lengths of
+# the writen chunks (and Pickle won't do it for you), so this module would have
+# to abstract the file object into it's own degenerate key/value store.
+# (Degenerate because you can't pick the keys, and it never releases storage,
+# even when it becomes unreachable!)
+
 import os
 
 
