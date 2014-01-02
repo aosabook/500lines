@@ -20,11 +20,22 @@ class Pedometer
     parse_raw_data
   end
 
+  # -- Filtering  -----------------------------------------------------------
+
+  # A one pole IIR filter (http://en.wikipedia.org/wiki/Low-pass_filter#Simple_infinite_impulse_response_filter)
+  def low_pass_filter
+    alpha = 0.5
+    filtered_data = @combined_data.each_with_index.inject([]) do |a, (value, index)|
+      a << ((index == 0) ? value : (alpha * value + (1 - alpha) * a[index - 1])).round(2)
+      a
+    end
+  end
+  
+  # -- Measurement  ---------------------------------------------------------
+
   # TODO: Introduce user object passed in to:
   # - Request info in metric vs. imperial
   # - Request info in different reporting formats
-  
-  # -- Measurement  ---------------------------------------------------------
 
   def measure
     measure_steps

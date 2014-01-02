@@ -69,6 +69,13 @@ class PedometerTest < Test::Unit::TestCase
     end
   end
 
+  # -- Filtering Tests ------------------------------------------------------
+
+  def test_low_pass_filter
+    pedometer = Pedometer.new("1,0.5,1;5,2,5;1,0.5,2;")
+    assert_equal [1.5,4.43,3.36], pedometer.low_pass_filter
+  end
+
   # -- Measurement Tests ----------------------------------------------------
 
   def test_measure_steps
