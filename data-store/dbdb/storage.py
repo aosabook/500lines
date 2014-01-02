@@ -10,7 +10,7 @@ import os
 import struct
 
 
-class Persister(object):
+class Storage(object):
     SUPERBLOCK_SIZE = 4096
     INTEGER_FORMAT = "!Q"
     INTEGER_LENGTH = 8
