@@ -1,8 +1,9 @@
+import cPickle as pickle
 import random
 
 from nose.tools import assert_raises, eq_
 
-from dbdb.binary_tree import BinaryTree
+from dbdb.binary_tree import BinaryNode, BinaryTree
 
 
 class TestBinaryTree(object):
@@ -71,3 +72,27 @@ class TestBinaryTree(object):
             tree.get('b')
         tree.get('a')
         tree.get('c')
+
+
+class TestBinaryNode(object):
+    def test_to_string_leaf(self):
+        n = BinaryNode(None, 'k', 'v', None)
+        pickled = n._to_string()
+        d = pickle.loads(pickled)
+        eq_(d['left'], None)
+        eq_(d['key'], 'k')
+        eq_(d['value'], 'v')
+        eq_(d['right'], None)
+
+    def test_to_string_nonleaf(self):
+        left = BinaryNode(None, 'left', 'left', None)
+        left.address = 123
+        right = BinaryNode(None, 'right', 'right', None)
+        right.address = 321
+        n = BinaryNode(left, 'k', 'v', right)
+        pickled = n._to_string()
+        d = pickle.loads(pickled)
+        eq_(d['left'], 123)
+        eq_(d['key'], 'k')
+        eq_(d['value'], 'v')
+        eq_(d['right'], 321)

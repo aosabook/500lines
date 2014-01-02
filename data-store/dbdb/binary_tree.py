@@ -1,3 +1,6 @@
+import cPickle as pickle
+
+
 class BinaryTree(object):
     def __init__(self):
         self._tree = None
@@ -70,14 +73,41 @@ class BinaryNode(object):
             right=kwargs.get('right', node.right),
         )
 
-    def __init__(self, left, key, value, right):
-        self.left = left
+    def __init__(self, left, key, value, right, address=None):
+        self._left = left
         self.key = key
         self.value = value
-        self.right = right
+        self._right = right
+        self.address = address
+
+    @property
+    def left(self):
+        return self._left
+
+    @property
+    def right(self):
+        return self._right
 
     def to_dict(self):
         return {(self.key, self.value): {
             'left': self.left and self.left.to_dict(),
             'right': self.right and self.right.to_dict(),
         }}
+
+    @classmethod
+    def from_string(cls, string):
+        raise NotImplemented
+
+    def _to_string(self):
+        return pickle.dumps({
+            'left': self.left and self.left.address,
+            'key': self.key,
+            'value': self.value,
+            'right': self.right and self.right.address,
+        })
+
+    def persist(self, persister):
+        for node in [self.left, self.right]:
+            if node and node.address is None:
+                node.persist(persister)
+        self.address = persister.write(self._to_string())
