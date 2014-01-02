@@ -7,6 +7,7 @@
 # even when it becomes unreachable!)
 
 import os
+import struct
 
 
 class Persister(object):
@@ -22,8 +23,7 @@ class Persister(object):
         self._seek_end()
         end_address = self._f.tell()
         if end_address < self.SUPERBLOCK_SIZE:
-            self._f.seek(self.SUPERBLOCK_SIZE)
-            self._f.flush()
+            self._f.write('\x00' * (self.SUPERBLOCK_SIZE - end_address))
 
     def _seek_end(self):
         self._f.seek(0, os.SEEK_END)
@@ -32,7 +32,7 @@ class Persister(object):
         self._f.seek(0)
 
     def _bytes_to_integer(self, integer_bytes):
-        return struct.unpack(self.INTEGER_FORMAT, integer_bytes)
+        return struct.unpack(self.INTEGER_FORMAT, integer_bytes)[0]
 
     def _integer_to_bytes(self, integer):
         return struct.pack(self.INTEGER_FORMAT, integer)
