@@ -1,5 +1,5 @@
-from StringIO import StringIO
 import os
+import tempfile
 
 from nose.tools import eq_
 
@@ -9,7 +9,7 @@ from dbdb.storage import Storage
 class TestStorage(object):
 
     def setup(self):
-        self.f = StringIO()
+        self.f = tempfile.NamedTemporaryFile()
         self.p = Storage(self.f)
 
     def _get_superblock_and_data(self, value):
@@ -17,15 +17,20 @@ class TestStorage(object):
         data = value[Storage.SUPERBLOCK_SIZE:]
         return superblock, data
 
+    def _get_f_contents(self):
+        self.f.flush()
+        with open(self.f.name, 'rb') as f:
+            return f.read()
+
     def test_init_ensures_superblock(self):
         EMPTY_SUPERBLOCK = ('\x00' * Storage.SUPERBLOCK_SIZE)
         self.f.seek(0, os.SEEK_END)
-        value = self.f.getvalue()
+        value = self._get_f_contents()
         eq_(value, EMPTY_SUPERBLOCK)
 
     def test_write(self):
         self.p.write('ABCDE')
-        value = self.f.getvalue()
+        value = self._get_f_contents()
         superblock, data = self._get_superblock_and_data(value)
         eq_(data, '\x00\x00\x00\x00\x00\x00\x00\x05ABCDE')
 
@@ -37,7 +42,7 @@ class TestStorage(object):
 
     def test_commit_root_address(self):
         self.p.commit_root_address(257)
-        root_bytes = self.f.getvalue()[:8]
+        root_bytes = self._get_f_contents()[:8]
         eq_(root_bytes, '\x00\x00\x00\x00\x00\x00\x01\x01')
 
     def test_get_root_address(self):

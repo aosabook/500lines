@@ -9,6 +9,8 @@
 import os
 import struct
 
+import portalocker
+
 
 class Storage(object):
     SUPERBLOCK_SIZE = 4096
@@ -17,13 +19,26 @@ class Storage(object):
 
     def __init__(self, f):
         self._f = f
+        self._locked = False
         self._ensure_superblock()
 
     def _ensure_superblock(self):
+        self._lock()
         self._seek_end()
         end_address = self._f.tell()
         if end_address < self.SUPERBLOCK_SIZE:
             self._f.write('\x00' * (self.SUPERBLOCK_SIZE - end_address))
+        self._unlock()
+
+    def _lock(self):
+        if not self._locked:
+            portalocker.lock(self._f, portalocker.LOCK_EX)
+            self._locked = True
+
+    def _unlock(self):
+        if self._locked:
+            portalocker.unlock(self._f)
+            self._locked = False
 
     def _seek_end(self):
         self._f.seek(0, os.SEEK_END)
@@ -41,9 +56,11 @@ class Storage(object):
         return self._bytes_to_integer(self._f.read(self.INTEGER_LENGTH))
 
     def _write_integer(self, integer):
+        self._lock()
         self._f.write(self._integer_to_bytes(integer))
 
     def write(self, data):
+        self._lock()
         self._seek_end()
         object_address = self._f.tell()
         self._write_integer(len(data))
@@ -57,10 +74,12 @@ class Storage(object):
         return data
 
     def commit_root_address(self, root_address):
+        self._lock()
         self._f.flush()
         self._seek_superblock()
         self._write_integer(root_address)
         self._f.flush()
+        self._unlock()
 
     def get_root_address(self):
         self._seek_superblock()
@@ -68,4 +87,5 @@ class Storage(object):
         return root_address
 
     def close(self):
+        self._unlock()
         self._f.close()
