@@ -107,8 +107,7 @@ class NodeRef(object):
 
     def store(self, storage):
         if self._node is not None and not self._address:
-            self._node.left_ref.store(storage)
-            self._node.right_ref.store(storage)
+            self._node.store_refs(storage)
             self._address = storage.write(self._node._to_string())
 
     @classmethod
@@ -137,6 +136,10 @@ class BinaryNode(object):
         self.key = key
         self.value = value
         self.right_ref = right_ref
+
+    def store_refs(self, storage):
+        self.left_ref.store(storage)
+        self.right_ref.store(storage)
 
     def _to_string(self):
         return pickle.dumps({
