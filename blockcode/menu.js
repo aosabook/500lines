@@ -21,8 +21,6 @@
 		scriptDirty = true;
 	}
 
-	// A menu block is just a normal block that is associated with a function
-	// And it lives in the menu column.
 	function menuItem(name, fn, value, contents){
 		var item = Block.create(name, value, contents);
 		scriptRegistry[name] = fn;
@@ -30,9 +28,6 @@
 		return item;
 	}
 
-	// Run all the script blocks, let the specific language handle any tasks it needs
-	// before and after the script is run
-	//
 	function run(){
 		// debounce
 		if (scriptDirty){
@@ -46,10 +41,6 @@
 	}
 	requestAnimationFrame(run);
 
-	// As each block is run, set a class on it, then find and execute its associated
-	// function. If we slow things down, you should be able to watch the code execute
-	// as each block highlights to show when it is running.
-	//
 	function runEach(evt){
 		var elem = evt.target;
 		if (!matches(elem, '.script .block')) return;
@@ -59,7 +50,6 @@
 		elem.classList.remove('running');
 	}
 
-	// One of the default menu blocks reused in each language
 	function repeat(block){
 		var count = Block.value(block);
 		var children = Block.contents(block);
