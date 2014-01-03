@@ -14,6 +14,9 @@
             e.setAttribute(key, attrs[key]);
         });
         children.forEach(function(child){
+            if (typeof child === 'string'){
+                child = document.createTextNode(child);
+            }
             e.appendChild(child);
         })
         return e;

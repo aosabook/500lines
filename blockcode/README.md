@@ -1,4 +1,4 @@
-# Block Code
+# Blockcode - a simple visual programming toolkit
 
 Block Code is an attempt to create a block-based programming tool in under 500 lines of code, including HTML, CSS, Javascript. The code itself is intended to be a live-coding environment for turtle graphics.
 
@@ -6,4 +6,3 @@ Block-based languages have a long history, with some of the prominent ones being
 
 This particular code is loosely based on the open-source project [Waterbear](http://waterbearlang.com/), which is not a language but a tool for wrapping exising languages with a block-based syntax. Advantages of such a wrapper include: Eliminating syntax errors, visual display of available components, easier to read/debug (sometimes), blocks are more localizable than programming languages, blocks can be used by pre-literate or pre-typing children.
 
-The implementation of the turtle graphics will be influenced by the Python turtle library, although that's a very powerful tool and we may not get all of it in 500 lines.
