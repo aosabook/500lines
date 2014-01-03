@@ -21,7 +21,11 @@ transactional updates are supported.
 
 .. todo:: Truncation on crash recovery.
 
-.. todo:: Consider msgpack to avoid having to do the length-delimiting ourselves.
+.. todo:: Consider msgpack to avoid having to do the length-delimiting
+    ourselves. Except that that means the storage manager has to learn about
+    our serialization methods, which doesn't save the complexity I'm trying to
+    avoid. Using a namedtuple also doesn't save anything over a dict from the
+    pickling perspective. Interesting.
 
 .. todo:: Stress and crash tests.
 
