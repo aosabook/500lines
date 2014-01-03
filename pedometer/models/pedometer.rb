@@ -84,7 +84,7 @@ class Pedometer
       a
     end
 
-   @combined_data = @parsed_data.inject([]) do |a, data|
+    @combined_data = @parsed_data.inject([]) do |a, data|
       a << Math.sqrt((data[0]**2) + (data[1]**2) + (data[2]**2)).round(2)
       a
     end
