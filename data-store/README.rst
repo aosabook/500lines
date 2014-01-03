@@ -27,10 +27,15 @@ dictionaries to persist tree nodes to disk, but we could very easily use
 sizes which improves performance).
 
 
-.. todo:: File locking to serialize writes. Should use portalocker.
+.. todo:: File locking to serialize writes. Currently using portalocker, but
+    the implementation is buggy because BinaryTree doesn't refresh its idea of
+    the root node after the lock is acquired. That means that a stale reader
+    can accidentally upgrade to a write lock and clobber other updates.  Now
+    I'm not sure if it's worth adding multi-writer safety for 500lines.
 
 .. todo:: Compaction. Requires atomic replace (not trivially available on
-    Windows) along with write serialization.
+    Windows) along with write serialization (but only if we care about that,
+    see above).
 
 .. todo:: Truncation on crash recovery. Is it worth adding an assumption that
     the root is the end of the file? Not sure.
