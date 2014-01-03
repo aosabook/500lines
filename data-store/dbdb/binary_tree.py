@@ -102,23 +102,13 @@ class NodeRef(object):
 
     def get(self, storage):
         if self._node is None and self._address:
-            self._node = self._node_from_string(storage.read(self._address))
+            self._node = BinaryNode.from_string(storage.read(self._address))
         return self._node
 
     def store(self, storage):
         if self._node is not None and not self._address:
             self._node.store_refs(storage)
-            self._address = storage.write(self._node._to_string())
-
-    @classmethod
-    def _node_from_string(cls, string):
-        d = pickle.loads(string)
-        return BinaryNode(
-            cls(address=d['left']),
-            d['key'],
-            d['value'],
-            cls(address=d['right']),
-        )
+            self._address = storage.write(self._node.to_string())
 
 
 class BinaryNode(object):
@@ -141,10 +131,20 @@ class BinaryNode(object):
         self.left_ref.store(storage)
         self.right_ref.store(storage)
 
-    def _to_string(self):
+    def to_string(self):
         return pickle.dumps({
             'left': self.left_ref.address,
             'key': self.key,
             'value': self.value,
             'right': self.right_ref.address,
         })
+
+    @classmethod
+    def from_string(cls, string):
+        d = pickle.loads(string)
+        return cls(
+            NodeRef(address=d['left']),
+            d['key'],
+            d['value'],
+            NodeRef(address=d['right']),
+        )
