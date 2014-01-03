@@ -1,9 +1,11 @@
 import os
+import subprocess
 import tempfile
 
 from nose.tools import assert_raises, eq_
 
 import dbdb
+import dbdb.tool
 
 
 class TestDatabase(object):
@@ -40,3 +42,27 @@ class TestDatabase(object):
         with assert_raises(KeyError):
             db['d']
         db.close()
+
+
+class TestTool(object):
+    def setup(self):
+        with tempfile.NamedTemporaryFile(delete=False) as temp_f:
+            self.tempfile_name = temp_f.name
+
+    def teardown(self):
+        os.remove(self.tempfile_name)
+
+    def _tool(self, *args):
+        return subprocess.check_output(
+            ['python', '-m', 'dbdb.tool', self.tempfile_name] + list(args))
+
+    def test_get_non_existent(self):
+        with assert_raises(subprocess.CalledProcessError) as raised:
+            self._tool('get', 'a')
+        eq_(raised.exception.returncode, dbdb.tool.BAD_KEY)
+
+    def test_tool(self):
+        expected = 'b'
+        self._tool('set', 'a', expected)
+        actual = self._tool('get', 'a')
+        eq_(actual, expected)
