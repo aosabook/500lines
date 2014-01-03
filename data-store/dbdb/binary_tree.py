@@ -14,19 +14,19 @@ class BinaryTree(object):
         self._storage.commit_root_address(self._tree_ref.address)
 
     def get(self, key):
-        node = self._tree_ref.get(self._storage)
+        node = self._follow(self._tree_ref)
         while node is not None:
             if key < node.key:
-                node = node.left_ref.get(self._storage)
+                node = self._follow(node.left_ref)
             elif node.key < key:
-                node = node.right_ref.get(self._storage)
+                node = self._follow(node.right_ref)
             else:
                 return node.value
         raise KeyError
 
     def set(self, key, value):
         self._tree_ref = self._insert(
-            self._tree_ref.get(self._storage), key, value)
+            self._follow(self._tree_ref), key, value)
 
     def _insert(self, node, key, value):
         if node is None:
@@ -35,19 +35,19 @@ class BinaryTree(object):
             new_node = BinaryNode.from_node(
                 node,
                 left_ref=self._insert(
-                    node.left_ref.get(self._storage), key, value))
+                    self._follow(node.left_ref), key, value))
         elif node.key < key:
             new_node = BinaryNode.from_node(
                 node,
                 right_ref=self._insert(
-                    node.right_ref.get(self._storage), key, value))
+                    self._follow(node.right_ref), key, value))
         else:
             new_node = BinaryNode.from_node(node, value=value)
         return NodeRef(node=new_node)
 
     def pop(self, key):
         self._tree_ref = self._delete(
-            self._tree_ref.get(self._storage), key)
+            self._follow(self._tree_ref), key)
 
     def _delete(self, node, key):
         if node is None:
@@ -56,20 +56,20 @@ class BinaryTree(object):
             new_node = BinaryNode.from_node(
                 node,
                 left_ref=self._delete(
-                    node.left_ref.get(self._storage), key))
+                    self._follow(node.left_ref), key))
         elif node.key < key:
             new_node = BinaryNode.from_node(
                 node,
                 right_ref=self._delete(
-                    node.right_ref.get(self._storage), key))
+                    self._follow(node.right_ref), key))
         else:
-            left = node.left_ref.get(self._storage)
-            right = node.right_ref.get(self._storage)
+            left = self._follow(node.left_ref)
+            right = self._follow(node.right_ref)
             if left and right:
                 replacement = self._find_max(left)
                 new_node = BinaryNode(
                     self._delete(
-                        node.left_ref.get(self._storage), replacement.key),
+                        self._follow(node.left_ref), replacement.key),
                     replacement.key,
                     replacement.value,
                     node.right_ref,
@@ -82,10 +82,13 @@ class BinaryTree(object):
 
     def _find_max(self, node):
         while True:
-            next_node = node.right_ref.get(self._storage)
+            next_node = self._follow(node.right_ref)
             if next_node is None:
                 return node
             node = next_node
+
+    def _follow(self, ref):
+        return ref.get(self._storage)
 
 
 class NodeRef(object):
