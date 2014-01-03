@@ -17,9 +17,23 @@ Concurrent (dirty) readers are inherently supported. Serialized fully
 transactional updates are supported.
 
 
-.. todo:: Compaction.
+Extension points
+----------------
 
-.. todo:: Truncation on crash recovery.
+Good software can be extended easily in the ways that it needs extending (i.e.
+coupling is low along the common lines of change). This example uses pickle and
+dictionaries to persist tree nodes to disk, but we could very easily use
+``msgpack`` and tuples to reduce the size of data on disk (which reduces IO
+sizes which improves performance).
+
+
+.. todo:: File locking to serialize writes. Should use portalocker.
+
+.. todo:: Compaction. Requires atomic replace (not trivially available on
+    Windows) along with write serialization.
+
+.. todo:: Truncation on crash recovery. Is it worth adding an assumption that
+    the root is the end of the file? Not sure.
 
 .. todo:: Consider msgpack to avoid having to do the length-delimiting
     ourselves. Except that that means the storage manager has to learn about
@@ -28,5 +42,3 @@ transactional updates are supported.
     pickling perspective. Interesting.
 
 .. todo:: Stress and crash tests.
-
-.. todo:: File locking to serialize writes.
