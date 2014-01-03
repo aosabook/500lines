@@ -1,19 +1,5 @@
 (function(global){
 
-	// Shorthand function to create elements easily
-	// While also setting their attributes and adding child elements
-	//
-	function elem(name, attrs, children){
-		children = children || [];
-		var e = document.createElement(name);
-		Object.keys(attrs).forEach(function(attr){
-			e.setAttribute(attr, attrs[attr]);
-		});
-		children.forEach(function(child){
-			e.appendChild(child);
-		})
-		return e;
-	}
 
 	// This can be used to create blocks for the menu, or
 	// for restoring blocks saved in files or localStorage
@@ -81,25 +67,78 @@
 	// Handler to save the current script in localStorage on page refresh
 	//
 	function saveLocal(){
-		var blocks = [].slice.call(document.querySelectorAll('.script > .block'));
-		var script = blocks.map(blockScript);
-		localStorage._blockCode = JSON.stringify(script);
+		localStorage._blockCode = scriptToJson();
 	}
 
-	// Handler to restore the current script on page refresh
+	// Utility for converting scripts to JSON
 	//
-	function restoreLocal(){
-		if (!localStorage['_blockCode']) return;
+	function scriptToJson(){
+		var blocks = [].slice.call(document.querySelectorAll('.script > .block'));
+		return JSON.stringify(blocks.map(blockScript));		
+	}
+
+	// Utility for converting JSON to scripts
+	//
+	function jsonToScript(json){
 		var scriptElem = document.querySelector('.script');
-		JSON.parse(localStorage._blockCode).forEach(function(block){
+		clearScript();
+		JSON.parse(json).forEach(function(block){
 			scriptElem.appendChild(createBlock.apply(null, block));
 		});
 		menu.runSoon();
 	}
 
-	// Send a custom event to an element
-	function trigger(name, target){
-		target.dispatchEvent(new CustomEvent(name, {bubbles: true, cancelable: false}));
+	// Handler to restore the current script on page refresh
+	//
+	function restoreLocal(){
+		jsonToScript(localStorage._blockCode || '[]');
+	}
+
+	// Handler to clear the current script
+	//
+	function clearScript(){
+		[].slice.call(document.querySelectorAll('.script > .block')).forEach(function(block){
+			block.parentElement.removeChild(block);
+		});
+		menu.runSoon();
+	}
+
+	// Handler to save to a local file
+	//
+	function saveFile(evt){
+	    var title = prompt("Save file as: ");
+	    if (!title) return;
+		var file = new Blob([scriptToJson()], {type: 'application/json'});
+		var reader = new FileReader();
+		var a = document.createElement('a');
+		reader.onloadend = function(){
+			var a = elem('a', {'href': reader.result, 'download': title + '.json'});
+			a.click();
+		};
+		reader.readAsDataURL(file);
+	}
+
+	// Handler to load from a local file
+	function readFile(file){
+		fileName = file.name;
+		if (fileName.indexOf('.json', fileName.length - 5) === -1) {
+			alert('Not a JSON file');
+			return;
+		}
+		var reader = new FileReader();
+		reader.readAsText( file );
+		reader.onload = function (evt){
+			jsonToScript(evt.target.result);
+		};
+	}
+
+	function loadFile(){
+		var input = elem('input', {'type': 'file', 'accept': 'application/json'});
+		if (!input) return;
+		input.addEventListener('change', function(evt){
+			readFile(input.files[0]);
+		});
+		input.click();
 	}
 
 	// Handler to run an array of blocks by sending each block the "run" event
@@ -119,6 +158,10 @@
 		run: runBlocks,
 		trigger: trigger
 	}
+
+	document.querySelector('.clear-action').addEventListener('click', clearScript, false);
+	document.querySelector('.save-action').addEventListener('click', saveFile, false);
+	document.querySelector('.load-action').addEventListener('click', loadFile, false);
 
 	window.addEventListener('unload', saveLocal, false);
 	window.addEventListener('load', restoreLocal, false);

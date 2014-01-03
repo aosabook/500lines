@@ -28,8 +28,7 @@ h1, h2, h3, h4, h5, h6{
 	width: 24%;
 	height: 85%;
 	float: left;
-	margin-left: 10px;
-	margin-right: 10px;
+	margin: 0 10px;
 }
 .script{
 	background-color: LightSteelBlue;
@@ -75,14 +74,11 @@ h1, h2, h3, h4, h5, h6{
 }
 
 .container{
-	margin-left: 20px;
+	margin: 0 -6px 0 20px;
 	padding-bottom: 10px;
-	/*padding-top: 5px;*/
 	border: 0;
 	background-color: LightSteelBlue;
-	border-bottom-right-radius: 0;
-	border-top-right-radius: 0;
-	margin-right: -6px;
+	border-radius: 7px 0 0 7px;
 }
 
 .menu .container{

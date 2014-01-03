@@ -1,35 +1,5 @@
 (function(global){
 	'use strict';
-	// Remove namespace for matches
-	// This is a lot of code just to get functionality that is already built-in
-    if (document.body.matches){
-        global.matches = function matches(elem, selector){ return elem.matches(selector); };
-    }else if(document.body.mozMatchesSelector){
-        global.matches = function matches(elem, selector){ return elem.mozMatchesSelector(selector); };
-    }else if (document.body.webkitMatchesSelector){
-        global.matches = function matches(elem, selector){ return elem.webkitMatchesSelector(selector); };
-    }else if (document.body.msMatchesSelector){
-        global.matches = function matches(elem, selector){ return elem.msMatchesSelector(selector); };
-    }else if(document.body.oMatchesSelector){
-        global.matches = function matches(elem, selector){ return elem.oMatchesSelector(selector); };
-    }
-
-    // Emulate one of the handiest methods in all of jQuery
-    // that isn't already built in to the browser yet
-    //
-    global.closest = function closest(elem, selector){
-        while(elem){
-            if (matches(elem, selector)) return elem;
-            elem = elem.parentElement;
-        }
-        return null;
-    };
-
-    // Another polyfill for built-in functionality, just to get rid of namespaces in older
-    // browsers, or to emulate it for browsers that don't have requestAnimationFrame yet
-    global.requestAnimationFrame = global.requestAnimationFrame || global.mozRequestAnimationFrame || global.msRequestAnimationFrame || global.webkitRequestAnimationFrame || function(fn){
-    	setTimeout(fn, 20);
-    };
 
     // When we're dragging, we'll need to reference these from different stages
     // of the dragging callback dance
@@ -49,10 +19,6 @@
 		evt.target.classList.add('dragging');
 		dragTarget = evt.target;
 		scriptBlocks = [].slice.call(document.querySelectorAll('.script .block:not(.dragging)'));
-		// scriptBlocks.sort(function(a,b){
-		// 	console.log('sort value: %s', b.getBoundingClientRect().top - a.getBoundingClientRect().top)
-		// 	return a.getBoundingClientRect().top - b.getBoundingClientRect().top;
-		// });
 		// For dragging to take place in Firefox, we have to set this, even if we don't use it
 		evt.dataTransfer.setData('text/html', evt.target.outerHTML);
 		if (matches(evt.target, '.menu .block')){
@@ -60,9 +26,7 @@
 		}else{
 			evt.dataTransfer.effectAllowed = 'move';
 		}
-		// evlog(evt);
 	}
-	document.addEventListener('dragstart', dragStart, false);
 
 	function findPosition(evt){
 		// Find which block we should insert the dragged block before
@@ -89,12 +53,14 @@
 			}
 		}
 	}
-	document.addEventListener('drag', function(){}, false);
 
 	function dragEnter(evt){
 		// evlog(evt);
 		if (matches(evt.target, '.menu, .script, .content')){
 			evt.target.classList.add('over');
+			if (evt.preventDefault) {
+				evt.preventDefault(); // Necessary. Allows us to drop.
+			}
 		}else{
 			if (!matches(evt.target, '.menu *, .script *')){
 				var over = document.querySelector('.over');
@@ -104,12 +70,8 @@
 				evt.target.classList.remove('over');
 			}
 		}
-		if (evt.preventDefault) {
-			evt.preventDefault(); // Necessary. Allows us to drop.
-			}
 		return false;
 	}
-	document.addEventListener('dragenter', dragEnter, false);
 
 	function dragOver(evt){
 		// evlog(evt);
@@ -124,7 +86,6 @@
 		}
 		return false;
 	}
-	document.addEventListener('dragover', dragOver, false);
 
 	function drop(evt){
 		if (!matches(evt.target, '.menu, .menu *, .script, .script *')) return;
@@ -162,9 +123,7 @@
 		}else{
   			// If dragging from menu to menu, do nothing
 		}
-		// evlog(evt);
 	};
-	document.addEventListener('drop', drop, false);
 
 	function dragEnd(evt){
 		// this looks like a good place for a helper class
@@ -180,7 +139,12 @@
 		if (next){
 			next.classList.remove('next');
 		}
-		// evlog(evt);
 	}
+
+	document.addEventListener('dragstart', dragStart, false);
+	document.addEventListener('dragenter', dragEnter, false);
+	document.addEventListener('dragover', dragOver, false);
+	document.addEventListener('drag', function(){}, false);
+	document.addEventListener('drop', drop, false);	
 	document.addEventListener('dragend', dragEnd, false);
 })(window);

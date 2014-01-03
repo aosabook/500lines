@@ -41,27 +41,6 @@
 		position = {x: WIDTH/2, y: HEIGHT/2};
 	}
 
-	var saveStack = [];
-	function save(){
-		saveStack.push({
-			position: position,
-			direction: direction,
-			visible: visible,
-			pen: pen,
-			color: color
-		})
-	}
-	function restore(){
-		var oldState = saveState.pop();
-		if (oldState){
-			position = oldState.position;
-			direction = oldState.direction;
-			visible = oldState.visible;
-			pen = oldState.pen;
-			color = oldState.color;
-		}
-	}
-
 	// Utility so we can work with degrees, but draw in radians
 	function deg2rad(degrees){
 		return DEGREE * degrees;
@@ -164,8 +143,6 @@
 	menu.item('Pen up', penUp);
 	menu.item('Pen down', penDown);
 	menu.item('Back to center', recenter);
-	menu.item('Save', save);
-	menu.item('Restore', restore);
 	menu.item('Hide turtle', hideTurtle);
 	menu.item('Show turtle', showTurtle);
 
