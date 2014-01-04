@@ -7,13 +7,18 @@ except ImportError:
 class BinaryTree(object):
     def __init__(self, storage):
         self._storage = storage
-        self._tree_ref = NodeRef(address=self._storage.get_root_address())
+        self._refresh_tree_ref()
 
     def commit(self):
         self._tree_ref.store(self._storage)
         self._storage.commit_root_address(self._tree_ref.address)
 
+    def _refresh_tree_ref(self):
+        self._tree_ref = NodeRef(address=self._storage.get_root_address())
+
     def get(self, key):
+        if not self._storage.locked:
+            self._refresh_tree_ref()
         node = self._follow(self._tree_ref)
         while node is not None:
             if key < node.key:
@@ -25,6 +30,8 @@ class BinaryTree(object):
         raise KeyError
 
     def set(self, key, value):
+        if self._storage.lock():
+            self._refresh_tree_ref()
         self._tree_ref = self._insert(
             self._follow(self._tree_ref), key, value)
 
@@ -46,6 +53,8 @@ class BinaryTree(object):
         return NodeRef(node=new_node)
 
     def pop(self, key):
+        if self._storage.lock():
+            self._refresh_tree_ref()
         self._tree_ref = self._delete(
             self._follow(self._tree_ref), key)
 

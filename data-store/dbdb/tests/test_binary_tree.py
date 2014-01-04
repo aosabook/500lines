@@ -9,6 +9,17 @@ from dbdb.binary_tree import BinaryNode, BinaryTree, NodeRef
 class StubStorage(object):
     def __init__(self):
         self.d = [0]
+        self.locked = False
+
+    def lock(self):
+        if not self.locked:
+            self.locked = True
+            return True
+        else:
+            return False
+
+    def unlock(self):
+        pass
 
     def get_root_address(self):
         return 0
