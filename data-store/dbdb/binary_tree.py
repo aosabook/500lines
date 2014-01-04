@@ -37,7 +37,7 @@ class BinaryTree(object):
 
     def _insert(self, node, key, value):
         if node is None:
-            new_node = BinaryNode(NodeRef(), key, value, NodeRef())
+            new_node = BinaryNode(NodeRef(), key, value, NodeRef(), 1)
         elif key < node.key:
             new_node = BinaryNode.from_node(
                 node,
@@ -76,12 +76,14 @@ class BinaryTree(object):
             right = self._follow(node.right_ref)
             if left and right:
                 replacement = self._find_max(left)
+                left_ref = self._delete(
+                    self._follow(node.left_ref), replacement.key)
                 new_node = BinaryNode(
-                    self._delete(
-                        self._follow(node.left_ref), replacement.key),
+                    left_ref,
                     replacement.key,
                     replacement.value,
                     node.right_ref,
+                    left_ref.length + node.right_ref.length + 1,
                 )
             elif left:
                 return node.left_ref
@@ -99,6 +101,11 @@ class BinaryTree(object):
     def _follow(self, ref):
         return ref.get(self._storage)
 
+    def __len__(self):
+        if not self._storage.locked:
+            self._refresh_tree_ref()
+        return self._follow(self._tree_ref).length
+
 
 class NodeRef(object):
     def __init__(self, node=None, address=0):
@@ -108,6 +115,15 @@ class NodeRef(object):
     @property
     def address(self):
         return self._address
+
+    @property
+    def length(self):
+        if self._node is None and self._address:
+            raise RuntimeError('Asking for NodeRef length of unloaded node')
+        if self._node:
+            return self._node.length
+        else:
+            return 0
 
     def get(self, storage):
         if self._node is None and self._address:
@@ -123,18 +139,26 @@ class NodeRef(object):
 class BinaryNode(object):
     @classmethod
     def from_node(cls, node, **kwargs):
+        length = node.length
+        if 'left_ref' in kwargs:
+            length += kwargs['left_ref'].length - node.left_ref.length
+        if 'right_ref' in kwargs:
+            length += kwargs['right_ref'].length - node.right_ref.length
+
         return cls(
             left_ref=kwargs.get('left_ref', node.left_ref),
             key=kwargs.get('key', node.key),
             value=kwargs.get('value', node.value),
             right_ref=kwargs.get('right_ref', node.right_ref),
+            length=length,
         )
 
-    def __init__(self, left_ref, key, value, right_ref):
+    def __init__(self, left_ref, key, value, right_ref, length):
         self.left_ref = left_ref
         self.key = key
         self.value = value
         self.right_ref = right_ref
+        self.length = length
 
     def store_refs(self, storage):
         self.left_ref.store(storage)
@@ -146,6 +170,7 @@ class BinaryNode(object):
             'key': self.key,
             'value': self.value,
             'right': self.right_ref.address,
+            'length': self.length,
         })
 
     @classmethod
@@ -156,4 +181,5 @@ class BinaryNode(object):
             d['key'],
             d['value'],
             NodeRef(address=d['right']),
+            d['length'],
         )

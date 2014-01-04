@@ -41,7 +41,7 @@ class DBDB(object):
             return True
 
     def __len__(self):
-        pass
+        return len(self._tree)
 
     def __iter__(self):
         pass

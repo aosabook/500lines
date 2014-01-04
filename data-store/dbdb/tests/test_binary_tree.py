@@ -97,7 +97,7 @@ class TestBinaryTree(object):
 
 class TestBinaryNode(object):
     def test_to_string_leaf(self):
-        n = BinaryNode(NodeRef(), 'k', 'v', NodeRef())
+        n = BinaryNode(NodeRef(), 'k', 'v', NodeRef(), 1)
         pickled = n.to_string()
         d = pickle.loads(pickled)
         eq_(d['left'], 0)
@@ -108,7 +108,7 @@ class TestBinaryNode(object):
     def test_to_string_nonleaf(self):
         left_ref = NodeRef(address=123)
         right_ref = NodeRef(address=321)
-        n = BinaryNode(left_ref, 'k', 'v', right_ref)
+        n = BinaryNode(left_ref, 'k', 'v', right_ref, 3)
         pickled = n.to_string()
         d = pickle.loads(pickled)
         eq_(d['left'], 123)

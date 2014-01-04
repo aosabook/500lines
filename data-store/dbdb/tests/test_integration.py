@@ -34,6 +34,7 @@ class TestDatabase(object):
         db['c'] = 'see'
         db.commit()
         db['d'] = 'dee'
+        eq_(len(db), 4)
         db.close()
         db = dbdb.connect(self.tempfile_name)
         eq_(db['a'], 'aye')
@@ -41,6 +42,7 @@ class TestDatabase(object):
         eq_(db['c'], 'see')
         with assert_raises(KeyError):
             db['d']
+        eq_(len(db), 3)
         db.close()
 
 
