@@ -108,7 +108,11 @@ class BinaryTree(object):
     def __len__(self):
         if not self._storage.locked:
             self._refresh_tree_ref()
-        return self._follow(self._tree_ref).length
+        root = self._follow(self._tree_ref)
+        if root:
+            return root.length
+        else:
+            return 0
 
 
 class BinaryNode(object):

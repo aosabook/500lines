@@ -48,10 +48,15 @@ class TestBinaryTree(object):
     def test_random_set_and_get_keys(self):
         ten_k = list(range(10000))
         pairs = zip(random.sample(ten_k, 10), random.sample(ten_k, 10))
-        for k, v in pairs:
+        for i, (k, v) in enumerate(pairs, start=1):
             self.tree.set(k, v)
+            eq_(len(self.tree), i)
         for k, v in pairs:
             eq_(self.tree.get(k), v)
+        random.shuffle(pairs)
+        for i, (k, v) in enumerate(pairs, start=1):
+            self.tree.pop(k)
+            eq_(len(self.tree), len(pairs) - i)
 
     def test_overwrite_and_get_key(self):
         self.tree.set('a', 'b')
