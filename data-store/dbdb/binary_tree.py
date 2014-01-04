@@ -4,6 +4,9 @@ except ImportError:
     import pickle
 
 
+from dbdb.refs import NodeRef
+
+
 class BinaryTree(object):
     def __init__(self, storage):
         self._storage = storage
@@ -14,7 +17,8 @@ class BinaryTree(object):
         self._storage.commit_root_address(self._tree_ref.address)
 
     def _refresh_tree_ref(self):
-        self._tree_ref = NodeRef(address=self._storage.get_root_address())
+        self._tree_ref = BinaryNodeRef(
+            address=self._storage.get_root_address())
 
     def get(self, key):
         if not self._storage.locked:
@@ -107,35 +111,6 @@ class BinaryTree(object):
         return self._follow(self._tree_ref).length
 
 
-class NodeRef(object):
-    def __init__(self, node=None, address=0):
-        self._node = node
-        self._address = address
-
-    @property
-    def address(self):
-        return self._address
-
-    @property
-    def length(self):
-        if self._node is None and self._address:
-            raise RuntimeError('Asking for NodeRef length of unloaded node')
-        if self._node:
-            return self._node.length
-        else:
-            return 0
-
-    def get(self, storage):
-        if self._node is None and self._address:
-            self._node = BinaryNode.from_string(storage.read(self._address))
-        return self._node
-
-    def store(self, storage):
-        if self._node is not None and not self._address:
-            self._node.store_refs(storage)
-            self._address = storage.write(self._node.to_string())
-
-
 class BinaryNode(object):
     @classmethod
     def from_node(cls, node, **kwargs):
@@ -177,9 +152,13 @@ class BinaryNode(object):
     def from_string(cls, string):
         d = pickle.loads(string)
         return cls(
-            NodeRef(address=d['left']),
+            BinaryNodeRef(address=d['left']),
             d['key'],
             d['value'],
-            NodeRef(address=d['right']),
+            BinaryNodeRef(address=d['right']),
             d['length'],
         )
+
+
+class BinaryNodeRef(NodeRef):
+    node_class = BinaryNode
