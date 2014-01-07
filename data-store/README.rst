@@ -9,12 +9,33 @@ nodes. Common nodes are shared. Updates are flushed leaf-to-root to disk (so
 that disk addresses can be written to the parent nodes, and commit is an atomic
 update to a superblock, which just points at the new root node.
 
-A real implementation would probably use a B+ or B* tree, but that's not an
+A real implementation would probably use a B-tree (or B+-tree or B*-tree), but that's not an
 interesting detail for us. Replacing the provided naive binary tree with a
 B+/B* tree is left as an exercise for the reader.
 
-Concurrent (dirty) readers are inherently supported. Serialized fully
-transactional updates are supported.
+Concurrent (dirty) readers are supported. Serialized fully transactional
+updates are supported.
+
+
+Installing
+----------
+
+::
+
+    pip install -e requirements.txt
+
+
+Testing
+-------
+
+::
+
+    nosetests -v
+
+    dbdb.tests.test_binary_tree.TestBinaryNode.test_to_string_leaf ... ok
+    dbdb.tests.test_binary_tree.TestBinaryNode.test_to_string_nonleaf ... ok
+    dbdb.tests.test_binary_tree.TestBinaryTree.test_del_full_node_key ... ok
+    ... (etc)
 
 
 Extension points
@@ -25,6 +46,10 @@ coupling is low along the common lines of change). This example uses pickle and
 dictionaries to persist tree nodes to disk, but we could very easily use
 ``msgpack`` and tuples to reduce the size of data on disk (which reduces IO
 sizes which improves performance).
+
+The binary tree nodes and algorithms are distinct from the persistence and
+commit logic, so it should be easy to implement something different, like a
+B-Tree.
 
 
 .. todo:: File locking to serialize writes. Currently using portalocker, but
