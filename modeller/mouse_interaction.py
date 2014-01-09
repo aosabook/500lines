@@ -22,7 +22,6 @@ class MouseInteraction(object):
         self.camera_loc = array( [0, 0, -15, 0], 'd')
         self.trackball = None
         self.mouse_loc = None
-        pass
 
 
     def MouseButton(self, button, mode, x, y):
@@ -34,10 +33,10 @@ class MouseInteraction(object):
             if button == GLUT_RIGHT_BUTTON:
                 self.trackball = trackball.Trackball(self.camera_loc, self.rotation, (0,0,0), x, y, xSize, ySize)
             elif button == 3: # scroll up
-                self.translate(0, 0, 0.5)
+                self.translate(0, 0, 1.0)
                 glutPostRedisplay()
             elif button == 4: # scroll up
-                self.translate(0, 0, -0.5)
+                self.translate(0, 0, -1.0)
                 glutPostRedisplay()
 
 
@@ -69,10 +68,11 @@ class MouseInteraction(object):
                 self.translate(0, 0, dz/40.0)
             else:
                 pass
-        self.mouse_loc = (x, y)
-        glutPostRedisplay()
+            self.mouse_loc = (x, y)
+            glutPostRedisplay()
 
 
     def register(self):
         glutMouseFunc(self.MouseButton)
         glutMotionFunc(self.MouseMove)
+        glutPassiveMotionFunc(None)
