@@ -21,11 +21,6 @@ class TestContext(BaseContext):
         # TODO: remove
         self.InitDebug()
 
-    def Lights(self, mode = None):
-        """ called by default rendering process iff there is no scenegraph present """
-        glEnable(GL_LIGHTING)
-        glEnable(GL_LIGHT0)
-
     def Render(self, mode = None):
         BaseContext.Render(self, mode)
 
