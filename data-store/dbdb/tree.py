@@ -22,7 +22,7 @@ class Tree(object):
         if self._storage.lock():
             self._refresh_tree_ref()
         self._tree_ref = self._insert(
-            self._follow(self._tree_ref), key, value)
+            self._follow(self._tree_ref), key, ValueRef(value))
 
     def pop(self, key):
         if self._storage.lock():
@@ -73,3 +73,24 @@ class NodeRef(object):
         if self._node is not None and not self._address:
             self._node.store_refs(storage)
             self._address = storage.write(self._node.to_string())
+
+
+class ValueRef(object):
+    node_class = None
+
+    def __init__(self, value=None, address=0):
+        self._value = value
+        self._address = address
+
+    @property
+    def address(self):
+        return self._address
+
+    def get(self, storage):
+        if self._value is None and self._address:
+            self._value = storage.read(self._address)
+        return self._value
+
+    def store(self, storage):
+        if self._value is not None and not self._address:
+            self._address = storage.write(self._value)

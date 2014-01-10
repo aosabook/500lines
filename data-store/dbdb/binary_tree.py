@@ -4,7 +4,7 @@ except ImportError:
     import pickle
 
 
-from dbdb.tree import NodeRef, Tree
+from dbdb.tree import NodeRef, Tree, ValueRef
 
 
 class BinaryNode(object):
@@ -19,19 +19,20 @@ class BinaryNode(object):
         return cls(
             left_ref=kwargs.get('left_ref', node.left_ref),
             key=kwargs.get('key', node.key),
-            value=kwargs.get('value', node.value),
+            value_ref=kwargs.get('value_ref', node.value_ref),
             right_ref=kwargs.get('right_ref', node.right_ref),
             length=length,
         )
 
-    def __init__(self, left_ref, key, value, right_ref, length):
+    def __init__(self, left_ref, key, value_ref, right_ref, length):
         self.left_ref = left_ref
         self.key = key
-        self.value = value
+        self.value_ref = value_ref
         self.right_ref = right_ref
         self.length = length
 
     def store_refs(self, storage):
+        self.value_ref.store(storage)
         self.left_ref.store(storage)
         self.right_ref.store(storage)
 
@@ -39,7 +40,7 @@ class BinaryNode(object):
         return pickle.dumps({
             'left': self.left_ref.address,
             'key': self.key,
-            'value': self.value,
+            'value': self.value_ref.address,
             'right': self.right_ref.address,
             'length': self.length,
         })
@@ -50,7 +51,7 @@ class BinaryNode(object):
         return cls(
             BinaryNodeRef(address=d['left']),
             d['key'],
-            d['value'],
+            ValueRef(address=d['value']),
             BinaryNodeRef(address=d['right']),
             d['length'],
         )
@@ -70,25 +71,25 @@ class BinaryTree(Tree):
             elif node.key < key:
                 node = self._follow(node.right_ref)
             else:
-                return node.value
+                return self._follow(node.value_ref)
         raise KeyError
 
-    def _insert(self, node, key, value):
+    def _insert(self, node, key, value_ref):
         if node is None:
             new_node = BinaryNode(
-                self.node_ref_class(), key, value, self.node_ref_class(), 1)
+                self.node_ref_class(), key, value_ref, self.node_ref_class(), 1)
         elif key < node.key:
             new_node = BinaryNode.from_node(
                 node,
                 left_ref=self._insert(
-                    self._follow(node.left_ref), key, value))
+                    self._follow(node.left_ref), key, value_ref))
         elif node.key < key:
             new_node = BinaryNode.from_node(
                 node,
                 right_ref=self._insert(
-                    self._follow(node.right_ref), key, value))
+                    self._follow(node.right_ref), key, value_ref))
         else:
-            new_node = BinaryNode.from_node(node, value=value)
+            new_node = BinaryNode.from_node(node, value_ref=value_ref)
         return NodeRef(node=new_node)
 
     def _delete(self, node, key):
@@ -114,7 +115,7 @@ class BinaryTree(Tree):
                 new_node = BinaryNode(
                     left_ref,
                     replacement.key,
-                    replacement.value,
+                    replacement.value_ref,
                     node.right_ref,
                     left_ref.length + node.right_ref.length + 1,
                 )
