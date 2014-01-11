@@ -15,5 +15,4 @@ describe 'basic catechism matchers' do
     expect { raise 'hands' }.to_raise_error
     expect { 3 + 1 }.not.to_raise_error
   end
-
 end
