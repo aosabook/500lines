@@ -19,7 +19,7 @@ class MouseInteraction(object):
     def __init__(self):
         self.pressed = None
         self.rotation = quaternion.fromEuler()
-        self.camera_loc = array( [0, 0, -15, 0], 'd')
+        self.camera_loc = array( [0, 0, 0, 0], 'd')
         self.trackball = None
         self.mouse_loc = None
 
@@ -33,10 +33,10 @@ class MouseInteraction(object):
             if button == GLUT_RIGHT_BUTTON:
                 self.trackball = trackball.Trackball(self.camera_loc, self.rotation, (0,0,0), x, y, xSize, ySize)
             elif button == 3: # scroll up
-                self.translate(0, 0, 1.0)
+                self.translate(0, 0, -1.0)
                 glutPostRedisplay()
             elif button == 4: # scroll up
-                self.translate(0, 0, -1.0)
+                self.translate(0, 0, 1.0)
                 glutPostRedisplay()
 
 
@@ -65,7 +65,7 @@ class MouseInteraction(object):
                 self.translate(dx/60.0, dy/60.0, 0)
             elif self.pressed == GLUT_MIDDLE_BUTTON:
                 dz = y - self.mouse_loc[1]
-                self.translate(0, 0, dz/40.0)
+                self.translate(0, 0, -dz/40.0)
             else:
                 pass
             self.mouse_loc = (x, y)

@@ -29,15 +29,15 @@ class TestContext(BaseContext):
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
         glViewport(0, 0, xSize, ySize);
-        gluPerspective(40.0, 1.0, 0.1, 1000.0);
+        gluPerspective(70.0, 1.0, 0.1, 1000.0);
         loc = self.mouse_interaction.camera_loc
-        glTranslated(loc[0], loc[1], loc[2]);
+        glTranslated(0, 0, -15);
 
         glMatrixMode(GL_MODELVIEW);
         glEnable(GL_LIGHTING)
         glEnable(GL_LIGHT0)
-        glLightfv(GL_LIGHT0, GL_POSITION, GLfloat_4(0, 0, -10, 1))
-        glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, GLfloat_3(0, 0, 1))
+        glLightfv(GL_LIGHT0, GL_POSITION, GLfloat_4(0, 0, 1, 0))
+        glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, GLfloat_3(0, 0, -1))
 
         glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE)
         glEnable( GL_COLOR_MATERIAL)
@@ -46,9 +46,12 @@ class TestContext(BaseContext):
         glClear(GL_COLOR_BUFFER_BIT)
         glPushMatrix()
         glLoadIdentity()
+        glTranslated(-loc[0], -loc[1], -loc[2])
         glMultMatrixf(self.mouse_interaction.rotation.matrix(inverse=False))
 
         self.scene.render()
+
+        glDisable(GL_LIGHTING)
         glCallList(G_OBJ_PLANE)
         glPopMatrix()
 
