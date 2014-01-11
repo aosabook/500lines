@@ -5,7 +5,8 @@ class Pedometer
 
   CAP = 1.2
 
-  attr_reader :raw_data, :parsed_data, :combined_data, :user
+  @format
+  attr_reader :raw_data, :parsed_data, :user
   attr_reader :steps, :distance, :time, :interval
 
   def initialize(data, user = nil)
@@ -18,17 +19,6 @@ class Pedometer
 
     verify_data_format
     parse_raw_data
-  end
-
-  # -- Filtering  -----------------------------------------------------------
-
-  # A one pole IIR filter (http://en.wikipedia.org/wiki/Low-pass_filter#Simple_infinite_impulse_response_filter)
-  def low_pass_filter
-    alpha = 0.5
-    filtered_data = @combined_data.each_with_index.inject([]) do |a, (value, index)|
-      a << ((index == 0) ? value : (alpha * value + (1 - alpha) * a[index - 1])).round(2)
-      a
-    end
   end
   
   # -- Measurement  ---------------------------------------------------------
@@ -72,22 +62,37 @@ class Pedometer
   # -- Data Manipulation ----------------------------------------------------
 
   def verify_data_format
-    regexp = Regexp.new(/^((-?\d+(?:\.\d+)?,){2}-?\d+(?:\.\d+)?;)+$/)
-    unless regexp.match(@raw_data)
-      raise "Bad Input. Ensure data is a series of comma separated x,y,z coordiantes separated by semicolons."
-    end
+    # TODO: Can we clean this up? 
+    any_decimal = '-?\d+(?:\.\d+)?'
+    regexp_accelerometer = Regexp.new('^((' + any_decimal + ',){2}' + 
+                                              any_decimal + ';)+$')
+    regexp_gravity = Regexp.new('^(((' + any_decimal + ',){2}(' +
+                                         any_decimal + ')){1}[|](' +
+                                         any_decimal + ',){2}(' +
+                                         any_decimal + ';){1})+$')
+    @format = 1 if regexp_accelerometer.match(@raw_data)
+    @format = 2 if regexp_gravity.match(@raw_data)
+    raise "Bad Input. Ensure accelerometer or gravity data is properly formatted." unless @format
   end
 
   def parse_raw_data
-    @parsed_data = @raw_data.split(';').inject([]) do |a, row|
-      a << row.split(',').map { |coord| coord.to_f.abs }
-      a
-    end
+    case @format
+    when 1
+      @parsed_data = @raw_data.split(';').inject([]) do |a, row|
+        a << row.split(',').map { |coord| coord.to_f.abs }
+        a
+      end
+    when 2
+      @parsed_data = @raw_data.split(';').inject([]) do |a, row|
+        accl, grav = row.split('|')
+        accl = accl.split(',')
+        grav = grav.split(',')
 
-    @combined_data = @parsed_data.inject([]) do |a, data|
-      a << Math.sqrt((data[0]**2) + (data[1]**2) + (data[2]**2)).round(2)
-      a
-    end
+        a << {:x => accl[0].to_f, :y => accl[1].to_f, :z => accl[2].to_f,
+              :xg => grav[0].to_f, :yg => grav[1].to_f, :zg => grav[2].to_f}
+        a
+      end
+    end    
   end
 
 end

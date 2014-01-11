@@ -5,21 +5,35 @@ class PedometerTest < Test::Unit::TestCase
 
   # -- Creation Tests -------------------------------------------------------
 
-  def test_create
+  def test_create_accelerometer_data
     user = User.new
     input = '0.123,-0.123,5;0.456,-0.789,0.111;'
     pedometer = Pedometer.new(input, user)
     
     assert_equal 0, pedometer.steps
     assert_equal 0, pedometer.distance
-    
     assert_equal 0, pedometer.time
     assert_equal 'seconds', pedometer.interval
-    
+    assert_equal user, pedometer.user
+
     assert_equal input, pedometer.raw_data
     assert_equal [[0.123, 0.123, 5.0],[0.456,0.789,0.111]], pedometer.parsed_data
-    assert_equal [5.00, 0.92], pedometer.combined_data
+  end
+
+  def test_create_gravity_data
+    user = User.new
+    input = '0.028,-0.072,5|0.129,-0.945,-5;0,-0.07,0.06|0.123,-0.947,5;'
+    pedometer = Pedometer.new(input, user)
+    
+    assert_equal 0, pedometer.steps
+    assert_equal 0, pedometer.distance
+    assert_equal 0, pedometer.time
+    assert_equal 'seconds', pedometer.interval
     assert_equal user, pedometer.user
+
+    assert_equal input, pedometer.raw_data
+    assert_equal [{:x => 0.028, :y => -0.072, :z =>5, :xg => 0.129, :yg => -0.945, :zg => -5}, 
+                  {:x => 0, :y => -0.07, :z =>0.06, :xg => 0.123, :yg => -0.947, :zg => 5}], pedometer.parsed_data
   end
 
   def test_create_no_user
@@ -35,48 +49,57 @@ class PedometerTest < Test::Unit::TestCase
   # -- Creation Failure Tests -----------------------------------------------
 
   def test_create_nil_input
-    message = "Bad Input. Ensure data is a series of comma separated x,y,z coordiantes separated by semicolons."
+    message = "Bad Input. Ensure accelerometer or gravity data is properly formatted."
     assert_raise_with_message(RuntimeError, message) do
       Pedometer.new(nil)      
     end
   end
 
   def test_create_empty_input
-    message = "Bad Input. Ensure data is a series of comma separated x,y,z coordiantes separated by semicolons."
+    message = "Bad Input. Ensure accelerometer or gravity data is properly formatted."
     assert_raise_with_message(RuntimeError, message) do
       Pedometer.new('')
     end
   end
 
   def test_create_bad_input_strings
-    message = "Bad Input. Ensure data is a series of comma separated x,y,z coordiantes separated by semicolons."
+    message = "Bad Input. Ensure accelerometer or gravity data is properly formatted."
     assert_raise_with_message(RuntimeError, message) do
       Pedometer.new("0.123,-0.123,5;a,b,c;")
+    end
+
+    assert_raise_with_message(RuntimeError, message) do
+      Pedometer.new("0.028,-0.072,a|0.129,-0.945,-5;0,-0.07,0.06|b,-0.947,5;")
     end
   end
 
   def test_create_bad_input_too_many_values
-    message = "Bad Input. Ensure data is a series of comma separated x,y,z coordiantes separated by semicolons."
+    message = "Bad Input. Ensure accelerometer or gravity data is properly formatted."
     assert_raise_with_message(RuntimeError, message) do
       Pedometer.new("0.123,-0.123,5;0.123,-0.123,5,9;")
+    end
+
+    assert_raise_with_message(RuntimeError, message) do
+      Pedometer.new("0.028,-0.072,5,6|0.129,-0.945,-5;0,-0.07,0.06|0.123,-0.947,5;")
     end
   end
 
   def test_create_bad_input_too_few_values
-    message = "Bad Input. Ensure data is a series of comma separated x,y,z coordiantes separated by semicolons."
+    message = "Bad Input. Ensure accelerometer or gravity data is properly formatted."
     assert_raise_with_message(RuntimeError, message) do
       Pedometer.new("0.123,-0.123,5;0.123,-0.123;")
     end
-  end
 
-  # -- Filtering Tests ------------------------------------------------------
-
-  def test_low_pass_filter
-    pedometer = Pedometer.new("1,0.5,1;5,2,5;1,0.5,2;")
-    assert_equal [1.5,4.43,3.36], pedometer.low_pass_filter
+    assert_raise_with_message(RuntimeError, message) do
+      Pedometer.new("0.028,-0.072,5|0.129,-0.945,-5;0,-0.07,0.06|0.123,-0.947;")
+    end
   end
 
   # -- Measurement Tests ----------------------------------------------------
+
+  def test_all_measurement_tests
+    flunk 'Look at all measurement tests. Currently only work with accelerometer data.'
+  end
 
   def test_measure_steps
     pedometer = Pedometer.new(File.read('test/data/results-0-steps.txt'))

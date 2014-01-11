@@ -19,7 +19,7 @@ class PedometerTest < Test::Unit::TestCase
   def test_metrics_no_params
     get '/metrics'
 
-    expected = 'Bad Input. Ensure data is a series of comma separated x,y,z coordiantes separated by semicolons.'
+    expected = 'Bad Input. Ensure accelerometer or gravity data is properly formatted.'
     assert_equal 400, last_response.status
     assert_equal expected, last_response.body
   end
@@ -34,7 +34,7 @@ class PedometerTest < Test::Unit::TestCase
   def test_metrics_no_data_param
     get '/metrics', :user => {:stride => 90, :rate => 4}
 
-    expected = 'Bad Input. Ensure data is a series of comma separated x,y,z coordiantes separated by semicolons.'
+    expected = 'Bad Input. Ensure accelerometer or gravity data is properly formatted.'
     assert_equal 400, last_response.status
     assert_equal expected, last_response.body
   end  
@@ -42,7 +42,7 @@ class PedometerTest < Test::Unit::TestCase
   def test_metrics_bad_data_param
     get '/metrics', :data => 'bad data', :user => {:stride => 90, :rate => 4}
 
-    expected = 'Bad Input. Ensure data is a series of comma separated x,y,z coordiantes separated by semicolons.'
+    expected = 'Bad Input. Ensure accelerometer or gravity data is properly formatted.'
     assert_equal 400, last_response.status
     assert_equal expected, last_response.body
   end
