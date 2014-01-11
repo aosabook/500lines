@@ -262,4 +262,18 @@ Contributors
     <td><a href="https://github.com/dessy">dessy</a></td>
     <td>dessy.daskalov@gmail.com</td>
   </tr>
+  <tr>
+    <td>Pierre-Antoine LaFayette</td>
+    <td>theScore Inc.</td>
+    <td>tiled-renderer</td>
+    <td>
+        <ul>
+            <li><a href="http://about.me/pierrelafayette">About.me</a></li>
+            <li><a href="http://www.google.com/+PierreAntoineLaFayette">+Pierre-Antoine LaFayette</a></li>
+            <li><a href="https://twitter.com/03lafaye">@03lafaye</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/03lafaye">03lafaye</a></td>
+    <td>pierre@alumni.utoronto.ca</td>
+  </tr>
 </table>

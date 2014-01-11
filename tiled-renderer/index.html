@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>A Tiled Renderer</title>
+  <link rel="stylesheet" type="text/css" href="stylesheets/renderer.css"/>
+  <link href='http://fonts.googleapis.com/css?family=Raleway' rel='stylesheet' type='text/css'>
+</head>
+<body>
+  <h1>A Tiled Renderer<span style="font-size: 10pt"> by Pierre-Antoine LaFayette</span></h1>
+  <img src="images/A_Song_of_Ice_and_Fire.jpg" width="720" height="480"/>
+  <canvas id="glCanvas" width="270" height="480"></canvas> <!-- 16x9 -->
+  <p class="info">Scroll the image in the WebGL canvas on the right with by clicking and moving the mouse.</p>
+  <br/><br/>
+  <div id="log"></div>
+
+  <script type="text/javascript" src="third_party/gl-matrix/gl-matrix.js"></script>
+  <script type="text/javascript" src="src/logger.js"></script>
+  <script type="text/javascript" src="src/timer.js"></script>
+  <script type="text/javascript" src="src/shader.js"></script>
+  <script type="text/javascript" src="src/renderer.js"></script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+body {
+    font-family: 'Raleway', 'Helvetica', sans-serif;
+    font-size: 11pt;
+    margin-left: 100px;
+}
+
+h1 {
+    font-size: 24pt;
+    font-weight: normal;
+    margin: 20px 0 10px 0;
+}
+
+p {
+    margin: 0;
+    padding: 0;
+}
+
+p.info {
+    font-size: 14pt;
+}
+
+img {
+    display: inline-block;
+}
+
+#glCanvas {
+    margin-left: 80px;
+    border: 4px solid blue;
+    display: inline-block;
+    cursor: pointer;
+}
+
+#log {
+    margin-top: 0px;
+    margin-bottom: 50px;
+}
