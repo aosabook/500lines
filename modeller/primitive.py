@@ -77,7 +77,6 @@ def MakeCube():
     glNewList(G_OBJ_CUBE, GL_COMPILE)
 
     glBegin(GL_QUADS);
-    glColor3f(0.2, 0.7, 0.5)
 
     glNormal3d(-1.0, 0.0, 0.0)
     glVertex3d(0.0, 0.0, 0.0)

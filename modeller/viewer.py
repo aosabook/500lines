@@ -18,6 +18,8 @@ class TestContext(BaseContext):
         self.mouse_interaction.register()
         self.scene = Scene()
 
+        self.mouse_interaction.registerCallback('picking', self.picking)
+
         # TODO: remove
         self.InitDebug()
 
@@ -56,11 +58,21 @@ class TestContext(BaseContext):
         glPopMatrix()
 
     def InitDebug(self):
-#        sphere_node = Sphere()
-#        self.scene.add_node(sphere_node)
+        sphere_node = Sphere()
+        sphere_node.set_color(0.5, 0.4, 0.2)
+        self.scene.add_node(sphere_node)
 
         cube_node = Cube()
+        cube_node.translate(2, 0, 2)
+        cube_node.set_color(0.2, 0.6, 0.2)
         self.scene.add_node(cube_node)
+
+    def picking(self, x, y):
+        # render with each object having its own color
+        # query screen to figure out what pixel is shown
+        self.scene.draw_picking()
+        pass
+
 
 if __name__=="__main__":
     TestContext.ContextMainLoop( definition = contextdefinition.ContextDefinition(size = (500,500),))
