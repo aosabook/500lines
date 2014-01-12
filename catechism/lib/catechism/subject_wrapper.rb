@@ -1,6 +1,7 @@
 require 'catechism/matchers/equal'
 require 'catechism/matchers/raise_error'
 require 'catechism/matchers/send'
+require 'catechism/matchers/change'
 
 class Catechism::SubjectWrapper < Struct.new(:subject)
   attr_reader :negated
@@ -22,6 +23,10 @@ class Catechism::SubjectWrapper < Struct.new(:subject)
 
   def to_send(method_name)
     Catechism::Matchers::Send.new(subject, method_name, negated)
+  end
+
+  def to_change(&block)
+    Catechism::Matchers::Change.new(subject, negated, block)
   end
 
   def not
