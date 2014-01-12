@@ -78,6 +78,14 @@ class PedometerTest < Test::Unit::TestCase
     assert_equal expected, pedometer.split_on_threshold_negative
   end
 
+  def test_detect_edges
+    device_data = DeviceData.new(File.read('test/data/walking-10-g-1.txt'))
+    pedometer = Pedometer.new(device_data)
+    
+    assert_equal 10, pedometer.detect_edges(pedometer.split_on_threshold_positive)
+    assert_equal 7, pedometer.detect_edges(pedometer.split_on_threshold_negative)
+  end
+
   # -- Measurement Tests - Accelerometer ------------------------------------
 
   def test_measure_steps
@@ -90,7 +98,7 @@ class PedometerTest < Test::Unit::TestCase
     pedometer = Pedometer.new(device_data)
     pedometer.measure_steps
     assert_equal 15, pedometer.steps
-    
+
     device_data = DeviceData.new(File.read('test/data/walking-10-g-1.txt'))
     pedometer = Pedometer.new(device_data)
     pedometer.measure_steps
