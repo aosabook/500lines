@@ -11,6 +11,7 @@ class UserTest < Test::Unit::TestCase
     assert_equal 74, user.stride
     assert_equal 'metric', user.system
     assert_equal 5, user.rate
+    assert_equal 0.2, user.threshold
   end
 
   def test_create_bad_params

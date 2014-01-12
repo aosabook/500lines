@@ -21,6 +21,15 @@ class Pedometer
     @user     = (user.kind_of? User) ? user : User.new
   end
 
+  # -- Edge Detection -------------------------------------------------------
+
+  def split_on_threshold
+    @device_data.filtered_data.inject([]) do |a, data|
+      a << ((data < @user.threshold) ? 0 : 1)
+      a
+    end
+  end
+
   # -- Measurement ----------------------------------------------------------
 
   # TODO: Introduce user object passed in to:
@@ -34,8 +43,15 @@ class Pedometer
   end
 
   def measure_steps
-    @device_data.parsed_data.each do |x, y, z|
-      @steps += 1 if (x > CAP || y > CAP || z > CAP)
+    if @device_data.filtered_data
+      split = split_on_threshold
+      split.each_with_index do |data, i|
+        @steps += 1 if (data == 1 && split[i-1] == 0)
+      end
+    else
+      @device_data.parsed_data.each do |x, y, z|
+        @steps += 1 if (x > CAP || y > CAP || z > CAP)
+      end
     end
   end
 

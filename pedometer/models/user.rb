@@ -3,8 +3,9 @@ class User
   GENDER = ['male', 'female']
   SYSTEM = ['metric', 'imperial']
 
-  attr_accessor :system, :gender, :rate, :height, :stride
+  attr_accessor :system, :gender, :rate, :height, :stride, :threshold
 
+  # TODO: Allow threshold to be passed in
   def initialize(params = {})
     params = {} unless params.kind_of? Hash
 
@@ -18,6 +19,7 @@ class User
     @rate   = (rate_params > 0) ? rate_params : 5
     @height = params[:height]
     @stride = (stride_params > 30) ? stride_params : calculate_stride
+    @threshold = 0.2
   end
 
   # TODO: calculate stride based on measurement system

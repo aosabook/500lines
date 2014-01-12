@@ -60,11 +60,17 @@ class PedometerTest < Test::Unit::TestCase
     assert pedometer.user.kind_of? User
   end
 
-  # -- Measurement Tests ----------------------------------------------------
+  # -- Edge Detection Tests -------------------------------------------------
 
-  def test_all_measurement_tests
-    flunk 'Look at all measurement tests. Currently only works with accelerometer data.'
+  def test_split_on_threshold
+    device_data = DeviceData.new(File.read('test/data/walking-10-g-1.txt'))
+    pedometer = Pedometer.new(device_data)
+
+    expected = File.read('test/data/expected/walking-10-g-1.txt').split(',').collect(&:to_i)
+    assert_equal expected, pedometer.split_on_threshold
   end
+
+  # -- Measurement Tests - Accelerometer ------------------------------------
 
   def test_measure_steps
     device_data = DeviceData.new(File.read('test/data/results-0-steps.txt'))
@@ -76,6 +82,11 @@ class PedometerTest < Test::Unit::TestCase
     pedometer = Pedometer.new(device_data)
     pedometer.measure_steps
     assert_equal 15, pedometer.steps
+
+    device_data = DeviceData.new(File.read('test/data/walking-10-g-1.txt'))
+    pedometer = Pedometer.new(device_data)
+    pedometer.measure_steps
+    assert_equal 10, pedometer.steps
   end
 
   def test_measure_distance_before_steps

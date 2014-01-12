@@ -54,4 +54,49 @@ class PedometerTest < Test::Unit::TestCase
     assert_equal '{"steps":1,"distance":74.0,"time":"0.2 seconds"}', last_response.body
   end
 
+  # -- Real Data Tests ------------------------------------------------------
+
+  # TODO: This data set is a good example of filtering through steps that are too "quick"
+  def test_gravity_walking_10_steps_1
+    get '/metrics', :data => File.read('test/data/walking-10-g-1.txt'), :user => {:stride => 90, :rate => 100}
+
+    assert_equal 200, last_response.status
+    assert_equal '{"steps":10,"distance":900.0,"time":"10.37 seconds"}', last_response.body
+  end
+
+  def test_gravity_walking_10_steps_2
+    get '/metrics', :data => File.read('test/data/walking-10-g-2.txt'), :user => {:stride => 90, :rate => 100}
+
+    assert_equal 200, last_response.status
+    assert_equal '{"steps":7,"distance":630.0,"time":"9.81 seconds"}', last_response.body
+  end
+
+  def test_gravity_jogging_10_steps_1
+    get '/metrics', :data => File.read('test/data/jogging-10-g-1.txt'), :user => {:stride => 90, :rate => 100}
+
+    assert_equal 200, last_response.status
+    assert_equal '{"steps":8,"distance":720.0,"time":"9.39 seconds"}', last_response.body
+  end
+
+  def test_gravity_jogging_10_steps_2
+    get '/metrics', :data => File.read('test/data/jogging-10-g-2.txt'), :user => {:stride => 90, :rate => 100}
+
+    assert_equal 200, last_response.status
+    assert_equal '{"steps":11,"distance":990.0,"time":"9.48 seconds"}', last_response.body
+  end
+
+  def test_gravity_purse_10_steps_1
+    get '/metrics', :data => File.read('test/data/purse-10-g-1.txt'), :user => {:stride => 90, :rate => 100}
+
+    assert_equal 200, last_response.status
+    assert_equal '{"steps":9,"distance":810.0,"time":"9.31 seconds"}', last_response.body
+  end
+
+  def test_gravity_purse_10_steps_2
+    get '/metrics', :data => File.read('test/data/purse-10-g-2.txt'), :user => {:stride => 90, :rate => 100}
+
+    assert_equal 200, last_response.status
+    assert_equal '{"steps":9,"distance":810.0,"time":"10.54 seconds"}', last_response.body
+  end
+
 end
