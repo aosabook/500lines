@@ -37,6 +37,9 @@ class Pedometer
     end
   end
 
+  # TODO: Don't increase the counter if edges are too close together.
+  #       Determine this using "if two steps are less than x seconds apart"
+  #       using the rate, and x as a fraction of second
   def detect_edges(split)
     count = 0
     split.each_with_index do |data, i|
