@@ -70,7 +70,6 @@ class TestContext(BaseContext):
     def picking(self, x, y):
         # render with each object having its own color
         # query screen to figure out what pixel is shown
-        self.scene.draw_picking()
         pass
 
 

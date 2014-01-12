@@ -43,7 +43,7 @@ class MouseInteraction(object):
         else:
             print "UP" + str(button)
             if button == GLUT_LEFT_BUTTON: # picking
-                self.trigger('picking')
+                self.trigger('picking', x, y)
             self.trackball = None
             self.pressed = None
         glutPostRedisplay()
