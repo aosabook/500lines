@@ -6,13 +6,15 @@ class DeviceData
   def initialize(input_data)
     @raw_data = input_data
 
-    verify_data_format
+    set_data_format
     parse_raw_data
     dot_product_parsed_data
     filter_dot_product_data
   end
 
-  def verify_data_format
+private
+
+  def set_data_format
     # TODO: Can we clean this up? 
     any_decimal = '-?\d+(?:\.\d+)?'
     regexp_accl = Regexp.new('^((' + any_decimal + ',){2}' + 

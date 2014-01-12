@@ -18,7 +18,6 @@ class Pedometer
     end
     
     @device_data = input_data
-    @raw_data = input_data
     @steps    = 0
     @distance = 0
     @time     = 0
