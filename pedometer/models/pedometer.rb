@@ -23,11 +23,26 @@ class Pedometer
 
   # -- Edge Detection -------------------------------------------------------
 
-  def split_on_threshold
+  def split_on_threshold_positive
     @device_data.filtered_data.inject([]) do |a, data|
       a << ((data < @user.threshold) ? 0 : 1)
       a
     end
+  end
+
+  def split_on_threshold_negative
+    @device_data.filtered_data.inject([]) do |a, data|
+      a << ((data < -@user.threshold) ? 1 : 0)
+      a
+    end
+  end
+
+  def detect_edges(split)
+    count = 0
+    split.each_with_index do |data, i|
+      count += 1 if (data == 1 && split[i-1] == 0)
+    end
+    count
   end
 
   # -- Measurement ----------------------------------------------------------
@@ -44,11 +59,12 @@ class Pedometer
 
   def measure_steps
     if @device_data.filtered_data
-      split = split_on_threshold
-      split.each_with_index do |data, i|
-        @steps += 1 if (data == 1 && split[i-1] == 0)
-      end
+      steps_positive = detect_edges(split_on_threshold_positive)
+      steps_negative = detect_edges(split_on_threshold_negative)
+      
+      @steps = ((steps_negative + steps_positive)/2).to_f.round
     else
+      # TODO: Fix this. Bad algorithm.
       @device_data.parsed_data.each do |x, y, z|
         @steps += 1 if (x > CAP || y > CAP || z > CAP)
       end

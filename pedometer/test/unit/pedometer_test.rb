@@ -62,12 +62,20 @@ class PedometerTest < Test::Unit::TestCase
 
   # -- Edge Detection Tests -------------------------------------------------
 
-  def test_split_on_threshold
+  def test_split_on_threshold_positive
     device_data = DeviceData.new(File.read('test/data/walking-10-g-1.txt'))
     pedometer = Pedometer.new(device_data)
 
-    expected = File.read('test/data/expected/walking-10-g-1.txt').split(',').collect(&:to_i)
-    assert_equal expected, pedometer.split_on_threshold
+    expected = File.read('test/data/expected/walking-10-g-1-positive.txt').split(',').collect(&:to_i)
+    assert_equal expected, pedometer.split_on_threshold_positive
+  end
+
+  def test_split_on_threshold_negative
+    device_data = DeviceData.new(File.read('test/data/walking-10-g-1.txt'))
+    pedometer = Pedometer.new(device_data)
+
+    expected = File.read('test/data/expected/walking-10-g-1-negative.txt').split(',').collect(&:to_i)
+    assert_equal expected, pedometer.split_on_threshold_negative
   end
 
   # -- Measurement Tests - Accelerometer ------------------------------------
@@ -82,11 +90,11 @@ class PedometerTest < Test::Unit::TestCase
     pedometer = Pedometer.new(device_data)
     pedometer.measure_steps
     assert_equal 15, pedometer.steps
-
+    
     device_data = DeviceData.new(File.read('test/data/walking-10-g-1.txt'))
     pedometer = Pedometer.new(device_data)
     pedometer.measure_steps
-    assert_equal 10, pedometer.steps
+    assert_equal 9, pedometer.steps
   end
 
   def test_measure_distance_before_steps
