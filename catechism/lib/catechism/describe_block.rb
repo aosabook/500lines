@@ -1,12 +1,16 @@
 require "catechism/it_block"
 
-class Catechism::DescribeBlock < Struct.new(:description)
+class Catechism::DescribeBlock < Struct.new(:description, :block)
   def before(&block)
     before_blocks << block if block_given?
   end
 
   def after(&block)
     after_blocks << block if block_given?
+  end
+
+  def call
+    instance_eval(&block)
   end
 
   def it(description, &block)

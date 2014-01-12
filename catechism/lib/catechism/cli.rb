@@ -14,7 +14,10 @@ class Catechism::Cli < Thor
 
   desc 'run_all_trials', 'Run all trials in the trials directory under the current path'
   def run_all_trials
-    Catechism::Suite.new(File.expand_path('trials')).run_all
+    trials = Dir.glob(File.expand_path('trials/**/*_trial.rb')).map do |trial_path|
+      Catechism::Trial.new(trial_path)
+    end
+    trials.each(&:run)
   end
 
   default_task :run_all_trials
