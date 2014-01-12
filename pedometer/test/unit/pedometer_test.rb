@@ -62,28 +62,23 @@ class PedometerTest < Test::Unit::TestCase
 
   # -- Edge Detection Tests -------------------------------------------------
 
-  def test_split_on_threshold_positive
+  def test_split_on_threshold
     device_data = DeviceData.new(File.read('test/data/walking-10-g-1.txt'))
     pedometer = Pedometer.new(device_data)
 
     expected = File.read('test/data/expected/walking-10-g-1-positive.txt').split(',').collect(&:to_i)
-    assert_equal expected, pedometer.split_on_threshold_positive
-  end
-
-  def test_split_on_threshold_negative
-    device_data = DeviceData.new(File.read('test/data/walking-10-g-1.txt'))
-    pedometer = Pedometer.new(device_data)
+    assert_equal expected, pedometer.split_on_threshold(true)
 
     expected = File.read('test/data/expected/walking-10-g-1-negative.txt').split(',').collect(&:to_i)
-    assert_equal expected, pedometer.split_on_threshold_negative
+    assert_equal expected, pedometer.split_on_threshold(false)
   end
 
   def test_detect_edges
     device_data = DeviceData.new(File.read('test/data/walking-10-g-1.txt'))
     pedometer = Pedometer.new(device_data)
     
-    assert_equal 10, pedometer.detect_edges(pedometer.split_on_threshold_positive)
-    assert_equal 7, pedometer.detect_edges(pedometer.split_on_threshold_negative)
+    assert_equal 10, pedometer.detect_edges(pedometer.split_on_threshold(true))
+    assert_equal 7, pedometer.detect_edges(pedometer.split_on_threshold(false))
   end
 
   # -- Measurement Tests - Accelerometer ------------------------------------

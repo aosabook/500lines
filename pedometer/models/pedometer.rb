@@ -23,18 +23,15 @@ class Pedometer
 
   # -- Edge Detection -------------------------------------------------------
 
-  def split_on_threshold_positive
+  def split_on_threshold(positive)
     @device_data.filtered_data.inject([]) do |a, data|
-      a << ((data < @user.threshold) ? 0 : 1)
+      if positive
+        a << ((data < @user.threshold) ? 0 : 1)
+      else
+        a << ((data < -@user.threshold) ? 1 : 0)
+      end
       a
-    end
-  end
-
-  def split_on_threshold_negative
-    @device_data.filtered_data.inject([]) do |a, data|
-      a << ((data < -@user.threshold) ? 1 : 0)
-      a
-    end
+    end    
   end
 
   # TODO: Don't increase the counter if edges are too close together.
@@ -62,10 +59,10 @@ class Pedometer
 
   def measure_steps
     if @device_data.filtered_data
-      steps_positive = detect_edges(split_on_threshold_positive)
-      steps_negative = detect_edges(split_on_threshold_negative)
+      edges_positive = detect_edges(split_on_threshold(true))
+      edges_negative = detect_edges(split_on_threshold(false))
       
-      @steps = ((steps_negative + steps_positive)/2).to_f.round
+      @steps = ((edges_positive + edges_negative)/2).to_f.round
     else
       # TODO: Fix this. Bad algorithm.
       @device_data.parsed_data.each do |x, y, z|
