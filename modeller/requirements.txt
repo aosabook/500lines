@@ -1,0 +1,7 @@
+OpenGLContext==2.2.0a3
+PIL==1.1.7
+PyDispatcher==2.0.3
+PyOpenGL==3.0.2
+PyVRML97==2.3.0a3
+numpy==1.8.0
+wsgiref==0.1.2
