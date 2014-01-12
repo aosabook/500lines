@@ -1,5 +1,6 @@
 require 'test/unit'
 require './models/pedometer.rb'
+require './models/device_data.rb'
 
 class PedometerTest < Test::Unit::TestCase
 
@@ -7,134 +8,99 @@ class PedometerTest < Test::Unit::TestCase
 
   def test_create_accelerometer_data
     user = User.new
-    input = '0.123,-0.123,5;0.456,-0.789,0.111;'
-    pedometer = Pedometer.new(input, user)
+    input = '0.123,-0.123,5;'
+    device_data = DeviceData.new(input)
+    pedometer = Pedometer.new(device_data, user)
     
+    assert_equal device_data, pedometer.device_data
     assert_equal 0, pedometer.steps
     assert_equal 0, pedometer.distance
     assert_equal 0, pedometer.time
     assert_equal 'seconds', pedometer.interval
     assert_equal user, pedometer.user
-
-    assert_equal input, pedometer.raw_data
-    assert_equal [[0.123, 0.123, 5.0],[0.456,0.789,0.111]], pedometer.parsed_data
-    assert_nil pedometer.dot_product_data
-    assert_nil pedometer.filtered_data
   end
 
   def test_create_gravity_data
     user = User.new
-    input = '0.028,-0.072,5|0.129,-0.945,-5;0,-0.07,0.06|0.123,-0.947,5;0.2,-1,2|0.1,-0.9,3;'
-    pedometer = Pedometer.new(input, user)
+    input = '0.028,-0.072,5|0.129,-0.945,-5;'
+    device_data = DeviceData.new(input)
+    pedometer = Pedometer.new(device_data, user)
     
+    assert_equal device_data, pedometer.device_data
     assert_equal 0, pedometer.steps
     assert_equal 0, pedometer.distance
     assert_equal 0, pedometer.time
     assert_equal 'seconds', pedometer.interval
     assert_equal user, pedometer.user
+  end
 
-    assert_equal input, pedometer.raw_data
-    assert_equal [{:x => 0.028, :y => -0.072, :z =>5, :xg => 0.129, :yg => -0.945, :zg => -5}, 
-                  {:x => 0, :y => -0.07, :z =>0.06, :xg => 0.123, :yg => -0.947, :zg => 5},
-                  {:x => 0.2, :y => -1.0, :z => 2.0, :xg => 0.1, :yg => -0.9, :zg => 3.0}], pedometer.parsed_data
-    assert_equal [-24.928348, 0.36629, 6.92], pedometer.dot_product_data
-    assert_equal [0, 0, -1.7824384769309702], pedometer.filtered_data
+  def test_create_no_device_data
+    message = "Input data must be of type DeviceData."
+    assert_raise_with_message(RuntimeError, message) do
+      Pedometer.new(nil)
+    end
+  end
+
+  def test_create_bad_device_data
+    message = "Input data must be of type DeviceData."
+    assert_raise_with_message(RuntimeError, message) do
+      Pedometer.new('bad device data')
+    end
   end
 
   def test_create_no_user
-    pedometer = Pedometer.new('0.123,-0.123,5;')
+    device_data = DeviceData.new('0.123,-0.123,5;')
+    pedometer = Pedometer.new(device_data)
     assert pedometer.user.kind_of? User
   end
 
   def test_create_bad_user
-    pedometer = Pedometer.new('0.123,-0.123,5;', 'bad user')
+    device_data = DeviceData.new('0.123,-0.123,5;')
+    pedometer = Pedometer.new(device_data, 'bad user')
     assert pedometer.user.kind_of? User
-  end
-
-  # -- Creation Failure Tests -----------------------------------------------
-
-  def test_create_nil_input
-    message = "Bad Input. Ensure accelerometer or gravity data is properly formatted."
-    assert_raise_with_message(RuntimeError, message) do
-      Pedometer.new(nil)      
-    end
-  end
-
-  def test_create_empty_input
-    message = "Bad Input. Ensure accelerometer or gravity data is properly formatted."
-    assert_raise_with_message(RuntimeError, message) do
-      Pedometer.new('')
-    end
-  end
-
-  def test_create_bad_input_strings
-    message = "Bad Input. Ensure accelerometer or gravity data is properly formatted."
-    assert_raise_with_message(RuntimeError, message) do
-      Pedometer.new("0.123,-0.123,5;a,b,c;")
-    end
-
-    assert_raise_with_message(RuntimeError, message) do
-      Pedometer.new("0.028,-0.072,a|0.129,-0.945,-5;0,-0.07,0.06|b,-0.947,5;")
-    end
-  end
-
-  def test_create_bad_input_too_many_values
-    message = "Bad Input. Ensure accelerometer or gravity data is properly formatted."
-    assert_raise_with_message(RuntimeError, message) do
-      Pedometer.new("0.123,-0.123,5;0.123,-0.123,5,9;")
-    end
-
-    assert_raise_with_message(RuntimeError, message) do
-      Pedometer.new("0.028,-0.072,5,6|0.129,-0.945,-5;0,-0.07,0.06|0.123,-0.947,5;")
-    end
-  end
-
-  def test_create_bad_input_too_few_values
-    message = "Bad Input. Ensure accelerometer or gravity data is properly formatted."
-    assert_raise_with_message(RuntimeError, message) do
-      Pedometer.new("0.123,-0.123,5;0.123,-0.123;")
-    end
-
-    assert_raise_with_message(RuntimeError, message) do
-      Pedometer.new("0.028,-0.072,5|0.129,-0.945,-5;0,-0.07,0.06|0.123,-0.947;")
-    end
   end
 
   # -- Measurement Tests ----------------------------------------------------
 
   def test_all_measurement_tests
-    flunk 'Look at all measurement tests. Currently only work with accelerometer data.'
+    flunk 'Look at all measurement tests. Currently only works with accelerometer data.'
   end
 
   def test_measure_steps
-    pedometer = Pedometer.new(File.read('test/data/results-0-steps.txt'))
+    device_data = DeviceData.new(File.read('test/data/results-0-steps.txt'))
+    pedometer = Pedometer.new(device_data)
     pedometer.measure_steps
     assert_equal 0, pedometer.steps
 
-    pedometer = Pedometer.new(File.read('test/data/results-15-steps.txt'))
+    device_data = DeviceData.new(File.read('test/data/results-15-steps.txt'))
+    pedometer = Pedometer.new(device_data)
     pedometer.measure_steps
     assert_equal 15, pedometer.steps
   end
 
   def test_measure_distance_before_steps
-    pedometer = Pedometer.new(File.read('test/data/results-0-steps.txt'))
+    device_data = DeviceData.new(File.read('test/data/results-0-steps.txt'))
+    pedometer = Pedometer.new(device_data)
     pedometer.measure_distance
     assert_equal 0, pedometer.distance
     
-    pedometer = Pedometer.new(File.read('test/data/results-15-steps.txt'))
+    device_data = DeviceData.new(File.read('test/data/results-15-steps.txt'))
+    pedometer = Pedometer.new(device_data)
     pedometer.measure_distance
     assert_equal 0, pedometer.distance
   end
 
   def test_measure_distance_after_steps
     user = User.new(:stride => 65)
-    
-    pedometer = Pedometer.new(File.read('test/data/results-0-steps.txt'), user)
+
+    device_data = DeviceData.new(File.read('test/data/results-0-steps.txt'))
+    pedometer = Pedometer.new(device_data, user)
     pedometer.measure_steps
     pedometer.measure_distance
     assert_equal 0, pedometer.distance
     
-    pedometer = Pedometer.new(File.read('test/data/results-15-steps.txt'), user)
+    device_data = DeviceData.new(File.read('test/data/results-15-steps.txt'))
+    pedometer = Pedometer.new(device_data, user)
     pedometer.measure_steps
     pedometer.measure_distance
     assert_equal 975, pedometer.distance
@@ -142,7 +108,8 @@ class PedometerTest < Test::Unit::TestCase
 
   def test_measure_time_seconds
     user = User.new(:rate => 4)
-    pedometer = Pedometer.new(File.read('test/data/results-15-steps.txt'), user)
+    device_data = DeviceData.new(File.read('test/data/results-15-steps.txt'))
+    pedometer = Pedometer.new(device_data, user)
     pedometer.measure_time
     
     assert_equal 7.25, pedometer.time
@@ -152,7 +119,8 @@ class PedometerTest < Test::Unit::TestCase
   def test_measure_time_minutes
     user = User.new(:rate => 4)
     # Fake out 1000 samples
-    pedometer = Pedometer.new(1000.times.inject('') {|a| a+='1,1,1;';a}, user)    
+    device_data = DeviceData.new(1000.times.inject('') {|a| a+='1,1,1;';a})
+    pedometer = Pedometer.new(device_data, user)    
     pedometer.measure_time
     
     assert_equal 4.17, pedometer.time
@@ -162,7 +130,8 @@ class PedometerTest < Test::Unit::TestCase
   def test_measure_time_hours
     user = User.new(:rate => 4)
     # Fake out 15000 samples
-    pedometer = Pedometer.new(15000.times.inject('') {|a| a+='1,1,1;';a}, user)
+    device_data = DeviceData.new(15000.times.inject('') {|a| a+='1,1,1;';a})
+    pedometer = Pedometer.new(device_data, user)
     pedometer.measure_time
 
     assert_equal 1.04, pedometer.time
@@ -171,7 +140,8 @@ class PedometerTest < Test::Unit::TestCase
 
   def test_measure
     user = User.new(:stride => 65)
-    pedometer = Pedometer.new(File.read('test/data/results-0-steps.txt'), user)
+    device_data = DeviceData.new(File.read('test/data/results-0-steps.txt'))
+    pedometer = Pedometer.new(device_data, user)
     pedometer.measure
 
     assert_equal 0, pedometer.steps
@@ -179,7 +149,8 @@ class PedometerTest < Test::Unit::TestCase
     assert_equal 0.2, pedometer.time
     assert_equal 'seconds', pedometer.interval
     
-    pedometer = Pedometer.new(File.read('test/data/results-15-steps.txt'), user)
+    device_data = DeviceData.new(File.read('test/data/results-15-steps.txt'))
+    pedometer = Pedometer.new(device_data, user)
     pedometer.measure
 
     assert_equal 15, pedometer.steps
