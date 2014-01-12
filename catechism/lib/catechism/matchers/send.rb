@@ -26,7 +26,9 @@ module Catechism::Matchers
       if negated
         "Expected #{destination} not to receive #{method_name}, but got it anyway"
       else
-        "Expected #{method_name} on #{destination}, but was not received"
+        message = "Expected #{method_name} on #{destination}"
+        message << " with #{arguments}" unless arguments.nil?
+        "#{message}, but was not received"
       end
     end
   end
