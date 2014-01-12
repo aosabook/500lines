@@ -8,10 +8,6 @@ class Pedometer
 
   attr_reader :device_data, :user, :steps, :distance, :time, :interval
 
-  # TODO: Create new data class for data manipulation. 
-  #       This class should take an instance of the data class
-  #       and know how to return steps, distance, etc.
-  
   def initialize(input_data, user = nil)
     unless input_data.kind_of? DeviceData
       raise "Input data must be of type DeviceData." 
