@@ -31,7 +31,7 @@ class Pedometer
         a << ((data < -@user.threshold) ? 1 : 0)
       end
       a
-    end    
+    end
   end
 
   # TODO: Don't increase the counter if edges are too close together.
