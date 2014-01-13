@@ -90,29 +90,23 @@ parameters with a lower priority can refer to parameters of a higher priority.")
 ;;;;;;;;;; Defining Handlers
 (defparameter *handlers* (make-hash-table :test 'equal))
 (defmacro make-closing-handler ((&key (content-type "text/html")) (&rest args) &body body)
-  (with-gensyms (cookie?)
-    `(lambda (sock ,cookie? session parameters)
-       (declare (ignorable session parameters))
-       ,(arguments args
-		   `(let ((res (make-instance 
-				'response 
-				:content-type ,content-type 
-				:cookie (unless ,cookie? (token session))
-				:body (progn ,@body))))
-		      (write! res sock)
-		      (socket-close sock))))))
+  `(lambda (sock parameters)
+     (declare (ignorable parameters))
+     ,(arguments args
+		 `(let ((res (make-instance 
+			      'response 
+			      :content-type ,content-type 
+			      :body (progn ,@body))))
+		    (write! res sock)
+		    (socket-close sock)))))
 
 (defmacro make-stream-handler ((&rest args) &body body)
-  (with-gensyms (cookie?)
-    `(lambda (sock ,cookie? session parameters)
-       (declare (ignorable session))
-       ,(arguments args
-		   `(let ((res (progn ,@body)))
-		      (write! (make-instance 'response
-					     :keep-alive? t :content-type "text/event-stream" 
-					     :cookie (unless ,cookie? (token session))) sock)
-		      (write! (make-instance 'sse :data (or res "Listening...")) sock)
-		      (force-output (socket-stream sock)))))))
+  `(lambda (sock parameters)
+     ,(arguments args
+		 `(let ((res (progn ,@body)))
+		    (write! (make-instance 'response :keep-alive? t :content-type "text/event-stream") sock)
+		    (write! (make-instance 'sse :data (or res "Listening...")) sock)
+		    (force-output (socket-stream sock))))))
 
 (defmacro bind-handler (name handler)
   (assert (symbolp name) nil "`name` must be a symbol")
@@ -142,8 +136,8 @@ parameters with a lower priority can refer to parameters of a higher priority.")
 	((cl-fad:file-exists-p path)
 	 (setf (gethash (path->uri path :stem-from stem-from) *handlers*)
 	       (let ((mime (path->mimetype path)))
-		 (lambda (sock cookie? session parameters)
-		   (declare (ignore cookie? session parameters))
+		 (lambda (sock parameters)
+		   (declare (ignore parameters))
 		   (with-open-file (s path :direction :input :element-type 'octet)
 		     (let ((buf (make-array (file-length s) :element-type 'octet)))
 		       (read-sequence buf s)
@@ -157,14 +151,13 @@ parameters with a lower priority can refer to parameters of a higher priority.")
   (define-file-handler (pathname path) :stem-from stem-from))
 
 (defmacro define-redirect-handler ((name &key permanent?) target)
-  (with-gensyms (cookie?)
-    `(bind-handler 
-      ,name
-      (lambda (sock ,cookie? session parameters)
-	(declare (ignorable sock ,cookie? session parameters))
-	(write! (make-instance 
-		 'response :response-code ,(if permanent? "301 Moved Permanently" "307 Temporary Redirect")
-		 :location ,target :content-type "text/plain"
-		 :body "Resource moved...")
-		sock)
-	(socket-close sock)))))
+  `(bind-handler 
+    ,name
+    (lambda (sock parameters)
+      (declare (ignorable sock parameters))
+      (write! (make-instance 
+	       'response :response-code ,(if permanent? "301 Moved Permanently" "307 Temporary Redirect")
+	       :location ,target :content-type "text/plain"
+	       :body "Resource moved...")
+	      sock)
+      (socket-close sock))))

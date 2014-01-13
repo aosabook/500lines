@@ -3,12 +3,10 @@
 
 ;;;;;;;;;; System tables
 (defparameter *channels* (make-hash-table))
-(defparameter *sessions* (make-hash-table :test 'equal))
-(defparameter *new-session-hook* nil)
 
 ;;;;;;;;;; Function definitions
 ;;; The basic structure of the server is
-; buffering-listen -> parse -> session-lookup -> handle -> channel
+; buffering-listen -> parse -> handle -> channel
 
 ;;;;; Buffer/listen-related
 (defmethod start ((port integer))
@@ -29,11 +27,14 @@
 			     (when (or complete? big? old?)
 			       (remhash ready conns)
 			       (remhash ready buffers)
-			       (cond (big? (error! +413+ ready))
-				     (old? (error! +400+ ready))
+			       (cond (big? 
+				      (error! +413+ ready))
+				     (old? 
+				      (error! +400+ ready))
 				     (t (handler-case
 					    (handle-request ready (parse buf))
-					  ((not simple-error) () (error! +400+ ready)))))))))))
+					  ((not simple-error) ()
+					    (error! +400+ ready)))))))))))
       (loop for c being the hash-keys of conns
 	 do (loop while (socket-close c)))
       (loop while (socket-close server)))))
@@ -78,8 +79,7 @@
 	(loop for header = (pop lines) for (name value) = (split ": " header)
 	   until (null name)
 	   for n = (->keyword name)
-	   if (eq n :cookie) do (setf (session-token req) value)
-	   else do (push (cons n value) (headers req)))
+	   do (push (cons n value) (headers req)))
 	(setf (parameters req)
 	      (append (parse-params (parameters req))
 		      (parse-params (pop lines))))
@@ -90,10 +90,8 @@
 
 ;;;;; Handling requests
 (defmethod handle-request ((sock usocket) (req request))
-  (aif (lookup (resource req) *handlers*)
-       (let* ((check? (aand (session-token req) (get-session! it)))
-	      (sess (aif check? it (new-session!))))
-	 (funcall it sock check? sess (parameters req)))
+  (aif (gethash (resource req) *handlers*)
+       (funcall it sock (parameters req))
        (error! +404+ sock)))
 
 (defun crlf (&optional (stream *standard-output*))
@@ -132,43 +130,14 @@
     (write! err sock)
     (socket-close sock)))
 
-;;;;; Session-related
-(defmacro new-session-hook! (&body body)
-  `(push (lambda (session) ,@body)
-	 *new-session-hook*))
-
-(defun clear-session-hooks! ()
-  (setf *new-session-hook* nil))
-
-(defun new-session-token ()
-  (concatenate 
-   'string
-   "session="
-   (cl-base64:usb8-array-to-base64-string
-    (with-open-file (s "/dev/urandom" :element-type '(unsigned-byte 8))
-      (make-array 32 :initial-contents (loop repeat 32 collect (read-byte s))))
-    :uri t)))
-
-(defun new-session! ()
-  (let ((session (make-instance 'session :token (new-session-token))))
-    (setf (gethash (token session) *sessions*) session)
-    (loop for hook in *new-session-hook*
-	 do (funcall hook session))
-    session))
-
-(defun get-session! (token)
-  (awhen (gethash token *sessions*)
-    (setf (last-poked it) (get-universal-time))
-    it))
-
 ;;;;; Channel-related
 (defmethod subscribe! ((channel symbol) (sock usocket))
-  (push sock (lookup channel *channels*))
+  (push sock (gethash channel *channels*))
   nil)
 
 (defmethod publish! ((channel symbol) (message string))
-  (awhen (lookup channel *channels*)
-    (setf (lookup channel *channels*)
+  (awhen (gethash channel *channels*)
+    (setf (gethash channel *channels*)
 	  (loop with msg = (make-instance 'sse :data message)
 	     for sock in it
 	     when (ignore-errors 

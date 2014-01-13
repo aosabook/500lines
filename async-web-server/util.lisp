@@ -1,25 +1,20 @@
 (in-package :house)
 
+(defun debug! (&optional (stream *standard-output*))
+  (flet ((dbg (msg) (format stream "~a~%" msg)))
+    (defmethod handle-request :before (sock req) (dbg "Handling request..."))
+    (defmethod handle-request :after (sock req) (dbg "Completed request..."))
+    (defmethod buffer! :before (buf) (dbg "Buffering from socket..."))
+    (defmethod write! :before ((res response) sock) (dbg "Writing response..."))
+    (defmethod error! :before (res sock) (dbg "Sending error response..."))
+    (defmethod subscribe! :before (chan sock) (dbg (format nil "Subscribing to ~s..." chan)))
+    (defmethod publish! :before (chan msg) (dbg (format nil "Sending to ~s..." chan)))))
+
 (defmethod ->keyword ((thing symbol))
   (intern (symbol-name thing) :keyword))
 
 (defmethod ->keyword ((thing string))
   (intern (string-upcase thing) :keyword))
-
-(defmethod lookup (key (hash hash-table))
-  (gethash key hash))
-
-(defmethod lookup (key (session session))
-  (gethash key (session-values session)))
-
-(defgeneric (setf lookup) (new-value key session)
-  (:documentation "Setter for lookup methods"))
-
-(defmethod (setf lookup) (new-value key (session session))
-  (setf (gethash key (session-values session)) new-value))
-
-(defmethod (setf lookup) (new-value key (hash hash-table))
-  (setf (gethash key hash) new-value))
 
 (defmethod flex-stream ((sock usocket))
   (flex:make-flexi-stream (socket-stream sock) :external-format :utf-8))

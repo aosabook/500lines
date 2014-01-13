@@ -14,7 +14,7 @@
 
    :assert-http
    :root :sock :session :parameters
-   :new-session! :new-session-hook! :clear-session-hooks! :get-session! :lookup
+   :new-session! :new-session-hook! :clear-session-hooks! :get-session!
    :subscribe! :publish!
    :start))
 
