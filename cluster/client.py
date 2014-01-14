@@ -35,7 +35,6 @@ class Client(Node):
     def do_INVOKED(self, cid, output):
         if not self.current_request or cid != self.current_request[0]:
             return
-        print "GOT", cid, output
         self.logger.debug("received output %r" % (output,))
         callback = self.current_request[2]
         self.current_request = None

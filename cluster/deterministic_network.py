@@ -16,10 +16,15 @@ class Node(object):
         self.core.nodes[self.address] = self
         self.logger = logging.getLogger('node.%s' % (self.address,))
 
+    def stop(self):
+        if self.address in self.core.nodes:
+            del self.core.nodes[self.address]
+
     def start(self):
         pass
 
     def set_timer(self, seconds, callable):
+        # TODO: refactor so this won't call a stopped node
         return self.core.set_timer(seconds, callable)
 
     def cancel_timer(self, timer):
@@ -29,10 +34,6 @@ class Node(object):
         self.logger.debug("sending %s with args %s to %s" %
                           (action, kwargs, destinations))
         self.core.send(destinations, action, **kwargs)
-
-    def receive(self, action, kwargs):
-        self.logger.debug("received %r with args %r" % (action, kwargs))
-        getattr(self, 'do_%s' % action)(**kwargs)
 
 
 class Core(object):
@@ -69,9 +70,21 @@ class Core(object):
     def cancel_timer(self, timer):
         timer[1] = False
 
+    def _receive(self, address, action, kwargs):
+        try:
+            node = self.nodes[address]
+        except KeyError:
+            return
+        try:
+            fn = getattr(node, 'do_%s' % action)
+        except AttributeError:
+            return
+
+        node.logger.debug("received %r with args %r" % (action, kwargs))
+        fn(**kwargs)
+
     def send(self, destinations, action, **kwargs):
         for dest in destinations:
-            node = self.nodes[dest]
             delay = self.PROP_DELAY + self.rnd.uniform(-self.PROP_JITTER, self.PROP_JITTER)
-            self.set_timer(delay, lambda node=node: node.receive(action, kwargs))
+            self.set_timer(delay, lambda dest=dest: self._receive(dest, action, kwargs))
 
