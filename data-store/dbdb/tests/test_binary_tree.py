@@ -1,4 +1,4 @@
-import cPickle as pickle
+import pickle
 import random
 
 from nose.tools import assert_raises, eq_
