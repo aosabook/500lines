@@ -3,7 +3,7 @@ import random
 
 from nose.tools import assert_raises, eq_
 
-from dbdb.binary_tree import BinaryNode, BinaryTree, NodeRef, ValueRef
+from dbdb.binary_tree import BinaryNode, BinaryTree, BinaryNodeRef, ValueRef
 
 
 class StubStorage(object):
@@ -100,10 +100,10 @@ class TestBinaryTree(object):
         self.tree.get('c')
 
 
-class TestBinaryNode(object):
+class TestBinaryNodeRef(object):
     def test_to_string_leaf(self):
-        n = BinaryNode(NodeRef(), 'k', ValueRef(address=999), NodeRef(), 1)
-        pickled = n.to_string()
+        n = BinaryNode(BinaryNodeRef(), 'k', ValueRef(address=999), BinaryNodeRef(), 1)
+        pickled = BinaryNodeRef.referent_to_string(n)
         d = pickle.loads(pickled)
         eq_(d['left'], 0)
         eq_(d['key'], 'k')
@@ -111,10 +111,10 @@ class TestBinaryNode(object):
         eq_(d['right'], 0)
 
     def test_to_string_nonleaf(self):
-        left_ref = NodeRef(address=123)
-        right_ref = NodeRef(address=321)
+        left_ref = BinaryNodeRef(address=123)
+        right_ref = BinaryNodeRef(address=321)
         n = BinaryNode(left_ref, 'k', ValueRef(address=999), right_ref, 3)
-        pickled = n.to_string()
+        pickled = BinaryNodeRef.referent_to_string(n)
         d = pickle.loads(pickled)
         eq_(d['left'], 123)
         eq_(d['key'], 'k')

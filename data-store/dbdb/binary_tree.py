@@ -4,7 +4,7 @@ except ImportError:
     import pickle
 
 
-from dbdb.tree import NodeRef, Tree, ValueRef
+from dbdb.tree import Tree, ValueRef
 
 
 class BinaryNode(object):
@@ -36,29 +36,41 @@ class BinaryNode(object):
         self.left_ref.store(storage)
         self.right_ref.store(storage)
 
-    def to_string(self):
+
+class BinaryNodeRef(ValueRef):
+    def prepare_to_store(self, storage):
+        if self._referent:
+            self._referent.store_refs(storage)
+
+    @property
+    def length(self):
+        if self._referent is None and self._address:
+            raise RuntimeError('Asking for BinaryNodeRef length of unloaded node')
+        if self._referent:
+            return self._referent.length
+        else:
+            return 0
+
+    @staticmethod
+    def referent_to_string(referent):
         return pickle.dumps({
-            'left': self.left_ref.address,
-            'key': self.key,
-            'value': self.value_ref.address,
-            'right': self.right_ref.address,
-            'length': self.length,
+            'left': referent.left_ref.address,
+            'key': referent.key,
+            'value': referent.value_ref.address,
+            'right': referent.right_ref.address,
+            'length': referent.length,
         })
 
-    @classmethod
-    def from_string(cls, string):
+    @staticmethod
+    def string_to_referent(string):
         d = pickle.loads(string)
-        return cls(
+        return BinaryNode(
             BinaryNodeRef(address=d['left']),
             d['key'],
             ValueRef(address=d['value']),
             BinaryNodeRef(address=d['right']),
             d['length'],
         )
-
-
-class BinaryNodeRef(NodeRef):
-    node_class = BinaryNode
 
 
 class BinaryTree(Tree):
@@ -90,7 +102,7 @@ class BinaryTree(Tree):
                     self._follow(node.right_ref), key, value_ref))
         else:
             new_node = BinaryNode.from_node(node, value_ref=value_ref)
-        return NodeRef(node=new_node)
+        return self.node_ref_class(referent=new_node)
 
     def _delete(self, node, key):
         if node is None:
@@ -123,7 +135,7 @@ class BinaryTree(Tree):
                 return node.left_ref
             else:
                 return node.right_ref
-        return NodeRef(node=new_node)
+        return self.node_ref_class(referent=new_node)
 
     def _find_max(self, node):
         while True:

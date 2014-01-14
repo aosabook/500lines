@@ -43,43 +43,20 @@ class Tree(object):
             return 0
 
 
-class NodeRef(object):
-    node_class = None
-
-    def __init__(self, node=None, address=0):
-        self._node = node
-        self._address = address
-
-    @property
-    def address(self):
-        return self._address
-
-    @property
-    def length(self):
-        if self._node is None and self._address:
-            raise RuntimeError('Asking for NodeRef length of unloaded node')
-        if self._node:
-            return self._node.length
-        else:
-            return 0
-
-    def get(self, storage):
-        if self._node is None and self._address:
-            self._node = self.node_class.from_string(
-                storage.read(self._address))
-        return self._node
-
-    def store(self, storage):
-        if self._node is not None and not self._address:
-            self._node.store_refs(storage)
-            self._address = storage.write(self._node.to_string())
-
-
 class ValueRef(object):
-    node_class = None
+    def prepare_to_store(self, storage):
+        pass
 
-    def __init__(self, value=None, address=0):
-        self._value = value
+    @staticmethod
+    def referent_to_string(referent):
+        return referent
+
+    @staticmethod
+    def string_to_referent(string):
+        return string
+
+    def __init__(self, referent=None, address=0):
+        self._referent = referent
         self._address = address
 
     @property
@@ -87,10 +64,11 @@ class ValueRef(object):
         return self._address
 
     def get(self, storage):
-        if self._value is None and self._address:
-            self._value = storage.read(self._address)
-        return self._value
+        if self._referent is None and self._address:
+            self._referent = self.string_to_referent(storage.read(self._address))
+        return self._referent
 
     def store(self, storage):
-        if self._value is not None and not self._address:
-            self._address = storage.write(self._value)
+        if self._referent is not None and not self._address:
+            self.prepare_to_store(storage)
+            self._address = storage.write(self.referent_to_string(self._referent))
