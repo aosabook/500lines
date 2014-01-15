@@ -39,9 +39,13 @@ class Replica(deterministic_network.Node):
             self.set_timer(1, send)
         send()
 
-    def invoke(self, input):
-        self.replica_state, output = self.replica_execute_fn(self.replica_state, input)
-        return output
+    def invoke(self, proposal):
+        # call the execute_fn if this is a client operation
+        if proposal.caller:
+            self.replica_state, output = self.replica_execute_fn(self.replica_state, proposal.input)
+            return output
+
+        assert 0
 
     def propose(self, proposal):
         slot = max(len(self.replica_proposals),
@@ -81,9 +85,10 @@ class Replica(deterministic_network.Node):
             if decided_proposal in self.replica_decisions[:self.replica_slot_num]:
                 continue  # duplicate
             self.logger.info("invoking %r" % (decided_proposal,))
-            output = self.invoke(decided_proposal.input)
-            self.send([proposal.caller], 'INVOKED',
-                    cid=decided_proposal.cid, output=output)
+            output = self.invoke(decided_proposal)
+            if decided_proposal.caller:
+                self.send([decided_proposal.caller], 'INVOKED',
+                        cid=decided_proposal.cid, output=output)
             self.replica_slot_num += 1
 
     def do_GET_STATE(self, requester):
