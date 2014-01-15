@@ -1,14 +1,5 @@
-import sys
-import logging
 import deterministic_network
-import unittest
 from collections import namedtuple, defaultdict
-from statemachine import sequence_generator
-
-# Fix in final copy:
-#  - include repeated classes
-#  - merge ClusterMember and Member
-#  - remove logging stuff
 
 
 Proposal = namedtuple('Proposal', ['caller', 'cid', 'input'])
@@ -135,61 +126,8 @@ class Acceptor(deterministic_network.Node):
                   ballot_num=self.acceptor_ballot_num)
 
 
-class AcceptorTests(unittest.TestCase):
-
-    def setUp(self):
-        self.acc = Acceptor()
-        self.sent = []
-        self.acc.send = lambda *args, **kwargs : self.sent.append((args, kwargs))
-
-    def assertSent(self, nodes, message, **kwargs):
-        self.assertEqual(self.sent.pop(0), ((nodes, message), kwargs))
-
-    def test_prepare_no_adopt(self):
-        self.acc.acceptor_ballot_num = (11, 20)
-        self.acc.do_PREPARE(leader='ldr', ballot_num=(10, 20))
-        self.assertSent(['ldr'], 'PROMISE',
-                acceptor=self.acc.address,
-                ballot_num=(11, 20),
-                accepted={})
-        self.assertEqual(self.acc.acceptor_ballot_num, (11, 20))
-
-    def test_prepare_adopt(self):
-        self.acc.do_PREPARE(leader='ldr', ballot_num=(10, 20))
-        self.assertSent(['ldr'], 'PROMISE',
-                acceptor=self.acc.address,
-                ballot_num=(10, 20),
-                accepted={})
-        self.assertEqual(self.acc.acceptor_ballot_num, (10, 20))
-
-    def test_accept(self):
-        p = Proposal(caller='clt', cid=1234, input='data')
-        c = CommanderId(address='ldr', slot=8, proposal=p)
-        self.acc.do_ACCEPT(commander_id=c, ballot_num=(10, 20), slot=8, proposal=p)
-        self.assertSent(['ldr'], 'ACCEPTED',
-                commander_id=c,
-                acceptor=self.acc.address,
-                ballot_num=(10, 20))
-        self.assertEqual(self.acc.acceptor_ballot_num, (10, 20))
-        self.assertEqual(self.acc.acceptor_accepted, {((10, 20), 8) : p})
-
-    def test_accept_not(self):
-        p = Proposal(caller='clt', cid=1234, input='data')
-        c = CommanderId(address='ldr', slot=8, proposal=p)
-        self.acc.acceptor_ballot_num = (11, 20)
-        self.acc.do_ACCEPT(commander_id=c, ballot_num=(10, 20), slot=8, proposal=p)
-        self.assertSent(['ldr'], 'ACCEPTED',
-                commander_id=c,
-                acceptor=self.acc.address,
-                ballot_num=(11, 20))
-        self.assertEqual(self.acc.acceptor_ballot_num, (11, 20))
-        self.assertEqual(self.acc.acceptor_accepted, {})
-
-
 class Scout(object):
 
-    # scouts are indexed by ballot num, but need slot/proposal to send to
-    # acceptor for proper
     PREPARE_RETRANSMIT = 1
 
     def __init__(self, node, ballot_num):
@@ -222,10 +160,12 @@ class Scout(object):
             self.scout_pvals.update(accepted)
             self.scout_accepted.add(acceptor)
             if len(self.scout_accepted) >= self.scout_quorum:
+                # We're adopted; note that this does *not* mean that no other leader is active.
+                # Any such conflicts will be handled by the commanders.
                 self.finished(True, ballot_num)
         else:
             # ballot_num > self.scout_ballot_num; responses to other scouts don't
-            # result in a call oto this method
+            # result in a call to this method
             self.finished(False, ballot_num)
 
 
