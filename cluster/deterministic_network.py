@@ -25,7 +25,7 @@ class Node(object):
 
     def set_timer(self, seconds, callable):
         # TODO: refactor so this won't call a stopped node
-        return self.core.set_timer(seconds, callable)
+        return self.core.set_timer(seconds, self.address, callable)
 
     def cancel_timer(self, timer):
         self.core.cancel_timer(timer)
@@ -45,7 +45,7 @@ class Core(object):
         self.nodes = {}
         self.rnd = random.Random(seed)
         self.timers = []
-        self.now = 0.0
+        self.now = 1000.0
         self.logger = logging.getLogger('core')
 
     def run(self):
@@ -55,15 +55,15 @@ class Core(object):
             next_timer = self.timers[0][0]
             if next_timer > self.now:
                 self.now = next_timer
-            when, do, callable = heapq.heappop(self.timers)
-            if do:
+            when, do, address, callable = heapq.heappop(self.timers)
+            if do and address in self.nodes:
                 callable()
 
     def stop(self):
         self.timers = []
 
-    def set_timer(self, seconds, callable):
-        timer = [self.now + seconds, True, callable]
+    def set_timer(self, seconds, address, callable):
+        timer = [self.now + seconds, True, address, callable]
         heapq.heappush(self.timers, timer)
         return timer
 
@@ -86,5 +86,5 @@ class Core(object):
     def send(self, destinations, action, **kwargs):
         for dest in destinations:
             delay = self.PROP_DELAY + self.rnd.uniform(-self.PROP_JITTER, self.PROP_JITTER)
-            self.set_timer(delay, lambda dest=dest: self._receive(dest, action, kwargs))
+            self.set_timer(delay, dest, lambda dest=dest: self._receive(dest, action, kwargs))
 

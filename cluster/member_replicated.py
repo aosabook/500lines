@@ -41,10 +41,6 @@ class Replica(deterministic_network.Node):
         self.replica_proposals = defaultlist()
         self.replica_decisions = defaultlist()
 
-    def replica_log(self, msg):
-        self.logger.info("R: slot_num=%d proposals=%r decisions=%r\n| %s"
-                % (self.replica_slot_num, self.replica_proposals, self.replica_decisions, msg))
-
     def replica_start(self, initial_state=None, peers=None):
         def send():
             if not self.replica_ready:
@@ -59,20 +55,20 @@ class Replica(deterministic_network.Node):
     def propose(self, proposal):
         slot = max(len(self.replica_proposals),
                     len(self.replica_decisions))
-        self.replica_log("proposing %s at slot %d" % (proposal, slot))
+        self.logger.info("proposing %s at slot %d" % (proposal, slot))
         self.replica_proposals[slot] = proposal
         self.send(self.member_peers, 'PROPOSE', slot=slot, proposal=proposal)
 
     def do_INVOKE(self, caller, cid, input):
         if not self.replica_ready:
-            self.replica_log("can't INVOKE until joined to the cluster")
+            self.logger.info("can't INVOKE until joined to the cluster")
             return
         proposal = Proposal(caller, cid, input)
         if proposal not in self.replica_proposals:
             self.propose(proposal)
         else:
             slot = self.replica_proposals.index(proposal)
-            self.replica_log("proposal %s already proposed in slot %d" % (proposal, slot))
+            self.logger.info("proposal %s already proposed in slot %d" % (proposal, slot))
 
     def do_DECISION(self, slot, proposal):
         if self.replica_decisions[slot] is not None:
@@ -93,7 +89,7 @@ class Replica(deterministic_network.Node):
 
             if decided_proposal in self.replica_decisions[:self.replica_slot_num]:
                 continue  # duplicate
-            self.replica_log("invoking %r" % (decided_proposal,))
+            self.logger.info("invoking %r" % (decided_proposal,))
             output = self.invoke(decided_proposal.input)
             self.send([proposal.caller], 'INVOKED',
                     cid=decided_proposal.cid, output=output)
@@ -119,10 +115,6 @@ class Acceptor(deterministic_network.Node):
         super(Acceptor, self).__init__()
         self.acceptor_ballot_num = Ballot(-1, -1)
         self.acceptor_accepted = defaultdict()  # { (b,s) : p }
-
-    def acceptor_log(self, msg):
-        self.logger.info("A: ballot_num=%r accepted=%r\n| %s"
-                % (self.acceptor_ballot_num, sorted(self.acceptor_accepted.items()), msg))
 
     def do_PREPARE(self, scout_id, ballot_num):  # p1a
         if ballot_num > self.acceptor_ballot_num:
@@ -209,13 +201,8 @@ class Scout(object):
         self.scout_quorum = len(node.member_peers) / 2 + 1
         self.retransmit_timer = None
 
-    def scout_log(self, msg):
-        self.node.logger.info("S: ballot_num=%r pvals=%r len(accepted)=%d\n| %s"
-                % (self.scout_ballot_num, sorted(self.scout_pvals.items()),
-                    len(self.scout_accepted), msg))
-
     def start(self):
-        self.scout_log("starting")
+        self.node.logger.info("scout starting")
         self.send_prepare()
 
     def send_prepare(self):
@@ -226,12 +213,12 @@ class Scout(object):
 
     def finished(self, adopted, ballot_num):
         self.node.cancel_timer(self.retransmit_timer)
-        self.scout_log("finished - adopted" if adopted else "finished - preempted")
+        self.node.logger.info("finished - adopted" if adopted else "finished - preempted")
         self.node.scout_finished(adopted, ballot_num, self.scout_pvals)
 
     def do_PROMISE(self, acceptor, ballot_num, accepted):  # p1b
         if ballot_num == self.scout_ballot_num:
-            self.scout_log("got matching promise; need %d" % self.scout_quorum)
+            self.node.logger.info("got matching promise; need %d" % self.scout_quorum)
             self.scout_pvals.update(accepted)
             self.scout_accepted.add(acceptor)
             if len(self.scout_accepted) >= self.scout_quorum:
@@ -252,10 +239,6 @@ class Commander(object):
         self.commander_id = CommanderId(node.address, slot, proposal)
         self.commander_accepted = set([])
         self.commander_quorum = len(node.member_peers) / 2 + 1
-
-    def commander_log(self, msg):
-        self.node.logger.info("C: ballot_num=%r slot=%d proposal=%r len(accepted)=%d\n| %s"
-                % (self.commander_ballot_num, self.commander_slot, self.commander_proposal, len(self.commander_accepted), msg))
 
     def start(self):
         self.node.send(self.node.member_peers, 'ACCEPT',  # p2a
@@ -278,20 +261,32 @@ class Commander(object):
 
 class Leader(deterministic_network.Node):
 
+    HEARTBEAT_INTERVAL  = 1
+
     def __init__(self):
         super(Leader, self).__init__()
         self.leader_ballot_num = Ballot(0, self.unique_id)
         self.leader_active = False
+        self.leader_last_heartbeat = 0
         self.leader_proposals = defaultlist()
         self.leader_commanders = {}
         self.leader_scout = None
 
-    def leader_log(self, msg):
-        self.logger.info("L: ballot_num=%r active=%r proposals=%r commanders=%r scout=%r\n| %s"
-                % (self.leader_ballot_num, self.leader_active, self.leader_proposals, self.leader_commanders, self.leader_scout, msg))
-
     def leader_start(self):
-        self.spawn_scout(self.leader_ballot_num)
+        def heartbeat():
+            if self.leader_active:
+                if self.core.rnd.random() < 0.99:  # fail occasionally
+                    self.send(self.member_peers, 'HEARTBEAT', leader=self.address)
+            else:
+                if self.leader_last_heartbeat < self.core.now - 2 * self.HEARTBEAT_INTERVAL:
+                    if not self.leader_scout:
+                        self.spawn_scout(self.leader_ballot_num)
+            self.set_timer(self.HEARTBEAT_INTERVAL, heartbeat)
+        heartbeat()
+
+    def do_HEARTBEAT(self, leader):
+        if not self.leader_active:
+            self.leader_last_heartbeat = self.core.now
 
     def spawn_scout(self, ballot_num):
         assert not self.leader_scout
@@ -316,7 +311,7 @@ class Leader(deterministic_network.Node):
             for s, p in enumerate(self.leader_proposals):
                 if p is not None:
                     self.spawn_commander(ballot_num, s, p)
-            self.leader_log("becoming active")
+            self.logger.info("leader becoming active")
             self.leader_active = True
         else:
             self.preempted(ballot_num)
@@ -327,13 +322,11 @@ class Leader(deterministic_network.Node):
             self.preempted(ballot_num)
 
     def preempted(self, ballot_num):
-        self.leader_log("preempted by %r" % (ballot_num,))
         if ballot_num > self.leader_ballot_num:
-            self.leader_log("becoming inactive")
+            self.logger.info("leader preempted by %s" % (ballot_num.leader,))
             self.leader_active = False
+            self.leader_last_heartbeat = self.core.now
             self.leader_ballot_num = Ballot(ballot_num.n + 1, self.unique_id)
-            if not self.leader_scout:
-                self.spawn_scout(self.leader_ballot_num)
 
     def spawn_commander(self, ballot_num, slot, proposal):
         cmd = Commander(self, ballot_num, slot, proposal)
@@ -347,10 +340,6 @@ class Leader(deterministic_network.Node):
             self.leader_proposals[slot] = proposal
             if self.leader_active:
                 self.spawn_commander(self.leader_ballot_num, slot, proposal)
-            else:
-                self.logger.debug("not active - not starting commander")
-        else:
-            self.logger.debug("slot already full")
 
     def do_PROMISE(self, scout_id, acceptor, ballot_num, accepted):
         sct = self.leader_scout

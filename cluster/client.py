@@ -16,6 +16,8 @@ class Client(Node):
         def re_invoke(n):
             if n < 10:
                 self.invoke(n, lambda output: re_invoke(n+1))
+            else:
+                self.set_timer(5, lambda: self.core.stop())
         self.set_timer(1, lambda: re_invoke(1))
 
     def invoke(self, input, callback):
