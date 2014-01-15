@@ -12,6 +12,8 @@ spec/reports
 test/tmp
 test/version_tmp
 tmp
+.rbenv-gemsets
+.gems/
 
 # YARD artifacts
 .yardoc
