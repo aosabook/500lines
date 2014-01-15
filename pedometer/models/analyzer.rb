@@ -2,7 +2,7 @@ require 'mathn'
 require './models/user.rb'
 require './models/device_data.rb'
 
-class Pedometer
+class Analyzer
 
   CAP = 1.2
 

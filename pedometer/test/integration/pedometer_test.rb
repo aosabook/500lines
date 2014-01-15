@@ -11,7 +11,7 @@ class PedometerTest < Test::Unit::TestCase
 
   def test_metrics
     get '/metrics', :data => "0.123,-0.123,5;", :user => {:stride => 90, :rate => 4}
-
+    
     assert_equal 200, last_response.status
     assert_equal '{"steps":1,"distance":90.0,"time":"0.25 seconds"}', last_response.body
   end
