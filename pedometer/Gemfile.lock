@@ -1,0 +1,47 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    activesupport (4.0.2)
+      i18n (~> 0.6, >= 0.6.4)
+      minitest (~> 4.2)
+      multi_json (~> 1.3)
+      thread_safe (~> 0.1)
+      tzinfo (~> 0.3.37)
+    atomic (1.1.14)
+    daemons (1.1.9)
+    eventmachine (1.0.3)
+    i18n (0.6.9)
+    jbuilder (2.0.2)
+      activesupport (>= 3.0.0)
+      multi_json (>= 1.2.0)
+    minitest (4.7.5)
+    multi_json (1.8.4)
+    rack (1.5.2)
+    rack-protection (1.5.1)
+      rack
+    rack-test (0.6.2)
+      rack (>= 1.0)
+    sinatra (1.4.4)
+      rack (~> 1.4)
+      rack-protection (~> 1.4)
+      tilt (~> 1.3, >= 1.3.4)
+    thin (1.6.1)
+      daemons (>= 1.0.9)
+      eventmachine (>= 1.0.0)
+      rack (>= 1.0.0)
+    thread_safe (0.1.3)
+      atomic
+    tilt (1.4.1)
+    tilt-jbuilder (0.5.3)
+      jbuilder
+      tilt (<= 1.4.1)
+    tzinfo (0.3.38)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  rack-test
+  sinatra
+  thin
+  tilt-jbuilder

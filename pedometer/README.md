@@ -9,8 +9,6 @@ While a pedometer application for a mobile device would usually be written nativ
 
 Prerequisites
 =============
-Ruby 2.1.0
-gem install sinatra
-gem install thin
-gem install tilt-jbuilder
-gem install rack-test
+* Ruby 2.1.0
+* gem install bundler
+* bundle install
