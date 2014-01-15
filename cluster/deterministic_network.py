@@ -1,4 +1,5 @@
 import uuid
+import time
 import logging
 import heapq
 import random
@@ -54,6 +55,7 @@ class Core(object):
         while self.timers:
             next_timer = self.timers[0][0]
             if next_timer > self.now:
+                time.sleep(next_timer - self.now)
                 self.now = next_timer
             when, do, address, callable = heapq.heappop(self.timers)
             if do and address in self.nodes:
