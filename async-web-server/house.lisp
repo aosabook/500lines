@@ -10,7 +10,7 @@
 
 ;;;;; Buffer/listen-related
 (defmethod start ((port integer))
-  (let ((server (socket-listen usocket:*wildcard-host* port :reuse-address t))
+  (let ((server (socket-listen usocket:*wildcard-host* port :reuse-address t :element-type 'octet))
 	(conns (make-hash-table))
         (buffers (make-hash-table)))
     (unwind-protect
