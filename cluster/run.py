@@ -1,4 +1,6 @@
 import logging
+import random
+import sys
 import deterministic_network
 import member_replicated
 import client
@@ -13,7 +15,12 @@ class TimeLogger(logging.Logger):
         return logging.Logger.makeRecord(self, name, lvl, fn, lno, msg, args, exc_info, func=func, extra=extra)
 
 if __name__ == "__main__":
-    core = deterministic_network.Core(1235)
+    if len(sys.argv) == 1:
+        rndseed = random.randint(0, sys.maxint)
+    else:
+        rndseed = int(sys.argv[1])
+    print "RANDOM SEED:", rndseed
+    core = deterministic_network.Core(rndseed)
 
     if os.path.exists('run.log'):
         os.unlink('run.log')
@@ -36,7 +43,7 @@ if __name__ == "__main__":
         node.set_up_node(name, core)
 
     # set up the client
-    client = client.Client(cluster_members[0])
+    client = client.Client(node_names)
     client.set_up_node('Client', core)
 
     # kill node D after 2.3s or so

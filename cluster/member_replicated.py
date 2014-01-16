@@ -6,53 +6,82 @@ Proposal = namedtuple('Proposal', ['caller', 'cid', 'input'])
 Ballot = namedtuple('Ballot', ['n', 'leader'])
 ScoutId = namedtuple('ScoutId', ['address', 'ballot_num'])
 CommanderId = namedtuple('CommanderId', ['address', 'slot', 'proposal'])
+ViewChange = namedtuple('ViewChange', ['viewid', 'previous_viewid', 'peers'])
+# TODO: assume monotonically increasing; previous_viewid==viewid-1
 
+
+def view_leader(viewid, peers):
+    return peers[viewid % len(peers)] 
 
 class defaultlist(list):
 
+    def set_len(self, l):
+        if l > len(self):
+            self.extend([None] * (l - len(self)))
+
     def __getitem__(self, i):
-        if i >= len(self):
-            return None
+        self.set_len(i+1)
         return list.__getitem__(self, i)
 
     def __setitem__(self, i, v):
-        if i >= len(self):
-            self.extend([None] * (i - len(self) + 1))
+        self.set_len(i+1)
         list.__setitem__(self, i, v)
 
 
 class Replica(deterministic_network.Node):
+
+    JOIN_RETRANSMIT = 0.2
 
     def __init__(self):
         super(Replica, self).__init__()
         self.replica_ready = False
         self.replica_execute_fn = None
         self.replica_state = None
-        self.replica_slot_num = 0
+        self.replica_slot_num = 1
+        self.replica_next_slot = 1  # next slot num for a proposal (may lead slot_num)
         self.replica_proposals = defaultlist()
         self.replica_decisions = defaultlist()
+        self.replica_viewid = 0
+        self.replica_peers = None
 
-    def replica_start(self, initial_state=None, peers=None):
+    def replica_start(self, peers=None):
+        self.replica_peers = peers
         def send():
             if not self.replica_ready:
-                self.send(self.member_peers, 'GET_STATE', requester=self.address)
-            self.set_timer(1, send)
+                self.send([self.core.rnd.choice(self.replica_peers)], 'JOIN',
+                        requester=self.address)
+            self.set_timer(self.JOIN_RETRANSMIT, send)
         send()
 
     def invoke(self, proposal):
-        # call the execute_fn if this is a client operation
         if proposal.caller:
+            # perform a client operation
             self.replica_state, output = self.replica_execute_fn(self.replica_state, proposal.input)
             return output
 
-        assert 0
+        if isinstance(proposal.input, ViewChange):
+            viewchange = proposal.input
+            if viewchange.previous_viewid == self.replica_viewid:
+                self.logger.info("entering view %d with peers %s" % (viewchange.viewid, viewchange.peers))
+                self.replica_viewid = viewchange.viewid
+                self.send(list(set(viewchange.peers) - set(self.replica_peers)), 'WELCOME',
+                        state=self.replica_state,
+                        slot_num=self.replica_slot_num,
+                        viewid=viewchange.viewid,
+                        peers=viewchange.peers)
+                self.replica_peers = tuple(sorted(viewchange.peers))
+                self.leader_view_change(view_leader(viewchange.viewid, viewchange.peers) == self.address)
+            else:
+                self.logger.info("ignored out-of-sequence view change operation")
 
     def propose(self, proposal):
-        slot = max(len(self.replica_proposals),
-                    len(self.replica_decisions))
+        slot = self.replica_next_slot
+        self.replica_next_slot += 1
         self.logger.info("proposing %s at slot %d" % (proposal, slot))
         self.replica_proposals[slot] = proposal
-        self.send(self.member_peers, 'PROPOSE', slot=slot, proposal=proposal)
+        # TODO: re-send this, esp when view changes
+        self.send([view_leader(self.replica_viewid, self.replica_peers)], 'PROPOSE',
+                slot=slot, proposal=proposal)
 
     def do_INVOKE(self, caller, cid, input):
         if not self.replica_ready:
@@ -70,6 +99,7 @@ class Replica(deterministic_network.Node):
             assert self.replica_decisions[slot] == proposal
             return
         self.replica_decisions[slot] = proposal
+        self.replica_next_slot = max(self.replica_next_slot, slot+1)
 
         # execute any pending, decided proposals, eliminating duplicates
         while True:
@@ -85,24 +115,27 @@ class Replica(deterministic_network.Node):
             if decided_proposal in self.replica_decisions[:self.replica_slot_num]:
                 continue  # duplicate
             self.logger.info("invoking %r" % (decided_proposal,))
+            self.replica_slot_num += 1  # increment now since view changes use this value
             output = self.invoke(decided_proposal)
             if decided_proposal.caller:
                 self.send([decided_proposal.caller], 'INVOKED',
                         cid=decided_proposal.cid, output=output)
-            self.replica_slot_num += 1
 
-    def do_GET_STATE(self, requester):
-        if self.replica_ready:
-            self.send([requester], 'SET_STATE',
-                      state=self.replica_state,
-                      slot_num=self.replica_slot_num)
+    def do_JOIN(self, requester):
+        if self.replica_ready and requester not in self.replica_peers:
+            viewchange = ViewChange(self.replica_viewid+1, self.replica_viewid, 
+                    tuple(sorted(set(self.replica_peers) | set([requester]))))
+            self.propose(Proposal(None, None, viewchange))
 
-    def do_SET_STATE(self, state, slot_num):
+    def do_WELCOME(self, state, slot_num, viewid, peers):
         if not self.replica_ready:
             self.replica_ready = True
             self.replica_state = state
             self.replica_slot_num = slot_num
-            self.member_joined()
+            self.replica_next_slot = slot_num
+            self.replica_viewid = viewid
+            self.replica_peers = tuple(sorted(peers))
+            self.leader_view_change(view_leader(self.replica_viewid, self.replica_peers) == self.address)
 
 
 class Acceptor(deterministic_network.Node):
@@ -141,7 +174,7 @@ class Scout(object):
         self.scout_ballot_num = ballot_num
         self.scout_pvals = defaultdict()
         self.scout_accepted = set([])
-        self.scout_quorum = len(node.member_peers) / 2 + 1
+        self.scout_quorum = len(node.replica_peers) / 2 + 1
         self.retransmit_timer = None
 
     def start(self):
@@ -149,7 +182,7 @@ class Scout(object):
         self.send_prepare()
 
     def send_prepare(self):
-        self.node.send(self.node.member_peers, 'PREPARE',  # p1a
+        self.node.send(self.node.replica_peers, 'PREPARE',  # p1a
                        scout_id=self.scout_id,
                        ballot_num=self.scout_ballot_num)
         self.retransmit_timer = self.node.set_timer(self.PREPARE_RETRANSMIT, self.send_prepare)
@@ -183,10 +216,10 @@ class Commander(object):
         self.commander_proposal = proposal
         self.commander_id = CommanderId(node.address, slot, proposal)
         self.commander_accepted = set([])
-        self.commander_quorum = len(node.member_peers) / 2 + 1
+        self.commander_quorum = len(node.replica_peers) / 2 + 1
 
     def start(self):
-        self.node.send(self.node.member_peers, 'ACCEPT',  # p2a
+        self.node.send(self.node.replica_peers, 'ACCEPT',  # p2a
                        commander_id=self.commander_id,
                        ballot_num=self.commander_ballot_num,
                        slot=self.commander_slot,
@@ -196,7 +229,7 @@ class Commander(object):
         if ballot_num == self.commander_ballot_num:
             self.commander_accepted.add(acceptor)
             if len(self.commander_accepted) >= self.commander_quorum:
-                self.node.send(self.node.member_peers, 'DECISION',
+                self.node.send(self.node.replica_peers, 'DECISION',
                                slot=self.commander_slot,
                                proposal=self.commander_proposal)
                 self.node.commander_finished(self.commander_id, ballot_num, False)
@@ -212,33 +245,24 @@ class Leader(deterministic_network.Node):
         super(Leader, self).__init__()
         self.leader_ballot_num = Ballot(0, self.unique_id)
         self.leader_active = False
-        self.leader_last_heartbeat = 0
         self.leader_proposals = defaultlist()
         self.leader_commanders = {}
         self.leader_scout = None
 
-    def leader_start(self):
-        def heartbeat():
-            if self.leader_active:
-                if self.core.rnd.random() < 0.99:  # fail occasionally
-                    self.send(self.member_peers, 'HEARTBEAT', leader=self.address)
-            else:
-                if self.leader_last_heartbeat < self.core.now - 2 * self.HEARTBEAT_INTERVAL:
-                    if not self.leader_scout:
-                        self.spawn_scout(self.leader_ballot_num)
-            self.set_timer(self.HEARTBEAT_INTERVAL, heartbeat)
-        heartbeat()
+    def leader_view_change(self, is_primary):
+        if is_primary:
+            if not self.leader_scout and not self.leader_active:
+                self.spawn_scout()
+        else:
+            if self.leader_scout:
+                self.leader_scout.finished(False, None)
+                # .. which eventually calls self.preempted
+            elif self.leader_active:
+                self.preempted(None)
 
-    def do_HEARTBEAT(self, leader):
-        if not self.leader_active:
-            self.leader_last_heartbeat = self.core.now
-
-    def spawn_scout(self, ballot_num):
-        assert not self.leader_scout
-        def start():
-            sct = self.leader_scout = Scout(self, ballot_num)
-            sct.start()
-        self.set_timer(self.core.rnd.uniform(0, 1), start)
+    def spawn_scout(self):
+        sct = self.leader_scout = Scout(self, self.leader_ballot_num)
+        sct.start()
 
     def scout_finished(self, adopted, ballot_num, pvals):
         self.leader_scout = None
@@ -267,14 +291,19 @@ class Leader(deterministic_network.Node):
             self.preempted(ballot_num)
 
     def preempted(self, ballot_num):
-        if ballot_num > self.leader_ballot_num:
-            self.logger.info("leader preempted by %s" % (ballot_num.leader,))
+        # ballot_num is None when we are preempted by a view change
+        if ballot_num is None or ballot_num > self.leader_ballot_num:
+            if ballot_num:
+                self.logger.info("leader preempted by %s" % (ballot_num.leader,))
+            else:
+                self.logger.info("leader preempted by view change")
             self.leader_active = False
-            self.leader_last_heartbeat = self.core.now
-            self.leader_ballot_num = Ballot(ballot_num.n + 1, self.unique_id)
+            self.leader_ballot_num = Ballot(
+                    (ballot_num if ballot_num else self.leader_ballot_num).n + 1, self.unique_id)
 
     def spawn_commander(self, ballot_num, slot, proposal):
         cmd = Commander(self, ballot_num, slot, proposal)
+        print cmd.commander_id
         if cmd.commander_id in self.leader_commanders:
             return
         self.leader_commanders[cmd.commander_id] = cmd
@@ -285,6 +314,11 @@ class Leader(deterministic_network.Node):
             self.leader_proposals[slot] = proposal
             if self.leader_active:
                 self.spawn_commander(self.leader_ballot_num, slot, proposal)
+        else:
+            # remind everyone that this slot is already full
+            self.send(self.replica_peers, 'DECISION',
+                            slot=slot,
+                            proposal=self.leader_proposals[slot])
 
     def do_PROMISE(self, scout_id, acceptor, ballot_num, accepted):
         sct = self.leader_scout
@@ -300,30 +334,48 @@ class Leader(deterministic_network.Node):
 
 class ClusterMember(Replica, Acceptor, Leader):
 
-    def __init__(self, execute_fn, initial_state=None, peers=None):
+    def __init__(self, execute_fn, peers):
         super(ClusterMember, self).__init__()
         self.replica_execute_fn = execute_fn
-        self.member_initial_state = initial_state
-        self.member_peers = peers
+        self.member_potential_peers = peers
 
     def start(self):
-        self.replica_start(initial_state=self.member_initial_state)
-
-    def member_joined(self):
-        self.leader_start()
+        self.replica_start(self.member_potential_peers)
 
 
 class ClusterSeed(deterministic_network.Node):
-    """A node which simply provides an initial state, and exits once a decision
-    is made."""
+    """A node which simply provides an initial state and view.  It waits until
+    it has heard JOIN requests from enough nodes to form a cluster, then WELCOMEs
+    them all to the same view with the given initial state."""
 
     def __init__(self, initial_state):
         super(ClusterSeed, self).__init__()
         self.initial_state = initial_state
+        self.peers = set([])
+        self.exit_timer = None
 
-    def do_GET_STATE(self, requester):
-        self.send([requester], 'SET_STATE',
-                    state=self.initial_state, slot_num=0)
+    def do_JOIN(self, requester):
+        # three is the minimum membership for a working cluster, so don't
+        # respond until then, but don't expand the peers list beyond 3
+        if len(self.peers) < 3:
+            self.peers.add(requester)
+            if len(self.peers) < 3:
+                return
 
-    def do_DECISION(self, slot, proposal):
-        self.stop()
+        # otherwise, we have a cluster, but don't welcome any nodes not
+        # part of that cluster (the cluster can do that itself)
+        if requester not in self.peers:
+            return
+
+        self.send(self.peers, 'WELCOME',
+                state=self.initial_state,
+                slot_num=1,
+                viewid=0,
+                peers=list(self.peers))
+
+        # stick around for long enough that we don't hear any new JOINs from
+        # the newly formed cluster
+        if self.exit_timer:
+            self.cancel_timer(self.exit_timer)
+        self.exit_timer = self.set_timer(Replica.JOIN_RETRANSMIT*2, self.stop)
+

@@ -1,4 +1,3 @@
-import time
 import sys
 import logging
 from deterministic_network import Node
@@ -6,9 +5,9 @@ from deterministic_network import Node
 
 class Client(Node):
 
-    def __init__(self, member_address):
+    def __init__(self, members):
         super(Client, self).__init__()
-        self.member_address = member_address
+        self.members = members
         self.cid = 1000000
         self.current_request = None
 
@@ -30,7 +29,7 @@ class Client(Node):
 
     def send_invoke(self):
         cid, input, callback = self.current_request
-        self.send([self.member_address], 'INVOKE',
+        self.send([self.core.rnd.choice(self.members)], 'INVOKE',
                   caller=self.address, cid=cid, input=input)
         self.invoke_timer = self.set_timer(3, self.send_invoke)
 
