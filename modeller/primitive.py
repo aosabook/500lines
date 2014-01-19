@@ -69,7 +69,7 @@ def MakePlane():
 def MakeSphere():
     glNewList(G_OBJ_SPHERE, GL_COMPILE)
     quad = gluNewQuadric();
-    gluSphere(quad, 1.0, 30, 30);
+    gluSphere(quad, 0.5, 30, 30);
     gluDeleteQuadric(quad);
     glEndList();
 
