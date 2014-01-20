@@ -61,7 +61,7 @@ class PedometerTest < Test::Unit::TestCase
     get '/metrics', :data => File.read('test/data/walking-10-g-1.txt'), :user => {:stride => 90, :rate => 100}
 
     assert_equal 200, last_response.status
-    assert_equal '{"steps":9,"distance":810.0,"time":"10.37 seconds"}', last_response.body
+    assert_equal '{"steps":8,"distance":720.0,"time":"10.37 seconds"}', last_response.body
   end
 
   def test_gravity_walking_10_steps_2

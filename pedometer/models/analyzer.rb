@@ -34,13 +34,22 @@ class Analyzer
     end
   end
 
-  # TODO: Don't increase the counter if edges are too close together.
-  #       Determine this using "if two steps are less than x seconds apart"
-  #       using the rate, and x as a fraction of second
   def detect_edges(split)
+    # Determined by the rate divided by the 
+    # maximum steps the user can take per second
+    min_interval = (@user.rate/6.0).round
+    
     count = 0
+    index_last_step = 0
     split.each_with_index do |data, i|
-      count += 1 if (data == 1 && split[i-1] == 0)
+      # If the current value is 1 and the previous was 0, AND the 
+      # interval between now and the last time a step was counted is 
+      # above the minimun threshold, count this as a step
+      if (data == 1) && (split[i-1] == 0)
+        next if index_last_step > 0 && (i-index_last_step) < min_interval
+        count += 1
+        index_last_step = i
+      end
     end
     count
   end

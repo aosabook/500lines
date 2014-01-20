@@ -77,8 +77,16 @@ class AnalyzerTest < Test::Unit::TestCase
     device_data = DeviceData.new(File.read('test/data/walking-10-g-1.txt'))
     analyzer = Analyzer.new(device_data)
     
-    assert_equal 10, analyzer.detect_edges(analyzer.split_on_threshold(true))
+    assert_equal 9, analyzer.detect_edges(analyzer.split_on_threshold(true))
     assert_equal 7, analyzer.detect_edges(analyzer.split_on_threshold(false))
+  end
+
+  def test_detect_edges_false_step
+    device_data = DeviceData.new(File.read('test/data/walking-1-g-false-step.txt'))
+    analyzer = Analyzer.new(device_data)
+    
+    assert_equal 1, analyzer.detect_edges(analyzer.split_on_threshold(true))
+    assert_equal 1, analyzer.detect_edges(analyzer.split_on_threshold(false))    
   end
 
   # -- Measurement Tests ----------------------------------------------------
@@ -97,7 +105,7 @@ class AnalyzerTest < Test::Unit::TestCase
     device_data = DeviceData.new(File.read('test/data/walking-10-g-1.txt'))
     analyzer = Analyzer.new(device_data)
     analyzer.measure_steps
-    assert_equal 9, analyzer.steps
+    assert_equal 8, analyzer.steps
   end
 
   def test_measure_distance_before_steps
