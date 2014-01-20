@@ -54,4 +54,10 @@ class PedometerTest < Test::Unit::TestCase
     assert_equal '{"steps":1,"distance":74.0,"time":"0.01 seconds"}', last_response.body
   end
 
+  def test_data
+    get '/data'
+    
+    assert_equal 200, last_response.status
+  end
+
 end

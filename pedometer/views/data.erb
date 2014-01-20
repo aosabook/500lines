@@ -1,0 +1,16 @@
+<html>
+  
+  <table>
+    <th>User</th>
+    <th>File</th>
+    <th>Steps</th>
+    <% @data.each do |file, steps| %>
+    <tr>
+      <td><%= file.split('/')[2] %></td>
+      <td><%= file.split('/')[3] %></td>
+      <td><%= steps %></td>
+    </tr>
+    <% end %>
+  </table>
+  
+</html>

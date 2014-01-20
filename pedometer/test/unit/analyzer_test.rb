@@ -92,12 +92,12 @@ class AnalyzerTest < Test::Unit::TestCase
   # -- Measurement Tests ----------------------------------------------------
 
   def test_measure_steps
-    device_data = DeviceData.new(File.read('test/data/female/results-0-steps.txt'))
+    device_data = DeviceData.new(File.read('test/data/results-0-steps.txt'))
     analyzer = Analyzer.new(device_data)
     analyzer.measure_steps
     assert_equal 0, analyzer.steps
 
-    device_data = DeviceData.new(File.read('test/data/female/results-15-steps.txt'))
+    device_data = DeviceData.new(File.read('test/data/results-15-steps.txt'))
     analyzer = Analyzer.new(device_data)
     analyzer.measure_steps
     assert_equal 15, analyzer.steps
@@ -109,12 +109,12 @@ class AnalyzerTest < Test::Unit::TestCase
   end
 
   def test_measure_distance_before_steps
-    device_data = DeviceData.new(File.read('test/data/female/results-0-steps.txt'))
+    device_data = DeviceData.new(File.read('test/data/results-0-steps.txt'))
     analyzer = Analyzer.new(device_data)
     analyzer.measure_distance
     assert_equal 0, analyzer.distance
     
-    device_data = DeviceData.new(File.read('test/data/female/results-15-steps.txt'))
+    device_data = DeviceData.new(File.read('test/data/results-15-steps.txt'))
     analyzer = Analyzer.new(device_data)
     analyzer.measure_distance
     assert_equal 0, analyzer.distance
@@ -123,13 +123,13 @@ class AnalyzerTest < Test::Unit::TestCase
   def test_measure_distance_after_steps
     user = User.new(:stride => 65)
 
-    device_data = DeviceData.new(File.read('test/data/female/results-0-steps.txt'))
+    device_data = DeviceData.new(File.read('test/data/results-0-steps.txt'))
     analyzer = Analyzer.new(device_data, user)
     analyzer.measure_steps
     analyzer.measure_distance
     assert_equal 0, analyzer.distance
     
-    device_data = DeviceData.new(File.read('test/data/female/results-15-steps.txt'))
+    device_data = DeviceData.new(File.read('test/data/results-15-steps.txt'))
     analyzer = Analyzer.new(device_data, user)
     analyzer.measure_steps
     analyzer.measure_distance
@@ -138,7 +138,7 @@ class AnalyzerTest < Test::Unit::TestCase
 
   def test_measure_time_seconds
     user = User.new(:rate => 4)
-    device_data = DeviceData.new(File.read('test/data/female/results-15-steps.txt'))
+    device_data = DeviceData.new(File.read('test/data/results-15-steps.txt'))
     analyzer = Analyzer.new(device_data, user)
     analyzer.measure_time
     
@@ -170,7 +170,7 @@ class AnalyzerTest < Test::Unit::TestCase
 
   def test_measure
     user = User.new(:stride => 65, :rate => 5)
-    device_data = DeviceData.new(File.read('test/data/female/results-0-steps.txt'))
+    device_data = DeviceData.new(File.read('test/data/results-0-steps.txt'))
     analyzer = Analyzer.new(device_data, user)
     analyzer.measure
 
@@ -179,7 +179,7 @@ class AnalyzerTest < Test::Unit::TestCase
     assert_equal 0.2, analyzer.time
     assert_equal 'seconds', analyzer.interval
     
-    device_data = DeviceData.new(File.read('test/data/female/results-15-steps.txt'))
+    device_data = DeviceData.new(File.read('test/data/results-15-steps.txt'))
     analyzer = Analyzer.new(device_data, user)
     analyzer.measure
 
