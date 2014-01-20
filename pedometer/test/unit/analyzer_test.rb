@@ -161,7 +161,7 @@ class AnalyzerTest < Test::Unit::TestCase
   end
 
   def test_measure
-    user = User.new(:stride => 65)
+    user = User.new(:stride => 65, :rate => 5)
     device_data = DeviceData.new(File.read('test/data/results-0-steps.txt'))
     analyzer = Analyzer.new(device_data, user)
     analyzer.measure

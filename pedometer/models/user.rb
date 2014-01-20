@@ -16,7 +16,7 @@ class User
 
     @system = (SYSTEM.include? system_params) ? system_params : 'metric'
     @gender = gender_params if GENDER.include? gender_params
-    @rate   = (rate_params > 0) ? rate_params : 5
+    @rate   = (rate_params > 0) ? rate_params : 100
     @height = params[:height]
     @stride = (stride_params > 30) ? stride_params : calculate_stride
     @threshold = 0.2

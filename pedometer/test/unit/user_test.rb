@@ -10,7 +10,7 @@ class UserTest < Test::Unit::TestCase
     assert_nil user.height
     assert_equal 74, user.stride
     assert_equal 'metric', user.system
-    assert_equal 5, user.rate
+    assert_equal 100, user.rate
     assert_equal 0.2, user.threshold
   end
 
@@ -21,14 +21,14 @@ class UserTest < Test::Unit::TestCase
     assert_nil user.height
     assert_equal 74, user.stride
     assert_equal 'metric', user.system
-    assert_equal 5, user.rate
+    assert_equal 100, user.rate
   end
 
   def test_create_with_rate
-    assert_equal 5, User.new(:rate => nil).rate
-    assert_equal 5, User.new(:rate => 'bad rate').rate
-    assert_equal 5, User.new(:rate => 0).rate
-    assert_equal 5, User.new(:rate => -1).rate
+    assert_equal 100, User.new(:rate => nil).rate
+    assert_equal 100, User.new(:rate => 'bad rate').rate
+    assert_equal 100, User.new(:rate => 0).rate
+    assert_equal 100, User.new(:rate => -1).rate
     
     assert_equal 2, User.new(:rate => 2).rate
     assert_equal 2, User.new(:rate => 2.0).rate
