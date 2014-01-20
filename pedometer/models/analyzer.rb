@@ -34,6 +34,10 @@ class Analyzer
     end
   end
 
+  # TODO: Count the number of false steps, 
+  # and if too many are occurring, don't count 
+  # any steps at all
+  
   def detect_edges(split)
     # Determined by the rate divided by the 
     # maximum steps the user can take per second
