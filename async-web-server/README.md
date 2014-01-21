@@ -21,6 +21,8 @@ Because `:house` is single-threaded, using `house:start` directly as above will 
 
     (defparameter *server* (bordeaux-threads:make-thread (lambda () (house:start 4040))
 
+Obviously, you'll need to load `bordeaux-threads` (or whatever threading implementation you want to use) before doing that.
+
 ##### Static Files
 
 **House is not a file server**. Static file serving capability is provided for ease of testing, and maybe for *very* small-scale deployment. If you're going to be taking any significant traffic, get a reverse proxy going with something like [`nginx`](http://www.cyberciti.biz/tips/using-nginx-as-reverse-proxy.html).
@@ -84,14 +86,6 @@ Defines a `closing-handler` that responds with `"application/json"`, and automat
 
 Defines a handler that keeps its connection open when it finishes sending. It's meant to be used for event stream handlers. Has the same bound symbols as `define-closing-handler`.
 
-###### `define-redirect-handler`
-
-Defines a handler that sends either `301` or `307` HTTP responses (permanent redirect and temporary redirect respectively).
-
-###### `define-file-handler`
-
-Defines a handler that very inefficiently responds with static files.
-
 #### Event Streams
 ###### `subscribe!`
 
@@ -102,13 +96,6 @@ Subscribes the specified socket to the specified channel. Should only be used wi
 Publishes a message to all subscribers of the specified channel.
 
 *The rest is still TODO.*
-
-#### Session
-###### `new-session!`
-###### `new-session-hook!`
-###### `clear-session-hooks!`
-###### `get-session!`
-###### `lookup`
 
 #### Handler types
 ###### `define-http-type`

@@ -1,20 +1,16 @@
 (defpackage :house  
   (:use :cl #:optima #:cl-ppcre #:usocket)
   (:import-from #:alexandria :starts-with-subseq :with-gensyms)
-  (:import-from #:flexi-streams :octet)
   (:import-from #:anaphora :aif :awhen :aand :it)
   (:export 
    :define-closing-handler
    :define-json-handler
    :define-stream-handler 
-   :define-redirect-handler
-   :define-file-handler
 
    :define-http-type :parameter :restrictions
 
    :assert-http
-   :root :sock :session :parameters
-   :new-session! :new-session-hook! :clear-session-hooks! :get-session!
+   :root :sock :parameters
    :subscribe! :publish!
    :start))
 

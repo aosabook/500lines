@@ -12,7 +12,6 @@
 
 (defclass buffer ()
   ((contents :accessor contents :initform nil)
-   (bi-stream :reader bi-stream :initarg :bi-stream)
    (found-crlf? :accessor found-crlf? :initform nil)
    (content-size :accessor content-size :initform 0)
    (started :reader started :initform (get-universal-time))))

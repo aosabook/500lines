@@ -1,24 +1,21 @@
 ;; house.lisp
 (in-package :house)
 
-;;;;;;;;;; System tables
-(defparameter *channels* (make-hash-table))
-
 ;;;;;;;;;; Function definitions
 ;;; The basic structure of the server is
 ; buffering-listen -> parse -> handle -> channel
 
 ;;;;; Buffer/listen-related
 (defmethod start ((port integer))
-  (let ((server (socket-listen usocket:*wildcard-host* port :reuse-address t :element-type 'octet))
+  (let ((server (socket-listen usocket:*wildcard-host* port :reuse-address t))
 	(conns (make-hash-table))
         (buffers (make-hash-table)))
     (unwind-protect
 	 (loop (loop for ready in (wait-for-input (cons server (alexandria:hash-table-keys conns)) :ready-only t)
 		  do (if (typep ready 'stream-server-usocket)
-			 (setf (gethash (socket-accept ready :element-type 'octet) conns) :on)
-			 (let ((buf (gethash ready buffers (make-instance 'buffer :bi-stream (flex-stream ready)))))
-			   (when (eq :eof (buffer! buf))
+			 (setf (gethash (socket-accept ready) conns) :on)
+			 (let ((buf (gethash ready buffers (make-instance 'buffer))))
+			   (when (eq :eof (buffer! buf ready))
 			     (remhash ready conns)
 			     (remhash ready buffers))
 			   (let ((complete? (complete? buf))
@@ -47,9 +44,9 @@
 (defmethod too-old? ((buffer buffer))
   (> (- (get-universal-time) (started buffer)) +max-request-size+))
 
-(defmethod buffer! ((buffer buffer))
+(defmethod buffer! ((buffer buffer) (sock usocket))
   (unwind-protect
-       (let ((stream (bi-stream buffer))
+       (let ((stream (socket-stream sock))
 	     (partial-crlf (list #\return #\newline #\return)))
 	 (loop for char = (read-char-no-hang stream nil :eof)
 	    do (when (and (eql #\newline char)
@@ -100,7 +97,7 @@
   (values))
 
 (defmethod write! ((res response) (sock usocket))
-  (let ((stream (flex-stream sock)))
+  (let ((stream (socket-stream sock)))
     (flet ((write-ln (&rest sequences)
 	     (mapc (lambda (seq) (write-sequence seq stream)) sequences)
 	     (crlf stream)))
@@ -121,9 +118,9 @@
       (values))))
 
 (defmethod write! ((res sse) (sock usocket))
-  (let ((stream (flex-stream sock)))
-    (format stream "~@[id: ~a~%~]~@[event: ~a~%~]~@[retry: ~a~%~]data: ~a~%~%"
-	    (id res) (event res) (retry res) (data res))))
+  (format (socket-stream sock)
+	  "~@[id: ~a~%~]~@[event: ~a~%~]~@[retry: ~a~%~]data: ~a~%~%"
+	  (id res) (event res) (retry res) (data res)))
 
 (defmethod error! ((err response) (sock usocket))
   (ignore-errors 
@@ -131,6 +128,8 @@
     (socket-close sock)))
 
 ;;;;; Channel-related
+(defparameter *channels* (make-hash-table))
+
 (defmethod subscribe! ((channel symbol) (sock usocket))
   (push sock (gethash channel *channels*))
   nil)

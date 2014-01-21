@@ -72,18 +72,20 @@ parameters with a lower priority can refer to parameters of a higher priority.")
   (let ((cpy (copy-list args)))
     (sort cpy #'<= :key (lambda (arg) (gethash (second arg) priority-table)))))
 
+(defun arg-exp (arg-sym)
+  `(uri-decode (cdr (assoc ,(->keyword arg-sym) parameters))))
+
 (defun arguments (args body)
   (loop with res = body
      for arg in (args-by-type-priority args)
      do (match arg
 	  ((list* arg-sym type restrictions)
-	   (let ((arg-exp `(uri-decode (cdr (assoc ,(->keyword arg-sym) parameters)))))
-	     (setf res
-		   `(let ((,arg-sym ,(or (type-expression arg-exp type restrictions) arg-exp)))
-		      ,@(awhen (lookup-assertion arg-sym type restrictions) `((assert-http ,it)))
-		      ,res))))
+	   (setf res
+		 `(let ((,arg-sym ,(or (type-expression (arg-exp arg-sym) type restrictions) (arg-exp arg-sym))))
+		    ,@(awhen (lookup-assertion arg-sym type restrictions) `((assert-http ,it)))
+		    ,res)))
 	  ((guard arg-sym (symbolp arg-sym))
-	   (setf res `(let ((,arg-sym (cdr (assoc ,(->keyword arg-sym) parameters)))) 
+	   (setf res `(let ((,arg-sym ,(arg-exp arg-sym)))
 			,res))))
      finally (return res)))
 
@@ -124,40 +126,3 @@ parameters with a lower priority can refer to parameters of a higher priority.")
 
 (defmacro define-stream-handler ((name) (&rest args) &body body)
   `(bind-handler ,name (make-stream-handler ,args ,@body)))
-
-;;;;; Special case handlers
-;;; Don't use these in production. There are better ways.
-(defmethod define-file-handler ((path pathname) &key stem-from)
-  (cond ((cl-fad:directory-exists-p path)
-	 (cl-fad:walk-directory 
-	  path 
-	  (lambda (fname)
-	    (define-file-handler fname :stem-from (or stem-from (format nil "~a" path))))))
-	((cl-fad:file-exists-p path)
-	 (setf (gethash (path->uri path :stem-from stem-from) *handlers*)
-	       (let ((mime (path->mimetype path)))
-		 (lambda (sock parameters)
-		   (declare (ignore parameters))
-		   (with-open-file (s path :direction :input :element-type 'octet)
-		     (let ((buf (make-array (file-length s) :element-type 'octet)))
-		       (read-sequence buf s)
-		       (write! (make-instance 'response :content-type mime :body buf) sock))
-		     (socket-close sock))))))
-	(t
-	 (warn "Tried serving nonexistent file '~a'" path)))
-  nil)
-
-(defmethod define-file-handler ((path string) &key stem-from)
-  (define-file-handler (pathname path) :stem-from stem-from))
-
-(defmacro define-redirect-handler ((name &key permanent?) target)
-  `(bind-handler 
-    ,name
-    (lambda (sock parameters)
-      (declare (ignorable sock parameters))
-      (write! (make-instance 
-	       'response :response-code ,(if permanent? "301 Moved Permanently" "307 Temporary Redirect")
-	       :location ,target :content-type "text/plain"
-	       :body "Resource moved...")
-	      sock)
-      (socket-close sock))))
