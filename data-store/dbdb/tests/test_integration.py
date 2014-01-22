@@ -1,4 +1,6 @@
 import os
+import os.path
+import shutil
 import subprocess
 import tempfile
 
@@ -10,16 +12,13 @@ import dbdb.tool
 
 class TestDatabase(object):
     def setup(self):
-        with tempfile.NamedTemporaryFile(delete=False) as temp_f:
-            self.tempfile_name = temp_f.name
-        self.new_tempfile_name = self.tempfile_name + 'z'
+        self.temp_dir = tempfile.mkdtemp()
+        self.new_tempfile_name = os.path.join(self.temp_dir, 'new.db')
+        self.tempfile_name = os.path.join(self.temp_dir, 'exisitng.db')
+        open(self.tempfile_name, 'w').close()
 
     def teardown(self):
-        for filename in (self.tempfile_name, self.new_tempfile_name):
-            try:
-                os.remove(filename)
-            except:
-                pass
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def test_new_database_file(self):
         db = dbdb.connect(self.new_tempfile_name)
