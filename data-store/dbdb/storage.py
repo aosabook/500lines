@@ -92,3 +92,7 @@ class Storage(object):
     def close(self):
         self.unlock()
         self._f.close()
+
+    @property
+    def closed(self):
+        return self._f.closed

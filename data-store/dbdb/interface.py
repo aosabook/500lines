@@ -6,15 +6,13 @@ class DBDB(object):
     def __init__(self, f):
         self._storage = Storage(f)
         self._tree = BinaryTree(self._storage)
-        self.closed = False
 
     def _assert_not_closed(self):
-        if self.closed:
+        if self._storage.closed:
             raise ValueError('Database closed.')
 
     def close(self):
         self._storage.close()
-        self.closed = True
 
     def commit(self):
         self._assert_not_closed()
