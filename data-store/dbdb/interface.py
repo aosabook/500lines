@@ -42,9 +42,3 @@ class DBDB(object):
 
     def __len__(self):
         return len(self._tree)
-
-    def __iter__(self):
-        pass
-
-    def __reversed__(self):
-        pass
