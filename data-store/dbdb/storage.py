@@ -40,6 +40,7 @@ class Storage(object):
 
     def unlock(self):
         if self.locked:
+            self._f.flush()
             portalocker.unlock(self._f)
             self.locked = False
 
