@@ -16,8 +16,10 @@ class Node(object):
         self.address = address
         self.core.nodes[self.address] = self
         self.logger = logging.getLogger('node.%s' % (self.address,))
+        self.logger.info('starting')
 
     def stop(self):
+        self.logger.error('STOPPING')
         if self.address in self.core.nodes:
             del self.core.nodes[self.address]
 
@@ -42,9 +44,10 @@ class Core(object):
     PROP_DELAY = 0.03
     PROP_JITTER = 0.02
 
-    def __init__(self, seed):
+    def __init__(self, seed, pause=False):
         self.nodes = {}
         self.rnd = random.Random(seed)
+        self.pause = pause
         self.timers = []
         self.now = 1000.0
         self.logger = logging.getLogger('core')
@@ -55,7 +58,10 @@ class Core(object):
         while self.timers:
             next_timer = self.timers[0][0]
             if next_timer > self.now:
-                time.sleep(next_timer - self.now)
+                if self.pause:
+                    raw_input()
+                else:
+                    time.sleep(next_timer - self.now)
                 self.now = next_timer
             when, do, address, callable = heapq.heappop(self.timers)
             if do and address in self.nodes:

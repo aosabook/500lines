@@ -7,16 +7,12 @@ class Client(Node):
 
     def __init__(self, members):
         super(Client, self).__init__()
-        self.members = members
         self.cid = 1000000
         self.current_request = None
 
     def start(self):
         def re_invoke(n):
-            if n < 10:
-                self.invoke(n, lambda output: re_invoke(n+1))
-            else:
-                self.set_timer(5, lambda: self.core.stop())
+            self.invoke(n, lambda output: re_invoke(n+1))
         self.set_timer(1, lambda: re_invoke(1))
 
     def invoke(self, input, callback):
@@ -29,7 +25,8 @@ class Client(Node):
 
     def send_invoke(self):
         cid, input, callback = self.current_request
-        self.send([self.core.rnd.choice(self.members)], 'INVOKE',
+        nodes = [k for k in self.core.nodes.keys() if k.startswith('Node-')]
+        self.send([self.core.rnd.choice(nodes)], 'INVOKE',
                   caller=self.address, cid=cid, input=input)
         self.invoke_timer = self.set_timer(3, self.send_invoke)
 
