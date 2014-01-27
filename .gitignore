@@ -1,4 +1,8 @@
 *~
 _site
+
 .project
 functionalDB/node_modules
+
+*.pyc
+
