@@ -31,9 +31,21 @@ private
   def parse_raw_data
     case @format
     when 1
-      @parsed_data = @raw_data.split(';').inject([]) do |a, data|
-        a << data.split(',').map { |coord| coord.to_f.abs }
-        a
+      alpha = 0.8
+
+      @raw_data.split(';').each_with_index do |data, i|
+        x, y, z = data.split(',').map { |coord| coord.to_f }
+
+        if i == 0
+          @parsed_data = [{:x => x, :y => y, :z => z, :xg => 0, :yg => 0, :zg => 0}]
+        else
+          xg = (alpha * @parsed_data[i-1][:xg] + (1-alpha) * x).round(3)
+          yg = (alpha * @parsed_data[i-1][:yg] + (1-alpha) * y).round(3)
+          zg = (alpha * @parsed_data[i-1][:zg] + (1-alpha) * z).round(3)
+
+          @parsed_data << {:x => x-xg, :y => y-yg, :z => z-zg,
+                           :xg => xg, :yg => yg, :zg => zg}
+        end
       end
     when 2
       @parsed_data = @raw_data.split(';').inject([]) do |a, data|
@@ -71,17 +83,14 @@ private
     b1 = -0.172688631608676
     b2 = 0.095465967120306
 
+    @filtered_data = [0,0]
     @dot_product_data.length.times do |i|
-      if i < 2
-        @filtered_data ||= []
-        @filtered_data << 0
-      else
-        @filtered_data << @dot_product_data[i]*b0 + 
-                          @dot_product_data[i-1]*b1 + 
-                          @dot_product_data[i-2]*b2 -
-                          @filtered_data[i-1]*a1 -
-                          @filtered_data[i-2]*a2
-      end
+      next if i < 2
+      @filtered_data << @dot_product_data[i]*b0 + 
+                        @dot_product_data[i-1]*b1 + 
+                        @dot_product_data[i-2]*b2 -
+                        @filtered_data[i-1]*a1 -
+                        @filtered_data[i-2]*a2
     end
   end
 

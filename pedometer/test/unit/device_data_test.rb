@@ -6,11 +6,13 @@ class DeviceDataTest < Test::Unit::TestCase
   # -- Creation Tests -------------------------------------------------------
 
   def test_create_accelerometer_data
-    input = '0.123,-0.123,5;0.456,-0.789,0.111;'
+    input = '0.123,-0.123,5;0.456,-0.789,0.111;-0.212,0.001,1;'
     device_data = DeviceData.new(input)
     
     assert_equal input, device_data.raw_data
-    assert_equal [[0.123, 0.123, 5.0],[0.456,0.789,0.111]], device_data.parsed_data
+    assert_equal [{:x=>0.123, :y=>-0.123, :z=>5.0, :xg=>0, :yg=>0, :zg=>0},
+                  {:x=>0.365, :y=>-0.631, :z=>0.089, :xg=>0.091, :yg=>-0.158, :zg=>0.022},
+                  {:x=>-0.242, :y=>0.127, :z=>0.782, :xg=>0.03, :yg=>-0.126, :zg=>0.218}], device_data.parsed_data
     assert_nil device_data.dot_product_data
     assert_nil device_data.filtered_data
   end
