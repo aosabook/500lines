@@ -20,6 +20,7 @@ private
   def parse_raw_data
     case @device.format
     when 1
+      # TODO: Use @device.latency/(@device.latency + @device.rate)
       alpha = 0.97
 
       @device.data.split(';').each_with_index do |data, i|
