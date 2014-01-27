@@ -3,7 +3,7 @@ class User
   GENDER = ['male', 'female']
   SYSTEM = ['metric', 'imperial']
 
-  attr_accessor :system, :gender, :rate, :height, :stride, :threshold
+  attr_reader :system, :gender, :rate, :height, :stride, :threshold
 
   # TODO: Allow threshold to be passed in
   def initialize(params = {})
