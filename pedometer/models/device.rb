@@ -2,12 +2,14 @@ class Device
 
   attr_reader :data, :format, :rate, :latency
 
-  def initialize(data, rate=nil, latency=nil)
-    @data = data
+  def initialize(params = {})
+    params = {} unless params.kind_of? Hash
+
+    @data = params[:data]
     set_format
 
-    rate    = rate.to_f.round
-    latency = latency.to_f
+    rate    = params[:rate].to_f.round
+    latency = params[:latency].to_f
 
     @rate    = (rate > 0) ? rate : 100
     @latency = (latency > 0) ? latency : 0

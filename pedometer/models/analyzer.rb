@@ -8,12 +8,11 @@ class Analyzer
 
   attr_reader :parser, :user, :steps, :distance, :time, :interval
 
-  def initialize(input_data, user = nil)
-    unless input_data.kind_of? Parser
-      raise "Input data must be of type Parser." 
+  def initialize(parser, user = nil)
+    unless (@parser = parser).kind_of? Parser
+      raise "A Parser object must be passed in."
     end
     
-    @parser = input_data
     @steps    = 0
     @distance = 0
     @time     = 0
@@ -41,7 +40,7 @@ class Analyzer
   def detect_edges(split)
     # Determined by the rate divided by the 
     # maximum steps the user can take per second
-    min_interval = (@user.rate/6.0).round
+    min_interval = (@parser.device.rate/6.0).round
     
     count = 0
     index_last_step = 0
@@ -82,7 +81,7 @@ class Analyzer
   end
 
   def measure_time
-    sampling_rate = @user.rate.round(1)
+    sampling_rate = @parser.device.rate.round(1)
     seconds = @parser.parsed_data.count/sampling_rate
 
     if seconds > 3600

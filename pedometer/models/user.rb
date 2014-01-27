@@ -3,7 +3,7 @@ class User
   GENDER = ['male', 'female']
   SYSTEM = ['metric', 'imperial']
 
-  attr_reader :system, :gender, :rate, :height, :stride, :threshold
+  attr_reader :system, :gender, :height, :stride, :threshold
 
   # TODO: Allow threshold to be passed in
   def initialize(params = {})
@@ -11,12 +11,10 @@ class User
 
     system_params = params[:system].to_s.downcase
     gender_params = params[:gender].to_s.downcase
-    rate_params   = params[:rate].to_f.round
     stride_params = params[:stride].to_f.round(2)
 
     @system = (SYSTEM.include? system_params) ? system_params : 'metric'
     @gender = gender_params if GENDER.include? gender_params
-    @rate   = (rate_params > 0) ? rate_params : 100
     @height = params[:height]
     @stride = (stride_params > 30) ? stride_params : calculate_stride
     @threshold = 0.2

@@ -5,7 +5,7 @@ require './models/device.rb'
 
 get '/metrics' do
   begin
-    device = Device.new(params[:data])
+    device = Device.new(params[:device])
     parser = Parser.new(device)
     user   = User.new(params[:user])
 
@@ -26,11 +26,10 @@ get '/data' do
     files.each do |file|
       next if FileTest.directory?(file) || file.include?('walking-1-g-false-step.txt')
 
-      device = Device.new(File.read(file))
+      device = Device.new(:data => File.read(file), :rate => 100)
       parser = Parser.new(device)
-      user   = User.new(:rate => 100)
 
-      @analyzer = Analyzer.new(parser, user)
+      @analyzer = Analyzer.new(parser)
       @analyzer.measure_steps
       @data[file] = @analyzer.steps
     end

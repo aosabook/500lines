@@ -6,7 +6,7 @@ class ParserTest < Test::Unit::TestCase
   # -- Creation Tests -------------------------------------------------------
 
   def test_create_accelerometer_data
-    device = Device.new('0.123,-0.123,5;0.456,-0.789,0.111;-0.212,0.001,1;')
+    device = Device.new(:data => '0.123,-0.123,5;0.456,-0.789,0.111;-0.212,0.001,1;')
     parser = Parser.new(device)
     
     assert_equal device, parser.device
@@ -18,7 +18,7 @@ class ParserTest < Test::Unit::TestCase
   end
 
   def test_create_gravity_data
-    device = Device.new('0.028,-0.072,5|0.129,-0.945,-5;0,-0.07,0.06|0.123,-0.947,5;0.2,-1,2|0.1,-0.9,3;')
+    device = Device.new(:data => '0.028,-0.072,5|0.129,-0.945,-5;0,-0.07,0.06|0.123,-0.947,5;0.2,-1,2|0.1,-0.9,3;')
     parser = Parser.new(device)
     
     assert_equal device, parser.device

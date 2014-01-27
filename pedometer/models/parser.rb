@@ -7,7 +7,7 @@ class Parser
 
   def initialize(device)
     unless (@device = device).kind_of? Device
-      raise "A Device object must be passed in." 
+      raise "A Device object must be passed in."
     end
     
     parse_raw_data
