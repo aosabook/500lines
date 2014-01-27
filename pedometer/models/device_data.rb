@@ -5,7 +5,7 @@ class DeviceData
 
   def initialize(input_data)
     @raw_data = input_data
-
+    
     set_data_format
     parse_raw_data
     dot_product_parsed_data
