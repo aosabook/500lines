@@ -71,17 +71,10 @@ class Analyzer
   end
 
   def measure_steps
-    if @device_data.filtered_data
-      edges_positive = detect_edges(split_on_threshold(true))
-      edges_negative = detect_edges(split_on_threshold(false))
-      
-      @steps = ((edges_positive + edges_negative)/2).to_f.round
-    else
-      # TODO: Fix this. Bad algorithm.
-      @device_data.parsed_data.each do |x, y, z|
-        @steps += 1 if (x > CAP || y > CAP || z > CAP)
-      end
-    end
+    edges_positive = detect_edges(split_on_threshold(true))
+    edges_negative = detect_edges(split_on_threshold(false))
+    
+    @steps = ((edges_positive + edges_negative)/2).to_f.round
   end
 
   def measure_distance

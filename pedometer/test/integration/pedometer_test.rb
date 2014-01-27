@@ -13,7 +13,7 @@ class PedometerTest < Test::Unit::TestCase
     get '/metrics', :data => "0.123,-0.123,5;", :user => {:stride => 90, :rate => 4}
     
     assert_equal 200, last_response.status
-    assert_equal '{"steps":1,"distance":90.0,"time":"0.25 seconds"}', last_response.body
+    assert_equal '{"steps":0,"distance":0.0,"time":"0.25 seconds"}', last_response.body
   end
 
   def test_metrics_no_params
@@ -28,7 +28,7 @@ class PedometerTest < Test::Unit::TestCase
     get '/metrics', :data => "0.123,-0.123,5;"
 
     assert_equal 200, last_response.status
-    assert_equal '{"steps":1,"distance":74.0,"time":"0.01 seconds"}', last_response.body
+    assert_equal '{"steps":0,"distance":0.0,"time":"0.01 seconds"}', last_response.body
   end
 
   def test_metrics_no_data_param
@@ -51,7 +51,7 @@ class PedometerTest < Test::Unit::TestCase
     get '/metrics', :data => "0.123,-0.123,5;", :user => 'bad user'
 
     assert_equal 200, last_response.status
-    assert_equal '{"steps":1,"distance":74.0,"time":"0.01 seconds"}', last_response.body
+    assert_equal '{"steps":0,"distance":0.0,"time":"0.01 seconds"}', last_response.body
   end
 
   def test_data
