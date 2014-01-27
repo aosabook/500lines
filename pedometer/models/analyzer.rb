@@ -1,19 +1,19 @@
 require 'mathn'
 require './models/user.rb'
-require './models/device_data.rb'
+require './models/parser.rb'
 
 class Analyzer
 
   CAP = 1.2
 
-  attr_reader :device_data, :user, :steps, :distance, :time, :interval
+  attr_reader :parser, :user, :steps, :distance, :time, :interval
 
   def initialize(input_data, user = nil)
-    unless input_data.kind_of? DeviceData
-      raise "Input data must be of type DeviceData." 
+    unless input_data.kind_of? Parser
+      raise "Input data must be of type Parser." 
     end
     
-    @device_data = input_data
+    @parser = input_data
     @steps    = 0
     @distance = 0
     @time     = 0
@@ -24,7 +24,7 @@ class Analyzer
   # -- Edge Detection -------------------------------------------------------
 
   def split_on_threshold(positive)
-    @device_data.filtered_data.inject([]) do |a, data|
+    @parser.filtered_data.inject([]) do |a, data|
       if positive
         a << ((data < @user.threshold) ? 0 : 1)
       else
@@ -83,7 +83,7 @@ class Analyzer
 
   def measure_time
     sampling_rate = @user.rate.round(1)
-    seconds = @device_data.parsed_data.count/sampling_rate
+    seconds = @parser.parsed_data.count/sampling_rate
 
     if seconds > 3600
       @time = (seconds/3600).round(2)

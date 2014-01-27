@@ -1,4 +1,4 @@
-class DeviceData
+class Parser
 
   @format
   attr_reader :raw_data, :parsed_data, :dot_product_data, :filtered_data

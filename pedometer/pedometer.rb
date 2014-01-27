@@ -4,10 +4,10 @@ require './models/analyzer.rb'
 
 get '/metrics' do
   begin
-    device_data = DeviceData.new(params[:data])
+    parser = Parser.new(params[:data])
     user = User.new(params[:user])
     
-    @analyzer = Analyzer.new(device_data, user)
+    @analyzer = Analyzer.new(parser, user)
     @analyzer.measure    
 
     [200, jbuilder(:index)]
@@ -24,10 +24,10 @@ get '/data' do
     files.each do |file|
       next if FileTest.directory?(file) || file.include?('walking-1-g-false-step.txt')
 
-      device_data = DeviceData.new(File.read(file))
+      parser = Parser.new(File.read(file))
       user = User.new(:rate => 100)
 
-      @analyzer = Analyzer.new(device_data, user)
+      @analyzer = Analyzer.new(parser, user)
       @analyzer.measure_steps
       @data[file] = @analyzer.steps
     end
