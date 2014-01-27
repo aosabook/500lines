@@ -1,12 +1,15 @@
+require './models/device.rb'
+
 class Parser
 
   @format
-  attr_reader :raw_data, :parsed_data, :dot_product_data, :filtered_data
+  attr_reader :device, :parsed_data, :dot_product_data, :filtered_data
 
-  def initialize(input_data)
-    @raw_data = input_data
+  def initialize(device)
+    unless (@device = device).kind_of? Device
+      raise "A Device object must be passed in." 
+    end
     
-    set_data_format
     parse_raw_data
     dot_product_parsed_data
     filter_dot_product_data
@@ -14,26 +17,12 @@ class Parser
 
 private
 
-  def set_data_format
-    # TODO: Can we clean this up? 
-    any_decimal = '-?\d+(?:\.\d+)?'
-    regexp_accl = Regexp.new('^((' + any_decimal + ',){2}' + 
-                                              any_decimal + ';)+$')
-    regexp_grav = Regexp.new('^(((' + any_decimal + ',){2}(' +
-                                         any_decimal + ')){1}[|](' +
-                                         any_decimal + ',){2}(' +
-                                         any_decimal + ';){1})+$')
-    @format = 1 if regexp_accl.match(@raw_data)
-    @format = 2 if regexp_grav.match(@raw_data)
-    raise "Bad Input. Ensure accelerometer or gravity data is properly formatted." unless @format
-  end
-
   def parse_raw_data
-    case @format
+    case @device.format
     when 1
       alpha = 0.97
 
-      @raw_data.split(';').each_with_index do |data, i|
+      @device.data.split(';').each_with_index do |data, i|
         x, y, z = data.split(',').map { |coord| coord.to_f }
 
         if i == 0
@@ -48,7 +37,7 @@ private
         end
       end
     when 2
-      @parsed_data = @raw_data.split(';').inject([]) do |a, data|
+      @parsed_data = @device.data.split(';').inject([]) do |a, data|
         accl, grav = data.split('|')
         accl = accl.split(',')
         grav = grav.split(',')

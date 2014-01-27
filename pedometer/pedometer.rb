@@ -1,12 +1,14 @@
 require 'sinatra'
 require 'sinatra/jbuilder'
 require './models/analyzer.rb'
+require './models/device.rb'
 
 get '/metrics' do
   begin
-    parser = Parser.new(params[:data])
-    user = User.new(params[:user])
-    
+    device = Device.new(params[:data])
+    parser = Parser.new(device)
+    user   = User.new(params[:user])
+
     @analyzer = Analyzer.new(parser, user)
     @analyzer.measure    
 
@@ -24,8 +26,9 @@ get '/data' do
     files.each do |file|
       next if FileTest.directory?(file) || file.include?('walking-1-g-false-step.txt')
 
-      parser = Parser.new(File.read(file))
-      user = User.new(:rate => 100)
+      device = Device.new(File.read(file))
+      parser = Parser.new(device)
+      user   = User.new(:rate => 100)
 
       @analyzer = Analyzer.new(parser, user)
       @analyzer.measure_steps
