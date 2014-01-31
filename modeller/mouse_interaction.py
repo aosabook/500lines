@@ -36,14 +36,14 @@ class MouseInteraction(object):
             self.pressed = button
             if button == GLUT_RIGHT_BUTTON:
                 self.trackball = trackball.Trackball(self.camera_loc, self.rotation, (0,0,0), x, y, xSize, ySize)
+            elif button == GLUT_LEFT_BUTTON: # picking
+                self.trigger('picking', x, y)
             elif button == 3: # scroll up
                 self.translate(0, 0, -1.0)
             elif button == 4: # scroll up
                 self.translate(0, 0, 1.0)
         else:
             print "UP" + str(button)
-            if button == GLUT_LEFT_BUTTON: # picking
-                self.trigger('picking', x, y)
             self.trackball = None
             self.pressed = None
         glutPostRedisplay()
@@ -55,17 +55,20 @@ class MouseInteraction(object):
 
     def MouseMove(self, x, y):
         xSize, ySize = glutGet( GLUT_WINDOW_WIDTH ), glutGet( GLUT_WINDOW_HEIGHT )
-        y = ySize - y
+        #y = ySize - y
+        print "move"
+        print x, y
         if self.pressed is not None:
             if self.pressed == GLUT_RIGHT_BUTTON and self.trackball is not None:
                 _, self.rotation = self.trackball.update(x, y)
             elif self.pressed == GLUT_LEFT_BUTTON:
-                # move selection
-                pass
+                self.trigger('move', x, y)
             elif self.pressed == GLUT_MIDDLE_BUTTON:
                 dx = self.mouse_loc[0] - x
                 dy = self.mouse_loc[1] - y
                 self.translate(dx/60.0, dy/60.0, 0)
+            elif self.pressed == GLUT_LEFT_BUTTON:
+                self.trigger('move', x, y)
             else:
                 pass
             self.mouse_loc = (x, y)

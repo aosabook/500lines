@@ -13,18 +13,22 @@ class Node(object):
         self.color = [0, 0, 0]
         self.call_list = None
         self.aabb = None
-        self.modelmatrix = numpy.identity(4)
         self.translation = numpy.identity(4)
         self.scalemat = numpy.identity(4)
+        self.selected = False
 
 
     def render(self):
         """ renders the item to the screen """
         glPushMatrix()
-        glScale(self.scale[0], self.scale[1], self.scale[2])
-        glTranslated(self.location[0], self.location[1], self.location[2])
+        glMultMatrixf(self.scalemat)
+        glMultMatrixf(self.translation)
         glColor3f(self.color[0], self.color[1], self.color[2])
+        if self.selected:
+            glMaterialfv(GL_FRONT, GL_EMISSION, [0.3, 0.3, 0.3])
         glCallList(self.call_list)
+        if self.selected:
+            glMaterialfv(GL_FRONT, GL_EMISSION, [0.0, 0.0, 0.0])
 
         self.aabb.render()
 
@@ -33,11 +37,9 @@ class Node(object):
         glPopMatrix()
 
     def translate(self, x, y, z):
-        self.location = [a + b for a, b in zip(self.location, [x, y, z])]
         self.translation = numpy.dot(self.translation , translation([x, y, z]))
 
     def scale(self, x, y, z):
-        self.scale = [a * b for a, b in zip(self.location, [x, y, z])]
         self.scalemat = numpy.dot(self.scalemat , scaling([x, y, z]))
 
     def set_color(self, r, g, b):
@@ -45,14 +47,26 @@ class Node(object):
 
     def picking(self, start, direction, mat):
         glPushMatrix()
-        glScale(self.scale[0], self.scale[1], self.scale[2])
-        glTranslated(self.location[0], self.location[1], self.location[2])
-        glColor3f(self.color[0], self.color[1], self.color[2])
+        glMultMatrixf(self.scalemat)
+        glMultMatrixf(self.translation)
         glCallList(self.call_list)
 
+        print "MAT"
+        MAT = numpy.array(glGetFloatv( GL_MODELVIEW_MATRIX ))
+        print MAT
+        glPopMatrix()
+
         newmat = numpy.dot(self.translation, numpy.dot(mat, self.scalemat))
+        print newmat
         results = self.aabb.ray_hit(start, direction, newmat)
         return results
+
+    def select(self, select=None):
+        """ Toggles selected state """
+        if select is not None:
+            self.selected = select
+        else:
+            self.selected = not self.selected
 
 
 class Sphere(Node):

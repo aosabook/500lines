@@ -22,6 +22,7 @@ class TestContext(BaseContext):
         self.scene = Scene()
 
         self.mouse_interaction.registerCallback('picking', self.picking)
+        self.mouse_interaction.registerCallback('move', self.move)
 
         # TODO: remove
         self.InitDebug()
@@ -70,19 +71,20 @@ class TestContext(BaseContext):
         cube_node.set_color(0.2, 0.6, 0.2)
         self.scene.add_node(cube_node)
 
-    def picking(self, x, y):
-        # render with each object having its own color
-        # query screen to figure out what pixel is shown
+    def getRay(self, x, y):
         xSize, ySize = glutGet( GLUT_WINDOW_WIDTH ), glutGet( GLUT_WINDOW_HEIGHT )
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
         glViewport(0, 0, xSize, ySize);
         gluPerspective(70.0, 1.0, 0.1, 1000.0);
-        loc = self.mouse_interaction.camera_loc
         glTranslated(0, 0, -15);
 
-        start = array(gluUnProject(x, y, 0.0))
-        end = array(gluUnProject(x, y, 1.0))
+        print "proj"
+        MAT = numpy.array(glGetFloatv( GL_PROJECTION_MATRIX ))
+        print MAT
+
+        start = array(gluUnProject(x, y, 0.001))
+        end = array(gluUnProject(x, y, 0.999))
 
         # reverse the y coordinate because of screen y direction differing from opengl y direction
         start[1] = -start[1]
@@ -90,12 +92,34 @@ class TestContext(BaseContext):
 
         direction = end - start
         direction = direction / norm(direction)
+
+        print "RAY"
+        print (start, end)
+        print (start, direction)
+        return (start, direction)
+
+
+    def picking(self, x, y):
+        start, direction = self.getRay(x, y)
+
+        loc = self.mouse_interaction.camera_loc
         glMatrixMode(GL_MODELVIEW);
         glTranslated(-loc[0], -loc[1], -loc[2])
         glMultMatrixf(self.mouse_interaction.rotation.matrix(inverse=False))
-
         mat = numpy.array(glGetFloatv( GL_MODELVIEW_MATRIX ))
         self.scene.picking(start, direction, mat)
+
+    def move(self, x, y):
+        start, direction = self.getRay(x, y)
+
+        loc = self.mouse_interaction.camera_loc
+        glMatrixMode(GL_MODELVIEW);
+        glTranslated(-loc[0], -loc[1], -loc[2])
+        glMultMatrixf(self.mouse_interaction.rotation.matrix(inverse=False))
+        mat = numpy.array(glGetFloatv( GL_MODELVIEW_MATRIX ))
+
+        self.scene.move(start, direction, mat)
+
 
 
 
