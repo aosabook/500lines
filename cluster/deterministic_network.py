@@ -1,4 +1,3 @@
-import uuid
 import time
 import logging
 import heapq
@@ -8,38 +7,48 @@ class Node(object):
 
     unique_ids = xrange(1000).__iter__()
 
-    def __init__(self):
+    def __init__(self, network):
+        self.network = network
         self.unique_id = self.unique_ids.next()
-
-    def set_up_node(self, address, core):
-        self.core = core
-        self.address = address
-        self.core.nodes[self.address] = self
-        self.logger = logging.getLogger('node.%s' % (self.address,))
+        self.address = 'N%d' % self.unique_id
+        self.components = []
+        self.logger = logging.getLogger(self.address)
         self.logger.info('starting')
 
-    def stop(self):
-        self.logger.error('STOPPING')
-        if self.address in self.core.nodes:
-            del self.core.nodes[self.address]
-
-    def start(self):
-        pass
+    def kill(self):
+        self.logger.error('node dying')
+        if self.address in self.network.nodes:
+            del self.network.nodes[self.address]
 
     def set_timer(self, seconds, callable):
-        # TODO: refactor so this won't call a stopped node
-        return self.core.set_timer(seconds, self.address, callable)
+        return self.network.set_timer(seconds, self.address, callable)
 
     def cancel_timer(self, timer):
-        self.core.cancel_timer(timer)
+        self.network.cancel_timer(timer)
 
     def send(self, destinations, action, **kwargs):
         self.logger.debug("sending %s with args %s to %s" %
                           (action, kwargs, destinations))
-        self.core.send(destinations, action, **kwargs)
+        self.network.send(destinations, action, **kwargs)
+
+    def register(self, component):
+        self.components.append(component)
+
+    def unregister(self, component):
+        self.components.remove(component)
+
+    def receive(self, action, kwargs):
+        import sys
+        for comp in self.components[:]:
+            try:
+                fn = getattr(comp, 'do_%s' % action)
+            except AttributeError:
+                continue
+            comp.logger.debug("received %r with args %r" % (action, kwargs))
+            fn(**kwargs)
 
 
-class Core(object):
+class Network(object):
 
     PROP_DELAY = 0.03
     PROP_JITTER = 0.02
@@ -50,11 +59,14 @@ class Core(object):
         self.pause = pause
         self.timers = []
         self.now = 1000.0
-        self.logger = logging.getLogger('core')
+        self.logger = logging.getLogger('network')
+
+    def new_node(self):
+        node = Node(self)
+        self.nodes[node.address] = node
+        return node
 
     def run(self):
-        for node in sorted(self.nodes.values()):
-            node.start()
         while self.timers:
             next_timer = self.timers[0][0]
             if next_timer > self.now:
@@ -71,6 +83,7 @@ class Core(object):
         self.timers = []
 
     def set_timer(self, seconds, address, callable):
+        # TODO: return an obj with 'cancel'
         timer = [self.now + seconds, True, address, callable]
         heapq.heappush(self.timers, timer)
         return timer
@@ -83,13 +96,7 @@ class Core(object):
             node = self.nodes[address]
         except KeyError:
             return
-        try:
-            fn = getattr(node, 'do_%s' % action)
-        except AttributeError:
-            return
-
-        node.logger.debug("received %r with args %r" % (action, kwargs))
-        fn(**kwargs)
+        node.receive(action, kwargs)
 
     def send(self, destinations, action, **kwargs):
         for dest in destinations:
