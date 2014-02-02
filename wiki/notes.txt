@@ -1,0 +1,38 @@
+Use node.js for server, CouchDB for persistence, jQuery for UI
+
+Install Node
+https://github.com/joyent/node/wiki/Installation
+
+//install latest stable node, not old-timey Ubuntu node:
+sudo apt-get update
+sudo apt-get install -y python-software-properties python g++ make
+sudo add-apt-repository ppa:chris-lea/node.js
+sudo apt-get update
+sudo apt-get install nodejs
+
+Install CouchDB
+http://docs.couchdb.org/en/latest/install/index.html
+$sudo apt-get install couchdb  (v.1.2.1)
+
+Building a wiki:
+Part 1: Simple UI, file store, anyone can edit, everything overwrites
+-Node web server
+-HTML form
+-View/Edit modes
+-File store
+Part 2: Parse Wiki syntax
+-Create new links from CamelCase
+-Format text to html
+Part 3: CouchDB store
+-Replace File Store with new CouchDB
+-Revision History
+Other (if space allows):
+-user login/sign up/logout
+-integrate with Google/Twitter/FB auth
+-conflict resolution/diffs
+-compare revisions with each other
+-rollback to older revision
+-save local draft/cookie/session data
+-image uploads
+-fancy preview
+-access permissions

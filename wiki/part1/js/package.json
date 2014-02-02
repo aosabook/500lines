@@ -1,0 +1,16 @@
+{
+  "name": "wiki_part1",
+  "version": "0.0.0",
+  "description": "Part One Source Code for Wiki in 500 Lines or Less",
+  "main": "server.js",
+  "dependencies": {
+    "express": "~3.4.8"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "Laurie MacDougall Sookraj",
+  "license": "ISC"
+}
