@@ -6,3 +6,4 @@ functionalDB/node_modules
 
 *.pyc
 
+/bin
