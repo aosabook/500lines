@@ -29,9 +29,9 @@ get '/data' do
       device = Device.new(:data => File.read(file), :rate => 100)
       parser = Parser.new(device)
 
-      @analyzer = Analyzer.new(parser)
-      @analyzer.measure_steps
-      @data[file] = @analyzer.steps
+      analyzer = Analyzer.new(parser)
+      analyzer.measure_steps
+      @data[file] = {:steps => analyzer.steps, :filtered_data => parser.filtered_data}
     end
     
     erb :data

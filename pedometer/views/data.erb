@@ -1,16 +1,58 @@
+<script src="jquery.min.js"></script>
+<script src="highcharts.js"></script>
+
 <html>
-  
   <table>
     <th>User</th>
     <th>File</th>
     <th>Steps</th>
-    <% @data.each do |file, steps| %>
+    <% @data.each do |file, details| %>
     <tr>
       <td><%= file.split('/')[2] %></td>
       <td><%= file.split('/')[3] %></td>
-      <td><%= steps %></td>
+      <td><%= details[:steps] %></td>
     </tr>
     <% end %>
   </table>
   
+  <div id="container" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+
 </html>
+
+<script>
+  $(function () {
+        // alert(<%= @filtered_data%>);
+        $('#container').highcharts({
+            title: {
+                text: 'bag-10-a-1.txt vs bag-10-g-2.txt',
+                x: -20 //center
+            },
+            yAxis: {
+                title: {
+                    text: 'Magnitude'
+                },
+                plotLines: [{
+                    value: 0,
+                    width: 1,
+                    color: '#808080'
+                }]
+            },
+            tooltip: {
+                valueSuffix: '°C'
+            },
+            legend: {
+                layout: 'vertical',
+                align: 'right',
+                verticalAlign: 'middle',
+                borderWidth: 0
+            },
+            series: [{
+                name: 'Female Bag Accelerometer',
+                data: <%= @data["test/data/female/bag-10-a-1.txt"][:filtered_data] %>
+            }, {
+                name: 'Female Bag Gravitational',
+                data: <%= @data["test/data/female/bag-10-g-1.txt"][:filtered_data] %>
+            }]
+        });
+    });
+</script>
