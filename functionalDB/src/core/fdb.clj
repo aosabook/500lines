@@ -4,7 +4,7 @@
 (defrecord Attr [name type value ts prev-ts])
 
 
-(defn make-entity [name] (Entity.  (keyword name) name {}))
+(defn make-entity [name] (Entity.  :no-id-yet name {}))
 (defn make-attr[name val type]  (Attr. name type val -1 -1))
 (defn add-attr[ ent attr] (assoc-in ent [:attrs (keyword (:name attr))] attr))
 (defn next-ts [db] (inc (:curr-time db)))
@@ -24,14 +24,17 @@
 
 ;when adding an entity, its attributes' timestamp would be set to be the current one
 (defn add-entity[db ent]   (let [
+                                 ent-id (inc (:topId db))
                                  new-ts (next-ts db)
                                  ts-mp (last (:timestamped db))
-                                 new-eavt (assoc (:EAVT ts-mp) (:e_id ent)  (update-creation-ts ent new-ts) )
+                                 fixed-ent (assoc ent :e_id ent-id)
+                                 new-eavt (assoc (:EAVT ts-mp) ent-id  (update-creation-ts fixed-ent new-ts) )
                                  new-avet (:AVET ts-mp)
                                  new-timesampedVal (assoc ts-mp :AVET new-avet :EAVT new-eavt )]
                                 (assoc db
                                   :timestamped  (conj (:timestamped db) new-timesampedVal)
-                                  :curr-time new-ts )
+                                  :curr-time new-ts
+                                  :topId ent-id)
                              ))
 
 (defn make-db[]
@@ -48,15 +51,15 @@
 
 (def en1 (-> (make-entity "hotel")
 
-          (add-attr (make-attr "room" 12 :number))
-          (add-attr (make-attr "address" "where" :string)))
+          (add-attr (make-attr :hotel/room 12 :number))
+          (add-attr (make-attr :hotel/address "where" :string)))
 
   )
 
 (def en2 (-> (make-entity "book")
 
-          (add-attr (make-attr "length" -1 :number))
-          (add-attr (make-attr "auother" "jon" :string)))
+          (add-attr (make-attr :book/length -1 :number))
+          (add-attr (make-attr :book/author "jon" :string)))
 
   )
 
