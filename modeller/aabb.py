@@ -96,7 +96,7 @@ class AABB(object):
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
-        glTranslated(self.center[0] - self.size[0], self.center[1] - self.size[1], self.center[2] - self.size[2]);
+        glTranslated(self.center[0], self.center[1], self.center[2]);
         glScaled(2*self.size[0], 2*self.size[1], 2*self.size[2]);
         glCallList(G_OBJ_CUBE);
         glPopMatrix();

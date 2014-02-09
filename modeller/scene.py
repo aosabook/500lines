@@ -1,4 +1,5 @@
 import sys
+import numpy
 class Scene(object):
     """ Base class for scene nodes.
         Scene nodes currently only include primitives """
@@ -36,15 +37,21 @@ class Scene(object):
         if self.selected_node is None: return
 
         node = self.selected_node
+        print "MOVE"
         depth = node.depth
+        print depth
         oldloc = node.selected_loc
-        newloc = start + direction * depth
-        print start
-        print direction
-        print "======"
         print oldloc
-        print newloc
+        newloc = (start + direction * depth)
+
+        print "OLDLOC, NEWLOC"
+        print oldloc , newloc
+
         translation = newloc - oldloc
+        pre_tran = numpy.array([translation[0], translation[1], translation[2], 0])
+        translation = mat.dot( pre_tran)
+        print translation
+
 
         node.translate(translation[0], translation[1], translation[2])
 

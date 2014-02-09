@@ -24,8 +24,38 @@ class TestContext(BaseContext):
         self.mouse_interaction.registerCallback('picking', self.picking)
         self.mouse_interaction.registerCallback('move', self.move)
 
+        self.perspective = self.make_perspective(70, 1.0, 0.1, 1000.0)
+
         # TODO: remove
         self.InitDebug()
+
+
+    def make_perspective(self, fov, aspect, near, far):
+        fov = fov * math.pi / 180;
+        f = 1/tan(fov/2);
+        persp_mat = numpy.zeros((4, 4))
+        persp_mat[0][0] = f/aspect;
+        persp_mat[0][1] = 0;
+        persp_mat[0][2] = 0;
+        persp_mat[0][3] = 0;
+
+        persp_mat[1][0] = 0;
+        persp_mat[1][1] = f;
+        persp_mat[1][2] = 0;
+        persp_mat[1][3] = 0;
+
+        persp_mat[2][0] = 0;
+        persp_mat[2][1] = 0;
+        persp_mat[2][2] = (far+near)/(near-far);
+        persp_mat[2][3] = (2*far*near)/(near-far);
+
+        persp_mat[3][0] = 0;
+        persp_mat[3][1] = 0;
+        persp_mat[3][2] = -1;
+        persp_mat[3][3] = 0;
+
+        return numpy.transpose(persp_mat)
+
 
     def Render(self, mode = None):
         BaseContext.Render(self, mode)
@@ -35,9 +65,9 @@ class TestContext(BaseContext):
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
         glViewport(0, 0, xSize, ySize);
-        gluPerspective(70.0, 1.0, 0.1, 1000.0);
-        loc = self.mouse_interaction.camera_loc
+        glMultMatrixf(self.perspective)
         glTranslated(0, 0, -15);
+        loc = self.mouse_interaction.camera_loc
 
         glMatrixMode(GL_MODELVIEW);
         glEnable(GL_LIGHTING)
@@ -62,7 +92,7 @@ class TestContext(BaseContext):
         glPopMatrix()
 
     def InitDebug(self):
-        sphere_node = Sphere()
+        sphere_node = Cube()
         sphere_node.set_color(0.5, 0.4, 0.2)
         self.scene.add_node(sphere_node)
 
@@ -71,17 +101,31 @@ class TestContext(BaseContext):
         cube_node.set_color(0.2, 0.6, 0.2)
         self.scene.add_node(cube_node)
 
+        cube_node = Sphere()
+        cube_node.translate(-2, 0, 2)
+        cube_node.set_color(0.6, 0.2, 0.2)
+        self.scene.add_node(cube_node)
+
+        cube_node = Sphere()
+        cube_node.translate(-2, 0, -2)
+        cube_node.set_color(0.2, 0.2, 0.6)
+        self.scene.add_node(cube_node)
+
+        cube_node = Sphere()
+        cube_node.translate(2, 0, -2)
+        cube_node.set_color(0.4, 0.4, 0.4)
+        self.scene.add_node(cube_node)
+
     def getRay(self, x, y):
         xSize, ySize = glutGet( GLUT_WINDOW_WIDTH ), glutGet( GLUT_WINDOW_HEIGHT )
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-        glViewport(0, 0, xSize, ySize);
-        gluPerspective(70.0, 1.0, 0.1, 1000.0);
-        glTranslated(0, 0, -15);
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
+        glViewport(0, 0, xSize, ySize)
+        glMultMatrixf(self.perspective)
+        glTranslated(0, 0, -15)
 
-        print "proj"
-        MAT = numpy.array(glGetFloatv( GL_PROJECTION_MATRIX ))
-        print MAT
+        glMatrixMode(GL_MODELVIEW)
+        glLoadIdentity()
 
         start = array(gluUnProject(x, y, 0.001))
         end = array(gluUnProject(x, y, 0.999))
@@ -94,7 +138,6 @@ class TestContext(BaseContext):
         direction = direction / norm(direction)
 
         print "RAY"
-        print (start, end)
         print (start, direction)
         return (start, direction)
 
@@ -103,9 +146,12 @@ class TestContext(BaseContext):
         start, direction = self.getRay(x, y)
 
         loc = self.mouse_interaction.camera_loc
+
         glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity()
         glTranslated(-loc[0], -loc[1], -loc[2])
         glMultMatrixf(self.mouse_interaction.rotation.matrix(inverse=False))
+
         mat = numpy.array(glGetFloatv( GL_MODELVIEW_MATRIX ))
         self.scene.picking(start, direction, mat)
 
@@ -113,7 +159,9 @@ class TestContext(BaseContext):
         start, direction = self.getRay(x, y)
 
         loc = self.mouse_interaction.camera_loc
+
         glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity()
         glTranslated(-loc[0], -loc[1], -loc[2])
         glMultMatrixf(self.mouse_interaction.rotation.matrix(inverse=False))
         mat = numpy.array(glGetFloatv( GL_MODELVIEW_MATRIX ))

@@ -34,6 +34,7 @@ class Node(object):
 
         mat = glGetFloatv(GL_MODELVIEW_MATRIX)
         mat = matrix(mat)
+
         glPopMatrix()
 
     def translate(self, x, y, z):
@@ -51,13 +52,10 @@ class Node(object):
         glMultMatrixf(self.translation)
         glCallList(self.call_list)
 
-        print "MAT"
         MAT = numpy.array(glGetFloatv( GL_MODELVIEW_MATRIX ))
-        print MAT
         glPopMatrix()
 
         newmat = numpy.dot(self.translation, numpy.dot(mat, self.scalemat))
-        print newmat
         results = self.aabb.ray_hit(start, direction, newmat)
         return results
 
@@ -81,6 +79,6 @@ class Cube(Node):
     def __init__(self):
         super(Cube, self).__init__()
         self.call_list = G_OBJ_CUBE
-        self.aabb = AABB([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+        self.aabb = AABB([0.0, 0.0, 0.0], [0.5, 0.5, 0.5])
 
 
