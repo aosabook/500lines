@@ -22,6 +22,28 @@
 
   )
 
+; avet is a map as follows:  {attrName -> {REFed-ent-id -> [REFing-elems-ids]}}
+
+(defn add-ref-to-avet[ent avet attr]
+  (let [
+        attr-name (:name attr)
+        attr-val (:value attr)
+        attr-name-map (avet attr-name)
+        attr-name-map (if attr-name-map attr-name-map {attr-name {attr-val []}})
+        reffed-ent-vec (attr-name-map attr-val)
+        reffed-ent-vec (if reffed-ent-vec reffed-ent-vec [])
+        ]
+
+  (assoc-in avet [attr-name attr-val] (conj reffed-ent-vec (:e_id ent))))
+
+)
+
+(defn update-avet[old-avet ent]
+  (let [reffingAttrs (filter #(= :REF (:type %)) (vals (:attrs ent)))
+        add-ref (partial add-ref-to-avet ent)]
+       (reduce add-ref old-avet reffingAttrs))
+  )
+
 ;when adding an entity, its attributes' timestamp would be set to be the current one
 (defn add-entity[db ent]   (let [
                                  ent-id (inc (:topId db))
@@ -29,16 +51,18 @@
                                  ts-mp (last (:timestamped db))
                                  fixed-ent (assoc ent :e_id ent-id)
                                  new-eavt (assoc (:EAVT ts-mp) ent-id  (update-creation-ts fixed-ent new-ts) )
-                                 new-avet (:AVET ts-mp)
-                                 new-timesampedVal (assoc ts-mp :AVET new-avet :EAVT new-eavt )]
+                                 new-avet (update-avet (:AVET ts-mp) fixed-ent)
+                                 new-indices (assoc ts-mp :AVET new-avet :EAVT new-eavt )]
                                 (assoc db
-                                  :timestamped  (conj (:timestamped db) new-timesampedVal)
+                                  :timestamped  (conj (:timestamped db) new-indices)
                                   :curr-time new-ts
                                   :topId ent-id)
                              ))
 
 (defn make-db[]
-  (atom {:timestamped [{:EAVT {} :AVET {}}]
+  (atom {:timestamped [{:EAVT {} ; all the entity info
+                        :AVET {} ; for attrs who are REFs, we hold the back-pointing (from the REFFed entity to the REFing entities)
+                        }]
                   :topId 0
                   :curr-time 0
                   }
@@ -58,7 +82,7 @@
 
 (def en2 (-> (make-entity "book")
 
-          (add-attr (make-attr :book/length -1 :number))
+          (add-attr (make-attr :book/found-at 1 :REF))
           (add-attr (make-attr :book/author "jon" :string)))
 
   )
