@@ -1,8 +1,11 @@
 import sys
 import numpy
+from node import Sphere, Cube
 class Scene(object):
     """ Base class for scene nodes.
         Scene nodes currently only include primitives """
+
+    PLACE_DEPTH = 15.0
 
     def __init__(self):
         self.node_list = list()
@@ -37,6 +40,7 @@ class Scene(object):
         if self.selected_node is None: return
 
         node = self.selected_node
+
         print "MOVE"
         depth = node.depth
         print depth
@@ -60,4 +64,24 @@ class Scene(object):
 
     def add_node(self, node):
         self.node_list.append(node)
+
+    def place(self, shape, start, direction, mat):
+        # only place if nothing is selected
+        if self.selected_node is not None: return
+
+        new_node = Sphere()
+        if shape == 'sphere':
+            new_node = Sphere()
+        elif shape == 'cube':
+            new_node = Cube()
+        new_node.set_color(0.4, 0.4, 0.4)
+        self.add_node(new_node)
+
+#        self.selected_node = new_node
+
+        # place the node at the cursor
+        translation = (start + direction * self.PLACE_DEPTH)
+        pre_tran = numpy.array([translation[0], translation[1], translation[2], 0])
+        translation = mat.dot(pre_tran)
+        new_node.translate(translation[0], translation[1], translation[2])
 

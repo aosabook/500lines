@@ -39,9 +39,9 @@ class MouseInteraction(object):
             elif button == GLUT_LEFT_BUTTON: # picking
                 self.trigger('picking', x, y)
             elif button == 3: # scroll up
-                pass #self.translate(0, 0, -1.0)
+                self.translate(0, 0, -1.0)
             elif button == 4: # scroll up
-                pass #self.translate(0, 0, 1.0)
+                self.translate(0, 0, 1.0)
         else:
             print "UP" + str(button)
             self.trackball = None
@@ -65,15 +65,25 @@ class MouseInteraction(object):
                 self.trigger('move', x, y)
             elif self.pressed == GLUT_MIDDLE_BUTTON:
                 dx = self.mouse_loc[0] - x
-                dy = self.mouse_loc[1] - y
-                #self.translate(dx/60.0, dy/60.0, 0)
+                dy = y - self.mouse_loc[1]
+                self.translate(dx/60.0, dy/60.0, 0)
             else:
                 pass
             self.mouse_loc = (x, y)
             glutPostRedisplay()
 
+    def Keyboard(self, key, x, y):
+
+        if key == 's':
+            self.trigger('place', 'sphere', x, y)
+        elif key == 'c':
+            self.trigger('place', 'cube', x, y)
+
+        print key
+        glutPostRedisplay()
 
     def register(self):
         glutMouseFunc(self.MouseButton)
         glutMotionFunc(self.MouseMove)
+        glutKeyboardFunc(self.Keyboard)
         glutPassiveMotionFunc(None)

@@ -23,6 +23,7 @@ class TestContext(BaseContext):
 
         self.mouse_interaction.registerCallback('picking', self.picking)
         self.mouse_interaction.registerCallback('move', self.move)
+        self.mouse_interaction.registerCallback('place', self.place)
 
         self.perspective = self.make_perspective(70, 1.0, 0.1, 1000.0)
 
@@ -141,32 +142,31 @@ class TestContext(BaseContext):
         print (start, direction)
         return (start, direction)
 
-
-    def picking(self, x, y):
-        start, direction = self.getRay(x, y)
-
+    def getModelView(self):
         loc = self.mouse_interaction.camera_loc
-
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity()
         glTranslated(-loc[0], -loc[1], -loc[2])
         glMultMatrixf(self.mouse_interaction.rotation.matrix(inverse=False))
 
         mat = numpy.array(glGetFloatv( GL_MODELVIEW_MATRIX ))
+        return mat
+
+
+    def picking(self, x, y):
+        start, direction = self.getRay(x, y)
+        mat = self.getModelView()
         self.scene.picking(start, direction, mat)
 
     def move(self, x, y):
         start, direction = self.getRay(x, y)
-
-        loc = self.mouse_interaction.camera_loc
-
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity()
-        glTranslated(-loc[0], -loc[1], -loc[2])
-        glMultMatrixf(self.mouse_interaction.rotation.matrix(inverse=False))
-        mat = numpy.array(glGetFloatv( GL_MODELVIEW_MATRIX ))
-
+        mat = self.getModelView()
         self.scene.move(start, direction, mat)
+
+    def place(self, shape, x, y):
+        start, direction = self.getRay(x, y)
+        mat = self.getModelView()
+        self.scene.place(shape, start, direction, mat)
 
 
 
