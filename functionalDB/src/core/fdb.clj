@@ -7,19 +7,31 @@
 (defn make-entity [name] (Entity.  (keyword name) name {}))
 (defn make-attr[name val type]  (Attr. name type val -1 -1))
 (defn add-attr[ ent attr] (assoc-in ent [:attrs (keyword (:name attr))] attr))
+(defn next-ts [db] (inc (:curr-time db)))
 
-;(defn update-creation-ts [ent ts]
-;  (let ks [k])
-;
-;
-;  )
 
+(defn update-creation-ts [ent tsVal]
+  (let [ks (keys (:attrs ent))
+        vls (vals (:attrs ent))
+        updatedAttrsVals (map #(assoc % :ts tsVal) vls)
+        updatedAttrs (interleave ks updatedAttrsVals)
+        ]
+        (assoc ent :attrs updatedAttrs)
+
+    )
+
+  )
+
+;when adding an entity, its attributes' timestamp would be set to be the current one
 (defn add-entity[db ent]   (let [
+                                 new-ts (next-ts db)
                                  ts-mp (last (:timestamped db))
-                                 new-eavt (assoc (:EAVT ts-mp) (:e_id ent) ent)
+                                 new-eavt (assoc (:EAVT ts-mp) (:e_id ent)  (update-creation-ts ent new-ts) )
                                  new-avet (:AVET ts-mp)
-                                 new-ts (assoc ts-mp :AVET new-avet :EAVT new-eavt )]
-                                (assoc db :timestamped  (conj (:timestamped db) new-ts))
+                                 new-timesampedVal (assoc ts-mp :AVET new-avet :EAVT new-eavt )]
+                                (assoc db
+                                  :timestamped  (conj (:timestamped db) new-timesampedVal)
+                                  :curr-time new-ts )
                              ))
 
 (defn make-db[]
@@ -34,20 +46,30 @@
 
 (def db1 (make-db))
 
+(def en1 (-> (make-entity "hotel")
 
-(def en (make-entity "hotel"))
+          (add-attr (make-attr "room" 12 :number))
+          (add-attr (make-attr "address" "where" :string)))
 
-(add-attr en (make-attr "room" 12 :number))
+  )
 
-(swap! db1 add-entity en)
+(def en2 (-> (make-entity "book")
+
+          (add-attr (make-attr "length" -1 :number))
+          (add-attr (make-attr "auother" "jon" :string)))
+
+  )
+
+(swap! db1 add-entity en1)
+
+(swap! db1 add-entity en2)
 
 
 
 
 
 
-
-(defn recent-ts-val [db](last (:timestamped db)))
+;(defn recent-ts-val [db](last (:timestamped db)))
 
 
 ;(defn update-ts-with-EAV [ts &[e a v] :as more]
@@ -66,58 +88,20 @@
 
 
 
-@db1
 
-;(swap! db1 _add-timestamp)
-
-;@db1
-
-
-
-
-(defn next-id [db] (let [curr (@db :curr-time)]
-                   (swap! db assoc :curr-time (inc curr))
-                   curr))
-
-
-(defn make-entity[db name]  (Entity. (db :curr-time) name))
-
-(defn add-entity [db ent]
-  (let [
-       timestamped-vec (:timestamped db)
-        eavt-map (:EAVT (recent-ts-val db))
-        ]
-    (assoc db :timestamped (conj timestamped-vec {:EAVT
-                                 (assoc eavt-map (keyword (:name ent)) ent)}  ) )
-    )
-  )
-
-
- @db1
-   (add-entity @db1
-               (make-entity @db1 "person")
-              )
    ;(add-attr @db1 "name" :string "Jim" )
  ;  (add-attr  @db1 "sur-name" :string "Doe" )
  ;  (add-attr  @db1 "age-name" :number 39 )
 
 
-
-
-
-
-
-
-(next-id db1)
-(next-id db1)
 ;db
-(defn fact[n]
-  (if (<= n 0) 1
-    (* n (fact (dec n)))
-    )
+;; (defn fact[n]
+;;   (if (<= n 0) 1
+;;     (* n (fact (dec n)))
+;;     )
 
-  )
+;;   )
 
-(fact 1)
+;; (fact 1)
 
 ;(swap! db assoc :6 5
