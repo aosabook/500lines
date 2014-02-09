@@ -66,9 +66,6 @@ class Scene(object):
         self.node_list.append(node)
 
     def place(self, shape, start, direction, mat):
-        # only place if nothing is selected
-        if self.selected_node is not None: return
-
         new_node = Sphere()
         if shape == 'sphere':
             new_node = Sphere()
@@ -76,8 +73,6 @@ class Scene(object):
             new_node = Cube()
         new_node.set_color(0.4, 0.4, 0.4)
         self.add_node(new_node)
-
-#        self.selected_node = new_node
 
         # place the node at the cursor
         translation = (start + direction * self.PLACE_DEPTH)
