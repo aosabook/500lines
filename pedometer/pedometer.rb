@@ -39,3 +39,22 @@ get '/data' do
     [400, e.message]
   end
 end
+
+get '/data/compare/*/and/*' do
+  begin
+    @data = []
+
+    [params[:splat].first, params[:splat].last].each do |file|
+      device = Device.new(:data => File.read(file), :rate => 100)
+      parser = Parser.new(device)
+
+      analyzer = Analyzer.new(parser)
+      analyzer.measure_steps
+      @data << {:file => file, :steps => analyzer.steps, :filtered_data => parser.filtered_data}
+    end
+
+    erb :compare
+  rescue Exception => e
+    [400, e.message]
+  end
+end
