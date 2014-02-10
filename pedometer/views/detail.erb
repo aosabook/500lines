@@ -1,0 +1,67 @@
+<script src="/jquery.min.js"></script>
+<script src="/highcharts.js"></script>
+<link href="/styles.css" rel="stylesheet" type="text/css" />
+
+<html>
+    <%= @data[:file] %>
+    <div id="container-dot-product" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+    <div id="container-filtered" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+</html>
+
+<script>
+  $(function () {
+        $('#container-dot-product').highcharts({
+            title: {
+                text: 'Dot Product Data',
+                x: -20 //center
+            },
+            yAxis: {
+                title: {
+                    text: 'Magnitude'
+                },
+                plotLines: [{
+                    value: 0,
+                    width: 1,
+                    color: '#808080'
+                }]
+            },
+            legend: {
+                layout: 'vertical',
+                align: 'right',
+                verticalAlign: 'middle',
+                borderWidth: 0
+            },
+            series: [{
+                name: 'Dot Product Data',
+                data: <%= @data[:parser].dot_product_data %>
+            }]
+        });
+
+        $('#container-filtered').highcharts({
+            title: {
+                text: 'Filtered Data',
+                x: -20 //center
+            },
+            yAxis: {
+                title: {
+                    text: 'Magnitude'
+                },
+                plotLines: [{
+                    value: 0,
+                    width: 1,
+                    color: '#808080'
+                }]
+            },
+            legend: {
+                layout: 'vertical',
+                align: 'right',
+                verticalAlign: 'middle',
+                borderWidth: 0
+            },
+            series: [{
+                name: 'Filtered Data',
+                data: <%= @data[:parser].filtered_data %>
+            }]
+        });
+    });
+</script>

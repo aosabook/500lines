@@ -60,6 +60,12 @@ class PedometerTest < Test::Unit::TestCase
     assert_equal 200, last_response.status
   end
 
+  def test_detail
+    get '/detail/test/data/female/bag-10-a-1.txt'
+    
+    assert_equal 200, last_response.status
+  end
+
   def test_compare
     get '/data/compare/test/data/female/bag-10-a-1.txt/and/test/data/female/bag-10-g-1.txt'
 

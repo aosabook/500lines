@@ -54,6 +54,22 @@ get '/data' do
   end
 end
 
+get '/detail/*' do
+  begin
+    file = params[:splat].first
+    device = Device.new(:data => File.read(file), :rate => 100)
+    parser = Parser.new(device)
+
+    analyzer = Analyzer.new(parser)
+    analyzer.measure_steps
+    @data = {:file => file, :steps => analyzer.steps, :parser => parser}
+
+    erb :detail
+  rescue Exception => e
+    [400, e.message]
+  end
+end
+
 get '/data/compare/*/and/*' do
   begin
     @data = []
