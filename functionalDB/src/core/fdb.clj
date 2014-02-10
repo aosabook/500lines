@@ -17,42 +17,47 @@
         updatedAttrs (interleave ks updatedAttrsVals)
         ]
         (assoc ent :attrs updatedAttrs)
-
     )
 
   )
 
-; avet is a map as follows:  {attrName -> {REFed-ent-id -> [REFing-elems-ids]}}
 
-(defn add-ref-to-avet[ent avet attr]
+
+;  AEVT -> {REFed-ent-id -> {attrName -> [REFing-elems-ids]}}
+; this basically provides the info - for each entity that is REFFed by others, who are the others who are REFing it, separated
+; by the names of the attribute used for reffing
+
+
+(defn add-ref-to-aevt[ent aevt attr]
   (let [
+        reffed-id (:value attr)
         attr-name (:name attr)
-        attr-val (:value attr)
-        attr-name-map (avet attr-name)
-        attr-name-map (if attr-name-map attr-name-map {attr-name {attr-val []}})
-        reffed-ent-vec (attr-name-map attr-val)
-        reffed-ent-vec (if reffed-ent-vec reffed-ent-vec [])
-        ]
-
-  (assoc-in avet [attr-name attr-val] (conj reffed-ent-vec (:e_id ent))))
-
+        reffed-ent-map (aevt reffed-id)
+        reffed-ent-map (if reffed-ent-map reffed-ent-map {reffed-id {attr-name []}})
+        reffing-ents-vec (attr-name reffed-ent-map)
+        reffing-ents-vec (if reffing-ents-vec reffing-ents-vec [])
+       ]
+         (assoc aevt reffed-id (assoc reffed-ent-map attr-name (conj reffing-ents-vec (:e_id ent))))
+     )
 )
 
-(defn update-avet[old-avet ent]
+(defn update-aevt[old-aevt ent]
   (let [reffingAttrs (filter #(= :REF (:type %)) (vals (:attrs ent)))
-        add-ref (partial add-ref-to-avet ent)]
-       (reduce add-ref old-avet reffingAttrs))
+        add-ref (partial add-ref-to-aevt ent)]
+       (reduce add-ref old-aevt reffingAttrs))
   )
 
 ;when adding an entity, its attributes' timestamp would be set to be the current one
 (defn add-entity[db ent]   (let [
+
                                  ent-id (inc (:topId db))
                                  new-ts (next-ts db)
                                  ts-mp (last (:timestamped db))
                                  fixed-ent (assoc ent :e_id ent-id)
                                  new-eavt (assoc (:EAVT ts-mp) ent-id  (update-creation-ts fixed-ent new-ts) )
-                                 new-avet (update-avet (:AVET ts-mp) fixed-ent)
-                                 new-indices (assoc ts-mp :AVET new-avet :EAVT new-eavt )]
+                                 old-aevt (:AEVT ts-mp)
+                                 new-aevt (update-aevt old-aevt fixed-ent)
+                                 new-indices (assoc ts-mp :AEVT new-aevt :EAVT new-eavt )]
                                 (assoc db
                                   :timestamped  (conj (:timestamped db) new-indices)
                                   :curr-time new-ts
@@ -61,7 +66,7 @@
 
 (defn make-db[]
   (atom {:timestamped [{:EAVT {} ; all the entity info
-                        :AVET {} ; for attrs who are REFs, we hold the back-pointing (from the REFFed entity to the REFing entities)
+                        :AEVT {} ; for attrs who are REFs, we hold the back-pointing (from the REFFed entity to the REFing entities)
                         }]
                   :topId 0
                   :curr-time 0
@@ -87,14 +92,21 @@
 
   )
 
+(def en3 (-> (make-entity "gate")
+
+          (add-attr (make-attr :book/found-at 1 :REF))
+          (add-attr (make-attr :gate/color "black" :string)))
+
+  )
+
 (swap! db1 add-entity en1)
 
 (swap! db1 add-entity en2)
 
 
+(swap! db1 add-entity en3)
 
-
-
+(:AEVT (last (:timestamped @db1)))
 
 ;(defn recent-ts-val [db](last (:timestamped db)))
 
