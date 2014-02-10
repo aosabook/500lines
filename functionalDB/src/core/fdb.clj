@@ -3,7 +3,10 @@
 (defrecord Entity [e_id name attrs])
 (defrecord Attr [name type value ts prev-ts])
 
-(defn make-entity [name] (Entity.  :no-id-yet name {}))
+(defn make-entity
+  ([name] (make-entity :no-id-yet name))
+  ([name id] (Entity.  id name {})))
+
 (defn make-attr[name val type]  (Attr. name type (if (= :REF type) (:e_id val) val)-1 -1))
 (defn add-attr[ ent attr] (assoc-in ent [:attrs (keyword (:name attr))] attr))
 (defn next-ts [db] (inc (:curr-time db)))
@@ -30,10 +33,16 @@
         add-ref (partial add-ref-to-aevt ent)]
        (reduce add-ref old-aevt reffingAttrs)))
 
-(defn nextId[db] (let [topId (inc(:topId db))] [topId (keyword (str  topId))]))
+(defn nextId[db ent] (
+                      let [ topId (:topId db)
+                            entId (:e_id ent)
+                            [idToUse nextTop] (if (= entId :no-id-yet) [(inc topId) (inc topId)] [entId topId])]
+                      [idToUse (keyword (str idToUse)) nextTop])
+
+  )
 
 ;when adding an entity, its attributes' timestamp would be set to be the current one
-(defn add-entity[db ent]   (let [[ent-id ent-id-key ] (nextId db)
+(defn add-entity[db ent]   (let [[ent-id ent-id-key next-top] (nextId db ent)
                                  new-ts (next-ts db)
                                  ts-mp (last (:timestamped db))
                                  fixed-ent (assoc ent :e_id ent-id-key)
@@ -44,18 +53,17 @@
                                 ](assoc db
                                   :timestamped  (conj (:timestamped db) new-indices)
                                   :curr-time new-ts
-                                  :topId ent-id)))
+                                  :topId next-top)))
 
 (defn make-db[]
-  (atom {:timestamped [{:EAVT {} ; all the entity info
-                        :AEVT {}}] ; for attrs who are REFs, we hold the back-pointing (from the REFFed entity to the REFing entities)
+  (atom {:timestamped [{:EAVT {} :AEVT {}}]; EAVT: all the entity info, AEVT for attrs who are REFs, we hold the back-pointing (from the REFFed entity to the REFing entities)
           :topId 0 :curr-time 0}))
 
 
 
 (def db1 (make-db))
 
-(def en1 (-> (make-entity "hotel")
+(def en1 (-> (make-entity "hotel" "hiilt" )
 
           (add-attr (make-attr :hotel/room 12 :number))
           (add-attr (make-attr :hotel/address "where" :string)))
@@ -63,20 +71,19 @@
   )
 
 (swap! db1 add-entity en1)
-(def ref1  (:1 (:EAVT(last (:timestamped @db1)))))
+(def ref1  (:hiilt (:EAVT(last (:timestamped @db1)))))
 
 (def en2 (-> (make-entity "book")
 
 
-         ; (add-attr (make-attr :book/author "jon" :string))
+          (add-attr (make-attr :book/author "jon" :string))
           (add-attr (make-attr :book/found-at ref1 :REF)))
   )
 
 (def en3 (-> (make-entity "gate")
           (add-attr (make-attr :gate/color "black" :string))
-          (add-attr (make-attr :book/found-at ref1 :REF))
+         (add-attr (make-attr :book/found-at ref1 :REF))
           )
-
   )
 
 
