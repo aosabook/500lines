@@ -31,9 +31,23 @@ get '/data' do
 
       analyzer = Analyzer.new(parser)
       analyzer.measure_steps
-      @data[file] = {:steps => analyzer.steps, :filtered_data => parser.filtered_data}
+      @data[file] = analyzer.steps
     end
     
+    @pairs = []
+    @data.keys.each do |file|
+      match = if file.include?('-a-')
+        @data.keys.select {|f| f == file.gsub('-a-', '-g-')}.first
+      elsif file.include?('-g-')
+        @data.keys.select {|f| f == file.gsub('-g-', '-a-')}.first
+      end
+      
+      if match
+        @pairs << [file, match].sort
+      end
+    end
+    @pairs.uniq!
+
     erb :data
   rescue Exception => e
     [400, e.message]
