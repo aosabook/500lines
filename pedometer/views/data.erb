@@ -20,16 +20,10 @@
         <td class="compare">
             <% @pairs.each do |file_1, file_2| %>
                 <div>
-                    <%= file_1%>, <%= file_2%>
+                    <% url = "/data/compare/" + file_1 + "/and/" + file_2 %>
+                    <a href=<%= url %>> Compare</a> <%= file_1 %> and <%= file_2 %>
                 </div>
             <% end %>
-            <a href="/data/compare/test/data/female/bag-10-a-1.txt/and/test/data/female/bag-10-g-1.txt">
-                Compare bag-10-a-1.txt and bag-10-g-1.txt
-            </a>
-            </br>
-            <a href="/data/compare/test/data/female/bag-10-a-2.txt/and/test/data/female/bag-10-g-2.txt">
-                Compare bag-10-a-1.txt and bag-10-g-1.txt
-            </a>
         </td>
     </tr>
   </table>  
