@@ -4,7 +4,7 @@
 (defrecord Attr [name type value ts prev-ts])
 
 (defn make-entity [name] (Entity.  :no-id-yet name {}))
-(defn make-attr[name val type]  (Attr. name type (if (= :REF type) (:ent_id val) val) -1 -1))
+(defn make-attr[name val type]  (Attr. name type (if (= :REF type) (:e_id val) val)-1 -1))
 (defn add-attr[ ent attr] (assoc-in ent [:attrs (keyword (:name attr))] attr))
 (defn next-ts [db] (inc (:curr-time db)))
 
@@ -21,11 +21,8 @@
 (defn add-ref-to-aevt[ent aevt attr]
   (let [reffed-id (:value attr)
         attr-name (:name attr)
-        reffed-ent-map (aevt reffed-id)
-        reffed-ent-map (if reffed-ent-map reffed-ent-map {reffed-id {attr-name []}})
-        reffing-ents-vec (attr-name reffed-ent-map)
-        reffing-ents-vec (if reffing-ents-vec reffing-ents-vec [])
-     ] (assoc aevt reffed-id (assoc reffed-ent-map attr-name (conj reffing-ents-vec (:e_id ent))))
+        reffing-ent (get-in aevt [reffed-id attr-name] #{} )
+        ] (assoc-in aevt [reffed-id attr-name] (conj reffing-ent (:e_id ent)))
      ))
 
 (defn update-aevt[old-aevt ent]
@@ -33,12 +30,14 @@
         add-ref (partial add-ref-to-aevt ent)]
        (reduce add-ref old-aevt reffingAttrs)))
 
+(defn nextId[db] (let [topId (inc(:topId db))] [topId (keyword (str  topId))]))
+
 ;when adding an entity, its attributes' timestamp would be set to be the current one
-(defn add-entity[db ent]   (let [ent-id (inc (:topId db))
+(defn add-entity[db ent]   (let [[ent-id ent-id-key ] (nextId db)
                                  new-ts (next-ts db)
                                  ts-mp (last (:timestamped db))
-                                 fixed-ent (assoc ent :e_id ent-id)
-                                 new-eavt (assoc (:EAVT ts-mp) ent-id  (update-creation-ts fixed-ent new-ts) )
+                                 fixed-ent (assoc ent :e_id ent-id-key)
+                                 new-eavt (assoc (:EAVT ts-mp) ent-id-key  (update-creation-ts fixed-ent new-ts) )
                                  old-aevt (:AEVT ts-mp)
                                  new-aevt (update-aevt old-aevt fixed-ent)
                                  new-indices (assoc ts-mp :AEVT new-aevt :EAVT new-eavt )
@@ -63,28 +62,33 @@
 
   )
 
+(swap! db1 add-entity en1)
+(def ref1  (:1 (:EAVT(last (:timestamped @db1)))))
+
 (def en2 (-> (make-entity "book")
 
-          (add-attr (make-attr :book/found-at en1 :REF))
-          (add-attr (make-attr :book/author "jon" :string)))
 
+         ; (add-attr (make-attr :book/author "jon" :string))
+          (add-attr (make-attr :book/found-at ref1 :REF)))
   )
 
 (def en3 (-> (make-entity "gate")
-
-          (add-attr (make-attr :book/found-at en1 :REF))
-          (add-attr (make-attr :gate/color "black" :string)))
+          (add-attr (make-attr :gate/color "black" :string))
+          (add-attr (make-attr :book/found-at ref1 :REF))
+          )
 
   )
 
-(swap! db1 add-entity en1)
+
+
+
 
 (swap! db1 add-entity en2)
 
 
 (swap! db1 add-entity en3)
 
-(:AEVT (last (:timestamped @db1)))
+
 
 ;(defn recent-ts-val [db](last (:timestamped db)))
 
