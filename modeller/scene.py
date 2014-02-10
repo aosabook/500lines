@@ -53,7 +53,7 @@ class Scene(object):
 
         translation = newloc - oldloc
         pre_tran = numpy.array([translation[0], translation[1], translation[2], 0])
-        translation = mat.dot( pre_tran)
+        translation = mat.dot(pre_tran)
         print translation
 
 
@@ -76,7 +76,11 @@ class Scene(object):
 
         # place the node at the cursor
         translation = (start + direction * self.PLACE_DEPTH)
-        pre_tran = numpy.array([translation[0], translation[1], translation[2], 0])
+        pre_tran = numpy.array([translation[0], translation[1], translation[2], 1])
+        mat = numpy.transpose(mat)
+        mat = numpy.linalg.inv(mat)
+
+
         translation = mat.dot(pre_tran)
         new_node.translate(translation[0], translation[1], translation[2])
 
