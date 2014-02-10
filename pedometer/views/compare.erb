@@ -10,7 +10,7 @@
   $(function () {
         $('#container').highcharts({
             title: {
-                text: 'bag-10-a-1.txt vs bag-10-g-2.txt',
+                text: '<%= @data.first[:file] %> vs. <%= @data.last[:file] %>',
                 x: -20 //center
             },
             yAxis: {
@@ -33,10 +33,10 @@
                 borderWidth: 0
             },
             series: [{
-                name: 'Female Bag Accelerometer',
+                name: '<%= @data.first[:file] %>',
                 data: <%= @data.first[:filtered_data] %>
             }, {
-                name: 'Female Bag Gravitational',
+                name: '<%= @data.last[:file] %>',
                 data: <%= @data.last[:filtered_data] %>
             }]
         });
