@@ -53,7 +53,7 @@
 
 (defn db-from-transacted [initial   txs]
     (loop [[tx & rst-tx] txs transacted initial]
-      (if tx    (recur rst-tx ((first tx) transacted (second tx)))
+      (if tx    (recur rst-tx (apply (first tx) transacted (rest tx)))
                  (let [ initial-indices (:timestamped initial )
                           new-indices (last (:timestamped transacted))]
                        (assoc initial :timestamped (conj  initial-indices new-indices)
