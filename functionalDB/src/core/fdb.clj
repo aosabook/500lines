@@ -8,7 +8,7 @@
           :topId 0 :curr-time 0}))
 
 (defn make-entity  ([name] (make-entity :no-id-yet name))
-  ([name id] (Entity.  id name {})))
+  ([id name] (Entity.  id name {})))
 
 (defn make-attr[name val type]  (Attr. name type (if (= :REF type) (:e_id val) val)-1 -1))
 (defn add-attr[ ent attr] (assoc-in ent [:attrs (keyword (:name attr))] attr))
@@ -30,17 +30,17 @@
 ;  AEVT -> {REFed-ent-id -> {attrName -> [REFing-elems-ids]}}
 ; this basically provides the info - for each entity that is REFFed by others, who are the others who are REFing it, separated
 ; by the names of the attribute used for reffing
-(defn add-ref-to-aevt[ent aevt attr]
+(defn add-ref-to-aevt[ent operation aevt attr]
   (let [reffed-id (:value attr)
         attr-name (:name attr)
         back-reffing-set (get-in aevt [reffed-id attr-name] #{} )
-        new-back-reffing-set (conj back-reffing-set (:e_id ent))
+        new-back-reffing-set (operation back-reffing-set (:e_id ent))
         ] (assoc-in aevt [reffed-id attr-name] new-back-reffing-set)
   ))
 
-(defn update-aevt[old-aevt ent]
+(defn update-aevt[old-aevt ent operation]
   (let [reffingAttrs (filter #(= :REF (:type %)) (vals (:attrs ent)))
-        add-ref (partial add-ref-to-aevt ent)]
+        add-ref (partial add-ref-to-aevt ent operation)]
        (reduce add-ref old-aevt reffingAttrs)))
 
 ;when adding an entity, its attributes' timestamp would be set to be the current one
@@ -50,41 +50,32 @@
                                  fixed-ent (assoc ent :e_id ent-id-key)
                                  new-eavt (assoc (:EAVT ts-mp) ent-id-key  (update-creation-ts fixed-ent new-ts) )
                                  old-aevt (:AEVT ts-mp)
-                                 new-aevt (update-aevt old-aevt fixed-ent)
+                                 new-aevt (update-aevt old-aevt fixed-ent conj)
                                  new-indices (assoc ts-mp :AEVT new-aevt :EAVT new-eavt )
                                 ](assoc db
                                   :timestamped  (conj (:timestamped db) new-indices)
                                   :topId next-top)))
 
-(defn remove-ref-from-aevt[ent aevt attr]
-  (let [reffed-id (:value attr)
-        attr-name (:name attr)
-        back-reffing-set (get-in aevt [reffed-id attr-name])
-        new-back-reffing-set (disj back-reffing-set (:e_id ent))]
-    (assoc-in aevt [reffed-id attr-name] new-back-reffing-set)))
-
-(defn remove-outgoing-refs [ent aevt]
-  (let [ reffingAttrs (filter #(= :REF (:type %)) (vals (:attrs ent)))
-          remove-ref (partial remove-ref-from-aevt ent)]
-    (reduce remove-ref aevt reffingAttrs)))
-
 (defn remove-entity[db ent]
   (let [ent-id (:e_id ent)
          indices (last (:timestamped db))
-        aevt (remove-outgoing-refs ent  (:AEVT indices))
+        aevt (update-aevt  (:AEVT indices) ent disj)
         new-eavt (dissoc (:EAVT indices) ent-id) ; removing the entity
         new-aevt (dissoc aevt ent-id) ; removing incoming REFs to the entity
-        new-indices (assoc indices :EAVT new-eavt :AEVT new-aevt) ]
-    (assoc db :timestamped new-indices)))
+        new-indices (assoc indices :EAVT new-eavt :AEVT new-aevt)
+        res  (assoc db :timestamped (conj  (:timestamped db) new-indices))]
+        res))
 
 (defn transact-on-db [initial-db txs]
     (loop [[tx & rst-tx] txs transacted initial-db]
       (if tx    (recur rst-tx (apply (first tx) transacted (rest tx)))
-                 (let [ initial-indices (:timestamped initial-db)
-                          new-indices (last (:timestamped transacted))]
-                       (assoc initial-db :timestamped (conj  initial-indices new-indices)
+                 (let [ initial-indices  (:timestamped initial-db)
+                          new-indices (last (:timestamped transacted))
+                        transacted transacted
+                        res (assoc initial-db :timestamped (conj  initial-indices new-indices)
                                            :curr-time (next-ts initial-db)
-                                           :topId (:topId transacted))))))
+                                           :topId (:topId transacted)) ]
+                       res))))
 
 (defmacro transact [db & txs]
   (when txs
@@ -96,7 +87,7 @@
 
 (def db1 (make-db))
 
-(def en1 (-> (make-entity "hotel" "hiilt" )
+(def en1 (-> (make-entity "hiilt" "hotel" )
 
          (add-attr (make-attr :hotel/room 12 :number))
           (add-attr (make-attr :hotel/address "where" :string)))
@@ -106,7 +97,9 @@
 
 (def rel-e1 (get-in (last (:timestamped @db1)) [:EAVT :hiilt]))
 
-(transact db1 (remove-entity rel-e1))
+
+
+
 ;(add-entity @db1 en1)
 
 (def ref1  (:hiilt (:EAVT(last (:timestamped @db1)))))
@@ -117,11 +110,19 @@
 
  (def en3 (-> (make-entity "gate")
            (add-attr (make-attr :gate/color "black" :string))
-          (add-attr (make-attr :book/found-at ref1 :REF)) ))
+          (add-attr (make-attr :gate/found-at ref1 :REF)) ))
+(transact db1  (add-entity en2) (add-entity en3))
+
+
+ ;(transact db1 (remove-entity ref1))
+
+
 
 ;(transact db1  (add-entity en2) (add-entity en3))
 
-;(remove-entity @db1 rel-e1)
+
+;(swap! db1 transact-on-db [[remove-entity ref1]])
+;(macroexpand-1 '(transact db1 (remove-entity ref1)))
 ;(macroexpand-1 '(transact2 db1 (add-entity en1) (add-entity en2)))
 ;(swap! db1 add-entity en1)
 ;(def ref1  (:hiilt (:EAVT(last (:timestamped @db1)))))
