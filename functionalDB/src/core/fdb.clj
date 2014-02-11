@@ -60,29 +60,21 @@
   (let [reffed-id (:value attr)
         attr-name (:name attr)
         back-reffing-set (get-in aevt [reffed-id attr-name])
-        new-back-reffing-set (disj back-reffing-set (:e_id ent))
-        ]
-    (assoc-in aevt [reffed-id attr-name] new-back-reffing-set))
-  )
+        new-back-reffing-set (disj back-reffing-set (:e_id ent))]
+    (assoc-in aevt [reffed-id attr-name] new-back-reffing-set)))
 
 (defn remove-outgoing-refs [ent aevt]
   (let [ reffingAttrs (filter #(= :REF (:type %)) (vals (:attrs ent)))
           remove-ref (partial remove-ref-from-aevt ent)]
-    (reduce remove-ref aevt reffingAttrs)
-    )
-  )
+    (reduce remove-ref aevt reffingAttrs)))
 
 (defn remove-entity[db ent]
   (let [ent-id (:e_id ent)
          indices (last (:timestamped db))
-        eavt (:EAVT indices)
-        aevt (:AEVT indices)
-        aevt (remove-outgoing-refs ent  aevt)
-        aevt aevt
-        new-eavt (dissoc eavt ent-id) ; removing the entity
+        aevt (remove-outgoing-refs ent  (:AEVT indices))
+        new-eavt (dissoc (:EAVT indices) ent-id) ; removing the entity
         new-aevt (dissoc aevt ent-id) ; removing incoming REFs to the entity
-        new-indices (assoc indices :EAVT new-eavt :AEVT new-aevt)
-        ]
+        new-indices (assoc indices :EAVT new-eavt :AEVT new-aevt) ]
     (assoc db :timestamped new-indices)))
 
 (defn transact-on-db [initial-db txs]
