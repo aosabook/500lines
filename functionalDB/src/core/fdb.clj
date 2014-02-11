@@ -53,13 +53,12 @@
 
 (defn db-from-transacted [initial   txs]
     (loop [[tx & rst-tx] txs transacted initial]
-      (if tx
-        (recur rst-tx ((first tx) transacted (second tx)))
-        (let [new-ts (next-ts initial)
-               initial-indices (:timestamped initial )
-              new-indices (last (:timestamped transacted))
-              new-topId (:topId transacted)]
-         (assoc initial :timestamped (conj  initial-indices new-indices) :curr-time new-ts :topId   new-topId)))))
+      (if tx    (recur rst-tx ((first tx) transacted (second tx)))
+                 (let [ initial-indices (:timestamped initial )
+                          new-indices (last (:timestamped transacted))]
+                       (assoc initial :timestamped (conj  initial-indices new-indices)
+                                           :curr-time (next-ts initial)
+                                           :topId (:topId transacted))))))
 
 (defmacro transact [db & txs]
   (when txs
