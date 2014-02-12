@@ -6,15 +6,33 @@ class Member(object):  # TODO: rename
     def __init__(self, node):
         self.node = node
         self.address = self.node.address
+        self.components = []
+
+    def register(self, component):
+        self.components.append(component)
+        self.node.register(component)
+
+    def unregister(self, component):
+        self.components.remove(component)
+        self.node.unregister(component)
+
+    def event(self, message, **kwargs):
+        method = 'on_' + message + '_event'
+        for comp in self.components:
+            if hasattr(comp, method):
+                getattr(comp, method)(**kwargs)
 
 
 class Component(object):  # TODO: rename
 
     def __init__(self, member):
         self.member = member
-        self.member.node.register(self)
+        self.member.register(self)
         self.address = member.address
         self.logger = logging.getLogger("%s.%s" % (self.address, self.__class__.__name__))
+
+    def event(self, message, **kwargs):
+        self.member.event(message, **kwargs)
 
     def send(self, destinations, action, **kwargs):
         self.member.node.send(destinations, action, **kwargs)
@@ -27,4 +45,4 @@ class Component(object):  # TODO: rename
         self.member.node.cancel_timer(timer)
 
     def stop(self):
-        self.member.node.unregister(self)
+        self.member.unregister(self)

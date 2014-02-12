@@ -21,10 +21,6 @@ class ClusterMember(Member):
     def start(self):
         self.replica.start()
 
-    def view_change(self, viewchange):
-        self.peers = viewchange.peers
-        self.leader.view_change(viewchange)
-
 
 class ClusterSeed(Member):
 

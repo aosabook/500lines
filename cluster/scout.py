@@ -6,14 +6,15 @@ class Scout(Component):
 
     PREPARE_RETRANSMIT = 1
 
-    def __init__(self, member, leader, ballot_num):
+    def __init__(self, member, leader, ballot_num, peers):
         super(Scout, self).__init__(member)
         self.leader = leader
         self.scout_id = ScoutId(self.address, ballot_num)
         self.ballot_num = ballot_num
         self.pvals = defaultdict()
         self.accepted = set([])
-        self.quorum = len(member.peers) / 2 + 1
+        self.peers = peers
+        self.quorum = len(peers) / 2 + 1
         self.retransmit_timer = None
 
     def start(self):
@@ -21,7 +22,7 @@ class Scout(Component):
         self.send_prepare()
 
     def send_prepare(self):
-        self.send(self.member.peers, 'PREPARE',  # p1a
+        self.send(self.peers, 'PREPARE',  # p1a
                        scout_id=self.scout_id,
                        ballot_num=self.ballot_num)
         self.retransmit_timer = self.set_timer(

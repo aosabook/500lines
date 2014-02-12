@@ -17,8 +17,10 @@ class Leader(Component):
         self.commanders = {}
         self.scout_cls = scout_cls
         self.scout = None
+        self.peers = None
 
-    def view_change(self, viewchange):
+    def on_view_change_event(self, viewchange):
+        self.peers = viewchange.peers
         is_primary = view_primary(viewchange.viewid, viewchange.peers) == self.address
         self.is_primary = is_primary
         if is_primary:
@@ -33,7 +35,7 @@ class Leader(Component):
 
     def spawn_scout(self):
         assert not self.scout
-        sct = self.scout = self.scout_cls(self.member, self, self.ballot_num)
+        sct = self.scout = self.scout_cls(self.member, self, self.ballot_num, self.peers)
         sct.start()
 
     def scout_finished(self, adopted, ballot_num, pvals):
@@ -73,7 +75,7 @@ class Leader(Component):
             self.spawn_scout()
 
     def spawn_commander(self, ballot_num, slot, proposal):
-        cmd = self.commander_cls(self.member, self, ballot_num, slot, proposal)
+        cmd = self.commander_cls(self.member, self, ballot_num, slot, proposal, self.peers)
         if cmd.commander_id in self.commanders:
             return
         print "set", cmd.commander_id

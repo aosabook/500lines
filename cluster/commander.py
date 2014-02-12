@@ -4,7 +4,7 @@ from member import Component
 
 class Commander(Component):
 
-    def __init__(self, member, leader, ballot_num, slot, proposal):
+    def __init__(self, member, leader, ballot_num, slot, proposal, peers):
         super(Commander, self).__init__(member)
         self.leader = leader
         self.ballot_num = ballot_num
@@ -12,8 +12,8 @@ class Commander(Component):
         self.proposal = proposal
         self.commander_id = CommanderId(self.address, slot, proposal)
         self.accepted = set([])
-        self.peers = member.peers  # TODO: pass this in
-        self.quorum = len(self.peers) / 2 + 1
+        self.peers = peers
+        self.quorum = len(peers) / 2 + 1
 
     def start(self):
         self.send(self.peers, 'ACCEPT',  # p2a

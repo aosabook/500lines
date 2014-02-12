@@ -22,6 +22,7 @@ class Replica(Component):
         self.proposals = defaultlist()
         self.decisions = defaultlist()
         self.viewid = 0
+        self.peers = peers
         self.last_heard_from = {}
         self.lost_peer_proposal = None
 
@@ -29,7 +30,7 @@ class Replica(Component):
         "Try to join the cluster"
         if not self.ready:
             # TODO: do something more deterministic
-            self.send([self.member.node.network.rnd.choice(self.member.peers)], 'JOIN',
+            self.send([self.member.node.network.rnd.choice(self.peers)], 'JOIN',
                              requester=self.address)
             self.set_timer(self.JOIN_RETRANSMIT, self.start)
 
@@ -49,7 +50,7 @@ class Replica(Component):
                 self.viewid = viewchange.viewid
                 self.send(
                     list(set(viewchange.peers) -
-                         set(self.member.peers)), 'WELCOME',
+                         set(self.peers)), 'WELCOME',
                     state=self.state,
                     slot_num=self.slot_num,
                     decisions=self.decisions,
@@ -58,7 +59,7 @@ class Replica(Component):
                 if self.address not in viewchange.peers:
                     self.stop()
                     return
-                self.member.view_change(viewchange)
+                self.event('view_change', viewchange=viewchange)
             else:
                 self.logger.info(
                     "ignored out-of-sequence view change operation")
@@ -69,8 +70,8 @@ class Replica(Component):
             self.next_slot += 1
         self.proposals[slot] = proposal
         # find a leader we think is working, deterministically
-        leaders = [view_primary(self.viewid, self.member.peers)] + \
-            list(self.member.peers)
+        leaders = [view_primary(self.viewid, self.peers)] + \
+            list(self.peers)
         for leader in leaders:
             # TODO: better way to get current time
             if self.last_heard_from.get(leader, 0) > self.member.node.network.now - 2 * self.HEARTBEAT_INTERVAL:
@@ -91,8 +92,8 @@ class Replica(Component):
 
     def heartbeat(self):
         "send and monitor heartbeats"
-        self.send(self.member.peers, 'HEARTBEAT', sender=self.address)
-        for peer in self.member.peers:
+        self.send(self.peers, 'HEARTBEAT', sender=self.address)
+        for peer in self.peers:
             if peer == self.address or peer not in self.last_heard_from:
                 continue
             if self.last_heard_from[peer] < self.member.node.network.now - 2 * self.HEARTBEAT_INTERVAL:
@@ -108,7 +109,7 @@ class Replica(Component):
         self.lost_peer_proposal = Proposal(None, None,
                                            ViewChange(
                                                self.viewid + 1,
-                                               tuple(sorted(set(self.member.peers) - set([peer])))))
+                                               tuple(sorted(set(self.peers) - set([peer])))))
         self.propose(self.lost_peer_proposal)
 
     def do_HEARTBEAT(self, sender):
@@ -157,10 +158,10 @@ class Replica(Component):
                                  cid=decided_proposal.cid, output=output)
 
     def do_JOIN(self, requester):
-        if self.ready and requester not in self.member.peers:
+        if self.ready and requester not in self.peers:
             self.last_heard_from[requester] = self.member.node.network.now
             viewchange = ViewChange(self.viewid + 1,
-                                    tuple(sorted(set(self.member.peers) | set([requester]))))
+                                    tuple(sorted(set(self.peers) | set([requester]))))
             self.propose(Proposal(None, None, viewchange))
 
     def do_WELCOME(self, state, slot_num, decisions, viewid, peers):
@@ -172,6 +173,9 @@ class Replica(Component):
             self.decisions = defaultlist(decisions)
             self.viewid = viewid
             self.last_heard_from = {}
-            self.member.view_change(ViewChange(viewid, peers))  # TODO: WELCOME should include a ViewChange
+            self.event('view_change', viewchange=ViewChange(viewid, peers))  # TODO: WELCOME should include a ViewChange
             self.heartbeat()
             self.repropose()
+
+    def on_view_change_event(self, viewchange):
+        self.peers = viewchange.peers
