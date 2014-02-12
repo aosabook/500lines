@@ -1,12 +1,14 @@
 import protocol
+from protocol import ViewChange
 from member import Component
 
 
 class Bootstrap(Component):
 
-    def __init__(self, member, peers):
+    def __init__(self, member, peers, bootstrapped_cb):
         super(Bootstrap, self).__init__(member)
         self.peers = peers
+        self.bootstrapped_cb = bootstrapped_cb
 
     def start(self):
         self.join()
@@ -19,6 +21,6 @@ class Bootstrap(Component):
         self.set_timer(protocol.JOIN_RETRANSMIT, self.join)
 
     def do_WELCOME(self, state, slot_num, decisions, viewid, peers):
-        self.event('joined', state=state, slot_num=slot_num, decisions=decisions, viewid=viewid, peers=peers)
-        # TOOD: finish setup of replica, leader, acceptor here (callback to member?)
+        self.bootstrapped_cb(state, slot_num, decisions, viewid, peers)
+        self.event('view_change', viewchange=ViewChange(viewid, peers))  # TODO: WELCOME should include a ViewChange
         self.stop()

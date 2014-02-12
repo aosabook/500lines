@@ -10,19 +10,21 @@ class Replica(Component):
 
     def __init__(self, member, execute_fn):
         super(Replica, self).__init__(member)
-        self.ready = False
         self.execute_fn = execute_fn
-        self.state = None
-        self.slot_num = 1
-        # next slot num for a proposal (may lead slot_num)
-        self.next_slot = 1
         self.proposals = defaultlist()
-        self.decisions = defaultlist()
-        self.viewid = 0
-        self.peers = None
-        self.peers_down = set()
-        self.last_heard_from = {}
         self.viewchange_proposal = None
+
+    def start(self, state, slot_num, decisions, viewid, peers):
+        self.state = state
+        self.slot_num = slot_num
+        # next slot num for a proposal (may lead slot_num)
+        self.next_slot = slot_num
+        self.decisions = defaultlist(decisions)
+        self.viewid = viewid
+        self.peers = peers
+        self.peers_down = set()
+
+        self.repropose()
 
     def invoke(self, proposal):
         "actually invoke a proposal that is decided and in sequence"
@@ -80,8 +82,7 @@ class Replica(Component):
     def on_lost_peers_event(self, down):
         self.peers_down = down
         if self.viewchange_proposal and self.viewchange_proposal not in self.decisions:
-            # we're still working on a viewchange that hasn't been decided, so cool it for now
-            return
+            return  # we're still working on a viewchange that hasn't been decided
         self.logger.info("lost peer(s) %s; proposing new view" % (down,))
         self.viewchange_proposal = Proposal(
                 None, None,
@@ -89,9 +90,6 @@ class Replica(Component):
         self.propose(self.viewchange_proposal)
 
     def do_INVOKE(self, caller, cid, input):
-        if not self.ready:
-            self.logger.info("can't INVOKE until joined to the cluster")
-            return
         proposal = Proposal(caller, cid, input)
         if proposal not in self.proposals:
             self.propose(proposal)
@@ -131,23 +129,10 @@ class Replica(Component):
                                  cid=decided_proposal.cid, output=output)
 
     def do_JOIN(self, requester):
-        if self.ready and requester not in self.peers:
-            self.last_heard_from[requester] = self.member.node.network.now
+        if requester not in self.peers:
             viewchange = ViewChange(self.viewid + 1,
                                     tuple(sorted(set(self.peers) | set([requester]))))
             self.propose(Proposal(None, None, viewchange))
-
-    def on_joined_event(self, state, slot_num, decisions, viewid, peers):
-        if not self.ready:
-            self.ready = True
-            self.state = state
-            self.slot_num = slot_num
-            self.next_slot = slot_num
-            self.decisions = defaultlist(decisions)
-            self.viewid = viewid
-            self.last_heard_from = {}
-            self.event('view_change', viewchange=ViewChange(viewid, peers))  # TODO: WELCOME should include a ViewChange
-            self.repropose()
 
     def on_view_change_event(self, viewchange):
         self.peers = viewchange.peers
