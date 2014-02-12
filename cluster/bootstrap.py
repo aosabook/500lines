@@ -15,12 +15,11 @@ class Bootstrap(Component):
 
     def join(self):
         "Try to join the cluster"
-        # TODO: do something more deterministic
-        self.send([self.member.node.network.rnd.choice(self.peers)], 'JOIN',
-                            requester=self.address)
+        self.peers = self.peers[1:] + self.peers[:1] # rotate through peers
+        self.send([self.peers[0]], 'JOIN', requester=self.address)
         self.set_timer(protocol.JOIN_RETRANSMIT, self.join)
 
     def do_WELCOME(self, state, slot_num, decisions, viewid, peers):
         self.bootstrapped_cb(state, slot_num, decisions, viewid, peers)
-        self.event('view_change', viewchange=ViewChange(viewid, peers))  # TODO: WELCOME should include a ViewChange
+        self.event('view_change', viewchange=ViewChange(viewid, peers))  # TODO: pass viewid, peers separately
         self.stop()

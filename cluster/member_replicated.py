@@ -21,7 +21,7 @@ class ClusterMember(Member):
             self.replica = replica_cls(self, execute_fn)
             self.acceptor = acceptor_cls(self)
             self.leader = leader_cls(self, node.unique_id, commander_cls=commander_cls, scout_cls=scout_cls)
-            self.heartbeat = heartbeat_cls(self)
+            self.heartbeat = heartbeat_cls(self, lambda : node.network.now)
             # start up the replica, now that its information is ready
             self.replica.start(state, slot_num, decisions, viewid, peers)
         self.bootstrap = bootstrap_cls(self, peers, bootstrapped)
