@@ -7,3 +7,4 @@ CommanderId = namedtuple('CommanderId', ['address', 'slot', 'proposal'])
 ViewChange = namedtuple('ViewChange', ['viewid', 'peers'])
 
 HEARTBEAT_INTERVAL = 0.5
+JOIN_RETRANSMIT = 0.2

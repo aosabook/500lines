@@ -1,6 +1,6 @@
+import protocol
 from util import defaultlist
 from member import Component
-from replica import Replica
 
 class Seed(Component):
 
@@ -39,5 +39,5 @@ class Seed(Component):
         if self.exit_timer:
             self.cancel_timer(self.exit_timer)
         self.exit_timer = self.set_timer(
-            Replica.JOIN_RETRANSMIT * 2, self.stop)
+            protocol.JOIN_RETRANSMIT * 2, self.stop)
 

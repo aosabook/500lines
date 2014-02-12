@@ -6,12 +6,9 @@ from member import Component
 class Replica(Component):
 
     # TODO: move constants to protocol.py
-    JOIN_RETRANSMIT = 0.2
-    HEARTBEAT_INTERVAL = 0.5
     REPROPOSE_INTERVAL = 0.7
-    assert JOIN_RETRANSMIT <= HEARTBEAT_INTERVAL
 
-    def __init__(self, member, execute_fn, peers):
+    def __init__(self, member, execute_fn):
         super(Replica, self).__init__(member)
         self.ready = False
         self.execute_fn = execute_fn
@@ -22,17 +19,10 @@ class Replica(Component):
         self.proposals = defaultlist()
         self.decisions = defaultlist()
         self.viewid = 0
-        self.peers = peers
+        self.peers = None
+        self.peers_down = set()
         self.last_heard_from = {}
         self.viewchange_proposal = None
-
-    def start(self):
-        "Try to join the cluster"
-        if not self.ready:
-            # TODO: do something more deterministic
-            self.send([self.member.node.network.rnd.choice(self.peers)], 'JOIN',
-                             requester=self.address)
-            self.set_timer(self.JOIN_RETRANSMIT, self.start)
 
     def invoke(self, proposal):
         "actually invoke a proposal that is decided and in sequence"
@@ -72,10 +62,7 @@ class Replica(Component):
         # find a leader we think is working, deterministically
         leaders = [view_primary(self.viewid, self.peers)] + \
             list(self.peers)
-        for leader in leaders:
-            # TODO: better way to get current time
-            if self.last_heard_from.get(leader, 0) > self.member.node.network.now - 2 * self.HEARTBEAT_INTERVAL:
-                break
+        leader = (l for l in leaders if l not in self.peers_down).next()
         self.logger.info("proposing %s at slot %d to leader %s" %
                          (proposal, slot, leader))
         self.send([leader], 'PROPOSE', slot=slot, proposal=proposal)
@@ -91,6 +78,7 @@ class Replica(Component):
         self.set_timer(self.REPROPOSE_INTERVAL, self.repropose)
 
     def on_lost_peers_event(self, down):
+        self.peers_down = down
         if self.viewchange_proposal and self.viewchange_proposal not in self.decisions:
             # we're still working on a viewchange that hasn't been decided, so cool it for now
             return
@@ -99,9 +87,6 @@ class Replica(Component):
                 None, None,
                 ViewChange(self.viewid + 1, tuple(sorted(set(self.peers) - set(down)))))
         self.propose(self.viewchange_proposal)
-
-    def do_HEARTBEAT(self, sender):
-        self.last_heard_from[sender] = self.member.node.network.now
 
     def do_INVOKE(self, caller, cid, input):
         if not self.ready:
@@ -152,7 +137,7 @@ class Replica(Component):
                                     tuple(sorted(set(self.peers) | set([requester]))))
             self.propose(Proposal(None, None, viewchange))
 
-    def do_WELCOME(self, state, slot_num, decisions, viewid, peers):
+    def on_joined_event(self, state, slot_num, decisions, viewid, peers):
         if not self.ready:
             self.ready = True
             self.state = state
@@ -166,3 +151,4 @@ class Replica(Component):
 
     def on_view_change_event(self, viewchange):
         self.peers = viewchange.peers
+        self.peers_down = set()
