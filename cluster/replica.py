@@ -1,12 +1,10 @@
+import protocol
 from util import defaultlist, view_primary
 from protocol import Proposal, ViewChange
 from member import Component
 
 
 class Replica(Component):
-
-    # TODO: move constants to protocol.py
-    REPROPOSE_INTERVAL = 0.7
 
     def __init__(self, member, execute_fn):
         super(Replica, self).__init__(member)
@@ -66,7 +64,7 @@ class Replica(Component):
             else:
                 # make an empty proposal to learn what was decided
                 self.propose(Proposal(None, None, None), slot)
-        self.set_timer(self.REPROPOSE_INTERVAL, self.repropose)
+        self.set_timer(protocol.REPROPOSE_INTERVAL, self.repropose)
 
     # view changes
 

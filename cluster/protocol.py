@@ -8,3 +8,4 @@ ViewChange = namedtuple('ViewChange', ['viewid', 'peers'])
 
 HEARTBEAT_INTERVAL = 0.5
 JOIN_RETRANSMIT = 0.2
+REPROPOSE_INTERVAL = 0.7
