@@ -26,35 +26,24 @@ class Replica(Component):
 
         self.repropose()
 
-    def invoke(self, proposal):
-        "actually invoke a proposal that is decided and in sequence"
-        if proposal.caller:
-            # perform a client operation
-            self.state, output = self.execute_fn(
-                self.state, proposal.input)
-            return output
+    # creating proposals
 
-        if isinstance(proposal.input, ViewChange):
-            viewchange = proposal.input
-            if viewchange.viewid == self.viewid + 1:
-                self.logger.info("entering view %d with peers %s" %
-                                 (viewchange.viewid, viewchange.peers))
-                self.viewid = viewchange.viewid
-                self.send(
-                    list(set(viewchange.peers) -
-                         set(self.peers)), 'WELCOME',
-                    state=self.state,
-                    slot_num=self.slot_num,
-                    decisions=self.decisions,
-                    viewid=viewchange.viewid,
-                    peers=viewchange.peers)
-                if self.address not in viewchange.peers:
-                    self.stop()
-                    return
-                self.event('view_change', viewchange=viewchange)
-            else:
-                self.logger.info(
-                    "ignored out-of-sequence view change operation")
+    def do_INVOKE(self, caller, cid, input):
+        proposal = Proposal(caller, cid, input)
+        if proposal not in self.proposals:
+            self.propose(proposal)
+        else:
+            slot = self.proposals.index(proposal)
+            self.logger.info("proposal %s already proposed in slot %d" %
+                             (proposal, slot))
+
+    def do_JOIN(self, requester):
+        if requester not in self.peers:
+            viewchange = ViewChange(self.viewid + 1,
+                                    tuple(sorted(set(self.peers) | set([requester]))))
+            self.propose(Proposal(None, None, viewchange))
+
+    # injecting proposals
 
     def propose(self, proposal, slot=None):
         if not slot:
@@ -79,6 +68,12 @@ class Replica(Component):
                 self.propose(Proposal(None, None, None), slot)
         self.set_timer(self.REPROPOSE_INTERVAL, self.repropose)
 
+    # view changes
+
+    def on_view_change_event(self, viewchange):
+        self.peers = viewchange.peers
+        self.peers_down = set()
+
     def on_lost_peers_event(self, down):
         self.peers_down = down
         if self.viewchange_proposal and self.viewchange_proposal not in self.decisions:
@@ -89,14 +84,7 @@ class Replica(Component):
                 ViewChange(self.viewid + 1, tuple(sorted(set(self.peers) - set(down)))))
         self.propose(self.viewchange_proposal)
 
-    def do_INVOKE(self, caller, cid, input):
-        proposal = Proposal(caller, cid, input)
-        if proposal not in self.proposals:
-            self.propose(proposal)
-        else:
-            slot = self.proposals.index(proposal)
-            self.logger.info("proposal %s already proposed in slot %d" %
-                             (proposal, slot))
+    # handling decided proposals
 
     def do_DECISION(self, slot, proposal):
         if self.decisions[slot] is not None:
@@ -128,12 +116,31 @@ class Replica(Component):
                 self.send([decided_proposal.caller], 'INVOKED',
                                  cid=decided_proposal.cid, output=output)
 
-    def do_JOIN(self, requester):
-        if requester not in self.peers:
-            viewchange = ViewChange(self.viewid + 1,
-                                    tuple(sorted(set(self.peers) | set([requester]))))
-            self.propose(Proposal(None, None, viewchange))
+    def invoke(self, proposal):
+        "actually invoke a proposal that is decided and in sequence"
+        if isinstance(proposal.input, ViewChange):
+            self.invoke_viewchange(proposal.input)
+        else:
+            # perform a client operation
+            self.state, output = self.execute_fn(
+                self.state, proposal.input)
+            return output
 
-    def on_view_change_event(self, viewchange):
-        self.peers = viewchange.peers
-        self.peers_down = set()
+    def invoke_viewchange(self, viewchange):
+        if viewchange.viewid == self.viewid + 1:
+            self.logger.info("entering view %d with peers %s" %
+                                (viewchange.viewid, viewchange.peers))
+            self.viewid = viewchange.viewid
+            self.send(list(set(viewchange.peers) - set(self.peers)), 'WELCOME',
+                      state=self.state,
+                      slot_num=self.slot_num,
+                      decisions=self.decisions,
+                      viewid=viewchange.viewid,
+                      peers=viewchange.peers)
+            if self.address not in viewchange.peers:
+                self.stop()
+                return
+            self.event('view_change', viewchange=viewchange)
+        else:
+            self.logger.info(
+                "ignored out-of-sequence view change operation")
