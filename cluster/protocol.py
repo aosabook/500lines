@@ -5,3 +5,5 @@ Ballot = namedtuple('Ballot', ['n', 'leader'])
 ScoutId = namedtuple('ScoutId', ['address', 'ballot_num'])
 CommanderId = namedtuple('CommanderId', ['address', 'slot', 'proposal'])
 ViewChange = namedtuple('ViewChange', ['viewid', 'peers'])
+
+HEARTBEAT_INTERVAL = 0.5

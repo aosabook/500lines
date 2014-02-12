@@ -24,7 +24,7 @@ class Replica(Component):
         self.viewid = 0
         self.peers = peers
         self.last_heard_from = {}
-        self.lost_peer_proposal = None
+        self.viewchange_proposal = None
 
     def start(self):
         "Try to join the cluster"
@@ -90,27 +90,15 @@ class Replica(Component):
                 self.propose(Proposal(None, None, None), slot)
         self.set_timer(self.REPROPOSE_INTERVAL, self.repropose)
 
-    def heartbeat(self):
-        "send and monitor heartbeats"
-        self.send(self.peers, 'HEARTBEAT', sender=self.address)
-        for peer in self.peers:
-            if peer == self.address or peer not in self.last_heard_from:
-                continue
-            if self.last_heard_from[peer] < self.member.node.network.now - 2 * self.HEARTBEAT_INTERVAL:
-                self.lost_peer(peer)
-                break
-        self.set_timer(self.HEARTBEAT_INTERVAL, self.heartbeat)
-
-    def lost_peer(self, peer):
-        if self.lost_peer_proposal and self.lost_peer_proposal not in self.decisions:
-            # we're still working on a lost peer; we'll be called again..
+    def on_lost_peers_event(self, down):
+        if self.viewchange_proposal and self.viewchange_proposal not in self.decisions:
+            # we're still working on a viewchange that hasn't been decided, so cool it for now
             return
-        self.logger.info("lost peer %s; proposing new view" % peer)
-        self.lost_peer_proposal = Proposal(None, None,
-                                           ViewChange(
-                                               self.viewid + 1,
-                                               tuple(sorted(set(self.peers) - set([peer])))))
-        self.propose(self.lost_peer_proposal)
+        self.logger.info("lost peer(s) %s; proposing new view" % (down,))
+        self.viewchange_proposal = Proposal(
+                None, None,
+                ViewChange(self.viewid + 1, tuple(sorted(set(self.peers) - set(down)))))
+        self.propose(self.viewchange_proposal)
 
     def do_HEARTBEAT(self, sender):
         self.last_heard_from[sender] = self.member.node.network.now
@@ -174,7 +162,6 @@ class Replica(Component):
             self.viewid = viewid
             self.last_heard_from = {}
             self.event('view_change', viewchange=ViewChange(viewid, peers))  # TODO: WELCOME should include a ViewChange
-            self.heartbeat()
             self.repropose()
 
     def on_view_change_event(self, viewchange):
