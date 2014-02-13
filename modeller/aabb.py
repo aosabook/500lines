@@ -10,10 +10,16 @@ EPSILON = 0.000001
 class AABB(object):
 
     def __init__(self, center, size):
+        """ Axis aligned bounding box.
+            This is a box that is aligned with the XYZ axes of the model coordinate space.
+            It's used for collision detection with rays for selection.
+            It could also be used for rudimentary collision detection between nodes. """
         self.center = numpy.array(center)
         self.size = numpy.array(size)
 
     def intersects_aabb(self, other):
+        """ returns True <=> this AABB intersects with the other AABB
+            Consumes: other -> another AABB """
         diff = [a - b for a, b in zip(self.center, other.center)]
 
         if abs(diff[0]) > (size[0] + other.size[0]): return False
@@ -23,6 +29,9 @@ class AABB(object):
         return True
 
     def ray_hit(self, origin, direction, modelmatrix):
+        """ Returns True <=> the ray hits the AABB
+            Consumes: origin, direction -> describes the ray
+                      modelmatrix       -> the matrix to convert from ray coordinate space to AABB coordinate space """
         aabb_min = self.center - self.size
         aabb_max = self.center + self.size
         tmin = 0.0
@@ -93,6 +102,7 @@ class AABB(object):
         return True, tmin
 
     def render(self):
+        """ render the AABB. This can be useful for debugging purposes """
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();

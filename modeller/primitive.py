@@ -120,7 +120,6 @@ def MakeCube():
     glEndList()
 
 
-
 def InitPrimitives():
     MakePlane()
     MakeSphere()
