@@ -10,7 +10,7 @@
 (defn make-entity  ([name] (make-entity :no-id-yet name))
   ([id name] (Entity.  id name {})))
 
-(defn make-attr[name val type]  (Attr. name type (if (= :REF type) (:e_id val) val)-1 -1))
+(defn make-attr[name val type]  (Attr. name type (val-from-ref type val) -1 -1))
 (defn add-attr[ ent attr] (assoc-in ent [:attrs (keyword (:name attr))] attr))
 
 (defn next-ts [db] (inc (:curr-time db)))
@@ -19,6 +19,8 @@
                             entId (:e_id ent)
                             [idToUse nextTop] (if (= entId :no-id-yet) [(inc topId) (inc topId)] [entId topId])]
                       [idToUse (keyword (str idToUse)) nextTop]))
+
+(defn val-from-ref[attr-type attr-val](if (= :REF attr-type) (:e_id attr-val) attr-val ))
 
 (defn update-creation-ts [ent tsVal]
   (let [ks (keys (:attrs ent))
@@ -46,12 +48,11 @@
 ;when adding an entity, its attributes' timestamp would be set to be the current one
 (defn add-entity[db ent]   (let [[ent-id ent-id-key next-top] (nextId db ent)
                                  new-ts (next-ts db)
-                                 ts-mp (last (:timestamped db))
+                                 indices (last (:timestamped db))
                                  fixed-ent (assoc ent :e_id ent-id-key)
-                                 new-eavt (assoc (:EAVT ts-mp) ent-id-key  (update-creation-ts fixed-ent new-ts) )
-                                 old-aevt (:AEVT ts-mp)
-                                 new-aevt (update-aevt old-aevt fixed-ent conj)
-                                 new-indices (assoc ts-mp :AEVT new-aevt :EAVT new-eavt )
+                                 new-eavt (assoc (:EAVT indices) ent-id-key  (update-creation-ts fixed-ent new-ts) )
+                                 new-aevt (update-aevt  (:AEVT indices) fixed-ent conj)
+                                 new-indices (assoc indices :AEVT new-aevt :EAVT new-eavt )
                                 ](assoc db
                                   :timestamped  (conj (:timestamped db) new-indices)
                                   :topId next-top)))
@@ -83,19 +84,38 @@
       (if frst-tx#     (recur                     rst-tx#              res#                                          (conj cnt#  (vec  frst-tx#)))
                            (list* (conj res# cnt#))))))
 
+(defn update-aevt-for-datum [aevt  ent-id attr new-val]
+  (if (not= :REF (:type attr ))
+    aevt
+    (let [ old-ref-id (:value attr)
+             attr-name (:name attr)
+             old-reffed (get-in aevt [old-ref-id attr-name])
+             cleaned-aevt (assoc-in aevt [old-ref-id attr-name] (disj old-reffed ent-id))
+             to-be-updated-ref (get-in aevt [new-val attr-name] #{})
+             updated-aevt (assoc-in cleaned-aevt [new-val attr-name] (conj  to-be-updated-ref ent-id) )
+          ] updated-aevt)))
+
+(defn update-datum [db ent-id att-name  new-val]
+     (let [ new-ts (next-ts db)
+            indices (last (:timestamped db))
+            attr (get-in indices [:EAVT ent-id :attrs  att-name] )
+            real-new-val  (val-from-ref (:type attr) new-val)
+            updated-attr(assoc attr :value real-new-val :ts new-ts :prev-ts ( :ts attr))
+           eavt-updated-indices (assoc-in indices [:EAVT ent-id :attrs att-name] updated-attr )
+           new-aevt (update-aevt-for-datum (:AEVT indices) ent-id attr real-new-val)
+           fully-updated-indices (assoc eavt-updated-indices :AEVT new-aevt)
+           new-db (assoc db :timestamped (conj  (:timestamped db) fully-updated-indices))
+           ]new-db))
 
 
 (def db1 (make-db))
 
 (def en1 (-> (make-entity "hiilt" "hotel" )
-
          (add-attr (make-attr :hotel/room 12 :number))
-          (add-attr (make-attr :hotel/address "where" :string)))
-
-  )
+          (add-attr (make-attr :hotel/address "where" :string))))
 (transact db1 (add-entity en1))
 
-(def rel-e1 (get-in (last (:timestamped @db1)) [:EAVT :hiilt]))
+;(def rel-e1 (get-in (last (:timestamped @db1)) [:EAVT :hiilt]))
 
 
 
@@ -103,6 +123,7 @@
 ;(add-entity @db1 en1)
 
 (def ref1  (:hiilt (:EAVT(last (:timestamped @db1)))))
+(:e_id ref1)
 ;(type(:attrs ref1))
 (def en2 (-> (make-entity "book")
           (add-attr (make-attr :book/author "jon" :string))
@@ -111,14 +132,18 @@
  (def en3 (-> (make-entity "gate")
            (add-attr (make-attr :gate/color "black" :string))
           (add-attr (make-attr :gate/found-at ref1 :REF)) ))
-(transact db1  (add-entity en2) (add-entity en3))
+;(transact db1  (add-entity en2) (add-entity en3))
 
 
  ;(transact db1 (remove-entity ref1))
 
 
 
-;(transact db1  (add-entity en2) (add-entity en3))
+(transact db1  (add-entity en2) (add-entity en3))
+(def ref12  (:1 (:EAVT(last (:timestamped @db1)))))
+
+
+(transact db1 (update-datum  :2  :gate/found-at ref12 ))
 
 
 ;(swap! db1 transact-on-db [[remove-entity ref1]])
