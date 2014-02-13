@@ -1,14 +1,21 @@
 var express = require('express'),
       fs = require('fs'),
       whiskers = require('whiskers'),
+      marked = require('marked'),
       app = express();
 
 app.use(express.bodyParser()); //for post parameter parsing
 app.engine('.html', whiskers.__express);
 app.set('views', __dirname+'/../views');
 
-getWikiContents = function(page, callback){
-  return fs.readFile("../files/"+page, function(err, data){
+processHtml = function(wikiMarkup){
+  return marked(wikiMarkup);
+}
+
+getWikiContents = function(page, toHtml, callback){
+  return fs.readFile("../files/"+page, "utf-8", function(err, data){
+    if(!data) data = '';
+    if(toHtml) data = processHtml(data);
     callback(data);
   });
 }
@@ -21,9 +28,6 @@ saveWikiContents = function(page, contents, callback){
 }
 
 app.get('/wiki/', function(request, response){
-  console.log('got view request for wiki index');
-  //get listing of available pages from disk
-  //for each page, render a link
   fs.readdir('../files/', function(err, files){
     if(err) return response.send(500, err);
     response.render('list.html', {pages: files});
@@ -33,8 +37,7 @@ app.get('/wiki/', function(request, response){
 app.get('/wiki/:page', function(request, response){
   var page = request.params.page;
   //read page if it exists
-  var content = getWikiContents(page, function(content){
-    if(!content) content = '';
+  var content = getWikiContents(page, true, function(content){
     var sep = /\/$/.test(request.path) ? '': '/';
     var editLink = request.path + sep + "edit";
     //show contents of page
@@ -45,7 +48,7 @@ app.get('/wiki/:page', function(request, response){
 app.get('/wiki/:page/edit', function(request, response){
   var page = request.params.page;
   var url = request.path;
-  var content = getWikiContents(page, function(content){
+  var content = getWikiContents(page, false, function(content){
     if(!content) content = ''; //no contents yet
     response.render('edit.html', {title: page, content: content, url: url} );
   });
