@@ -4,7 +4,8 @@
   "description": "Part One Source Code for Wiki in 500 Lines or Less",
   "main": "server.js",
   "dependencies": {
-    "express": "~3.4.8"
+    "express": "~3.4.8",
+    "whiskers": "~0.3.3"
   },
   "devDependencies": {},
   "scripts": {

@@ -14,6 +14,11 @@ Install CouchDB
 http://docs.couchdb.org/en/latest/install/index.html
 $sudo apt-get install couchdb  (v.1.2.1)
 
+Get express, whiskers
+$ npm install --save express
+$ npm install --save whiskers
+
+
 Building a wiki:
 Part 1: Simple UI, file store, anyone can edit, everything overwrites
 -Node web server
@@ -36,3 +41,4 @@ Other (if space allows):
 -image uploads
 -fancy preview
 -access permissions
+-search
