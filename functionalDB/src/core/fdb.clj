@@ -84,7 +84,7 @@
       (if frst-tx#     (recur                     rst-tx#              res#                                          (conj cnt#  (vec  frst-tx#)))
                            (list* (conj res# cnt#))))))
 
-(defn update-aevt-for-datum [aevt  ent-id attr new-val]
+(defn update-aevt-for-datom [aevt  ent-id attr new-val]
   (if (not= :REF (:type attr ))
     aevt
     (let [ old-ref-id (:value attr)
@@ -95,86 +95,37 @@
              updated-aevt (assoc-in cleaned-aevt [new-val attr-name] (conj  to-be-updated-ref ent-id) )
           ] updated-aevt)))
 
-(defn update-datum [db ent-id att-name  new-val]
+(defn update-datom [db ent-id att-name  new-val]
      (let [ new-ts (next-ts db)
             indices (last (:timestamped db))
             attr (get-in indices [:EAVT ent-id :attrs  att-name] )
             real-new-val  (val-from-ref (:type attr) new-val)
             updated-attr(assoc attr :value real-new-val :ts new-ts :prev-ts ( :ts attr))
            eavt-updated-indices (assoc-in indices [:EAVT ent-id :attrs att-name] updated-attr )
-           new-aevt (update-aevt-for-datum (:AEVT indices) ent-id attr real-new-val)
+           new-aevt (update-aevt-for-datom (:AEVT indices) ent-id attr real-new-val)
            fully-updated-indices (assoc eavt-updated-indices :AEVT new-aevt)
            new-db (assoc db :timestamped (conj  (:timestamped db) fully-updated-indices))
            ]new-db))
 
+(defn attr-at "The attribute of an entity at a given time (defaults to recent time)"
+  ([db ent-id attr-name] (attr-at db ent-id attr-name (:curr-time db)))
+  ([db ent-id attr-name ts]
+   (let [indices ((:timestamped db) ts)]  (get-in indices [:EAVT ent-id :attrs attr-name]))))
 
-(def db1 (make-db))
+(defn value-of-at  "value of a datom at a given time, if no time is provided, we default to the most recent value"
+  ([db e-id attr-name]  (:value (attr-at db e-id attr-name)))
+  ([db e-id attr-name ts] (:value (attr-at db e-id attr-name ts))))
 
-(def en1 (-> (make-entity "hiilt" "hotel" )
-         (add-attr (make-attr :hotel/room 12 :number))
-          (add-attr (make-attr :hotel/address "where" :string))))
-(transact db1 (add-entity en1))
+(defn relates-to-as "returns a seq of all the entities that had an attribute named attr-name whose type is REF and the value was e-id, all this at a given time"
+   ([db e-id attr-name]  (relates-to-as db e-id attr-name (:curr-time db)))
+  ([db e-id attr-name ts]
+      (let [indices ((:timestamped db) ts)
+              reffing-ids (get-in indices [:AEVT e-id attr-name])
+            ]
+        (map #(get-in indices [:EAVT %]) reffing-ids ))))
 
-;(def rel-e1 (get-in (last (:timestamped @db1)) [:EAVT :hiilt]))
-
-
-
-
-;(add-entity @db1 en1)
-
-(def ref1  (:hiilt (:EAVT(last (:timestamped @db1)))))
-(:e_id ref1)
-;(type(:attrs ref1))
-(def en2 (-> (make-entity "book")
-          (add-attr (make-attr :book/author "jon" :string))
-          (add-attr (make-attr :book/found-at ref1 :REF))))
-
- (def en3 (-> (make-entity "gate")
-           (add-attr (make-attr :gate/color "black" :string))
-          (add-attr (make-attr :gate/found-at ref1 :REF)) ))
-;(transact db1  (add-entity en2) (add-entity en3))
-
-
- ;(transact db1 (remove-entity ref1))
-
-
-
-(transact db1  (add-entity en2) (add-entity en3))
-(def ref12  (:1 (:EAVT(last (:timestamped @db1)))))
-
-
-(transact db1 (update-datum  :2  :gate/found-at ref12 ))
-
-
-;(swap! db1 transact-on-db [[remove-entity ref1]])
-;(macroexpand-1 '(transact db1 (remove-entity ref1)))
-;(macroexpand-1 '(transact2 db1 (add-entity en1) (add-entity en2)))
-;(swap! db1 add-entity en1)
-;(def ref1  (:hiilt (:EAVT(last (:timestamped @db1)))))
-
-
-
-
-
-;(swap! db1 add-entity en2)
-
-
-;(swap! db1 add-entity en3)
-
-
-   ;(add-attr @db1 "name" :string "Jim" )
- ;  (add-attr  @db1 "sur-name" :string "Doe" )
- ;  (add-attr  @db1 "age-name" :number 39 )
-
-
-;db
-;; (defn fact[n]
-;;   (if (<= n 0) 1
-;;     (* n (fact (dec n)))
-;;     )
-
-;;   )
-
-;; (fact 1)
-
-;(swap! db assoc :6 5
+(defn evolution-of "The sequence of the values of of an entity's attribute, as changed through time" [db ent-id attr-name]
+  (loop [res [] ts (:curr-time db)]
+    (if (= -1 ts) (reverse res)
+        (let [attr (attr-at db ent-id attr-name ts)]
+          (recur (conj res {ts (:value attr)})  (:prev-ts attr))))))
