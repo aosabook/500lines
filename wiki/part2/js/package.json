@@ -1,16 +1,18 @@
 {
-  "name": "wiki_part1",
+  "name": "wiki_part2",
   "version": "0.0.0",
-  "description": "Part One Source Code for Wiki in 500 Lines or Less",
+  "description": "Part Two Source Code for Wiki in 500 Lines or Less",
   "main": "server.js",
   "dependencies": {
     "express": "~3.4.8",
     "whiskers": "~0.3.3",
-    "marked": "~0.3.1"
+    "marked": "~0.3.1",
+    "request": "~2.33.0"
   },
   "devDependencies": {},
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --debug server.js"
   },
   "author": "Laurie MacDougall Sookraj",
   "license": "ISC"

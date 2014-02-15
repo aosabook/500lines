@@ -1,0 +1,15 @@
+<html>
+    <head>
+        <title>{title}</title>
+        <style>.error {color: red} </style>
+    </head>
+    <body>
+        <h1>{title}</h1>
+        <form action="{url}" method="post">
+            <input type="hidden" name="revision" value="{revision}"/>
+            <textarea name="content" style="width:80%;height:80%">{content}</textarea>
+            <div class="error">{error}</div>
+            <button type="submit">Save</button>
+        </form>
+    </body>
+</html>
