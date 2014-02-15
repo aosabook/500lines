@@ -27,8 +27,8 @@ getWikiContents = function(page, toHtml, callback){
   });
 }
 
-saveWikiContents = function(page, contents, revision, callback){
-  var args = {_id: page, content: contents};
+saveWikiContents = function(page, contents, revision, comment, callback){
+  var args = {_id: page, content: contents, comment: comment};
   if(revision) args['_rev'] = revision; //if a revision exists, it must be supplied to update, otherwise leave blank to insert
   requestMod({url: couchDBURL + page, method: 'PUT', json: args}, function(error, couchResponse, content){
       if(error) return callback(error);
@@ -73,16 +73,16 @@ app.get('/wiki/:page/edit', function(request, response){
 app.post('/wiki/:page/edit', function(request, response){
   var page = request.params.page;
   var revision = request.body.revision;
-  console.log(revision);
   var content = request.body.content; //TODO: sanitize input
-  saveWikiContents(page, content, revision, function(status){
+  var comment = request.body.comment;
+  saveWikiContents(page, content, revision, comment, function(status){
     if(status === 'ok') response.redirect('/wiki/'+page); //return to view
     else{ //display contents in editor
+      var error = 'Unable to save contents: ' + status;
       if(status === "conflict"){
-          response.render('edit.html', {title: page, content: content, url: request.path, error:'Unable to save contents due to a conflicting update.  Your version is shown above.  Refresh to load the latest version.'} );
-      }else{
-        response.render('edit.html', {title: page, content: content, url: request.path, error:'Unable to save contents: ' + status} );
+        var error = 'Unable to save contents due to a conflicting update.  Your version is shown above.  Refresh to load the latest version.';
       }
+      response.render('edit.html', {title: page, content: content, revision: revision, url: request.path, error: error, comment: comment} );
     }
   });
 });
