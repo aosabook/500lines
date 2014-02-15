@@ -5,5 +5,11 @@
         {for page in pages}
           <a href="/wiki/{page}">{page}</a><br/>
         {/for}
+        <form action="{url}" method="post">
+            <p>
+                <button type="submit">Add new page</button>
+                <input type="text" name = "title" value="title"/>
+            </p>
+        </form>
     </body>
 </html>

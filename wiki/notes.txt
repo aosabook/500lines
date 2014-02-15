@@ -20,25 +20,18 @@ $ npm install --save whiskers
 
 
 Building a wiki:
-Part 1: Simple UI, file store, anyone can edit, everything overwrites
+Part 1: Simple UI, file store, anyone can edit, everything overwrites (164 lines)
 -Node web server
 -HTML form
 -View/Edit modes
 -File store
-Part 2: Parse Wiki syntax
--Create new links from CamelCase
--Format text to html
-Part 3: CouchDB store
+-Parse wiki syntax to HTML (links etc)
+Part 2: CouchDB store
 -Replace File Store with new CouchDB
--Revision History
-Other (if space allows):
+-Revision History/Conflict resolution
+Other (as space allows):
 -user login/sign up/logout
 -integrate with Google/Twitter/FB auth
--conflict resolution/diffs
--compare revisions with each other
--rollback to older revision
--save local draft/cookie/session data
 -image uploads
 -fancy preview
--access permissions
 -search
