@@ -44,6 +44,17 @@ getSeparator = function(path){
   return /\/$/.test(path) ? '': '/';
 }
 
+showCompareEditor = function(request, response, args){
+  //get latest version of doc from couch
+  getWikiContents(args.title, false, function(doc){
+    //show contents of both pages
+    args['comparecontent'] = doc.content;
+    args['comparecomment'] = doc.comment;
+    args['rightrev'] = doc._rev;
+    response.render('diff.html', args);
+  });
+}
+
 app.get('/wiki/', function(request, response){
   requestMod(couchDBURL + '_all_docs', function(error, couchResponse, content){
     if(error) return response.send(couchResponse.statusCode, error);
@@ -55,7 +66,7 @@ app.get('/wiki/', function(request, response){
 app.get('/wiki/:page', function(request, response){
   var page = request.params.page;
   //read page if it exists
-  var content = getWikiContents(page, true, function(doc){
+  getWikiContents(page, true, function(doc){
     var editLink = request.path + getSeparator(request.path) + "edit";
     //show contents of page
     response.render('view.html', {title: page, content: doc.content, editLink: editLink} );
@@ -78,11 +89,12 @@ app.post('/wiki/:page/edit', function(request, response){
   saveWikiContents(page, content, revision, comment, function(status){
     if(status === 'ok') response.redirect('/wiki/'+page); //return to view
     else{ //display contents in editor
-      var error = 'Unable to save contents: ' + status;
       if(status === "conflict"){
-        var error = 'Unable to save contents due to a conflicting update.  Your version is shown above.  Refresh to load the latest version.';
+        showCompareEditor(request, response, {title: page, content: content, leftrev: 'Your edits', revision: revision, url: request.path, error: 'Conflict Detected', comment: comment});
+      }else{
+        response.render('edit.html', {title: page, content: content, revision: revision, url: request.path, error: 'Unable to save contents: ' + status, comment: comment} );
       }
-      response.render('edit.html', {title: page, content: content, revision: revision, url: request.path, error: error, comment: comment} );
+
     }
   });
 });
