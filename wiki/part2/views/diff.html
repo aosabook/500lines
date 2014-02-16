@@ -12,7 +12,7 @@
         <h1>{title}</h1>
         <div class="error">{error}</div>
         <div class="left">
-            <h2>{leftrev}</h2>
+            <h2>{editrev}</h2>
             <form action="{url}" method="post">
                 <input type="hidden" name="revision" value="{rightrev}"/>
                 <textarea name="content" style="width:95%;height:80%">{content}</textarea>
@@ -22,10 +22,9 @@
             </form>
         </div>
         <div class="right">
-            <h2>Rev. {rightrev}</h2>
+            <h2>Saved {comparedate}</h2>
             <div class="comparecontent"><pre>{comparecontent}</pre></div>
-            <br/>
-            Comment: {comparecomment}
+            <br/>Comment: {comparecomment}
         </div>
     </body>
 </html>

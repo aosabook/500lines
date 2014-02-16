@@ -3,6 +3,7 @@ var express = require('express'),
     fs = require('fs'),
     whiskers = require('whiskers'),
     marked = require('marked'),
+    dateformat = require('dateformat'),
     app = express();
 
 var couchDBURL = 'http://localhost:5984/wiki/';
@@ -28,7 +29,7 @@ getWikiContents = function(page, toHtml, callback){
 }
 
 saveWikiContents = function(page, contents, revision, comment, callback){
-  var args = {_id: page, content: contents, comment: comment};
+  var args = {_id: page, content: contents, comment: comment, updatedDate: new Date()};
   if(revision) args['_rev'] = revision; //if a revision exists, it must be supplied to update, otherwise leave blank to insert
   requestMod({url: couchDBURL + page, method: 'PUT', json: args}, function(error, couchResponse, content){
       if(error) return callback(error);
@@ -50,7 +51,8 @@ showCompareEditor = function(request, response, args){
     //show contents of both pages
     args['comparecontent'] = doc.content;
     args['comparecomment'] = doc.comment;
-    args['rightrev'] = doc._rev;
+    args['comparedate'] = dateformat(doc.updatedDate, "h:MMTT d-mmm-yyyy");
+    args['comparerev'] = doc._rev;
     response.render('diff.html', args);
   });
 }
@@ -90,7 +92,7 @@ app.post('/wiki/:page/edit', function(request, response){
     if(status === 'ok') response.redirect('/wiki/'+page); //return to view
     else{ //display contents in editor
       if(status === "conflict"){
-        showCompareEditor(request, response, {title: page, content: content, leftrev: 'Your edits', revision: revision, url: request.path, error: 'Conflict Detected', comment: comment});
+        showCompareEditor(request, response, {title: page, content: content, editrev: 'Your edits', revision: revision, url: request.path, error: 'Conflict Detected', comment: comment});
       }else{
         response.render('edit.html', {title: page, content: content, revision: revision, url: request.path, error: 'Unable to save contents: ' + status, comment: comment} );
       }
