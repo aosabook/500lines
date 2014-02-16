@@ -27,6 +27,7 @@ curl -X PUT http://127.0.0.1:5984/wiki -> {"ok":true}
 http://127.0.0.1:5984/wiki -> {"db_name":"wiki","doc_count":0,"doc_del_count":0,"update_seq":0,"purge_seq":0,"compact_running":false,"disk_size":79,"data_size":0,"instance_start_time":"1392495940793175","disk_format_version":6,"committed_update_seq":0}
 
 $ npm install --save request
+$ npm install --save dateformat
 
 Building a wiki:
 Part 1: Simple UI, file store, anyone can edit, everything overwrites (164 lines)
@@ -35,13 +36,15 @@ Part 1: Simple UI, file store, anyone can edit, everything overwrites (164 lines
 -View/Edit modes
 -File store
 -Parse wiki syntax to HTML (links etc)
-Part 2: CouchDB store
+Part 2: CouchDB store (203 lines)
 -Replace File Store with new CouchDB
--Revision History/Conflict resolution
--Comments
-Other (as space allows):
--user login/sign up/logout
--integrate with Google/Twitter/FB auth
--image uploads
+-Comments, timestamps
+-Conflict resolution
+Part 3: Fancy stuff (as space allows):
+-revision history
+-fancy diff/merge
 -fancy preview
 -search
+-user login/sign up/logout
+-integrate with Google/Twitter/FB auth
+-images
