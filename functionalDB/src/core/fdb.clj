@@ -9,18 +9,17 @@
 
 (defn make-entity  ([name] (make-entity :no-id-yet name))
   ([id name] (Entity.  id name {})))
+(defn val-from-ref[attr-type attr-val](if (= :REF attr-type) (:e_id attr-val) attr-val ))
 
 (defn make-attr[name val type]  (Attr. name type (val-from-ref type val) -1 -1))
 (defn add-attr[ ent attr] (assoc-in ent [:attrs (keyword (:name attr))] attr))
 
 (defn next-ts [db] (inc (:curr-time db)))
-(defn nextId[db ent] (
-                      let [ topId (:topId db)
-                            entId (:e_id ent)
-                            [idToUse nextTop] (if (= entId :no-id-yet) [(inc topId) (inc topId)] [entId topId])]
-                      [idToUse (keyword (str idToUse)) nextTop]))
 
-(defn val-from-ref[attr-type attr-val](if (= :REF attr-type) (:e_id attr-val) attr-val ))
+(defn nextId[db ent] (let   [ topId (:topId db)
+                                        entId (:e_id ent)
+                                       [idToUse nextTop] (if (= entId :no-id-yet) [(inc topId) (inc topId)] [entId topId])]
+                              [idToUse (keyword (str idToUse)) nextTop]))
 
 (defn update-creation-ts [ent tsVal]
   (let [ks (keys (:attrs ent))
@@ -37,8 +36,7 @@
         attr-name (:name attr)
         back-reffing-set (get-in aevt [reffed-id attr-name] #{} )
         new-back-reffing-set (operation back-reffing-set (:e_id ent))
-        ] (assoc-in aevt [reffed-id attr-name] new-back-reffing-set)
-  ))
+        ] (assoc-in aevt [reffed-id attr-name] new-back-reffing-set)))
 
 (defn update-aevt[old-aevt ent operation]
   (let [reffingAttrs (filter #(= :REF (:type %)) (vals (:attrs ent)))
@@ -67,22 +65,27 @@
         res  (assoc db :timestamped (conj  (:timestamped db) new-indices))]
         res))
 
-(defn transact-on-db [initial-db txs]
+(defn transact-on-db [initial-db  txs]
     (loop [[tx & rst-tx] txs transacted initial-db]
+
       (if tx    (recur rst-tx (apply (first tx) transacted (rest tx)))
                  (let [ initial-indices  (:timestamped initial-db)
                           new-indices (last (:timestamped transacted))
-                        transacted transacted
                         res (assoc initial-db :timestamped (conj  initial-indices new-indices)
                                            :curr-time (next-ts initial-db)
                                            :topId (:topId transacted)) ]
-                       res))))
+                   res))))
 
-(defmacro transact [db & txs]
+(defmacro transact_ [db op & txs]
   (when txs
-    (loop              [[frst-tx# & rst-tx#] txs         res#   ['swap! db 'transact-on-db] cnt# []]
-      (if frst-tx#     (recur                     rst-tx#              res#                                          (conj cnt#  (vec  frst-tx#)))
-                           (list* (conj res# cnt#))))))
+    (loop              [[frst-tx# & rst-tx#] txs         res#   [op db 'transact-on-db]               accum-txs# []]
+      (if frst-tx#     (recur                     rst-tx#              res#                                          (conj  accum-txs#  (vec  frst-tx#)))
+                           (list* (conj res#  accum-txs#))))))
+
+(defn _what-if [ db f  txs] (f db txs))
+
+(defmacro what-if [db & txs]  `(transact_ ~db   _what-if  ~@txs))
+(defmacro transact [db & txs] `(transact_ ~db swap! ~@txs))
 
 (defn update-aevt-for-datom [aevt  ent-id attr new-val]
   (if (not= :REF (:type attr ))
