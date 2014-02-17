@@ -1,23 +1,23 @@
 (ns core.fdb)
 
-(defrecord Entity [e_id name attrs])
+(defrecord Entity [id name attrs])
 (defrecord Attr [name type value ts prev-ts])
 
 (defn make-db[] ; EAVT: all the entity info, AEVT for attrs who are REFs, we hold the back-pointing (from the REFFed entity to the REFing entities)
-  (atom {:timestamped [{:EAVT {} :AEVT {}}]
-          :topId 0 :curr-time 0}))
+    (atom {:timestamped [{:EAVT {} :AEVT {}}]  :topId 0 :curr-time 0}))
 
 (defn make-entity  ([name] (make-entity :no-id-yet name))
   ([id name] (Entity.  id name {})))
-(defn val-from-ref[attr-type attr-val](if (= :REF attr-type) (:e_id attr-val) attr-val ))
 
-(defn make-attr[name val type]  (Attr. name type (val-from-ref type val) -1 -1))
+(defn val-from-ref[attr-type attr-val](if (= :REF attr-type) (:id attr-val) attr-val ))
+
+(defn make-attr[name value type]  (Attr. name type (val-from-ref type value) -1 -1))
 (defn add-attr[ ent attr] (assoc-in ent [:attrs (keyword (:name attr))] attr))
 
 (defn next-ts [db] (inc (:curr-time db)))
 
 (defn nextId[db ent] (let   [ topId (:topId db)
-                                        entId (:e_id ent)
+                                        entId (:id ent)
                                        [idToUse nextTop] (if (= entId :no-id-yet) [(inc topId) (inc topId)] [entId topId])]
                               [idToUse (keyword (str idToUse)) nextTop]))
 
@@ -35,7 +35,7 @@
   (let [reffed-id (:value attr)
         attr-name (:name attr)
         back-reffing-set (get-in aevt [reffed-id attr-name] #{} )
-        new-back-reffing-set (operation back-reffing-set (:e_id ent))
+        new-back-reffing-set (operation back-reffing-set (:id ent))
         ] (assoc-in aevt [reffed-id attr-name] new-back-reffing-set)))
 
 (defn update-aevt[old-aevt ent operation]
@@ -47,16 +47,15 @@
 (defn add-entity[db ent]   (let [[ent-id ent-id-key next-top] (nextId db ent)
                                  new-ts (next-ts db)
                                  indices (last (:timestamped db))
-                                 fixed-ent (assoc ent :e_id ent-id-key)
+                                 fixed-ent (assoc ent :id ent-id-key)
                                  new-eavt (assoc (:EAVT indices) ent-id-key  (update-creation-ts fixed-ent new-ts) )
                                  new-aevt (update-aevt  (:AEVT indices) fixed-ent conj)
                                  new-indices (assoc indices :AEVT new-aevt :EAVT new-eavt )
-                                ](assoc db
-                                  :timestamped  (conj (:timestamped db) new-indices)
-                                  :topId next-top)))
+                                ](assoc db :timestamped  (conj (:timestamped db) new-indices)
+                                                 :topId next-top)))
 
 (defn remove-entity[db ent]
-  (let [ent-id (:e_id ent)
+  (let [ent-id (:id ent)
          indices (last (:timestamped db))
         aevt (update-aevt  (:AEVT indices) ent disj)
         new-eavt (dissoc (:EAVT indices) ent-id) ; removing the entity
@@ -73,8 +72,8 @@
                           new-indices (last (:timestamped transacted))
                         res (assoc initial-db :timestamped (conj  initial-indices new-indices)
                                            :curr-time (next-ts initial-db)
-                                           :topId (:topId transacted)) ]
-                   res))))
+                                           :topId (:topId transacted))]
+                  res))))
 
 (defmacro transact_ [db op & txs]
   (when txs
