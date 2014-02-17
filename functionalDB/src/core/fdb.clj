@@ -103,11 +103,14 @@
             attr (get-in indices [:EAVT ent-id :attrs  att-name] )
             real-new-val  (val-from-ref (:type attr) new-val)
             updated-attr(assoc attr :value real-new-val :ts new-ts :prev-ts ( :ts attr))
-           eavt-updated-indices (assoc-in indices [:EAVT ent-id :attrs att-name] updated-attr )
-           new-aevt (update-aevt-for-datom (:AEVT indices) ent-id attr real-new-val)
-           fully-updated-indices (assoc eavt-updated-indices :AEVT new-aevt)
-           new-db (assoc db :timestamped (conj  (:timestamped db) fully-updated-indices))
+            eavt-updated-indices (assoc-in indices [:EAVT ent-id :attrs att-name] updated-attr )
+            new-aevt (update-aevt-for-datom (:AEVT indices) ent-id attr real-new-val)
+            fully-updated-indices (assoc eavt-updated-indices :AEVT new-aevt)
+            new-db (assoc db :timestamped (conj  (:timestamped db) fully-updated-indices))
            ]new-db))
+
+(defn entity-at ([db ent-id ts] ((keyword ent-id) ((:timestamped db) ts)))
+                      ([db ent-id] (entity-at db ent-id (:curr-time db))) )
 
 (defn attr-at "The attribute of an entity at a given time (defaults to recent time)"
   ([db ent-id attr-name] (attr-at db ent-id attr-name (:curr-time db)))
@@ -118,7 +121,7 @@
   ([db e-id attr-name]  (:value (attr-at db e-id attr-name)))
   ([db e-id attr-name ts] (:value (attr-at db e-id attr-name ts))))
 
-(defn relates-to-as "returns a seq of all the entities that had an attribute named attr-name whose type is REF and the value was e-id, all this at a given time"
+(defn relates-to-as "returns a seq of all the entities that REFed to a specific entity with the given attr-name (alternativly had an attribute named attr-name whose type is REF and the value was e-id), all this at a given time"
    ([db e-id attr-name]  (relates-to-as db e-id attr-name (:curr-time db)))
   ([db e-id attr-name ts]
       (let [indices ((:timestamped db) ts)
