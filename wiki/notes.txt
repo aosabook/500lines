@@ -30,21 +30,20 @@ $ npm install --save request
 $ npm install --save dateformat
 
 Building a wiki:
-Part 1: Simple UI, file store, anyone can edit, everything overwrites (164 lines)
+Part 1: Simple UI, file store, anyone can edit, everything overwrites (165 lines):
 -Node web server
 -HTML form
 -View/Edit modes
 -File store
 -Parse wiki syntax to HTML (links etc)
-Part 2: CouchDB store (203 lines)
+-Basic preview
+Part 2: CouchDB store (213 lines, replaces part 1 content):
 -Replace File Store with new CouchDB
 -Comments, timestamps
 -Conflict resolution
 Part 3: Fancy stuff (as space allows):
--revision history
--fancy diff/merge
--fancy preview
--search
--user login/sign up/logout
--integrate with Google/Twitter/FB auth
--images
+-user login/sign up/logout with passport
+-revision history - display all past revisions with dates and comments and user ids
+-fancy diff/merge - use https://github.com/kpdecker/jsdiff?
+-search - create indexes/views for CouchDB to search text
+-fancy preview - use javascript UI to update preview in realtime

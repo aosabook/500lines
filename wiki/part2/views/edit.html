@@ -1,18 +1,12 @@
-<html>
-    <head>
-        <title>{title}</title>
-        <style>.error {color: red} </style>
-    </head>
-    <body>
-        <h1>{title}</h1>
-        <form action="{url}" method="post">
-            <input type="hidden" name="revision" value="{revision}"/>
-            <textarea name="content" style="width:80%;height:80%">{content}</textarea>
-            <br/>
-            <label for="comment">Comment:</label><input type="text" name="comment" value="{comment}" size="40"/>
-            <div class="error">{error}</div>
-            <button type="submit">Save</button>
-            <a href="/wiki/{title}/">Cancel</a>
-        </form>
-    </body>
-</html>
+<h1>{title}</h1>
+<form action="{url}" method="post">
+    <input type="hidden" name="revision" value="{revision}"/>
+    <textarea name="content" style="width:95%;height:80%">{content}</textarea>
+    <br/>
+    <label for="comment">Comment:</label><input type="text" name="comment" value="{comment}" size="40"/>
+    <div class="error">{error}</div>
+    <button type="submit">Save</button>
+    <button type="submit" name="preview" value="preview">Preview</button>
+    <button type="submit" name="cancel" value="cancel">Cancel</button>
+    <input type="hidden" name="error" value="{error}" />
+</form>

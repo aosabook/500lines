@@ -1,30 +1,10 @@
-<html>
-    <head>
-        <title>{title}</title>
-        <style>
-            .error {color: red}
-            .left {float: left; width: 49%}
-            .right {float: right; width: 49% }
-            .comparecontent {border: 1px solid; padding: 3px;}
-        </style>
-    </head>
-    <body>
-        <h1>{title}</h1>
-        <div class="error">{error}</div>
-        <div class="left">
-            <h2>{editrev}</h2>
-            <form action="{url}" method="post">
-                <input type="hidden" name="revision" value="{rightrev}"/>
-                <textarea name="content" style="width:95%;height:80%">{content}</textarea>
-                <br/>
-                <label for="comment">Comment:</label><input type="text" name="comment" value="{comment}" size="40"/>
-                <button type="submit">Save</button>
-            </form>
-        </div>
-        <div class="right">
-            <h2>Saved {comparedate}</h2>
-            <div class="comparecontent"><pre>{comparecontent}</pre></div>
-            <br/>Comment: {comparecomment}
-        </div>
-    </body>
-</html>
+<h1>{title}</h1>
+<div class="error">{error}</div>
+<div class="left">
+    {>editor}
+</div>
+<div class="right">
+    <h2>Saved {comparedate}</h2>
+    <div class="comparecontent"><pre>{comparecontent}</pre></div>
+    <br/>Comment: {comparecomment}
+</div>

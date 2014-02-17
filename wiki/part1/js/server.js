@@ -32,7 +32,7 @@ saveWikiContents = function(page, contents, callback){
   });
 }
 
-app.get('/wiki/', function(request, response){
+app.get('/wiki', function(request, response){
   fs.readdir('../files/', function(err, files){
     if(err) return response.send(500, err);
     var addLink = request.path + getSeparator(request.path) + "add";
@@ -61,15 +61,22 @@ app.get('/wiki/:page/edit', function(request, response){
 
 app.post('/wiki/:page/edit', function(request, response){
   var page = request.params.page;
+  var cancel = request.body.cancel;
+  if("cancel" === cancel) return response.redirect('/wiki/'+page);
   var content = request.body.content; //TODO: sanitize input
-  saveWikiContents(page, content, function(success){
-    if(success) response.redirect('/wiki/'+page); //return to view
-    else{ //display contents in editor
-      response.render('edit.html', {title: page, content: content, url: request.path, error:'Unable to save contents'} );
-    }
-  });
-});
 
+  var preview = request.body.preview;
+  if("preview" === preview){
+    return response.render('preview.html', {title: page, content: content, html_content: processHtml(content), url: request.path});
+  }else{
+    saveWikiContents(page, content, function(success){
+      if(success) response.redirect('/wiki/'+page); //return to view
+      else{ //display contents in editor
+        response.render('edit.html', {title: page, content: content, url: request.path, error:'Unable to save contents'} );
+      }
+    });
+  }
+});
 
 app.post('/wiki/add', function(request, response){
   var page = request.body.title;

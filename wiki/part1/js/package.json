@@ -10,7 +10,8 @@
   },
   "devDependencies": {},
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --debug server.js"
   },
   "author": "Laurie MacDougall Sookraj",
   "license": "ISC"

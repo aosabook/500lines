@@ -1,12 +1,15 @@
 <html>
     <head>
-        <title>{title}</title>
+        <title>{title} Preview</title>
         <style>.error {color: red} </style>
     </head>
     <body>
-        <h1>{title}</h1>
+        <h1>{title} Preview</h1>
+        <hr/>
+        {html_content}
+        <hr/>
         <form action="{url}" method="post">
-            <textarea name="content" style="width:80%;height:80%">{content}</textarea>
+            <textarea name="content" style="width:80%;height:50%">{content}</textarea>
             <div class="error">{error}</div>
             <button type="submit" name="save" value="save">Save</button>
             <button type="submit" name="preview" value="preview">Preview</button>
