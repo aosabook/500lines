@@ -2,9 +2,11 @@
 
 (defrecord Entity [id name attrs])
 (defrecord Attr [name type value ts prev-ts])
+(defrecord Database [timestamped top-id curr-time])
+(defrecord Indices [EAVT AEVT])
+(defn make-db[] (atom (Database. [(Indices. {} {})] 0 0) ;EAVT: all the entity info, AEVT for attrs who are REFs, we hold the back-pointing (from the REFFed entity to the REFing entities)
+     )) ;
 
-(defn make-db[] ; EAVT: all the entity info, AEVT for attrs who are REFs, we hold the back-pointing (from the REFFed entity to the REFing entities)
-    (atom {:timestamped [{:EAVT {} :AEVT {}}]  :topId 0 :curr-time 0}))
 
 (defn make-entity  ([name] (make-entity :no-id-yet name))
   ([id name] (Entity.  id name {})))
@@ -16,9 +18,9 @@
 
 (defn next-ts [db] (inc (:curr-time db)))
 
-(defn nextId[db ent] (let   [ topId (:topId db)
+(defn nextId[db ent] (let   [ top-id (:top-id db)
                                         entId (:id ent)
-                                       [idToUse nextTop] (if (= entId :no-id-yet) [(inc topId) (inc topId)] [entId topId])]
+                                       [idToUse nextTop] (if (= entId :no-id-yet) [(inc top-id) (inc top-id)] [entId top-id])]
                               [idToUse (keyword (str idToUse)) nextTop]))
 
 (defn update-creation-ts [ent tsVal]
@@ -52,7 +54,7 @@
                                  new-aevt (update-aevt  (:AEVT indices) fixed-ent conj)
                                  new-indices (assoc indices :AEVT new-aevt :EAVT new-eavt )
                                 ](assoc db :timestamped  (conj (:timestamped db) new-indices)
-                                                 :topId next-top)))
+                                                 :top-id next-top)))
 
 (defn remove-entity[db ent]
   (let [ent-id (:id ent)
@@ -72,7 +74,7 @@
                           new-indices (last (:timestamped transacted))
                         res (assoc initial-db :timestamped (conj  initial-indices new-indices)
                                            :curr-time (next-ts initial-db)
-                                           :topId (:topId transacted))]
+                                           :top-id (:top-id transacted))]
                   res))))
 
 (defmacro transact_ [db op & txs]
