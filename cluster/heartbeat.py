@@ -19,6 +19,9 @@ class Heartbeat(Component):
             self.heartbeat()
             self.running = True
 
+    def do_HEARTBEAT(self, sender):
+        self.last_heard_from[sender] = self.clock()
+
     def heartbeat(self):
         # send heartbeats to other nodes
         self.send(self.last_heard_from.keys(), 'HEARTBEAT', sender=self.address)

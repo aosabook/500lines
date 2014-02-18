@@ -72,10 +72,14 @@ class Replica(Component):
         self.peers = viewchange.peers
         self.peers_down = set()
 
-    def on_lost_peers_event(self, down):
+    def on_peers_down_event(self, down):
         self.peers_down = down
         if self.viewchange_proposal and self.viewchange_proposal not in self.decisions:
             return  # we're still working on a viewchange that hasn't been decided
+        new_peers = tuple(sorted(set(self.peers) - set(down)))
+        if len(new_peers) < 3:
+            self.logger.info("lost peer(s) %s; need at least three peers" % (down,))
+            return
         self.logger.info("lost peer(s) %s; proposing new view" % (down,))
         self.viewchange_proposal = Proposal(
                 None, None,
