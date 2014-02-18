@@ -1,5 +1,4 @@
 import protocol
-from protocol import ViewChange
 from member import Component
 
 
@@ -20,9 +19,10 @@ class Bootstrap(Component):
         self.send([self.peers[0]], 'JOIN', requester=self.address)
         self.timer = self.set_timer(protocol.JOIN_RETRANSMIT, self.join)
 
-    def do_WELCOME(self, state, slot_num, decisions, viewid, peers):
-        self.bootstrapped_cb(state, slot_num, decisions, viewid, peers)
-        self.event('view_change', viewchange=ViewChange(viewid, peers))  # TODO: pass viewid, peers separately
+    def do_WELCOME(self, state, slot_num, decisions, viewid, peers, peer_history):
+        self.bootstrapped_cb(state, slot_num, decisions, viewid, peers, peer_history)
+        self.event('view_change', viewid=viewid, peers=peers, slot=slot_num)
+        self.event('peer_history_update', peer_history=peer_history)
         if self.timer:
             self.cancel_timer(self.timer)
         self.stop()

@@ -27,12 +27,14 @@ class Seed(Component):
         if requester not in self.peers:
             return
 
+        peer_history = dict((sl, self.peers) for sl in range(0, protocol.ALPHA))
         self.send(self.peers, 'WELCOME',
                   state=self.initial_state,
-                  slot_num=1,
+                  slot_num=protocol.ALPHA,
                   decisions=defaultlist(),
                   viewid=0,
-                  peers=list(self.peers))
+                  peers=list(self.peers),
+                  peer_history=peer_history.copy())
 
         # stick around for long enough that we don't hear any new JOINs from
         # the newly formed cluster
