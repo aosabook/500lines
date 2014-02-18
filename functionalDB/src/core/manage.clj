@@ -9,7 +9,3 @@
   ((keyword db-name) (swap! all-dbs _get-db (keyword db-name))))
 
 (defn db-from-conn [conn] @conn)
-
-(get-db-conn "aa")
-(get-db-conn "ab")
-@all-dbs
