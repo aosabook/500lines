@@ -68,7 +68,7 @@ class Leader(Component):
             self.logger.info("leader preempted by view change")
         self.active = False
         self.ballot_num = Ballot(
-            (ballot_num if ballot_num else self.ballot_num).n + 1, self.unique_id)
+            (ballot_num if ballot_num else self.ballot_num).n + 1, self.ballot_num.leader)
         # if we're the primary for this view, re-scout immediately
         if not self.scout and self.is_primary:
             self.logger.info("re-scouting as the primary for this view")

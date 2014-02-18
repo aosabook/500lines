@@ -43,12 +43,6 @@ def status_json(request, network):
 
 
 import string
-def pick_name(network):
-    while True:
-        name = 'Node-' + network.rnd.choice(string.ascii_uppercase)
-        if name not in network.nodes:
-            return name
-
 def run_monitor_web(network):
     class HandlerClass(SimpleHTTPRequestHandler):
         protocol_version = 'HTTP/1.0'
@@ -90,26 +84,25 @@ if __name__ == "__main__":
                for _ in range(3)]
 
     # set up the client
-    client = client.Client(network.new_node())
+    client_node = network.new_node()
+    client = client.Client(client_node)
 
     # kill and create nodes often
-#    def modify():
-#        if not network.rnd.randint(0, 2):
-#            # KILL
-#            if len(network.nodes) > 3:
-#                victim = network.rnd.choice(network.nodes.keys())
-#                if victim.startswith('Node-'):
-#                    network.nodes[victim].stop()
-#        else:
-#            # create
-#            if len(network.nodes) < 10:
-#                node_name = pick_name(network)
-#                node = member_replicated.ClusterMember(sequence_generator, peers=network.nodes.keys())
-#                node.set_up_node(node_name, network)
-#                node.start()
-#
-#        network.set_timer(network.rnd.uniform(2.0, 3.0), 'Client', modify)
-#    node.set_timer(1.0, modify)
+    def modify():
+        if not network.rnd.randint(0, 2):
+            # KILL
+            if len(network.nodes) > 3:
+                victim = network.rnd.choice(network.nodes.keys())
+                if victim != client_node.address:
+                    network.nodes[victim].kill()
+        else:
+            # create
+            if len(network.nodes) < 10:
+                node = member_replicated.ClusterMember(network.new_node(), sequence_generator, peers=network.nodes.keys())
+                node.start()
+
+        client_node.set_timer(network.rnd.uniform(2.0, 3.0), modify)
+    client_node.set_timer(1.0, modify)
 
 #    run_monitor_web(network)
 
