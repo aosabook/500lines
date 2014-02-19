@@ -3,8 +3,8 @@
 (defrecord Entity [id name attrs])
 (defrecord Attr [name type value ts prev-ts])
 (defrecord Database [timestamped top-id curr-time])
-(defrecord Indices [EAVT AEVT AVET])
-(defn make-db[] (atom (Database. [(Indices. {} {} {})] 0 0) ;EAVT: all the entity info, AEVT for attrs who are REFs, we hold the back-pointing (from the REFFed entity to the REFing entities)
+(defrecord Indices [EAVT VAET AVET])
+(defn make-db[] (atom (Database. [(Indices. {} {} {})] 0 0) ;EAVT: all the entity info, vaet for attrs who are REFs, we hold the back-pointing (from the REFFed entity to the REFing entities)
      )) ;
 
 
@@ -33,15 +33,15 @@
         updatedAttrs (zipmap ks updatedAttrsVals)
         ](assoc ent :attrs updatedAttrs)))
 
-;  AEVT -> {REFed-ent-id -> {attrName -> [REFing-elems-ids]}}
+;  vaet -> {REFed-ent-id -> {attrName -> [REFing-elems-ids]}}
 ; this basically provides the info - for each entity that is REFFed by others, who are the others who are REFing it, separated
 ; by the names of the attribute used for reffing
-(defn add-ref-to-aevt[ent operation aevt attr]
+(defn add-ref-to-vaet[ent operation vaet attr]
   (let [reffed-id (:value attr)
         attr-name (:name attr)
-        back-reffing-set (get-in aevt [reffed-id attr-name] #{} )
+        back-reffing-set (get-in vaet [reffed-id attr-name] #{} )
         new-back-reffing-set (operation back-reffing-set (:id ent))
-        ] (assoc-in aevt [reffed-id attr-name] new-back-reffing-set)))
+        ] (assoc-in vaet [reffed-id attr-name] new-back-reffing-set)))
 
 (defn update-attr-in-avet[ent operation avet attr]
   (let [attr-name (:name attr)
@@ -51,10 +51,10 @@
         ] (assoc-in avet [attr-name attr-value] updated-entities-set))
   )
 
-(defn update-aevt[old-aevt ent operation]
+(defn update-vaet[old-vaet ent operation]
   (let [reffingAttrs (filter #(= :REF (:type %)) (vals (:attrs ent)))
-        add-ref (partial add-ref-to-aevt ent operation)]
-       (reduce add-ref old-aevt reffingAttrs)))
+        add-ref (partial add-ref-to-vaet ent operation)]
+       (reduce add-ref old-vaet reffingAttrs)))
 
 ;avet : attr-name -> attr-value -> #{ids of ents}
 (defn update-avet [old-avet ent operation]
@@ -68,20 +68,20 @@
                                  indices (last (:timestamped db))
                                  fixed-ent (assoc ent :id ent-id)
                                  new-eavt (assoc (:EAVT indices) ent-id  (update-creation-ts fixed-ent new-ts) )
-                                 new-aevt (update-aevt  (:AEVT indices) fixed-ent conj)
+                                 new-vaet (update-vaet  (:VAET indices) fixed-ent conj)
                                  new-avet (update-avet (:AVET indices) fixed-ent conj)
-                                 new-indices (assoc indices :AEVT new-aevt :EAVT new-eavt :AVET new-avet )
+                                 new-indices (assoc indices :VAET new-vaet :EAVT new-eavt :AVET new-avet )
                                 ](assoc db :timestamped  (conj (:timestamped db) new-indices)
                                                  :top-id next-top)))
 
 (defn remove-entity[db ent]
   (let [ent-id (:id ent)
          indices (last (:timestamped db))
-        aevt (update-aevt  (:AEVT indices) ent disj)
+        vaet (update-vaet  (:VAET indices) ent disj)
         avet (update-avet  (:AVET indices) ent disj)
         new-eavt (dissoc (:EAVT indices) ent-id) ; removing the entity
-        new-aevt (dissoc aevt ent-id) ; removing incoming REFs to the entity
-        new-indices (assoc indices :EAVT new-eavt :AEVT new-aevt :AVET avet)
+        new-vaet (dissoc vaet ent-id) ; removing incoming REFs to the entity
+        new-indices (assoc indices :EAVT new-eavt :VAET new-vaet :AVET avet)
         res  (assoc db :timestamped (conj  (:timestamped db) new-indices))]
         res))
 
@@ -107,16 +107,16 @@
 (defmacro what-if [db & txs]  `(transact_ ~db   _what-if  ~@txs))
 (defmacro transact [db & txs] `(transact_ ~db swap! ~@txs))
 
-(defn update-aevt-for-datom [aevt  ent-id attr new-val]
+(defn update-vaet-for-datom [vaet  ent-id attr new-val]
   (if (not= :REF (:type attr ))
-    aevt
+    vaet
     (let [ old-ref-id (:value attr)
              attr-name (:name attr)
-             old-reffed (get-in aevt [old-ref-id attr-name])
-             cleaned-aevt (assoc-in aevt [old-ref-id attr-name] (disj old-reffed ent-id))
-             to-be-updated-ref (get-in aevt [new-val attr-name] #{})
-             updated-aevt (assoc-in cleaned-aevt [new-val attr-name] (conj  to-be-updated-ref ent-id) )
-          ] updated-aevt)))
+             old-reffed (get-in vaet [old-ref-id attr-name])
+             cleaned-vaet (assoc-in vaet [old-ref-id attr-name] (disj old-reffed ent-id))
+             to-be-updated-ref (get-in vaet [new-val attr-name] #{})
+             updated-vaet (assoc-in cleaned-vaet [new-val attr-name] (conj  to-be-updated-ref ent-id) )
+          ] updated-vaet)))
 
 (defn update-avet-for-datom [avet ent-id attr new-val]
   (if (:indexed (meta attr))
@@ -136,9 +136,9 @@
             real-new-val  (val-from-ref (:type attr) new-val)
             updated-attr(assoc attr :value real-new-val :ts new-ts :prev-ts ( :ts attr))
             eavt-updated-indices (assoc-in indices [:EAVT ent-id :attrs att-name] updated-attr )
-            new-aevt (update-aevt-for-datom (:AEVT indices) ent-id attr real-new-val)
+            new-vaet (update-vaet-for-datom (:VAET indices) ent-id attr real-new-val)
             new-avet (update-avet-for-datom (:AVET indices) ent-id attr real-new-val)
-            fully-updated-indices (assoc eavt-updated-indices :AEVT new-aevt :AVET new-avet)
+            fully-updated-indices (assoc eavt-updated-indices :VAET new-vaet :AVET new-avet)
             new-db (assoc db :timestamped (conj  (:timestamped db) fully-updated-indices))
            ]new-db))
 
@@ -158,7 +158,7 @@
    ([db e-id attr-name]  (relates-to-as db e-id attr-name (:curr-time db)))
   ([db e-id attr-name ts]
       (let [indices ((:timestamped db) ts)
-              reffing-ids (get-in indices [:AEVT e-id attr-name])]
+              reffing-ids (get-in indices [:VAET e-id attr-name])]
         (map #(get-in indices [:EAVT %]) reffing-ids ))))
 
 (defn evolution-of "The sequence of the values of of an entity's attribute, as changed through time" [db ent-id attr-name]
