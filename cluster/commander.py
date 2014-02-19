@@ -1,3 +1,4 @@
+import protocol
 from protocol import CommanderId
 from member import Component
 
@@ -14,13 +15,15 @@ class Commander(Component):
         self.accepted = set([])
         self.peers = peers
         self.quorum = len(peers) / 2 + 1
+        self.timer = None
 
     def start(self):
-        self.send(self.peers, 'ACCEPT',  # p2a
+        self.send(set(self.peers) - self.accepted, 'ACCEPT',  # p2a
                          commander_id=self.commander_id,
                          ballot_num=self.ballot_num,
                          slot=self.slot,
                          proposal=self.proposal)
+        self.timer = self.set_timer(protocol.ACCEPT_RETRANSMIT, self.start)
 
     def finished(self, ballot_num, preempted):
         self.leader.commander_finished(self.commander_id, ballot_num, preempted)

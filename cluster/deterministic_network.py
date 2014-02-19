@@ -52,6 +52,7 @@ class Network(object):
 
     PROP_DELAY = 0.03
     PROP_JITTER = 0.02
+    DROP_PROB = 0.05
 
     def __init__(self, seed, pause=False):
         self.nodes = {}
@@ -101,5 +102,6 @@ class Network(object):
     def send(self, destinations, action, **kwargs):
         for dest in destinations:
             delay = self.PROP_DELAY + self.rnd.uniform(-self.PROP_JITTER, self.PROP_JITTER)
-            self.set_timer(delay, dest, lambda dest=dest: self._receive(dest, action, kwargs))
+            if self.rnd.uniform(0, 1.0) > self.DROP_PROB:
+                self.set_timer(delay, dest, lambda dest=dest: self._receive(dest, action, kwargs))
 

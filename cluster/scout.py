@@ -1,10 +1,9 @@
+import protocol
 from collections import defaultdict
 from protocol import ScoutId
 from member import Component
 
 class Scout(Component):
-
-    PREPARE_RETRANSMIT = 1
 
     def __init__(self, member, leader, ballot_num, peers):
         super(Scout, self).__init__(member)
@@ -26,13 +25,15 @@ class Scout(Component):
                        scout_id=self.scout_id,
                        ballot_num=self.ballot_num)
         self.retransmit_timer = self.set_timer(
-            self.PREPARE_RETRANSMIT, self.send_prepare)
+            protocol.PREPARE_RETRANSMIT, self.send_prepare)
 
     def finished(self, adopted, ballot_num):
         self.cancel_timer(self.retransmit_timer)
         self.logger.info(
             "finished - adopted" if adopted else "finished - preempted")
         self.leader.scout_finished(adopted, ballot_num, self.pvals)
+        if self.retransmit_timer:
+            self.cancel_timer(self.retransmit_timer)
         self.stop()
 
     def do_PROMISE(self, scout_id, acceptor, ballot_num, accepted):  # p1b
