@@ -21,7 +21,7 @@ class Replica(Component):
         self.viewid = viewid
         self.peers = peers
         self.peers_down = set()
-        self.peer_history = peer_history
+        self.peer_history = peer_history.copy()
 
         self.repropose()
 
@@ -149,7 +149,7 @@ class Replica(Component):
                       decisions=self.decisions,
                       viewid=viewchange.viewid,
                       peers=viewchange.peers,
-                      peer_history=self.peer_history.copy())
+                      peer_history=self.peer_history)
 
             # now make sure that next_slot is at least slot + ALPHA, so that we don't
             # try to make any new proposals depending on the old view.  The repropose()
