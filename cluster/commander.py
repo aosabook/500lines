@@ -33,9 +33,13 @@ class Commander(Component):
             self.accepted.add(acceptor)
             if len(self.accepted) < self.quorum:
                 return
-            self.send(self.peers, 'DECISION',
-                                slot=self.slot,
-                                proposal=self.proposal)
+            # include this node in the decision, in case it wasn't part of
+            # the quorum at the time; otherwise we will never learn about this
+            # slot
+            peers = set(self.peers) | set([self.address])
+            self.send(peers, 'DECISION',
+                      slot=self.slot,
+                      proposal=self.proposal)
             self.finished(ballot_num, False)
         else:
             self.finished(ballot_num, True)
