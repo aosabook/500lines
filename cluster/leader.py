@@ -60,7 +60,7 @@ class Leader(Component):
                 slot = view_slot + ALPHA
                 if self.proposals[slot] is not None:
                     self.spawn_commander(self.ballot_num, slot, self.proposals[slot],
-                                         self.peer_history[slot - ALPHA])
+                                         self.peer_history[view_slot])
             # note that we don't re-spawn commanders here; if there are undecided
             # proposals, the replicas will re-propose
             self.logger.info("leader becoming active")
