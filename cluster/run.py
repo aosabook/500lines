@@ -91,7 +91,7 @@ if __name__ == "__main__":
     def modify():
         if not network.rnd.randint(0, 2):
             # KILL
-            if len(network.nodes) > 3:
+            if len(network.nodes) > 5:
                 victim = network.rnd.choice(network.nodes.keys())
                 if victim != client_node.address:
                     network.nodes[victim].kill()
