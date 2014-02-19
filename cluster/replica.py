@@ -114,6 +114,9 @@ class Replica(Component):
             self.peer_history[decided_slot] = self.peers
             if decided_slot - protocol.ALPHA in self.peer_history:
                 del self.peer_history[decided_slot - protocol.ALPHA]
+            exp_peer_history = list(range(decided_slot - protocol.ALPHA + 1, decided_slot + 1))
+            assert list(sorted(self.peer_history)) == exp_peer_history, \
+                    "bad peer history %s, exp %s" % (self.peer_history, exp_peer_history)
             self.event('update_peer_history', peer_history=self.peer_history)
 
             # re-propose any of our proposals which have lost in their slot
