@@ -23,7 +23,7 @@ class Replica(Component):
         self.peers_down = set()
         self.peer_history = peer_history.copy()
 
-        self.repropose()
+        self.catchup()
 
     # creating proposals
 
@@ -57,18 +57,21 @@ class Replica(Component):
                          (proposal, slot, leader))
         self.send([leader], 'PROPOSE', slot=slot, proposal=proposal)
 
-    def repropose(self):
-        "re-transmit any un-decided proposals"
+    def catchup(self):
+        "try to catch up on un-decided slots"
         if self.slot_num != self.next_slot:
-            self.logger.warning("re-proposing %d .. %d" % (self.slot_num, self.next_slot-1))
+            self.logger.warning("catching up on %d .. %d" % (self.slot_num, self.next_slot-1))
         for slot in xrange(self.slot_num, self.next_slot):
+            # ask peers for information regardless
+            self.send(self.peers, 'CATCHUP', slot=slot, sender=self.address)
             if self.proposals[slot]:
+                # resend a proposal we initiated
                 if not self.decisions[slot]:
                     self.propose(self.proposals[slot], slot)
             else:
-                # make an empty proposal to learn what was decided
+                # make an empty proposal in case nothing has been decided
                 self.propose(Proposal(None, None, None), slot)
-        self.set_timer(protocol.REPROPOSE_INTERVAL, self.repropose)
+        self.set_timer(protocol.CATCHUP_INTERVAL, self.catchup)
 
     # view changes
 
@@ -108,9 +111,8 @@ class Replica(Component):
                 break  # not decided yet
             decided_slot, self.slot_num = self.slot_num, self.slot_num + 1
 
-            self.commit(decided_slot, decided_proposal)
-
-            # update the view history
+            # update the view history *before* committing, so the WELCOME message contains
+            # an appropriate history
             self.peer_history[decided_slot] = self.peers
             if decided_slot - protocol.ALPHA in self.peer_history:
                 del self.peer_history[decided_slot - protocol.ALPHA]
@@ -119,14 +121,18 @@ class Replica(Component):
                     "bad peer history %s, exp %s" % (self.peer_history, exp_peer_history)
             self.event('update_peer_history', peer_history=self.peer_history)
 
+            self.commit(decided_slot, decided_proposal)
+
             # re-propose any of our proposals which have lost in their slot
             our_proposal = self.proposals[decided_slot]
             if our_proposal is not None and our_proposal != decided_proposal:
                 self.propose(our_proposal)
+    on_decision_event = do_DECISION
 
     def commit(self, slot, proposal):
         "actually commit a proposal that is decided and in sequence"
         if proposal in self.decisions[:slot]:
+            self.logger.info("not committing duplicate proposal %r at slot %d" % (proposal, slot))
             return  # duplicate
 
         self.logger.info("committing %r at slot %d" % (proposal, slot))
@@ -155,7 +161,7 @@ class Replica(Component):
                       peer_history=self.peer_history)
 
             # now make sure that next_slot is at least slot + ALPHA, so that we don't
-            # try to make any new proposals depending on the old view.  The repropose()
+            # try to make any new proposals depending on the old view.  The catchup()
             # method will take care of proposing these later.
             self.next_slot = max(slot + protocol.ALPHA, self.next_slot)
 
@@ -167,9 +173,8 @@ class Replica(Component):
             self.logger.info(
                 "ignored out-of-sequence view change operation")
 
-    def do_PROPOSE(self, slot, proposal):
-        # if we have a decision for this proposal, spread the knowledge, since leaders will
-        # just ignore this request
+    def do_CATCHUP(self, slot, sender):
+        # if we have a decision for this proposal, spread the knowledge
         if self.decisions[slot]:
-            self.send(self.peers, 'DECISION',
+            self.send([sender], 'DECISION',
                       slot=slot, proposal=self.decisions[slot])

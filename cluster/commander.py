@@ -27,6 +27,8 @@ class Commander(Component):
 
     def finished(self, ballot_num, preempted):
         self.leader.commander_finished(self.commander_id, ballot_num, preempted)
+        if self.timer:
+            self.cancel_timer(self.timer)
         self.stop()
 
     def do_ACCEPTED(self, commander_id, acceptor, ballot_num):  # p2b
@@ -36,11 +38,11 @@ class Commander(Component):
             self.accepted.add(acceptor)
             if len(self.accepted) < self.quorum:
                 return
-            # include this node in the decision, in case it wasn't part of
-            # the quorum at the time; otherwise we will never learn about this
-            # slot
-            peers = set(self.peers) | set([self.address])
-            self.send(peers, 'DECISION',
+            # make sure that this node hears about the decision, otherwise the
+            # slot can get "stuck" if all of the DECISION messages get lost, or
+            # if this node is not in self.peers
+            self.event('decision', slot=self.slot, proposal=self.proposal)
+            self.send(self.peers, 'DECISION',
                       slot=self.slot,
                       proposal=self.proposal)
             self.finished(ballot_num, False)
