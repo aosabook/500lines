@@ -27,21 +27,14 @@ class TestContext(BaseContext):
         self.interaction.registerCallback('move', self.move)
         self.interaction.registerCallback('place', self.place)
 
-        self.InitDebug()
-
+        self.InitialScene()
 
     def Render(self, mode = None):
         """ The render pass for the scene """
         BaseContext.Render(self, mode)
 
-        xSize, ySize = glutGet( GLUT_WINDOW_WIDTH ), glutGet( GLUT_WINDOW_HEIGHT )
 
-        # load the projection matrix. Always the same
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-        glViewport(0, 0, xSize, ySize);
-        gluPerspective(70, 1.0, 0.1, 1000.0)
-        glTranslated(0, 0, -15);
+        self.initView()
 
         # Enable lighting and color
         glEnable(GL_LIGHTING)
@@ -71,7 +64,19 @@ class TestContext(BaseContext):
         glCallList(G_OBJ_PLANE)
         glPopMatrix()
 
-    def InitDebug(self):
+    def initView(self):
+        xSize, ySize = glutGet( GLUT_WINDOW_WIDTH ), glutGet( GLUT_WINDOW_HEIGHT )
+        aspect_rat = float(xSize) / float(ySize)
+
+        # load the projection matrix. Always the same
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+
+        glViewport(0, 0, xSize, ySize);
+        gluPerspective(70, aspect_rat , 0.1, 1000.0)
+        glTranslated(0, 0, -15);
+
+    def InitialScene(self):
         sphere_node = Cube()
         sphere_node.set_color(0.5, 0.4, 0.2)
         self.scene.add_node(sphere_node)
@@ -100,14 +105,7 @@ class TestContext(BaseContext):
         """ Generate a ray beginning at the near plane, in the direction that the x, y coordinates are facing
             Consumes: x, y coordinates of mouse on screen
             Return: start, direction of the ray """
-        xSize, ySize = glutGet( GLUT_WINDOW_WIDTH ), glutGet( GLUT_WINDOW_HEIGHT )
-
-        # load the perspective and modelview matrix and use OpenGL to do the heavy lifting
-        glMatrixMode(GL_PROJECTION)
-        glLoadIdentity()
-        glViewport(0, 0, xSize, ySize)
-        gluPerspective(70, 1.0, 0.1, 1000.0)
-        glTranslated(0, 0, -15)
+        self.initView()
 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity()
