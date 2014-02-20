@@ -113,4 +113,12 @@ Contributors
     <td>@jaaaarel</td>
     <td>taavi.burns@points.com</td>
   </tr>
+  <tr>
+    <td>Erick Dransch</td>
+    <td>Upverter</td>
+    <td>Modeller</td>
+    <td>@EkkiD</td>
+    <td>@ErickDransch</td>
+    <td>erick.dransch@upverter.com</td>
+  </tr>
 </table>
