@@ -11,7 +11,7 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 
 
-class MouseInteraction(object):
+class Interaction(object):
 
     def __init__(self):
         """ Handles user interaction """

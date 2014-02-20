@@ -9,7 +9,7 @@ from OpenGLContext.arrays import *
 from numpy.linalg import norm
 import numpy
 
-from mouse_interaction import MouseInteraction
+from interaction import Interaction
 from primitive import InitPrimitives, G_OBJ_PLANE
 from node import Sphere, Cube
 from scene import Scene
@@ -19,13 +19,13 @@ class TestContext(BaseContext):
     def OnInit(self):
         """ Initialize the context. """
         InitPrimitives()
-        self.mouse_interaction = MouseInteraction()
-        self.mouse_interaction.register()
+        self.interaction = Interaction()
+        self.interaction.register()
         self.scene = Scene()
 
-        self.mouse_interaction.registerCallback('picking', self.picking)
-        self.mouse_interaction.registerCallback('move', self.move)
-        self.mouse_interaction.registerCallback('place', self.place)
+        self.interaction.registerCallback('picking', self.picking)
+        self.interaction.registerCallback('move', self.move)
+        self.interaction.registerCallback('place', self.place)
 
         self.InitDebug()
 
@@ -59,9 +59,9 @@ class TestContext(BaseContext):
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix()
         glLoadIdentity()
-        loc = self.mouse_interaction.camera_loc
+        loc = self.interaction.camera_loc
         glTranslated(-loc[0], -loc[1], -loc[2])
-        glMultMatrixf(self.mouse_interaction.rotation.matrix(inverse=False))
+        glMultMatrixf(self.interaction.rotation.matrix(inverse=False))
 
         # Render the scene. This will call the render function for each object in the scene
         self.scene.render()
@@ -125,11 +125,11 @@ class TestContext(BaseContext):
     def getModelView(self):
         """ Fetches the current state of the modelview matrix """
         # TODO: store this as a member variable, and maybe its inverse too
-        loc = self.mouse_interaction.camera_loc
+        loc = self.interaction.camera_loc
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity()
         glTranslated(-loc[0], -loc[1], -loc[2])
-        glMultMatrixf(self.mouse_interaction.rotation.matrix(inverse=False))
+        glMultMatrixf(self.interaction.rotation.matrix(inverse=False))
 
         mat = numpy.array(glGetFloatv( GL_MODELVIEW_MATRIX ))
         return mat
