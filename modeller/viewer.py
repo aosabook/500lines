@@ -96,11 +96,6 @@ class TestContext(BaseContext):
         cube_node.set_color(0.2, 0.2, 0.6)
         self.scene.add_node(cube_node)
 
-        cube_node = Sphere()
-        cube_node.translate(2, 0, -2)
-        cube_node.set_color(0.4, 0.4, 0.4)
-        self.scene.add_node(cube_node)
-
     def getRay(self, x, y):
         """ Generate a ray beginning at the near plane, in the direction that the x, y coordinates are facing
             Consumes: x, y coordinates of mouse on screen
