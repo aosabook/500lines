@@ -1,17 +1,16 @@
 import protocol
-from protocol import CommanderId
 from member import Component
 
 
 class Commander(Component):
 
-    def __init__(self, member, leader, ballot_num, slot, proposal, peers):
+    def __init__(self, member, leader, ballot_num, slot, proposal, commander_id, peers):
         super(Commander, self).__init__(member)
         self.leader = leader
         self.ballot_num = ballot_num
         self.slot = slot
         self.proposal = proposal
-        self.commander_id = CommanderId(self.address, slot, proposal)
+        self.commander_id = commander_id
         self.accepted = set([])
         self.peers = peers
         self.quorum = len(peers) / 2 + 1

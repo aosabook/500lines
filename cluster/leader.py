@@ -1,5 +1,5 @@
 from util import defaultlist, view_primary
-from protocol import Ballot, ALPHA
+from protocol import Ballot, ALPHA, CommanderId
 from member import Component
 from scout import Scout
 from commander import Commander
@@ -86,10 +86,11 @@ class Leader(Component):
 
     def spawn_commander(self, ballot_num, slot, proposal, peers):
         peers = self.peer_history[slot - ALPHA]
-        cmd = self.commander_cls(self.member, self, ballot_num, slot, proposal, peers)
-        if cmd.commander_id in self.commanders:
+        commander_id = CommanderId(self.address, slot, self.proposals[slot])
+        if commander_id in self.commanders:
             return
-        self.commanders[cmd.commander_id] = cmd
+        cmd = self.commander_cls(self.member, self, ballot_num, slot, proposal, commander_id, peers)
+        self.commanders[commander_id] = cmd
         cmd.start()
 
     def commander_finished(self, commander_id, ballot_num, preempted):
