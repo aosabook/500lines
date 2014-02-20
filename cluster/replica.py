@@ -109,26 +109,28 @@ class Replica(Component):
 
         # execute any pending, decided proposals, eliminating duplicates
         while True:
-            decided_proposal = self.decisions[self.slot_num]
-            if not decided_proposal:
+            commit_proposal = self.decisions[self.slot_num]
+            if not commit_proposal:
                 break  # not decided yet
-            decided_slot, self.slot_num = self.slot_num, self.slot_num + 1
+            commit_slot, self.slot_num = self.slot_num, self.slot_num + 1
 
             # update the view history *before* committing, so the WELCOME message contains
             # an appropriate history
-            self.peer_history[decided_slot] = self.peers
-            if decided_slot - protocol.ALPHA in self.peer_history:
-                del self.peer_history[decided_slot - protocol.ALPHA]
-            exp_peer_history = list(range(decided_slot - protocol.ALPHA + 1, decided_slot + 1))
+            self.peer_history[commit_slot] = self.peers
+            if commit_slot - protocol.ALPHA in self.peer_history:
+                del self.peer_history[commit_slot - protocol.ALPHA]
+            exp_peer_history = list(range(commit_slot - protocol.ALPHA + 1, commit_slot + 1))
             assert list(sorted(self.peer_history)) == exp_peer_history, \
                     "bad peer history %s, exp %s" % (self.peer_history, exp_peer_history)
             self.event('update_peer_history', peer_history=self.peer_history)
 
-            self.commit(decided_slot, decided_proposal)
+            self.commit(commit_slot, commit_proposal)
 
             # re-propose any of our proposals which have lost in their slot
-            our_proposal = self.proposals[decided_slot]
-            if our_proposal is not None and our_proposal != decided_proposal:
+            our_proposal = self.proposals[commit_slot]
+            if our_proposal is not None and our_proposal != commit_proposal:
+                # TODO: filter out unnecessary proposals - no-ops and outdated
+                # view changes (proposal.input.viewid <= self.viewid)
                 self.propose(our_proposal)
     on_decision_event = do_DECISION
 
