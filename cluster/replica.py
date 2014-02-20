@@ -21,7 +21,7 @@ class Replica(Component):
         self.viewid = viewid
         self.peers = peers
         self.peers_down = set()
-        self.peer_history = peer_history.copy()
+        self.peer_history = peer_history
         self.welcome_peers = set()
 
         assert decisions[slot_num] is None

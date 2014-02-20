@@ -2,6 +2,7 @@ import time
 import logging
 import heapq
 import random
+import copy
 
 class Node(object):
 
@@ -38,7 +39,6 @@ class Node(object):
         self.components.remove(component)
 
     def receive(self, action, kwargs):
-        import sys
         for comp in self.components[:]:
             try:
                 fn = getattr(comp, 'do_%s' % action)
@@ -103,5 +103,7 @@ class Network(object):
         for dest in destinations:
             delay = self.PROP_DELAY + self.rnd.uniform(-self.PROP_JITTER, self.PROP_JITTER)
             if self.rnd.uniform(0, 1.0) > self.DROP_PROB:
-                self.set_timer(delay, dest, lambda dest=dest: self._receive(dest, action, kwargs))
+                # copy the kwargs now, before the sender modifies them
+                self.set_timer(delay, dest, lambda dest=dest, kwargs=copy.deepcopy(kwargs):
+                                                        self._receive(dest, action, kwargs))
 
