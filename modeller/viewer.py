@@ -28,11 +28,11 @@ class TestContext(BaseContext):
         self.interaction.registerCallback('place', self.place)
 
         self.InitialScene()
+        self.inverseModelView = numpy.identity(4)
 
     def Render(self, mode = None):
         """ The render pass for the scene """
         BaseContext.Render(self, mode)
-
 
         self.initView()
 
@@ -55,6 +55,10 @@ class TestContext(BaseContext):
         loc = self.interaction.camera_loc
         glTranslated(-loc[0], -loc[1], -loc[2])
         glMultMatrixf(self.interaction.rotation.matrix(inverse=False))
+
+        # store the inverse of the current modelview.
+        mat = numpy.array(glGetFloatv( GL_MODELVIEW_MATRIX ))
+        self.inverseModelView = numpy.linalg.inv(numpy.transpose(mat))
 
         # Render the scene. This will call the render function for each object in the scene
         self.scene.render()
@@ -115,38 +119,23 @@ class TestContext(BaseContext):
 
         return (start, direction)
 
-    def getModelView(self):
-        """ Fetches the current state of the modelview matrix """
-        # TODO: store this as a member variable, and maybe its inverse too
-        loc = self.interaction.camera_loc
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity()
-        glTranslated(-loc[0], -loc[1], -loc[2])
-        glMultMatrixf(self.interaction.rotation.matrix(inverse=False))
-
-        mat = numpy.array(glGetFloatv( GL_MODELVIEW_MATRIX ))
-        return mat
-
     def picking(self, x, y):
         """ Execute picking of an object. Selects an object in the scene.
             Consumes: x, y coordinates of the mouse on the screen """
         start, direction = self.getRay(x, y)
-        mat = self.getModelView()
-        self.scene.picking(start, direction, mat)
+        self.scene.picking(start, direction, self.inverseModelView)
 
     def move(self, x, y):
         """ Execute a move command on the scene.
             Consumes: x, y coordinates of the mouse on the screen """
         start, direction = self.getRay(x, y)
-        mat = self.getModelView()
-        self.scene.move(start, direction, mat)
+        self.scene.move(start, direction, self.inverseModelView)
 
     def place(self, shape, x, y):
         """ Execute a placement of a new primitive into the scene.
             Consumes: x, y coordinates of the mouse on the screen """
         start, direction = self.getRay(x, y)
-        mat = self.getModelView()
-        self.scene.place(shape, start, direction, mat)
+        self.scene.place(shape, start, direction, self.inverseModelView)
 
 
 if __name__=="__main__":

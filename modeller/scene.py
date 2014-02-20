@@ -25,19 +25,20 @@ class Scene(object):
         """ Add a new node to the scene """
         self.node_list.append(node)
 
-    def picking(self, start, direction, mat):
+    def picking(self, start, direction, inv_modelview):
         """ Execute selection.
             Consume: start, direction describing a Ray
-                     mat              is the current modelview matrix for the scene """
-        mindist = sys.maxint;
-        closest_node = None
+                     mat              is the inverse of the current modelview matrix for the scene """
+        if self.selected_node is not None: 
+            self.selected_node.select(False)
+            self.selected_node = None
+
         # Keep track of the closest hit.
+        mindist, closest_node  = sys.maxint, None
         for node in self.node_list:
-            node.select(False)
-            hit, distance = node.picking(start, direction, mat)
+            hit, distance = node.picking(start, direction, inv_modelview)
             if hit and distance < mindist:
-                closest_node = node
-                mindist = distance
+                mindist, closest_node = distance, node
 
         # If we hit something, keep track of it.
         if closest_node is not None:
@@ -45,10 +46,8 @@ class Scene(object):
             closest_node.depth = mindist
             closest_node.selected_loc = start + direction * mindist
             self.selected_node = closest_node
-        else:
-            self.selected_node = None
 
-    def move(self, start, direction, mat):
+    def move(self, start, direction, inv_modelview):
         """ Move the selected node, if there is one.
             Consume:  start, direction  describes the Ray to move to
                       mat               is the modelview matrix for the scene """
@@ -63,17 +62,16 @@ class Scene(object):
         newloc = (start + direction * depth)
 
         # transform the translation with the modelview matrix
-        # TODO: we should probably use the inverse of the transpose of mat. But this works since we don't use translation.
         translation = newloc - oldloc
         pre_tran = numpy.array([translation[0], translation[1], translation[2], 0])
-        translation = mat.dot(pre_tran)
+        translation = inv_modelview.dot(pre_tran)
 
         # translate the node and track its location
         node.translate(translation[0], translation[1], translation[2])
         node.selected_loc = newloc
 
 
-    def place(self, shape, start, direction, mat):
+    def place(self, shape, start, direction, inv_modelview):
         """ Place a new node.
             Consume:  shape             the shape to add
                       start, direction  describes the Ray to move to
@@ -90,9 +88,7 @@ class Scene(object):
 
         # convert the translation to world-space
         pre_tran = numpy.array([translation[0], translation[1], translation[2], 1])
-        mat = numpy.transpose(mat)
-        mat = numpy.linalg.inv(mat)
-        translation = mat.dot(pre_tran)
+        translation = inv_modelview.dot(pre_tran)
 
         new_node.translate(translation[0], translation[1], translation[2])
 

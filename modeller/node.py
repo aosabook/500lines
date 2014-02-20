@@ -57,7 +57,7 @@ class Node(object):
         return results
 
     def select(self, select=None):
-        """ Toggles selected state """
+        """ Toggles or sets selected state """
         if select is not None:
             self.selected = select
         else:
