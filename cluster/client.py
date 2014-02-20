@@ -1,52 +1,50 @@
 import sys
-import logging
-from network import Node
+from member import Member
+from member import Component
 
 
-class Client(Node):
+# TODO: eliminate - this library doesn't have distinct client nodes
+class Client(Member):
 
-    def __init__(self, member_address):
-        super(Client, self).__init__()
-        self.member_address = member_address
+    def __init__(self, node):
+        super(Client, self).__init__(node)
+        self.current_request = None
 
-    def invoke(self, input):
+    def start(self):
+        def re_invoke(n):
+            self.invoke(n, lambda output: re_invoke(n+1))
+        self.node.set_timer(1, lambda: re_invoke(1))
+
+    def invoke(self, n, callback):
+        assert self.current_request is None
+        def done(output):
+            self.current_request = None
+            callback(output)
+        self.current_request = Request(self, n, done)
+        self.current_request.start()
+
+
+class Request(Component):
+
+    client_ids = xrange(1000000, sys.maxint).__iter__()
+    RETRANSMIT_TIME = 0.1
+
+    def __init__(self, member, n, callback):
+        super(Request, self).__init__(member)
+        self.cid = self.client_ids.next()
+        self.n = n
         self.output = None
-        self.send([self.member_address], 'INVOKE',
-                  input=input, caller=self.address)
-        self.run()
-        return self.output
+        self.callback = callback
 
-    def do_INVOKED(self, output):
+    def start(self):
+        self.send([self.member.node.network.rnd.choice(self.member.node.network.nodes.keys())], 'INVOKE',
+                  caller=self.address, cid=self.cid, input=self.n)
+        self.invoke_timer = self.set_timer(self.RETRANSMIT_TIME, self.start)
+
+    def do_INVOKED(self, cid, output):
+        if cid != self.cid:
+            return
         self.logger.debug("received output %r" % (output,))
-        self.output = output
+        self.cancel_timer(self.invoke_timer)
+        self.callback(output)
         self.stop()
-
-if __name__ == "__main__":
-    logging.basicConfig(
-        format="%(asctime)s %(name)s %(message)s", level=logging.DEBUG)
-    client = Client(sys.argv[1])
-    print client.invoke(4)
-    print client.invoke(1)
-
-# tests
-
-import unittest
-import threading
-
-
-class FakeMember(Node):
-
-    def do_INVOKE(self, caller, input):
-        self.send([caller], 'INVOKED', output=input * 10)
-        self.stop()
-
-
-class ClientTests(unittest.TestCase):
-
-    def test_invoke(self):
-        member = FakeMember()
-        client = Client(member.address)
-        memberthd = threading.Thread(target=member.run)
-        memberthd.start()
-        self.assertEqual(client.invoke(5), 50)
-        memberthd.join()
