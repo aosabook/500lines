@@ -22,6 +22,9 @@ class Replica(Component):
         self.peers = peers
         self.peers_down = set()
         self.peer_history = peer_history.copy()
+        self.welcome_peers = set()
+
+        assert decisions[slot_num] is None
 
         self.catchup()
 
@@ -147,23 +150,33 @@ class Replica(Component):
             self.send([proposal.caller], 'INVOKED',
                       cid=proposal.cid, output=output)
 
+    def send_welcome(self):
+        if self.welcome_peers:
+            self.send(list(self.welcome_peers), 'WELCOME',
+                      state=self.state,
+                      slot_num=self.slot_num,
+                      decisions=self.decisions,
+                      viewid=self.viewid,
+                      peers=self.peers,
+                      peer_history=self.peer_history)
+            self.welcome_peers = set()
+
     def commit_viewchange(self, slot, viewchange):
         if viewchange.viewid == self.viewid + 1:
             self.logger.info("entering view %d with peers %s" %
                                 (viewchange.viewid, viewchange.peers))
             self.viewid = viewchange.viewid
-            self.send(list(set(viewchange.peers) - set(self.peers)), 'WELCOME',
-                      state=self.state,
-                      slot_num=self.slot_num,
-                      decisions=self.decisions,
-                      viewid=viewchange.viewid,
-                      peers=viewchange.peers,
-                      peer_history=self.peer_history)
 
             # now make sure that next_slot is at least slot + ALPHA, so that we don't
             # try to make any new proposals depending on the old view.  The catchup()
             # method will take care of proposing these later.
             self.next_slot = max(slot + protocol.ALPHA, self.next_slot)
+
+            # WELCOMEs need to be based on a quiescent state of the replica,
+            # not in the middle of a decision-commiting loop, so defer this
+            # until the next timer interval.
+            self.welcome_peers |= set(viewchange.peers) - set(self.peers)
+            self.set_timer(0, self.send_welcome)
 
             if self.address not in viewchange.peers:
                 self.stop()
