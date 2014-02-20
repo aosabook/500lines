@@ -8,8 +8,6 @@ This project is a very small and limited 3d modeller.
 Prerequisites
 -------------
 
-Blech!
-
 * Python 2.7
 * A Unix environment
 * A virtualenv with:
@@ -55,7 +53,7 @@ Node contains the implementation of the node class, as well as the sphere and cu
 
 AABB is a representation of an Axis Aligned Bounding Box. It's currently only used for selection, but it could also be used to calculate collision between nodes.
 
-Transformation builds up the matrices for some common transformations. It's boring and not worth printing in the chapter.
+Transformation builds up the matrices for some common transformations. It's rather uninteresting.
 
 Primitive builds up OpenGL call lists for the primitives used. It's over 100 lines of uninteresting setup code. 
 
