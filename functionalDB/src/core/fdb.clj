@@ -1,17 +1,15 @@
 (ns core.fdb)
 
-(defrecord Entity [id name attrs])
-(defrecord Attr [name type value ts prev-ts])
 (defrecord Database [timestamped top-id curr-time])
 (defrecord Indices [EAVT VAET AVET])
-(defn make-db[] (atom (Database. [(Indices. {} {} {})] 0 0) ;EAVT: all the entity info, vaet for attrs who are REFs, we hold the back-pointing (from the REFFed entity to the REFing entities)
-     )) ;
 
+(defrecord Entity [id attrs])
+(defrecord Attr [name type value ts prev-ts])
 
-(defn make-entity  ([name] (make-entity :no-id-yet name))
-  ([name id] (Entity.  id name {})))
+(defn make-db[] (atom (Database. [(Indices. {} {} {})] 0 0))) ;EAVT: all the entity info, vaet for attrs who are REFs, we hold the back-pointing (from the REFFed entity to the REFing entities)
 
-(defn val-from-ref[attr-type attr-val](if (= :REF attr-type) (:id attr-val) attr-val ))
+(defn make-entity  ([] (make-entity :db/no-id-yet ))
+  ([name id] (Entity.  id {})))
 
 (defn make-attr
   ([name value type]  (make-attr name value type false))
@@ -23,7 +21,7 @@
 
 (defn nextId[db ent] (let   [ top-id (:top-id db)
                                         entId (:id ent)
-                                       [idToUse nextTop] (if (= entId :no-id-yet) [(keyword (str (inc top-id))) (inc top-id)] [entId top-id])]
+                                       [idToUse nextTop] (if (= entId :db/no-id-yet) [(keyword (str (inc top-id))) (inc top-id)] [entId top-id])]
                               [idToUse nextTop]))
 
 (defn update-creation-ts [ent tsVal]
@@ -34,7 +32,7 @@
         ](assoc ent :attrs updatedAttrs)))
 
 ;  vaet -> {REFed-ent-id -> {attrName -> [REFing-elems-ids]}}
-; this basically provides the info - for each entity that is REFFed by others, who are the others who are REFing it, separated
+; this basically provides this info - for each entity that is REFFed by others, who are the others who are REFing it, separated
 ; by the names of the attribute used for reffing
 (defn add-ref-to-vaet[ent operation vaet attr]
   (let [reffed-id (:value attr)
@@ -48,8 +46,7 @@
          attr-value (:value attr)
          curr-entities-set (get-in avet [attr-name attr-value] #{})
          updated-entities-set (operation curr-entities-set (:id ent))
-        ] (assoc-in avet [attr-name attr-value] updated-entities-set))
-  )
+        ] (assoc-in avet [attr-name attr-value] updated-entities-set)))
 
 (defn update-vaet[old-vaet ent operation]
   (let [reffingAttrs (filter #(= :REF (:type %)) (vals (:attrs ent)))
@@ -133,7 +130,7 @@
      (let [ new-ts (next-ts db)
             indices (last (:timestamped db))
             attr (get-in indices [:EAVT ent-id :attrs  att-name] )
-            real-new-val  (val-from-ref (:type attr) new-val)
+            real-new-val  (if (= :REF (:type attr)) (:id new-val) new-val)
             updated-attr(assoc attr :value real-new-val :ts new-ts :prev-ts ( :ts attr))
             eavt-updated-indices (assoc-in indices [:EAVT ent-id :attrs att-name] updated-attr )
             new-vaet (update-vaet-for-datom (:VAET indices) ent-id attr real-new-val)
@@ -151,14 +148,14 @@
    (let [indices ((:timestamped db) ts)]  (get-in indices [:EAVT ent-id :attrs attr-name]))))
 
 (defn value-of-at  "value of a datom at a given time, if no time is provided, we default to the most recent value"
-  ([db e-id attr-name]  (:value (attr-at db e-id attr-name)))
-  ([db e-id attr-name ts] (:value (attr-at db e-id attr-name ts))))
+  ([db ent-id attr-name]  (:value (attr-at db ent-id attr-name)))
+  ([db ent-id attr-name ts] (:value (attr-at db ent-id attr-name ts))))
 
-(defn relates-to-as "returns a seq of all the entities that REFed to a specific entity with the given attr-name (alternativly had an attribute named attr-name whose type is REF and the value was e-id), all this at a given time"
-   ([db e-id attr-name]  (relates-to-as db e-id attr-name (:curr-time db)))
-  ([db e-id attr-name ts]
+(defn relates-to-as "returns a seq of all the entities that REFed to a specific entity with the given attr-name (alternativly had an attribute named attr-name whose type is REF and the value was ent-id), all this at a given time"
+   ([db ent-id attr-name]  (relates-to-as db ent-id attr-name (:curr-time db)))
+  ([db ent-id attr-name ts]
       (let [indices ((:timestamped db) ts)
-              reffing-ids (get-in indices [:VAET e-id attr-name])]
+              reffing-ids (get-in indices [:VAET ent-id attr-name])]
         (map #(get-in indices [:EAVT %]) reffing-ids ))))
 
 (defn evolution-of "The sequence of the values of of an entity's attribute, as changed through time" [db ent-id attr-name]
@@ -166,3 +163,7 @@
     (if (= -1 ts) (reverse res)
         (let [attr (attr-at db ent-id attr-name ts)]
           (recur (conj res {ts (:value attr)})  (:prev-ts attr))))))
+
+(defn db-before [db ts]
+  (let [indices-before (subvec (:timestamped db) 0 ts )]
+    (assoc db :timestamped indices-before :curr-time ts)))
