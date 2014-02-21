@@ -7,6 +7,7 @@
           <table class="data">
             <th>User</th>
             <th>Method</th>
+            <th>Measurement</th>
             <th>Trial</th>
             <th>Actual</th>
             <th>Calculated</th>
@@ -17,6 +18,7 @@
               <tr>
                 <td><%= file.split('/')[2] %></td>
                 <td><%= file.split('/').last.split('-')[0] %></td>
+                <td><%= file.split('/').last.split('-')[2] %></td>
                 <td><%= file.split('/').last.split('-')[3].to_i %></td>
                 <td><%= file.split('/').last.split('-')[1] %></td>
                 <td><%= steps %></td>
