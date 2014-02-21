@@ -1,6 +1,18 @@
 table.data {
-  width: 280px;
-  margin-right: 100px;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  width: 800px;
+}
+
+tr, th {
+  text-align: left;
+  font-size: 14px;
+  height: 37px;
+  padding: 8px;
+}
+
+td {
+  border-top: solid 1px rgb(221, 221, 221);
+  padding: 8px;
 }
 
 td.compare {
