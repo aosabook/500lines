@@ -13,16 +13,19 @@
             <th>Calculated</th>
             <th>Delta</th>
             <th></th>
-            <% @data.each do |file, steps| %>
+            <% @data.each do |h| %>
+              <% file = h[:file] %>
+              <% device = h[:device] %>
+              <% steps = h[:steps] %>
               <% url = "detail/" + file %>
               <tr>
                 <td><%= file.split('/')[2] %></td>
-                <td><%= file.split('/').last.split('-')[0] %></td>
-                <td><%= file.split('/').last.split('-')[2] %></td>
-                <td><%= file.split('/').last.split('-')[3].to_i %></td>
-                <td><%= file.split('/').last.split('-')[1] %></td>
+                <td><%= device.method %></td>
+                <td><%= device.format %></td>
+                <td><%= device.trial %></td>
+                <td><%= device.steps %></td>
                 <td><%= steps %></td>
-                <td><%= steps - file.split('/').last.split('-')[1].to_i %></td>
+                <td><%= steps - device.steps %></td>
                 <td><a href=<%= url %>>Detail</a></td>
               </tr>
             <% end %>

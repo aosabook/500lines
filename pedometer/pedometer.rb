@@ -20,26 +20,28 @@ end
 
 get '/data' do
   begin
-    @data = {}
+    @data = []
     files = Dir.glob(File.join('test/data/female', "*")) + Dir.glob(File.join('test/data/male', "*"))
 
     files.each do |file|
       next if FileTest.directory?(file) || file.include?('walking-1-g-false-step.txt')
 
-      device = Device.new(:data => File.read(file), :rate => 100)
+      meta_data = /\w+-\d+-[a,g]-\d/.match(file)[0].gsub(/-[a,g]-|-/,',')
+      device = Device.new(:data => File.read(file), :meta_data => meta_data, :rate => 100)
       parser = Parser.new(device)
 
       analyzer = Analyzer.new(parser)
       analyzer.measure_steps
-      @data[file] = analyzer.steps
+      @data << {:file => file, :device => device, :steps => analyzer.steps}
     end
     
     @pairs = []
-    @data.keys.each do |file|
+    keys = @data.collect {|i| i[:file]}
+    keys.each do |file|
       match = if file.include?('-a-')
-        @data.keys.select {|f| f == file.gsub('-a-', '-g-')}.first
+        keys.select {|f| f == file.gsub('-a-', '-g-')}.first
       elsif file.include?('-g-')
-        @data.keys.select {|f| f == file.gsub('-g-', '-a-')}.first
+        keys.select {|f| f == file.gsub('-g-', '-a-')}.first
       end
       
       if match

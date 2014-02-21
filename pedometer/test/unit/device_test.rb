@@ -10,6 +10,28 @@ class DeviceTest < Test::Unit::TestCase
     assert_equal input_data, device.data
     assert_equal 5, device.rate
     assert_equal 0.5, device.latency
+    assert_nil device.method
+    assert_nil device.steps
+    assert_nil device.trial
+  end
+
+  def test_create_with_meta_data
+    input_data = '0.123,-0.123,5;'
+    
+    device = Device.new(:data => input_data, :meta_data => "jogging,10,1")
+    assert_equal 'jogging', device.method
+    assert_equal 10, device.steps
+    assert_equal '1', device.trial
+
+    device = Device.new(:data => input_data, :meta_data => "jogging,foo,1")
+    assert_equal 'jogging', device.method
+    assert_equal 0, device.steps
+    assert_equal '1', device.trial
+
+    device = Device.new(:data => input_data, :meta_data => "jogging,1")
+    assert_equal 'jogging', device.method
+    assert_equal 1, device.steps
+    assert_nil device.trial
   end
 
   def test_create_with_rate

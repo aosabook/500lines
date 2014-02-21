@@ -1,6 +1,6 @@
 class Device
 
-  attr_reader :data, :format, :rate, :latency
+  attr_reader :data, :format, :rate, :latency, :method, :steps, :trial
 
   def initialize(params = {})
     params = {} unless params.kind_of? Hash
@@ -13,12 +13,17 @@ class Device
 
     @rate    = (rate > 0) ? rate : 100
     @latency = (latency > 0) ? latency : 0
+
+    if meta_data = (params[:meta_data] && params[:meta_data].split(','))
+      @method = meta_data[0]
+      @steps  = meta_data[1].to_i
+      @trial  = meta_data[2]
+    end
   end
 
 private
 
   def set_format
-    # TODO: Can we clean this up? 
     any_decimal = '-?\d+(?:\.\d+)?'
     regexp_accl = Regexp.new('^((' + any_decimal + ',){2}' + 
                                               any_decimal + ';)+$')
