@@ -174,6 +174,12 @@ class CodeGen(ast.NodeVisitor):
     def visit_Attribute(self, t):
         return [self.of(t.value), op.LOAD_ATTR(self.names[t.attr])]
 
+    def visit_Subscript(self, t):
+        return [self.of(t.value), self.of(t.slice)]
+
+    def visit_Index(self, t):
+        return [self.of(t.value), op.BINARY_SUBSCR]
+
     def visit_Name(self, t):
         level = self.scope.scope(t.id)
         # TODO: check if it's a constant like None
@@ -214,7 +220,7 @@ if __name__ == '__main__':
 
     eg_ast = ast.parse("""
 import math
-['m', 'n']
+print(['m', 'n'][0])
 (pow, len)
 {'a': 42, 'b': 55}
 {}
