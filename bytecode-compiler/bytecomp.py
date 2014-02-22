@@ -153,6 +153,9 @@ class CodeGen(ast.NodeVisitor):
             ast.BitOr:  op.BINARY_OR,       ast.BitXor:   op.BINARY_XOR,
             ast.BitAnd: op.BINARY_AND,      ast.FloorDiv: op.BINARY_FLOOR_DIVIDE}
 
+    def visit_Pass(self, t):
+        return []
+
     def visit_Num(self, t):
         return self.load_const(t.n)
 
@@ -207,6 +210,7 @@ ga = 2+3
 def f(a):
     "doc comment"
     while a:
+        pass
         if a - 1:
             print(a, 137)
         a = a - 1
