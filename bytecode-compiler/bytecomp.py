@@ -133,17 +133,15 @@ class CodeGen(ast.NodeVisitor):
 
     def visit_Name(self, t):
         level = self.scope.scope(t.id)
-        if level == 'local':
-            return op.LOAD_FAST(self.varnames[t.id])
-        else:
-            return op.LOAD_NAME(self.names[t.id])
+        if level == 'local':    return op.LOAD_FAST(self.varnames[t.id])
+        elif level == 'global': return op.LOAD_GLOBAL(self.names[t.id])
+        else:                   return op.LOAD_NAME(self.names[t.id])
 
     def store(self, name):
         level = self.scope.scope(name)
-        if level == 'local':
-            return op.STORE_FAST(self.varnames[name])
-        else:
-            return op.STORE_NAME(self.names[name])
+        if level == 'local':    return op.STORE_FAST(self.varnames[name])
+        elif level == 'global': return op.STORE_GLOBAL(self.names[name])
+        else:                   return op.STORE_NAME(self.names[name])
 
 def make_table():
     table = collections.defaultdict(lambda: len(table))
@@ -171,14 +169,13 @@ if __name__ == '__main__':
 
     eg_ast = ast.parse("""
 ga = 2+3
-def f():
+def f(a):
     "doc comment"
-    a = ga
     while a:
         if a - 1:
             print(a, 137)
         a = a - 1
-f()
+f(ga)
 print(pow(2, 16))
 """)
     try:
