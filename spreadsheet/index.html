@@ -1,0 +1,47 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">
+  <script src="lib/angular.js"></script>
+  <script src="dist/main.js"></script>
+</head><body ng-app ng-cloak ng-controller="Spreadsheet">
+  <table><tr>
+    <th>
+      <a target="_blank" href="https://github.com/audreyt/500lines/tree/master/spreadsheet">&hellip;</a>
+    </th>
+    <th ng-repeat="col in Cols">{{ col }}</th>
+  </tr><tr ng-repeat="row in Rows">
+    <th>{{ row }}</th>
+    <td ng-repeat="col in Cols" ng-class="{ formula: ( '=' === sheet[col+row][0] ) }">
+      <input ng-model="sheet[col+row]" ng-change="calc()">
+      <div ng-class="{ error: errs[col+row] }">{{ errs[col+row] || vals[col+row] }}&nbsp;</div>
+    </td>
+  </tr></table>
+  <style>
+    input {
+      border: 0;
+      padding: 0;
+      width: 120px;
+      height: 1.3em;
+      font-size: 100%;
+      position: absolute;
+      color: transparent;
+      background: transparent;
+    }
+    input:focus {
+      color: #111;
+      background: #efe;
+    }
+    input:focus + div { white-space: nowrap }
+    table { border-collapse: collapse }
+    td div {
+      width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    td div.error { color: #600 }
+    td.formula { background: #eef }
+    th {
+      width: 30px;
+      background: #ddd;
+    }
+    td, th { border: 1px solid #ccc }
+  </style>
+</body></html>
