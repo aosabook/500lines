@@ -2,26 +2,53 @@
 
 (defrecord Database [timestamped top-id curr-time])
 (defrecord Indices [EAVT VAET AVET])
-
 (defrecord Entity [id attrs])
 (defrecord Attr [name type value ts prev-ts])
 
 (defn make-db[] (atom (Database. [(Indices. {} {} {})] 0 0))) ;EAVT: all the entity info, vaet for attrs who are REFs, we hold the back-pointing (from the REFFed entity to the REFing entities)
 
 (defn make-entity  ([] (make-entity :db/no-id-yet ))
-  ([name id] (Entity.  id {})))
+  ([id] (Entity.  id {})))
 
 (defn make-attr
-  ([name value type]  (make-attr name value type false))
-  ([name value type indexed] (with-meta (Attr. name type value -1 -1) {:indexed indexed} )))
+  ([name value type ]  (make-attr name value type :db/single))
+  ([name value type cardinality]  (make-attr name value type cardinality false))
+  ([name value type cardinality indexed] (with-meta (Attr. name type value -1 -1) {:indexed indexed :cardinality cardinality} )))
 
-(defn add-attr[ ent attr] (assoc-in ent [:attrs (keyword (:name attr))] attr))
+(defn update-attr-value [attr value operation]
+  (cond
+      (= :db/single (:cardinality (meta attr)))    (assoc attr :value #{value})
+   ; now = :db/mutiple (:cardinality (meta attr)))
 
-(defn next-ts [db] (inc (:curr-time db)))
+      (= :db/reset-to operation)  (assoc attr :value #{value})
+      (= :db/add operation)        (assoc attr :value (conj (:value attr) value ))
+      (= :db/remove operation)  (assoc attr :value (disj (:value attr) value ))
+   ))
 
-(defn nextId[db ent] (let   [ top-id (:top-id db)
-                                        entId (:id ent)
-                                       [idToUse nextTop] (if (= entId :db/no-id-yet) [(keyword (str (inc top-id))) (inc top-id)] [entId top-id])]
+;;   (if (= :db/single (:cardinality (meta attr)))
+;;     (assoc attr :value #{value})
+;;     (assoc attr :value (conj (:value attr) value))))
+
+(defn conj-to-attr [old new operation]
+  (let [new-val (:value new)]
+   (if old
+    (update-attr-value old (:value new) operation)
+    (update-attr-value new (:value new) :db/reset-to   ))))
+
+(defn add-attr[ ent attr]
+  (let [attr-id (keyword (:name attr))
+          existing-attr (get-in ent [:attrs attr-id])
+          updated-attr (conj-to-attr existing-attr attr :db/add)]
+     (assoc-in ent [:attrs attr-id ] updated-attr)))
+
+(defn next-ts [db]
+  (inc (:curr-time db)))
+
+(defn nextId[db ent]
+  (let [top-id (:top-id db)
+          entId (:id ent)
+          inceased-id (inc top-id)
+          [idToUse nextTop] (if (= entId :db/no-id-yet) [(keyword (str inceased-id)) inceased-id] [entId top-id])]
                               [idToUse nextTop]))
 
 (defn update-creation-ts [ent tsVal]
@@ -35,7 +62,7 @@
 ; this basically provides this info - for each entity that is REFFed by others, who are the others who are REFing it, separated
 ; by the names of the attribute used for reffing
 (defn add-ref-to-vaet[ent operation vaet attr]
-  (let [reffed-id (:value attr)
+  (let [reffed-id (first (:value attr))
         attr-name (:name attr)
         back-reffing-set (get-in vaet [reffed-id attr-name] #{} )
         new-back-reffing-set (operation back-reffing-set (:id ent))
@@ -43,7 +70,7 @@
 
 (defn update-attr-in-avet[ent operation avet attr]
   (let [attr-name (:name attr)
-         attr-value (:value attr)
+         attr-value (first (:value attr)) ; a set
          curr-entities-set (get-in avet [attr-name attr-value] #{})
          updated-entities-set (operation curr-entities-set (:id ent))
         ] (assoc-in avet [attr-name attr-value] updated-entities-set)))
@@ -60,7 +87,8 @@
        (reduce update-attr-in-avet-fn old-avet indexed-attrs)))
 
 ;when adding an entity, its attributes' timestamp would be set to be the current one
-(defn add-entity[db ent]   (let [[ent-id next-top] (nextId db ent)
+(defn add-entity[db ent]
+  (let [[ent-id next-top] (nextId db ent)
                                  new-ts (next-ts db)
                                  indices (last (:timestamped db))
                                  fixed-ent (assoc ent :id ent-id)
@@ -102,42 +130,72 @@
 (defn _what-if [ db f  txs] (f db txs))
 
 (defmacro what-if [db & txs]  `(transact_ ~db   _what-if  ~@txs))
+
 (defmacro transact [db & txs] `(transact_ ~db swap! ~@txs))
 
-(defn update-vaet-for-datom [vaet  ent-id attr new-val]
+(defn remove-entry-from-index [index path val-to-remove operation]
+  (if (= operation :db/add)
+       index
+      (let [old-entries-set (get-in index path )]
+        (assoc-in index path (disj old-entries-set val-to-remove)))))
+
+(defn add-entry-to-index [index path val-to-add operation]
+  (if (= operation :db/remove)
+      index
+    (let [to-be-updated-set (get-in index path #{})]
+      (assoc-in index path (conj to-be-updated-set val-to-add)))))
+
+(defn update-vaet-for-datom [vaet  ent-id attr new-ref-id operation]
   (if (not= :REF (:type attr ))
     vaet
-    (let [ old-ref-id (:value attr)
-             attr-name (:name attr)
-             old-reffed (get-in vaet [old-ref-id attr-name])
-             cleaned-vaet (assoc-in vaet [old-ref-id attr-name] (disj old-reffed ent-id))
-             to-be-updated-ref (get-in vaet [new-val attr-name] #{})
-             updated-vaet (assoc-in cleaned-vaet [new-val attr-name] (conj  to-be-updated-ref ent-id) )
+    (let [
+          old-ref-id (first (:value attr))
+          attr-name (:name attr)
+          ;; removing old value
+          cleaned-vaet (remove-entry-from-index vaet [old-ref-id attr-name] ent-id)
+
+;;           old-reffed (get-in vaet [old-ref-id attr-name])
+;;           cleaned-vaet (assoc-in vaet [old-ref-id attr-name] (disj old-reffed ent-id))
+          ;; adding new value
+          updated-vaet (add-entry-to-index cleaned-vaet [new-ref-id  attr-name] ent-id operation)
+;;           to-be-updated-ref (get-in cleaned-vaet [new-val attr-name] #{})
+;;           updated-vaet (assoc-in cleaned-vaet [new-val attr-name] (conj  to-be-updated-ref ent-id))
           ] updated-vaet)))
 
-(defn update-avet-for-datom [avet ent-id attr new-val]
+(defn update-avet-for-datom [avet ent-id attr new-attr-val operation]
   (if (:indexed (meta attr))
     avet
-    (let [old-attr-val (:value attr)
+    (let [old-attr-val (first (:value attr))
           attr-name (:name attr)
-          old-entities-set (get-in avet [attr-name old-attr-val])
-          cleaned-avet (assoc-in avet [attr-name old-attr-val] (disj old-entities-set ent-id))
-          to-be-updated-entities-set (get-in avet [attr-name new-val] #{})
-          updated-avet (assoc-in cleaned-avet [attr-name new-val] (conj to-be-updated-entities-set ent-id))
+          ;; removing old value
+          cleaned-avet (remove-entry-from-index avet [attr-name old-attr-val] ent-id operation)
+
+;;           old-entities-set (get-in avet [attr-name old-attr-val])
+;;           cleaned-avet (assoc-in avet [attr-name old-attr-val] (disj old-entities-set ent-id))
+       ;;   adding new value
+          updated-avet (add-entry-to-index cleaned-avet [attr-name new-attr-val] ent-id operation)
+;;           to-be-updated-entities-set (get-in cleaned-avet [attr-name new-val] #{})
+;;           updated-avet (assoc-in cleaned-avet [attr-name new-val] (conj to-be-updated-entities-set ent-id))
           ] updated-avet )))
 
-(defn update-datom [db ent-id att-name  new-val]
+(defn update-eavt-for-datom [eavt ent-id new-attr]
+  (assoc-in eavt [ent-id (:name new-attr)] new-attr))
+
+(defn update-datom
+  ([db ent-id att-name  new-val]  (update-datom db ent-id att-name  new-val  :db/reset-to ))
+  ([db ent-id att-name  new-val operation ] ; operation may be either  :db/reset-to  :db/add ,or :db/remove (the last two are valid only if the attr cardinality is :db/mutiple)
      (let [ new-ts (next-ts db)
             indices (last (:timestamped db))
             attr (get-in indices [:EAVT ent-id :attrs  att-name] )
             real-new-val  (if (= :REF (:type attr)) (:id new-val) new-val)
-            updated-attr(assoc attr :value real-new-val :ts new-ts :prev-ts ( :ts attr))
-            eavt-updated-indices (assoc-in indices [:EAVT ent-id :attrs att-name] updated-attr )
-            new-vaet (update-vaet-for-datom (:VAET indices) ent-id attr real-new-val)
-            new-avet (update-avet-for-datom (:AVET indices) ent-id attr real-new-val)
-            fully-updated-indices (assoc eavt-updated-indices :VAET new-vaet :AVET new-avet)
+            updated-timed-attr (assoc attr  :ts new-ts :prev-ts ( :ts attr))
+            updated-attr (conj-to-attr updated-timed-attr {:value real-new-val} operation)
+            new-eavt (update-eavt-for-datom (:EAVT indices) ent-id updated-attr)
+            new-vaet (update-vaet-for-datom (:VAET indices) ent-id attr real-new-val operation) ; intentionally attr is passed and not updated-attr, we need to use the old value to locate where to update in the index
+            new-avet (update-avet-for-datom (:AVET indices) ent-id attr real-new-val operation) ; intentionally attr is passed and not updated-attr, we need to use the old value to locate where to update in the index
+            fully-updated-indices (assoc indices :EAVT new-eavt :VAET new-vaet :AVET new-avet)
             new-db (assoc db :timestamped (conj  (:timestamped db) fully-updated-indices))
-           ]new-db))
+           ]new-db)))
 
 (defn entity-at ([db ent-id ts] ((keyword ent-id) ((:timestamped db) ts)))
                       ([db ent-id] (entity-at db ent-id (:curr-time db))) )
