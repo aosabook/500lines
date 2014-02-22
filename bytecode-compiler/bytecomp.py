@@ -136,6 +136,9 @@ class CodeGen(ast.NodeVisitor):
     def visit_List(self, t):
         return [self.of(t.elts), op.BUILD_LIST(len(t.elts))]
 
+    def visit_Tuple(self, t):
+        return [self.of(t.elts), op.BUILD_TUPLE(len(t.elts))]
+
     def visit_Dict(self, t):
         return [op.BUILD_MAP(len(t.keys)),
                 [[self.of(v), self.of(k), op.STORE_MAP]
@@ -195,7 +198,8 @@ if __name__ == '__main__':
 
     eg_ast = ast.parse("""
 import math
-['m','n']
+['m', 'n']
+(pow, len)
 {'a': 42, 'b': 55}
 {}
 None
