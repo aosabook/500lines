@@ -94,6 +94,10 @@ class CodeGen(ast.NodeVisitor):
         code = CodeGen(self.scope_map, self.scope_map[t]).compile_function(t)
         return [self.load_const(code), op.MAKE_FUNCTION(0), self.store(t.name)]
 
+    def visit_Return(self, t):
+        return [self.of(t.value) if t.value else self.load_const(None),
+                op.RETURN_VALUE]
+
     def visit_If(self, t):
         return {0: [self.of(t.test), op.POP_JUMP_IF_FALSE(1),
                     self.of(t.body), op.JUMP_FORWARD(2)],
@@ -133,6 +137,7 @@ class CodeGen(ast.NodeVisitor):
 
     def visit_Name(self, t):
         level = self.scope.scope(t.id)
+        # TODO: check if it's a constant like None
         if level == 'local':    return op.LOAD_FAST(self.varnames[t.id])
         elif level == 'global': return op.LOAD_GLOBAL(self.names[t.id])
         else:                   return op.LOAD_NAME(self.names[t.id])
@@ -168,6 +173,7 @@ if __name__ == '__main__':
                 print(k, getattr(code, k))
 
     eg_ast = ast.parse("""
+None
 ga = 2+3
 def f(a):
     "doc comment"
@@ -175,8 +181,9 @@ def f(a):
         if a - 1:
             print(a, 137)
         a = a - 1
-f(ga)
-print(pow(2, 16))
+    return pow(2, 16)
+    return
+print(f(ga))
 """)
     try:
         import astpp
