@@ -118,17 +118,18 @@ class CodeGen(ast.NodeVisitor):
                 2: []}
 
     def visit_While(self, t):
-        return {0: [op.SETUP_LOOP(2)],
+        return {0: [op.SETUP_LOOP(3)],
                 1: [self.of(t.test), op.POP_JUMP_IF_FALSE(2),
                     self.of(t.body), op.JUMP_ABSOLUTE(1)],
-                2: [op.POP_BLOCK]}
+                2: [op.POP_BLOCK],
+                3: []}
 
     def visit_Expr(self, t):
         return [self.of(t.value), op.POP_TOP]
 
     def visit_Assign(self, t):
         assert 1 == len(t.targets) and isinstance(t.targets[0], ast.Name)
-        return [self.of(t.value), op.DUP_TOP, self.store(t.targets[0].id)]
+        return [self.of(t.value), self.store(t.targets[0].id)]
 
     def visit_Call(self, t):
         return [self.of(t.func), self.of(t.args), op.CALL_FUNCTION(len(t.args))]
@@ -156,6 +157,9 @@ class CodeGen(ast.NodeVisitor):
     def visit_Pass(self, t):
         return []
 
+    def visit_Break(self, t):
+        return [op.BREAK_LOOP]
+
     def visit_Num(self, t):
         return self.load_const(t.n)
 
@@ -171,6 +175,7 @@ class CodeGen(ast.NodeVisitor):
 
     def store(self, name):
         level = self.scope.scope(name)
+        # XXX global is not getting detected
         if level == 'local':    return op.STORE_FAST(self.varnames[name])
         elif level == 'global': return op.STORE_GLOBAL(self.names[name])
         else:                   return op.STORE_NAME(self.names[name])
@@ -217,6 +222,9 @@ def f(a):
     return pow(2, 16)
     return
 print(f(ga))
+t = True
+while t:
+    break
 """)
     try:
         import astpp
