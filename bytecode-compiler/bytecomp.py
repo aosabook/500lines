@@ -131,6 +131,9 @@ class CodeGen(ast.NodeVisitor):
                 2: [op.POP_BLOCK],
                 3: []}
 
+    def visit_Raise(self, t):
+        return [self.of(t.exc), op.RAISE_VARARGS(1)]
+
     def visit_Expr(self, t):
         return [self.of(t.value), op.POP_TOP]
 
@@ -249,6 +252,7 @@ while t:
 for i in range(3):
     print(i)
 print(-math.sqrt(2))
+raise Exception('hi')
 """)
     try:
         import astpp
