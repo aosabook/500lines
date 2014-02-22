@@ -4,7 +4,7 @@
         <style>.error {color: red} </style>
     </head>
     <body>
-        <h1>{title}</h1>
+        <h1>Edit {title}</h1>
         <form action="{url}" method="post">
             <textarea name="content" style="width:80%;height:80%">{content}</textarea>
             <div class="error">{error}</div>
@@ -12,5 +12,6 @@
             <button type="submit" name="preview" value="preview">Preview</button>
             <button type="submit" name="cancel" value="cancel">Cancel</button>
         </form>
+        <p><a href="https://help.github.com/articles/markdown-basics" target="_blank">Markdown help<a/></p>
     </body>
 </html>

@@ -1,4 +1,5 @@
-var express = require('express'),
+const port = 8080, //port for http web server to listen on
+      express = require('express'),
       fs = require('fs'),
       whiskers = require('whiskers'),
       marked = require('marked'),
@@ -83,6 +84,6 @@ app.post('/wiki/add', function(request, response){
   response.redirect('/wiki/'+page+'/edit');
 });
 
-app.listen(8080, function(){
-  console.log('listening...');
+app.listen(port, function(){
+  console.log("Server started. Visit http://localhost:" + port + "/wiki/ to access the wiki.");
 });

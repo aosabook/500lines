@@ -1,6 +1,14 @@
-Use node.js for server, CouchDB for persistence, jQuery for UI
+Building a wiki:
+Part 1: Simple UI, file store, anyone can edit, everything overwrites (165 lines):
+-Node web server
+-HTML form
+-View/Edit modes
+-File store
+-Parse wiki syntax to HTML (links etc)
+-Basic preview
 
-Install Node
+Setup:
+Install Node.js
 https://github.com/joyent/node/wiki/Installation
 
 //install latest stable node, not old-timey Ubuntu node:
@@ -14,6 +22,20 @@ Get express, whiskers, marked
 $ npm install --save express
 $ npm install --save whiskers
 $ npm install --save marked
+
+Create an empty folder for writing the wiki files to.
+
+$ cd wiki/part1/
+$ mkdir files/
+
+Run the server with npm start.  Visit the wiki at http://localhost:8080/wiki/
+
+
+
+Part 2: CouchDB store (213 lines, replaces part 1 content):
+-Replace File Store with new CouchDB
+-Comments, timestamps
+-Conflict resolution
 
 Install CouchDB
 http://docs.couchdb.org/en/latest/install/index.html (using current stable v.1.4.0 built from source)
@@ -29,18 +51,18 @@ http://127.0.0.1:5984/wiki -> {"db_name":"wiki","doc_count":0,"doc_del_count":0,
 $ npm install --save request
 $ npm install --save dateformat
 
-Building a wiki:
-Part 1: Simple UI, file store, anyone can edit, everything overwrites (165 lines):
--Node web server
--HTML form
--View/Edit modes
--File store
--Parse wiki syntax to HTML (links etc)
--Basic preview
-Part 2: CouchDB store (213 lines, replaces part 1 content):
--Replace File Store with new CouchDB
--Comments, timestamps
--Conflict resolution
+Passport
+$ npm install --save passport
+$ npm install --save passport-local
+$ npm install --save password-hash
+
+Create a local user store on CouchDB
+curl -X PUT http://127.0.0.1:5984/users -> {"ok":true}
+
+Run the server with npm start.  Visit the wiki at http://localhost:8080/wiki/
+
+
+
 Part 3: Fancy stuff (as space allows):
 -user login/sign up/logout with passport
 -revision history - display all past revisions with dates and comments and user ids
