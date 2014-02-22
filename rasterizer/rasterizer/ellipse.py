@@ -1,25 +1,27 @@
 from shape import Shape
-from geometry import Vector, Transform, quadratic, scale, translate
+from geometry import Vector, Transform, quadratic, scale, translate, AABox
 from color import Color
+import sys
 
 class Ellipse(Shape):
     def __init__(self, a=1.0, b=1.0, c=0.0, d=0.0, e=0.0, f=-1.0, color=None):
         Shape.__init__(self, color)
+        if c*c - 4*a*b >= 0:
+            raise Exception("Not an ellipse")
         self.a = a
         self.b = b
         self.c = c
         self.d = d
         self.e = e
         self.f = f
-        t = Transform(2 * a, c, 0, c, 2 * b, 0)
-        self.center = t.inverse() * Vector(-d, -e)
-        l1, l0 = quadratic(1, 2 * (-a - b), 4 * a * b - c * c)
-        v = t.eigv()
-        axes = [v[0] * ((l0 / 2) ** -0.5), v[1] * ((l1 / 2) ** -0.5)]
-        self.bound = Vector.union(self.center - axes[0] - axes[1],
-                                  self.center - axes[0] + axes[1],
-                                  self.center + axes[0] - axes[1],
-                                  self.center + axes[0] + axes[1])
+        g = Transform(2*a, c, d, c, 2*b, e)
+        self.center = g.inverse() * Vector(0, 0)
+        y1, y2 = quadratic(b-c*c/4*a, e-c*d/2*a, f-d*d/4*a)
+        x1, x2 = quadratic(a-c*c/4*b, d-c*e/2*b, f-e*e/4*b)
+        self.bound = Vector.union(Vector(-(d + c*y1)/2*a, y1),
+                                  Vector(-(d + c*y2)/2*a, y2),
+                                  Vector(x1, -(e + c*x1)/2*b),
+                                  Vector(x2, -(e + c*x2)/2*b))
     def value(self, p):
         return self.a*p.x*p.x + self.b*p.y*p.y + self.c*p.x*p.y \
                + self.d*p.x + self.e*p.y + self.f

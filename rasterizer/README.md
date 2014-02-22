@@ -33,6 +33,8 @@ Maybe most interestingly, shapes in `tiny_gfx` are extensible. New
 shapes are easily added, and they compose well with the other parts of
 the code.
 
+A description of the current version of the code is in `doc/README.md`.
+
 ## A performance caveat
 
 Rasterizers are so central to display technology that their

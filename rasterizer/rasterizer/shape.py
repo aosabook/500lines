@@ -7,6 +7,8 @@ class Shape:
     def __init__(self, color=None):
         self.color = color if color is not None else Color()
     def draw(self, image, super_sampling = 6):
+        if not self.bound.overlaps(image.bounds()):
+            return
         color = self.color
         r = float(image.resolution)
         jitter = [Vector((x + random.random()) / super_sampling / r,
@@ -14,14 +16,10 @@ class Shape:
                   for (x, y) in product(xrange(super_sampling), repeat=2)]
         lj = len(jitter)
         total_pixels = 0
-        tb = self.bound
-        if not tb.overlaps(image.bounds()):
-            return
-        l_x = max(0, int(tb.low.x * r))
-        l_y = max(0, int(tb.low.y * r))
-        h_x = min(r-1, int(tb.high.x * r))
-        h_y = min(r-1, int(tb.high.y * r))
-        corners = [(0, 0), (1.0/r, 0), (0, 1.0/r), (1.0/r, 1.0/r)]
+        l_x = max(0, int(self.bound.low.x * r))
+        l_y = max(0, int(self.bound.low.y * r))
+        h_x = min(r-1, int(self.bound.high.x * r))
+        h_y = min(r-1, int(self.bound.high.y * r))
         for y in xrange(l_y, int(h_y+1)):
             x = l_x
             while x <= h_x:

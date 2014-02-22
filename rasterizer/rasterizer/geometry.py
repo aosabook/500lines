@@ -28,6 +28,8 @@ class Vector:
         return AABox(reduce(Vector.min, args), reduce(Vector.max, args))
     def length(self):
         return (self.x * self.x + self.y * self.y) ** 0.5
+    def __repr__(self):
+        return "[%.3f %.3f]" % (self.x, self.y)
 
 class AABox:
     def __init__(self, p1, p2):
@@ -62,7 +64,7 @@ class Transform:
                   [0, 0, 1]]
     def __mul__(self, other): # ugly
         if isinstance(other, Transform):
-            t = [[0] * 3 for i in xrange(3)]
+            t = [[0.0] * 3 for i in xrange(3)]
             for i, j, k in product(xrange(3), repeat=3):
                 t[i][j] += self.m[i][k] * other.m[k][j]
             return Transform(t[0][0], t[0][1], t[0][2],
@@ -75,18 +77,12 @@ class Transform:
         return s.m[0][0] * s.m[1][1] - s.m[0][1] * s.m[1][0]
     def inverse(self):
         d = 1.0 / self.det()
-        return Transform(d * self.m[1][1], -d * self.m[0][1], -self.m[0][2],
-                         -d * self.m[1][0], d * self.m[0][0], -self.m[1][2])
-    def eigv(self): # power iteration, ignores translation, assumes SPD
-        a = Vector(random.random(), random.random())
-        last = Vector(0,0)
-        t = Transform(self.m[0][0], self.m[0][1], 0,
-                      self.m[1][0], self.m[1][1], 0)
-        while (a - last).length() > 1e-6:
-            last = a
-            a = t * a
-            a = a * (1.0 / a.length())
-        return a, Vector(-a.y, a.x)
+        t = Transform(d * self.m[1][1], -d * self.m[0][1], 0,
+                      -d * self.m[1][0], d * self.m[0][0], 0)
+        v = t * Vector(self.m[0][2], self.m[1][2])
+        t.m[0][2] = -v.x
+        t.m[1][2] = -v.y
+        return t
 
 def identity():
     return Transform(1, 0, 0, 0, 1, 0)
