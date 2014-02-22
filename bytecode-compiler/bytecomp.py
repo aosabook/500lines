@@ -86,9 +86,21 @@ class CodeGen(ast.NodeVisitor):
     def load_const(self, constant):
         return op.LOAD_CONST(self.constants[constant])
 
+    def generic_visit(self, t):
+        assert False, t
+
     def visit_Module(self, t):
         return self.of(t.body)
 
+    def visit_Import(self, t):
+        return self.of(t.names)
+
+    def visit_alias(self, t):
+        return [self.load_const(0),
+                self.load_const(None), # XXX not for 'importfrom'
+                op.IMPORT_NAME(self.names[t.name]),
+                self.store(t.asname or t.name.split('.')[0])]
+        
     def visit_FunctionDef(self, t):
         assert not t.decorator_list
         code = CodeGen(self.scope_map, self.scope_map[t]).compile_function(t)
@@ -173,6 +185,7 @@ if __name__ == '__main__':
                 print(k, getattr(code, k))
 
     eg_ast = ast.parse("""
+import math
 None
 ga = 2+3
 def f(a):
