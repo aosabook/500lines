@@ -145,6 +145,11 @@ class CodeGen(ast.NodeVisitor):
                 [[self.of(v), self.of(k), op.STORE_MAP]
                  for k, v in zip(t.keys, t.values)]]
 
+    def visit_UnaryOp(self, t):
+        return [self.of(t.operand), self.ops1[type(t.op)]]
+    ops1 = {ast.UAdd: op.UNARY_POSITIVE,  ast.Invert: op.UNARY_INVERT,
+            ast.USub: op.UNARY_NEGATIVE,  ast.Not:    op.UNARY_NOT}
+
     def visit_BinOp(self, t):
         return [self.of(t.left), self.of(t.right), self.ops2[type(t.op)]]
     ops2 = {ast.Add:  op.BINARY_ADD,              ast.Pow:    op.BINARY_POWER,
@@ -228,7 +233,7 @@ print(f(ga))
 t = True
 while t:
     break
-print(math.sqrt(2))
+print(-math.sqrt(2))
 """)
     try:
         import astpp
