@@ -147,12 +147,12 @@ class CodeGen(ast.NodeVisitor):
 
     def visit_BinOp(self, t):
         return [self.of(t.left), self.of(t.right), self.ops2[type(t.op)]]
-    ops2 = {ast.Add:    op.BINARY_ADD,      ast.Sub:      op.BINARY_SUBTRACT,
-            ast.Mult:   op.BINARY_MULTIPLY, ast.Div:      op.BINARY_TRUE_DIVIDE,
-            ast.Mod:    op.BINARY_MODULO,   ast.Pow:      op.BINARY_POWER,
-            ast.LShift: op.BINARY_LSHIFT,   ast.RShift:   op.BINARY_RSHIFT,
-            ast.BitOr:  op.BINARY_OR,       ast.BitXor:   op.BINARY_XOR,
-            ast.BitAnd: op.BINARY_AND,      ast.FloorDiv: op.BINARY_FLOOR_DIVIDE}
+    ops2 = {ast.Add:  op.BINARY_ADD,              ast.Pow:    op.BINARY_POWER,
+            ast.Sub:  op.BINARY_SUBTRACT,         ast.LShift: op.BINARY_LSHIFT,
+            ast.Mult: op.BINARY_MULTIPLY,         ast.RShift: op.BINARY_RSHIFT,
+            ast.Mod:  op.BINARY_MODULO,           ast.BitOr:  op.BINARY_OR,
+            ast.Div:  op.BINARY_TRUE_DIVIDE,      ast.BitAnd: op.BINARY_AND,
+            ast.FloorDiv: op.BINARY_FLOOR_DIVIDE, ast.BitXor: op.BINARY_XOR}
 
     def visit_Pass(self, t):
         return []
@@ -165,6 +165,9 @@ class CodeGen(ast.NodeVisitor):
 
     def visit_Str(self, t):
         return self.load_const(t.s)
+
+    def visit_Attribute(self, t):
+        return [self.of(t.value), op.LOAD_ATTR(self.names[t.attr])]
 
     def visit_Name(self, t):
         level = self.scope.scope(t.id)
@@ -225,6 +228,7 @@ print(f(ga))
 t = True
 while t:
     break
+print(math.sqrt(2))
 """)
     try:
         import astpp
