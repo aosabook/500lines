@@ -124,6 +124,13 @@ class CodeGen(ast.NodeVisitor):
                 2: [op.POP_BLOCK],
                 3: []}
 
+    def visit_For(self, t):
+        return {0: [op.SETUP_LOOP(3), self.of(t.iter), op.GET_ITER],
+                1: [op.FOR_ITER(2), self.store(t.target.id),
+                    self.of(t.body), op.JUMP_ABSOLUTE(1)],
+                2: [op.POP_BLOCK],
+                3: []}
+
     def visit_Expr(self, t):
         return [self.of(t.value), op.POP_TOP]
 
@@ -239,6 +246,8 @@ print(f(ga))
 t = True
 while t:
     break
+for i in range(3):
+    print(i)
 print(-math.sqrt(2))
 """)
     try:
