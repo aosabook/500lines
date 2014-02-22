@@ -1,6 +1,6 @@
 {
   "name": "wiki_part1",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Part One Source Code for Wiki in 500 Lines or Less",
   "main": "server.js",
   "dependencies": {
@@ -13,6 +13,5 @@
     "start": "node server.js",
     "test": "node --debug server.js"
   },
-  "author": "Laurie MacDougall Sookraj",
-  "license": "ISC"
+  "author": "Laurie MacDougall Sookraj"
 }
