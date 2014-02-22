@@ -81,6 +81,7 @@ class CodeGen(ast.NodeVisitor):
                               freevars=(), cellvars=())
 
     def of(self, t):
+        assert isinstance(t, list) or isinstance(t, ast.AST)
         return list(map(self.of, t)) if isinstance(t, list) else self.visit(t)
 
     def load_const(self, constant):
@@ -131,6 +132,11 @@ class CodeGen(ast.NodeVisitor):
 
     def visit_Call(self, t):
         return [self.of(t.func), self.of(t.args), op.CALL_FUNCTION(len(t.args))]
+
+    def visit_Dict(self, t):
+        return [op.BUILD_MAP(len(t.keys)),
+                [[self.of(v), self.of(k), op.STORE_MAP]
+                 for k, v in zip(t.keys, t.values)]]
 
     def visit_BinOp(self, t):
         return [self.of(t.left), self.of(t.right), self.ops2[type(t.op)]]
@@ -186,6 +192,8 @@ if __name__ == '__main__':
 
     eg_ast = ast.parse("""
 import math
+{'a': 42, 'b': 55}
+{}
 None
 ga = 2+3
 def f(a):
