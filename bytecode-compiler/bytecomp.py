@@ -169,6 +169,14 @@ class CodeGen(ast.NodeVisitor):
             ast.Div:  op.BINARY_TRUE_DIVIDE,      ast.BitAnd: op.BINARY_AND,
             ast.FloorDiv: op.BINARY_FLOOR_DIVIDE, ast.BitXor: op.BINARY_XOR}
 
+    def visit_Compare(self, t):
+        assert 1 == len(t.ops)
+        return [self.of(t.left), self.of(t.comparators[0]),
+                op.COMPARE_OP(dis.cmp_op.index(self.ops_cmp[type(t.ops[0])]))]
+    ops_cmp = {ast.Eq: '==', ast.NotEq: '!=', ast.Is: 'is', ast.IsNot: 'is not',
+               ast.Lt: '<',  ast.LtE:   '<=', ast.In: 'in', ast.NotIn: 'not in',
+               ast.Gt: '>',  ast.GtE:   '>='}
+
     def visit_Pass(self, t):
         return []
 
@@ -240,7 +248,7 @@ def f(a):
     "doc comment"
     while a:
         pass
-        if a - 1:
+        if a != 1:
             print(a, 137)
         a = a - 1
     return pow(2, 16)
