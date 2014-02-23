@@ -19,15 +19,10 @@
   (cond
       (= :db/single (:cardinality (meta attr)))    (assoc attr :value #{value})
    ; now = :db/mutiple (:cardinality (meta attr)))
-
       (= :db/reset-to operation)  (assoc attr :value #{value})
       (= :db/add operation)        (assoc attr :value (conj (:value attr) value ))
       (= :db/remove operation)  (assoc attr :value (disj (:value attr) value ))
    ))
-
-;;   (if (= :db/single (:cardinality (meta attr)))
-;;     (assoc attr :value #{value})
-;;     (assoc attr :value (conj (:value attr) value))))
 
 (defn conj-to-attr [old new operation]
   (let [new-val (:value new)]
@@ -129,15 +124,25 @@
 
 (defn _what-if [ db f  txs] (f db txs))
 
-(defmacro what-if [db & txs]  `(transact_ ~db   _what-if  ~@txs))
+(defmacro what-if [db & txs]
+  `(transact_ ~db   _what-if  ~@txs))
 
-(defmacro transact [db & txs] `(transact_ ~db swap! ~@txs))
+(defmacro transact [db & txs]
+  `(transact_ ~db swap! ~@txs))
 
-(defn remove-entry-from-index [index path val-to-remove operation]
+;;;;;;;;;;;;;;;;;;;;;;;  datom updates
+
+(defn remove-entry-from-index [val-to-remove index path ]
+  (let [ old-entries-set (get-in index path )]
+     (assoc-in index path (disj old-entries-set val-to-remove))
+    ))
+
+(defn remove-entries-from-index [index paths val-to-remove operation]
   (if (= operation :db/add)
        index
-      (let [old-entries-set (get-in index path )]
-        (assoc-in index path (disj old-entries-set val-to-remove)))))
+      (let  [   remover   (partial remove-entry-from-index  val-to-remove)   ]
+       (reduce remover index (operation paths))
+  )))
 
 (defn add-entry-to-index [index path val-to-add operation]
   (if (= operation :db/remove)
@@ -145,41 +150,39 @@
     (let [to-be-updated-set (get-in index path #{})]
       (assoc-in index path (conj to-be-updated-set val-to-add)))))
 
-(defn update-vaet-for-datom [vaet  ent-id attr new-ref-id operation]
+(defn update-vaet-for-datom [vaet  ent-id attr target-ref-id operation]
   (if (not= :REF (:type attr ))
     vaet
     (let [
-          old-ref-id (first (:value attr))
+          old-ref-ids (:value attr)
           attr-name (:name attr)
-          ;; removing old value
-          cleaned-vaet (remove-entry-from-index vaet [old-ref-id attr-name] ent-id)
-
-;;           old-reffed (get-in vaet [old-ref-id attr-name])
-;;           cleaned-vaet (assoc-in vaet [old-ref-id attr-name] (disj old-reffed ent-id))
+          paths-in-case-of-replace (map (fn[i][i attr-name]) old-ref-ids)
+          paths-in-case-of-remove [[target-ref-id attr-name]]
+          paths {:db/remove paths-in-case-of-remove :db/reset-to paths-in-case-of-replace}
+          ;; removing old values
+          cleaned-vaet (remove-entries-from-index vaet paths  ent-id operation)
           ;; adding new value
-          updated-vaet (add-entry-to-index cleaned-vaet [new-ref-id  attr-name] ent-id operation)
-;;           to-be-updated-ref (get-in cleaned-vaet [new-val attr-name] #{})
-;;           updated-vaet (assoc-in cleaned-vaet [new-val attr-name] (conj  to-be-updated-ref ent-id))
+          updated-vaet (add-entry-to-index cleaned-vaet [target-ref-id  attr-name] ent-id operation)
           ] updated-vaet)))
 
-(defn update-avet-for-datom [avet ent-id attr new-attr-val operation]
-  (if (:indexed (meta attr))
+(defn update-avet-for-datom [avet ent-id attr target-attr-val operation]
+  (if-not (:indexed (meta attr))
     avet
-    (let [old-attr-val (first (:value attr))
+    (let [old-attr-vals (:value attr)
           attr-name (:name attr)
+          paths-in-case-of-replace (map (fn[i][attr-name i]) old-attr-vals)
+          paths-in-case-of-remove [[attr-name target-attr-val]]
+          paths {:db/remove paths-in-case-of-remove :db/reset-to paths-in-case-of-replace}
           ;; removing old value
-          cleaned-avet (remove-entry-from-index avet [attr-name old-attr-val] ent-id operation)
-
-;;           old-entities-set (get-in avet [attr-name old-attr-val])
-;;           cleaned-avet (assoc-in avet [attr-name old-attr-val] (disj old-entities-set ent-id))
+          cleaned-avet (remove-entries-from-index avet paths  ent-id operation)
        ;;   adding new value
-          updated-avet (add-entry-to-index cleaned-avet [attr-name new-attr-val] ent-id operation)
-;;           to-be-updated-entities-set (get-in cleaned-avet [attr-name new-val] #{})
-;;           updated-avet (assoc-in cleaned-avet [attr-name new-val] (conj to-be-updated-entities-set ent-id))
+          updated-avet (add-entry-to-index cleaned-avet [attr-name target-attr-val] ent-id operation)
           ] updated-avet )))
 
 (defn update-eavt-for-datom [eavt ent-id new-attr]
-  (assoc-in eavt [ent-id (:name new-attr)] new-attr))
+  (
+
+   assoc-in eavt [ent-id :attrs (:name new-attr)] new-attr))
 
 (defn update-datom
   ([db ent-id att-name  new-val]  (update-datom db ent-id att-name  new-val  :db/reset-to ))
@@ -196,6 +199,8 @@
             fully-updated-indices (assoc indices :EAVT new-eavt :VAET new-vaet :AVET new-avet)
             new-db (assoc db :timestamped (conj  (:timestamped db) fully-updated-indices))
            ]new-db)))
+
+;;;;;;;;;;;;;;;;;;;;;;;  queries
 
 (defn entity-at ([db ent-id ts] ((keyword ent-id) ((:timestamped db) ts)))
                       ([db ent-id] (entity-at db ent-id (:curr-time db))) )
@@ -225,3 +230,6 @@
 (defn db-before [db ts]
   (let [indices-before (subvec (:timestamped db) 0 ts )]
     (assoc db :timestamped indices-before :curr-time ts)))
+
+(defn ind-at[db ts kind] (kind ((:timestamped db) ts)))
+
