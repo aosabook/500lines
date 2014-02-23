@@ -4,6 +4,7 @@ function defs, and a bit more.
 """
 
 import ast, collections, dis, types
+from functools import reduce
 from assembler import op, assemble
 
 def bytecomp(t, f_globals):
@@ -177,6 +178,15 @@ class CodeGen(ast.NodeVisitor):
                ast.Lt: '<',  ast.LtE:   '<=', ast.In: 'in', ast.NotIn: 'not in',
                ast.Gt: '>',  ast.GtE:   '>='}
 
+    def visit_BoolOp(self, t):
+        op_jump = self.ops_bool[type(t.op)]
+        def compound(left, right):
+            return {0: [left, op_jump(1), right],
+                    1: []}
+        return reduce(compound, map(self.of, t.values))
+    ops_bool = {ast.And: op.JUMP_IF_FALSE_OR_POP,
+                ast.Or:  op.JUMP_IF_TRUE_OR_POP}
+
     def visit_Pass(self, t):
         return []
 
@@ -246,9 +256,9 @@ None
 ga = 2+3
 def f(a):
     "doc comment"
-    while a:
+    while a and True:
         pass
-        if a != 1:
+        if False or a != 1 or False:
             print(a, 137)
         a = a - 1
     return pow(2, 16)
