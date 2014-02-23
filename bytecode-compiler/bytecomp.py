@@ -1,6 +1,6 @@
 """
-Byte-compile trivial programs with if, while, globals, calls,
-function defs, and a bit more.
+Byte-compile an almost-reasonable subset of Python.
+TODO: complain when fed programs from outside the subset.
 """
 
 import ast, collections, dis, types
