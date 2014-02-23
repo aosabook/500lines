@@ -162,12 +162,12 @@ class CodeGen(ast.NodeVisitor):
 
     def visit_BinOp(self, t):
         return [self.of(t.left), self.of(t.right), self.ops2[type(t.op)]]
-    ops2 = {ast.Add:  op.BINARY_ADD,              ast.Pow:    op.BINARY_POWER,
-            ast.Sub:  op.BINARY_SUBTRACT,         ast.LShift: op.BINARY_LSHIFT,
-            ast.Mult: op.BINARY_MULTIPLY,         ast.RShift: op.BINARY_RSHIFT,
-            ast.Mod:  op.BINARY_MODULO,           ast.BitOr:  op.BINARY_OR,
-            ast.Div:  op.BINARY_TRUE_DIVIDE,      ast.BitAnd: op.BINARY_AND,
-            ast.FloorDiv: op.BINARY_FLOOR_DIVIDE, ast.BitXor: op.BINARY_XOR}
+    ops2 = {ast.Pow:    op.BINARY_POWER,  ast.Add:  op.BINARY_ADD,
+            ast.LShift: op.BINARY_LSHIFT, ast.Sub:  op.BINARY_SUBTRACT,
+            ast.RShift: op.BINARY_RSHIFT, ast.Mult: op.BINARY_MULTIPLY,
+            ast.BitOr:  op.BINARY_OR,     ast.Mod:  op.BINARY_MODULO,
+            ast.BitAnd: op.BINARY_AND,    ast.Div:  op.BINARY_TRUE_DIVIDE,
+            ast.BitXor: op.BINARY_XOR,    ast.FloorDiv: op.BINARY_FLOOR_DIVIDE}
 
     def visit_Compare(self, t):
         assert 1 == len(t.ops)
