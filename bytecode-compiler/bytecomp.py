@@ -35,7 +35,7 @@ class CodeGen(ast.NodeVisitor):
         return self.compile(t.body, len(t.args.args))
 
     def compile(self, t, argcount=0):
-        bytecode = [self.of(t), self.load_const(None), op.RETURN_VALUE]
+        bytecode = [self(t), self.load_const(None), op.RETURN_VALUE]
         kwonlyargcount = 0
         nlocals = len(self.varnames)
         stacksize = 10          # XXX
@@ -53,9 +53,9 @@ class CodeGen(ast.NodeVisitor):
                               filename, name, firstlineno, lnotab,
                               freevars=(), cellvars=())
 
-    def of(self, t):
+    def __call__(self, t):
         assert isinstance(t, list) or isinstance(t, ast.AST)
-        return list(map(self.of, t)) if isinstance(t, list) else self.visit(t)
+        return list(map(self, t)) if isinstance(t, list) else self.visit(t)
 
     def load_const(self, constant):
         return op.LOAD_CONST(self.constants[constant])
@@ -64,10 +64,10 @@ class CodeGen(ast.NodeVisitor):
         assert False, t
 
     def visit_Module(self, t):
-        return self.of(t.body)
+        return self(t.body)
 
     def visit_Import(self, t):
-        return self.of(t.names)
+        return self(t.names)
 
     def visit_alias(self, t):
         return [self.load_const(0),
@@ -81,7 +81,7 @@ class CodeGen(ast.NodeVisitor):
         return [op.LOAD_BUILD_CLASS,
                 self.load_const(code), self.load_const(t.name), op.MAKE_FUNCTION(0), # XXX 0?
                 self.load_const(t.name),
-                self.of(t.bases),
+                self(t.bases),
                 op.CALL_FUNCTION(2 + len(t.bases)),
                 self.store(t.name)]
 
@@ -91,60 +91,60 @@ class CodeGen(ast.NodeVisitor):
         return [self.load_const(code), op.MAKE_FUNCTION(0), self.store(t.name)]
 
     def visit_Return(self, t):
-        return [self.of(t.value) if t.value else self.load_const(None),
+        return [self(t.value) if t.value else self.load_const(None),
                 op.RETURN_VALUE]
 
     def visit_If(self, t):
-        return {0: [self.of(t.test), op.POP_JUMP_IF_FALSE(1),
-                    self.of(t.body), op.JUMP_FORWARD(2)],
-                1: [self.of(t.orelse)],
+        return {0: [self(t.test), op.POP_JUMP_IF_FALSE(1),
+                    self(t.body), op.JUMP_FORWARD(2)],
+                1: [self(t.orelse)],
                 2: []}
 
     def visit_While(self, t):
         return {0: [op.SETUP_LOOP(3)],
-                1: [self.of(t.test), op.POP_JUMP_IF_FALSE(2),
-                    self.of(t.body), op.JUMP_ABSOLUTE(1)],
+                1: [self(t.test), op.POP_JUMP_IF_FALSE(2),
+                    self(t.body), op.JUMP_ABSOLUTE(1)],
                 2: [op.POP_BLOCK],
                 3: []}
 
     def visit_For(self, t):
-        return {0: [op.SETUP_LOOP(3), self.of(t.iter), op.GET_ITER],
+        return {0: [op.SETUP_LOOP(3), self(t.iter), op.GET_ITER],
                 1: [op.FOR_ITER(2), self.store(t.target.id),
-                    self.of(t.body), op.JUMP_ABSOLUTE(1)],
+                    self(t.body), op.JUMP_ABSOLUTE(1)],
                 2: [op.POP_BLOCK],
                 3: []}
 
     def visit_Raise(self, t):
-        return [self.of(t.exc), op.RAISE_VARARGS(1)]
+        return [self(t.exc), op.RAISE_VARARGS(1)]
 
     def visit_Expr(self, t):
-        return [self.of(t.value), op.POP_TOP]
+        return [self(t.value), op.POP_TOP]
 
     def visit_Assign(self, t):
         assert 1 == len(t.targets) and isinstance(t.targets[0], ast.Name)
-        return [self.of(t.value), self.store(t.targets[0].id)]
+        return [self(t.value), self.store(t.targets[0].id)]
 
     def visit_Call(self, t):
-        return [self.of(t.func), self.of(t.args), op.CALL_FUNCTION(len(t.args))]
+        return [self(t.func), self(t.args), op.CALL_FUNCTION(len(t.args))]
 
     def visit_List(self, t):
-        return [self.of(t.elts), op.BUILD_LIST(len(t.elts))]
+        return [self(t.elts), op.BUILD_LIST(len(t.elts))]
 
     def visit_Tuple(self, t):
-        return [self.of(t.elts), op.BUILD_TUPLE(len(t.elts))]
+        return [self(t.elts), op.BUILD_TUPLE(len(t.elts))]
 
     def visit_Dict(self, t):
         return [op.BUILD_MAP(len(t.keys)),
-                [[self.of(v), self.of(k), op.STORE_MAP]
+                [[self(v), self(k), op.STORE_MAP]
                  for k, v in zip(t.keys, t.values)]]
 
     def visit_UnaryOp(self, t):
-        return [self.of(t.operand), self.ops1[type(t.op)]]
+        return [self(t.operand), self.ops1[type(t.op)]]
     ops1 = {ast.UAdd: op.UNARY_POSITIVE,  ast.Invert: op.UNARY_INVERT,
             ast.USub: op.UNARY_NEGATIVE,  ast.Not:    op.UNARY_NOT}
 
     def visit_BinOp(self, t):
-        return [self.of(t.left), self.of(t.right), self.ops2[type(t.op)]]
+        return [self(t.left), self(t.right), self.ops2[type(t.op)]]
     ops2 = {ast.Pow:    op.BINARY_POWER,  ast.Add:  op.BINARY_ADD,
             ast.LShift: op.BINARY_LSHIFT, ast.Sub:  op.BINARY_SUBTRACT,
             ast.RShift: op.BINARY_RSHIFT, ast.Mult: op.BINARY_MULTIPLY,
@@ -154,7 +154,7 @@ class CodeGen(ast.NodeVisitor):
 
     def visit_Compare(self, t):
         assert 1 == len(t.ops)
-        return [self.of(t.left), self.of(t.comparators[0]),
+        return [self(t.left), self(t.comparators[0]),
                 op.COMPARE_OP(dis.cmp_op.index(self.ops_cmp[type(t.ops[0])]))]
     ops_cmp = {ast.Eq: '==', ast.NotEq: '!=', ast.Is: 'is', ast.IsNot: 'is not',
                ast.Lt: '<',  ast.LtE:   '<=', ast.In: 'in', ast.NotIn: 'not in',
@@ -165,7 +165,7 @@ class CodeGen(ast.NodeVisitor):
         def compound(left, right):
             return {0: [left, op_jump(1), right],
                     1: []}
-        return reduce(compound, map(self.of, t.values))
+        return reduce(compound, map(self, t.values))
     ops_bool = {ast.And: op.JUMP_IF_FALSE_OR_POP,
                 ast.Or:  op.JUMP_IF_TRUE_OR_POP}
 
@@ -182,13 +182,13 @@ class CodeGen(ast.NodeVisitor):
         return self.load_const(t.s)
 
     def visit_Attribute(self, t):
-        return [self.of(t.value), op.LOAD_ATTR(self.names[t.attr])]
+        return [self(t.value), op.LOAD_ATTR(self.names[t.attr])]
 
     def visit_Subscript(self, t):
-        return [self.of(t.value), self.of(t.slice)]
+        return [self(t.value), self(t.slice)]
 
     def visit_Index(self, t):
-        return [self.of(t.value), op.BINARY_SUBSCR]
+        return [self(t.value), op.BINARY_SUBSCR]
 
     def visit_Name(self, t):
         return self.load(t.id)
