@@ -10,11 +10,11 @@ class ParserTest < Test::Unit::TestCase
     parser = Parser.new(device)
     
     assert_equal device, parser.device
-    assert_equal [{:x=>0.123, :y=>-0.123, :z=>5.0, :xg=>0, :yg=>0, :zg=>0},
-                  {:x=>0.442, :y=>-0.765, :z=>0.108, :xg=>0.014, :yg=>-0.024, :zg=>0.003},
-                  {:x=>-0.219, :y=>0.024, :z=>0.967, :xg=>0.007, :yg=>-0.023, :zg=>0.033}], parser.parsed_data
-    assert_equal [0.0, 0.0249, 0.0298], parser.dot_product_data
-    assert_equal [0, 0, -0.0015], parser.filtered_data
+    assert_equal [{:x=>0.123, :y=>-0.123, :z=>5.0, :xg=>0.0, :yg=>0.0, :zg=>0.0},
+                  {:x=>0.456, :y=>-0.789, :z=>0.111, :xg=>0.0, :yg=>0.0, :zg=>0.0},
+                  {:x=>-0.2121, :y=>0.0011, :z=>0.9995, :xg=>0.0001, :yg=>-0.0001, :zg=>0.0005}], parser.parsed_data
+    assert_equal [0.0, 0.0, 0.0005], parser.dot_product_data
+    assert_equal [0, 0, 0.0], parser.filtered_data
   end
 
   def test_create_gravity_data

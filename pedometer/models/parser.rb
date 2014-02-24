@@ -19,28 +19,28 @@ private
   def parse_raw_data
     case @device.format
     when 'accelerometer'
-      # TODO: Use @device.latency/(@device.latency + @device.rate)
-      alpha = 0.97
+      a0 = 1
+      a1 = -1.979133761292768
+      a2 = 0.979521463540373
+      b0 = 0.000086384997973502
+      b1 = 0.000172769995947004
+      b2 = 0.000086384997973502
 
-      @device.data.split(';').each_with_index do |data, i|
-        x, y, z = data.split(',').map { |coord| coord.to_f }
+      coordinates = @device.data.split(';')
+      x_series = coordinates.inject([]) {|a, data| a << data.split(',')[0].to_f }
+      y_series = coordinates.inject([]) {|a, data| a << data.split(',')[1].to_f }
+      z_series = coordinates.inject([]) {|a, data| a << data.split(',')[2].to_f }
+      
+      xg_series = chebyshev_filter(x_series, a0, a1, a2, b0, b1, b2)
+      yg_series = chebyshev_filter(y_series, a0, a1, a2, b0, b1, b2)
+      zg_series = chebyshev_filter(z_series, a0, a1, a2, b0, b1, b2)
 
-        if i == 0
-          @parsed_data = [{:x => x, :y => y, :z => z, :xg => 0, :yg => 0, :zg => 0}]
-        else
-
-          # TODO: Change to Chebyshev filter
-          # Chebyshev I, Apass = 1, Fpass = 0.3, Fs = 100
-          # a0 = 1, a1 = -1.979133761292768, a2 = 0.979521463540373, 
-          # b0 = 0.000086384997973502, b1 = 0.000172769995947004, b2 = 0.000086384997973502
-
-          xg = (alpha * @parsed_data[i-1][:xg] + (1-alpha) * x).round(3)
-          yg = (alpha * @parsed_data[i-1][:yg] + (1-alpha) * y).round(3)
-          zg = (alpha * @parsed_data[i-1][:zg] + (1-alpha) * z).round(3)
-
-          @parsed_data << {:x => x-xg, :y => y-yg, :z => z-zg,
-                           :xg => xg, :yg => yg, :zg => zg}
-        end
+      @parsed_data = []
+      coordinates.length.times do |i|
+        @parsed_data << {:x => (x_series[i]-xg_series[i]).round(4), 
+                         :y => (y_series[i]-yg_series[i]).round(4), 
+                         :z => (z_series[i]-zg_series[i]).round(4), 
+                         :xg => xg_series[i].round(4), :yg => yg_series[i].round(4), :zg => zg_series[i].round(4)}
       end
     when 'gravity'
       @parsed_data = @device.data.split(';').inject([]) do |a, data|
