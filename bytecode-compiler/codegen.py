@@ -217,6 +217,8 @@ def collect(table):
 
 if __name__ == '__main__':
 
+    import sys
+
     def main(source):
         f = compile_toplevel(source)
         f()   # It's alive!
@@ -272,4 +274,9 @@ for i in range(3):
 print(-math.sqrt(2))
 raise Exception('hi')
 """
-    main(eg)
+    if len(sys.argv) == 1:
+        main(eg)
+    elif len(sys.argv) == 2:
+        main(open(sys.argv[1]).read())
+    else:
+        assert False
