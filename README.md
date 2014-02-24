@@ -113,4 +113,12 @@ Contributors
     <td>@jaaaarel</td>
     <td>taavi.burns@points.com</td>
   </tr>
+  <tr>
+    <td>Kragen Javier Sitaker</td>
+    <td>[Canonical Hackers](http://canonical.org/)</td>
+    <td>search-engine</td>
+    <td>@kragen</td>
+    <td>@kragen</td>
+    <td>kragen@canonical.org</td>
+  </tr>
 </table>
