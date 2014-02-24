@@ -217,6 +217,21 @@ def collect(table):
 
 if __name__ == '__main__':
 
+    def main(source):
+        f = compile_toplevel(source)
+        f()   # It's alive!
+
+    def compile_toplevel(source):
+        t = ast.parse(source)
+        try:
+            import astpp
+        except ImportError:
+            astpp = ast
+        print(astpp.dump(t))
+        f = bytecomp(t, globals())
+        diss(f.__code__)
+        return f
+
     def diss(code):
         codepp(code)
         dis.dis(code)
@@ -231,7 +246,7 @@ if __name__ == '__main__':
             if k.startswith('co_'):
                 print(k, getattr(code, k))
 
-    eg_ast = ast.parse("""
+    eg = """
 import math
 print(['m', 'n'][0])
 (pow, len)
@@ -256,12 +271,5 @@ for i in range(3):
     print(i)
 print(-math.sqrt(2))
 raise Exception('hi')
-""")
-    try:
-        import astpp
-    except ImportError:
-        astpp = ast
-    print(astpp.dump(eg_ast))
-    f = bytecomp(eg_ast, globals())
-    diss(f.__code__)
-    f()   # It's alive!
+"""
+    main(eg)
