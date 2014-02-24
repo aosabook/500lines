@@ -21,6 +21,11 @@ class CodeGen(ast.NodeVisitor):
         self.names     = make_table()
         self.varnames  = make_table()
 
+    def compile_class(self, t):
+        return [self.load('__name__'), self.store('__module__'),
+                self.load_const(t.name), self.store('__qualname__'), # XXX
+                self.compile(t.body, 0)]
+
     def compile_function(self, t):
         stmt0 = t.body[0]
         if not (isinstance(stmt0, ast.Expr) and isinstance(stmt0.value, ast.Str)):
@@ -70,6 +75,16 @@ class CodeGen(ast.NodeVisitor):
                 op.IMPORT_NAME(self.names[t.name]),
                 self.store(t.asname or t.name.split('.')[0])]
         
+    def visit_ClassDef(self, t):
+        assert not t.decorator_list
+        code = CodeGen(self.scope_map, self.scope_map[t]).compile_class(t)
+        return [op.LOAD_BUILD_CLASS,
+                self.load_const(code), self.load_const(t.name), op.MAKE_FUNCTION(0), # XXX 0?
+                self.load_const(t.name),
+                self.of(t.bases),
+                op.CALL_FUNCTION(2 + len(t.bases)),
+                self.store(t.name)]
+
     def visit_FunctionDef(self, t):
         assert not t.decorator_list
         code = CodeGen(self.scope_map, self.scope_map[t]).compile_function(t)
@@ -176,11 +191,14 @@ class CodeGen(ast.NodeVisitor):
         return [self.of(t.value), op.BINARY_SUBSCR]
 
     def visit_Name(self, t):
-        level = self.scope.scope(t.id)
+        return self.load(t.id)
+
+    def load(self, name):
+        level = self.scope.scope(name)
         # TODO: check if it's a constant like None
-        if level == 'local':    return op.LOAD_FAST(self.varnames[t.id])
-        elif level == 'global': return op.LOAD_GLOBAL(self.names[t.id])
-        else:                   return op.LOAD_NAME(self.names[t.id])
+        if level == 'local':    return op.LOAD_FAST(self.varnames[name])
+        elif level == 'global': return op.LOAD_GLOBAL(self.names[name])
+        else:                   return op.LOAD_NAME(self.names[name])
 
     def store(self, name):
         level = self.scope.scope(name)

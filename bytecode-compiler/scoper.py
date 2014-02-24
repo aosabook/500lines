@@ -29,11 +29,19 @@ class Scope(ast.NodeVisitor):
         else:
             return 'unknown'
 
+    def visit_ClassDef(self, t):
+        self.defs.add(t.name)
+        for expr in t.bases: self.visit(expr)
+        subscope = Scope(self.scope_map)
+        self.scope_map[t] = subscope
+        for stmt in t.body: subscope.visit(stmt)
+        self.uses.update(subscope.uses - subscope.defs)
+
     def visit_FunctionDef(self, t):
         self.defs.add(t.name)
-        subscope = Scope(self.scope_map, [t.name] + t.args.args)
-        for stmt in t.body: subscope.visit(stmt)
+        subscope = Scope(self.scope_map, t.args.args)
         self.scope_map[t] = subscope
+        for stmt in t.body: subscope.visit(stmt)
         self.uses.update(subscope.uses - subscope.defs) # maybe these nonlocals should be tracked separately?
 
     def visit_Assign(self, t):
