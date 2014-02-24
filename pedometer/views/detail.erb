@@ -3,7 +3,21 @@
 <link href="/styles.css" rel="stylesheet" type="text/css" />
 
 <html>
-    <%= @data[:file] %>
+    <%= @file %>
+
+    <table>
+        <tr>
+            <th>Steps</td>
+            <th>Distance</td>
+            <th>Time</td>
+        </tr>
+        <tr>
+            <td><%= @analyzer.steps %></td>
+            <td><%= @analyzer.distance %></td>
+            <td><%= @analyzer.time.to_s + ' ' + @analyzer.interval %></td>
+        </tr>
+    </table>
+
     <div id="container-dot-product" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
     <div id="container-filtered" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
 </html>
@@ -33,7 +47,7 @@
             },
             series: [{
                 name: 'Dot Product Data',
-                data: <%= @data[:parser].dot_product_data %>
+                data: <%= @parser.dot_product_data %>
             }]
         });
 
@@ -60,7 +74,7 @@
             },
             series: [{
                 name: 'Filtered Data',
-                data: <%= @data[:parser].filtered_data %>
+                data: <%= @parser.filtered_data %>
             }]
         });
     });

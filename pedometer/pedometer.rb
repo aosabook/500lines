@@ -58,13 +58,12 @@ end
 
 get '/detail/*' do
   begin
-    file = params[:splat].first
-    device = Device.new(:data => File.read(file), :rate => 100)
-    parser = Parser.new(device)
+    @file = params[:splat].first
+    device = Device.new(:data => File.read(@file), :rate => 100)
+    @parser = Parser.new(device)
 
-    analyzer = Analyzer.new(parser)
-    analyzer.measure_steps
-    @data = {:file => file, :steps => analyzer.steps, :parser => parser}
+    @analyzer = Analyzer.new(@parser)
+    @analyzer.measure
 
     erb :detail
   rescue Exception => e
