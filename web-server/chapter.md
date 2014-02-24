@@ -339,3 +339,96 @@ one for the page,
 and one for a file called `/favicon.ico`,
 which it will display as an icon in the address bar if it exists.
 We'll look at this in more detail later.
+
+## Displaying Values
+
+Let's modify our web server to display some of the values
+included in the HTTP request.
+(We'll do this pretty frequently when debugging,
+so we might as well get some practice.)
+To keep our code clean,
+we'l separate creating the page from sending it:
+
+~~~ {file="01-echo-request-info/server.py"}
+class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+
+    ...page template...
+
+    def do_GET(self):
+        page = self.create_page()
+        self.send_page(page)
+
+    def create_page(self):
+        ...fill in...
+
+    def send_page(self, page):
+        ...fill in...
+~~~
+
+`send_page` is pretty much what we had before:
+
+~~~ {file="01-echo-request-info/server.py"}
+    def send_page(self, page):
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.send_header("Content-Length", str(len(page)))
+        self.end_headers()
+        self.wfile.write(page)
+~~~
+
+The template for the page we want to display is
+just an HTML table with some formatting placeholders:
+
+~~~ {file="01-echo-request-info/server.py"}
+    Page = '''\
+<html>
+<body>
+<table>
+<tr>  <td>Date and time</td>  <td>%(date_time)s</td>   </tr>
+<tr>  <td>Client host</td>    <td>%(client_host)s</td> </tr>
+<tr>  <td>Client port</td>    <td>%(client_port)s</td> </tr>
+<tr>  <td>Command</td>        <td>%(command)s</td>     </tr>
+<tr>  <td>Path</td>           <td>%(path)s</td>        </tr>
+</body>
+</html>
+'''
+~~~
+
+and the method that fills this in is:
+
+~~~ {file="01-echo-request-info/server.py"}
+    def create_page(self):
+        values = {
+            'date_time'   : self.date_time_string(),
+            'client_host' : self.client_address[0],
+            'client_port' : self.client_address[1],
+            'command'     : self.command,
+            'path'        : self.path
+        }
+        page = self.Page % values
+        return page
+~~~
+
+The main body of the program is unchanged:
+as before,
+it creates an instance of the `HTTPServer` class
+with an address and this request handler as parameters,
+then serves requests forever.
+If we run it and send a request from a browser
+for `http://localhost:8080/something.html`,
+we get:
+
+  Header         Value
+  ------         -----
+  Date and time  Mon, 24 Feb 2014 17:17:12 GMT
+  Client host    127.0.0.1
+  Client port    54548
+  Command        GET
+  Path           /something.html
+
+Notice that we do *not* get a 404 error,
+even though the page `something.html` doesn't exist.
+Our web server isn't doing anything with the URL but echo it;
+in particular,
+it isn't interpreting it as a file path.
+That's up to us.
