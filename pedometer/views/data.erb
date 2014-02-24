@@ -14,12 +14,11 @@
             <th>Delta</th>
             <th></th>
             <% @data.each do |h| %>
-              <% file = h[:file] %>
               <% device = h[:device] %>
               <% steps = h[:steps] %>
-              <% url = "detail/" + file %>
+              <% url = "detail/" + h[:file] %>
               <tr>
-                <td><%= file.split('/')[2] %></td>
+                <td><%= h[:user].gender %></td>
                 <td><%= device.method %></td>
                 <td><%= device.format %></td>
                 <td><%= device.trial %></td>
