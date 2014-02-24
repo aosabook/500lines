@@ -432,3 +432,82 @@ Our web server isn't doing anything with the URL but echo it;
 in particular,
 it isn't interpreting it as a file path.
 That's up to us.
+
+## Serving Static Pages
+
+The obvious next step is to start serving pages off the disk
+instead of generating them on the fly.
+We'll start by rewriting `do_GET`:
+
+~~~ {file="02-serve-static/server.py"}
+    def do_GET(self):
+        try:
+
+            # Figure out what exactly is being requested.
+            full_path = os.getcwd() + self.path
+
+            # It doesn't exist...
+            if not os.path.exists(full_path):
+                raise ServerException("'%s' not found" % self.path)
+
+            # ...it's a file...
+            elif os.path.isfile(full_path):
+                self.handle_file(full_path)
+
+            # ...it's something we don't handle.
+            else:
+                raise ServerException("Unknown object '%s'" % self.path)
+
+        # Handle errors.
+        except Exception, msg:
+            self.handle_error(msg)
+~~~
+
+This method assumes that it's allowed to serve any files in or below
+the directory that the web server is running in
+(which it gets using `os.getcwd`).
+It combines this with the path provided in the URL
+(which the library automatically puts in `self.path`,
+and which always starts with a leading '/')
+to get the path to the file the user wants.
+
+If that doesn't exist,
+or if it isn't a file,
+the method reports an error by raising and catching an exception.
+If the path matches a file,
+on the other hand,
+it calls a helper method named `handle_file`
+to read and return the contents.
+This method just reads the file
+and uses our existing `send_content` to send it back to the client:
+
+~~~ {file="02-serve-static/server.py"}
+    def handle_file(self, full_path):
+        try:
+            with open(full_path, 'r') as input:
+                content = input.read()
+            self.send_content(content)
+        except IOError, msg:
+            msg = "'%s' cannot be read: %s" % (self.path, msg)
+            self.handle_error(msg)
+~~~
+
+To finish off this class,
+we need to write the error handling method
+and the template for the error reporting page:
+
+~~~ {file="02-serve-static/server.py"}
+    Error_Page = """\
+        <html>
+        <body>
+        <h1>Error accessing %(path)s</h1>
+        <p>%(msg)s</p>
+        </body>
+        </html>
+        """
+
+    def handle_error(self, msg):
+        content = self.Error_Page % {'path' : self.path,
+                                     'msg'  : msg}
+        self.send_content(content)
+~~~
