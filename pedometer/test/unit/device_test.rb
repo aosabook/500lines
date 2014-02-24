@@ -67,13 +67,13 @@ class DeviceTest < Test::Unit::TestCase
   def test_create_accelerometer_data
     input = '0.123,-0.123,5;0.456,-0.789,0.111;-0.212,0.001,1;'
     device = Device.new(:data => input)
-    assert_equal 1, device.format
+    assert_equal 'accelerometer', device.format
   end
 
   def test_create_gravity_data
     input = '0.028,-0.072,5|0.129,-0.945,-5;0,-0.07,0.06|0.123,-0.947,5;0.2,-1,2|0.1,-0.9,3;'
     device = Device.new(:data => input)
-    assert_equal 2, device.format
+    assert_equal 'gravity', device.format
   end
 
   # -- Creation Failure Tests -----------------------------------------------

@@ -31,8 +31,8 @@ private
                                          any_decimal + ')){1}[|](' +
                                          any_decimal + ',){2}(' +
                                          any_decimal + ';){1})+$')
-    @format = 1 if regexp_accl.match(@data)
-    @format = 2 if regexp_grav.match(@data)
+    @format = 'accelerometer' if regexp_accl.match(@data)
+    @format = 'gravity'       if regexp_grav.match(@data)
     raise "Bad Input. Ensure accelerometer or gravity data is properly formatted." unless @format
   end
 

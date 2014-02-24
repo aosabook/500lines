@@ -2,7 +2,6 @@ require './models/device.rb'
 
 class Parser
 
-  @format
   attr_reader :device, :parsed_data, :dot_product_data, :filtered_data
 
   def initialize(device)
@@ -19,7 +18,7 @@ private
 
   def parse_raw_data
     case @device.format
-    when 1
+    when 'accelerometer'
       # TODO: Use @device.latency/(@device.latency + @device.rate)
       alpha = 0.97
 
@@ -37,7 +36,7 @@ private
                            :xg => xg, :yg => yg, :zg => zg}
         end
       end
-    when 2
+    when 'gravity'
       @parsed_data = @device.data.split(';').inject([]) do |a, data|
         accl, grav = data.split('|')
         accl = accl.split(',')
