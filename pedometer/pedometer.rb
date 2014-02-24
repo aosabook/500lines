@@ -2,6 +2,7 @@ require 'sinatra'
 require 'sinatra/jbuilder'
 require './models/analyzer.rb'
 require './models/device.rb'
+require './models/user.rb'
 
 get '/metrics' do
   begin
@@ -29,10 +30,10 @@ get '/data' do
       meta_data = /\w+-\d+-[a,g]-\d/.match(file)[0].gsub(/-[a,g]-|-/,',')
       device = Device.new(:data => File.read(file), :meta_data => meta_data, :rate => 100)
       parser = Parser.new(device)
-
-      analyzer = Analyzer.new(parser)
+      user = User.new(:gender => file.split('/')[2])
+      analyzer = Analyzer.new(parser, user)
       analyzer.measure_steps
-      @data << {:file => file, :device => device, :steps => analyzer.steps}
+      @data << {:file => file, :device => device, :steps => analyzer.steps, :user => user}
     end
 
     erb :data
