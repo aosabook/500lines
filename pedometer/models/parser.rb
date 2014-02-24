@@ -28,6 +28,12 @@ private
         if i == 0
           @parsed_data = [{:x => x, :y => y, :z => z, :xg => 0, :yg => 0, :zg => 0}]
         else
+
+          # TODO: Change to Chebyshev filter
+          # Chebyshev I, Apass = 1, Fpass = 0.3, Fs = 100
+          # a0 = 1, a1 = -1.979133761292768, a2 = 0.979521463540373, 
+          # b0 = 0.000086384997973502, b1 = 0.000172769995947004, b2 = 0.000086384997973502
+
           xg = (alpha * @parsed_data[i-1][:xg] + (1-alpha) * x).round(3)
           yg = (alpha * @parsed_data[i-1][:yg] + (1-alpha) * y).round(3)
           zg = (alpha * @parsed_data[i-1][:zg] + (1-alpha) * z).round(3)
@@ -56,27 +62,22 @@ private
     end
   end
 
-  # TODO: What about a0?
   # Chebyshev II, Astop = 2, Fstop = 5, Fs = 100
-  # a0 = 1, a1 = -1.80898117793047, a2 = 0.827224480562408, 
-  # b0 = 0.095465967120306, b1 = -0.172688631608676, b2 = 0.095465967120306
   def filter_dot_product_data
-    a0 = 1
-    a1 = -1.80898117793047
-    a2 = 0.827224480562408
-    b0 = 0.095465967120306
-    b1 = -0.172688631608676
-    b2 = 0.095465967120306
-
-    @filtered_data = [0,0]
-    @dot_product_data.length.times do |i|
-      next if i < 2
-      @filtered_data << (@dot_product_data[i]*b0 + 
-                        @dot_product_data[i-1]*b1 + 
-                        @dot_product_data[i-2]*b2 -
-                        @filtered_data[i-1]*a1 -
-                        @filtered_data[i-2]*a2).round(4)
-    end
+    @filtered_data = chebyshev_filter(@dot_product_data, 
+      1, -1.80898117793047, 0.827224480562408, 0.095465967120306, -0.172688631608676, 0.095465967120306)
   end
 
+  def chebyshev_filter(input_data, a0, a1, a2, b0, b1, b2)
+    output_data = [0,0]
+    input_data.length.times do |i|
+      next if i < 2
+      output_data << (input_data[i]*b0 + 
+                      input_data[i-1]*b1 + 
+                      input_data[i-2]*b2 -
+                      output_data[i-1]*a1 -
+                      output_data[i-2]*a2).round(4)
+    end
+    output_data
+  end
 end
