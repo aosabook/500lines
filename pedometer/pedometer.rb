@@ -34,21 +34,6 @@ get '/data' do
       analyzer.measure_steps
       @data << {:file => file, :device => device, :steps => analyzer.steps}
     end
-    
-    @pairs = []
-    keys = @data.collect {|i| i[:file]}
-    keys.each do |file|
-      match = if file.include?('-a-')
-        keys.select {|f| f == file.gsub('-a-', '-g-')}.first
-      elsif file.include?('-g-')
-        keys.select {|f| f == file.gsub('-g-', '-a-')}.first
-      end
-      
-      if match
-        @pairs << [file, match].sort
-      end
-    end
-    @pairs.uniq!
 
     erb :data
   rescue Exception => e
@@ -59,11 +44,24 @@ end
 get '/detail/*' do
   begin
     @file = params[:splat].first
-    device = Device.new(:data => File.read(@file), :rate => 100)
-    @parser = Parser.new(device)
+    @device = Device.new(:data => File.read(@file), :rate => 100)
+    @parser = Parser.new(@device)
 
     @analyzer = Analyzer.new(@parser)
     @analyzer.measure
+
+    files = Dir.glob(File.join('test/data/female', "*")) + Dir.glob(File.join('test/data/male', "*"))
+    match = if @file.include?('-a-')
+      files.select {|f| f == @file.gsub('-a-', '-g-')}.first
+    elsif @file.include?('-g-')
+      files.select {|f| f == @file.gsub('-g-', '-a-')}.first
+    end
+
+    if match
+      device = Device.new(:data => File.read(match), :rate => 100)
+      parser = Parser.new(device)
+      @match_filtered_data = parser.filtered_data
+    end
 
     erb :detail
   rescue Exception => e
@@ -71,21 +69,3 @@ get '/detail/*' do
   end
 end
 
-get '/data/compare/*/and/*' do
-  begin
-    @data = []
-
-    [params[:splat].first, params[:splat].last].each do |file|
-      device = Device.new(:data => File.read(file), :rate => 100)
-      parser = Parser.new(device)
-
-      analyzer = Analyzer.new(parser)
-      analyzer.measure_steps
-      @data << {:file => file, :steps => analyzer.steps, :filtered_data => parser.filtered_data}
-    end
-
-    erb :compare
-  rescue Exception => e
-    [400, e.message]
-  end
-end

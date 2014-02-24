@@ -31,14 +31,6 @@
             <% end %>
           </table>
         </td>
-        <td class="compare">
-            <% @pairs.each do |file_1, file_2| %>
-                <div>
-                    <% url = "/data/compare/" + file_1 + "/and/" + file_2 %>
-                    <a href=<%= url %>> Compare</a> <%= file_1 %> and <%= file_2 %>
-                </div>
-            <% end %>
-        </td>
     </tr>
   </table>  
 </html>

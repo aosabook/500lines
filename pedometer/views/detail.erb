@@ -20,6 +20,11 @@
 
     <div id="container-dot-product" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
     <div id="container-filtered" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+
+    <% if @match_filtered_data %>
+        <% comparison_title = (@device.format == 'accelerometer') ? 'Gravity' : 'Accelerometer' %>
+        <div id="container-comparison" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+    <% end %>
 </html>
 
 <script>
@@ -54,7 +59,7 @@
         $('#container-filtered').highcharts({
             title: {
                 text: 'Filtered Data',
-                x: -20 //center
+                x: -20
             },
             yAxis: {
                 title: {
@@ -75,6 +80,36 @@
             series: [{
                 name: 'Filtered Data',
                 data: <%= @parser.filtered_data %>
+            }]
+        });
+
+        $('#container-comparison').highcharts({
+            title: {
+                text: 'Comparison to ' + '<%= comparison_title %>',
+                x: -20
+            },
+            yAxis: {
+                title: {
+                    text: 'Magnitude'
+                },
+                plotLines: [{
+                    value: 0,
+                    width: 1,
+                    color: '#808080'
+                }]
+            },
+            legend: {
+                layout: 'vertical',
+                align: 'right',
+                verticalAlign: 'middle',
+                borderWidth: 0
+            },
+            series: [{
+                name: '<%= @device.format.capitalize %>',
+                data: <%= @parser.filtered_data %>
+            }, {
+                name: '<%= comparison_title %>',
+                data: <%= @match_filtered_data || [] %>
             }]
         });
     });
