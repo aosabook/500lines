@@ -5,9 +5,11 @@
 (defrecord Entity [id attrs])
 (defrecord Attr [name type value ts prev-ts])
 
-(defn make-db[] (atom (Database. [(Indices. {} {} {})] 0 0))) ;EAVT: all the entity info, vaet for attrs who are REFs, we hold the back-pointing (from the REFFed entity to the REFing entities)
+(defn make-db "Create an empty database" []
+  (atom (Database. [(Indices. {} {} {})] 0 0))) ;EAVT: all the entity info, vaet for attrs who are REFs, we hold the back-pointing (from the REFFed entity to the REFing entities)
 
-(defn make-entity  ([] (make-entity :db/no-id-yet ))
+(defn make-entity "creates an entity, if id is not supplied, a running id is assigned to the entity"
+  ([] (make-entity :db/no-id-yet ))
   ([id] (Entity.  id {})))
 
 (defn make-attr
@@ -15,7 +17,8 @@
   ([name value type cardinality]  (make-attr name value type cardinality false))
   ([name value type cardinality indexed] (with-meta (Attr. name type value -1 -1) {:indexed indexed :cardinality cardinality} )))
 
-(defn update-attr-value [attr value operation]
+(defn update-attr-value "updating the attribute value based on the kind of the operation, the cardinality defined for this attribute and the given value"
+  [attr value operation]
   (cond
       (= :db/single (:cardinality (meta attr)))    (assoc attr :value #{value})
    ; now = :db/mutiple (:cardinality (meta attr)))
@@ -24,46 +27,54 @@
       (= :db/remove operation)  (assoc attr :value (disj (:value attr) value ))
    ))
 
-(defn conj-to-attr [old new operation]
+(defn conj-to-attr "conjoins a value to an attribute, this function can be used either when initializing a new attribute or updating an existing one"
+  [old new operation]
   (let [new-val (:value new)]
    (if old
     (update-attr-value old (:value new) operation)
     (update-attr-value new (:value new) :db/reset-to   ))))
 
-(defn add-attr[ ent attr]
+(defn add-attr "adds an attribute to an entity"
+  [ ent attr]
   (let [attr-id (keyword (:name attr))
           existing-attr (get-in ent [:attrs attr-id])
           updated-attr (conj-to-attr existing-attr attr :db/add)]
      (assoc-in ent [:attrs attr-id ] updated-attr)))
 
-(defn next-ts [db]
+(defn next-ts [db] "returns the next timestamp of the given database"
   (inc (:curr-time db)))
 
-(defn nextId[db ent]
+(defn nextId [db ent] "returns a pair composed of the id to use for the given entity and the next free running id in the database"
   (let [top-id (:top-id db)
           entId (:id ent)
           inceased-id (inc top-id)
           [idToUse nextTop] (if (= entId :db/no-id-yet) [(keyword (str inceased-id)) inceased-id] [entId top-id])]
                               [idToUse nextTop]))
 
-(defn update-creation-ts [ent tsVal]
+(defn update-creation-ts "updates the timestamp value of all the attributes of an entity to the given timestamp"
+  [ent tsVal]
   (let [ks (keys (:attrs ent))
         vls (vals (:attrs ent))
         updatedAttrsVals (map #(assoc % :ts tsVal) vls)
         updatedAttrs (zipmap ks updatedAttrsVals)
         ](assoc ent :attrs updatedAttrs)))
 
-;  vaet -> {REFed-ent-id -> {attrName -> [REFing-elems-ids]}}
-; this basically provides this info - for each entity that is REFFed by others, who are the others who are REFing it, separated
-; by the names of the attribute used for reffing
-(defn add-ref-to-vaet[ent operation vaet attr]
+;  VAET  structed like this:  {REFed-ent-id -> {attrName -> #{REFing-elems-ids}}}
+; this basically provides this info: for each entity that is REFFed by others (V), separated by the names of the attribute used for reffing (A), hold the set of the ids of the REFing (E), all this at a given time (T)
+;  can be used to know who REFs a specific entity
+(defn update-ref-in-vaet "adding an entry to th VAET index"
+  [ent operation vaet attr]
   (let [reffed-id (first (:value attr))
         attr-name (:name attr)
         back-reffing-set (get-in vaet [reffed-id attr-name] #{} )
         new-back-reffing-set (operation back-reffing-set (:id ent))
         ] (assoc-in vaet [reffed-id attr-name] new-back-reffing-set)))
 
-(defn update-attr-in-avet[ent operation avet attr]
+;  AVET  structed like this:  {attrName-> {attrValue -> #{holding-elems-ids}}
+; this basically provides this info: for each attributeName (A) that we chose to index, separated by the values of the attribute  (V), hold the set of the ids of the hold thes attributes (E), all this at a given time (T)
+;  can be used to know who are the entities that have a specific attribute with a specific value
+(defn update-attr-in-avet ""
+  [ent operation avet attr]
   (let [attr-name (:name attr)
          attr-value (first (:value attr)) ; a set
          curr-entities-set (get-in avet [attr-name attr-value] #{})
@@ -72,7 +83,7 @@
 
 (defn update-vaet[old-vaet ent operation]
   (let [reffingAttrs (filter #(= :REF (:type %)) (vals (:attrs ent)))
-        add-ref (partial add-ref-to-vaet ent operation)]
+        add-ref (partial update-ref-in-vaet ent operation)]
        (reduce add-ref old-vaet reffingAttrs)))
 
 ;avet : attr-name -> attr-value -> #{ids of ents}
@@ -180,9 +191,7 @@
           ] updated-avet )))
 
 (defn update-eavt-for-datom [eavt ent-id new-attr]
-  (
-
-   assoc-in eavt [ent-id :attrs (:name new-attr)] new-attr))
+  (assoc-in eavt [ent-id :attrs (:name new-attr)] new-attr))
 
 (defn update-datom
   ([db ent-id att-name  new-val]  (update-datom db ent-id att-name  new-val  :db/reset-to ))
@@ -232,4 +241,3 @@
     (assoc db :timestamped indices-before :curr-time ts)))
 
 (defn ind-at[db ts kind] (kind ((:timestamped db) ts)))
-
