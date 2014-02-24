@@ -26,6 +26,7 @@ class TestContext(BaseContext):
         self.interaction.registerCallback('picking', self.picking)
         self.interaction.registerCallback('move', self.move)
         self.interaction.registerCallback('place', self.place)
+        self.interaction.registerCallback('color', self.color)
 
         self.InitialScene()
         self.inverseModelView = numpy.identity(4)
@@ -81,23 +82,19 @@ class TestContext(BaseContext):
         glTranslated(0, 0, -15);
 
     def InitialScene(self):
-        sphere_node = Cube()
-        sphere_node.set_color(0.5, 0.4, 0.2)
-        self.scene.add_node(sphere_node)
-
         cube_node = Cube()
         cube_node.translate(2, 0, 2)
-        cube_node.set_color(0.2, 0.6, 0.2)
+        cube_node.color_index = 2
         self.scene.add_node(cube_node)
 
         cube_node = Sphere()
         cube_node.translate(-2, 0, 2)
-        cube_node.set_color(0.6, 0.2, 0.2)
+        cube_node.color_index = 3
         self.scene.add_node(cube_node)
 
         cube_node = Sphere()
         cube_node.translate(-2, 0, -2)
-        cube_node.set_color(0.2, 0.2, 0.6)
+        cube_node.color_index = 1
         self.scene.add_node(cube_node)
 
     def getRay(self, x, y):
@@ -136,6 +133,10 @@ class TestContext(BaseContext):
             Consumes: x, y coordinates of the mouse on the screen """
         start, direction = self.getRay(x, y)
         self.scene.place(shape, start, direction, self.inverseModelView)
+    
+    def color(self, forwards):
+        self.scene.rotate_color(forwards)
+
 
 
 if __name__=="__main__":

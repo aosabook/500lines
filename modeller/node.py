@@ -4,13 +4,14 @@ import numpy
 from primitive import G_OBJ_SPHERE, G_OBJ_CUBE, MakeCube
 from aabb import AABB
 from transformation import scaling, translation
+import color
 
 class Node(object):
     """ Base class for scene elements """
     def __init__(self):
         self.scale = array([1, 1, 1])
         self.location = [0, 0, 0]
-        self.color = [0, 0, 0]
+        self.color_index = 0
         self.call_list = None
         self.aabb = None
         self.translation = numpy.identity(4)
@@ -23,7 +24,8 @@ class Node(object):
         glPushMatrix()
         glMultMatrixf(self.scalemat)
         glMultMatrixf(self.translation)
-        glColor3f(self.color[0], self.color[1], self.color[2])
+        cur_color = color.COLORS[self.color_index]
+        glColor3f(cur_color[0], cur_color[1], cur_color[2])
         if self.selected: # emit light if the node is selected
             glMaterialfv(GL_FRONT, GL_EMISSION, [0.3, 0.3, 0.3])
         glCallList(self.call_list)
@@ -37,8 +39,12 @@ class Node(object):
     def scale(self, x, y, z):
         self.scalemat = numpy.dot(self.scalemat , scaling([x, y, z]))
 
-    def set_color(self, r, g, b):
-        self.color = [r, g, b]
+    def rotate_color(self, forwards):
+        self.color_index += 1 if forwards else -1
+        if self.color_index > color.MAX_COLOR:
+            self.color_index = color.MIN_COLOR
+        if self.color_index < color.MIN_COLOR:
+            self.color_index = color.MAX_COLOR
 
     def picking(self, start, direction, mat):
         """ Return whether or not the ray hits the object

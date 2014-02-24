@@ -92,3 +92,7 @@ class Scene(object):
 
         new_node.translate(translation[0], translation[1], translation[2])
 
+    def rotate_color(self, forwards):
+        """ Rotate the color of the currently selected node """
+        if self.selected_node is None: return
+        self.selected_node.rotate_color(forwards)

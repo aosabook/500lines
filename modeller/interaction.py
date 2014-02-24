@@ -90,7 +90,10 @@ class Interaction(object):
             self.trigger('place', 'sphere', x, y)
         elif key == 'c':
             self.trigger('place', 'cube', x, y)
-
+        elif key == GLUT_KEY_UP:
+            self.trigger('color', True)
+        elif key == GLUT_KEY_DOWN:
+            self.trigger('color', False)
         glutPostRedisplay()
 
     def register(self):
@@ -98,4 +101,5 @@ class Interaction(object):
         glutMouseFunc(self.MouseButton)
         glutMotionFunc(self.MouseMove)
         glutKeyboardFunc(self.Keyboard)
+        glutSpecialFunc(self.Keyboard)
         glutPassiveMotionFunc(None)
