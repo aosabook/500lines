@@ -511,3 +511,9 @@ and the template for the error reporting page:
                                      'msg'  : msg}
         self.send_content(content)
 ~~~
+
+## Listing Directories
+
+FIXME: explain how to list directories (small change to existing code)
+
+FIXME: point out that '..' doesn't work in paths, and explain why
