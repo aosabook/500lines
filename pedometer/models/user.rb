@@ -1,26 +1,21 @@
 class User
 
   GENDER = ['male', 'female']
-  SYSTEM = ['metric', 'imperial']
 
-  attr_reader :system, :gender, :height, :stride, :threshold
+  attr_reader :gender, :height, :stride
 
-  # TODO: Allow threshold to be passed in
   def initialize(params = {})
     params = {} unless params.kind_of? Hash
 
-    system_params = params[:system].to_s.downcase
     gender_params = params[:gender].to_s.downcase
     stride_params = params[:stride].to_f.round(2)
+    height_params = params[:height].to_f.round(2)
 
-    @system = (SYSTEM.include? system_params) ? system_params : 'metric'
     @gender = gender_params if GENDER.include? gender_params
-    @height = params[:height]
+    @height = height_params if height_params > 0
     @stride = (stride_params > 30) ? stride_params : calculate_stride
-    @threshold = 0.2
   end
 
-  # TODO: calculate stride based on measurement system
   def calculate_stride
     # avg: 74 cm
     # avg male: 78 cm

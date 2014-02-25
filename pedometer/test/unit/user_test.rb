@@ -9,8 +9,6 @@ class UserTest < Test::Unit::TestCase
     assert_nil user.gender
     assert_nil user.height
     assert_equal 74, user.stride
-    assert_equal 'metric', user.system
-    assert_equal 0.2, user.threshold
   end
 
   def test_create_bad_params
@@ -19,15 +17,6 @@ class UserTest < Test::Unit::TestCase
     assert_nil user.gender
     assert_nil user.height
     assert_equal 74, user.stride
-    assert_equal 'metric', user.system
-  end
-
-  def test_create_with_system
-    assert_equal 'metric',   User.new(:system => 'MetrIC').system
-    assert_equal 'imperial', User.new(:system => 'imperial').system
-
-    assert_equal 'metric', User.new(:system => 'invalid value').system
-    assert_equal 'metric', User.new(:system => 1).system
   end
 
   def test_create_with_gender
@@ -36,6 +25,15 @@ class UserTest < Test::Unit::TestCase
     
     assert_nil User.new(:gender => 'invalid value').gender
     assert_nil User.new(:gender => 1).gender
+  end
+
+  def test_create_with_height
+    assert_equal 167.5, User.new(:height => '167.5').height
+    assert_equal 100.52, User.new(:height => 100.519).height
+    
+    assert_nil User.new(:height => 'invalid value').height
+    assert_nil User.new(:height => 0).height
+    assert_nil User.new(:height => -1).height
   end
 
   def test_create_with_stride
