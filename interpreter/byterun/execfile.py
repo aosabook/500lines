@@ -8,38 +8,6 @@ import tokenize
 from .pyvm2 import VirtualMachine
 
 
-# This code is ripped off from coverage.py.  Define things it expects.
-try:
-    open_source = tokenize.open     # pylint: disable=E1101
-except:
-    def open_source(fname):
-        """Open a source file the best way."""
-        return open(fname, "rU")
-
-NoSource = Exception
-
-
-def exec_code_object(code, env):
-    vm = VirtualMachine()
-    vm.run_code(code, f_globals=env)
-
-
-# from coverage.py:
-
-try:
-    # In Py 2.x, the builtins were in __builtin__
-    BUILTINS = sys.modules['__builtin__']
-except KeyError:
-    # In Py 3.x, they're in builtins
-    BUILTINS = sys.modules['builtins']
-
-
-def rsplit1(s, sep):
-    """The same as s.rsplit(sep, 1), but works in 2.3"""
-    parts = s.split(sep)
-    return sep.join(parts[:-1]), parts[-1]
-
-
 def run_python_module(modulename, args):
     """Run a python module, as though with ``python -m name args...``.
 

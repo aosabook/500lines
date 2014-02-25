@@ -3,7 +3,6 @@
 # pyvm2 by Paul Swartz (z3p), from http://www.twistedmatrix.com/users/z3p/
 # byterun by Ned Batchelder
 
-from __future__ import print_function, division
 import dis
 import inspect
 import logging
@@ -27,15 +26,11 @@ class VirtualMachineError(Exception):
     """For raising errors in the operation of the VM."""
     pass
 
-
 class VirtualMachine(object):
     def __init__(self):
-        # The call stack of frames.
-        self.frames = []
-        # The current frame.
-        self.frame = None
-        # The data stack.
-        self.stack = []
+        self.frames = []   # The call stack of frames.
+        self.frame = None  # The current frame.
+        self.stack = []    # The data stack.
         self.return_value = None
         self.last_exception = None
 
@@ -45,10 +40,8 @@ class VirtualMachine(object):
 
     def pop(self, i=0):
         """Pop a value from the stack.
-
         Default to the top of the stack, but `i` can be a count from the top
         instead.
-
         """
         return self.stack.pop(-1-i)
 
@@ -58,9 +51,7 @@ class VirtualMachine(object):
 
     def popn(self, n):
         """Pop a number of values from the value stack.
-
         A list of `n` values is returned, the deepest value first.
-
         """
         if n:
             ret = self.stack[-n:]
@@ -139,9 +130,7 @@ class VirtualMachine(object):
 
     def run_frame(self, frame):
         """Run a frame until it returns (somehow).
-
         Exceptions are raised, the return value is returned.
-
         """
         self.push_frame(frame)
         while True:
@@ -215,12 +204,7 @@ class VirtualMachine(object):
                 log.exception("Caught exception during execution")
                 why = 'exception'
 
-            # Deal with any block management we need to do: fast_block_end
-
-            if why == 'exception':
-                #ceval calls PyTraceBack_Here, used for chaining tracebacks between frames
-                pass
-
+            # Deal with any block management we need to do
             if why == 'reraise':
                 why = 'exception'
 
@@ -910,6 +894,7 @@ class VirtualMachine(object):
     def byte_STORE_LOCALS(self):
         self.frame.f_locals = self.pop()
 
-    if 0:   # Not in py2.7
-        def byte_SET_LINENO(self, lineno):
-            self.frame.f_lineno = lineno
+if __name__ == "__main__":
+    vm = VirtualMachine()
+    vm.run_code(code, f_globals=env)
+
