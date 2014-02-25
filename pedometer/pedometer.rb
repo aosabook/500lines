@@ -21,18 +21,25 @@ get '/metrics' do
   end
 end
 
+# TODO: 
+# - Capture exceptions and redirect to /data
+# - Recreate file name from params and store
 post '/create' do
-  temp_file_path = params[:device][:file][:tempfile].path
-  @file_name = params[:device][:file][:filename]
-  @device = Device.new(:data => File.read(temp_file_path), :rate => params[:device][:rate])
-  @parser = Parser.new(@device)
+  begin
+    temp_file_path = params[:device][:file][:tempfile].path
+    @file_name = params[:device][:file][:filename]
+    @device = Device.new(:data => File.read(temp_file_path), :rate => params[:device][:rate])
+    @parser = Parser.new(@device)
 
-  @analyzer = Analyzer.new(@parser)
-  @analyzer.measure
+    @analyzer = Analyzer.new(@parser)
+    @analyzer.measure
 
-  cp(temp_file_path, "public/uploads/#{@file_name}")
+    cp(temp_file_path, "public/uploads/#{@file_name}")
 
-  erb :detail  
+    erb :detail
+  rescue Exception => e
+    [400, e.message]
+  end
 end
 
 get '/data' do
@@ -61,6 +68,7 @@ end
 get '/detail/*' do
   begin
     @file_name = params[:splat].first
+    meta_data = /\w+-\d+-[a,g]-\d/.match(@file_name)[0].gsub(/-[a,g]-|-/,',')
     @device = Device.new(:data => File.read(@file_name), :rate => 100)
     @parser = Parser.new(@device)
 
