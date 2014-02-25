@@ -19,6 +19,10 @@ get '/metrics' do
   end
 end
 
+post '/create' do
+  p "#{params}"
+end
+
 get '/data' do
   begin
     @data = []

@@ -1,6 +1,8 @@
 table.data {
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  width: 800px;
+  width: 50%;
+  display: inline;
+  margin: 0 50px;
 }
 
 tr, th {
@@ -18,3 +20,10 @@ td {
 td.compare {
   vertical-align: top;
 }
+
+form {
+  display: inline-table;
+  width: 40%;
+}
+
+input { width: 300px;}

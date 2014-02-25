@@ -1,35 +1,35 @@
 <link href="/styles.css" rel="stylesheet" type="text/css" />
 
 <html>
-  <table>
-    <tr>
-        <td>
-          <table class="data">
-            <th>User</th>
-            <th>Method</th>
-            <th>Measurement</th>
-            <th>Trial</th>
-            <th>Actual</th>
-            <th>Calculated</th>
-            <th>Delta</th>
-            <th></th>
-            <% @data.each do |h| %>
-              <% device = h[:device] %>
-              <% steps = h[:steps] %>
-              <% url = "detail/" + h[:file] %>
-              <tr>
-                <td><%= h[:user].gender %></td>
-                <td><%= device.method %></td>
-                <td><%= device.format %></td>
-                <td><%= device.trial %></td>
-                <td><%= device.steps %></td>
-                <td><%= steps %></td>
-                <td><%= steps - device.steps %></td>
-                <td><a href=<%= url %>>Detail</a></td>
-              </tr>
-            <% end %>
-          </table>
-        </td>
-    </tr>
-  </table>  
+  <table class="data">
+    <th>User</th>
+    <th>Method</th>
+    <th>Measurement</th>
+    <th>Trial</th>
+    <th>Actual</th>
+    <th>Calculated</th>
+    <th>Delta</th>
+    <th></th>
+    <% @data.each do |h| %>
+      <% device = h[:device] %>
+      <% steps = h[:steps] %>
+      <% url = "detail/" + h[:file] %>
+      <tr>
+        <td><%= h[:user].gender %></td>
+        <td><%= device.method %></td>
+        <td><%= device.format %></td>
+        <td><%= device.trial %></td>
+        <td><%= device.steps %></td>
+        <td><%= steps %></td>
+        <td><%= steps - device.steps %></td>
+        <td><a href=<%= url %>>Detail</a></td>
+      </tr>
+    <% end %>
+  </table>
+  <form method="post" action="/create">
+    <input class="params" type="text" name="device[meta_data][method]" placeholder="Method">
+    <input class="params" type="text" name="device[meta_data][steps]" placeholder="Actual Step Count">
+    <input class="params" type="text" name="device[meta_data][trial]" placeholder="Trial Name">
+    <div class="controls"><input type="submit" value="submit"></div>
+  </form>
 </html>
