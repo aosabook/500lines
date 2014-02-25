@@ -22,9 +22,10 @@ class CodeGen(ast.NodeVisitor):
         self.varnames  = make_table()
 
     def compile_class(self, t):
-        return [self.load('__name__'), self.store('__module__'),
-                self.load_const(t.name), self.store('__qualname__'), # XXX
-                self.compile(t.body, 0)]
+        assembly = [self.load('__name__'), self.store('__module__'),
+                    self.load_const(t.name), self.store('__qualname__'), # XXX
+                    self(t.body), self.load_const(None), op.RETURN_VALUE]
+        return self.make_code(assembly, 0)
 
     def compile_function(self, t):
         stmt0 = t.body[0]
@@ -35,7 +36,10 @@ class CodeGen(ast.NodeVisitor):
         return self.compile(t.body, len(t.args.args))
 
     def compile(self, t, argcount=0):
-        bytecode = [self(t), self.load_const(None), op.RETURN_VALUE]
+        assembly = [self(t), self.load_const(None), op.RETURN_VALUE]
+        return self.make_code(assembly, argcount)
+
+    def make_code(self, assembly, argcount):
         kwonlyargcount = 0
         nlocals = len(self.varnames)
         stacksize = 10          # XXX
@@ -46,7 +50,7 @@ class CodeGen(ast.NodeVisitor):
         firstlineno = 1
         lnotab = b''
         return types.CodeType(argcount, kwonlyargcount, nlocals, stacksize, flags,
-                              assemble(bytecode),
+                              assemble(assembly),
                               collect(self.constants),
                               collect(self.names),
                               collect(self.varnames),
