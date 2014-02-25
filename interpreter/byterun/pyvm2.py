@@ -13,8 +13,6 @@ from .pyobj import Frame, Block, Method, Object, Function, Class, Generator
 
 log = logging.getLogger(__name__)
 
-import six
-
 # Create a repr that won't overflow.
 repr_obj = reprlib.Repr()
 repr_obj.maxother = 120
@@ -512,17 +510,6 @@ class VirtualMachine(object):
 
     def byte_JUMP_ABSOLUTE(self, jump):
         self.jump(jump)
-
-    if 0:   # Not in py2.7
-        def byte_JUMP_IF_TRUE(self, jump):
-            val = self.top()
-            if val:
-                self.jump(jump)
-
-        def byte_JUMP_IF_FALSE(self, jump):
-            val = self.top()
-            if not val:
-                self.jump(jump)
 
     def byte_POP_JUMP_IF_TRUE(self, jump):
         val = self.pop()
