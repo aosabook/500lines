@@ -1,6 +1,8 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 from __future__ import print_function
 
+import gzip
 import itertools
 import os
 import re
@@ -20,31 +22,18 @@ def sorted_uniq_inplace(lst):
     lst.sort()
     return (k for k, _ in itertools.groupby(lst))
 
-# 1M items gives a few tens to hundreds of megs of memory usage, which
-# seems about right.  Preliminary stats: on linux-3.2.41/arch/mips,
-# 300k postings for 69k distinct terms (from 11M of source) are
-# generated in 15s, occupy 10.6M, and gzip to 1.5M.  split(1)ing the
-# file into 302 small files of about 32K each, they gzip to 2.4M.  25%
-# of corpus size is not a great index size but probably acceptable;
-# 15% would be better.  5K per filesystem file is probably also
-# suboptimal.  split -l 10000 gives us instead 31 files, which gzip to
-# about 50K eaach, totaling 1.5M (15% of original size).
+# 1M items gives about 60MB of memory usage, which seems about right,
+# but may be a bit low.
 
-# Indexing the whole arch/ subdirectory (118M) gives:
-# real	9m36.842s
-# user	6m27.896s
-# sys	0m10.569s
-# and a index file which is also 118M, which was nine sorted chunks.
-
-# Splitting it into 8192-line chunks yielded 383 files, which
-# compressed to 16M.
+# Preliminary stats: indexing linux-3.2.41/arch takes 5m35s,
+# generating 3.1M postings for 709K distinct terms (from 117MB of source) are
+# occupying 17M gzipped (15% of the corpus size) in 755 separate chunks.
 
 # A simple Python program is able to parse about 150 000 lines per
 # second looking for a search term, which is some 5× slower than gzip
 # is able to decompress; this suggests that the optimal chunk size for
-# query speed is perhaps closer to 1500 lines than 8192 lines.  Going
-# to 4096 should get most of the benefit (27ms per chunk parsed)
-# without hurting compression too much, and will work better on faster
+# query speed is perhaps closer to 1500 lines than 4096 lines, 
+# at least on my netbook.  This size will work better than 1500 on faster
 # machines like the ones in the future.  Ha ha.
 
 def sorted_uniq_chunks(iterator, max_chunk_size=1000*1000):
@@ -58,7 +47,35 @@ def sorted_uniq_chunks(iterator, max_chunk_size=1000*1000):
     if chunk:
         yield sorted_uniq_inplace(chunk)
 
+def break_up(seq, chunk_size=4096):
+    chunk = []
+    for item in seq:
+        chunk.append(item)
+        if len(chunk) == chunk_size:
+            yield chunk
+            chunk = []
+
+    yield chunk
+
+# XXX this needs another level of chunking ahead of it
+def write_to_disk(dirname, chunks):
+    for ii, chunk in enumerate(chunks):
+        with gzip.GzipFile(os.path.join(dirname, str(ii)+'.gz'), 'w') as output:
+            output.writelines("%s %s\n" % item for item in chunk)
+
+def build_skip_file(dirname):
+    chunk_names = os.listdir(dirname)
+    with open(os.path.join(dirname, 'skip'), 'w') as skip_file:
+        for chunk in chunk_names:
+            with gzip.GzipFile(os.path.join(dirname, chunk)) as infile:
+                word, pathname = infile.readline().split()
+                skip_file.write("%s %s\n" % (word, chunk))
+
 if __name__ == '__main__':
-    for chunk in sorted_uniq_chunks(postings_from_dir(sys.argv[1])):
-        for word, pathname in chunk:
-            print(word, pathname)
+    os.mkdir(sys.argv[2])
+    postings = postings_from_dir(sys.argv[1])
+    for ii, chunk in enumerate(sorted_uniq_chunks(postings)):
+        subdir = os.path.join(sys.argv[2], str(ii))
+        os.mkdir(subdir)
+        write_to_disk(subdir, break_up(chunk))
+        build_skip_file(subdir)
