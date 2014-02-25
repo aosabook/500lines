@@ -23,18 +23,20 @@ end
 
 # TODO: 
 # - Capture exceptions and redirect to /data
-# - Recreate file name from params and store
+# - Clean up file name creation (don't allow spaces in trial name)
+# - Add drop-downs for method (select a few), step count (integer only), gender (pre-populate)
 post '/create' do
   begin
     temp_file_path = params[:device][:file][:tempfile].path
     @file_name = params[:device][:file][:filename]
-    @device = Device.new(:data => File.read(temp_file_path), :rate => params[:device][:rate])
+    
+    @device = Device.new(:data => File.read(temp_file_path), :meta_data => params[:device][:meta_data].values.join(','), :rate => params[:device][:rate])
     @parser = Parser.new(@device)
-
-    @analyzer = Analyzer.new(@parser)
+    user = User.new(params[:user])
+    @analyzer = Analyzer.new(@parser, user)
     @analyzer.measure
 
-    cp(temp_file_path, "public/uploads/#{@file_name}")
+    cp(temp_file_path, "public/uploads/#{user.gender}-#{user.height}-#{user.stride}_#{@device.rate}-#{@device.method}-#{@device.steps}-#{@device.trial}")
 
     erb :detail
   rescue Exception => e
@@ -42,7 +44,9 @@ post '/create' do
   end
 end
 
-# TODO: Add file parser module?
+# TODO: 
+# - Add file parser module?
+# - Refactor out some common functionality
 get '/data' do
   begin
     @data = []
