@@ -8,12 +8,12 @@ import inspect
 import logging
 import operator
 import sys
+import reprlib
 from .pyobj import Frame, Block, Method, Object, Function, Class, Generator
 
 log = logging.getLogger(__name__)
 
 import six
-from six.moves import reprlib
 
 # Create a repr that won't overflow.
 repr_obj = reprlib.Repr()
@@ -259,7 +259,10 @@ class VirtualMachine(object):
         self.pop_frame()
 
         if why == 'exception':
-            six.reraise(*self.last_exception)
+            exc, val, tb = self.last_exception
+            e = exc(val)
+            e.__traceback__ = tb
+            raise e
 
         return self.return_value
 
@@ -881,7 +884,7 @@ class VirtualMachine(object):
 
     def byte_EXEC_STMT(self):
         stmt, globs, locs = self.popn(3)
-        six.exec_(stmt, globs, locs)
+        exec(stmt, globs, locs)
 
     def byte_BUILD_CLASS(self):
         name, bases, methods = self.popn(3)
