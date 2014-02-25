@@ -1,6 +1,5 @@
-import protocol
-from util import defaultlist
-from member import Component
+from . import defaultlist, ALPHA, JOIN_RETRANSMIT
+from .member import Component
 
 class Seed(Component):
 
@@ -27,10 +26,10 @@ class Seed(Component):
         if requester not in self.peers:
             return
 
-        peer_history = dict((sl, self.peers) for sl in range(0, protocol.ALPHA))
+        peer_history = dict((sl, self.peers) for sl in range(0, ALPHA))
         self.send(self.peers, 'WELCOME',
                   state=self.initial_state,
-                  slot_num=protocol.ALPHA,
+                  slot_num=ALPHA,
                   decisions=defaultlist(),
                   viewid=0,
                   peers=list(self.peers),
@@ -41,5 +40,5 @@ class Seed(Component):
         if self.exit_timer:
             self.cancel_timer(self.exit_timer)
         self.exit_timer = self.set_timer(
-            protocol.JOIN_RETRANSMIT * 2, self.stop)
+            JOIN_RETRANSMIT * 2, self.stop)
 

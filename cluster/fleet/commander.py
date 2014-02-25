@@ -1,5 +1,5 @@
-import protocol
-from member import Component
+from . import ACCEPT_RETRANSMIT
+from .member import Component
 
 
 class Commander(Component):
@@ -22,7 +22,7 @@ class Commander(Component):
                          ballot_num=self.ballot_num,
                          slot=self.slot,
                          proposal=self.proposal)
-        self.timer = self.set_timer(protocol.ACCEPT_RETRANSMIT, self.start)
+        self.timer = self.set_timer(ACCEPT_RETRANSMIT, self.start)
 
     def finished(self, ballot_num, preempted):
         self.leader.commander_finished(self.commander_id, ballot_num, preempted)

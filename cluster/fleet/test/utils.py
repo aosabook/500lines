@@ -1,5 +1,5 @@
-import fake_network
-import member
+from . import fake_network
+from .. import member
 import unittest
 
 class ComponentTestCase(unittest.TestCase):

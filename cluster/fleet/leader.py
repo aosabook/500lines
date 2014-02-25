@@ -1,8 +1,7 @@
-from util import defaultlist, view_primary
-from protocol import Ballot, ALPHA, CommanderId
-from member import Component
-from scout import Scout
-from commander import Commander
+from .commander import Commander
+from . import Ballot, ALPHA, CommanderId, defaultlist, view_primary
+from .member import Component
+from .scout import Scout
 
 class Leader(Component):
 

@@ -1,6 +1,6 @@
 from collections import defaultdict
-from protocol import Ballot
-from member import Component
+from . import Ballot
+from .member import Component
 
 
 class Acceptor(Component):

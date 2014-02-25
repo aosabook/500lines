@@ -1,7 +1,6 @@
-import protocol
 from collections import defaultdict
-from protocol import ScoutId
-from member import Component
+from . import ScoutId, PREPARE_RETRANSMIT
+from .member import Component
 
 class Scout(Component):
 
@@ -24,8 +23,7 @@ class Scout(Component):
         self.send(self.peers, 'PREPARE',  # p1a
                        scout_id=self.scout_id,
                        ballot_num=self.ballot_num)
-        self.retransmit_timer = self.set_timer(
-            protocol.PREPARE_RETRANSMIT, self.send_prepare)
+        self.retransmit_timer = self.set_timer(PREPARE_RETRANSMIT, self.send_prepare)
 
     def finished(self, adopted, ballot_num):
         self.cancel_timer(self.retransmit_timer)

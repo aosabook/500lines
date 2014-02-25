@@ -1,5 +1,5 @@
-import protocol
-from member import Component
+from . import JOIN_RETRANSMIT
+from .member import Component
 
 
 class Bootstrap(Component):
@@ -17,7 +17,7 @@ class Bootstrap(Component):
         "Try to join the cluster"
         self.peers = self.peers[1:] + self.peers[:1] # rotate through peers
         self.send([self.peers[0]], 'JOIN', requester=self.address)
-        self.timer = self.set_timer(protocol.JOIN_RETRANSMIT, self.join)
+        self.timer = self.set_timer(JOIN_RETRANSMIT, self.join)
 
     def do_WELCOME(self, state, slot_num, decisions, viewid, peers, peer_history):
         self.bootstrapped_cb(state, slot_num, decisions, viewid, peers, peer_history)

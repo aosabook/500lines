@@ -1,7 +1,5 @@
-import protocol
-from util import defaultlist, view_primary
-from protocol import Proposal, ViewChange
-from member import Component
+from . import Proposal, ViewChange, CATCHUP_INTERVAL, ALPHA, defaultlist, view_primary
+from .member import Component
 
 
 class Replica(Component):
@@ -74,7 +72,7 @@ class Replica(Component):
             else:
                 # make an empty proposal in case nothing has been decided
                 self.propose(Proposal(None, None, None), slot)
-        self.set_timer(protocol.CATCHUP_INTERVAL, self.catchup)
+        self.set_timer(CATCHUP_INTERVAL, self.catchup)
 
     # view changes
 
@@ -119,9 +117,9 @@ class Replica(Component):
             # update the view history *before* committing, so the WELCOME message contains
             # an appropriate history
             self.peer_history[commit_slot] = self.peers
-            if commit_slot - protocol.ALPHA in self.peer_history:
-                del self.peer_history[commit_slot - protocol.ALPHA]
-            exp_peer_history = list(range(commit_slot - protocol.ALPHA + 1, commit_slot + 1))
+            if commit_slot - ALPHA in self.peer_history:
+                del self.peer_history[commit_slot - ALPHA]
+            exp_peer_history = list(range(commit_slot - ALPHA + 1, commit_slot + 1))
             assert list(sorted(self.peer_history)) == exp_peer_history, \
                     "bad peer history %s, exp %s" % (self.peer_history, exp_peer_history)
             self.event('update_peer_history', peer_history=self.peer_history)
@@ -174,7 +172,7 @@ class Replica(Component):
             # now make sure that next_slot is at least slot + ALPHA, so that we don't
             # try to make any new proposals depending on the old view.  The catchup()
             # method will take care of proposing these later.
-            self.next_slot = max(slot + protocol.ALPHA, self.next_slot)
+            self.next_slot = max(slot + ALPHA, self.next_slot)
 
             # WELCOMEs need to be based on a quiescent state of the replica,
             # not in the middle of a decision-commiting loop, so defer this
