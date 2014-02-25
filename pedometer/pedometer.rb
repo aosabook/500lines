@@ -25,6 +25,7 @@ end
 # - Capture exceptions and redirect to /data
 # - Clean up file name creation (don't allow spaces in trial name)
 # - Add drop-downs for method (select a few), step count (integer only), gender (pre-populate)
+# - Change device meta data to unqiue params?
 post '/create' do
   begin
     temp_file_path = params[:device][:file][:tempfile].path
@@ -36,7 +37,7 @@ post '/create' do
     @analyzer = Analyzer.new(@parser, user)
     @analyzer.measure
 
-    cp(temp_file_path, "public/uploads/#{user.gender}-#{user.height}-#{user.stride}_#{@device.rate}-#{@device.method}-#{@device.steps}-#{@device.trial}")
+    cp(temp_file_path, "public/uploads/#{user.gender}-#{user.height}-#{user.stride}_#{@device.rate}-#{@device.method}-#{@device.steps}-#{@device.trial}-#{@device.format[0]}")
 
     erb :detail
   rescue Exception => e

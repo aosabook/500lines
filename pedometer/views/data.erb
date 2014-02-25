@@ -32,7 +32,11 @@
     <input class="params" type="text" name="device[meta_data][method]" placeholder="Method">
     <input class="params" type="text" name="device[meta_data][steps]" placeholder="Actual Step Count">
     <input class="params" type="text" name="device[meta_data][trial]" placeholder="Trial Name">
-    <input class="params" type="text" name="user[gender]" placeholder="Gender">
+    <select class="params" name="user[gender]">
+      <option value="">(Unknown)</option>
+      <option value="female">Female</option>
+      <option value="male">Male</option>
+    </select>
     <div class="controls"><input type="submit" value="submit"></div>
   </form>
 </html>
