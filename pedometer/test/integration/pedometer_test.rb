@@ -56,7 +56,7 @@ class PedometerTest < Test::Unit::TestCase
 
   def test_data
     get '/data'
-    
+
     assert_equal 200, last_response.status
   end
 

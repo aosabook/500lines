@@ -45,15 +45,18 @@ end
 get '/data' do
   begin
     @data = []
-    files = Dir.glob(File.join('test/data/female', "*")) + Dir.glob(File.join('test/data/male', "*")) + Dir.glob(File.join('public/uploads', "*"))
-
+    files = Dir.glob(File.join('public/uploads', "*"))
     files.each do |file|
-      next if FileTest.directory?(file) || file.include?('walking-1-g-false-step.txt')
+      file_name = file.split('/').last
+      user_data = file_name.split('_').first.split('-')
+      user = User.new(gender: user_data[0], height: user_data[1], stride: user_data[2])
 
-      meta_data = /\w+-\d+-[a,g]-\d/.match(file)[0].gsub(/-[a,g]-|-/,',')
-      device = Device.new(:data => File.read(file), :meta_data => meta_data, :rate => 100)
+      device_data = file_name.split('_').last.gsub('.txt','').split('-')
+      rate = device_data.delete_at(0)
+      meta_data = device_data.join(',')
+      device = Device.new(:data => File.read(file), :meta_data => meta_data, :rate => rate)
+
       parser = Parser.new(device)
-      user = User.new(:gender => file.split('/')[2])
       analyzer = Analyzer.new(parser, user)
       analyzer.measure_steps
       @data << {:file => file, :device => device, :steps => analyzer.steps, :user => user}
@@ -68,25 +71,31 @@ end
 get '/detail/*' do
   begin
     @file_name = params[:splat].first
-    meta_data = /\w+-\d+-[a,g]-\d/.match(@file_name)[0].gsub(/-[a,g]-|-/,',')
-    @device = Device.new(:data => File.read(@file_name), :rate => 100)
-    @parser = Parser.new(@device)
+    user_data = @file_name.split('/').last.split('_').first.split('-')
+    user = User.new(gender: user_data[0], height: user_data[1], stride: user_data[2])
 
-    @analyzer = Analyzer.new(@parser)
+    device_data = @file_name.split('/').last.split('_').last.gsub('.txt','').split('-')
+    rate = device_data.delete_at(0)
+    meta_data = device_data.join(',')
+    @device = Device.new(:data => File.read(@file_name), :meta_data => meta_data, :rate => rate)
+
+    @parser = Parser.new(@device)
+    @analyzer = Analyzer.new(@parser, user)
     @analyzer.measure
 
-    files = Dir.glob(File.join('test/data/female', "*")) + Dir.glob(File.join('test/data/male', "*"))
-    match = if @file_name.include?('-a-')
-      files.select {|f| f == @file_name.gsub('-a-', '-g-')}.first
-    elsif @file_name.include?('-g-')
-      files.select {|f| f == @file_name.gsub('-g-', '-a-')}.first
-    end
+    # TODO: Fix matcher with new file format
+    # files = Dir.glob(File.join('test/data/female', "*")) + Dir.glob(File.join('test/data/male', "*"))
+    # match = if @file_name.include?('-a-')
+    #   files.select {|f| f == @file_name.gsub('-a-', '-g-')}.first
+    # elsif @file_name.include?('-g-')
+    #   files.select {|f| f == @file_name.gsub('-g-', '-a-')}.first
+    # end
 
-    if match
-      device = Device.new(:data => File.read(match), :rate => 100)
-      parser = Parser.new(device)
-      @match_filtered_data = parser.filtered_data
-    end
+    # if match
+    #   device = Device.new(:data => File.read(match), :rate => 100)
+    #   parser = Parser.new(device)
+    #   @match_filtered_data = parser.filtered_data
+    # end
 
     erb :detail
   rescue Exception => e
