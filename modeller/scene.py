@@ -80,7 +80,6 @@ class Scene(object):
         if shape == 'sphere': new_node = Sphere()
         elif shape == 'cube': new_node = Cube()
 
-        new_node.set_color(0.4, 0.4, 0.4)
         self.add_node(new_node)
 
         # place the node at the cursor in camera-space
