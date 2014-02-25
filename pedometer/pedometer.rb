@@ -96,6 +96,8 @@ get '/detail/*' do
       files.select {|f| f == @file_name.gsub('-g.txt', '-a.txt')}.first
     end
 
+    @file_name = @file_name.split('/').last
+
     if match
       device = Device.new(:data => File.read(match))
       parser = Parser.new(device)
