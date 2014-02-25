@@ -7,6 +7,7 @@ import re
 import sys
 
 def postings_from_dir(dirname):
+    # XXX re.compile?
     for dirpath, dirnames, filenames in os.walk(dirname):
         for filename in filenames:
             pathname = os.path.join(dirpath, filename)
@@ -28,6 +29,24 @@ def sorted_uniq_inplace(lst):
 # 15% would be better.  5K per filesystem file is probably also
 # suboptimal.  split -l 10000 gives us instead 31 files, which gzip to
 # about 50K eaach, totaling 1.5M (15% of original size).
+
+# Indexing the whole arch/ subdirectory (118M) gives:
+# real	9m36.842s
+# user	6m27.896s
+# sys	0m10.569s
+# and a index file which is also 118M, which was nine sorted chunks.
+
+# Splitting it into 8192-line chunks yielded 383 files, which
+# compressed to 16M.
+
+# A simple Python program is able to parse about 150 000 lines per
+# second looking for a search term, which is some 5× slower than gzip
+# is able to decompress; this suggests that the optimal chunk size for
+# query speed is perhaps closer to 1500 lines than 8192 lines.  Going
+# to 4096 should get most of the benefit (27ms per chunk parsed)
+# without hurting compression too much, and will work better on faster
+# machines like the ones in the future.  Ha ha.
+
 def sorted_uniq_chunks(iterator, max_chunk_size=1000*1000):
     chunk = []
     for item in iterator:
