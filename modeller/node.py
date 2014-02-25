@@ -22,8 +22,8 @@ class Node(object):
     def render(self):
         """ renders the item to the screen """
         glPushMatrix()
+        glMultMatrixf(numpy.transpose(self.translation))
         glMultMatrixf(self.scalemat)
-        glMultMatrixf(self.translation)
         cur_color = color.COLORS[self.color_index]
         glColor3f(cur_color[0], cur_color[1], cur_color[2])
         if self.selected: # emit light if the node is selected
@@ -46,19 +46,18 @@ class Node(object):
         if self.color_index < color.MIN_COLOR:
             self.color_index = color.MAX_COLOR
 
+    def scale(self, up):
+        s = self.scale_mult * 1.1 if up else 0.9
+        self.scalemat = numpy.dot(self.scalemat, scaling([s, s, s]))
+        self.aabb.scale(s)
+
     def picking(self, start, direction, mat):
         """ Return whether or not the ray hits the object
            Consume:  start, direction    the ray to check
                      mat                 the modelview matrix to transform the ray by """
 
-        glPushMatrix()
-        glMultMatrixf(self.scalemat)
-        glMultMatrixf(self.translation)
-        glCallList(self.call_list)
-        glPopMatrix()
-
-        # transform the modelview matrix by the current scale and translation
-        newmat = numpy.dot(self.translation, numpy.dot(mat, self.scalemat))
+        # transform the modelview matrix by the current translation
+        newmat = numpy.dot(mat, self.translation)
         results = self.aabb.ray_hit(start, direction, newmat)
         return results
 

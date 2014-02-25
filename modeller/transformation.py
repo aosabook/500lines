@@ -2,9 +2,9 @@ import numpy
 
 def translation(displacement):
   t = numpy.identity(4)
-  t[3, 0] = displacement[0]
-  t[3, 1] = displacement[1]
-  t[3, 2] = displacement[2]
+  t[0, 3] = displacement[0]
+  t[1, 3] = displacement[1]
+  t[2, 3] = displacement[2]
   return t
 
 def scaling(scale):
@@ -12,6 +12,7 @@ def scaling(scale):
   s[0, 0] = scale[0]
   s[1, 1] = scale[1]
   s[2, 2] = scale[2]
+  s[3, 3] = 1
   return s
 
 def make_perspective(fov, aspect, near, far):

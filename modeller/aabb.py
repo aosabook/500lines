@@ -37,12 +37,11 @@ class AABB(object):
         tmin = 0.0
         tmax = 100000.0
 
-
-        obb_pos_worldspace = numpy.array([modelmatrix[3, 0], modelmatrix[3, 1], modelmatrix[3, 2]])
+        obb_pos_worldspace = numpy.array([modelmatrix[0, 3], modelmatrix[1, 3], modelmatrix[2, 3]])
         delta = (obb_pos_worldspace - origin)
 
         # test intersection with 2 planes perpendicular to OBB's x-axis
-        xaxis = numpy.array((modelmatrix[0, 0], modelmatrix[1, 0], modelmatrix[2, 0]))
+        xaxis = numpy.array((modelmatrix[0, 0], modelmatrix[0, 1], modelmatrix[0, 2]))
 
         e = numpy.dot(xaxis, delta)
         f = numpy.dot(direction, xaxis)
@@ -61,7 +60,7 @@ class AABB(object):
             if (-e + aabb_min[0] > 0.0 + EPSILON) or (-e+aabb_max[0] < 0.0 - EPSILON):
                 return False, 0
 
-        yaxis = numpy.array((modelmatrix[0, 1], modelmatrix[1, 1], modelmatrix[2, 1]))
+        yaxis = numpy.array((modelmatrix[1, 0], modelmatrix[1, 1], modelmatrix[1, 2]))
         e = numpy.dot(yaxis, delta)
         f = numpy.dot(direction, yaxis)
         # intersection in y
@@ -81,7 +80,7 @@ class AABB(object):
                 return False, 0
 
         # intersection in z
-        zaxis = numpy.array((modelmatrix[0, 2], modelmatrix[1, 2], modelmatrix[2, 2]))
+        zaxis = numpy.array((modelmatrix[2, 0], modelmatrix[2, 1], modelmatrix[2, 2]))
         e = numpy.dot(zaxis, delta)
         f = numpy.dot(direction, zaxis)
         if math.fabs(f)> 0.0 + EPSILON:

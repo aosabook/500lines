@@ -30,6 +30,7 @@ class TestContext(BaseContext):
 
         self.InitialScene()
         self.inverseModelView = numpy.identity(4)
+        self.modelView = numpy.identity(4)
 
     def Render(self, mode = None):
         """ The render pass for the scene """
@@ -60,6 +61,7 @@ class TestContext(BaseContext):
         # store the inverse of the current modelview.
         mat = numpy.array(glGetFloatv( GL_MODELVIEW_MATRIX ))
         self.inverseModelView = numpy.linalg.inv(numpy.transpose(mat))
+        self.modelView = numpy.transpose(mat)
 
         # Render the scene. This will call the render function for each object in the scene
         self.scene.render()
@@ -120,7 +122,7 @@ class TestContext(BaseContext):
         """ Execute picking of an object. Selects an object in the scene.
             Consumes: x, y coordinates of the mouse on the screen """
         start, direction = self.getRay(x, y)
-        self.scene.picking(start, direction, self.inverseModelView)
+        self.scene.picking(start, direction, self.modelView)
 
     def move(self, x, y):
         """ Execute a move command on the scene.
