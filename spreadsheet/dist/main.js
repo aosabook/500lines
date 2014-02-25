@@ -1220,15 +1220,14 @@ System.get("traceur-runtime@0.0.24/src/runtime/polyfill-import" + '');
 window.Spreadsheet = (function($scope) {
   var $__0;
   ($__0 = ['ABCDEFG', '123456789'], $scope.Cols = $__0[$traceurRuntime.toProperty(0)], $scope.Rows = $__0[$traceurRuntime.toProperty(1)], $__0);
-  $scope.errs = {};
-  $scope.vals = {};
-  $scope.sheet = {
+  $scope.sheet = angular.fromJson(localStorage.getItem('sheet')) || {
     A1: 1874,
     B1: '✕',
     C1: 2046,
     D1: '⇒',
     E1: '=A1*C1'
   };
+  $scope.errs = {}, $scope.vals = {};
   var worker = new Worker('dist/worker.js');
   worker.onmessage = (function(event) {
     $scope.$apply((function() {
@@ -1236,14 +1235,14 @@ window.Spreadsheet = (function($scope) {
       ($__1 = event.data, $scope.errs = $__1[$traceurRuntime.toProperty(0)], $scope.vals = $__1[$traceurRuntime.toProperty(1)], $__1);
     }));
   });
-  var cached = '';
+  var cache = '';
   $scope.calc = (function() {
     var json = angular.toJson($scope.sheet);
-    if (json === cached) {
+    if (json === cache) {
       return;
     }
+    localStorage.setItem('sheet', (cache = json));
     worker.postMessage($scope.sheet);
-    cached = json;
   });
   $scope.calc();
 });

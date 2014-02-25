@@ -9,7 +9,7 @@ test :: dist
 	@node extra/test.js
 
 wc :: dist
-	@wc -l src/* index.html
+	@wc -l *.js *.html
 
 clean ::
 	-@rm -rf dist/*

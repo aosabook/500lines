@@ -19,7 +19,7 @@ If you'd like to use Chrome, type `make run` or `node extra/static-here.js` and 
 
 ## Building the Code
 
-Source code in `src/` directory are in ECMAScript 6 (aka _ES.next_, aka _Harmony_), specifically the subset marked with [TC39 Consensus](https://developer.mozilla.org/en-US/docs/Web/JavaScript/ECMAScript_6_support_in_Mozilla) as of February 2014.
+Source code (`main.js` and `worker.js`) are written in ECMAScript 6 (aka _ES.next_, aka _Harmony_), specifically the subset marked with [TC39 Consensus](https://developer.mozilla.org/en-US/docs/Web/JavaScript/ECMAScript_6_support_in_Mozilla) as of February 2014.
 
 For backward compatibility with existing browsers, we use [Traceur](https://github.com/google/traceur-compiler) to compile source files into the `dist/` directory.
 
