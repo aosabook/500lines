@@ -1,12 +1,12 @@
-from member import Member
-from replica import Replica
-from heartbeat import Heartbeat
-from bootstrap import Bootstrap
-from acceptor import Acceptor
-from leader import Leader
-from scout import Scout
-from commander import Commander
-from seed import Seed
+from .member import Member
+from .replica import Replica
+from .heartbeat import Heartbeat
+from .bootstrap import Bootstrap
+from .acceptor import Acceptor
+from .leader import Leader
+from .scout import Scout
+from .commander import Commander
+from .seed import Seed
 
 
 class ClusterMember(Member):
