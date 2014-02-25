@@ -25,9 +25,9 @@ class Analyzer
   def split_on_threshold(positive)
     @parser.filtered_data.inject([]) do |a, data|
       if positive
-        a << ((data < @user.threshold) ? 0 : 1)
+        a << ((data < 0.2) ? 0 : 1)
       else
-        a << ((data < -@user.threshold) ? 1 : 0)
+        a << ((data < -0.2) ? 1 : 0)
       end
       a
     end

@@ -5,11 +5,10 @@ class DeviceTest < Test::Unit::TestCase
 
   def test_create
     input_data = '0.123,-0.123,5;'
-    device = Device.new(:data => input_data, :rate => 5, :latency => 0.5)
+    device = Device.new(:data => input_data, :rate => 5)
 
     assert_equal input_data, device.data
     assert_equal 5, device.rate
-    assert_equal 0.5, device.latency
     assert_nil device.method
     assert_nil device.steps
     assert_nil device.trial
@@ -48,20 +47,6 @@ class DeviceTest < Test::Unit::TestCase
     assert_equal 2, Device.new(:data => input, :rate => 2.0).rate
     assert_equal 2, Device.new(:data => input, :rate => 1.7).rate
     assert_equal 1, Device.new(:data => input, :rate => 1.2).rate
-  end
-
-  def test_create_with_latency
-    input = '0.123,-0.123,5;'
-
-    assert_equal 0, Device.new(:data => input).latency
-    assert_equal 0, Device.new(:data => input, :latency => nil).latency
-    assert_equal 0, Device.new(:data => input, :latency => '').latency
-    assert_equal 0, Device.new(:data => input, :latency => 0).latency
-    assert_equal 0, Device.new(:data => input, :latency => -1).latency
-    
-    assert_equal 0.2, Device.new(:data => input, :latency => 0.2).latency
-    assert_equal 0.3, Device.new(:data => input, :latency => '0.3').latency
-    assert_equal 0.12345, Device.new(:data => input, :latency => 0.12345).latency
   end
 
   def test_create_accelerometer_data

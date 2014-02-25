@@ -1,6 +1,6 @@
 class Device
 
-  attr_reader :data, :format, :rate, :latency, :method, :steps, :trial
+  attr_reader :data, :format, :rate, :method, :steps, :trial
 
   def initialize(params = {})
     params = {} unless params.kind_of? Hash
@@ -8,11 +8,8 @@ class Device
     @data = params[:data]
     set_format
 
-    rate    = params[:rate].to_f.round
-    latency = params[:latency].to_f
-
-    @rate    = (rate > 0) ? rate : 100
-    @latency = (latency > 0) ? latency : 0
+    rate = params[:rate].to_f.round
+    @rate = (rate > 0) ? rate : 100
 
     if meta_data = (params[:meta_data] && params[:meta_data].split(','))
       @method = meta_data[0]
