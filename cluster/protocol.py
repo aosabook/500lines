@@ -7,8 +7,13 @@ CommanderId = namedtuple('CommanderId', ['address', 'slot', 'proposal'])
 ViewChange = namedtuple('ViewChange', ['viewid', 'peers'])
 
 HEARTBEAT_INTERVAL = 0.5
-JOIN_RETRANSMIT = 0.2
-CATCHUP_INTERVAL = 0.7
+HEARTBEAT_GONE_COUNT = 3
+JOIN_RETRANSMIT = 0.7
+CATCHUP_INTERVAL = 0.6
 ACCEPT_RETRANSMIT = 1
 PREPARE_RETRANSMIT = 1
-ALPHA = 3
+ALPHA = 10
+
+# replicas should be able to re-propose a view change before the new node
+# re-transmits the JOIN
+assert CATCHUP_INTERVAL < JOIN_RETRANSMIT
