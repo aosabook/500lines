@@ -42,6 +42,7 @@ post '/create' do
   end
 end
 
+# TODO: Add file parser module?
 get '/data' do
   begin
     @data = []
@@ -83,19 +84,18 @@ get '/detail/*' do
     @analyzer = Analyzer.new(@parser, user)
     @analyzer.measure
 
-    # TODO: Fix matcher with new file format
-    # files = Dir.glob(File.join('test/data/female', "*")) + Dir.glob(File.join('test/data/male', "*"))
-    # match = if @file_name.include?('-a-')
-    #   files.select {|f| f == @file_name.gsub('-a-', '-g-')}.first
-    # elsif @file_name.include?('-g-')
-    #   files.select {|f| f == @file_name.gsub('-g-', '-a-')}.first
-    # end
+    files = Dir.glob(File.join('public/uploads', "*"))
+    match = if @file_name.include?('-a.txt')
+      files.select {|f| f == @file_name.gsub('-a.txt', '-g.txt')}.first
+    elsif @file_name.include?('-g.txt')
+      files.select {|f| f == @file_name.gsub('-g.txt', '-a.txt')}.first
+    end
 
-    # if match
-    #   device = Device.new(:data => File.read(match), :rate => 100)
-    #   parser = Parser.new(device)
-    #   @match_filtered_data = parser.filtered_data
-    # end
+    if match
+      device = Device.new(:data => File.read(match))
+      parser = Parser.new(device)
+      @match_filtered_data = parser.filtered_data
+    end
 
     erb :detail
   rescue Exception => e
