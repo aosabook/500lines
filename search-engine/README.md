@@ -1,5 +1,7 @@
 # A tiny full-text search engine
 
+<!-- XXX name it? "chispa"? Like a very small light, from Lucene. -->
+
 In the last quarter-century,
 full-text search engines
 have gone from being specialized research tools,
@@ -8,9 +10,10 @@ to our most common means of navigating the web.
 There are a couple of different basic data structures
 for search engines,
 but by far the most common one
-is the posting-list search engine,
+is the "posting list" or "inverted index" search engine,
 which stores a dictionary
-from words to lists of places where those words are found,
+from terms (typically words)
+to lists of places where those terms are found,
 typically in some kind of compressed form;
 then it evaluates queries
 by looking up the query terms in the dictionary,
@@ -73,11 +76,11 @@ it basically comes down to maintaining a posting list
 on disk
 and querying it.
 We just need to be able to quickly find all the files
-that contain a given word.
+that contain a given term.
 The simplest data structure
 that supports this task
 would be something like a sorted text file
-with a word and a filename on each line;
+with a term and a filename on each line;
 for example:
 
     get_ds ./sh/include/asm/segment.h
@@ -90,7 +93,7 @@ for example:
     get_exit_info ./x86/include/asm/kvm_host.h
 
 You could binary-search this file
-to find all the lines that begin with a given word;
+to find all the lines that begin with a given term;
 if you have a billion lines in the file,
 this might take as many as 60 probes into the file.
 On an electromechanical hard disk,
@@ -101,18 +104,112 @@ A somewhat simpler,
 although less optimal,
 approach
 is to break the file up into chunks
-with a compact chunk index
+with a compact "skip file"
 which tells you what each chunk contains.
 Then you can read only the chunks
-that might contain the terms you need.
+that might contain the term you are looking up.
+Then you typically only need to consult
+the skip file
+and a single chunk
+to find all the postings for a term.
+
+There's a chunk-size tradeoff:
+if the chunks are too small, the skip file will be large,
+and a single query may need to read many chunks;
+on the other hand, if the chunks are too large,
+then reading a single chunk will take a long time.
 
 Industrial-strength search engines
-avoid duplicating the vocabulary list
-and the list of document filenames
-(or URLs, or other identifiers)
-by identifying each item with an integer.
-This allows for delta compression.
+identify terms by integer indices into a term dictionary
+and documents by integer document IDs,
+which allows for delta compression.
 Instead, we simply rely on gzip,
 which typically makes our index
 about 15% <!-- XXX check this -->
 of the size of the original text.
+
+For this simple engine,
+I've chosen to put 4096 postings in each chunk,
+and each chunk in a separate file.
+With my sample dataset of the Linux kernel,
+which is about 20K gzipped (5 bytes per posting),
+or about 150K uncompressed,
+representing about 150K of original text,
+and can be decompressed and parsed
+on my netbook
+in about 30ms.
+The index of chunks,
+which is not compressed,
+is about 9 bytes per chunk
+on my sample data.
+For it to reach 9 megabytes,
+you would need to have a million chunks,
+or about 150 gigabytes of original source data.
+Reading a 9-megabyte file is a bearable startup cost,
+though far from ideal.
+
+Sequential access
+-----------------
+
+To build full-text indices on spinning-rust electromechanical disks,
+it's important that the access patterns
+be basically sequential.
+Random access on spinning rust
+involves a delay on the order of 8–12 milliseconds,
+during which time
+the disk could have transferred
+on the order of half a megabyte of data.
+So every random seek
+costs you half a megabyte of data transfer time;
+if you are doing the seek to transfer much less data than that,
+then the disk is spending most of its time seeking
+instead of transferring data.
+On the other hand,
+if you are transferring much more than half a megabyte
+for each seek,
+then the disk's transfer rate is close to its maximum possible.
+If you have a networking background,
+you could think of this number as the bandwidth-delay product
+of the disk.
+
+Nowadays, since we have a lot of RAM,
+we can build fairly large indices in RAM
+before writing them out to disk.
+This engine <!-- XXX chispa? --> by default builds up
+a million postings in RAM
+which takes up around a hundred megabytes
+before sorting them and writing them to a file,
+which typically ends up being about 3MB compressed. <!-- XXX check this -->
+
+On modern solid-state drives,
+this kind of locality of reference
+is less of a problem,
+since they can handle some ten thousand "seeks" per second;
+the corresponding bandwidth-delay product
+is more like 20 kilobytes.
+
+The classic algorithm
+for producing a sorted sequence
+on media that only support sequential access
+is mergesort.
+To index a large volume of data,
+first we index blocks of it,
+producing these primary index segments of some 3MB;
+then, we merge the primary index segments
+to produce a merged index segment.
+For a sufficiently large dataset and small RAM,
+we could imagine needing to do a multi-pass merge,
+but we probably don't need to worry about that nowadays;
+for efficient merging,
+we need only about half a megabyte of buffer memory
+per input file,
+so a low-end modern smartphone
+with a gigabyte of RAM
+can do a 2000-way merge,
+merging 2000 primary segments into one merged segment,
+which would be some 6GB in size,
+indexing some 40 gigabytes of text.
+We could create bigger primary index segments
+at the cost of bogging down the computer,
+up to ten times as big on that smartphone;
+that would allow us to do a two-pass indexing of 400 gigabytes.
