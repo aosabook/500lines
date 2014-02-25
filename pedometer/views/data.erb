@@ -26,10 +26,13 @@
       </tr>
     <% end %>
   </table>
-  <form method="post" action="/create">
+  <form method="post" action="/create" enctype="multipart/form-data">
+    <input id="file" name="device[file]" type="file">
+    <input class="params" type="text" name="device[rate]" placeholder="Sampling Rate">
     <input class="params" type="text" name="device[meta_data][method]" placeholder="Method">
     <input class="params" type="text" name="device[meta_data][steps]" placeholder="Actual Step Count">
     <input class="params" type="text" name="device[meta_data][trial]" placeholder="Trial Name">
+    <input class="params" type="text" name="user[gender]" placeholder="Gender">
     <div class="controls"><input type="submit" value="submit"></div>
   </form>
 </html>
