@@ -186,7 +186,8 @@ this kind of locality of reference
 is less of a problem,
 since they can handle some ten thousand "seeks" per second;
 the corresponding bandwidth-delay product
-is more like 20 kilobytes.
+is more like 20 kilobytes
+rather than 500.
 
 The classic algorithm
 for producing a sorted sequence
@@ -212,4 +213,7 @@ indexing some 40 gigabytes of text.
 We could create bigger primary index segments
 at the cost of bogging down the computer,
 up to ten times as big on that smartphone;
-that would allow us to do a two-pass indexing of 400 gigabytes.
+that would allow us to
+index up to 400 gigabytes
+in only two passes.
+
