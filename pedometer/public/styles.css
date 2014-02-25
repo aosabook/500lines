@@ -2,28 +2,20 @@ table.data {
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   width: 50%;
   display: inline;
-  margin: 0 50px;
+  margin: 0% 10%;
 }
 
 tr, th {
   text-align: left;
   font-size: 14px;
-  height: 37px;
-  padding: 8px;
+  height: 30px;
 }
 
-td {
-  border-top: solid 1px rgb(221, 221, 221);
-  padding: 8px;
-}
-
-td.compare {
-  vertical-align: top;
-}
+td { border-top: solid 1px rgb(221, 221, 221); }
 
 form {
   display: inline-table;
-  width: 40%;
+  width: 20%;
 }
 
-input { width: 300px;}
+input { width: 200px; }
