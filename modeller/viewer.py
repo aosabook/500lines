@@ -27,6 +27,7 @@ class TestContext(BaseContext):
         self.interaction.registerCallback('move', self.move)
         self.interaction.registerCallback('place', self.place)
         self.interaction.registerCallback('color', self.color)
+        self.interaction.registerCallback('scale', self.scale)
 
         self.InitialScene()
         self.inverseModelView = numpy.identity(4)
@@ -136,9 +137,11 @@ class TestContext(BaseContext):
         start, direction = self.getRay(x, y)
         self.scene.place(shape, start, direction, self.inverseModelView)
     
-    def color(self, forwards):
-        self.scene.rotate_color(forwards)
+    def color(self, forward):
+        self.scene.rotate_color(forward)
 
+    def scale(self, up):
+        self.scene.scale(up)
 
 
 if __name__=="__main__":

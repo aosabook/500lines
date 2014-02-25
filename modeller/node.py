@@ -9,14 +9,14 @@ import color
 class Node(object):
     """ Base class for scene elements """
     def __init__(self):
-        self.scale = array([1, 1, 1])
         self.location = [0, 0, 0]
         self.color_index = 0
         self.call_list = None
-        self.aabb = None
+        self.aabb = AABB([0.0, 0.0, 0.0], [0.5, 0.5, 0.5])
         self.translation = numpy.identity(4)
         self.scalemat = numpy.identity(4)
         self.selected = False
+        self.scale_mult = 1.0
 
 
     def render(self):
@@ -31,13 +31,11 @@ class Node(object):
         glCallList(self.call_list)
         if self.selected:
             glMaterialfv(GL_FRONT, GL_EMISSION, [0.0, 0.0, 0.0])
+
         glPopMatrix()
 
     def translate(self, x, y, z):
         self.translation = numpy.dot(self.translation , translation([x, y, z]))
-
-    def scale(self, x, y, z):
-        self.scalemat = numpy.dot(self.scalemat , scaling([x, y, z]))
 
     def rotate_color(self, forwards):
         self.color_index += 1 if forwards else -1
@@ -74,13 +72,11 @@ class Sphere(Node):
     def __init__(self):
         super(Sphere, self).__init__()
         self.call_list = G_OBJ_SPHERE
-        self.aabb = AABB([0.0, 0.0, 0.0], [0.5, 0.5, 0.5])
 
 class Cube(Node):
     """ Cube primitive """
     def __init__(self):
         super(Cube, self).__init__()
         self.call_list = G_OBJ_CUBE
-        self.aabb = AABB([0.0, 0.0, 0.0], [0.5, 0.5, 0.5])
 
 

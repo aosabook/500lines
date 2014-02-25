@@ -17,6 +17,9 @@ class AABB(object):
         self.center = numpy.array(center)
         self.size = numpy.array(size)
 
+    def scale(self, scale):
+        self.size *= scale;
+
     def intersects_aabb(self, other):
         """ returns True <=> this AABB intersects with the other AABB
             Consumes: other -> another AABB """
@@ -106,7 +109,6 @@ class AABB(object):
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
         glTranslated(self.center[0], self.center[1], self.center[2]);
-        glScaled(2*self.size[0], 2*self.size[1], 2*self.size[2]);
         glCallList(G_OBJ_CUBE);
         glPopMatrix();
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);

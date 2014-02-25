@@ -91,9 +91,13 @@ class Interaction(object):
         elif key == 'c':
             self.trigger('place', 'cube', x, y)
         elif key == GLUT_KEY_UP:
-            self.trigger('color', True)
+            self.trigger('scale', up=True)
         elif key == GLUT_KEY_DOWN:
-            self.trigger('color', False)
+            self.trigger('scale', up=False)
+        elif key == GLUT_KEY_LEFT:
+            self.trigger('color', forward=True)
+        elif key == GLUT_KEY_RIGHT:
+            self.trigger('color', forward=False)
         glutPostRedisplay()
 
     def register(self):
