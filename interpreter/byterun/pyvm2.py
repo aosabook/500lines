@@ -187,8 +187,6 @@ class VirtualMachine(object):
                     self.binaryOperator(byteName[7:])
                 elif byteName.startswith('INPLACE_'):
                     self.inplaceOperator(byteName[8:])
-                elif 'SLICE+' in byteName:
-                    self.sliceOperator(byteName)
                 else:
                     # dispatch
                     bytecode_fn = getattr(self, 'byte_%s' % byteName, None)
@@ -285,11 +283,6 @@ class VirtualMachine(object):
     def byte_DUP_TOP(self):
         self.push(self.top())
 
-    def byte_DUP_TOPX(self, count):
-        items = self.popn(count)
-        for i in [1, 2]:
-            self.push(*items)
-
     def byte_DUP_TOP_TWO(self):
         # Py3 only
         a, b = self.popn(2)
@@ -302,10 +295,6 @@ class VirtualMachine(object):
     def byte_ROT_THREE(self):
         a, b, c = self.popn(3)
         self.push(c, a, b)
-
-    def byte_ROT_FOUR(self):
-        a, b, c, d = self.popn(4)
-        self.push(d, a, b, c)
 
     ## Names
 
@@ -358,16 +347,12 @@ class VirtualMachine(object):
     def byte_STORE_DEREF(self, name):
         self.frame.cells[name].set(self.pop())
 
-    def byte_LOAD_LOCALS(self):
-        self.push(self.frame.f_locals)
-
     ## Operators
 
     UNARY_OPERATORS = {
         'POSITIVE': operator.pos,
         'NEGATIVE': operator.neg,
         'NOT':      operator.not_,
-        'CONVERT':  repr,
         'INVERT':   operator.invert,
     }
 
@@ -378,7 +363,6 @@ class VirtualMachine(object):
     BINARY_OPERATORS = {
         'POWER':    pow,
         'MULTIPLY': operator.mul,
-        'DIVIDE':   getattr(operator, 'div', lambda x, y: None),
         'FLOOR_DIVIDE': operator.floordiv,
         'TRUE_DIVIDE':  operator.truediv,
         'MODULO':   operator.mod,
@@ -402,7 +386,7 @@ class VirtualMachine(object):
             x **= y
         elif op == 'MULTIPLY':
             x *= y
-        elif op in ['DIVIDE', 'FLOOR_DIVIDE']:
+        elif op == 'FLOOR_DIVIDE':
             x //= y
         elif op == 'TRUE_DIVIDE':
             x /= y
@@ -425,27 +409,6 @@ class VirtualMachine(object):
         else:           # pragma: no cover
             raise VirtualMachineError("Unknown in-place operator: %r" % op)
         self.push(x)
-
-    def sliceOperator(self, op):
-        start = 0
-        end = None          # we will take this to mean end
-        op, count = op[:-2], int(op[-1])
-        if count == 1:
-            start = self.pop()
-        elif count == 2:
-            end = self.pop()
-        elif count == 3:
-            end = self.pop()
-            start = self.pop()
-        l = self.pop()
-        if end is None:
-            end = len(l)
-        if op.startswith('STORE_'):
-            l[start:end] = self.pop()
-        elif op.startswith('DELETE_'):
-            del l[start:end]
-        else:
-            self.push(l[start:end])
 
     COMPARE_OPERATORS = [
         operator.lt,
@@ -541,47 +504,6 @@ class VirtualMachine(object):
         val, key = self.popn(2)
         the_map = self.peek(count)
         the_map[key] = val
-
-    ## Printing
-
-    if 0:   # Only used in the interactive interpreter, not in modules.
-        def byte_PRINT_EXPR(self):
-            print(self.pop())
-
-    def byte_PRINT_ITEM(self):
-        item = self.pop()
-        self.print_item(item)
-
-    def byte_PRINT_ITEM_TO(self):
-        to = self.pop()
-        item = self.pop()
-        self.print_item(item, to)
-
-    def byte_PRINT_NEWLINE(self):
-        self.print_newline()
-
-    def byte_PRINT_NEWLINE_TO(self):
-        to = self.pop()
-        self.print_newline(to)
-
-    def print_item(self, item, to=None):
-        if to is None:
-            to = sys.stdout
-        if to.softspace:
-            print(" ", end="", file=to)
-            to.softspace = 0
-        print(item, end="", file=to)
-        if isinstance(item, str):
-            if (not item) or (not item[-1].isspace()) or (item[-1] == " "):
-                to.softspace = 1
-        else:
-            to.softspace = 1
-
-    def print_newline(self, to=None):
-        if to is None:
-            to = sys.stdout
-        print("", file=to)
-        to.softspace = 0
 
     ## Jumps
 
@@ -881,17 +803,7 @@ class VirtualMachine(object):
         self.push(getattr(mod, name))
 
     ## And the rest...
-
-    def byte_EXEC_STMT(self):
-        stmt, globs, locs = self.popn(3)
-        exec(stmt, globs, locs)
-
-    def byte_BUILD_CLASS(self):
-        name, bases, methods = self.popn(3)
-        self.push(Class(name, bases, methods))
-
     def byte_LOAD_BUILD_CLASS(self):
-        # New in py3
         self.push(__build_class__)
 
     def byte_STORE_LOCALS(self):
