@@ -306,17 +306,20 @@ you need to merge segments to keep your searches fast.
 But, if you merge all the segments into one segment
 every time you update your index,
 your updates are no longer very incremental.
+It's wasteful to copy an entire huge segment
+just to add a few things to it.
 
 It turns out there's a middle ground that works pretty well,
 although I don't know if it has
 reasonable mathematically guaranteed worst-case performance.
-You find the smallest index segment
-that is bigger
-as all the segments
+You find the largest index segment
+that is no bigger
+than all the segments
 smaller than itself
 put together;
-and you merge all those smaller segments into a single segment,
-but not the one that's bigger than the smaller ones put together.
+and you merge it with all those smaller segments.
+Intuitively, it's not too wasteful to merge it,
+since it comprises no more than half of the resulting index.
 
 For example, suppose you have existing segments
 of sizes 100k, 250k, 750k, and 2500k:
@@ -329,25 +332,75 @@ and you create a new segment of 20k:
 
 We can write down the total sizes of the smaller segments underneath:
 
-    20 100 250 750 2500
-     0  20 120 370 1120
+      20  100  250  750 2500
+       0   20  120  370 1120
 
 All of the segments are bigger than all the smaller segments put together,
 so you don't merge anything this time.
 Now you create another segment of 30k:
 
-    20 30 100 250 750 2500
-     0 20  50 150 400 1150
+      20   30  100  250  750 2500
+       0   20   50  150  400 1150
 
 Still nothing.
 Now another segment of 50k:
 
-    20 30 50 100 250 750 2500
-     0 20 50 100 200 450 1200
+      20   30   50  100  250  750 2500
+       0   20   50  100  200  450 1200
 
-Now the 250k segment is the smallest one
-that's bigger than all the smaller ones combined.
-So we combine all the smaller ones
+Now the 100k segment is no bigger
+than all the smaller segments put together,
+so we combine all of them
+in a four-way merge.
+If we assume that the merged result
+has exactly the sum of the sizes of its inputs,
+which is close to true but not quite due to compression ratios,
+this produces a 200k segment:
 
-XXX this is actually wrong; the 30k segment is, or the 20k segment.
-XXX I think that means my criterion is slightly wrong.  Wish I could find the code that did this in dumbfts!
+     200  250  750 2500
+       0  200  450 1200
+
+If we add another 20k segment, no merging happens:
+
+      20  200  250  750 2500
+       0   20  220  470 1220
+
+But a second 20k segment gets merged with the first one:
+
+      20   20  200  250  750 2500
+       0   20   40  240  490 1240
+      40  200  250  750 2500
+       0   40  240  490 1240
+
+Note that at this point,
+due to the 200k and 250k segments
+being so close in size,
+another 20k segment is enough to push us over the edge
+into another four-way merge:
+
+      20   40  200  250  750 2500
+       0   20   60  260  510 1260
+     510  750 2500
+       0  510 1260
+
+In some sense,
+because every surviving segment is constrained to be
+larger than the sum of all the segments smaller than it is,
+the segment sizes at any given moment
+are never too far from an exponentially growing sequence,
+which means that only a logarithmic number of segments can exist.
+
+So, if that's true, then this "middle ground"
+guarantees that your searches never get too slow;
+but how do we know that it guarantees that you don't
+waste too much time merging?
+
+Since every merge input
+is no more than half the size of the merge output,
+every posting moves into a segment of at least double the size
+every time it undergoes a merge.
+That means that, if your total corpus has 16 billion postings,
+each posting will be merged at most some 34 times.
+That is, the total amount of merge work done with this policy
+is O(N log N),
+which is pretty good.
