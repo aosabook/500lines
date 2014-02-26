@@ -12,9 +12,16 @@ def describe(sizes):
 
 sizes = []
 while True:
-    sizes.append(int(raw_input("+ ")))
-    sizes.sort()
+    line = raw_input("+ ")
+
+    if line == '':
+        sizes = []
+    else:
+        sizes.append(int(line))
+        sizes.sort()
+
     describe(sizes)
+
     merge = [cumsum >= size for cumsum, size in zip(xcumsum(sizes), sizes)]
     if any(merge):
         max_merge = max(ii for ii in range(len(merge)) if merge[ii]) + 1
