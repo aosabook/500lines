@@ -32,7 +32,7 @@ but highly simplified;
 it can perform full-text searches
 of directory trees in your filesystem,
 like `grep -r` but much faster.
-It's tuned to perform acceptably
+It’s tuned to perform acceptably
 even on electromechanical hard disks
 coated with spinning rust.
 
@@ -71,7 +71,7 @@ may still abandon this.
 The posting list
 ----------------
 
-Since this search engine doesn't do ranking,
+Since this search engine doesn’t do ranking,
 it basically comes down to maintaining a posting list
 on disk
 and querying it.
@@ -113,7 +113,7 @@ the skip file
 and a single chunk
 to find all the postings for a term.
 
-There's a chunk-size tradeoff:
+There’s a chunk-size tradeoff:
 if the chunks are too small, the skip file will be large,
 and a single query may need to read many chunks;
 on the other hand, if the chunks are too large,
@@ -125,11 +125,14 @@ and documents by integer document IDs,
 which allows for delta compression.
 Instead, we simply rely on gzip,
 which typically makes our index
-about 15% <!-- XXX check this -->
-of the size of the original text.
+about 15%
+of the size of the original text,
+which is reasonable,
+but runs more slowly
+than application-specific compression schemes.
 
 For this simple engine,
-I've chosen to put 4096 postings in each chunk,
+I’ve chosen to put 4096 postings in each chunk,
 and each chunk in a separate file.
 With my sample dataset of the Linux kernel,
 which is about 20K gzipped (5 bytes per posting),
@@ -146,19 +149,21 @@ For it to reach 9 megabytes,
 you would need to have a million chunks,
 or about 150 gigabytes of original source data.
 Reading a 9-megabyte file is a bearable startup cost,
+since it should take perhaps 200ms,
 though far from ideal.
 
 Sequential access
 -----------------
 
 To build full-text indices on spinning-rust electromechanical disks,
-it's important that the access patterns
+it’s important that the access patterns
 be basically sequential.
 Random access on spinning rust
 involves a delay on the order of 8–12 milliseconds,
 during which time
 the disk could have transferred
-on the order of half a megabyte of data.
+on the order of half a megabyte of data,
+if it weren’t busy seeking.
 So every random seek
 costs you half a megabyte of data transfer time;
 if you are doing the seek to transfer much less data than that,
@@ -167,7 +172,7 @@ instead of transferring data.
 On the other hand,
 if you are transferring much more than half a megabyte
 for each seek,
-then the disk's transfer rate is close to its maximum possible.
+then the disk’s transfer rate is close to its maximum possible.
 If you have a networking background,
 you could think of this number as the bandwidth-delay product
 of the disk.
@@ -176,8 +181,8 @@ Nowadays, since we have a lot of RAM,
 we can build fairly large indices in RAM
 before writing them out to disk.
 This engine <!-- XXX chispa? --> by default builds up
-a million postings in RAM
-which takes up around a hundred megabytes
+4 million postings in RAM
+which takes up around a quarter gig of RAM
 before sorting them and writing them to a file,
 which typically ends up being about 3MB compressed. <!-- XXX check this -->
 
@@ -200,7 +205,7 @@ then, we merge the primary index segments
 to produce a merged index segment.
 For a sufficiently large dataset and small RAM,
 we could imagine needing to do a multi-pass merge,
-but we probably don't need to worry about that nowadays;
+but we probably don’t need to worry about that nowadays;
 for efficient merging,
 we need only about half a megabyte of buffer memory
 per input file,
