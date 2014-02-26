@@ -138,15 +138,15 @@ def build_skip_file(dirname):
                 word, pathname = infile.readline().split()
                 skip_file.write("%s %s\n" % (word, chunk))
 
-def build_index(indexdir, corpus):
-    os.mkdir(indexdir)
-    postings = postings_from_dir(corpusdir)
+def build_index(index_dir, corpus_dir):
+    os.mkdir(index_dir)
+    postings = postings_from_dir(corpus_dir)
     for ii, chunk in enumerate(sorted_uniq_chunks(postings)):
-        write_new_segment(os.path.join(indexdir, str(ii)), chunk)
-    merge_segments(indexdir, os.listdir(indexdir))
+        write_new_segment(os.path.join(index_dir, str(ii)), chunk)
+    merge_segments(index_dir, os.listdir(index_dir))
 
-def grep(indexdir, terms):
-    for pathname in pathnames(indexdir, terms):
+def grep(index_dir, terms):
+    for pathname in pathnames(index_dir, terms):
         try:
             with open(pathname) as text:
                 for line in text:
@@ -164,4 +164,4 @@ if __name__ == '__main__':
     elif sys.argv[1] == 'grep':
         grep(sys.argv[2], sys.argv[3:])
     else:
-        raise Exception("%s (index|query|grep) indexdir ..." % (sys.argv[0]))
+        raise Exception("%s (index|query|grep) index_dir ..." % (sys.argv[0]))
