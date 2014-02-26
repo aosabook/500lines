@@ -29,7 +29,6 @@ end
 post '/create' do
   begin
     temp_file_path = params[:device][:file][:tempfile].path
-    @file_name = params[:device][:file][:filename]
     
     @device = Device.new(:data => File.read(temp_file_path), :meta_data => params[:device][:meta_data].values.join(','), :rate => params[:device][:rate])
     @parser = Parser.new(@device)
@@ -37,7 +36,10 @@ post '/create' do
     @analyzer = Analyzer.new(@parser, user)
     @analyzer.measure
 
-    cp(temp_file_path, "public/uploads/#{user.gender}-#{user.height}-#{user.stride}_#{@device.rate}-#{@device.method}-#{@device.steps}-#{@device.trial}-#{@device.format[0]}")
+    @file_name = "#{user.gender || 'unknown'}-#{user.height}-#{user.stride}_" + 
+      "#{@device.rate}-#{@device.method}-#{@device.steps}-#{@device.trial.gsub(/\s+/, '')}-#{@device.format[0]}"
+    
+    cp(temp_file_path, "public/uploads/" + @file_name)
 
     erb :detail
   rescue Exception => e
