@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+# XXX somehow we need to handle too many chunks in a segment. Maybe subdirs %100.
 from __future__ import print_function
 
 import gzip
@@ -9,6 +10,7 @@ import os
 import re
 import sys
 import shutil
+import traceback
 
 def postings_from_dir(dirname):
     # XXX re.compile?
@@ -24,17 +26,14 @@ def sorted_uniq_inplace(lst):
     lst.sort()
     return (k for k, _ in itertools.groupby(lst))
 
-# 1Mi items gives about 60MB of memory usage, which seems about right,
-# but may be a bit low.  Weirdly, it took 5m35s the first time, 13m33s
-# the second time.
-
-# At 2Mi items, we use 140MB of memory and 11m20s.  Also the index is half a meg bigger.
-# At 4Mi items, we use 269MB of memory and 11m8s.  Another half meg bigger again.
-# At 8Mi items, we use 536MB of memory and 9m53s, and another half meg.
-
 # Preliminary stats: indexing linux-3.2.41/arch takes 5m35s,
 # generating 3.1M postings for 709K distinct terms (from 117MB of source) are
 # occupying 17M gzipped (15% of the corpus size) in 755 separate chunks.
+
+# At 4Mi items, we use 269MB of memory and 20m32s.  The index is like
+# 18MB instead of the 17MB that it took with a segment size of 1Mi.
+# Almost half of the time is spent in running the merge, and more than
+# half is spent compressing with gzip.
 
 # A simple Python program is able to parse about 150 000 lines per
 # second looking for a search term, which is some 5× slower than gzip
@@ -65,7 +64,7 @@ def break_up(seq, chunk_size=4096):
 
 def write_to_disk(dirname, chunks):
     for ii, chunk in enumerate(chunks):
-        with gzip.GzipFile(os.path.join(dirname, str(ii)+'.gz'), 'w') as output:
+        with gzip.GzipFile(os.path.join(dirname, str(ii)+'.gz'), 'w') as output:  # XXX what about fsync?
             output.writelines("%s %s\n" % item for item in chunk)
 
 def write_new_segment(pathname, postings):
@@ -74,6 +73,9 @@ def write_new_segment(pathname, postings):
     build_skip_file(pathname)
 
 def merge_segments(dirname, segments):
+    if len(segments) == 1:
+        return
+
     postings = heapq.merge(*[read_segment(os.path.join(dirname, segment))
                              for segment in segments])
     ii = 0 # XXX factor out
@@ -88,11 +90,12 @@ def read_segment(pathname):
     for _, chunk in skip_file_entries(pathname):
         with gzip.GzipFile(os.path.join(pathname, chunk)) as infile:
             for line in infile:
-                yield line.split()
+                yield tuple(line.split())
 
 def pathnames(indexdir, terms):
     "Actually evaluate a query."
-    return set.intersection(*(term_pathnames(indexdir, term) for term in terms))
+    return set.intersection(*(set(term_pathnames(indexdir, term))
+                              for term in terms))
 
 def term_pathnames(indexdir, term):
     segments = (os.path.join(indexdir, segment)
@@ -123,21 +126,42 @@ def segment_term_chunks(segment, term):
         yield last_chunk
 
 def skip_file_entries(indexdir):
-    with open(os.path.join(pathname, 'skip')) as skip_file:
+    with open(os.path.join(indexdir, 'skip')) as skip_file:
         for line in sorted(skip_file):
             yield line.split()
 
 def build_skip_file(dirname):
     chunk_names = os.listdir(dirname)
-    with open(os.path.join(dirname, 'skip'), 'w') as skip_file:
+    with open(os.path.join(dirname, 'skip'), 'w') as skip_file: # XXX what about fsync?
         for chunk in chunk_names:
             with gzip.GzipFile(os.path.join(dirname, chunk)) as infile:
                 word, pathname = infile.readline().split()
                 skip_file.write("%s %s\n" % (word, chunk))
 
-if __name__ == '__main__':
-    os.mkdir(sys.argv[2])
-    postings = postings_from_dir(sys.argv[1])
+def build_index(indexdir, corpus):
+    os.mkdir(indexdir)
+    postings = postings_from_dir(corpusdir)
     for ii, chunk in enumerate(sorted_uniq_chunks(postings)):
-        write_new_segment(os.path.join(sys.argv[2], str(ii)), chunk)
-    #merge_segments(sys.argv[2], os.listdir(sys.argv[2]))
+        write_new_segment(os.path.join(indexdir, str(ii)), chunk)
+    merge_segments(indexdir, os.listdir(indexdir))
+
+def grep(indexdir, terms):
+    for pathname in pathnames(indexdir, terms):
+        try:
+            with open(pathname) as text:
+                for line in text:
+                    if any(term in line for term in terms):
+                        sys.stdout.write("%s:%s" % (pathname, line))
+        except:                 # The file might e.g. no longer exist.
+            traceback.print_exc()
+
+if __name__ == '__main__':
+    if sys.argv[1] == 'index':
+        build_index(sys.argv[2], sys.argv[3])
+    elif sys.argv[1] == 'query':
+        for pathname in pathnames(sys.argv[2], sys.argv[3:]):
+            print(pathname)
+    elif sys.argv[1] == 'grep':
+        grep(sys.argv[2], sys.argv[3:])
+    else:
+        raise Exception("%s (index|query|grep) indexdir ..." % (sys.argv[0]))
