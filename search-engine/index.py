@@ -127,7 +127,7 @@ def segment_term_chunks(segment, term):
 
 def skip_file_entries(indexdir):
     with open(os.path.join(indexdir, 'skip')) as skip_file:
-        for line in sorted(skip_file):
+        for line in sorted(skip_file): # XXX is this guaranteed correct?
             yield line.split()
 
 def build_skip_file(dirname):
