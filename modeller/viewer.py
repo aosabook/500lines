@@ -73,6 +73,7 @@ class TestContext(BaseContext):
         glPopMatrix()
 
     def initView(self):
+        """ initialize the projection matrix """
         xSize, ySize = glutGet( GLUT_WINDOW_WIDTH ), glutGet( GLUT_WINDOW_HEIGHT )
         aspect_rat = float(xSize) / float(ySize)
 
@@ -138,9 +139,11 @@ class TestContext(BaseContext):
         self.scene.place(shape, start, direction, self.inverseModelView)
     
     def color(self, forward):
+        """ Rotate the color of the selected Node. Boolean 'forward' indicates direction of rotation. """
         self.scene.rotate_color(forward)
 
     def scale(self, up):
+        """ Scale the selected Node. Boolean up indicates scaling larger."""
         self.scene.scale(up)
 
 
