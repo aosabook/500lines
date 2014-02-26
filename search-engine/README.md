@@ -31,7 +31,9 @@ modeled after Lucene in some ways,
 but highly simplified;
 it can perform full-text searches
 of directory trees in your filesystem,
-like `grep -r` but much faster.
+sort of like `grep -r`,
+except that it can search through hundreds of gigabytes
+in hundreds of milliseconds.
 It’s tuned to perform acceptably
 even on electromechanical hard disks
 coated with spinning rust.
@@ -54,7 +56,8 @@ mailbox mutation to appending, because once you start mutating mail in
 the middle of the file that’s already been indexed, you’re kind of out
 of luck on the incremental indexing thing.
 
-Maybe the thing to do is to make it a generic text-search program like
+So I figured the thing to do
+is to make it a generic text-search program like 
 Glimpse, storing the index in a directory somewhere up the parent
 hierarchy like `.git`, with a list of filenames and mtimes?  Then I
 can just reindex files when they change.  `grep -r e1000e
@@ -135,13 +138,13 @@ For this simple engine,
 I’ve chosen to put 4096 postings in each chunk,
 and each chunk in a separate file.
 With my sample dataset of the Linux kernel,
-which is about 20K gzipped (5 bytes per posting),
+4096 postings is about 20K gzipped (5 bytes per posting),
 or about 150K uncompressed,
 representing about 150K of original text,
 and can be decompressed and parsed
 on my netbook
 in about 30ms.
-The index of chunks,
+The skip file,
 which is not compressed,
 is about 9 bytes per chunk
 on my sample data.
@@ -151,6 +154,13 @@ or about 150 gigabytes of original source data.
 Reading a 9-megabyte file is a bearable startup cost,
 since it should take perhaps 200ms,
 though far from ideal.
+
+Scaling up further
+can be done
+by using multiple levels of skip files,
+making the search engine's run time proportional
+to the logarithm of the number of postings
+rather than its square root.
 
 Sequential access
 -----------------
@@ -184,7 +194,7 @@ This engine <!-- XXX chispa? --> by default builds up
 4 million postings in RAM
 which takes up around a quarter gig of RAM
 before sorting them and writing them to a file,
-which typically ends up being about 3MB compressed. <!-- XXX check this -->
+which typically ends up being about 12MB compressed.
 
 On modern solid-state drives,
 this kind of locality of reference
@@ -221,4 +231,123 @@ up to ten times as big on that smartphone;
 that would allow us to
 index up to 400 gigabytes
 in only two passes.
+With this engine's current primary segment size
+of about 13 megabytes compressed,
+indexing about 100 megabytes uncompressed,
+this strategy only scales up to 200 gigabytes.
 
+Index structure
+---------------
+
+This engine
+stores its index in a directory,
+with a structure like the following:
+
+    .chispa
+    .chispa/0
+    .chispa/0/1.gz
+    .chispa/0/2.gz
+    .chispa/0/3.gz
+    .chispa/0/skip
+    .chispa/1
+    .chispa/1/1.gz
+    .chispa/1/2.gz
+    .chispa/1/3.gz
+    .chispa/1/skip
+
+Each subdirectory of the top-level index directory
+is a segment;
+essentially an independent index.
+The index results from different segments
+must be combined
+with the set union operation
+to get the final index results.
+
+Each segment is divided into sequential chunks,
+which are gzipped,
+and the skip file,
+which tells which postings can be found in each chunk,
+is called `skip`.
+
+At some point,
+my plan is to interpret the pathnames in the index
+relative to the index's parent directory,
+and to search up toward the root of the filesystem
+to look for an index to consult.
+
+Merging strategy for incremental updates
+----------------------------------------
+
+Some sets of files
+never change,
+and this engine in its current form
+is perfectly suited to those,
+because it has no way to update an index once it exists.
+However,
+its
+index structure can handle them already,
+since each segment is entirely independent of other segments;
+you can just create a new segment
+to contain the postings from the new or newly modified files,
+and any subsequent search will then be able to find
+things in those files.
+
+(This requires some way to keep track of which files
+and which versions of those files
+are already indexed
+and which are not yet indexed,
+and we also need to eventually discard postings
+that pertain to old versions of modified files.)
+
+But if you create too many segments,
+searches will become slow.
+So at some point
+you need to merge segments to keep your searches fast.
+But, if you merge all the segments into one segment
+every time you update your index,
+your updates are no longer very incremental.
+
+It turns out there's a middle ground that works pretty well,
+although I don't know if it has
+reasonable mathematically guaranteed worst-case performance.
+You find the smallest index segment
+that is bigger
+as all the segments
+smaller than itself
+put together;
+and you merge all those smaller segments into a single segment,
+but not the one that's bigger than the smaller ones put together.
+
+For example, suppose you have existing segments
+of sizes 100k, 250k, 750k, and 2500k:
+
+    100 250 750 2500
+
+and you create a new segment of 20k:
+
+    20 100 250 750 2500
+
+We can write down the total sizes of the smaller segments underneath:
+
+    20 100 250 750 2500
+     0  20 120 370 1120
+
+All of the segments are bigger than all the smaller segments put together,
+so you don't merge anything this time.
+Now you create another segment of 30k:
+
+    20 30 100 250 750 2500
+     0 20  50 150 400 1150
+
+Still nothing.
+Now another segment of 50k:
+
+    20 30 50 100 250 750 2500
+     0 20 50 100 200 450 1200
+
+Now the 250k segment is the smallest one
+that's bigger than all the smaller ones combined.
+So we combine all the smaller ones
+
+XXX this is actually wrong; the 30k segment is, or the 20k segment.
+XXX I think that means my criterion is slightly wrong.  Wish I could find the code that did this in dumbfts!
