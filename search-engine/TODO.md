@@ -1,4 +1,3 @@
-* Use Path object to simplify path manipulation.
 * Consistently use "doc_id" for document IDs (even though they happen
   to be pathnames)
 * Be consistent about "segment", "chunk", and "index".  And "posting".
@@ -27,6 +26,11 @@
   Python3?
 * Don't be case-sensitive!
 * Maybe make more things be methods of an index object?
-* See if it runs in Jython 2.5.  And PyPy.
+* It runs fine in PyPy, and noticeably faster.  Running in Jython 2.5
+  involves importing `with` from the future and not trying to import
+  `print_statement` from the future.  (Its only use of print works
+  fine as either a function or a statement.)  Now I have to see if I
+  can get rid of `chain.from_iterable`, which didn't exist in 2.5.
+  Yes, but, GzipFile wasn't a context manager in 2.5, so we can't
+  close them automatically.
 * Maybe exclude .git directories too by default.
-* Handle filenames with spaces.
