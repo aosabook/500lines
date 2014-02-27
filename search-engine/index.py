@@ -12,106 +12,122 @@ import sys
 import shutil
 import traceback
 
-def postings_from_dir(dirname):
+class Path:                     # like java.lang.File
+    def __init__(self, name):
+        self.name = name
+    __getitem__  = lambda self, child: Path(os.path.join(self.name, str(child)))
+    __contains__ = lambda self, child: os.path.exists(self[child].name)
+    __iter__     = lambda self: (self[child] for child in os.listdir(self.name))
+    open         = lambda self, *args: open(self.name, *args)
+    open_gzipped = lambda self, *args: gzip.GzipFile(self.name, *args)
+
+def postings_from_dir(path):
     # XXX re.compile?
-    for dirpath, dirnames, filenames in os.walk(dirname):
+    for dir_name, _, filenames in os.walk(path.name):
+        dir_path = Path(dir_name)
         for filename in filenames:
-            pathname = os.path.join(dirpath, filename)
-            with open(pathname) as fo:
+            with dir_path[filename].open() as fo:
+                seen_words = set()
                 for line in fo:
                     for word in re.findall('\w+', line):
-                        yield word, pathname
+                        if word not in seen_words:
+                            yield word, dir_path[filename].name
+                            seen_words.add(word)
 
-def sorted_uniq_inplace(lst):
-    lst.sort()
-    return (k for k, _ in itertools.groupby(lst))
+def dir_metadata(path):
+    for dirpath, _, filenames in os.walk(path.name):
+        for filename in filenames:
+            pathname = os.path.join(dirpath, filename)
+            s = os.stat(pathname)
+            yield pathname, s.st_size, s.st_mtime
 
-# Preliminary stats: indexing linux-3.2.41/arch takes 5m35s,
-# generating 3.1M postings for 709K distinct terms (from 117MB of source) are
-# occupying 17M gzipped (15% of the corpus size) in 755 separate chunks.
+def write_tuples(context_manager, tuples):
+    with context_manager as outfile:
+        for item in tuples:
+            outfile.write(' '.join(map(str, item)) + "\n")
 
-# At 4Mi items, we use 269MB of memory and 20m32s.  The index is like
-# 18MB instead of the 17MB that it took with a segment size of 1Mi.
-# Almost half of the time is spent in running the merge, and more than
-# half is spent compressing with gzip.
+def read_tuples(context_manager):
+    with context_manager as infile:
+        for line in infile:
+            yield tuple(line.split())
 
-# A simple Python program is able to parse about 150 000 lines per
-# second looking for a search term, which is some 5× slower than gzip
-# is able to decompress; this suggests that the optimal chunk size for
-# query speed is perhaps closer to 1500 lines than 4096 lines, 
-# at least on my netbook.  This size will work better than 1500 on faster
-# machines like the ones in the future.  Ha ha.
+# XXX maybe these functions don't need to exist?
+def write_metadata(ath, metadata):
+    write_tuples(path['metadata'].open('w'), metadata)
+
+def read_metadata(path):
+    tuples = read_tuples(path['metadata'].open())
+    return dict((pathname, (size, mtime)) for pathname, size, mtime in tuples)
+
+def file_unchanged(metadatas, path):
+    s = os.stat(path.name)
+    return any(metadata.get(path.name) == (s.st_size, s.st_mtime)
+               for metadata in metadatas)
 
 # XXX this should probably be called like "break_into_segments" or
-# some shit.  2**22 is chosen as the standard max_chunk_size (XXX
-# max_segment_size) because that uses typically about a quarter gig,
+# some shit.  2**20 is chosen as the standard max_chunk_size (XXX
+# max_segment_size) because that uses typically about a quarter gig, (XXX test)
 # which is a reasonable size these days.
-def sorted_uniq_chunks(iterator, max_chunk_size=2**22):
+def sorted_uniq_chunks(iterator, max_chunk_size=2**20):
     chunk = []
     for item in iterator:
         chunk.append(item)
         if len(chunk) == max_chunk_size:
-            yield sorted_uniq_inplace(chunk)
-            del chunk[:]
+            chunk.sort()
+            yield chunk
+            chunk = []
 
     if chunk:
-        yield sorted_uniq_inplace(chunk)
+        chunk.sort()
+        yield chunk
 
+# From some answer on Stack Overflow.
 def break_up(seq, chunk_size=4096):
     seq = iter(seq)
     while True:
         yield tuple(itertools.islice(seq, chunk_size)) or next(seq)
 
-def write_to_disk(dirname, chunks):
-    for ii, chunk in enumerate(chunks):
-        with gzip.GzipFile(os.path.join(dirname, str(ii)+'.gz'), 'w') as output:  # XXX what about fsync?
-            output.writelines("%s %s\n" % item for item in chunk)
+def write_new_segment(path, postings):
+    os.mkdir(path.name)
+    for ii, chunk in enumerate(break_up(postings)):
+        write_tuples(path['%s.gz' % ii].open_gzipped('w'), chunk)
+    build_skip_file(path)
 
-def write_new_segment(pathname, postings):
-    os.mkdir(pathname)
-    write_to_disk(pathname, break_up(postings))
-    build_skip_file(pathname)
-
-def merge_segments(dirname, segments):
+def merge_segments(path, segments):
     if len(segments) == 1:
         return
 
-    postings = heapq.merge(*[read_segment(os.path.join(dirname, segment))
+    postings = heapq.merge(*[read_segment(segment)
                              for segment in segments])
     ii = 0 # XXX factor out
-    while os.path.exists(os.path.join(dirname, str(ii))):
+    while ii in path:
         ii += 1
-    write_new_segment(os.path.join(dirname, str(ii)), postings)
+    write_new_segment(path[ii], postings)
 
     for segment in segments:
-        shutil.rmtree(os.path.join(dirname, segment))
+        shutil.rmtree(segment.name)
 
-def read_segment(pathname):
-    for _, chunk in skip_file_entries(pathname):
-        with gzip.GzipFile(os.path.join(pathname, chunk)) as infile:
-            for line in infile:
-                yield tuple(line.split())
+def read_segment(path):
+    for _, chunk in skip_file_entries(path):
+        for item in read_tuples(path[chunk].open_gzipped()):
+            yield item
 
-def pathnames(indexdir, terms):
+def pathnames(index_path, terms):
     "Actually evaluate a query."
-    return set.intersection(*(set(term_pathnames(indexdir, term))
+    return set.intersection(*(set(term_pathnames(index_path, term))
                               for term in terms))
 
-def term_pathnames(indexdir, term):
-    segments = (os.path.join(indexdir, segment)
-                for segment in os.listdir(indexdir))
+def term_pathnames(index_path, term):
     return itertools.chain.from_iterable(segment_term_pathnames(segment, term)
-                                         for segment in segments)
+                                         for segment in index_path)
 
 def segment_term_pathnames(segment, term):
     for chunk_name in segment_term_chunks(segment, term):
-        with gzip.GzipFile(os.path.join(segment, chunk_name)) as chunk:
-            for line in chunk:
-                term_2, pathname = line.split()
-                if term_2 == term:
-                    yield pathname
-                if term_2 > term:
-                    break
+        for term_2, pathname in read_tuples(segment[chunk_name].open_gzipped()):
+            if term_2 == term:
+                yield pathname
+            if term_2 > term:
+                break
 
 def segment_term_chunks(segment, term):
     for headword, chunk in skip_file_entries(segment):
@@ -126,42 +142,45 @@ def segment_term_chunks(segment, term):
         yield last_chunk
 
 def skip_file_entries(indexdir):
-    with open(os.path.join(indexdir, 'skip')) as skip_file:
-        for line in sorted(skip_file): # XXX is this guaranteed correct?
-            yield line.split()
+    # XXX is sorted() guaranteed correct?
+    return sorted(read_tuples(indexdir['skip'].open()))
 
-def build_skip_file(dirname):
-    chunk_names = os.listdir(dirname)
-    with open(os.path.join(dirname, 'skip'), 'w') as skip_file: # XXX what about fsync?
-        for chunk in chunk_names:
-            with gzip.GzipFile(os.path.join(dirname, chunk)) as infile:
-                word, pathname = infile.readline().split()
-                skip_file.write("%s %s\n" % (word, chunk))
+def generate_skip_entries(chunk_paths):
+    for chunk_path in chunk_paths:
+        # Not using read_tuples here because we'd have to explicitly close it.
+        with chunk_path.open_gzipped() as chunk_file:
+            word, _ = chunk_file.readline().split()
+            yield word, os.path.basename(chunk_path.name)
 
-def build_index(index_dir, corpus_dir):
-    os.mkdir(index_dir)
-    postings = postings_from_dir(corpus_dir)
+def build_skip_file(path):
+    chunk_names = list(path)
+    # XXX what about fsync?
+    write_tuples(path['skip'].open('w'), generate_skip_entries(chunk_names))
+
+def build_index(index_path, corpus_path):
+    os.mkdir(index_path.name)
+    postings = postings_from_dir(corpus_path)
     for ii, chunk in enumerate(sorted_uniq_chunks(postings)):
-        write_new_segment(os.path.join(index_dir, str(ii)), chunk)
-    merge_segments(index_dir, os.listdir(index_dir))
+        write_new_segment(index_path[ii], chunk)
+    merge_segments(index_path, list(index_path))
 
-def grep(index_dir, terms):
-    for pathname in pathnames(index_dir, terms):
+def grep(index_path, terms):
+    for pathname in pathnames(index_path, terms):
         try:
             with open(pathname) as text:
-                for line in text:
+                for ii, line in enumerate(text):
                     if any(term in line for term in terms):
-                        sys.stdout.write("%s:%s" % (pathname, line))
+                        sys.stdout.write("%s:%s:%s" % (pathname, ii+1, line))
         except:                 # The file might e.g. no longer exist.
             traceback.print_exc()
 
 if __name__ == '__main__':
     if sys.argv[1] == 'index':
-        build_index(sys.argv[2], sys.argv[3])
+        build_index(index_path=Path(sys.argv[2]), corpus_path=Path(sys.argv[3]))
     elif sys.argv[1] == 'query':
-        for pathname in pathnames(sys.argv[2], sys.argv[3:]):
+        for pathname in pathnames(Path(sys.argv[2]), sys.argv[3:]):
             print(pathname)
     elif sys.argv[1] == 'grep':
-        grep(sys.argv[2], sys.argv[3:])
+        grep(Path(sys.argv[2]), sys.argv[3:])
     else:
         raise Exception("%s (index|query|grep) index_dir ..." % (sys.argv[0]))
