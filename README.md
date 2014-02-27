@@ -115,7 +115,7 @@ Contributors
   </tr>
   <tr>
     <td>Kragen Javier Sitaker</td>
-    <td>[Canonical Hackers](http://canonical.org/)</td>
+    <td><a href="http://canonical.org/">Canonical Hackers</a></td>
     <td>search-engine</td>
     <td>@kragen</td>
     <td>@kragen</td>
