@@ -28,3 +28,5 @@
 * Don't be case-sensitive!
 * Maybe make more things be methods of an index object?
 * See if it runs in Jython 2.5.  And PyPy.
+* Maybe exclude .git directories too by default.
+* Handle filenames with spaces.
