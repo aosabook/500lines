@@ -11,6 +11,7 @@ import re
 import sys
 import shutil
 import traceback
+import urllib                   # for quote and unquote
 
 class Path:                     # like java.lang.File
     def __init__(self, name):
@@ -44,12 +45,13 @@ def dir_metadata(path):
 def write_tuples(context_manager, tuples):
     with context_manager as outfile:
         for item in tuples:
-            outfile.write(' '.join(map(str, item)) + "\n")
+            line = ' '.join(urllib.quote(str(field)) for field in item)
+            outfile.write(line + "\n")
 
 def read_tuples(context_manager):
     with context_manager as infile:
         for line in infile:
-            yield tuple(line.split())
+            yield tuple(urllib.unquote(field) for field in line.split())
 
 # XXX maybe these functions don't need to exist?
 def write_metadata(ath, metadata):
