@@ -64,32 +64,15 @@ def file_unchanged(metadatas, path):
     return any(metadata.get(path.name) == (s.st_size, s.st_mtime)
                for metadata in metadatas)
 
-# XXX this should probably be called like "break_into_segments" or
-# some shit.  2**20 is chosen as the standard max_chunk_size (XXX
-# max_segment_size) because that uses typically about a quarter gig, (XXX test)
-# which is a reasonable size these days.
-def sorted_uniq_chunks(iterator, max_chunk_size=2**20):
-    chunk = []
-    for item in iterator:
-        chunk.append(item)
-        if len(chunk) == max_chunk_size:
-            chunk.sort()
-            yield chunk
-            chunk = []
-
-    if chunk:
-        chunk.sort()
-        yield chunk
-
 # From some answer on Stack Overflow.
-def break_up(seq, chunk_size=4096):
+def blocked(seq, block_size):
     seq = iter(seq)
     while True:
-        yield tuple(itertools.islice(seq, chunk_size)) or next(seq)
+        yield tuple(itertools.islice(seq, block_size)) or next(seq)
 
 def write_new_segment(path, postings):
     os.mkdir(path.name)
-    for ii, chunk in enumerate(break_up(postings)):
+    for ii, chunk in enumerate(blocked(postings, 4096)):
         write_tuples(path['%s.gz' % ii].open_gzipped('w'), chunk)
     build_skip_file(path)
 
@@ -160,30 +143,36 @@ def build_skip_file(path):
     # XXX what about fsync?
     write_tuples(path['skip'].open('w'), generate_skip_entries(chunk_names))
 
+# 2**20 is chosen as the maximum segment size because that uses
+# typically about a quarter gig, which is a reasonable size these
+# days.
 def build_index(index_path, corpus_path):
     os.mkdir(index_path.name)
     postings = postings_from_dir(corpus_path)
-    for ii, chunk in enumerate(sorted_uniq_chunks(postings)):
-        write_new_segment(index_path[ii], chunk)
+    for ii, chunk in enumerate(blocked(postings, 2**20)):
+        write_new_segment(index_path[ii], sorted(chunk))
     merge_segments(index_path, list(index_path))
 
 def grep(index_path, terms):
     for pathname in pathnames(index_path, terms):
         try:
             with open(pathname) as text:
-                for ii, line in enumerate(text):
+                for ii, line in enumerate(text, start=1):
                     if any(term in line for term in terms):
-                        sys.stdout.write("%s:%s:%s" % (pathname, ii+1, line))
+                        sys.stdout.write("%s:%s:%s" % (pathname, ii, line))
         except:                 # The file might e.g. no longer exist.
             traceback.print_exc()
 
-if __name__ == '__main__':
-    if sys.argv[1] == 'index':
-        build_index(index_path=Path(sys.argv[2]), corpus_path=Path(sys.argv[3]))
-    elif sys.argv[1] == 'query':
-        for pathname in pathnames(Path(sys.argv[2]), sys.argv[3:]):
+def main(argv):
+    if argv[1] == 'index':
+        build_index(index_path=Path(argv[2]), corpus_path=Path(argv[3]))
+    elif argv[1] == 'query':
+        for pathname in pathnames(Path(argv[2]), argv[3:]):
             print(pathname)
-    elif sys.argv[1] == 'grep':
-        grep(Path(sys.argv[2]), sys.argv[3:])
+    elif argv[1] == 'grep':
+        grep(Path(argv[2]), argv[3:])
     else:
-        raise Exception("%s (index|query|grep) index_dir ..." % (sys.argv[0]))
+        raise Exception("%s (index|query|grep) index_dir ..." % (argv[0]))
+
+if __name__ == '__main__':
+    main(sys.argv)
