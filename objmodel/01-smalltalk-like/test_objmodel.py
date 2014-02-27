@@ -1,0 +1,112 @@
+from objmodel import Class, Instance, TYPE, OBJECT
+
+def test_isinstance():
+    # Python code
+    class A(object):
+        pass
+    class B(A):
+        pass
+    b = B()
+    assert isinstance(b, B)
+    assert isinstance(b, A)
+    assert isinstance(b, object)
+    assert not isinstance(b, type)
+
+    # Object model code
+    A = Class("A", OBJECT, {}, TYPE)
+    B = Class("B", A, {}, TYPE)
+    b = Instance(B)
+    assert b.isinstance(B)
+    assert b.isinstance(A)
+    assert b.isinstance(OBJECT)
+    assert not b.isinstance(TYPE)
+
+def test_read_write_field():
+    # Python code
+    class A(object):
+        pass
+    obj = A()
+    obj.a = 1
+    assert obj.a == 1
+
+    obj.b = 5
+    assert obj.a == 1
+    assert obj.b == 5
+
+    obj.a = 2
+    assert obj.a == 2
+    assert obj.b == 5
+
+    # Object model code
+    A = Class("A", OBJECT, {}, TYPE)
+    obj = Instance(A)
+    obj.write_field("a", 1)
+    assert obj.read_field("a") == 1
+
+    obj.write_field("b", 5)
+    assert obj.read_field("a") == 1
+    assert obj.read_field("b") == 5
+
+    obj.write_field("a", 2)
+    assert obj.read_field("a") == 2
+    assert obj.read_field("b") == 5
+
+def test_send_simple():
+    # Python code
+    class A(object):
+        def f(self):
+            return self.x + 1
+    obj = A()
+    obj.x = 1
+    assert obj.f() == 2
+
+    class B(A):
+        pass
+    obj = B()
+    obj.x = 1
+    assert obj.f() == 2 # works on subclass too
+
+    # Object model code
+    def f(self):
+        return self.read_field("x") + 1
+    A = Class("A", OBJECT, {"f": f}, TYPE)
+    obj = Instance(A)
+    obj.write_field("x", 1)
+    assert obj.send("f") == 2
+
+    B = Class("B", A, {}, TYPE)
+    obj = Instance(B)
+    obj.write_field("x", 2)
+    assert obj.send("f") == 3
+
+def test_send_subclassing_and_arguments():
+    # Python code
+    class A(object):
+        def g(self, arg):
+            return self.x + arg
+    obj = A()
+    obj.x = 1
+    assert obj.g(4) == 5
+
+    class B(A):
+        def g(self, arg):
+            return self.x + arg * 2
+    obj = B()
+    obj.x = 4
+    assert obj.g(4) == 12
+
+    # Object model code
+    def g_A(self, arg):
+        return self.read_field("x") + arg
+    A = Class("A", OBJECT, {"g": g_A}, TYPE)
+    obj = Instance(A)
+    obj.write_field("x", 1)
+    assert obj.send("g", 4) == 5
+
+    def g_B(self, arg):
+        return self.read_field("x") + arg * 2
+    B = Class("B", A, {"g": g_B}, TYPE)
+    obj = Instance(B)
+    obj.write_field("x", 4)
+    assert obj.send("g", 4) == 12
+
