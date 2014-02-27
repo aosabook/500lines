@@ -251,6 +251,95 @@ of about 13 megabytes compressed,
 indexing about 100 megabytes uncompressed,
 this strategy only scales up to 200 gigabytes.
 
+Since we're restricting ourselves
+to essentially sequential access
+for efficiency,
+the filesystem interface is very simple.
+Each file
+(compressed or not)
+contains a sequence of tuples
+whose elements are arbitrary strings.
+We have a function
+which takes a sequence
+(in Python, known as an iterable)
+and writes its contents
+to a file of tuples:
+
+    def write_tuples(context_manager, tuples):
+        with context_manager as outfile:
+            for item in tuples:
+                line = ' '.join(urllib.quote(str(field)) for field in item)
+                outfile.write(line + "\n")
+
+<!--
+
+XXX skip introductory Python paragraph?
+
+-->
+
+If you're not familiar with Python,
+some of the contents of this function
+may be a little puzzling.
+**The `with` statement**
+calls a method called `__exit__`
+on the passed-in `context_manager`
+when it finishes,
+whether due to normal exit or due to an exception.
+For file and `GzipFile` objects,
+the `__exit__` method closes the file.
+The `for` statement
+iterates over a sequence (in this case, of tuples)
+which could be **generated on the fly**
+rather than precomputed before entering the function.
+And the argument to `' '.join()`
+is a **generator expression**
+of the form `(x for y in z)`,
+which generates a sequence (on the fly)
+by evaluating the expression `x`
+once for each item of `z`.
+
+As it turns out,
+in the current version of this search engine,
+it isn't actually important that the tuples can be generated on the fly,
+because the largest thing we're writing as a sequence of tuples
+is the posting list,
+and it has to be sorted before writing it to each chunk anyway.
+
+`urllib.quote` encodes the strings being written to the file
+to ensure they can't contain spaces.
+
+Reading the tuples is even simpler,
+using a generator function:
+
+    def read_tuples(context_manager):
+        with context_manager as infile:
+            for line in infile:
+                yield tuple(urllib.unquote(field) for field in line.split())
+
+<!--
+
+XXX more introductory Python material; omit?
+
+-->
+
+When the function is invoked,
+it doesn't do anything but return a generator object;
+each time the `.next()` method is invoked on that generator object,
+the function starts running,
+either from the beginning
+or from the last place it suspended,
+until it reaches a `yield` expression,
+which suspends execution of the function
+and causes `.next()` to return a value.
+
+This kind of coroutine concurrency,
+which is also available in Lua, Ruby, and Golang,
+allows functions like `read_tuples()`
+to be written straightforwardly as functions,
+rather than as iterator classes with methods.
+This search engine uses this technique extensively
+to simplify its structure.
+
 Index structure
 ---------------
 
@@ -584,5 +673,24 @@ Search engines on large corpuses,
 or corpuses that have been maliciously poisoned by SEO consultants,
 generate too many hits for even fairly specific queries
 to be useful
-without ranking the results.
-XXX explain.
+without ranking the results
+so that the results most likely to be interesting
+are displayed first.
+This typically uses document weights,
+such as Google's PageRank or StackOverflow's scores;
+and measures of relevance to the query.
+
+The general recipe for relevance measures
+is "TF/IDF":
+"term frequency, inverse document frequency",
+which is to say,
+documents containing terms more frequently are rated higher,
+while terms that occur more frequently in the corpus overall
+are weighted more lightly.
+It really should be called
+"term frequency, inverse corpus frequency,"
+but the term dates from the early years of information retrieval research,
+when the terminology was different.
+There are different formulas in the TF/IDF family,
+which I would discuss here
+if I knew anything about them.
