@@ -33,7 +33,10 @@ it can perform full-text searches
 of directory trees in your filesystem,
 sort of like `grep -r`,
 except that it can search through hundreds of gigabytes
-in hundreds of milliseconds.
+in hundreds of milliseconds,
+with an index size about 15% of the size of the text,
+although it needs about three hours to index each gigabyte
+on my netbook.
 It’s tuned to perform acceptably
 even on electromechanical hard disks
 coated with spinning rust.
@@ -154,6 +157,18 @@ or about 150 gigabytes of original source data.
 Reading a 9-megabyte file is a bearable startup cost,
 since it should take perhaps 200ms,
 though far from ideal.
+
+There's a chunk size tradeoff:
+smaller chunks
+mean more filesystem overhead,
+worse compression,
+and a larger skip file,
+while larger chunks
+waste more time decompressing and parsing
+postings for terms before the one we're looking for.
+4096 postings decompress in about 27ms on my netbook,
+which is only about a factor of 3 slower than spinning-rust seek times,
+but achieve most of the compression available from gzip.
 
 Scaling up further
 can be done
@@ -400,7 +415,174 @@ is no more than half the size of the merge output,
 every posting moves into a segment of at least double the size
 every time it undergoes a merge.
 That means that, if your total corpus has 16 billion postings,
-each posting will be merged at most some 34 times.
+each posting will be merged at most some 34 times;
+and actually, since it's probably starting in a primary segment
+with a million other postings,
+it won't actually go through more than 14 merges.
 That is, the total amount of merge work done with this policy
 is O(N log N),
 which is pretty good.
+
+One problem is that the merge work isn't very evenly distributed.
+Adding an arbitrarily small bit of index
+can result in an arbitrarily large amount of work;
+in my last example above, adding 20k
+resulted in 510k of merging
+that had been postponed previously.
+
+Evaluating a query
+------------------
+
+If we just want to find
+the doc_ids of
+all the documents
+that contain all the search terms,
+given an index to search in,
+this is simple:
+
+    def pathnames(index_path, terms):
+        return set.intersection(*(set(term_pathnames(index_path, term))
+                                  for term in terms))
+
+We want the document IDs
+that are in the posting list
+of every term;
+that is, we want the intersection of all the posting lists.
+For a search engine that deals with larger quantities of data,
+we might want to be careful about our query planning,
+using the most selective terms first
+and probing the posting lists for the least selective ones
+rather than running O(N) algorithms on them;
+but for our purposes,
+just doing an eager hash join like this is probably adequately fast.
+
+To get the document IDs for a term,
+we need to combine the postings
+from all the segments:
+
+    def term_pathnames(index_path, term):
+        return itertools.chain.from_iterable(segment_term_pathnames(segment, term)
+                                             for segment in index_path)
+
+`chain.from_iterable` essentially concatenates
+the sequences of document IDs
+from the calls to `segment_term_pathnames`.
+
+To iterate over the segments in index_path,
+this is using
+a `Path` object
+whose `__iter__` method
+returns a `Path` object
+for each file or subdirectory
+in the directory:
+
+    class Path:                     # like java.lang.File
+        def __init__(self, name):
+            self.name = name
+        __getitem__  = lambda self, child: Path(os.path.join(self.name, str(child)))
+        __contains__ = lambda self, child: os.path.exists(self[child].name)
+        __iter__     = lambda self: (self[child] for child in os.listdir(self.name))
+        open         = lambda self, *args: open(self.name, *args)
+        open_gzipped = lambda self, *args: gzip.GzipFile(self.name, *args)
+
+Most manipulation of filesystem paths
+in this engine
+is done with this class.
+
+Anyway, to find the document IDs
+from a given segment
+for a given term,
+we read through each of the chunks
+that might contain postings for the term:
+
+    def segment_term_pathnames(segment, term):
+        for chunk_name in segment_term_chunks(segment, term):
+            for term_2, pathname in read_tuples(segment[chunk_name].open_gzipped()):
+                if term_2 == term:
+                    yield pathname
+                if term_2 > term:
+                    break
+
+Here `[]` invokes `Path.__getitem__`,
+and `open_gzipped` invokes decompression of the chunk.
+
+But which chunks might contain postings?
+We have to read the skip file to find out:
+
+    def segment_term_chunks(segment, term):
+        for headword, chunk in skip_file_entries(segment):
+            if headword >= term:
+                yield last_chunk
+            if headword > term:
+                break
+
+            last_chunk = chunk
+        else:                   # executed if we don't break
+            # XXX what if it was empty?
+            yield last_chunk
+
+We don't know
+the full range of the terms in a chunk
+until we get to the skip file entry for the next chunk,
+so we're always yielding the previous chunk.
+
+The contents of `skip_file_entries` is quite simple:
+
+    def skip_file_entries(indexdir):
+        # XXX is sorted() guaranteed correct?
+        return sorted(read_tuples(indexdir['skip'].open()))
+
+This invokes the same `read_tuples` function
+as `segment_term_pathnames`;
+it merely converts a text file
+with space-separated fields on each line
+into an iterable of tuples:
+
+    def read_tuples(context_manager):
+        with context_manager as infile:
+            for line in infile:
+                yield tuple(line.split())
+
+By using the `with` statement,
+the file is guaranteed to be closed
+when the generator is terminated,
+either by garbage collection,
+by finishing the iteration,
+or by explicitly calling .close() on the generator.
+If you don't close files,
+sooner or later,
+you'll run out of file descriptors,
+and any future attempts to open files will fail with an error.
+In CPython,
+the reference-counting garbage collector
+finalizes generators
+as soon as they go out of scope,
+but the other implementations of Python
+(PyPy, Jython, and IronPython)
+do not offer such guarantees.
+While `skip_file_entries` is guaranteed to exhaust the generator
+and thus close the file
+by using `sorted()`,
+`segment_term_pathnames` may exit the iteration early,
+and so XXX currently leaks file descriptors in PyPy.
+
+And that's all there is to evaluating a query:
+the candidate postings for each query term,
+as (term, doc_id) tuples,
+are read by `read_tuples`
+from the chunks supplied by `segment_term_chunks`;
+they're filtered by `segment_term_pathnames`
+to only the ones that really do pertain to the term;
+the doc_ids from different segments are combined
+with `term_pathnames`;
+and finally,
+the doc_ids from different terms
+are combined
+so that only doc_ids that contain every term remain.
+
+Search engines on large corpuses,
+or corpuses that have been maliciously poisoned by SEO consultants,
+generate too many hits for even fairly specific queries
+to be useful
+without ranking the results.
+XXX explain.
