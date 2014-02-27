@@ -109,6 +109,7 @@ def merge_segments(path, segments):
 
 def read_segment(path):
     for _, chunk in skip_file_entries(path):
+        # XXX refactor chunk reading?  We open_gzipped in three places now.
         for item in read_tuples(path[chunk].open_gzipped()):
             yield item
 
@@ -123,12 +124,14 @@ def term_pathnames(index_path, term):
 
 def segment_term_pathnames(segment, term):
     for chunk_name in segment_term_chunks(segment, term):
+        # XXX need to close the read_tuples() generator!
         for term_2, pathname in read_tuples(segment[chunk_name].open_gzipped()):
             if term_2 == term:
                 yield pathname
-            if term_2 > term:
-                break
+            if term_2 > term:   # Once we reach an alphabetically later term,
+                break           # we're done.
 
+# XXX maybe return Path objects?
 def segment_term_chunks(segment, term):
     for headword, chunk in skip_file_entries(segment):
         if headword >= term:
