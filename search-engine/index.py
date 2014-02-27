@@ -1,7 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 # XXX somehow we need to handle too many chunks in a segment. Maybe subdirs %100.
-from __future__ import print_function
 
 import gzip
 import heapq
@@ -104,8 +103,8 @@ def pathnames(index_path, terms):
                               for term in terms))
 
 def term_pathnames(index_path, term):
-    return itertools.chain.from_iterable(segment_term_pathnames(segment, term)
-                                         for segment in index_path)
+    return itertools.chain(*(segment_term_pathnames(segment, term)
+                             for segment in index_path))
 
 def segment_term_pathnames(segment, term):
     for chunk_name in segment_term_chunks(segment, term):
