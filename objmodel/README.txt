@@ -15,3 +15,9 @@ The goal is not to fully explain the entire model of a single language, but to
 understand the design space of object-oriented imperative language design
 better.
 
+The stages are:
+
+1 - a simple message-based model
+2 - changing from message-based to attribute-based by introducing bound methods
+3 - allowing more powerful customization: __get__, __getattr__, __setattr__
+4 - introducing maps to store instances more efficiently
