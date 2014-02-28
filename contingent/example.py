@@ -28,7 +28,14 @@ new_post = {
 
 def main():
     all_posts = [post1, post2, post3]
-    for post in all_posts:
+    for post in sorted(all_posts, key=itemgetter('date')):
+        print '-' * 8
+        print render(post, all_posts)
+
+    print '=' * 72
+
+    all_posts.append(new_post)
+    for post in sorted(all_posts, key=itemgetter('date')):
         print '-' * 8
         print render(post, all_posts)
 
