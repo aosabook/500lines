@@ -1038,9 +1038,23 @@ then using delta-compression to compress the posting lists for each term,
 is considerably less CPU-hungry,
 and that could speed the system up by about a factor of 2,
 though at the cost of additional complexity.
-It can also produce postings files
+As a bonus, it would produce much smaller index files.
+A more efficient application-specific file format
+can also produce postings files
 that can be parsed without iterating over each of their bytes,
 which may be a win.
+
+As a sort of in-between alternative,
+you could use a high-speed compression algorithm
+like Snappy or LZO
+instead of `gzip`,
+getting somewhat larger index files
+but at much higher speed;
+indeed,
+these compressors can speed up your program
+rather than slowing it down
+because the disk is managing a smaller amount of data.
+
 Another 20% is spent
 tokenizing the input files,
 and improving that
@@ -1051,6 +1065,10 @@ and parsing of file formats
 more complicated than just plain text,
 so it's likely that a more complete implementation will actually be slower
 rather than faster.
+However,
+careful attention given to the in-memory data structure used for accumulating tokens,
+as well as the memory allocation strategy,
+can produce substantial payoffs.
 
 The *query evaluator*, however,
 is 100× slower rather than 10× slower
