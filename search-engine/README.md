@@ -40,7 +40,7 @@ although it's pretty slow at indexing.
 It’s tuned to perform acceptably
 even on electromechanical hard disks
 coated with spinning rust.
-On my laptop,
+On a single core of my laptop,
 a 2.8GHz i7-3840QM,
 a slightly earlier version of it
 indexed 16 gigabytes of data
@@ -805,7 +805,8 @@ mostly because I expect `itertools.islice`
 will be faster than doing the same thing
 in interpreted CPython.
 
-`postings_from_dir`
+`postings_from_dir`,
+the tokenizer that generates postings from a directory,
 is currently fairly crude;
 it generates a sequence of (term, doc_id) tuples
 given a directory
@@ -959,11 +960,13 @@ We use the skip file entries
 to make sure we are reading the chunks in the correct order.
 XXX I think this can be rewritten in terms of `itertools.chain`.
 
-User Interface
---------------
+A Minimal User Interface
+------------------------
 
 To have a minimal user interface for testing the engine,
-I wrote these functions:
+the `grep` function provides an interface
+kind of compatible with `grep -rn`
+and therefore with Emacs:
 
     def grep(index_path, terms):
         for pathname in pathnames(index_path, terms):
@@ -976,6 +979,10 @@ I wrote these functions:
                 return
             except:                 # The file might e.g. no longer exist.
                 traceback.print_exc()
+
+Then, the `main` function provides an additional interface
+kind of compatible with `grep -rl`,
+plus an interface to build a new index:
 
     def main(argv):
         if argv[1] == 'index':
@@ -991,8 +998,74 @@ I wrote these functions:
     if __name__ == '__main__':
         main(sys.argv)
 
+Performance
+-----------
+
+On the Project Gutenberg 2010 DVD data,
+as mentioned earlier,
+I was able to index about four gigabytes per hour
+on a single core.
+
+This indexing speed
+is about a tenth of what you get
+out of a production-quality search engine
+like Sphinx or Lucene,
+but perhaps more importantly,
+this search engine doesn't support
+any kind of parallelism,
+so its performance is limited to its single-core performance.
+But you can see that it doesn't really matter
+what order the postings are produced in,
+and indeed you could easily divide up a set of input files
+among a set of processes
+and generate separate primary input segments from them
+entirely independently,
+perhaps even on different machines,
+before perhaps merging them later.
+This can give you orders of magnitude improvement
+via parallelism.
+And this basically describes
+the original implementation of MapReduce at Google
+and what it was written for.
+
+Aside from that,
+about half of the indexer's run time
+is spent `gzip`-compressing postings data.
+The standard approach
+of maintaining an in-RAM dictionary
+and using integers for document IDs,
+then using delta-compression to compress the posting lists for each term,
+is considerably less CPU-hungry,
+and that could speed the system up by about a factor of 2,
+though at the cost of additional complexity.
+It can also produce postings files
+that can be parsed without iterating over each of their bytes,
+which may be a win.
+Another 20% is spent
+tokenizing the input files,
+and improving that
+could add up to another factor of 2 in performance;
+but a more industrial-strength search engine
+needs to do stemming, synonym generation, stopword exclusion,
+and parsing of file formats
+more complicated than just plain text,
+so it's likely that a more complete implementation will actually be slower
+rather than faster.
+
+Improving the *query evaluator*'s run time, however,
+probably requires quite a bit more work:
+it would help a lot
+to be able to get posting lists from the index lazily,
+to plan queries to start with the most specific term
+to be able to take advantage of that ability,
+to stop generating hits when we've generated enough to display,
+to store the index on SSD or in RAM rather than spinning rust,
+and perhaps to have sub-indices
+covering the higher-ranked subsets of the corpus.
+
 Acknowledgments
 ---------------
 
-Many thanks to Dave Long, Darius Bacon, Alastair Porter, and Daniel
-Lawson for their help and inspiration on this chapter.
+Many thanks to Dave Long, Darius Bacon, Alastair Porter, Daniel
+Lawson, and Javier Candeira
+for their help and inspiration on this chapter.
