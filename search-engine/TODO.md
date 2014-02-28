@@ -34,3 +34,8 @@
   Yes, but, GzipFile wasn't a context manager in 2.5, so we can't
   close them automatically.
 * Maybe exclude .git directories too by default.
+* fix bug Darius pointed out where first headword is after term
+* Move all the filesystem stuff into a persistence strategy object, so
+  that it's theoretically possible to replace it with something that
+  uses SQLite or Cassandra or whatever.
+* What to do with things like PDF files and .gz files?
