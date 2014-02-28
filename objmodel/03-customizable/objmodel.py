@@ -19,13 +19,14 @@ class Instance(object):
             pass
         # try special method __getattr__
         try:
-            result = self.cls._read_from_class("__getattr__", self)
+            meth = self.cls._read_from_class("__getattr__", self)
         except AttributeError:
             raise orig_error # get the right error message
-        return result(fieldname)
+        return meth(fieldname)
 
     def write_field(self, fieldname, value):
-        self.dct[fieldname] = value
+        meth = self.cls._read_from_class("__setattr__", self)
+        return meth(fieldname, value)
 
     def isinstance(self, cls):
         return self.cls.issubclass(cls)
@@ -62,9 +63,13 @@ class Class(Instance):
                 return result
         raise AttributeError("method %s not found" % methname)
 
+
+def __setattr__OBJECT(self, fieldname, value):
+    self.dct[fieldname] = value
+
 # set up the base hierarchy like in Python (the ObjVLisp model)
 # the ultimate base class is OBJECT
-OBJECT = Class("object", None, {}, None)
+OBJECT = Class("object", None, {"__setattr__": __setattr__OBJECT}, None)
 # TYPE is a subclass of OBJECT
 TYPE = Class("type", OBJECT, {}, None)
 # TYPE is an instance of itself

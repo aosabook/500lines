@@ -155,8 +155,21 @@ def test_getattr():
             if name == "fahrenheit":
                 return self.celsius * 9. / 5. + 32
             raise AttributeError(name)
+
+        def __setattr__(self, name, value):
+            if name == "fahrenheit":
+                self.celsius = (value - 32) * 5. / 9.
+            else:
+                # call the base implementation
+                object.__setattr__(self, name, value)
     obj = A()
     obj.celsius = 30
+    assert obj.fahrenheit == 86
+    obj.celsius = 40
+    assert obj.fahrenheit == 104
+
+    obj.fahrenheit = 86
+    assert obj.celsius == 30
     assert obj.fahrenheit == 86
 
     # Object model code
@@ -164,10 +177,21 @@ def test_getattr():
         if name == "fahrenheit":
             return self.read_field("celsius") * 9. / 5. + 32
         raise AttributeError(name)
+    def __setattr__(self, name, value):
+        if name == "fahrenheit":
+            self.write_field("celsius", (value - 32) * 5. / 9.)
+        else:
+            # call the base implementation
+            OBJECT.read_field("__setattr__")(self, name, value)
 
-    A = Class("A", OBJECT, {"__getattr__": __getattr__}, TYPE)
+    A = Class("A", OBJECT, {"__getattr__": __getattr__, "__setattr__": __setattr__}, TYPE)
     obj = Instance(A)
     obj.write_field("celsius", 30)
+    assert obj.read_field("fahrenheit") == 86
+    obj.write_field("celsius", 40)
+    assert obj.read_field("fahrenheit") == 104
+    obj.write_field("fahrenheit", 86)
+    assert obj.read_field("celsius") == 30
     assert obj.read_field("fahrenheit") == 86
 
 def test_get():
