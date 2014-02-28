@@ -1,9 +1,6 @@
 * Consistently use "doc_id" for document IDs (even though they happen
   to be pathnames)
 * Be consistent about "segment", "chunk", and "index".  And "posting".
-* Reduce the maximum segment size from 2**22 to 2**20.  It's using
-  half a gig (Oh shit now 600MB, oh shit 700MB, 726MB) now that all
-  the postings are unique, and the segments are now like 27 megabytes!
 * Actually make incremental indexing work.
     * When adding new segments, use a sensible merge policy.  Maybe
       shorten the explanation of this in the chapter.
