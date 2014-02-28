@@ -346,9 +346,13 @@ or from the last place it suspended,
 until it reaches a `yield` expression,
 which suspends execution of the function
 and causes `.next()` to return a value.
+You can think of it as producing a sequence of values,
+one for each `yield`,
+in the same way that a function with a `print` statement
+could print a sequence of values.
 
 This kind of coroutine concurrency,
-which is also available in Lua, Ruby, and Golang,
+which is also available in Lua, Ruby, Golang, and Scheme,
 allows functions like `read_tuples()`
 to be written straightforwardly as functions,
 rather than as iterator classes with methods.
@@ -955,3 +959,40 @@ We use the skip file entries
 to make sure we are reading the chunks in the correct order.
 XXX I think this can be rewritten in terms of `itertools.chain`.
 
+User Interface
+--------------
+
+To have a minimal user interface for testing the engine,
+I wrote these functions:
+
+    def grep(index_path, terms):
+        for pathname in pathnames(index_path, terms):
+            try:
+                with open(pathname) as text:
+                    for ii, line in enumerate(text, start=1):
+                        if any(term in line for term in terms):
+                            sys.stdout.write("%s:%s:%s" % (pathname, ii, line))
+            except KeyboardInterrupt:
+                return
+            except:                 # The file might e.g. no longer exist.
+                traceback.print_exc()
+
+    def main(argv):
+        if argv[1] == 'index':
+            build_index(index_path=Path(argv[2]), corpus_path=Path(argv[3]))
+        elif argv[1] == 'query':
+            for pathname in pathnames(Path(argv[2]), argv[3:]):
+                print(pathname)
+        elif argv[1] == 'grep':
+            grep(Path(argv[2]), argv[3:])
+        else:
+            raise Exception("%s (index|query|grep) index_dir ..." % (argv[0]))
+
+    if __name__ == '__main__':
+        main(sys.argv)
+
+Acknowledgments
+---------------
+
+Many thanks to Dave Long, Darius Bacon, Alastair Porter, and Daniel
+Lawson for their help and inspiration on this chapter.
