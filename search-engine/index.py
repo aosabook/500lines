@@ -144,12 +144,32 @@ def segment_term_chunks(segment, term):
 # 2**20 is chosen as the maximum segment size because that uses
 # typically about a quarter gig, which is a reasonable size these
 # days.
-def build_index(index_path, corpus_path):
+def build_index(index_path, corpus_path, postings_filters):
     os.mkdir(index_path.name)
+
     postings = postings_from_dir(corpus_path)
+    for filter_function in postings_filters:
+        postings = filter_function(postings)
+
     for ii, chunk in enumerate(blocked(postings, 2**20)):
-        write_new_segment(index_path[ii], sorted(chunk))
+        write_new_segment(index_path['seg_%s' % ii], sorted(chunk))
+
     merge_segments(index_path, list(index_path))
+
+def discard_long_nonsense_words_filter(postings):
+    """Drop postings for nonsense words.
+
+    If we are mistakenly indexing binary data or, worse, base64 or
+    uuencoded data, we get a huge number of nonsense words that take
+    up a lot of space in the index while being totally useless.
+    """
+    return ((term, doc_id) for term, doc_id in postings if len(term) < 20)
+
+def case_insensitive_filter(postings):
+    for term, doc_id in postings:
+        yield term, doc_id
+        if term.lower() != term:
+            yield term.lower(), doc_id
 
 def grep(index_path, terms):
     for pathname in pathnames(index_path, terms):
@@ -165,7 +185,9 @@ def grep(index_path, terms):
 
 def main(argv):
     if argv[1] == 'index':
-        build_index(index_path=Path(argv[2]), corpus_path=Path(argv[3]))
+        build_index(index_path=Path(argv[2]), corpus_path=Path(argv[3]),
+                    postings_filters=[discard_long_nonsense_words_filter,
+                                      case_insensitive_filter])
     elif argv[1] == 'query':
         for pathname in pathnames(Path(argv[2]), argv[3:]):
             print(pathname)
