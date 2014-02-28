@@ -3,12 +3,12 @@
 # XXX somehow we need to handle too many chunks in a segment. Maybe subdirs %100.
 
 import gzip
-import heapq
+import heapq                    # for heapq.merge
 import itertools
 import os
-import re
+import re                       # used to extract words from input
 import sys
-import shutil
+import shutil                   # to remove directory trees
 import traceback
 import urllib                   # for quote and unquote
 
@@ -69,6 +69,9 @@ def file_unchanged(metadatas, path):
 def blocked(seq, block_size):
     seq = iter(seq)
     while True:
+        # XXX for some reason using list(), and then later sorting in
+        # place, makes the whole program run twice as slow and doesn't
+        # reduce its memory usage.  No idea why.
         yield tuple(itertools.islice(seq, block_size)) or next(seq)
 
 def write_new_segment(path, postings):
@@ -81,8 +84,8 @@ def merge_segments(path, segments):
     if len(segments) == 1:
         return
 
-    postings = heapq.merge(*[read_segment(segment)
-                             for segment in segments])
+    postings = heapq.merge(*(read_segment(segment)
+                             for segment in segments))
     ii = 0 # XXX factor out
     while ii in path:
         ii += 1
@@ -132,12 +135,16 @@ def skip_file_entries(indexdir):
     # XXX is sorted() guaranteed correct?
     return sorted(read_tuples(indexdir['skip'].open()))
 
+# XXX rename to skip_entries?
 def generate_skip_entries(chunk_paths):
     for chunk_path in chunk_paths:
-        # Not using read_tuples here because we'd have to explicitly close it.
-        with chunk_path.open_gzipped() as chunk_file:
-            word, _ = chunk_file.readline().split()
-            yield word, os.path.basename(chunk_path.name)
+        chunk_tuples = read_tuples(chunk_path.open_gzipped())
+        try:
+            # XXX what if we have an empty chunk?
+            term, _ = chunk_tuples.next()
+            yield term, os.path.basename(chunk_path.name)
+        finally:
+            chunk_tuples.close()
 
 def build_skip_file(path):
     chunk_names = list(path)
