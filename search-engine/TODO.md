@@ -14,7 +14,8 @@
 * Find indices on the path to root and update them automatically,
   perhaps niced in the background.
 * Perhaps some kind of abstraction of different pieces: storage
-  engine, term extraction engine, etc.  Term extraction is already
+  engine, term extraction engine, stemming, posting contents, etc.
+  Term extraction is already
   pretty abstract, in the sense that everything else just treats its
   output as a stream of (term, docid) tuples.
 * Deal with fsync and incomplete segments to enable concurrency and
