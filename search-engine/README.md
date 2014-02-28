@@ -35,11 +35,26 @@ sort of like `grep -r`,
 except that it can search through hundreds of gigabytes
 in hundreds of milliseconds,
 with an index size about 15% of the size of the text,
-although it needs about three hours to index each gigabyte
-on my netbook.
+although it's pretty slow at indexing.
+
 It’s tuned to perform acceptably
 even on electromechanical hard disks
 coated with spinning rust.
+On my laptop,
+a 2.8GHz i7-3840QM,
+a slightly earlier version of it
+indexed 16 gigabytes of data
+from the Project Gutenberg April 2010 DVD,
+containing 29 500 ebooks,
+in a bit over four hours,
+producing a two-gigabyte index,
+stored on a spinning-rust disk
+with NTFS.
+Then it was able to answer queries such as
+`moby dick`, `Alice wonderland`, `Nemo squid`, `trochaic chrism`,
+or `Bartleby Scrivener`
+in between half a second and a second,
+from a cold start.
 
 <!-- Originally I said:
 on XML dumps from StackOverflow.com
