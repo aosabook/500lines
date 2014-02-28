@@ -53,7 +53,7 @@ def read_tuples(context_manager):
             yield tuple(urllib.unquote(field) for field in line.split())
 
 # XXX maybe these functions don't need to exist?
-def write_metadata(ath, metadata):
+def write_metadata(path, metadata):
     write_tuples(path['metadata'].open('w'), metadata)
 
 def read_metadata(path):
@@ -65,7 +65,7 @@ def file_unchanged(metadatas, path):
     return any(metadata.get(path.name) == (s.st_size, s.st_mtime)
                for metadata in metadatas)
 
-# From some answer on Stack Overflow.
+# From nikipore on Stack Overflow <http://stackoverflow.com/a/19264525>
 def blocked(seq, block_size):
     seq = iter(seq)
     while True:
@@ -74,11 +74,21 @@ def blocked(seq, block_size):
         # reduce its memory usage.  No idea why.
         yield tuple(itertools.islice(seq, block_size)) or next(seq)
 
+# Yields one skip file entry, or, in the edge case of an empty chunk, none.
+def write_chunk(path, index, chunk):
+    filename = '%s.gz' % index
+    write_tuples(path[filename].open_gzipped('w'), chunk)
+    if chunk:
+        yield chunk[0][0], filename
+
 def write_new_segment(path, postings):
     os.mkdir(path.name)
-    for ii, chunk in enumerate(blocked(postings, 4096)):
-        write_tuples(path['%s.gz' % ii].open_gzipped('w'), chunk)
-    build_skip_file(path)
+    skip_file_contents = (write_chunk(path, ii, chunk)
+                          for ii, chunk in enumerate(blocked(postings, 4096)))
+    write_tuples(path['skip'].open('w'), itertools.chain(*skip_file_contents))
+
+def skip_file_entries(segment_path):
+    return read_tuples(segment_path['skip'].open())
 
 def merge_segments(path, segments):
     if len(segments) == 1:
@@ -86,10 +96,7 @@ def merge_segments(path, segments):
 
     postings = heapq.merge(*(read_segment(segment)
                              for segment in segments))
-    ii = 0 # XXX factor out
-    while ii in path:
-        ii += 1
-    write_new_segment(path[ii], postings)
+    write_new_segment(path['seg_merged'], postings)
 
     for segment in segments:
         shutil.rmtree(segment.name)
@@ -120,36 +127,19 @@ def segment_term_pathnames(segment, term):
 
 # XXX maybe return Path objects?
 def segment_term_chunks(segment, term):
+    last_chunk = None
     for headword, chunk in skip_file_entries(segment):
         if headword >= term:
-            yield last_chunk
+            if last_chunk is not None:
+                yield last_chunk
         if headword > term:
             break
 
         last_chunk = chunk
     else:                   # executed if we don't break
         # XXX what if it was empty?
-        yield last_chunk
-
-def skip_file_entries(indexdir):
-    # XXX is sorted() guaranteed correct?
-    return sorted(read_tuples(indexdir['skip'].open()))
-
-# XXX rename to skip_entries?
-def generate_skip_entries(chunk_paths):
-    for chunk_path in chunk_paths:
-        chunk_tuples = read_tuples(chunk_path.open_gzipped())
-        try:
-            # XXX what if we have an empty chunk?
-            term, _ = chunk_tuples.next()
-            yield term, os.path.basename(chunk_path.name)
-        finally:
-            chunk_tuples.close()
-
-def build_skip_file(path):
-    chunk_names = list(path)
-    # XXX what about fsync?
-    write_tuples(path['skip'].open('w'), generate_skip_entries(chunk_names))
+        if last_chunk is not None:
+            yield last_chunk
 
 # 2**20 is chosen as the maximum segment size because that uses
 # typically about a quarter gig, which is a reasonable size these
