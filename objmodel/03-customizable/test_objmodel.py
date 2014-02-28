@@ -152,22 +152,20 @@ def test_getattr():
     # Python code
     class A(object):
         def __getattr__(self, name):
-            return len(name)
+            if name == "fahrenheit":
+                return self.celsius * 9. / 5. + 32
+            raise AttributeError(name)
     obj = A()
-    obj.x = 1
-    assert obj.x == 1
-    assert obj.foo == 3
-    assert obj.reallylongname == len("reallylongname")
+    obj.celsius = 30
+    assert obj.fahrenheit == 86
 
     # Object model code
     def __getattr__(self, name):
-        return len(name)
+        if name == "fahrenheit":
+            return self.read_field("celsius") * 9. / 5. + 32
+        raise AttributeError(name)
 
     A = Class("A", OBJECT, {"__getattr__": __getattr__}, TYPE)
     obj = Instance(A)
-    obj.write_field("x", 1)
-    assert obj.read_field("x") == 1
-    assert obj.read_field("foo") == 3
-    assert obj.read_field("reallylongname") == len("reallylongname")
-
-
+    obj.write_field("celsius", 30)
+    assert obj.read_field("fahrenheit") == 86

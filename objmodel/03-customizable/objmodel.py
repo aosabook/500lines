@@ -14,13 +14,13 @@ class Instance:
             return self.dct[fieldname]
         try:
             return self.cls._read_from_class(fieldname, self)
-        except LanguageError, orig_error:
+        except AttributeError, orig_error:
             # not found on class
             pass
         # try special method __getattr__
         try:
             result = self.cls._read_from_class("__getattr__", self)
-        except LanguageError:
+        except AttributeError:
             raise orig_error # get the right error message
         return result(fieldname)
 
@@ -60,7 +60,7 @@ class Class(Instance):
                 if callable(result):
                     return _make_boundmethod(result, self, obj)
                 return result
-        raise LanguageError("method %s not found" % methname)
+        raise AttributeError("method %s not found" % methname)
 
 # set up the base hierarchy like in Python (the ObjVLisp model)
 # the ultimate base class is OBJECT
