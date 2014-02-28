@@ -1,6 +1,9 @@
 """Rough experiment from which to derive the design of `contingent`."""
 
 from operator import itemgetter
+from watchlib import Watcher
+
+w = Watcher()
 
 post1 = {
     'title': 'A',
@@ -39,16 +42,23 @@ def main():
         print '-' * 8
         print render(post, all_posts)
 
+@w.watch
+def sorted_posts(all_posts):
+    return sorted(all_posts, key=itemgetter('date'))
+
+@w.watch
 def prev_post(post, all_posts):
-    s = sorted(all_posts, key=itemgetter('date'))
+    s = sorted_posts(all_posts)
     i = s.index(post)
     return s[i-1] if i > 0 else None
 
+@w.watch
 def next_post(post, all_posts):
-    s = sorted(all_posts, key=itemgetter('date'))
+    s = sorted_posts(all_posts)
     i = s.index(post)
     return s[i+1] if i < len(s) - 1 else None
 
+@w.watch
 def render(post, all_posts):
     pp = prev_post(post, all_posts)
     np = next_post(post, all_posts)
