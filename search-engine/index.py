@@ -168,6 +168,8 @@ def grep(index_path, terms):
                 for ii, line in enumerate(text, start=1):
                     if any(term in line for term in terms):
                         sys.stdout.write("%s:%s:%s" % (pathname, ii, line))
+        except KeyboardInterrupt:
+            return
         except:                 # The file might e.g. no longer exist.
             traceback.print_exc()
 
