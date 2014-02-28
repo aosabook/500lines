@@ -694,3 +694,249 @@ when the terminology was different.
 There are different formulas in the TF/IDF family,
 which I would discuss here
 if I knew anything about them.
+
+Generating an index
+-------------------
+
+So that explains
+how you would evaluate a query
+given that you already have an index on disk
+in the format described earlier;
+but how do you generate the index?
+
+First,
+you have to generate the sorted sequence of postings
+for each segment,
+and then you have to write that sequence into the segment.
+In outline, that is:
+
+    def build_index(index_path, corpus_path):
+        os.mkdir(index_path.name)
+
+        postings = postings_from_dir(corpus_path)
+        for ii, chunk in enumerate(blocked(postings, 2**20)):
+            write_new_segment(index_path[ii], sorted(chunk))
+
+        merge_segments(index_path, list(index_path))
+
+The number `2**20` was chosen
+to keep the memory usage of the indexer
+around a quarter gigabyte on my test data,
+because a quarter gigabyte is tolerable.
+If you decrease it,
+you'll use less memory
+and generate more primary segments.
+
+Note that the `os.mkdir` at the beginning
+will keep you from accidentally building an index
+in a place that already has something else in it,
+because it will raise an exception if the directory already exists.
+
+The `blocked` function
+lazily breaks up a sequence of things
+into a sequence of blocks of things
+of up to the given size;
+for example, `list(blocked("colon", 2))`
+will return `[('c', 'o'), ('l', 'o'), ('n',)]`.
+This set of postings is by far the largest thing present in memory
+during the creation of the index,
+and it can easily grow far larger than memory,
+so we limit how many we keep in memory at a time.
+Its code,
+mostly taken from an answer on Stack Overflow,
+is maybe a little too clever:
+
+    def blocked(seq, block_size):
+        seq = iter(seq)
+        while True:
+            yield tuple(itertools.islice(seq, block_size)) or next(seq)
+
+<!--
+
+More introductory Python.
+
+-->
+
+`itertools.islice` takes the first N items from an iterator,
+but it can terminate before yielding N items
+if the underlying iterator does.
+In that case, you will end up with a short tuple.
+If there are no items left,
+you will end up with an empty tuple.
+But it's not desirable for `blocked` to keep yielding empty tuples forever.
+Instead, it should terminate its iteration
+when there are no more items left.
+A generator can terminate its iteration
+either in the usual way that functions terminate,
+by returning or running off the end of its code,
+or by raising the `StopIteration` exception
+that Python's iteration protocol uses
+in place of a `hasNext` method.
+The easiest way to raise `StopIteration`
+is to invoke `next` on an empty iterator,
+so that's what this code does.
+
+You'll note that the explanation for this code
+is about 130 words,
+while the code is only 15 words.
+That probably means it's bad code.
+So far I've kept it in this form
+instead of a more straightforward but longer form
+mostly because I expect `itertools.islice`
+will be faster than doing the same thing
+in interpreted CPython.
+
+`postings_from_dir`
+is currently fairly crude;
+it generates a sequence of (term, doc_id) tuples
+given a directory
+by treating every file in that directory
+as a text file.
+It's careful not to generate the same posting twice,
+which both simplifies and speeds up the rest of the code.
+
+    def postings_from_dir(path):
+        for dir_name, _, filenames in os.walk(path.name):
+            dir_path = Path(dir_name)
+            for filename in filenames:
+                with dir_path[filename].open() as fo:
+                    seen_words = set()
+                    for line in fo:
+                        for word in re.findall('\w+', line):
+                            if word not in seen_words:
+                                yield word, dir_path[filename].name
+                                seen_words.add(word)
+
+So that's the sequence of postings
+being broken into 1048576-item blocks by `blocked`
+which are then sorted and passed to `write_new_segment`.
+Note that the `seen_words` set could potentially get dangerously large
+if this is run on a particularly large input file.
+A little more code would suffice
+to write the candidate postings out to a temporary file in such a case,
+sort the file on disk to eliminate duplicates,
+and then yield the postings.
+
+The deep nesting in this function
+is a warning sign of bad code.
+I should probably factor this function into pieces.
+
+So what does `write_new_segment` do?
+
+    def write_new_segment(path, postings):
+        os.mkdir(path.name)
+        for ii, chunk in enumerate(blocked(postings, 4096)):
+            write_tuples(path['%s.gz' % ii].open_gzipped('w'), chunk)
+        build_skip_file(path)
+
+This uses the `write_tuples` function explained earlier,
+passing it a `gzip.GzipFile` to automatically close when it's done.
+It might be more sensible to write the data in an uncompressed form,
+then later launch a background `gzip` process to compress it,
+since about half of the program's run time is taken up by compression.
+
+The `build_skip_file` function is similarly simple;
+its only tricky bit is that it lists the chunk names
+before opening the skip file
+so it won't mistake the skip file for a chunk:
+
+    def build_skip_file(path):
+        chunk_names = list(path)
+        # XXX what about fsync?
+        write_tuples(path['skip'].open('w'), generate_skip_entries(chunk_names))
+
+But that's because the actual skip-file generation logic
+is in `generate_skip_entries`:
+
+    def generate_skip_entries(chunk_paths):
+        for chunk_path in chunk_paths:
+            chunk_tuples = read_tuples(chunk_path.open_gzipped())
+            try:
+                term, _ = chunk_tuples.next()
+                yield term, os.path.basename(chunk_path.name)
+            finally:
+                chunk_tuples.close()
+
+We simply read the first tuple from each chunk.
+Since we aren't reading all the tuples,
+the `read_tuples` generator won't implicitly exit automatically
+and close the file.
+As discussed previously,
+to avoid a file descriptor leak in non-reference-counted Pythons,
+we explicitly close the generator.
+
+So that covers the whole paper path from input files
+into a primary index segment.
+Aside from the representational issues
+like document IDs and term dictionaries,
+which are essentially a matter of compression,
+this presentation glosses over a couple of other issues
+that more complete search engines handle:
+our documents are not divided into fields,
+which means that you can't, say,
+search for a term in just the title,
+or just the filename,
+or (as in my email search engine `dumbfts` that this was modeled after)
+just the from address;
+the postings stored for each term
+include only the document ID,
+without any frequency or proximity information,
+or even any stemming;
+and the term extraction itself
+is a simple regular expression match,
+with no attention given to the type of the file.
+
+Merging
+-------
+
+But `build_index`
+also invoked `merge_segments(index_path, list(index_path))`.
+How do we merge segments?
+
+    def merge_segments(path, segments):
+        if len(segments) == 1:
+            return
+
+        postings = heapq.merge(*(read_segment(segment)
+                                 for segment in segments))
+        ii = 0 # XXX factor out
+        while ii in path:
+            ii += 1
+        write_new_segment(path[ii], postings)
+
+        for segment in segments:
+            shutil.rmtree(segment.name)
+
+First, if we only have one primary segment,
+there's no need to merge it;
+we can just return.
+But if we have more than one,
+we open all of them and hook them up to a heap,
+which then yields a stream of all of their items
+in order.
+
+Then we must choose an unused name for the new output segment,
+and then we write the tuples to it
+using the same `write_new_segment`
+that we use to create primary segments.
+Note that in this case
+we are in fact taking advantage of the fact
+that we can pass `postings` to `write_new_segment`
+even though most of the postings it will yield
+have not yet been read from disk.
+
+Finally, we delete the now-obsolete input segments.
+
+The only new function here
+is `read_segment`:
+
+    def read_segment(path):
+        for _, chunk in skip_file_entries(path):
+            # XXX refactor chunk reading?  We open_gzipped in three places now.
+            for item in read_tuples(path[chunk].open_gzipped()):
+                yield item
+
+We use the skip file entries
+to make sure we are reading the chunks in the correct order.
+XXX I think this can be rewritten in terms of `itertools.chain`.
+
