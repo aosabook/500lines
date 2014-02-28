@@ -1,7 +1,7 @@
 class LanguageError(Exception):
     pass
 
-class Instance:
+class Instance(object):
     def __init__(self, cls, dct=None):
         assert cls is None or isinstance(cls, Class)
         self.cls = cls
@@ -57,7 +57,7 @@ class Class(Instance):
         for cls in self.mro():
             if methname in cls.dct:
                 result = cls.dct[methname]
-                if callable(result):
+                if hasattr(result, "__get__"):
                     return _make_boundmethod(result, self, obj)
                 return result
         raise AttributeError("method %s not found" % methname)

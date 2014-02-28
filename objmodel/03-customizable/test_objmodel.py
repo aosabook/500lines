@@ -169,3 +169,31 @@ def test_getattr():
     obj = Instance(A)
     obj.write_field("celsius", 30)
     assert obj.read_field("fahrenheit") == 86
+
+def test_get():
+    # Python code
+    class FahrenheitGetter(object):
+        def __get__(self, inst, cls):
+            return inst.celsius * 9. / 5. + 32
+
+    class A(object):
+        fahrenheit = FahrenheitGetter()
+    obj = A()
+    obj.celsius = 30
+    assert obj.fahrenheit == 86
+
+    # Object model code
+    class FahrenheitGetter(object):
+        def __get__(self, inst, cls):
+            return inst.read_field("celsius") * 9. / 5. + 32
+
+    def __getattr__(self, name):
+        if name == "fahrenheit":
+            return self.read_field("celsius") * 9. / 5. + 32
+        raise AttributeError(name)
+
+    A = Class("A", OBJECT, {"fahrenheit": FahrenheitGetter()}, TYPE)
+    obj = Instance(A)
+    obj.write_field("celsius", 30)
+    assert obj.read_field("fahrenheit") == 86
+
