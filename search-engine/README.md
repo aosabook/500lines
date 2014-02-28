@@ -1052,7 +1052,11 @@ more complicated than just plain text,
 so it's likely that a more complete implementation will actually be slower
 rather than faster.
 
-Improving the *query evaluator*'s run time, however,
+The *query evaluator*, however,
+is 100× slower rather than 10× slower
+than industrial-strength search engines;
+and, as you'd expect,
+speeding it up
 probably requires quite a bit more work:
 it would help a lot
 to be able to get posting lists from the index lazily,
