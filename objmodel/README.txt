@@ -15,5 +15,3 @@ The goal is not to fully explain the entire model of a single language, but to
 understand the design space of object-oriented imperative language design
 better.
 
-
-non-goals: multiple inheritance, first-o
