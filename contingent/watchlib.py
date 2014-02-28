@@ -5,7 +5,8 @@ from functools import wraps
 class Watcher(object):
 
     def __init__(self):
-        self.depth = 0
+        self.edges = []
+        self.keys = []
 
     def watch(self, function):
         @wraps(function)
@@ -19,9 +20,11 @@ class Watcher(object):
         return wrapper
 
     def start(self, function, args, kw):
-        print ' ' * self.depth, 'starting', function.__name__
-        self.depth += 1
+        key = (function, args)
+        if self.keys:
+            edge = (self.keys[-1], key)
+            self.edges.append(edge)
+        self.keys.append(key)
 
     def end(self, function, args, kw):
-        print ' ' * self.depth, 'ending', function.__name__
-        self.depth -= 1
+        self.keys.pop()

@@ -1,6 +1,7 @@
 """Rough experiment from which to derive the design of `contingent`."""
 
 from operator import itemgetter
+from pprint import pprint
 from watchlib import Watcher
 
 w = Watcher()
@@ -34,6 +35,11 @@ def main():
     for post in sorted(all_posts, key=itemgetter('date')):
         print '-' * 8
         print render(post, all_posts)
+
+    print '=' * 72
+
+    #pprint(w.edges)
+    print len(w.edges)
 
     print '=' * 72
 
