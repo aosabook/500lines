@@ -34,12 +34,16 @@ def postings_from_dir(path):
                             yield word, dir_path[filename].name
                             seen_words.add(word)
 
+def get_metadata(path):
+    s = os.stat(path.name)
+    return int(s.st_mtime), int(s.st_size)
+
 def dir_metadata(path):
-    for dirpath, _, filenames in os.walk(path.name):
+    for dir_name, _, filenames in os.walk(path.name):
+        dir_path = Path(dir_name)
         for filename in filenames:
-            pathname = os.path.join(dirpath, filename)
-            s = os.stat(pathname)
-            yield pathname, s.st_size, s.st_mtime
+            file_path = dir_path[filename]
+            yield (file_path.name,) + get_metadata(file_path)
 
 def write_tuples(context_manager, tuples):
     with context_manager as outfile:
@@ -58,11 +62,11 @@ def write_metadata(path, metadata):
 
 def read_metadata(path):
     tuples = read_tuples(path['metadata'].open())
-    return dict((pathname, (size, mtime)) for pathname, size, mtime in tuples)
+    return dict((pathname, (int(mtime), int(size)))
+                for pathname, size, mtime in tuples)
 
 def file_unchanged(metadatas, path):
-    s = os.stat(path.name)
-    return any(metadata.get(path.name) == (s.st_size, s.st_mtime)
+    return any(metadata.get(path.name) == get_metadata(path)
                for metadata in metadatas)
 
 # From nikipore on Stack Overflow <http://stackoverflow.com/a/19264525>
@@ -107,22 +111,27 @@ def read_segment(path):
         for item in read_tuples(path[chunk].open_gzipped()):
             yield item
 
-def pathnames(index_path, terms):
+# At the moment, our doc_ids are just pathnames; this converts them to Path objects.
+def paths(index_path, terms):
+    return (Path(doc_id) for doc_id in doc_ids(index_path, terms))
+
+def doc_ids(index_path, terms):
     "Actually evaluate a query."
-    return set.intersection(*(set(term_pathnames(index_path, term))
+    return set.intersection(*(set(term_doc_ids(index_path, term))
                               for term in terms))
 
-def term_pathnames(index_path, term):
-    return itertools.chain(*(segment_term_pathnames(segment, term)
+def term_doc_ids(index_path, term):
+    return itertools.chain(*(segment_term_doc_ids(segment, term)
                              for segment in index_path))
 
-def segment_term_pathnames(segment, term):
+def segment_term_doc_ids(segment, term):
     for chunk_name in segment_term_chunks(segment, term):
-        # XXX need to close the read_tuples() generator!
-        for term_2, pathname in read_tuples(segment[chunk_name].open_gzipped()):
+        tuples = read_tuples(segment[chunk_name].open_gzipped())
+        for term_2, doc_id in tuples:
             if term_2 == term:
-                yield pathname
+                yield doc_id
             if term_2 > term:   # Once we reach an alphabetically later term,
+                tuples.close()
                 break           # we're done.
 
 # XXX maybe return Path objects?
@@ -172,12 +181,12 @@ def case_insensitive_filter(postings):
             yield term.lower(), doc_id
 
 def grep(index_path, terms):
-    for pathname in pathnames(index_path, terms):
+    for path in paths(index_path, terms):
         try:
-            with open(pathname) as text:
+            with path.open() as text:
                 for ii, line in enumerate(text, start=1):
                     if any(term in line for term in terms):
-                        sys.stdout.write("%s:%s:%s" % (pathname, ii, line))
+                        sys.stdout.write("%s:%s:%s" % (path.name, ii, line))
         except KeyboardInterrupt:
             return
         except:                 # The file might e.g. no longer exist.
@@ -189,12 +198,17 @@ def main(argv):
                     postings_filters=[discard_long_nonsense_words_filter,
                                       case_insensitive_filter])
     elif argv[1] == 'query':
-        for pathname in pathnames(Path(argv[2]), argv[3:]):
-            print(pathname)
+        search_ui(Path(argv[2]), argv[3:])
     elif argv[1] == 'grep':
         grep(Path(argv[2]), argv[3:])
     else:
         raise Exception("%s (index|query|grep) index_dir ..." % (argv[0]))
+
+def search_ui(index_path, terms):
+        # Use the crudest possible ranking: newest (largest mtime) first.
+        for path in sorted(paths(index_path, terms),
+                           key=get_metadata, reverse=True):
+            print(path.name)
 
 if __name__ == '__main__':
     main(sys.argv)
