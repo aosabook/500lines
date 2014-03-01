@@ -37,7 +37,7 @@ post '/create' do
     @analyzer.measure
 
     @file_name = "#{user.gender || 'unknown'}-#{user.height}-#{user.stride}_" + 
-      "#{@device.rate}-#{@device.method}-#{@device.steps}-#{@device.trial.gsub(/\s+/, '')}-#{@device.format[0]}"
+      "#{@device.rate}-#{@device.method}-#{@device.steps}-#{@device.trial.gsub(/\s+/, '_')}-#{@device.format[0]}"
     
     cp(temp_file_path, "public/uploads/" + @file_name)
 
