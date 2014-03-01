@@ -4,6 +4,7 @@ require './models/analyzer.rb'
 require './models/device.rb'
 require './models/user.rb'
 require './helpers/file_helper.rb'
+require './helpers/hash_helper.rb'
 
 include FileUtils::Verbose
 
@@ -27,14 +28,14 @@ end
 post '/create' do
   begin
     temp_file_path = params[:device][:file][:tempfile]
-    @device = Device.new({data: File.read(temp_file_path)}.merge(params[:device]))
+    
+    @device = Device.new({data: File.read(temp_file_path)}.merge(params[:device].symbolize_keys))
     @parser = Parser.new(@device)
-    user = User.new(params[:user])
+    user = User.new(params[:user].symbolize_keys)
     @analyzer = Analyzer.new(@parser, user)
     @analyzer.measure
 
-    @file_name = FileHelper.generate_file_name(user.gender, user.height, user.stride, 
-      @device.rate, @device.method, @device.steps, @device.trial, @device.format)
+    @file_name = FileHelper.generate_file_name(user, @device)
     
     cp(temp_file_path, "public/uploads/" + @file_name)
 
@@ -45,7 +46,6 @@ post '/create' do
 end
 
 # TODO: 
-# - Add file parser module?
 # - Refactor out some common functionality
 get '/data' do
   begin
@@ -53,17 +53,14 @@ get '/data' do
     files = Dir.glob(File.join('public/uploads', "*"))
     files.each do |file|
       file_name = file.split('/').last
-      user_data = file_name.split('_').first.split('-')
-      user = User.new(gender: user_data[0], height: user_data[1], stride: user_data[2])
+      user_params, device_params = FileHelper.parse_file_name(file_name).values
 
-      device_data = file_name.split('_').last.gsub('.txt','').split('-')
-      rate = device_data.delete_at(0)
-      meta_data = device_data.join(',')
-      device = Device.new(:data => File.read(file), :meta_data => meta_data, :rate => rate)
-
+      user = User.new(user_params)
+      device = Device.new({:data => File.read(file)}.merge(device_params))
       parser = Parser.new(device)
       analyzer = Analyzer.new(parser, user)
       analyzer.measure_steps
+
       @data << {:file => file, :device => device, :steps => analyzer.steps, :user => user}
     end
 

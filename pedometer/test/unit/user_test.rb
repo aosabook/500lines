@@ -3,6 +3,14 @@ require './models/user.rb'
 
 class UserTest < Test::Unit::TestCase
 
+  def test_create
+    user = User.new(gender: 'male', height: 167.5, stride: 80)
+    
+    assert_equal 'male', user.gender
+    assert_equal 167.5, user.height
+    assert_equal 80, user.stride
+  end
+
   def test_create_no_params
     user = User.new
     
