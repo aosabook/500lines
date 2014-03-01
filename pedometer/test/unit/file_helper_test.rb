@@ -12,7 +12,9 @@ class FileHelperTest < Test::Unit::TestCase
   end
 
   def test_parse_file_name
-
+    expected = {:user => {:gender=>"a", :height=>"b", :stride=>"c"}, 
+                :device=>{:rate=>"d", :method=>"e", :steps=>"f", :trial=>"g"}}
+    assert_equal expected, FileHelper.parse_file_name('a-b-c_d-e-f-g-h')
   end
 
 end
