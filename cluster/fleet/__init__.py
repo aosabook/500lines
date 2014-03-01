@@ -35,3 +35,5 @@ class defaultlist(list):
 
 def view_primary(viewid, peers):
     return peers[viewid % len(peers)]
+
+from .ship import Ship

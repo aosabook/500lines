@@ -20,24 +20,17 @@ def tuple_to_addr(addr):
 
 class Node(object):
 
-    port = 0  # XXX temporary
-     
-    def __init__(self):
+    def __init__(self, port):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.bind(('', self.port))  # XXX temporary
+        self.sock.bind(('', port))
         self.address = tuple_to_addr(self.sock.getsockname())
         self.timers = []
         self.logger = logging.getLogger('node.%s' % (self.address,))
         self.unique_id = uuid.uuid3(NAMESPACE, self.address).int
-        # XXX temporary
-        self.unique_id = self.sock.getsockname()[1]
-
-    def start(self):
-        # subclasses can override this
-        pass
+        self.components = []
 
     def run(self):
-        self.start()
+        self.logger.debug("node starting")
         self.running = True
         while self.running:
             if self.timers:
@@ -57,9 +50,14 @@ class Node(object):
                 continue
             action, kwargs = pickle.loads(msg)
             self.logger.debug("received %r with args %r" % (action, kwargs))
-            getattr(self, 'do_%s' % action)(**kwargs)
+            for comp in self.components[:]:
+                try:
+                    fn = getattr(comp, 'do_%s' % action)
+                except AttributeError:
+                    continue
+                fn(**kwargs)
 
-    def stop(self):
+    def kill(self):
         self.running = False
 
     def set_timer(self, seconds, callable):
@@ -70,12 +68,22 @@ class Node(object):
     def cancel_timer(self, timer):
         timer[1] = False
 
+    def now(self):
+        return time.time()
+
     def send(self, destinations, action, **kwargs):
         self.logger.debug("sending %s with args %s to %s" %
                           (action, kwargs, destinations))
         pkl = pickle.dumps((action, kwargs))
         for dest in destinations:
             self.sock.sendto(pkl, addr_to_tuple(dest))
+
+    def register(self, component):
+        self.components.append(component)
+
+    def unregister(self, component):
+        self.components.remove(component)
+
 
 # tests
 

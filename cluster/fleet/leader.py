@@ -102,17 +102,17 @@ class Leader(Component):
             if self.active:
                 # find the peers ALPHA slots ago, or ignore if unknown
                 if slot - ALPHA not in self.peer_history:
-                    self.logger.warning("slot %d not in peer history %r" % (slot - ALPHA, sorted(self.peer_history)))
+                    self.logger.info("slot %d not in peer history %r" % (slot - ALPHA, sorted(self.peer_history)))
                     return
                 self.proposals[slot] = proposal
-                self.logger.warning("spawning commander for slot %d" % (slot,))
+                self.logger.info("spawning commander for slot %d" % (slot,))
                 self.spawn_commander(self.ballot_num, slot, proposal, self.peer_history[slot - ALPHA])
             else:
                 if not self.scout:
-                    self.logger.warning("got PROPOSE when not active - scouting")
+                    self.logger.info("got PROPOSE when not active - scouting")
                     self.spawn_scout()
                 else:
-                    self.logger.warning("got PROPOSE while scouting; ignored")
+                    self.logger.info("got PROPOSE while scouting; ignored")
         else:
-            self.logger.warning("got PROPOSE for a slot already being proposed")
+            self.logger.info("got PROPOSE for a slot already being proposed")
 

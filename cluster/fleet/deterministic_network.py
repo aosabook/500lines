@@ -15,6 +15,7 @@ class Node(object):
         self.components = []
         self.logger = logging.getLogger(self.address)
         self.logger.info('starting')
+        self.now = self.network.now
 
     def kill(self):
         self.logger.error('node dying')

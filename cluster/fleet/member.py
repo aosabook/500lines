@@ -22,6 +22,9 @@ class Member(object):  # TODO: rename
             if hasattr(comp, method):
                 getattr(comp, method)(**kwargs)
 
+    def start(self):
+        pass
+
 
 class Component(object):  # TODO: rename
 

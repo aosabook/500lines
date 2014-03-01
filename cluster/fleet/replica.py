@@ -61,7 +61,7 @@ class Replica(Component):
     def catchup(self):
         "try to catch up on un-decided slots"
         if self.slot_num != self.next_slot:
-            self.logger.warning("catching up on %d .. %d" % (self.slot_num, self.next_slot-1))
+            self.logger.debug("catching up on %d .. %d" % (self.slot_num, self.next_slot-1))
         for slot in xrange(self.slot_num, self.next_slot):
             # ask peers for information regardless
             self.send(self.peers, 'CATCHUP', slot=slot, sender=self.address)

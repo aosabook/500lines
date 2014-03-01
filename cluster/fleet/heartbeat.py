@@ -24,7 +24,7 @@ class Heartbeat(Component):
 
     def heartbeat(self):
         # send heartbeats to other nodes
-        self.send(self.last_heard_from.keys(), 'HEARTBEAT', sender=self.address)
+        self.send(self.peers, 'HEARTBEAT', sender=self.address)
 
         # determine if any peers are down, and notify if so; note that this
         # notification will occur repeatedly until a view change
