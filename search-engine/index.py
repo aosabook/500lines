@@ -180,6 +180,11 @@ def case_insensitive_filter(postings):
         if term.lower() != term:
             yield term.lower(), doc_id
 
+def stopwords_filter(stopwords):
+    stopwords = set(stopwords)
+    return lambda postings: ((term, doc_id) for term, doc_id in postings
+                             if term not in stopwords)
+
 def grep(index_path, terms):
     for path in paths(index_path, terms):
         try:
@@ -193,14 +198,22 @@ def grep(index_path, terms):
             traceback.print_exc()
 
 def main(argv):
+    # Eliminate the most common English words from queries and indices.
+    stopwords = 'the of and to a in it is was that i for on you he be'.split()
+    stopwords += ([word.upper() for word in stopwords] +
+                  [word.capitalize() for word in stopwords])
+
     if argv[1] == 'index':
         build_index(index_path=Path(argv[2]), corpus_path=Path(argv[3]),
                     postings_filters=[discard_long_nonsense_words_filter,
+                                      stopwords_filter(stopwords),
                                       case_insensitive_filter])
     elif argv[1] == 'query':
-        search_ui(Path(argv[2]), argv[3:])
+        search_ui(Path(argv[2]), (term for term in argv[3:]
+                                  if term not in stopwords))
     elif argv[1] == 'grep':
-        grep(Path(argv[2]), argv[3:])
+        grep(Path(argv[2]), (term for term in argv[3:]
+                             if term not in stopwords))
     else:
         raise Exception("%s (index|query|grep) index_dir ..." % (argv[0]))
 
