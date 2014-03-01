@@ -14,23 +14,13 @@ class DeviceTest < Test::Unit::TestCase
     assert_nil device.trial
   end
 
-  def test_create_with_meta_data
+  def test_create_with_method_steps_trial
     input_data = '0.123,-0.123,5;'
     
-    device = Device.new(:data => input_data, :meta_data => "jogging,10,1")
-    assert_equal 'jogging', device.method
+    device = Device.new(:data => input_data, :method => 'walk', :steps => '10', :trial => 'test trial 1')
+    assert_equal 'walk', device.method
     assert_equal 10, device.steps
-    assert_equal '1', device.trial
-
-    device = Device.new(:data => input_data, :meta_data => "jogging,foo,1")
-    assert_equal 'jogging', device.method
-    assert_equal 0, device.steps
-    assert_equal '1', device.trial
-
-    device = Device.new(:data => input_data, :meta_data => "jogging,1")
-    assert_equal 'jogging', device.method
-    assert_equal 1, device.steps
-    assert_nil device.trial
+    assert_equal 'test trial 1', device.trial
   end
 
   def test_create_with_rate

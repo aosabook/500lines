@@ -7,15 +7,11 @@ class Device
 
     @data = params[:data]
     set_format
-
-    rate = params[:rate].to_f.round
-    @rate = (rate > 0) ? rate : 100
-
-    if meta_data = (params[:meta_data] && params[:meta_data].split(','))
-      @method = meta_data[0]
-      @steps  = meta_data[1].to_i
-      @trial  = meta_data[2]
-    end
+    
+    @rate   = ((rate = params[:rate].to_f.round) > 0) ? rate : 100
+    @method = params[:method]
+    @steps  = ((steps = params[:steps].to_f.round) > 0) ? steps : nil
+    @trial  = params[:trial]
   end
 
 private
