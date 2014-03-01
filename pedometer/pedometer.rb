@@ -29,9 +29,9 @@ post '/create' do
   begin
     temp_file_path = params[:device][:file][:tempfile]
     
+    user = User.new(params[:user].symbolize_keys)
     @device = Device.new({data: File.read(temp_file_path)}.merge(params[:device].symbolize_keys))
     @parser = Parser.new(@device)
-    user = User.new(params[:user].symbolize_keys)
     @analyzer = Analyzer.new(@parser, user)
     @analyzer.measure
 
@@ -59,7 +59,7 @@ get '/data' do
       device = Device.new({:data => File.read(file)}.merge(device_params))
       parser = Parser.new(device)
       analyzer = Analyzer.new(parser, user)
-      analyzer.measure_steps
+      analyzer.measure
 
       @data << {:file => file, :device => device, :steps => analyzer.steps, :user => user}
     end
