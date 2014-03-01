@@ -20,14 +20,18 @@ class Path:                     # like java.lang.File
     __iter__     = lambda self: (self[child] for child in os.listdir(self.name))
     open         = lambda self, *args: open(self.name, *args)
     open_gzipped = lambda self, *args: gzip.GzipFile(self.name, *args)
+    basename     = lambda self: os.path.basename(self.name)
 
-def postings_from_dir(path):
-    # XXX re.compile?
+def find_documents(path):
     for dir_name, _, filenames in os.walk(path.name):
         dir_path = Path(dir_name)
         for filename in filenames:
-            for posting in remove_duplicates(tokenize_file(dir_path[filename])):
-                yield posting
+            yield dir_path[filename]
+
+def tokenize_documents(paths):
+    for path in paths:
+        for posting in remove_duplicates(tokenize_file(path)):
+            yield posting
 
 # Demonstrate a crude set of smart tokenizer frontends.
 def tokenize_file(file_path):
@@ -80,13 +84,6 @@ def get_metadata(path):
     s = os.stat(path.name)
     return int(s.st_mtime), int(s.st_size)
 
-def dir_metadata(path):
-    for dir_name, _, filenames in os.walk(path.name):
-        dir_path = Path(dir_name)
-        for filename in filenames:
-            file_path = dir_path[filename]
-            yield (file_path.name,) + get_metadata(file_path)
-
 def write_tuples(context_manager, tuples):
     with context_manager as outfile:
         for item in tuples:
@@ -102,8 +99,8 @@ def read_tuples(context_manager):
 def write_metadata(path, metadata):
     write_tuples(path['metadata'].open('w'), metadata)
 
-def read_metadata(path):
-    tuples = read_tuples(path['metadata'].open())
+def read_metadata(index_path):
+    tuples = read_tuples(path['documents'].open())
     return dict((pathname, (int(mtime), int(size)))
                 for pathname, size, mtime in tuples)
 
@@ -121,15 +118,14 @@ def blocked(seq, block_size):
         yield tuple(itertools.islice(seq, block_size)) or next(seq)
 
 # Yields one skip file entry, or, in the edge case of an empty chunk, none.
-def write_chunk(path, index, chunk):
-    filename = '%s.gz' % index
+def write_chunk(path, filename, chunk):
     write_tuples(path[filename].open_gzipped('w'), chunk)
     if chunk:
         yield chunk[0][0], filename
 
 def write_new_segment(path, postings):
     os.mkdir(path.name)
-    skip_file_contents = (write_chunk(path, ii, chunk)
+    skip_file_contents = (write_chunk(path, '%s.gz' % ii, chunk)
                           for ii, chunk in enumerate(blocked(postings, 4096)))
     write_tuples(path['skip'].open('w'), itertools.chain(*skip_file_contents))
 
@@ -164,7 +160,7 @@ def doc_ids(index_path, terms):
 
 def term_doc_ids(index_path, term):
     return itertools.chain(*(segment_term_doc_ids(segment, term)
-                             for segment in index_path))
+                             for segment in index_segments(index_path)))
 
 def segment_term_doc_ids(segment, term):
     for chunk_name in segment_term_chunks(segment, term):
@@ -198,14 +194,23 @@ def segment_term_chunks(segment, term):
 def build_index(index_path, corpus_path, postings_filters):
     os.mkdir(index_path.name)
 
-    postings = postings_from_dir(corpus_path)
+    corpus_paths = list(find_documents(corpus_path))
+    write_tuples(index_path['documents'].open('w'),
+                 ((path.name,) + get_metadata(path) for path in corpus_paths))
+
+    postings = tokenize_documents(corpus_paths)
     for filter_function in postings_filters:
         postings = filter_function(postings)
 
     for ii, chunk in enumerate(blocked(postings, 2**20)):
         write_new_segment(index_path['seg_%s' % ii], sorted(chunk))
 
-    merge_segments(index_path, list(index_path))
+    merge_segments(index_path, index_segments(index_path))
+
+# XXX make this a method of the Index object, perhaps returning Segment objects
+def index_segments(index_path):
+    return [path for path in index_path
+            if path.basename().startswith('seg_')]
 
 def discard_long_nonsense_words_filter(postings):
     """Drop postings for nonsense words.
