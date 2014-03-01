@@ -1,6 +1,6 @@
 # A tiny full-text search engine
 
-<!-- XXX name it? "chispa"? Like a very small light, from Lucene. -->
+<!-- XXX name it? “chispa”? Like a very small light, from Lucene. -->
 
 In the last quarter-century,
 full-text search engines
@@ -10,7 +10,7 @@ to our most common means of navigating the web.
 There are a couple of different basic data structures
 for search engines,
 but by far the most common one
-is the "posting list" or "inverted index" search engine,
+is the “posting list” or “inverted index” search engine,
 which stores a dictionary
 from terms (typically words)
 to lists of places where those terms are found,
@@ -35,7 +35,7 @@ sort of like `grep -r`,
 except that it can search through hundreds of gigabytes
 in hundreds of milliseconds,
 with an index size about 15% of the size of the text,
-although it's pretty slow at indexing.
+although it’s pretty slow at indexing.
 
 It’s tuned to perform acceptably
 even on electromechanical hard disks
@@ -125,7 +125,7 @@ A somewhat simpler,
 although less optimal,
 approach
 is to break the file up into chunks
-with a compact "skip file"
+with a compact “skip file”
 which tells you what each chunk contains.
 Then you can read only the chunks
 that might contain the term you are looking up.
@@ -173,14 +173,14 @@ Reading a 9-megabyte file is a bearable startup cost,
 since it should take perhaps 200ms,
 though far from ideal.
 
-There's a chunk size tradeoff:
+There’s a chunk size tradeoff:
 smaller chunks
 mean more filesystem overhead,
 worse compression,
 and a larger skip file,
 while larger chunks
 waste more time decompressing and parsing
-postings for terms before the one we're looking for.
+postings for terms before the one we’re looking for.
 4096 postings decompress in about 27ms on my netbook,
 which is only about a factor of 3 slower than spinning-rust seek times,
 but achieve most of the compression available from gzip.
@@ -188,7 +188,7 @@ but achieve most of the compression available from gzip.
 Scaling up further
 can be done
 by using multiple levels of skip files,
-making the search engine's run time proportional
+making the search engine’s run time proportional
 to the logarithm of the number of postings
 rather than its square root.
 
@@ -229,7 +229,7 @@ which typically ends up being about 12MB compressed.
 On modern solid-state drives,
 this kind of locality of reference
 is less of a problem,
-since they can handle some ten thousand "seeks" per second;
+since they can handle some ten thousand “seeks” per second;
 the corresponding bandwidth-delay product
 is more like 20 kilobytes
 rather than 500.
@@ -261,12 +261,12 @@ up to ten times as big on that smartphone;
 that would allow us to
 index up to 400 gigabytes
 in only two passes.
-With this engine's current primary segment size
+With this engine’s current primary segment size
 of about 13 megabytes compressed,
 indexing about 100 megabytes uncompressed,
 this strategy only scales up to 200 gigabytes.
 
-Since we're restricting ourselves
+Since we’re restricting ourselves
 to essentially sequential access
 for efficiency,
 the filesystem interface is very simple.
@@ -292,7 +292,7 @@ XXX skip introductory Python paragraph?
 
 -->
 
-If you're not familiar with Python,
+If you’re not familiar with Python,
 some of the contents of this function
 may be a little puzzling.
 **The `with` statement**
@@ -315,13 +315,13 @@ once for each item of `z`.
 
 As it turns out,
 in the current version of this search engine,
-it isn't actually important that the tuples can be generated on the fly,
-because the largest thing we're writing as a sequence of tuples
+it isn’t actually important that the tuples can be generated on the fly,
+because the largest thing we’re writing as a sequence of tuples
 is the posting list,
 and it has to be sorted before writing it to each chunk anyway.
 
 `urllib.quote` encodes the strings being written to the file
-to ensure they can't contain spaces.
+to ensure they can’t contain spaces.
 
 Reading the tuples is even simpler,
 using a generator function:
@@ -338,7 +338,7 @@ XXX more introductory Python material; omit?
 -->
 
 When the function is invoked,
-it doesn't do anything but return a generator object;
+it doesn’t do anything but return a generator object;
 each time the `.next()` method is invoked on that generator object,
 the function starts running,
 either from the beginning
@@ -394,7 +394,7 @@ is called `skip`.
 
 At some point,
 my plan is to interpret the pathnames in the index
-relative to the index's parent directory,
+relative to the index’s parent directory,
 and to search up toward the root of the filesystem
 to look for an index to consult.
 
@@ -429,11 +429,11 @@ you need to merge segments to keep your searches fast.
 But, if you merge all the segments into one segment
 every time you update your index,
 your updates are no longer very incremental.
-It's wasteful to copy an entire huge segment
+It’s wasteful to copy an entire huge segment
 just to add a few things to it.
 
-It turns out there's a middle ground that works pretty well,
-although I don't know if it has
+It turns out there’s a middle ground that works pretty well,
+although I don’t know if it has
 reasonable mathematically guaranteed worst-case performance.
 You find the largest index segment
 that is no bigger
@@ -441,7 +441,7 @@ than all the segments
 smaller than itself
 put together;
 and you merge it with all those smaller segments.
-Intuitively, it's not too wasteful to merge it,
+Intuitively, it’s not too wasteful to merge it,
 since it comprises no more than half of the resulting index.
 
 For example, suppose you have existing segments
@@ -459,7 +459,7 @@ We can write down the total sizes of the smaller segments underneath:
        0   20  120  370 1120
 
 All of the segments are bigger than all the smaller segments put together,
-so you don't merge anything this time.
+so you don’t merge anything this time.
 Now you create another segment of 30k:
 
       20   30  100  250  750 2500
@@ -513,9 +513,9 @@ the segment sizes at any given moment
 are never too far from an exponentially growing sequence,
 which means that only a logarithmic number of segments can exist.
 
-So, if that's true, then this "middle ground"
+So, if that’s true, then this “middle ground”
 guarantees that your searches never get too slow;
-but how do we know that it guarantees that you don't
+but how do we know that it guarantees that you don’t
 waste too much time merging?
 
 Since every merge input
@@ -524,14 +524,14 @@ every posting moves into a segment of at least double the size
 every time it undergoes a merge.
 That means that, if your total corpus has 16 billion postings,
 each posting will be merged at most some 34 times;
-and actually, since it's probably starting in a primary segment
+and actually, since it’s probably starting in a primary segment
 with a million other postings,
-it won't actually go through more than 14 merges.
+it won’t actually go through more than 14 merges.
 That is, the total amount of merge work done with this policy
 is O(N log N),
 which is pretty good.
 
-One problem is that the merge work isn't very evenly distributed.
+One problem is that the merge work isn’t very evenly distributed.
 Adding an arbitrarily small bit of index
 can result in an arbitrarily large amount of work;
 in my last example above, adding 20k
@@ -625,14 +625,14 @@ We have to read the skip file to find out:
                 break
 
             last_chunk = chunk
-        else:                   # executed if we don't break
+        else:                   # executed if we don’t break
             # XXX what if it was empty?
             yield last_chunk
 
-We don't know
+We don’t know
 the full range of the terms in a chunk
 until we get to the skip file entry for the next chunk,
-so we're always yielding the previous chunk.
+so we’re always yielding the previous chunk.
 
 The contents of `skip_file_entries` is quite simple:
 
@@ -657,9 +657,9 @@ when the generator is terminated,
 either by garbage collection,
 by finishing the iteration,
 or by explicitly calling .close() on the generator.
-If you don't close files,
+If you don’t close files,
 sooner or later,
-you'll run out of file descriptors,
+you’ll run out of file descriptors,
 and any future attempts to open files will fail with an error.
 In CPython,
 the reference-counting garbage collector
@@ -674,12 +674,12 @@ by using `sorted()`,
 `segment_term_pathnames` may exit the iteration early,
 and so XXX currently leaks file descriptors in PyPy.
 
-And that's all there is to evaluating a query:
+And that’s all there is to evaluating a query:
 the candidate postings for each query term,
 as (term, doc_id) tuples,
 are read by `read_tuples`
 from the chunks supplied by `segment_term_chunks`;
-they're filtered by `segment_term_pathnames`
+they’re filtered by `segment_term_pathnames`
 to only the ones that really do pertain to the term;
 the doc_ids from different segments are combined
 with `term_pathnames`;
@@ -696,18 +696,18 @@ without ranking the results
 so that the results most likely to be interesting
 are displayed first.
 This typically uses document weights,
-such as Google's PageRank or StackOverflow's scores;
+such as Google’s PageRank or StackOverflow’s scores;
 and measures of relevance to the query.
 
 The general recipe for relevance measures
-is "TF/IDF":
-"term frequency, inverse document frequency",
+is “TF/IDF”:
+“term frequency, inverse document frequency”,
 which is to say,
 documents containing terms more frequently are rated higher,
 while terms that occur more frequently in the corpus overall
 are weighted more lightly.
 It really should be called
-"term frequency, inverse corpus frequency,"
+“term frequency, inverse corpus frequency,”
 but the term dates from the early years of information retrieval research,
 when the terminology was different.
 There are different formulas in the TF/IDF family,
@@ -795,24 +795,24 @@ if the underlying iterator does.
 In that case, you will end up with a short tuple.
 If there are no items left,
 you will end up with an empty tuple.
-But it's not desirable for `blocked` to keep yielding empty tuples forever.
+But it’s not desirable for `blocked` to keep yielding empty tuples forever.
 Instead, it should terminate its iteration
 when there are no more items left.
 A generator can terminate its iteration
 either in the usual way that functions terminate,
 by returning or running off the end of its code,
 or by raising the `StopIteration` exception
-that Python's iteration protocol uses
+that Python’s iteration protocol uses
 in place of a `hasNext` method.
 The easiest way to raise `StopIteration`
 is to invoke `next` on an empty iterator,
-so that's what this code does.
+so that’s what this code does.
 
-You'll note that the explanation for this code
+You’ll note that the explanation for this code
 is about 130 words,
 while the code is only 15 words.
-That probably means it's bad code.
-So far I've kept it in this form
+That probably means it’s bad code.
+So far I’ve kept it in this form
 instead of a more straightforward but longer form
 mostly because I expect `itertools.islice`
 will be faster than doing the same thing
@@ -825,7 +825,7 @@ it generates a sequence of (term, doc_id) tuples
 given a directory
 by treating every file in that directory
 as a text file.
-It's careful not to generate the same posting twice,
+It’s careful not to generate the same posting twice,
 which both simplifies and speeds up the rest of the code.
 
     def postings_from_dir(path):
@@ -840,7 +840,7 @@ which both simplifies and speeds up the rest of the code.
                                 yield word, dir_path[filename].name
                                 seen_words.add(word)
 
-So that's the sequence of postings
+So that’s the sequence of postings
 being broken into 1048576-item blocks by `blocked`
 which are then sorted and passed to `write_new_segment`.
 Note that the `seen_words` set could potentially get dangerously large
@@ -863,22 +863,22 @@ So what does `write_new_segment` do?
         build_skip_file(path)
 
 This uses the `write_tuples` function explained earlier,
-passing it a `gzip.GzipFile` to automatically close when it's done.
+passing it a `gzip.GzipFile` to automatically close when it’s done.
 It might be more sensible to write the data in an uncompressed form,
 then later launch a background `gzip` process to compress it,
-since about half of the program's run time is taken up by compression.
+since about half of the program’s run time is taken up by compression.
 
 The `build_skip_file` function is similarly simple;
 its only tricky bit is that it lists the chunk names
 before opening the skip file
-so it won't mistake the skip file for a chunk:
+so it won’t mistake the skip file for a chunk:
 
     def build_skip_file(path):
         chunk_names = list(path)
         # XXX what about fsync?
         write_tuples(path['skip'].open('w'), generate_skip_entries(chunk_names))
 
-But that's because the actual skip-file generation logic
+But that’s because the actual skip-file generation logic
 is in `generate_skip_entries`:
 
     def generate_skip_entries(chunk_paths):
@@ -891,8 +891,8 @@ is in `generate_skip_entries`:
                 chunk_tuples.close()
 
 We simply read the first tuple from each chunk.
-Since we aren't reading all the tuples,
-the `read_tuples` generator won't implicitly exit automatically
+Since we aren’t reading all the tuples,
+the `read_tuples` generator won’t implicitly exit automatically
 and close the file.
 As discussed previously,
 to avoid a file descriptor leak in non-reference-counted Pythons,
@@ -906,7 +906,7 @@ which are essentially a matter of compression,
 this presentation glosses over a couple of other issues
 that more complete search engines handle:
 our documents are not divided into fields,
-which means that you can't, say,
+which means that you can’t, say,
 search for a term in just the title,
 or just the filename,
 or (as in my email search engine `dumbfts` that this was modeled after)
@@ -941,7 +941,7 @@ How do we merge segments?
             shutil.rmtree(segment.name)
 
 First, if we only have one primary segment,
-there's no need to merge it;
+there’s no need to merge it;
 we can just return.
 But if we have more than one,
 we open all of them and hook them up to a heap,
@@ -1024,10 +1024,10 @@ is about a tenth of what you get
 out of a production-quality search engine
 like Sphinx or Lucene,
 but perhaps more importantly,
-this search engine doesn't support
+this search engine doesn’t support
 any kind of parallelism,
 so its performance is limited to its single-core performance.
-But you can see that it doesn't really matter
+But you can see that it doesn’t really matter
 what order the postings are produced in,
 and indeed you could easily divide up a set of input files
 among a set of processes
@@ -1042,7 +1042,7 @@ the original implementation of MapReduce at Google
 and what it was written for.
 
 Aside from that,
-about half of the indexer's run time
+about half of the indexer’s run time
 is spent `gzip`-compressing postings data.
 The standard approach
 of maintaining an in-RAM dictionary
@@ -1076,7 +1076,7 @@ but a more industrial-strength search engine
 needs to do stemming, synonym generation, stopword exclusion,
 and parsing of file formats
 more complicated than just plain text,
-so it's likely that a more complete implementation will actually be slower
+so it’s likely that a more complete implementation will actually be slower
 rather than faster.
 However,
 careful attention given to the in-memory data structure used for accumulating tokens,
@@ -1086,14 +1086,14 @@ can produce substantial payoffs.
 The *query evaluator*, however,
 is 100× slower rather than 10× slower
 than industrial-strength search engines;
-and, as you'd expect,
+and, as you’d expect,
 speeding it up
 probably requires quite a bit more work:
 it would help a lot
 to be able to get posting lists from the index lazily,
 to plan queries to start with the most specific term
 to be able to take advantage of that ability,
-to stop generating hits when we've generated enough to display,
+to stop generating hits when we’ve generated enough to display,
 to store the index on SSD or in RAM rather than spinning rust,
 and perhaps to have sub-indices
 covering the higher-ranked subsets of the corpus.
