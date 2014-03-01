@@ -8,7 +8,7 @@ const config = require('./config.js'),
 
 app.use(express.bodyParser()); //for post parameter parsing
 app.engine('.html', whiskers.__express);
-app.set('views', __dirname+'/../views');
+app.set('views', config.viewsdir);
 
 showCompareEditor = function(request, response, args){
   //get latest version of doc from couch

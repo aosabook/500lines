@@ -1,0 +1,17 @@
+<div id="loginform">
+{if user}
+    <form action="/logout" method="post">
+        <div>Logged in as: {user.name} <button type="submit" name="logout">Log Out</button></div>
+    </form>
+{else}
+    <form action="/login" method="post">
+        <label>Username:</label>
+        <input type="text" name="username" id="username"/>
+        <label>Password:</label>
+        <input type="password" name="password" id="password"/>
+        <button type="submit" name="login" value="Log In">Log In</button>
+        <button type="submit" name="signup" value="Sign Up">Sign Up</button>
+        <div class="error" id="loginerror"></div>
+    </form>
+{/if}
+</div>

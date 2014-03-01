@@ -51,20 +51,23 @@ http://127.0.0.1:5984/wiki -> {"db_name":"wiki","doc_count":0,"doc_del_count":0,
 $ npm install --save request
 $ npm install --save dateformat
 
-Passport
-$ npm install --save passport
-$ npm install --save passport-local
-$ npm install --save password-hash
-
-Create a local user store on CouchDB
-curl -X PUT http://127.0.0.1:5984/users -> {"ok":true}
-
 Run the server with npm start.  Visit the wiki at http://localhost:8080/wiki/
 
 
 
-Part 3: Fancy stuff (as space allows):
--user login/sign up/logout with passport
+Part 3: Authentication with Passport (357 lines, replaces part 2):
+
+Use Passport for local authentication
+$ npm install --save passport
+$ npm install --save passport-local
+
+Use CouchDB's existing user table to store users
+
+Use the signup button to create a new user and log in.
+
+
+
+Next: Fancy stuff (as space allows):
 -revision history - display all past revisions with dates and comments and user ids
 -fancy diff/merge - use https://github.com/kpdecker/jsdiff?
 -search - create indexes/views for CouchDB to search text
