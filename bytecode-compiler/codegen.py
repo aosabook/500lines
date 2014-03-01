@@ -8,14 +8,14 @@ from functools import reduce
 from assembler import op, assemble
 from scoper import top_scope
 
-def bytecomp(t, f_globals):
-    scope_map, top_level = top_scope(t)
-    return types.FunctionType(CodeGen(scope_map, top_level).compile(t), f_globals)
+def bytecomp(source, f_globals):
+    t = ast.parse(source)
+    top_level = top_scope(t, source)
+    return types.FunctionType(CodeGen(top_level).compile(t), f_globals)
 
 class CodeGen(ast.NodeVisitor):
 
-    def __init__(self, scope_map, scope):
-        self.scope_map = scope_map
+    def __init__(self, scope):
         self.scope = scope
         self.constants = make_table()
         self.names     = make_table()
@@ -81,18 +81,20 @@ class CodeGen(ast.NodeVisitor):
         
     def visit_ClassDef(self, t):
         assert not t.decorator_list
-        code = CodeGen(self.scope_map, self.scope_map[t]).compile_class(t)
-        return [op.LOAD_BUILD_CLASS,
-                self.load_const(code), self.load_const(t.name), op.MAKE_FUNCTION(0), # XXX 0?
-                self.load_const(t.name),
-                self(t.bases),
+        code = CodeGen(self.scope.get_child(t)).compile_class(t)
+        return [op.LOAD_BUILD_CLASS, self.make_closure(code, t.name), 
+                                     self.load_const(t.name),
+                                     self(t.bases),
                 op.CALL_FUNCTION(2 + len(t.bases)),
                 self.store(t.name)]
 
     def visit_FunctionDef(self, t):
         assert not t.decorator_list
-        code = CodeGen(self.scope_map, self.scope_map[t]).compile_function(t)
-        return [self.load_const(code), op.MAKE_FUNCTION(0), self.store(t.name)]
+        code = CodeGen(self.scope.get_child(t)).compile_function(t)
+        return [self.make_closure(code, t.name), self.store(t.name)]
+
+    def make_closure(self, code, name):
+        return [self.load_const(code), self.load_const(name), op.MAKE_FUNCTION(0)] # XXX 0?
 
     def visit_Return(self, t):
         return [self(t.value) if t.value else self.load_const(None),
@@ -197,19 +199,22 @@ class CodeGen(ast.NodeVisitor):
     def visit_Name(self, t):
         return self.load(t.id)
 
+    def visit_NameConstant(self, t):
+        return self.load_const(t.value)
+
     def load(self, name):
         level = self.scope.scope(name)
-        # TODO: check if it's a constant like None
-        if level == 'local':    return op.LOAD_FAST(self.varnames[name])
+        if   level == 'fast':   return op.LOAD_FAST(self.varnames[name])
         elif level == 'global': return op.LOAD_GLOBAL(self.names[name])
-        else:                   return op.LOAD_NAME(self.names[name])
+        elif level == 'name':   return op.LOAD_NAME(self.names[name])
+        else: assert False
 
     def store(self, name):
         level = self.scope.scope(name)
-        # XXX global is not getting detected
-        if level == 'local':    return op.STORE_FAST(self.varnames[name])
+        if   level == 'fast':   return op.STORE_FAST(self.varnames[name])
         elif level == 'global': return op.STORE_GLOBAL(self.names[name])
-        else:                   return op.STORE_NAME(self.names[name])
+        elif level == 'name':   return op.STORE_NAME(self.names[name])
+        else: assert False
 
 def make_table():
     table = collections.defaultdict(lambda: len(table))
@@ -234,7 +239,7 @@ if __name__ == '__main__':
         except ImportError:
             astpp = ast
         print(astpp.dump(t))
-        f = bytecomp(t, globals())
+        f = bytecomp(source, globals())
         diss(f.__code__)
         return f
 
@@ -253,7 +258,7 @@ if __name__ == '__main__':
                 print(k, getattr(code, k))
 
     eg = """
-import math
+#import math
 print(['m', 'n'][0])
 (pow, len)
 {'a': 42, 'b': 55}
@@ -275,7 +280,7 @@ while t:
     break
 for i in range(3):
     print(i)
-print(-math.sqrt(2))
+#print(-math.sqrt(2))
 raise Exception('hi')
 """
     if len(sys.argv) == 1:
