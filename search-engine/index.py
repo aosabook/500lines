@@ -26,13 +26,55 @@ def postings_from_dir(path):
     for dir_name, _, filenames in os.walk(path.name):
         dir_path = Path(dir_name)
         for filename in filenames:
-            with dir_path[filename].open() as fo:
-                seen_words = set()
-                for line in fo:
-                    for word in re.findall('\w+', line):
-                        if word not in seen_words:
-                            yield word, dir_path[filename].name
-                            seen_words.add(word)
+            for posting in remove_duplicates(tokenize_file(dir_path[filename])):
+                yield posting
+
+# Demonstrate a crude set of smart tokenizer frontends.
+def tokenize_file(file_path):
+    if file_path.name.endswith('.html'):
+        return tokenize_html(file_path)
+    else:
+        return tokenize_text(file_path)
+
+def remove_duplicates(seq):
+    seen_postings = set()
+    for posting in seq:
+        if posting not in seen_postings:
+            yield posting
+            seen_postings.add(posting)
+
+def tokenize_text(file_path):
+    word_re = re.compile(r'\w+')
+    with file_path.open() as fo:
+        for line in fo:
+            for word in word_re.findall(line):
+                yield word, file_path.name
+
+# Crude approximation of HTML tokenization.  Note that for proper
+# excerpt generation (as in the "grep" command) the postings generated
+# need to contain position information, because we need to run this
+# tokenizer during excerpt generation too.
+def tokenize_html(file_path):
+    tag_re       = re.compile('<.*?>')
+    tag_start_re = re.compile('<.*')
+    tag_end_re   = re.compile('.*?>')
+    word_re      = re.compile(r'\w+')
+
+    with file_path.open() as fo:
+        in_tag = False
+        for line in fo:
+
+            if in_tag and tag_end_re.search(line):
+                line = tag_end_re.sub('', line)
+                in_tag = False
+
+            elif not in_tag:
+                line = tag_re.subn('', line)[0]
+                if tag_start_re.search(line):
+                    in_tag = True
+                    line = tag_start_re.sub('', line)
+                for term in word_re.findall(line):
+                    yield term, file_path.name
 
 def get_metadata(path):
     s = os.stat(path.name)
@@ -209,11 +251,11 @@ def main(argv):
                                       stopwords_filter(stopwords),
                                       case_insensitive_filter])
     elif argv[1] == 'query':
-        search_ui(Path(argv[2]), (term for term in argv[3:]
-                                  if term not in stopwords))
+        search_ui(Path(argv[2]), [term for term in argv[3:]
+                                  if term not in stopwords])
     elif argv[1] == 'grep':
-        grep(Path(argv[2]), (term for term in argv[3:]
-                             if term not in stopwords))
+        grep(Path(argv[2]), [term for term in argv[3:]
+                             if term not in stopwords])
     else:
         raise Exception("%s (index|query|grep) index_dir ..." % (argv[0]))
 
