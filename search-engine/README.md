@@ -714,6 +714,19 @@ There are different formulas in the TF/IDF family,
 which I would discuss here
 if I knew anything about them.
 
+This engine
+does a very crude ranking:
+it returns the newest files first:
+
+    def get_metadata(path):
+        s = os.stat(path.name)
+        return int(s.st_mtime), int(s.st_size)
+
+    def search_ui(index_path, terms):
+            for path in sorted(paths(index_path, terms),
+                               key=get_metadata, reverse=True):
+                print(path.name)
+
 Generating an index
 -------------------
 
