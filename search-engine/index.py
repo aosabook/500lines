@@ -209,8 +209,7 @@ def build_index(index_path, corpus_path, postings_filters):
 
 # XXX make this a method of the Index object, perhaps returning Segment objects
 def index_segments(index_path):
-    return [path for path in index_path
-            if path.basename().startswith('seg_')]
+    return [path for path in index_path if path.basename().startswith('seg_')]
 
 def discard_long_nonsense_words_filter(postings):
     """Drop postings for nonsense words.
@@ -228,7 +227,6 @@ def case_insensitive_filter(postings):
             yield term.lower(), doc_id
 
 def stopwords_filter(stopwords):
-    stopwords = set(stopwords)
     return lambda postings: ((term, doc_id) for term, doc_id in postings
                              if term not in stopwords)
 
@@ -253,7 +251,7 @@ def main(argv):
     if argv[1] == 'index':
         build_index(index_path=Path(argv[2]), corpus_path=Path(argv[3]),
                     postings_filters=[discard_long_nonsense_words_filter,
-                                      stopwords_filter(stopwords),
+                                      stopwords_filter(set(stopwords)),
                                       case_insensitive_filter])
     elif argv[1] == 'query':
         search_ui(Path(argv[2]), [term for term in argv[3:]
