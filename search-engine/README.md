@@ -1120,11 +1120,10 @@ intended for human-language text.
 However,
 the first web search engine,
 by Open Text,
-used a [suffix tree](https://en.wikipedia.org/wiki/Suffix_tree)
+used a [suffix array](https://en.wikipedia.org/wiki/Suffix_array)
 instead,
-and there are some experimental search engines
-that use [suffix arrays](https://en.wikipedia.org/wiki/Suffix_array),
-which is like a slower, much smaller version of the suffix tree.
+which is like a slower, much smaller version of a
+[suffix tree](https://en.wikipedia.org/wiki/Suffix_tree).
 Three different simple space-efficient linear-time
 suffix-array construction algorithms
 have been discovered in the last few years,
@@ -1165,7 +1164,7 @@ and Sphinx, which powers MariaDB’s text indexing,
 are
 the two industrial-strength open-source full-text search engines
 for natural language.
-The [Lucene manual](https://lucene.apache.org/core/2_9_4/gettingstarted.html)
+The [Lucene manual](https://lucene.apache.org/core/4_7_0/index.html)
 and especially the [Sphinx manual](http://sphinxsearch.com/docs/current.html)
 provide a wealth of information about what they do and how they work,
 and how modern search engines work in general.
