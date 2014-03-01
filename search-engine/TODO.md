@@ -36,4 +36,6 @@
 * Move all the filesystem stuff into a persistence strategy object, so
   that it's theoretically possible to replace it with something that
   uses SQLite or Cassandra or whatever.
-* What to do with things like PDF files and .gz files?
+* What to do with things like PDF files and .gz files?  There's now a
+  super simple HTML tokenizer.
+* Maybe canonicalize posting terms to NFC?
