@@ -3,6 +3,7 @@ require 'sinatra/jbuilder'
 require './models/analyzer.rb'
 require './models/device.rb'
 require './models/user.rb'
+require './helpers/file_helper.rb'
 
 include FileUtils::Verbose
 
@@ -23,21 +24,21 @@ end
 
 # TODO: 
 # - Capture exceptions and redirect to /data
-# - Clean up file name creation (don't allow spaces in trial name)
-# - Add drop-downs for method (select a few), step count (integer only), gender (pre-populate)
-# - Change device meta data to unqiue params?
 post '/create' do
   begin
-    temp_file_path = params[:device][:file][:tempfile].path
-    
-    @device = Device.new(:data => File.read(temp_file_path), :meta_data => params[:device][:meta_data].values.join(','), :rate => params[:device][:rate])
+    temp_file_path = params[:device][:file][:tempfile]
+    @device = Device.new(:data   => File.read(temp_file_path), 
+                         :rate   => params[:device][:rate],
+                         :method => params[:device][:method],
+                         :steps  => params[:device][:steps],
+                         :trial  => params[:device][:trial])
     @parser = Parser.new(@device)
     user = User.new(params[:user])
     @analyzer = Analyzer.new(@parser, user)
     @analyzer.measure
 
-    @file_name = "#{user.gender || 'unknown'}-#{user.height}-#{user.stride}_" + 
-      "#{@device.rate}-#{@device.method}-#{@device.steps}-#{@device.trial.gsub(/\s+/, '_')}-#{@device.format[0]}"
+    @file_name = FileHelper.generate_file_name(user.gender, user.height, user.stride, 
+      @device.rate, @device.method, @device.steps, @device.trial, @device.format)
     
     cp(temp_file_path, "public/uploads/" + @file_name)
 
