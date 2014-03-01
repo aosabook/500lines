@@ -21,3 +21,7 @@ The stages are:
 2 - changing from message-based to attribute-based by introducing bound methods
 3 - allowing more powerful customization: __get__, __getattr__, __setattr__
 4 - introducing maps to store instances more efficiently
+
+A note about size: just counting the lines of all the code gives a too large
+result. However, there is a lot of shared code between the stages (particularly
+in the tests) which would not have to be shown in the actual chapter.
