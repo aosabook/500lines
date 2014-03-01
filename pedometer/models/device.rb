@@ -1,17 +1,17 @@
 class Device
 
-  attr_reader :data, :format, :rate, :method, :steps, :trial
+  attr_reader :data, :rate, :method, :steps, :trial, :format
 
   def initialize(params = {})
     params = {} unless params.kind_of? Hash
 
     @data = params[:data]
-    set_format
-    
     @rate   = ((rate = params[:rate].to_f.round) > 0) ? rate : 100
     @method = params[:method]
     @steps  = ((steps = params[:steps].to_f.round) > 0) ? steps : nil
     @trial  = params[:trial]
+
+    set_format
   end
 
 private
