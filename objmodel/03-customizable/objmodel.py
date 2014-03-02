@@ -1,3 +1,5 @@
+MISSING = object()
+
 class Base(object):
     """ The base class that all of the object model classes inherit from. """
 
@@ -7,29 +9,22 @@ class Base(object):
 
     def read_field(self, fieldname):
         """ read field 'fieldname' out of the object """
-        try:
-            return self._read_dict(fieldname)
-        except AttributeError:
-            pass
-        try:
-            result = self.cls._read_from_class(fieldname, self)
-        except AttributeError, orig_error:
-            # not found on class
-            pass
-        else:
-            if hasattr(result, "__get__"):
-                return _make_boundmethod(result, self, self)
+        result = self._read_dict(fieldname)
+        if result is not MISSING:
             return result
-        # try special method __getattr__
-        try:
-            meth = self.cls._read_from_class("__getattr__", self)
-        except AttributeError:
-            raise orig_error # get the right error message
+        result = self.cls._read_from_class(fieldname)
+        if hasattr(result, "__get__"):
+            return _make_boundmethod(result, self, self)
+        if result is not MISSING:
+            return result
+        meth = self.cls._read_from_class("__getattr__")
+        if meth is MISSING:
+            raise AttributeError(fieldname)
         return meth(self, fieldname)
 
     def write_field(self, fieldname, value):
         """ write field 'fieldname' into the object """
-        meth = self.cls._read_from_class("__setattr__", self)
+        meth = self.cls._read_from_class("__setattr__")
         return meth(self, fieldname, value)
 
     def isinstance(self, cls):
@@ -42,7 +37,7 @@ class Base(object):
         return meth(*args)
 
     def _read_dict(self, fieldname):
-        raise AttributeError
+        return MISSING
 
     def _write_dict(self, fieldname, value):
         raise AttributeError
@@ -60,9 +55,7 @@ class Instance(Base):
         self._dct = {}
 
     def _read_dict(self, fieldname):
-        if fieldname not in self._dct:
-            raise AttributeError(fieldname)
-        return self._dct[fieldname]
+        return self._dct.get(fieldname, MISSING)
 
     def _write_dict(self, fieldname, value):
         self._dct[fieldname] = value
@@ -81,9 +74,7 @@ class Class(Base):
         self.base_class = base_class
 
     def _read_dict(self, fieldname):
-        if fieldname not in self._dct:
-            raise AttributeError(fieldname)
-        return self._dct[fieldname]
+        return self._dct.get(fieldname, MISSING)
 
     def _write_dict(self, fieldname, value):
         self._dct[fieldname] = value
@@ -99,11 +90,11 @@ class Class(Base):
         """ is self a subclass of cls? """
         return cls in self.mro()
 
-    def _read_from_class(self, methname, obj):
+    def _read_from_class(self, methname):
         for cls in self.mro():
             if methname in cls._dct:
                 return cls._dct[methname]
-        raise AttributeError("method %s not found" % methname)
+        return MISSING
 
 
 # set up the base hierarchy like in Python (the ObjVLisp model)

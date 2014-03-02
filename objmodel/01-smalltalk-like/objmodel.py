@@ -1,3 +1,5 @@
+MISSING = object()
+
 class Base(object):
     """ The base class that all of the object model classes inherit from. """
 
@@ -19,11 +21,11 @@ class Base(object):
 
     def send(self, methname, *args):
         """ send message 'methname' with arguments `args` to object """
-        meth = self.cls._read_from_class(methname, self)
+        meth = self.cls._read_from_class(methname)
         return meth(self, *args)
 
     def _read_dict(self, fieldname):
-        raise AttributeError
+        return MISSING
 
     def _write_dict(self, fieldname, value):
         raise AttributeError
@@ -38,9 +40,7 @@ class Instance(Base):
         self._dct = {}
 
     def _read_dict(self, fieldname):
-        if fieldname not in self._dct:
-            raise AttributeError(fieldname)
-        return self._dct[fieldname]
+        return self._dct.get(fieldname, MISSING)
 
     def _write_dict(self, fieldname, value):
         self._dct[fieldname] = value
@@ -56,9 +56,7 @@ class Class(Base):
         self.base_class = base_class
 
     def _read_dict(self, fieldname):
-        if fieldname not in self._dct:
-            raise AttributeError(fieldname)
-        return self._dct[fieldname]
+        return self._dct.get(fieldname, MISSING)
 
     def _write_dict(self, fieldname, value):
         self._dct[fieldname] = value
@@ -74,11 +72,11 @@ class Class(Base):
         """ is self a subclass of cls? """
         return cls in self.mro()
 
-    def _read_from_class(self, methname, obj):
+    def _read_from_class(self, methname):
         for cls in self.mro():
             if methname in cls._dct:
                 return cls._dct[methname]
-        raise AttributeError("method %s not found" % methname)
+        return MISSING
 
 # set up the base hierarchy like in Python (the ObjVLisp model)
 # the ultimate base class is OBJECT
