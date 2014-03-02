@@ -1,12 +1,41 @@
 """Experiment in dependency detection."""
 
 from functools import wraps
+from inspect import ismethod
 
-class Watcher(object):
+class Graph(object):
 
     def __init__(self):
-        self.edges = []
-        self.keys = []
+        self.nodes = []
+        self.stack = []
+
+    def add(self, node):
+        self.nodes.append(node)
+        node._graph = self
+
+class Node(object):
+
+    # def __setattr__(self, name, value):
+    #     self.__dict__[name] = value
+
+    def __getattribute__(self, name):
+        if name.startswith('_'):
+            return object.__getattribute__(self, name)
+        graph = self._graph
+        print '  ' * len(graph.stack), 'getting', name
+        value = object.__getattribute__(self, name)
+        if not ismethod(value) or not isinstance(value.im_self, Node):
+            return value
+        method = value
+        graph = self._graph
+        @wraps(method)
+        def wrapper(*args, **kw):
+            graph.stack.append('todo')
+            try:
+                return method(*args, **kw)
+            finally:
+                graph.stack.pop()
+        return wrapper
 
     def watch(self, function):
         @wraps(function)
