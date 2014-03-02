@@ -51,7 +51,7 @@ class CodeGen(ast.NodeVisitor):
         lnotab = b''
         return types.CodeType(argcount, kwonlyargcount, nlocals, stacksize, flags,
                               assemble(assembly),
-                              collect(self.constants),
+                              tuple(const for const,_ in collect(self.constants)),
                               collect(self.names),
                               collect(self.varnames),
                               filename, name, firstlineno, lnotab,
@@ -62,7 +62,7 @@ class CodeGen(ast.NodeVisitor):
         return list(map(self, t)) if isinstance(t, list) else self.visit(t)
 
     def load_const(self, constant):
-        return op.LOAD_CONST(self.constants[constant])
+        return op.LOAD_CONST(self.constants[constant, type(constant)])
 
     def generic_visit(self, t):
         assert False, t
