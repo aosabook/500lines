@@ -2,7 +2,7 @@ Author: Darius Bacon
 Project: AST to bytecode compiler
 Requirements: Python
 
-This will compile from Python 3 AST to Python 3 bytecode.
+This will compile from Python 3 AST to Python 3.4 bytecode.
 
 These seem the most relevant docs and helpers:
 
