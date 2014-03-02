@@ -1,0 +1,137 @@
+<?xml version="1.0"?>
+<alloy>
+
+<view nodetheme="Martha" edgetheme="Martha">
+
+<projection> <type name="HTTP/Message/Msg"/> </projection>
+
+<defaultnode/>
+
+<defaultedge/>
+
+<node>
+   <type name="Int"/>
+   <type name="String"/>
+   <type name="univ"/>
+   <type name="HTTP/DomAPI"/>
+   <type name="HTTP/HTTPReq"/>
+   <type name="HTTP/OPTIONS"/>
+   <type name="seq/Int"/>
+   <type name="HTTP/Message/Module"/>
+   <type name="HTTP/Message/MO/Ord"/>
+   <set name="allowedOrigins" type="SOP/Origin"/>
+   <set name="dom" type="HTTP/DOM"/>
+   <set name="First" type="HTTP/Message/MO/Ord"/>
+   <set name="frame" type="HTTP/Frame"/>
+   <set name="newDOM" type="HTTP/DOM"/>
+   <set name="Next" type="HTTP/Message/MO/Ord"/>
+   <set name="origin" type="SOP/Origin"/>
+   <set name="payloads" type="HTTP/Message/Resource"/>
+   <set name="receiver" type="HTTP/Message/Module"/>
+   <set name="res" type="HTTP/Message/Resource"/>
+   <set name="sender" type="HTTP/Message/Module"/>
+   <set name="url" type="HTTP/URL"/>
+   <set name="CORS/RespCORS" type="HTTP/HTTPResp"/>
+</node>
+
+<node color="Gray">
+   <type name="HTTP/Message/Msg"/>
+</node>
+
+<node color="Gray" label="Frame">
+   <type name="HTTP/Frame"/>
+</node>
+
+<node color="Red" label="MaliciousModule">
+   <set name="this/MaliciousModule" type="HTTP/Message/Module"/>
+</node>
+
+<node label="Browser">
+   <type name="HTTP/Browser"/>
+</node>
+
+<node label="CriticalResource">
+   <set name="this/CriticalResource" type="HTTP/Message/Resource"/>
+</node>
+
+<node label="DOM">
+   <type name="HTTP/DOM"/>
+</node>
+
+<node label="GET">
+   <type name="HTTP/GET"/>
+</node>
+
+<node label="HTTPResp">
+   <type name="HTTP/HTTPResp"/>
+</node>
+
+<node label="Host">
+   <type name="HTTP/Host"/>
+</node>
+
+<node label="Origin">
+   <type name="SOP/Origin"/>
+</node>
+
+<node label="POST">
+   <type name="HTTP/POST"/>
+</node>
+
+<node label="Path">
+   <type name="HTTP/Path"/>
+</node>
+
+<node label="Port">
+   <type name="HTTP/Port"/>
+</node>
+
+<node label="Protocol">
+   <type name="HTTP/Protocol"/>
+</node>
+
+<node label="ReadDOM">
+   <type name="HTTP/ReadDOM"/>
+</node>
+
+<node label="ReqCORS">
+   <set name="CORS/ReqCORS" type="HTTP/HTTPReq"/>
+</node>
+
+<node label="Script">
+   <type name="HTTP/Script"/>
+</node>
+
+<node label="Server">
+   <type name="HTTP/Server"/>
+</node>
+
+<node label="URL">
+   <type name="HTTP/URL"/>
+</node>
+
+<node label="WriteDOM">
+   <type name="HTTP/WriteDOM"/>
+</node>
+
+<node label="XMLHTTPReq">
+   <set name="SOP/XMLHTTPReq" type="HTTP/HTTPReq"/>
+</node>
+
+<node shape="Ellipse" color="Green">
+   <type name="HTTP/Message/Resource"/>
+</node>
+
+<edge visible="no" attribute="yes">
+   <relation name="host"> <type name="HTTP/URL"/> <type name="HTTP/Host"/> </relation>
+   <relation name="host"> <type name="SOP/Origin"/> <type name="HTTP/Host"/> </relation>
+   <relation name="path"> <type name="HTTP/URL"/> <type name="HTTP/Path"/> </relation>
+   <relation name="port"> <type name="HTTP/URL"/> <type name="HTTP/Port"/> </relation>
+   <relation name="port"> <type name="SOP/Origin"/> <type name="HTTP/Port"/> </relation>
+   <relation name="protocol"> <type name="HTTP/URL"/> <type name="HTTP/Protocol"/> </relation>
+   <relation name="protocol"> <type name="SOP/Origin"/> <type name="HTTP/Protocol"/> </relation>
+</edge>
+
+</view>
+
+</alloy>
