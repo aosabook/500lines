@@ -700,7 +700,8 @@ such as Google’s PageRank or StackOverflow’s scores;
 and measures of relevance to the query.
 
 The general recipe for relevance measures
-is “TF/IDF”:
+is “TF-IDF” plus a proximity ranking factor.
+TF-IDF means
 “term frequency, inverse document frequency”,
 which is to say,
 documents containing terms more frequently are rated higher,
@@ -710,9 +711,16 @@ It really should be called
 “term frequency, inverse corpus frequency,”
 but the term dates from the early years of information retrieval research,
 when the terminology was different.
-There are different formulas in the TF/IDF family,
+There are different formulas in the TF-IDF family,
 which I would discuss here
 if I knew anything about them.
+The most popular of them seems to be called “Okapi BM25”.
+Proximity ranking
+considers a document more relevant to a query
+if the terms in the query
+occur near one another in the document
+rather than far apart,
+and perhaps in the right order.
 
 This engine
 does a very crude ranking:
@@ -1055,7 +1063,10 @@ As a bonus, it would produce much smaller index files.
 A more efficient application-specific file format
 can also produce postings files
 that can be parsed without iterating over each of their bytes,
-which may be a win.
+which may be a win;
+this also lets you intersect posting lists
+without doing string comparisons
+between URLs or file paths.
 
 As a sort of in-between alternative,
 you could use a high-speed compression algorithm
@@ -1097,6 +1108,71 @@ to stop generating hits when we’ve generated enough to display,
 to store the index on SSD or in RAM rather than spinning rust,
 and perhaps to have sub-indices
 covering the higher-ranked subsets of the corpus.
+
+Other approaches
+----------------
+
+Inverted indexes aren’t the only way to build a full-text search engine,
+although they are still
+the approach used by essentially all full-text indexers
+intended for human-language text.
+
+However,
+the first web search engine,
+by Open Text,
+used a [suffix array](https://en.wikipedia.org/wiki/Suffix_array)
+instead,
+which is like a slower, much smaller version of a
+[suffix tree](https://en.wikipedia.org/wiki/Suffix_tree).
+Three different simple space-efficient linear-time
+suffix-array construction algorithms
+have been discovered in the last few years,
+making the topic suddenly very interesting.
+Suffix trees and suffix arrays,
+in theory,
+support much richer operations than inverted indexes:
+not only general substring search,
+but also regular expression search.
+
+Taking the suffix-array idea further
+is the *self-index*,
+a compressed representation of the text
+which also works as a full-text-searchable index.
+The first self-index,
+the [FM-index](https://en.wikipedia.org/wiki/FM-index),
+was only discovered in 2000.
+Research has been active since then,
+and [Bowtie-2](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml)
+seems to be
+production-quality self-indexing software
+using the FM-index
+for bioinformatics.
+(Genes and proteins aren’t conveniently divided into words.)
+
+I have the impression that the FM-index in particular
+has the disadvantage
+that it requires many random accesses per search,
+so it works orders of magnitude slower
+when it’s stored on spinning rust.
+XXX I don’t know if this is really true.
+
+Further information
+-------------------
+
+Lucene, which powers Solr and ElasticSearch,
+and Sphinx, which powers MariaDB’s text indexing,
+are
+the two industrial-strength open-source full-text search engines
+for natural language.
+The [Lucene manual](https://lucene.apache.org/core/4_7_0/index.html)
+and especially the [Sphinx manual](http://sphinxsearch.com/docs/current.html)
+provide a wealth of information about what they do and how they work,
+and how modern search engines work in general.
+
+Just over a decade ago, Tim Bray wrote
+a series [On Search](https://www.tbray.org/ongoing/When/200x/2003/07/30/OnSearchTOC)
+on his blog;
+it’s still the best introduction I know of.
 
 Acknowledgments
 ---------------
