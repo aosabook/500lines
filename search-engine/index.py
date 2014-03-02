@@ -21,6 +21,8 @@ class Path:                     # like java.lang.File
     open         = lambda self, *args: open(self.name, *args)
     open_gzipped = lambda self, *args: gzip.GzipFile(self.name, *args)
     basename     = lambda self: os.path.basename(self.name)
+    parent       = lambda self: Path(os.path.dirname(self.name))
+    abspath      = lambda self: os.path.abspath(self.name)
 
 def find_documents(path):
     for dir_name, _, filenames in os.walk(path.name):
@@ -96,14 +98,12 @@ def read_tuples(context_manager):
             yield tuple(urllib.unquote(field) for field in line.split())
 
 # XXX maybe these functions don't need to exist?
-def write_metadata(path, metadata):
-    write_tuples(path['metadata'].open('w'), metadata)
-
 def read_metadata(index_path):
     tuples = read_tuples(path['documents'].open())
     return dict((pathname, (int(mtime), int(size)))
                 for pathname, size, mtime in tuples)
 
+# XXX we probably want files_unchanged
 def file_unchanged(metadatas, path):
     return any(metadata.get(path.name) == get_metadata(path)
                for metadata in metadatas)
@@ -151,7 +151,9 @@ def read_segment(path):
 
 # At the moment, our doc_ids are just pathnames; this converts them to Path objects.
 def paths(index_path, terms):
-    return (Path(doc_id) for doc_id in doc_ids(index_path, terms))
+    parent = index_path.parent()
+    return (Path(os.path.relpath(parent[doc_id].abspath(), start='.'))
+            for doc_id in doc_ids(index_path, terms))
 
 def doc_ids(index_path, terms):
     "Actually evaluate a query."
@@ -194,6 +196,7 @@ def segment_term_chunks(segment, term):
 def build_index(index_path, corpus_path, postings_filters):
     os.mkdir(index_path.name)
 
+    # XXX hmm, these should match the doc_ids in the index
     corpus_paths = list(find_documents(corpus_path))
     write_tuples(index_path['documents'].open('w'),
                  ((path.name,) + get_metadata(path) for path in corpus_paths))
@@ -202,7 +205,13 @@ def build_index(index_path, corpus_path, postings_filters):
     for filter_function in postings_filters:
         postings = filter_function(postings)
 
-    for ii, chunk in enumerate(blocked(postings, 2**20)):
+    # XXX at this point we should just pass the fucking doc_id into
+    # the analyzer function :(
+    parent = index_path.parent()
+    rel_paths = dict((path.name, os.path.relpath(path.name, start=parent.name))
+                     for path in corpus_paths)
+    rel_postings = ((term, rel_paths[doc_id]) for term, doc_id in postings)
+    for ii, chunk in enumerate(blocked(rel_postings, 2**20)):
         write_new_segment(index_path['seg_%s' % ii], sorted(chunk))
 
     merge_segments(index_path, index_segments(index_path))
