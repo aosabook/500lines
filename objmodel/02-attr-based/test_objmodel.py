@@ -1,6 +1,5 @@
 from objmodel import Class, Instance, TYPE, OBJECT
 
-# copied from the previous version
 def test_isinstance():
     # Python code
     class A(object):
@@ -22,7 +21,7 @@ def test_isinstance():
     assert b.isinstance(OBJECT)
     assert not b.isinstance(TYPE)
 
-# copied from the previous version
+
 def test_read_write_field():
     # Python code
     class A(object):
@@ -53,7 +52,25 @@ def test_read_write_field():
     assert obj.read_field("a") == 2
     assert obj.read_field("b") == 5
 
-# copied from the previous version
+
+def test_read_write_field_class():
+    # classes are objects too
+    # Python code
+    class A(object):
+        pass
+    A.a = 1
+    assert A.a == 1
+    A.a = 6
+    assert A.a == 6
+
+    # Object model code
+    A = Class("A", OBJECT, {}, TYPE)
+    A.write_field("a", 1)
+    assert A.read_field("a") == 1
+    A.write_field("a", 5)
+    assert A.read_field("a") == 5
+
+
 def test_send_simple():
     # Python code
     class A(object):
@@ -82,7 +99,7 @@ def test_send_simple():
     obj.write_field("x", 2)
     assert obj.send("f") == 3
 
-# copied from the previous version
+
 def test_send_subclassing_and_arguments():
     # Python code
     class A(object):
@@ -114,6 +131,9 @@ def test_send_subclassing_and_arguments():
     obj.write_field("x", 4)
     assert obj.send("g", 4) == 12
 
+
+# ____________________________________________________________
+# new tests
 
 def test_bound_method():
     # Python code

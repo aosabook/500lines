@@ -21,6 +21,7 @@ def test_isinstance():
     assert b.isinstance(OBJECT)
     assert not b.isinstance(TYPE)
 
+
 def test_read_write_field():
     # Python code
     class A(object):
@@ -51,6 +52,25 @@ def test_read_write_field():
     assert obj.read_field("a") == 2
     assert obj.read_field("b") == 5
 
+
+def test_read_write_field_class():
+    # classes are objects too
+    # Python code
+    class A(object):
+        pass
+    A.a = 1
+    assert A.a == 1
+    A.a = 6
+    assert A.a == 6
+
+    # Object model code
+    A = Class("A", OBJECT, {}, TYPE)
+    A.write_field("a", 1)
+    assert A.read_field("a") == 1
+    A.write_field("a", 5)
+    assert A.read_field("a") == 5
+
+
 def test_send_simple():
     # Python code
     class A(object):
@@ -78,6 +98,7 @@ def test_send_simple():
     obj = Instance(B)
     obj.write_field("x", 2)
     assert obj.send("f") == 3
+
 
 def test_send_subclassing_and_arguments():
     # Python code
