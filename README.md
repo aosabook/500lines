@@ -113,4 +113,11 @@ Contributors
     <td>@jaaaarel</td>
     <td>taavi.burns@points.com</td>
   </tr>
-</table>
+  <tr>
+    <td>Alex Clemmer</td>
+    <td></td>
+    <td>Python 3 lexer and parser</td>
+    <td>@hausdorff</td>
+    <td>@hausdorff_space</td>
+    <td>clemmer.alexander@gmail.com</td>
+  </tr></table>
