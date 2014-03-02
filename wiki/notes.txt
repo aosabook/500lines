@@ -67,8 +67,7 @@ Use the signup button to create a new user and log in.
 
 
 
-Next: Fancy stuff (as space allows):
--revision history - display all past revisions with dates and comments and user ids
+Future: Fancy stuff (as space allows):
 -fancy diff/merge - use https://github.com/kpdecker/jsdiff?
 -search - create indexes/views for CouchDB to search text
 -fancy preview - use javascript UI to update preview in realtime

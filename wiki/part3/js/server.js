@@ -3,7 +3,6 @@ const config = require('./config.js'),
       util = require('./util.js'),
       express = require('express'),
       whiskers = require('whiskers'),
-      dateformat = require('dateformat'),
       passport = require('passport'),
       LocalStrategy = require('passport-local').Strategy, //local authentication
       app = express();
@@ -40,7 +39,8 @@ showCompareEditor = function(request, response, args){
     //show contents of both pages
     args['comparecontent'] = doc.content;
     args['comparecomment'] = doc.comment;
-    args['comparedate'] = dateformat(doc.updatedDate, "h:MMTT d-mmm-yyyy");
+    args['username'] = doc.user;
+    args['comparedate'] = util.formatDate(doc.updatedDate);
     args['revision'] = doc._rev;
     response.render('layout.html', args);
   });
@@ -64,9 +64,8 @@ app.get('/wiki/:page', function(request, response){
   var page = request.params.page;
   //read page if it exists
   store.getWikiContents(page, true, function(doc){
-    var editLink = request.path + util.getSeparator(request.path) + "edit";
     //show contents of page
-    response.render('layout.html', {title: page, content: doc.content, editLink: editLink, user: request.user,
+    response.render('layout.html', {title: page, page: page, content: doc.content, user: request.user,
                                     partials: {body: 'view.html', login: 'login.html'}} );
   });
 });
@@ -76,7 +75,7 @@ app.get('/wiki/:page/edit', function(request, response){
   if(!request.isAuthenticated()) response.redirect('/unauthorized/');
   var page = request.params.page;
   var url = request.path;
-  var content = store.getWikiContents(page, false, function(doc){
+  store.getWikiContents(page, false, function(doc){
     response.render('layout.html', {title: page, content: doc.content, revision: doc._rev, url: url, user: request.user,
                                     partials: {body: 'edit.html', login: 'login.html'}} );
   });
@@ -103,7 +102,7 @@ app.post('/wiki/:page/edit', function(request, response){
                                     partials: {body: 'preview.html', editor: 'edit.html', login: 'login.html'}});
   }else{
     //save page
-    store.saveWikiContents(page, content, revision, comment, function(status){
+    store.saveWikiContents(page, content, revision, request.user, comment, function(status){
       if(status === 'ok') return response.redirect('/wiki/'+page); //return to view
       else{ //display contents in editor
         if(status === "conflict"){

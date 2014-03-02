@@ -14,8 +14,8 @@ module.exports = {
       callback(doc);
     });
   },
-  saveWikiContents: function(page, contents, revision, comment, callback){
-    var args = {_id: page, content: contents, comment: comment, updatedDate: new Date()};
+  saveWikiContents: function(page, contents, revision, user, comment, callback){
+    var args = {_id: page, content: contents, comment: comment, updatedDate: new Date(), user: user.name};
     if(revision) args['_rev'] = revision; //if a revision exists, it must be supplied to update, otherwise leave blank to insert
     request({url: config.couchDBURL + config.couchDBName + page, method: 'PUT', json: args}, function(error, couchResponse, content){
         if(error) return callback(error);

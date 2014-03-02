@@ -1,4 +1,5 @@
-const marked = require('marked');
+const marked = require('marked'),
+      dateformat = require('dateformat');
 
 module.exports = {
 
@@ -9,6 +10,11 @@ module.exports = {
   getSeparator: function(path){
     //if path already ends in /, return empty string, otherwise return /
     return /\/$/.test(path) ? '': '/';
+  },
+
+  formatDate: function(date){
+    return dateformat(date, "h:MMTT d-mmm-yyyy");
   }
+
 
 }
