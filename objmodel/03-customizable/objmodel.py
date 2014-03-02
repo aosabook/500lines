@@ -12,21 +12,25 @@ class Base(object):
         except AttributeError:
             pass
         try:
-            return self.cls._read_from_class(fieldname, self)
+            result = self.cls._read_from_class(fieldname, self)
         except AttributeError, orig_error:
             # not found on class
             pass
+        else:
+            if hasattr(result, "__get__"):
+                return _make_boundmethod(result, self, self)
+            return result
         # try special method __getattr__
         try:
             meth = self.cls._read_from_class("__getattr__", self)
         except AttributeError:
             raise orig_error # get the right error message
-        return meth(fieldname)
+        return meth(self, fieldname)
 
     def write_field(self, fieldname, value):
         """ write field 'fieldname' into the object """
         meth = self.cls._read_from_class("__setattr__", self)
-        return meth(fieldname, value)
+        return meth(self, fieldname, value)
 
     def isinstance(self, cls):
         """ return True if the object is an instance of class cls """
@@ -98,10 +102,7 @@ class Class(Base):
     def _read_from_class(self, methname, obj):
         for cls in self.mro():
             if methname in cls._dct:
-                result = cls._dct[methname]
-                if hasattr(result, "__get__"):
-                    return _make_boundmethod(result, self, obj)
-                return result
+                return cls._dct[methname]
         raise AttributeError("method %s not found" % methname)
 
 

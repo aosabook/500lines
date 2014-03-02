@@ -11,7 +11,10 @@ class Base(object):
             return self._read_dict(fieldname)
         except AttributeError:
             pass
-        return self.cls._read_from_class(fieldname, self)
+        result = self.cls._read_from_class(fieldname, self)
+        if callable(result):
+            return _make_boundmethod(result, self)
+        return result
 
     def write_field(self, fieldname, value):
         """ write field 'fieldname' into the object """
@@ -86,11 +89,8 @@ class Class(Base):
     def _read_from_class(self, methname, obj):
         for cls in self.mro():
             if methname in cls._dct:
-                result = cls._dct[methname]
-                if callable(result):
-                    return _make_boundmethod(result, obj)
-                return result
-        raise LanguageError("method %s not found" % methname)
+                return cls._dct[methname]
+        raise AttributeError("method %s not found" % methname)
 
 # set up the base hierarchy like in Python (the ObjVLisp model)
 # the ultimate base class is OBJECT
