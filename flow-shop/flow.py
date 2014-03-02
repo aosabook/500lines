@@ -49,7 +49,7 @@ def compile_solution(data, perm):
         job = perm[i]
         mach_times[0].append(mach_times[0][-1] + data[perm[i-1]][0])
         for mach in range(1, nmach):
-            mach_times[mach].append(max(mach_times[mach-1][i] + data[i][mach-1],
+            mach_times[mach].append(max(mach_times[mach-1][i] + data[perm[i]][mach-1],
                                         mach_times[mach][i-1] + data[perm[i-1]][mach]))
     
     return mach_times
@@ -86,7 +86,7 @@ def print_solution(data, perm):
     row_format ="{:>15}" * 4
     print row_format.format('Machine', 'Start Time', 'Finish Time', 'Idle Time')
     for mach in range(len(data[0])):
-        finish_time = sol[mach][-1] + data[perm[-1]][-1]
+        finish_time = sol[mach][-1] + data[perm[-1]][mach]
         idle_time = (finish_time - sol[mach][0]) - sum([job[mach] for job in data])
         print row_format.format(mach+1, sol[mach][0], finish_time, idle_time)
     
