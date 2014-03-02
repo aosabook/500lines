@@ -113,4 +113,12 @@ Contributors
     <td>@jaaaarel</td>
     <td>taavi.burns@points.com</td>
   </tr>
+  <tr>
+    <td>Sarah Mei</td>
+    <td>Ministry of Velocity</td>
+    <td>testing framework</td>
+    <td><a href='http://github.com/sarahmei'>@sarahmei</a></td>
+    <td><a href='http://twitter.com/sarahmei'>@sarahmei</a></td>
+    <td></td>
+  </tr>
 </table>
