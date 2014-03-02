@@ -8,7 +8,7 @@ This chapter is somewhat different from others in this book. Instead of building
 
 To construct this model, we use _Alloy_, a language for modeling and analyzing software design. An Alloy model cannot be executed in the traditional sense of program execution. Instead, a model can be (1) _simulated_ to produce an _instance_, which represents a valid configuration or a trace, and (2) _checked_ to see whether the model satisfies a desired _property_.
 
-[TODO What's the point of building a model when you can just build implementation?]
+[TODO: Explain: What's the point of building a model when you can just build implementation?]
 
 ## Model
 
