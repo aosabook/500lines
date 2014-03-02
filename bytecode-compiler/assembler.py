@@ -27,7 +27,6 @@ def assemble(assembly):
 
     def flatten(assembly, refs):
         if isinstance(assembly, tuple):
-            assert len(assembly) == 2, assembly
             my_code, my_linking = assembly
             refs.extend((len(code) + 1, label, fixup)
                         for label, fixup in my_linking)
@@ -59,9 +58,5 @@ if __name__ == '__main__':
                    op.LOAD_CONST(1), op.JUMP_FORWARD(2)],
                1: [op.LOAD_CONST(2)],
                2: []}
-## op.LOAD_CONST(0)
-#. ([100, 0, 0], [])
-## op.POP_JUMP_IF_FALSE(1)
-#. ([114, 0, 0], [(1, <function <lambda> at 0xffe79764>)])
     for pc, byte in enumerate(assemble(example)):
         print(pc, byte)
