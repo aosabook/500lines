@@ -25,3 +25,7 @@ The stages are:
 A note about size: just counting the lines of all the code gives a too large
 result. However, there is a lot of shared code between the stages (particularly
 in the tests) which would not have to be shown in the actual chapter.
+There is a script countlines.py that shows an approximation of the correct
+lines by counting the lines of the diffs.
+
+There's another script diff.py that shows the diffs between the stages.
