@@ -56,6 +56,12 @@ class VirtualMachine(object):
     def pop_block(self):
         return self.frame.block_stack.pop()
 
+    def unwind_except_handler(self, block):
+        while len(self.stack) > block.level + 3:
+            self.pop()
+        traceback, value, exctype = self.popn(3)
+        self.last_exception = exctype, value, traceback
+
     def make_frame(self, code, callargs={}, f_globals=None, f_locals=None):
         if f_globals is not None:
             f_globals = f_globals
@@ -208,12 +214,6 @@ class VirtualMachine(object):
             raise e
 
         return self.return_value
-
-    def unwind_except_handler(self, block):
-        while len(self.stack) > block.level + 3:
-            self.pop()
-        traceback, value, exctype = self.popn(3)
-        self.last_exception = exctype, value, traceback
 
     ## Stack manipulation
 
