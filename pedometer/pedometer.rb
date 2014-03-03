@@ -29,13 +29,11 @@ post '/create' do
   begin
     file = params[:device][:file][:tempfile]
     
-    user = User.new(params[:user].symbolize_keys)
-    @device = Device.new({data: File.read(file)}.merge(params[:device].symbolize_keys))
-    @parser = Parser.new(@device)
-    @analyzer = Analyzer.new(@parser, user)
-    @analyzer.measure
+    user_params = params[:user].symbolize_keys
+    device_params = {data: File.read(file)}.merge(params[:device].symbolize_keys)
+    build_with_params(user_params, device_params)
 
-    @file_name = FileHelper.generate_file_name(user, @device)
+    @file_name = FileHelper.generate_file_name(@user, @device)
     
     cp(file, "public/uploads/" + @file_name)
 
@@ -45,23 +43,16 @@ post '/create' do
   end
 end
 
-# TODO: 
-# - Refactor out some common functionality
 get '/data' do
   begin
     @data = []
     files = Dir.glob(File.join('public/uploads', "*"))
     files.each do |file|
-      file_name = file.split('/').last
-      user_params, device_params = FileHelper.parse_file_name(file_name).values
+      user_params, device_params = FileHelper.parse_file_name(file.split('/').last).values
+      device_params = {:data => File.read(file)}.merge(device_params)
+      build_with_params(user_params, device_params)
 
-      user = User.new(user_params)
-      device = Device.new({:data => File.read(file)}.merge(device_params))
-      parser = Parser.new(device)
-      analyzer = Analyzer.new(parser, user)
-      analyzer.measure
-
-      @data << {:file => file, :device => device, :steps => analyzer.steps, :user => user}
+      @data << {:file => file, :device => @device, :steps => @analyzer.steps, :user => @user}
     end
 
     erb :data
@@ -106,3 +97,10 @@ get '/detail/*' do
   end
 end
 
+def build_with_params(user_params, device_params)
+  @user     = User.new(user_params)
+  @device   = Device.new(device_params)
+  @parser   = Parser.new(@device)
+  @analyzer = Analyzer.new(@parser, @user)
+  @analyzer.measure
+end
