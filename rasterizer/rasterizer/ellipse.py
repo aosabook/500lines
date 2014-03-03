@@ -1,4 +1,5 @@
 from shape import Shape
+from poly import ConvexPoly
 from geometry import Vector, Transform, quadratic, scale, translate, AABox, HalfPlane
 from color import Color
 import sys
@@ -43,7 +44,9 @@ class Ellipse(Shape):
         return Ellipse(aa, bb, cc, dd, ee, ff, color=self.color)
     def intersections(self, c, p):
         # returns the two intersections of the line through c and p
-        # and the ellipse
+        # and the ellipse. Defining a line as a function of a single
+        # parameter u, x(u) = c.x + u * (p.x - c.x), (and same for y)
+        # this simply solves the quadratic equation f(x(u), y(u)) = 0
         pc = p - c
         u2 = self.a*pc.x**2 + self.b*pc.y**2 + self.c*pc.x*pc.y
         u1 = 2*self.a*c.x*pc.x + 2*self.b*c.y*pc.y \
@@ -65,10 +68,7 @@ class Ellipse(Shape):
             # distance from the point to the ellipse must be smaller.
             v0, v2 = self.intersections(p, p + Vector(1, 0))
             v1, v3 = self.intersections(p, p + Vector(0, 1))
-            hps = [HalfPlane(v0,v1), HalfPlane(v1,v2),
-                   HalfPlane(v2,v3), HalfPlane(v3,v0)]
-            return min(*(abs(hp.signed_distance(p))
-                         for hp in hps))
+            return abs(ConvexPoly([v0,v1,v2,v3]).signed_distance_bound(p))
         else:
             c = self.center
             crossings = self.intersections(c, p)

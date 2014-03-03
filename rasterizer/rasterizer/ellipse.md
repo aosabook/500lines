@@ -48,18 +48,39 @@ df/dy(x, y) = 0, v(x, y) = 0 gives the left and right points.
 
 ## Transforming an ellipse
 
-Say we're given an affine transformation T(x, y) = M . (x, y) = (x', y') that we
-need to apply to the ellipse to get a new ellipse. This means that the
-implicit equation for the new ellipse needs to be written as a
-function of x' and y', but our current equation is a polynomial in x
-and y. To get the new equation, we need to write x and y themselves as
-functions of x' and y'
+Say we're given an affine transformation T(x, y) = M . (x, y) = (x',
+y') that we need to apply to the ellipse to get a new ellipse. The
+straightforward way is to transform query points every time we want to
+test them against the new ellipse. That is, if we translated an
+ellipse by (10,0), then we need to transform the query points by the
+*inverse* of T. To see this, think of the translated ellipse
+above. Its new center is at (10,0), which means that query points at
+(10,0) need to be transformed to (0,0) on the old coordinate
+system. This approach works, but it only gives us the `contains`
+primitive. Worse yet, affine transformations do not preserve distances
+to shapes, so we cannot hope to make a query to
+`signed_distance_bound` and then invert that result somehow. Instead,
+we will use the inverse transformation to compute entirely new
+coefficients. We write (x, y) = M^-1(x', y'), which gives us an
+expression of the new coordinates in terms of the old ones, and then
+recreate the quadratic polynomial. This is tedious but
+straightforward algebra that goes sort of like this:
 
-T(x, y) = (x', y')
+x = m00 x' + m01 y' + m02
+y = m10 x' + m11 y' + m12
+(where m00, m01, etc. are the coefficients of the inverse matrix)
 
-This gives 
+f(x, y) = ax^2 + by^2 + cxy + dx + ey + f
+f(x, y) = a(m00 x' + m01 y' + m02)^2 + b(m10 x' + m11 y' + m12)^2
+        + ...
 
+Then you collect all terms that are quadratic in x' and call then a',
+all the terms quadratic in y' and call them b', etc. You end up with
 
+f'(x', y') = a'x'^2 + b'y^2 + c'x'y' + d'x' + e'y' + f'
+
+In the code, the variables a', b', c', etc. are denoted respectively
+as aa, bb, cc, etc.
 
 ## Bounding the distance to an ellipse
 
@@ -87,3 +108,12 @@ line too). This shortened line, in turn, is yet shorter than the leg
 `s'` to `p`. But length of this leg is precisely the distance from `s`
 to `i`, and so we know that it's a lower bound to the distance from
 `e` to `p`, and we are done.
+
+If `p` is inside the ellipse, then the problem is simpler. We first
+look for a convex polygon that inscribes the ellipse and contains
+`p`. This is simple: we simply shoot rays in the horizontal and
+vertical directions from `p` and collect the intersection points of
+those rays and the ellipse. Because ellipses are convex, a polygon
+that connects those intersections will be entirely inside the
+ellipse. Then, we simply return the signed distance bound for
+that polygon.
