@@ -52,12 +52,8 @@ get '/detail/*' do
     build_with_params(user_params, device_params)
 
     files = Dir.glob(File.join('public/uploads', "*"))
-    match = if @file_name.include?('-a.txt')
-      files.select {|f| f == @file_name.gsub('-a.txt', '-g.txt')}.first
-    elsif @file_name.include?('-g.txt')
-      files.select {|f| f == @file_name.gsub('-g.txt', '-a.txt')}.first
-    end
-
+    files.delete(@file_name)
+    match = files.select { |f| @file_name == f.gsub('-a.', '-g.').gsub('-g.', '-a.') }.first
     if match
       device = Device.new(:data => File.read(match))
       parser = Parser.new(device)
