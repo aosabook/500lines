@@ -9,10 +9,10 @@ from symtable import symtable
 from _symtable import (CELL, FREE, LOCAL, GLOBAL_IMPLICIT, GLOBAL_EXPLICIT,
                        SCOPE_MASK, SCOPE_OFF, TYPE_FUNCTION)
 
-def top_scope(t, source):
+def top_scope(t, source, loud=False):
     top_level = Scope(symtable(source, 'filename', 'exec'))
     top_level.visit(t)
-    show(top_level.st)
+    if loud: show(top_level.st)
     return top_level
 
 def show(st, indent=''):

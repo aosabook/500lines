@@ -8,9 +8,11 @@ from functools import reduce
 from assembler import op, assemble
 from scoper import top_scope
 
+loud = 0
+
 def bytecomp(source, f_globals):
     t = ast.parse(source)
-    top_level = top_scope(t, source)
+    top_level = top_scope(t, source, loud)
     return types.FunctionType(CodeGen(top_level).compile(t), f_globals)
 
 class CodeGen(ast.NodeVisitor):
@@ -228,6 +230,11 @@ if __name__ == '__main__':
 
     import sys
 
+    if loud:
+        report = print
+    else:
+        def report(*args, **kwargs): pass
+
     def main(source):
         f = compile_toplevel(source)
         f()   # It's alive!
@@ -238,24 +245,24 @@ if __name__ == '__main__':
             import astpp
         except ImportError:
             astpp = ast
-        print(astpp.dump(t))
+        report(astpp.dump(t))
         f = bytecomp(source, globals())
         diss(f.__code__)
         return f
 
     def diss(code):
         codepp(code)
-        dis.dis(code)
+        if loud: dis.dis(code)
         for c in code.co_consts:
             if isinstance(c, types.CodeType):
-                print()
-                print('------', c, '------')
+                report()
+                report('------', c, '------')
                 diss(c)
 
     def codepp(code):
         for k in dir(code):
             if k.startswith('co_'):
-                print(k, getattr(code, k))
+                report(k, getattr(code, k))
 
     eg = """
 #import math
