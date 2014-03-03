@@ -501,8 +501,7 @@ class VirtualMachine(object):
             else:
                 return 'reraise'
 
-        elif type(exc) == type:
-            # As in `raise ValueError`
+        elif type(exc) == type:  # As in `raise ValueError`
             exc_type = exc
             val = exc()             # Make an instance.
         elif isinstance(exc, BaseException):
@@ -510,18 +509,7 @@ class VirtualMachine(object):
             exc_type = type(exc)
             val = exc
         else:
-            return 'exception'      # error
-
-        # If you reach this point, you're guaranteed that
-        # val is a valid exception instance and exc_type is its class.
-        # Now do a similar thing for the cause, if present.
-        if cause:
-            if type(cause) == type:
-                cause = cause()
-            elif not isinstance(cause, BaseException):
-                return 'exception'  # error
-
-            val.__cause__ = cause
+            return 'exception' # error
 
         self.last_exception = exc_type, val, val.__traceback__
         return 'exception'
