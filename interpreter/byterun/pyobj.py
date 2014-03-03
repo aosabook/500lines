@@ -123,36 +123,6 @@ class Method(object):
         else:
             return self.im_func(*args, **kwargs)
 
-
-class Cell(object):
-    """A fake cell for closures.
-
-    Closures keep names in scope by storing them not in a frame, but in a
-    separate object called a cell.  Frames share references to cells, and
-    the LOAD_DEREF and STORE_DEREF opcodes get and set the value from cells.
-
-    This class acts as a cell, though it has to jump through two hoops to make
-    the simulation complete:
-
-        1. In order to create actual FunctionType functions, we have to have
-           actual cell objects, which are difficult to make. See the twisty
-           double-lambda in __init__.
-
-        2. Actual cell objects can't be modified, so to implement STORE_DEREF,
-           we store a one-element list in our cell, and then use [0] as the
-           actual value.
-
-    """
-    def __init__(self, value):
-        self.contents = value
-
-    def get(self):
-        return self.contents
-
-    def set(self, value):
-        self.contents = value
-
-
 Block = collections.namedtuple("Block", "type, handler, level")
 
 
@@ -177,9 +147,7 @@ class Frame(object):
             if not f_back.cells:
                 f_back.cells = {}
             for var in f_code.co_cellvars:
-                # Make a cell for the variable in our locals, or None.
-                cell = Cell(self.f_locals.get(var))
-                f_back.cells[var] = self.cells[var] = cell
+                f_back.cells[var] = self.cells[var]
         else:
             self.cells = None
 

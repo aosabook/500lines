@@ -105,92 +105,92 @@ class TestFunctions(vmtest.VmTestCase):
             assert them == (10,7,1,0)
             """)
 
-    def test_wraps(self):
-        self.assert_ok("""\
-            from functools import wraps
-            def my_decorator(f):
-                dec = wraps(f)
-                def wrapper(*args, **kwds):
-                    print('Calling decorated function')
-                    return f(*args, **kwds)
-                wrapper = dec(wrapper)
-                return wrapper
+    # def test_wraps(self):
+    #     self.assert_ok("""\
+    #         from functools import wraps
+    #         def my_decorator(f):
+    #             dec = wraps(f)
+    #             def wrapper(*args, **kwds):
+    #                 print('Calling decorated function')
+    #                 return f(*args, **kwds)
+    #             wrapper = dec(wrapper)
+    #             return wrapper
 
-            @my_decorator
-            def example():
-                '''Docstring'''
-                return 17
+    #         @my_decorator
+    #         def example():
+    #             '''Docstring'''
+    #             return 17
 
-            assert example() == 17
-            """)
+    #         assert example() == 17
+    #         """)
 
 
-class TestClosures(vmtest.VmTestCase):
-    def test_closures(self):
-        self.assert_ok("""\
-            def make_adder(x):
-                def add(y):
-                    return x+y
-                return add
-            a = make_adder(10)
-            print(a(7))
-            assert a(7) == 17
-            """)
+# class TestClosures(vmtest.VmTestCase):
+#     def test_closures(self):
+#         self.assert_ok("""\
+#             def make_adder(x):
+#                 def add(y):
+#                     return x+y
+#                 return add
+#             a = make_adder(10)
+#             print(a(7))
+#             assert a(7) == 17
+#             """)
 
-    def test_closures_store_deref(self):
-        self.assert_ok("""\
-            def make_adder(x):
-                z = x+1
-                def add(y):
-                    return x+y+z
-                return add
-            a = make_adder(10)
-            print(a(7))
-            assert a(7) == 28
-            """)
+#     def test_closures_store_deref(self):
+#         self.assert_ok("""\
+#             def make_adder(x):
+#                 z = x+1
+#                 def add(y):
+#                     return x+y+z
+#                 return add
+#             a = make_adder(10)
+#             print(a(7))
+#             assert a(7) == 28
+#             """)
 
-    def test_closures_in_loop(self):
-        self.assert_ok("""\
-            def make_fns(x):
-                fns = []
-                for i in range(x):
-                    fns.append(lambda i=i: i)
-                return fns
-            fns = make_fns(3)
-            for f in fns:
-                print(f())
-            assert (fns[0](), fns[1](), fns[2]()) == (0, 1, 2)
-            """)
+#     def test_closures_in_loop(self):
+#         self.assert_ok("""\
+#             def make_fns(x):
+#                 fns = []
+#                 for i in range(x):
+#                     fns.append(lambda i=i: i)
+#                 return fns
+#             fns = make_fns(3)
+#             for f in fns:
+#                 print(f())
+#             assert (fns[0](), fns[1](), fns[2]()) == (0, 1, 2)
+#             """)
 
-    def test_closures_with_defaults(self):
-        self.assert_ok("""\
-            def make_adder(x, y=13, z=43):
-                def add(q, r=11):
-                    return x+y+z+q+r
-                return add
-            a = make_adder(10, 17)
-            print(a(7))
-            assert a(7) == 88
-            """)
+#     def test_closures_with_defaults(self):
+#         self.assert_ok("""\
+#             def make_adder(x, y=13, z=43):
+#                 def add(q, r=11):
+#                     return x+y+z+q+r
+#                 return add
+#             a = make_adder(10, 17)
+#             print(a(7))
+#             assert a(7) == 88
+#             """)
 
-    def test_deep_closures(self):
-        self.assert_ok("""\
-            def f1(a):
-                b = 2*a
-                def f2(c):
-                    d = 2*c
-                    def f3(e):
-                        f = 2*e
-                        def f4(g):
-                            h = 2*g
-                            return a+b+c+d+e+f+g+h
-                        return f4
-                    return f3
-                return f2
-            answer = f1(3)(4)(5)(6)
-            print(answer)
-            assert answer == 54
-            """)
+#     def test_deep_closures(self):
+#         self.assert_ok("""\
+#             def f1(a):
+#                 b = 2*a
+#                 def f2(c):
+#                     d = 2*c
+#                     def f3(e):
+#                         f = 2*e
+#                         def f4(g):
+#                             h = 2*g
+#                             return a+b+c+d+e+f+g+h
+#                         return f4
+#                     return f3
+#                 return f2
+#             answer = f1(3)(4)(5)(6)
+#             print(answer)
+#             assert answer == 54
+#             """)
 
 
 # class TestGenerators(vmtest.VmTestCase):

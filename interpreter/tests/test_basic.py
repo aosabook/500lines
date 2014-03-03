@@ -392,19 +392,19 @@ class TestIt(vmtest.VmTestCase):
             assert f(1) == 'bar'
             """)
 
-    def test_decorator(self):
-        self.assert_ok("""\
-            def verbose(func):
-                def _wrapper(*args, **kwargs):
-                    return func(*args, **kwargs)
-                return _wrapper
+    # def test_decorator(self):
+    #     self.assert_ok("""\
+    #         def verbose(func):
+    #             def _wrapper(*args, **kwargs):
+    #                 return func(*args, **kwargs)
+    #             return _wrapper
 
-            @verbose
-            def add(x, y):
-                return x+y
+    #         @verbose
+    #         def add(x, y):
+    #             return x+y
 
-            add(7, 3)
-            """)
+    #         add(7, 3)
+    #         """)
 
 
 class TestLoops(vmtest.VmTestCase):

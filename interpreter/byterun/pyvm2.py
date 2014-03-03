@@ -318,12 +318,6 @@ class VirtualMachine(object):
             raise NameError("global name '%s' is not defined" % name)
         self.push(val)
 
-    def byte_LOAD_DEREF(self, name):
-        self.push(self.frame.cells[name].get())
-
-    def byte_STORE_DEREF(self, name):
-        self.frame.cells[name].set(self.pop())
-
     ## Operators
 
     UNARY_OPERATORS = {
@@ -664,17 +658,6 @@ class VirtualMachine(object):
         defaults = self.popn(argc)
         globs = self.frame.f_globals
         fn = Function(name, code, globs, defaults, None, self)
-        self.push(fn)
-
-    def byte_LOAD_CLOSURE(self, name):
-        self.push(self.frame.cells[name])
-
-    def byte_MAKE_CLOSURE(self, argc):
-        name = self.pop()
-        closure, code = self.popn(2)
-        defaults = self.popn(argc)
-        globs = self.frame.f_globals
-        fn = Function(None, code, globs, defaults, closure, self)
         self.push(fn)
 
     def byte_CALL_FUNCTION(self, arg):
