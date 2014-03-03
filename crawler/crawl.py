@@ -11,6 +11,7 @@ import logging
 import sys
 
 import crawling
+import reporting
 
 
 ARGS = argparse.ArgumentParser(description="Web crawler")
@@ -98,7 +99,7 @@ def main():
         sys.stderr.flush()
         print('\nInterrupted\n')
     finally:
-        crawler.report()
+        reporting.report(crawler)
         crawler.close()
         loop.close()
 

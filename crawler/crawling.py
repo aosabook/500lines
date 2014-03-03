@@ -1,5 +1,3 @@
-#!/usr/bin/env python3.4
-
 """A simple web crawler -- classes implementing crawling logic."""
 
 # TODO:
@@ -364,7 +362,7 @@ class Fetcher:
     crawler for the connection pool and to add more URLs to its todo
     list.
 
-    Call fetch() to do the fetching, then report() to print the results.
+    Call fetch() to do the fetching; results are in instance variables.
     """
 
     def __init__(self, url, crawler, max_redirect=10, max_tries=4):
@@ -457,72 +455,6 @@ class Fetcher:
                         url, frag = urllib.parse.urldefrag(url)
                         if self.crawler.add_url(url):
                             self.new_urls.add(url)
-
-    def report(self, stats, file=None):
-        """Print a report on the state for this URL.
-
-        Also update the Stats instance.
-        """
-        if self.task is not None:
-            if not self.task.done():
-                stats.add('pending')
-                print(self.url, 'pending', file=file)
-                return
-            elif self.task.cancelled():
-                stats.add('cancelled')
-                print(self.url, 'cancelled', file=file)
-                return
-            elif self.task.exception():
-                stats.add('exception')
-                exc = self.task.exception()
-                stats.add('exception_' + exc.__class__.__name__)
-                print(self.url, exc, file=file)
-                return
-        if len(self.exceptions) == self.tries:
-            stats.add('fail')
-            exc = self.exceptions[-1]
-            stats.add('fail_' + str(exc.__class__.__name__))
-            print(self.url, 'error', exc, file=file)
-        elif self.next_url:
-            stats.add('redirect')
-            print(self.url, self.response.status, 'redirect', self.next_url,
-                  file=file)
-        elif self.ctype == 'text/html':
-            stats.add('html')
-            size = len(self.body or b'')
-            stats.add('html_bytes', size)
-            print(self.url, self.response.status,
-                  self.ctype, self.encoding,
-                  size,
-                  '%d/%d' % (len(self.new_urls or ()), len(self.urls or ())),
-                  file=file)
-        else:
-            size = len(self.body or b'')
-            if self.response.status == 200:
-                stats.add('other')
-                stats.add('other_bytes', size)
-            else:
-                stats.add('error')
-                stats.add('error_bytes', size)
-                stats.add('status_%s' % self.response.status)
-            print(self.url, self.response.status,
-                  self.ctype, self.encoding,
-                  size,
-                  file=file)
-
-
-class Stats:
-    """Record stats of various sorts."""
-
-    def __init__(self):
-        self.stats = {}
-
-    def add(self, key, count=1):
-        self.stats[key] = self.stats.get(key, 0) + count
-
-    def report(self, file=None):
-        for key, count in sorted(self.stats.items()):
-            print('%10d' % count, key, file=file)
 
 
 class Crawler:
@@ -676,34 +608,3 @@ class Crawler:
             self.done[url] = fetcher
             del self.busy[url]
             self.termination.notify()
-
-    def report(self, file=None):
-        """Print a report on all completed URLs."""
-        if self.t1 is None:
-            self.t1 = time.time()
-        dt = self.t1 - self.t0
-        if dt and self.max_tasks:
-            speed = len(self.done) / dt / self.max_tasks
-        else:
-            speed = 0
-        stats = Stats()
-        print('*** Report ***', file=file)
-        try:
-            show = []
-            show.extend(self.done.items())
-            show.extend(self.busy.items())
-            show.sort()
-            for url, fetcher in show:
-                fetcher.report(stats, file=file)
-        except KeyboardInterrupt:
-            print('\nInterrupted', file=file)
-        print('Finished', len(self.done),
-              'urls in %.3f secs' % dt,
-              '(max_tasks=%d)' % self.max_tasks,
-              '(%.3f urls/sec/task)' % speed,
-              file=file)
-        stats.report(file=file)
-        print('Todo:', len(self.todo), file=file)
-        print('Busy:', len(self.busy), file=file)
-        print('Done:', len(self.done), file=file)
-        print('Date:', time.ctime(), 'local time', file=file)
