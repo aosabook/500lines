@@ -4,7 +4,7 @@ Byte-compile an almost-reasonable subset of Python.
 
 import ast, collections, dis, types
 from functools import reduce
-from assembler import op, assemble
+from assembler import op, assemble, stack_depth
 from scoper import top_scope
 
 loud = 0
@@ -44,6 +44,8 @@ class CodeGen(ast.NodeVisitor):
         kwonlyargcount = 0
         nlocals = len(self.varnames)
         stacksize = 10          # XXX
+        stacksize = stack_depth(assembly)
+        print('stacksize =', stacksize)
         flags = 64  # XXX I don't understand the flags
         flags |= 2 if nlocals else 0  # this is just a guess
         filename = '<stdin>'
