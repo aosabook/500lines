@@ -85,10 +85,6 @@ class VirtualMachine(object):
         frame = Frame(code, f_globals, f_locals, self.frame)
         return frame
 
-    def push_frame(self, frame):
-        self.frames.append(frame)
-        self.frame = frame
-
     def pop_frame(self):
         self.frames.pop()
         if self.frames:
@@ -111,7 +107,8 @@ class VirtualMachine(object):
         """Run a frame until it returns (somehow).
         Exceptions are raised, the return value is returned.
         """
-        self.push_frame(frame)
+        self.frames.append(frame)
+        self.frame = frame
         while True:
             opoffset = frame.f_lasti
             byteCode = frame.f_code.co_code[opoffset]
