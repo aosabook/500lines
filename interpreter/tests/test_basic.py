@@ -15,45 +15,45 @@ class TestIt(vmtest.VmTestCase):
             print(out)
             """)
 
-    def test_inplace_operators(self):
-        self.assert_ok("""\
-            x, y = 2, 3
-            x **= y
-            assert x == 8 and y == 3
-            x *= y
-            assert x == 24 and y == 3
-            x //= y
-            assert x == 8 and y == 3
-            x %= y
-            assert x == 2 and y == 3
-            x += y
-            assert x == 5 and y == 3
-            x -= y
-            assert x == 2 and y == 3
-            x <<= y
-            assert x == 16 and y == 3
-            x >>= y
-            assert x == 2 and y == 3
+    # def test_inplace_operators(self):
+    #     self.assert_ok("""\
+    #         x, y = 2, 3
+    #         x **= y
+    #         assert x == 8 and y == 3
+    #         x *= y
+    #         assert x == 24 and y == 3
+    #         x //= y
+    #         assert x == 8 and y == 3
+    #         x %= y
+    #         assert x == 2 and y == 3
+    #         x += y
+    #         assert x == 5 and y == 3
+    #         x -= y
+    #         assert x == 2 and y == 3
+    #         x <<= y
+    #         assert x == 16 and y == 3
+    #         x >>= y
+    #         assert x == 2 and y == 3
 
-            x = 0x8F
-            x &= 0xA5
-            assert x == 0x85
-            x |= 0x10
-            assert x == 0x95
-            x ^= 0x33
-            assert x == 0xA6
-            """)
+    #         x = 0x8F
+    #         x &= 0xA5
+    #         assert x == 0x85
+    #         x |= 0x10
+    #         assert x == 0x95
+    #         x ^= 0x33
+    #         assert x == 0xA6
+    #         """)
 
-    def test_inplace_division(self):
-        self.assert_ok("""\
-            x, y = 24, 3
-            x /= y
-            assert x == 8.0 and y == 3
-            assert isinstance(x, float)
-            x /= y
-            assert x == (8.0/3.0) and y == 3
-            assert isinstance(x, float)
-            """)
+    # def test_inplace_division(self):
+    #     self.assert_ok("""\
+    #         x, y = 24, 3
+    #         x /= y
+    #         assert x == 8.0 and y == 3
+    #         assert isinstance(x, float)
+    #         x /= y
+    #         assert x == (8.0/3.0) and y == 3
+    #         assert isinstance(x, float)
+    #         """)
 
     def test_slice(self):
         self.assert_ok("""\
@@ -220,13 +220,13 @@ class TestIt(vmtest.VmTestCase):
             # print(hasattr(l, "foo"))
             """)
 
-    def test_attribute_inplace_ops(self):
-        self.assert_ok("""\
-            l = lambda: 1   # Just to have an object...
-            l.foo = 17
-            l.foo -= 3
-            print(l.foo)
-            """)
+    # def test_attribute_inplace_ops(self):
+    #     self.assert_ok("""\
+    #         l = lambda: 1   # Just to have an object...
+    #         l.foo = 17
+    #         l.foo -= 3
+    #         print(l.foo)
+    #         """)
 
     # def test_deleting_names(self):
     #     self.assert_ok("""\

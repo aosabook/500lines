@@ -174,8 +174,6 @@ class VirtualMachine(object):
                     self.unaryOperator(byteName[6:])
                 elif byteName.startswith('BINARY_'):
                     self.binaryOperator(byteName[7:])
-                elif byteName.startswith('INPLACE_'):
-                    self.inplaceOperator(byteName[8:])
                 else:
                     # dispatch
                     bytecode_fn = getattr(self, 'byte_%s' % byteName, None)
@@ -346,36 +344,6 @@ class VirtualMachine(object):
     def binaryOperator(self, op):
         x, y = self.popn(2)
         self.push(self.BINARY_OPERATORS[op](x, y))
-
-    def inplaceOperator(self, op):
-        x, y = self.popn(2)
-        if op == 'POWER':
-            x **= y
-        elif op == 'MULTIPLY':
-            x *= y
-        elif op == 'FLOOR_DIVIDE':
-            x //= y
-        elif op == 'TRUE_DIVIDE':
-            x /= y
-        elif op == 'MODULO':
-            x %= y
-        elif op == 'ADD':
-            x += y
-        elif op == 'SUBTRACT':
-            x -= y
-        elif op == 'LSHIFT':
-            x <<= y
-        elif op == 'RSHIFT':
-            x >>= y
-        elif op == 'AND':
-            x &= y
-        elif op == 'XOR':
-            x ^= y
-        elif op == 'OR':
-            x |= y
-        else:           # pragma: no cover
-            raise VirtualMachineError("Unknown in-place operator: %r" % op)
-        self.push(x)
 
     COMPARE_OPERATORS = [
         operator.lt,
