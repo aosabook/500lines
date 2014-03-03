@@ -12,6 +12,13 @@ import shutil                   # to remove directory trees
 import traceback
 import urllib                   # for quote and unquote
 
+# 2**20 is chosen as the maximum segment size because that uses
+# typically about a quarter gig, which is a reasonable size these
+# days.
+segment_size = 2**20
+chunk_size = 4096
+word_len = 20                   # to eliminate nonsense words
+
 class Path:                     # like java.lang.File
     def __init__(self, name):
         self.name = name
@@ -43,11 +50,11 @@ def tokenize_file(file_path):
         return tokenize_text(file_path)
 
 def remove_duplicates(seq):
-    seen_postings = set()
-    for posting in seq:
-        if posting not in seen_postings:
-            yield posting
-            seen_postings.add(posting)
+    seen_items = set()
+    for item in seq:
+        if item not in seen_items:
+            yield item
+            seen_items.add(item)
 
 def tokenize_text(file_path):
     word_re = re.compile(r'\w+')
@@ -115,7 +122,11 @@ def blocked(seq, block_size):
         # XXX for some reason using list(), and then later sorting in
         # place, makes the whole program run twice as slow and doesn't
         # reduce its memory usage.  No idea why.
-        yield tuple(itertools.islice(seq, block_size)) or next(seq)
+        block = tuple(itertools.islice(seq, block_size))
+        if block:
+            yield block
+        else:
+            raise StopIteration
 
 # Yields one skip file entry, or, in the edge case of an empty chunk, none.
 def write_chunk(path, filename, chunk):
@@ -125,8 +136,9 @@ def write_chunk(path, filename, chunk):
 
 def write_new_segment(path, postings):
     os.mkdir(path.name)
+    chunks = blocked(postings, chunk_size)
     skip_file_contents = (write_chunk(path, '%s.gz' % ii, chunk)
-                          for ii, chunk in enumerate(blocked(postings, 4096)))
+                          for ii, chunk in enumerate(chunks))
     write_tuples(path['skip'].open('w'), itertools.chain(*skip_file_contents))
 
 def skip_file_entries(segment_path):
@@ -152,47 +164,44 @@ def read_segment(path):
 # At the moment, our doc_ids are just pathnames; this converts them to Path objects.
 def paths(index_path, terms):
     parent = index_path.parent()
-    return (Path(os.path.relpath(parent[doc_id].abspath(), start='.'))
-            for doc_id in doc_ids(index_path, terms))
+    for doc_id in doc_ids(index_path, terms):
+        yield Path(os.path.relpath(parent[doc_id].abspath(), start='.'))
 
 def doc_ids(index_path, terms):
     "Actually evaluate a query."
-    return set.intersection(*(set(term_doc_ids(index_path, term))
-                              for term in terms))
+    doc_id_sets = (set(term_doc_ids(index_path, term)) for term in terms)
+    return set.intersection(*doc_id_sets)
 
 def term_doc_ids(index_path, term):
-    return itertools.chain(*(segment_term_doc_ids(segment, term)
-                             for segment in index_segments(index_path)))
+    doc_id_sets = (segment_term_doc_ids(segment, term)
+                   for segment in index_segments(index_path))
+    return itertools.chain(*doc_id_sets)
 
-def segment_term_doc_ids(segment, term):
-    for chunk_name in segment_term_chunks(segment, term):
+def segment_term_doc_ids(segment, needle_term):
+    for chunk_name in segment_term_chunks(segment, needle_term):
         tuples = read_tuples(segment[chunk_name].open_gzipped())
-        for term_2, doc_id in tuples:
-            if term_2 == term:
+        for haystack_term, doc_id in tuples:
+            if haystack_term == needle_term:
                 yield doc_id
-            if term_2 > term:   # Once we reach an alphabetically later term,
-                tuples.close()
-                break           # we're done.
+            if haystack_term > needle_term: # Once we reach an 
+                tuples.close()              # alphabetically later term,
+                break                       # we're done.
 
 # XXX maybe return Path objects?
 def segment_term_chunks(segment, term):
-    last_chunk = None
+    previous_chunk = None
     for headword, chunk in skip_file_entries(segment):
         if headword >= term:
-            if last_chunk is not None:
-                yield last_chunk
+            if previous_chunk is not None:
+                yield previous_chunk
         if headword > term:
             break
 
-        last_chunk = chunk
+        previous_chunk = chunk
     else:                   # executed if we don't break
-        # XXX what if it was empty?
-        if last_chunk is not None:
-            yield last_chunk
+        if previous_chunk is not None:
+            yield previous_chunk
 
-# 2**20 is chosen as the maximum segment size because that uses
-# typically about a quarter gig, which is a reasonable size these
-# days.
 def build_index(index_path, corpus_path, postings_filters):
     os.mkdir(index_path.name)
 
@@ -211,7 +220,7 @@ def build_index(index_path, corpus_path, postings_filters):
     rel_paths = dict((path.name, os.path.relpath(path.name, start=parent.name))
                      for path in corpus_paths)
     rel_postings = ((term, rel_paths[doc_id]) for term, doc_id in postings)
-    for ii, chunk in enumerate(blocked(rel_postings, 2**20)):
+    for ii, chunk in enumerate(blocked(rel_postings, segment_size)):
         write_new_segment(index_path['seg_%s' % ii], sorted(chunk))
 
     merge_segments(index_path, index_segments(index_path))
@@ -227,7 +236,7 @@ def discard_long_nonsense_words_filter(postings):
     uuencoded data, we get a huge number of nonsense words that take
     up a lot of space in the index while being totally useless.
     """
-    return ((term, doc_id) for term, doc_id in postings if len(term) < 20)
+    return ((term, doc_id) for term, doc_id in postings if len(term) < word_len)
 
 def case_insensitive_filter(postings):
     for term, doc_id in postings:
@@ -235,7 +244,10 @@ def case_insensitive_filter(postings):
         if term.lower() != term:
             yield term.lower(), doc_id
 
-def stopwords_filter(stopwords):
+def make_stopwords_filter(stopwords):
+    stopwords = set(stopwords)
+    stopwords |= ( set(word.upper()      for word in stopwords) 
+                 | set(word.capitalize() for word in stopwords))
     return lambda postings: ((term, doc_id) for term, doc_id in postings
                              if term not in stopwords)
 
@@ -254,13 +266,11 @@ def grep(index_path, terms):
 def main(argv):
     # Eliminate the most common English words from queries and indices.
     stopwords = 'the of and to a in it is was that i for on you he be'.split()
-    stopwords += ([word.upper() for word in stopwords] +
-                  [word.capitalize() for word in stopwords])
 
     if argv[1] == 'index':
         build_index(index_path=Path(argv[2]), corpus_path=Path(argv[3]),
                     postings_filters=[discard_long_nonsense_words_filter,
-                                      stopwords_filter(set(stopwords)),
+                                      make_stopwords_filter(stopwords),
                                       case_insensitive_filter])
     elif argv[1] == 'query':
         search_ui(Path(argv[2]), [term for term in argv[3:]
