@@ -171,14 +171,14 @@ class Connection:
         self.key = None
 
     def stale(self):
-        return self.reader is None or self.reader._eof
+        return self.reader is None or self.reader.at_eof()
 
     def fileno(self):
         writer = self.writer
         if writer is not None:
-            transport = writer._transport
+            transport = writer.transport
             if transport is not None:
-                sock = transport._sock
+                sock = transport.get_extra_info('socket')
                 if sock is not None:
                     return sock.fileno()
         return None
