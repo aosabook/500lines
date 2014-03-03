@@ -13,7 +13,6 @@
     <% @data.each do |h| %>
       <% device = h[:device] %>
       <% steps = h[:steps] %>
-      <% url = "detail/" + h[:file] %>
       <tr>
         <td><%= h[:user].gender %></td>
         <td><%= device.method %></td>
@@ -22,7 +21,7 @@
         <td><%= device.steps %></td>
         <td><%= steps %></td>
         <td><%= steps - device.steps %></td>
-        <td><a href=<%= url %>>Detail</a></td>
+        <td><a href=<%= "detail/" + h[:file] %>>Detail</a></td>
       </tr>
     <% end %>
   </table>
