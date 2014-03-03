@@ -55,7 +55,7 @@ Run the server with npm start.  Visit the wiki at http://localhost:8080/wiki/
 
 
 
-Part 3: Authentication with Passport (357 lines, replaces part 2):
+Part 3: Authentication with Passport (376 lines, replaces part 2):
 
 Use Passport for local authentication
 $ npm install --save passport
@@ -65,9 +65,7 @@ Use CouchDB's existing user table to store users
 
 Use the signup button to create a new user and log in.
 
+Fancy diff/merge:
+$ npm install --save diff
 
-
-Future: Fancy stuff (as space allows):
--fancy diff/merge - use https://github.com/kpdecker/jsdiff?
--search - create indexes/views for CouchDB to search text
--fancy preview - use javascript UI to update preview in realtime
+I think part 2 is not necessary, should probably just go from part1 simplest possible wiki to part3 wiki with CouchDB and passport authentication.

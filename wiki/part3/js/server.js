@@ -5,6 +5,7 @@ const config = require('./config.js'),
       whiskers = require('whiskers'),
       passport = require('passport'),
       LocalStrategy = require('passport-local').Strategy, //local authentication
+      jsdiff = require('diff'),
       app = express();
 
 
@@ -37,11 +38,20 @@ showCompareEditor = function(request, response, args){
   //get latest version of doc from couch
   store.getWikiContents(args.title, false, function(doc){
     //show contents of both pages
-    args['comparecontent'] = doc.content;
     args['comparecomment'] = doc.comment;
     args['username'] = doc.user;
     args['comparedate'] = util.formatDate(doc.updatedDate);
     args['revision'] = doc._rev;
+    //fancy diff
+    var usercontent = args.content;
+    var savedcontent = doc.content;
+    var diff = jsdiff.diffLines(usercontent, savedcontent);
+    var diffContent = '';
+    diff.forEach(function(part){
+      var style = part.added ? 'added' : part.removed ? 'removed' : 'common';
+      diffContent += '<span class="'+style+ '">' + part.value + '</span>';
+    });
+    args['comparecontent'] = diffContent;
     response.render('layout.html', args);
   });
 }
