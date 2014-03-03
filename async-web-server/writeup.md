@@ -6,25 +6,41 @@ So lets start with the basics.
 
 At the 10k-foot-level, an HTTP exchange is one request and one response. A client sends a request, which includes a resource identifier, an HTTP version tag, some headers and some parameters. The receiving server parses that request, figures out what to do about it, and sends a response which includes the same HTTP version tag, a response code, some headers and a request body.
 
-There's a couple of things missing in this system. First, as described, there's no mechanism for a server to send updates to a client without that client specifically requesting them. Second, there's no identity mechanism, which you need in order to confidently assert that a number of requests come from the same client (or, from the client perspective, to make sure you're making a request from the server you think you're talking to). We won't be solving the second problem here; a full sesison implementation would nudge us up to ~560 lines of code, and we've got a hard limit of 500. The solution to the first one's fairly easy to implement though.
+And that's it.
+
+Because this is the total of the basic protocol, many minimal servers take the thread-per-request approach. That is, for each incoming request, spin up a thread to do the work of parse/figure-out-what-to-do-about-it/send-response, then spin it down. The idea is that since each of these connections is very short lived, that won't start up too many threads at once, and it'll let you simplify a lot of the implementation. Specifically, it lets you program as though there were only one connection present at any given time, and it lets you do things like kill orphaned connections just by killing their thread and letting the garbage collector do its job.
+
+There's a couple of things missing in this system though. First, as described, there's no mechanism for a server to send updates to a client without that client specifically requesting them. Second, there's no identity mechanism, which you need in order to confidently assert that a number of requests come from the same client (or, from the client perspective, to make sure you're making a request from the server you think you're talking to). We won't be solving the second problem here; a full sesison implementation would nudge us up to ~560 lines of code, and we've got a hard limit of 500.
+
+The second problem is interesting though. It's interesting if you've ever wanted to put together multi-user web-applications for whatever reason. The simplest base-case is the anonymous chat room. Consider the situation where you've got two people entering text into a text-box with the intent that both of them should see each message. When Adrian types in a message, you can send him the updated chat room immediately. But if Beatrice were to type a message, according to the system we've described above, there's no built-in way to update Adrian's view of the world with that new message. What you want to be able to do is to push messages from the server at Adrian without him having to take any deliberate action. 
 
 #### Server Push
 
-Quick rundown of the options first [brief explanation of all of the above]
+Here are our options:
 
 ##### Comet/Longpoll
-##### SSEs
+
+Build the client such that it automatically sends the server a new request as soon as it receives a response. Instead of fulfilling that request right away, the server then hangs on to said request until it has new information to send, like say, a new message from Beatrice. The end result is that Adrian gets new updates as soon as they happen, rather than just when he takes action. It's a bit of a semantic distinction though, since the client is taking action on his behalf on every update.
+
+##### SSE
+
+The client opens up a connection and keeping it open. The server will periodically write new data to the connection without closing it, and the client will interpret incoming new messages as they arrive rather than waiting for the response connection to terminate. This way is a bit more efficient than the Comet/Longpoll approach because each message doesn't have to incur the overhead of a fresh set of HTTP headers.
+
 ##### Websockets
 
-They're pretty different under the covers, as you can hopefully see now that you understand them, but they have one important point in common: they all depend on long-lived connections. Longpolling depends on the server keeping requests around until new data is available (thus keeping a connection open until new data arrives, or the client gives up in frustration), SSEs keep an open stream between client and server to which data is periodically written, and Websockets basically change the protocol a particular connection is speaking, but leave it open (and bi-directional, which complicates matters slightly; you basically need to chuck websockets back into the main listen/read loop *and keep them there* until they're closed).
+The server and client open up an HTTP conversation, then perform a handshake and protocol escalation. The end result is that they're still communicating over TCP/IP, but they're not using HTTP to do it at all. The advantage this has over SSEs is that you can customize your protocol, so it's possible to be more efficient.
+
+That's basically it. I mean there used to be things called "Forever Frames" that have been thoroughly replaced by the SSE approach, and a couple of other tricks you could pull with proprietary or esoteric technologies, but they're not materially different from the above.
+
+These approaches are pretty different from each other under the covers, as you can hopefully see now that you understand them, but they have one important point in common. They all depend on long-lived connections. Longpolling depends on the server keeping requests around until new data is available (thus keeping a connection open until new data arrives, or the client gives up in frustration), SSEs keep an open stream between client and server to which data is periodically written, and Websockets basically change the protocol a particular connection is speaking, but leave it open (and bi-directional, which complicates matters slightly; you basically need to chuck websockets back into the main listen/read loop *and keep them there* until they're closed).
 
 The consequence of keeping long-lived connections around is that you're either going to want
 
 a) A server that can service many connections with a single thread
-b) A thread-per-request server that passes long-lived connections off to a separate subsystem, which must handle those long lived connections using minimal threads
+b) A thread-per-request server that passes long-lived connections off to a separate subsystem, which must handle those long lived connections using a minimal number of threads
 c) A thread-per-request server on top of a platform where threads are cheap enough that you can afford having a few hundred thousand of them around.
 
-For an example of option `c`, have a look at Yaws (the [web server](http://hyber.org/), not the [tropical infection](http://en.wikipedia.org/wiki/Yaws)). `b` strikes me as ridiculous. The usual argument given for using a thread-per-request model is that it mechanically simplifies server implementation, but it feels like adding the requirement of a separate long-lived connection subsystem would result in a net complexity *increase* with this approach. So, if we want server pushing in the absence of really, *really*, **really** cheap threads, we're dealing with an asynchronous server. Which means dealing with non-blocking IO (we'll see why that is later on), and potentially dealing with a single thread.
+For an example of option `c`, have a look at Yaws (the [web server](http://hyber.org/), not the [tropical infection](http://en.wikipedia.org/wiki/Yaws)). `b` strikes me as ridiculous. The reason for using a thread-per-request model is that it mechanically simplifies server implementation, but adding the requirement of a separate long-lived connection subsystem seems like it would result in a net complexity *increase*. So, if we want server pushing in the absence of really, *really*, **really** cheap threads, we're dealing with an asynchronous server. Which means dealing with non-blocking IO (we'll see why that is later on), and potentially dealing with a single thread.
 
 ### High Level
 
@@ -46,7 +62,7 @@ That's the base case, of course. If you *also* want to be pushing data at your c
 
 ### Implementation
 
-Breaking that down into a more detailed implementation, we'll want to think of this server as [] main subsystems; one to deal with listening/reading, one to deal with request parsing, one to deal with routing/handling, and one last one to deal with our subscriptions/broadcasts. Lets start from the simplest of these, and work our way back through the pattern.
+Breaking that down into a more detailed implementation, we'll want to think of this server as 4 main subsystems; one to deal with listening/reading, one to deal with request parsing, one to deal with routing/handling, and one last one to deal with our subscriptions/broadcasts. Lets start from the simplest of these, and work our way back through the pattern.
 
 #### Subscriptions and Broadcasts
 
@@ -77,7 +93,7 @@ There. `*channels*` is a hash table of channel names to subscriber lists. The `s
 			    sock)
 		     collect it))))
 
-Instead of being so simple-minded about it, this `publish!` iterates over the subscriber list, collects the sockets that were written to successfully, and assigns the subscriber list to that bag of active listeners. This will now *also* really, truly work properly.
+Instead of being so simple-minded about it, this `publish!` iterates over the subscriber list, collects the sockets that were written to successfully, and assigns the subscriber list to that bag of active listeners. Any sockets that errored out during the write are dropped, since they're no longer listening. This will now *also* really, truly work properly.
 
 #### Request Routing, Handling and Writing
 
@@ -204,6 +220,10 @@ This section should also include an explanation of all of `define-handler`, and 
 	    :eof))
 
 #### Using It
+
+Now that we've got the server written, lets take a look at how we might implement that theoretical anonymous chatroom in it. I'll leave the client an exercise for the reader; if you've read this far and understood the core concepts, it shouldn't take you too much JavaScript hackery to come up with something workable.
+
+Instead, lets do our usual and focus on the server side.
 
 Quick how-to showing how to put together an anonymous chat using the simplified server.
 
