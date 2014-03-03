@@ -12,7 +12,11 @@ the following polynomial in x and y:
 
 v(x, y) = a x^2 + b y^2 + c x y + d x + e y + f
 
-Most of the class will 
+The boundary of the ellipse is exactly the set of points where v(x,y)
+= 0. When we evaluate a point x,y and get a value greater than zero,
+we consider that point to be outside the ellipse. Most of the ellipse
+class will involve manipulating this implicit equation.
+
 
 ## Finding the center of the ellipse
 
@@ -29,14 +33,18 @@ unstable. We use the inverse here for convenience (we already need the
 inverse of a transformation in order to transform the ellipse, see
 below) and to fit in the 500 line budget.
 
+
 ## Finding the bounding box of the ellipse
 
-Our shape class needs a bounding box. Take the partial with respect to
-x to find where the ellipse boundary is vertical, df/dx(x, y) = 0, and
-v(x, y) = 0, so that the point is on the boundary. The solutions will
-give the leftmost and rightmost points of the ellipse. solving the
-system of equations df/dy(x, y) and v(x, y) = 0 gives the top and
-bottom.
+Our shape class needs a bounding box. The partial derivative measures
+the rate of change of the function with respect a variable.  When the
+implicit equation of the ellipse is zero, *and* the rate of change of
+the implicit function with respect to x is zero, then ellipse boundary
+is vertical. So we solve the system of equations df/dx(x, y) = 0, v(x,
+y) = 0, and the two solutions are going to be touching the top and
+bottom of the bounding box exactly. Solving the system of equations
+df/dy(x, y) = 0, v(x, y) = 0 gives the left and right points.
+
 
 ## Transforming an ellipse
 
@@ -49,6 +57,10 @@ functions of x' and y'
 
 T(x, y) = (x', y')
 
+This gives 
+
+
+
 ## Bounding the distance to an ellipse
 
 The idea is that the distance from a point to an ellipse is not
@@ -60,8 +72,18 @@ ugly(ier?) function. Instead, we can get a good bound quickly by:
 center (call this intersection `i`)
 * finding a line that goes through `i` in the direction of the normal
  of the ellipse (call this line `n`)
-* project the `p` onto the `l` (call it `s`)
-* return the distance between `l` and `s`
+* project the `p` onto the `i` (call it `s`)
+* return the distance between `i` and `s`
 
-The proof that this is a lower bound of the distance to an ellipse is
-easy, but it takes a diagram to make it obvious. I'll make one soon.
+Referring to the [diagram](../doc/ellipse_1.svg), `p` is outside the ellipse,
+`t` is the line tangent to `i`, and `e` is the closest point in the
+ellipse to `p`. Notice that the distance between `s` and `i` is equal
+to the distance between `p` and `s'`, since they form parallel
+lines. Now take the line from `p` to `e`. Notice that it intersects
+the line from `i` to `s'`, at a point we will call `e'`. Now notice
+that `e'`, `s'` and `p` form a right triangle, of which the line from
+`e'` to `s'` is the hypotenuse (and it's *shorter* than the original
+line too). This shortened line, in turn, is yet shorter than the leg
+`s'` to `p`. But length of this leg is precisely the distance from `s`
+to `i`, and so we know that it's a lower bound to the distance from
+`e` to `p`, and we are done.

@@ -14,8 +14,8 @@ class Ellipse(Shape):
         self.d = d
         self.e = e
         self.f = f
-        g = Transform(2*a, c, d, c, 2*b, e)
-        self.center = g.inverse() * Vector(0, 0)
+        gradient = Transform(2*a, c, d, c, 2*b, e)
+        self.center = gradient.inverse() * Vector(0, 0)
         y1, y2 = quadratic(b-c*c/4*a, e-c*d/2*a, f-d*d/4*a)
         x1, x2 = quadratic(a-c*c/4*b, d-c*e/2*b, f-e*e/4*b)
         self.bound = Vector.union(Vector(-(d + c*y1)/2*a, y1),
@@ -44,9 +44,11 @@ class Ellipse(Shape):
     def signed_distance_bound(self, p):
         def sgn(x):
             return 0 if x == 0 else x / abs(x)
-        v = -sgn(self.value(p))
+        s = -sgn(self.value(p))
         c = self.center
         pc = p - c
+        # to find where the line from p to c intersects
+        # we solve for the value u such that f(c + (p-c) * u) = 0
         u2 = self.a*pc.x**2 + self.b*pc.y**2 + self.c*pc.x*pc.y
         u1 = 2*self.a*c.x*pc.x + 2*self.b*c.y*pc.y \
              + self.c*c.y*pc.x + self.c*c.x*pc.y + self.d*pc.x \
@@ -55,13 +57,14 @@ class Ellipse(Shape):
              + self.d*c.x + self.e*c.y + self.f
         sols = quadratic(u2, u1, u0)
         crossings = c+pc*sols[0], c+pc*sols[1]
+        # the surface point we want is the one closest to p
         if (p - crossings[0]).length() < (p - crossings[1]).length():
             surface_pt = crossings[0]
         else:
             surface_pt = crossings[1]
         d = Vector(2*self.a*surface_pt.x + self.c*surface_pt.y + self.d,
                    2*self.b*surface_pt.y + self.c*surface_pt.x + self.e)
-        return v * abs(d.dot(p - surface_pt) / d.length())
+        return s * abs(d.dot(p - surface_pt) / d.length())
 
 def Circle(center, radius, color=None):
     return Ellipse(color=color).transform(
