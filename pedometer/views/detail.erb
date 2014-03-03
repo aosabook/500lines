@@ -31,26 +31,7 @@
 <script>
   $(function () {
         $('#container-dot-product').highcharts({
-            title: {
-                text: 'Dot Product Data',
-                x: -20 //center
-            },
-            yAxis: {
-                title: {
-                    text: 'Magnitude'
-                },
-                plotLines: [{
-                    value: 0,
-                    width: 1,
-                    color: '#808080'
-                }]
-            },
-            legend: {
-                layout: 'vertical',
-                align: 'right',
-                verticalAlign: 'middle',
-                borderWidth: 0
-            },
+            title: { text: 'Dot Product Data' },
             series: [{
                 name: 'Dot Product Data',
                 data: <%= @parser.dot_product_data %>
@@ -58,26 +39,7 @@
         });
 
         $('#container-filtered').highcharts({
-            title: {
-                text: 'Filtered Data',
-                x: -20
-            },
-            yAxis: {
-                title: {
-                    text: 'Magnitude'
-                },
-                plotLines: [{
-                    value: 0,
-                    width: 1,
-                    color: '#808080'
-                }]
-            },
-            legend: {
-                layout: 'vertical',
-                align: 'right',
-                verticalAlign: 'middle',
-                borderWidth: 0
-            },
+            title: { text: 'Filtered Data' },
             series: [{
                 name: 'Filtered Data',
                 data: <%= @parser.filtered_data %>
@@ -85,26 +47,7 @@
         });
 
         $('#container-comparison').highcharts({
-            title: {
-                text: 'Comparison to ' + '<%= comparison_title %>',
-                x: -20
-            },
-            yAxis: {
-                title: {
-                    text: 'Magnitude'
-                },
-                plotLines: [{
-                    value: 0,
-                    width: 1,
-                    color: '#808080'
-                }]
-            },
-            legend: {
-                layout: 'vertical',
-                align: 'right',
-                verticalAlign: 'middle',
-                borderWidth: 0
-            },
+            title: { text: 'Comparison to ' + '<%= comparison_title %>' },
             series: [{
                 name: '<%= @device.format.capitalize %>',
                 data: <%= @parser.filtered_data %>

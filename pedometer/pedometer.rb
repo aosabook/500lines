@@ -20,7 +20,7 @@ post '/create' do
 
     @file_name = FileHelper.generate_file_name(@user, @device)
     
-    cp(file, "public/uploads/" + @file_name)
+    cp(file, "public/uploads/" + @file_name + '.txt')
 
     erb :detail
   rescue Exception => e
