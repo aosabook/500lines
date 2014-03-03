@@ -4,7 +4,7 @@
 # byterun by Ned Batchelder
 
 import dis, inspect, logging, operator, sys, reprlib
-from .pyobj import Frame, Block, Method, Object, Function, Class, Generator
+from byterun.pyobj import Frame, Block, Method, Object, Function, Class, Generator
 
 log = logging.getLogger(__name__)
 
