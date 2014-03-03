@@ -78,7 +78,7 @@ class ConnectionPool:
         try:
             ipaddrs = yield from self.loop.getaddrinfo(host, port)
         except Exception as exc:
-            logging.error('Exception %r for (%r, %r)' % (exc, host, port))
+            logger.error('Exception %r for (%r, %r)', exc, host, port)
             raise
         logger.warn('* %s resolves to %s',
                     host, ', '.join(ip[4][0] for ip in ipaddrs))
@@ -238,7 +238,7 @@ class Request:
 
         Used for the request line and headers.
         """
-        logging.info('>', line)
+        logger.info('> %s', line)
         self.conn.writer.write(line.encode('latin-1') + b'\r\n')
 
     @asyncio.coroutine
@@ -284,7 +284,7 @@ class Response:
     def getline(self):
         """Read one line from the connection."""
         line = (yield from self.reader.readline()).decode('latin-1').rstrip()
-        logging.info('<', line)
+        logger.info('< %s', line)
         return line
 
     @asyncio.coroutine
@@ -332,7 +332,7 @@ class Response:
                 break
         if nbytes is None:
             if self.get_header('transfer-encoding').lower() == 'chunked':
-                logging.info('parsing chunked response')
+                logger.info('parsing chunked response')
                 blocks = []
                 while True:
                     size_header = yield from self.reader.readline()
@@ -638,11 +638,11 @@ class Crawler:
             return False
         parts = urllib.parse.urlparse(url)
         if parts.scheme not in ('http', 'https'):
-            logging.info('skipping non-http scheme in', url)
+            logger.info('skipping non-http scheme in %r', url)
             return False
         host, port = urllib.parse.splitport(parts.netloc)
         if not self.host_okay(host):
-            logging.info('skipping non-root host in', url)
+            logger.info('skipping non-root host in %r', url)
             return False
         if max_redirect is None:
             max_redirect = self.max_redirect
