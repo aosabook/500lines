@@ -220,15 +220,11 @@ class VirtualMachine(object):
                         self.jump(block.handler)
                         break
 
-                    if (
-                        why == 'exception' and
-                        block.type in ['setup-except', 'finally']
-                    ):
+                    if (why == 'exception' and block.type in ['setup-except', 'finally']):
                         self.push_block('except-handler')
                         exctype, value, tb = self.last_exception
                         self.push(tb, value, exctype)
-                        # PyErr_Normalize_Exception goes here
-                        self.push(tb, value, exctype)
+                        self.push(tb, value, exctype) # yes, twice
                         why = None
                         self.jump(block.handler)
 
@@ -257,10 +253,8 @@ class VirtualMachine(object):
     def unwind_except_handler(self, block):
         while len(self.stack) > block.level + 3:
             self.pop()
-        exctype = self.pop()
-        value = self.pop()
-        tb = self.pop()
-        self.last_exception = exctype, value, tb
+        traceback, value, exctype = self.popn(3)
+        self.last_exception = exctype, value, traceback
 
     ## Stack manipulation
 
