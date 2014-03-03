@@ -31,7 +31,7 @@ class CodeGen(ast.NodeVisitor):
     def compile_function(self, t):
         stmt0 = t.body[0]
         if not (isinstance(stmt0, ast.Expr) and isinstance(stmt0.value, ast.Str)):
-            self.constants[None] # The doc comment starts the constant table.
+            self.load_const(None) # The doc comment starts the constant table.
         for arg in t.args.args:
             self.varnames[arg.arg] # argh, naming
         return self.compile(t.body, len(t.args.args))
