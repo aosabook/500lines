@@ -220,16 +220,7 @@ class VirtualMachine(object):
     def byte_DUP_TOP(self):
         self.push(self.top())
 
-    def byte_ROT_TWO(self):
-        a, b = self.popn(2)
-        self.push(b, a)
-
-    def byte_ROT_THREE(self):
-        a, b, c = self.popn(3)
-        self.push(c, a, b)
-
     ## Names
-
     def byte_LOAD_NAME(self, name):
         frame = self.frame
         if name in frame.f_locals:
