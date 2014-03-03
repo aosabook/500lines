@@ -522,34 +522,12 @@ class VirtualMachine(object):
         self.push(fn)
 
     def byte_CALL_FUNCTION(self, arg):
-        return self.call_function(arg, [], {})
-
-    def isinstance(self, obj, cls):
-        if isinstance(obj, Object):
-            return issubclass(obj._class, cls)
-        elif isinstance(cls, Class):
-            return False
-        else:
-            return isinstance(obj, cls)
-
-    def call_function(self, arg, args, kwargs):
-        lenKw, lenPos = divmod(arg, 256)
-        namedargs = {}
-        for i in range(lenKw):
-            key, val = self.popn(2)
-            namedargs[key] = val
-        namedargs.update(kwargs)
+        lenKw, lenPos = divmod(arg, 256) # KWargs not supported here
         posargs = self.popn(lenPos)
-        posargs.extend(args)
 
         func = self.pop()
         frame = self.frame
-        if hasattr(func, 'im_func'):
-            # Methods get self as an implicit first parameter.
-            if func.im_self:
-                posargs.insert(0, func.im_self)
-            func = func.im_func
-        retval = func(*posargs, **namedargs)
+        retval = func(*posargs)
         self.push(retval)
 
     def byte_RETURN_VALUE(self):
