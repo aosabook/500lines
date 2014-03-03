@@ -236,7 +236,7 @@ if __name__ == '__main__':
     else:
         def report(*args, **kwargs): pass
 
-    def main(source):
+    def main(source, filename=None):
         f = compile_toplevel(source)
         f()   # It's alive!
 
@@ -293,7 +293,9 @@ raise Exception('hi')
 """
     if len(sys.argv) == 1:
         main(eg)
-    elif len(sys.argv) == 2:
-        main(open(sys.argv[1]).read())
+    elif len(sys.argv) >= 2:
+        filename = sys.argv[1]
+        del sys.argv[:2]
+        main(open(filename).read(), filename)
     else:
         assert False
