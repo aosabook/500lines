@@ -8,21 +8,6 @@ require './helpers/hash_helper.rb'
 
 include FileUtils::Verbose
 
-get '/metrics' do
-  begin
-    device = Device.new(params[:device])
-    parser = Parser.new(device)
-    user   = User.new(params[:user])
-
-    @analyzer = Analyzer.new(parser, user)
-    @analyzer.measure    
-
-    [200, jbuilder(:index)]
-  rescue Exception => e
-    [400, e.message]
-  end
-end
-
 # TODO: 
 # - Capture exceptions and redirect to /data
 post '/create' do
