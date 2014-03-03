@@ -51,14 +51,7 @@ class Function(object):
         frame = self._vm.make_frame(
             self.func_code, callargs, self.func_globals, self.func_locals
         )
-        CO_GENERATOR = 32           # flag for "this code uses yield"
-        if self.func_code.co_flags & CO_GENERATOR:
-            gen = Generator(frame, self._vm)
-            frame.generator = gen
-            retval = gen
-        else:
-            retval = self._vm.run_frame(frame)
-        return retval
+        return self._vm.run_frame(frame)
 
 
 class Class(object):
@@ -204,27 +197,3 @@ class Frame(object):
     def __repr__(self):         # pragma: no cover
         return '<Frame at 0x%08x>' % id(self)
 
-
-class Generator(object):
-    def __init__(self, g_frame, vm):
-        self.gi_frame = g_frame
-        self.vm = vm
-        self.first = True
-        self.finished = False
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        # Ordinary iteration is like sending None into a generator.
-        if not self.first:
-            self.vm.push(None)
-        self.first = False
-        # To get the next value from an iterator, push its frame onto the
-        # stack, and let it run.
-        val = self.vm.resume_frame(self.gi_frame)
-        if self.finished:
-            raise StopIteration
-        return val
-
-    __next__ = next

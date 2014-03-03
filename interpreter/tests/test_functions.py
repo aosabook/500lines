@@ -193,27 +193,27 @@ class TestClosures(vmtest.VmTestCase):
             """)
 
 
-class TestGenerators(vmtest.VmTestCase):
-    def test_first(self):
-        self.assert_ok("""\
-            def two():
-                yield 1
-                yield 2
-            for i in two():
-                print(i)
-            """)
+# class TestGenerators(vmtest.VmTestCase):
+#     def test_first(self):
+#         self.assert_ok("""\
+#             def two():
+#                 yield 1
+#                 yield 2
+#             for i in two():
+#                 print(i)
+#             """)
 
-    def test_partial_generator(self):
-        self.assert_ok("""\
-            from _functools import partial
+#     def test_partial_generator(self):
+#         self.assert_ok("""\
+#             from _functools import partial
 
-            def f(a,b):
-                num = a+b
-                while num:
-                    yield num
-                    num -= 1
+#             def f(a,b):
+#                 num = a+b
+#                 while num:
+#                     yield num
+#                     num -= 1
 
-            f2 = partial(f, 2)
-            three = f2(1)
-            assert list(three) == [3,2,1]
-            """)
+#             f2 = partial(f, 2)
+#             three = f2(1)
+#             assert list(three) == [3,2,1]
+#             """)

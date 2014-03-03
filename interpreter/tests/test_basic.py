@@ -151,24 +151,24 @@ class TestIt(vmtest.VmTestCase):
             print(l)
             """)
 
-    def test_generator_expression(self):
-        self.assert_ok("""\
-            x = "-".join(str(z) for z in range(5))
-            assert x == "0-1-2-3-4"
-            """)
-        # From test_regr.py
-        # This failed a different way than the previous join when genexps were
-        # broken:
-        self.assert_ok("""\
-            from textwrap import fill
-            x = set(['test_str'])
-            width = 70
-            indent = 4
-            blanks = ' ' * indent
-            res = fill(' '.join(str(elt) for elt in sorted(x)), width,
-                        initial_indent=blanks, subsequent_indent=blanks)
-            print(res)
-            """)
+    # def test_generator_expression(self):
+    #     self.assert_ok("""\
+    #         x = "-".join(str(z) for z in range(5))
+    #         assert x == "0-1-2-3-4"
+    #         """)
+    #     # From test_regr.py
+    #     # This failed a different way than the previous join when genexps were
+    #     # broken:
+    #     self.assert_ok("""\
+    #         from textwrap import fill
+    #         x = set(['test_str'])
+    #         width = 70
+    #         indent = 4
+    #         blanks = ' ' * indent
+    #         res = fill(' '.join(str(elt) for elt in sorted(x)), width,
+    #                     initial_indent=blanks, subsequent_indent=blanks)
+    #         print(res)
+    #         """)
     def test_list_comprehension(self):
         self.assert_ok("""\
             x = [z*z for z in range(5)]

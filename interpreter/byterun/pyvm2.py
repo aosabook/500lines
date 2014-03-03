@@ -4,7 +4,7 @@
 # byterun by Ned Batchelder
 
 import dis, inspect, logging, operator, sys, reprlib
-from byterun.pyobj import Frame, Block, Method, Object, Function, Class, Generator
+from byterun.pyobj import Frame, Block, Method, Object, Function, Class
 
 log = logging.getLogger(__name__)
 
@@ -195,47 +195,44 @@ class VirtualMachine(object):
             if why == 'reraise':
                 why = 'exception'
 
-            if why != 'yield':
-                while why and frame.block_stack:
+            while why and frame.block_stack:
 
-                    assert why != 'yield'
+                block = frame.block_stack[-1]
+                if block.type == 'loop' and why == 'continue':
+                    self.jump(self.return_value)
+                    why = None
+                    break
 
-                    block = frame.block_stack[-1]
-                    if block.type == 'loop' and why == 'continue':
-                        self.jump(self.return_value)
-                        why = None
-                        break
+                self.pop_block()
 
-                    self.pop_block()
+                if block.type == 'except-handler':
+                   self.unwind_except_handler(block)
+                   continue
 
-                    if block.type == 'except-handler':
-                       self.unwind_except_handler(block)
-                       continue
+                while len(self.stack) > block.level:
+                    self.pop()
 
-                    while len(self.stack) > block.level:
-                        self.pop()
+                if block.type == 'loop' and why == 'break':
+                    why = None
+                    self.jump(block.handler)
+                    break
 
-                    if block.type == 'loop' and why == 'break':
-                        why = None
-                        self.jump(block.handler)
-                        break
+                if (why == 'exception' and block.type in ['setup-except', 'finally']):
+                    self.push_block('except-handler')
+                    exctype, value, tb = self.last_exception
+                    self.push(tb, value, exctype)
+                    self.push(tb, value, exctype) # yes, twice
+                    why = None
+                    self.jump(block.handler)
 
-                    if (why == 'exception' and block.type in ['setup-except', 'finally']):
-                        self.push_block('except-handler')
-                        exctype, value, tb = self.last_exception
-                        self.push(tb, value, exctype)
-                        self.push(tb, value, exctype) # yes, twice
-                        why = None
-                        self.jump(block.handler)
+                elif block.type == 'finally':
+                    if why in ('return', 'continue'):
+                        self.push(self.return_value)
+                    self.push(why)
 
-                    elif block.type == 'finally':
-                        if why in ('return', 'continue'):
-                            self.push(self.return_value)
-                        self.push(why)
-
-                        why = None
-                        self.jump(block.handler)
-                        break
+                    why = None
+                    self.jump(block.handler)
+                    break
 
             if why:
                 break
@@ -268,7 +265,6 @@ class VirtualMachine(object):
         self.push(self.top())
 
     def byte_DUP_TOP_TWO(self):
-        # Py3 only
         a, b = self.popn(2)
         self.push(a, b, a, b)
 
@@ -749,11 +745,7 @@ class VirtualMachine(object):
         self.return_value = self.pop()
         if self.frame.generator:
             self.frame.generator.finished = True
-        return "return"
-
-    def byte_YIELD_VALUE(self):
-        self.return_value = self.pop()
-        return "yield"
+        return "return" 
 
     ## Importing
 
