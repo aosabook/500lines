@@ -14,6 +14,7 @@
 
 import asyncio
 import cgi
+import collections
 from http.client import BadStatusLine
 import logging
 import re
@@ -211,7 +212,7 @@ class Request:
             self.full_path = self.path
         self.http_version = 'HTTP/1.1'
         self.method = 'GET'
-        self.headers = []
+        self.headers = collections.OrderedDict()
         self.conn = None
 
     @asyncio.coroutine
@@ -233,29 +234,17 @@ class Request:
             self.conn = None
 
     @asyncio.coroutine
-    def putline(self, line):
-        """Write a line to the connection.
-
-        Used for the request line and headers.
-        """
-        logger.info('> %s', line)
-        self.conn.writer.write(line.encode('latin-1') + b'\r\n')
-
-    @asyncio.coroutine
     def send_request(self):
         """Send the request."""
-        request_line = '%s %s %s' % (self.method, self.full_path,
-                                     self.http_version)
-        yield from self.putline(request_line)
-        # TODO: What if a header is already set?
-        self.headers.append(('User-Agent', 'asyncio-example-crawl/0.0'))
-        self.headers.append(('Host', self.netloc))
-        self.headers.append(('Accept', '*/*'))
-        ##self.headers.append(('Accept-Encoding', 'gzip'))
-        for key, value in self.headers:
-            line = '%s: %s' % (key, value)
-            yield from self.putline(line)
-        yield from self.putline('')
+        self.headers.setdefault('User-Agent', 'asyncio-example-crawl/0.0')
+        self.headers.setdefault('Host', self.netloc)
+        self.headers.setdefault('Accept', '*/*')
+        ##self.headers.setdefault('Accept-Encoding', 'gzip')
+        lines = ['%s %s %s' % (self.method, self.full_path, self.http_version)]
+        lines.extend('%s: %s' % kv for kv in self.headers.items())
+        for line in lines + ['']:
+            logger.info('> %s', line)
+        self.conn.writer.write('\r\n'.join(lines + ['', '']).encode('latin-1'))
 
     @asyncio.coroutine
     def get_response(self):
