@@ -131,55 +131,31 @@ class ConnectionPool:
             conn.close()
             return
 
-        key = conn.key
-        conns = self.connections.setdefault(key, [])
+        conns = self.connections.setdefault(conn.key, [])
         conns.append(conn)
         self.queue.append(conn)
 
-        if len(conns) <= self.max_tasks and len(self.queue) <= self.max_pool:
+        if len(conns) > self.max_tasks:
+            victims = conns  # Prune one connection for this key.
+        elif len(self.queue) > self.max_pool:
+            victims = self.queue  # Prune one connection for any key.
+        else:
             return
 
-        # Prune the queue.
+        for victim in victims:
+            if victim.stale():  # Prefer pruning the oldest stale connection.
+                self.log(1, 'closing stale connection for', victim.key)
+                break
+        else:
+            victim = victims[0]
+            self.log(1, 'closing oldest connection for', victim.key)
 
-        # Close stale connections for this key first.
-        stale = [conn for conn in conns if conn.stale()]
-        if stale:
-            for conn in stale:
-                conns.remove(conn)
-                self.queue.remove(conn)
-                self.log(1, 'closing stale connection for', key)
-                conn.close()
-            if not conns:
-                del self.connections[key]
-
-        # Close oldest connection(s) for this key if limit reached.
-        while len(conns) > self.max_tasks:
-            conn = conns.pop(0)
-            self.queue.remove(conn)
-            self.log(1, 'closing oldest connection for', key)
-            conn.close()
-
-        if len(self.queue) <= self.max_pool:
-            return
-
-        # Close overall stale connections.
-        stale = [conn for conn in self.queue if conn.stale()]
-        if stale:
-            for conn in stale:
-                conns = self.connections.get(conn.key)
-                conns.remove(conn)
-                self.queue.remove(conn)
-                self.log(1, 'closing stale connection for', key)
-                conn.close()
-
-        # Close oldest overall connection(s) if limit reached.
-        while len(self.queue) > self.max_pool:
-            conn = self.queue.pop(0)
-            conns = self.connections.get(conn.key)
-            c = conns.pop(0)
-            assert conn == c, (conn.key, conn, c, conns)
-            self.log(1, 'closing overall oldest connection for', conn.key)
-            conn.close()
+        conns = self.connections[victim.key]
+        conns.remove(victim)
+        if not conns:
+            del self.connections[victim.key]
+        self.queue.remove(victim)
+        victim.close()
 
 
 class Connection:
