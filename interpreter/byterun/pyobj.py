@@ -141,24 +141,6 @@ class Frame(object):
 
         self.f_lineno = f_code.co_firstlineno
         self.f_lasti = 0
-
-        if f_code.co_cellvars:
-            self.cells = {}
-            if not f_back.cells:
-                f_back.cells = {}
-            for var in f_code.co_cellvars:
-                f_back.cells[var] = self.cells[var]
-        else:
-            self.cells = None
-
-        if f_code.co_freevars:
-            if not self.cells:
-                self.cells = {}
-            for var in f_code.co_freevars:
-                assert self.cells is not None
-                assert f_back.cells, "f_back.cells: %r" % (f_back.cells,)
-                self.cells[var] = f_back.cells[var]
-
         self.block_stack = []
 
     def __repr__(self):         # pragma: no cover
