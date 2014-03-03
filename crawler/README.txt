@@ -26,13 +26,16 @@ and the "chunked" transfer encoding.
 
 On my MacBook Air (2GHz Intel Core i7), with a fast network
 connection, it can visit all HTML pages of xkcd.com (over 1300 at the
-time of writing, and growing at a rate of three per week) in 8 or 9
-seconds (7 on a good day).  It can also scan all public pages on
-dropbox.com (about 2500 URLs) in under 50 seconds.  (The latter site
-uses redirects, SSL and chunked.)
+time of writing, and growing at a rate of three per week) in 7
+seconds.  It can also scan all public pages on dropbox.com (about 2500
+URLs) in under 50 seconds.  (The latter needs redirects, SSL and
+chunked.)
 
 Example command line (the -q reduces log output):
 
     python3.4 crawl.py -q xkcd.com
 
 Use --help to see all options.
+
+You can also use Python 3.3, after installing the asyncio package
+from PyPI.  It should work on Windows too.
