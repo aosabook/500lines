@@ -1,22 +1,13 @@
 """A pure-Python Python bytecode interpreter."""
 # Based on:
-# pyvm2 by Paul Swartz (z3p), from http://www.twistedmatrix.com/users/z3p/
-# byterun by Ned Batchelder
+# 1. pyvm2 by Paul Swartz (z3p), from http://www.twistedmatrix.com/users/z3p/
+# 2. byterun by Ned Batchelder
 
-import dis, inspect, logging, operator, sys, reprlib
-from byterun.pyobj import Frame, Block, Method, Object, Function, Class
-
-log = logging.getLogger(__name__)
-
-# Create a repr that won't overflow.
-repr_obj = reprlib.Repr()
-repr_obj.maxother = 120
-repr_obj.maxlist = 1000
-repper = repr_obj.repr
+import dis, inspect, operator, sys
+from byterun.pyobj import Frame, Block, Function
 
 
 class VirtualMachineError(Exception):
-    """For raising errors in the operation of the VM."""
     pass
 
 class VirtualMachine(object):
@@ -66,7 +57,6 @@ class VirtualMachine(object):
         return self.frame.block_stack.pop()
 
     def make_frame(self, code, callargs={}, f_globals=None, f_locals=None):
-        log.info("make_frame: code=%r, callargs=%s" % (code, repper(callargs)))
         if f_globals is not None:
             f_globals = f_globals
             if f_locals is None:
@@ -140,18 +130,6 @@ class VirtualMachine(object):
                     arg = intArg
                 arguments = [arg]
 
-            if log.isEnabledFor(logging.INFO):
-                op = "%d: %s" % (opoffset, byteName)
-                if arguments:
-                    op += " %r" % (arguments[0],)
-                indent = "    "*(len(self.frames)-1)
-                stack_rep = repper(self.stack)
-                block_stack_rep = repper(self.frame.block_stack)
-
-                log.info("  %sdata: %s" % (indent, stack_rep))
-                log.info("  %sblks: %s" % (indent, block_stack_rep))
-                log.info("%s%s" % (indent, op))
-
             # When unwinding the block stack, we need to keep track of why we
             # are doing it.
             why = None
@@ -173,7 +151,6 @@ class VirtualMachine(object):
             except:
                 # deal with exceptions encountered while executing the op.
                 self.last_exception = sys.exc_info()[:2] + (None,)
-                log.exception("Caught exception during execution")
                 why = 'exception'
 
             # Deal with any block management we need to do
