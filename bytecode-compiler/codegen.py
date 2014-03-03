@@ -1,6 +1,5 @@
 """
 Byte-compile an almost-reasonable subset of Python.
-TODO: complain when fed programs from outside the subset.
 """
 
 import ast, collections, dis, types
@@ -181,7 +180,7 @@ class CodeGen(ast.NodeVisitor):
         return []
 
     def visit_Break(self, t):
-        return [op.BREAK_LOOP]
+        return op.BREAK_LOOP
 
     def visit_Num(self, t):
         return self.load_const(t.n)
