@@ -53,10 +53,6 @@ class VirtualMachine(object):
         else:
             return []
 
-    def peek(self, n):
-        """Get a value `n` entries down in the stack, without changing the stack."""
-        return self.stack[-n]
-
     def jump(self, jump):
         """Move the bytecode pointer to `jump`, so it will execute next."""
         self.frame.f_lasti = jump
@@ -413,7 +409,7 @@ class VirtualMachine(object):
 
     def byte_LIST_APPEND(self, count):
         val = self.pop()
-        the_list = self.peek(count)
+        the_list = self.stack[-count] # peek
         the_list.append(val)
 
 
