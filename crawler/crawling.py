@@ -52,7 +52,7 @@ class ConnectionPool:
     and recycle_connection() puts it back in.  To recycle a
     connection, call conn.close(recycle=True).
 
-    There are limits to both the overal pool and the per-key pool.
+    There are limits to both the overall pool and the per-key pool.
     """
 
     def __init__(self, max_pool=10, max_tasks=5):
