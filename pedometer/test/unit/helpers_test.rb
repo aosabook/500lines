@@ -14,7 +14,7 @@ class HelpersTest < Test::Unit::TestCase
   def test_parse_file_name
     expected = {user: {gender: "a", height: "b", stride: "c"}, 
                 device: {rate: "d", method: "e", steps: "f", trial: "g"}}
-    assert_equal expected, FileHelper.parse_file_name('a-b-c_d-e-f-g-h')
+    assert_equal expected, FileHelper.parse_file_name('public/uploads/a-b-c_d-e-f-g-h')
   end
 
   def test_symbolize_keys
