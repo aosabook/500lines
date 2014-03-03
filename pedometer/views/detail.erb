@@ -4,15 +4,21 @@
 
 <html>
     <a class="nav" href='/data'>Back to Data</a>
-    <table>
+    <table class="summary">
         <tr>
-            <th>Steps</th>
+            <th>User</th>
+            <th>Method</th>
+            <th>Measurement</th>
+            <th>Trial</th>
+            <th>Actual</th>
+            <th>Calculated</th>
+            <th>Delta</th>
             <th>Distance</th>
             <th>Time</th>
             <th>File</th>
         </tr>
         <tr>
-            <td><%= @analyzer.steps %></td>
+            <%= erb :summary, :locals => {:user => @user, :device => @device, :steps => @analyzer.steps} %>
             <td><%= @analyzer.distance %></td>
             <td><%= @analyzer.time.to_s + ' ' + @analyzer.interval %></td>
             <td><%= @file_name.split('/').last %></td>

@@ -1,7 +1,7 @@
 <link href="/styles.css" rel="stylesheet" type="text/css" />
 
 <html>
-  <table class="data">
+  <table class="summary">
     <th>User</th>
     <th>Method</th>
     <th>Measurement</th>
@@ -12,13 +12,7 @@
     <th></th>
     <% @data.each do |h| %>
       <tr>
-        <td><%= h[:user].gender %></td>
-        <td><%= h[:device].method %></td>
-        <td><%= h[:device].format %></td>
-        <td><%= h[:device].trial %></td>
-        <td><%= h[:device].steps %></td>
-        <td><%= h[:steps] %></td>
-        <td><%= h[:steps] - h[:device].steps %></td>
+        <%= erb :summary, :locals => {:user => h[:user], :device => h[:device], :steps => h[:steps]} %>
         <td><a href=<%= "detail/" + h[:file] %>>Detail</a></td>
       </tr>
     <% end %>
