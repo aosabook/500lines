@@ -264,10 +264,6 @@ class VirtualMachine(object):
     def byte_DUP_TOP(self):
         self.push(self.top())
 
-    def byte_DUP_TOP_TWO(self):
-        a, b = self.popn(2)
-        self.push(a, b, a, b)
-
     def byte_ROT_TWO(self):
         a, b = self.popn(2)
         self.push(b, a)
