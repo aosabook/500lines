@@ -4,8 +4,7 @@ from geometry import HalfPlane, Vector
 class ConvexPoly(Shape): # a *convex* poly, in ccw order, with no repeating vertices
     def __init__(self, ps, color=None):
         Shape.__init__(self, color)
-        mn = min(enumerate(ps), key=lambda (i,v): (v.y, v.x))[0]
-        self.vs = list(ps[mn:]) + list(ps[:mn])
+        self.vs = ps
         self.bound = Vector.union(*self.vs)
         self.half_planes = []
         for i in xrange(len(self.vs)):
