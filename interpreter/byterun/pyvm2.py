@@ -118,12 +118,6 @@ class VirtualMachine(object):
                 intArg = arg[0] + (arg[1] << 8)
                 if byteCode in dis.hasconst:
                     arg = frame.f_code.co_consts[intArg]
-                elif byteCode in dis.hasfree:
-                    if intArg < len(frame.f_code.co_cellvars):
-                        arg = frame.f_code.co_cellvars[intArg]
-                    else:
-                        var_idx = intArg - len(frame.f_code.co_cellvars)
-                        arg = frame.f_code.co_freevars[var_idx]
                 elif byteCode in dis.hasname:
                     arg = frame.f_code.co_names[intArg]
                 elif byteCode in dis.hasjrel:
