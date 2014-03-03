@@ -44,28 +44,16 @@ class TestIt(vmtest.VmTestCase):
             assert x == 0xA6
             """)
 
-    if PY2:
-        def test_inplace_division(self):
-            self.assert_ok("""\
-                x, y = 24, 3
-                x /= y
-                assert x == 8 and y == 3
-                assert isinstance(x, int)
-                x /= y
-                assert x == 2 and y == 3
-                assert isinstance(x, int)
-                """)
-    elif PY3:
-        def test_inplace_division(self):
-            self.assert_ok("""\
-                x, y = 24, 3
-                x /= y
-                assert x == 8.0 and y == 3
-                assert isinstance(x, float)
-                x /= y
-                assert x == (8.0/3.0) and y == 3
-                assert isinstance(x, float)
-                """)
+    def test_inplace_division(self):
+        self.assert_ok("""\
+            x, y = 24, 3
+            x /= y
+            assert x == 8.0 and y == 3
+            assert isinstance(x, float)
+            x /= y
+            assert x == (8.0/3.0) and y == 3
+            assert isinstance(x, float)
+            """)
 
     def test_slice(self):
         self.assert_ok("""\
@@ -367,20 +355,12 @@ class TestIt(vmtest.VmTestCase):
             assert c == 3
             """)
 
-    if PY2:
-        def test_exec_statement(self):
-            self.assert_ok("""\
-                g = {}
-                exec "a = 11" in g, g
-                assert g['a'] == 11
-                """)
-    elif PY3:
-        def test_exec_statement(self):
-            self.assert_ok("""\
-                g = {}
-                exec("a = 11", g, g)
-                assert g['a'] == 11
-                """)
+    def test_exec_function(self):
+        self.assert_ok("""\
+            g = {}
+            exec("a = 11", g, g)
+            assert g['a'] == 11
+            """)
 
     def test_jump_if_true_or_pop(self):
         self.assert_ok("""\
@@ -425,31 +405,6 @@ class TestIt(vmtest.VmTestCase):
 
             add(7, 3)
             """)
-
-
-if PY2:
-    class TestPrinting(vmtest.VmTestCase):
-        def test_printing(self):
-            self.assert_ok("print 'hello'")
-            self.assert_ok("a = 3; print a+4")
-            self.assert_ok("""
-                print 'hi', 17, u'bye', 23,
-                print "", "\t", "the end"
-                """)
-
-        def test_printing_in_a_function(self):
-            self.assert_ok("""\
-                def fn():
-                    print "hello"
-                fn()
-                print "bye"
-                """)
-
-        def test_printing_to_a_file(self):
-            self.assert_ok("""\
-                import sys
-                print >>sys.stdout, 'hello', 'there'
-                """)
 
 
 class TestLoops(vmtest.VmTestCase):
