@@ -96,12 +96,12 @@ class VirtualMachine(object):
         frame = self.make_frame(code, f_globals=f_globals, f_locals=f_locals)
         val = self.run_frame(frame)
         # Check some invariants
-        if self.frames:            # pragma: no cover
+        if self.frames:
             raise VirtualMachineError("Frames left over!")
-        if self.stack:             # pragma: no cover
+        if self.stack:
             raise VirtualMachineError("Data left on stack! %r" % self.stack)
 
-        return val
+        return val # for testing
 
     def run_frame(self, frame):
         """Run a frame until it returns (somehow).

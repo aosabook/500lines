@@ -7,9 +7,8 @@ def run_python_file(filename):
     """Run a python file as if it were the main program on the command line.
     `filename` is the path to the file to execute, it need not be a .py file.
     """
-    # Create a module to serve as __main__
     old_main_mod = sys.modules['__main__']
-    main_mod = imp.new_module('__main__')
+    main_mod = imp.new_module('__main__') # Create a module to serve as __main__
     sys.modules['__main__'] = main_mod
     main_mod.__builtins__ = sys.modules['builtins']
 
