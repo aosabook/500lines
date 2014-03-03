@@ -792,8 +792,3 @@ class VirtualMachine(object):
 
     def byte_STORE_LOCALS(self):
         self.frame.f_locals = self.pop()
-
-if __name__ == "__main__":
-    vm = VirtualMachine()
-    vm.run_code(code, f_globals=env)
-
