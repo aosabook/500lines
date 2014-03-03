@@ -15,7 +15,7 @@
             <td><%= @analyzer.steps %></td>
             <td><%= @analyzer.distance %></td>
             <td><%= @analyzer.time.to_s + ' ' + @analyzer.interval %></td>
-            <td><%= @file_name %></td>
+            <td><%= @file_name.split('/').last %></td>
         </tr>
     </table>
 

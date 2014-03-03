@@ -13,13 +13,11 @@ include FileUtils::Verbose
 post '/create' do
   begin
     file = params[:device][:file][:tempfile]
-    
     user_params = params[:user].symbolize_keys
     device_params = {data: File.read(file)}.merge(params[:device].symbolize_keys)
     build_with_params(user_params, device_params)
 
     @file_name = FileHelper.generate_file_name(@user, @device)
-    
     cp(file, "public/uploads/" + @file_name + '.txt')
 
     erb :detail
@@ -33,7 +31,7 @@ get '/data' do
     @data = []
     files = Dir.glob(File.join('public/uploads', "*"))
     files.each do |file|
-      user_params, device_params = FileHelper.parse_file_name(file.split('/').last).values
+      user_params, device_params = FileHelper.parse_file_name(file).values
       device_params = {:data => File.read(file)}.merge(device_params)
       build_with_params(user_params, device_params)
 
@@ -49,17 +47,9 @@ end
 get '/detail/*' do
   begin
     @file_name = params[:splat].first
-    user_data = @file_name.split('/').last.split('_').first.split('-')
-    user = User.new(gender: user_data[0], height: user_data[1], stride: user_data[2])
-
-    device_data = @file_name.split('/').last.split('_').last.gsub('.txt','').split('-')
-    rate = device_data.delete_at(0)
-    meta_data = device_data.join(',')
-    @device = Device.new(:data => File.read(@file_name), :meta_data => meta_data, :rate => rate)
-
-    @parser = Parser.new(@device)
-    @analyzer = Analyzer.new(@parser, user)
-    @analyzer.measure
+    user_params, device_params = FileHelper.parse_file_name(@file_name).values
+    device_params = {:data => File.read(@file_name)}.merge(device_params)
+    build_with_params(user_params, device_params)
 
     files = Dir.glob(File.join('public/uploads', "*"))
     match = if @file_name.include?('-a.txt')
@@ -67,8 +57,6 @@ get '/detail/*' do
     elsif @file_name.include?('-g.txt')
       files.select {|f| f == @file_name.gsub('-g.txt', '-a.txt')}.first
     end
-
-    @file_name = @file_name.split('/').last
 
     if match
       device = Device.new(:data => File.read(match))
