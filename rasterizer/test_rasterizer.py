@@ -31,6 +31,7 @@ def do_it():
         LineSegment(Vector(0.6,0), Vector(0.6,1), 0.01, Color(1,0,0,1)),
         LineSegment(Vector(0.2,0.1), Vector(0.7, 0.4), 0.01, Color(0,0.5,0,1))])
     for shape in [
+        Circle(Vector(0.0, 0.0), 0.8, Color(1,0.5,0,1)).transform(scale(0.05,1)),
         Triangle([Vector(0.2,0.1), Vector(0.9,0.3), Vector(0.1,0.4)],
                  Color(1,0,0,0.5)),
         Triangle([Vector(0.5,0.2), Vector(1,0.4), Vector(0.2,0.7)],
@@ -51,12 +52,27 @@ def do_it():
     i.write_ppm(f)
     f.close()
 
-def test_ellipse():
-    Ellipse().transform(
-        scale(1.5, 1)).transform(
-        translate(0, 2)).transform(
-        rotate(math.radians(45))).transform(
-        scale(-1, 2))
+def test_quadratic():
+    for i in xrange(1000):
+        a = random.random()
+        b = random.random()
+        c = random.random()
+        if b * b - 4 * a * c >= 0:
+            v1, v2 = quadratic(a, b, c)
+            if v1 * v1 * a + v1 * b + c > 1e-5:
+                raise Exception("fail")
+            if v2 * v2 * a + v2 * b + c > 1e-5:
+                raise Exception("fail")
+    for i in xrange(1000):
+        a = 0
+        b = random.random()
+        c = random.random()
+        if b * b - 4 * a * c >= 0:
+            v1, v2 = quadratic(a, b, c)
+            if v1 * v1 * a + v1 * b + c > 1e-5:
+                raise Exception("fail")
+            if v2 * v2 * a + v2 * b + c > 1e-5:
+                raise Exception("fail")
 
 def test_inverse():
     for i in xrange(10000):
@@ -71,6 +87,6 @@ def test_inverse():
             raise Exception("foo")
 
 if __name__ == '__main__':
-    # test_inverse()
-    # test_ellipse()
+    test_inverse()
+    test_quadratic()
     do_it()

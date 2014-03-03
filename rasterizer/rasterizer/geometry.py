@@ -6,6 +6,8 @@ from itertools import product
 # using a variant of the standard quadratic formula
 # that behaves better numerically
 def quadratic(a, b, c):
+    if a == 0:
+        return -c/b, -c/b
     d = (b * b - 4 * a * c) ** 0.5
     if b >= 0:
         return (-b - d) / (2 * a), (2 * c) / (-b - d)

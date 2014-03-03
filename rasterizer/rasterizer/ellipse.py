@@ -1,5 +1,5 @@
 from shape import Shape
-from geometry import Vector, Transform, quadratic, scale, translate, AABox
+from geometry import Vector, Transform, quadratic, scale, translate, AABox, HalfPlane
 from color import Color
 import sys
 
@@ -14,8 +14,8 @@ class Ellipse(Shape):
         self.d = d
         self.e = e
         self.f = f
-        gradient = Transform(2*a, c, d, c, 2*b, e)
-        self.center = gradient.inverse() * Vector(0, 0)
+        self.gradient = Transform(2*a, c, d, c, 2*b, e)
+        self.center = self.gradient.inverse() * Vector(0, 0)
         y1, y2 = quadratic(b-c*c/4*a, e-c*d/2*a, f-d*d/4*a)
         x1, x2 = quadratic(a-c*c/4*b, d-c*e/2*b, f-e*e/4*b)
         self.bound = Vector.union(Vector(-(d + c*y1)/2*a, y1),
@@ -41,14 +41,10 @@ class Ellipse(Shape):
         ff = self.a*m02*m02 + self.b*m12*m12 + self.c*m02*m12 \
              + self.d*m02 + self.e*m12 + self.f
         return Ellipse(aa, bb, cc, dd, ee, ff, color=self.color)
-    def signed_distance_bound(self, p):
-        def sgn(x):
-            return 0 if x == 0 else x / abs(x)
-        s = -sgn(self.value(p))
-        c = self.center
+    def intersections(self, c, p):
+        # returns the two intersections of the line through c and p
+        # and the ellipse
         pc = p - c
-        # to find where the line from p to c intersects
-        # we solve for the value u such that f(c + (p-c) * u) = 0
         u2 = self.a*pc.x**2 + self.b*pc.y**2 + self.c*pc.x*pc.y
         u1 = 2*self.a*c.x*pc.x + 2*self.b*c.y*pc.y \
              + self.c*c.y*pc.x + self.c*c.x*pc.y + self.d*pc.x \
@@ -56,15 +52,37 @@ class Ellipse(Shape):
         u0 = self.a*c.x**2 + self.b*c.y**2 + self.c*c.x*c.y \
              + self.d*c.x + self.e*c.y + self.f
         sols = quadratic(u2, u1, u0)
-        crossings = c+pc*sols[0], c+pc*sols[1]
-        # the surface point we want is the one closest to p
-        if (p - crossings[0]).length() < (p - crossings[1]).length():
-            surface_pt = crossings[0]
+        return c+pc*sols[0], c+pc*sols[1]
+    def signed_distance_bound(self, p):
+        v = self.value(p)
+        if v == 0:
+            return 0
+        elif v < 0:
+            # if inside the ellipse, create an inscribed quadrilateral
+            # that contains the given point and use the minimum distance
+            # from the point to the quadrilateral as a bound. Since
+            # the quadrilateral lies entirely inside the ellipse, the
+            # distance from the point to the ellipse must be smaller.
+            v0, v2 = self.intersections(p, p + Vector(1, 0))
+            v1, v3 = self.intersections(p, p + Vector(0, 1))
+            hps = [HalfPlane(v0,v1), HalfPlane(v1,v2),
+                   HalfPlane(v2,v3), HalfPlane(v3,v0)]
+            return min(*(abs(hp.signed_distance(p))
+                         for hp in hps))
         else:
-            surface_pt = crossings[1]
-        d = Vector(2*self.a*surface_pt.x + self.c*surface_pt.y + self.d,
-                   2*self.b*surface_pt.y + self.c*surface_pt.x + self.e)
-        return s * abs(d.dot(p - surface_pt) / d.length())
+            c = self.center
+            crossings = self.intersections(c, p)
+            # the surface point we want is the one closest to p
+            if (p - crossings[0]).length() < (p - crossings[1]).length():
+                surface_pt = crossings[0]
+            else:
+                surface_pt = crossings[1]
+            # n is the normal at surface_pt
+            n = self.gradient * surface_pt
+            n = n * (1.0 / n.length())
+            # returns the length of the projection of p - surface_pt
+            # along the normal
+            return -abs(n.dot(p - surface_pt))
 
 def Circle(center, radius, color=None):
     return Ellipse(color=color).transform(
