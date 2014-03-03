@@ -46,15 +46,17 @@
             }]
         });
 
-        $('#container-comparison').highcharts({
-            title: { text: 'Comparison to ' + '<%= comparison_title %>' },
-            series: [{
-                name: '<%= @device.format.capitalize %>',
-                data: <%= @parser.filtered_data %>
-            }, {
-                name: '<%= comparison_title %>',
-                data: <%= @match_filtered_data || [] %>
-            }]
-        });
+        if ($('#container-comparison').length > 0) {
+            $('#container-comparison').highcharts({
+                title: { text: 'Comparison to ' + '<%= comparison_title %>' },
+                series: [{
+                    name: '<%= @device.format.capitalize %>',
+                    data: <%= @parser.filtered_data %>
+                }, {
+                    name: '<%= comparison_title %>',
+                    data: <%= @match_filtered_data || [] %>
+                }]
+            });
+        }
     });
 </script>
