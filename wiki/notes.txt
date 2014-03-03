@@ -1,5 +1,5 @@
 Building a wiki:
-Part 1: Simple UI, file store, anyone can edit, everything overwrites (165 lines):
+Part 1: Simplest possible wiki: Simple UI, file store, anyone can edit, everything overwrites (165 lines):
 -Node web server
 -HTML form
 -View/Edit modes
@@ -32,7 +32,8 @@ Run the server with npm start.  Visit the wiki at http://localhost:8080/wiki/
 
 
 
-Part 2: CouchDB store (213 lines, replaces part 1 content):
+Part 2: Full wiki with CouchDB store, Passport authentication, conflict resolution (376 lines):
+
 -Replace File Store with new CouchDB
 -Comments, timestamps
 -Conflict resolution
@@ -51,21 +52,13 @@ http://127.0.0.1:5984/wiki -> {"db_name":"wiki","doc_count":0,"doc_del_count":0,
 $ npm install --save request
 $ npm install --save dateformat
 
-Run the server with npm start.  Visit the wiki at http://localhost:8080/wiki/
-
-
-
-Part 3: Authentication with Passport (376 lines, replaces part 2):
-
 Use Passport for local authentication
 $ npm install --save passport
 $ npm install --save passport-local
 
 Use CouchDB's existing user table to store users
 
-Use the signup button to create a new user and log in.
-
 Fancy diff/merge:
 $ npm install --save diff
 
-I think part 2 is not necessary, should probably just go from part1 simplest possible wiki to part3 wiki with CouchDB and passport authentication.
+Run the server with npm start.  Visit the wiki at http://localhost:8080/wiki/. Use the signup button to create a new user and log in.

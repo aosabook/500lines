@@ -1,7 +1,7 @@
 {
-  "name": "wiki_part3",
+  "name": "full_wiki",
   "version": "1.0.0",
-  "description": "Part Three Source Code for Wiki in 500 Lines or Less",
+  "description": "Source Code for Full Wiki in 500 Lines or Less",
   "main": "server.js",
   "dependencies": {
     "express": "~3.4.8",
