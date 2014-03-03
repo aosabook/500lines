@@ -548,16 +548,6 @@ class VirtualMachine(object):
             # Methods get self as an implicit first parameter.
             if func.im_self:
                 posargs.insert(0, func.im_self)
-            # The first parameter must be the correct type.
-            if not self.isinstance(posargs[0], func.im_class):
-                raise TypeError(
-                    'unbound method %s() must be called with %s instance '
-                    'as first argument (got %s instance instead)' % (
-                        func.im_func.func_name,
-                        func.im_class.__name__,
-                        type(posargs[0]).__name__,
-                    )
-                )
             func = func.im_func
         retval = func(*posargs, **namedargs)
         self.push(retval)
