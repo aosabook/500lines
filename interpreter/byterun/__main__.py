@@ -3,30 +3,15 @@
 import logging, sys, imp, os
 from pyvm2 import VirtualMachine
 
-def exec_code_object(code, env):
-    vm = VirtualMachine()
-    vm.run_code(code, f_globals=env)
-
-def run_python_file(filename, args):
+def run_python_file(filename):
     """Run a python file as if it were the main program on the command line.
-
     `filename` is the path to the file to execute, it need not be a .py file.
-    `args` is the argument array to present as sys.argv, including the first
-    element naming the file being executed.
-
     """
     # Create a module to serve as __main__
     old_main_mod = sys.modules['__main__']
     main_mod = imp.new_module('__main__')
     sys.modules['__main__'] = main_mod
-    main_mod.__file__ = filename
     main_mod.__builtins__ = sys.modules['builtins']
-
-    # Set sys.argv and the first path element properly.
-    old_argv = sys.argv
-    old_path0 = sys.path[0]
-    sys.argv = args
-    sys.path[0] = os.path.abspath(os.path.dirname(filename))
 
     try:
         with open(filename, 'rU') as f:
@@ -36,11 +21,10 @@ def run_python_file(filename, args):
             source += '\n' # `compile` still needs the last line to be clean,
         code = compile(source, filename, "exec")
 
-        exec_code_object(code, main_mod.__dict__)
+        vm = VirtualMachine()
+        vm.run_code(code, f_globals=main_mod.__dict__)
     finally:
         sys.modules['__main__'] = old_main_mod # Restore the old __main__
-        sys.argv = old_argv # Restore the old argv and old_path
-        sys.path[0] = old_path0
 
 if __name__ == '__main__':
-    run_python_file(sys.argv[1], sys.argv[1:])
+    run_python_file(sys.argv[1])
