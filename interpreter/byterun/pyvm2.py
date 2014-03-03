@@ -3,12 +3,7 @@
 # pyvm2 by Paul Swartz (z3p), from http://www.twistedmatrix.com/users/z3p/
 # byterun by Ned Batchelder
 
-import dis
-import inspect
-import logging
-import operator
-import sys
-import reprlib
+import dis, inspect, logging, operator, sys, reprlib
 from .pyobj import Frame, Block, Method, Object, Function, Class, Generator
 
 log = logging.getLogger(__name__)

@@ -1,9 +1,6 @@
 """A main program for Byterun."""
 
-import logging
-import sys
-import imp
-import os
+import logging, sys, imp, os
 from pyvm2 import VirtualMachine
 
 def exec_code_object(code, env):
@@ -32,31 +29,17 @@ def run_python_file(filename, args):
     sys.path[0] = os.path.abspath(os.path.dirname(filename))
 
     try:
-        # Open the source file.
-        try:
-            source_file = open(filename, "rU")
-        except IOError:
-            raise Exception("No file to run: %r" % filename)
+        with open(filename, 'rU') as f:
+            source = f.read()
 
-        try:
-            source = source_file.read()
-        finally:
-            source_file.close()
-
-        # We have the source.  `compile` still needs the last line to be clean,
-        # so make sure it is, then compile a code object from it.
         if not source or source[-1] != '\n':
-            source += '\n'
+            source += '\n' # `compile` still needs the last line to be clean,
         code = compile(source, filename, "exec")
 
-        # Execute the source file.
         exec_code_object(code, main_mod.__dict__)
     finally:
-        # Restore the old __main__
-        sys.modules['__main__'] = old_main_mod
-
-        # Restore the old argv and path
-        sys.argv = old_argv
+        sys.modules['__main__'] = old_main_mod # Restore the old __main__
+        sys.argv = old_argv # Restore the old argv and old_path
         sys.path[0] = old_path0
 
 if __name__ == '__main__':

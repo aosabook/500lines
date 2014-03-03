@@ -1,8 +1,6 @@
 """Implementations of Python fundamental objects for Byterun."""
 
-import collections
-import inspect
-import types
+import collections, inspect, types
 
 def make_cell(value):
     # Thanks to Alex Gaynor for help with this bit of twistiness.
