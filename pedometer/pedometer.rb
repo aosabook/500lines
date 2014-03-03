@@ -1,10 +1,6 @@
 require 'sinatra'
 require 'sinatra/jbuilder'
-require './models/analyzer.rb'
-require './models/device.rb'
-require './models/user.rb'
-require './helpers/file_helper.rb'
-require './helpers/hash_helper.rb'
+Dir['./models/*.rb', './helpers/*.rb'].each {|file| require file }
 
 include FileUtils::Verbose
 
