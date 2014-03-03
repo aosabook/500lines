@@ -3,18 +3,19 @@
 <link href="/styles.css" rel="stylesheet" type="text/css" />
 
 <html>
-    <%= @file_name %>
-
+    <a class="nav" href='/data'>Back to Data</a>
     <table>
         <tr>
-            <th>Steps</td>
-            <th>Distance</td>
-            <th>Time</td>
+            <th>Steps</th>
+            <th>Distance</th>
+            <th>Time</th>
+            <th>File</th>
         </tr>
         <tr>
             <td><%= @analyzer.steps %></td>
             <td><%= @analyzer.distance %></td>
             <td><%= @analyzer.time.to_s + ' ' + @analyzer.interval %></td>
+            <td><%= @file_name %></td>
         </tr>
     </table>
 

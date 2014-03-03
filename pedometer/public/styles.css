@@ -24,3 +24,8 @@ h3.upload-header {
 }
 
 input { width: 200px; }
+
+a.nav { 
+  float: right;
+  margin: 20px 150px 0 0;
+}
