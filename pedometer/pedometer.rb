@@ -27,17 +27,17 @@ end
 # - Capture exceptions and redirect to /data
 post '/create' do
   begin
-    temp_file_path = params[:device][:file][:tempfile]
+    file = params[:device][:file][:tempfile]
     
     user = User.new(params[:user].symbolize_keys)
-    @device = Device.new({data: File.read(temp_file_path)}.merge(params[:device].symbolize_keys))
+    @device = Device.new({data: File.read(file)}.merge(params[:device].symbolize_keys))
     @parser = Parser.new(@device)
     @analyzer = Analyzer.new(@parser, user)
     @analyzer.measure
 
     @file_name = FileHelper.generate_file_name(user, @device)
     
-    cp(temp_file_path, "public/uploads/" + @file_name)
+    cp(file, "public/uploads/" + @file_name)
 
     erb :detail
   rescue Exception => e
