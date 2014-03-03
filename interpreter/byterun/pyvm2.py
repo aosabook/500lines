@@ -715,8 +715,6 @@ class VirtualMachine(object):
 
     def byte_RETURN_VALUE(self):
         self.return_value = self.pop()
-        if self.frame.generator:
-            self.frame.generator.finished = True
         return "return" 
 
     ## Importing

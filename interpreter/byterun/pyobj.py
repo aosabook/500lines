@@ -160,7 +160,6 @@ class Frame(object):
                 self.cells[var] = f_back.cells[var]
 
         self.block_stack = []
-        self.generator = None
 
     def __repr__(self):         # pragma: no cover
         return '<Frame at 0x%08x>' % id(self)
