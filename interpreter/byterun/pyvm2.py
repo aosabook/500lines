@@ -96,12 +96,6 @@ class VirtualMachine(object):
         else:
             self.frame = None
 
-    def resume_frame(self, frame):
-        frame.f_back = self.frame
-        val = self.run_frame(frame)
-        frame.f_back = None
-        return val
-
     def run_code(self, code, f_globals=None, f_locals=None):
         frame = self.make_frame(code, f_globals=f_globals, f_locals=f_locals)
         val = self.run_frame(frame)
