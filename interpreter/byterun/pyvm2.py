@@ -610,46 +610,6 @@ class VirtualMachine(object):
             raise Exception("popped block is not an except handler")
         self.unwind_except_handler(block)
 
-    def byte_SETUP_WITH(self, dest):
-        ctxmgr = self.pop()
-        self.push(ctxmgr.__exit__)
-        ctxmgr_obj = ctxmgr.__enter__()
-        self.push_block('finally', dest)
-        self.push(ctxmgr_obj)
-
-    def byte_WITH_CLEANUP(self):
-        # The code here does some weird stack manipulation: the exit function
-        # is buried in the stack, and where depends on what's on top of it.
-        # Pull out the exit function, and leave the rest in place.
-        v = w = None
-        u = self.top()
-        if u is None: # same in 2/3
-            exit_func = self.pop(1)
-        elif isinstance(u, str): # same in 2/3
-            if u in ('return', 'continue'):
-                exit_func = self.pop(2)
-            else:
-                exit_func = self.pop(1)
-            u = None
-        elif issubclass(u, BaseException):
-            w, v, u = self.popn(3)
-            tp, exc, tb = self.popn(3)
-            exit_func = self.pop()
-            self.push(tp, exc, tb)
-            self.push(None)
-            self.push(w, v, u)
-            block = self.pop_block()
-            assert block.type == 'except-handler'
-            self.push_block(block.type, block.handler, block.level-1)
-
-        else:       # pragma: no cover
-            raise VirtualMachineError("Confused WITH_CLEANUP")
-        exit_ret = exit_func(u, v, w)
-        err = (u is not None) and bool(exit_ret)
-        if err:
-            # An error occurred, and was suppressed
-            self.push('silenced')
-
     ## Functions
 
     def byte_MAKE_FUNCTION(self, argc):
