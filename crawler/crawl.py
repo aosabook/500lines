@@ -69,7 +69,8 @@ def main():
         print('Use --help for command line help')
         return
 
-    log = crawling.Logger(args.level)
+    levels = [logging.ERROR, logging.WARN, logging.INFO, logging.DEBUG]
+    logging.basicConfig(level=levels[min(args.level, len(levels)-1)])
 
     if args.iocp:
         from asyncio.windows_events import ProactorEventLoop
@@ -83,8 +84,7 @@ def main():
 
     roots = {fix_url(root) for root in args.roots}
 
-    crawler = crawling.Crawler(log,
-                               roots,
+    crawler = crawling.Crawler(roots,
                                exclude=args.exclude,
                                strict=args.strict,
                                max_redirect=args.max_redirect,
@@ -104,5 +104,4 @@ def main():
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
     main()

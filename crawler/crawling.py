@@ -4,7 +4,6 @@
 
 # TODO:
 # - More organized logging (with task ID or URL?).
-# - Use logging module for Logger.
 # - KeyboardInterrupt in HTML parsing may hang or report unretrieved error.
 # - Support gzip encoding.
 # - Close connection if HTTP/1.0 response.
@@ -16,11 +15,14 @@
 import asyncio
 import cgi
 from http.client import BadStatusLine
+import logging
 import re
 import signal
 import sys
 import time
 import urllib.parse
+
+logger = logging.getLogger(__name__)
 
 
 ESCAPES = [('quot', '"'),
@@ -40,22 +42,6 @@ def unescape(url):
     return url
 
 
-class Logger:
-
-    def __init__(self, level):
-        self.level = level
-
-    def _log(self, n, args):
-        if self.level >= n:
-            print(*args, file=sys.stderr, flush=True)
-
-    def log(self, n, *args):
-        self._log(n, args)
-
-    def __call__(self, n, *args):
-        self._log(n, args)
-
-
 class ConnectionPool:
     """A connection pool.
 
@@ -70,8 +56,7 @@ class ConnectionPool:
     There are limits to both the overal pool and the per-key pool.
     """
 
-    def __init__(self, log, max_pool=10, max_tasks=5):
-        self.log = log
+    def __init__(self, max_pool=10, max_tasks=5):
         self.max_pool = max_pool  # Overall limit.
         self.max_tasks = max_tasks  # Per-key limit.
         self.loop = asyncio.get_event_loop()
@@ -93,10 +78,10 @@ class ConnectionPool:
         try:
             ipaddrs = yield from self.loop.getaddrinfo(host, port)
         except Exception as exc:
-            self.log(0, 'Exception %r for (%r, %r)' % (exc, host, port))
+            logging.error('Exception %r for (%r, %r)' % (exc, host, port))
             raise
-        self.log(1, '* %s resolves to %s' %
-                    (host, ', '.join(ip[4][0] for ip in ipaddrs)))
+        logger.warn('* %s resolves to %s',
+                    host, ', '.join(ip[4][0] for ip in ipaddrs))
 
         # Look for a reusable connection.
         for _, _, _, _, (h, p, *_) in ipaddrs:
@@ -109,17 +94,17 @@ class ConnectionPool:
                 if not conns:
                     del self.connections[key]
                 if conn.stale():
-                    self.log(1, 'closing stale connection for', key)
+                    logger.warn('closing stale connection %r', key)
                     conn.close()  # Just in case.
                 else:
-                    self.log(1, '* Reusing pooled connection', key,
-                                'FD =', conn.fileno())
+                    logger.warn('* Reusing pooled connection %r FD=%s',
+                                key, conn.fileno())
                     return conn
 
         # Create a new connection.
-        conn = Connection(self.log, self, host, port, ssl)
+        conn = Connection(self, host, port, ssl)
         yield from conn.connect()
-        self.log(1, '* New connection', conn.key, 'FD =', conn.fileno())
+        logger.warn('* New connection %r FD=%s', conn.key, conn.fileno())
         return conn
 
     def recycle_connection(self, conn):
@@ -144,11 +129,11 @@ class ConnectionPool:
 
         for victim in victims:
             if victim.stale():  # Prefer pruning the oldest stale connection.
-                self.log(1, 'closing stale connection for', victim.key)
+                logger.warn('closing stale connection %r', victim.key)
                 break
         else:
             victim = victims[0]
-            self.log(1, 'closing oldest connection for', victim.key)
+            logger.warn('closing oldest connection %r', victim.key)
 
         conns = self.connections[victim.key]
         conns.remove(victim)
@@ -160,8 +145,7 @@ class ConnectionPool:
 
 class Connection:
 
-    def __init__(self, log, pool, host, port, ssl):
-        self.log = log
+    def __init__(self, pool, host, port, ssl):
         self.pool = pool
         self.host = host
         self.port = port
@@ -191,7 +175,7 @@ class Connection:
         if peername:
             self.host, self.port = peername[:2]
         else:
-            self.log(1, 'NO PEERNAME???', self.host, self.port, self.ssl)
+            logger.warn('NO PEERNAME %r %r %r', self.host, self.port, self.ssl)
         self.key = self.host, self.port, self.ssl
 
     def close(self, recycle=False):
@@ -209,8 +193,7 @@ class Request:
     request; get_response() to receive the response headers.
     """
 
-    def __init__(self, log, url, pool):
-        self.log = log
+    def __init__(self, url, pool):
         self.url = url
         self.pool = pool
         self.parts = urllib.parse.urlparse(self.url)
@@ -234,10 +217,10 @@ class Request:
     @asyncio.coroutine
     def connect(self):
         """Open a connection to the server."""
-        self.log(1, '* Connecting to %s:%s using %s for %s' %
-                    (self.hostname, self.port,
-                     'ssl' if self.ssl else 'tcp',
-                     self.url))
+        logger.warn('* Connecting to %s:%s using %s for %s',
+                    self.hostname, self.port,
+                    'ssl' if self.ssl else 'tcp',
+                    self.url)
         self.conn = yield from self.pool.get_connection(self.hostname,
                                                         self.port, self.ssl)
 
@@ -245,7 +228,7 @@ class Request:
         """Close the connection, recycle if requested."""
         if self.conn is not None:
             if not recycle:
-                self.log(1, 'closing connection for', self.conn.key)
+                logger.warn('closing connection %r', self.conn.key)
             self.conn.close(recycle)
             self.conn = None
 
@@ -255,7 +238,7 @@ class Request:
 
         Used for the request line and headers.
         """
-        self.log(2, '>', line)
+        logging.info('>', line)
         self.conn.writer.write(line.encode('latin-1') + b'\r\n')
 
     @asyncio.coroutine
@@ -277,7 +260,7 @@ class Request:
     @asyncio.coroutine
     def get_response(self):
         """Receive the response."""
-        response = Response(self.log, self.conn.reader)
+        response = Response(self.conn.reader)
         yield from response.read_headers()
         return response
 
@@ -290,8 +273,7 @@ class Response:
     Finally call read() to receive the body.
     """
 
-    def __init__(self, log, reader):
-        self.log = log
+    def __init__(self, reader):
         self.reader = reader
         self.http_version = None  # 'HTTP/1.1'
         self.status = None  # 200
@@ -302,7 +284,7 @@ class Response:
     def getline(self):
         """Read one line from the connection."""
         line = (yield from self.reader.readline()).decode('latin-1').rstrip()
-        self.log(2, '<', line)
+        logging.info('<', line)
         return line
 
     @asyncio.coroutine
@@ -311,7 +293,7 @@ class Response:
         status_line = yield from self.getline()
         status_parts = status_line.split(None, 2)
         if len(status_parts) != 3:
-            self.log(0, 'bad status_line', repr(status_line))
+            logger.error('bad status_line %r', status_line)
             raise BadStatusLine(status_line)
         self.http_version, status, self.reason = status_parts
         self.status = int(status)
@@ -350,18 +332,18 @@ class Response:
                 break
         if nbytes is None:
             if self.get_header('transfer-encoding').lower() == 'chunked':
-                self.log(2, 'parsing chunked response')
+                logging.info('parsing chunked response')
                 blocks = []
                 while True:
                     size_header = yield from self.reader.readline()
                     if not size_header:
-                        self.log(0, 'premature end of chunked response')
+                        logger.error('premature end of chunked response')
                         break
-                    self.log(3, 'size_header =', repr(size_header))
+                    logger.debug('size_header = %r', size_header)
                     parts = size_header.split(b';')
                     size = int(parts[0], 16)
                     if size:
-                        self.log(3, 'reading chunk of', size, 'bytes')
+                        logger.debug('reading chunk of %r bytes', size)
                         block = yield from self.reader.readexactly(size)
                         assert len(block) == size, (len(block), size)
                         blocks.append(block)
@@ -370,10 +352,10 @@ class Response:
                     if not size:
                         break
                 body = b''.join(blocks)
-                self.log(1, 'chunked response had', len(body),
-                            'bytes in', len(blocks), 'blocks')
+                logger.warn('chunked response had %r bytes in %r blocks',
+                            len(body), len(blocks))
             else:
-                self.log(3, 'reading until EOF')
+                logger.debug('reading until EOF')
                 body = yield from self.reader.read()
                 # TODO: Should make sure not to recycle the connection
                 # in this case.
@@ -396,8 +378,7 @@ class Fetcher:
     Call fetch() to do the fetching, then report() to print the results.
     """
 
-    def __init__(self, log, url, crawler, max_redirect=10, max_tries=4):
-        self.log = log
+    def __init__(self, url, crawler, max_redirect=10, max_tries=4):
         self.url = url
         self.crawler = crawler
         # We don't loop resolving redirects here -- we just use this
@@ -430,7 +411,7 @@ class Fetcher:
             self.tries += 1
             self.request = None
             try:
-                self.request = Request(self.log, self.url, self.crawler.pool)
+                self.request = Request(self.url, self.crawler.pool)
                 yield from self.request.connect()
                 yield from self.request.send_request()
                 self.response = yield from self.request.get_response()
@@ -441,12 +422,11 @@ class Fetcher:
                     self.request.close(recycle=True)
                     self.request = None
                 if self.tries > 1:
-                    self.log(1, 'try', self.tries, 'for', self.url, 'success')
+                    logger.warn('try %r for %r success', self.tries, self.url)
                 break
             except (BadStatusLine, OSError) as exc:
                 self.exceptions.append(exc)
-                self.log(1, 'try', self.tries, 'for', self.url,
-                            'raised', repr(exc))
+                logger.warn('try %r for %r raised', self.tries, self.url, exc)
                 ##import pdb; pdb.set_trace()
                 # Don't reuse the connection in this case.
             finally:
@@ -454,18 +434,18 @@ class Fetcher:
                     self.request.close()
         else:
             # We never broke out of the while loop, i.e. all tries failed.
-            self.log(0, 'no success for', self.url,
-                        'in', self.max_tries, 'tries')
+            logger.error('no success for %r in %r tries',
+                         self.url, self.max_tries)
             return
         next_url = self.response.get_redirect_url()
         if next_url:
             self.next_url = urllib.parse.urljoin(self.url, next_url)
             if self.max_redirect > 0:
-                self.log(1, 'redirect to', self.next_url, 'from', self.url)
+                logger.warn('redirect to %r from %r', self.next_url, self.url)
                 self.crawler.add_url(self.next_url, self.max_redirect-1)
             else:
-                self.log(0, 'redirect limit reached for', self.next_url,
-                            'from', self.url)
+                logger.error('redirect limit reached for %r from %r',
+                             self.next_url, self.url)
         else:
             if self.response.status == 200:
                 self.ctype = self.response.get_header('content-type')
@@ -479,8 +459,8 @@ class Fetcher:
                     self.urls = set(re.findall(r'(?i)href=["\']?([^\s"\'<>]+)',
                                                body))
                     if self.urls:
-                        self.log(1, 'got', len(self.urls),
-                                    'distinct urls from', self.url)
+                        logger.warn('got %r distinct urls from %r',
+                                    len(self.urls), self.url)
                     self.new_urls = set()
                     for url in self.urls:
                         url = unescape(url)
@@ -564,12 +544,11 @@ class Crawler:
     the redirect limit, while the values in busy and done are Fetcher
     instances.
     """
-    def __init__(self, log,
-                 roots, exclude=None, strict=True,  # What to crawl.
+    def __init__(self, roots,
+                 exclude=None, strict=True,  # What to crawl.
                  max_redirect=10, max_tries=4,  # Per-url limits.
                  max_tasks=10, max_pool=10,  # Global limits.
                  ):
-        self.log = log
         self.roots = roots
         self.exclude = exclude
         self.strict = strict
@@ -580,7 +559,7 @@ class Crawler:
         self.todo = {}
         self.busy = {}
         self.done = {}
-        self.pool = ConnectionPool(self.log, max_pool, max_tasks)
+        self.pool = ConnectionPool(max_pool, max_tasks)
         self.root_domains = set()
         for root in roots:
             parts = urllib.parse.urlparse(root)
@@ -659,17 +638,17 @@ class Crawler:
             return False
         parts = urllib.parse.urlparse(url)
         if parts.scheme not in ('http', 'https'):
-            self.log(2, 'skipping non-http scheme in', url)
+            logging.info('skipping non-http scheme in', url)
             return False
         host, port = urllib.parse.splitport(parts.netloc)
         if not self.host_okay(host):
-            self.log(2, 'skipping non-root host in', url)
+            logging.info('skipping non-root host in', url)
             return False
         if max_redirect is None:
             max_redirect = self.max_redirect
         if url in self.todo or url in self.busy or url in self.done:
             return False
-        self.log(1, 'adding', url, max_redirect)
+        logger.warn('adding %r %r', url, max_redirect)
         self.todo[url] = max_redirect
         return True
 
@@ -680,7 +659,7 @@ class Crawler:
             while self.todo or self.busy:
                 if self.todo:
                     url, max_redirect = self.todo.popitem()
-                    fetcher = Fetcher(self.log, url,
+                    fetcher = Fetcher(url,
                                       crawler=self,
                                       max_redirect=max_redirect,
                                       max_tries=self.max_tries,
