@@ -113,4 +113,12 @@ Contributors
     <td>@jaaaarel</td>
     <td>taavi.burns@points.com</td>
   </tr>
+  <tr>
+    <td>Ian Bicking</td>
+    <td>Mozilla</td>
+    <td>realtime cloud sync</td>
+    <td><a href="https://github.com/ianb/">@ianb</a></td>
+    <td><a href="https://twitter.com/ianbicking">@ianbicking</a></td>
+    <td>ian@ianbicking.org</td>
+  </tr>
 </table>
