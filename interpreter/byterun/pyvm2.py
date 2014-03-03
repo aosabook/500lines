@@ -388,13 +388,7 @@ class VirtualMachine(object):
         elts = self.popn(count)
         self.push(elts)
 
-    def byte_BUILD_SET(self, count):
-        # TODO: Not documented in Py2 docs.
-        elts = self.popn(count)
-        self.push(set(elts))
-
     def byte_BUILD_MAP(self, size):
-        # size is ignored.
         self.push({})
 
     def byte_STORE_MAP(self):
@@ -422,15 +416,6 @@ class VirtualMachine(object):
         the_list = self.peek(count)
         the_list.append(val)
 
-    def byte_SET_ADD(self, count):
-        val = self.pop()
-        the_set = self.peek(count)
-        the_set.add(val)
-
-    def byte_MAP_ADD(self, count):
-        val, key = self.popn(2)
-        the_map = self.peek(count)
-        the_map[key] = val
 
     ## Jumps
 
@@ -500,29 +485,6 @@ class VirtualMachine(object):
     def byte_SETUP_FINALLY(self, dest):
         self.push_block('finally', dest)
 
-    def byte_END_FINALLY(self):
-        v = self.pop()
-        if isinstance(v, str):
-            why = v
-            if why in ('return', 'continue'):
-                self.return_value = self.pop()
-            if why == 'silenced': # PY3
-                block = self.pop_block()
-                assert block.type == 'except-handler'
-                self.unwind_except_handler(block)
-                why = None
-        elif v is None:
-            why = None
-        elif issubclass(v, BaseException):
-            exctype = v
-            val = self.pop()
-            tb = self.pop()
-            self.last_exception = (exctype, val, tb)
-            why = 'reraise'
-        else:       # pragma: no cover
-            raise VirtualMachineError("Confused END_FINALLY")
-        return why
-
     def byte_POP_BLOCK(self):
         self.pop_block()
 
@@ -587,18 +549,6 @@ class VirtualMachine(object):
     def byte_CALL_FUNCTION(self, arg):
         return self.call_function(arg, [], {})
 
-    def byte_CALL_FUNCTION_VAR(self, arg):
-        args = self.pop()
-        return self.call_function(arg, args, {})
-
-    def byte_CALL_FUNCTION_KW(self, arg):
-        kwargs = self.pop()
-        return self.call_function(arg, [], kwargs)
-
-    def byte_CALL_FUNCTION_VAR_KW(self, arg):
-        args, kwargs = self.popn(2)
-        return self.call_function(arg, args, kwargs)
-
     def isinstance(self, obj, cls):
         if isinstance(obj, Object):
             return issubclass(obj._class, cls)
@@ -646,16 +596,7 @@ class VirtualMachine(object):
     def byte_IMPORT_NAME(self, name):
         level, fromlist = self.popn(2)
         frame = self.frame
-        self.push(
-            __import__(name, frame.f_globals, frame.f_locals, fromlist, level)
-        )
-
-    def byte_IMPORT_STAR(self):
-        # TODO: this doesn't use __all__ properly.
-        mod = self.pop()
-        for attr in dir(mod):
-            if attr[0] != '_':
-                self.frame.f_locals[attr] = getattr(mod, attr)
+        self.push(__import__(name, frame.f_globals, frame.f_locals, fromlist, level))
 
     def byte_IMPORT_FROM(self, name):
         mod = self.top()
