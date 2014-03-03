@@ -308,9 +308,6 @@ class VirtualMachine(object):
     def byte_STORE_FAST(self, name):
         self.frame.f_locals[name] = self.pop()
 
-    def byte_DELETE_FAST(self, name):
-        del self.frame.f_locals[name]
-
     def byte_LOAD_GLOBAL(self, name):
         f = self.frame
         if name in f.f_globals:
@@ -419,17 +416,9 @@ class VirtualMachine(object):
         val, obj = self.popn(2)
         setattr(obj, name, val)
 
-    def byte_DELETE_ATTR(self, name):
-        obj = self.pop()
-        delattr(obj, name)
-
     def byte_STORE_SUBSCR(self):
         val, obj, subscr = self.popn(3)
         obj[subscr] = val
-
-    def byte_DELETE_SUBSCR(self):
-        obj, subscr = self.popn(2)
-        del obj[subscr]
 
     ## Building
 
