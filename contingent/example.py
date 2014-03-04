@@ -54,9 +54,7 @@ def main():
     for post in posts:
         graph.add(post)
 
-    for post in sorted(posts):
-        print '-' * 8
-        print post.render()
+    display_posts(posts)
 
     print '=' * 72
 
@@ -73,19 +71,22 @@ def main():
 
     with open('graph.dot', 'w') as f:
         print >>f, 'digraph { graph [rankdir="LR"];'
-        for k, vset in graph.consequences.items():
+        for k, vset in graph.consequence_edges.items():
             for v in vset:
                 print >>f, '"%s" -> "%s";' % (present(k), present(v))
         print >>f, '}'
 
-    # Predict what a slight change of date will do.  Avoid avalanches.
-
-    # This would be fun:
     #
-    # with graph.aftermath():
-    #     post2.date = '2014-01-15'
 
-    post2.date = '2014-01-15'
+    with graph.consequences():
+        post2.date = '2014-01-15'
+
+    with graph.consequences():
+        post2.date = '2014-02-15'
+
+    display_posts(posts)
+
+    return
 
     key = (post2, 'date')
     graph.run_consequences_of(key)
@@ -108,6 +109,13 @@ def main():
     for post in blog.sorted_posts:
         print '-' * 8
         print post.render()
+
+
+def display_posts(posts):
+    for post in posts:
+        print '-' * 8
+        print post.render()
+
 
 template = """\
 Previous story: {prev_title}

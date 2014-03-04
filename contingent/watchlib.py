@@ -11,7 +11,7 @@
 # up[key2] = [key1, ...]
 # cache[key] = previously_computed_value
 
-from collections import defaultdict, deque
+from collections import defaultdict
 from contextlib import contextmanager
 from functools import wraps
 from inspect import ismethod
@@ -23,10 +23,11 @@ _unavailable = object()
 class Graph(object):
 
     def __init__(self):
-        self.antecedents = defaultdict(set)
-        self.consequences = defaultdict(set)
+        self.antecedent_edges = defaultdict(set)
+        self.consequence_edges = defaultdict(set)
         self.cache = {}
         self.stack = []
+        self.change_sets = []
 
     def add(self, thing):
         thing._graph = self
@@ -34,8 +35,8 @@ class Graph(object):
     def link(self, key):
         if self.stack:
             caller = self.stack[-1]
-            self.consequences[key].add(caller)
-            self.antecedents[caller].add(key)
+            self.consequence_edges[key].add(caller)
+            self.antecedent_edges[caller].add(key)
 
     def push(self, key):
         self.link(key)
@@ -44,28 +45,30 @@ class Graph(object):
     def pop(self):
         self.stack.pop()
 
-    def topologically_sort_consequences(self, keys):
-        """List `keys` and their consequences, in topological order."""
-        visited = set()
-        result = []
+    def setattr_happened(self, obj, name, value):
+        key = (obj, name)
+        if not self.change_sets:
+            return
+        self.change_sets[-1].add(key)
 
-        def visit(parent_key):
-            visited.add(parent_key)
-            for key in self.consequences[parent_key]:
-                if key not in visited:
-                    visit(key)
-            result.append(parent_key)
+    @contextmanager
+    def consequences(self):
+        """Watch a block of code update data, then run the consequences."""
+        changes = set()
+        self.change_sets.append(changes)
+        try:
+            yield
+        finally:
+            self.change_sets.pop()
+        print
+        print 'Changes:', changes
+        self.run_consequences_of(changes)
 
-        for key in keys:
-            visit(key)
+    def run_consequences_of(self, keys):
+        consequence_keys = self.topologically_sort_consequences(keys)
+        todo = set(keys)
 
-        return result
-
-    def run_consequences_of(self, key):
-        keys = self.topologically_sort_consequences([key])
-        todo = {key}
-
-        for key in reversed(keys):
+        for key in reversed(consequence_keys):
             if key not in todo:
                 continue
             pprint(key)
@@ -80,19 +83,40 @@ class Graph(object):
                 obj, method_name, args = key
                 new_value = getattr(obj, method_name)(*args)
 
-            if new_value == old_value:
+            if (old_value is not _unavailable) and (new_value == old_value):
                 continue
 
             self.cache[key] = new_value
 
-            consequences = self.consequences.get(key, _emptyset)
-            todo |= consequences
+            consequence_keys = self.consequence_edges.get(key, _emptyset)
+            todo |= consequence_keys
+
+    def topologically_sort_consequences(self, keys):
+        """List `keys` and their consequences, in topological order."""
+        visited = set()
+        result = []
+
+        def visit(parent_key):
+            visited.add(parent_key)
+            for key in self.consequence_edges[parent_key]:
+                if key not in visited:
+                    visit(key)
+            result.append(parent_key)
+
+        for key in keys:
+            visit(key)
+
+        return result
 
 
 class Thing(object):
 
-    # def __setattr__(self, name, value):
-    #     self.__dict__[name] = value
+    def __setattr__(self, name, value):
+        if not name.startswith('_'):
+            graph = getattr(self, '_graph', _unavailable)
+            if graph is not _unavailable:
+                graph.setattr_happened(self, name, value)
+        return object.__setattr__(self, name, value)
 
     def __getattribute__(self, name):
 
