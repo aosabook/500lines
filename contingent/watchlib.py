@@ -31,11 +31,14 @@ class Graph(object):
     def add(self, thing):
         thing._graph = self
 
-    def push(self, key):
+    def link(self, key):
         if self.stack:
-            key_beneath = self.stack[-1]
-            self.up[key_beneath].add(key)
-            self.down[key].add(key_beneath)
+            beneath = self.stack[-1]
+            self.down[key].add(beneath)
+            self.up[beneath].add(key)
+
+    def push(self, key):
+        self.link(key)
         self.stack.append(key)
 
     def pop(self):
@@ -78,6 +81,7 @@ class Thing(object):
         key = (self, name)
         value = cache.get(key, _unavailable)
         if value is not _unavailable:
+            graph.link(key)
             return value
         graph.push(key)
         try:
