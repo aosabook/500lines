@@ -7,9 +7,7 @@ from functools import reduce
 from assembler import op, assemble, stack_depth
 from scoper import top_scope
 
-loud = 0
-
-def bytecomp(source, f_globals):
+def byte_compile(source, f_globals, loud=0):
     t = ast.parse(source)
     top_level = top_scope(t, source, loud)
     return types.FunctionType(CodeGen(top_level).compile(t), f_globals)
@@ -225,77 +223,3 @@ def make_table():
 
 def collect(table):
     return tuple(sorted(table, key=table.get))
-
-
-if __name__ == '__main__':
-
-    import sys
-
-    if loud:
-        report = print
-    else:
-        def report(*args, **kwargs): pass
-
-    def main(source, filename=None):
-        f = compile_toplevel(source)
-        f()   # It's alive!
-
-    def compile_toplevel(source):
-        t = ast.parse(source)
-        try:
-            import astpp
-        except ImportError:
-            astpp = ast
-        report(astpp.dump(t))
-        f = bytecomp(source, globals())
-        diss(f.__code__)
-        return f
-
-    def diss(code):
-        codepp(code)
-        if loud: dis.dis(code)
-        for c in code.co_consts:
-            if isinstance(c, types.CodeType):
-                report()
-                report('------', c, '------')
-                diss(c)
-
-    def codepp(code):
-        for k in dir(code):
-            if k.startswith('co_'):
-                report(k, getattr(code, k))
-
-    eg = """
-#import math
-print(['m', 'n'][0])
-(pow, len)
-{'a': 42, 'b': 55}
-{}
-None
-ga = 2+3
-def f(a):
-    "doc comment"
-    while a and True:
-        pass
-        if False or a != 1 or False:
-            print(a, 137)
-        a = a - 1
-    return pow(2, 16)
-    return
-print(f(ga))
-t = True
-while t:
-    break
-for i in range(3):
-    print(i)
-#print(-math.sqrt(2))
-raise Exception('hi')
-"""
-    if len(sys.argv) == 1:
-        main(eg)
-    elif len(sys.argv) >= 2:
-        filename = sys.argv[1]
-        del sys.argv[:2]
-        main(open(filename).read(), filename)
-    else:
-        assert False
