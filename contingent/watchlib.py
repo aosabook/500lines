@@ -23,8 +23,8 @@ _unavailable = object()
 class Graph(object):
 
     def __init__(self):
-        self.down = defaultdict(set)
-        self.up = defaultdict(set)
+        self.antecedents = defaultdict(set)
+        self.consequences = defaultdict(set)
         self.cache = {}
         self.stack = []
 
@@ -33,9 +33,9 @@ class Graph(object):
 
     def link(self, key):
         if self.stack:
-            beneath = self.stack[-1]
-            self.down[key].add(beneath)
-            self.up[beneath].add(key)
+            caller = self.stack[-1]
+            self.consequences[key].add(caller)
+            self.antecedents[caller].add(key)
 
     def push(self, key):
         self.link(key)
@@ -43,6 +43,12 @@ class Graph(object):
 
     def pop(self):
         self.stack.pop()
+
+    def topologically_sorted(self):
+        visited_keys = set()
+        finished_keys = set()
+        stack = []
+        #for key,  in self.down
 
     def run_consequences_of(self, key):
         todo = {key}
@@ -62,9 +68,9 @@ class Graph(object):
 
             self.cache[key] = new_value
 
-            downs = self.down.get(key, _emptyset)
-            todo |= downs
-            pprint(downs)
+            consequences = self.consequences.get(key, _emptyset)
+            todo |= consequences
+            pprint(consequences)
 
 
 class Thing(object):

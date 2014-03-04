@@ -88,13 +88,11 @@ def main():
     key = (post2, 'date')
     graph.run_consequences_of(key)
 
-    return
-
     # python example.py && dot -Tpng graph.dot > graph.png && geeqie graph.png
 
     with open('graph.dot', 'w') as f:
         print >>f, 'digraph { graph [rankdir="LR"];'
-        for k, vset in graph.down.items():
+        for k, vset in graph.consequences.items():
             for v in vset:
                 print >>f, '"%s" -> "%s";' % (present(k), present(v))
         print >>f, '}'
