@@ -1,8 +1,9 @@
 (ns scenarios.hospital
   [:use core.fdb]
-  [:require [core.manage :as M]
-             ])
+  [:require [core.manage :as M]])
 
+
+(M/reset-db-conn "hospital-db")
 
 (def hospital-db (M/get-db-conn "hospital-db"))
 
