@@ -65,19 +65,19 @@ class AnalyzerTest < Test::Unit::TestCase
   # -- Edge Detection Tests -------------------------------------------------
 
   def test_split_on_threshold
-    device = Device.new(:data => File.read('test/data/female/walking-10-g-1.txt'))
+    device = Device.new(:data => File.read('test/data/female/female-167-70_100-walk-10-1-g.txt'))
     parser = Parser.new(device)
     analyzer = Analyzer.new(parser)
 
-    expected = File.read('test/data/female/expected/walking-10-g-1-positive.txt').split(',').collect(&:to_i)
+    expected = File.read('test/data/female/expected/female-167-70_100-walk-10-1-g-positive.txt').split(',').collect(&:to_i)
     assert_equal expected, analyzer.split_on_threshold(true)
 
-    expected = File.read('test/data/female/expected/walking-10-g-1-negative.txt').split(',').collect(&:to_i)
+    expected = File.read('test/data/female/expected/female-167-70_100-walk-10-1-g-negative.txt').split(',').collect(&:to_i)
     assert_equal expected, analyzer.split_on_threshold(false)
   end
 
   def test_detect_edges
-    device = Device.new(:data => File.read('test/data/female/walking-10-g-1.txt'))
+    device = Device.new(:data => File.read('test/data/female/female-167-70_100-walk-10-1-g.txt'))
     parser = Parser.new(device)
     analyzer = Analyzer.new(parser)
     
@@ -86,7 +86,7 @@ class AnalyzerTest < Test::Unit::TestCase
   end
 
   def test_detect_edges_false_step
-    device = Device.new(:data => File.read('test/data/female/walking-1-g-false-step.txt'))
+    device = Device.new(:data => File.read('test/data/female/female-167-70_100-walk-0-1-g.txt'))
     parser = Parser.new(device)
     analyzer = Analyzer.new(parser)
     
@@ -97,19 +97,7 @@ class AnalyzerTest < Test::Unit::TestCase
   # -- Measurement Tests ----------------------------------------------------
 
   def test_measure_steps
-    device = Device.new(:data => File.read('test/data/results-0-steps.txt'))
-    parser = Parser.new(device)
-    analyzer = Analyzer.new(parser)
-    analyzer.measure_steps
-    assert_equal 0, analyzer.steps
-
-    device = Device.new(:data => File.read('test/data/results-15-steps.txt'))
-    parser = Parser.new(device)
-    analyzer = Analyzer.new(parser)
-    analyzer.measure_steps
-    assert_equal 0, analyzer.steps
-
-    device = Device.new(:data => File.read('test/data/female/walking-10-g-1.txt'))
+    device = Device.new(:data => File.read('test/data/female/female-167-70_100-walk-10-1-g.txt'))
     parser = Parser.new(device)
     analyzer = Analyzer.new(parser)
     analyzer.measure_steps
@@ -117,7 +105,7 @@ class AnalyzerTest < Test::Unit::TestCase
   end
 
   def test_measure_distance_before_steps
-    device = Device.new(:data => File.read('test/data/female/walking-10-g-1.txt'))
+    device = Device.new(:data => File.read('test/data/female/female-167-70_100-walk-10-1-g.txt'))
     parser = Parser.new(device)
     analyzer = Analyzer.new(parser)
     analyzer.measure_distance
