@@ -15,6 +15,10 @@ from collections import defaultdict
 from contextlib import contextmanager
 from functools import wraps
 from inspect import ismethod
+from pprint import pprint
+
+_emptyset = frozenset()
+_unavailable = object()
 
 class Graph(object):
 
@@ -37,6 +41,25 @@ class Graph(object):
     def pop(self):
         self.stack.pop()
 
+    def run_consequences_of(self, key):
+        todo = {key}
+        while todo:
+            key = todo.pop()
+            old_value = self.cache.get(key, _unavailable)
+
+            if len(key) == 2:
+                obj, attr_name = key
+                value = getattr(obj, attr_name)
+            else:
+                obj, method_name, args = key
+                value = getattr(obj, method_name)(*args)
+
+            if value == old_value:
+                continue
+
+            downs = self.down.get(key, _emptyset)
+            todo |= downs
+            pprint(downs)
 
 
 class Thing(object):

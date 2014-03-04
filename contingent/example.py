@@ -4,9 +4,6 @@ from operator import attrgetter
 from pprint import pprint
 from watchlib import Graph, Thing
 
-_emptyset = frozenset()
-_unavailable = object()
-
 class Blog(Thing):
     def __init__(self, posts):
         self.posts = posts
@@ -74,8 +71,6 @@ def main():
 
     # Predict what a slight change of date will do.  Avoid avalanches.
 
-    print len(graph.down)
-
     # This would be fun:
     #
     # with graph.aftermath():
@@ -84,26 +79,15 @@ def main():
     post2.date = '2014-01-15'
 
     key = (post2, 'date')
-    todo = {key}
-    while todo:
-        key = todo.pop()
-        old_value = graph.cache.get(key, _unavailable)
+    graph.run_consequences_of(key)
 
-        if len(key) == 2:
-            obj, attr_name = key
-            value = getattr(obj, attr_name)
-        else:
-            obj, method_name, args = key
-            value = getattr(obj, method_name)(*args)
+    print '-' * 8
 
-        if value == old_value:
-            continue
+    post2.date = '2014-02-15'
 
-        downs = graph.down.get(key, _emptyset)
-        todo |= downs
-        pprint(downs)
+    key = (post2, 'date')
+    graph.run_consequences_of(key)
 
-    print len(graph.down)
     return
 
     # python example.py && dot -Tpng graph.dot > graph.png && geeqie graph.png
