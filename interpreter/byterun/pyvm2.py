@@ -1,7 +1,7 @@
 """A pure-Python Python bytecode interpreter."""
-# Based on:
+# Adapted from:
 # 1. pyvm2 by Paul Swartz (z3p), from http://www.twistedmatrix.com/users/z3p/
-# 2. byterun by Ned Batchelder
+# 2. byterun by Ned Batchelder, github.com/nedbat/byterun
 
 import dis, inspect, operator, sys
 from byterun.pyobj import Frame, Block, Function
@@ -22,12 +22,12 @@ class VirtualMachine(object):
         """Return the value at the top of the stack, with no changes."""
         return self.stack[-1]
 
-    def pop(self, i=0):
+    def pop(self):
         """Pop a value from the stack.
         Default to the top of the stack, but `i` can be a count from the top
         instead.
         """
-        return self.stack.pop(-1-i)
+        return self.stack.pop(-1)
 
     def push(self, *vals):
         """Push values onto the value stack."""
@@ -48,13 +48,25 @@ class VirtualMachine(object):
         """Move the bytecode pointer to `jump`, so it will execute next."""
         self.frame.f_lasti = jump
 
-    def push_block(self, type, handler=None, level=None):
-        if level is None:
-            level = len(self.stack)
-        self.frame.block_stack.append(Block(type, handler, level))
+    def push_block(self, b_type, handler=None):
+        level = len(self.stack)
+        self.frame.block_stack.append(Block(b_type, handler, level))
 
     def pop_block(self):
         return self.frame.block_stack.pop()
+
+    def unwind_block(self, block):
+        if block.type == 'except-handler':
+            offset = 3
+        else:
+            offset = 0
+        
+        while len(self.stack) > block.level + offset:
+            self.pop()
+
+        if block.type == 'except-handler':
+            traceback, value, exctype = self.popn(3)
+            self.last_exception = exctype, value, traceback    
 
     def unwind_except_handler(self, block):
         while len(self.stack) > block.level + 3:
@@ -81,6 +93,10 @@ class VirtualMachine(object):
         frame = Frame(code, f_globals, f_locals, self.frame)
         return frame
 
+    def push_frame(self, frame):
+        self.frames.append(frame)
+        self.frame = frame
+
     def pop_frame(self):
         self.frames.pop()
         if self.frames:
@@ -97,14 +113,13 @@ class VirtualMachine(object):
         if self.stack:
             raise VirtualMachineError("Data left on stack! %r" % self.stack)
 
-        return val # for testing
+        return val # for testing - will be removed
 
     def run_frame(self, frame):
         """Run a frame until it returns (somehow).
         Exceptions are raised, the return value is returned.
         """
-        self.frames.append(frame)
-        self.frame = frame
+        self.push_frame(frame)
         while True:
             opoffset = frame.f_lasti
             byteCode = frame.f_code.co_code[opoffset]
@@ -130,8 +145,8 @@ class VirtualMachine(object):
                     arg = intArg
                 arguments = [arg]
 
-            # When unwinding the block stack, we need to keep track of why we
-            # are doing it.
+            # When later unwinding the block stack, 
+            # we need to keep track of why we are doing it.
             why = None
 
             try:
@@ -140,11 +155,11 @@ class VirtualMachine(object):
                 elif byteName.startswith('BINARY_'):
                     self.binaryOperator(byteName[7:])
                 else:
-                    # dispatch
+                    # main dispatch
                     bytecode_fn = getattr(self, 'byte_%s' % byteName, None)
                     if not bytecode_fn:            # pragma: no cover
                         raise VirtualMachineError(
-                            "unknown bytecode type: %s" % byteName
+                            "unsupported bytecode type: %s" % byteName
                         )
                     why = bytecode_fn(*arguments)
 
@@ -166,20 +181,14 @@ class VirtualMachine(object):
                     break
 
                 self.pop_block()
-
-                if block.type == 'except-handler':
-                   self.unwind_except_handler(block)
-                   continue
-
-                while len(self.stack) > block.level:
-                    self.pop()
+                self.unwind_block(block)
 
                 if block.type == 'loop' and why == 'break':
                     why = None
                     self.jump(block.handler)
                     break
 
-                if (why == 'exception' and block.type in ['setup-except', 'finally']):
+                if (block.type in ['setup-except', 'finally'] and why == 'exception'):
                     self.push_block('except-handler')
                     exctype, value, tb = self.last_exception
                     self.push(tb, value, exctype)
@@ -190,6 +199,7 @@ class VirtualMachine(object):
                 elif block.type == 'finally':
                     if why in ('return', 'continue'):
                         self.push(self.return_value)
+
                     self.push(why)
 
                     why = None
@@ -471,7 +481,7 @@ class VirtualMachine(object):
         block = self.pop_block()
         if block.type != 'except-handler':
             raise Exception("popped block is not an except handler")
-        self.unwind_except_handler(block)
+        self.unwind_block(block)
 
     ## Functions
 

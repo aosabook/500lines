@@ -7,6 +7,25 @@ def make_cell(value):
     fn = (lambda x: lambda: x)(value)
     return fn.__closure__[0]
 
+Block = collections.namedtuple("Block", "type, handler, level")
+
+class Frame(object):
+    def __init__(self, f_code, f_globals, f_locals, f_back):
+        self.f_code = f_code
+        self.f_globals = f_globals
+        self.f_locals = f_locals
+        self.f_back = f_back
+        if f_back:
+            self.f_builtins = f_back.f_builtins
+        else:
+            self.f_builtins = f_locals['__builtins__']
+            if hasattr(self.f_builtins, '__dict__'):
+                self.f_builtins = self.f_builtins.__dict__
+
+        self.f_lineno = f_code.co_firstlineno
+        self.f_lasti = 0
+        self.block_stack = []
+
 class Function(object):
     __slots__ = [
         'func_code', 'func_name', 'func_defaults', 'func_globals',
@@ -45,22 +64,3 @@ class Function(object):
             self.func_code, callargs, self.func_globals, self.func_locals
         )
         return self._vm.run_frame(frame)
-
-Block = collections.namedtuple("Block", "type, handler, level")
-
-class Frame(object):
-    def __init__(self, f_code, f_globals, f_locals, f_back):
-        self.f_code = f_code
-        self.f_globals = f_globals
-        self.f_locals = f_locals
-        self.f_back = f_back
-        if f_back:
-            self.f_builtins = f_back.f_builtins
-        else:
-            self.f_builtins = f_locals['__builtins__']
-            if hasattr(self.f_builtins, '__dict__'):
-                self.f_builtins = self.f_builtins.__dict__
-
-        self.f_lineno = f_code.co_firstlineno
-        self.f_lasti = 0
-        self.block_stack = []
