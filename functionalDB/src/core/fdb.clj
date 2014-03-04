@@ -1,4 +1,5 @@
-(ns core.fdb)
+(ns core.fdb
+  [:require [clojure.set :as CS :only (union difference )]])
 
 (defrecord Database [timestamped top-id curr-time])
 (defrecord Indices [EAVT VAET AVET])
@@ -13,26 +14,35 @@
   ([id] (Entity.  id {})))
 
 (defn make-attr
-  ([name value type ]  (make-attr name value type :db/single))
-  ([name value type cardinality]  (make-attr name value type cardinality false))
-  ([name value type cardinality indexed] (with-meta (Attr. name type value -1 -1) {:indexed indexed :cardinality cardinality} )))
+  "creation of an attribute. The name, value and type of an attribute are mandatory arguments, further arguments can be passed as named arguguments.
+   The type of the attribute may be either :string, :number, :boolean or :REF. If the type is :REF, the value is an id of another entity and indexing of backpointing is maintained.
+  The named arguments are as follows:
+  :indexed - a boolean, can be either true or false - marks whether this attribute should be indexed. By defaults attributes are not inexed.
+  :cardinality - the cardinality of an attribute, can be either:
+                     :db/single - which means that this attribute can be a single value at any given time (this is the default cardinality)
+                     :db/mutiple - which means that this attribute is actually a set of values. In this case updates of this attribute may be one of the following (NOTE that all these operations accept a set as argument):
+                                          :db/add - adds a set of values to the currently existing set of values
+                                          :db/resetTo - resets the value of this attribute to be the given set of values
+                                          :db/remove - removes the given set of values from the attribute's current set of values"
+  ([name value type ; these ones are required
+      & {:keys [indexed cardinality] :or {indexed false cardinality :db/single}} ]
+   (with-meta (Attr. name type value -1 -1) {:indexed indexed :cardinality cardinality} )))
 
 (defn update-attr-value "updating the attribute value based on the kind of the operation, the cardinality defined for this attribute and the given value"
   [attr value operation]
   (cond
       (= :db/single (:cardinality (meta attr)))    (assoc attr :value #{value})
    ; now = :db/mutiple (:cardinality (meta attr)))
-      (= :db/reset-to operation)  (assoc attr :value #{value})
-      (= :db/add operation)        (assoc attr :value (conj (:value attr) value ))
-      (= :db/remove operation)  (assoc attr :value (disj (:value attr) value ))
-   ))
+      (= :db/reset-to operation)  (assoc attr :value value)
+      (= :db/add operation)        (assoc attr :value (CS/union (:value attr)  value))
+      (= :db/remove operation)  (assoc attr :value (CS/difference (:value attr) value))))
 
 (defn conj-to-attr "conjoins a value to an attribute, this function can be used either when initializing a new attribute or updating an existing one"
   [old new operation]
   (let [new-val (:value new)]
    (if old
     (update-attr-value old (:value new) operation)
-    (update-attr-value new (:value new) :db/reset-to   ))))
+    (update-attr-value new (:value new) :db/reset-to))))
 
 (defn add-attr "adds an attribute to an entity"
   [ ent attr]
@@ -118,7 +128,6 @@
 
 (defn transact-on-db [initial-db  txs]
     (loop [[tx & rst-tx] txs transacted initial-db]
-
       (if tx    (recur rst-tx (apply (first tx) transacted (rest tx)))
                  (let [ initial-indices  (:timestamped initial-db)
                           new-indices (last (:timestamped transacted))
