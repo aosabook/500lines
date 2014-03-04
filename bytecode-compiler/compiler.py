@@ -74,8 +74,8 @@ raise Exception('hi')
     if len(sys.argv) == 1:
         main(eg)
     elif len(sys.argv) >= 2:
-        filename = sys.argv[1]
-        del sys.argv[:2]
+        del sys.argv[0]
+        filename = sys.argv[0]
         main(open(filename).read(), filename)
     else:
         assert False
