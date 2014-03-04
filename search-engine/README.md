@@ -134,12 +134,6 @@ the skip file
 and a single chunk
 to find all the postings for a term.
 
-There’s a chunk-size tradeoff:
-if the chunks are too small, the skip file will be large,
-and a single query may need to read many chunks;
-on the other hand, if the chunks are too large,
-then reading a single chunk will take a long time.
-
 Industrial-strength search engines
 identify terms by integer indices into a term dictionary
 and documents by integer document IDs,
