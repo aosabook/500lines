@@ -1,4 +1,4 @@
-(ns core.tmpTst
+(ns scenarios.hospital
   [:use core.fdb]
   [:require [core.manage :as M]
              ])
@@ -19,7 +19,7 @@
                      (add-attr (make-attr :patient/diastolic 80 :number ))
                      (add-attr (make-attr :patient/temperature 37 :number ))
                      (add-attr (make-attr :patient/city "London":string :db/single true))
-              )
+              ))
 
   (def pat2 (-> (make-entity :__pat2 )
                      (add-attr (make-attr :patient/kind :person/patient :REF ))
@@ -27,7 +27,7 @@
                      (add-attr (make-attr :patient/diastolic 70 :number ))
                      (add-attr (make-attr :patient/temperature 38 :number ))
                      (add-attr (make-attr :patient/city "New York":string :db/single true))
-              )
+              ))
 
 ;; world setup
 (transact hospital-db (add-entity sis)  (add-entity dias) (add-entity temp) (add-entity person) (add-entity doctor))
