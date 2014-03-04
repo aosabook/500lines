@@ -45,17 +45,19 @@ class Graph(object):
         todo = {key}
         while todo:
             key = todo.pop()
-            old_value = self.cache.get(key, _unavailable)
+            old_value = self.cache.pop(key, _unavailable)
 
             if len(key) == 2:
                 obj, attr_name = key
-                value = getattr(obj, attr_name)
+                new_value = getattr(obj, attr_name)
             else:
                 obj, method_name, args = key
-                value = getattr(obj, method_name)(*args)
+                new_value = getattr(obj, method_name)(*args)
 
-            if value == old_value:
+            if new_value == old_value:
                 continue
+
+            self.cache[key] = new_value
 
             downs = self.down.get(key, _emptyset)
             todo |= downs
@@ -71,26 +73,33 @@ class Thing(object):
         if name.startswith('_'):
             return object.__getattribute__(self, name)
         graph = self._graph
+        cache = graph.cache
         print '  ' * len(graph.stack), 'getting', name
         key = (self, name)
+        value = cache.get(key, _unavailable)
+        if value is not _unavailable:
+            return value
         graph.push(key)
         try:
             value = object.__getattribute__(self, name)
         finally:
             graph.pop()
         if not ismethod(value) or value.im_self is not self:
+            cache[key] = value
             return value
         method = value
-        graph = self._graph
         @wraps(method)
         def wrapper(*args, **kw):
             key = (self, name, args)
+            value = cache.get(key, _unavailable)
+            if value is not _unavailable:
+                return value
             graph.push(key)
             try:
                 value = method(*args, **kw)
             finally:
                 graph.pop()
-            graph.cache[key] = value
+            cache[key] = value
             return value
         return wrapper
 
