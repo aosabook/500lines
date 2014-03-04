@@ -1,4 +1,4 @@
-(ns tmpTst (:use core.fdb))
+(ns core.manage (:use core.fdb))
 
 (def all-dbs (atom {}))
 
