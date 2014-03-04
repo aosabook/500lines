@@ -11,7 +11,7 @@
 # up[key2] = [key1, ...]
 # cache[key] = previously_computed_value
 
-from collections import defaultdict
+from collections import defaultdict, deque
 from contextlib import contextmanager
 from functools import wraps
 from inspect import ismethod
@@ -77,12 +77,12 @@ class Thing(object):
             return object.__getattribute__(self, name)
         graph = self._graph
         cache = graph.cache
-        print '  ' * len(graph.stack), 'getting', name
         key = (self, name)
         value = cache.get(key, _unavailable)
         if value is not _unavailable:
             graph.link(key)
             return value
+        print '  ' * len(graph.stack), 'getting', name
         graph.push(key)
         try:
             value = object.__getattribute__(self, name)
@@ -106,24 +106,3 @@ class Thing(object):
             cache[key] = value
             return value
         return wrapper
-
-    def watch(self, function):
-        @wraps(function)
-        def wrapper(*args, **kw):
-            self.start(function, args, kw)
-            try:
-                value = function(*args, **kw)
-            finally:
-                self.end(function, args, kw)
-            return value
-        return wrapper
-
-    def start(self, function, args, kw):
-        key = (function, args)
-        if self.keys:
-            edge = (self.keys[-1], key)
-            self.edges.append(edge)
-        self.keys.append(key)
-
-    def end(self, function, args, kw):
-        self.keys.pop()
