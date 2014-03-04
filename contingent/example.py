@@ -1,9 +1,11 @@
 """Rough experiment from which to derive the design of `contingent`."""
 
 from operator import attrgetter
+from pprint import pprint
 from watchlib import Graph, Thing
 
-emptyset = frozenset()
+_emptyset = frozenset()
+_unavailable = object()
 
 class Blog(Thing):
     def __init__(self, posts):
@@ -70,19 +72,36 @@ def main():
             s += repr(args)
         return s
 
-    # Predict what a slight change of date will do.
+    # Predict what a slight change of date will do.  Avoid avalanches.
 
     print len(graph.down)
 
+    # This would be fun:
+    #
+    # with graph.aftermath():
+    #     post2.date = '2014-01-15'
+
+    post2.date = '2014-01-15'
+
     key = (post2, 'date')
     todo = {key}
-    downstream = set()
     while todo:
         key = todo.pop()
-        downs = graph.down.get(key, emptyset)
+        old_value = graph.cache.get(key, _unavailable)
+
+        if len(key) == 2:
+            obj, attr_name = key
+            value = getattr(obj, attr_name)
+        else:
+            obj, method_name, args = key
+            value = getattr(obj, method_name)(*args)
+
+        if value == old_value:
+            continue
+
+        downs = graph.down.get(key, _emptyset)
         todo |= downs
-        downstream |= downs
-    print downstream
+        pprint(downs)
 
     print len(graph.down)
     return

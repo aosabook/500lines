@@ -12,6 +12,7 @@
 # cache[key] = previously_computed_value
 
 from collections import defaultdict
+from contextlib import contextmanager
 from functools import wraps
 from inspect import ismethod
 
@@ -20,25 +21,23 @@ class Graph(object):
     def __init__(self):
         self.down = defaultdict(set)
         self.up = defaultdict(set)
-        # self.cache = {}
+        self.cache = {}
         self.stack = []
 
     def add(self, thing):
         thing._graph = self
 
-    def touch(self, key):
-        if not self.stack:
-            return
-        key_beneath = self.stack[-1]
-        self.up[key_beneath].add(key)
-        self.down[key].add(key_beneath)
-
     def push(self, key):
-        self.touch(key)
+        if self.stack:
+            key_beneath = self.stack[-1]
+            self.up[key_beneath].add(key)
+            self.down[key].add(key_beneath)
         self.stack.append(key)
 
     def pop(self):
         self.stack.pop()
+
+
 
 class Thing(object):
 
@@ -65,9 +64,11 @@ class Thing(object):
             key = (self, name, args)
             graph.push(key)
             try:
-                return method(*args, **kw)
+                value = method(*args, **kw)
             finally:
                 graph.pop()
+            graph.cache[key] = value
+            return value
         return wrapper
 
     def watch(self, function):
