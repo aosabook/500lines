@@ -44,16 +44,35 @@ class Graph(object):
     def pop(self):
         self.stack.pop()
 
-    def topologically_sorted(self):
-        visited_keys = set()
-        finished_keys = set()
-        stack = []
-        #for key,  in self.down
+    def topologically_sort_consequences(self, keys):
+        """List `keys` and their consequences, in topological order."""
+        visited = set()
+        result = []
+
+        def visit(parent_key):
+            visited.add(parent_key)
+            for key in self.consequences[parent_key]:
+                if key not in visited:
+                    visit(key)
+            result.append(parent_key)
+
+        for key in keys:
+            visit(key)
+
+        return result
 
     def run_consequences_of(self, key):
+        print '***'
+        keys = self.topologically_sort_consequences([key])
+        pprint(keys)
         todo = {key}
-        while todo:
-            key = todo.pop()
+
+        for key in reversed(keys):
+            pprint(key)
+            if key not in todo:
+                continue
+
+            todo.remove(key)
             old_value = self.cache.pop(key, _unavailable)
 
             if len(key) == 2:
@@ -70,7 +89,6 @@ class Graph(object):
 
             consequences = self.consequences.get(key, _emptyset)
             todo |= consequences
-            pprint(consequences)
 
 
 class Thing(object):
