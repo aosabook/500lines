@@ -1,18 +1,17 @@
 """Rough experiment from which to derive the design of `contingent`."""
 
 from operator import attrgetter
-# from pprint import pprint
-from watchlib import Graph, Node
+from watchlib import Graph, Thing
 
-class Blog(Node):
-    def __init__(self):
-        self.posts = []
+class Blog(Thing):
+    def __init__(self, posts):
+        self.posts = posts
 
     @property
     def sorted_posts(self):
         return sorted(self.posts, key=attrgetter('date'))
 
-class Post(Node):
+class Post(Thing):
     def __init__(self, blog, title, date, content):
         self.blog = blog
         self.title = title
@@ -41,30 +40,48 @@ class Post(Node):
 def main():
     graph = Graph()
 
-    blog = Blog()
+    posts = []
+    blog = Blog(posts)
     graph.add(blog)
 
     post1 = Post(blog, 'A', '2014-01-01', 'Happy new year.')
     post2 = Post(blog, 'B', '2014-01-15', 'Middle of January.')
     post3 = Post(blog, 'C', '2014-02-01', 'Beginning of February.')
 
-    blog.posts.extend([post1, post2, post3])
+    posts.extend([post1, post2, post3])
 
-    for post in blog.posts:
+    for post in posts:
         graph.add(post)
 
-    for post in blog.sorted_posts:
+    for post in sorted(posts):
         print '-' * 8
         print post.render()
 
     print '=' * 72
 
-    #pprint(w.edges)
-    #print len(w.edges)
+    def present(value):
+        obj = value[0]
+        thing = value[1]
+        s = '%s%s.%s' % (obj.__class__.__name__, id(obj), thing)
+        if len(value) > 2:
+            args = value[2]
+            s += repr(args)
+        return s
+
+    # python example.py && dot -Tpng graph.dot > graph.png && geeqie graph.png
+
+    with open('graph.dot', 'w') as f:
+        print >>f, 'digraph { graph [rankdir="LR"];'
+        for k, vset in graph.down.items():
+            for v in vset:
+                print >>f, '"%s" -> "%s";' % (present(k), present(v))
+        print >>f, '}'
+    return
 
     print '=' * 72
 
     post4 = Post(blog, 'New', '2014-01-25', 'Late January.')
+    posts[2:2] = [post4]
     graph.add(post4)
 
     for post in blog.sorted_posts:
