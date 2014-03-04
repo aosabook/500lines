@@ -9,8 +9,18 @@ from scoper import top_scope
 
 def byte_compile(source, f_globals, loud=0):
     t = ast.parse(source)
+    t = Expander().visit(t)
     top_level = top_scope(t, source, loud)
     return types.FunctionType(CodeGen(top_level).compile(t), f_globals)
+
+class Expander(ast.NodeTransformer):
+    def visit_Assert(self, t):
+        return ast.If(ast.UnaryOp(ast.Not(), t.test),
+                      [ast.Raise(ast.Call(ast.Name('AssertionError', ast.Load),
+                                          [] if t.msg is None else [t.msg],
+                                          [], None, None),
+                                 None)],
+                      [])
 
 class CodeGen(ast.NodeVisitor):
 
