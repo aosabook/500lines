@@ -3,6 +3,8 @@
 from operator import attrgetter
 from watchlib import Graph, Thing
 
+emptyset = frozenset()
+
 class Blog(Thing):
     def __init__(self, posts):
         self.posts = posts
@@ -67,6 +69,23 @@ def main():
             args = value[2]
             s += repr(args)
         return s
+
+    # Predict what a slight change of date will do.
+
+    print len(graph.down)
+
+    key = (post2, 'date')
+    todo = {key}
+    downstream = set()
+    while todo:
+        key = todo.pop()
+        downs = graph.down.get(key, emptyset)
+        todo |= downs
+        downstream |= downs
+    print downstream
+
+    print len(graph.down)
+    return
 
     # python example.py && dot -Tpng graph.dot > graph.png && geeqie graph.png
 
