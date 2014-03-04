@@ -4,7 +4,7 @@ Byte-compile an almost-reasonable subset of Python.
 
 import ast, collections, dis, types
 from functools import reduce
-from assembler import op, assemble, stack_depth
+from assembler import op, assemble
 from scoper import top_scope
 
 def byte_compile(source, f_globals, loud=0):
@@ -41,9 +41,8 @@ class CodeGen(ast.NodeVisitor):
     def make_code(self, assembly, argcount):
         kwonlyargcount = 0
         nlocals = len(self.varnames)
-        stacksize = 10          # XXX
-        stacksize = stack_depth(assembly)
-        print('stacksize =', stacksize)
+        bytecode, stacksize = assemble(assembly)
+        if 1: print('stacksize =', stacksize)
         flags = 64  # XXX I don't understand the flags
         flags |= 2 if nlocals else 0  # this is just a guess
         filename = '<stdin>'
@@ -51,7 +50,7 @@ class CodeGen(ast.NodeVisitor):
         firstlineno = 1
         lnotab = b''
         return types.CodeType(argcount, kwonlyargcount, nlocals, stacksize, flags,
-                              assemble(assembly),
+                              bytecode,
                               tuple(const for const,_ in collect(self.constants)),
                               collect(self.names),
                               collect(self.varnames),

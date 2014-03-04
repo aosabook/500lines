@@ -1,6 +1,6 @@
 """
-Produce bytecode bytestrings from a hierarchical symbolic form with
-local labels for addresses.
+Produce the bytecode bytestring and stack depth from a
+hierarchical symbolic form with local labels for addresses.
 """
 
 import dis
@@ -28,64 +28,53 @@ for name, opcode in dis.opmap.items():
 
 def assemble(assembly):
     code = []
+    max_depth = 0
 
-    def flatten(assembly, refs):
+    def flatten(assembly, refs, depth, depth_at_label):
+        """Assemble `assembly`: append bytecode to `code`, append references
+        to labels into `refs`, take `depth` as the stack depth at
+        entry, and assign stack depths at labels to `depth_at_label`. Return
+        the stack depth at exit."""
+        nonlocal max_depth
         if isinstance(assembly, tuple):
             my_code, my_linking, my_stack_effect = assembly
-            refs.extend((len(code) + 1, label, fixup)
-                        for label, fixup, _ in my_linking)
+            for label, fixup, stack_effect in my_linking:
+                refs.append((len(code) + 1, label, fixup))
+                depth_at_label[label] = depth + stack_effect
+            depth += my_stack_effect
+            max_depth = max(max_depth, depth)
             code.extend(my_code)
         elif isinstance(assembly, list):
             for subassembly in assembly:
-                flatten(subassembly, refs)
+                depth = flatten(subassembly, refs, depth, depth_at_label)
         elif isinstance(assembly, dict):
             my_refs = []
             my_addresses = {}
+            my_depth_at_label = {}
             for label, subassembly in sorted(assembly.items()):
                 my_addresses[label] = len(code)
-                flatten(subassembly, my_refs)
+                depth = my_depth_at_label.get(label, depth)
+                depth = flatten(subassembly, my_refs, depth, my_depth_at_label)
             for address, label, fixup in my_refs:
                 target = my_addresses[label] - fixup(address+2)
                 code[address+0] = target % 256
                 code[address+1] = target // 256
         else:
-            assert False, "Yo: {}".format(assembly)
+            raise TypeError("Not an assembly", assembly)
+        return depth
 
     refs = []
-    flatten(assembly, refs)
-    assert not refs
-    return bytes(tuple(code))
-
-def stack_depth(assembly):
-    max_depth = 0
-    def stack_depths(assembly, depth, depth_at_label):
-        nonlocal max_depth
-        if isinstance(assembly, tuple):
-            my_code, my_linking, my_stack_effect = assembly
-            for label, _, stack_effect in my_linking:
-                depth_at_label[label] = depth + stack_effect
-            depth += my_stack_effect
-            max_depth = max(max_depth, depth)
-        elif isinstance(assembly, list):
-            for subassembly in assembly:
-                depth = stack_depths(subassembly, depth, depth_at_label)
-        elif isinstance(assembly, dict):
-            my_depth_at_label = {}
-            for label, subassembly in sorted(assembly.items()):
-                depth = my_depth_at_label.get(label, depth)
-                depth = stack_depths(subassembly, depth, my_depth_at_label)
-        else:
-            assert False
-        return depth
     depth_at_label = {}
-    stack_depths(assembly, 0, depth_at_label)
-    assert not depth_at_label
-    return max_depth
+    flatten(assembly, refs, 0, depth_at_label)
+    assert not refs and not depth_at_label
+    return bytes(tuple(code)), max_depth
 
 if __name__ == '__main__':
     example = {0: [op.LOAD_CONST(0), op.POP_JUMP_IF_FALSE(1),
                    op.LOAD_CONST(1), op.JUMP_FORWARD(2)],
                1: [op.LOAD_CONST(2)],
                2: []}
-    for pc, byte in enumerate(assemble(example)):
+    bytecode, stack_depth = assemble(example)
+    print(stack_depth)
+    for pc, byte in enumerate(bytecode):
         print(pc, byte)
