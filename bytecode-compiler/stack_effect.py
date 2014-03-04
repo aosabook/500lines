@@ -1,17 +1,14 @@
 """
-PyCompile_OpcodeStackEffect(int opcode, int oparg) from Python/compile.c
-This is dis.stack_effect in Python 3.4, but I'm making a version of it
-available here for convenience in development. Except for jump_stack_effect
-it should not be needed in the released code.
+PyCompile_OpcodeStackEffect(int opcode, int oparg) from
+Python/compile.c This is dis.stack_effect in Python 3.4, but I'm
+making a version of it available here for convenience in
+development. This should not be needed in the released code.
 """
 
 import dis
 class Op(): pass
 op = Op()
 op.__dict__.update(dis.opmap)
-
-def jump_stack_effect(opcode):
-    return stack_effect(opcode) # XXX
 
 def stack_effect(opcode, oparg=None):
     if opcode in effect_map:

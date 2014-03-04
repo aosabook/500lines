@@ -4,7 +4,10 @@ local labels for addresses.
 """
 
 import dis
-from stack_effect import stack_effect, jump_stack_effect
+from stack_effect import stack_effect
+
+def jump_stack_effect(opcode):
+    return stack_effect(opcode) # XXX
 
 def take_argument(opcode):
     code0 = encode(opcode, 0)
