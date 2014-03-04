@@ -244,8 +244,8 @@ class Request:
 class Response:
     """HTTP response.
 
-    Call read_headers() to receive the request headers.  Then check
-    the status attribute and call get_header() to inspect the headers.
+    Call read_headers() to receive the request headers.
+    Then check the status attribute and inspect the headers.
     Finally call read() to receive the body.
     """
 
@@ -254,7 +254,7 @@ class Response:
         self.http_version = None  # 'HTTP/1.1'
         self.status = None  # 200
         self.reason = None  # 'Ok'
-        self.headers = []  # [('Content-Type', 'text/html')]
+        self.headers = {}  # {'content-type': 'text/html'}
 
     @asyncio.coroutine
     def getline(self):
@@ -277,23 +277,15 @@ class Response:
             header_line = yield from self.getline()
             if not header_line:
                 break
-            # TODO: Continuation lines.
+            # TODO: Continuation lines; multiple header lines per key..
             key, value = header_line.split(':', 1)
-            self.headers.append((key, value.strip()))
+            self.headers[key.lower()] = value.strip()
 
-    def get_redirect_url(self, default=''):
+    def get_redirect_url(self):
         """Inspect the status and return the redirect url if appropriate."""
         if self.status not in (300, 301, 302, 303, 307):
-            return default
-        return self.get_header('Location', default)
-
-    def get_header(self, key, default=''):
-        """Get one header value, using a case insensitive header name."""
-        key = key.lower()
-        for k, v in self.headers:
-            if k.lower() == key:
-                return v
-        return default
+            return None
+        return self.headers.get('location')
 
     @asyncio.coroutine
     def read(self):
@@ -302,12 +294,12 @@ class Response:
         This honors Content-Length and Transfer-Encoding: chunked.
         """
         nbytes = None
-        for key, value in self.headers:
-            if key.lower() == 'content-length':
+        for key, value in self.headers.items():
+            if key == 'content-length':
                 nbytes = int(value)
                 break
         if nbytes is None:
-            if self.get_header('transfer-encoding').lower() == 'chunked':
+            if self.headers.get('transfer-encoding', '').lower() == 'chunked':
                 logger.info('parsing chunked response')
                 blocks = []
                 while True:
@@ -392,7 +384,7 @@ class Fetcher:
                 yield from self.request.send_request()
                 self.response = yield from self.request.get_response()
                 self.body = yield from self.response.read()
-                h_conn = self.response.get_header('connection').lower()
+                h_conn = self.response.headers.get('connection', '').lower()
                 if h_conn != 'close':
                     self.request.close(recycle=True)
                     self.request = None
@@ -423,7 +415,7 @@ class Fetcher:
                              self.next_url, self.url)
         else:
             if self.response.status == 200:
-                self.ctype = self.response.get_header('content-type')
+                self.ctype = self.response.headers.get('content-type')
                 self.pdict = {}
                 if self.ctype:
                     self.ctype, self.pdict = cgi.parse_header(self.ctype)
