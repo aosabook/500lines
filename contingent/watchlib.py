@@ -73,36 +73,50 @@ class Thing(object):
     #     self.__dict__[name] = value
 
     def __getattribute__(self, name):
+
         if name.startswith('_'):
             return object.__getattribute__(self, name)
+
         graph = self._graph
         cache = graph.cache
+
         key = (self, name)
+        graph.link(key)
+
         value = cache.get(key, _unavailable)
         if value is not _unavailable:
-            graph.link(key)
             return value
+
         print '  ' * len(graph.stack), 'getting', name
+
         graph.push(key)
         try:
             value = object.__getattribute__(self, name)
         finally:
             graph.pop()
+
         if not ismethod(value) or value.im_self is not self:
             cache[key] = value
             return value
+
         method = value
+
         @wraps(method)
         def wrapper(*args, **kw):
             key = (self, name, args)
+            graph.link(key)
+
             value = cache.get(key, _unavailable)
             if value is not _unavailable:
                 return value
+
             graph.push(key)
             try:
                 value = method(*args, **kw)
             finally:
                 graph.pop()
+
             cache[key] = value
             return value
+
         return wrapper
