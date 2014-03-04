@@ -96,14 +96,13 @@ class ConnectionPool:
                     logger.warn('closing stale connection %r', key)
                     conn.close()  # Just in case.
                 else:
-                    logger.warn('* Reusing pooled connection %r FD=%s',
-                                key, conn.fileno())
+                    logger.warn('* Reusing pooled connection %r', key)
                     return conn
 
         # Create a new connection.
         conn = Connection(self, host, port, ssl)
         yield from conn.connect()
-        logger.warn('* New connection %r FD=%s', conn.key, conn.fileno())
+        logger.warn('* New connection %r', conn.key)
         return conn
 
     def recycle_connection(self, conn):
@@ -155,16 +154,6 @@ class Connection:
 
     def stale(self):
         return self.reader is None or self.reader.at_eof()
-
-    def fileno(self):
-        writer = self.writer
-        if writer is not None:
-            transport = writer.transport
-            if transport is not None:
-                sock = transport.get_extra_info('socket')
-                if sock is not None:
-                    return sock.fileno()
-        return None
 
     @asyncio.coroutine
     def connect(self):
@@ -404,7 +393,6 @@ class Fetcher:
                 self.response = yield from self.request.get_response()
                 self.body = yield from self.response.read()
                 h_conn = self.response.get_header('connection').lower()
-                h_t_enc = self.response.get_header('transfer-encoding').lower()
                 if h_conn != 'close':
                     self.request.close(recycle=True)
                     self.request = None
