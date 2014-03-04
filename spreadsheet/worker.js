@@ -13,7 +13,7 @@
             if (coord in cache) { return cache[coord] }
             cache[coord] = NaN
             let val = +sheet[coord]
-            if (sheet[coord] != val) { val = sheet[coord] }
+            if (sheet[coord] != val.toString()) { val = sheet[coord] }
             try { cache[coord] = ( ( '=' === val[0] ) ? globalEval( val.slice(1) ) : val ) }
             catch (e) {
               const match = /\$?[A-Za-z]+[1-9][0-9]*\b/.exec( e )

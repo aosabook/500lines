@@ -1271,7 +1271,7 @@ System.get("traceur-runtime@0.0.24/src/runtime/polyfill-import" + '');
                                   }
                                   $traceurRuntime.setProperty(cache, coord, NaN);
                                   var val = + sheet[$traceurRuntime.toProperty(coord)];
-                                  if (sheet[$traceurRuntime.toProperty(coord)] != val) {
+                                  if (sheet[$traceurRuntime.toProperty(coord)] != val.toString()) {
                                     val = sheet[$traceurRuntime.toProperty(coord)];
                                   }
                                   try {
