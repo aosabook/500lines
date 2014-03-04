@@ -69,6 +69,15 @@ def main():
             s += repr(args)
         return s
 
+    # python example.py && dot -Tpng graph.dot > graph.png && geeqie graph.png
+
+    with open('graph.dot', 'w') as f:
+        print >>f, 'digraph { graph [rankdir="LR"];'
+        for k, vset in graph.consequences.items():
+            for v in vset:
+                print >>f, '"%s" -> "%s";' % (present(k), present(v))
+        print >>f, '}'
+
     # Predict what a slight change of date will do.  Avoid avalanches.
 
     # This would be fun:
@@ -88,14 +97,6 @@ def main():
     key = (post2, 'date')
     graph.run_consequences_of(key)
 
-    # python example.py && dot -Tpng graph.dot > graph.png && geeqie graph.png
-
-    with open('graph.dot', 'w') as f:
-        print >>f, 'digraph { graph [rankdir="LR"];'
-        for k, vset in graph.consequences.items():
-            for v in vset:
-                print >>f, '"%s" -> "%s";' % (present(k), present(v))
-        print >>f, '}'
     return
 
     print '=' * 72

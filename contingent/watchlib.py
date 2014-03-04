@@ -62,15 +62,13 @@ class Graph(object):
         return result
 
     def run_consequences_of(self, key):
-        print '***'
         keys = self.topologically_sort_consequences([key])
-        pprint(keys)
         todo = {key}
 
         for key in reversed(keys):
-            pprint(key)
             if key not in todo:
                 continue
+            pprint(key)
 
             todo.remove(key)
             old_value = self.cache.pop(key, _unavailable)
@@ -111,7 +109,7 @@ class Thing(object):
         if value is not _unavailable:
             return value
 
-        print '  ' * len(graph.stack), 'getting', name
+        #print '  ' * len(graph.stack), 'getting', name
 
         graph.push(key)
         try:
