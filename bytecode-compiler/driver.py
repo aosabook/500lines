@@ -12,7 +12,7 @@ if loud:
 else:
     def report(*args, **kwargs): pass
 
-def main(source, filename=None):
+def run(source, filename=None):
     f = compile_toplevel(source)
     f()   # It's alive!
 
@@ -46,6 +46,6 @@ if __name__ == '__main__':
     if len(sys.argv) >= 2:
         del sys.argv[0]
         filename = sys.argv[0]
-        main(open(filename).read(), filename)
+        run(open(filename).read(), filename)
     else:
         assert False
