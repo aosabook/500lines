@@ -15,13 +15,11 @@
             <th>Delta</th>
             <th>Distance</th>
             <th>Time</th>
-            <th>File</th>
         </tr>
         <tr>
             <%= erb :summary, :locals => {:user => @user, :device => @device, :steps => @analyzer.steps} %>
             <td><%= @analyzer.distance %></td>
-            <td><%= @analyzer.time.to_s + ' ' + @analyzer.interval %></td>
-            <td><%= @file_name.split('/').last %></td>
+            <td><%= @analyzer.time.to_s + ' ' + @analyzer.time_interval %></td>
         </tr>
     </table>
 

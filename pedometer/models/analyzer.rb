@@ -6,29 +6,25 @@ class Analyzer
 
   CAP = 1.2
 
-  attr_reader :parser, :user, :steps, :distance, :time, :interval
+  attr_reader :parser, :user, :steps, :distance, :time, :time_interval, :distance_interval
 
   def initialize(parser, user = nil)
     unless (@parser = parser).kind_of? Parser
       raise "A Parser object must be passed in."
     end
     
-    @steps    = 0
-    @distance = 0
-    @time     = 0
-    @interval = 'seconds'
-    @user     = (user.kind_of? User) ? user : User.new
+    @steps         = 0
+    @distance      = 0
+    @time          = 0
+    @time_interval = 'seconds'
+    @user          = (user.kind_of? User) ? user : User.new
   end
 
   # -- Edge Detection -------------------------------------------------------
 
   def split_on_threshold(positive)
     @parser.filtered_data.inject([]) do |a, data|
-      if positive
-        a << ((data < 0.2) ? 0 : 1)
-      else
-        a << ((data < -0.2) ? 1 : 0)
-      end
+      a << (positive ? ((data < 0.2) ? 0 : 1) : ((data < -0.2) ? 1 : 0))
       a
     end
   end
@@ -36,7 +32,7 @@ class Analyzer
   # TODO: Count the number of false steps, 
   # and if too many are occurring, don't count 
   # any steps at all
-  
+
   def detect_edges(split)
     # Determined by the rate divided by the 
     # maximum steps the user can take per second
@@ -58,10 +54,6 @@ class Analyzer
   end
 
   # -- Measurement ----------------------------------------------------------
-
-  # TODO: Introduce user object passed in to:
-  # - Request info in metric vs. imperial
-  # - Request info in different reporting formats
 
   def measure
     measure_steps
@@ -86,13 +78,13 @@ class Analyzer
 
     if seconds > 3600
       @time = (seconds/3600).round(2)
-      @interval = 'hours'
+      @time_interval = 'hours'
     elsif seconds > 60
       @time = (seconds/60).round(2)
-      @interval = 'minutes'
+      @time_interval = 'minutes'
     else
       @time = seconds.round(2)
-      @interval = 'seconds'
+      @time_interval = 'seconds'
     end
   end
 
