@@ -10,44 +10,44 @@ class LiveDataFemaleTest < Test::Unit::TestCase
   end
 
   def test_walk
-    get '/detail/test/data/female/female-167-70_100-walk-10-1-a.txt'
+    get '/detail/test/data/female-167-70_100-walk-10-1-a.txt'
     assert_equal 200, last_response.status
 
-    get '/detail/test/data/female/female-167-70_100-walk-10-2-a.txt'
+    get '/detail/test/data/female-167-70_100-walk-10-2-a.txt'
     assert_equal 200, last_response.status
 
-    get '/detail/test/data/female/female-167-70_100-walk-10-1-g.txt'
+    get '/detail/test/data/female-167-70_100-walk-10-1-g.txt'
     assert_equal 200, last_response.status
 
-    get '/detail/test/data/female/female-167-70_100-walk-10-2-g.txt'
+    get '/detail/test/data/female-167-70_100-walk-10-2-g.txt'
     assert_equal 200, last_response.status
   end
 
   def test_run
-    get '/detail/test/data/female/female-167-70_100-run-10-1-a.txt'
+    get '/detail/test/data/female-167-70_100-run-10-1-a.txt'
     assert_equal 200, last_response.status
 
-    get '/detail/test/data/female/female-167-70_100-run-10-2-a.txt'
+    get '/detail/test/data/female-167-70_100-run-10-2-a.txt'
     assert_equal 200, last_response.status
 
-    get '/detail/test/data/female/female-167-70_100-run-10-1-g.txt'
+    get '/detail/test/data/female-167-70_100-run-10-1-g.txt'
     assert_equal 200, last_response.status
 
-    get '/detail/test/data/female/female-167-70_100-run-10-2-g.txt'
+    get '/detail/test/data/female-167-70_100-run-10-2-g.txt'
     assert_equal 200, last_response.status
   end
 
   def test_bagwalk
-    get '/detail/test/data/female/female-167-70_100-bagwalk-10-1-a.txt'
+    get '/detail/test/data/female-167-70_100-bagwalk-10-1-a.txt'
     assert_equal 200, last_response.status
 
-    get '/detail/test/data/female/female-167-70_100-bagwalk-10-2-a.txt'
+    get '/detail/test/data/female-167-70_100-bagwalk-10-2-a.txt'
     assert_equal 200, last_response.status
 
-    get '/detail/test/data/female/female-167-70_100-bagwalk-10-1-g.txt'
+    get '/detail/test/data/female-167-70_100-bagwalk-10-1-g.txt'
     assert_equal 200, last_response.status
 
-    get '/detail/test/data/female/female-167-70_100-bagwalk-10-2-g.txt'
+    get '/detail/test/data/female-167-70_100-bagwalk-10-2-g.txt'
     assert_equal 200, last_response.status
   end
 
