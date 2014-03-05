@@ -1,6 +1,7 @@
 import sys, os, time, random
 
 from functools import partial
+from itertools import combinations, permutations
 
 ##############
 ## Settings ##
@@ -12,7 +13,7 @@ TIME_LIMIT = 10
 ## Neighbourhood Generators ##
 ##############################
 
-def _neighbours_random(perm, num = 1):
+def _neighbours_random(ctx, perm, num = 1):
     candidates = [perm]
     for i in range(num):
         candidate = perm[:]
@@ -20,18 +21,29 @@ def _neighbours_random(perm, num = 1):
         candidates.append(candidate)
     return candidates
 
-def _neighbours_swap(perm):
-    candidates = []
-    for i in range(len(perm) - 1):
-        for j in range(1, len(perm) - 1):
+def _neighbours_swap(ctx, perm):
+    candidates = [perm]
+    for (i,j) in combinations(range(len(perm)), 2):
             candidate = perm[:]
             candidate[i], candidate[j] = candidate[j], candidate[i]
             candidates.append(candidate)
     return candidates
 
-def _neighbours_LNS(perm):
-    # TODO: Implement Large Neighbourhood Search
-    return [perm]
+def _neighbours_LNS(ctx, perm, size = 2):
+    candidates = []
+    for subset in combinations(range(len(perm)), size):
+        best_make = makespan(data, perm)
+        best_perm = perm
+        for ordering in permutations(subset):
+            candidate = perm[:]
+            for i in range(len(ordering)):
+                candidate[subset[i]] = perm[ordering[i]]
+            res = makespan(ctx['data'], candidate)
+            if res < best_make:
+                best_make = res
+                best_perm = candidate
+        candidates.append(best_perm)
+    return candidates
 
 
 
@@ -39,11 +51,11 @@ def _neighbours_LNS(perm):
 ## Heuristics ##
 ################
 
-def _heur_hillclimbing(data, candidates, context):
-    scores = [(makespan(data, perm), perm) for perm in candidates]
+def _heur_hillclimbing(ctx, candidates):
+    scores = [(makespan(ctx['data'], perm), perm) for perm in candidates]
     return sorted(scores)[0][1]
 
-def _heur_random(data, candidates, context):
+def _heur_random(ctx, candidates):
     return random.choice(candidates)
 
 
@@ -89,28 +101,34 @@ def compile_solution(data, perm):
 
 def solve(data):
 
-    context = {}
+    context = {'data':data}
 
-    neighbourhood = partial(_neighbours_random, num=50)
+    #neighbourhood = partial(_neighbours_random, num=50)
+    neighbourhood = partial(_neighbours_LNS, size=3)
     #neighbourhood = _neighbours_swap
 
-    heuristic = _heur_random
-    #heuristic = _heur_hillclimbing
+    #heuristic = _heur_random
+    heuristic = _heur_hillclimbing
 
     perm = range(len(data))
     
     best_make = makespan(data, perm)
     best_perm = perm
     
+    count = 0
     time_limit = time.time() + TIME_LIMIT
     while time.time() < time_limit:
         
-        perm = heuristic(data, neighbourhood(perm), context)
+        count += 1
+
+        perm = heuristic(context, neighbourhood(context, perm))
         res = makespan(data, perm)
         
         if res < best_make:
             best_make = res
             best_perm = perm[:]
+
+    print "\nWent through %d iterations." % count
 
     return (best_perm, best_make)
 
