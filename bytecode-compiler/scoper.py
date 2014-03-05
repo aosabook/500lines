@@ -75,9 +75,8 @@ class Scope(ast.NodeVisitor):
         self.uses.update(subscope.uses - subscope.defs) # maybe these nonlocals should be tracked separately?
 
     def visit_Assign(self, t):
-        assert 1 == len(t.targets) and isinstance(t.targets[0], ast.Name)
         self.visit(t.value)
-        self.defs.add(t.targets[0].id)
+        # XXX self.defs.add(t.targets[0].id)
 
     def visit_Name(self, t):
         self.uses.add(t.id)

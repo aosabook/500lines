@@ -16,7 +16,7 @@ def byte_compile(source, f_globals, loud=0):
 class Expander(ast.NodeTransformer):
     def visit_Assert(self, t):
         return ast.If(ast.UnaryOp(ast.Not(), t.test),
-                      [ast.Raise(ast.Call(ast.Name('AssertionError', ast.Load),
+                      [ast.Raise(ast.Call(ast.Name('AssertionError', ast.Load()),
                                           [] if t.msg is None else [t.msg],
                                           [], None, None),
                                  None)],
@@ -137,8 +137,10 @@ class CodeGen(ast.NodeVisitor):
         return [self(t.value), op.POP_TOP]
 
     def visit_Assign(self, t):
-        assert 1 == len(t.targets) and isinstance(t.targets[0], ast.Name)
-        return [self(t.value), self.store(t.targets[0].id)]
+        if 1 == len(t.targets):
+            return [self(t.value), self(t.targets[0])]
+        else:
+            assert False
 
     def visit_Call(self, t):
         return [self(t.func), self(t.args), op.CALL_FUNCTION(len(t.args))]
@@ -198,7 +200,12 @@ class CodeGen(ast.NodeVisitor):
         return self.load_const(t.s)
 
     def visit_Attribute(self, t):
-        return [self(t.value), op.LOAD_ATTR(self.names[t.attr])]
+        if   isinstance(t.ctx, ast.Load):
+            return [self(t.value), op.LOAD_ATTR(self.names[t.attr])]
+        elif isinstance(t.ctx, ast.Store):
+            return [self(t.value), op.STORE_ATTR(self.names[t.attr])]
+        else:
+            assert False
 
     def visit_Subscript(self, t):
         return [self(t.value), self(t.slice)]
@@ -206,11 +213,13 @@ class CodeGen(ast.NodeVisitor):
     def visit_Index(self, t):
         return [self(t.value), op.BINARY_SUBSCR]
 
-    def visit_Name(self, t):
-        return self.load(t.id)
-
     def visit_NameConstant(self, t):
         return self.load_const(t.value)
+
+    def visit_Name(self, t):
+        if   isinstance(t.ctx, ast.Load):  return self.load(t.id)
+        elif isinstance(t.ctx, ast.Store): return self.store(t.id)
+        else: assert False
 
     def load(self, name):
         level = self.scope.scope(name)
