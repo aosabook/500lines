@@ -16,7 +16,6 @@ import collections
 from http.client import BadStatusLine
 import logging
 import re
-import signal
 import sys
 import time
 import urllib.parse
@@ -169,7 +168,7 @@ class Connection:
     def close(self, recycle=False):
         if recycle and not self.stale():
             self.pool.recycle_connection(self)
-        elif self.writer is not None:
+        else:
             self.writer.close()
             self.pool = self.reader = self.writer = None
 
@@ -337,6 +336,7 @@ class Fetcher:
                 h_conn = headers.get('connection', '').lower()
                 if h_conn != 'close':
                     conn.close(recycle=True)
+                    conn = None
                 if self.tries > 1:
                     logger.warn('try %r for %r success', self.tries, self.url)
                 break
