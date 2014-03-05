@@ -2,7 +2,7 @@
 Test-drive the byte-compiler.
 """
 
-import ast, sys, types
+import ast, dis, sys, types
 import codegen
 
 loud = 0
