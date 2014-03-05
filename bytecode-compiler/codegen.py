@@ -31,15 +31,17 @@ class CodeGen(ast.NodeVisitor):
         self.varnames  = make_table()
 
     def compile_class(self, t):
+        self.set_docstring(t)
         assembly = [self.load('__name__'), self.store('__module__'),
                     self.load_const(t.name), self.store('__qualname__'), # XXX
                     self(t.body), self.load_const(None), op.RETURN_VALUE]
         return self.make_code(assembly, 0)
 
+    def set_docstring(self, t):
+        self.load_const(ast.get_docstring(t))
+
     def compile_function(self, t):
-        stmt0 = t.body[0]
-        if not (isinstance(stmt0, ast.Expr) and isinstance(stmt0.value, ast.Str)):
-            self.load_const(None) # The doc comment starts the constant table.
+        self.set_docstring(t)
         for arg in t.args.args:
             self.varnames[arg.arg] # argh, naming
         return self.compile(t.body, len(t.args.args))
@@ -78,6 +80,7 @@ class CodeGen(ast.NodeVisitor):
         assert False, t
 
     def visit_Module(self, t):
+        self.set_docstring(t)
         return self(t.body)
 
     def visit_Import(self, t):
