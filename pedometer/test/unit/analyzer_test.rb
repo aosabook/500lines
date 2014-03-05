@@ -16,8 +16,9 @@ class AnalyzerTest < Test::Unit::TestCase
     assert_equal 0, analyzer.steps
     assert_equal 0, analyzer.distance
     assert_equal 0, analyzer.time
-    assert_equal 'seconds', analyzer.time_interval
-    assert_equal user, analyzer.user
+    assert_equal user,      analyzer.user
+    assert_equal 'sec', analyzer.time_interval
+    assert_equal 'cm',      analyzer.distance_interval
   end
 
   def test_create_gravity_data
@@ -30,8 +31,9 @@ class AnalyzerTest < Test::Unit::TestCase
     assert_equal 0, analyzer.steps
     assert_equal 0, analyzer.distance
     assert_equal 0, analyzer.time
-    assert_equal 'seconds', analyzer.time_interval
-    assert_equal user, analyzer.user
+    assert_equal user,      analyzer.user
+    assert_equal 'sec', analyzer.time_interval
+    assert_equal 'cm',      analyzer.distance_interval
   end
 
   def test_create_no_parser
@@ -113,37 +115,39 @@ class AnalyzerTest < Test::Unit::TestCase
   end
 
   def test_measure_distance_cm
-    user = User.new(:stride => 65)
+    device = Device.new(:data => File.read('test/data/results-0-steps.txt'))
+    parser = Parser.new(device)
+    analyzer = Analyzer.new(parser)
+    analyzer.measure_steps
+    analyzer.measure_distance
+    
+    assert_equal 0, analyzer.distance
+    assert_equal 'cm', analyzer.distance_interval
+  end
 
+  def test_measure_distance_m
+    user = User.new(:stride => 100)
     device = Device.new(:data => File.read('test/data/female-167-70_100-walk-10-1-g.txt'))
     parser = Parser.new(device)
     analyzer = Analyzer.new(parser, user)
     analyzer.measure_steps
     analyzer.measure_distance
-    assert_equal 520, analyzer.distance    
+
+    assert_equal 8.0, analyzer.distance
+    assert_equal 'm', analyzer.distance_interval
   end
 
-  # def test_measure_distance_m
-  #   user = User.new(:stride => 65)
-
-  #   device = Device.new(:data => File.read('test/data/female-167-70_100-walk-10-1-g.txt'))
-  #   parser = Parser.new(device)
-  #   analyzer = Analyzer.new(parser, user)
-  #   analyzer.measure_steps
-  #   analyzer.measure_distance
-  #   assert_equal 520, analyzer.distance    
-  # end
-
-  # def test_measure_distance_km
-  #   user = User.new(:stride => 65)
-
-  #   device = Device.new(:data => File.read('test/data/female-167-70_100-walk-10-1-g.txt'))
-  #   parser = Parser.new(device)
-  #   analyzer = Analyzer.new(parser, user)
-  #   analyzer.measure_steps
-  #   analyzer.measure_distance
-  #   assert_equal 520, analyzer.distance    
-  # end
+  def test_measure_distance_km
+    user = User.new(:stride => 100000)
+    device = Device.new(:data => File.read('test/data/female-167-70_100-walk-10-1-g.txt'))
+    parser = Parser.new(device)
+    analyzer = Analyzer.new(parser, user)
+    analyzer.measure_steps
+    analyzer.measure_distance
+    
+    assert_equal 8.0, analyzer.distance
+    assert_equal 'km', analyzer.distance_interval 
+  end
 
   def test_measure_time_seconds
     device = Device.new(:data => File.read('test/data/results-15-steps.txt'), :rate => 4)
@@ -152,7 +156,7 @@ class AnalyzerTest < Test::Unit::TestCase
     analyzer.measure_time
     
     assert_equal 7.25, analyzer.time
-    assert_equal 'seconds', analyzer.time_interval
+    assert_equal 'sec', analyzer.time_interval
   end
 
   def test_measure_time_minutes
@@ -187,7 +191,7 @@ class AnalyzerTest < Test::Unit::TestCase
     assert_equal 0, analyzer.steps
     assert_equal 0, analyzer.distance
     assert_equal 0.2, analyzer.time
-    assert_equal 'seconds', analyzer.time_interval
+    assert_equal 'sec', analyzer.time_interval
     
     device = Device.new(:data => File.read('test/data/results-15-steps.txt'))
     parser = Parser.new(device)
@@ -199,12 +203,12 @@ class AnalyzerTest < Test::Unit::TestCase
     assert_equal 0, analyzer.steps
     assert_equal 0, analyzer.distance
     assert_equal 0.29, analyzer.time
-    assert_equal 'seconds', analyzer.time_interval
+    assert_equal 'sec', analyzer.time_interval
 
     # assert_equal 15, analyzer.steps
     # assert_equal 975, analyzer.distance
     # assert_equal 5.8, analyzer.time
-    # assert_equal 'seconds', analyzer.interval
+    # assert_equal 'sec', analyzer.interval
   end
 
 end

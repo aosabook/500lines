@@ -13,11 +13,12 @@ class Analyzer
       raise "A Parser object must be passed in."
     end
     
-    @steps         = 0
-    @distance      = 0
-    @time          = 0
-    @time_interval = 'seconds'
-    @user          = (user.kind_of? User) ? user : User.new
+    @steps = 0
+    @distance = 0
+    @time = 0
+    @time_interval = 'sec'
+    @distance_interval = 'cm'
+    @user = (user.kind_of? User) ? user : User.new
   end
 
   # -- Edge Detection -------------------------------------------------------
@@ -70,22 +71,29 @@ class Analyzer
 
   def measure_distance
     @distance = @user.stride * @steps
+
+    if @distance > 99999
+      @distance = (@distance/100000).round(2)
+      @distance_interval = 'km'
+    elsif @distance > 99
+      @distance = (@distance/100).round(2)
+      @distance_interval = 'm'
+    end
   end
 
   def measure_time
     sampling_rate = @parser.device.rate.round(1)
-    seconds = @parser.parsed_data.count/sampling_rate
+    @time = @parser.parsed_data.count/sampling_rate
 
-    if seconds > 3600
-      @time = (seconds/3600).round(2)
+    if @time > 3600
+      @time = @time/3600
       @time_interval = 'hours'
-    elsif seconds > 60
-      @time = (seconds/60).round(2)
+    elsif @time > 60
+      @time = @time/60
       @time_interval = 'minutes'
-    else
-      @time = seconds.round(2)
-      @time_interval = 'seconds'
     end
+
+    @time = @time.round(2)
   end
 
 end
