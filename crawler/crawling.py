@@ -282,13 +282,6 @@ def chunked_handler(input, output):
     output.feed_eof()
 
 
-def get_redirect_url(status, headers):
-    """Inspect the status and return the redirect url if appropriate."""
-    if status not in (300, 301, 302, 303, 307):
-        return None
-    return headers.get('location')
-
-
 class Fetcher:
     """Logic and state for one URL.
 
@@ -349,7 +342,8 @@ class Fetcher:
                 break
             except (BadStatusLine, OSError) as exc:
                 self.exceptions.append(exc)
-                logger.warn('try %r for %r raised', self.tries, self.url, exc)
+                logger.warn('try %r for %r raised %r',
+                            self.tries, self.url, exc)
             finally:
                 if conn is not None:
                     conn.close()
@@ -358,8 +352,8 @@ class Fetcher:
             logger.error('no success for %r in %r tries',
                          self.url, self.max_tries)
             return
-        next_url = get_redirect_url(status, headers)
-        if next_url:
+        if status in (300, 301, 302, 303, 307) and headers.get('location'):
+            next_url = headers['location']
             self.next_url = urllib.parse.urljoin(self.url, next_url)
             if self.max_redirect > 0:
                 logger.warn('redirect to %r from %r', self.next_url, self.url)
