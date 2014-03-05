@@ -39,7 +39,6 @@ class Graph(object):
             self.antecedent_edges[caller].add(key)
 
     def push(self, key):
-        self.link(key)
         self.stack.append(key)
 
     def pop(self):

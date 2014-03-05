@@ -54,7 +54,7 @@ def main():
     for post in posts:
         graph.add(post)
 
-    display_posts(posts)
+    display_posts(blog)
 
     print '=' * 72
 
@@ -84,7 +84,7 @@ def main():
     with graph.consequences():
         post2.date = '2014-02-15'
 
-    display_posts(posts)
+    display_posts(blog)
 
     return
 
@@ -111,8 +111,8 @@ def main():
         print post.render()
 
 
-def display_posts(posts):
-    for post in posts:
+def display_posts(blog):
+    for post in blog.sorted_posts:
         print '-' * 8
         print post.render()
 
