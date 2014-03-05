@@ -137,8 +137,8 @@ class CodeGen(ast.NodeVisitor):
         return [self(t.value), op.POP_TOP]
 
     def visit_Assign(self, t):
-        assert 1 == len(t.targets)  # XXX is >1 meant for like a = b = c?
-        return [self(t.value), self(t.targets)]
+        def compound(left, right): return [op.DUP_TOP, left, right]
+        return [self(t.value), reduce(compound, map(self, t.targets))]
 
     def visit_Call(self, t):
         return [self(t.func), self(t.args), op.CALL_FUNCTION(len(t.args))]
