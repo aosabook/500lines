@@ -75,29 +75,27 @@ def fetcher_report(fetcher, stats, file=None):
         print(fetcher.url, 'error', exc, file=file)
     elif fetcher.next_url:
         stats.add('redirect')
-        print(fetcher.url, fetcher.response.status, 'redirect', fetcher.next_url,
+        print(fetcher.url, fetcher.status, 'redirect', fetcher.next_url,
               file=file)
     elif fetcher.ctype == 'text/html':
         stats.add('html')
         size = len(fetcher.body or b'')
         stats.add('html_bytes', size)
-        print(fetcher.url, fetcher.response.status,
+        print(fetcher.url, fetcher.status,
               fetcher.ctype, fetcher.encoding,
               size,
               '%d/%d' % (len(fetcher.new_urls or ()), len(fetcher.urls or ())),
               file=file)
-    elif fetcher.response is None:
-        print(fetcher.url, 'no response object')
     else:
         size = len(fetcher.body or b'')
-        if fetcher.response.status == 200:
+        if fetcher.status == 200:
             stats.add('other')
             stats.add('other_bytes', size)
         else:
             stats.add('error')
             stats.add('error_bytes', size)
-            stats.add('status_%s' % fetcher.response.status)
-        print(fetcher.url, fetcher.response.status,
+            stats.add('status_%s' % fetcher.status)
+        print(fetcher.url, fetcher.status,
               fetcher.ctype, fetcher.encoding,
               size,
               file=file)

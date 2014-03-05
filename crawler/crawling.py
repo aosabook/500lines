@@ -169,167 +169,124 @@ class Connection:
     def close(self, recycle=False):
         if recycle and not self.stale():
             self.pool.recycle_connection(self)
-        else:
+        elif self.writer is not None:
             self.writer.close()
             self.pool = self.reader = self.writer = None
 
 
-class Request:
-    """HTTP request.
+@asyncio.coroutine
+def open_http_conn(url, pool, *, method='GET', headers=None, version='1.1'):
+    parts = urllib.parse.urlparse(url)
+    assert parts.scheme in ('http', 'https'), repr(url)
+    ssl = parts.scheme == 'https'
+    port = parts.port or (443 if ssl else 80)
+    path = parts.path or '/'
+    path = '%s?%s' % (path, parts.query) if parts.query else path
 
-    Use connect() to open a connection; send_request() to send the
-    request; get_response() to receive the response headers.
-    """
+    logger.warn('* Connecting to %s:%s using %s for %s',
+                parts.hostname, port, 'ssl' if ssl else 'tcp', url)
+    conn = yield from pool.get_connection(parts.hostname, port, ssl)
 
-    def __init__(self, url, pool):
-        self.url = url
-        self.pool = pool
-        self.parts = urllib.parse.urlparse(self.url)
-        self.scheme = self.parts.scheme
-        assert self.scheme in ('http', 'https'), repr(url)
-        self.ssl = self.parts.scheme == 'https'
-        self.netloc = self.parts.netloc
-        self.hostname = self.parts.hostname
-        self.port = self.parts.port or (443 if self.ssl else 80)
-        self.path = (self.parts.path or '/')
-        self.query = self.parts.query
-        if self.query:
-            self.full_path = '%s?%s' % (self.path, self.query)
-        else:
-            self.full_path = self.path
-        self.http_version = 'HTTP/1.1'
-        self.method = 'GET'
-        self.headers = collections.OrderedDict()
-        self.conn = None
+    headers = dict(headers) if headers else {}  # Must use Cap-Words.
+    headers.setdefault('User-Agent', 'asyncio-example-crawl/0.0')
+    headers.setdefault('Host', parts.netloc)
+    headers.setdefault('Accept', '*/*')
+    lines = ['%s %s HTTP/%s' % (method, path, version)]
+    lines.extend('%s: %s' % kv for kv in headers.items())
+    for line in lines + ['']:
+        logger.info('> %s', line)
+    # TODO: close conn if this fails.
+    conn.writer.write('\r\n'.join(lines + ['', '']).encode('latin-1'))
 
-    @asyncio.coroutine
-    def connect(self):
-        """Open a connection to the server."""
-        logger.warn('* Connecting to %s:%s using %s for %s',
-                    self.hostname, self.port,
-                    'ssl' if self.ssl else 'tcp',
-                    self.url)
-        self.conn = yield from self.pool.get_connection(self.hostname,
-                                                        self.port, self.ssl)
+    return conn  # Caller must send body if desired, then call get_response().
 
-    def close(self, recycle=False):
-        """Close the connection, recycle if requested."""
-        if self.conn is not None:
-            if not recycle:
-                logger.warn('closing connection %r', self.conn.key)
-            self.conn.close(recycle)
-            self.conn = None
+
+@asyncio.coroutine
+def get_response(conn):
 
     @asyncio.coroutine
-    def send_request(self):
-        """Send the request."""
-        self.headers.setdefault('User-Agent', 'asyncio-example-crawl/0.0')
-        self.headers.setdefault('Host', self.netloc)
-        self.headers.setdefault('Accept', '*/*')
-        ##self.headers.setdefault('Accept-Encoding', 'gzip')
-        lines = ['%s %s %s' % (self.method, self.full_path, self.http_version)]
-        lines.extend('%s: %s' % kv for kv in self.headers.items())
-        for line in lines + ['']:
-            logger.info('> %s', line)
-        self.conn.writer.write('\r\n'.join(lines + ['', '']).encode('latin-1'))
-
-    @asyncio.coroutine
-    def get_response(self):
-        """Receive the response."""
-        response = Response(self.conn.reader)
-        yield from response.read_headers()
-        return response
-
-
-class Response:
-    """HTTP response.
-
-    Call read_headers() to receive the request headers.
-    Then check the status attribute and inspect the headers.
-    Finally call read() to receive the body.
-    """
-
-    def __init__(self, reader):
-        self.reader = reader
-        self.http_version = None  # 'HTTP/1.1'
-        self.status = None  # 200
-        self.reason = None  # 'Ok'
-        self.headers = {}  # {'content-type': 'text/html'}
-
-    @asyncio.coroutine
-    def getline(self):
-        """Read one line from the connection."""
-        line = (yield from self.reader.readline()).decode('latin-1').rstrip()
+    def getline():
+        line = (yield from conn.reader.readline()).decode('latin-1').rstrip()
         logger.info('< %s', line)
         return line
 
-    @asyncio.coroutine
-    def read_headers(self):
-        """Read the response status and the request headers."""
-        status_line = yield from self.getline()
-        status_parts = status_line.split(None, 2)
-        if len(status_parts) != 3:
-            logger.error('bad status_line %r', status_line)
-            raise BadStatusLine(status_line)
-        self.http_version, status, self.reason = status_parts
-        self.status = int(status)
-        while True:
-            header_line = yield from self.getline()
-            if not header_line:
-                break
-            # TODO: Continuation lines; multiple header lines per key..
-            key, value = header_line.split(':', 1)
-            self.headers[key.lower()] = value.strip()
+    status_line = yield from getline()
+    status_parts = status_line.split(None, 2)
+    if len(status_parts) != 3:
+        logger.error('bad status_line %r', status_line)
+        raise BadStatusLine(status_line)
+    http_version, status, reason = status_parts
+    status = int(status)
 
-    def get_redirect_url(self):
-        """Inspect the status and return the redirect url if appropriate."""
-        if self.status not in (300, 301, 302, 303, 307):
-            return None
-        return self.headers.get('location')
+    headers = {}
+    while True:
+        header_line = yield from getline()
+        if not header_line:
+            break
+        key, value = header_line.split(':', 1)
+        # TODO: Continuation lines; multiple header lines per key..
+        headers[key.lower()] = value.lstrip()
 
-    @asyncio.coroutine
-    def read(self):
-        """Read the response body.
+    if 'content-length' in headers:
+        nbytes = int(headers['content-length'])
+        output = asyncio.StreamReader()
+        asyncio.async(length_handler(nbytes, conn.reader, output))
+    elif headers.get('transfer-encoding') == 'chunked':
+        output = asyncio.StreamReader()
+        asyncio.async(chunked_handler(conn.reader, output))
+    else:
+        output = conn.reader
 
-        This honors Content-Length and Transfer-Encoding: chunked.
-        """
-        nbytes = None
-        for key, value in self.headers.items():
-            if key == 'content-length':
-                nbytes = int(value)
-                break
-        if nbytes is None:
-            if self.headers.get('transfer-encoding', '').lower() == 'chunked':
-                logger.info('parsing chunked response')
-                blocks = []
-                while True:
-                    size_header = yield from self.reader.readline()
-                    if not size_header:
-                        logger.error('premature end of chunked response')
-                        break
-                    logger.debug('size_header = %r', size_header)
-                    parts = size_header.split(b';')
-                    size = int(parts[0], 16)
-                    if size:
-                        logger.debug('reading chunk of %r bytes', size)
-                        block = yield from self.reader.readexactly(size)
-                        assert len(block) == size, (len(block), size)
-                        blocks.append(block)
-                    crlf = yield from self.reader.readline()
-                    assert crlf == b'\r\n', repr(crlf)
-                    if not size:
-                        break
-                body = b''.join(blocks)
-                logger.warn('chunked response had %r bytes in %r blocks',
-                            len(body), len(blocks))
-            else:
-                logger.debug('reading until EOF')
-                body = yield from self.reader.read()
-                # TODO: Should make sure not to recycle the connection
-                # in this case.
-        else:
-            body = yield from self.reader.readexactly(nbytes)
-        return body
+    return http_version[5:], status, reason, headers, output
+
+
+@asyncio.coroutine
+def length_handler(nbytes, input, output):
+    while nbytes > 0:
+        buffer = yield from input.read(min(nbytes, 256*1024))
+        if not buffer:
+            logger.error('premature end for content-length')
+            output.set_exception(EOFError())
+            return
+        output.feed_data(buffer)
+        nbytes -= len(buffer)
+    output.feed_eof()
+
+
+@asyncio.coroutine
+def chunked_handler(input, output):
+    logger.info('parsing chunked response')
+    nblocks = 0
+    nbytes = 0
+    while True:
+        size_header = yield from input.readline()
+        if not size_header:
+            logger.error('premature end of chunked response')
+            output.set_exception(EOFError())
+            return
+        logger.debug('size_header = %r', size_header)
+        parts = size_header.split(b';')
+        size = int(parts[0], 16)
+        nblocks += 1
+        nbytes += size
+        if size:
+            logger.debug('reading chunk of %r bytes', size)
+            block = yield from input.readexactly(size)
+            assert len(block) == size, (len(block), size)
+            output.feed_data(block)
+        crlf = yield from input.readline()
+        assert crlf == b'\r\n', repr(crlf)
+        if not size:
+            break
+    logger.warn('chunked response had %r bytes in %r blocks', nbytes, nblocks)
+    output.feed_eof()
+
+
+def get_redirect_url(status, headers):
+    """Inspect the status and return the redirect url if appropriate."""
+    if status not in (300, 301, 302, 303, 307):
+        return None
+    return headers.get('location')
 
 
 class Fetcher:
@@ -358,8 +315,9 @@ class Fetcher:
         self.task = None
         self.exceptions = []
         self.tries = 0
-        self.request = None
-        self.response = None
+        self.conn = None
+        self.status = None
+        self.headers = None
         self.body = None
         self.next_url = None
         self.ctype = None
@@ -377,34 +335,30 @@ class Fetcher:
         """
         while self.tries < self.max_tries:
             self.tries += 1
-            self.request = None
+            conn = None
             try:
-                self.request = Request(self.url, self.crawler.pool)
-                yield from self.request.connect()
-                yield from self.request.send_request()
-                self.response = yield from self.request.get_response()
-                self.body = yield from self.response.read()
-                h_conn = self.response.headers.get('connection', '').lower()
+                conn = yield from open_http_conn(self.url, self.crawler.pool)
+                _, status, _, headers, output = yield from get_response(conn)
+                self.status, self.headers = status, headers
+                self.body = yield from output.read()
+                h_conn = headers.get('connection', '').lower()
                 if h_conn != 'close':
-                    self.request.close(recycle=True)
-                    self.request = None
+                    conn.close(recycle=True)
                 if self.tries > 1:
                     logger.warn('try %r for %r success', self.tries, self.url)
                 break
             except (BadStatusLine, OSError) as exc:
                 self.exceptions.append(exc)
                 logger.warn('try %r for %r raised', self.tries, self.url, exc)
-                ##import pdb; pdb.set_trace()
-                # Don't reuse the connection in this case.
             finally:
-                if self.request is not None:
-                    self.request.close()
+                if conn is not None:
+                    conn.close()
         else:
             # We never broke out of the while loop, i.e. all tries failed.
             logger.error('no success for %r in %r tries',
                          self.url, self.max_tries)
             return
-        next_url = self.response.get_redirect_url()
+        next_url = get_redirect_url(status, headers)
         if next_url:
             self.next_url = urllib.parse.urljoin(self.url, next_url)
             if self.max_redirect > 0:
@@ -414,8 +368,8 @@ class Fetcher:
                 logger.error('redirect limit reached for %r from %r',
                              self.next_url, self.url)
         else:
-            if self.response.status == 200:
-                self.ctype = self.response.headers.get('content-type')
+            if status == 200:
+                self.ctype = headers.get('content-type')
                 self.pdict = {}
                 if self.ctype:
                     self.ctype, self.pdict = cgi.parse_header(self.ctype)
