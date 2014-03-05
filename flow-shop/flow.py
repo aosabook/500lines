@@ -1,5 +1,6 @@
 import sys, os, time, random
 
+from functools import partial
 
 ##############
 ## Settings ##
@@ -7,15 +8,46 @@ import sys, os, time, random
 TIME_LIMIT = 10
 
 
+##############################
+## Neighbourhood Generators ##
+##############################
+
+def _neighbours_random(perm, num = 1):
+    candidates = [perm]
+    for i in range(num):
+        candidate = perm[:]
+        random.shuffle(candidate)
+        candidates.append(candidate)
+    return candidates
+
+def _neighbours_swap(perm):
+    candidates = []
+    for i in range(len(perm) - 1):
+        for j in range(1, len(perm) - 1):
+            candidate = perm[:]
+            candidate[i], candidate[j] = candidate[j], candidate[i]
+            candidates.append(candidate)
+    return candidates
+
+def _neighbours_LNS(perm):
+    # TODO: Implement Large Neighbourhood Search
+    return [perm]
+
+
+
 ################
 ## Heuristics ##
 ################
 
-def _heur_random(perm):
-    random.shuffle(perm)
-    return perm
+def _heur_hillclimbing(data, candidates, context):
+    scores = [(makespan(data, perm), perm) for perm in candidates]
+    return sorted(scores)[0][1]
+
+def _heur_random(data, candidates, context):
+    return random.choice(candidates)
 
 
+################################
 
 
 def parse_problem(filename):
@@ -55,8 +87,16 @@ def compile_solution(data, perm):
     return mach_times
 
 
-def solve(data, heuristic = _heur_random):
-    
+def solve(data):
+
+    context = {}
+
+    neighbourhood = partial(_neighbours_random, num=50)
+    #neighbourhood = _neighbours_swap
+
+    heuristic = _heur_random
+    #heuristic = _heur_hillclimbing
+
     perm = range(len(data))
     
     best_make = makespan(data, perm)
@@ -65,7 +105,7 @@ def solve(data, heuristic = _heur_random):
     time_limit = time.time() + TIME_LIMIT
     while time.time() < time_limit:
         
-        perm = heuristic(perm)
+        perm = heuristic(data, neighbourhood(perm), context)
         res = makespan(data, perm)
         
         if res < best_make:
