@@ -245,7 +245,8 @@
               reffing-ids (get-in indices [:VAET ent-id attr-name])]
         (map #(get-in indices [:EAVT %]) reffing-ids ))))
 
-(defn evolution-of "The sequence of the values of of an entity's attribute, as changed through time" [db ent-id attr-name]
+(defn evolution-of "The sequence of the values of of an entity's attribute, as changed through time"
+  [db ent-id attr-name]
   (loop [res [] ts (:curr-time db)]
     (if (= -1 ts) (reverse res)
         (let [attr (attr-at db ent-id attr-name ts)]
