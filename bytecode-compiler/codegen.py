@@ -217,16 +217,13 @@ class CodeGen(ast.NodeVisitor):
             assert False
 
     def visit_Subscript(self, t):
-        result = [self(t.value)]
-        s = t.slice
-        if isinstance(s, ast.Index):
-            result += [self(s.value)]
-            if   isinstance(t.ctx, ast.Load):  result += [op.BINARY_SUBSCR]
-            elif isinstance(t.ctx, ast.Store): result += [op.STORE_SUBSCR]
+        if isinstance(t.slice, ast.Index):
+            if   isinstance(t.ctx, ast.Load):  sub_op = op.BINARY_SUBSCR
+            elif isinstance(t.ctx, ast.Store): sub_op = op.STORE_SUBSCR
             else: assert False
+            return [self(t.value), self(t.slice.value), sub_op]
         else:
             assert False
-        return result
 
     def visit_NameConstant(self, t):
         return self.load_const(t.value)
