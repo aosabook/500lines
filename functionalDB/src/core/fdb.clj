@@ -20,7 +20,7 @@
   :indexed - a boolean, can be either true or false - marks whether this attribute should be indexed. By defaults attributes are not inexed.
   :cardinality - the cardinality of an attribute, can be either:
                      :db/single - which means that this attribute can be a single value at any given time (this is the default cardinality)
-                     :db/mutiple - which means that this attribute is actually a set of values. In this case updates of this attribute may be one of the following (NOTE that all these operations accept a set as argument):
+                     :db/multiple - which means that this attribute is actually a set of values. In this case updates of this attribute may be one of the following (NOTE that all these operations accept a set as argument):
                                           :db/add - adds a set of values to the currently existing set of values
                                           :db/resetTo - resets the value of this attribute to be the given set of values
                                           :db/remove - removes the given set of values from the attribute's current set of values"
@@ -28,11 +28,17 @@
       & {:keys [indexed cardinality] :or {indexed false cardinality :db/single}} ]
    (with-meta (Attr. name type value -1 -1) {:indexed indexed :cardinality cardinality} )))
 
+(defn single? [attr]
+  (= :db/single (:cardinality (meta attr))))
+
+(defn indexed? [attr]
+  (:indexed (meta attr)))
+
 (defn update-attr-value "updating the attribute value based on the kind of the operation, the cardinality defined for this attribute and the given value"
   [attr value operation]
   (cond
-      (= :db/single (:cardinality (meta attr)))    (assoc attr :value #{value})
-   ; now = :db/mutiple (:cardinality (meta attr)))
+      (single? attr)    (assoc attr :value #{value})
+   ; now = :db/multiple (:cardinality (meta attr)))
       (= :db/reset-to operation)  (assoc attr :value value)
       (= :db/add operation)        (assoc attr :value (CS/union (:value attr)  value))
       (= :db/remove operation)  (assoc attr :value (CS/difference (:value attr) value))))
@@ -98,7 +104,7 @@
 
 ;avet : attr-name -> attr-value -> #{ids of ents}
 (defn update-avet [old-avet ent operation]
-     (let [indexed-attrs (filter #(:indexed (meta %)) (vals (:attrs ent)))
+     (let [indexed-attrs (filter #(indexed? %) (vals (:attrs ent)))
            update-attr-in-avet-fn (partial update-attr-in-avet ent operation)]
        (reduce update-attr-in-avet-fn old-avet indexed-attrs)))
 
@@ -186,7 +192,7 @@
           ] updated-vaet)))
 
 (defn update-avet-for-datom [avet ent-id attr target-attr-val operation]
-  (if-not (:indexed (meta attr))
+  (if-not (indexed? attr)
     avet
     (let [old-attr-vals (:value attr)
           attr-name (:name attr)
@@ -204,7 +210,7 @@
 
 (defn update-datom
   ([db ent-id att-name  new-val]  (update-datom db ent-id att-name  new-val  :db/reset-to ))
-  ([db ent-id att-name  new-val operation ] ; operation may be either  :db/reset-to  :db/add ,or :db/remove (the last two are valid only if the attr cardinality is :db/mutiple)
+  ([db ent-id att-name  new-val operation ] ; operation may be either  :db/reset-to  :db/add ,or :db/remove (the last two are valid only if the attr cardinality is :db/multiple)
      (let [ new-ts (next-ts db)
             indices (last (:timestamped db))
             attr (get-in indices [:EAVT ent-id :attrs  att-name] )
