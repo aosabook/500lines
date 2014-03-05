@@ -206,6 +206,8 @@ class CodeGen(ast.NodeVisitor):
     def visit_Str(self, t):
         return self.load_const(t.s)
 
+    visit_Bytes = visit_Str
+
     def visit_Attribute(self, t):
         if   isinstance(t.ctx, ast.Load):
             return [self(t.value), op.LOAD_ATTR(self.names[t.attr])]
