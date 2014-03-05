@@ -137,19 +137,26 @@ class CodeGen(ast.NodeVisitor):
         return [self(t.value), op.POP_TOP]
 
     def visit_Assign(self, t):
-        if 1 == len(t.targets):
-            return [self(t.value), self(t.targets[0])]
-        else:
-            assert False
+        assert 1 == len(t.targets)  # XXX is >1 meant for like a = b = c?
+        return [self(t.value), self(t.targets)]
 
     def visit_Call(self, t):
         return [self(t.func), self(t.args), op.CALL_FUNCTION(len(t.args))]
 
     def visit_List(self, t):
-        return [self(t.elts), op.BUILD_LIST(len(t.elts))]
+        return self.visit_sequence(t, op.BUILD_LIST)
 
     def visit_Tuple(self, t):
-        return [self(t.elts), op.BUILD_TUPLE(len(t.elts))]
+        return self.visit_sequence(t, op.BUILD_TUPLE)
+
+    def visit_sequence(self, t, build_op):
+        if   isinstance(t.ctx, ast.Load):
+            return [self(t.elts), build_op(len(t.elts))]
+        elif isinstance(t.ctx, ast.Store):
+            # XXX make sure there are no stars in elts
+            return [op.UNPACK_SEQUENCE(len(t.elts)), self(t.elts)]
+        else:
+            assert False
 
     def visit_Dict(self, t):
         return [op.BUILD_MAP(len(t.keys)),
