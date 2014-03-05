@@ -1,5 +1,5 @@
 """
-Byte-compile an almost-reasonable subset of Python.
+Byte-compile a subset of Python.
 """
 
 import ast, collections, dis, types
@@ -115,6 +115,8 @@ class CodeGen(ast.NodeVisitor):
                     self(t.body), op.JUMP_FORWARD(2)],
                 1: [self(t.orelse)],
                 2: []}
+
+    visit_IfExp = visit_If
 
     def visit_While(self, t):
         return {0: [op.SETUP_LOOP(3)],
