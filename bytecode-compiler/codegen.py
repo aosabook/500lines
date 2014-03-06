@@ -5,22 +5,22 @@ Byte-compile a subset of Python.
 import ast, collections, dis, types
 from functools import reduce
 
-from assembler import op, assemble
+from assembler import assemble, op, set_lineno
 from scoper import top_scope
 
 def byte_compile(module_name, filename, source, f_globals, loud=0):
     t = ast.parse(source)
-    t = Expander().visit(t)
     top_level = top_scope(t, source, loud)
+    t = Expander().visit(t)
+    ast.fix_missing_locations(t)
     code = CodeGen(filename, top_level).compile(t, module_name)
     return types.FunctionType(code, f_globals)
 
 class Expander(ast.NodeTransformer):
     def visit_Assert(self, t):
         return ast.If(ast.UnaryOp(ast.Not(), t.test),
-                      [ast.Raise(ast.Call(ast.Name('AssertionError', ast.Load()),
-                                          [] if t.msg is None else [t.msg],
-                                          [], None, None),
+                      [ast.Raise(ast.Call(func=ast.Name('AssertionError', ast.Load()),
+                                          args=[] if t.msg is None else [t.msg]),
                                  None)],
                       [])
 
@@ -34,6 +34,7 @@ class CodeGen(ast.NodeVisitor):
         self.varnames  = make_table()
 
     def compile_class(self, t):
+#        print(ast.dump(t, include_attributes=True))
         self.set_docstring(t)
         assembly = [self.load('__name__'), self.store('__module__'),
                     self.load_const(t.name), self.store('__qualname__'), # XXX
@@ -44,6 +45,7 @@ class CodeGen(ast.NodeVisitor):
         self.load_const(ast.get_docstring(t))
 
     def compile_function(self, t):
+#        print(ast.dump(t, include_attributes=True))
         self.set_docstring(t)
         for arg in t.args.args:
             self.varnames[arg.arg] # argh, naming
@@ -56,12 +58,10 @@ class CodeGen(ast.NodeVisitor):
     def make_code(self, assembly, name, argcount):
         kwonlyargcount = 0
         nlocals = len(self.varnames)
-        bytecode, stacksize = assemble(assembly)
-        if 1: print('stacksize =', stacksize)
+        bytecode, stacksize, firstlineno, lnotab = assemble(assembly)
+        if 0: print('stacksize =', stacksize)
         flags = 64  # XXX I don't understand the flags
         flags |= 2 if nlocals else 0  # this is just a guess
-        firstlineno = 1
-        lnotab = b''
         constants = tuple(constant for constant,_ in collect(self.constants))
         return types.CodeType(argcount, kwonlyargcount,
                               nlocals, stacksize, flags, bytecode,
@@ -79,6 +79,12 @@ class CodeGen(ast.NodeVisitor):
 
     def generic_visit(self, t):
         assert False, t
+
+    def visit(self, t):
+        if hasattr(t, 'lineno'):
+            return [set_lineno(t.lineno), ast.NodeVisitor.visit(self, t)]
+        else:
+            return ast.NodeVisitor.visit(self, t)
 
     def visit_Module(self, t):
         self.set_docstring(t)
@@ -143,6 +149,7 @@ class CodeGen(ast.NodeVisitor):
         return [self(t.value), op.POP_TOP]
 
     def visit_Assign(self, t):
+        # XXX this produces linenos out of order: targets after value
         def compound(left, right): return [op.DUP_TOP, left, right]
         return [self(t.value), reduce(compound, map(self, t.targets))]
 
