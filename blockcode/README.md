@@ -34,6 +34,22 @@ Handler to run an array of blocks by sending each block the "run" event.
 
 ### menu.js
 
+#### `menu`, `script`
+
+We use these a lot, keep references around.
+
+#### `scriptRegistry`
+
+This is where we will store the scripts of blocks in the menu. We use a very simple name -> script mapping, so it does not support either multiple menu blocks with the same name, or renaming blocks.
+
+#### `scriptDirty`
+
+Keep track of whether the script has been modified since the last time it was run, so we don't keep trying to run it constantly.
+
+#### `runSoon()`
+
+Flag the system that we should run the assembled script during the next frame handler
+
 #### `menuItem(name, fn, value, contents)`
 
 A menu block is just a normal block that is associated with a function, and it lives in the menu column.
