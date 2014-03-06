@@ -1,19 +1,14 @@
 (function(global){
-	// Handler to save the current script in localStorage on page refresh
-	//
+
 	function saveLocal(){
 		localStorage._blockCode = scriptToJson();
 	}
 
-	// Utility for converting scripts to JSON
-	//
 	function scriptToJson(){
 		var blocks = [].slice.call(document.querySelectorAll('.script > .block'));
 		return JSON.stringify(blocks.map(Block.script));		
 	}
 
-	// Utility for converting JSON to scripts
-	//
 	function jsonToScript(json){
 		var scriptElem = document.querySelector('.script');
 		clearScript();
@@ -23,14 +18,10 @@
 		menu.runSoon();
 	}
 
-	// Handler to restore the current script on page refresh
-	//
 	function restoreLocal(){
 		jsonToScript(localStorage._blockCode || '[]');
 	}
 
-	// Handler to clear the current script
-	//
 	function clearScript(){
 		[].slice.call(document.querySelectorAll('.script > .block')).forEach(function(block){
 			block.parentElement.removeChild(block);
@@ -38,8 +29,6 @@
 		menu.runSoon();
 	}
 
-	// Handler to save to a local file
-	//
 	function saveFile(evt){
 	    var title = prompt("Save file as: ");
 	    if (!title) return;
@@ -53,7 +42,6 @@
 		reader.readAsDataURL(file);
 	}
 
-	// Handler to load from a local file
 	function readFile(file){
 		fileName = file.name;
 		if (fileName.indexOf('.json', fileName.length - 5) === -1) {

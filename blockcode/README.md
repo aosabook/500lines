@@ -50,6 +50,42 @@ As each block is run, set a class on it, then find and execute its associated fu
 
 One of the default menu blocks reused in each language.
 
+### file.js
+
+#### `saveLocal()`
+
+Handler to save the current script in localStorage on page refresh.
+
+#### `scriptToJson()`
+
+Self-explanatory, a utility for converting scripts to JSON format.
+
+#### `jsonToScript(json)`
+
+The inverse of `scriptToJson()`.
+
+#### `restoreLocal()`
+
+Handler to restore the current script on page refresh.
+
+#### `clearScript()`
+
+Handler to clear the current script.
+
+#### `saveFile()`
+
+Handler to save to a local file
+
+#### `readFile(file)`
+
+Handler to load from a local file.
+
+#### `loadFile()`
+
+Part of the handshake involved in asych file loading.
+
+
+
 
 
 
