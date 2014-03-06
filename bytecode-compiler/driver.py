@@ -12,18 +12,18 @@ if loud:
 else:
     def report(*args, **kwargs): pass
 
-def run(source, filename=None):
-    f = compile_toplevel(source)
+def run(module_name, filename, source):
+    f = compile_toplevel(module_name, filename, source)
     f()   # It's alive!
 
-def compile_toplevel(source):
+def compile_toplevel(module_name, filename, source):
     t = ast.parse(source)
     try:
         import astpp
     except ImportError:
         astpp = ast
     report(astpp.dump(t))
-    f = codegen.byte_compile(source, globals())
+    f = codegen.byte_compile(module_name, filename, source, globals())
     diss(f.__code__)
     return f
 
@@ -46,6 +46,6 @@ if __name__ == '__main__':
     if len(sys.argv) >= 2:
         del sys.argv[0]
         filename = sys.argv[0]
-        run(open(filename).read(), filename)
+        run("XXX", filename, open(filename).read())
     else:
         assert False

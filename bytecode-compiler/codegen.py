@@ -4,14 +4,16 @@ Byte-compile a subset of Python.
 
 import ast, collections, dis, types
 from functools import reduce
+
 from assembler import op, assemble
 from scoper import top_scope
 
-def byte_compile(source, f_globals, loud=0):
+def byte_compile(module_name, filename, source, f_globals, loud=0):
     t = ast.parse(source)
     t = Expander().visit(t)
     top_level = top_scope(t, source, loud)
-    return types.FunctionType(CodeGen(top_level).compile(t), f_globals)
+    code = CodeGen(filename, top_level).compile(t, module_name)
+    return types.FunctionType(code, f_globals)
 
 class Expander(ast.NodeTransformer):
     def visit_Assert(self, t):
@@ -24,8 +26,9 @@ class Expander(ast.NodeTransformer):
 
 class CodeGen(ast.NodeVisitor):
 
-    def __init__(self, scope):
-        self.scope = scope
+    def __init__(self, filename, scope):
+        self.filename  = filename
+        self.scope     = scope
         self.constants = make_table()
         self.names     = make_table()
         self.varnames  = make_table()
@@ -35,7 +38,7 @@ class CodeGen(ast.NodeVisitor):
         assembly = [self.load('__name__'), self.store('__module__'),
                     self.load_const(t.name), self.store('__qualname__'), # XXX
                     self(t.body), self.load_const(None), op.RETURN_VALUE]
-        return self.make_code(assembly, 0)
+        return self.make_code(assembly, t.name, 0)
 
     def set_docstring(self, t):
         self.load_const(ast.get_docstring(t))
@@ -44,21 +47,19 @@ class CodeGen(ast.NodeVisitor):
         self.set_docstring(t)
         for arg in t.args.args:
             self.varnames[arg.arg] # argh, naming
-        return self.compile(t.body, len(t.args.args))
+        return self.compile(t.body, t.name, len(t.args.args))
 
-    def compile(self, t, argcount=0):
+    def compile(self, t, name, argcount=0):
         assembly = [self(t), self.load_const(None), op.RETURN_VALUE]
-        return self.make_code(assembly, argcount)
+        return self.make_code(assembly, name, argcount)
 
-    def make_code(self, assembly, argcount):
+    def make_code(self, assembly, name, argcount):
         kwonlyargcount = 0
         nlocals = len(self.varnames)
         bytecode, stacksize = assemble(assembly)
         if 1: print('stacksize =', stacksize)
         flags = 64  # XXX I don't understand the flags
         flags |= 2 if nlocals else 0  # this is just a guess
-        filename = '<stdin>'
-        name = 'the_name'
         firstlineno = 1
         lnotab = b''
         constants = tuple(constant for constant,_ in collect(self.constants))
@@ -66,7 +67,7 @@ class CodeGen(ast.NodeVisitor):
                               nlocals, stacksize, flags, bytecode,
                               constants,
                               collect(self.names), collect(self.varnames),
-                              filename, name, firstlineno, lnotab,
+                              self.filename, name, firstlineno, lnotab,
                               freevars=(), cellvars=())
 
     def __call__(self, t):
@@ -94,7 +95,7 @@ class CodeGen(ast.NodeVisitor):
         
     def visit_ClassDef(self, t):
         assert not t.decorator_list
-        code = CodeGen(self.scope.get_child(t)).compile_class(t)
+        code = CodeGen(self.filename, self.scope.get_child(t)).compile_class(t)
         return [op.LOAD_BUILD_CLASS, self.make_closure(code, t.name), 
                                      self.load_const(t.name),
                                      self(t.bases),
@@ -103,7 +104,7 @@ class CodeGen(ast.NodeVisitor):
 
     def visit_FunctionDef(self, t):
         assert not t.decorator_list
-        code = CodeGen(self.scope.get_child(t)).compile_function(t)
+        code = CodeGen(self.filename, self.scope.get_child(t)).compile_function(t)
         return [self.make_closure(code, t.name), self.store(t.name)]
 
     def make_closure(self, code, name):
