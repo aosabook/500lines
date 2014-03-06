@@ -1,12 +1,6 @@
 (function(){
 	'use strict';
 
-	//
-	// This is the implmentation of the turtle block language. It exposes no globals of its own
-	// 
-
-	// Variables for managing the canvas itself
-	//
 	var canvas = document.querySelector('.canvas');
 	var script = document.querySelector('.script');
 	var ctx = canvas.getContext('2d');
@@ -23,11 +17,9 @@
 		menu.runSoon();
 	}
 
-	// Save some handier references to frequently-used parts of Math
 	var cos = Math.cos, sin = Math.sin, sqrt = Math.sqrt, PI = Math.PI;
 	var DEGREE = PI / 180;
 
-	// State (we could embed this in an object if we wanted to support more than one turtle)
 	var position, direction, visible, pen, color;
 	function reset(){
 		recenter();
@@ -41,27 +33,25 @@
 		position = {x: WIDTH/2, y: HEIGHT/2};
 	}
 
-	// Utility so we can work with degrees, but draw in radians
 	function deg2rad(degrees){
 		return DEGREE * degrees;
 	}
 
 	function drawTurtle(){
-		// draw the turtle. Default turtle is a triangle
 		var userPen = pen; // save pen state
 		if (visible){
 			penUp();
-			moveForward(5);
+			_moveForward(5);
 			penDown();
-			turn(-150);
-			moveForward(12);
-			turn(-120);
-			moveForward(12);
-			turn(-120);
-			moveForward(12);
-			turn(30);
+			_turn(-150);
+			_moveForward(12);
+			_turn(-120);
+			_moveForward(12);
+			_turn(-120);
+			_moveForward(12);
+			_turn(30);
 			penUp();
-			moveForward(-5);
+			_moveForward(-5);
 			if (userPen){
 				penDown(); // restore pen state
 			}
@@ -84,13 +74,12 @@
 		visible = true;
 	}
 
-	// internal function
-	function moveForward(distance){
+	function _moveForward(distance){
 		var start = position;
 		position = {
 			x: cos(direction) * distance + start.x,
 			y: -sin(direction) * distance + start.y
-		}
+		};
 		if (pen){
 			ctx.lineStyle = color;
 			ctx.beginPath();
@@ -101,24 +90,23 @@
 	}
 
 	function forward(block){
-		moveForward(Block.value(block));
+		_moveForward(Block.value(block));
 	}
 
 	function back(block){
-		moveForward(-Block.value(block));
+		_moveForward(-Block.value(block));
 	}
 
-	// internal function for turning
-	function turn(degrees){
+	function _turn(degrees){
 		direction += deg2rad(degrees);
 	}
 
 	function left(block){
-		turn(Block.value(block));
+		_turn(Block.value(block));
 	}
 
 	function right(block){
-		turn(-Block.value(block));
+		_turn(-Block.value(block));
 	}
 
 	function clear(){
@@ -130,12 +118,9 @@
 		ctx.moveTo(position.x, position.y);
 	}
 
-	// initialization
 	clear();
 	drawTurtle();
 
-	// Set up menu for the turtle language
-	//
 	menu.item('Left', left, 5);
 	menu.item('Right', right, 5);
 	menu.item('Forward', forward, 10);
@@ -146,11 +131,8 @@
 	menu.item('Hide turtle', hideTurtle);
 	menu.item('Show turtle', showTurtle);
 
-	// Handler to run before script runs, always clear canvas first
-	//
-	script.addEventListener('beforeRun', clear, false);
-	// Handler to run after script runs, show turtle if visible
-	script.addEventListener('afterRun', drawTurtle, false);
+	script.addEventListener('beforeRun', clear, false); // always clear canvas first
+	script.addEventListener('afterRun', drawTurtle, false); // show turtle if visible
 	window.addEventListener('resize', onResize, false);
 
 })(window);

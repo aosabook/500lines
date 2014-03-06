@@ -84,6 +84,48 @@ Handler to load from a local file.
 
 Part of the handshake involved in asych file loading.
 
+### turtle.js
+
+This is the implmentation of the turtle block language. It exposes no globals of its own., but it does define local variables for managing the canvas itself and save some handier references to frequently-used parts of Math.
+
+#### `reset()`
+
+Resets all the state variables (we could embed these in an object if we wanted to support more than one turtle).
+
+#### `deg2rad(deg)`
+
+Utility so we can work with degrees in the UI, but draw in radians.
+
+#### `drawTurtle()`
+
+Draw the turtle itself. Default turtle is a triangle, but you could override this to get a more "turtle-looking" turtle.
+
+### util.js
+
+This code may not belong in the count of 500 lines since it is all support and polyfills for things that should be native to the browser.
+
+#### `elem(name, attrs, children)`
+
+Shorthand function to create elements easily, while also setting their attributes and adding child elements
+
+#### `matches(elem, selector)`
+
+Remove namespace for matches. This is a lot of code just to get functionality that is already built-in.
+
+#### `closest(elem, selector)`
+
+Emulate one of the handiest methods in all of jQuery that isn't already built in to the browser yet
+
+#### `requestAnimationFrame(fn)`
+
+Another polyfill for built-in functionality, just to get rid of namespaces in older browsers, or to emulate it for browsers that don't have requestAnimationFrame yet.
+
+#### `trigger(name, target)`
+
+Shorthand for sending a custom event to an element.
+
+
+
 
 
 
