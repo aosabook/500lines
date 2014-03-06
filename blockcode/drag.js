@@ -40,27 +40,18 @@
             }
         }
         if (prevBlock !== nextBlock){
-            if (prevBlock){
-                prevBlock.classList.remove('next');
-            }
-            if (nextBlock){
-                nextBlock.classList.add('next');
-            }
+            if (prevBlock){ prevBlock.classList.remove('next'); }
+            if (nextBlock){ nextBlock.classList.add('next'); }
         }
     }
 
     function dragEnter(evt){
         if (matches(evt.target, '.menu, .script, .content')){
             evt.target.classList.add('over');
-            if (evt.preventDefault) {
-                evt.preventDefault(); // Necessary. Allows us to drop.
-            }
+            if (evt.preventDefault) { evt.preventDefault(); }// Necessary. Allows us to drop.
         }else{
             if (!matches(evt.target, '.menu *, .script *')){
-                var over = document.querySelector('.over');
-                if (over){
-                    over.classList.remove('over');
-                }
+                _findAndRemoveClass('over');
                 evt.target.classList.remove('over');
             }
         }
@@ -69,10 +60,8 @@
 
     function dragOver(evt){
         if (!matches(evt.target, '.menu, .menu *, .script, .script *, .content')) return;
-        if (evt.preventDefault) {
-            evt.preventDefault(); // Necessary. Allows us to drop.
-            }
-            if (dragType === 'menu'){
+        if (evt.preventDefault) { evt.preventDefault(); } // Necessary. Allows us to drop.
+        if (dragType === 'menu'){
             evt.dataTransfer.dropEffect = 'copy';  // See the section on the DataTransfer object.
         }else{
             evt.dataTransfer.dropEffect = 'move';
@@ -85,27 +74,19 @@
         var dropTarget = closest(evt.target, '.script .container, .menu, .script');
         findPosition(evt);
         var dropType = 'script';
-        if (matches(dropTarget, '.menu')){
-            dropType = 'menu';
-        }
-        if (evt.stopPropagation) {
-            evt.stopPropagation(); // stops the browser from redirecting.
-        }
+        if (matches(dropTarget, '.menu')){ dropType = 'menu'; }
+        if (evt.stopPropagation) { evt.stopPropagation(); } // stops the browser from redirecting.
         if (dragType === 'script' && dropType === 'menu'){
             trigger('blockRemoved', dragTarget.parentElement, dragTarget);
             dragTarget.parentElement.removeChild(dragTarget);
         }else if (dragType ==='script' && dropType === 'script'){
-            if (nextBlock){
-                dropTarget = nextBlock.parentElement;
-            }
+            if (nextBlock){ dropTarget = nextBlock.parentElement; }
             dropTarget.insertBefore(dragTarget, nextBlock);
             trigger('blockMoved', dropTarget, dragTarget);
         }else if (dragType === 'menu' && dropType === 'script'){
             var newNode = dragTarget.cloneNode(true);
             newNode.classList.remove('dragging');
-            if (nextBlock){
-                dropTarget = nextBlock.parentElement;
-            }
+            if (nextBlock){ dropTarget = nextBlock.parentElement; }
             dropTarget.insertBefore(newNode, nextBlock);
             trigger('blockAdded', dropTarget, newNode);
         }
@@ -113,9 +94,7 @@
 
     function _findAndRemoveClass(klass){
         var elem = document.querySelector('.' + klass);
-        if (elem){
-            elem.classList.remove(klass);
-        }
+        if (elem){ elem.classList.remove(klass); }
     }
 
     function dragEnd(evt){

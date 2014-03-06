@@ -31,7 +31,7 @@
 
     global.closest = function closest(elem, selector){
         while(elem){
-            if (matches(elem, selector)) return elem;
+            if (matches(elem, selector)){ return elem };
             elem = elem.parentElement;
         }
         return null;

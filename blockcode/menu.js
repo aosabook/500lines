@@ -1,13 +1,12 @@
 (function(global){
+	'use strict';
 
 	var menu = document.querySelector('.menu');
 	var script = document.querySelector('.script');
 	var scriptRegistry = {};
 	var scriptDirty = false;
 
-	function runSoon(){
-		scriptDirty = true;
-	}
+	function runSoon(){ scriptDirty = true; }
 
 	function menuItem(name, fn, value, contents){
 		var item = Block.create(name, value, contents);
