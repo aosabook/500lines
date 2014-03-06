@@ -32,6 +32,30 @@ Returns the script of a block as a structure suitable for stringifying with JSON
 
 Handler to run an array of blocks by sending each block the "run" event.
 
+### drag.js
+
+Defines a bunch of variables at the top of the file. When we're dragging, we'll need to reference these from different stages of the dragging callback dance
+
+#### `findPosition(evt)`
+
+Find which block we should insert the dragged block before.
+
+#### `drop(evt)`
+
+The `findPosition` function is called on drop vs. drag because of bug in Firefox drag event (no clientX, etc). This should also improve drag performance, but doesn't give opportunity to provide user feedback during drag.
+
+If dragging from script to menu, delete dragTarget.
+
+If dragging from script to script, move dragTarget.
+
+If dragging from menu to script, copy dragTarget.
+
+If dragging from menu to menu, do nothing.
+
+#### `dragEnd(evt)`
+
+Based on the repetitive nature of this code, it looks like a good place for a helper function.
+
 ### menu.js
 
 #### `menu`, `script`
@@ -140,6 +164,9 @@ Another polyfill for built-in functionality, just to get rid of namespaces in ol
 
 Shorthand for sending a custom event to an element.
 
+### index.html
+
+Including the turtle.js file is the only thing specific to the turtle language, the rest can be re-used for other block languages.
 
 
 

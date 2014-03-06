@@ -50,7 +50,7 @@
 	global.menu = {
 		runSoon: runSoon,
 		item: menuItem
-	}
+	};
 
 	document.addEventListener('drop', runSoon, false);
 	script.addEventListener('run', runEach, false);
