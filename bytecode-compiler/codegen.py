@@ -61,11 +61,11 @@ class CodeGen(ast.NodeVisitor):
         name = 'the_name'
         firstlineno = 1
         lnotab = b''
-        return types.CodeType(argcount, kwonlyargcount, nlocals, stacksize, flags,
-                              bytecode,
-                              tuple(const for const,_ in collect(self.constants)),
-                              collect(self.names),
-                              collect(self.varnames),
+        constants = tuple(constant for constant,_ in collect(self.constants))
+        return types.CodeType(argcount, kwonlyargcount,
+                              nlocals, stacksize, flags, bytecode,
+                              constants,
+                              collect(self.names), collect(self.varnames),
                               filename, name, firstlineno, lnotab,
                               freevars=(), cellvars=())
 
