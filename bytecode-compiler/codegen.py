@@ -6,6 +6,7 @@ import ast, collections, dis, types
 from functools import reduce
 
 from assembler import assemble, op, set_lineno
+from check_subset import check_conformity
 from scoper import top_scope
 
 def byte_compile(module_name, filename, source, f_globals, loud=0):
@@ -13,6 +14,7 @@ def byte_compile(module_name, filename, source, f_globals, loud=0):
     top_level = top_scope(t, source, loud)
     t = Expander().visit(t)
     ast.fix_missing_locations(t)
+    check_conformity(t)
     code = CodeGen(filename, top_level).compile(t, module_name)
     return types.FunctionType(code, f_globals)
 
@@ -137,7 +139,7 @@ class CodeGen(ast.NodeVisitor):
 
     def visit_For(self, t):
         return {0: [op.SETUP_LOOP(3), self(t.iter), op.GET_ITER],
-                1: [op.FOR_ITER(2), self.store(t.target.id),
+                1: [op.FOR_ITER(2), self.store(t.target.id), # XXX general targets
                     self(t.body), op.JUMP_ABSOLUTE(1)],
                 2: [op.POP_BLOCK],
                 3: []}
