@@ -1,6 +1,7 @@
 """
-Produce the bytecode bytestring and stack depth from a
-hierarchical symbolic form with local labels for addresses.
+Produce the bytecode bytestring, stack depth, and line-number
+mapping from a hierarchical symbolic form with local labels for
+addresses.
 """
 
 import dis
