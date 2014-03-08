@@ -38,6 +38,8 @@ class Viewer(object):
         self.inverseModelView = numpy.identity(4)
         self.modelView = numpy.identity(4)
 
+        self.InitOpenGL()
+
     def InitOpenGL(self):
         glEnable(GL_CULL_FACE)
         glCullFace(GL_BACK)
