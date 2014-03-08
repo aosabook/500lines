@@ -92,15 +92,11 @@ class CodeGen(ast.NodeVisitor):
         self.set_docstring(t)
         return self(t.body)
 
-    def visit_Import(self, t):
-        return self(t.names)
+    def visit_FunctionDef(self, t):
+        assert not t.decorator_list
+        code = CodeGen(self.filename, self.scope.get_child(t)).compile_function(t)
+        return [self.make_closure(code, t.name), self.store(t.name)]
 
-    def visit_alias(self, t):
-        return [self.load_const(0),
-                self.load_const(None), # XXX not for 'importfrom'
-                op.IMPORT_NAME(self.names[t.name]),
-                self.store(t.asname or t.name.split('.')[0])]
-        
     def visit_ClassDef(self, t):
         assert not t.decorator_list
         code = CodeGen(self.filename, self.scope.get_child(t)).compile_class(t)
@@ -110,17 +106,31 @@ class CodeGen(ast.NodeVisitor):
                 op.CALL_FUNCTION(2 + len(t.bases)),
                 self.store(t.name)]
 
-    def visit_FunctionDef(self, t):
-        assert not t.decorator_list
-        code = CodeGen(self.filename, self.scope.get_child(t)).compile_function(t)
-        return [self.make_closure(code, t.name), self.store(t.name)]
-
     def make_closure(self, code, name):
         return [self.load_const(code), self.load_const(name), op.MAKE_FUNCTION(0)] # XXX 0?
 
     def visit_Return(self, t):
         return [self(t.value) if t.value else self.load_const(None),
                 op.RETURN_VALUE]
+
+    def visit_Assign(self, t):
+        # XXX this produces linenos out of order: targets after value
+        def compound(left, right): return [op.DUP_TOP, left, right]
+        return [self(t.value), reduce(compound, map(self, t.targets))]
+
+    def visit_For(self, t):
+        return {0: [op.SETUP_LOOP(3), self(t.iter), op.GET_ITER],
+                1: [op.FOR_ITER(2), self.store(t.target.id), # XXX general targets
+                    self(t.body), op.JUMP_ABSOLUTE(1)],
+                2: [op.POP_BLOCK],
+                3: []}
+
+    def visit_While(self, t):
+        return {0: [op.SETUP_LOOP(3)],
+                1: [self(t.test), op.POP_JUMP_IF_FALSE(2),
+                    self(t.body), op.JUMP_ABSOLUTE(1)],
+                2: [op.POP_BLOCK],
+                3: []}
 
     def visit_If(self, t):
         return {0: [self(t.test), op.POP_JUMP_IF_FALSE(1),
@@ -130,57 +140,35 @@ class CodeGen(ast.NodeVisitor):
 
     visit_IfExp = visit_If
 
-    def visit_While(self, t):
-        return {0: [op.SETUP_LOOP(3)],
-                1: [self(t.test), op.POP_JUMP_IF_FALSE(2),
-                    self(t.body), op.JUMP_ABSOLUTE(1)],
-                2: [op.POP_BLOCK],
-                3: []}
-
-    def visit_For(self, t):
-        return {0: [op.SETUP_LOOP(3), self(t.iter), op.GET_ITER],
-                1: [op.FOR_ITER(2), self.store(t.target.id), # XXX general targets
-                    self(t.body), op.JUMP_ABSOLUTE(1)],
-                2: [op.POP_BLOCK],
-                3: []}
-
     def visit_Raise(self, t):
         return [self(t.exc), op.RAISE_VARARGS(1)]
 
+    def visit_Import(self, t):
+        return self(t.names)
+
+    def visit_alias(self, t):
+        return [self.load_const(0),
+                self.load_const(None), # XXX not for 'importfrom'
+                op.IMPORT_NAME(self.names[t.name]),
+                self.store(t.asname or t.name.split('.')[0])]
+        
     def visit_Expr(self, t):
         return [self(t.value), op.POP_TOP]
 
-    def visit_Assign(self, t):
-        # XXX this produces linenos out of order: targets after value
-        def compound(left, right): return [op.DUP_TOP, left, right]
-        return [self(t.value), reduce(compound, map(self, t.targets))]
+    def visit_Pass(self, t):
+        return []
 
-    def visit_Call(self, t):
-        return [self(t.func), self(t.args), op.CALL_FUNCTION(len(t.args))]
+    def visit_Break(self, t):
+        return op.BREAK_LOOP
 
-    def visit_List(self, t):
-        return self.visit_sequence(t, op.BUILD_LIST)
-
-    def visit_Tuple(self, t):
-        return self.visit_sequence(t, op.BUILD_TUPLE)
-
-    def visit_sequence(self, t, build_op):
-        if   isinstance(t.ctx, ast.Load):
-            return [self(t.elts), build_op(len(t.elts))]
-        elif isinstance(t.ctx, ast.Store):
-            # XXX make sure there are no stars in elts
-            return [op.UNPACK_SEQUENCE(len(t.elts)), self(t.elts)]
-        else:
-            assert False
-
-    def visit_Set(self, t):
-        return [self(t.elts), op.BUILD_SET(len(t.elts))]
-
-    def visit_Dict(self, t):
-        assert len(t.keys) <= 255
-        return [op.BUILD_MAP(len(t.keys)),
-                [[self(v), self(k), op.STORE_MAP]
-                 for k, v in zip(t.keys, t.values)]]
+    def visit_BoolOp(self, t):
+        op_jump = self.ops_bool[type(t.op)]
+        def compound(left, right):
+            return {0: [left, op_jump(1), right],
+                    1: []}
+        return reduce(compound, map(self, t.values))
+    ops_bool = {ast.And: op.JUMP_IF_FALSE_OR_POP,
+                ast.Or:  op.JUMP_IF_TRUE_OR_POP}
 
     def visit_UnaryOp(self, t):
         return [self(t.operand), self.ops1[type(t.op)]]
@@ -204,20 +192,17 @@ class CodeGen(ast.NodeVisitor):
                ast.Lt: '<',  ast.LtE:   '<=', ast.In: 'in', ast.NotIn: 'not in',
                ast.Gt: '>',  ast.GtE:   '>='}
 
-    def visit_BoolOp(self, t):
-        op_jump = self.ops_bool[type(t.op)]
-        def compound(left, right):
-            return {0: [left, op_jump(1), right],
-                    1: []}
-        return reduce(compound, map(self, t.values))
-    ops_bool = {ast.And: op.JUMP_IF_FALSE_OR_POP,
-                ast.Or:  op.JUMP_IF_TRUE_OR_POP}
+    def visit_Set(self, t):
+        return [self(t.elts), op.BUILD_SET(len(t.elts))]
 
-    def visit_Pass(self, t):
-        return []
+    def visit_Dict(self, t):
+        assert len(t.keys) <= 255
+        return [op.BUILD_MAP(len(t.keys)),
+                [[self(v), self(k), op.STORE_MAP]
+                 for k, v in zip(t.keys, t.values)]]
 
-    def visit_Break(self, t):
-        return op.BREAK_LOOP
+    def visit_Call(self, t):
+        return [self(t.func), self(t.args), op.CALL_FUNCTION(len(t.args))]
 
     def visit_Num(self, t):
         return self.load_const(t.n)
@@ -265,6 +250,21 @@ class CodeGen(ast.NodeVisitor):
         elif level == 'global': return op.STORE_GLOBAL(self.names[name])
         elif level == 'name':   return op.STORE_NAME(self.names[name])
         else: assert False
+
+    def visit_List(self, t):
+        return self.visit_sequence(t, op.BUILD_LIST)
+
+    def visit_Tuple(self, t):
+        return self.visit_sequence(t, op.BUILD_TUPLE)
+
+    def visit_sequence(self, t, build_op):
+        if   isinstance(t.ctx, ast.Load):
+            return [self(t.elts), build_op(len(t.elts))]
+        elif isinstance(t.ctx, ast.Store):
+            # XXX make sure there are no stars in elts
+            return [op.UNPACK_SEQUENCE(len(t.elts)), self(t.elts)]
+        else:
+            assert False
 
 def make_table():
     table = collections.defaultdict(lambda: len(table))
