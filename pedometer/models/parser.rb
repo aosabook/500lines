@@ -19,21 +19,17 @@ private
   def parse_raw_data
     case @device.format
     when 'accelerometer'
-      a0 = 1
-      a1 = -1.979133761292768
-      a2 = 0.979521463540373
-      b0 = 0.000086384997973502
-      b1 = 0.000172769995947004
-      b2 = 0.000086384997973502
+      alpha = [1, -1.979133761292768, 0.979521463540373]
+      beta = [0.000086384997973502, 0.000172769995947004, 0.000086384997973502]
 
       coordinates = @device.data.split(';')
       x_series = coordinates.inject([]) {|a, data| a << data.split(',')[0].to_f }
       y_series = coordinates.inject([]) {|a, data| a << data.split(',')[1].to_f }
       z_series = coordinates.inject([]) {|a, data| a << data.split(',')[2].to_f }
       
-      xg_series = chebyshev_filter(x_series, a0, a1, a2, b0, b1, b2)
-      yg_series = chebyshev_filter(y_series, a0, a1, a2, b0, b1, b2)
-      zg_series = chebyshev_filter(z_series, a0, a1, a2, b0, b1, b2)
+      xg_series = chebyshev_filter(x_series, alpha[0], alpha[1], alpha[2], beta[0], beta[1], beta[2])
+      yg_series = chebyshev_filter(y_series, alpha[0], alpha[1], alpha[2], beta[0], beta[1], beta[2])
+      zg_series = chebyshev_filter(z_series, alpha[0], alpha[1], alpha[2], beta[0], beta[1], beta[2])
 
       @parsed_data = []
       coordinates.length.times do |i|
