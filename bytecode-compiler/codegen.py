@@ -60,8 +60,7 @@ class CodeGen(ast.NodeVisitor):
         nlocals = len(self.varnames)
         bytecode, stacksize, firstlineno, lnotab = assemble(assembly)
         if 0: print('stacksize =', stacksize)
-        flags = 64  # XXX I don't understand the flags
-        flags |= 2 if nlocals else 0  # this is just a guess
+        flags = 64 | (2 if nlocals else 0) # XXX I don't understand the flags
         constants = tuple(constant for constant,_ in collect(self.constants))
         return types.CodeType(argcount, kwonlyargcount,
                               nlocals, stacksize, flags, bytecode,
