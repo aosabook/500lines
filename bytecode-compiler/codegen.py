@@ -137,20 +137,22 @@ class CodeGen(ast.NodeVisitor):
         return [self(t.exc), op.RAISE_VARARGS(1)]
 
     def visit_Import(self, t):
-        return [[self.load_const(0),
-                 self.load_const(None),
-                 op.IMPORT_NAME(self.names[alias.name]),
+        return [[self.import_name(0, None, alias.name),
                  self.store(alias.asname or alias.name.split('.')[0])]
                 for alias in t.names]
 
     def visit_ImportFrom(self, t):
-        return [self.load_const(t.level),
-                self.load_const(tuple(alias.name for alias in t.names)),
-                op.IMPORT_NAME(self.names[t.module]),
+        fromlist = tuple(alias.name for alias in t.names)
+        return [self.import_name(t.level, fromlist, t.module),
                 [[op.IMPORT_FROM(self.names[alias.name]),
                   self.store(alias.asname or alias.name)]
                  for alias in t.names],
                 op.POP_TOP]
+
+    def import_name(self, level, fromlist, name):
+        return [self.load_const(level),
+                self.load_const(fromlist),
+                op.IMPORT_NAME(self.names[name])]
 
     def visit_Expr(self, t):
         return [self(t.value), op.POP_TOP]
