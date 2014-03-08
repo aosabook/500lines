@@ -115,7 +115,7 @@ class CodeGen(ast.NodeVisitor):
 
     def visit_For(self, t):
         return {0: [op.SETUP_LOOP(3), self(t.iter), op.GET_ITER],
-                1: [op.FOR_ITER(2), self.store(t.target.id), # XXX general targets
+                1: [op.FOR_ITER(2), self(t.target),
                     self(t.body), op.JUMP_ABSOLUTE(1)],
                 2: [op.POP_BLOCK],
                 3: []}

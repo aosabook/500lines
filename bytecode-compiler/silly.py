@@ -22,7 +22,7 @@ print(f(ga))
 t = True
 while t:
     break
-for i in range(3):
+for j, i in enumerate(range(3)):
     print(i)
 #print(-math.sqrt(2))
 raise Exception('hi')
