@@ -72,6 +72,15 @@ class Checker(ast.NodeVisitor):
     def visit_Import(self, t):
         self(t.names)
 
+    def visit_ImportFrom(self, t):
+        self.check_identifier(t.module)
+        self(t.names)
+
+    def visit_alias(self, t):
+        self.check_identifier(t.name)
+        if t.asname is not None: 
+            self.check_identifier(t.asname)
+
     def visit_Expr(self, t):
         self(t.value)
 
