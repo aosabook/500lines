@@ -36,7 +36,6 @@ class CodeGen(ast.NodeVisitor):
         self.varnames  = make_table()
 
     def compile_class(self, t):
-#        print(ast.dump(t, include_attributes=True))
         self.set_docstring(t)
         assembly = [self.load('__name__'), self.store('__module__'),
                     self.load_const(t.name), self.store('__qualname__'), # XXX
@@ -47,7 +46,6 @@ class CodeGen(ast.NodeVisitor):
         self.load_const(ast.get_docstring(t))
 
     def compile_function(self, t):
-#        print(ast.dump(t, include_attributes=True))
         self.set_docstring(t)
         for arg in t.args.args:
             self.varnames[arg.arg] # argh, naming
@@ -75,9 +73,6 @@ class CodeGen(ast.NodeVisitor):
     def __call__(self, t):
         assert isinstance(t, list) or isinstance(t, ast.AST)
         return list(map(self, t)) if isinstance(t, list) else self.visit(t)
-
-    def load_const(self, constant):
-        return op.LOAD_CONST(self.constants[constant, type(constant)])
 
     def generic_visit(self, t):
         assert False, t
@@ -231,6 +226,9 @@ class CodeGen(ast.NodeVisitor):
 
     def visit_NameConstant(self, t):
         return self.load_const(t.value)
+
+    def load_const(self, constant):
+        return op.LOAD_CONST(self.constants[constant, type(constant)])
 
     def visit_Name(self, t):
         if   isinstance(t.ctx, ast.Load):  return self.load(t.id)
