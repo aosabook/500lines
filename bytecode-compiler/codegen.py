@@ -86,12 +86,10 @@ class CodeGen(ast.NodeVisitor):
         return self(t.body)
 
     def visit_FunctionDef(self, t):
-        assert not t.decorator_list
         code = CodeGen(self.filename, self.scope.get_child(t)).compile_function(t)
         return [self.make_closure(code, t.name), self.store(t.name)]
 
     def visit_ClassDef(self, t):
-        assert not t.decorator_list
         code = CodeGen(self.filename, self.scope.get_child(t)).compile_class(t)
         return [op.LOAD_BUILD_CLASS, self.make_closure(code, t.name), 
                                      self.load_const(t.name),
