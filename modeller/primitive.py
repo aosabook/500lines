@@ -1,6 +1,5 @@
 from OpenGL.GL import *
 from OpenGL.GLU import *
-from OpenGLContext.scenegraph.basenodes import Sphere
 
 G_OBJ_PLANE = 1
 G_OBJ_SPHERE = 2

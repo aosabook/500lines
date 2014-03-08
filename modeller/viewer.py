@@ -1,11 +1,7 @@
 #! /usr/bin/env python
-from OpenGLContext import testingcontext, quaternion, contextdefinition
-BaseContext = testingcontext.getInteractive()
-
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
-from OpenGLContext.arrays import *
 from numpy.linalg import norm
 import numpy
 
@@ -15,9 +11,18 @@ from node import Sphere, Cube
 from scene import Scene
 from transformation import make_perspective
 
-class TestContext(BaseContext):
-    def OnInit(self):
+class Viewer(object):
+    def __init__(self):
         """ Initialize the context. """
+        glutInit()
+        glutInitWindowSize(640,480)
+        glutCreateWindow("3D Modeller")
+        glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB)
+        glClearColor(1.0,1.0,1.0,0.0)
+        glutDisplayFunc(self.Render)
+        self.initialize()
+
+    def initialize(self):
         InitPrimitives()
         self.interaction = Interaction()
         self.interaction.register()
@@ -33,14 +38,12 @@ class TestContext(BaseContext):
         self.inverseModelView = numpy.identity(4)
         self.modelView = numpy.identity(4)
 
-    def Render(self, mode = None):
-        """ The render pass for the scene """
-        BaseContext.Render(self, mode)
+    def InitOpenGL(self):
+        glEnable(GL_CULL_FACE)
+        glCullFace(GL_BACK)
+        glEnable(GL_DEPTH_TEST)
+        glDepthFunc(GL_LESS)
 
-        self.initView()
-
-        # Enable lighting and color
-        glEnable(GL_LIGHTING)
         glEnable(GL_LIGHT0)
         glLightfv(GL_LIGHT0, GL_POSITION, GLfloat_4(0, 0, 1, 0))
         glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, GLfloat_3(0, 0, -1))
@@ -48,8 +51,18 @@ class TestContext(BaseContext):
         glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE)
         glEnable( GL_COLOR_MATERIAL)
 
+    def MainLoop(self):
+        glutMainLoop()
+
+    def Render(self):
+        """ The render pass for the scene """
+        self.initView()
+
+        # Enable lighting and color
+        glEnable(GL_LIGHTING)
+
         glClearColor(0.4, 0.4, 0.4, 0.0);
-        glClear(GL_COLOR_BUFFER_BIT)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         # Load the modelview matrix from the current state of the trackball
         glMatrixMode(GL_MODELVIEW);
@@ -57,7 +70,7 @@ class TestContext(BaseContext):
         glLoadIdentity()
         loc = self.interaction.camera_loc
         glTranslated(-loc[0], -loc[1], -loc[2])
-        glMultMatrixf(self.interaction.rotation.matrix(inverse=False))
+        glMultMatrixf(self.interaction.trackball.matrix)
 
         # store the inverse of the current modelview.
         mat = numpy.array(glGetFloatv( GL_MODELVIEW_MATRIX ))
@@ -71,6 +84,9 @@ class TestContext(BaseContext):
         glDisable(GL_LIGHTING)
         glCallList(G_OBJ_PLANE)
         glPopMatrix()
+
+        # flush the buffer to draw to the screen!
+        glFlush()
 
     def initView(self):
         """ initialize the projection matrix """
@@ -111,8 +127,8 @@ class TestContext(BaseContext):
         glLoadIdentity()
 
         # get two points on the line.
-        start = array(gluUnProject(x, y, 0.001))
-        end = array(gluUnProject(x, y, 0.999))
+        start = numpy.array(gluUnProject(x, y, 0.001))
+        end = numpy.array(gluUnProject(x, y, 0.999))
 
         # convert those points into a ray
         direction = end - start
@@ -146,6 +162,6 @@ class TestContext(BaseContext):
         """ Scale the selected Node. Boolean up indicates scaling larger."""
         self.scene.scale(up)
 
-
 if __name__=="__main__":
-    TestContext.ContextMainLoop( definition = contextdefinition.ContextDefinition(size = (500,500),))
+    viewer = Viewer()
+    viewer.MainLoop()

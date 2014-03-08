@@ -2,14 +2,11 @@ import sys
 import math
 from collections import defaultdict
 
-from OpenGLContext import quaternion
-from OpenGLContext.move import trackball
-from OpenGLContext.arrays import *
-
 from OpenGL.GLUT import *
 from OpenGL.GL import *
 from OpenGL.GLU import *
 
+import trackball
 
 class Interaction(object):
 
@@ -18,10 +15,10 @@ class Interaction(object):
         # currently pressed mouse button
         self.pressed = None
         # current rotation, stored as quaternion
-        self.rotation = quaternion.fromEuler()
-        self.camera_loc = array( [0, 0, 0, 0], 'd')
+        #self.rotation = quaternion.fromEuler()
+        self.camera_loc =  [0, 0, 0, 0]
         # the trackball to calculate rotation
-        self.trackball = None
+        self.trackball = trackball.Trackball(distance = 15)
         # the current mouse location
         self.mouse_loc = None
         # Unsophisticated callback mechanism
@@ -51,7 +48,7 @@ class Interaction(object):
         if mode == GLUT_DOWN:
             self.pressed = button
             if button == GLUT_RIGHT_BUTTON:
-                self.trackball = trackball.Trackball(self.camera_loc, self.rotation, (0,0,0), x, y, xSize, ySize)
+                pass
             elif button == GLUT_LEFT_BUTTON: # picking
                 self.trigger('picking', x, y)
             elif button == 3: # scroll up
@@ -59,7 +56,6 @@ class Interaction(object):
             elif button == 4: # scroll up
                 self.translate(0, 0, 1.0)
         else: # mouse button release
-            self.trackball = None
             self.pressed = None
         glutPostRedisplay()
 
@@ -68,14 +64,14 @@ class Interaction(object):
        xSize, ySize = glutGet( GLUT_WINDOW_WIDTH ), glutGet( GLUT_WINDOW_HEIGHT )
        y = ySize - screen_y # invert the y coordinate because OpenGL is inverted
        if self.pressed is not None:
+           dx = self.mouse_loc[0] - x
+           dy = self.mouse_loc[1] - y
            if self.pressed == GLUT_RIGHT_BUTTON and self.trackball is not None:
                # ignore the updated camera loc because we want to always rotate around the origin
-               _, self.rotation = self.trackball.update(x, y)
+               self.trackball.drag_to(self.mouse_loc[0], self.mouse_loc[1], -dx, -dy)
            elif self.pressed == GLUT_LEFT_BUTTON:
                self.trigger('move', x, y)
            elif self.pressed == GLUT_MIDDLE_BUTTON:
-               dx = self.mouse_loc[0] - x
-               dy = self.mouse_loc[1] - y
                self.translate(dx/60.0, dy/60.0, 0)
            else:
                pass
