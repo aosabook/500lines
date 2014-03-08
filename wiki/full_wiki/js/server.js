@@ -1,6 +1,5 @@
 const config = require('./config.js'),
-      store = require('./store.js'),
-      util = require('./util.js'),
+      util = require('./lib/util.js'),
       express = require('express'),
       whiskers = require('whiskers'),
       passport = require('passport'),
@@ -8,6 +7,15 @@ const config = require('./config.js'),
       jsdiff = require('diff'),
       app = express();
 
+
+var store;
+if(config.useDBStore){
+  console.log('Using DB store at ' + config.dbURL + '/' + config.dbName);
+  store = require('./lib/db_store.js');
+}else{
+  console.log('Using file store at ' + config.fileStoreDir);
+  store = require('./lib/file_store.js');
+}
 
 passport.use('local', new LocalStrategy(function(username, password,done){
   store.authenticate(username, password, function(err, user){
@@ -75,7 +83,8 @@ app.get('/wiki/:page', function(request, response){
   //read page if it exists
   store.getWikiContents(page, true, function(doc){
     //show contents of page
-    response.render('layout.html', {title: page, page: page, content: doc.content, user: request.user,
+    doc.updatedDate = util.formatDate(doc.updatedDate);
+    response.render('layout.html', {title: page, page: page, doc: doc, user: request.user,
                                     partials: {body: 'view.html', login: 'login.html'}} );
   });
 });
@@ -145,6 +154,8 @@ app.get('/unauthorized', function(request, response){
 app.post('/login', function(request, response, next){
     var currentUrl = request.session.currentPage || '/wiki/';
     if(request.body.signup == "Sign Up"){ //sign up button clicked, insert new record in user store
+      var username = request.body.username;
+      var password = request.body.password;
       store.insertUser(username, password, function(status){
         if(status == 'ok') return passport.authenticate('local', { successRedirect: currentUrl, failureRedirect: '/loginfail' })(request, response, next);
         return response.render('layout.html', {title: 'Login failed', error: status, user: request.user,

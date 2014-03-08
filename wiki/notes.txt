@@ -25,16 +25,16 @@ $ npm install --save marked
 
 Create an empty folder for writing the wiki files to.
 
-$ cd wiki/part1/
+$ cd wiki/simple_wiki/
 $ mkdir files/
 
 Run the server with npm start.  Visit the wiki at http://localhost:8080/wiki/
 
 
 
-Part 2: Full wiki with CouchDB store, Passport authentication, conflict resolution (376 lines):
+Part 2: Full wiki with optional CouchDB or file store, local Passport authentication, conflict resolution (473 lines):
 
--Replace File Store with new CouchDB
+-Add new CouchDB store option
 -Comments, timestamps
 -Conflict resolution
 
@@ -56,9 +56,13 @@ Use Passport for local authentication
 $ npm install --save passport
 $ npm install --save passport-local
 
-Use CouchDB's existing user table to store users
+Use CouchDB's existing user table to store users or write user records to disk
 
 Fancy diff/merge:
 $ npm install --save diff
 
+Password hash for file store:
+$ npm install --save password-hash
+
+Configure the wiki in config.js, specifying either file store options or database store options.
 Run the server with npm start.  Visit the wiki at http://localhost:8080/wiki/. Use the signup button to create a new user and log in.

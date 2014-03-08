@@ -1,4 +1,4 @@
-const config = require('./config.js'),
+const config = require('../config.js'),
       util = require('./util.js'),
       request = require('request');
 

@@ -11,7 +11,8 @@
     "dateformat": "~1.0.7-1.2.3",
     "passport": "~0.2.0",
     "passport-local": "~0.1.6",
-    "diff": "^1.0.8"
+    "diff": "^1.0.8",
+    "password-hash": "^1.2.1"
   },
   "devDependencies": {},
   "scripts": {
