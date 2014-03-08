@@ -9,6 +9,9 @@ def check_conformity(t):
 
 class Checker(ast.NodeVisitor):
 
+    def __init__(self, in_loop=False):
+        self.in_loop = in_loop
+
     def generic_visit(self, t):
         "Any node type we don't know about is an error."
         assert False, t
@@ -28,7 +31,7 @@ class Checker(ast.NodeVisitor):
     def visit_FunctionDef(self, t):
         self.check_identifier(t.name)
         self.check_arguments(t.args)
-        self(t.body)
+        Checker(in_loop=False)(t.body)
         assert not t.decorator_list
         assert not t.returns
 
@@ -39,7 +42,7 @@ class Checker(ast.NodeVisitor):
         assert not t.starargs
         assert not t.kwargs
         assert not t.decorator_list
-        self(t.body)
+        Checker(in_loop=False)(t.body)
 
     def visit_Return(self, t):
         if t.value is not None:
@@ -52,12 +55,12 @@ class Checker(ast.NodeVisitor):
     def visit_For(self, t):
         self(t.target)
         self(t.iter)
-        self(t.body)
+        Checker(in_loop=True)(t.body)
         assert not t.orelse
 
     def visit_While(self, t):
         self(t.test)
-        self(t.body)
+        Checker(in_loop=True)(t.body)
         assert not t.orelse
 
     def visit_If(self, t):
@@ -88,7 +91,7 @@ class Checker(ast.NodeVisitor):
         pass
 
     def visit_Break(self, t):
-        pass # XXX
+        assert self.in_loop
 
     def visit_BoolOp(self, t):
         assert type(t.op) in self.ops_bool
