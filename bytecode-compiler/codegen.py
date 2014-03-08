@@ -212,12 +212,10 @@ class CodeGen(ast.NodeVisitor):
     visit_Bytes = visit_Str
 
     def visit_Attribute(self, t):
-        if   isinstance(t.ctx, ast.Load):
-            return [self(t.value), op.LOAD_ATTR(self.names[t.attr])]
-        elif isinstance(t.ctx, ast.Store):
-            return [self(t.value), op.STORE_ATTR(self.names[t.attr])]
-        else:
-            assert False
+        if   isinstance(t.ctx, ast.Load):  sub_op = op.LOAD_ATTR
+        elif isinstance(t.ctx, ast.Store): sub_op = op.STORE_ATTR
+        else: assert False
+        return [self(t.value), sub_op(self.names[t.attr])]
 
     def visit_Subscript(self, t):
         if isinstance(t.slice, ast.Index):
