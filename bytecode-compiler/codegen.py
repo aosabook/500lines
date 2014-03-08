@@ -107,9 +107,8 @@ class CodeGen(ast.NodeVisitor):
                 op.RETURN_VALUE]
 
     def visit_Assign(self, t):
-        # XXX this produces linenos out of order: targets after value
-        def compound(left, right): return [op.DUP_TOP, left, right]
-        return [self(t.value), reduce(compound, map(self, t.targets))]
+        def compose(left, right): return [op.DUP_TOP, left, right]
+        return [self(t.value), reduce(compose, map(self, t.targets))]
 
     def visit_For(self, t):
         return {0: [op.SETUP_LOOP(3), self(t.iter), op.GET_ITER],
@@ -165,10 +164,10 @@ class CodeGen(ast.NodeVisitor):
 
     def visit_BoolOp(self, t):
         op_jump = self.ops_bool[type(t.op)]
-        def compound(left, right):
+        def compose(left, right):
             return {0: [left, op_jump(1), right],
                     1: []}
-        return reduce(compound, map(self, t.values))
+        return reduce(compose, map(self, t.values))
     ops_bool = {ast.And: op.JUMP_IF_FALSE_OR_POP,
                 ast.Or:  op.JUMP_IF_TRUE_OR_POP}
 
