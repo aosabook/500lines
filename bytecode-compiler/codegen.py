@@ -74,10 +74,9 @@ class CodeGen(ast.NodeVisitor):
         return list(map(self, t)) if isinstance(t, list) else self.visit(t)
 
     def visit(self, t):
-        if hasattr(t, 'lineno'):
-            return [set_lineno(t.lineno), ast.NodeVisitor.visit(self, t)]
-        else:
-            return ast.NodeVisitor.visit(self, t)
+        assembly = ast.NodeVisitor.visit(self, t)
+        if hasattr(t, 'lineno'): return [set_lineno(t.lineno), assembly]
+        else: return assembly
 
     def generic_visit(self, t):
         assert False, t
