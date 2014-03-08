@@ -184,8 +184,8 @@ class CodeGen(ast.NodeVisitor):
             ast.BitXor: op.BINARY_XOR,    ast.FloorDiv: op.BINARY_FLOOR_DIVIDE}
 
     def visit_Compare(self, t):
-        [comparator], [right] = t.ops, t.comparators
-        cmp_index = dis.cmp_op.index(self.ops_cmp[type(comparator)])
+        [operator], [right] = t.ops, t.comparators
+        cmp_index = dis.cmp_op.index(self.ops_cmp[type(operator)])
         return [self(t.left), self(right), op.COMPARE_OP(cmp_index)]
     ops_cmp = {ast.Eq: '==', ast.NotEq: '!=', ast.Is: 'is', ast.IsNot: 'is not',
                ast.Lt: '<',  ast.LtE:   '<=', ast.In: 'in', ast.NotIn: 'not in',
