@@ -58,8 +58,29 @@ def _heur_hillclimbing(ctx, candidates):
 def _heur_random(ctx, candidates):
     return random.choice(candidates)
 
+def _heur_random_hillclimbing(ctx, candidates):
+    scores = sorted([(makespan(ctx['data'], perm), perm) for perm in candidates])
+    i = 0
+    while (random.random() < 0.5) and (i < len(scores)):
+        i += 1
+    return scores[i][1]
+
 
 ################################
+
+
+STRATEGIES = [
+    {'name': 'Random search.',
+     'heur': _heur_random,
+     'neigh': partial(_neighbours_random, num=1)},
+    {'name': 'Random neighbours, pseudo-random selection.',
+     'heur': _heur_random_hillclimbing,
+     'neigh': partial(_neighbours_random, num=100)},
+    {'heur': _heur_random_hillclimbing,
+     'neigh': partial(_neighbours_LNS, size=2)},
+    {'heur': _heur_random_hillclimbing,
+     'neigh': partial(_neighbours_LNS, size=3)}
+  ]
 
 
 def parse_problem(filename):
@@ -161,8 +182,6 @@ def print_solution(data, perm):
     
     
     print "\n\nNote: Idle time does not include initial or final wait time.\n"
-
-
 
 
 
