@@ -70,7 +70,7 @@ class CodeGen(ast.NodeVisitor):
                               freevars=(), cellvars=())
 
     def __call__(self, t):
-        assert isinstance(t, list) or isinstance(t, ast.AST)
+        assert isinstance(t, (ast.AST, list))
         return list(map(self, t)) if isinstance(t, list) else self.visit(t)
 
     def visit(self, t):
