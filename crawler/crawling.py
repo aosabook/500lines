@@ -88,10 +88,6 @@ class ConnectionPool:
 
         This also prunes the pool if it exceeds the size limits.
         """
-        if conn.stale():
-            conn.close()
-            return
-
         conns = self.connections.setdefault(conn.key, [])
         conns.append(conn)
         self.queue.append(conn)
@@ -120,6 +116,7 @@ class ConnectionPool:
 
 
 class Connection:
+    """A connection that can be recycled to the pool."""
 
     def __init__(self, pool, host, port, ssl):
         self.pool = pool
@@ -153,7 +150,8 @@ class Connection:
 
 
 @asyncio.coroutine
-def open_http_conn(url, pool, *, method='GET', headers=None, version='1.1'):
+def make_request(url, pool, *, method='GET', headers=None, version='1.1'):
+    """Start an HTTP request.  Return a Connection."""
     parts = urllib.parse.urlparse(url)
     assert parts.scheme in ('http', 'https'), repr(url)
     ssl = parts.scheme == 'https'
@@ -176,11 +174,12 @@ def open_http_conn(url, pool, *, method='GET', headers=None, version='1.1'):
     # TODO: close conn if this fails.
     conn.writer.write('\r\n'.join(lines + ['', '']).encode('latin-1'))
 
-    return conn  # Caller must send body if desired, then call get_response().
+    return conn  # Caller must send body if desired, then call read_response().
 
 
 @asyncio.coroutine
-def get_response(conn):
+def read_response(conn):
+    """Read an HTTP response from a connection."""
 
     @asyncio.coroutine
     def getline():
@@ -190,7 +189,7 @@ def get_response(conn):
 
     status_line = yield from getline()
     status_parts = status_line.split(None, 2)
-    if len(status_parts) != 3:
+    if len(status_parts) != 3 or not status_parts[1].isdigit():
         logger.error('bad status_line %r', status_line)
         raise BadStatusLine(status_line)
     http_version, status, reason = status_parts
@@ -220,6 +219,7 @@ def get_response(conn):
 
 @asyncio.coroutine
 def length_handler(nbytes, input, output):
+    """Async handler for reading a body given a Content-Length header."""
     while nbytes > 0:
         buffer = yield from input.read(min(nbytes, 256*1024))
         if not buffer:
@@ -233,6 +233,7 @@ def length_handler(nbytes, input, output):
 
 @asyncio.coroutine
 def chunked_handler(input, output):
+    """Async handler for reading a body using Transfer-Encoding: chunked."""
     logger.info('parsing chunked response')
     nblocks = 0
     nbytes = 0
@@ -308,8 +309,8 @@ class Fetcher:
             self.tries += 1
             conn = None
             try:
-                conn = yield from open_http_conn(self.url, self.crawler.pool)
-                _, status, _, headers, output = yield from get_response(conn)
+                conn = yield from make_request(self.url, self.crawler.pool)
+                _, status, _, headers, output = yield from read_response(conn)
                 self.status, self.headers = status, headers
                 self.body = yield from output.read()
                 h_conn = headers.get('connection', '').lower()
