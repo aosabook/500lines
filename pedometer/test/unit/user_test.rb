@@ -47,7 +47,6 @@ class UserTest < Test::Unit::TestCase
   def test_create_with_stride
     assert_equal 74, User.new(:stride => nil).stride
     assert_equal 74, User.new(:stride => 'bad stride').stride
-    assert_equal 74, User.new(:stride => 30).stride
     assert_equal 74, User.new(:stride => -1).stride
     
     assert_equal 80,    User.new(:stride => 80).stride
@@ -55,12 +54,17 @@ class UserTest < Test::Unit::TestCase
     assert_equal 75.56, User.new(:stride => 75.5555).stride
   end
 
+  def test_create_with_height_and_gender
+    assert_equal 0.42, User.new(:gender => 'male', :height => 1).stride
+    assert_equal 0.41, User.new(:gender => 'female', :height => 1).stride
+  end
+
   def test_calculate_stride
     assert_equal 74,   User.new.stride
     assert_equal 74,   User.new(nil).stride
     assert_equal 78,   User.new(:gender => 'male').stride
     assert_equal 70,   User.new(:gender => 'female').stride
-    assert_equal 83,   User.new(:height => 200).stride
+    assert_equal 82.8, User.new(:height => 200).stride
     assert_equal 83,   User.new(:gender => 'male', :height => 200).stride
     assert_equal 82.6, User.new(:gender => 'female', :height => 200).stride
   end

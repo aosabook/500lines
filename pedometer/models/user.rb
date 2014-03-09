@@ -13,21 +13,19 @@ class User
 
     @gender = gender_params if GENDER.include? gender_params
     @height = height_params if height_params > 0
-    @stride = (stride_params > 30) ? stride_params : calculate_stride
+    @stride = (stride_params > 0) ? stride_params : calculate_stride
   end
 
+  # avg: 74 cm
+  # avg male: 78 cm
+  # avg female: 70 cm
+  # male height * .415
+  # female height * .413
   def calculate_stride
-    # avg: 74 cm
-    # avg male: 78 cm
-    # avg female: 70 cm
-    # male height * .415
-    # female height * .413
-
     if @height && @gender
-      multiplier = (@gender == 'male') ? 0.415 : 0.413
-      @height * multiplier    
+      (@gender == 'male') ? 0.415 * @height : 0.413 * @height
     elsif @height
-      @height * 0.415
+      @height * 0.414
     elsif @gender
       (@gender == 'male') ? 78 : 70
     else
