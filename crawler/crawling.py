@@ -1,15 +1,5 @@
 """A simple web crawler -- classes implementing crawling logic."""
 
-# TODO:
-# - More organized logging (with task ID or URL?).
-# - KeyboardInterrupt in HTML parsing may hang or report unretrieved error.
-# - Support gzip encoding.
-# - Close connection if HTTP/1.0 response.
-# - Add timeouts.  (E.g. when switching networks, all seems to hang.)
-# - Skip reading large non-text/html files?
-# - Use ETag and If-Modified-Since?
-# - Handle out of file descriptors directly?  (How?)
-
 import asyncio
 import cgi
 import collections
@@ -23,21 +13,10 @@ import urllib.parse
 logger = logging.getLogger(__name__)
 
 
-ESCAPES = [('quot', '"'),
-           ('gt', '>'),
-           ('lt', '<'),
-           ('amp', '&')  # Must be last.
-           ]
-
-
-def unescape(url):
-    """Turn &amp; into &, and so on.
-
-    This is the inverse of cgi.escape().
-    """
-    for name, char in ESCAPES:
-        url = url.replace('&' + name + ';', char)
-    return url
+def unescape(s):
+    """The inverse of cgi.escape()."""
+    s = s.replace('&quot;', '"').replace('&gt;', '>').replace('&lt;', '<')
+    return s.replace('&amp;', '&')  # Must be last.
 
 
 class ConnectionPool:
