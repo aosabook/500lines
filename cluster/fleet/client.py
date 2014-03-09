@@ -1,6 +1,7 @@
 import sys
 from member import Component
 
+
 class Request(Component):
 
     client_ids = xrange(1000000, sys.maxint).__iter__()

@@ -18,6 +18,7 @@ ALPHA = 10
 # re-transmits the JOIN
 assert CATCHUP_INTERVAL < JOIN_RETRANSMIT
 
+
 class defaultlist(list):
 
     def set_len(self, l):

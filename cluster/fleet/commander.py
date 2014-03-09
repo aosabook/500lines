@@ -18,10 +18,10 @@ class Commander(Component):
 
     def start(self):
         self.send(set(self.peers) - self.accepted, 'ACCEPT',  # p2a
-                         commander_id=self.commander_id,
-                         ballot_num=self.ballot_num,
-                         slot=self.slot,
-                         proposal=self.proposal)
+                  commander_id=self.commander_id,
+                  ballot_num=self.ballot_num,
+                  slot=self.slot,
+                  proposal=self.proposal)
         self.timer = self.set_timer(ACCEPT_RETRANSMIT, self.start)
 
     def finished(self, ballot_num, preempted):

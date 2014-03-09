@@ -2,6 +2,7 @@ from . import fake_network
 from .. import member
 import unittest
 
+
 class ComponentTestCase(unittest.TestCase):
 
     def setUp(self):

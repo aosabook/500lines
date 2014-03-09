@@ -5,6 +5,7 @@ from . import member
 from . import member_replicated
 from . import network
 
+
 class Listener(member.Component):
 
     def __init__(self, member, event_queue):
@@ -19,7 +20,7 @@ class Ship(object):
 
     def __init__(self, state_machine, port=10001, peers=None, seed=None):
         peers = peers or ['255.255.255.255-%d' % port]
-        self.node =  network.Node(port)
+        self.node = network.Node(port)
         if seed is not None:
             self.cluster_member = member_replicated.ClusterSeed(
                 self.node, seed)
@@ -34,6 +35,7 @@ class Ship(object):
         def run():
             self.cluster_member.start()
             self.node.run()
+
         self.thread = threading.Thread(target=run)
         self.thread.setDaemon(1)
         self.thread.start()
@@ -41,6 +43,7 @@ class Ship(object):
     def invoke(self, input):
         assert self.current_request is None
         q = Queue.Queue()
+
         def done(output):
             self.current_request = None
             q.put(output)
@@ -52,4 +55,3 @@ class Ship(object):
         while True:
             evt = self.event_queue.get()
             yield evt
-

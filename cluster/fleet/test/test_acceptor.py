@@ -2,6 +2,7 @@ from .. import acceptor
 from .. import Ballot, ScoutId, CommanderId, Proposal
 from . import utils
 
+
 class Tests(utils.ComponentTestCase):
 
     def setUp(self):
@@ -13,7 +14,7 @@ class Tests(utils.ComponentTestCase):
         self.assertEqual(self.ac.accepted, accepted)
 
     def test_prepare_new_ballot(self):
-        proposal=Proposal('cli', 123, 'INC')
+        proposal = Proposal('cli', 123, 'INC')
         self.ac.accepted = {(Ballot(7, 19, 19), 33): proposal}
         self.ac.ballot_num = Ballot(7, 10, 10)
         self.node.fake_message('PREPARE',
@@ -44,7 +45,7 @@ class Tests(utils.ComponentTestCase):
         self.assertState(Ballot(7, 10, 10), {})
 
     def test_accept_new_ballot(self):
-        proposal=Proposal('cli', 123, 'INC')
+        proposal = Proposal('cli', 123, 'INC')
         cmdid = CommanderId(address='CMD', slot=33, proposal=proposal)
         self.ac.ballot_num = Ballot(7, 10, 10)
         self.node.fake_message('ACCEPT',
@@ -61,7 +62,7 @@ class Tests(utils.ComponentTestCase):
         self.assertState(Ballot(7, 19, 19), {(Ballot(7, 19, 19), 33): proposal})
 
     def test_accept_old_ballot(self):
-        proposal=Proposal('cli', 123, 'INC')
+        proposal = Proposal('cli', 123, 'INC')
         cmdid = CommanderId(address='CMD', slot=33, proposal=proposal)
         self.ac.ballot_num = Ballot(7, 10, 10)
         self.node.fake_message('ACCEPT',
@@ -76,4 +77,3 @@ class Tests(utils.ComponentTestCase):
                            ballot_num=Ballot(7, 10, 10))
         # and doesn't accept the proposal
         self.assertState(Ballot(7, 10, 10), {})
-

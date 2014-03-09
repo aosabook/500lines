@@ -3,6 +3,7 @@ from . import Ballot, ALPHA, CommanderId, defaultlist, view_primary
 from .member import Component
 from .scout import Scout
 
+
 class Leader(Component):
 
     def __init__(self, member, unique_id, peer_history, commander_cls=Commander, scout_cls=Scout):

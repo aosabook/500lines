@@ -5,7 +5,9 @@ import time
 import heapq
 import socket
 
+
 NAMESPACE = uuid.UUID('7e0d7720-fa98-4270-94ff-650a2c25f3f0')
+
 
 def addr_to_tuple(addr):
     parts = addr.split('-')
@@ -113,21 +115,27 @@ class NodeTests(unittest.TestCase):
 
     def test_timeout(self):
         node = TestNode()
+
         def cb():
             node.bar_called = True
             node.stop()
+
         node.set_timer(0.01, cb)
         node.run()
         self.failUnless(node.bar_called)
 
     def test_cancel_timeout(self):
         node = TestNode()
+
         def fail():
             raise RuntimeError("nooo")
+
         nonex = node.set_timer(0.01, fail)
+
         def cb():
             node.bar_called = True
             node.stop()
+
         node.set_timer(0.02, cb)
         node.cancel_timer(nonex)
         node.run()

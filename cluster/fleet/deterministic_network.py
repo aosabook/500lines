@@ -4,8 +4,8 @@ import heapq
 import random
 import copy
 
-class Node(object):
 
+class Node(object):
     unique_ids = xrange(1000).__iter__()
 
     def __init__(self, network):
@@ -50,7 +50,6 @@ class Node(object):
 
 
 class Network(object):
-
     PROP_DELAY = 0.03
     PROP_JITTER = 0.02
     DROP_PROB = 0.05

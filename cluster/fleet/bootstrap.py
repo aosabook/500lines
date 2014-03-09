@@ -15,7 +15,7 @@ class Bootstrap(Component):
 
     def join(self):
         "Try to join the cluster"
-        self.peers = self.peers[1:] + self.peers[:1] # rotate through peers
+        self.peers = self.peers[1:] + self.peers[:1]  # rotate through peers
         self.send([self.peers[0]], 'JOIN', requester=self.address)
         self.timer = self.set_timer(JOIN_RETRANSMIT, self.join)
 
@@ -23,6 +23,8 @@ class Bootstrap(Component):
         self.bootstrapped_cb(state, slot_num, decisions, viewid, peers, peer_history)
         self.event('view_change', viewid=viewid, peers=peers, slot=slot_num)
         self.event('peer_history_update', peer_history=peer_history)
+
         if self.timer:
             self.cancel_timer(self.timer)
+
         self.stop()

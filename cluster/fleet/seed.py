@@ -1,8 +1,8 @@
 from . import defaultlist, ALPHA, JOIN_RETRANSMIT
 from .member import Component
 
-class Seed(Component):
 
+class Seed(Component):
     """A component which simply provides an initial state and view.  It waits
     until it has heard JOIN requests from enough nodes to form a cluster, then
     WELCOMEs them all to the same view with the given initial state."""
@@ -39,6 +39,4 @@ class Seed(Component):
         # the newly formed cluster
         if self.exit_timer:
             self.cancel_timer(self.exit_timer)
-        self.exit_timer = self.set_timer(
-            JOIN_RETRANSMIT * 2, self.stop)
-
+        self.exit_timer = self.set_timer(JOIN_RETRANSMIT * 2, self.stop)
