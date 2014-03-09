@@ -49,7 +49,13 @@ get '/detail/*' do
 
     files = Dir.glob(File.join('public/uploads', "*"))
     files.delete(@file_name)
-    match = files.select { |f| @file_name == f.gsub('-a.', '-g.').gsub('-g.', '-a.') }.first
+    
+    match = if @device.format == 'accelerometer'
+      files.select { |f| @file_name == f.gsub('-g.', '-a.') }.first
+    else
+      files.select { |f| @file_name == f.gsub('-a.', '-g.') }.first
+    end
+
     if match
       device = Device.new(:data => File.read(match))
       parser = Parser.new(device)
