@@ -399,14 +399,8 @@ class Crawler:
                 host = host.lower()
                 if self.strict:
                     self.root_domains.add(host)
-                    if host.startswith('www.'):
-                        self.root_domains.add(host[4:])
-                    else:
-                        self.root_domains.add('www.' + host)
                 else:
-                    parts = host.split('.')
-                    if len(parts) > 2:
-                        host = '.'.join(parts[-2:])
+                    host = host.split('.')[-2:]
                     self.root_domains.add(host)
         for root in roots:
             self.add_url(root)
@@ -440,23 +434,16 @@ class Crawler:
         """Check if a host should be crawled, strict-ish version.
 
         This checks for equality modulo an initial 'www.' component.
-         """
-        if host.startswith('www.'):
-            if host[4:] in self.root_domains:
-                return True
-        else:
-            if 'www.' + host in self.root_domains:
-                return True
-        return False
+        """
+        host = host[4:] if host.startswith('www.') else 'www.' + host
+        return host in self.root_domains
 
     def _host_okay_lenient(self, host):
         """Check if a host should be crawled, lenient version.
 
         This compares the last two components of the host.
         """
-        parts = host.split('.')
-        if len(parts) > 2:
-            host = '.'.join(parts[-2:])
+        host = host.split('.')[-2:]
         return host in self.root_domains
 
     def add_url(self, url, max_redirect=None):
