@@ -201,6 +201,7 @@ class CodeGen(ast.NodeVisitor):
                  for k, v in zip(t.keys, t.values)]]
 
     def visit_Call(self, t):
+        assert len(t.args) < 256
         return [self(t.func), self(t.args), op.CALL_FUNCTION(len(t.args))]
 
     def visit_Num(self, t):
