@@ -5,7 +5,7 @@ class Device
   def initialize(params = {})
     params = {} unless params.kind_of? Hash
 
-    @data = params[:data]
+    @data   = params[:data]
     @rate   = ((rate = params[:rate].to_f.round) > 0) ? rate : 100
     @method = params[:method]
     @steps  = ((steps = params[:steps].to_f.round) > 0) ? steps : nil

@@ -4,8 +4,7 @@ Dir['./models/*.rb', './helpers/*.rb'].each {|file| require file }
 
 include FileUtils::Verbose
 
-# TODO: 
-# - Capture exceptions and redirect to /data
+# TODO: Capture exceptions and redirect to /data
 post '/create' do
   begin
     file = params[:device][:file][:tempfile]

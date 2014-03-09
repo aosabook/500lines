@@ -9,9 +9,7 @@ class Analyzer
   attr_reader :parser, :user, :steps, :distance, :time, :time_interval, :distance_interval
 
   def initialize(parser, user = nil)
-    unless (@parser = parser).kind_of? Parser
-      raise "A Parser object must be passed in."
-    end
+    raise "A Parser object must be passed in." unless (@parser = parser).kind_of? Parser
     
     @steps = 0
     @distance = 0
@@ -79,6 +77,8 @@ class Analyzer
       @distance = (@distance/100).round(2)
       @distance_interval = 'm'
     end
+
+    @distance = @distance.round(2)
   end
 
   def measure_time

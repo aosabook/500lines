@@ -16,9 +16,9 @@ class AnalyzerTest < Test::Unit::TestCase
     assert_equal 0, analyzer.steps
     assert_equal 0, analyzer.distance
     assert_equal 0, analyzer.time
-    assert_equal user,      analyzer.user
+    assert_equal user,  analyzer.user
     assert_equal 'sec', analyzer.time_interval
-    assert_equal 'cm',      analyzer.distance_interval
+    assert_equal 'cm',  analyzer.distance_interval
   end
 
   def test_create_gravity_data

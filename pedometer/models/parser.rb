@@ -5,9 +5,7 @@ class Parser
   attr_reader :device, :parsed_data, :dot_product_data, :filtered_data
 
   def initialize(device)
-    unless (@device = device).kind_of? Device
-      raise "A Device object must be passed in."
-    end
+    raise "A Device object must be passed in." unless (@device = device).kind_of? Device
     
     parse_raw_data
     dot_product_parsed_data
@@ -27,16 +25,18 @@ private
       y_series = coordinates.inject([]) {|a, data| a << data.split(',')[1].to_f }
       z_series = coordinates.inject([]) {|a, data| a << data.split(',')[2].to_f }
       
-      xg_series = chebyshev_filter(x_series, alpha[0], alpha[1], alpha[2], beta[0], beta[1], beta[2])
-      yg_series = chebyshev_filter(y_series, alpha[0], alpha[1], alpha[2], beta[0], beta[1], beta[2])
-      zg_series = chebyshev_filter(z_series, alpha[0], alpha[1], alpha[2], beta[0], beta[1], beta[2])
+      xg_series = chebyshev_filter(x_series, alpha, beta)
+      yg_series = chebyshev_filter(y_series, alpha, beta)
+      zg_series = chebyshev_filter(z_series, alpha, beta)
 
       @parsed_data = []
       coordinates.length.times do |i|
         @parsed_data << {:x => (x_series[i]-xg_series[i]).round(4), 
                          :y => (y_series[i]-yg_series[i]).round(4), 
                          :z => (z_series[i]-zg_series[i]).round(4), 
-                         :xg => xg_series[i].round(4), :yg => yg_series[i].round(4), :zg => zg_series[i].round(4)}
+                         :xg => xg_series[i].round(4), 
+                         :yg => yg_series[i].round(4), 
+                         :zg => zg_series[i].round(4)}
       end
     when 'gravity'
       @parsed_data = @device.data.split(';').inject([]) do |a, data|
@@ -61,18 +61,19 @@ private
   # Chebyshev II, Astop = 2, Fstop = 5, Fs = 100
   def filter_dot_product_data
     @filtered_data = chebyshev_filter(@dot_product_data, 
-      1, -1.80898117793047, 0.827224480562408, 0.095465967120306, -0.172688631608676, 0.095465967120306)
+                                      [1, -1.80898117793047, 0.827224480562408], 
+                                      [0.095465967120306, -0.172688631608676, 0.095465967120306])
   end
 
-  def chebyshev_filter(input_data, a0, a1, a2, b0, b1, b2)
+  def chebyshev_filter(input_data, alpha, beta)
     output_data = [0,0]
     input_data.length.times do |i|
       next if i < 2
-      output_data << (input_data[i]*b0 + 
-                      input_data[i-1]*b1 + 
-                      input_data[i-2]*b2 -
-                      output_data[i-1]*a1 -
-                      output_data[i-2]*a2).round(4)
+      output_data << ((input_data[i]*beta[0] + 
+                      input_data[i-1]*beta[1] + 
+                      input_data[i-2]*beta[2] -
+                      output_data[i-1]*alpha[1] -
+                      output_data[i-2]*alpha[2])*alpha[0]).round(4)
     end
     output_data
   end
