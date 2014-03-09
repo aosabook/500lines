@@ -2,11 +2,9 @@
 
 import asyncio
 import cgi
-import collections
 from http.client import BadStatusLine
 import logging
 import re
-import sys
 import time
 import urllib.parse
 
