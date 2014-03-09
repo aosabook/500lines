@@ -2,37 +2,43 @@
   (:use core.fdb)
   [:require [core.manage :as M]])
 
+(def db-name "hos9")
+(M/reset-db-conn db-name)
 
-(M/reset-db-conn "hospital-db")
+(def hospital-db (M/get-db-conn db-name))
 
-(def hospital-db (M/get-db-conn "hospital-db"))
-
-
-(def sis (make-entity :test/db-systolic))
-(def dias (make-entity :test/db-diastolic))
-(def temp (make-entity :test/temperature))
-(def person (make-entity :person/patient))
-(def doctor (make-entity :person/doctor))
-
-;; world setup
+(def basic-kinds [:test/bp-systolic :test/bp-diastolic :test/temperature :person/patient :person/doctor ] )
 
 (defn make-patient[id address symptoms]
   (-> (make-entity id)
         (add-attr (make-attr :patient/kind :person/patient :db/ref))
-        (add-attr (make-attr :patient/city address :string :indexed true))
-        (add-attr (make-attr :patient/tests [] :db/ref :indexed true :cardinality :db/multiple))
+        (add-attr (make-attr :patient/city address :string ))
+        (add-attr (make-attr :patient/tests #{} :db/ref :indexed true :cardinality :db/multiple))
         (add-attr (make-attr :patient/symptoms (set symptoms) :string :cardinality :db/multiple))))
+
+(defn make-test [t-id tests-map types indexedPred]
+  (let [ent (make-entity t-id)]
+           (reduce #(add-attr %1 (make-attr (first %2) ;attr-name
+                                                               (second %2) ; attr value
+                                                               (get types (first %2) :number) ; attr type
+                                                                :indexed (indexedPred (first %2)) ));indexed
+                  ent tests-map)))
 
 (defn add-patient [id address symptoms]
   (transact hospital-db (add-entity (make-patient id address symptoms))))
 
+(defn add-test-results-to-patient [pat-id test-result]
+  (let [test-id (:id test-result) ]
+    (transact hospital-db  (add-entity test-result))
+    (transact hospital-db  (update-datom pat-id  :patient/tests #{test-id} :db/add))))
 
-(transact hospital-db (add-entity sis)  (add-entity dias) (add-entity temp) (add-entity person) (add-entity doctor))
-@hospital-db
+
+;; world setup
+(transact hospital-db  (add-entities (map #(make-entity %) basic-kinds )))
 (add-patient :pat1 "London" ["fever" "cough"] )
-(add-patient :pat2 "New York" ["Tremor" "dizziness"])
+(add-test-results-to-patient :pat1  (make-test :t2-pat1  {:test/bp-systolic 120 :test/bp-diastolic 80 :test/machine "XXX"} {:test/machine "string"} (fn [a]  (= a :test/machine))))
+(add-test-results-to-patient :pat1  (make-test :t4-pat1  {:test/bp-systolic 170 :test/bp-diastolic 90 :test/machine "XXX"} {:test/machine "string"} (fn [a]  (= a :test/machine))))
 
 (transact hospital-db (update-datom :pat1 :patient/symptoms #{"cold sweat" "sneeze"} :db/add))
+
 (evolution-of (M/db-from-conn hospital-db) :pat1 :patient/symptoms)
-
-
