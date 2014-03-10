@@ -1,6 +1,8 @@
 class User
 
   GENDER = ['male', 'female']
+  AVERAGES = {'female' => 70, 'male' => 78}
+  MULTIPLIERS = {'female' => 0.413, 'male' => 0.415}
 
   attr_reader :gender, :height, :stride
 
@@ -18,28 +20,22 @@ class User
     @stride = (stride_param > 0) ? stride_param : calculate_stride
   end
 
-  # avg: 74 cm
-  # avg male: 78 cm
-  # avg female: 70 cm
-  # male height * .415
-  # female height * .413
-
   # TODO: 
-  # - Declare constants for multipliers and strides
   # - No @ on instance variables
   # - Diff between private and protected?
   # - Check all places where .method_name is called at the end of if statements
+  # - Monkey patch array to add average method?
 private
 
   def calculate_stride
     if @gender && @height
-      (@gender == 'male') ? 0.415 * @height : 0.413 * @height
+      MULTIPLIERS[@gender] * @height
     elsif @height
-      @height * 0.414
+      @height * (MULTIPLIERS.values.reduce(:+) / MULTIPLIERS.size)
     elsif @gender
-      (@gender == 'male') ? 78 : 70
+      AVERAGES[@gender]
     else
-      74
+      AVERAGES.values.reduce(:+) / AVERAGES.size
     end
   end
 
