@@ -4,12 +4,15 @@ Dir['./models/*.rb', './helpers/*.rb'].each {|file| require file }
 
 include FileUtils::Verbose
 
-# TODO: Capture exceptions and redirect to /data
+# TODO: 
+# - Capture exceptions and redirect to /data
+# - Bad rescues
+# - Make device_params shorter
 post '/create' do
   begin
     file = params[:device][:file][:tempfile]
-    user_params = params[:user].symbolize_keys
-    device_params = {data: File.read(file)}.merge(params[:device].symbolize_keys)
+    user_params = params[:user].values
+    device_params = [File.read(file), params[:device][:rate], params[:device][:method], params[:device][:steps], params[:device][:trial]]
     build_with_params(user_params, device_params)
 
     @file_name = FileHelper.generate_file_name(@user, @device)
@@ -26,8 +29,8 @@ get '/data' do
     @data = []
     files = Dir.glob(File.join('public/uploads', "*"))
     files.each do |file|
-      user_params, device_params = FileHelper.parse_file_name(file).values
-      device_params = {:data => File.read(file)}.merge(device_params)
+      user_params, device_params = FileHelper.parse_file_name(file)
+      device_params = device_params.unshift(File.read(file))
       build_with_params(user_params, device_params)
 
       @data << {:file => file, :device => @device, :steps => @analyzer.steps, :user => @user}
@@ -42,8 +45,8 @@ end
 get '/detail/*' do
   begin
     @file_name = params[:splat].first
-    user_params, device_params = FileHelper.parse_file_name(@file_name).values
-    device_params = {:data => File.read(@file_name)}.merge(device_params)
+    user_params, device_params = FileHelper.parse_file_name(@file_name)
+    device_params = device_params.unshift(File.read(@file_name))
     build_with_params(user_params, device_params)
 
     files = Dir.glob(File.join('public/uploads', "*"))
@@ -69,8 +72,8 @@ end
 
 # TODO: Should initialization process data or should that be called explicitly? 
 def build_with_params(user_params, device_params)
-  @user     = User.new(user_params)
-  @device   = Device.new(device_params)
+  @user     = User.new(*user_params)
+  @device   = Device.new(*device_params)
   @parser   = Parser.new(@device)
   @analyzer = Analyzer.new(@parser, @user)
   @analyzer.measure

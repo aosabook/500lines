@@ -4,15 +4,15 @@ class Device
   # - Trial should be description? Method isn't great? State, ...
   attr_reader :data, :rate, :method, :steps, :trial, :format
 
-  def initialize(params = {})
-    params = {} unless params.kind_of? Hash
+  def initialize(data = nil, rate = 100, method = nil, steps = nil, trial = nil)
+    rate_param = rate.to_f.round
+    steps_param = steps.to_f.round
 
-    @data   = params[:data]
-    # TODO: assignment in ternary operator not proper? 
-    @rate   = ((rate = params[:rate].to_f.round) > 0) ? rate : 100
-    @method = params[:method]
-    @steps  = ((steps = params[:steps].to_f.round) > 0) ? steps : nil
-    @trial  = params[:trial]
+    @data   = data
+    @rate   = (rate_param > 0) ? rate_param : 100
+    @method = method
+    @steps  = steps_param if steps_param > 0
+    @trial  = trial
 
     set_format
   end

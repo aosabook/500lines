@@ -11,8 +11,7 @@ class FileHelper
 
   def self.parse_file_name(file_name = '--_----')
     u, d = file_name.split('/').last.split('_').collect { |i| i.split('-') }
-    {user: {gender: u[0], height: u[1], stride: u[2]}, 
-    device: {rate: d[0], method: d[1], steps: d[2], trial: d[3]}}
+    [u, d[0...-1]]
   end
 
 end
