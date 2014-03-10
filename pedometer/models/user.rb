@@ -21,19 +21,19 @@ class User
   end
 
   # TODO: 
-  # - No @ on instance variables
+  # - No @ on instance variables (check everywhere)
   # - Diff between private and protected?
   # - Check all places where .method_name is called at the end of if statements
   # - Monkey patch array to add average method?
 private
 
   def calculate_stride
-    if @gender && @height
-      MULTIPLIERS[@gender] * @height
-    elsif @height
-      @height * (MULTIPLIERS.values.reduce(:+) / MULTIPLIERS.size)
-    elsif @gender
-      AVERAGES[@gender]
+    if gender && height
+      MULTIPLIERS[@gender] * height
+    elsif height
+      height * (MULTIPLIERS.values.reduce(:+) / MULTIPLIERS.size)
+    elsif gender
+      AVERAGES[gender]
     else
       AVERAGES.values.reduce(:+) / AVERAGES.size
     end
