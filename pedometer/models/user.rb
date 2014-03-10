@@ -2,7 +2,6 @@ class User
 
   GENDER = ['male', 'female']
 
-  # TODO: double check all to make sure they're used outside of the class
   attr_reader :gender, :height, :stride
 
   # TODO: 
@@ -11,8 +10,8 @@ class User
     params = {} unless params.kind_of? Hash
 
     gender_param = gender.to_s.downcase
-    height_param = height.to_f.round(2)
-    stride_param = stride.to_f.round(2)
+    height_param = height.to_f
+    stride_param = stride.to_f
 
     @gender = gender_param if GENDER.include? gender_param
     @height = height_param if height_param > 0
@@ -29,7 +28,7 @@ class User
   # - Declare constants for multipliers and strides
   # - No @ on instance variables
   # - Diff between private and protected?
-  # - .round at the end isn't proper?
+  # - Check all places where .method_name is called at the end of if statements
 private
 
   def calculate_stride
@@ -41,7 +40,7 @@ private
       (@gender == 'male') ? 78 : 70
     else
       74
-    end.round(2)
+    end
   end
 
 end

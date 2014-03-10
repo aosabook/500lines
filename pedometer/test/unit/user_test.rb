@@ -37,7 +37,7 @@ class UserTest < Test::Unit::TestCase
 
   def test_create_with_height
     assert_equal 167.5, User.new(nil, '167.5').height
-    assert_equal 100.52, User.new(nil, 100.519).height
+    assert_equal 100.52, User.new(nil, 100.52).height
     
     assert_nil User.new(nil, 'invalid value').height
     assert_nil User.new(nil, 0).height
@@ -49,14 +49,13 @@ class UserTest < Test::Unit::TestCase
     assert_equal 74, User.new(nil, nil, 'bad stride').stride
     assert_equal 74, User.new(nil, nil, -1).stride
     
-    assert_equal 80,    User.new(nil, nil, 80).stride
+    assert_equal 80,    User.new(nil, nil, '80').stride
     assert_equal 75.25, User.new(nil, nil, 75.25).stride
-    assert_equal 75.56, User.new(nil, nil, 75.5555).stride
   end
 
   def test_create_with_height_and_gender
-    assert_equal 0.42, User.new('male', 1).stride
-    assert_equal 0.41, User.new('female', 1).stride
+    assert_equal 0.415, User.new('male', 1).stride
+    assert_equal 0.413, User.new('female', 1).stride
   end
 
   def test_calculate_stride
