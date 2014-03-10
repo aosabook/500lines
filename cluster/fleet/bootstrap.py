@@ -1,3 +1,4 @@
+from itertools import cycle
 from . import JOIN_RETRANSMIT
 from .member import Component
 
@@ -6,7 +7,7 @@ class Bootstrap(Component):
 
     def __init__(self, member, peers, bootstrapped_cb):
         super(Bootstrap, self).__init__(member)
-        self.peers = peers
+        self._peers_cycle = cycle(peers)
         self.timer = None
         self.bootstrapped_cb = bootstrapped_cb
 
@@ -15,8 +16,7 @@ class Bootstrap(Component):
 
     def join(self):
         """Try to join the cluster"""
-        self.peers = self.peers[1:] + self.peers[:1]  # rotate through peers
-        self.send([self.peers[0]], 'JOIN', requester=self.address)
+        self.send([next(self._peers_cycle)], 'JOIN', requester=self.address)
         self.timer = self.set_timer(JOIN_RETRANSMIT, self.join)
 
     def do_WELCOME(self, state, slot_num, decisions, viewid, peers, peer_history):
