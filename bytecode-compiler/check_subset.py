@@ -138,9 +138,9 @@ class Checker(ast.NodeVisitor):
     def visit_Call(self, t):
         self(t.func)
         self(t.args)
-        assert not hasattr(t, 'keywords') or not t.keywords
-        assert not hasattr(t, 'starargs') or not t.starargs
-        assert not hasattr(t, 'kwargs') or not t.kwargs
+        assert not getattr(t, 'keywords', None)
+        assert not getattr(t, 'starargs', None)
+        assert not getattr(t, 'kwargs', None)
 
     def visit_Num(self, t):
         pass
@@ -189,10 +189,10 @@ class Checker(ast.NodeVisitor):
     def check_arguments(self, args):
         for arg in args.args: self.check_arg(arg)
         assert not args.vararg
-        assert not hasattr(args, 'varargannotation')
+        assert not getattr(args, 'varargannotation', None)
         assert not args.kwonlyargs
         assert not args.kwarg
-        assert not hasattr(args, 'kwargannotation')
+        assert not getattr(args, 'kwargannotation', None)
         assert not args.defaults
         assert not args.kw_defaults
 
