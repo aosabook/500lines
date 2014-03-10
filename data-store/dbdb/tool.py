@@ -16,7 +16,7 @@ def usage():
 
 
 def main():
-    if len(sys.argv) < 4 or len(sys.argv) > 5:
+    if not (4 <= len(sys.argv) <= 5):
         usage()
         return BAD_ARGS
     dbname, verb, key, value = (sys.argv[1:] + [None])[:4]
