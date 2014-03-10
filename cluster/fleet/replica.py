@@ -28,8 +28,8 @@ class Replica(Component):
 
     # creating proposals
 
-    def do_INVOKE(self, caller, cid, input_value):
-        proposal = Proposal(caller, cid, input_value)
+    def do_INVOKE(self, caller, client_id, input_value):
+        proposal = Proposal(caller, client_id, input_value)
         if proposal not in self.proposals:
             self.propose(proposal)
         else:
@@ -149,7 +149,7 @@ class Replica(Component):
             # perform a client operation
             self.state, output = self.execute_fn(self.state, proposal.input)
             self.send([proposal.caller], 'INVOKED',
-                      cid=proposal.cid, output=output)
+                      client_id=proposal.client_id, output=output)
 
     def send_welcome(self):
         if self.welcome_peers:

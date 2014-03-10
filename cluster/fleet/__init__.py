@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-Proposal = namedtuple('Proposal', ['caller', 'cid', 'input'])
+Proposal = namedtuple('Proposal', ['caller', 'client_id', 'input'])
 Ballot = namedtuple('Ballot', ['view_id', 'n', 'leader'])
 ScoutId = namedtuple('ScoutId', ['address', 'ballot_num'])
 CommanderId = namedtuple('CommanderId', ['address', 'slot', 'proposal'])

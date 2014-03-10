@@ -20,7 +20,7 @@ class Member(Node):
         self.state, output = self.execute_fn(self.state, input_value)
         return output
 
-    def do_INVOKE(self, input_value, cid, caller):
+    def do_INVOKE(self, input_value, client_id, caller):
         self.send([caller], 'INVOKED', output=self.invoke(input_value))
 
 
