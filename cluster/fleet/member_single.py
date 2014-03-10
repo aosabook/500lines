@@ -9,7 +9,7 @@ from statemachine import sequence_generator
 class Member(Node):
 
     def __init__(self):
-        Node.__init__(self)
+        super(Member, self).__init__()
 
     def start(self, execute_fn, initial_value=None):
         self.execute_fn = execute_fn
