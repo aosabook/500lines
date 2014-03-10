@@ -46,15 +46,15 @@ class Tests(utils.ComponentTestCase):
 
     def test_accept_new_ballot(self):
         proposal = Proposal('cli', 123, 'INC')
-        cmdid = CommanderId(address='CMD', slot=33, proposal=proposal)
+        cmd_id = CommanderId(address='CMD', slot=33, proposal=proposal)
         self.ac.ballot_num = Ballot(7, 10, 10)
         self.node.fake_message('ACCEPT',
-                               commander_id=cmdid,
+                               commander_id=cmd_id,
                                ballot_num=Ballot(7, 19, 19),
                                slot=33,
                                proposal=proposal)
         self.assertMessage(['CMD'], 'ACCEPTED',
-                           commander_id=cmdid,
+                           commander_id=cmd_id,
                            acceptor='F999',
                            # replies with updated ballot_num
                            ballot_num=Ballot(7, 19, 19))
@@ -63,15 +63,15 @@ class Tests(utils.ComponentTestCase):
 
     def test_accept_old_ballot(self):
         proposal = Proposal('cli', 123, 'INC')
-        cmdid = CommanderId(address='CMD', slot=33, proposal=proposal)
+        cmd_id = CommanderId(address='CMD', slot=33, proposal=proposal)
         self.ac.ballot_num = Ballot(7, 10, 10)
         self.node.fake_message('ACCEPT',
-                               commander_id=cmdid,
+                               commander_id=cmd_id,
                                ballot_num=Ballot(7, 5, 5),
                                slot=33,
                                proposal=proposal)
         self.assertMessage(['CMD'], 'ACCEPTED',
-                           commander_id=cmdid,
+                           commander_id=cmd_id,
                            acceptor='F999',
                            # replies with newer ballot_num
                            ballot_num=Ballot(7, 10, 10))
