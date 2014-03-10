@@ -32,13 +32,13 @@
     (transact hospital-db  (add-entity test-result))
     (transact hospital-db  (update-datom pat-id  :patient/tests #{test-id} :db/add))))
 
-
 ;; world setup
 (transact hospital-db  (add-entities (map #(make-entity %) basic-kinds )))
 (add-patient :pat1 "London" ["fever" "cough"] )
 (add-test-results-to-patient :pat1  (make-test :t2-pat1  {:test/bp-systolic 120 :test/bp-diastolic 80 :test/machine "XXX"} {:test/machine "string"} (fn [a]  (= a :test/machine))))
 (add-test-results-to-patient :pat1  (make-test :t4-pat1  {:test/bp-systolic 170 :test/bp-diastolic 90 :test/machine "XXX"} {:test/machine "string"} (fn [a]  (= a :test/machine))))
 
-(transact hospital-db (update-datom :pat1 :patient/symptoms #{"cold sweat" "sneeze"} :db/add))
+(transact hospital-db (update-datom :pat1 :patient/symptoms #{"cold sweat" "sneeze"} :db/reset-to))
 
 (evolution-of (M/db-from-conn hospital-db) :pat1 :patient/symptoms)
+@hospital-db

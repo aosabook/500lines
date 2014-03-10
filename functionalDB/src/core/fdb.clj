@@ -22,7 +22,7 @@
                      :db/single - which means that this attribute can be a single value at any given time (this is the default cardinality)
                      :db/multiple - which means that this attribute is actually a set of values. In this case updates of this attribute may be one of the following (NOTE that all these operations accept a set as argument):
                                           :db/add - adds a set of values to the currently existing set of values
-                                          :db/resetTo - resets the value of this attribute to be the given set of values
+                                          :db/reset-to - resets the value of this attribute to be the given set of values
                                           :db/remove - removes the given set of values from the attribute's current set of values"
   ([name value type ; these ones are required
       & {:keys [indexed cardinality] :or {indexed false cardinality :db/single}} ]
@@ -42,7 +42,7 @@
   [attr value operation]
   (cond
       (single? attr)    (assoc attr :value #{value})
-   ; now = :db/multiple (:cardinality (meta attr)))
+   ; now we're talking about an attribute of multiple values
       (= :db/reset-to operation)  (assoc attr :value value)
       (= :db/add operation)        (assoc attr :value (CS/union (:value attr)  value))
       (= :db/remove operation)  (assoc attr :value (CS/difference (:value attr) value))))
@@ -57,7 +57,7 @@
 
 (defn add-attr
   "adds an attribute to an entity"
-  [ ent attr]
+  [ent attr]
   (let [attr-id (keyword (:name attr))
           existing-attr (get-in ent [:attrs attr-id])
           updated-attr (conj-to-attr existing-attr attr :db/add)]
@@ -91,20 +91,18 @@
 (defn- update-ref-in-vaet
   "adding an entry to th VAET index"
   [ent operation vaet attr]
-  (
-   let [reffed-id (first (:value attr))
+  (let [reffed-id (first (:value attr))
         attr-name (:name attr)
         back-reffing-set (get-in vaet [reffed-id attr-name] #{} )
-        new-back-reffing-set (operation back-reffing-set (:id ent))
-        ]
-   (if (nil? reffed-id)
+        new-back-reffing-set (operation back-reffing-set (:id ent))]
+    (if (nil? reffed-id)
        vaet
        (assoc-in vaet [reffed-id attr-name] new-back-reffing-set))))
 
 ;  AVET  structed like this:  {attrName-> {attrValue -> #{holding-elems-ids}}
 ; this basically provides this info: for each attributeName (A) that we chose to index, separated by the values of the attribute  (V), hold the set of the ids of the hold thes attributes (E), all this at a given time (T)
 ;  can be used to know who are the entities that have a specific attribute with a specific value
-(defn- update-attr-in-avet ""
+(defn- update-attr-in-avet
   [ent operation avet attr]
   (let [attr-name (:name attr)
          attr-value (first (:value attr)) ; a set
@@ -170,7 +168,7 @@
           (recur rst-tx# res#  (conj  accum-txs#  (vec  frst-tx#)))
           (list* (conj res#  accum-txs#))))))
 
-(defn- _what-if [ db f  txs] (f db txs))
+(defn _what-if [ db f  txs] (f db txs))
 
 (defmacro what-if [db & txs]
   `(_transact ~db   _what-if  ~@txs))
@@ -199,8 +197,9 @@
 (defn- av [attr vl] [attr vl] )
 (defn- va [attr vl] [vl attr] )
 
-(defn- update-index-for-datom[index ent-id attr target-val operation order-fn update-required-pred]
-(if-not (update-required-pred attr)
+(defn- update-index-for-datom
+  [index ent-id attr target-val operation order-fn update-required-pred]
+  (if-not (update-required-pred attr)
     index
     (let [old-vals (:value attr)
           attr-name (:name attr)
@@ -218,19 +217,25 @@
 (defn- update-eavt-for-datom [eavt ent-id new-attr]
   (assoc-in eavt [ent-id :attrs (:name new-attr)] new-attr))
 
+(defn- update-attr [attr new-val new-ts operation]
+  (let [updated-timed-attr (assoc attr  :ts new-ts :prev-ts ( :ts attr))]
+    (conj-to-attr updated-timed-attr {:value new-val} operation)))
+
+(defn- update-indices [indices ent-id attr updated-attr new-val operation]
+  (let [new-eavt (update-eavt-for-datom (:EAVT indices) ent-id updated-attr)
+          new-vaet (update-index-for-datom (:VAET indices) ent-id attr new-val operation va ref?) ; intentionally attr is passed and not updated-attr, we need to use the old value to locate where to update in the index
+          new-avet (update-index-for-datom (:AVET indices) ent-id attr new-val operation av indexed?) ; intentionally attr is passed and not updated-attr, we need to use the old value to locate where to update in the index
+         ](assoc indices :EAVT new-eavt :VAET new-vaet :AVET new-avet)))
+
 (defn update-datom
   ([db ent-id att-name  new-val]  (update-datom db ent-id att-name  new-val  :db/reset-to ))
   ([db ent-id att-name  new-val operation ] ; operation may be either  :db/reset-to  :db/add ,or :db/remove (the last two are valid only if the attr cardinality is :db/multiple)
      (let [ new-ts (next-ts db)
             indices (last (:timestamped db))
-            attr (get-in indices [:EAVT ent-id :attrs  att-name] )
-            updated-timed-attr (assoc attr  :ts new-ts :prev-ts ( :ts attr))
-            updated-attr (conj-to-attr updated-timed-attr {:value new-val} operation)
-            new-eavt (update-eavt-for-datom (:EAVT indices) ent-id updated-attr)
-            new-vaet (update-index-for-datom (:VAET indices) ent-id attr new-val operation va ref?) ; intentionally attr is passed and not updated-attr, we need to use the old value to locate where to update in the index
-            new-avet (update-index-for-datom (:AVET indices) ent-id attr new-val operation av indexed?) ; intentionally attr is passed and not updated-attr, we need to use the old value to locate where to update in the index
-            fully-updated-indices (assoc indices :EAVT new-eavt :VAET new-vaet :AVET new-avet)
-            new-db (assoc db :timestamped (conj  (:timestamped db) fully-updated-indices))
+            attr (get-in indices [:EAVT ent-id :attrs  att-name])
+            updated-attr (update-attr attr new-val new-ts operation)
+            fully-updated-indices (update-indices indices ent-id attr updated-attr new-val operation)
+            new-db (update-in db [:timestamped] conj fully-updated-indices)
            ]new-db)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;  queries
