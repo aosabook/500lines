@@ -113,4 +113,12 @@ Contributors
     <td>@jaaaarel</td>
     <td>taavi.burns@points.com</td>
   </tr>
+  <tr>
+    <td>Laurie MacDougall Sookraj</td>
+    <td>University Health Network</td>
+    <td>wiki</td>
+    <td>@lmds</td>
+    <td>@lmds</td>
+    <td>lmds28@gmail.com</td>
+  </tr>
 </table>
