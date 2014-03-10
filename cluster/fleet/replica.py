@@ -10,13 +10,13 @@ class Replica(Component):
         self.proposals = defaultlist()
         self.viewchange_proposal = None
 
-    def start(self, state, slot_num, decisions, viewid, peers, peer_history):
+    def start(self, state, slot_num, decisions, view_id, peers, peer_history):
         self.state = state
         self.slot_num = slot_num
         # next slot num for a proposal (may lead slot_num)
         self.next_slot = slot_num
         self.decisions = defaultlist(decisions)
-        self.viewid = viewid
+        self.view_id = view_id
         self.peers = peers
         self.peers_down = set()
         self.peer_history = peer_history
@@ -39,7 +39,7 @@ class Replica(Component):
 
     def do_JOIN(self, requester):
         if requester not in self.peers:
-            viewchange = ViewChange(self.viewid + 1,
+            viewchange = ViewChange(self.view_id + 1,
                                     tuple(sorted(set(self.peers) | set([requester]))))
             self.propose(Proposal(None, None, viewchange))
 
@@ -51,7 +51,7 @@ class Replica(Component):
             self.next_slot += 1
         self.proposals[slot] = proposal
         # find a leader we think is working, deterministically
-        leaders = [view_primary(self.viewid, self.peers)] + \
+        leaders = [view_primary(self.view_id, self.peers)] + \
             list(self.peers)
         leader = (l for l in leaders if l not in self.peers_down).next()
         self.logger.info("proposing %s at slot %d to leader %s" %
@@ -76,7 +76,7 @@ class Replica(Component):
 
     # view changes
 
-    def on_view_change_event(self, slot, viewid, peers):
+    def on_view_change_event(self, slot, view_id, peers):
         self.peers = peers
         self.peers_down = set()
 
@@ -93,7 +93,7 @@ class Replica(Component):
         self.logger.info("lost peer(s) %s; proposing new view" % (down,))
         self.viewchange_proposal = Proposal(
                 None, None,
-                ViewChange(self.viewid + 1, tuple(sorted(set(self.peers) - set(down)))))
+                ViewChange(self.view_id + 1, tuple(sorted(set(self.peers) - set(down)))))
         self.propose(self.viewchange_proposal)
 
     # handling decided proposals
@@ -130,7 +130,7 @@ class Replica(Component):
             our_proposal = self.proposals[commit_slot]
             if our_proposal is not None and our_proposal != commit_proposal:
                 # TODO: filter out unnecessary proposals - no-ops and outdated
-                # view changes (proposal.input.viewid <= self.viewid)
+                # view changes (proposal.input.view_id <= self.view_id)
                 self.propose(our_proposal)
     on_decision_event = do_DECISION
 
@@ -157,15 +157,15 @@ class Replica(Component):
                       state=self.state,
                       slot_num=self.slot_num,
                       decisions=self.decisions,
-                      viewid=self.viewid,
+                      view_id=self.view_id,
                       peers=self.peers,
                       peer_history=self.peer_history)
             self.welcome_peers = set()
 
     def commit_viewchange(self, slot, viewchange):
-        if viewchange.viewid == self.viewid + 1:
-            self.logger.info("entering view %d with peers %s" % (viewchange.viewid, viewchange.peers))
-            self.viewid = viewchange.viewid
+        if viewchange.view_id == self.view_id + 1:
+            self.logger.info("entering view %d with peers %s" % (viewchange.view_id, viewchange.peers))
+            self.view_id = viewchange.view_id
 
             # now make sure that next_slot is at least slot + ALPHA, so that we don't
             # try to make any new proposals depending on the old view.  The catchup()
@@ -181,7 +181,7 @@ class Replica(Component):
             if self.address not in viewchange.peers:
                 self.stop()
                 return
-            self.event('view_change', slot=slot, viewid=viewchange.viewid, peers=viewchange.peers)
+            self.event('view_change', slot=slot, view_id=viewchange.view_id, peers=viewchange.peers)
         else:
             self.logger.info(
                 "ignored out-of-sequence view change operation")

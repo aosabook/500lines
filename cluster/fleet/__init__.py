@@ -1,10 +1,10 @@
 from collections import namedtuple
 
 Proposal = namedtuple('Proposal', ['caller', 'cid', 'input'])
-Ballot = namedtuple('Ballot', ['viewid', 'n', 'leader'])
+Ballot = namedtuple('Ballot', ['view_id', 'n', 'leader'])
 ScoutId = namedtuple('ScoutId', ['address', 'ballot_num'])
 CommanderId = namedtuple('CommanderId', ['address', 'slot', 'proposal'])
-ViewChange = namedtuple('ViewChange', ['viewid', 'peers'])
+ViewChange = namedtuple('ViewChange', ['view_id', 'peers'])
 
 HEARTBEAT_INTERVAL = 0.5
 HEARTBEAT_GONE_COUNT = 3
@@ -34,7 +34,7 @@ class defaultlist(list):
         super(defaultlist, self).__setitem__(i, v)
 
 
-def view_primary(viewid, peers):
-    return peers[viewid % len(peers)]
+def view_primary(view_id, peers):
+    return peers[view_id % len(peers)]
 
 from .ship import Ship

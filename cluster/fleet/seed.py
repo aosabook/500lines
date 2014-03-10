@@ -31,7 +31,7 @@ class Seed(Component):
                   state=self.initial_state,
                   slot_num=ALPHA,
                   decisions=defaultlist(),
-                  viewid=0,
+                  view_id=0,
                   peers=list(self.peers),
                   peer_history=peer_history.copy())
 

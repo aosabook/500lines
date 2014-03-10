@@ -12,7 +12,7 @@ class Listener(member.Component):
         super(Listener, self).__init__(member)
         self.event_queue = event_queue
 
-    def on_view_change_event(self, slot, viewid, peers):
+    def on_view_change_event(self, slot, view_id, peers):
         self.event_queue.put(("membership_change", peers))
 
 

@@ -11,7 +11,7 @@ class Heartbeat(Component):
         self.peers = None
         self.clock = clock
 
-    def on_view_change_event(self, slot, viewid, peers):
+    def on_view_change_event(self, slot, view_id, peers):
         self.peers = set(peers)
         for peer in self.peers:
             self.last_heard_from[peer] = self.clock()

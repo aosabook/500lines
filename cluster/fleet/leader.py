@@ -15,17 +15,17 @@ class Leader(Component):
         self.commanders = {}
         self.scout_cls = scout_cls
         self.scout = None
-        self.viewid = -1
+        self.view_id = -1
         self.peers = None
         self.peer_history = peer_history
 
     def on_update_peer_history_event(self, peer_history):
         self.peer_history = peer_history
 
-    def on_view_change_event(self, slot, viewid, peers):
-        self.viewid = viewid
+    def on_view_change_event(self, slot, view_id, peers):
+        self.view_id = view_id
         self.peers = peers
-        self.is_primary = view_primary(viewid, peers) == self.address
+        self.is_primary = view_primary(view_id, peers) == self.address
 
         # we are not an active leader in this new view
         if self.scout:
@@ -37,7 +37,7 @@ class Leader(Component):
 
     def spawn_scout(self):
         assert not self.scout
-        self.ballot_num = Ballot(self.viewid, self.ballot_num.n, self.ballot_num.leader)
+        self.ballot_num = Ballot(self.view_id, self.ballot_num.n, self.ballot_num.leader)
         sct = self.scout = self.scout_cls(self.member, self, self.ballot_num, self.peers)
         sct.start()
 
@@ -76,7 +76,7 @@ class Leader(Component):
             self.logger.info("leader preempted by view change")
         self.active = False
         self.ballot_num = Ballot(
-            self.viewid,
+            self.view_id,
             (ballot_num if ballot_num else self.ballot_num).n + 1,
             self.ballot_num.leader)
         # if we're the primary for this view, re-scout immediately
