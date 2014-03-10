@@ -28,8 +28,8 @@ class Replica(Component):
 
     # creating proposals
 
-    def do_INVOKE(self, caller, cid, input):
-        proposal = Proposal(caller, cid, input)
+    def do_INVOKE(self, caller, cid, input_value):
+        proposal = Proposal(caller, cid, input_value)
         if proposal not in self.proposals:
             self.propose(proposal)
         else:

@@ -40,14 +40,14 @@ class Ship(object):
         self.thread.setDaemon(1)
         self.thread.start()
 
-    def invoke(self, input):
+    def invoke(self, input_value):
         assert self.current_request is None
         q = Queue.Queue()
 
         def done(output):
             self.current_request = None
             q.put(output)
-        self.current_request = client.Request(self.cluster_member, input, done)
+        self.current_request = client.Request(self.cluster_member, input_value, done)
         self.current_request.start()
         return q.get()
 

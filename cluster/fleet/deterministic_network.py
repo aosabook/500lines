@@ -22,8 +22,8 @@ class Node(object):
         if self.address in self.network.nodes:
             del self.network.nodes[self.address]
 
-    def set_timer(self, seconds, callable):
-        return self.network.set_timer(seconds, self.address, callable)
+    def set_timer(self, seconds, callback):
+        return self.network.set_timer(seconds, self.address, callback)
 
     def cancel_timer(self, timer):
         self.network.cancel_timer(timer)
@@ -76,16 +76,16 @@ class Network(object):
                 else:
                     time.sleep(next_timer - self.now)
                 self.now = next_timer
-            when, do, address, callable = heapq.heappop(self.timers)
+            when, do, address, callback = heapq.heappop(self.timers)
             if do and address in self.nodes:
-                callable()
+                callback()
 
     def stop(self):
         self.timers = []
 
-    def set_timer(self, seconds, address, callable):
+    def set_timer(self, seconds, address, callback):
         # TODO: return an obj with 'cancel'
-        timer = [self.now + seconds, True, address, callable]
+        timer = [self.now + seconds, True, address, callback]
         heapq.heappush(self.timers, timer)
         return timer
 

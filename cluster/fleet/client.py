@@ -15,7 +15,7 @@ class Request(Component):
         self.callback = callback
 
     def start(self):
-        self.send([self.address], 'INVOKE', caller=self.address, cid=self.cid, input=self.n)
+        self.send([self.address], 'INVOKE', caller=self.address, cid=self.cid, input_value=self.n)
         self.invoke_timer = self.set_timer(self.RETRANSMIT_TIME, self.start)
 
     def do_INVOKED(self, cid, output):

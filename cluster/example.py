@@ -3,13 +3,13 @@ import logging
 from fleet import Ship
 
 
-def key_value_state_machine(state, input):
-    print input, state
-    if input[0] == 'get':
-        return state, state.get(input[1], None)
-    elif input[0] == 'set':
-        state[input[1]] = input[2]
-        return state, input[2]
+def key_value_state_machine(state, input_value):
+    print input_value, state
+    if input_value[0] == 'get':
+        return state, state.get(input_value[1], None)
+    elif input_value[0] == 'set':
+        state[input_value[1]] = input_value[2]
+        return state, input_value[2]
 
 
 def main():

@@ -40,9 +40,9 @@ class Component(object):  # TODO: rename
     def send(self, destinations, action, **kwargs):
         self.member.node.send(destinations, action, **kwargs)
 
-    def set_timer(self, seconds, callable):
+    def set_timer(self, seconds, callback):
         # TODO: refactor to attach timer to this component, not address
-        return self.member.node.set_timer(seconds, callable)
+        return self.member.node.set_timer(seconds, callback)
 
     def cancel_timer(self, timer):
         self.member.node.cancel_timer(timer)
