@@ -113,4 +113,12 @@ Contributors
     <td>@jaaaarel</td>
     <td>taavi.burns@points.com</td>
   </tr>
+  <tr>
+    <td>Carlos Scheidegger</td>
+    <td>AT&amp;T Research</td>
+    <td>rasterizer</td>
+    <td>@cscheid</td>
+    <td>@cscheid</td>
+    <td>carlos.scheidegger@gmail.com</td>
+  </tr>
 </table>
