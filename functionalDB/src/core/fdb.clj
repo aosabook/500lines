@@ -230,10 +230,10 @@
 (defn update-datom
   ([db ent-id att-name  new-val]  (update-datom db ent-id att-name  new-val  :db/reset-to ))
   ([db ent-id att-name  new-val operation ] ; operation may be either  :db/reset-to  :db/add ,or :db/remove (the last two are valid only if the attr cardinality is :db/multiple)
-     (let [ new-ts (next-ts db)
+     (let [update-ts (next-ts db)
             indices (last (:timestamped db))
             attr (get-in indices [:EAVT ent-id :attrs  att-name])
-            updated-attr (update-attr attr new-val new-ts operation)
+            updated-attr (update-attr attr new-val update-ts operation)
             fully-updated-indices (update-indices indices ent-id attr updated-attr new-val operation)
             new-db (update-in db [:timestamped] conj fully-updated-indices)
            ]new-db)))
@@ -269,7 +269,7 @@
   (loop [res [] ts (:curr-time db)]
     (if (= -1 ts) (reverse res)
         (let [attr (attr-at db ent-id attr-name ts)]
-          (recur (conj res {ts (:value attr)})  (:prev-ts attr))))))
+          (recur (conj res {(:ts attr) (:value attr)})  (:prev-ts attr))))))
 
 (defn db-before [db ts]
   (let [indices-before (subvec (:timestamped db) 0 ts )]
