@@ -2,8 +2,12 @@ class User
 
   GENDER = ['male', 'female']
 
+  # TODO: double check all to make sure they're used outside of the class
   attr_reader :gender, :height, :stride
 
+  # TODO: 
+  # - Pass in gender, height, stride instead of params
+  # - Named params ruby 2.0
   def initialize(params = {})
     params = {} unless params.kind_of? Hash
 
@@ -21,6 +25,14 @@ class User
   # avg female: 70 cm
   # male height * .415
   # female height * .413
+
+  # TODO: 
+  # - Declare constants for multipliers and strides
+  # - No @ on instance variables
+  # - Diff between private and protected?
+  # - .round at the end isn't proper?
+private
+
   def calculate_stride
     if @height && @gender
       (@gender == 'male') ? 0.415 * @height : 0.413 * @height

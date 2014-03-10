@@ -4,10 +4,9 @@ require './models/parser.rb'
 
 class Analyzer
 
-  CAP = 1.2
-
   attr_reader :parser, :user, :steps, :distance, :time, :time_interval, :distance_interval
 
+  # TODO: User.new as default user in params
   def initialize(parser, user = nil)
     raise "A Parser object must be passed in." unless (@parser = parser).kind_of? Parser
     
@@ -17,11 +16,17 @@ class Analyzer
     @time_interval = 'sec'
     @distance_interval = 'cm'
     @user = (user.kind_of? User) ? user : User.new
+
+    # TODO: Call each of the measure methods to remove it from controller
+    # measure
   end
 
   # -- Edge Detection -------------------------------------------------------
 
   def split_on_threshold(positive)
+    # TODO: 
+    # - Rewrite challenge
+    # - Can this be combined with detect_edges?
     @parser.filtered_data.inject([]) do |a, data|
       a << (positive ? ((data < 0.2) ? 0 : 1) : ((data < -0.2) ? 1 : 0))
       a
@@ -35,6 +40,7 @@ class Analyzer
   def detect_edges(split)
     # Determined by the rate divided by the 
     # maximum steps the user can take per second
+    # TODO: Magic number
     min_interval = (@parser.device.rate/6.0).round
     
     count = 0
@@ -60,6 +66,7 @@ class Analyzer
     measure_time
   end
 
+  # TODO: One method, rewrite
   def measure_steps
     edges_positive = detect_edges(split_on_threshold(true))
     edges_negative = detect_edges(split_on_threshold(false))
@@ -70,6 +77,9 @@ class Analyzer
   def measure_distance
     @distance = @user.stride * @steps
 
+    # TODO: 
+    # - Magic numbers, rounds
+    # - Does the conversion logic belong in the view? Helper called from the view?
     if @distance > 99999
       @distance = (@distance/100000).round(2)
       @distance_interval = 'km'

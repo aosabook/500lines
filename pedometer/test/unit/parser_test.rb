@@ -6,6 +6,7 @@ class ParserTest < Test::Unit::TestCase
   # -- Creation Tests -------------------------------------------------------
 
   def test_create_accelerometer_data
+
     device = Device.new(:data => '0.123,-0.123,5;0.456,-0.789,0.111;-0.212,0.001,1;')
     parser = Parser.new(device)
     

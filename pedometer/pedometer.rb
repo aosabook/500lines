@@ -67,6 +67,7 @@ get '/detail/*' do
   end
 end
 
+# TODO: Should initialization process data or should that be called explicitly? 
 def build_with_params(user_params, device_params)
   @user     = User.new(user_params)
   @device   = Device.new(device_params)
