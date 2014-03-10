@@ -2,9 +2,9 @@
 {for page in pages}
     <a href="/wiki/{page.id}">{page.id}</a><br/>
 {/for}
-<form action="{url}" method="post">
+<form action="/wiki/add" method="post">
     <p>
         <button type="submit">Add new page</button>
-        <input type="text" name = "title" value="title"/>
+        <input type="text" name="title" value="title"/>
     </p>
 </form>

@@ -1,8 +1,8 @@
 {
-  "name": "full_wiki",
+  "name": "500lines_wiki",
   "version": "1.0.0",
-  "description": "Source Code for Full Wiki in 500 Lines or Less",
-  "main": "server.js",
+  "description": "Source code for basic wiki in 500 Lines or Less",
+  "main": "js/server.js",
   "dependencies": {
     "express": "~3.4.8",
     "whiskers": "~0.3.3",
@@ -16,8 +16,8 @@
   },
   "devDependencies": {},
   "scripts": {
-    "start": "node server.js",
-    "test": "node --debug server.js"
+    "start": "node js/server.js",
+    "test": "node --debug js/server.js"
   },
   "author": "Laurie MacDougall Sookraj"
 }
