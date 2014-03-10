@@ -1,5 +1,5 @@
 require 'test/unit'
-require './models/device.rb'
+require_relative '../../models/device'
 
 class DeviceTest < Test::Unit::TestCase
 

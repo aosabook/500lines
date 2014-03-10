@@ -1,6 +1,6 @@
-require './pedometer.rb'
 require 'test/unit'
 require 'rack/test'
+require_relative '../../pedometer'
 
 class PedometerTest < Test::Unit::TestCase
   include Rack::Test::Methods

@@ -1,5 +1,5 @@
 require 'test/unit'
-require './models/parser.rb'
+require_relative '../../models/parser'
 
 class ParserTest < Test::Unit::TestCase
 

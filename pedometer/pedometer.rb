@@ -1,6 +1,6 @@
 require 'sinatra'
 require 'sinatra/jbuilder'
-Dir['./models/*.rb', './helpers/*.rb'].each {|file| require file }
+Dir['./models/*', './helpers/*'].each {|file| require_relative file }
 
 include FileUtils::Verbose
 
@@ -24,6 +24,7 @@ post '/create' do
   end
 end
 
+# TODO: rename actions
 get '/data' do
   begin
     @data = []

@@ -1,24 +1,24 @@
 require 'mathn'
-require './models/user.rb'
-require './models/parser.rb'
+require_relative 'user'
+require_relative 'parser'
 
 class Analyzer
 
   attr_reader :parser, :user, :steps, :distance, :time, :time_interval, :distance_interval
 
-  # TODO: User.new as default user in params
-  def initialize(parser, user = nil)
-    raise "A Parser object must be passed in." unless (@parser = parser).kind_of? Parser
-    
+  def initialize(parser, user = User.new)
+    raise "Parser invalid." unless parser.kind_of? Parser
+    raise "User invalid." unless user.kind_of? User
+
+    @parser = parser
+    @user = user
     @steps = 0
     @distance = 0
     @time = 0
     @time_interval = 'sec'
     @distance_interval = 'cm'
-    @user = (user.kind_of? User) ? user : User.new
 
-    # TODO: Call each of the measure methods to remove it from controller
-    # measure
+    # TODO: Call each measurement method from here
   end
 
   # -- Edge Detection -------------------------------------------------------
@@ -27,9 +27,8 @@ class Analyzer
     # TODO: 
     # - Rewrite challenge
     # - Can this be combined with detect_edges?
-    @parser.filtered_data.inject([]) do |a, data|
-      a << (positive ? ((data < 0.2) ? 0 : 1) : ((data < -0.2) ? 1 : 0))
-      a
+    @parser.filtered_data.collect do |data|
+      (positive ? ((data < 0.2) ? 0 : 1) : ((data < -0.2) ? 1 : 0))
     end
   end
 
@@ -65,6 +64,8 @@ class Analyzer
     measure_distance
     measure_time
   end
+
+private
 
   # TODO: One method, rewrite
   def measure_steps

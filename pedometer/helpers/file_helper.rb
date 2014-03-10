@@ -1,5 +1,5 @@
-require './models/user.rb'
-require './models/device.rb'
+require_relative '../models/user'
+require_relative '../models/device'
 
 class FileHelper
 

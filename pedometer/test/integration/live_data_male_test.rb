@@ -1,8 +1,8 @@
-require './pedometer.rb'
 require 'test/unit'
 require 'rack/test'
+require_relative '../../pedometer'
 
-class LiveDataFemaleTest < Test::Unit::TestCase
+class LiveDataMaleTest < Test::Unit::TestCase
   include Rack::Test::Methods
 
   def app

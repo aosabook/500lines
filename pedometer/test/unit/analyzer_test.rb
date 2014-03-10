@@ -1,8 +1,10 @@
 require 'test/unit'
-require './models/analyzer.rb'
-require './models/parser.rb'
+require_relative '../../models/analyzer'
 
 class AnalyzerTest < Test::Unit::TestCase
+
+  PARSER_MESSAGE = 'Parser invalid.'
+  USER_MESSAGE   = 'User invalid.'
 
   # -- Creation Tests -------------------------------------------------------
 
@@ -37,15 +39,13 @@ class AnalyzerTest < Test::Unit::TestCase
   end
 
   def test_create_no_parser
-    message = "A Parser object must be passed in."
-    assert_raise_with_message(RuntimeError, message) do
+    assert_raise_with_message(RuntimeError, PARSER_MESSAGE) do
       Analyzer.new(nil)
     end
   end
 
   def test_create_bad_parser
-    message = "A Parser object must be passed in."
-    assert_raise_with_message(RuntimeError, message) do
+    assert_raise_with_message(RuntimeError, PARSER_MESSAGE) do
       Analyzer.new('bad device data')
     end
   end
@@ -58,10 +58,11 @@ class AnalyzerTest < Test::Unit::TestCase
   end
 
   def test_create_bad_user
-    device = Device.new('0.123,-0.123,5;')
-    parser = Parser.new(device)
-    analyzer = Analyzer.new(parser, 'bad user')
-    assert analyzer.user.kind_of? User
+    assert_raise_with_message(RuntimeError, USER_MESSAGE) do
+      device = Device.new('0.123,-0.123,5;')
+      parser = Parser.new(device)
+      analyzer = Analyzer.new(parser, 'bad user')
+    end
   end
 
   # -- Edge Detection Tests -------------------------------------------------
@@ -102,7 +103,7 @@ class AnalyzerTest < Test::Unit::TestCase
     device = Device.new(File.read('test/data/female-167-70_100-walk-10-1-g.txt'))
     parser = Parser.new(device)
     analyzer = Analyzer.new(parser)
-    analyzer.measure_steps
+    analyzer.send(:measure_steps)
     assert_equal 8, analyzer.steps
   end
 
@@ -110,7 +111,7 @@ class AnalyzerTest < Test::Unit::TestCase
     device = Device.new(File.read('test/data/female-167-70_100-walk-10-1-g.txt'))
     parser = Parser.new(device)
     analyzer = Analyzer.new(parser)
-    analyzer.measure_distance
+    analyzer.send(:measure_distance)
     assert_equal 0, analyzer.distance
   end
 
@@ -118,8 +119,8 @@ class AnalyzerTest < Test::Unit::TestCase
     device = Device.new(File.read('test/data/results-0-steps.txt'))
     parser = Parser.new(device)
     analyzer = Analyzer.new(parser)
-    analyzer.measure_steps
-    analyzer.measure_distance
+    analyzer.send(:measure_steps)
+    analyzer.send(:measure_distance)
     
     assert_equal 0, analyzer.distance
     assert_equal 'cm', analyzer.distance_interval
@@ -130,8 +131,8 @@ class AnalyzerTest < Test::Unit::TestCase
     device = Device.new(File.read('test/data/female-167-70_100-walk-10-1-g.txt'))
     parser = Parser.new(device)
     analyzer = Analyzer.new(parser, user)
-    analyzer.measure_steps
-    analyzer.measure_distance
+    analyzer.send(:measure_steps)
+    analyzer.send(:measure_distance)
 
     assert_equal 8.0, analyzer.distance
     assert_equal 'm', analyzer.distance_interval
@@ -142,8 +143,8 @@ class AnalyzerTest < Test::Unit::TestCase
     device = Device.new(File.read('test/data/female-167-70_100-walk-10-1-g.txt'))
     parser = Parser.new(device)
     analyzer = Analyzer.new(parser, user)
-    analyzer.measure_steps
-    analyzer.measure_distance
+    analyzer.send(:measure_steps)
+    analyzer.send(:measure_distance)
     
     assert_equal 8.0, analyzer.distance
     assert_equal 'km', analyzer.distance_interval 
@@ -153,7 +154,7 @@ class AnalyzerTest < Test::Unit::TestCase
     device = Device.new(File.read('test/data/results-15-steps.txt'), 4)
     parser = Parser.new(device)
     analyzer = Analyzer.new(parser)
-    analyzer.measure_time
+    analyzer.send(:measure_time)
     
     assert_equal 7.25, analyzer.time
     assert_equal 'sec', analyzer.time_interval
@@ -164,7 +165,7 @@ class AnalyzerTest < Test::Unit::TestCase
     device = Device.new((1000.times.inject('') {|a| a+='1,1,1;';a}), 4)
     parser = Parser.new(device)
     analyzer = Analyzer.new(parser)
-    analyzer.measure_time
+    analyzer.send(:measure_time)
     
     assert_equal 4.17, analyzer.time
     assert_equal 'minutes', analyzer.time_interval
@@ -175,7 +176,7 @@ class AnalyzerTest < Test::Unit::TestCase
     device = Device.new((15000.times.inject('') {|a| a+='1,1,1;';a}), 4)
     parser = Parser.new(device)
     analyzer = Analyzer.new(parser)
-    analyzer.measure_time
+    analyzer.send(:measure_time)
 
     assert_equal 1.04, analyzer.time
     assert_equal 'hours', analyzer.time_interval
