@@ -59,7 +59,7 @@ class Replica(Component):
         self.send([leader], 'PROPOSE', slot=slot, proposal=proposal)
 
     def catchup(self):
-        "try to catch up on un-decided slots"
+        """Try to catch up on un-decided slots"""
         if self.slot_num != self.next_slot:
             self.logger.debug("catching up on %d .. %d" % (self.slot_num, self.next_slot-1))
         for slot in xrange(self.slot_num, self.next_slot):
@@ -135,7 +135,7 @@ class Replica(Component):
     on_decision_event = do_DECISION
 
     def commit(self, slot, proposal):
-        "actually commit a proposal that is decided and in sequence"
+        """Actually commit a proposal that is decided and in sequence"""
         if proposal in self.decisions[:slot]:
             self.logger.info("not committing duplicate proposal %r at slot %d" % (proposal, slot))
             return  # duplicate
@@ -147,8 +147,7 @@ class Replica(Component):
             self.commit_viewchange(slot, proposal.input)
         elif proposal.caller is not None:
             # perform a client operation
-            self.state, output = self.execute_fn(
-                self.state, proposal.input)
+            self.state, output = self.execute_fn(self.state, proposal.input)
             self.send([proposal.caller], 'INVOKED',
                       cid=proposal.cid, output=output)
 
@@ -165,8 +164,7 @@ class Replica(Component):
 
     def commit_viewchange(self, slot, viewchange):
         if viewchange.viewid == self.viewid + 1:
-            self.logger.info("entering view %d with peers %s" %
-                                (viewchange.viewid, viewchange.peers))
+            self.logger.info("entering view %d with peers %s" % (viewchange.viewid, viewchange.peers))
             self.viewid = viewchange.viewid
 
             # now make sure that next_slot is at least slot + ALPHA, so that we don't

@@ -14,7 +14,7 @@ class Bootstrap(Component):
         self.join()
 
     def join(self):
-        "Try to join the cluster"
+        """Try to join the cluster"""
         self.peers = self.peers[1:] + self.peers[:1]  # rotate through peers
         self.send([self.peers[0]], 'JOIN', requester=self.address)
         self.timer = self.set_timer(JOIN_RETRANSMIT, self.join)
