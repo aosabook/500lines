@@ -4,7 +4,7 @@ from member import Component
 
 class Request(Component):
 
-    client_ids = xrange(1000000, sys.maxint).__iter__()
+    client_ids = iter(xrange(1000000, sys.maxint))
     RETRANSMIT_TIME = 0.5
 
     def __init__(self, member, n, callback):

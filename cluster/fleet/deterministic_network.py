@@ -6,7 +6,7 @@ import copy
 
 
 class Node(object):
-    unique_ids = xrange(1000).__iter__()
+    unique_ids = iter(xrange(1000))
 
     def __init__(self, network):
         self.network = network
