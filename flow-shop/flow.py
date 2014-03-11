@@ -6,9 +6,9 @@ from itertools import combinations, permutations, product
 ##############
 ## Settings ##
 ##############
-TIME_LIMIT = 120
-TIME_INCREMENT = 10
-DEBUG_SWITCH = True
+TIME_LIMIT = 120.0
+TIME_INCREMENT = 10.0
+DEBUG_SWITCH = False
 
 ##############################
 ## Neighbourhood Generators ##
@@ -110,7 +110,8 @@ for (n, h) in product(NEIGHBOURHOODS, HEURISTICS):
     STRATEGIES.append({'name': "%s / %s" % (n[0], h[0]),
                        'neigh': n[1],
                        'heur': h[1],
-                       'weight': 1})
+                       'weight': 1,
+                       'usage': 0})
 
 def _pick_strategy(strategies):
     total = sum([strat['weight'] for strat in strategies])
@@ -124,7 +125,7 @@ def _pick_strategy(strategies):
 
 
 def parse_problem(filename):
-
+    print "Parsing..."
     with open(filename, 'r') as f:
         problem_line = 'number of jobs, number of machines, initial seed, upper bound and lower bound :'
         lines = map(str.strip, f.readlines())
@@ -165,6 +166,7 @@ def solve(data):
     global STRATEGIES
 
     improvements = [0] * len(STRATEGIES)
+    time_spent = [0] * len(STRATEGIES)
 
     perm = range(len(data))
 
@@ -176,20 +178,34 @@ def solve(data):
     time_limit = time.time() + TIME_LIMIT
     time_last_switch = time.time()
 
+    time_delta = TIME_LIMIT / 10
+    checkpoint = time.time() + time_delta
+    percent_complete = 10
+
+    print "Solving..."
+
     while time.time() < time_limit:
+
+        if time.time() > checkpoint:
+            print " %d %%" % percent_complete
+            percent_complete += 10
+            checkpoint += time_delta
 
         iteration += 1
 
         (s,i) = _pick_strategy(STRATEGIES)
 
         old_val = res
+        old_time = time.time()
         perm = s['heur'](data, s['neigh'](data, perm))
         res = makespan(data, perm)
 
         improvements[i] += res - old_val
+        time_spent[i] += time.time() - old_time
+        STRATEGIES[i]['usage'] += 1
 
         if time.time() > time_last_switch + TIME_INCREMENT:
-            results = sorted([(improvements[i], i) for i in range(len(STRATEGIES))])
+            results = sorted([(float(improvements[i]) / max(0.001, time_spent[i]), i) for i in range(len(STRATEGIES))])
 
             if DEBUG_SWITCH:
                 print "\nComputing another switch..."
@@ -200,10 +216,12 @@ def solve(data):
                 STRATEGIES[results[i][1]]['weight'] += len(STRATEGIES) - i
             time_last_switch = time.time()
 
-            print results
-            print sorted([STRATEGIES[i]['weight'] for i in range(len(STRATEGIES))])
+            if DEBUG_SWITCH:
+                print results
+                print sorted([STRATEGIES[i]['weight'] for i in range(len(STRATEGIES))])
 
             improvements = [0] * len(STRATEGIES)
+            time_spent = [0] * len(STRATEGIES)
 
 
         if res < best_make:
@@ -212,7 +230,13 @@ def solve(data):
 
 
 
+    print " %d %%\n" % percent_complete
     print "\nWent through %d iterations." % iteration
+
+    print "\n(usage) Strategy:"
+    results = sorted([(STRATEGIES[i]['weight'], i) for i in range(len(STRATEGIES))], reverse=True)
+    for (w, i) in results:
+        print "(%d) \t%s" % (STRATEGIES[i]['usage'], STRATEGIES[i]['name'])
 
     return (best_perm, best_make)
 
