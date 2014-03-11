@@ -2,7 +2,7 @@
   (:use core.fdb)
   [:require [core.manage :as M]])
 
-(def db-name "hos9")
+(def db-name "hos1")
 (M/reset-db-conn db-name)
 
 (def hospital-db (M/get-db-conn db-name))
@@ -40,5 +40,12 @@
 
 (transact hospital-db (update-datom :pat1 :patient/symptoms #{"cold sweat" "sneeze"} :db/reset-to))
 
+(transact hospital-db (update-datom :pat1 :patient/tests #{:t2-pat1} :db/remove))
+
+ (transact hospital-db (remove-entity :t2-pat1))
+
 (evolution-of (M/db-from-conn hospital-db) :pat1 :patient/symptoms)
+(evolution-of (M/db-from-conn hospital-db) :pat1 :patient/tests)
+
 @hospital-db
+(ind-at @hospital-db 9 :AVET )
