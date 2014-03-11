@@ -1,13 +1,13 @@
 import sys, os, time, random
 
 from functools import partial
-from itertools import combinations, permutations
+from itertools import combinations, permutations, product
 
 ##############
 ## Settings ##
 ##############
-TIME_LIMIT = 30
-TIME_INCREMENT = 5
+TIME_LIMIT = 120
+TIME_INCREMENT = 10
 DEBUG_SWITCH = True
 
 ##############################
@@ -25,13 +25,13 @@ def _neighbours_random(data, perm, num = 1):
 def _neighbours_swap(data, perm):
     candidates = [perm]
     for (i,j) in combinations(range(len(perm)), 2):
-            candidate = perm[:]
-            candidate[i], candidate[j] = candidate[j], candidate[i]
-            candidates.append(candidate)
+        candidate = perm[:]
+        candidate[i], candidate[j] = candidate[j], candidate[i]
+        candidates.append(candidate)
     return candidates
 
 def _neighbours_LNS(data, perm, size = 2):
-    candidates = []
+    candidates = [perm]
     for subset in combinations(range(len(perm)), size):
         best_make = makespan(data, perm)
         best_perm = perm
@@ -46,6 +46,26 @@ def _neighbours_LNS(data, perm, size = 2):
         candidates.append(best_perm)
     return candidates
 
+def _neighbours_idle(data, perm, size=4):
+
+    candidates = [perm]
+    sol = compile_solution(data, perm)
+    results = []
+
+    for i in range(len(data)):
+        finish_time = sol[-1][i] + data[perm[i]][-1]
+        idle_time = (finish_time - sol[0][i]) - sum([time for time in data[perm[i]]])
+        results.append((idle_time, perm[i]))
+
+    subset = [job for (idle, job) in list(reversed(results))[:size]]
+
+    for ordering in permutations(subset):
+        candidate = perm[:]
+        for i in range(len(ordering)):
+            candidate[subset[i]] = perm[ordering[i]]
+        candidates.append(candidate)
+
+    return candidates
 
 
 ################
@@ -62,59 +82,35 @@ def _heur_random(data, candidates):
 def _heur_random_hillclimbing(data, candidates):
     scores = sorted([(makespan(data, perm), perm) for perm in candidates])
     i = 0
-    while (random.random() < 0.5) and (i < len(scores)):
+    while (random.random() < 0.5) and (i < len(scores) - 1):
         i += 1
     return scores[i][1]
 
 
 ################################
 
+NEIGHBOURHOODS = [
+    ('Random Permutation', partial(_neighbours_random, num=100)),
+    ('Swapped Pairs', _neighbours_swap),
+    ('Large Neighbourhood Search (2)', partial(_neighbours_LNS, size=2)),
+    ('Large Neighbourhood Search (3)', partial(_neighbours_LNS, size=3)),
+    ('Idle Neighbourhood (3)', partial(_neighbours_idle, size=3)),
+    ('Idle Neighbourhood (4)', partial(_neighbours_idle, size=4)),
+    ('Idle Neighbourhood (5)', partial(_neighbours_idle, size=5))
+]
 
-STRATEGIES = [
-    {
-        'name': 'Random search.',
-        'heur': _heur_random,
-        'neigh': partial(_neighbours_random, num=1),
-        'weight': 1
-    },
-    {
-        'name': 'Random neighbours, randomly biased selection.',
-        'heur': _heur_random_hillclimbing,
-        'neigh': partial(_neighbours_random, num=100),
-        'weight': 1
-    },
-    {
-        'name': 'Random neighbours, hillclimbing selection.',
-        'heur': _heur_hillclimbing,
-        'neigh': partial(_neighbours_random, num=100),
-        'weight': 1
-    },
-    {
-        'name': 'Large Neighbourhood Search (size 2), hillclimbing selection.',
-        'heur': _heur_hillclimbing,
-        'neigh': partial(_neighbours_LNS, size=2),
-        'weight': 1
-    },
-    {
-        'name': 'Large Neighbourhood Search (size 3), hillclimbing selection.',
-        'heur': _heur_hillclimbing,
-        'neigh': partial(_neighbours_LNS, size=3),
-        'weight': 1
-    },
-    {
-        'name': 'Large Neighbourhood Search (size 2), randomly biased selection.',
-        'heur': _heur_random_hillclimbing,
-        'neigh': partial(_neighbours_LNS, size=2),
-        'weight': 1
-    },
-    {
-        'name': 'Large Neighbourhood Search (size 3), randomly biased selection.',
-        'heur': _heur_random_hillclimbing,
-        'neigh': partial(_neighbours_LNS, size=3),
-        'weight': 1
-    }
-  ]
+HEURISTICS = [
+    ('Hill Climbing', _heur_hillclimbing),
+    ('Random Selection', _heur_random),
+    ('Biased Random Selection', _heur_random_hillclimbing)
+]
 
+STRATEGIES = []
+for (n, h) in product(NEIGHBOURHOODS, HEURISTICS):
+    STRATEGIES.append({'name': "%s / %s" % (n[0], h[0]),
+                       'neigh': n[1],
+                       'heur': h[1],
+                       'weight': 1})
 
 def _pick_strategy(strategies):
     total = sum([strat['weight'] for strat in strategies])
