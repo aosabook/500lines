@@ -225,10 +225,9 @@
 
 (defn- update-indices [indices ent-id attr updated-attr new-val operation]
 
-  (let [new-eavt (update-eavt-for-datom (:EAVT indices) ent-id updated-attr)
+  (let [ new-eavt (update-eavt-for-datom (:EAVT indices) ent-id updated-attr)
           new-vaet (update-index-for-datom (:VAET indices) ent-id attr new-val operation va ref?) ; intentionally attr is passed and not updated-attr, we need to use the old value to locate where to update in the index
-     ;   x (println new-eavt)
-        new-avet (update-index-for-datom (:AVET indices) ent-id attr new-val operation av indexed?) ; intentionally attr is passed and not updated-attr, we need to use the old value to locate where to update in the index
+          new-avet (update-index-for-datom (:AVET indices) ent-id attr new-val operation av indexed?) ; intentionally attr is passed and not updated-attr, we need to use the old value to locate where to update in the index
          ] (assoc indices :EAVT new-eavt :VAET new-vaet :AVET new-avet)))
 
 (defn update-datom
