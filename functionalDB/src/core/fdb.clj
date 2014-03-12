@@ -1,13 +1,21 @@
 (ns core.fdb
   [:require [clojure.set :as CS :only (union difference )]])
 
+;; -- EAVT enty-id -> entity {:attrs -> {attr-name -> attr {:value -> the-value}}}
+;; -- VAET  structed like this:  {REFed-ent-id -> {attrName -> #{REFing-elems-ids}}}
+;;         this basically provides this info: for each entity that is REFFed by others (V), separated by the names of the attribute used for reffing (A), hold the set of the ids of the REFing (E), all this at a given time (T)
+;;         can be used to know who REFs a specific entity
+;; -- AVET  structed like this:  {attrName-> {attrValue -> #{holding-elems-ids}}}
+;;         this basically provides this info: for each attributeName (A) that we chose to index, separated by the values of the attribute  (V), hold the set of the ids of the hold thes attributes (E), all this at a given time (T)
+;;         can be used to know who are the entities that have a specific attribute with a specific value
+
 (defrecord Database [timestamped top-id curr-time])
 (defrecord Indices [EAVT VAET AVET])
 (defrecord Entity [id attrs])
 (defrecord Attr [name value ts prev-ts])
 
 (defn make-db "Create an empty database" []
-  (atom (Database. [(Indices. {} {} {})] 0 0))) ;EAVT: all the entity info, vaet for attrs who are of type :db/ref, we hold the back-pointing (from the REFFed entity to the REFing entities)
+  (atom (Database. [(Indices. {} {} {})] 0 0)))
 
 (defn make-entity "creates an entity, if id is not supplied, a running id is assigned to the entity"
   ([] (make-entity :db/no-id-yet ))
@@ -87,12 +95,12 @@
 
 (defn- update-creation-ts
   "updates the timestamp value of all the attributes of an entity to the given timestamp"
-  [ent tsVal]
+  [ent ts-val]
   (let [ks (keys (:attrs ent))
         vls (vals (:attrs ent))
-        updatedAttrsVals (map #(assoc % :ts tsVal) vls)
-        updatedAttrs (zipmap ks updatedAttrsVals)
-        ](assoc ent :attrs updatedAttrs)))
+        updated-attrs-vals (map #(assoc % :ts ts-val) vls)
+        updated-attrs (zipmap ks updated-attrs-vals)
+        ](assoc ent :attrs updated-attrs)))
 
 (defn- remove-entry-from-index [val-to-remove index path ]
   (let [ old-entries-set (get-in index path )]
@@ -104,15 +112,6 @@
       (let  [paths (map #(order-fn attr-name %) path-values)
              remover (partial remove-entry-from-index ent-id)]
        (reduce remover index paths))))
-
-;  VAET  structed like this:  {REFed-ent-id -> {attrName -> #{REFing-elems-ids}}}
-; this basically provides this info: for each entity that is REFFed by others (V), separated by the names of the attribute used for reffing (A), hold the set of the ids of the REFing (E), all this at a given time (T)
-;  can be used to know who REFs a specific entity
-
-
-;; ;  AVET  structed like this:  {attrName-> {attrValue -> #{holding-elems-ids}}
-;; ; this basically provides this info: for each attributeName (A) that we chose to index, separated by the values of the attribute  (V), hold the set of the ids of the hold thes attributes (E), all this at a given time (T)
-;; ;  can be used to know who are the entities that have a specific attribute with a specific value
 
 (defn- add-entry-to-index [index path val-to-add operation]
   (if (= operation :db/remove)
@@ -158,15 +157,13 @@
 (defn remove-entity[db ent-id]
   (let [ent (entity-at db ent-id)
          indices (last (:timestamped db))
-        vaet (remove-entity-from-index (:VAET indices) ent va ref? )
-        ;vaet (update-vaet  (:VAET indices) ent disj)
-       avet (remove-entity-from-index (:AVET indices) ent av indexed?)
-        ;avet (update-avet  (:AVET indices) ent disj)
-        new-eavt (dissoc (:EAVT indices) ent-id) ; removing the entity
-        new-vaet (dissoc vaet ent-id) ; removing incoming REFs to the entity
-        new-indices (assoc indices :EAVT new-eavt :VAET new-vaet :AVET avet)
-        res  (assoc db :timestamped (conj  (:timestamped db) new-indices))]
-        res))
+         vaet (remove-entity-from-index (:VAET indices) ent va ref? )
+         avet (remove-entity-from-index (:AVET indices) ent av indexed?)
+         new-eavt (dissoc (:EAVT indices) ent-id) ; removing the entity
+         new-vaet (dissoc vaet ent-id) ; removing incoming REFs to the entity
+         new-indices (assoc indices :EAVT new-eavt :VAET new-vaet :AVET avet)
+         res  (assoc db :timestamped (conj  (:timestamped db) new-indices))
+        ]res))
 
 (defn transact-on-db [initial-db  txs]
     (loop [[tx & rst-tx] txs transacted initial-db]
@@ -205,9 +202,9 @@
 
 (defn- remove-path-values [old-vals target-val operation]
   (cond
-   (= operation :db/add) []
-   (= operation :db/reset-to) old-vals
-   (= operation :db/remove) (collify target-val)))
+   (= operation :db/add) [] ; nothing to remove
+   (= operation :db/reset-to) old-vals ; removing all of the old values
+   (= operation :db/remove) (collify target-val))) ; removing the values defined by the caller
 
 (defn- update-index-for-datom
   [index ent-id attr target-val operation order-fn update-required-pred]
@@ -245,8 +242,8 @@
 
 
 (defn ref-to-as
-  "returns a seq of all the entities that REFed to a specific entity with the given attr-name (alternativly had an attribute named attr-name whose type is :db/ref
-   and the value was ent-id), all this at a given time"
+  "returns a seq of all the entities that have REFed to the give entity with the given attr-name (alternativly had an attribute
+   named attr-name whose type is :db/ref and the value was ent-id), all this at a given time"
    ([db ent-id attr-name]  (ref-to-as db ent-id attr-name (:curr-time db)))
   ([db ent-id attr-name ts]
       (let [indices ((:timestamped db) ts)
