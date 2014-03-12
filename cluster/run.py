@@ -109,4 +109,7 @@ if __name__ == "__main__":
     for member in members:
         member.start()
     client.start()
-    network.run()
+    try:
+        network.run()
+    finally:
+        print "RANDOM SEED:", rndseed

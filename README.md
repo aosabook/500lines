@@ -114,6 +114,14 @@ Contributors
     <td>taavi.burns@points.com</td>
   </tr>
   <tr>
+    <td>Guido van Rossum</td>
+    <td>Dropbox</td>
+    <td>crawler</td>
+    <td>@gvanrossum</td>
+    <td>@gvanrossum</td>
+    <td>guido@python.org</td>
+  </tr>
+  <tr>
     <td>Christian Muise</td>
     <td>University of Melbourne</td>
     <td>flow-shop</td>

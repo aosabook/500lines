@@ -11,8 +11,8 @@ class Heartbeat(Component):
         self.peers = None
         self.clock = clock
 
-    def on_view_change_event(self, viewchange):
-        self.peers = set(viewchange.peers)
+    def on_view_change_event(self, slot, viewid, peers):
+        self.peers = set(peers)
         for peer in self.peers:
             self.last_heard_from[peer] = self.clock()
         if not self.running:
@@ -28,7 +28,7 @@ class Heartbeat(Component):
 
         # determine if any peers are down, and notify if so; note that this
         # notification will occur repeatedly until a view change
-        too_old = self.clock() - 2 * protocol.HEARTBEAT_INTERVAL
+        too_old = self.clock() - protocol.HEARTBEAT_GONE_COUNT * protocol.HEARTBEAT_INTERVAL
         active_peers = set(p for p in self.last_heard_from if self.last_heard_from[p] >= too_old)
         if active_peers != self.peers:
             self.event('peers_down', down=self.peers - active_peers)
