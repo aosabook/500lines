@@ -34,6 +34,8 @@ class CodeGen(ast.NodeVisitor):
         self.constants = make_table()
         self.names     = make_table()
         self.varnames  = make_table()
+        self.freevars  = ()
+        self.cellvars  = ()
 
     def compile_class(self, t):
         self.set_docstring(t)
@@ -44,8 +46,10 @@ class CodeGen(ast.NodeVisitor):
 
     def set_docstring(self, t):
         self.load_const(ast.get_docstring(t))
-
+        
     def compile_function(self, t):
+        self.freevars = self.scope.get_freevars()
+        self.cellvars = self.scope.get_cellvars()
         self.set_docstring(t)
         for arg in t.args.args:
             self.varnames[arg.arg] # argh, naming
@@ -55,19 +59,21 @@ class CodeGen(ast.NodeVisitor):
         assembly = [self(t), self.load_const(None), op.RETURN_VALUE]
         return self.make_code(assembly, name, argcount)
 
-    def make_code(self, assembly, name, argcount):
+    def make_code(self, assembly, name, argcount=0):
         kwonlyargcount = 0
         nlocals = len(self.varnames)
         bytecode, stacksize, firstlineno, lnotab = assemble(assembly)
-        if 0: print('stacksize =', stacksize)
-        flags = 64 | (2 if nlocals else 0) # XXX I don't understand the flags
+        # XXX start with 0x01 for functions
+        flags = (0x00 | (0x02 if nlocals else 0)
+                      | (0x10 if self.freevars else 0)
+                      | (0x40 if not (self.freevars or self.cellvars) else 0))
         constants = tuple(constant for constant,_ in collect(self.constants))
         return types.CodeType(argcount, kwonlyargcount,
                               nlocals, stacksize, flags, bytecode,
                               constants,
                               collect(self.names), collect(self.varnames),
                               self.filename, name, firstlineno, lnotab,
-                              freevars=(), cellvars=())
+                              self.freevars, self.cellvars)
 
     def __call__(self, t):
         assert isinstance(t, (ast.AST, list))
@@ -98,7 +104,20 @@ class CodeGen(ast.NodeVisitor):
                 self.store(t.name)]
 
     def make_closure(self, code, name):
-        return [self.load_const(code), self.load_const(name), op.MAKE_FUNCTION(0)] # XXX 0?
+        if not code.co_freevars:
+            return [self.load_const(code),
+                    self.load_const(name),
+                    op.MAKE_FUNCTION(0)] # XXX 0 = # of default args?
+        else:
+            return [[op.LOAD_CLOSURE(self.cell_index(name))
+                     for name in code.co_freevars],
+                    op.BUILD_TUPLE(len(code.co_freevars)),
+                    self.load_const(code),
+                    self.load_const(name),
+                    op.MAKE_CLOSURE(0)] # XXX 0 = # of default args?
+
+    def cell_index(self, name):
+        return (self.cellvars + self.freevars).index(name)
 
     def visit_Return(self, t):
         return [self(t.value) if t.value else self.load_const(None),
@@ -239,17 +258,19 @@ class CodeGen(ast.NodeVisitor):
         else: assert False
 
     def load(self, name):
-        level = self.scope.scope(name)
-        if   level == 'fast':   return op.LOAD_FAST(self.varnames[name])
-        elif level == 'global': return op.LOAD_GLOBAL(self.names[name])
-        elif level == 'name':   return op.LOAD_NAME(self.names[name])
+        access = self.scope.scope(name)
+        if   access == 'fast':   return op.LOAD_FAST(self.varnames[name])
+        elif access == 'deref':  return op.LOAD_DEREF(self.cell_index(name))
+        elif access == 'global': return op.LOAD_GLOBAL(self.names[name])
+        elif access == 'name':   return op.LOAD_NAME(self.names[name])
         else: assert False
 
     def store(self, name):
-        level = self.scope.scope(name)
-        if   level == 'fast':   return op.STORE_FAST(self.varnames[name])
-        elif level == 'global': return op.STORE_GLOBAL(self.names[name])
-        elif level == 'name':   return op.STORE_NAME(self.names[name])
+        access = self.scope.scope(name)
+        if   access == 'fast':   return op.STORE_FAST(self.varnames[name])
+        elif access == 'deref':  return op.STORE_DEREF(self.cell_index(name))
+        elif access == 'global': return op.STORE_GLOBAL(self.names[name])
+        elif access == 'name':   return op.STORE_NAME(self.names[name])
         else: assert False
 
     def visit_List(self, t):
