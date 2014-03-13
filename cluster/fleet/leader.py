@@ -44,9 +44,8 @@ class Leader(Component):
     def scout_finished(self, adopted, ballot_num, pvals):
         self.scout = None
         if adopted:
-            # pvals is a defaultlist of (slot, proposal) by ballot num; we need the
-            # highest ballot number for each slot.  TODO: this is super
-            # inefficient!
+            # pvals is a defaultdict of proposal by (ballot num, slot); we need the proposal with
+            # highest ballot number for each slot.  TODO: this is super inefficient!
             last_by_slot = defaultlist()
             for b, s in reversed(sorted(pvals.keys())):
                 p = pvals[b, s]
@@ -59,8 +58,7 @@ class Leader(Component):
             for view_slot in sorted(self.peer_history):
                 slot = view_slot + ALPHA
                 if self.proposals[slot] is not None:
-                    self.spawn_commander(self.ballot_num, slot, self.proposals[slot],
-                                         self.peer_history[view_slot])
+                    self.spawn_commander(self.ballot_num, slot, self.proposals[slot], self.peer_history[view_slot])
             # note that we don't re-spawn commanders here; if there are undecided
             # proposals, the replicas will re-propose
             self.logger.info("leader becoming active")
