@@ -12,7 +12,7 @@ To construct this model, we use _Alloy_, a language for modeling and analyzing s
 
 ## Model
 
-We will start by building a small model of the web, along the way introducing features of Alloy and exploring different types of analyses that can be performed with it. We will then extend the model by adding the SOP and other mechanisms that have been invented to cope with the limtations of the SOP.
+We will start by building a small model of the web, along the way introducing features of Alloy and exploring different types of analyses that can be performed with it. We will then extend the model by adding the SOP and other mechanisms that have been invented to cope with the limitations of the SOP.
 
 ### Modeling Servers and Clients
 In essence, an Alloy model contains a universe of _objects_ and _relations_ among them. An Alloy _signature_ defines a set of objects, and a _field_ introduces a relation between two or more types of objects. Here is a simple model describing a web server that maps URLs to resources:
@@ -93,7 +93,7 @@ abstract sig APICall extends Msg {}{
 
 We have already discussed how the Alloy Analyzer can be used to generate valid instances of a system. Another type of analysis is _checking_ whether a model satisfies a property. 
 
-Since our primary concern in this chpater is security, let us consider one property that is desirable in many web applications: _critical resources should never be accessible to malicious modules_. Before stating this property precisely in Alloy, we first designate some subsets of resources and modules to be _critical_ and _malicious_, respectively. Furthermore, we extend the  **Module** signature with a set of resources that a module accesses: 
+Since our primary concern in this chapter is security, let us consider one property that is desirable in many web applications: _critical resources should never be accessible to malicious modules_. Before stating this property precisely in Alloy, we first designate some subsets of resources and modules to be _critical_ and _malicious_, respectively. Furthermore, we extend the  **Module** signature with a set of resources that a module accesses: 
 ```
 sig CriticalResource in Resource {}     // some subset of resources are critical
 abstract sig Module {
@@ -108,7 +108,7 @@ assert noResourceLeak {
 }
 check noResourceLeak for 5
 ```
-When executed, _check_ command instructs the analyzer to look for a _counterexample_ -- a system trace that represents a violation of the property. In our case, a counterexample, if it exists would consist of a scenarion in which a malicious script or server accesses a piece of critical resource.
+When executed, the _check_ command instructs the analyzer to look for a _counterexample_ -- a system trace that represents a violation of the property. In our case, a counterexample, if it exists would consist of a scenario in which a malicious script or server accesses a piece of critical resource.
 
 The analysis is _exhaustive_, in that it will consider every possible configuration and behavior of the system (up to the specified bound), and so if there is a counterexample to the property, then the analyzer is guaranteed to find it.
 
