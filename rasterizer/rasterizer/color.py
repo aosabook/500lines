@@ -24,3 +24,13 @@ class Color:
                            byte(self.rgb[2] * self.a))
     def __repr__(self):
         return "[" + str(self.rgb) + "," + str(self.a) + "]"
+    @staticmethod
+    def hex(code, a=1):
+        if len(code) == 4:
+            return Color(int(code[1], 16) / 15.0,
+                         int(code[2], 16) / 15.0,
+                         int(code[3], 16) / 15.0, a)
+        elif len(code) == 7:
+            return Color(int(code[1:3], 16) / 255.0,
+                         int(code[3:5], 16) / 255.0,
+                         int(code[5:7], 16) / 255.0, a)
