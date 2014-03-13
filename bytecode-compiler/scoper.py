@@ -62,17 +62,17 @@ class Scope(ast.NodeVisitor):
         return tuple(name for name,flags in self.st._table.symbols.items()
                      if FREE == ((flags >> SCOPE_OFF) & SCOPE_MASK))
 
-    def get_child(self, ast_node):
-        return self.children[ast_node.name]
+    def get_child(self, t):
+        return self.children[id(t)]
 
     def visit_ClassDef(self, t):
         for expr in t.bases: self.visit(expr)
-        self.children[t.name] = subscope = Scope(find_child(self.st, t.name))
+        self.children[id(t)] = subscope = Scope(find_child(self.st, t.name))
         for stmt in t.body: subscope.visit(stmt)
 
     def visit_FunctionDef(self, t):
-        self.children[t.name] = subscope = Scope(find_child(self.st, t.name),
-                                                 t.args.args)
+        self.children[id(t)] = subscope = Scope(find_child(self.st, t.name),
+                                                t.args.args)
         for stmt in t.body: subscope.visit(stmt)
 
 def find_child(st, name):
