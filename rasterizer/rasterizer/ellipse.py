@@ -23,6 +23,8 @@ class Ellipse(Shape):
                                   Vector(-(d + c*y2)/2*a, y2),
                                   Vector(x1, -(e + c*x1)/2*b),
                                   Vector(x2, -(e + c*x2)/2*b))
+        if not self.contains(self.center):
+            raise Exception("Internal error, center not inside ellipse")
     def value(self, p):
         return self.a*p.x*p.x + self.b*p.y*p.y + self.c*p.x*p.y \
                + self.d*p.x + self.e*p.y + self.f
@@ -35,9 +37,9 @@ class Ellipse(Shape):
         bb = self.a*m01*m01 + self.b*m11*m11 + self.c*m01*m11
         cc = 2*self.a*m00*m01 + 2*self.b*m10*m11 \
              + self.c*(m00*m11 + m01*m10)
-        dd = 2*self.a*m00 * m02 + 2*self.b*m10*m12 \
+        dd = 2*self.a*m00*m02 + 2*self.b*m10*m12 \
              + self.c*(m00*m12 + m02*m10) + self.d*m00 + self.e*m10
-        ee = 2*self.a*m10*m02 + 2*self.b*m11*m12 \
+        ee = 2*self.a*m01*m02 + 2*self.b*m11*m12 \
              + self.c*(m01*m12 + m02*m11) + self.d*m01 + self.e*m11
         ff = self.a*m02*m02 + self.b*m12*m12 + self.c*m02*m12 \
              + self.d*m02 + self.e*m12 + self.f
@@ -50,11 +52,18 @@ class Ellipse(Shape):
         pc = p - c
         u2 = self.a*pc.x**2 + self.b*pc.y**2 + self.c*pc.x*pc.y
         u1 = 2*self.a*c.x*pc.x + 2*self.b*c.y*pc.y \
-             + self.c*c.y*pc.x + self.c*c.x*pc.y + self.d*pc.x \
+             + self.c*c.y*pc.x +   self.c*c.x*pc.y + self.d*pc.x \
              + self.e*pc.y
         u0 = self.a*c.x**2 + self.b*c.y**2 + self.c*c.x*c.y \
              + self.d*c.x + self.e*c.y + self.f
-        sols = quadratic(u2, u1, u0)
+        try:
+            sols = quadratic(u2, u1, u0)
+        except:
+            print self.value(c)
+            print self.value(p)
+            print self.a, self.b, self.c, self.d, self.e, self.f
+            print u2, u1, u0, c, p
+            raise
         return c+pc*sols[0], c+pc*sols[1]
     def signed_distance_bound(self, p):
         v = self.value(p)
