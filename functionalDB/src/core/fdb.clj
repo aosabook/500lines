@@ -128,7 +128,7 @@
   (let [ent-id (:id ent)
         all-attrs  (vals (:attrs ent))
         relevant-attrs (filter #(filtering-pred %) all-attrs )
-        add-in-index-fn (fn [ind attr] (update-attr-in-index ind ent-id (:value attr) order-fn (:value attr) :db/add))
+        add-in-index-fn (fn [ind attr] (update-attr-in-index ind ent-id (:name attr) order-fn (:value attr) :db/add))
         ] (reduce add-in-index-fn index relevant-attrs)))
 
 (defn- remove-entity-from-index[index ent order-fn filtering-pred]
@@ -240,6 +240,21 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;  queries
 
+(defn entities-of-ids [db ent-ids]
+  (let [indices (last (:timestamped db))
+         eavt (:EAVT indices)]
+    (map #(% eavt) ent-ids)))
+
+(defn filtered-entities-by-attr[db attr-name pred]
+   (let [indices (last (:timestamped db))
+          ve (get-in indices [:AVET :test/machine] )
+          relevant-entries  (filter #(pred (first %)) ve)
+          relevant-ids-sets (map second relevant-entries)
+          relevant-ent-ids (seq (reduce CS/union relevant-ids-sets ))
+      ](entities-of-ids db relevant-ent-ids)))
+
+(defn entities-by-attr [db attr-name]
+  (filtered-entities-by-attr [db attr-name #(= % %)]))
 
 (defn ref-to-as
   "returns a seq of all the entities that have REFed to the give entity with the given attr-name (alternativly had an attribute

@@ -1,6 +1,7 @@
 (ns scenarios.hospital
   (:use core.fdb)
-  [:require [core.manage :as M]])
+  [:require [core.manage :as M]
+                [clojure.set     :as CS :only (union difference )]])
 
 (def db-name "hos1")
 (M/reset-db-conn db-name)
@@ -36,7 +37,7 @@
 (transact hospital-db  (add-entities (map #(make-entity %) basic-kinds )))
 (add-patient :pat1 "London" ["fever" "cough"] )
 (add-test-results-to-patient :pat1  (make-test :t2-pat1  {:test/bp-systolic 120 :test/bp-diastolic 80 :test/machine "XXX"} {:test/machine "string"} (fn [a]  (= a :test/machine))))
-(add-test-results-to-patient :pat1  (make-test :t4-pat1  {:test/bp-systolic 170 :test/bp-diastolic 90 :test/machine "XXX"} {:test/machine "string"} (fn [a]  (= a :test/machine))))
+(add-test-results-to-patient :pat1  (make-test :t4-pat1  {:test/bp-systolic 170 :test/bp-diastolic 90 :test/machine "XYY"} {:test/machine "string"} (fn [a]  (= a :test/machine))))
 
 (transact hospital-db (update-datom :pat1 :patient/symptoms #{"cold sweat" "sneeze"} :db/reset-to))
 
@@ -49,3 +50,6 @@
 
 @hospital-db
 (ind-at @hospital-db 9 :AVET )
+
+(filtered-entities-by-attr @hospital-db  :test/machine  (fn [a] (. a startsWith "X")) )
+
