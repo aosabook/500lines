@@ -36,6 +36,7 @@ class Checker(ast.NodeVisitor):
         assert not t.returns
 
     def visit_ClassDef(self, t):
+        # TODO: forbid nested classes, for now?
         self.check_identifier(t.name)
         self(t.bases)
         assert not t.keywords
@@ -80,6 +81,7 @@ class Checker(ast.NodeVisitor):
         self(t.names)
 
     def visit_alias(self, t):
+        assert t.name != '*'
         self.check_identifier(t.name)
         if t.asname is not None: 
             self.check_identifier(t.asname)
