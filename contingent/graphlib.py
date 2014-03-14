@@ -17,7 +17,7 @@ class Graph(object):
     def generate_consequences_backwards(self, dependency):
         def visit(dependency):
             visited.add(dependency)
-            for target in self.targets[dependency]:
+            for target in sorted(self.targets[dependency], reverse=True):
                 if target not in visited:
                     yield from visit(target)
                     yield target

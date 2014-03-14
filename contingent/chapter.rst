@@ -34,11 +34,28 @@ statically generated blog, the dependency graph tends to be more
 complicated.  For example, each blog post’s navigation might point the
 way to the previous post in the blog’s history.  In real life, the
 navigation would probably need at least the previous post’s title, URL,
-and date.  But to keep our example simple, we will only consider the
-title:
+and date.  But to keep our example simple, we will only consider that
+the title of each blog post will appear on the page of the next one.
+Like body, the title will need to appear on each post’s own page:
 
->>> g = Graph()
+>>> g.add_edge('A.rst', 'A.title')
+>>> g.add_edge('B.rst', 'B.title')
+>>> g.add_edge('C.rst', 'C.title')
+>>> g.add_edge('A.title', 'A.html')
+>>> g.add_edge('B.title', 'B.html')
+>>> g.add_edge('C.title', 'C.html')
 
-Since targets can themselves be the dependencies of yet further targets,
-the ``consequences_of()`` operation in fact needs to be recursive.
+But as part of the navigation each title will also appear on the HTML
+page for the subsequent post:
+
+>>> g.add_edge('A.title', 'B.html')
+>>> g.add_edge('B.title', 'C.html')
+
+Editing the markup source for any blog post but the last will now force
+us to regenerate both that blog post and also the subsequent one, to
+make sure that an edited title is correctly reflected in the next post’s
+navigation:
+
+>>> g.consequences_of('B.rst')
+['B.body', 'B.title', 'B.html', 'C.html']
 
