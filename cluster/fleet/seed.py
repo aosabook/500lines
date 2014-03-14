@@ -30,7 +30,7 @@ class Seed(Component):
         self.send(self.peers, 'WELCOME',
                   state=self.initial_state,
                   slot_num=ALPHA,
-                  decisions=defaultlist(),
+                  decisions={},
                   view_id=0,
                   peers=list(self.peers),
                   peer_history=peer_history.copy())
