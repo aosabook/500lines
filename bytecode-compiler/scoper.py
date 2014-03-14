@@ -46,7 +46,7 @@ class Scope(ast.NodeVisitor):
 
     def __init__(self, st, defs=(), uses=()):
         self.st = st
-        self.children = {}      # XXX what if multiple defs with same name?
+        self.children = {}
 
     def dump(self, indent=''):
         show(self.st, '')
