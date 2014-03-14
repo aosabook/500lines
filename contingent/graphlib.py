@@ -12,4 +12,14 @@ class Graph(object):
         self.dependencies[target].add(dependency)
 
     def consequences_of(self, dependency):
-        return self.targets[dependency]
+        return list(self.generate_consequences_backwards(dependency))[::-1]
+
+    def generate_consequences_backwards(self, dependency):
+        def visit(dependency):
+            visited.add(dependency)
+            for target in self.targets[dependency]:
+                if target not in visited:
+                    yield from visit(target)
+                    yield target
+        visited = set()
+        yield from visit(dependency)
