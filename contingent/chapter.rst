@@ -51,6 +51,8 @@ page for the subsequent post:
 >>> g.add_edge('A.title', 'B.html')
 >>> g.add_edge('B.title', 'C.html')
 
+>>> open('diagram1.dot', 'w').write(g.as_graphviz()) and None
+
 Editing the markup source for any blog post but the last will now force
 us to regenerate both that blog post and also the subsequent one, to
 make sure that an edited title is correctly reflected in the next post’s
@@ -58,4 +60,16 @@ navigation:
 
 >>> g.consequences_of('B.rst')
 ['B.body', 'B.title', 'B.html', 'C.html']
+
+Note that by rebuilding both ``B.html`` and ``C.html`` in this case, a
+make-inspired system will usually be doing extra work — after all, most
+edits to ``B.rst`` will probably be edits to the body and not changes to
+the title itself.  But ``C.html`` will be rebuilt with every edit.
+
+But if we step back for a moment, we see that in fact things are far
+worse.
+
+How, when it comes down to it, do we know that these three blog posts
+actually come in the order A-B-C?
+
 

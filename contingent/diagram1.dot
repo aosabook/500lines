@@ -1,0 +1,16 @@
+digraph { node [shape=rect penwidth=0 style=filled fillcolor="#d6d6d6"];
+"A.body" -> "A.html"
+"A.rst" -> "A.body"
+"A.rst" -> "A.title"
+"A.title" -> "A.html"
+"A.title" -> "B.html"
+"B.body" -> "B.html"
+"B.rst" -> "B.body"
+"B.rst" -> "B.title"
+"B.title" -> "B.html"
+"B.title" -> "C.html"
+"C.body" -> "C.html"
+"C.rst" -> "C.body"
+"C.rst" -> "C.title"
+"C.title" -> "C.html"
+}

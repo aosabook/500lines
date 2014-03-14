@@ -23,3 +23,13 @@ class Graph(object):
                     yield target
         visited = set()
         yield from visit(dependency)
+
+    def as_graphviz(self):
+        """Generate lines of graphviz ``dot`` code that draw this graph."""
+        lines = ['digraph { node [shape=rect penwidth=0 style=filled'
+                 ' fillcolor="#d6d6d6"];']
+        for dependency, targets in sorted(self.targets.items()):
+            for target in sorted(targets):
+                lines.append('"{}" -> "{}"'.format(dependency, target))
+        lines.append('}')
+        return '\n'.join(lines)
