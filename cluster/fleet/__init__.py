@@ -19,21 +19,6 @@ ALPHA = 10
 assert CATCHUP_INTERVAL < JOIN_RETRANSMIT
 
 
-class defaultlist(list):
-
-    def _set_len(self, l):
-        if l > len(self):
-            self.extend([None] * (l - len(self)))
-
-    def __getitem__(self, i):
-        self._set_len(i + 1)
-        return super(defaultlist, self).__getitem__(i)
-
-    def __setitem__(self, i, v):
-        self._set_len(i + 1)
-        super(defaultlist, self).__setitem__(i, v)
-
-
 def view_primary(view_id, peers):
     return peers[view_id % len(peers)]
 

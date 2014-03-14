@@ -1,4 +1,4 @@
-from . import defaultlist, ALPHA, JOIN_RETRANSMIT
+from . import ALPHA, JOIN_RETRANSMIT
 from .member import Component
 
 
