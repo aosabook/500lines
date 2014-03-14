@@ -107,8 +107,7 @@
         ](assoc ent :attrs updated-attrs)))
 
 (defn- remove-entry-from-index [index path ]
-  (let [ stam (println path)
-        remove-path (butlast path)
+  (let [ remove-path (butlast path)
            val-to-remove (last path)
         old-entries-set (get-in index remove-path )]
      (assoc-in index remove-path (disj old-entries-set val-to-remove))))
@@ -258,10 +257,10 @@
          eavt (:EAVT indices)]
     (map #(% eavt) ent-ids)))
 
-(defn filtered-entities-by-attr[db attr-name pred]
+(defn filtered-entities-by-attr[db attr-name val-pred]
    (let [indices (last (:timestamped db))
           ve (get-in indices [:AVET :test/machine] )
-          relevant-entries  (filter #(pred (first %)) ve)
+          relevant-entries  (filter #(val-pred (first %)) ve)
           relevant-ids-sets (map second relevant-entries)
           relevant-ent-ids (seq (reduce CS/union relevant-ids-sets ))
       ](entities-of-ids db relevant-ent-ids)))
@@ -293,6 +292,6 @@
     (assoc db :timestamped indices-before :curr-time ts)))
 
 (defn ind-at
-  "inspecting a specific index at a given time. The kind argument may be of of these:  :AVET :EAVT :VAET "
+  "inspecting a specific index at a given time. The kind argument may be of of these:  :AVET :EAVT :VAET :EVAT"
   [db ts kind]
   (kind ((:timestamped db) ts)))
