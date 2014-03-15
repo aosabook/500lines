@@ -1,4 +1,5 @@
-from OpenGL.GL import *
+from OpenGL.GL import glCallList, glMatrixMode, glPolygonMode, glPopMatrix, glPushMatrix, glTranslated
+from OpenGL.GL import GL_FILL, GL_FRONT_AND_BACK, GL_LINE, GL_MODELVIEW
 from primitive import G_OBJ_CUBE
 import numpy
 import math

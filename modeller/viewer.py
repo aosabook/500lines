@@ -1,7 +1,16 @@
 #! /usr/bin/env python
-from OpenGL.GL import *
-from OpenGL.GLU import *
-from OpenGL.GLUT import *
+from OpenGL.GL import glCallList, glClear, glClearColor, glColorMaterial, glCullFace, glDepthFunc, glDisable, glEnable, \
+                      glFlush, glGetFloatv, glLightfv, glLoadIdentity, glMatrixMode, glMultMatrixf, glPopMatrix, \
+                      glPushMatrix, glTranslated, glViewport
+from OpenGL.GL import GL_AMBIENT_AND_DIFFUSE, GL_BACK, GL_CULL_FACE, GL_COLOR_BUFFER_BIT, GL_COLOR_MATERIAL, \
+                      GL_DEPTH_BUFFER_BIT, GL_DEPTH_TEST, GL_FRONT_AND_BACK, GL_LESS, GL_LIGHT0, GL_LIGHTING, \
+                      GL_MODELVIEW, GL_MODELVIEW_MATRIX, GL_POSITION, GL_PROJECTION, GL_SPOT_DIRECTION
+from OpenGL.constants import GLfloat_3, GLfloat_4
+from OpenGL.GLU import gluPerspective, gluUnProject
+from OpenGL.GLUT import glutCreateWindow, glutDisplayFunc, glutGet, glutInit, glutInitDisplayMode, \
+                        glutInitWindowSize, glutMainLoop
+from OpenGL.GLUT import GLUT_SINGLE, GLUT_RGB, GLUT_WINDOW_HEIGHT, GLUT_WINDOW_WIDTH
+
 from numpy.linalg import norm
 import numpy
 
@@ -9,16 +18,16 @@ from interaction import Interaction
 from primitive import InitPrimitives, G_OBJ_PLANE
 from node import Sphere, Cube
 from scene import Scene
-from transformation import make_perspective
+
 
 class Viewer(object):
     def __init__(self):
         """ Initialize the context. """
         glutInit()
-        glutInitWindowSize(640,480)
+        glutInitWindowSize(640, 480)
         glutCreateWindow("3D Modeller")
         glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB)
-        glClearColor(1.0,1.0,1.0,0.0)
+        glClearColor(1.0, 1.0, 1.0, 0.0)
         glutDisplayFunc(self.Render)
         self.initialize()
 
@@ -51,7 +60,7 @@ class Viewer(object):
         glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, GLfloat_3(0, 0, -1))
 
         glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE)
-        glEnable( GL_COLOR_MATERIAL)
+        glEnable(GL_COLOR_MATERIAL)
 
     def MainLoop(self):
         glutMainLoop()
@@ -63,11 +72,11 @@ class Viewer(object):
         # Enable lighting and color
         glEnable(GL_LIGHTING)
 
-        glClearColor(0.4, 0.4, 0.4, 0.0);
+        glClearColor(0.4, 0.4, 0.4, 0.0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         # Load the modelview matrix from the current state of the trackball
-        glMatrixMode(GL_MODELVIEW);
+        glMatrixMode(GL_MODELVIEW)
         glPushMatrix()
         glLoadIdentity()
         loc = self.interaction.camera_loc
@@ -75,7 +84,7 @@ class Viewer(object):
         glMultMatrixf(self.interaction.trackball.matrix)
 
         # store the inverse of the current modelview.
-        mat = numpy.array(glGetFloatv( GL_MODELVIEW_MATRIX ))
+        mat = numpy.array(glGetFloatv(GL_MODELVIEW_MATRIX))
         self.inverseModelView = numpy.linalg.inv(numpy.transpose(mat))
         self.modelView = numpy.transpose(mat)
 
@@ -92,16 +101,16 @@ class Viewer(object):
 
     def initView(self):
         """ initialize the projection matrix """
-        xSize, ySize = glutGet( GLUT_WINDOW_WIDTH ), glutGet( GLUT_WINDOW_HEIGHT )
+        xSize, ySize = glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT)
         aspect_rat = float(xSize) / float(ySize)
 
         # load the projection matrix. Always the same
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
 
-        glViewport(0, 0, xSize, ySize);
-        gluPerspective(70, aspect_rat , 0.1, 1000.0)
-        glTranslated(0, 0, -15);
+        glViewport(0, 0, xSize, ySize)
+        gluPerspective(70, aspect_rat, 0.1, 1000.0)
+        glTranslated(0, 0, -15)
 
     def InitialScene(self):
         cube_node = Cube()
@@ -125,7 +134,7 @@ class Viewer(object):
             Return: start, direction of the ray """
         self.initView()
 
-        glMatrixMode(GL_MODELVIEW);
+        glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
 
         # get two points on the line.
@@ -155,7 +164,7 @@ class Viewer(object):
             Consumes: x, y coordinates of the mouse on the screen """
         start, direction = self.getRay(x, y)
         self.scene.place(shape, start, direction, self.inverseModelView)
-    
+
     def color(self, forward):
         """ Rotate the color of the selected Node. Boolean 'forward' indicates direction of rotation. """
         self.scene.rotate_color(forward)
@@ -164,6 +173,6 @@ class Viewer(object):
         """ Scale the selected Node. Boolean up indicates scaling larger."""
         self.scene.scale(up)
 
-if __name__=="__main__":
+if __name__ == "__main__":
     viewer = Viewer()
     viewer.MainLoop()

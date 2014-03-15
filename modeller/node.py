@@ -1,23 +1,25 @@
-from OpenGL.GL import *
-from numpy import array, matrix
+import random
+from OpenGL.GL import glCallList, glColor3f, glMaterialfv, glMultMatrixf, glPopMatrix, glPushMatrix
+from OpenGL.GL import GL_EMISSION, GL_FRONT
 import numpy
-from primitive import G_OBJ_SPHERE, G_OBJ_CUBE, MakeCube
+
+from primitive import G_OBJ_CUBE, G_OBJ_SPHERE
 from aabb import AABB
 from transformation import scaling, translation
 import color
+
 
 class Node(object):
     """ Base class for scene elements """
     def __init__(self):
         self.location = [0, 0, 0]
-        self.color_index = 0
+        self.color_index = random.randint(color.MIN_COLOR, color.MAX_COLOR)
         self.call_list = None
         self.aabb = AABB([0.0, 0.0, 0.0], [0.5, 0.5, 0.5])
         self.translation = numpy.identity(4)
         self.scalemat = numpy.identity(4)
         self.selected = False
         self.scale_mult = 1.0
-
 
     def render(self):
         """ renders the item to the screen """
@@ -26,7 +28,7 @@ class Node(object):
         glMultMatrixf(self.scalemat)
         cur_color = color.COLORS[self.color_index]
         glColor3f(cur_color[0], cur_color[1], cur_color[2])
-        if self.selected: # emit light if the node is selected
+        if self.selected:  # emit light if the node is selected
             glMaterialfv(GL_FRONT, GL_EMISSION, [0.3, 0.3, 0.3])
         glCallList(self.call_list)
         if self.selected:
@@ -35,7 +37,7 @@ class Node(object):
         glPopMatrix()
 
     def translate(self, x, y, z):
-        self.translation = numpy.dot(self.translation , translation([x, y, z]))
+        self.translation = numpy.dot(self.translation, translation([x, y, z]))
 
     def rotate_color(self, forwards):
         self.color_index += 1 if forwards else -1
@@ -73,10 +75,9 @@ class Sphere(Node):
         super(Sphere, self).__init__()
         self.call_list = G_OBJ_SPHERE
 
+
 class Cube(Node):
     """ Cube primitive """
     def __init__(self):
         super(Cube, self).__init__()
         self.call_list = G_OBJ_CUBE
-
-

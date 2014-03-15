@@ -1,6 +1,8 @@
 import sys
 import numpy
 from node import Sphere, Cube
+
+
 class Scene(object):
     """ Base class for scene nodes.
         Scene nodes currently only include primitives """
@@ -29,12 +31,12 @@ class Scene(object):
         """ Execute selection.
             Consume: start, direction describing a Ray
                      mat              is the inverse of the current modelview matrix for the scene """
-        if self.selected_node is not None: 
+        if self.selected_node is not None:
             self.selected_node.select(False)
             self.selected_node = None
 
         # Keep track of the closest hit.
-        mindist, closest_node  = sys.maxint, None
+        mindist, closest_node = sys.maxint, None
         for node in self.node_list:
             hit, distance = node.picking(start, direction, mat)
             if hit and distance < mindist:
@@ -69,7 +71,6 @@ class Scene(object):
         # translate the node and track its location
         node.translate(translation[0], translation[1], translation[2])
         node.selected_loc = newloc
-
 
     def place(self, shape, start, direction, inv_modelview):
         """ Place a new node.
