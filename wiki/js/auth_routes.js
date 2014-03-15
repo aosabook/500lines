@@ -17,11 +17,12 @@ module.exports = function (app, store, passport) {
 
   app.post('/signup', function(request, response, next){
     var currentUrl = request.session.currentPage || '/wiki/';
-    var username = request.body.username;
-    var password = request.body.password;
-    store.insertUser(username, password, function(error){
-      if(error) return response.render('layout.html', {title: 'Login failed', error: status, user: request.user,
+    store.insertUser(request.body.username, request.body.password, function(error){
+      if(error){
+        if(error.message == 'conflict') error.message = "Username already exists";
+        return response.render('layout.html', {title: 'Login failed', error: error.message, user: request.user,
                                              partials: {body: 'loginfail.html', login: 'login.html'}});
+      }
       return passport.authenticate('local', { successRedirect: currentUrl, failureRedirect: '/loginfail' })(request, response, next);
     });
   });

@@ -17,7 +17,7 @@
   "devDependencies": {},
   "scripts": {
     "start": "node js/server.js",
-    "test": "node --debug js/server.js"
+    "test": "jshint js/*; node --debug js/server.js"
   },
   "author": "Laurie MacDougall Sookraj"
 }

@@ -1,35 +1,38 @@
-var wiki_util = require('./wiki_util.js');
 var request = require('request');
+var tools = require('./tools.js');
+
+var handleCouchResponse = function(error, couchResponse, content, callback){
+    if(error) return callback(error);
+    if(couchResponse.statusCode == 409) return callback(new Error('conflict'));
+    if(couchResponse.statusCode != 200 && couchResponse.statusCode != 201 && couchResponse.statusCode != 304) return callback(new Error("Bad status code: " + couchResponse.statusCode)); //not ok or created or not changed
+    return callback(null, content);
+};
 
 module.exports = {
-  getWikiContents: function(page, toHtml, callback){
+  getWikiContents: function(page, callback){
     request(this.dbURL + this.dbName + page, function(error, couchResponse, doc){
-      if(error) return response.send(couchResponse.statusCode, error);
-      doc = JSON.parse(doc);
-      if(doc.error && doc.reason == "missing"){
-        doc.content = ''; //page does not exist yet
-      }
-      if(toHtml) doc.content = wiki_util.processHtml(doc.content);
-      callback(doc);
+      if(error) return callback(error);
+      tools.parseJSON(doc, function(err, object){
+        if(err) return callback(err);
+        if(object.err && object.reason !== 'missing') return callback(new Error(object.err + ": " + object.reason));
+        if(!object.content) object.content = ''; //page does not exist yet
+        return callback(null, object);
+      });
     });
   },
   saveWikiContents: function(args, callback){
     args.updatedDate = new Date();
-    request({url: this.dbURL + this.dbName + page, method: 'PUT', json: args}, function(error, couchResponse, content){
-        if(error) return callback(error);
-        if(couchResponse.statusCode == 200 || couchResponse.statusCode == 201 || couchResponse.statusCode == 304) return callback('ok'); //ok or created or not changed
-        if(couchResponse.statusCode == 409) return callback(new Error('conflict'));
-        if(content.error) return callback(content.error);
-        return callback(new Error('error'); //just in case there's some other error scenario that doesn't provide an error message
+    request({url: this.dbURL + this.dbName + args._id, method: 'PUT', json: args}, function(error, couchResponse, content) {
+      handleCouchResponse(error, couchResponse, content, callback);
     });
   },
   listWikiPages: function(callback){
     request(this.dbURL + this.dbName + '_all_docs', function(error, couchResponse, content){
-      if(error){
-        console.log('Error retreiving pages from couchDB at ' + this.dbURL + ": " +error);
-        return callback(error, null);
-      }
-      return callback(null, content);
+      if(error) return callback(error, null);
+      tools.parseJSON(content, function(err, object){
+        if(err) return callback(err, null);
+        return callback(null, object.rows);
+      });
     });
   },
   getId: function(username){
@@ -39,30 +42,25 @@ module.exports = {
     var userId = this.getId(username);
     var args = {_id: userId, name: username, type: "user", roles: [], password: password };
     request({url: this.dbURL + '_users/'+userId, method: 'PUT', json: args}, function(error, couchResponse, content){
-      if(error) return callback(error);
-      if(couchResponse.statusCode == 200 || couchResponse.statusCode == 201 || couchResponse.statusCode == 304) return callback(null); //ok or created or not changed
-      if(couchResponse.statusCode == 409) return callback('User already exists');
-      if(content.error) return callback(content.error);
-      return callback(new Error('Error ' + couchResponse.statusCode)); //just in case there's some other error scenario that doesn't provide an error message
+      handleCouchResponse(error, couchResponse, content, callback);
     });
   },
   authenticate: function(username, password, callback){
     //create session
     var args = {name: username, password: password};
     request({url: this.dbURL + '_session', method: 'POST', json: args}, function(error, couchResponse, content){
-      if(error) return callback(error);
-      if(couchResponse.statusCode == 200) return callback(null, content);
-      if(content.error) return callback(new Error(content.reason));
-      return callback(new Error('Error ' + couchResponse.statusCode));
+      handleCouchResponse(error, couchResponse, content, callback);
     });
   },
   getUser: function(username, callback){
     var userid = this.getId(username);
     request(this.dbURL + '_users/'+userid, function(error, couchResponse, userDoc){
       if(error) callback(error);
-      userDoc = JSON.parse(userDoc);
-      if(userDoc.error) callback(userDoc.error);
-      callback(null, userDoc);
+      tools.parseJSON(userDoc, function(err, user){
+        if(err) return callback(err);
+        if(user.error) return callback(user.error);
+        return callback(null, user);
+      });
     });
   }
 };

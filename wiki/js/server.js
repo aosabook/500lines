@@ -1,4 +1,4 @@
-var config = require('./config.js');
+var config = require('./config/config.js');
 var express = require('express');
 var whiskers = require('whiskers');
 var passport = require('passport');
