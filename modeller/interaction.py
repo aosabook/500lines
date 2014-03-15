@@ -27,11 +27,11 @@ class Interaction(object):
 
     def register(self):
         """ register callbacks with glut """
-        glutMouseFunc(self.mouse_button)
-        glutMotionFunc(self.mouse_move)
-        glutKeyboardFunc(self.keyboard)
+        glutMouseFunc(self.handle_mouse_button)
+        glutMotionFunc(self.handle_mouse_move)
+        glutKeyboardFunc(self.handle_keystroke)
 
-        glutSpecialFunc(self.keyboard)
+        glutSpecialFunc(self.handle_keystroke)
         glutPassiveMotionFunc(None)
 
     def register_callback(self, name, func):
@@ -49,7 +49,7 @@ class Interaction(object):
         self.camera_loc[1] += y
         self.camera_loc[2] += z
 
-    def mouse_button(self, button, mode, x, y):
+    def handle_mouse_button(self, button, mode, x, y):
         """ Called when the mouse button is pressed or released """
         xSize, ySize = glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT)
         y = ySize - y  # invert the y coordinate because OpenGL is inverted
@@ -69,7 +69,7 @@ class Interaction(object):
             self.pressed = None
         glutPostRedisplay()
 
-    def mouse_move(self, x, screen_y):
+    def handle_mouse_move(self, x, screen_y):
         """ Called when the mouse is moved """
         xSize, ySize = glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT)
         y = ySize - screen_y  # invert the y coordinate because OpenGL is inverted
@@ -88,7 +88,7 @@ class Interaction(object):
             glutPostRedisplay()
         self.mouse_loc = (x, y)
 
-    def keyboard(self, key, x, screen_y):
+    def handle_keystroke(self, key, x, screen_y):
         """ Called on keyboard input from the user """
         xSize, ySize = glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT)
         y = ySize - screen_y
