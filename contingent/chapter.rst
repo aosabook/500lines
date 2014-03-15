@@ -157,24 +157,117 @@ Chasing consequences
 >>> c = Cache(g)
 >>> roots = ['A.rst', 'B.rst', 'C.rst']
 >>> for node in roots + g.consequences_of(roots):
-...     c[node] = 'initial value'
+...     c[node] = 'Initial value'
 
->>> c.missing()
+>>> c.todo()
 set()
 
+Changing something forces us to rebuild its consequences, but focuses
+our efforts only on the particular targets that need rebuilding.  For
+example, editing file B but only updating the body peters out rather
+quickly.
+
+>>> c['B.rst'] = 'Markup for post B'
+>>> sorted(c.todo())
+['B.body', 'B.date', 'B.title']
+>>> c['B.body'] = 'New body for B'
+>>> c['B.date'] = 'Initial value'
+>>> c['B.title'] = 'Initial value'
+>>> sorted(c.todo())
+['B.html']
+>>> c['B.body'] = 'HTML for post B'
+
+Editing its title, on the other hand, has consequences for the HTML of
+both post B and post C.
+
 >>> c['B.title'] = 'Title B'
->>> c.missing()
-{'B.html', 'C.prev.title'}
->>> c['B.html'] = 'HTML for post B'
+>>> sorted(c.todo())
+['B.html', 'C.prev.title']
+>>> c['B.html'] = 'New HTML for post B'
 >>> c['C.prev.title'] = 'Title B'
->>> c.missing()
+>>> c.todo()
 {'C.html'}
 >>> c['C.html'] = 'HTML for post C'
->>> c.missing()
+>>> c.todo()
 set()
 
+And, finally, in the presence of a change or edit that makes no
+difference the cache does not demand that we rebuild any targets at all.
+
 >>> c['B.title'] = 'Title B'
->>> c.missing()
+>>> c.todo()
+set()
+
+But while this approach has started to reduce our work, a rebuild can
+still involve extra steps.  Walking naively forward through consequences
+like this can be inefficient, because we might rebuild a given target
+several times.  Imagine, for example, that we update B’s date so that it
+now comes after C on the timeline.
+
+>>> c['B.rst'] = 'Markup for post B dating it after post C'
+>>> sorted(c.todo())
+['B.body', 'B.date', 'B.title']
+>>> c['B.body'] = 'Initial value'
+>>> c['B.date'] = '2014-05-15'
+>>> c['B.title'] = 'Title B'
+>>> sorted(c.todo())
+['B.html', 'sorted-posts']
+>>> c['B.html'] = 'Rebuilt HTML #1'
+>>> c['sorted-posts'] = 'A, C, B'
+>>> sorted(c.todo())
+['A.prev.title', 'B.prev.title', 'C.prev.title']
+>>> c['A.prev.title'] = 'Initial value'
+>>> c['B.prev.title'] = 'Title C'
+>>> c['C.prev.title'] = 'Title A'
+>>> sorted(c.todo())
+['B.html', 'C.html']
+>>> c['B.html'] = 'Rebuilt HTML #2'
+>>> c['C.html'] = 'Rebuilt HTML'
+
+As you can see, this update to B’s date has both an immediate and
+certain consequence — that its HTML needs to be rebuilt to reflect the
+new date — and also a consequence that takes longer to play out: it now
+comes after post C, so its “Previous Post” link now needs to display C’s
+title instead of A’s title.
+
+The reason that we wound up rebuilding B twice in the session above is
+that we lacked the big picture of how our graph is connected.  There are
+two routes of different lengths between ``B.date`` and the final
+``B.html`` output, but we went ahead and rebuilt ``B.html`` as soon as
+any of its dependencies changed instead of waiting to see how all of the
+paths played out.
+
+The solution is that instead of letting ``todo()`` results drive us
+forwards, we should try ordering the consequences of ``B.date`` using
+what graph theorists call a *topological sort* that is careful to order
+nodes so that targets always fall after their dependencies in the
+resulting ordering.  If used correctly, a depth-first search can produce
+such an ordering.
+
+Topological sort is built into the graph method ``consequences_of()``
+that we glanced at briefly above.  If we use its ordering instead of
+simply rebuilding nodes as soon as they appear in the ``todo()`` list,
+then we will minimize the number of rebuilds we need to perform:
+
+>>> consequences = g.consequences_of(['B.rst'])
+>>> consequences
+['B.body', 'B.date', 'sorted-posts', 'A.prev.title', 'A.html', 'B.prev.title', 'B.title', 'B.html', 'C.prev.title', 'C.html']
+
+Had we followed this ordering, we would have regenerated both ``B.date``
+and ``B.prev.title`` before reaching and finally rebuilding ``B.html``.
+Our final algorithm will therefore use the topological sort to minimize
+redundant work.
+
+But we should note that, in the general case, that once we finish our
+topologically sorted rebuild we will still have to pay attention to the
+``todo()`` list and keep looping until it is empty!  That is because
+nodes can actually change their dependency list each time they run, and
+that therefore the pre-ordering we compute might not reflect the real
+state of the dependency graph as it evolves.
+
+Why would the graph change as we are calculating it?
+
+
 
 [TODO: blurb about file dates and ``touch`` and how it lets you force a
 rebuild even if ``make`` cannot see that some contingency has changed]

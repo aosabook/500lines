@@ -6,16 +6,16 @@ class Cache:
 
     def __init__(self, graph):
         self.graph = graph
-        self.results = {}
+        self._results = {}
+        self._todo = set()
 
     def __setitem__(self, key, value):
-        results = self.results
-        old_value = results.get(key, _absent)
+        self._todo.discard(key)
+        old_value = self._results.get(key, _absent)
         if (old_value is not _absent) and (value == old_value):
             return
-        results[key] = value
-        for target in self.graph.targets_of(key):
-            results.pop(target, None)
+        self._results[key] = value
+        self._todo.update(self.graph.targets_of(key))
 
-    def missing(self):
-        return self.graph.nodes() - set(self.results)
+    def todo(self):
+        return set(self._todo)
