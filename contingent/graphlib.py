@@ -11,10 +11,14 @@ class Graph(object):
         self.targets[dependency].add(target)
         self.dependencies[target].add(dependency)
 
-    def consequences_of(self, dependency):
-        return list(self.generate_consequences_backwards(dependency))[::-1]
+    def remove_edge(self, dependency, target):
+        self.targets[dependency].remove(target)
+        self.dependencies[target].remove(dependency)
 
-    def generate_consequences_backwards(self, dependency):
+    def consequences_of(self, dependencies):
+        return list(self.generate_consequences_backwards(dependencies))[::-1]
+
+    def generate_consequences_backwards(self, dependencies):
         def visit(dependency):
             visited.add(dependency)
             for target in sorted(self.targets[dependency], reverse=True):
@@ -22,14 +26,17 @@ class Graph(object):
                     yield from visit(target)
                     yield target
         visited = set()
-        yield from visit(dependency)
+        for dependency in dependencies:
+            yield from visit(dependency)
 
-    def as_graphviz(self):
+    def as_graphviz(self, nodes=[]):
         """Generate lines of graphviz ``dot`` code that draw this graph."""
+        nodes = set(nodes)
         lines = ['digraph { node [shape=rect penwidth=0 style=filled'
                  ' fillcolor="#d6d6d6"];']
         for dependency, targets in sorted(self.targets.items()):
-            for target in sorted(targets):
-                lines.append('"{}" -> "{}"'.format(dependency, target))
-        lines.append('}')
-        return '\n'.join(lines)
+            if (not nodes) or (dependency in nodes):
+                for target in sorted(targets):
+                    if (not nodes) or (target in nodes):
+                        lines.append('"{}" -> "{}"'.format(dependency, target))
+        return '\n'.join(lines + ['}'])
