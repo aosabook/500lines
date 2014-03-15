@@ -3,10 +3,9 @@ from OpenGL.GL import GL_FILL, GL_FRONT_AND_BACK, GL_LINE, GL_MODELVIEW
 from primitive import G_OBJ_CUBE
 import numpy
 import math
-from transformation import scaling, translation
-
 
 EPSILON = 0.000001
+
 
 class AABB(object):
 
@@ -19,18 +18,7 @@ class AABB(object):
         self.size = numpy.array(size)
 
     def scale(self, scale):
-        self.size *= scale;
-
-    def intersects_aabb(self, other):
-        """ returns True <=> this AABB intersects with the other AABB
-            Consumes: other -> another AABB """
-        diff = [a - b for a, b in zip(self.center, other.center)]
-
-        if abs(diff[0]) > (size[0] + other.size[0]): return False
-        if abs(diff[1]) > (size[1] + other.size[1]): return False
-        if abs(diff[2]) > (size[2] + other.size[2]): return False
-
-        return True
+        self.size *= scale
 
     def ray_hit(self, origin, direction, modelmatrix):
         """ Returns True <=> the ray hits the AABB
@@ -68,7 +56,7 @@ class AABB(object):
         e = numpy.dot(yaxis, delta)
         f = numpy.dot(direction, yaxis)
         # intersection in y
-        if math.fabs(f)> 0.0 + EPSILON:
+        if math.fabs(f) > 0.0 + EPSILON:
             t1 = (e + aabb_min[1])/f
             t2 = (e + aabb_max[1])/f
             if t1 > t2:
@@ -87,7 +75,7 @@ class AABB(object):
         zaxis = numpy.array((modelmatrix[2, 0], modelmatrix[2, 1], modelmatrix[2, 2]))
         e = numpy.dot(zaxis, delta)
         f = numpy.dot(direction, zaxis)
-        if math.fabs(f)> 0.0 + EPSILON:
+        if math.fabs(f) > 0.0 + EPSILON:
             t1 = (e + aabb_min[2])/f
             t2 = (e + aabb_max[2])/f
             if t1 > t2:
@@ -106,10 +94,10 @@ class AABB(object):
 
     def render(self):
         """ render the AABB. This can be useful for debugging purposes """
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
-        glTranslated(self.center[0], self.center[1], self.center[2]);
-        glCallList(G_OBJ_CUBE);
-        glPopMatrix();
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+        glMatrixMode(GL_MODELVIEW)
+        glPushMatrix()
+        glTranslated(self.center[0], self.center[1], self.center[2])
+        glCallList(G_OBJ_CUBE)
+        glPopMatrix()
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)

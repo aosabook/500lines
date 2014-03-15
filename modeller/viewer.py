@@ -1,5 +1,5 @@
 #! /usr/bin/env python
-from OpenGL.GL import glCallList, glClear, glClearColor, glColorMaterial, glCullFace, glDepthFunc, glDisable, glEnable, \
+from OpenGL.GL import glCallList, glClear, glClearColor, glColorMaterial, glCullFace, glDepthFunc, glDisable, glEnable,\
                       glFlush, glGetFloatv, glLightfv, glLoadIdentity, glMatrixMode, glMultMatrixf, glPopMatrix, \
                       glPushMatrix, glTranslated, glViewport
 from OpenGL.GL import GL_AMBIENT_AND_DIFFUSE, GL_BACK, GL_CULL_FACE, GL_COLOR_BUFFER_BIT, GL_COLOR_MATERIAL, \
@@ -11,8 +11,8 @@ from OpenGL.GLUT import glutCreateWindow, glutDisplayFunc, glutGet, glutInit, gl
                         glutInitWindowSize, glutMainLoop
 from OpenGL.GLUT import GLUT_SINGLE, GLUT_RGB, GLUT_WINDOW_HEIGHT, GLUT_WINDOW_WIDTH
 
-from numpy.linalg import norm
 import numpy
+from numpy.linalg import norm
 
 from interaction import Interaction
 from primitive import InitPrimitives, G_OBJ_PLANE
