@@ -9,7 +9,8 @@ def check_conformity(t):
 
 class Checker(ast.NodeVisitor):
 
-    def __init__(self, in_loop=False):
+    def __init__(self, scope_type='module', in_loop=False):
+        self.scope_type = scope_type
         self.in_loop = in_loop
 
     def generic_visit(self, t):
@@ -26,24 +27,25 @@ class Checker(ast.NodeVisitor):
             assert False
 
     def visit_Module(self, t):
+        assert self.scope_type == 'module'
         self(t.body)
 
     def visit_FunctionDef(self, t):
         self.check_identifier(t.name)
         self.check_arguments(t.args)
-        Checker(in_loop=False)(t.body)
+        Checker(scope_type='function', in_loop=False)(t.body)
         assert not t.decorator_list
         assert not t.returns
 
     def visit_ClassDef(self, t):
-        # TODO: forbid nested classes, for now?
+        assert self.scope_type == 'module'
         self.check_identifier(t.name)
         self(t.bases)
         assert not t.keywords
         assert not t.starargs
         assert not t.kwargs
         assert not t.decorator_list
-        Checker(in_loop=False)(t.body)
+        Checker('class', in_loop=False)(t.body)
 
     def visit_Return(self, t):
         if t.value is not None:
@@ -56,12 +58,12 @@ class Checker(ast.NodeVisitor):
     def visit_For(self, t):
         self(t.target)
         self(t.iter)
-        Checker(in_loop=True)(t.body)
+        Checker(self.scope_type, in_loop=True)(t.body)
         assert not t.orelse
 
     def visit_While(self, t):
         self(t.test)
-        Checker(in_loop=True)(t.body)
+        Checker(self.scope_type, in_loop=True)(t.body)
         assert not t.orelse
 
     def visit_If(self, t):
