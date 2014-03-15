@@ -7,7 +7,7 @@ G_OBJ_SPHERE = 2
 G_OBJ_CUBE = 3
 
 
-def MakePlane():
+def make_plane():
     glNewList(G_OBJ_PLANE, GL_COMPILE)
     glBegin(GL_LINES)
     glColor3f(0, 0, 0)
@@ -68,7 +68,7 @@ def MakePlane():
     glEndList()
 
 
-def MakeSphere():
+def make_sphere():
     glNewList(G_OBJ_SPHERE, GL_COMPILE)
     quad = gluNewQuadric()
     gluSphere(quad, 0.5, 30, 30)
@@ -76,7 +76,7 @@ def MakeSphere():
     glEndList()
 
 
-def MakeCube():
+def make_cube():
     glNewList(G_OBJ_CUBE, GL_COMPILE)
     vertices = [((-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, 0.5), (-0.5, 0.5, -0.5)),
                 ((-0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (0.5, 0.5, -0.5), (0.5, -0.5, -0.5)),
@@ -95,7 +95,7 @@ def MakeCube():
     glEndList()
 
 
-def InitPrimitives():
-    MakePlane()
-    MakeSphere()
-    MakeCube()
+def init_primitives():
+    make_plane()
+    make_sphere()
+    make_cube()

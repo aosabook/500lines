@@ -27,7 +27,7 @@ class Scene(object):
         """ Add a new node to the scene """
         self.node_list.append(node)
 
-    def picking(self, start, direction, mat):
+    def pick(self, start, direction, mat):
         """ Execute selection.
             Consume: start, direction describing a Ray
                      mat              is the inverse of the current modelview matrix for the scene """
@@ -38,7 +38,7 @@ class Scene(object):
         # Keep track of the closest hit.
         mindist, closest_node = sys.maxint, None
         for node in self.node_list:
-            hit, distance = node.picking(start, direction, mat)
+            hit, distance = node.pick(start, direction, mat)
             if hit and distance < mindist:
                 mindist, closest_node = distance, node
 

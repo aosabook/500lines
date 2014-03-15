@@ -51,7 +51,7 @@ class Node(object):
         self.scalemat = numpy.dot(self.scalemat, scaling([s, s, s]))
         self.aabb.scale(s)
 
-    def picking(self, start, direction, mat):
+    def pick(self, start, direction, mat):
         """ Return whether or not the ray hits the object
            Consume:  start, direction    the ray to check
                      mat                 the modelview matrix to transform the ray by """

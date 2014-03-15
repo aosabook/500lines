@@ -15,41 +15,47 @@ import numpy
 from numpy.linalg import norm
 
 from interaction import Interaction
-from primitive import InitPrimitives, G_OBJ_PLANE
+from primitive import init_primitives, G_OBJ_PLANE
 from node import Sphere, Cube
 from scene import Scene
 
 
 class Viewer(object):
     def __init__(self):
-        """ Initialize the context. """
+        """ Initialize the viewer. """
+        self.init_interface()
+        self.init_opengl()
+        self.init_scene()
+        self.init_interaction()
+        init_primitives()
+
+    def init_interface(self):
+        """ initialize the window and register the render function """
         glutInit()
         glutInitWindowSize(640, 480)
         glutCreateWindow("3D Modeller")
         glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB)
-        glClearColor(1.0, 1.0, 1.0, 0.0)
         glutDisplayFunc(self.render)
-        self.initialize()
 
-    def initialize(self):
-        InitPrimitives()
+    def init_interaction(self):
+        """ init user interaction and callbacks """
         self.interaction = Interaction()
-        self.interaction.register()
-        self.scene = Scene()
-
-        self.interaction.register_callback('picking', self.picking)
+        self.interaction.register_callback('pick', self.pick)
         self.interaction.register_callback('move', self.move)
         self.interaction.register_callback('place', self.place)
         self.interaction.register_callback('color', self.color)
         self.interaction.register_callback('scale', self.scale)
 
+    def init_scene(self):
+        """ initialize the scene object and initial scene """
+        self.scene = Scene()
         self.initial_scene()
+
+    def init_opengl(self):
+        """ initialize the opengl settings to render the scene """
         self.inverseModelView = numpy.identity(4)
         self.modelView = numpy.identity(4)
 
-        self.init_OpenGL()
-
-    def init_OpenGL(self):
         glEnable(GL_CULL_FACE)
         glCullFace(GL_BACK)
         glEnable(GL_DEPTH_TEST)
@@ -61,6 +67,7 @@ class Viewer(object):
 
         glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE)
         glEnable(GL_COLOR_MATERIAL)
+        glClearColor(1.0, 1.0, 1.0, 0.0)
 
     def main_loop(self):
         glutMainLoop()
@@ -147,11 +154,11 @@ class Viewer(object):
 
         return (start, direction)
 
-    def picking(self, x, y):
-        """ Execute picking of an object. Selects an object in the scene.
+    def pick(self, x, y):
+        """ Execute pick of an object. Selects an object in the scene.
             Consumes: x, y coordinates of the mouse on the screen """
         start, direction = self.get_ray(x, y)
-        self.scene.picking(start, direction, self.modelView)
+        self.scene.pick(start, direction, self.modelView)
 
     def move(self, x, y):
         """ Execute a move command on the scene.

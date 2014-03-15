@@ -22,6 +22,17 @@ class Interaction(object):
         self.mouse_loc = None
         # Unsophisticated callback mechanism
         self.callbacks = defaultdict(list)
+        
+        self.register()
+
+    def register(self):
+        """ register callbacks with glut """
+        glutMouseFunc(self.mouse_button)
+        glutMotionFunc(self.mouse_move)
+        glutKeyboardFunc(self.keyboard)
+
+        glutSpecialFunc(self.keyboard)
+        glutPassiveMotionFunc(None)
 
     def register_callback(self, name, func):
         """ registers a callback for a certain event """
@@ -48,8 +59,8 @@ class Interaction(object):
             self.pressed = button
             if button == GLUT_RIGHT_BUTTON:
                 pass
-            elif button == GLUT_LEFT_BUTTON:  # picking
-                self.trigger('picking', x, y)
+            elif button == GLUT_LEFT_BUTTON:  # pick
+                self.trigger('pick', x, y)
             elif button == 3:  # scroll up
                 self.translate(0, 0, -1.0)
             elif button == 4:  # scroll up
@@ -94,12 +105,3 @@ class Interaction(object):
         elif key == GLUT_KEY_RIGHT:
             self.trigger('color', forward=False)
         glutPostRedisplay()
-
-    def register(self):
-        """ register callbacks with glut """
-        glutMouseFunc(self.mouse_button)
-        glutMotionFunc(self.mouse_move)
-        glutKeyboardFunc(self.keyboard)
-
-        glutSpecialFunc(self.keyboard)
-        glutPassiveMotionFunc(None)
