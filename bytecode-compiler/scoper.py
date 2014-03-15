@@ -1,89 +1,99 @@
 """
-Scope analysis.
-TODO: Python has a symbol-table module already -- use that, to start.
-We'll want to write our own again once we've fleshed out more.
+Analyze variable scope.
 """
 
 import ast
-from symtable import symtable
-from _symtable import (CELL, FREE, LOCAL, GLOBAL_IMPLICIT, GLOBAL_EXPLICIT,
-                       SCOPE_MASK, SCOPE_OFF, TYPE_FUNCTION)
 
-def top_scope(t, source, loud=False):
-    top_level = Scope(symtable(source, 'filename', 'exec'))
+def top_scope(t, source, loudness=0):
+    top_level = Scope(t)
     top_level.visit(t)
+    top_level.analyze(set())
     return top_level
 
-def show(st, indent):
-    print(indent, st.get_type(), st.get_name())
-    indent += '  '
-    for sym in sorted(st.get_symbols(), key=lambda sym: sym.get_name()):
-        print(indent, '| %-8s %-20s %s' % (access(st, sym.get_name()),
-                                           sym.get_name(),
-                                           properties(sym)))
-    for ch in st.get_children():
-        show(ch, indent)
-
-def properties(sym):
-    return ' '.join(prop for prop in ('referenced', 'imported', 'parameter',
-                                      'global', 'declared_global', 'local',
-                                      'free', 'assigned', 'namespace')
-                    if getattr(sym, 'is_' + prop)())
-
-def access(st, name):
-    flags = st._table.symbols.get(name)
-    x = (flags >> SCOPE_OFF) & SCOPE_MASK if flags else None
-    if   x == GLOBAL_EXPLICIT:
-        return 'global'
-    elif x == LOCAL and st._table.type == TYPE_FUNCTION:
-        return 'fast'
-    elif x in (CELL, FREE):
-        return 'deref'
+def get_type(t):
+    if   isinstance(t, ast.Module):
+        return 'module'
+    elif isinstance(t, ast.ClassDef):
+        return 'class'
+    elif isinstance(t, ast.FunctionDef): # XXX and Lambda?
+        return 'function'
     else:
-        return 'name'
+        assert False
 
 class Scope(ast.NodeVisitor):
 
-    def __init__(self, st, defs=(), uses=()):
-        self.st = st
-        self.children = {}
+    def __init__(self, t, defs=()):
+        self.t = t
+        self.children = []
+        self.defs = set(defs)
+        self.uses = set()
 
     def dump(self, indent=''):
-        show(self.st, '')
+        print(indent, get_type(self.t), getattr(self.t, 'name', '<nameless>'))
+        indent += '  '
+        for name in sorted(self.defs | self.uses):
+            print(indent, '| %-8s %s' % (self.access(name), name))
+        for ch in self.children:
+            ch.dump(indent)
 
-    def scope(self, name):
-        return access(self.st, name)
+    def analyze(self, parent_defs):
+        # XXX we're currently assuming classes are never nested in anything
+        self.maskvars = self.defs if get_type(self.t) == 'function' else set()
+        for child in self.children:
+            child.analyze(parent_defs | self.maskvars)
+        child_freevars = set().union(*[child.freevars for child in self.children])
+        self.cellvars = tuple(child_freevars & self.maskvars)
+        self.freevars = tuple(parent_defs & ((self.uses | child_freevars) - self.maskvars))
+        self.derefvars = self.cellvars + self.freevars
 
-    def get_cellvars(self):
-        return tuple(name for name,flags in self.st._table.symbols.items()
-                     if CELL == ((flags >> SCOPE_OFF) & SCOPE_MASK))
-
-    def get_freevars(self):
-        return tuple(name for name,flags in self.st._table.symbols.items()
-                     if FREE == ((flags >> SCOPE_OFF) & SCOPE_MASK))
+    def access(self, name):
+        return ('deref' if name in self.derefvars else
+                'fast' if name in self.maskvars else
+                'name')
 
     def get_child(self, t):
-        return self.children[id(t)]
+        for child in self.children:
+            if child.t is t:
+                return child
+        assert False
 
     def visit_ClassDef(self, t):
+        self.defs.add(t.name)
         for expr in t.bases: self.visit(expr)
-        self.children[id(t)] = subscope = Scope(find_child(self.st, t.name))
+        subscope = Scope(t)
+        self.children.append(subscope)
         for stmt in t.body: subscope.visit(stmt)
 
     def visit_FunctionDef(self, t):
-        self.children[id(t)] = subscope = Scope(find_child(self.st, t.name),
-                                                t.args.args)
+        self.defs.add(t.name)
+        subscope = Scope(t, [arg.arg for arg in t.args.args])
+        self.children.append(subscope)
         for stmt in t.body: subscope.visit(stmt)
 
-def find_child(st, name):
-    for child in st.get_children():
-        if child.get_name() == name:
-            return child
-    assert False
+    def visit_Import(self, t):
+        for alias in t.names:
+            self.defs.add(alias.asname or alias.name.split('.')[0])
+
+    def visit_ImportFrom(self, t):
+        for alias in t.names:
+            self.defs.add(alias.asname or alias.name)
+
+    def visit_Name(self, t):
+        if   isinstance(t.ctx, ast.Load):  return self.uses.add(t.id)
+        elif isinstance(t.ctx, ast.Store): return self.defs.add(t.id)
+        else: assert False
 
 if __name__ == '__main__':
     import sys
+    import check_subset
+
     filename = sys.argv[1]
     source = open(filename).read()
     t = ast.parse(source)
+    try:
+        check_subset.check_conformity(t)
+    except AssertionError:
+        print(filename, "doesn't conform.")
+        sys.exit(1)
+    print(filename)
     top_scope(t, source).dump()

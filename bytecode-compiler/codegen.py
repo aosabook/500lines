@@ -48,8 +48,6 @@ class CodeGen(ast.NodeVisitor):
         self.load_const(ast.get_docstring(t))
         
     def compile_function(self, t):
-        self.freevars = self.scope.get_freevars()
-        self.cellvars = self.scope.get_cellvars()
         self.set_docstring(t)
         for arg in t.args.args:
             self.varnames[arg.arg] # argh, naming
@@ -65,15 +63,15 @@ class CodeGen(ast.NodeVisitor):
         bytecode, stacksize, firstlineno, lnotab = assemble(assembly)
         # XXX start with 0x01 for functions
         flags = (0x00 | (0x02 if nlocals else 0)
-                      | (0x10 if self.freevars else 0)
-                      | (0x40 if not (self.freevars or self.cellvars) else 0))
+                      | (0x10 if self.scope.freevars else 0)
+                      | (0x40 if not self.scope.derefvars else 0))
         constants = tuple(constant for constant,_ in collect(self.constants))
         return types.CodeType(argcount, kwonlyargcount,
                               nlocals, stacksize, flags, bytecode,
                               constants,
                               collect(self.names), collect(self.varnames),
                               self.filename, name, firstlineno, lnotab,
-                              self.freevars, self.cellvars)
+                              self.scope.freevars, self.scope.cellvars)
 
     def __call__(self, t):
         assert isinstance(t, (ast.AST, list))
@@ -117,7 +115,7 @@ class CodeGen(ast.NodeVisitor):
                     op.MAKE_CLOSURE(0)] # XXX 0 = # of default args?
 
     def cell_index(self, name):
-        return (self.cellvars + self.freevars).index(name)
+        return self.scope.derefvars.index(name)
 
     def visit_Return(self, t):
         return [self(t.value) if t.value else self.load_const(None),
@@ -258,7 +256,7 @@ class CodeGen(ast.NodeVisitor):
         else: assert False
 
     def load(self, name):
-        access = self.scope.scope(name)
+        access = self.scope.access(name)
         if   access == 'fast':   return op.LOAD_FAST(self.varnames[name])
         elif access == 'deref':  return op.LOAD_DEREF(self.cell_index(name))
         elif access == 'global': return op.LOAD_GLOBAL(self.names[name])
@@ -266,7 +264,7 @@ class CodeGen(ast.NodeVisitor):
         else: assert False
 
     def store(self, name):
-        access = self.scope.scope(name)
+        access = self.scope.access(name)
         if   access == 'fast':   return op.STORE_FAST(self.varnames[name])
         elif access == 'deref':  return op.STORE_DEREF(self.cell_index(name))
         elif access == 'global': return op.STORE_GLOBAL(self.names[name])
