@@ -121,6 +121,9 @@ of every single blog post:
 ...     g.add_edge('sorted-posts', post + '.prev.title')
 ...     g.add_edge(post + '.prev.title', post + '.html')
 
+>>> g.add_edge('A.title', 'B.prev.title')
+>>> g.add_edge('B.title', 'C.prev.title')
+
 And it is this set of edges that ruin our dependency graph.  Because of
 the possibility that an edit to any blog post’s source code might make a
 change to its date — although in practice this will be only a small
@@ -130,7 +133,7 @@ any single one of them is edited!
 
 >>> consequences = g.consequences_of(['B.rst'])
 >>> consequences
-['B.body', 'B.date', 'sorted-posts', 'A.prev.title', 'A.html', 'B.prev.title', 'C.prev.title', 'C.html', 'B.title', 'B.html']
+['B.body', 'B.date', 'sorted-posts', 'A.prev.title', 'A.html', 'B.prev.title', 'B.title', 'B.html', 'C.prev.title', 'C.html']
 
 >>> open('diagram2.dot', 'w').write(g.as_graphviz(['B.rst'] + consequences)) and None
 
@@ -145,4 +148,33 @@ from dozens of other documents.
 Given such a dense dependency graph, can a build system do any better
 than to simply perform a complete rebuild upon every modification?
 
+Chasing consequences
+--------------------
 
+>>> open('diagram3.dot', 'w').write(g.as_graphviz()) and None
+
+>>> from cachelib import Cache
+>>> c = Cache(g)
+>>> roots = ['A.rst', 'B.rst', 'C.rst']
+>>> for node in roots + g.consequences_of(roots):
+...     c[node] = 'initial value'
+
+>>> c.missing()
+set()
+
+>>> c['B.title'] = 'Title B'
+>>> c.missing()
+{'B.html', 'C.prev.title'}
+>>> c['B.html'] = 'HTML for post B'
+>>> c['C.prev.title'] = 'Title B'
+>>> c.missing()
+{'C.html'}
+>>> c['C.html'] = 'HTML for post C'
+>>> c.missing()
+set()
+
+>>> c['B.title'] = 'Title B'
+>>> c.missing()
+
+[TODO: blurb about file dates and ``touch`` and how it lets you force a
+rebuild even if ``make`` cannot see that some contingency has changed]
