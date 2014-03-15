@@ -33,7 +33,7 @@ class Checker(ast.NodeVisitor):
     def visit_FunctionDef(self, t):
         self.check_identifier(t.name)
         self.check_arguments(t.args)
-        Checker(scope_type='function', in_loop=False)(t.body)
+        Checker('function', in_loop=False)(t.body)
         assert not t.decorator_list
         assert not t.returns
 
