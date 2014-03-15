@@ -1,4 +1,4 @@
-module.exports = function configureDBStore(){
+exports.configureStore = function(){
   var store = require('../db_store.js');
   store.dbURL = 'http://localhost:5984/';
   store.dbName = 'wiki/';

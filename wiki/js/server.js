@@ -3,7 +3,7 @@ var express = require('express');
 var whiskers = require('whiskers');
 var passport = require('passport');
 
-var store = config.getStore();
+var store = config.store.configureStore();
 
 require("./passport.js")(passport, store);
 

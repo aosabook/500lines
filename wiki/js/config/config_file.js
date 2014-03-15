@@ -1,6 +1,6 @@
 var fs = require('fs');
 
-module.exports = function configureFileStore(){
+exports.configureStore = function(){
   var store = require('../file_store.js');
   store.fileStoreDir = './files/'; //relative to where npm start is launched
   store.fileStoreUsersDir = './users/';
