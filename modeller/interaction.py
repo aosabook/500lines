@@ -17,7 +17,7 @@ class Interaction(object):
         #self.rotation = quaternion.fromEuler()
         self.camera_loc = [0, 0, 0, 0]
         # the trackball to calculate rotation
-        self.trackball = trackball.Trackball(distance=15)
+        self.trackball = trackball.Trackball(theta = -25, distance=15)
         # the current mouse location
         self.mouse_loc = None
         # Unsophisticated callback mechanism
