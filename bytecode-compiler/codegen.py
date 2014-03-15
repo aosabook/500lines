@@ -21,8 +21,9 @@ def byte_compile(module_name, filename, source, f_globals, loud=0):
 class Expander(ast.NodeTransformer):
     def visit_Assert(self, t):
         return ast.If(ast.UnaryOp(ast.Not(), t.test),
-                      [ast.Raise(ast.Call(func=ast.Name('AssertionError', ast.Load()),
-                                          args=[] if t.msg is None else [t.msg]),
+                      [ast.Raise(ast.Call(ast.Name('AssertionError', ast.Load()),
+                                          [] if t.msg is None else [t.msg],
+                                          [], None, None),
                                  None)],
                       [])
 
@@ -218,8 +219,12 @@ class CodeGen(ast.NodeVisitor):
                  for k, v in zip(t.keys, t.values)]]
 
     def visit_Call(self, t):
-        assert len(t.args) < 256
-        return [self(t.func), self(t.args), op.CALL_FUNCTION(len(t.args))]
+        assert len(t.args) < 256 and len(t.keywords) < 256
+        return [self(t.func), self(t.args), self(t.keywords),
+                op.CALL_FUNCTION((len(t.keywords) << 8) | len(t.args))]
+
+    def visit_keyword(self, t):
+        return [self.load_const(t.arg), self(t.value)]
 
     def visit_Num(self, t):
         return self.load_const(t.n)

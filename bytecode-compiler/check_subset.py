@@ -142,9 +142,13 @@ class Checker(ast.NodeVisitor):
     def visit_Call(self, t):
         self(t.func)
         self(t.args)
-        assert not getattr(t, 'keywords', None)
-        assert not getattr(t, 'starargs', None)
-        assert not getattr(t, 'kwargs', None)
+        self(t.keywords)
+        assert not t.starargs
+        assert not t.kwargs
+
+    def visit_keyword(self, t):
+        self.check_identifier(t.arg)
+        self(t.value)
 
     def visit_Num(self, t):
         pass
