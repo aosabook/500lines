@@ -8,8 +8,8 @@ class GaussianMixtureSampler(RejectionSampler):
         pass
 
     def propose_func(self):
-        """Propose a value uniformly between -5 and 5."""
-        return np.random.uniform(-5, 5)
+        """Propose a value uniformly between -4 and 4."""
+        return np.random.uniform(-4, 4)
 
     def propose_logpdf(self, X):
         """Return the log-PDF value for X under the proposal distribution,
@@ -17,7 +17,7 @@ class GaussianMixtureSampler(RejectionSampler):
         (so it is always greater than the target distribution).
 
         """
-        if X < -5 or X > 5:
+        if X < -4 or X > 4:
             return -np.inf
         return np.log(0.6)
 
