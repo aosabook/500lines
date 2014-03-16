@@ -205,6 +205,7 @@ class Checker(ast.NodeVisitor):
         assert not args.kw_defaults
 
     def check_arg(self, arg):
+        self.check_identifier(arg.arg)
         assert not arg.annotation
 
     def check_identifier(self, name):
