@@ -38,7 +38,7 @@ class Instance(Base):
 
     def __init__(self, cls):
         assert isinstance(cls, Class)
-        self.cls = cls
+        Base.__init__(self, cls)
         self._fields = {}
 
     def _read_dict(self, fieldname):
