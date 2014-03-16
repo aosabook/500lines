@@ -15,9 +15,14 @@ module.exports = function (app, store, passport) {
       passport.authenticate('local', { successRedirect: currentUrl, failureRedirect: '/loginfail' })(request, response, next);
   });
 
+  app.post('/launchsignup', function(request, response, next){
+    var currentUrl = request.session.currentPage || '/wiki/';
+    return response.render('layout.html', {title: 'Sign up', partials: {body: 'signup.html', login: 'login.html'}});
+  });
+
   app.post('/signup', function(request, response, next){
     var currentUrl = request.session.currentPage || '/wiki/';
-    store.insertUser(request.body.username, request.body.password, function(error){
+    store.insertUser(request.body.username, request.body.password, request.body.email, function(error){
       if(error){
         if(error.message == 'conflict') error.message = "Username already exists";
         return response.render('layout.html', {title: 'Login failed', error: error.message, user: request.user,

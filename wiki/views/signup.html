@@ -1,0 +1,24 @@
+<form action="/signup" method="post" class="loginForm" onsubmit="return validate();">
+    <label>Username:</label>
+    <input type="text" name="username" id="newusername" value="{username}"/><br/>
+    <label>Password:</label>
+    <input type="password" name="password" id="newpassword"/><br/>
+    <label>Email:</label>
+    <input type="text" name="email" id="newemail" size="25" value="{email}"/><br/>
+    <div id="formError" class="error"></div>
+    <button type="submit" name="signup" value="Sign Up">Sign Up</button>
+</form>
+
+<script type="text/javascript">
+    var validate = function(){
+        if(document.getElementById("newusername").value.trim() === ''){
+            document.getElementById("newusername").className = "formerror";
+            document.getElementById("formError").innerHTML = "You must enter a username.";
+            return false;
+        }else if(document.getElementById("newpassword").value.trim() === ''){
+            document.getElementById("newpassword").className = "formerror";
+            document.getElementById("formError").innerHTML = "You must choose a password.";
+            return false;
+        }
+    }
+</script>

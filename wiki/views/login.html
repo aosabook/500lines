@@ -11,18 +11,8 @@
         <input type="password" name="password" id="password"/>
         <button type="submit" name="login" value="Log In">Log In</button>
     </form>
-    <form action="/signup" method="post" id="signupForm" class="loginForm">
-        <input type="hidden" name="username" id="username_signup"/>
-        <input type="hidden" name="password" id="password_signup"/>
-        <button type="submit" name="signup" value="Sign Up" onclick="copyLoginFields()">Sign Up</button>
+    <form action="/launchSignup" method="post" id="signupForm" class="loginForm">
+        <button type="submit" name="signup" value="Sign Up">Sign Up</button>
     </form>
 {/if}
 </div>
-
-<script type="text/javascript">
-    function copyLoginFields(){
-        document.getElementById("username_signup").value = document.getElementById("username").value;
-        document.getElementById("password_signup").value = document.getElementById("password").value;
-        document.getElementById("signupForm").submit();
-    }
-</script>

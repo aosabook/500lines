@@ -17,6 +17,6 @@ Create a new db called wiki:
 
 Configure the wiki in config.js, specifying either config_file.js or config_db.js for the store, using config_*.js to provide appropriate config for each.
 
-Run npm install in the js directory to get the required library dependencies in your local workspace.
+Run npm install to get the required library dependencies in your local workspace.
 
 Run the server with npm start.  Visit the wiki at http://localhost:8080/wiki/. Use the signup button to create a new user and log in.
