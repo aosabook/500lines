@@ -100,6 +100,12 @@ class RejectionSampler(object):
 
         """
 
+        if self.samples is None:
+            raise ValueError("no samples yet, please call `sample` first")
+        if self.samples.ndim == 2 and self.samples.shape[1] > 1:
+            raise ValueError(
+                "visualization for dimensions great than 1 not supported")
+
         X = np.linspace(xmin, xmax, 1000)
         Yp = np.exp(np.array([self.propose_logpdf(x) for x in X]))
         Yt = np.exp(np.array([self.target_logpdf(x) for x in X]))
