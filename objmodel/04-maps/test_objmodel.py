@@ -42,15 +42,15 @@ def test_read_write_field():
     A = Class("A", OBJECT, {}, TYPE)
     obj = Instance(A)
     obj.write_field("a", 1)
-    assert obj.read_field("a") == 1
+    assert obj.read_attr("a") == 1
 
     obj.write_field("b", 5)
-    assert obj.read_field("a") == 1
-    assert obj.read_field("b") == 5
+    assert obj.read_attr("a") == 1
+    assert obj.read_attr("b") == 5
 
     obj.write_field("a", 2)
-    assert obj.read_field("a") == 2
-    assert obj.read_field("b") == 5
+    assert obj.read_attr("a") == 2
+    assert obj.read_attr("b") == 5
 
 
 def test_read_write_field_class():
@@ -66,9 +66,9 @@ def test_read_write_field_class():
     # Object model code
     A = Class("A", OBJECT, {}, TYPE)
     A.write_field("a", 1)
-    assert A.read_field("a") == 1
+    assert A.read_attr("a") == 1
     A.write_field("a", 5)
-    assert A.read_field("a") == 5
+    assert A.read_attr("a") == 5
 
 
 def test_send_simple():
@@ -88,7 +88,7 @@ def test_send_simple():
 
     # Object model code
     def f(self):
-        return self.read_field("x") + 1
+        return self.read_attr("x") + 1
     A = Class("A", OBJECT, {"f": f}, TYPE)
     obj = Instance(A)
     obj.write_field("x", 1)
@@ -118,14 +118,14 @@ def test_send_subclassing_and_arguments():
 
     # Object model code
     def g_A(self, arg):
-        return self.read_field("x") + arg
+        return self.read_attr("x") + arg
     A = Class("A", OBJECT, {"g": g_A}, TYPE)
     obj = Instance(A)
     obj.write_field("x", 1)
     assert obj.send("g", 4) == 5
 
     def g_B(self, arg):
-        return self.read_field("x") + arg * 2
+        return self.read_attr("x") + arg * 2
     B = Class("B", A, {"g": g_B}, TYPE)
     obj = Instance(B)
     obj.write_field("x", 4)
@@ -151,17 +151,17 @@ def test_bound_method():
 
     # Object model code
     def f(self, a):
-        return self.read_field("x") + a + 1
+        return self.read_attr("x") + a + 1
     A = Class("A", OBJECT, {"f": f}, TYPE)
     obj = Instance(A)
     obj.write_field("x", 2)
-    m = obj.read_field("f")
+    m = obj.read_attr("f")
     assert m(4) == 7
 
     B = Class("B", A, {}, TYPE)
     obj = Instance(B)
     obj.write_field("x", 1)
-    m = obj.read_field("f")
+    m = obj.read_attr("f")
     assert m(10) == 12
 
 
@@ -192,24 +192,24 @@ def test_getattr():
     # Object model code
     def __getattr__(self, name):
         if name == "fahrenheit":
-            return self.read_field("celsius") * 9. / 5. + 32
+            return self.read_attr("celsius") * 9. / 5. + 32
         raise AttributeError(name)
     def __setattr__(self, name, value):
         if name == "fahrenheit":
             self.write_field("celsius", (value - 32) * 5. / 9.)
         else:
             # call the base implementation
-            OBJECT.read_field("__setattr__")(self, name, value)
+            OBJECT.read_attr("__setattr__")(self, name, value)
 
     A = Class("A", OBJECT, {"__getattr__": __getattr__, "__setattr__": __setattr__}, TYPE)
     obj = Instance(A)
     obj.write_field("celsius", 30)
-    assert obj.read_field("fahrenheit") == 86
+    assert obj.read_attr("fahrenheit") == 86
     obj.write_field("celsius", 40)
-    assert obj.read_field("fahrenheit") == 104
+    assert obj.read_attr("fahrenheit") == 104
     obj.write_field("fahrenheit", 86)
-    assert obj.read_field("celsius") == 30
-    assert obj.read_field("fahrenheit") == 86
+    assert obj.read_attr("celsius") == 30
+    assert obj.read_attr("fahrenheit") == 86
 
 
 def test_get():
@@ -227,17 +227,17 @@ def test_get():
     # Object model code
     class FahrenheitGetter(object):
         def __get__(self, inst, cls):
-            return inst.read_field("celsius") * 9. / 5. + 32
+            return inst.read_attr("celsius") * 9. / 5. + 32
 
     def __getattr__(self, name):
         if name == "fahrenheit":
-            return self.read_field("celsius") * 9. / 5. + 32
+            return self.read_attr("celsius") * 9. / 5. + 32
         raise AttributeError(name)
 
     A = Class("A", OBJECT, {"fahrenheit": FahrenheitGetter()}, TYPE)
     obj = Instance(A)
     obj.write_field("celsius", 30)
-    assert obj.read_field("fahrenheit") == 86
+    assert obj.read_attr("fahrenheit") == 86
 
 
 # ____________________________________________________________

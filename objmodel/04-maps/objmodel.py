@@ -26,7 +26,7 @@ class Base(object):
         """ Every object has a class. """
         self.cls = cls
 
-    def read_field(self, fieldname):
+    def read_attr(self, fieldname):
         """ read field 'fieldname' out of the object """
         result = self._read_dict(fieldname)
         if result is not MISSING:
@@ -52,13 +52,15 @@ class Base(object):
 
     def send(self, methname, *args):
         """ send message 'methname' with arguments `args` to object """
-        meth = self.read_field(methname)
+        meth = self.read_attr(methname)
         return meth(*args)
 
     def _read_dict(self, fieldname):
+        """ read an field 'fieldname' out of the object's dict """
         return MISSING
 
     def _write_dict(self, fieldname, value):
+        """ write a field 'fieldname' into the object's dict """
         raise AttributeError
 
 def __setattr__OBJECT(self, fieldname, value):

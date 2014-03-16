@@ -7,7 +7,7 @@ class Base(object):
         """ Every object has a class. """
         self.cls = cls
 
-    def read_field(self, fieldname):
+    def read_attr(self, fieldname):
         """ read field 'fieldname' out of the object """
         return self._read_dict(fieldname)
 
@@ -25,9 +25,11 @@ class Base(object):
         return meth(self, *args)
 
     def _read_dict(self, fieldname):
+        """ read an field 'fieldname' out of the object's dict """
         return MISSING
 
     def _write_dict(self, fieldname, value):
+        """ write a field 'fieldname' into the object's dict """
         raise AttributeError
 
 
