@@ -87,11 +87,12 @@ private
     output_data = [0,0]
     input_data.length.times do |i|
       next if i < 2
-      output_data << ((input_data[i]*coefficients[:beta][0] + 
-                      input_data[i-1]*coefficients[:beta][1] + 
-                      input_data[i-2]*coefficients[:beta][2] -
-                      output_data[i-1]*coefficients[:alpha][1] -
-                      output_data[i-2]*coefficients[:alpha][2])*coefficients[:alpha][0]).round(4)
+      output_data << coefficients[:alpha][0] * 
+                      (input_data[i]   * coefficients[:beta][0] + 
+                      input_data[i-1]  * coefficients[:beta][1] + 
+                      input_data[i-2]  * coefficients[:beta][2] -
+                      output_data[i-1] * coefficients[:alpha][1] -
+                      output_data[i-2] * coefficients[:alpha][2])
     end
     output_data
   end
