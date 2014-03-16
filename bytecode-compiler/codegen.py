@@ -1,5 +1,5 @@
 """
-Byte-compile a subset of Python.
+Byte-compile a subset of Python from AST to code objects.
 """
 
 import ast, collections, dis, types
@@ -7,26 +7,15 @@ from functools import reduce
 
 from assembler import assemble, op, set_lineno
 from check_subset import check_conformity
+from desugar import desugar
 from scoper import top_scope
 
-def byte_compile(module_name, filename, source, f_globals, loud=0):
-    t = ast.parse(source)
-    t = Expander().visit(t)
-    ast.fix_missing_locations(t)
+def byte_compile(module_name, filename, t, f_globals, loud=0):
+    t = desugar(t)
     check_conformity(t)
     top_level = top_scope(t, loud)
     code = CodeGen(filename, top_level).compile(t, module_name)
     return types.FunctionType(code, f_globals)
-
-class Expander(ast.NodeTransformer):
-    def visit_Assert(self, t):
-        result = ast.If(ast.UnaryOp(ast.Not(), t.test),
-                        [ast.Raise(ast.Call(ast.Name('AssertionError', ast.Load()),
-                                            [] if t.msg is None else [t.msg],
-                                            [], None, None),
-                                   None)],
-                        [])
-        return ast.copy_location(result, t)
 
 class CodeGen(ast.NodeVisitor):
 

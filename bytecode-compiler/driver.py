@@ -23,7 +23,7 @@ def compile_toplevel(module_name, filename, source):
     except ImportError:
         astpp = ast
     report(astpp.dump(t))
-    f = codegen.byte_compile(module_name, filename, source, globals())
+    f = codegen.byte_compile(module_name, filename, t, globals())
     diss(f.__code__)
     return f
 
