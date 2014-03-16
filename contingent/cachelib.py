@@ -13,9 +13,9 @@ class Cache:
         """Store a new value for the given `target`.
 
         This removes `target` from the current to-do list, if it is
-        listed there.  And if `value` is different from the currently
-        cached value of the target, then all immediate targets of the
-        target are added to the to-do list.
+        listed there.  And if this new `value` is different from the
+        currently cached value of the target, then all targets of which
+        `target` is an immediate dependency are added to the to-do list.
 
         """
         self._todo.discard(target)

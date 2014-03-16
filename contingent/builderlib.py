@@ -1,4 +1,5 @@
 from cachelib import Cache, _absent
+from contextlib import contextmanager
 from graphlib import Graph
 
 
@@ -11,18 +12,28 @@ class Builder:
 
     def get(self, target):
         if self.stack:
-            self.stack[-1].add(target)
+            self.graph.add_edge(target, self.stack[-1])
         value = self.cache.get(target)
         if value is _absent:
             value = self.recompute(target)
+            self.cache[target] = value
         return value
 
+    def set(self, target, value):
+        self.graph.clear_dependencies_of(target)
+        if self.stack:
+            self.graph.add_edge(self.stack[-1], target)
+        self.cache[target] = value
+
     def recompute(self, target):
-        new_dependencies = set()
-        self.stack.append(new_dependencies)
+        self.graph.clear_dependencies_of(target)
+        self.stack.append(target)
         try:
             value = self.compute(target, self.get)
         finally:
             self.stack.pop()
-        self.graph.set_dependencies_of(target, new_dependencies)
         return value
+
+    @contextmanager
+    def consequences(self):
+        yield

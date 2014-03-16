@@ -14,6 +14,12 @@ class Base:
         target = (self, name)
         return self._builder.get(target)
 
+    def __setattr__(self, name, value):
+        if not name.startswith('_'):
+            target = (self, name)
+            self._builder.set(target, value)
+        return object.__setattr__(self, name, value)
+
 
 def compute(target, get):
     print(target)
@@ -34,7 +40,8 @@ def compute(target, get):
 
 
 class Blog(Base):
-    def __init__(self, posts):
+    def __init__(self, builder, posts):
+        self._builder = builder
         self.posts = posts
 
     @property
@@ -43,7 +50,8 @@ class Blog(Base):
 
 
 class Post(Base):
-    def __init__(self, blog, title, date, content):
+    def __init__(self, builder, blog, title, date, content):
+        self._builder = builder
         self.blog = blog
         self.title = title
         self.date = date
@@ -73,17 +81,13 @@ def main():
     builder = Builder(compute)
 
     posts = []
-    blog = Blog(posts)
-    blog._builder = builder
+    blog = Blog(builder, posts)
 
-    post1 = Post(blog, 'A', '2014-01-01', 'Happy new year.')
-    post2 = Post(blog, 'B', '2014-01-15', 'Middle of January.')
-    post3 = Post(blog, 'C', '2014-02-01', 'Beginning of February.')
+    post1 = Post(builder, blog, 'A', '2014-01-01', 'Happy new year.')
+    post2 = Post(builder, blog, 'B', '2014-01-15', 'Middle of January.')
+    post3 = Post(builder, blog, 'C', '2014-02-01', 'Beginning of February.')
 
     posts.extend([post1, post2, post3])
-
-    for post in posts:
-        post._builder = builder
 
     display_posts(blog)
 
@@ -105,11 +109,14 @@ def main():
 
     #
 
-    #with graph.consequences():
-    post2.date = '2014-01-15'
+    with builder.consequences():
+        post2.date = '2014-01-15'
 
-    #with graph.consequences():
-    #post2.date = '2014-02-15'
+    with builder.consequences():
+        post2.date = '2014-02-15'
+
+    pprint(builder.cache._results)
+    print(builder.cache.todo())
 
     display_posts(blog)
 
