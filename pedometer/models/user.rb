@@ -28,12 +28,12 @@ class User
 private
 
   def calculate_stride
-    if @gender && @height
-      MULTIPLIERS[@gender] * @height
-    elsif @height
-      @height * (MULTIPLIERS.values.reduce(:+) / MULTIPLIERS.size)
-    elsif @gender
-      AVERAGES[@gender]
+    if gender && height
+      MULTIPLIERS[@gender] * height
+    elsif height
+      height * (MULTIPLIERS.values.reduce(:+) / MULTIPLIERS.size)
+    elsif gender
+      AVERAGES[gender]
     else
       AVERAGES.values.reduce(:+) / AVERAGES.size
     end
