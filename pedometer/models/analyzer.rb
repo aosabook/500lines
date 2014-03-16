@@ -16,7 +16,6 @@ class Analyzer
     @distance = 0
     @time = 0
     @time_interval = 'sec'
-    @distance_interval = 'cm'
 
     # TODO: Call each measurement method from here
   end

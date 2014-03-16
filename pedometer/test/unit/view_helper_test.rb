@@ -21,7 +21,21 @@ class UIHelperTest < Test::Unit::TestCase
     assert_equal '1.99 km', ViewHelper.format_distance(199000)
   end
 
-  def test_format_time
+  def test_format_seconds
+    assert_equal '1 sec',   ViewHelper.format_time(1)
+    assert_equal '59 sec',  ViewHelper.format_time(59)
+    assert_equal '1.0 min', ViewHelper.format_time(59.9)
+  end
+
+  def test_format_minutes
+    assert_equal '1.0 min',  ViewHelper.format_time(60)
+    assert_equal '59.9 min', ViewHelper.format_time(3596)
+    assert_equal '1.0 hr',   ViewHelper.format_time(3597)
+  end
+
+  def test_format_hours
+    assert_equal '1.0 hr', ViewHelper.format_time(3600)
+    assert_equal '1.1 hr', ViewHelper.format_time(3900)
   end
 
 end
