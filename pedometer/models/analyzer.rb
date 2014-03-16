@@ -4,6 +4,9 @@ require_relative 'parser'
 
 class Analyzer
 
+  MAX_STEPS_PER_SECOND = 6.0
+  THRESHOLD = 0.2
+
   attr_reader :parser, :user, :steps, :distance, :time
 
   def initialize(parser, user = User.new)
@@ -26,7 +29,7 @@ class Analyzer
     # - Rewrite challenge
     # - Can this be combined with detect_edges?
     @parser.filtered_data.collect do |data|
-      (positive ? ((data < 0.2) ? 0 : 1) : ((data < -0.2) ? 1 : 0))
+      (positive ? ((data < THRESHOLD) ? 0 : 1) : ((data < -THRESHOLD) ? 1 : 0))
     end
   end
 
@@ -37,8 +40,7 @@ class Analyzer
   def detect_edges(split)
     # Determined by the rate divided by the 
     # maximum steps the user can take per second
-    # TODO: Magic number
-    min_interval = (@parser.device.rate/6.0).round
+    min_interval = (@parser.device.rate/MAX_STEPS_PER_SECOND).round
     
     count = 0
     index_last_step = 0

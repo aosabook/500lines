@@ -2,6 +2,17 @@ require_relative '../models/device'
 
 class Parser
 
+  GRAVITY_COEFFICIENTS = {
+    alpha: [1, -1.979133761292768, 0.979521463540373],
+    beta:  [0.000086384997973502, 0.000172769995947004, 0.000086384997973502]
+  }
+  
+  # Chebyshev II, Astop = 2, Fstop = 5, Fs = 100
+  SMOOTHING_COEFFICIENTS = {
+    alpha: [1, -1.80898117793047, 0.827224480562408], 
+    beta:  [0.095465967120306, -0.172688631608676, 0.095465967120306]
+  }  
+
   attr_reader :device, :parsed_data, :dot_product_data, :filtered_data
 
   # TODO: 
@@ -23,10 +34,6 @@ private
   def parse_raw_data
     case @device.format
     when 'accelerometer'
-      # TODO: Magic numbers
-      alpha = [1, -1.979133761292768, 0.979521463540373]
-      beta = [0.000086384997973502, 0.000172769995947004, 0.000086384997973502]
-
       coordinates = @device.data.split(';')
       # TODO:
       # - x_series = coordinates.collect {|data| data.split(',')[0].to_f } to replace inject?
@@ -35,9 +42,9 @@ private
       y_series = coordinates.collect {|data| data.split(',')[1].to_f }
       z_series = coordinates.collect {|data| data.split(',')[2].to_f }
       
-      xg_series = chebyshev_filter(x_series, alpha, beta)
-      yg_series = chebyshev_filter(y_series, alpha, beta)
-      zg_series = chebyshev_filter(z_series, alpha, beta)
+      xg_series = chebyshev_filter(x_series, GRAVITY_COEFFICIENTS)
+      yg_series = chebyshev_filter(y_series, GRAVITY_COEFFICIENTS)
+      zg_series = chebyshev_filter(z_series, GRAVITY_COEFFICIENTS)
 
       @parsed_data = []
       coordinates.length.times do |i|
@@ -69,23 +76,22 @@ private
     end
   end
 
-  # Chebyshev II, Astop = 2, Fstop = 5, Fs = 100
   def filter_dot_product_data
-    @filtered_data = chebyshev_filter(@dot_product_data, 
-                                      [1, -1.80898117793047, 0.827224480562408], 
-                                      [0.095465967120306, -0.172688631608676, 0.095465967120306])
+    @filtered_data = chebyshev_filter(@dot_product_data, SMOOTHING_COEFFICIENTS)
   end
 
-  def chebyshev_filter(input_data, alpha, beta)
-    # TODO: Fix loop to start from index 2
+  def chebyshev_filter(input_data, coefficients)
+    # TODO: 
+    # - Fix loop to start from index 2
+    # - Do we need to round?
     output_data = [0,0]
     input_data.length.times do |i|
       next if i < 2
-      output_data << ((input_data[i]*beta[0] + 
-                      input_data[i-1]*beta[1] + 
-                      input_data[i-2]*beta[2] -
-                      output_data[i-1]*alpha[1] -
-                      output_data[i-2]*alpha[2])*alpha[0]).round(4)
+      output_data << ((input_data[i]*coefficients[:beta][0] + 
+                      input_data[i-1]*coefficients[:beta][1] + 
+                      input_data[i-2]*coefficients[:beta][2] -
+                      output_data[i-1]*coefficients[:alpha][1] -
+                      output_data[i-2]*coefficients[:alpha][2])*coefficients[:alpha][0]).round(4)
     end
     output_data
   end
