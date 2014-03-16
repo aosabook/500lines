@@ -26,6 +26,7 @@ class Builder:
         self.cache[target] = value
 
     def recompute(self, target):
+        print('Recomputing', target)
         self.graph.clear_dependencies_of(target)
         self.stack.append(target)
         try:
@@ -34,6 +35,15 @@ class Builder:
             self.stack.pop()
         return value
 
+    def rebuild(self):
+        todo = self.cache.todo()
+        while todo:
+            todo = list(todo)
+            for target in self.graph.consequences_of(todo):
+                self.get(target)
+            todo = self.cache.todo()
+
     @contextmanager
     def consequences(self):
         yield
+        self.rebuild()

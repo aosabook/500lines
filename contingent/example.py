@@ -22,7 +22,6 @@ class Base:
 
 
 def compute(target, get):
-    print(target)
     if isinstance(target[1], str):
         obj, attribute_name = target
         value = object.__getattribute__(obj, attribute_name)
@@ -115,7 +114,7 @@ def main():
     with builder.consequences():
         post2.date = '2014-02-15'
 
-    pprint(builder.cache._results)
+    #pprint(builder.cache._results)
     print(builder.cache.todo())
 
     display_posts(blog)
