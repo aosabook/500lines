@@ -30,10 +30,8 @@ sampler. On initialization, it takes functions to sample from the
 proposal distribution and to compute the log-PDF values for both the
 proposal and target distributions. 
 
-> **Why the log-PDF?**
->
-> When working with sampling methods, it is
-> almost always a good idea to work in "log-space", meaning that your
+> *Why the log-PDF?* When working with sampling methods, it is almost
+> always a good idea to work in "log-space", meaning that your
 > functions should always return log probabilities rather than
 > probabilities. This is because probabilities can get very small very
 > quickly, resulting in underflow errors.
@@ -63,7 +61,51 @@ distribution.
 
 The file `gaussian_mixture_sampler.py` creates a subclass of
 `RejectionSampler` for the specific application of sampling from a
-mixture of Gaussians. The
+mixture of Gaussians. A Gaussian distribution is given by the
+following equation:
+
+$$
+\mathcal(x; \mu, \sigma^2) = \frac{1}{\sqrt{2\pi\sigma^2}}\exp{\frac{-(x-\mu)^2}{2\sigma^2}}
+$$
+
+where $\mu$ and $\sigma^2$ are the parameters of the Gaussian
+distribution for mean and variance, respectively. A mixture of
+Gaussians is a weighted average of several Gaussians. In our case, we
+are using $p(x)=\frac{1}{3}(\mathcal{N}(x; -2.5, 0.2) + \mathcal{N}(x;
+2.0, 0.1) + \mathcal{N}(x; 0.2, 0.3))$.
+
+> Note: in practice, sampling from a Gaussian distribution is fairly
+> easy, and most statistics packages come with methods for doing
+> so. We are using a mixture of Gaussians here mostly just for
+> illustration purposes.
+
+The
 [IPython notebook](http://nbviewer.ipython.org/github/jhamrick/500lines/blob/sampler/sampler/Sampling%20example.ipynb)
 creates an instance of this `GaussianMixtureSampler` and plots the
 samples that are drawn.
+
+## Possible extensions
+
+There are several ways that the basic sampler described here could be
+extended. Depending on the application, some of these extensions might
+be crucially important.
+
+### Parallelization
+
+The sampling loop could run multiple calls to `draw` in parallel. Some
+samplers (not rejection sampling) depend on samples being drawn
+sequentially, though, so this won't always be applicable.
+
+### Optimization
+
+Function calls in Python have a high overhead. However, based on the
+current implementation, we require *at least* seven Python calls per
+sample (more, if the proposal and target functions themselves make
+Python calls). Even simple target distributions need upwards of
+$n=10000$ samples to attain a decent approximation. Thus, this
+implementation will become too inefficient for even moderately complex
+problems.
+
+One solution is to rewrite the code for `draw` (and possibly even
+`sample`) using an extension language like Cython or numba, or even a
+lower level language like C or FORTRAN.
