@@ -68,9 +68,17 @@ class Graph(object):
         nodes = set(nodes)
         lines = ['digraph { node [shape=rect penwidth=0 style=filled'
                  ' fillcolor="#d6d6d6"];']
-        for dependency, targets in sorted(self._targets.items()):
+        for dependency, targets in try_sorting(self._targets.items()):
             if (not nodes) or (dependency in nodes):
-                for target in sorted(targets):
+                for target in try_sorting(targets):
                     if (not nodes) or (target in nodes):
                         lines.append('"{}" -> "{}"'.format(dependency, target))
         return '\n'.join(lines + ['}'])
+
+def try_sorting(sequence):
+    sequence = list(sequence)
+    try:
+        sequence.sort()
+    except TypeError:
+        pass
+    return sequence

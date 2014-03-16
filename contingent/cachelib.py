@@ -25,6 +25,13 @@ class Cache:
         self._results[target] = value
         self._todo.update(self.graph.targets_of(target))
 
+    def get(self, target):
+        """Return an up-to-date cached value for `target` else `_absent`."""
+
+        if target in self._todo:
+            return _absent
+        return self._results.get(target, _absent)
+
     def todo(self):
         """Return the targets that currently need to be rebuilt."""
 

@@ -1,10 +1,39 @@
 """Rough experiment from which to derive the design of `contingent`."""
 
+from builderlib import Builder
+from functools import wraps
+from inspect import ismethod
 from operator import attrgetter
 from pprint import pprint
-from watchlib import Graph, Thing
 
-class Blog(Thing):
+
+class Base:
+    def __getattribute__(self, name):
+        if name.startswith('_'):
+            return object.__getattribute__(self, name)
+        target = (self, name)
+        return self._builder.get(target)
+
+
+def compute(target, get):
+    print(target)
+    if isinstance(target[1], str):
+        obj, attribute_name = target
+        value = object.__getattribute__(obj, attribute_name)
+        if not ismethod(value):
+            return value
+        method = value
+        @wraps(method)
+        def wrapper(*args):
+            target = (method, args)
+            return get(target)
+        return wrapper
+    else:
+        method, args = target
+        return method(*args)
+
+
+class Blog(Base):
     def __init__(self, posts):
         self.posts = posts
 
@@ -12,7 +41,8 @@ class Blog(Thing):
     def sorted_posts(self):
         return sorted(self.posts, key=attrgetter('date'))
 
-class Post(Thing):
+
+class Post(Base):
     def __init__(self, blog, title, date, content):
         self.blog = blog
         self.title = title
@@ -38,12 +68,13 @@ class Post(Thing):
         kw['next_title'] = np.title if (np is not None) else '-'
         return template.format(**kw)
 
+
 def main():
-    graph = Graph()
+    builder = Builder(compute)
 
     posts = []
     blog = Blog(posts)
-    graph.add(blog)
+    blog._builder = builder
 
     post1 = Post(blog, 'A', '2014-01-01', 'Happy new year.')
     post2 = Post(blog, 'B', '2014-01-15', 'Middle of January.')
@@ -52,11 +83,11 @@ def main():
     posts.extend([post1, post2, post3])
 
     for post in posts:
-        graph.add(post)
+        post._builder = builder
 
     display_posts(blog)
 
-    print '=' * 72
+    print('=' * 72)
 
     def present(value):
         obj = value[0]
@@ -69,20 +100,16 @@ def main():
 
     # python example.py && dot -Tpng graph.dot > graph.png && geeqie graph.png
 
-    with open('graph.dot', 'w') as f:
-        print >>f, 'digraph { graph [rankdir="LR"];'
-        for k, vset in graph.consequence_edges.items():
-            for v in vset:
-                print >>f, '"%s" -> "%s";' % (present(k), present(v))
-        print >>f, '}'
+    with open('diagram-example.dot', 'w') as f:
+        f.write(builder.graph.as_graphviz())
 
     #
 
-    with graph.consequences():
-        post2.date = '2014-01-15'
+    #with graph.consequences():
+    post2.date = '2014-01-15'
 
-    with graph.consequences():
-        post2.date = '2014-02-15'
+    #with graph.consequences():
+    #post2.date = '2014-02-15'
 
     display_posts(blog)
 
@@ -91,7 +118,7 @@ def main():
     key = (post2, 'date')
     graph.run_consequences_of(key)
 
-    print '-' * 8
+    print('-' * 8)
 
     post2.date = '2014-02-15'
 
@@ -100,21 +127,21 @@ def main():
 
     return
 
-    print '=' * 72
+    print('=' * 72)
 
     post4 = Post(blog, 'New', '2014-01-25', 'Late January.')
     posts[2:2] = [post4]
     graph.add(post4)
 
     for post in blog.sorted_posts:
-        print '-' * 8
-        print post.render()
+        print('-' * 8)
+        print(post.render())
 
 
 def display_posts(blog):
     for post in blog.sorted_posts:
-        print '-' * 8
-        print post.render()
+        print('-' * 8)
+        print(post.render())
 
 
 template = """\
