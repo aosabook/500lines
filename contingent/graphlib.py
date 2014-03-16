@@ -25,16 +25,6 @@ class Graph(object):
         for dependency in list(self._dependencies[target]):
             self.remove_edge(dependency, target)
 
-    def set_dependencies_of(self, target, dependencies):
-        """Replace incoming `target` edges with edges from `dependencies`."""
-
-        new_dependencies = set(dependencies)
-        dset = self._dependencies[target]
-        for old_dependency in dset - new_dependencies:
-            self.remove_edge(old_dependency, target)
-        for new_dependency in new_dependencies - dset:
-            self.add_edge(new_dependency, target)
-
     def nodes(self):
         """Return all nodes that are either dependencies or targets."""
 
@@ -45,26 +35,31 @@ class Graph(object):
 
         return set(self._targets[dependency])
 
-    def consequences_of(self, dependencies):
+    def consequences_of(self, dependencies, include=False):
         """Return topologically-sorted consequences for changed `dependencies`.
 
         Returns an ordered sequence listing every target that is
         downstream from the given `dependencies`.  The order will be
         chosen so that targets always follow all of their dependencies.
+        If the flag `include` is true then the `dependencies` themselves
+        will be correctly sorted into the resulting sequence.
 
         """
-        return list(self._generate_consequences_backwards(dependencies))[::-1]
+        g = self._generate_consequences_backwards(dependencies, include)
+        return list(g)[::-1]
 
-    def _generate_consequences_backwards(self, dependencies):
+    def _generate_consequences_backwards(self, dependencies, include):
         def visit(dependency):
             visited.add(dependency)
-            for target in self._targets[dependency]:
+            for target in try_sorting(self._targets[dependency], reverse=True):
                 if target not in visited:
                     yield from visit(target)
-            yield dependency
+                    yield target
         visited = set()
         for dependency in dependencies:
             yield from visit(dependency)
+            if include:
+                yield dependency
 
     def as_graphviz(self, nodes=[]):
         """Generate lines of graphviz ``dot`` code that draw this graph."""
@@ -79,10 +74,11 @@ class Graph(object):
                         lines.append('"{}" -> "{}"'.format(dependency, target))
         return '\n'.join(lines + ['}'])
 
-def try_sorting(sequence):
+
+def try_sorting(sequence, reverse=False):
     sequence = list(sequence)
     try:
-        sequence.sort()
+        sequence.sort(reverse=reverse)
     except TypeError:
         pass
     return sequence

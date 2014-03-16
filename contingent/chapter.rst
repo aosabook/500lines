@@ -291,10 +291,9 @@ further along in the current topological sort, this will correctly
 assure that the target then reappears in the ``todo()`` set.  A full
 replacement of all incoming edges is offered through a dedicated graph
 method.  If an update were added to the text of post A to mention the
-later post C, then its dependencies would need to change:
+later post C, then its dependencies would need to include that:
 
->>> g.set_dependencies_of('A.html', ['A.body', 'A.date', 'A.title',
-...                                  'A.prev.title', 'C.title'])
+>>> g.add_edge('C.title', 'A.html')
 
 Thanks to this new list of dependencies, post A will now be considered
 one of consequences of a change to the title of post C.

@@ -39,7 +39,7 @@ class Builder:
         todo = self.cache.todo()
         while todo:
             todo = list(todo)
-            for target in self.graph.consequences_of(todo):
+            for target in self.graph.consequences_of(todo, include=True):
                 self.get(target)
             todo = self.cache.todo()
 
