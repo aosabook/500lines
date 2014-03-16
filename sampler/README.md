@@ -63,6 +63,7 @@ distribution.
 
 The file `gaussian_mixture_sampler.py` creates a subclass of
 `RejectionSampler` for the specific application of sampling from a
-mixture of Gaussians. The IPython notebook `Sampling example.ipynb`
+mixture of Gaussians. The
+[IPython notebook](http://nbviewer.ipython.org/github/jhamrick/500lines/blob/sampler/sampler/Sampling%20example.ipynb)
 creates an instance of this `GaussianMixtureSampler` and plots the
 samples that are drawn.
