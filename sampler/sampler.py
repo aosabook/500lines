@@ -51,11 +51,11 @@ class RejectionSampler(object):
             upper = self.propose_logpdf(x)
             if upper < MIN:
                 continue
-            p = np.log(np.random.uniform(0.0, np.exp(upper)))
+            logy = np.log(np.random.uniform(0.0, np.exp(upper)))
 
             # 3. If this point is less than the target PDF, then we
             # accept the candidate value (otherwise, we reject it).
-            if p < self.target_logpdf(x):
+            if logy < self.target_logpdf(x):
                 break
 
         return x
