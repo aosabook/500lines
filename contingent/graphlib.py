@@ -3,20 +3,27 @@
 from collections import defaultdict
 
 class Graph(object):
+    """A directed graph of build targets and their dependencies."""
+
     def __init__(self):
         self._dependencies = defaultdict(set)
         self._targets = defaultdict(set)
 
     def add_edge(self, dependency, target):
+        """Add an edge recording that `dependency` is needed by `target`."""
+
         self._targets[dependency].add(target)
         self._dependencies[target].add(dependency)
 
     def remove_edge(self, dependency, target):
+        """Remove the edge stating that `dependency` is needed by `target`."""
+
         self._targets[dependency].remove(target)
         self._dependencies[target].remove(dependency)
 
     def set_dependencies_of(self, target, dependencies):
         """Replace incoming `target` edges with edges from `dependencies`."""
+
         new_dependencies = set(dependencies)
         dset = self._dependencies[target]
         for old_dependency in dset - new_dependencies:
@@ -25,15 +32,26 @@ class Graph(object):
             self.add_edge(new_dependency, target)
 
     def nodes(self):
+        """Return all nodes that are either dependencies or targets."""
+
         return set(self._dependencies) | set(self._targets)
 
     def targets_of(self, dependency):
+        """Return the targets to rebuild if `dependency` changes."""
+
         return set(self._targets[dependency])
 
     def consequences_of(self, dependencies):
-        return list(self.generate_consequences_backwards(dependencies))[::-1]
+        """Return topologically-sorted consequences for changed `dependencies`.
 
-    def generate_consequences_backwards(self, dependencies):
+        Returns an ordered sequence listing every target that is
+        downstream from the given `dependencies`.  The order will be
+        chosen so that targets always follow all of their dependencies.
+
+        """
+        return list(self._generate_consequences_backwards(dependencies))[::-1]
+
+    def _generate_consequences_backwards(self, dependencies):
         def visit(dependency):
             visited.add(dependency)
             for target in sorted(self._targets[dependency], reverse=True):
@@ -46,6 +64,7 @@ class Graph(object):
 
     def as_graphviz(self, nodes=[]):
         """Generate lines of graphviz ``dot`` code that draw this graph."""
+
         nodes = set(nodes)
         lines = ['digraph { node [shape=rect penwidth=0 style=filled'
                  ' fillcolor="#d6d6d6"];']

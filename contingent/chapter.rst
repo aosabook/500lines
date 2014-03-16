@@ -293,8 +293,8 @@ replacement of all incoming edges is offered through a dedicated graph
 method.  If an update were added to the text of post A to mention the
 later post C, then its dependencies would need to change:
 
->>> g.set_dependencies_of('A.html',
-...     ['A.body', 'A.date', 'A.title', 'A.prev.title', 'C.title'])
+>>> g.set_dependencies_of('A.html', ['A.body', 'A.date', 'A.title',
+...                                  'A.prev.title', 'C.title'])
 
 Post A is now in the consequences of a change to the title of post C.
 
