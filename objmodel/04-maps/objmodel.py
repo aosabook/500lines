@@ -71,7 +71,7 @@ class Instance(Base):
     """Instance of a user-defined class. """
 
     def __init__(self, cls):
-        assert cls is None or isinstance(cls, Class)
+        assert isinstance(cls, Class)
         self.cls = cls
         self.map = EMPTY_MAP
         self.storage = []
