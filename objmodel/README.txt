@@ -1,6 +1,6 @@
 Author: Carl Friedrich Bolz
 Project: Object Models
-Requirements: Python
+Requirements: Python 2.7 or 3.3
 
 This directory holds a simple imperative object-oriented object model
 implementation, which is built up in stages. It is code as it could appear in
