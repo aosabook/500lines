@@ -20,7 +20,6 @@ class AnalyzerTest < Test::Unit::TestCase
     assert_equal 0, analyzer.time
     assert_equal user,  analyzer.user
     assert_equal 'sec', analyzer.time_interval
-    assert_equal 'cm',  analyzer.distance_interval
   end
 
   def test_create_gravity_data
@@ -35,7 +34,6 @@ class AnalyzerTest < Test::Unit::TestCase
     assert_equal 0, analyzer.time
     assert_equal user,      analyzer.user
     assert_equal 'sec', analyzer.time_interval
-    assert_equal 'cm',      analyzer.distance_interval
   end
 
   def test_create_no_parser
@@ -115,18 +113,7 @@ class AnalyzerTest < Test::Unit::TestCase
     assert_equal 0, analyzer.distance
   end
 
-  def test_measure_distance_cm
-    device = Device.new(File.read('test/data/results-0-steps.txt'))
-    parser = Parser.new(device)
-    analyzer = Analyzer.new(parser)
-    analyzer.send(:measure_steps)
-    analyzer.send(:measure_distance)
-    
-    assert_equal 0, analyzer.distance
-    assert_equal 'cm', analyzer.distance_interval
-  end
-
-  def test_measure_distance_m
+  def test_measure_distance_after_steps
     user = User.new(nil, nil, 100)
     device = Device.new(File.read('test/data/female-167-70_100-walk-10-1-g.txt'))
     parser = Parser.new(device)
@@ -134,20 +121,7 @@ class AnalyzerTest < Test::Unit::TestCase
     analyzer.send(:measure_steps)
     analyzer.send(:measure_distance)
 
-    assert_equal 8.0, analyzer.distance
-    assert_equal 'm', analyzer.distance_interval
-  end
-
-  def test_measure_distance_km
-    user = User.new(nil, nil, 100000)
-    device = Device.new(File.read('test/data/female-167-70_100-walk-10-1-g.txt'))
-    parser = Parser.new(device)
-    analyzer = Analyzer.new(parser, user)
-    analyzer.send(:measure_steps)
-    analyzer.send(:measure_distance)
-    
-    assert_equal 8.0, analyzer.distance
-    assert_equal 'km', analyzer.distance_interval 
+    assert_equal 800, analyzer.distance
   end
 
   def test_measure_time_seconds

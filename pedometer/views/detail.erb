@@ -18,7 +18,7 @@
         </tr>
         <tr>
             <%= erb :summary, :locals => {:user => @user, :device => @device, :steps => @analyzer.steps} %>
-            <td><%= @analyzer.distance.to_s + ' ' + @analyzer.distance_interval %></td>
+            <td><%= ViewHelper.format_distance(@analyzer.distance) %></td>
             <td><%= @analyzer.time.to_s + ' ' + @analyzer.time_interval %></td>
         </tr>
     </table>

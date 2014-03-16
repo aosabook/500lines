@@ -4,7 +4,7 @@ require_relative 'parser'
 
 class Analyzer
 
-  attr_reader :parser, :user, :steps, :distance, :time, :time_interval, :distance_interval
+  attr_reader :parser, :user, :steps, :distance, :time, :time_interval
 
   def initialize(parser, user = User.new)
     raise "Parser invalid." unless parser.kind_of? Parser
@@ -77,19 +77,6 @@ private
 
   def measure_distance
     @distance = @user.stride * @steps
-
-    # TODO: 
-    # - Magic numbers, rounds
-    # - Does the conversion logic belong in the view? Helper called from the view?
-    if @distance > 99999
-      @distance = (@distance/100000).round(2)
-      @distance_interval = 'km'
-    elsif @distance > 99
-      @distance = (@distance/100).round(2)
-      @distance_interval = 'm'
-    end
-
-    @distance = @distance.round(2)
   end
 
   def measure_time
