@@ -4,7 +4,7 @@ require_relative 'parser'
 
 class Analyzer
 
-  attr_reader :parser, :user, :steps, :distance, :time, :time_interval
+  attr_reader :parser, :user, :steps, :distance, :time
 
   def initialize(parser, user = User.new)
     raise "Parser invalid." unless parser.kind_of? Parser
@@ -15,7 +15,6 @@ class Analyzer
     @steps = 0
     @distance = 0
     @time = 0
-    @time_interval = 'sec'
 
     # TODO: Call each measurement method from here
   end
@@ -79,18 +78,8 @@ private
   end
 
   def measure_time
-    sampling_rate = @parser.device.rate.round(1)
+    sampling_rate = @parser.device.rate
     @time = @parser.parsed_data.count/sampling_rate
-
-    if @time > 3600
-      @time = @time/3600
-      @time_interval = 'hours'
-    elsif @time > 60
-      @time = @time/60
-      @time_interval = 'minutes'
-    end
-
-    @time = @time.round(2)
   end
 
 end

@@ -19,7 +19,6 @@ class AnalyzerTest < Test::Unit::TestCase
     assert_equal 0, analyzer.distance
     assert_equal 0, analyzer.time
     assert_equal user,  analyzer.user
-    assert_equal 'sec', analyzer.time_interval
   end
 
   def test_create_gravity_data
@@ -33,7 +32,6 @@ class AnalyzerTest < Test::Unit::TestCase
     assert_equal 0, analyzer.distance
     assert_equal 0, analyzer.time
     assert_equal user,      analyzer.user
-    assert_equal 'sec', analyzer.time_interval
   end
 
   def test_create_no_parser
@@ -124,36 +122,14 @@ class AnalyzerTest < Test::Unit::TestCase
     assert_equal 800, analyzer.distance
   end
 
-  def test_measure_time_seconds
-    device = Device.new(File.read('test/data/results-15-steps.txt'), 4)
-    parser = Parser.new(device)
-    analyzer = Analyzer.new(parser)
-    analyzer.send(:measure_time)
-    
-    assert_equal 7.25, analyzer.time
-    assert_equal 'sec', analyzer.time_interval
-  end
-
-  def test_measure_time_minutes
-    # Fake out 1000 samples
-    device = Device.new((1000.times.inject('') {|a| a+='1,1,1;';a}), 4)
-    parser = Parser.new(device)
-    analyzer = Analyzer.new(parser)
-    analyzer.send(:measure_time)
-    
-    assert_equal 4.17, analyzer.time
-    assert_equal 'minutes', analyzer.time_interval
-  end
-
-  def test_measure_time_hours
+  def test_measure_time
     # Fake out 15000 samples
     device = Device.new((15000.times.inject('') {|a| a+='1,1,1;';a}), 4)
     parser = Parser.new(device)
     analyzer = Analyzer.new(parser)
     analyzer.send(:measure_time)
 
-    assert_equal 1.04, analyzer.time
-    assert_equal 'hours', analyzer.time_interval
+    assert_equal 3750, analyzer.time
   end
 
   def test_measure
@@ -166,7 +142,6 @@ class AnalyzerTest < Test::Unit::TestCase
     assert_equal 0, analyzer.steps
     assert_equal 0, analyzer.distance
     assert_equal 0.2, analyzer.time
-    assert_equal 'sec', analyzer.time_interval
     
     device = Device.new(File.read('test/data/results-15-steps.txt'))
     parser = Parser.new(device)
@@ -178,7 +153,6 @@ class AnalyzerTest < Test::Unit::TestCase
     assert_equal 0, analyzer.steps
     assert_equal 0, analyzer.distance
     assert_equal 0.29, analyzer.time
-    assert_equal 'sec', analyzer.time_interval
 
     # assert_equal 15, analyzer.steps
     # assert_equal 975, analyzer.distance
