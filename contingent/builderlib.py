@@ -26,7 +26,6 @@ class Builder:
         self.cache[target] = value
 
     def recompute(self, target):
-        print('Recomputing', target)
         self.graph.clear_dependencies_of(target)
         self.stack.append(target)
         try:

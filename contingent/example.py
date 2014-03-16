@@ -43,8 +43,12 @@ class Blog(Base):
         self._builder = builder
         self.posts = posts
 
+    def __repr__(self):
+        return '<Blog>'
+
     @property
     def sorted_posts(self):
+        print('Re-sorting posts')
         return sorted(self.posts, key=attrgetter('date'))
 
 
@@ -56,24 +60,20 @@ class Post(Base):
         self.date = date
         self.content = content
 
-    def prev_post(self):
+    def __repr__(self):
+        return '<Post {!r}>'.format(self.title)
+
+    @property
+    def prev(self):
         sorted_posts = self.blog.sorted_posts
         i = sorted_posts.index(self)
         return sorted_posts[i - 1] if i else None
 
-    def next_post(self):
-        sorted_posts = self.blog.sorted_posts
-        i = sorted_posts.index(self)
-        return sorted_posts[i + 1] if i < len(sorted_posts) - 1 else None
-
     def render(self):
-        pp = self.prev_post()
-        np = self.next_post()
-
-        kw = dict(self.__dict__)
-        kw['prev_title'] = pp.title if (pp is not None) else '-'
-        kw['next_title'] = np.title if (np is not None) else '-'
-        return template.format(**kw)
+        print('Rendering', self)
+        prev = self.prev
+        prev_title = prev.title if prev else '-'
+        return template.format(post=self, prev_title=prev_title)
 
 
 def main():
@@ -92,14 +92,14 @@ def main():
 
     print('=' * 72)
 
-    def present(value):
-        obj = value[0]
-        thing = value[1]
-        s = '%s%s.%s' % (obj.__class__.__name__, id(obj), thing)
-        if len(value) > 2:
-            args = value[2]
-            s += repr(args)
-        return s
+    # def present(value):
+    #     obj = value[0]
+    #     thing = value[1]
+    #     s = '%s%s.%s' % (obj.__class__.__name__, id(obj), thing)
+    #     if len(value) > 2:
+    #         args = value[2]
+    #         s += repr(args)
+    #     return s
 
     # python example.py && dot -Tpng graph.dot > graph.png && geeqie graph.png
 
@@ -114,26 +114,21 @@ def main():
     with builder.consequences():
         post2.date = '2014-02-15'
 
-    #pprint(builder.cache._results)
-    print(builder.cache.todo())
+    display_posts(blog)
+
+    print('=' * 60)
+
+    with builder.consequences():
+        post2.date = '2014-02-20'
+        print(builder.cache.todo())
 
     display_posts(blog)
 
-    return
-
-    key = (post2, 'date')
-    graph.run_consequences_of(key)
-
-    print('-' * 8)
-
-    post2.date = '2014-02-15'
-
-    key = (post2, 'date')
-    graph.run_consequences_of(key)
+    print('=' * 60)
 
     return
 
-    print('=' * 72)
+    print('=' * 60)
 
     post4 = Post(blog, 'New', '2014-01-25', 'Late January.')
     posts[2:2] = [post4]
@@ -152,11 +147,10 @@ def display_posts(blog):
 
 template = """\
 Previous story: {prev_title}
-Next story: {next_title}
 
-"{title}"
-{date}
-{content}
+"{post.title}"
+{post.date}
+{post.content}
 """
 
 if __name__ == '__main__':
