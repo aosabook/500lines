@@ -106,14 +106,14 @@ class CodeGen(ast.NodeVisitor):
         if not code.co_freevars:
             return [self.load_const(code),
                     self.load_const(name),
-                    op.MAKE_FUNCTION(0)] # XXX 0 = # of default args?
+                    op.MAKE_FUNCTION(0)] # 0 = # of default args
         else:
             return [[op.LOAD_CLOSURE(self.cell_index(name))
                      for name in code.co_freevars],
                     op.BUILD_TUPLE(len(code.co_freevars)),
                     self.load_const(code),
                     self.load_const(name),
-                    op.MAKE_CLOSURE(0)] # XXX 0 = # of default args?
+                    op.MAKE_CLOSURE(0)] # 0 = # of default args
 
     def cell_index(self, name):
         return self.scope.derefvars.index(name)
