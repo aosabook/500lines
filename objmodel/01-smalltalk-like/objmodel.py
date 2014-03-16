@@ -37,13 +37,13 @@ class Instance(Base):
     def __init__(self, cls):
         assert cls is None or isinstance(cls, Class)
         self.cls = cls
-        self._dct = {}
+        self._fields = {}
 
     def _read_dict(self, fieldname):
-        return self._dct.get(fieldname, MISSING)
+        return self._fields.get(fieldname, MISSING)
 
     def _write_dict(self, fieldname, value):
-        self._dct[fieldname] = value
+        self._fields[fieldname] = value
 
 
 class Class(Base):
@@ -51,15 +51,15 @@ class Class(Base):
 
     def __init__(self, name, base_class, dct, metaclass):
         Base.__init__(self, metaclass)
-        self._dct = dct
+        self._fields = dct
         self.name = name
         self.base_class = base_class
 
     def _read_dict(self, fieldname):
-        return self._dct.get(fieldname, MISSING)
+        return self._fields.get(fieldname, MISSING)
 
     def _write_dict(self, fieldname, value):
-        self._dct[fieldname] = value
+        self._fields[fieldname] = value
 
     def mro(self):
         """ compute the mro (method resolution order) of the class """
@@ -74,8 +74,8 @@ class Class(Base):
 
     def _read_from_class(self, methname):
         for cls in self.mro():
-            if methname in cls._dct:
-                return cls._dct[methname]
+            if methname in cls._fields:
+                return cls._fields[methname]
         return MISSING
 
 # set up the base hierarchy like in Python (the ObjVLisp model)
