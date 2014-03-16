@@ -63,7 +63,6 @@ class Post(Base):
     def __repr__(self):
         return '<Post {!r}>'.format(self.title)
 
-    @property
     def prev(self):
         sorted_posts = self.blog.sorted_posts
         i = sorted_posts.index(self)
@@ -71,7 +70,7 @@ class Post(Base):
 
     def render(self):
         print('Rendering', self)
-        prev = self.prev
+        prev = self.prev()
         prev_title = prev.title if prev else '-'
         return template.format(post=self, prev_title=prev_title)
 
@@ -91,15 +90,6 @@ def main():
     display_posts(blog)
 
     print('=' * 72)
-
-    # def present(value):
-    #     obj = value[0]
-    #     thing = value[1]
-    #     s = '%s%s.%s' % (obj.__class__.__name__, id(obj), thing)
-    #     if len(value) > 2:
-    #         args = value[2]
-    #         s += repr(args)
-    #     return s
 
     # python example.py && dot -Tpng graph.dot > graph.png && geeqie graph.png
 
