@@ -60,11 +60,23 @@ class RejectionSampler(object):
 
         return x
 
-    def sample(self, n):
+    def sample(self, n, seed=None):
         """Sample `n` values from `self.target_logpdf` using rejection
         sampling.
 
+        Parameters
+        ----------
+        n : int
+            The number of samples to draw.
+        seed : int (optional)
+            If given, seed NumPy's random number generator.
+
         """
+
+        # seed the random number generator
+        if seed is not None:
+            np.random.seed(seed)
+
         # Draw our first sample, so we can determine the size of the
         # array that we need to allocate. If this sample is
         # array-like, then we need to allocate an array with more than
