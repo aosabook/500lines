@@ -11,21 +11,22 @@ from scoper import top_scope
 
 def byte_compile(module_name, filename, source, f_globals, loud=0):
     t = ast.parse(source)
-    top_level = top_scope(t, source, loud)
     t = Expander().visit(t)
     ast.fix_missing_locations(t)
     check_conformity(t)
+    top_level = top_scope(t, loud)
     code = CodeGen(filename, top_level).compile(t, module_name)
     return types.FunctionType(code, f_globals)
 
 class Expander(ast.NodeTransformer):
     def visit_Assert(self, t):
-        return ast.If(ast.UnaryOp(ast.Not(), t.test),
-                      [ast.Raise(ast.Call(ast.Name('AssertionError', ast.Load()),
-                                          [] if t.msg is None else [t.msg],
-                                          [], None, None),
-                                 None)],
-                      [])
+        result = ast.If(ast.UnaryOp(ast.Not(), t.test),
+                        [ast.Raise(ast.Call(ast.Name('AssertionError', ast.Load()),
+                                            [] if t.msg is None else [t.msg],
+                                            [], None, None),
+                                   None)],
+                        [])
+        return ast.copy_location(result, t)
 
 class CodeGen(ast.NodeVisitor):
 
@@ -35,8 +36,6 @@ class CodeGen(ast.NodeVisitor):
         self.constants = make_table()
         self.names     = make_table()
         self.varnames  = make_table()
-        self.freevars  = ()
-        self.cellvars  = ()
 
     def compile_class(self, t):
         self.set_docstring(t)

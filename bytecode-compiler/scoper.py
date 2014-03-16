@@ -4,11 +4,11 @@ Analyze variable scope.
 
 import ast
 
-def top_scope(t, source, loudness=0):
-    top_level = Scope(t)
-    top_level.visit(t)
-    top_level.analyze(set())
-    return top_level
+def top_scope(t, loudness=0):
+    top = Scope(t)
+    top.visit(t)
+    top.analyze(set())
+    return top
 
 def get_type(t):
     if   isinstance(t, ast.Module):
