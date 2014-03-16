@@ -15,6 +15,15 @@ class Graph(object):
         self._targets[dependency].remove(target)
         self._dependencies[target].remove(dependency)
 
+    def set_dependencies_of(self, target, dependencies):
+        """Replace incoming `target` edges with edges from `dependencies`."""
+        new_dependencies = set(dependencies)
+        dset = self._dependencies[target]
+        for old_dependency in dset - new_dependencies:
+            self.remove_edge(old_dependency, target)
+        for new_dependency in new_dependencies - dset:
+            self.add_edge(new_dependency, target)
+
     def nodes(self):
         return set(self._dependencies) | set(self._targets)
 

@@ -260,14 +260,49 @@ redundant work.
 
 But we should note that, in the general case, that once we finish our
 topologically sorted rebuild we will still have to pay attention to the
-``todo()`` list and keep looping until it is empty!  That is because
+``todo()`` list and keep looping until it is empty.  That is because
 nodes can actually change their dependency list each time they run, and
 that therefore the pre-ordering we compute might not reflect the real
 state of the dependency graph as it evolves.
 
 Why would the graph change as we are calculating it?
 
+The dependencies we have considered so far between documents are the
+result of static site design — here, the fact that each HTML page has a
+link to the preceding blog post.  But sometimes dependencies arise from
+the content itself!  Blog posts, for example, might refer to each other
+dynamically::
+
+    I have been learning even more about the Pandas library.
+    You can read about my first steps in using it by visiting
+    my original `learning-pandas`_ blog post from last year.
+
+When this paragraph is rendered the output should look like:
+
+    ...original `Learning About Pandas`_ blog post from last year.
+
+Therefore this HTML will need to be regenerated every time the title in
+``learning-pandas.rst`` is edited and changed.
+
+After running a rebuild step for a target, therefore, we will need to
+reset the incoming edges from its dependencies.  In the rare case that
+the new set of edges includes one from a yet-to-be-rebuilt target
+further along in the current topological sort, this will correctly
+assure that the target then reappears in the ``todo()`` set.  A full
+replacement of all incoming edges is offered through a dedicated graph
+method.  If an update were added to the text of post A to mention the
+later post C, then its dependencies would need to change:
+
+>>> g.set_dependencies_of('A.html',
+...     ['A.body', 'A.date', 'A.title', 'A.prev.title', 'C.title'])
+
+Post A is now in the consequences of a change to the title of post C.
+
+>>> g.consequences_of(['C.title'])
+['A.html', 'C.html']
+
 
 
 [TODO: blurb about file dates and ``touch`` and how it lets you force a
 rebuild even if ``make`` cannot see that some contingency has changed]
+
