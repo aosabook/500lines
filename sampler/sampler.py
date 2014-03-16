@@ -11,11 +11,11 @@ class RejectionSampler(object):
 
         Parameters
         ----------
-        proposal_func : function
+        propose_func : function
             The proposal distribution. Calling this function should
             return one sample from this distribution.
 
-        proposal_logpdf : function
+        propose_logpdf : function
             The proposal distribution's log-PDF. Calling this function
             with a sample from `proposal_func` should return the log
             probability density for the proposal distribution at that
