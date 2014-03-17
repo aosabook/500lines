@@ -274,7 +274,7 @@
          ](entities-of-ids db relevant-ent-ids)))
 
 (defn entities-by-A [db attr-name]
-  (entities-by-AV [db attr-name #(= % %)]))
+  (entities-by-AV db attr-name #(= % %)))
 
 (defn ref-to-as
   "returns a seq of all the entities that have REFed to the give entity with the given attr-name (alternativly had an attribute
