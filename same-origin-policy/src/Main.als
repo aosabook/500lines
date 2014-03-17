@@ -14,6 +14,7 @@ open HTTP
 open SOP
 open CORS
 
+
 /* Simulation */
 run GenRandom {
 	// Generate a random scenario involving up to 3 objects of each type

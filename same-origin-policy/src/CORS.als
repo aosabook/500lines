@@ -2,10 +2,10 @@
 	* CORS.als
 	* 	A model of the cross-origin resource sharing (CORS) mechanism
 	*/
-
 module CORS
 
 open SOP
+
 
 sig ReqCORS in HTTPReq {
 	-- "origin" header

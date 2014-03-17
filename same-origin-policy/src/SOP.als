@@ -6,6 +6,7 @@ module SOP
 
 open HTTP		// import the HTTP model
 
+
 // An origin is defined as a triple [protocol, host, port] where port is optional.
 sig Origin {
 	host : Host,

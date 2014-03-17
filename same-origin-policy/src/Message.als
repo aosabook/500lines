@@ -6,6 +6,7 @@ module Message
 
 open util/ordering[Msg] as MO
 
+
 sig Resource {}			
 abstract sig Module {
 	owns : set Resource
