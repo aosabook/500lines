@@ -8,30 +8,30 @@ class Builder:
         self.compute = compute
         self.graph = Graph()
         self.cache = Cache(self.graph)
-        self.stack = []
+        self.target_stack = []
 
-    def get(self, target):
-        if self.stack:
-            self.graph.add_edge(target, self.stack[-1])
-        value = self.cache.get(target)
+    def get(self, dependency):
+        if self.target_stack:
+            self.graph.add_edge(dependency, self.target_stack[-1])
+        value = self.cache.get(dependency)
         if value is _absent:
-            value = self.recompute(target)
-            self.cache[target] = value
+            value = self.recompute(dependency)
+            self.cache[dependency] = value
         return value
 
     def set(self, target, value):
         self.graph.clear_dependencies_of(target)
-        if self.stack:
-            self.graph.add_edge(self.stack[-1], target)
+        if self.target_stack:
+            self.graph.add_edge(self.target_stack[-1], target)
         self.cache[target] = value
 
     def recompute(self, target):
         self.graph.clear_dependencies_of(target)
-        self.stack.append(target)
+        self.target_stack.append(target)
         try:
             value = self.compute(target, self.get)
         finally:
-            self.stack.pop()
+            self.target_stack.pop()
         return value
 
     def rebuild(self):
