@@ -3,9 +3,10 @@ Analyze variable scope.
 """
 
 import ast
+import desugar
 
-def top_scope(t, loudness=0):
-    top = Scope(t)
+def top_scope(t):
+    top = Scope(t, ())
     top.visit(t)
     top.analyze(set())
     return top
@@ -15,22 +16,22 @@ def get_type(t):
         return 'module'
     elif isinstance(t, ast.ClassDef):
         return 'class'
-    elif isinstance(t, ast.FunctionDef): # XXX and Lambda?
+    elif isinstance(t, desugar.Function):
         return 'function'
     else:
         assert False
 
 class Scope(ast.NodeVisitor):
 
-    def __init__(self, t, defs=()):
+    def __init__(self, t, defs):
         self.t = t
         self.children = []
         self.defs = set(defs)
         self.uses = set()
 
-    def dump(self, indent=''):
+    def dump(self, indent):
         print(indent, get_type(self.t), getattr(self.t, 'name', '<nameless>'))
-        indent += '  '
+        indent = indent + '  '
         for name in sorted(self.defs | self.uses):
             print(indent, '| %-8s %s' % (self.access(name), name))
         for ch in self.children:
@@ -41,7 +42,7 @@ class Scope(ast.NodeVisitor):
         self.maskvars = self.defs if get_type(self.t) == 'function' else set()
         for child in self.children:
             child.analyze(parent_defs | self.maskvars)
-        child_freevars = set().union(*[child.freevars for child in self.children])
+        child_freevars = set([var for child in self.children for var in child.freevars])
         self.cellvars = tuple(child_freevars & self.maskvars)
         self.freevars = tuple(parent_defs & ((self.uses | child_freevars) - self.maskvars))
         self.derefvars = self.cellvars + self.freevars
@@ -60,12 +61,11 @@ class Scope(ast.NodeVisitor):
     def visit_ClassDef(self, t):
         self.defs.add(t.name)
         for expr in t.bases: self.visit(expr)
-        subscope = Scope(t)
+        subscope = Scope(t, ())
         self.children.append(subscope)
         for stmt in t.body: subscope.visit(stmt)
 
-    def visit_FunctionDef(self, t):
-        self.defs.add(t.name)
+    def visit_Function(self, t):
         subscope = Scope(t, [arg.arg for arg in t.args.args])
         self.children.append(subscope)
         for stmt in t.body: subscope.visit(stmt)
@@ -85,15 +85,11 @@ class Scope(ast.NodeVisitor):
 
 if __name__ == '__main__':
     import sys
-    import check_subset
+    import check_subset, desugar
 
     filename = sys.argv[1]
     source = open(filename).read()
-    t = ast.parse(source)
-    try:
-        check_subset.check_conformity(t)
-    except AssertionError:
-        print(filename, "doesn't conform.")
-        sys.exit(1)
+    t = desugar.desugar(ast.parse(source))
+    check_subset.check_conformity(t)
     print(filename)
-    top_scope(t, source).dump()
+    top_scope(t).dump('')

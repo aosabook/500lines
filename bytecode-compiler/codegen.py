@@ -10,11 +10,11 @@ from check_subset import check_conformity
 from desugar import desugar
 from scoper import top_scope
 
-def byte_compile(module_name, filename, t, f_globals, loud=0):
+def byte_compile(module_name, filename, t, f_globals):
     t = desugar(t)
     check_conformity(t)
-    top_level = top_scope(t, loud)
-    code = CodeGen(filename, top_level).compile(t, module_name)
+    top_level = top_scope(t)
+    code = CodeGen(filename, top_level).compile(t, module_name, 0)
     return types.FunctionType(code, f_globals)
 
 class CodeGen(ast.NodeVisitor):
@@ -42,11 +42,11 @@ class CodeGen(ast.NodeVisitor):
             self.varnames[arg.arg] # argh, naming
         return self.compile(t.body, t.name, len(t.args.args))
 
-    def compile(self, t, name, argcount=0):
+    def compile(self, t, name, argcount):
         assembly = [self(t), self.load_const(None), op.RETURN_VALUE]
         return self.make_code(assembly, name, argcount)
 
-    def make_code(self, assembly, name, argcount=0):
+    def make_code(self, assembly, name, argcount):
         kwonlyargcount = 0
         nlocals = len(self.varnames)
         bytecode, stacksize, firstlineno, lnotab = assemble(assembly)
@@ -54,7 +54,7 @@ class CodeGen(ast.NodeVisitor):
         flags = (0x00 | (0x02 if nlocals else 0)
                       | (0x10 if self.scope.freevars else 0)
                       | (0x40 if not self.scope.derefvars else 0))
-        constants = tuple(constant for constant,_ in collect(self.constants))
+        constants = tuple([constant for constant,_ in collect(self.constants)])
         return types.CodeType(argcount, kwonlyargcount,
                               nlocals, stacksize, flags, bytecode,
                               constants,
@@ -78,9 +78,9 @@ class CodeGen(ast.NodeVisitor):
         self.set_docstring(t)
         return self(t.body)
 
-    def visit_FunctionDef(self, t):
+    def visit_Function(self, t):
         code = CodeGen(self.filename, self.scope.get_child(t)).compile_function(t)
-        return [self.make_closure(code, t.name), self.store(t.name)]
+        return self.make_closure(code, t.name)
 
     def visit_ClassDef(self, t):
         code = CodeGen(self.filename, self.scope.get_child(t)).compile_class(t)
@@ -145,7 +145,7 @@ class CodeGen(ast.NodeVisitor):
                 for alias in t.names]
 
     def visit_ImportFrom(self, t):
-        fromlist = tuple(alias.name for alias in t.names)
+        fromlist = tuple([alias.name for alias in t.names])
         return [self.import_name(t.level, fromlist, t.module),
                 [[op.IMPORT_FROM(self.names[alias.name]),
                   self.store(alias.asname or alias.name)]
@@ -285,3 +285,16 @@ def make_table():
 
 def collect(table):
     return tuple(sorted(table, key=table.get))
+
+if __name__ == '__main__':
+
+    def run(module_name, filename, source):
+        f = compile_toplevel(module_name, filename, source)
+        f()   # It's alive!
+
+    def compile_toplevel(module_name, filename, source):
+        t = ast.parse(source)
+        f = byte_compile(module_name, filename, t, globals())
+        return f
+
+    run('silly', 'silly.py', open('silly.py').read())

@@ -104,7 +104,7 @@ if __name__ == '__main__':
                    op.LOAD_CONST(1), op.JUMP_FORWARD(2)],
                1: [op.LOAD_CONST(2)],
                2: []}
-    bytecode, stack_depth = assemble(example)
-    print(stack_depth)
+    bytecode, stack_depth, firstlineno, lnotab = assemble(example)
+    print(stack_depth, firstlineno, lnotab)
     for pc, byte in enumerate(bytecode):
         print(pc, byte)

@@ -30,12 +30,9 @@ class Checker(ast.NodeVisitor):
         assert self.scope_type == 'module'
         self(t.body)
 
-    def visit_FunctionDef(self, t):
-        self.check_identifier(t.name)
+    def visit_Function(self, t):
         self.check_arguments(t.args)
         Checker('function', in_loop=False)(t.body)
-        assert not t.decorator_list
-        assert not t.returns
 
     def visit_ClassDef(self, t):
         assert self.scope_type == 'module'
