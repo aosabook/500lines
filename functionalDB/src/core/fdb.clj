@@ -210,7 +210,7 @@
     (assoc attr :ts new-ts :prev-ts ( :ts attr)))
 
 (defn- update-attr [attr new-val new-ts operation]
-   {:pre  [ (if (single? attr)
+   {:pre  [(if (single? attr)
            (= operation :db/reset-to)
            (contains? #{:db/reset-to :db/add :db/remove} operation))]}
    (-> attr
