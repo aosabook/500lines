@@ -54,5 +54,5 @@
 @hospital-db
 (ind-at @hospital-db 9 :EVAT)
 
-(filtered-entities-by-attr @hospital-db  :test/machine  (fn [a] (. a startsWith "X")) )
+(entities-by-AV @hospital-db  :test/machine  (fn [a] (. a startsWith "X")) )
 
