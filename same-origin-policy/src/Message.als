@@ -20,7 +20,7 @@ abstract sig Msg {
 
 // Set of messages that m receives
 fun receives[m : Module] : set Msg {
-	m.~receiver	
+	m.~receiver
 }
 
 // Set of messages that m sends
