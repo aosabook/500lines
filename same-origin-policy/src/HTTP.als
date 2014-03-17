@@ -1,6 +1,6 @@
 /**
 	* HTTP.als
-	* 	A model of the HTTP protocol
+	* 	A model of the Hypertext Transfer Protocol.
 	*/
 module HTTP
 
