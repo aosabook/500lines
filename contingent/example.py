@@ -4,7 +4,6 @@ from builderlib import Builder
 from functools import wraps
 from inspect import ismethod
 from operator import attrgetter
-from pprint import pprint
 
 
 class Base:
@@ -53,12 +52,11 @@ class Blog(Base):
 
 
 class Post(Base):
-    def __init__(self, builder, blog, title, date, content):
+    def __init__(self, builder, blog, title, date):
         self._builder = builder
         self.blog = blog
         self.title = title
         self.date = date
-        self.content = content
 
     def __repr__(self):
         return '<Post {!r}>'.format(self.title)
@@ -68,53 +66,55 @@ class Post(Base):
         i = sorted_posts.index(self)
         return sorted_posts[i - 1] if i else None
 
+    def next(self):
+        sorted_posts = self.blog.sorted_posts
+        i = sorted_posts.index(self)
+        return sorted_posts[i + 1] if i + 1 < len(sorted_posts) else None
+
     def render(self):
         print('Rendering', self)
         prev = self.prev()
+        next = self.next()
         prev_title = prev.title if prev else '-'
-        return template.format(post=self, prev_title=prev_title)
+        next_title = next.title if next else '-'
+        return template.format(post=self, prev=prev_title, next=next_title)
 
 
 def main():
     builder = Builder(compute)
 
     blog = Blog(builder)
-    post1 = Post(builder, blog, 'A', '2014-01-01', 'Happy new year.')
-    post2 = Post(builder, blog, 'B', '2014-01-15', 'Middle of January.')
-    post3 = Post(builder, blog, 'C', '2014-02-01', 'Beginning of February.')
-    blog.posts = [post1, post2, post3]
+    postA = Post(builder, blog, 'A', '2014-01-01')
+    postB = Post(builder, blog, 'B', '2014-02-02')
+    postC = Post(builder, blog, 'C', '2014-03-03')
+    postD = Post(builder, blog, 'D', '2014-04-04')
+    postE = Post(builder, blog, 'E', '2014-05-05')
+    blog.posts = [postA, postB, postC, postD, postE]
 
     display_posts(blog)
-
-    print('=' * 72)
-
-    # python example.py && dot -Tpng graph.dot > graph.png && geeqie graph.png
 
     with open('diagram-example.dot', 'w') as f:
         f.write(builder.graph.as_graphviz())
 
-    #
+    print('Making slight change to C date'.center(72, '='))
 
     with builder.consequences():
-        post2.date = '2014-01-15'
-
-    with builder.consequences():
-        post2.date = '2014-02-15'
+        postC.date = '2014-03-15'
 
     display_posts(blog)
 
-    print('=' * 60)
+    print('Moving C date to after D date'.center(72, '='))
 
     with builder.consequences():
-        post2.date = '2014-02-20'
+        postC.date = '2014-04-15'
 
     display_posts(blog)
 
-    print('=' * 60)
+    print('Adding "New" post right before E'.center(72, '='))
 
-    post4 = Post(builder, blog, 'New', '2014-02-10', 'Early February.')
+    postF = Post(builder, blog, 'New', '2014-04-30')
     with builder.consequences():
-        blog.posts = blog.posts + [post4]
+        blog.posts = blog.posts + [postF]
 
     display_posts(blog)
 
@@ -123,17 +123,11 @@ def main():
 
 def display_posts(blog):
     for post in blog.sorted_posts:
-        print('-' * 8)
         print(post.render())
 
 
 template = """\
-Previous story: {prev_title}
-
-"{post.title}"
-{post.date}
-{post.content}
-"""
+"{post.title}" on {post.date} [Previous: {prev} Next: {next}]"""
 
 if __name__ == '__main__':
     main()
