@@ -39,9 +39,9 @@ def compute(target, get):
 
 
 class Blog(Base):
-    def __init__(self, builder, posts):
+    def __init__(self, builder):
         self._builder = builder
-        self.posts = posts
+        self.posts = []
 
     def __repr__(self):
         return '<Blog>'
@@ -78,14 +78,11 @@ class Post(Base):
 def main():
     builder = Builder(compute)
 
-    posts = []
-    blog = Blog(builder, posts)
-
+    blog = Blog(builder)
     post1 = Post(builder, blog, 'A', '2014-01-01', 'Happy new year.')
     post2 = Post(builder, blog, 'B', '2014-01-15', 'Middle of January.')
     post3 = Post(builder, blog, 'C', '2014-02-01', 'Beginning of February.')
-
-    posts.extend([post1, post2, post3])
+    blog.posts = [post1, post2, post3]
 
     display_posts(blog)
 
@@ -110,23 +107,18 @@ def main():
 
     with builder.consequences():
         post2.date = '2014-02-20'
-        print(builder.cache.todo())
 
     display_posts(blog)
 
     print('=' * 60)
 
-    return
+    post4 = Post(builder, blog, 'New', '2014-02-10', 'Early February.')
+    with builder.consequences():
+        blog.posts = blog.posts + [post4]
+
+    display_posts(blog)
 
     print('=' * 60)
-
-    post4 = Post(blog, 'New', '2014-01-25', 'Late January.')
-    posts[2:2] = [post4]
-    graph.add(post4)
-
-    for post in blog.sorted_posts:
-        print('-' * 8)
-        print(post.render())
 
 
 def display_posts(blog):
