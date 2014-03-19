@@ -31,6 +31,6 @@ pred sameOrigin[u : URL, o : Origin] {
 
 fact CORSRules {
 	-- A CORS response is accepted iff it is allowed by the server, as indicated
-    -- in "access-control-allow-origin" header
+	-- in "access-control-allow-origin" header
 	all r : RespCORS | r.inResponseTo.origin in r.allowedOrigins
 }

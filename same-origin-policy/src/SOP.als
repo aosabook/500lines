@@ -12,8 +12,8 @@ open HTTP
 sig Origin {
 	host : Host,
 	protocol : Protocol,
-    -- lone means zero or one. It may help to think of the word as short for
-    -- "less than or equal to one"
+	-- lone means zero or one. It may help to think of the word as short for
+	-- "less than or equal to one"
 	port : lone Port
 }
 

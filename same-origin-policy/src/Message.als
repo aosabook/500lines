@@ -36,7 +36,7 @@ fun payloads[msgs : set Msg] : set Resource {
 // Returns the resources the given module m can access
 fun accesses[m : Module] : set Resource {
 	-- "m" can only access a resource "r" iff it owns "r" or if "m" receives a
-    -- message that carries "r"
+	-- message that carries "r"
 	m.owns + payloadSet[m.receives]
 }
 
