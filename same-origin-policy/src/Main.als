@@ -3,7 +3,7 @@
 	* 	The "main" model for a client-server system with the same origin policy
 	*
 	* Authors: 
-	*	Eunsuk Kang (eskang@mit.edu) 
+	*	Eunsuk Kang (eskang@mit.edu)
 	* 	Santiago Perez De Rosso (sperezde@csail.mit.edu)
 	* 	Daniel Jackson (dnj@mit.edu)
 	*/
