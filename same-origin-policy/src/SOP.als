@@ -4,13 +4,16 @@
 	*/
 module SOP
 
-open HTTP		// import the HTTP model
+--  import the HTTP model
+open HTTP
 
 
-// An origin is defined as a triple [protocol, host, port] where port is optional.
+// An origin is defined as a triple (protocol, host, port) where port is optional
 sig Origin {
 	host : Host,
 	protocol : Protocol,
+    -- lone means zero or one. It may help to think of the word as short for
+    -- "less than or equal to one"
 	port : lone Port
 }
 
@@ -27,8 +30,8 @@ pred sameOrigin[u1, u2 : URL] {
 }
 
 fact SameOriginPolicy {
-	// A script can only access the DOM of a frame with the same origin
+	-- A script can only access the DOM of a frame with the same origin
 	all d : DomAPI | sameOrigin[d.frame.location, d.sender.context]
-	// A script can only make an AJAX call to a server with the same origin
+	-- A script can only make an AJAX call to a server with the same origin
 	all x : XMLHTTPReq | sameOrigin[x.url, x.sender.context]
 }
