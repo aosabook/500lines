@@ -28,7 +28,7 @@ fun sends[m : Module] : set Msg {
 	m.~sender
 }
 
-// Returns the payloads of all the given msgs.
+// Returns the payloads of all the given msgs
 fun payloadSet[msgs : set Msg] : set Resource {
 	msgs.payloads
 }
