@@ -29,7 +29,7 @@ fun sends[m : Module] : set Msg {
 }
 
 // Returns the payloads of all the given msgs.
-fun payloads[msgs : set Msg] : set Resource {
+fun payloadSet[msgs : set Msg] : set Resource {
 	msgs.payloads
 }
 
@@ -44,5 +44,5 @@ fun accesses[m : Module] : set Resource {
 // as part of a previous mesasge			
 fact ResourceConstraints {
 	all m : Module, msg : m.sends |
-		msg.payloads in m.owns + payloads[msg.prevs & m.receives]
+		msg.payloads in m.owns + payloadSet[msg.prevs & m.receives]
 }
