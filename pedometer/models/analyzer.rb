@@ -19,10 +19,6 @@ class Analyzer
     @distance = 0
     @time = 0
 
-    # TODO: Call each measurement method from here
-  end
-
-  def measure
     measure_steps
     measure_distance
     measure_time

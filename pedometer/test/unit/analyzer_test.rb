@@ -17,7 +17,7 @@ class AnalyzerTest < Test::Unit::TestCase
     assert_equal parser, analyzer.parser
     assert_equal 0, analyzer.steps
     assert_equal 0, analyzer.distance
-    assert_equal 0, analyzer.time
+    assert_equal (1/100), analyzer.time
     assert_equal user,  analyzer.user
   end
 
@@ -30,8 +30,8 @@ class AnalyzerTest < Test::Unit::TestCase
     assert_equal parser, analyzer.parser
     assert_equal 0, analyzer.steps
     assert_equal 0, analyzer.distance
-    assert_equal 0, analyzer.time
-    assert_equal user,      analyzer.user
+    assert_equal (1/100), analyzer.time
+    assert_equal user, analyzer.user
   end
 
   def test_create_no_parser
@@ -99,16 +99,8 @@ class AnalyzerTest < Test::Unit::TestCase
     device = Device.new(File.read('test/data/female-167-70_100-walk-10-1-g.txt'))
     parser = Parser.new(device)
     analyzer = Analyzer.new(parser)
-    analyzer.send(:measure_steps)
-    assert_equal 8, analyzer.steps
-  end
 
-  def test_measure_distance_before_steps
-    device = Device.new(File.read('test/data/female-167-70_100-walk-10-1-g.txt'))
-    parser = Parser.new(device)
-    analyzer = Analyzer.new(parser)
-    analyzer.send(:measure_distance)
-    assert_equal 0, analyzer.distance
+    assert_equal 8, analyzer.steps
   end
 
   def test_measure_distance_after_steps
@@ -116,8 +108,6 @@ class AnalyzerTest < Test::Unit::TestCase
     device = Device.new(File.read('test/data/female-167-70_100-walk-10-1-g.txt'))
     parser = Parser.new(device)
     analyzer = Analyzer.new(parser, user)
-    analyzer.send(:measure_steps)
-    analyzer.send(:measure_distance)
 
     assert_equal 800, analyzer.distance
   end
@@ -127,7 +117,6 @@ class AnalyzerTest < Test::Unit::TestCase
     device = Device.new((15000.times.inject('') {|a| a+='1,1,1;';a}), 4)
     parser = Parser.new(device)
     analyzer = Analyzer.new(parser)
-    analyzer.send(:measure_time)
 
     assert_equal 3750, analyzer.time
   end
@@ -137,7 +126,6 @@ class AnalyzerTest < Test::Unit::TestCase
     device = Device.new(File.read('test/data/results-0-steps.txt'), 5)
     parser = Parser.new(device)
     analyzer = Analyzer.new(parser, user)
-    analyzer.measure
 
     assert_equal 0, analyzer.steps
     assert_equal 0, analyzer.distance
@@ -146,7 +134,6 @@ class AnalyzerTest < Test::Unit::TestCase
     device = Device.new(File.read('test/data/results-15-steps.txt'))
     parser = Parser.new(device)
     analyzer = Analyzer.new(parser, user)
-    analyzer.measure
 
     # TODO: This data is way off because the accelerometer filter
     #       doesn't use the user data (specifically the rate)

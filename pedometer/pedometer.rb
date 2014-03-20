@@ -77,5 +77,4 @@ def build_with_params(user_params, device_params)
   @device   = Device.new(*device_params)
   @parser   = Parser.new(@device)
   @analyzer = Analyzer.new(@parser, @user)
-  @analyzer.measure
 end
