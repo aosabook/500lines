@@ -1,10 +1,11 @@
 /**
 	* HTTP.als
-	* 	A model of the HTTP protocol
+	* 	A model of the Hypertext Transfer Protocol.
 	*/
 module HTTP
 
 open Message
+
 
 /* Server-side components */
 sig Host {}
@@ -21,7 +22,7 @@ sig URL {
 	protocol : Protocol,
 	host : Host,
 	// port and path are optional
-	port : lone Port,		
+	port : lone Port,
 	path : lone Path
 }
 
@@ -36,7 +37,7 @@ sig Browser extends Module {
 sig Frame {
 	location : URL,
 	dom : DOM,
-	script : lone Script		
+	script : lone Script
 }{
 	some script implies script.context = location
 }
@@ -82,4 +83,3 @@ sig WriteDOM extends DomAPI {
 }{
 	payloads = newDOM
 }
-

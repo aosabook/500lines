@@ -2,10 +2,10 @@
 	* CORS.als
 	* 	A model of the cross-origin resource sharing (CORS) mechanism
 	*/
-
 module CORS
 
 open SOP
+
 
 sig ReqCORS in HTTPReq {
 	-- "origin" header
@@ -30,7 +30,7 @@ pred sameOrigin[u : URL, o : Origin] {
 }
 
 fact CORSRules {
-	// A CORS response is accepted iff it is allowed by the server, 
-	// as indicated in "access-control-allow-origin" header
+	-- A CORS response is accepted iff it is allowed by the server, as indicated
+	-- in "access-control-allow-origin" header
 	all r : RespCORS | r.inResponseTo.origin in r.allowedOrigins
 }

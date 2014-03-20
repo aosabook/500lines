@@ -6,43 +6,43 @@ module Message
 
 open util/ordering[Msg] as MO
 
-sig Resource {}			
+
+sig Resource {}
 abstract sig Module {
 	owns : set Resource
 }
 abstract sig Msg {
-	// Each message is associated with a sender and a receiver
+	-- each message is associated with a sender and a receiver
 	sender, receiver : Module,
-	// Each message may contain a number of resources
+	-- each message may contain a number of resources
 	payloads : set Resource
 }
 
-// Set of messages that m receives
+// Returns the messages that the given module m receives
 fun receives[m : Module] : set Msg {
-	m.~receiver	
+	m.~receiver
 }
 
-// Set of messages that m sends
+// Returns the messages that the given module m sends
 fun sends[m : Module] : set Msg {
 	m.~sender
 }
 
+// Returns the payloads of all the given msgs.
 fun payloadSet[msgs : set Msg] : set Resource {
 	msgs.payloads
 }
 
+// Returns the resources the given module m can access
 fun accesses[m : Module] : set Resource {
-	// "m" can only access a resource "r" iff it owns "r" or
-	// "m" receives a message that carries "r"
+	-- "m" can only access a resource "r" iff it owns "r" or if "m" receives a
+	-- message that carries "r"
 	m.owns + payloadSet[m.receives]
 }
 
+// A payload in a message must be owned by the sender or received by the sender
+// as part of a previous mesasge			
 fact ResourceConstraints {
-	// A payload in a message must be
 	all m : Module, msg : m.sends |
-		msg.payloads in 
-			// owned by the sender OR
-			m.owns + 
-			// received by the sender as part of a previous mesasge
-			payloadSet[msg.prevs & m.receives]
+		msg.payloads in m.owns + payloadSet[msg.prevs & m.receives]
 }
