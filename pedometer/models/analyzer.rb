@@ -48,7 +48,7 @@ private
   def detect_edges(split)
     # Determined by the rate divided by the 
     # maximum steps the user can take per second
-    min_interval = (@parser.device.rate/MAX_STEPS_PER_SECOND).round
+    min_interval = (@parser.device.rate/MAX_STEPS_PER_SECOND)
     
     count = 0
     index_last_step = 0

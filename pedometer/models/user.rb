@@ -22,7 +22,6 @@ class User
 
   # TODO: 
   # - Should we use @ for reading instance variables? (check everywhere)
-  # - Diff between private and protected?
   # - Check all places where .method_name is called at the end of if statements
   # - Monkey patch array to add average method?
 private

@@ -48,12 +48,12 @@ private
 
       @parsed_data = []
       coordinates.length.times do |i|
-        @parsed_data << {:x => (x_series[i]-xg_series[i]).round(4), 
-                         :y => (y_series[i]-yg_series[i]).round(4), 
-                         :z => (z_series[i]-zg_series[i]).round(4), 
-                         :xg => xg_series[i].round(4), 
-                         :yg => yg_series[i].round(4), 
-                         :zg => zg_series[i].round(4)}
+        @parsed_data << {:x => (x_series[i]-xg_series[i]), 
+                         :y => (y_series[i]-yg_series[i]), 
+                         :z => (z_series[i]-zg_series[i]), 
+                         :xg => xg_series[i], 
+                         :yg => yg_series[i], 
+                         :zg => zg_series[i]}
       end
     when 'gravity'
       @parsed_data = @device.data.split(';').collect do |data|
@@ -72,7 +72,7 @@ private
     # - Do you need to round?
     # - Spaces on *
     @dot_product_data = @parsed_data.collect do |data|
-      (data[:x] * data[:xg] + data[:y] * data[:yg] + data[:z] * data[:zg]).round(4)
+      data[:x] * data[:xg] + data[:y] * data[:yg] + data[:z] * data[:zg]
     end
   end
 
