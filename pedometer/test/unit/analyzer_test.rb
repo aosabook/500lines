@@ -69,10 +69,10 @@ class AnalyzerTest < Test::Unit::TestCase
     analyzer = Analyzer.new(parser)
 
     expected = File.read('test/data/expected/female-167-70_100-walk-10-1-g-positive.txt').split(',').collect(&:to_i)
-    assert_equal expected, analyzer.split_on_threshold(true)
+    assert_equal expected, analyzer.send(:split_on_threshold, true)
 
     expected = File.read('test/data/expected/female-167-70_100-walk-10-1-g-negative.txt').split(',').collect(&:to_i)
-    assert_equal expected, analyzer.split_on_threshold(false)
+    assert_equal expected, analyzer.send(:split_on_threshold, false)
   end
 
   def test_detect_edges
@@ -80,8 +80,8 @@ class AnalyzerTest < Test::Unit::TestCase
     parser = Parser.new(device)
     analyzer = Analyzer.new(parser)
     
-    assert_equal 9, analyzer.detect_edges(analyzer.split_on_threshold(true))
-    assert_equal 7, analyzer.detect_edges(analyzer.split_on_threshold(false))
+    assert_equal 9, analyzer.send(:detect_edges, analyzer.send(:split_on_threshold, true))
+    assert_equal 7, analyzer.send(:detect_edges, analyzer.send(:split_on_threshold, false))
   end
 
   def test_detect_edges_false_step
@@ -89,8 +89,8 @@ class AnalyzerTest < Test::Unit::TestCase
     parser = Parser.new(device)
     analyzer = Analyzer.new(parser)
     
-    assert_equal 1, analyzer.detect_edges(analyzer.split_on_threshold(true))
-    assert_equal 1, analyzer.detect_edges(analyzer.split_on_threshold(false))    
+    assert_equal 1, analyzer.send(:detect_edges, analyzer.send(:split_on_threshold, true))
+    assert_equal 1, analyzer.send(:detect_edges, analyzer.send(:split_on_threshold, false))
   end
 
   # -- Measurement Tests ----------------------------------------------------

@@ -22,6 +22,14 @@ class Analyzer
     # TODO: Call each measurement method from here
   end
 
+  def measure
+    measure_steps
+    measure_distance
+    measure_time
+  end
+
+private
+
   # -- Edge Detection -------------------------------------------------------
 
   def split_on_threshold(positive)
@@ -58,14 +66,6 @@ class Analyzer
   end
 
   # -- Measurement ----------------------------------------------------------
-
-  def measure
-    measure_steps
-    measure_distance
-    measure_time
-  end
-
-private
 
   # TODO: One method, rewrite
   def measure_steps

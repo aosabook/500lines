@@ -4,7 +4,7 @@ class Device
   # - Trial should be description? Method isn't great? State, ...
   attr_reader :data, :rate, :method, :steps, :trial, :format
 
-  def initialize(data = nil, rate = 100, method = nil, steps = nil, trial = nil)
+  def initialize(data = nil, rate = nil, method = nil, steps = nil, trial = nil)
     rate_param = rate.to_f.round
     steps_param = steps.to_f.round
 
