@@ -3,7 +3,7 @@ class ViewHelper
   DISTANCE = { cm_per_m: 100, cm_per_km: 100000, m_per_km: 1000 }
   TIME = { sec_per_min: 60.0, sec_per_hr: 3600.0, min_per_hr: 60}
 
-  # TODO: Can this be cleaner? Does it exist in Ruby already?
+  # TODO: Can this be cleaner? Does it exist in Ruby already? Do we need to round?
   def self.format_distance(distance_cm)
     distance_cm = distance_cm.round(2)
     if distance_cm >= DISTANCE[:cm_per_km]

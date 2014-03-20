@@ -1,7 +1,7 @@
 require 'test/unit'
 require_relative '../../helpers/view_helper'
 
-class UIHelperTest < Test::Unit::TestCase
+class ViewHelperTest < Test::Unit::TestCase
 
   def test_format_distance_cm
     assert_equal '0.01 cm',  ViewHelper.format_distance(0.01)

@@ -16,12 +16,12 @@ class Parser
   attr_reader :device, :parsed_data, :dot_product_data, :filtered_data
 
   # TODO: 
-  # - Assignment should be first
   # - 78 character limit to prevent long lines
   # - Pass in data as well?
   def initialize(device)
-    raise "A Device object must be passed in." unless (@device = device).kind_of? Device
-    
+    raise "A Device object must be passed in." unless device.kind_of? Device
+    @device = device
+
     parse_raw_data
     dot_product_parsed_data
     filter_dot_product_data
@@ -68,9 +68,6 @@ private
   end
 
   def dot_product_parsed_data
-    # TODO: 
-    # - Do you need to round?
-    # - Spaces on *
     @dot_product_data = @parsed_data.collect do |data|
       data[:x] * data[:xg] + data[:y] * data[:yg] + data[:z] * data[:zg]
     end
@@ -83,7 +80,6 @@ private
   def chebyshev_filter(input_data, coefficients)
     # TODO: 
     # - Fix loop to start from index 2
-    # - Do we need to round?
     output_data = [0,0]
     input_data.length.times do |i|
       next if i < 2
