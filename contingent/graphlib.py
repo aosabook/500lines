@@ -61,16 +61,16 @@ class Graph(object):
             if include:
                 yield dependency
 
-    def as_graphviz(self, nodes=[]):
-        """Generate lines of graphviz ``dot`` code that draw this graph."""
+    def as_graphviz(self, nodes=()):
+        """Render this graph as a block of graphviz code."""
 
-        nodes = set(nodes)
-        lines = ['digraph { node [shape=rect penwidth=0 style=filled'
-                 ' fillcolor="#d6d6d6"];']
+        nodes = set(nodes) or self.nodes()
+        lines = ['digraph { graph [rankdir=LR]; node [shape=rect penwidth=0'
+                 ' style=filled fillcolor="#d6d6d6"];']
         for dependency, targets in try_sorting(self._targets.items()):
-            if (not nodes) or (dependency in nodes):
+            if dependency in nodes:
                 for target in try_sorting(targets):
-                    if (not nodes) or (target in nodes):
+                    if target in nodes:
                         lines.append('"{}" -> "{}"'.format(dependency, target))
         return '\n'.join(lines + ['}'])
 
