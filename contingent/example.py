@@ -1,6 +1,6 @@
 """Rough experiment from which to derive the design of `contingent`."""
 
-from blog_project import Base, compute
+from magic import Base, compute
 from builderlib import Builder
 from operator import attrgetter
 

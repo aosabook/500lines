@@ -1,10 +1,12 @@
-"""Rough experiment from which to derive the design of `contingent`."""
+"""Magically detect dependencies between methods and attributes."""
 
 from functools import wraps
 from inspect import ismethod
 
 
 class Base:
+    """Base class for build processes that use methods and attributes."""
+
     def __getattribute__(self, name):
         """Instead of always computing attributes, ask our builder for them."""
 
