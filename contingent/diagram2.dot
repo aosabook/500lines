@@ -1,4 +1,4 @@
-digraph { node [shape=rect penwidth=0 style=filled fillcolor="#d6d6d6"];
+digraph { graph [rankdir=LR]; node [shape=rect penwidth=0 style=filled fillcolor="#d6d6d6"];
 "A.prev.title" -> "A.html"
 "B.body" -> "B.html"
 "B.date" -> "B.html"
