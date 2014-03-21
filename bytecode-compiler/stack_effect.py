@@ -3,6 +3,10 @@ PyCompile_OpcodeStackEffect(int opcode, int oparg) from
 Python/compile.c This is dis.stack_effect in Python 3.4, but I'm
 making a version of it available here for convenience in
 development. This should not be needed in the released code.
+
+There's one difference: these have value 0 in the C version:
+    op.JUMP_IF_TRUE_OR_POP: -1,
+    op.JUMP_IF_FALSE_OR_POP: -1,
 """
 
 import dis
@@ -130,8 +134,8 @@ effect_map = {
     op.IMPORT_FROM: 1,
 
     op.JUMP_FORWARD: 0,
-    op.JUMP_IF_TRUE_OR_POP: 0, # -1 if jump not taken
-    op.JUMP_IF_FALSE_OR_POP: 0,  #  ""
+    op.JUMP_IF_TRUE_OR_POP: -1, # N.B. this is 0 in the C version; -1 if jump not taken
+    op.JUMP_IF_FALSE_OR_POP: -1,  #  ""
     op.JUMP_ABSOLUTE: 0,
 
     op.POP_JUMP_IF_FALSE: -1,

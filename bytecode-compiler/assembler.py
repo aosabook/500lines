@@ -8,7 +8,11 @@ import dis
 from stack_effect import stack_effect
 
 def jump_stack_effect(opcode):
-    return stack_effect(opcode) # XXX
+    try: return jump_stack_effects[opcode]
+    except KeyError: return stack_effect(opcode)
+jump_stack_effects = {dis.opmap['FOR_ITER']: -1,
+                      dis.opmap['JUMP_IF_TRUE_OR_POP']: 0,
+                      dis.opmap['JUMP_IF_FALSE_OR_POP']: 0}
 
 def take_argument(opcode):
     code0 = encode(opcode, 0)
