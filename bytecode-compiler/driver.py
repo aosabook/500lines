@@ -46,6 +46,8 @@ if __name__ == '__main__':
     if len(sys.argv) >= 2:
         del sys.argv[0]
         filename = sys.argv[0]
-        run("XXX", filename, open(filename).read())
+        with open(filename) as f:
+            source = f.read()
+        run("XXX", filename, source)
     else:
         assert False
