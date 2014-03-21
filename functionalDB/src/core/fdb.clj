@@ -283,12 +283,20 @@
   [x]  ; intentionally accepts a string and implemented as function and not a macro so we'd be able to use it as a HOF
   (or (= x "_") (= (first x) \?)))
 
+(defn ind-at
+  "inspecting a specific index at a given time, defaults to current. The kind argument may be of of these:  :AVET :EAVT :VAET :EVAT"
+  ([db kind]
+   (ind-at db kind  (:curr-time db)))
+  ([db kind ts]
+   (kind ((:timestamped db) ts))))
+
 (defmacro clause-item-meta
-  "Finds the name of the variable at an element of a datalog clause item"
+  "Finds the name of the variable at an item of a datalog clause element. If no variable, returning :db/no-var"
   [clause-item]
-   (if (coll? clause-item)
-      (first (filter #(variable? %) (map #(str %) clause-item)))  ; need to call first to that the only element in the collection
-    (str clause-item)))
+  (cond
+   (coll? clause-item)  (first (filter #(variable? %) (map #(str %) clause-item))) ; the item is an s-expression, need to treat it as a coll, by going over it and returning the name of the variable
+   (variable? (str clause-item)) (str clause-item) ; the item is a simple variable
+   :no-variable-in-clause :db/no-var)) ; the item is a value and not a variable
 
 (defmacro clause-item-expr
   "Create a predicate for each element in the datalog clause"
@@ -414,10 +422,3 @@
   [db ts]
   (let [indices-before (subvec (:timestamped db) 0 ts )]
     (assoc db :timestamped indices-before :curr-time ts)))
-
-(defn ind-at
-  "inspecting a specific index at a given time, defaults to current. The kind argument may be of of these:  :AVET :EAVT :VAET :EVAT"
-  ([db kind]
-   (ind-at db kind  (:curr-time db)))
-  ([db kind ts]
-   (kind ((:timestamped db) ts))))
