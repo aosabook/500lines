@@ -12,7 +12,7 @@
     <th></th>
     <% @data.each do |h| %>
       <tr>
-        <%= erb :summary, :locals => {:user => h[:user], :parser => h[:parser], :steps => h[:steps]} %>
+        <%= erb :summary, :locals => {:analyzer => h[:analyzer]} %>
         <td><a href=<%= "detail/" + h[:file] %>>Detail</a></td>
       </tr>
     <% end %>

@@ -1,24 +1,26 @@
 require 'mathn'
-require_relative 'user'
 require_relative 'parser'
+require_relative 'user'
+require_relative 'device'
 
 class Analyzer
 
   MAX_STEPS_PER_SECOND = 6.0
   THRESHOLD = 0.2
 
-  attr_reader :parser, :user, :steps, :distance, :time
+  attr_reader :parser, :user, :device, :steps, :distance, :time
 
-  # TODO: Pass in device = Device.new
-  def initialize(parser, user = User.new)
+  def initialize(parser, user = User.new, device = Device.new)
     raise "Parser invalid." unless parser.kind_of? Parser
     raise "User invalid." unless user.kind_of? User
+    raise "Device invalid." unless device.kind_of? Device
 
-    @parser = parser
-    @user = user
-    @steps = 0
+    @parser   = parser
+    @user     = user
+    @device   = device
+    @steps    = 0
     @distance = 0
-    @time = 0
+    @time     = 0
 
     measure_steps
     measure_distance
@@ -45,7 +47,7 @@ private
   def detect_edges(split)
     # Determined by the rate divided by the 
     # maximum steps the user can take per second
-    min_interval = (@parser.device.rate/MAX_STEPS_PER_SECOND)
+    min_interval = (@device.rate/MAX_STEPS_PER_SECOND)
     
     count = 0
     index_last_step = 0
@@ -77,7 +79,7 @@ private
   end
 
   def measure_time
-    sampling_rate = @parser.device.rate
+    sampling_rate = @device.rate
     @time = @parser.parsed_data.count/sampling_rate
   end
 

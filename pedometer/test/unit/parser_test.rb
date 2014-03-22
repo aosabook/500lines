@@ -6,11 +6,9 @@ class ParserTest < Test::Unit::TestCase
   # -- Creation Tests -------------------------------------------------------
 
   def test_create_accelerometer_data
-    device = Device.new
     data = '0.123,-0.123,5;0.456,-0.789,0.111;-0.212,0.001,1;'
-    parser = Parser.new(device, data)
+    parser = Parser.new(data)
     
-    assert_equal device, parser.device
     assert_equal data, parser.data
     assert_equal 'accelerometer', parser.format
     assert_equal [{:x=>0.123, :y=>-0.123, :z=>5.0, :xg=>0, :yg=>0, :zg=>0},
@@ -26,11 +24,9 @@ class ParserTest < Test::Unit::TestCase
   end
 
   def test_create_gravity_data
-    device = Device.new
     data = '0.028,-0.072,5|0.129,-0.945,-5;0,-0.07,0.06|0.123,-0.947,5;0.2,-1,2|0.1,-0.9,3;'
-    parser = Parser.new(device, data)
+    parser = Parser.new(data)
     
-    assert_equal device, parser.device
     assert_equal data, parser.data
     assert_equal 'gravity', parser.format
     assert_equal [{:x => 0.028, :y => -0.072, :z =>5, :xg => 0.129, :yg => -0.945, :zg => -5}, 
@@ -42,64 +38,50 @@ class ParserTest < Test::Unit::TestCase
 
   # -- Creation Failure Tests -----------------------------------------------
 
-  def test_create_nil_device
-    message = "A Device object must be passed in."
-    assert_raise_with_message(RuntimeError, message) do
-      Parser.new(nil, nil)
-    end
-  end
-
-  def test_create_empty_device
-    message = "A Device object must be passed in."
-    assert_raise_with_message(RuntimeError, message) do
-      Parser.new('', nil)
-    end
-  end
-
-  def test_create_nil_data
+  def test_create_nil
     message = "Bad Input. Ensure accelerometer or gravity data is properly formatted."
     assert_raise_with_message(RuntimeError, message) do
-      Parser.new(Device.new, nil)
+      Parser.new(nil)
     end
   end
 
-  def test_create_empty_data
+  def test_create_empty
     message = "Bad Input. Ensure accelerometer or gravity data is properly formatted."
     assert_raise_with_message(RuntimeError, message) do
-      Parser.new(Device.new, '')
+      Parser.new('')
     end
   end
 
   def test_create_bad_input_strings
     message = "Bad Input. Ensure accelerometer or gravity data is properly formatted."
     assert_raise_with_message(RuntimeError, message) do
-      Parser.new(Device.new, "0.123,-0.123,5;a,b,c;")
+      Parser.new("0.123,-0.123,5;a,b,c;")
     end
 
     assert_raise_with_message(RuntimeError, message) do
-      Parser.new(Device.new, "0.028,-0.072,a|0.129,-0.945,-5;0,-0.07,0.06|b,-0.947,5;")
+      Parser.new("0.028,-0.072,a|0.129,-0.945,-5;0,-0.07,0.06|b,-0.947,5;")
     end
   end
 
   def test_create_bad_input_too_many_values
     message = "Bad Input. Ensure accelerometer or gravity data is properly formatted."
     assert_raise_with_message(RuntimeError, message) do
-      Parser.new(Device.new, "0.123,-0.123,5;0.123,-0.123,5,9;")
+      Parser.new("0.123,-0.123,5;0.123,-0.123,5,9;")
     end
 
     assert_raise_with_message(RuntimeError, message) do
-      Parser.new(Device.new, "0.028,-0.072,5,6|0.129,-0.945,-5;0,-0.07,0.06|0.123,-0.947,5;")
+      Parser.new("0.028,-0.072,5,6|0.129,-0.945,-5;0,-0.07,0.06|0.123,-0.947,5;")
     end
   end
 
   def test_create_bad_input_too_few_values
     message = "Bad Input. Ensure accelerometer or gravity data is properly formatted."
     assert_raise_with_message(RuntimeError, message) do
-      Parser.new(Device.new, "0.123,-0.123,5;0.123,-0.123;")
+      Parser.new("0.123,-0.123,5;0.123,-0.123;")
     end
 
     assert_raise_with_message(RuntimeError, message) do
-      Parser.new(Device.new, "0.028,-0.072,5|0.129,-0.945,-5;0,-0.07,0.06|0.123,-0.947;")
+      Parser.new("0.028,-0.072,5|0.129,-0.945,-5;0,-0.07,0.06|0.123,-0.947;")
     end
   end
 

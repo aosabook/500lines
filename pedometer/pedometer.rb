@@ -13,9 +13,9 @@ post '/create' do
     file = params[:parser][:file][:tempfile]
     user_params = params[:user].values
     device_params = [params[:device][:rate], params[:device][:method], params[:device][:steps], params[:device][:trial]]
-    build_with_params(user_params, device_params, File.read(file))
+    build_with_params(File.read(file), user_params, device_params)
 
-    @file_name = FileHelper.generate_file_name(@user, @parser)
+    @file_name = FileHelper.generate_file_name(@parser, @user, @device)
     cp(file, "public/uploads/" + @file_name + '.txt')
 
     erb :detail
@@ -31,9 +31,9 @@ get '/data' do
     files = Dir.glob(File.join('public/uploads', "*"))
     files.each do |file|
       user_params, device_params = FileHelper.parse_file_name(file)
-      build_with_params(user_params, device_params, File.read(file))
+      build_with_params(File.read(file), user_params, device_params)
 
-      @data << {:file => file, :parser => @parser, :steps => @analyzer.steps, :user => @user}
+      @data << {:file => file, :analyzer => @analyzer}
     end
 
     erb :data
@@ -46,7 +46,7 @@ get '/detail/*' do
   begin
     @file_name = params[:splat].first
     user_params, device_params = FileHelper.parse_file_name(@file_name)
-    build_with_params(user_params, device_params, File.read(@file_name))
+    build_with_params(File.read(@file_name), user_params, device_params)
 
     files = Dir.glob(File.join('public/uploads', "*"))
     files.delete(@file_name)
@@ -69,9 +69,9 @@ get '/detail/*' do
 end
 
 # TODO: Should initialization process data or should that be called explicitly? 
-def build_with_params(user_params, device_params, data)
+def build_with_params(data, user_params, device_params)
+  @parser   = Parser.new(data)
   @user     = User.new(*user_params)
   @device   = Device.new(*device_params)
-  @parser   = Parser.new(@device, data)
-  @analyzer = Analyzer.new(@parser, @user)
+  @analyzer = Analyzer.new(@parser, @user, @device)
 end

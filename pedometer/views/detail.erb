@@ -17,7 +17,7 @@
             <th>Time</th>
         </tr>
         <tr>
-            <%= erb :summary, :locals => {:user => @user, :parser => @parser, :steps => @analyzer.steps} %>
+            <%= erb :summary, :locals => {:analyzer => @analyzer} %>
             <td><%= ViewHelper.format_distance(@analyzer.distance) %></td>
             <td><%= ViewHelper.format_time(@analyzer.time) %></td>
         </tr>
@@ -27,7 +27,7 @@
     <div id="container-filtered" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
 
     <% if @match_filtered_data %>
-        <% comparison_title = (@parser.format == 'accelerometer') ? 'Gravity' : 'Accelerometer' %>
+        <% comparison_title = (@analyzer.parser.format == 'accelerometer') ? 'Gravity' : 'Accelerometer' %>
         <div id="container-comparison" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
     <% end %>
 </html>
@@ -38,7 +38,7 @@
             title: { text: 'Dot Product Data' },
             series: [{
                 name: 'Dot Product Data',
-                data: <%= @parser.dot_product_data %>
+                data: <%= @analyzer.parser.dot_product_data %>
             }]
         });
 
@@ -46,7 +46,7 @@
             title: { text: 'Filtered Data' },
             series: [{
                 name: 'Filtered Data',
-                data: <%= @parser.filtered_data %>
+                data: <%= @analyzer.parser.filtered_data %>
             }]
         });
 
@@ -54,8 +54,8 @@
             $('#container-comparison').highcharts({
                 title: { text: 'Comparison to ' + '<%= comparison_title %>' },
                 series: [{
-                    name: '<%= @parser.format.capitalize %>',
-                    data: <%= @parser.filtered_data %>
+                    name: '<%= @analyzer.parser.format.capitalize %>',
+                    data: <%= @analyzer.parser.filtered_data %>
                 }, {
                     name: '<%= comparison_title %>',
                     data: <%= @match_filtered_data || [] %>

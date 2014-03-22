@@ -1,5 +1,3 @@
-require_relative '../models/device'
-
 class Parser
 
   GRAVITY_COEFFICIENTS = {
@@ -13,14 +11,11 @@ class Parser
     beta:  [0.095465967120306, -0.172688631608676, 0.095465967120306]
   }  
 
-  attr_reader :device, :data, :format, :parsed_data, :dot_product_data, :filtered_data
+  attr_reader :data, :format, :parsed_data, :dot_product_data, :filtered_data
 
   # TODO: 
   # - 78 character limit to prevent long lines
-  # - Remove device
-  def initialize(device, data)
-    raise "A Device object must be passed in." unless device.kind_of? Device
-    @device = device
+  def initialize(data)
     @data = data.to_s
 
     set_format
@@ -31,7 +26,7 @@ class Parser
 
 private
 
-  # TODO: Get rid of this. Just parse raw data and if it blow up throw exception.
+  # TODO: Get rid of this. Just parse raw data and if it blows up throw exception.
   def set_format
     any_decimal = '-?\d+(?:\.\d+)?'
     regexp_accl = Regexp.new('^((' + any_decimal + ',){2}' + 
