@@ -17,7 +17,7 @@
             <th>Time</th>
         </tr>
         <tr>
-            <%= erb :summary, :locals => {:user => @user, :device => @device, :steps => @analyzer.steps} %>
+            <%= erb :summary, :locals => {:user => @user, :parser => @parser, :steps => @analyzer.steps} %>
             <td><%= ViewHelper.format_distance(@analyzer.distance) %></td>
             <td><%= ViewHelper.format_time(@analyzer.time) %></td>
         </tr>
@@ -27,7 +27,7 @@
     <div id="container-filtered" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
 
     <% if @match_filtered_data %>
-        <% comparison_title = (@device.format == 'accelerometer') ? 'Gravity' : 'Accelerometer' %>
+        <% comparison_title = (@parser.format == 'accelerometer') ? 'Gravity' : 'Accelerometer' %>
         <div id="container-comparison" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
     <% end %>
 </html>
@@ -54,7 +54,7 @@
             $('#container-comparison').highcharts({
                 title: { text: 'Comparison to ' + '<%= comparison_title %>' },
                 series: [{
-                    name: '<%= @device.format.capitalize %>',
+                    name: '<%= @parser.format.capitalize %>',
                     data: <%= @parser.filtered_data %>
                 }, {
                     name: '<%= comparison_title %>',

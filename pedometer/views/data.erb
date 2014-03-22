@@ -12,14 +12,14 @@
     <th></th>
     <% @data.each do |h| %>
       <tr>
-        <%= erb :summary, :locals => {:user => h[:user], :device => h[:device], :steps => h[:steps]} %>
+        <%= erb :summary, :locals => {:user => h[:user], :parser => h[:parser], :steps => h[:steps]} %>
         <td><a href=<%= "detail/" + h[:file] %>>Detail</a></td>
       </tr>
     <% end %>
   </table>
   <form method="post" action="/create" enctype="multipart/form-data">
     <h3 class="upload-header">Device Info</h3>
-    <input id="file" name="device[file]" type="file">
+    <input id="file" name="parser[file]" type="file">
     <input class="params" type="number" name="device[rate]" placeholder="Sampling Rate">
     <input class="params" type="number" name="device[steps]" placeholder="Actual Step Count">
     <input class="params" type="number" name="device[trial]" placeholder="Trial Number">

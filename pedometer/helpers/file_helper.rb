@@ -1,12 +1,12 @@
 require_relative '../models/user'
-require_relative '../models/device'
+require_relative '../models/parser'
 
 class FileHelper
 
-  def self.generate_file_name(user, device)
-    "#{user.gender}-#{user.height}-#{user.stride}_" + 
-    "#{device.rate}-#{device.method}-#{device.steps}-" + 
-    "#{device.trial.to_s.gsub(/\s+/, '')}-#{device.format[0]}"
+  def self.generate_file_name(user, parser)
+    "#{user.gender}-#{user.height}-#{user.stride}_" +
+    "#{parser.device.rate}-#{parser.device.method}-#{parser.device.steps}-" +
+    "#{parser.device.trial.to_s.gsub(/\s+/, '')}-#{parser.format[0]}"
   end
 
   def self.parse_file_name(file_name = '--_----')
