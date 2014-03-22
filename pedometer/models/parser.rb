@@ -17,7 +17,7 @@ class Parser
 
   # TODO: 
   # - 78 character limit to prevent long lines
-  # - Pass in data as well?
+  # - Remove device
   def initialize(device, data)
     raise "A Device object must be passed in." unless device.kind_of? Device
     @device = device

@@ -9,6 +9,7 @@ class Analyzer
 
   attr_reader :parser, :user, :steps, :distance, :time
 
+  # TODO: Pass in device = Device.new
   def initialize(parser, user = User.new)
     raise "Parser invalid." unless parser.kind_of? Parser
     raise "User invalid." unless user.kind_of? User
