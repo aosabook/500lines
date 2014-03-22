@@ -1,7 +1,8 @@
 (ns core.fdb
+  [:use core.storage]
   [:require [clojure.set :as CS :only (union difference intersection)]])
 
-;; -- EAVT enty-id -> entity {:attrs -> {attr-name -> attr {:value -> the-value}}}
+;; -- storage enty-id -> entity {:attrs -> {attr-name -> attr {:value -> the-value}}}
 ;; -- VAET  structed like this:  {REFed-ent-id -> {attrName -> #{REFing-elems-ids}}}
 ;;         this basically provides this info: for each entity that is REFFed by others (V), separated by the names of the attribute used for reffing (A), hold the set of the ids of the REFing (E), all this at a given time (T)
 ;;         can be used to know who REFs a specific entity
@@ -12,12 +13,12 @@
 ;;         this provides the info - for a given ent-id (E) and specificed value (V), what are the attributes that have a specific name (A) at a given time (T). Other way to understand
 ;;         this index is that it answers the question of  how a specific entity is related to a specific value.
 (defrecord Database [timestamped top-id curr-time])
-(defrecord Indices [EAVT VAET AVET EVAT])
+(defrecord Timestamped [storage VAET AVET EVAT])
 (defrecord Entity [id attrs])
 (defrecord Attr [name value ts prev-ts])
 
 (defn make-db "Create an empty database" []
-  (atom (Database. [(Indices. {} {} {} {})] 0 0)))
+  (atom (Database. [(Timestamped. (initial-storage) {} {} {})] 0 0)))
 
 (defn make-entity "creates an entity, if id is not supplied, a running id is assigned to the entity"
   ([] (make-entity :db/no-id-yet ))
@@ -50,15 +51,17 @@
 (defn- ref? [attr]
   (= :db/ref (:type (meta attr))))
 
-(defn entity-at "the entity with the given ent-id at the given time (defualts to the latest time)"
-  ([db ent-id ts] (get-in db [:timestamped ts :EAVT ent-id]))
-  ([db ent-id] (entity-at db ent-id (:curr-time db))) )
+(defn entity-at
+  "the entity with the given ent-id at the given time (defualts to the latest time)"
+  ([db ent-id] (entity-at db ent-id (:curr-time db)))
+  ([db ent-id ts] (stored-entity (get-in db [:timestamped ts :storage]) ent-id)))
 
 (defn attr-at
   "The attribute of an entity at a given time (defaults to recent time)"
-  ([db ent-id attr-name] (attr-at db ent-id attr-name (:curr-time db)))
+  ([db ent-id attr-name]
+   (attr-at db ent-id attr-name (:curr-time db)))
   ([db ent-id attr-name ts]
-   (let [indices ((:timestamped db) ts)]  (get-in indices [:EAVT ent-id :attrs attr-name]))))
+  (get-in (entity-at db ent-id ts) [:attrs attr-name])))
 
 (defn value-of-at
   "value of a datom at a given time, if no time is provided, we default to the most recent value"
@@ -159,14 +162,14 @@
   [db ent]
   (let [[ent-id next-top] (next-id db ent)
                                  new-ts (next-ts db)
-                                 indices (last (:timestamped db))
+                                 timestamped (last (:timestamped db))
                                  fixed-ent (assoc ent :id ent-id)
-                                 new-eavt (assoc (:EAVT indices) ent-id  (update-creation-ts fixed-ent new-ts) )
-                                 new-vaet (add-entity-to-index (:VAET indices) ent vae ref?)
-                                 new-avet (add-entity-to-index (:AVET indices) ent ave indexed?)
-                                 new-evat (add-entity-to-index (:EVAT indices) ent eva indexed?)
-                                 new-indices (assoc indices :VAET new-vaet :EAVT new-eavt :AVET new-avet :EVAT new-evat)
-                                ](assoc db :timestamped  (conj (:timestamped db) new-indices)
+                                 new-storage (update-storage (:storage timestamped) (update-creation-ts fixed-ent new-ts) );(assoc (:storage timestamped) ent-id  (update-creation-ts fixed-ent new-ts) )
+                                 new-vaet (add-entity-to-index (:VAET timestamped) ent vae ref?)
+                                 new-avet (add-entity-to-index (:AVET timestamped) ent ave indexed?)
+                                 new-evat (add-entity-to-index (:EVAT timestamped) ent eva indexed?)
+                                 new-timestamped (assoc timestamped :VAET new-vaet :storage new-storage :AVET new-avet :EVAT new-evat)
+                                ](assoc db :timestamped  (conj (:timestamped db) new-timestamped)
                                                  :top-id next-top)))
 
 (defn add-entities
@@ -176,14 +179,14 @@
 (defn remove-entity
   [db ent-id]
   (let [ent (entity-at db ent-id)
-         indices (last (:timestamped db))
-         vaet (remove-entity-from-index (:VAET indices) ent vae ref? )
-         avet  (remove-entity-from-index (:AVET indices) ent ave indexed?)
-         evat  (remove-entity-from-index (:EVAT indices) ent eva indexed?)
-         new-eavt (dissoc (:EAVT indices) ent-id) ; removing the entity
+         timestamped (last (:timestamped db))
+         vaet (remove-entity-from-index (:VAET timestamped) ent vae ref? )
+         avet  (remove-entity-from-index (:AVET timestamped) ent ave indexed?)
+         evat  (remove-entity-from-index (:EVAT timestamped) ent eva indexed?)
+         new-storage (remove-entity-from-storage (:storage timestamped) ent) ;(dissoc (:storage timestamped) ent-id) ; removing the entity
          new-vaet (dissoc vaet ent-id) ; removing incoming REFs to the entity
-         new-indices (assoc indices :EAVT new-eavt :VAET new-vaet :AVET avet :EVAT evat)
-         res  (assoc db :timestamped (conj  (:timestamped db) new-indices))
+         new-timestamped (assoc timestamped :storage new-storage :VAET new-vaet :AVET avet :EVAT evat)
+         res  (assoc db :timestamped (conj  (:timestamped db) new-timestamped))
         ]res))
 
 (defn transact-on-db
@@ -191,10 +194,10 @@
     (loop [[tx & rst-tx] txs transacted initial-db]
       (if tx
           (recur rst-tx (apply (first tx) transacted (rest tx)))
-          (let [initial-indices  (:timestamped initial-db)
-                  new-indices (last (:timestamped transacted))
+          (let [initial-timestamped  (:timestamped initial-db)
+                  new-timestamped (last (:timestamped transacted))
                   res (assoc initial-db
-                                  :timestamped (conj  initial-indices new-indices)
+                                  :timestamped (conj  initial-timestamped new-timestamped)
                                   :curr-time (next-ts initial-db)
                                   :top-id (:top-id transacted))]
                   res))))
@@ -241,40 +244,40 @@
    (= operation :db/reset-to) old-vals ; removing all of the old values
    (= operation :db/remove) (collify target-val))) ; removing the values defined by the caller
 
-(defn- update-index-for-datom
-  [index ent-id attr target-val operation order-fn update-required-pred]
-  (if-not (update-required-pred attr)
+(defn- update-index
+  [index ent-id old-attr target-val operation order-fn update-required-pred]
+  (if-not (update-required-pred old-attr)
     index
-    (let [old-vals (:value attr)
-          attr-name (:name attr)
+    (let [old-vals (:value old-attr)
+          attr-name (:name old-attr)
            remove-paths  (remove-path-values old-vals target-val operation)
            cleaned-index (remove-entries-from-index  index attr-name ent-id order-fn remove-paths operation)
-           updated-index  (update-attr-in-index cleaned-index ent-id attr-name order-fn target-val operation)
-          ] updated-index)))
+           updated-index  (update-attr-in-index cleaned-index ent-id attr-name order-fn target-val operation)]
+      updated-index)))
 
-(defn- update-eavt-for-datom
-  [eavt ent-id new-attr]
-  (assoc-in eavt [ent-id :attrs (:name new-attr)] new-attr))
+(defn update-entity [storage e-id new-attr]
+  (assoc-in (stored-entity storage ent-id) [:attrs (:name new-attr)]))
 
-(defn- update-indices [indices ent-id attr updated-attr new-val operation]
-  (let [ new-eavt (update-eavt-for-datom (:EAVT indices) ent-id updated-attr)
-         ; in the next indices updates the attr is intentionally passed and not updated-attr, we need to use the old value to locate where to update in the index
-          new-vaet (update-index-for-datom (:VAET indices) ent-id attr new-val operation vae ref?)
-          new-avet (update-index-for-datom (:AVET indices) ent-id attr new-val operation ave indexed?)
-          new-evat (update-index-for-datom (:EVAT indices) ent-id attr new-val operation  eva indexed?)
-         ] (assoc indices :EAVT new-eavt :VAET new-vaet :AVET new-avet)))
+(defn- update-timestamped
+  [timestamped ent-id old-attr updated-attr new-val operation]
+  (let [ storage (:storage timestamped)
+          new-storage (update-storage storage (update-entity storage ent-id updated-attr))
+          new-vaet (update-index (:VAET timestamped) ent-id old-attr new-val operation vae ref?)
+          new-avet (update-index (:AVET timestamped) ent-id old-attr new-val operation ave indexed?)
+          new-evat (update-index (:EVAT timestamped) ent-id old-attr new-val operation eva indexed?)]
+    (assoc timestamped :storage new-storage :VAET new-vaet :AVET new-avet :EVAT new-evat)))
 
 (defn update-datom
-  ([db ent-id att-name  new-val]
-   (update-datom db ent-id att-name  new-val  :db/reset-to ))
-  ([db ent-id att-name  new-val operation ] ; operation may be either  :db/reset-to  :db/add ,or :db/remove (the last two are valid only if the attr cardinality is :db/multiple)
+  ([db ent-id attr-name new-val]
+   (update-datom db ent-id attr-name  new-val  :db/reset-to ))
+  ([db ent-id attr-name  new-val operation ] ; operation may be either  :db/reset-to  :db/add ,or :db/remove (the last two are valid only if the attr cardinality is :db/multiple)
      (let [update-ts (next-ts db)
-            indices (last (:timestamped db))
-            attr (get-in indices [:EAVT ent-id :attrs  att-name])
+            timestamped (last (:timestamped db))
+            attr (attr-at db ent-id attr-name)
             updated-attr (update-attr attr new-val update-ts operation)
-            fully-updated-indices (update-indices indices ent-id attr updated-attr new-val operation)
-            new-db (update-in db [:timestamped] conj fully-updated-indices)
-           ]new-db)))
+            fully-updated-timestamped (update-timestamped timestamped ent-id attr updated-attr new-val operation)
+            new-db (update-in db [:timestamped] conj fully-updated-timestamped)]
+       new-db)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;  queries
 
@@ -284,7 +287,7 @@
   (or (= x "_") (= (first x) \?)))
 
 (defn ind-at
-  "inspecting a specific index at a given time, defaults to current. The kind argument may be of of these:  :AVET :EAVT :VAET :EVAT"
+  "inspecting a specific index at a given time, defaults to current. The kind argument may be of of these:  :AVET :VAET :EVAT"
   ([db kind]
    (ind-at db kind  (:curr-time db)))
   ([db kind ts]
@@ -380,35 +383,6 @@
            [ind# from-eav# to-eav#] (choose-index ~db query#)]
     (query-index ind# query# from-eav#  to-eav#)))
 
-(defn entities-of-ids
-  "for a given seq of entity ids, return the real entities"
-  [db ent-ids]
-  (let [indices (last (:timestamped db))
-         eavt (:EAVT indices)]
-    (map #(% eavt) ent-ids)))
-
-(defn entities-by-AV
-  [db attr-name val-pred]
-   (let [indices (last (:timestamped db))
-          ve (get-in indices [:AVET :test/machine] )
-          relevant-entries  (filter #(val-pred (first %)) ve)
-          relevant-ids-sets (map second relevant-entries)
-          relevant-ent-ids (seq (reduce CS/union relevant-ids-sets ))
-         ](entities-of-ids db relevant-ent-ids)))
-
-(defn entities-by-A
-  [db attr-name]
-  (entities-by-AV db attr-name #(= % %)))
-
-(defn ref-to-as
-  "returns a seq of all the entities that have REFed to the give entity with the given attr-name (alternativly had an attribute
-   named attr-name whose type is :db/ref and the value was ent-id), all this at a given time"
-  ([db ent-id attr-name]  (ref-to-as db ent-id attr-name (:curr-time db)))
-  ([db ent-id attr-name ts]
-      (let [indices ((:timestamped db) ts)
-              reffing-ids (get-in indices [:VAET ent-id attr-name])]
-        (map #(get-in indices [:EAVT %]) reffing-ids ))))
-
 (defn evolution-of
   "The sequence of the values of of an entity's attribute, as changed through time"
   [db ent-id attr-name]
@@ -420,5 +394,35 @@
 (defn db-before
   "How the db was before a given timestamp"
   [db ts]
-  (let [indices-before (subvec (:timestamped db) 0 ts )]
-    (assoc db :timestamped indices-before :curr-time ts)))
+  (let [timestamped-before (subvec (:timestamped db) 0 ts )]
+    (assoc db :timestamped timestamped-before :curr-time ts)))
+;; (defn entities-of-ids
+;;   "for a given seq of entity ids, return the real entities"
+;;   [db ent-ids]
+;;   (let [indices (last (:timestamped db))
+;;          eavt (:EAVT indices)]
+;;     (map #(% eavt) ent-ids)))
+
+;; (defn entities-by-AV
+;;   [db attr-name val-pred]
+;;    (let [indices (last (:timestamped db))
+;;           ve (get-in indices [:AVET :test/machine] )
+;;           relevant-entries  (filter #(val-pred (first %)) ve)
+;;           relevant-ids-sets (map second relevant-entries)
+;;           relevant-ent-ids (seq (reduce CS/union relevant-ids-sets ))
+;;          ](entities-of-ids db relevant-ent-ids)))
+
+;; (defn entities-by-A
+;;   [db attr-name]
+;;   (entities-by-AV db attr-name #(= % %)))
+
+;; (defn ref-to-as
+;;   "returns a seq of all the entities that have REFed to the give entity with the given attr-name (alternativly had an attribute
+;;    named attr-name whose type is :db/ref and the value was ent-id), all this at a given time"
+;;   ([db ent-id attr-name]  (ref-to-as db ent-id attr-name (:curr-time db)))
+;;   ([db ent-id attr-name ts]
+;;       (let [indices ((:timestamped db) ts)
+;;               reffing-ids (get-in indices [:VAET ent-id attr-name])]
+;;         (map #(get-in indices [:EAVT %]) reffing-ids ))))
+
+
