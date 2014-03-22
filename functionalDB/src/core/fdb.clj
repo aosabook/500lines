@@ -9,11 +9,10 @@
 ;; -- AVET  structed like this:  {attrName-> {attr-val -> #{holding-elems-ids}}}
 ;;         this basically provides this info: for each attributeName (A) that we chose to index, separated by the values of the attribute  (V), hold the set of the ids of the hold thes attributes (E), all this at a given time (T)
 ;;         can be used to know who are the entities that have a specific attribute with a specific value
-;; -- EVAT structed like this: {ent-id -> {attr-val -> #{attr-names}}}
-;;         this provides the info - for a given ent-id (E) and specificed value (V), what are the attributes that have a specific name (A) at a given time (T). Other way to understand
-;;         this index is that it answers the question of  how a specific entity is related to a specific value.
+;; -- EAVT structed like this: {ent-id -> {attr-name -> #{attr-vals}}} mimics the storage structure
+;;
 (defrecord Database [timestamped top-id curr-time])
-(defrecord Timestamped [storage VAET AVET EVAT])
+(defrecord Timestamped [storage VAET AVET EAVT])
 (defrecord Entity [id attrs])
 (defrecord Attr [name value ts prev-ts])
 
@@ -84,9 +83,9 @@
   (let [attr-id (keyword (:name attr))]
      (assoc-in ent [:attrs attr-id] attr)))
 
-(defn ave [e a v] [a v e] )
-(defn vae [e a v] [v a e] )
-(defn eva [e a v] [e v a] )
+(defn ave [e a v] [a v e])
+(defn vae [e a v] [v a e])
+(defn eav [e a v] [e a v])
 
 (defn ave-to-eav [a v e] [e a v])
 
@@ -167,8 +166,8 @@
                                  new-storage (update-storage (:storage timestamped) (update-creation-ts fixed-ent new-ts) );(assoc (:storage timestamped) ent-id  (update-creation-ts fixed-ent new-ts) )
                                  new-vaet (add-entity-to-index (:VAET timestamped) ent vae ref?)
                                  new-avet (add-entity-to-index (:AVET timestamped) ent ave indexed?)
-                                 new-evat (add-entity-to-index (:EVAT timestamped) ent eva indexed?)
-                                 new-timestamped (assoc timestamped :VAET new-vaet :storage new-storage :AVET new-avet :EVAT new-evat)
+                                 new-eavt (add-entity-to-index (:EAVT timestamped) ent eva indexed?)
+                                 new-timestamped (assoc timestamped :VAET new-vaet :storage new-storage :AVET new-avet :EAVT new-eavt)
                                 ](assoc db :timestamped  (conj (:timestamped db) new-timestamped)
                                                  :top-id next-top)))
 
@@ -182,10 +181,10 @@
          timestamped (last (:timestamped db))
          vaet (remove-entity-from-index (:VAET timestamped) ent vae ref? )
          avet  (remove-entity-from-index (:AVET timestamped) ent ave indexed?)
-         evat  (remove-entity-from-index (:EVAT timestamped) ent eva indexed?)
+         eavt  (remove-entity-from-index (:EAVT timestamped) ent eav indexed?)
          new-storage (remove-entity-from-storage (:storage timestamped) ent) ;(dissoc (:storage timestamped) ent-id) ; removing the entity
          new-vaet (dissoc vaet ent-id) ; removing incoming REFs to the entity
-         new-timestamped (assoc timestamped :storage new-storage :VAET new-vaet :AVET avet :EVAT evat)
+         new-timestamped (assoc timestamped :storage new-storage :VAET new-vaet :AVET avet :EAVT eavt)
          res  (assoc db :timestamped (conj  (:timestamped db) new-timestamped))
         ]res))
 
@@ -264,8 +263,8 @@
           new-storage (update-storage storage (update-entity storage ent-id updated-attr))
           new-vaet (update-index (:VAET timestamped) ent-id old-attr new-val operation vae ref?)
           new-avet (update-index (:AVET timestamped) ent-id old-attr new-val operation ave indexed?)
-          new-evat (update-index (:EVAT timestamped) ent-id old-attr new-val operation eva indexed?)]
-    (assoc timestamped :storage new-storage :VAET new-vaet :AVET new-avet :EVAT new-evat)))
+          new-eavt (update-index (:EAVT timestamped) ent-id old-attr new-val operation eav identity)] ; always true
+    (assoc timestamped :storage new-storage :VAET new-vaet :AVET new-avet :EAVT new-eavt)))
 
 (defn update-datom
   ([db ent-id attr-name new-val]
@@ -287,7 +286,7 @@
   (or (= x "_") (= (first x) \?)))
 
 (defn ind-at
-  "inspecting a specific index at a given time, defaults to current. The kind argument may be of of these:  :AVET :VAET :EVAT"
+  "inspecting a specific index at a given time, defaults to current. The kind argument may be of of these:  :AVET :VAET :EAVT"
   ([db kind]
    (ind-at db kind  (:curr-time db)))
   ([db kind ts]
@@ -377,7 +376,8 @@
      (filter #(not-empty (% 0)) relevant-paths))) ; of these, we'll build a subset-path of the index that contains the paths to the leaves (sets), and these leaves contain only the valid items
 
 (defmacro q
-  "querying the database using datalog queries built in a map structure ({:find [variables*] :where [ [e a v]* ]})"
+  "querying the database using datalog queries built in a map structure ({:find [variables*] :where [ [e a v]* ]}).
+  At the moment support only filtering queries, no joins is also assumed."
   [db query]
   `(let [query#  (q-clauses ~(:where query) )
            [ind# from-eav# to-eav#] (choose-index ~db query#)]
@@ -396,25 +396,6 @@
   [db ts]
   (let [timestamped-before (subvec (:timestamped db) 0 ts )]
     (assoc db :timestamped timestamped-before :curr-time ts)))
-;; (defn entities-of-ids
-;;   "for a given seq of entity ids, return the real entities"
-;;   [db ent-ids]
-;;   (let [indices (last (:timestamped db))
-;;          eavt (:EAVT indices)]
-;;     (map #(% eavt) ent-ids)))
-
-;; (defn entities-by-AV
-;;   [db attr-name val-pred]
-;;    (let [indices (last (:timestamped db))
-;;           ve (get-in indices [:AVET :test/machine] )
-;;           relevant-entries  (filter #(val-pred (first %)) ve)
-;;           relevant-ids-sets (map second relevant-entries)
-;;           relevant-ent-ids (seq (reduce CS/union relevant-ids-sets ))
-;;          ](entities-of-ids db relevant-ent-ids)))
-
-;; (defn entities-by-A
-;;   [db attr-name]
-;;   (entities-by-AV db attr-name #(= % %)))
 
 ;; (defn ref-to-as
 ;;   "returns a seq of all the entities that have REFed to the give entity with the given attr-name (alternativly had an attribute
