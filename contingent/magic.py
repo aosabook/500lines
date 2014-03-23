@@ -1,5 +1,7 @@
 """Magically detect dependencies between methods and attributes."""
 
+import os
+import time
 from functools import wraps
 from inspect import ismethod
 
@@ -39,3 +41,29 @@ def compute(target, get):
     else:
         method, args = target
         return method(*args)
+
+
+class Filesystem(Base):
+    """Dependency magic for opening files and watching for changes."""
+
+    def __init__(self):
+        self._paths = []
+
+    def read(self, path, mode='r'):
+        """Return the contents of the file at `path`."""
+        self._paths.append(path)
+        with open(path, mode) as f:
+            return f.read()
+
+    def wait(self):
+        """Wait for any previously-read files to change, and re-read them."""
+        changed_paths = []
+        start = time.time()
+        while not changed_paths:
+            time.sleep(1.0)
+            print('-')
+            changed_paths = [path for path in self._paths
+                             if os.stat(path).st_mtime > start]
+        for path in changed_paths:
+            # ?
+            self.read(path)
