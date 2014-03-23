@@ -102,11 +102,7 @@
 (defn- update-creation-ts
   "updates the timestamp value of all the attributes of an entity to the given timestamp"
   [ent ts-val]
-  (let [ks (keys (:attrs ent))
-         vls (vals (:attrs ent))
-         updated-attrs-vals (map #(assoc % :ts ts-val) vls)
-         updated-attrs (zipmap ks updated-attrs-vals)
-        ](assoc ent :attrs updated-attrs)))
+ (reduce ent #(assoc-in %1 [:attrs %2 :ts ] ts-val)  (keys (:attrs ent))))
 
 (defn- remove-entry-from-index
   [index path]
