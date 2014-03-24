@@ -188,13 +188,9 @@
       (if tx
           (recur rst-tx (apply (first tx) transacted (rest tx)))
           (let [initial-timestamped  (:timestamped initial-db)
-                stam (println 10)
                   new-timestamped (last (:timestamped transacted))
-                stam (println 11)
                   res (assoc initial-db :timestamped (conj  initial-timestamped new-timestamped)
-                                                :curr-time (next-ts initial-db) :top-id (:top-id transacted))
-                stam (println 12)
-                ]
+                                                :curr-time (next-ts initial-db) :top-id (:top-id transacted))]
                   res))))
 
 (defmacro  _transact
