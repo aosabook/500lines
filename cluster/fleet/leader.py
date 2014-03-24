@@ -4,28 +4,17 @@ from .member import Component
 from .scout import Scout
 
 
+# Issues:
+#     * spawn_commander method has an unused parameter called peers.
+#         Proposal:
+#             since this method is being used only internally we may remove that parameter without a risk.
+#
+#     * pvals parameter in scout_finished
+#         Proposal:
+#             should be renamed or comment that describe contents of this parameter
+#             should be added
+
 class Leader(Component):
-    """
-    Issues:
-        * there is a 'is_primary' field that's being initialized conditionally. As I understand, the code that
-            uses this field cannot be executed earlier that this field will be initialized but it is unclear
-            from sources.
-
-            If we add a simple initialization to None in __init__ than it may lead to wrong behaviour due to
-            implicit cast of None to False. On the other hand if this field will not be initialized before the code
-            that uses it will be referenced it will lead to the AttributeError.
-
-            Proposal:
-                change the approach of how this variable is being initialized and used
-        * spawn_commander method has an unused parameter called peers.
-            Proposal:
-                since this method is being used only internally we may remove that parameter without a risk.
-
-        * pvals parameter in scout_finished
-            Proposal:
-                should be renamed or comment that describe contents of this parameter should be added
-
-    """
 
     def __init__(self, member, unique_id, peer_history, commander_cls=Commander, scout_cls=Scout):
         super(Leader, self).__init__(member)
@@ -46,14 +35,13 @@ class Leader(Component):
     def on_view_change_event(self, slot, view_id, peers):
         self.view_id = view_id
         self.peers = peers
-        self.is_primary = view_primary(view_id, peers) == self.address
 
         # we are not an active leader in this new view
         if self.scout:
             self.scout.finished(None, None)  # eventually calls preempted
         elif self.active:
             self.preempted(None)
-        elif self.is_primary:
+        elif view_primary(view_id, peers) == self.address:
             self.spawn_scout()
 
     def spawn_scout(self):
@@ -95,7 +83,7 @@ class Leader(Component):
         self.active = False
         self.ballot_num = Ballot(self.view_id, (ballot_num or self.ballot_num).n + 1, self.ballot_num.leader)
         # if we're the primary for this view, re-scout immediately
-        if not self.scout and self.is_primary:
+        if not self.scout and view_primary(self.view_id, self.peers) == self.address:
             self.logger.info("re-scouting as the primary for this view")
             self.spawn_scout()
 
