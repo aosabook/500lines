@@ -90,7 +90,7 @@ class Leader(Component):
     def preempted(self, ballot_num):
         # ballot_num is None when we are preempted by a view change
         if ballot_num:
-            self.logger.info("leader preempted by %s", ballot_num.leader)
+            self.logger.info("leader preempted by %s" % (ballot_num.leader,))
         else:
             self.logger.info("leader preempted by view change")
         self.active = False
@@ -120,10 +120,10 @@ class Leader(Component):
             if self.active:
                 # find the peers ALPHA slots ago, or ignore if unknown
                 if slot - ALPHA not in self.peer_history:
-                    self.logger.info("slot %d not in peer history %r", slot - ALPHA, sorted(self.peer_history))
+                    self.logger.info("slot %d not in peer history %r" % (slot - ALPHA, sorted(self.peer_history)))
                     return
                 self.proposals[slot] = proposal
-                self.logger.info("spawning commander for slot %d", slot)
+                self.logger.info("spawning commander for slot %d" % (slot,))
                 self.spawn_commander(self.ballot_num, slot, proposal, self.peer_history[slot - ALPHA])
             else:
                 if not self.scout:
