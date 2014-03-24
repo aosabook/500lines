@@ -38,7 +38,7 @@
             title: { text: 'Dot Product Data' },
             series: [{
                 name: 'Dot Product Data',
-                data: <%= @analyzer.parser.dot_product_data %>
+                data: <%= ViewHelper.limit_1000(@analyzer.parser.dot_product_data) %>
             }]
         });
 
@@ -46,7 +46,7 @@
             title: { text: 'Filtered Data' },
             series: [{
                 name: 'Filtered Data',
-                data: <%= @analyzer.parser.filtered_data %>
+                data: <%= ViewHelper.limit_1000(@analyzer.parser.filtered_data) %>
             }]
         });
 
@@ -55,10 +55,10 @@
                 title: { text: 'Comparison to ' + '<%= comparison_title %>' },
                 series: [{
                     name: '<%= @analyzer.parser.format.capitalize %>',
-                    data: <%= @analyzer.parser.filtered_data %>
+                    data: <%= ViewHelper.limit_1000(@analyzer.parser.filtered_data) %>
                 }, {
                     name: '<%= comparison_title %>',
-                    data: <%= @match_filtered_data || [] %>
+                    data: <%= ViewHelper.limit_1000(@match_filtered_data) %>
                 }]
             });
         }

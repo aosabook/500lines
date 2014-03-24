@@ -39,4 +39,22 @@ class ViewHelperTest < Test::Unit::TestCase
     assert_equal '17 hr, 46 min, 39 sec', ViewHelper.format_time(9999999999)
   end
 
+  def test_limit_1000_series_nil
+    assert_equal [], ViewHelper.limit_1000(nil)
+  end
+
+  def test_limit_1000_series_empty
+    assert_equal [], ViewHelper.limit_1000([])
+  end
+
+  def test_limit_1000_series_500
+    series = (0..500).to_a
+    assert_equal series, ViewHelper.limit_1000(series)
+  end
+
+  def test_limit_1000_series_2000
+    series = (0..2000).to_a
+    assert_equal series[0..999], ViewHelper.limit_1000(series)
+  end
+
 end

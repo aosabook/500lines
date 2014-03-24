@@ -19,4 +19,8 @@ class ViewHelper
     Time.at(time_sec.round).utc.strftime("%-H hr, %-M min, %-S sec")
   end
 
+  def self.limit_1000(series)
+    series.to_a[0..999]
+  end
+
 end
