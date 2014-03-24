@@ -4,22 +4,56 @@ class ServerException(Exception):
     '''For internal error reporting.'''
     pass
 
+class case_no_file(object):
+    '''File or directory does not exist.'''
+
+    def test(self, handler):
+        return not os.path.exists(handler.full_path)
+
+    def act(self, handler):
+        raise ServerException("'%s' not found" % handler.path)
+
+class case_existing_file(object):
+    '''File exists.'''
+
+    def test(self, handler):
+        return os.path.isfile(handler.full_path)
+
+    def act(self, handler):
+        handler.handle_file(handler.full_path)
+
+class case_directory_index_file(object):
+    '''Serve index.html page for a directory.'''
+
+    def index_path(self, handler):
+        return os.path.join(handler.full_path, 'index.html')
+
+    def test(self, handler):
+        return os.path.isdir(handler.full_path) and \
+               os.path.isfile(self.index_path(handler))
+
+    def act(self, handler):
+        handler.handle_file(self.index_path(handler))
+
+class case_always_fail(object):
+    '''Base case if nothing else worked.'''
+
+    def test(self, handler):
+        return True
+
+    def act(self, handler):
+        raise ServerException("Unknown object '%s'" % handler.path)
+
 class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     '''
     If the requested path maps to a file, that file is served.
     If anything goes wrong, an error page is constructed.
     '''
 
-    # How to display a directory listing.
-    Listing = '''\
-<html>
-<body>
-<ul>
-%s
-</ul>
-</body>
-</html>
-'''
+    Cases = [case_no_file(),
+             case_existing_file(),
+             case_directory_index_file(),
+             case_always_fail()]
 
     # How to display an error.
     Error_Page = """\
@@ -36,23 +70,13 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         try:
 
             # Figure out what exactly is being requested.
-            full_path = os.getcwd() + self.path
+            self.full_path = os.getcwd() + self.path
 
-            # It doesn't exist...
-            if not os.path.exists(full_path):
-                raise ServerException("'%s' not found" % self.path)
-
-            # ...it's a file...
-            elif os.path.isfile(full_path):
-                self.handle_file(full_path)
-
-            # ...it's a directory...
-            elif os.path.isdir(full_path):
-                self.list_dir(full_path)
-
-            # ...it's something we don't handle.
-            else:
-                raise ServerException("Unknown object '%s'" % self.path)
+            # Figure out how to handle it.
+            for case in self.Cases:
+                if case.test(self):
+                    case.act(self)
+                    break
 
         # Handle errors.
         except Exception, msg:
@@ -67,25 +91,15 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             msg = "'%s' cannot be read: %s" % (self.path, msg)
             self.handle_error(msg)
 
-    def list_dir(self, full_path):
-        try:
-            entries = os.listdir(full_path)
-            bullets = ['<li>%s</li>' % e for e in entries if not e.startswith('.')]
-            page = self.Listing % '\n'.join(bullets)
-            self.send_content(page)
-        except OSError, msg:
-            msg = "'%s' cannot be listed: %s" % (self.path, msg)
-            self.handle_error(msg)
-
     # Handle unknown objects.
     def handle_error(self, msg):
         content = self.Error_Page % {'path' : self.path,
                                      'msg'  : msg}
-        self.send_content(content)
+        self.send_content(content, 404)
 
     # Send actual content.
-    def send_content(self, content):
-        self.send_response(200)
+    def send_content(self, content, status=200):
+        self.send_response(status)
         self.send_header("Content-type", "text/html")
         self.send_header("Content-Length", str(len(content)))
         self.end_headers()
