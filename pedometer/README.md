@@ -7,7 +7,7 @@ The pedometer takes data from a mobile device, and outputs step count, distance,
 
 Input data can come in the two forms below. See public/uploads for an example of each type of data set.
 * 1. Combined acceleration in x, y, z.
-* 2. User acceleration in the x, y, z, and gravitational acceleration in x, y, z.
+* 2. User acceleration in x, y, z, and gravitational acceleration in x, y, z.
 
 While a pedometer application for a mobile device would usually be written natively for the specific platform, this application is written in Ruby, and exposed through a simple API. This illustrates the design choices that are made when writing an application of this sort, without being bound to the specifics of one platform with quickly evolving APIs and native tools. 
 
