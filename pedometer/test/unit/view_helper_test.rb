@@ -22,20 +22,21 @@ class ViewHelperTest < Test::Unit::TestCase
   end
 
   def test_format_seconds
-    assert_equal '1 sec',   ViewHelper.format_time(1)
-    assert_equal '59 sec',  ViewHelper.format_time(59)
-    assert_equal '1.0 min', ViewHelper.format_time(59.9)
+    assert_equal '0 hr, 0 min, 1 sec',  ViewHelper.format_time(1)
+    assert_equal '0 hr, 0 min, 59 sec', ViewHelper.format_time(59.4)
+    assert_equal '0 hr, 1 min, 0 sec',  ViewHelper.format_time(59.9)
   end
 
   def test_format_minutes
-    assert_equal '1.0 min',  ViewHelper.format_time(60)
-    assert_equal '59.9 min', ViewHelper.format_time(3596)
-    assert_equal '1.0 hr',   ViewHelper.format_time(3597)
+    assert_equal '0 hr, 1 min, 0 sec',   ViewHelper.format_time(60)
+    assert_equal '0 hr, 59 min, 59 sec', ViewHelper.format_time(3599.4)
+    assert_equal '1 hr, 0 min, 0 sec',   ViewHelper.format_time(3599.9)
   end
 
   def test_format_hours
-    assert_equal '1.0 hr', ViewHelper.format_time(3600)
-    assert_equal '1.1 hr', ViewHelper.format_time(3900)
+    assert_equal '1 hr, 0 min, 0 sec',    ViewHelper.format_time(3600)
+    assert_equal '1 hr, 5 min, 0 sec',    ViewHelper.format_time(3900)
+    assert_equal '17 hr, 46 min, 39 sec', ViewHelper.format_time(9999999999)
   end
 
 end

@@ -45,8 +45,6 @@ private
   # any steps at all
 
   def detect_edges(split)
-    # Determined by the rate divided by the 
-    # maximum steps the user can take per second
     min_interval = (@device.rate/MAX_STEPS_PER_SECOND)
     
     count = 0

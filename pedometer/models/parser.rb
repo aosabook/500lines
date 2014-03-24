@@ -46,6 +46,7 @@ private
     case @format
     when 'accelerometer'
       coordinates = @data.split(';')
+
       # TODO:
       # - [:x, :y, :z].each_with_index do |axis, index| to remove repetition
       x_series = coordinates.collect {|data| data.split(',')[0].to_f }
@@ -88,14 +89,11 @@ private
   end
 
   def chebyshev_filter(input_data, coefficients)
-    # TODO: 
-    # - Fix loop to start from index 2
     output_data = [0,0]
-    input_data.length.times do |i|
-      next if i < 2
+    (2..input_data.length-1).each do |i|
       output_data << coefficients[:alpha][0] * 
-                      (input_data[i]   * coefficients[:beta][0] + 
-                      input_data[i-1]  * coefficients[:beta][1] + 
+                      (input_data[i]   * coefficients[:beta][0] +
+                      input_data[i-1]  * coefficients[:beta][1] +
                       input_data[i-2]  * coefficients[:beta][2] -
                       output_data[i-1] * coefficients[:alpha][1] -
                       output_data[i-2] * coefficients[:alpha][2])
