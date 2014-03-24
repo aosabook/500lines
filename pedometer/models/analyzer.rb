@@ -32,9 +32,7 @@ private
   # -- Edge Detection -------------------------------------------------------
 
   def split_on_threshold(positive)
-    # TODO: 
-    # - Rewrite challenge
-    # - Can this be combined with detect_edges?
+    # TODO: Can this be combined with detect_edges?
     @parser.filtered_data.collect do |data|
       (positive ? ((data < THRESHOLD) ? 0 : 1) : ((data < -THRESHOLD) ? 1 : 0))
     end
@@ -43,7 +41,6 @@ private
   # TODO: Count the number of false steps, 
   # and if too many are occurring, don't count 
   # any steps at all
-
   def detect_edges(split)
     min_interval = (@device.rate/MAX_STEPS_PER_SECOND)
     

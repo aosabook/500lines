@@ -1,7 +1,5 @@
 class Device
 
-  # TODO:
-  # - Trial should be description? Method isn't great? State, ...
   attr_reader :rate, :method, :steps, :trial
 
   def initialize(rate = nil, method = nil, steps = nil, trial = nil)

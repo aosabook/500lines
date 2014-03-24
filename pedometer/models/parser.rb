@@ -13,8 +13,6 @@ class Parser
 
   attr_reader :data, :format, :parsed_data, :dot_product_data, :filtered_data
 
-  # TODO: 
-  # - 78 character limit to prevent long lines
   def initialize(data)
     @data = data.to_s
 
@@ -40,15 +38,13 @@ private
     raise "Bad Input. Ensure accelerometer or gravity data is properly formatted." unless @format
   end
 
-  # TODO:
-  # - Combine, try to split on pipe, determine format from that
+  # TODO: Combine, try to split on pipe, determine format from that
   def parse_raw_data
     case @format
     when 'accelerometer'
       coordinates = @data.split(';')
 
-      # TODO:
-      # - [:x, :y, :z].each_with_index do |axis, index| to remove repetition
+      # TODO: Too much repetition?
       x_series = coordinates.collect {|data| data.split(',')[0].to_f }
       y_series = coordinates.collect {|data| data.split(',')[1].to_f }
       z_series = coordinates.collect {|data| data.split(',')[2].to_f }

@@ -6,8 +6,7 @@ class User
 
   attr_reader :gender, :height, :stride
 
-  # TODO: 
-  # - Named params ruby 2.0
+  # TODO: Named params ruby 2.0 useful here?
   def initialize(gender = nil, height = nil, stride = nil)
     params = {} unless params.kind_of? Hash
 
@@ -20,10 +19,6 @@ class User
     @stride = (stride_param > 0) ? stride_param : calculate_stride
   end
 
-  # TODO: 
-  # - Should we use @ for reading instance variables? (check everywhere)
-  # - Check all places where .method_name is called at the end of if statements
-  # - Monkey patch array to add average method?
 private
 
   def calculate_stride
