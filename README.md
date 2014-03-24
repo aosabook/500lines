@@ -1,6 +1,10 @@
 *500 Lines or Less*
 ===================
 
+> "What I cannot create, I do not understand."
+>
+> -- Richard Feynman
+
 This is the source for the book *500 Lines or Less*,
 the fourth in the [Architecture of Open Source Applications](http://aosabook.org) series.
 As with other books in the series,

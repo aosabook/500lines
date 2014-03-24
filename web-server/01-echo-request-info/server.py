@@ -7,13 +7,14 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     Page = '''\
 <html>
 <body>
-<h1>Nitinat/Python V1.0 Page</h1>
 <table>
+<tr>  <td>Header</td>         <td>Value</td>           </tr>
 <tr>  <td>Date and time</td>  <td>%(date_time)s</td>   </tr>
 <tr>  <td>Client host</td>    <td>%(client_host)s</td> </tr>
 <tr>  <td>Client port</td>    <td>%(client_port)s</td> </tr>
 <tr>  <td>Command</td>        <td>%(command)s</td>     </tr>
 <tr>  <td>Path</td>           <td>%(path)s</td>        </tr>
+</table>
 </body>
 </html>
 '''
