@@ -1,7 +1,6 @@
 """Magically detect dependencies between methods and attributes."""
 
-import os
-import time
+import utils
 from functools import wraps
 from inspect import ismethod
 
@@ -57,13 +56,7 @@ class Filesystem(Base):
 
     def _wait(self):
         """Wait for any previously-read files to change, and re-read them."""
-        changed_paths = []
-        start = time.time()
-        while not changed_paths:
-            time.sleep(1.0)
-            print('-')
-            changed_paths = [path for path in self._paths
-                             if os.stat(path).st_mtime > start]
+        changed_paths = utils.wait_on(self._paths)
         for path in changed_paths:
             bound_method = object.__getattribute__(self, 'read')
             self._builder.cache._todo.add((bound_method, (path,)))

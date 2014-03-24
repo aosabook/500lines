@@ -1,27 +1,57 @@
-import re
-from HTMLParser import HTMLParser
-from pygments import highlight
-from pygments.lexers import get_lexer_by_name, guess_lexer
-from pygments.formatters import HtmlFormatter
+import ctypes
+import os
+import struct
+import time
 
-html_parser = HTMLParser()
+# Experimental inotify support for the sake of illustration.
 
+IN_MODIFY = 0x02
+_libc = None
 
-def pygmentize_pre_blocks(html):
-    formatter = HtmlFormatter()
+def _setup_libc():
+    global _libc
+    if _libc is not None:
+        return
+    ctypes.cdll.LoadLibrary('libc.so.6')
+    _libc = ctypes.CDLL('libc.so.6', use_errno=True)
+    _libc.inotify_add_watch.argtypes = [
+        ctypes.c_int, ctypes.c_char_p, ctypes.c_uint32]
+    _libc.inotify_add_watch.restype = ctypes.c_int
 
-    def _highlight(match):
-        code = match.group(2).strip('\n')
-        already_marked_up = '<' in code
-        if already_marked_up:
-            return u'<pre{}>{}</pre>'.format(match.group(1), code)
-        code = html_parser.unescape(code)
-        if code.startswith('#!'):
-            lexer_name, code = code[2:].split('\n', 1)
-            lexer = get_lexer_by_name(lexer_name)
-        else:
-            lexer = guess_lexer(code)
-        return highlight(code, lexer, formatter)
-        # TODO: return u'<pre{}>{}</pre>'.format(match.group(1), h)?
+def wait_on(paths):
+    # TODO: auto-detect when the OS does not offer libc or libc does not
+    # offer inotify_wait, and fall back to looping_wait_on().
+    _setup_libc()
+    return inotify_wait_on(paths)
 
-    return re.sub(r'(?s)<pre([^>]*)>(.*?)</pre>', _highlight, html)
+def looping_wait_on(paths):
+    start = time.time()
+    changed_paths = []
+    while not changed_paths:
+        time.sleep(1.0)
+        changed_paths = [path for path in paths
+                         if os.stat(path).st_mtime > start]
+    return changed_paths
+
+def inotify_wait_on(paths):
+    paths = [path.encode('ascii') for path in paths]
+    fd = _libc.inotify_init()
+    descriptors = {}
+    if fd == -1:
+        raise OSError('inotify_init() error: {}'.format(
+            os.strerror(ctypes.get_errno())))
+    try:
+        for path in paths:
+            rv = _libc.inotify_add_watch(fd, path, 0x2)
+            if rv == -1:
+                raise OSError('inotify_add_watch() error: {}'.format(
+                    os.strerror(ctypes.get_errno())))
+            descriptors[rv] = path
+        buf = os.read(fd, 1024)
+        # TODO: continue with some more reads with 0.1 second timeouts
+        # to empty the list of roughly-simultaneous events before
+        # closing our file descriptor and returning?
+    finally:
+        pass #os.close(fd)
+    wd, mask, cookie, name_length = struct.unpack('iIII', buf)
+    return [descriptors[wd].decode('ascii')]
