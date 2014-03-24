@@ -31,7 +31,8 @@
                      (Index. #(vector %1 %2 %3)  #(vector %1 %2 %3) #(not (not %))))] ; EAVT
                    0 0)))
 
-(defn make-entity "creates an entity, if id is not supplied, a running id is assigned to the entity"
+(defn make-entity
+  "creates an entity, if id is not supplied, a running id is assigned to the entity"
   ([] (make-entity :db/no-id-yet ))
   ([id] (Entity.  id {})))
 
@@ -102,7 +103,7 @@
 (defn- update-creation-ts
   "updates the timestamp value of all the attributes of an entity to the given timestamp"
   [ent ts-val]
- (reduce ent #(assoc-in %1 [:attrs %2 :ts ] ts-val)  (keys (:attrs ent))))
+ (reduce #(assoc-in %1 [:attrs %2 :ts ] ts-val) ent (keys (:attrs ent))))
 
 (defn- remove-entry-from-index
   [index path]
@@ -138,8 +139,8 @@
   (let [ent-id (:id ent)
         all-attrs  (vals (:attrs ent))
         relevant-attrs (filter #((:db-usage-pred index) %) all-attrs )
-        add-in-index-fn (fn [ind attr] (update-attr-in-index ind ent-id (:name attr) (:value attr) :db/add))
-        ] (reduce add-in-index-fn index relevant-attrs)))
+        add-in-index-fn (fn [ind attr] (update-attr-in-index ind ent-id (:name attr) (:value attr) :db/add))]
+    (reduce add-in-index-fn index relevant-attrs)))
 
 (defn- remove-entity-from-index
   [index ent]
@@ -156,10 +157,10 @@
           new-ts (next-ts db)
           timestamped (last (:timestamped db))
           fixed-ent (assoc ent :id ent-id)
-          new-storage (update-storage (:storage timestamped) (update-creation-ts fixed-ent new-ts) );(assoc (:storage timestamped) ent-id  (update-creation-ts fixed-ent new-ts) )
-          new-vaet (add-entity-to-index (:VAET timestamped) ent)
-          new-avet (add-entity-to-index (:AVET timestamped) ent)
-          new-eavt (add-entity-to-index (:EAVT timestamped) ent)
+          new-storage (update-storage (:storage timestamped) (update-creation-ts fixed-ent new-ts) )
+          new-vaet (add-entity-to-index (:VAET timestamped) fixed-ent)
+          new-avet (add-entity-to-index (:AVET timestamped) fixed-ent)
+          new-eavt (add-entity-to-index (:EAVT timestamped) fixed-ent)
           new-timestamped (assoc timestamped :VAET new-vaet :storage new-storage :AVET new-avet :EAVT new-eavt)]
     (assoc db :timestamped  (conj (:timestamped db) new-timestamped)
                                                  :top-id next-top)))
@@ -187,11 +188,13 @@
       (if tx
           (recur rst-tx (apply (first tx) transacted (rest tx)))
           (let [initial-timestamped  (:timestamped initial-db)
+                stam (println 10)
                   new-timestamped (last (:timestamped transacted))
-                  res (assoc initial-db
-                                  :timestamped (conj  initial-timestamped new-timestamped)
-                                  :curr-time (next-ts initial-db)
-                                  :top-id (:top-id transacted))]
+                stam (println 11)
+                  res (assoc initial-db :timestamped (conj  initial-timestamped new-timestamped)
+                                                :curr-time (next-ts initial-db) :top-id (:top-id transacted))
+                stam (println 12)
+                ]
                   res))))
 
 (defmacro  _transact
@@ -286,12 +289,12 @@
    (kind ((:timestamped db) ts))))
 
 (defmacro clause-item-meta
-  "Finds the name of the variable at an item of a datalog clause element. If no variable, returning :db/no-var"
+  "Finds the name of the variable at an item of a datalog clause element. If no variable, returning nil"
   [clause-item]
   (cond
-   (coll? clause-item)  (first (filter #(variable? %) (map #(str %) clause-item))) ; the item is an s-expression, need to treat it as a coll, by going over it and returning the name of the variable
+   (coll? clause-item)  (first (filter variable?  (map str clause-item))) ; the item is an s-expression, need to treat it as a coll, by going over it and returning the name of the variable
    (variable? (str clause-item)) (str clause-item) ; the item is a simple variable
-   :no-variable-in-clause :db/no-var)) ; the item is a value and not a variable
+   :no-variable-in-clause nil)) ; the item is a value and not a variable
 
 (defmacro clause-item-expr
   "Create a predicate for each element in the datalog clause"
