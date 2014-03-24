@@ -5,9 +5,9 @@ require_relative '../models/device'
 class FileHelper
 
   def self.generate_file_name(parser, user, device)
-    "#{user.gender}-#{user.height}-#{user.stride}_" +
+    "public/uploads/#{user.gender}-#{user.height}-#{user.stride}_" +
     "#{device.rate}-#{device.method}-#{device.steps}-" +
-    "#{device.trial.to_s.gsub(/\s+/, '')}-#{parser.format[0]}"
+    "#{device.trial.to_s.gsub(/\s+/, '')}-#{parser.format[0]}.txt"
   end
 
   def self.parse_file_name(file_name = '--_----')

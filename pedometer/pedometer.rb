@@ -16,7 +16,9 @@ post '/create' do
     build_with_params(File.read(file), user_params, device_params)
 
     @file_name = FileHelper.generate_file_name(@parser, @user, @device)
-    cp(file, "public/uploads/" + @file_name + '.txt')
+    cp(file, @file_name)
+
+    set_match_filtered_data
 
     erb :detail
   rescue Exception => e
@@ -47,19 +49,7 @@ get '/trial/*' do
     user_params, device_params = FileHelper.parse_file_name(@file_name)
     build_with_params(File.read(@file_name), user_params, device_params)
 
-    files = Dir.glob(File.join('public/uploads', "*"))
-    files.delete(@file_name)
-    
-    match = if @parser.format == 'accelerometer'
-      files.select { |f| @file_name == f.gsub('-g.', '-a.') }.first
-    else
-      files.select { |f| @file_name == f.gsub('-a.', '-g.') }.first
-    end
-
-    if match
-      parser = Parser.new(File.read(match))
-      @match_filtered_data = parser.filtered_data
-    end
+    set_match_filtered_data
 
     erb :detail
   rescue Exception => e
@@ -67,10 +57,25 @@ get '/trial/*' do
   end
 end
 
-# TODO: Should initialization process data or should that be called explicitly? 
 def build_with_params(data, user_params, device_params)
   @parser   = Parser.new(data)
   @user     = User.new(*user_params)
   @device   = Device.new(*device_params)
   @analyzer = Analyzer.new(@parser, @user, @device)
+end
+
+def set_match_filtered_data
+  files = Dir.glob(File.join('public/uploads', "*"))
+  files.delete(@file_name)
+
+  match = if @parser.format == 'accelerometer'
+    files.select { |f| @file_name == f.gsub('-g.', '-a.') }.first
+  else
+    files.select { |f| @file_name == f.gsub('-a.', '-g.') }.first
+  end
+
+  @match_filtered_data = if match
+    parser = Parser.new(File.read(match))
+    parser.filtered_data
+  end
 end
