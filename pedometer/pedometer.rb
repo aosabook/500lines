@@ -57,7 +57,7 @@ get '/trial/*' do
     end
 
     if match
-      parser = Parser.new(Device.new, File.read(match))
+      parser = Parser.new(File.read(match))
       @match_filtered_data = parser.filtered_data
     end
 
