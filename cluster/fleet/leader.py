@@ -77,8 +77,7 @@ class Leader(Component):
             # re-spawn commanders for any potentially outstanding proposals
             for view_slot in sorted(self.peer_history):
                 slot = view_slot + ALPHA
-                # TODO: Can be replaced with 'if slot in self.proposals' if proposal value cannot be None
-                if self.proposals.get(slot) is not None:
+                if slot in self.proposals:
                     self.spawn_commander(self.ballot_num, slot, self.proposals[slot], self.peer_history[view_slot])
             # note that we don't re-spawn commanders here; if there are undecided
             # proposals, the replicas will re-propose
@@ -115,8 +114,7 @@ class Leader(Component):
             self.preempted(ballot_num)
 
     def do_PROPOSE(self, slot, proposal):
-        # TODO: Can be replaced with 'if slot in self.proposals' if proposal value cannot be None
-        if self.proposals.get(slot) is None:
+        if slot not in self.proposals:
             if self.active:
                 # find the peers ALPHA slots ago, or ignore if unknown
                 if slot - ALPHA not in self.peer_history:
