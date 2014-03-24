@@ -34,4 +34,12 @@ module.exports = function (app, store, passport) {
     response.send({status: 'ok'});
   });
 
+  app.get('/getUser', function(request, response){
+    response.contentType('json');
+    if(request.isAuthenticated() && request.user)
+      response.send({user: request.user.name});
+    else
+      response.send({user: null});
+  });
+
 };

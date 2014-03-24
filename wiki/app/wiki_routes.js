@@ -131,11 +131,4 @@ module.exports = function (app, store) {
     });
   };
 
-  app.get('/getUser', function(request, response){
-    response.contentType('json');
-    if(request.user)
-      response.send({user: request.user.name});
-    else
-      response.send({user: null});
-  });
 };
