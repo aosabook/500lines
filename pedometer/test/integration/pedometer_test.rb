@@ -10,13 +10,13 @@ class PedometerTest < Test::Unit::TestCase
   end
 
   def test_data
-    get '/data'
+    get '/trials'
 
     assert_equal 200, last_response.status
   end
 
   def test_detail
-    get '/detail/test/data/female-167-70_100-bagwalk-10-1-a.txt'
+    get '/trial/test/data/female-167-70_100-bagwalk-10-1-a.txt'
     
     assert_equal 200, last_response.status
   end

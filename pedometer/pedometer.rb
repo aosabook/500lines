@@ -5,7 +5,7 @@ Dir['./models/*', './helpers/*'].each {|file| require_relative file }
 include FileUtils::Verbose
 
 # TODO: 
-# - Capture exceptions and redirect to /data
+# - Capture exceptions and redirect to /trials
 # - Bad rescues
 # - Make device_params shorter
 post '/create' do
@@ -24,8 +24,7 @@ post '/create' do
   end
 end
 
-# TODO: rename actions
-get '/data' do
+get '/trials' do
   begin
     @data = []
     files = Dir.glob(File.join('public/uploads', "*"))
@@ -42,7 +41,7 @@ get '/data' do
   end
 end
 
-get '/detail/*' do
+get '/trial/*' do
   begin
     @file_name = params[:splat].first
     user_params, device_params = FileHelper.parse_file_name(@file_name)
