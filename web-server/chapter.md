@@ -815,5 +815,124 @@ FIXME: feature diagram
 
 The fix is straightforward:
 create a parent class for all our case handlers
-and either put methods there,
-or put them in the particular case handler that uses them.
+and put methods there
+(if they're shared by two or more case handlers)
+in the particular case handler that uses them.
+When we're done,
+the `RequestHandler` class looks like this:
+
+~~~ {file="05-refactored/server.py"}
+class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+
+    Cases = [case_no_file(),
+             case_cgi_file(),
+             case_existing_file(),
+             case_directory_index_file(),
+             case_directory_no_index_file(),
+             case_always_fail()]
+
+    # How to display an error.
+    Error_Page = """\
+        <html>
+        <body>
+        <h1>Error accessing %(path)s</h1>
+        <p>%(msg)s</p>
+        </body>
+        </html>
+        """
+
+    # Classify and handle request.
+    def do_GET(self):
+        try:
+
+            # Figure out what exactly is being requested.
+            self.full_path = os.getcwd() + self.path
+
+            # Figure out how to handle it.
+            for case in self.Cases:
+                if case.test(self):
+                    case.act(self)
+                    break
+
+        # Handle errors.
+        except Exception, msg:
+            self.handle_error(msg)
+
+    # Handle unknown objects.
+    def handle_error(self, msg):
+        content = self.Error_Page % {'path' : self.path,
+                                     'msg'  : msg}
+        self.send_content(content, 404)
+
+    # Send actual content.
+    def send_content(self, content, status=200):
+        self.send_response(status)
+        self.send_header("Content-type", "text/html")
+        self.send_header("Content-Length", str(len(content)))
+        self.end_headers()
+        self.wfile.write(content)
+~~~
+
+while the parent class for our case handlers is:
+
+~~~ {file="05-refactored/server.py"}
+class base_case(object):
+    '''Parent for case handlers.'''
+
+    def handle_file(self, handler, full_path):
+        try:
+            with open(full_path, 'r') as input:
+                content = input.read()
+            handler.send_content(content)
+        except IOError, msg:
+            msg = "'%s' cannot be read: %s" % (full_path, msg)
+            handler.handle_error(msg)
+
+    def index_path(self, handler):
+        return os.path.join(handler.full_path, 'index.html')
+
+    def test(self, handler):
+        assert False, 'Not implemented.'
+
+    def act(self, handler):
+        assert False, 'Not implemented.'
+~~~
+
+and the handler for an existing file
+(just to pick an example at random) is:
+
+~~~ {file="05-refactored/server.py"}
+class case_existing_file(base_case):
+    '''File exists.'''
+
+    def test(self, handler):
+        return os.path.isfile(handler.full_path)
+
+    def act(self, handler):
+        self.handle_file(handler, handler.full_path)
+~~~
+
+The feature diagram for the refactored code is:
+
+FIXME: feature diagram
+
+## Discussion
+
+Our finished code exemplifies two important ideas.
+The first is to think of a class as a collection of related services.
+`RequestHandler` and `case_base` don't make decisions or take actions;
+they provide tools that other classes can use to do those things.
+
+The second is extensibility:
+people can add new functionality to our web server
+either by writing an external CGI program,
+or by adding a case handler class.
+The latter does require a one-line change to `RequestHandler`
+(to insert the case handler in the `Cases` list),
+but we could get rid of that by having the web server read a configuration file
+and load handler classes from that.
+In both cases,
+they can ignore most lower-level details,
+just as the authors of the `BaseHTTPRequestHandler` class
+have allowed us to ignore the details of handling socket connections
+and parsing HTTP requests.
