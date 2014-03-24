@@ -7,7 +7,7 @@ class Bootstrap(Component):
 
     def __init__(self, member, peers, bootstrapped_cb):
         super(Bootstrap, self).__init__(member)
-        self._peers_cycle = cycle(peers)
+        self.peers_cycle = cycle(peers)
         self.timer = None
         self.bootstrapped_cb = bootstrapped_cb
 
@@ -16,7 +16,7 @@ class Bootstrap(Component):
 
     def join(self):
         """Try to join the cluster"""
-        self.send([next(self._peers_cycle)], 'JOIN', requester=self.address)
+        self.send([next(self.peers_cycle)], 'JOIN', requester=self.address)
         self.timer = self.set_timer(JOIN_RETRANSMIT, self.join)
 
     def do_WELCOME(self, state, slot_num, decisions, viewid, peers, peer_history):
