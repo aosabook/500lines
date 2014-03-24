@@ -5,10 +5,6 @@ from .scout import Scout
 
 
 # Issues:
-#     * spawn_commander method has an unused parameter called peers.
-#         Proposal:
-#             since this method is being used only internally we may remove that parameter without a risk.
-#
 #     * pvals parameter in scout_finished
 #         Proposal:
 #             should be renamed or comment that describe contents of this parameter
@@ -70,8 +66,7 @@ class Leader(Component):
             for view_slot in sorted(self.peer_history):
                 slot = view_slot + ALPHA
                 if slot in self.proposals:
-                    self.spawn_commander(
-                        self.ballot_num, slot, self.proposals[slot], self.peer_history[view_slot])
+                    self.spawn_commander(self.ballot_num, slot, self.proposals[slot])
             # note that we don't re-spawn commanders here; if there are undecided
             # proposals, the replicas will re-propose
             self.logger.info("leader becoming active")
@@ -93,7 +88,7 @@ class Leader(Component):
             self.logger.info("re-scouting as the primary for this view")
             self.spawn_scout()
 
-    def spawn_commander(self, ballot_num, slot, proposal, peers):
+    def spawn_commander(self, ballot_num, slot, proposal):
         peers = self.peer_history[slot - ALPHA]
         commander_id = CommanderId(self.address, slot, self.proposals[slot])
         if commander_id in self.commanders:
@@ -118,8 +113,7 @@ class Leader(Component):
                     return
                 self.proposals[slot] = proposal
                 self.logger.info("spawning commander for slot %d" % (slot,))
-                self.spawn_commander(self.ballot_num, slot,
-                                     proposal, self.peer_history[slot - ALPHA])
+                self.spawn_commander(self.ballot_num, slot, proposal)
             else:
                 if not self.scout:
                     self.logger.info("got PROPOSE when not active - scouting")
