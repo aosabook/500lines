@@ -4,12 +4,6 @@ from .member import Component
 from .scout import Scout
 
 
-# Issues:
-#     * pvals parameter in scout_finished
-#         Proposal:
-#             should be renamed or comment that describe contents of this parameter
-#             should be added
-
 class Leader(Component):
 
     def __init__(self, member, unique_id, peer_history, commander_cls=Commander, scout_cls=Scout):
