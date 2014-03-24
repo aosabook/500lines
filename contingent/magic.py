@@ -55,7 +55,7 @@ class Filesystem(Base):
         with open(path, mode) as f:
             return f.read()
 
-    def wait(self):
+    def _wait(self):
         """Wait for any previously-read files to change, and re-read them."""
         changed_paths = []
         start = time.time()
@@ -65,5 +65,6 @@ class Filesystem(Base):
             changed_paths = [path for path in self._paths
                              if os.stat(path).st_mtime > start]
         for path in changed_paths:
-            # ?
+            bound_method = object.__getattribute__(self, 'read')
+            self._builder.cache._todo.add((bound_method, (path,)))
             self.read(path)
