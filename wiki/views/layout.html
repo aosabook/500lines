@@ -1,31 +1,29 @@
 <html>
     <head>
         <title>{title}</title>
-        <style>
-            body {font-family: sans-serif}
-            .error {color: red}
-            .left {float: left; width: 49%}
-            .right {float: right; width: 49% }
-            .login {float: right}
-            .loginForm {display: inline}
-            .content {clear: both}
-            .editor {width: 95%; height: 70%}
-            .comparecontent {border: 1px solid black; padding: 3px}
-            .added {color: green}
-            .removed {color: red; text-decoration: line-through}
-            .common {color: gray}
-            .meta {font-size: 0.8em; color: gray}
-            .formerror {border: 3px solid red;}
-            h1.title a {text-decoration: none; color: rgb(108, 176, 142); font-size: 2em}
-            button { background-color: rgb(182, 217, 199) }
-            pre {white-space: pre-wrap}
-        </style>
+        <link rel="stylesheet" type="text/css" href="/public/css/jquery-ui-1.10.4.custom.min.css"></link>
+        <link rel="stylesheet" type="text/css" href="/public/css/wiki_style.css"></link>
+        <script type="text/javascript" src="/public/js/jquery.min.js"></script>
+        <script type="text/javascript" src="/public/js/jquery-ui-1.10.4.custom.min.js"></script>
+        <script type="text/javascript" src="/public/js/wiki.js"></script>
     </head>
     <body>
         <div class="header">
             <div class="left"><h1 class="title"><a href="/wiki/">Wiki</a></h1></div>
             <div class="login">{>login}</div>
         </div>
-        <div class="content">{>body}</div>
+
+        <script type="text/javascript">
+            var page = '{page}';
+            $(function(){
+                showLoginView();
+            });
+            $({handler});
+        </script>
+
+        <div class="content">
+            <div id="error" class="error"></div>
+           {>content}
+        </div>
     </body>
 </html>

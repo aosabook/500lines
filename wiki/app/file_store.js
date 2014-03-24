@@ -51,15 +51,23 @@ FileStore.prototype.saveWikiContents = function(args, callback){
 FileStore.prototype.updateWikiPageIfNoConflict = function(args, callback){
   this.getWikiContents(args._id, function(error, doc){
     if(error) return callback(error);
-    var newRev = parseInt(args._rev);
-    var savedRev = doc._rev;
-    if(isNaN(newRev)) return callback(new Error('Invalid revision: '+args._rev));
-    if(savedRev != args._rev) return callback(new Error('conflict'));
-    newRev++;
-    return this.saveWikiPage(args, callback);
+    this.compareRevisions(args._rev, doc._rev, function(err, nextRev){
+      if(err) return callback(err);
+      args._rev = nextRev;
+      return this.saveWikiPage(args, callback);
+    }.bind(this));
   }.bind(this));
 };
 
+
+FileStore.prototype.compareRevisions = function(newRev, savedRev, callback){
+  var newRevInt = parseInt(newRev);
+  var savedRevInt = parseInt(savedRev);
+  if(isNaN(newRevInt)) return callback(new Error('Invalid revision: ' + newRev));
+  if(isNaN(savedRevInt)) return callback(new Error('Invalid revision: ' + savedRev));
+  if(newRevInt !== savedRevInt) return callback(new Error('conflict'));
+  return callback(null, savedRevInt+1);
+};
 
 FileStore.prototype.saveWikiPage = function(args, callback){
   fs.writeFile(path.join(this.fileStoreDir,args._id), JSON.stringify(args), function(error){

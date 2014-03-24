@@ -12,12 +12,13 @@
     "passport": "~0.2.0",
     "passport-local": "~0.1.6",
     "diff": "^1.0.8",
-    "password-hash": "^1.2.1"
+    "password-hash": "^1.2.1",
+    "jquery": "^2.1.0"
   },
   "devDependencies": {},
   "scripts": {
-    "start": "node js/server.js",
-    "test": "jshint js/*; node --debug js/server.js"
+    "start": "node app/server.js",
+    "test": "jshint app/*.js app/config/*.js app/public/js/wiki.js; node --debug app/server.js"
   },
   "author": "Laurie MacDougall Sookraj"
 }

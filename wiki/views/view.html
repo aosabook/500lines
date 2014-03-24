@@ -1,4 +1,6 @@
-<div class="nav">View | <a href="/wiki/{page}/edit">Edit</a> | <a href="/wiki/">Main</a></div>
-<h1>{title}</h1>
-{doc.content}
-<div class="meta">Last edited by {doc.user} at {doc.updatedDate} - {doc.comment}</div>
+<div id="pageView">
+    <div class="nav">View | <a href="/wiki/edit?page={page}">Edit</a> | <a href="/wiki/">Main</a></div>
+    <h1>{page}</h1>
+    <div id="pageContent"></div>
+    <div class="meta" id="pageMeta"></div>
+</div>

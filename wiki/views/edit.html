@@ -1,13 +1,23 @@
-<h1>{title}</h1>
-<form action="{url}" method="post">
-    <input type="hidden" name="revision" value="{revision}"/>
-    <textarea name="content" class="editor">{content}</textarea>
-    <br/>
-    <label for="comment">Comment:</label><input type="text" name="comment" value="{comment}" size="40"/>
-    <div class="error">{error}</div>
-    <button type="submit">Save</button>
-    <button type="submit" name="preview" value="preview">Preview</button>
-    <button type="submit" name="cancel" value="cancel">Cancel</button>
-    <input type="hidden" name="error" value="{error}" />
+<div id="editView">
+    <div id="preview" style="display:none">
+        <h1>{page} Preview</h1>
+        <div id="previewContent"></div>
+        <hr/>
+    </div>
+    <h1>Editing {page}</h1>
+    <input type="hidden" name="revision" id="revision"/>
+    <input type="hidden" name="page" value="{page}"/>
+    <textarea name="content" class="editor" id="editor"></textarea><br/>
+    <label for="comment">Comment:</label><input type="text" name="comment" id="comment" size="40"/>
+    <button id="previewButton">Preview</button>
+    <button id="saveButton">Save</button>
+    <button><a href="/wiki/view?page={page}">Cancel</a></button>
+
     <p><a href="https://help.github.com/articles/markdown-basics" target="_blank">Markdown help</a></p>
-</form>
+</div>
+
+<div id="compareView" class="right" style="display:none">
+    <h2 id="compareTitle"></h2>
+    <div class="comparecontent"><pre id="comparecontent"></pre></div>
+    <br/>Comment: <span id="comparecomment"></span>
+</div>

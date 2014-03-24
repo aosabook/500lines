@@ -8,6 +8,8 @@ config.store.configureStore(function(err, store){
   require("./passport.js")(passport, store);
 
   var app = express();
+  //app.use(express.static(__dirname + '/public'));
+  app.use('/public', express.static(__dirname + '/public'));
   app.use(express.bodyParser());
   app.use(express.cookieParser());
   app.use(express.session({ secret: '500lineswiki' }));

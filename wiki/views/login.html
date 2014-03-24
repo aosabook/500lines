@@ -1,18 +1,30 @@
-<div id="loginform">
-{if user}
-    <form action="/logout" method="post">
-        <div>Logged in as: {user.name} <button type="submit" name="logout">Log Out</button></div>
-    </form>
-{else}
-    <form action="/login" method="post" class="loginForm">
+<div id="login">
+    <div id="loggedInView" style="display:none">
+        <form id="logoutForm">
+            <div>Logged in as: <span id="displayUserName"></span><button type="submit" name="logout">Log Out</button></div>
+        </form>
+    </div>
+    <div id="loginView" style="display:none">
+        <form class="form" id="loginForm">
+            <label>Username:</label>
+            <input type="text" name="username" id="username"/>
+            <label>Password:</label>
+            <input type="password" name="password" id="password"/>
+            <button name="login" value="Log In" id="loginButton">Log In</button>
+        </form>
+        <button name="signup" value="Sign Up" id="signupButton" class="form">Sign Up</button>
+    </div>
+</div>
+
+<div id="signupView" style="display:none">
+    <form id="signupForm">
         <label>Username:</label>
-        <input type="text" name="username" id="username"/>
+        <input type="text" name="username" id="newusername"/><br/>
         <label>Password:</label>
-        <input type="password" name="password" id="password"/>
-        <button type="submit" name="login" value="Log In">Log In</button>
-    </form>
-    <form action="/launchSignup" method="post" id="signupForm" class="loginForm">
+        <input type="password" name="password" id="newpassword"/><br/>
+        <label>Email:</label>
+        <input type="text" name="email" id="newemail" size="25"/><br/>
+        <div id="formError" class="error"></div>
         <button type="submit" name="signup" value="Sign Up">Sign Up</button>
     </form>
-{/if}
 </div>
