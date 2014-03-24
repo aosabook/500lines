@@ -53,5 +53,6 @@ def inotify_wait_on(paths):
         # closing our file descriptor and returning?
     finally:
         pass #os.close(fd)
+    time.sleep(0.1)  # until above TODO is done
     wd, mask, cookie, name_length = struct.unpack('iIII', buf)
     return [descriptors[wd].decode('ascii')]
