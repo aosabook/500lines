@@ -46,18 +46,22 @@ class Leader(Component):
 
     def spawn_scout(self):
         assert not self.scout
-        self.ballot_num = Ballot(self.view_id, self.ballot_num.n, self.ballot_num.leader)
-        sct = self.scout = self.scout_cls(self.member, self, self.ballot_num, self.peers)
+        self.ballot_num = Ballot(
+            self.view_id, self.ballot_num.n, self.ballot_num.leader)
+        sct = self.scout = self.scout_cls(
+            self.member, self, self.ballot_num, self.peers)
         sct.start()
 
-    def scout_finished(self, adopted, ballot_num, pvals):  # TODO: rename pvals to something with semantic meaning
+    # TODO: rename pvals to something with semantic meaning
+    def scout_finished(self, adopted, ballot_num, pvals):
         self.scout = None
         if adopted:
             # pvals is a defaultdict of proposal by (ballot num, slot); we need the proposal with
             # highest ballot number for each slot.
 
             # This *will* work since proposals with lower ballot numbers will be overwritten
-            # by proposals with higher ballot numbers. It is guaranteed since we sorting pvals items in ascending order.
+            # by proposals with higher ballot numbers. It is guaranteed since
+            # we sorting pvals items in ascending order.
             last_by_slot = {s: p for (b, s), p in sorted(pvals.items())}
             for slot_id, proposal in last_by_slot.iteritems():
                 self.proposals[slot_id] = proposal
@@ -66,7 +70,8 @@ class Leader(Component):
             for view_slot in sorted(self.peer_history):
                 slot = view_slot + ALPHA
                 if slot in self.proposals:
-                    self.spawn_commander(self.ballot_num, slot, self.proposals[slot], self.peer_history[view_slot])
+                    self.spawn_commander(
+                        self.ballot_num, slot, self.proposals[slot], self.peer_history[view_slot])
             # note that we don't re-spawn commanders here; if there are undecided
             # proposals, the replicas will re-propose
             self.logger.info("leader becoming active")
@@ -81,7 +86,8 @@ class Leader(Component):
         else:
             self.logger.info("leader preempted by view change")
         self.active = False
-        self.ballot_num = Ballot(self.view_id, (ballot_num or self.ballot_num).n + 1, self.ballot_num.leader)
+        self.ballot_num = Ballot(
+            self.view_id, (ballot_num or self.ballot_num).n + 1, self.ballot_num.leader)
         # if we're the primary for this view, re-scout immediately
         if not self.scout and view_primary(self.view_id, self.peers) == self.address:
             self.logger.info("re-scouting as the primary for this view")
@@ -92,7 +98,8 @@ class Leader(Component):
         commander_id = CommanderId(self.address, slot, self.proposals[slot])
         if commander_id in self.commanders:
             return
-        cmd = self.commander_cls(self.member, self, ballot_num, slot, proposal, commander_id, peers)
+        cmd = self.commander_cls(
+            self.member, self, ballot_num, slot, proposal, commander_id, peers)
         self.commanders[commander_id] = cmd
         cmd.start()
 
@@ -106,11 +113,13 @@ class Leader(Component):
             if self.active:
                 # find the peers ALPHA slots ago, or ignore if unknown
                 if slot - ALPHA not in self.peer_history:
-                    self.logger.info("slot %d not in peer history %r" % (slot - ALPHA, sorted(self.peer_history)))
+                    self.logger.info("slot %d not in peer history %r" %
+                                     (slot - ALPHA, sorted(self.peer_history)))
                     return
                 self.proposals[slot] = proposal
                 self.logger.info("spawning commander for slot %d" % (slot,))
-                self.spawn_commander(self.ballot_num, slot, proposal, self.peer_history[slot - ALPHA])
+                self.spawn_commander(self.ballot_num, slot,
+                                     proposal, self.peer_history[slot - ALPHA])
             else:
                 if not self.scout:
                     self.logger.info("got PROPOSE when not active - scouting")
