@@ -12,7 +12,7 @@
 ;; -- EAVT structed like this: {ent-id -> {attr-name -> #{attr-vals}}} mimics the storage structure
 ;;
 (defrecord Database [timestamped top-id curr-time])
-(defrecord Index [db-from-eav db-to-eav db-usage-pred])
+(defrecord Index [db-from-eav db-to-eav db-usage-pred db-laef-index])
 (defrecord Timestamped [storage VAET AVET EAVT])
 (defrecord Entity [id attrs])
 (defrecord Attr [name value ts prev-ts])
@@ -26,9 +26,9 @@
 (defn make-db "Create an empty database" []
   (atom (Database. [(Timestamped.
                      (initial-storage) ; storage
-                     (Index. #(vector %3 %2 %1)  #(vector %3 %2 %1) #(ref? %)) ; VAET
-                     (Index. #(vector %2 %3 %1)  #(vector %3 %1 %2) #(not (not %))) ; AVET
-                     (Index. #(vector %1 %2 %3)  #(vector %1 %2 %3) #(not (not %))))] ; EAVT
+                     (Index. #(vector %3 %2 %1)  #(vector %3 %2 %1) #(ref? %) 0) ; VAET - for graph qeries and joins
+                     (Index. #(vector %2 %3 %1)  #(vector %3 %1 %2) #(not (not %))0) ; AVET - for filtering
+                     (Index. #(vector %1 %2 %3)  #(vector %1 %2 %3) #(not (not %))) 2)] ; EAVT - for filtering
                    0 0)))
 
 (defn make-entity
@@ -134,13 +134,30 @@
          add-entry-fn (fn [indx vl] (add-entry-to-index indx ((:db-from-eav index) ent-id attr-name vl) operation))
          ] (reduce add-entry-fn index colled-target-val)))
 
-(defn- add-entity-to-index
-  [index ent]
+(defn add-entity-to-index
+  [ent timestamped ind-name]
   (let [ent-id (:id ent)
+        index (ind-name timestamped)
         all-attrs  (vals (:attrs ent))
         relevant-attrs (filter #((:db-usage-pred index) %) all-attrs )
         add-in-index-fn (fn [ind attr] (update-attr-in-index ind ent-id (:name attr) (:value attr) :db/add))]
-    (reduce add-in-index-fn index relevant-attrs)))
+       (assoc timestamped ind-name  (reduce add-in-index-fn index relevant-attrs))))
+
+(denf fix-new-entity [db ent]
+      (let [[ent-id next-top-id] (next-id db ent)
+               new-ts (next-ts db)]
+      (update-creation-ts (assoc ent :id ent-id) new-ts)))
+
+;when adding an entity, its attributes' timestamp would be set to be the current one
+(defn add-entity
+  [db ent]
+  (let [fixed-ent (fix-new-entity db ent)
+          new-timestamped (update-in  (last (:timestamped db)) [:storage] update-storage fixed-ent)
+          add-fn (partial add-entity-to-index fixed-ent)
+          new-timestamped (reduce add-fn new-timestamp [:VAET :AVET :EAVT])]
+    (assoc db :timestamped  (conj (:timestamped db) new-timestamped) :top-id next-top)))
+
+(defn add-entities  [db ents-seq] (reduce add-entity db ents-seq))
 
 (defn- remove-entity-from-index
   [index ent]
@@ -149,25 +166,6 @@
         relevant-attrs (filter #((:db-usage-pred index) %) all-attrs )
         remove-from-index-fn (fn [ind attr] ( remove-entries-from-index ind (:name attr) ent-id (collify (:value attr)) :db/remove))
         ] (reduce remove-from-index-fn index relevant-attrs)))
-
-;when adding an entity, its attributes' timestamp would be set to be the current one
-(defn add-entity
-  [db ent]
-  (let [[ent-id next-top] (next-id db ent)
-          new-ts (next-ts db)
-          timestamped (last (:timestamped db))
-          fixed-ent (assoc ent :id ent-id)
-          new-storage (update-storage (:storage timestamped) (update-creation-ts fixed-ent new-ts) )
-          new-vaet (add-entity-to-index (:VAET timestamped) fixed-ent)
-          new-avet (add-entity-to-index (:AVET timestamped) fixed-ent)
-          new-eavt (add-entity-to-index (:EAVT timestamped) fixed-ent)
-          new-timestamped (assoc timestamped :VAET new-vaet :storage new-storage :AVET new-avet :EAVT new-eavt)]
-    (assoc db :timestamped  (conj (:timestamped db) new-timestamped)
-                                                 :top-id next-top)))
-
-(defn add-entities
-  [db ents-seq]
-  (reduce add-entity db ents-seq))
 
 (defn remove-entity
   [db ent-id]
