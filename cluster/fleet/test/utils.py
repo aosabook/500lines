@@ -11,7 +11,7 @@ class ComponentTestCase(unittest.TestCase):
 
     def tearDown(self):
         if self.node.sent:
-            self.fail("extra messages from node: %r" % self.node.sent)
+            self.fail("extra messages from node: %r" % (self.node.sent,))
 
     def assertMessage(self, destinations, action, **kwargs):
         got = self.node.sent.pop(0)
