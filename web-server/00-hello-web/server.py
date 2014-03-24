@@ -1,5 +1,7 @@
 import BaseHTTPServer
 
+#-------------------------------------------------------------------------------
+
 class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     '''Handle HTTP requests by returning a fixed 'page'.'''
 
@@ -20,7 +22,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(self.Page)
 
-#----------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 
 if __name__ == '__main__':
     serverAddress = ('', 8080)

@@ -1,8 +1,12 @@
 import sys, os, BaseHTTPServer
 
+#-------------------------------------------------------------------------------
+
 class ServerException(Exception):
     '''For internal error reporting.'''
     pass
+
+#-------------------------------------------------------------------------------
 
 class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     '''
@@ -66,7 +70,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(content)
 
-#----------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 
 if __name__ == '__main__':
     serverAddress = ('', 8080)

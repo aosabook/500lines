@@ -727,3 +727,93 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             msg = "'%s' cannot be listed: %s" % (self.path, msg)
             self.handle_error(msg)
 ~~~
+
+## The CGI Protocol
+
+Of course,
+most people won't want to edit the source of their web server
+in order to add new functionality.
+To save them from having to do so,
+servers have from the start supported a mechanism called
+the Common Gateway Interface (CGI),
+which provides a standard way for a web server to run an external program
+in order to satisfy a request.
+
+For example,
+suppose we want the server to be able to display the local time
+in an HTML page.
+We can do this in a standalone program with just a few lines of code:
+
+~~~ {file="04-cgi/simple.py"}
+from datetime import datetime
+print '''\
+<html>
+<body>
+<p>Generated %s</p>
+</body>
+</html>''' % datetime.now()
+~~~
+
+In order to get the web server to run this program for us,
+we add this case handler:
+
+~~~ {file="04-cgi/server.py"}
+class case_cgi_file(object):
+    '''Something runnable.'''
+
+    def test(self, handler):
+        return os.path.isfile(handler.full_path) and \
+               handler.full_path.endswith('.py')
+
+    def act(self, handler):
+        handler.run_cgi(handler.full_path)
+~~~
+
+The test is simple:
+does the file path end with `.py`?
+The action is equally simple:
+tell `RequestHandler` to run this program.
+
+~~~ {file="04-cgi/server.py"}
+    def run_cgi(self, full_path):
+        cmd = "python " + full_path
+        child_stdin, child_stdout = os.popen2(cmd)
+        child_stdin.close()
+        data = child_stdout.read()
+        child_stdout.close()
+        self.send_content(data)
+~~~
+
+This is horribly insecure:
+if someone knows the path to a Python file on our server,
+we're just letting them run it
+without worrying about what data it has access to,
+whether it might contain an infinite loop,
+or anything else.
+Sweeping that aside,
+the core idea is simple:
+
+1.  Run the program in a subprocess.
+2.  Capture whatever that subprocess sends to standard output.
+3.  Send that back to the client that made the request.
+
+The full CGI protocol is much richer than this---in particular,
+it allows for parameters in the URL,
+which the server passes into the program being run---but
+those details don't affect the overall architecture of the system...
+
+...which is once again becoming rather tangled.
+`RequestHandler` initially had one method,
+`handle_file`,
+for dealing with content.
+We have now added two special cases
+in the form of `list_dir` and `run_cgi`.
+If we draw a feature diagram for our classes,
+it's clear that these three methods don't really belong where they are:
+
+FIXME: feature diagram
+
+The fix is straightforward:
+create a parent class for all our case handlers
+and either put methods there,
+or put them in the particular case handler that uses them.

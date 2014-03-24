@@ -1,8 +1,12 @@
 import sys, os, BaseHTTPServer
 
+#-------------------------------------------------------------------------------
+
 class ServerException(Exception):
     '''For internal error reporting.'''
     pass
+
+#-------------------------------------------------------------------------------
 
 class case_no_file(object):
     '''File or directory does not exist.'''
@@ -13,6 +17,8 @@ class case_no_file(object):
     def act(self, handler):
         raise ServerException("'%s' not found" % handler.path)
 
+#-------------------------------------------------------------------------------
+
 class case_existing_file(object):
     '''File exists.'''
 
@@ -22,6 +28,8 @@ class case_existing_file(object):
     def act(self, handler):
         handler.handle_file(handler.full_path)
 
+#-------------------------------------------------------------------------------
+
 class case_always_fail(object):
     '''Base case if nothing else worked.'''
 
@@ -30,6 +38,8 @@ class case_always_fail(object):
 
     def act(self, handler):
         raise ServerException("Unknown object '%s'" % handler.path)
+
+#-------------------------------------------------------------------------------
 
 class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     '''
@@ -91,7 +101,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(content)
 
-#----------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 
 if __name__ == '__main__':
     serverAddress = ('', 8080)

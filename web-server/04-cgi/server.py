@@ -19,6 +19,18 @@ class case_no_file(object):
 
 #-------------------------------------------------------------------------------
 
+class case_cgi_file(object):
+    '''Something runnable.'''
+
+    def test(self, handler):
+        return os.path.isfile(handler.full_path) and \
+               handler.full_path.endswith('.py')
+
+    def act(self, handler):
+        handler.run_cgi(handler.full_path)
+
+#-------------------------------------------------------------------------------
+
 class case_existing_file(object):
     '''File exists.'''
 
@@ -78,6 +90,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     '''
 
     Cases = [case_no_file(),
+             case_cgi_file(),
              case_existing_file(),
              case_directory_index_file(),
              case_directory_no_index_file(),
@@ -139,6 +152,14 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         except OSError, msg:
             msg = "'%s' cannot be listed: %s" % (self.path, msg)
             self.handle_error(msg)
+
+    def run_cgi(self, full_path):
+        cmd = "python " + full_path
+        child_stdin, child_stdout = os.popen2(cmd)
+        child_stdin.close()
+        data = child_stdout.read()
+        child_stdout.close()
+        self.send_content(data)
 
     # Handle unknown objects.
     def handle_error(self, msg):
