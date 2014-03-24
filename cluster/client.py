@@ -27,7 +27,7 @@ class Client(Member):
 class Request(Component):
 
     client_ids = xrange(1000000, sys.maxint).__iter__()
-    RETRANSMIT_TIME = 0.1
+    RETRANSMIT_TIME = 0.5
 
     def __init__(self, member, n, callback):
         super(Request, self).__init__(member)
