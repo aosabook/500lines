@@ -1,6 +1,6 @@
 import Queue
 import threading
-from . import client
+from . import request
 from . import member
 from . import member_replicated
 from . import network
@@ -47,7 +47,7 @@ class Ship(object):
         def done(output):
             self.current_request = None
             q.put(output)
-        self.current_request = client.Request(self.cluster_member, input_value, done)
+        self.current_request = request.Request(self.cluster_member, input_value, done)
         self.current_request.start()
         return q.get()
 
