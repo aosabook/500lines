@@ -79,12 +79,15 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
         elif (command == "results"):
             #TODO get hash and store results in test_results
             results = command_groups.group(2)
-            commit_hash, data = re.findall(r":(\w*)", results)
+            commit_hash = re.findall(r":(\w*):.*", results)[0]
             if not os.path.exists("test_results"):
                 os.makedirs("test_results")
             with open("test_results/%s" % commit_hash, "w") as f:
+                data = self.data.split(":")[1:]
+                data = "\n".join(data)
                 f.write(data)
                 f.close()
+            import pdb; pdb.set_trace()
             self.request.sendall("OK")
         else:
             self.request.sendall("Invalid command")

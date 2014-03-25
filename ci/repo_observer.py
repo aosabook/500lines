@@ -65,7 +65,7 @@ def poll():
                     print 'dispatched!'
                 else:
                     bail("Could not communicate with dispatcher server!")
-            time.sleep(30)
+            time.sleep(90)
         except subprocess.CalledProcessError as e:
             bail("Could not update and check repository. Reason: %s" % e.output)
 
