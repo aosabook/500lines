@@ -31,6 +31,8 @@
                      (Index. #(vector %1 %2 %3)  #(vector %1 %2 %3) #(not (not %))2) )] ; EAVT - for filtering
                    0 0)))
 
+(defn indices[] [:VAET :AVET :EAVT])
+
 (defn make-entity
   "creates an entity, if id is not supplied, a running id is assigned to the entity"
   ([] (make-entity :db/no-id-yet ))
@@ -140,7 +142,7 @@
   (let [[fixed-ent next-top-id](fix-new-entity db ent)
           new-timestamped (update-in  (last (:timestamped db)) [:storage] update-storage fixed-ent)
           add-fn (partial add-entity-to-index fixed-ent)
-          new-timestamped (reduce add-fn new-timestamped [:VAET :AVET :EAVT])]
+          new-timestamped (reduce add-fn new-timestamped  (indices))]
     (assoc db :timestamped  (conj (:timestamped db) new-timestamped) :top-id next-top-id)))
 
 (defn add-entities  [db ents-seq] (reduce add-entity db ents-seq))
@@ -152,8 +154,9 @@
           val-to-remove (last path)
           old-entries-set (get-in index path-to-items)]
     (cond
+     (not (contains?  old-entries-set val-to-remove)) index ; the set of items does not contain the item to remove, => nothing to do here
      (and (= 1 (count old-entries-set) ) (= 1 (count (path-head index)))) (dissoc index path-head) ; a path representing a single EAV - remove it entirely
-     (or (nil? old-entries-set)(= (count old-entries-set) 1))  (update-in index [path-head] dissoc (second path)) ; a path that spreads at the second item - just remove the unneeded part of it
+     (= (count old-entries-set) 1)  (update-in index [path-head] dissoc (second path)) ; a path that splits at the second item - just remove the unneeded part of it
      :else (update-in index path-to-items disj val-to-remove))))
 
 (defn- remove-entries-from-index
@@ -162,7 +165,7 @@
        index
       (let  [attr-name (:name attr)
                datom-vals (collify (:value attr))
-             paths (map #((:db-to-eav index) ent-id attr-name %) datom-vals)]
+               paths (map #((:db-from-eav index) ent-id attr-name %) datom-vals)]
        (reduce remove-entry-from-index index paths))))
 
 (defn- remove-entity-from-index
@@ -180,7 +183,7 @@
          timestamped (update-in (last (:timestamped db)) [:VAET] dissoc ent-id)
          new-timestamped (assoc timestamped :storage (remove-entity-from-storage (:storage timestamped) ent))
          remove-fn (partial remove-entity-from-index ent)
-         new-timestamped (reduce remove-fn new-timestamped [:VAET :AVET :EAVT])]
+         new-timestamped (reduce remove-fn new-timestamped (indices))]
     (assoc db :timestamped (conj  (:timestamped db) new-timestamped))))
 
 (defn transact-on-db
@@ -237,15 +240,16 @@
    (= operation :db/remove) (collify target-val))) ; removing the values defined by the caller
 
 (defn- update-index
-  [index ent-id old-attr target-val operation]
-  (if-not ((:db-usage-pred index) old-attr)
-    index
-    (let [old-vals (:value old-attr)
+  [ent-id old-attr target-val operation timestamped ind-name]
+  (if-not ((get-in timestamped [ind-name :db-usage-pred]) old-attr)
+    timestamped
+    (let [index (ind-name timestamped)
+          old-vals (:value old-attr)
           attr-name (:name old-attr)
            remove-paths  (remove-path-values old-vals target-val operation)
-           cleaned-index (remove-entries-from-index  ent-id operation index old-attr) ;ent-id operation index attr
+           cleaned-index (remove-entries-from-index  ent-id operation index old-attr)
            updated-index  (update-attr-in-index cleaned-index ent-id attr-name target-val operation)]
-      updated-index)))
+      (assoc timestamped ind-name updated-index))))
 
 (defn update-entity [storage e-id new-attr]
   (assoc-in (stored-entity storage e-id) [:attrs (:name new-attr)] new-attr))
@@ -253,11 +257,8 @@
 (defn- update-timestamped
   [timestamped ent-id old-attr updated-attr new-val operation]
   (let [storage (:storage timestamped)
-         new-storage (update-storage storage (update-entity storage ent-id updated-attr))
-         new-vaet (update-index (:VAET timestamped) ent-id old-attr new-val operation)
-         new-avet (update-index (:AVET timestamped) ent-id old-attr new-val operation)
-         new-eavt (update-index (:EAVT timestamped) ent-id old-attr new-val operation)]
-    (assoc timestamped :storage new-storage :VAET new-vaet :AVET new-avet :EAVT new-eavt)))
+         new-timestamped (reduce (partial update-index  ent-id old-attr new-val operation) timestamped (indices))]
+    (assoc new-timestamped :storage (update-storage storage (update-entity storage ent-id updated-attr)))))
 
 (defn update-datom
   ([db ent-id attr-name new-val]
@@ -360,8 +361,7 @@
 (defn query-index
   "an index is a 3 level map (VAE, AVE, EVA) that is found at a specific time (T).
    The path-preds argument is a seq of vectors. Each of these vectors contains two elements:
-    -- The first element is used as a filter predicator on the first level of the index (V -> any relevant function may be used, A -> an attribute name matching predicator,
-        E -> an id matching predicator)
+    -- The first element is used as a filter predicator on the first level of the index (V -> any relevant function may be used, A -> an attribute name matching predicator,  E -> an id matching predicator)
     -- The second element is used as a filter on the second level of the index, and it is to be used for the branches of the index that passed the first element predicator.
     -- to-eav is a function that receives a path in the index (3 elements ordered from root to leave in the index) and returns a vector containing these 3 elements, ordered like this [entity attr val]
   The values found at the third level of the map of all the branches that passed the above two filters are fused into one seq"

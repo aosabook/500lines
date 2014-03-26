@@ -1,6 +1,6 @@
-;; management of db and db connections
-;; via this module it is possible to either acquire new db or reset an existing one, as well as get the db value from a connection
-(ns core.manage (:use core.fdb))
+(ns core.manage
+  "Management of db and db connections via this module it is possible to either acquire new db or reset an existing one, as well as get the db value from a connection"
+  (:use core.fdb))
 
 (def __ALL-DBS__ (atom {}))
 
