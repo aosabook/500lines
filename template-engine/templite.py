@@ -107,31 +107,31 @@ class Templite(object):
             del buffered[:]
 
         # Split the text to form a list of tokens.
-        toks = re.split(r"(?s)({{.*?}}|{%.*?%}|{#.*?#})", text)
+        tokens = re.split(r"(?s)({{.*?}}|{%.*?%}|{#.*?#})", text)
 
         ops_stack = []
-        for tok in toks:
-            if tok.startswith('{{'):
+        for token in tokens:
+            if token.startswith('{{'):
                 # An expression to evaluate.
-                buffered.append("s(%s)" % self.expr_code(tok[2:-2].strip()))
-            elif tok.startswith('{#'):
+                buffered.append("s(%s)" % self.expr_code(token[2:-2].strip()))
+            elif token.startswith('{#'):
                 # Comment: ignore it and move on.
                 continue
-            elif tok.startswith('{%'):
+            elif token.startswith('{%'):
                 # Action tag: split into words and parse further.
                 flush_output()
-                words = tok[2:-2].strip().split()
+                words = token[2:-2].strip().split()
                 if words[0] == 'if':
                     # An if statement: evaluate the expression to determine if.
                     if len(words) != 2:
-                        self.syntax_error("Don't understand if", tok)
+                        self.syntax_error("Don't understand if", token)
                     ops_stack.append('if')
                     code.add_line("if %s:" % self.expr_code(words[1]))
                     code.indent()
                 elif words[0] == 'for':
                     # A loop: iterate over expression result.
                     if len(words) != 4 or words[2] != 'in':
-                        self.syntax_error("Don't understand for", tok)
+                        self.syntax_error("Don't understand for", token)
                     ops_stack.append('for')
                     self.loop_vars.add(words[1])
                     code.add_line(
@@ -152,8 +152,8 @@ class Templite(object):
                     self.syntax_error("Don't understand tag", words[0])
             else:
                 # Literal content.  If it isn't empty, output it.
-                if tok:
-                    buffered.append("%r" % tok)
+                if token:
+                    buffered.append("%r" % token)
         flush_output()
 
         for var_name in self.all_vars - self.loop_vars:
