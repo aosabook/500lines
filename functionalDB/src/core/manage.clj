@@ -5,10 +5,9 @@
 (def __ALL-DBS__ (atom {}))
 
 (defn _get-db [dbs db-name]
-  (if (db-name dbs ) dbs (assoc dbs db-name (make-db))))
+  (if (db-name dbs)  dbs  (assoc dbs db-name (make-db))))
 
-(defn _reset-db[dbs db-name]
-  (dissoc dbs db-name))
+(defn _reset-db[dbs db-name] (dissoc dbs db-name))
 
 (defn _as-db-name [db-name] (keyword db-name))
 

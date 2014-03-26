@@ -7,4 +7,3 @@
 (defn update-storage [storage entity] (assoc storage (:id entity) entity))
 
 (defn remove-entity-from-storage [storage entity] (dissoc storage (:id entity)))
-
