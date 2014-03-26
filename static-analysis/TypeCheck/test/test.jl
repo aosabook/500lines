@@ -9,7 +9,7 @@ module TestTypeCheck
         f = eval(Base,n)
         if isgeneric(f) && typeof(f) == Function
           context(string(n)) do
-            @fact TypeCheck.check_return_types(f) => anything #=> FunctionSignature([],Symbol)
+            @fact TypeCheck.check_return_types(f) => anything # => FunctionSignature([],Symbol)
             [@fact istype(TypeCheck.returntype(e)) => true for e in code_typed(f)]
             [@fact TypeCheck.returntype(e) => istype for e in code_typed(f)]
           end
@@ -44,7 +44,7 @@ module TestTypeCheck
         f = eval(Base,n)
         if isgeneric(f) && typeof(f) == Function
           context(string(n)) do
-            @fact TypeCheck.check_loop_types(f) => anything #=> LoopResults
+            @fact TypeCheck.check_loop_types(f) => anything # => LoopResults
           end
         end
       else
@@ -97,7 +97,7 @@ module TestTypeCheck
         f = eval(Base,n)
         if isgeneric(f) && typeof(f) == Function
           context(string(n)) do
-            @fact TypeCheck.check_method_calls(f) => anything #=> FunctionCalls
+            @fact TypeCheck.check_method_calls(f) => anything # => FunctionCalls
           end
         end
       else

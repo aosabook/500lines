@@ -1,263 +1,455 @@
 # These are some functions to allow static type-checking of Julia programs
 
 module TypeCheck
-  export check_return_types, check_loop_types, check_method_calls
+export check_return_types, check_loop_types, check_method_calls,
+  methodswithdescendants
 
-  include("Helpers.jl")
+## Modifying functions from Base
 
-  # check all the generic functions in a module
-  function check_all_module(m::Module;test=check_return_types,kwargs...)
-    score = 0
-    for n in names(m)
-      f = eval(m,n)
-      if isgeneric(f) && typeof(f) == Function
-        fm = test(f;mod=m,kwargs...)
-        score += length(fm.methods)
-        display(fm)
+# return the type-inferred AST for each method of a generic function
+function Base.code_typed(f::Function)
+  Expr[code_typed(m) for m in f.env]
+end
+
+# return the type-inferred AST for one method of a generic function
+function Base.code_typed(m::Method)
+ linfo = m.func.code
+ (tree,ty) = Base.typeinf(linfo,m.sig,())
+ if !isa(tree,Expr)
+     ccall(:jl_uncompress_ast, Any, (Any,Any), linfo, tree)
+ else
+    tree
+ end
+end
+
+# specify a method via a method, function, or function+argument-type-tuple
+# prints out the local variables of that method, and their types
+function Base.whos(f,args...)
+  for e in code_typed(f,args...)
+    display(MethodSignature(e))
+    for x in sort(e.args[2][2];by=x->x[1])
+      println("\t",x[1],"\t",x[2])
+    end
+    println("")
+  end
+end
+
+## Basic Operations on Function Exprs
+
+# given an Expr representing a method, return its inferred return type
+returntype(e::Expr) =  e.args[3].typ
+
+# given an Expr representing a method, return an Array of Exprs representing its body
+body(e::Expr) = e.args[3].args
+
+# given an Expr representing a method, return all of the return statement in its body
+returns(e::Expr) = filter(x-> typeof(x) == Expr && x.head==:return,body(e))
+
+# given an Expr representing a method,
+# return all function all Exprs contained in return statements in the method body
+function extract_calls_from_returns(e::Expr)
+  rs = returns(e)
+  rs_with_calls = filter(x->typeof(x.args[1]) == Expr && x.args[1].head == :call,rs)
+  Expr[expr.args[1] for expr in rs_with_calls]
+end
+
+# A type that covers both Types and TypeVars
+AType = Union(Type,TypeVar)
+
+# given an Expr representing a method, get the type of each of the arguments in the signature
+function argumenttypes(e::Expr)
+  argnames = Symbol[typeof(x) == Symbol ? x : x.args[1] for x in e.args[1]]
+  argtuples = filter(x->x[1] in argnames, e.args[2][2]) #only arguments, no local vars
+  AType[t[2] for t in argtuples]
+end
+
+# given an Expr, determine if it is calling a TopNode
+# (this affects how we should handle resolving the callee name)
+is_top(e) = Base.is_expr(e,:call) && typeof(e.args[1]) == TopNode
+
+# given a call Expr (:call, :call1, :new), determine its return type
+function returntype(e::Expr,context::Expr) #must be :call,:new,:call1
+  if Base.is_expr(e,:new); return e.typ; end
+  if Base.is_expr(e,:call1) && isa(e.args[1], TopNode); return e.typ; end
+  if !Base.is_expr(e,:call); error("Expected :call Expr"); end
+
+  if is_top(e)
+    return e.typ
+  end
+
+  callee = e.args[1]
+  if is_top(callee)
+    return returntype(callee,context)
+  elseif isa(callee,SymbolNode) # only seen (func::F), so non-generic function
+    return Any
+  elseif is(callee,Symbol)
+    if e.typ != Any || any([isa(x,LambdaStaticData) for x in e.args[2:end]])
+      return e.typ
+    end
+
+    if isdefined(Base,callee)
+      f = eval(Base,callee)
+      if !isa(f,Function) || !isgeneric(f)
+        return e.typ
+      end
+      fargtypes = tuple([argumenttype(ea,context) for ea in e.args[2:end]])
+      return Union([returntype(ef) for ef in code_typed(f,fargtypes)]...)
+    else
+      return @show e.typ
+    end
+  end
+
+  return e.typ
+end
+
+# for an Expr `e` used as an argument to a call in function Expr `context`,
+# determine the type of `e`
+function argumenttype(e::Expr,context::Expr)
+ if Base.is_expr(e,:call) || Base.is_expr(e,:new) || Base.is_expr(e,:call1)
+   return returntype(e,context)
+ end
+
+ @show e
+ return Any
+end
+
+# for a Symbol `s` used as an argument to a call in a function Expr `e`,
+# determine the type of `s`.
+function argumenttype(s::Symbol,e::Expr)
+  vartypes = [x[1] => x[2] for x in e.args[2][2]]
+  s in vartypes ? (vartypes[@show s]) : Any
+end
+
+# as above, but for different call argument types
+argumenttype(s::SymbolNode,e::Expr) = s.typ
+argumenttype(t::TopNode,e::Expr) = Any
+argumenttype(l::LambdaStaticData,e::Expr) = Function
+argumenttype(q::QuoteNode,e::Expr) = argumenttype(q.value,e)
+
+# as above, but for various literal values
+argumenttype(n::Number,e::Expr) = typeof(n)
+argumenttype(c::Char,e::Expr) = typeof(c)
+argumenttype(s::String,e::Expr) = typeof(s)
+argumenttype(i,e::Expr) = typeof(i) #catch all, hopefully for more literals
+
+# start, next, and done are the functions for-loops use to iterate
+# having implementations of them makes a type iterable
+# this defines iterating over a DataType to mean iterating over its descendants
+# (breadth-first-search ordering)
+Base.start(t::DataType) = [t]
+function Base.next(t::DataType,arr::Vector{DataType})
+  c = pop!(arr)
+  append!(arr,[x for x in subtypes(c)])
+  (c,arr)
+end
+Base.done(t::DataType,arr::Vector{DataType}) = length(arr) == 0
+
+# this is like the `methodswith` function from Base,
+# but it considers all descendants of the type
+# rather than the type itself (or the type + super types)
+# it produces a list of function names and statistics
+# about how many descendants implement that function
+# this is good for discovering implicit interfaces
+function methodswithdescendants(t::DataType;onlyleaves::Bool=false,lim::Int=10)
+  d = Dict{Symbol,Int}()
+  count = 0
+  for s in t
+    if !onlyleaves || (onlyleaves && isleaftype(s))
+      count += 1
+      fs = Set{Symbol}()
+      for m in methodswith(s)
+        push!(fs,m.func.code.name)
+      end
+      for sym in fs
+        d[sym] = get(d,sym,0) + 1
       end
     end
-    println("The total number of failed methods in $m is $score")
   end
+  l = [(k,v/count) for (k,v) in d]
+  sort!(l,by=(x->x[2]),rev=true)
+  l[1:min(lim,end)]
+end
 
-  type MethodSignature
-    typs::Vector{AType}
-    returntype::Union(Type,TypeVar) # v0.2 has TypeVars as returntypes; v0.3 does not
+# check all the generic functions in a module
+function check_all_module(m::Module;test=check_return_types,kwargs...)
+  score = 0
+  for n in names(m)
+    f = eval(m,n)
+    if isgeneric(f) && typeof(f) == Function
+      fm = test(f;mod=m,kwargs...)
+      score += length(fm.methods)
+      display(fm)
+    end
   end
-  MethodSignature(e::Expr) = MethodSignature(argtypes(e),returntype(e))
-  Base.writemime(io, ::MIME"text/plain", x::MethodSignature) = println(io,"(",string_of_argtypes(x.typs),")::",x.returntype)
+  println("The total number of failed methods in $m is $score")
+end
+
+# use check_all_module to implement the Module version of other checks
+check_return_types(m::Module;kwargs...) = check_all_module(m;test=check_return_types,kwargs...)
+check_loop_types(m::Module) = check_all_module(m;test=check_loop_types)
+check_method_calls(m::Module) = check_all_module(m;test=check_method_calls)
 
 ## Checking that return values are base only on input *types*, not values.
 
-  type FunctionSignature
-    methods::Vector{MethodSignature}
-    name::Symbol
-  end
+type MethodSignature
+  typs::Vector{AType}
+  returntype::Union(Type,TypeVar) # v0.2 has TypeVars as returntypes; v0.3 does not
+end
+MethodSignature(e::Expr) = MethodSignature(argumenttypes(e),returntype(e))
+function Base.writemime(io, ::MIME"text/plain", x::MethodSignature)
+  println(io,"(",join([string(t) for t in x.typs],","),")::",x.returntype)
+end
 
-  function Base.writemime(io, ::MIME"text/plain", x::FunctionSignature)
-    for m in x.methods
-      print(io,string(x.name))
-      display(m)
+type FunctionSignature
+  methods::Vector{MethodSignature}
+  name::Symbol
+end
+
+function Base.writemime(io, ::MIME"text/plain", x::FunctionSignature)
+  for m in x.methods
+    print(io,string(x.name))
+    display(m)
+  end
+end
+
+# given a function, run check_return_types on each method
+function check_return_types(f::Function;kwargs...)
+  results = MethodSignature[]
+  for e in code_typed(f)
+    (ms,b) = check_return_type(e;kwargs...)
+    if b push!(results,ms) end
+  end
+  FunctionSignature(results,f.env.name)
+end
+
+# given an Expr representing a Method,
+# determine whether its return type is based
+# only on the arugment types or whether it is
+# also influenced by argument values
+# (the Method fails the check if the return type depends on values)
+function check_return_type(e::Expr;kwargs...)
+  (typ,b) = isreturnbasedonvalues(e;kwargs...)
+  (MethodSignature(argumenttypes(e),typ),b)
+end
+
+# Determine whether this method's return type might change based on input values rather than input types
+function isreturnbasedonvalues(e::Expr;mod=Base)
+  rt = returntype(e)
+  ts = argumenttypes(e)
+  if isleaftype(rt) || rt == None return (rt,false) end
+
+  for t in ts
+    if !isleaftype(t)
+      return (rt,false)
     end
   end
 
-  check_return_types(m::Module;kwargs...) = check_all_module(m;test=check_return_types,kwargs...)
-
-  function check_return_types(f::Function;kwargs...)
-    results = MethodSignature[]
-    for e in code_typed(f)
-      (ms,b) = check_return_type(e;kwargs...)
-      if b push!(results,ms) end
-    end
-    FunctionSignature(results,f.env.name)
-  end
-
-  function check_return_type(e::Expr;kwargs...)
-    (typ,b) = returnbasedonvalues(e;kwargs...)
-    (MethodSignature(argtypes(e),typ),b)
-  end
-  
-  # Determine whether this method's return type might change based on input values rather than input types
-  function returnbasedonvalues(e::Expr;mod=Base,istrunion=false,ibytestring=false)
-    rt = returntype(e)
-    ts = argtypes(e)
-
-    if isleaftype(rt) || rt == None return (rt,false) end
-    if istrunion && rt == Union(ASCIIString,UTF8String) return (rt,false) end
-    if ibytestring && rt == ByteString return (rt,false) end
-
-    for t in ts
-     if !isleaftype(t)
+  cs = [returntype(c,e) for c in extract_calls_from_returns(e)]
+  for c in cs
+    if rt == c
        return (rt,false)
-     end
     end
-
-    cs = [find_returntype(c,e) for c in extract_calls_from_returns(e)]
-    for c in cs
-      if rt == c
-         return (rt,false)
-      end
-    end
-
-    #@show cs
-    return (rt,true) # return is not concrete type; all args are concrete types
   end
+
+  return (rt,true) # return is not concrete type; all args are concrete types
+end
 
 ## Checking that variables in loops have concrete types
   
-  type LoopResult
-    msig::MethodSignature
-    lines::Vector{(Symbol,Type)} #TODO should this be a specialized type? SymbolNode?
-    LoopResult(ms::MethodSignature,ls::Vector{(Symbol,Type)}) = new(ms,unique(ls))
+type LoopResult
+  msig::MethodSignature
+  lines::Vector{(Symbol,Type)} #TODO should this be a specialized type? SymbolNode?
+  LoopResult(ms::MethodSignature,ls::Vector{(Symbol,Type)}) = new(ms,unique(ls))
+end
+
+function Base.writemime(io, ::MIME"text/plain", x::LoopResult)
+  display(x.msig)
+  for (s,t) in x.lines
+    println(io,"\t",string(s),"::",string(t))
   end
+end
 
-  function Base.writemime(io, ::MIME"text/plain", x::LoopResult)
-    display(x.msig)
-    for (s,t) in x.lines
-      println(io,"\t",string(s),"::",string(t))
-    end
+type LoopResults
+  name::Symbol
+  methods::Vector{LoopResult}
+end
+
+function Base.writemime(io, ::MIME"text/plain", x::LoopResults)
+  for lr in x.methods
+    print(io,string(x.name))
+    display(lr)
   end
+end
 
-  type LoopResults
-    name::Symbol
-    methods::Vector{LoopResult}
+# for a given Function, run check_loop_types on each Method
+function check_loop_types(f::Function;kwargs...)
+  lrs = LoopResult[]
+  for e in code_typed(f)
+    lr = check_loop_types(e)
+    if length(lr.lines) > 0 push!(lrs,lr) end
   end
+  LoopResults(f.env.name,lrs)
+end
 
-  function Base.writemime(io, ::MIME"text/plain", x::LoopResults)
-    for lr in x.methods
-      print(io,string(x.name))
-      display(lr)
-    end
-  end
+# for an Expr representing a Method,
+# check that the type of each variable used in a loop
+# has a concrete type
+check_loop_types(e::Expr;kwargs...) = LoopResult(MethodSignature(e),loosetypes(loopcontents(e)))
 
-  check_loop_types(m::Module) = check_all_module(m;test=check_loop_types)
-
-  function check_loop_types(f::Function;kwargs...)
-    lrs = LoopResult[]
-    for e in code_typed(f)
-      lr = check_loop_types(e)
-      if length(lr.lines) > 0 push!(lrs,lr) end
-    end
-    LoopResults(f.env.name,lrs)
-  end
-
-  check_loop_types(e::Expr;kwargs...) = find_loose_types(e,loopcontents(e))
-  
-  # This is a function for trying to detect loops in a method of a generic function
-  # Returns lines that are inside one or more loops
-  function loopcontents(e)
-    b = body(e)
-    loops = Int[]
-    nesting = 0
-    lines = {}
-    for i in 1:length(b)
-      if typeof(b[i]) == LabelNode
-        l = b[i].label
-        jumpback = findnext(x-> typeof(x) == GotoNode && x.label == l, b, i)
-        if jumpback != 0
-          push!(loops,jumpback)
-          nesting += 1
-        end
-      end
-
-      if nesting > 0
-        push!(lines,(i,b[i]))
-      end
-
-      if typeof(b[i]) == GotoNode && in(i,loops)
-        splice!(loops,findfirst(loops,i))
-        nesting -= 1
+# This is a function for trying to detect loops in the body of a Method
+# Returns lines that are inside one or more loops
+function loopcontents(e::Expr)
+  b = body(e)
+  loops = Int[]
+  nesting = 0
+  lines = {}
+  for i in 1:length(b)
+    if typeof(b[i]) == LabelNode
+      l = b[i].label
+      jumpback = findnext(
+        x-> (typeof(x) == GotoNode && x.label == l) || (Base.is_expr(x,:gotoifnot) && x.args[end] == l),
+        b, i)
+      if jumpback != 0
+        push!(loops,jumpback)
+        nesting += 1
       end
     end
-    lines
-  end
-
-  # Looks for variables with non-leaf types
-  function find_loose_types(method::Expr,lr::Vector)
-    lines = (Symbol,Type)[]
-    for (i,e) in lr
-      if typeof(e) == Expr
-        es = copy(e.args)
-        while !isempty(es)
-          e1 = pop!(es)
-          if typeof(e1) == Expr
-            append!(es,e1.args)
-          elseif typeof(e1) == SymbolNode && !isleaftype(e1.typ) && typeof(e1.typ) == UnionType
-            push!(lines,(e1.name,e1.typ))
-          end 
-        end                          
-      end
+    if nesting > 0
+      push!(lines,(i,b[i]))
     end
-    return LoopResult(MethodSignature(method),lines)
+
+    if typeof(b[i]) == GotoNode && in(i,loops)
+      splice!(loops,findfirst(loops,i))
+      nesting -= 1
+    end
   end
+  lines
+end
+
+# given `lr`, a Vector of expressions (Expr + literals, etc)
+# try to find all occurances of a variables in `lr`
+# and determine their types
+# `method` is only used as part of constructing the return type
+function loosetypes(lr::Vector)
+  lines = (Symbol,Type)[]
+  for (i,e) in lr
+    if typeof(e) == Expr
+      es = copy(e.args)
+      while !isempty(es)
+        e1 = pop!(es)
+        if typeof(e1) == Expr
+          append!(es,e1.args)
+        elseif typeof(e1) == SymbolNode && !isleaftype(e1.typ) && typeof(e1.typ) == UnionType
+          push!(lines,(e1.name,e1.typ))
+        end 
+      end                          
+    end
+  end
+  return lines
+end
 
 ## Check method calls
 
-  type CallSignature
-    name::Symbol
-    argtypes::Vector{AType}
-  end
-  Base.writemime(io, ::MIME"text/plain", x::CallSignature) = println(io,string(x.name),"(",string_of_argtypes(x.argtypes),")")
+type CallSignature
+  name::Symbol
+  argumenttypes::Vector{AType}
+end
+function Base.writemime(io, ::MIME"text/plain", x::CallSignature)
+  println(io,string(x.name),"(",join([string(t) for t in x.argumenttypes],","),")")
+end
 
-  type MethodCalls
-    m::MethodSignature
-    calls::Vector{CallSignature}
-  end
+type MethodCalls
+  m::MethodSignature
+  calls::Vector{CallSignature}
+end
 
-  function Base.writemime(io, ::MIME"text/plain", x::MethodCalls)
-    display(x.m)
-    for c in x.calls
-      print(io,"\t")
-      display(c)
+function Base.writemime(io, ::MIME"text/plain", x::MethodCalls)
+  display(x.m)
+  for c in x.calls
+    print(io,"\t")
+    display(c)
+  end
+end
+
+type FunctionCalls
+  name::Symbol
+  methods::Vector{MethodCalls}
+end
+
+function Base.writemime(io, ::MIME"text/plain", x::FunctionCalls)
+  for mc in x.methods
+    print(io,string(x.name))
+    display(mc)
+  end
+end
+
+# given a Function, run `check_method_calls` on each Method
+# and collect the results into a FunctionCalls
+function check_method_calls(f::Function;kwargs...)
+  calls = MethodCalls[] 
+  for m in f.env
+    e = code_typed(m)
+    mc = check_method_calls(e,m;kwargs...)
+    if !isempty(mc.calls)
+      push!(calls, mc)
     end
   end
+  FunctionCalls(f.env.name,calls)
+end
 
-  type FunctionCalls
-    name::Symbol
-    methods::Vector{MethodCalls}
+# given an Expr representing a Method,
+# and the Method it represents,
+# check the Method body for calls to non-existant Methods
+function check_method_calls(e::Expr,m::Method;kwargs...)
+  if Base.arg_decl_parts(m)[3] == symbol("deprecated.jl")
+    CallSignature[]
   end
+  nomethoderrors(e,methodcalls(e);kwargs...)
+end
 
-  function Base.writemime(io, ::MIME"text/plain", x::FunctionCalls)
-    for mc in x.methods
-      print(io,string(x.name))
-      display(mc)
-    end
-  end
-
-  check_method_calls(m::Module) = check_all_module(m;test=check_method_calls)
-
-  function check_method_calls(f::Function;kwargs...)
-    calls = MethodCalls[] 
-    for e in code_typed(f)
-      mc = check_method_calls(e;kwargs...)
-      if !isempty(mc.calls)
-        push!(calls, mc)
+# Find any methods that match the given CallSignature
+function hasmatches(mod::Module,cs::CallSignature)
+  if isdefined(mod,cs.name)
+    f = eval(mod,cs.name)
+    if isgeneric(f)
+      opts = methods(f,tuple(cs.argumenttypes...))
+      if isempty(opts)
+        return false
       end
     end
-    FunctionCalls(f.env.name,calls)
+  else
+    #println("$mod.$(cs.name) is undefined")
   end
+  return true
+end
 
-  check_method_calls(e::Expr;kwargs...) = find_no_method_errors(e,find_method_calls(e);kwargs...)
-
-  # Find any methods that match the given CallSignature
-  function check(mod::Module,cs::CallSignature)
-    if isdefined(mod,cs.name)
-      f = eval(mod,cs.name)
-      if isgeneric(f)
-        opts = methods(f,tuple(cs.argtypes...))
-        if isempty(opts) return cs end
-      end
-    else
-      #println("$mod.$(cs.name) is undefined")
+# Find any CallSignatures that indicate potential NoMethodErrors 
+function nomethoderrors(e::Expr,cs::Vector{CallSignature};mod=Base)
+  output = CallSignature[]
+  for callsig in cs
+    if !hasmatches(mod,callsig)
+      push!(output,callsig)
     end
-    return nothing
   end
+  MethodCalls(MethodSignature(e),output)
+end
 
-  # Find any CallSignatures that indicate potential NoMethodErrors 
-  function find_no_method_errors(e::Expr,cs::Vector{CallSignature};mod=Base)
-    output = CallSignature[]
-    for callsig in cs
-      r = check(mod,callsig)
-      if r != nothing push!(output,r) end
-    end
-    MethodCalls(MethodSignature(e),output)
-  end
-
-  # Look through the body of the function for `:call`s
-  function find_method_calls(e::Expr)
-    b = body(e)
-    lines = CallSignature[]
-    for s in b
-      if typeof(s) == Expr
-        if s.head == :return
-          append!(b, s.args)
-        elseif s.head == :call
-          if typeof(s.args[1]) == Symbol
-            push!(lines,CallSignature(s.args[1], [find_argtype(e1,e) for e1 in s.args[2:end]]))
-          end
+# Look through the body of the function for `:call`s
+function methodcalls(e::Expr)
+  b = body(e)
+  lines = CallSignature[]
+  for s in b
+    if typeof(s) == Expr
+      if s.head == :return
+        append!(b, s.args)
+      elseif s.head == :call
+        if typeof(s.args[1]) == Symbol
+          push!(lines,CallSignature(s.args[1], [argumenttype(e1,e) for e1 in s.args[2:end]]))
         end
       end
     end
-    lines
   end
+  lines
+end
 
 end  #end module
