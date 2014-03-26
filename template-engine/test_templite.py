@@ -21,8 +21,6 @@ class AnyOldObject(object):
 class TempliteTest(TestCase):
     """Tests for Templite."""
 
-    run_in_temp_dir = False
-
     def try_render(self, text, ctx, result):
         """Render `text` through `ctx`, and it had better be `result`."""
         self.assertEqual(Templite(text).render(ctx), result)
