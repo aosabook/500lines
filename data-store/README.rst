@@ -69,6 +69,7 @@ B-Tree.
     ourselves. Except that that means the storage manager has to learn about
     our serialization methods, which doesn't save the complexity I'm trying to
     avoid. Using a namedtuple also doesn't save anything over a dict from the
-    pickling perspective. Interesting.
+    pickling perspective. Interesting. msgpack IS a much smaller format,
+    though, and saves disk space.
 
 .. todo:: Stress and crash tests.
