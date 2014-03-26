@@ -228,6 +228,25 @@ class TempliteTest(TestCase):
         with self.assertRaisesRegexp(SyntaxError, msg):
             self.try_render("Huh: {% bogus %}!!{% endbogus %}??", {}, "")
 
+    def test_malformed_if(self):
+        msg = "Don't understand if: '{% if %}'"
+        with self.assertRaisesRegexp(SyntaxError, msg):
+            self.try_render("Buh? {% if %}hi!{% endif %}", {}, "")
+        msg = "Don't understand if: '{% if this or that %}'"
+        with self.assertRaisesRegexp(SyntaxError, msg):
+            self.try_render("Buh? {% if this or that %}hi!{% endif %}", {}, "")
+
+    def test_malformed_for_(self):
+        msg = "Don't understand for: '{% for %}'"
+        with self.assertRaisesRegexp(SyntaxError, msg):
+            self.try_render("Weird: {% for %}loop{% endfor %}", {}, "")
+        msg = "Don't understand for: '{% for x from y %}'"
+        with self.assertRaisesRegexp(SyntaxError, msg):
+            self.try_render("Weird: {% for x from y %}loop{% endfor %}", {}, "")
+        msg = "Don't understand for: '{% for x, y in z %}'"
+        with self.assertRaisesRegexp(SyntaxError, msg):
+            self.try_render("Weird: {% for x, y in z %}loop{% endfor %}", {}, "")
+
     def test_bad_nesting(self):
         msg = "Unmatched action tag: 'if'"
         with self.assertRaisesRegexp(SyntaxError, msg):

@@ -123,13 +123,15 @@ class Templite(object):
                 words = tok[2:-2].strip().split()
                 if words[0] == 'if':
                     # An if statement: evaluate the expression to determine if.
-                    assert len(words) == 2
+                    if len(words) != 2:
+                        self.syntax_error("Don't understand if", tok)
                     ops_stack.append('if')
                     code.add_line("if %s:" % self.expr_code(words[1]))
                     code.indent()
                 elif words[0] == 'for':
                     # A loop: iterate over expression result.
-                    assert len(words) == 4 and words[2] == 'in'
+                    if len(words) != 4 or words[2] != 'in':
+                        self.syntax_error("Don't understand for", tok)
                     ops_stack.append('for')
                     self.loop_vars.add(words[1])
                     code.add_line(
@@ -143,11 +145,11 @@ class Templite(object):
                     # Endsomething.  Pop the ops stack
                     end_what = words[0][3:]
                     if ops_stack[-1] != end_what:
-                        raise SyntaxError("Mismatched end tag: %r" % end_what)
+                        self.syntax_error("Mismatched end tag", end_what)
                     ops_stack.pop()
                     code.dedent()
                 else:
-                    raise SyntaxError("Don't understand tag: %r" % words[0])
+                    self.syntax_error("Don't understand tag", words[0])
             else:
                 # Literal content.  If it isn't empty, output it.
                 if tok:
@@ -158,11 +160,15 @@ class Templite(object):
             vars_code.add_line("c_%s = ctx[%r]" % (var_name, var_name))
 
         if ops_stack:
-            raise SyntaxError("Unmatched action tag: %r" % ops_stack[-1])
+            self.syntax_error("Unmatched action tag", ops_stack[-1])
 
         code.add_line("return ''.join(result)")
         code.dedent()
         self.render_function = code.get_function('render')
+
+    def syntax_error(self, msg, thing):
+        """Raise a syntax error using `msg`, and showing `thing`."""
+        raise SyntaxError("%s: %r" % (msg, thing))
 
     def expr_code(self, expr):
         """Generate a Python expression for `expr`."""
