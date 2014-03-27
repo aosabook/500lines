@@ -13,7 +13,6 @@ module.exports = function passportSetup(passport, store) {
   passport.serializeUser(function(user, done) {
     done(null, user.name);
   });
-
   passport.deserializeUser(function(username, done) {
     store.getUser(username, done);
   });

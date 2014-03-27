@@ -38,7 +38,6 @@ DBStore.prototype.getWikiContents = function(page, callback){
 };
 
 DBStore.prototype.saveWikiContents = function(args, callback){
-  args.updatedDate = new Date();
   request({url: this.dbURL + this.dbName + args._id, method: 'PUT', json: args}, function(error, couchResponse, content) {
     this.handleCouchResponse(error, couchResponse, content, callback);
   }.bind(this));
