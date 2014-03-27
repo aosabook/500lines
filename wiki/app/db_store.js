@@ -1,12 +1,12 @@
 var request = require('request');
 var url = require('url');
 
-function DBStore(dbURL, dbName) {
+function DBStore(dbURL, dbName){
   this.dbURL = dbURL;
   this.dbName = dbName;
 }
 
-module.exports = function(dbURL, dbName) {
+module.exports = function(dbURL, dbName){
   return new DBStore(dbURL, dbName);
 };
 
@@ -38,7 +38,7 @@ DBStore.prototype.getWikiContents = function(page, callback){
 };
 
 DBStore.prototype.saveWikiContents = function(args, callback){
-  request({url: this.dbURL + this.dbName + args._id, method: 'PUT', json: args}, function(error, couchResponse, content) {
+  request({url: this.dbURL + this.dbName + args._id, method: 'PUT', json: args}, function(error, couchResponse, content){
     this.handleCouchResponse(error, couchResponse, content, callback);
   }.bind(this));
 };
@@ -59,7 +59,7 @@ DBStore.prototype.getId = function(username){
 
 DBStore.prototype.insertUser = function(username, password, email, callback){
   var userId = this.getId(username);
-  var args = {_id: userId, name: username, type: "user", roles: [], password: password, email: email };
+  var args = {_id: userId, name: username, type: "user", roles: [], password: password, email: email};
   request({url: this.dbURL + '_users/'+userId, method: 'PUT', json: args}, function(error, couchResponse, content){
     this.handleCouchResponse(error, couchResponse, content, callback);
   }.bind(this));

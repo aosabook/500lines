@@ -34,12 +34,29 @@ module.exports = function (app, store) {
 
   this.handleError = function(response, error){
     console.error(error);
-    response.render('layout.html', {title: 'Error', error: error, partials: {body: 'error.html', login: 'login.html'}});
+    response.render('layout.html', {title: 'Error', error: error, partials: {login: 'login.html', content: 'error.html'}});
   };
 
   this.handleAJAXError = function(response, error){
     console.error(error);
     response.send(500, error);
+  };
+
+  this.handleConflict = function(request, response, args){
+    store.getWikiContents(args._id, function(error, doc){
+      if(error) this.handleAJAXError(response, error);
+      args.comparecomment = doc.comment;
+      args.username = doc.user;
+      args.comparedate = this.formatDate(doc.updatedDate);
+      args.revision = doc._rev;
+      args.comparecontent = '';
+      var diff = jsdiff.diffLines(args.content, doc.content);
+      diff.forEach(function(part){
+        var style = part.added ? 'added' : part.removed ? 'removed' : 'common';
+        args.comparecontent += '<span class="' + style + '">' + part.value + '</span>';
+      });
+      response.send(409, args);
+    });
   };
 
   //main page routes
@@ -80,7 +97,6 @@ module.exports = function (app, store) {
   app.post('/preview', function(request, response){
     this.formatHtmlString(request.body.content, function(error, htmlContent){
       if(error) return this.handleAJAXError(response, error);
-      response.contentType('json');
       response.send({preview: htmlContent});
     });
   });
@@ -89,27 +105,9 @@ module.exports = function (app, store) {
     var args = {_id: request.body.page, content: request.body.content, comment: request.body.comment, user: request.user.name, updatedDate: new Date()};
     if(request.body.revision) args._rev = request.body.revision;
     store.saveWikiContents(args, function(error, status){
-      if(error && error.message === "conflict") return this.showCompareContent(request, response, args);
-      else if(error) return this.handleAJAXError(response, error);
-      response.send({status: 'saved'});
+      if(error && error.message !== "conflict") return this.handleAJAXError(response, error);
+      if(error && error.message === "conflict") return this.handleConflict(request, response, args);
+      response.send({status: 'saved'}); //no errors
     });
   });
-
-  this.showCompareContent = function(request, response, args){
-    store.getWikiContents(args._id, function(error, doc){
-      if(error) this.handleAJAXError(response, error);
-      args.comparecomment = doc.comment;
-      args.username = doc.user;
-      args.comparedate = this.formatDate(doc.updatedDate);
-      args.revision = doc._rev;
-      var diff = jsdiff.diffLines(args.content, doc.content);
-      args.comparecontent = '';
-      diff.forEach(function(part){
-        var style = part.added ? 'added' : part.removed ? 'removed' : 'common';
-        args.comparecontent += '<span class="'+style+ '">' + part.value + '</span>';
-      });
-      response.contentType('json');
-      response.send(409, args);
-    });
-  };
 };

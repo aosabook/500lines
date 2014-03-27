@@ -1,5 +1,6 @@
 module.exports = function (app, store, passport) {
-  var doLogin = function(request, response, next){
+
+  this.doLogin = function(request, response, next){
     passport.authenticate('local', function(err, user, info){
         if(err) return next(err);
         if(!user) return response.send(401, 'User not found');
@@ -15,18 +16,16 @@ module.exports = function (app, store, passport) {
   });
 
   app.post('/login', function(request, response, next){
-      doLogin(request, response, next);
+    this.doLogin(request, response, next);
   });
 
   app.post('/signup', function(request, response, next){
     if(!request.body.username || !request.body.password) response.send(400, "Please enter a username and password.");
     store.insertUser(request.body.username, request.body.password, request.body.email, function(error){
-      if(error){
-        if(error.message == 'conflict') error.message = "Username already exists";
-        return response.send(400, error.message);
-      }
-      doLogin(request, response, next);
-    });
+      if(error && error.message == 'conflict') return response.send(400, "Username already exists");
+      if(error) return response.send(400, error.message);
+      this.doLogin(request, response, next);
+    }.bind(this));
   });
 
   app.post('/logout', function(request, response){
@@ -35,10 +34,7 @@ module.exports = function (app, store, passport) {
   });
 
   app.get('/getUser', function(request, response){
-    response.contentType('json');
-    if(request.isAuthenticated() && request.user)
-      response.send({user: request.user.name});
-    else
-      response.send({user: null});
+    if(request.isAuthenticated() && request.user) response.send({user: request.user.name});
+    else response.send({user: null});
   });
 };
