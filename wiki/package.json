@@ -2,7 +2,7 @@
   "name": "500lines_wiki",
   "version": "1.0.0",
   "description": "Source code for basic wiki in 500 Lines or Less",
-  "main": "js/server.js",
+  "main": "app/server.js",
   "dependencies": {
     "express": "~3.4.8",
     "whiskers": "~0.3.3",
