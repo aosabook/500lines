@@ -99,23 +99,6 @@ var getUser = function(callback){
   });
 };
 
-var validateLoginFormInput = function(usernameId, passwordId, emailId, errorId, callback) {
-  var toValidate = { username: '#'+usernameId, password:'#'+passwordId };
-  if(emailId) toValidate.email = '#'+emailId;
-  var error;
-  $.each(toValidate, function(label, selector){
-    if($(selector).val().trim().length === 0){
-      error = label;
-      $(selector).addClass('formerror');
-      $('#'+errorId).text('Please enter your '+label+'.');
-      return false;
-    }
-    $(selector).removeClass('formerror');
-  });
-  if(error) return callback(error);
-  return callback(null);
-};
-
 var handleLoginSuccess = function(data){
   clearError();
   showLogoutForm(data.user.name);
@@ -123,17 +106,14 @@ var handleLoginSuccess = function(data){
 };
 
 var doLogin = function(){
-  validateLoginFormInput('username', 'password', null, 'error', function(err){
-    if(err) return false;
-    $.ajax({
-      url: "/login", type: "POST", dataType: "json",
-      data: {username: $('#username').val(), password: $('#password').val()},
-      success: handleLoginSuccess,
-      error: function(jqXHR, textStatus, errorThrown){
-        console.log(errorThrown);
-        $('#error').text('Login failed. Please try again.');
-      }
-    });
+  $.ajax({
+    url: "/login", type: "POST", dataType: "json",
+    data: {username: $('#username').val(), password: $('#password').val()},
+    success: handleLoginSuccess,
+    error: function(jqXHR, textStatus, errorThrown){
+      console.log(errorThrown);
+      $('#error').text('Login failed. Please try again.');
+    }
   });
   return false;
 };
@@ -145,20 +125,17 @@ var redirectIfUnauthorized = function(path){
 };
 
 var doSignup = function(){
-  validateLoginFormInput('newusername', 'newpassword', 'newemail', 'formError', function(err){
-    if(err) return false;
-    $.ajax({
-      url: "/signup", type: "POST", dataType: "json",
-      data: {username: $('#newusername').val(), password: $('#newpassword').val()},
-      success: function(data){
-        handleLoginSuccess(data);
-        $('#signupForm').dialog('close');
-      },
-      error: function(jqXHR, textStatus, errorThrown){
-        console.log(errorThrown);
-        $('#formError').text('Signup failed. Please try again. ' + jqXHR.responseText);
-      }
-    });
+  $.ajax({
+    url: "/signup", type: "POST", dataType: "json",
+    data: {username: $('#newusername').val(), password: $('#newpassword').val()},
+    success: function(data){
+      handleLoginSuccess(data);
+      $('#signupForm').dialog('close');
+    },
+    error: function(jqXHR, textStatus, errorThrown){
+      console.log(errorThrown);
+      $('#formError').text('Signup failed. Please try again. ' + jqXHR.responseText);
+    }
   });
   return false;
 };

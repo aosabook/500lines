@@ -19,6 +19,7 @@ module.exports = function (app, store, passport) {
   });
 
   app.post('/signup', function(request, response, next){
+    if(!request.body.username || !request.body.password) response.send(400, "Please enter a username and password.");
     store.insertUser(request.body.username, request.body.password, request.body.email, function(error){
       if(error){
         if(error.message == 'conflict') error.message = "Username already exists";
