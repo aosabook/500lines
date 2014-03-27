@@ -2,61 +2,14 @@ var clearError = function(){
   $('#error').text('');
 };
 
-var listWikiPages = function(){
-  $('#listView').show();
-  $.ajax({
-    url: "/listWikiPages",
-    type: "GET",
-    dataType: "json",
-    success: function(data) {
-      clearError();
-      $.each(data.pages, function(index, page){
-        $('#pages').append('<a href="/wiki/view?page='+page.id+'">'+page.id+'</a><br/>');
-      });
-    },
-    error: function(jqXHR, textStatus, errorThrown){
-      console.log(errorThrown);
-      $('#error').text('Unable to list pages.');
-    }
-  });
-};
-
-var viewPage = function(){
-  $.ajax({
-    url: "/getWikiContent",
-    type: "GET",
-    dataType: "json",
-    data: {page: page},
-    cache: false,
-    timeout: 5000,
-    success: function(data) {
-      clearError();
-      var doc = data.doc;
-      if(doc){
-        $('#pageContent').append(data.doc.content);
-        $('#pageMeta').append('Last edited by '+doc.user+' at '+doc.updatedDate +' - ' + doc.comment);
-        $('#pageView').show();
-      }
-    },
-    error: function(jqXHR, textStatus, errorThrown){
-      console.log(errorThrown);
-      $('#error').text('Unable to display page.');
-    }
-  });
-};
-
 var unauthorized = function(){
   $('#error').text('You must log in to edit the wiki.  Please log in or create a new account using the login form above.');
 };
 
 var showPreview = function(){
   $.ajax({
-    url: "/preview",
-    type: "POST",
-    dataType: "json",
-    data: {content: $('#editor').val()},
-    cache: false,
-    timeout: 5000,
+    url: "/preview", type: "POST", dataType: "json",
+    data: { content: $('#editor').val() },
     success: function(data) {
       clearError();
       $('#previewContent').html(data.preview);
@@ -71,9 +24,7 @@ var showPreview = function(){
 
 var save = function(){
   $.ajax({
-    url: "/save",
-    type: "POST",
-    dataType: "json",
+    url: "/save", type: "POST", dataType: "json",
     data: {
       page: page,
       content: $('#editor').val(),
@@ -82,14 +33,12 @@ var save = function(){
     },
     success: function(args){
       clearError();
-      window.location.href = '/wiki/view?page='+page; //success     //fixme: keep static routes for list/view/edit or combine into one?
+      window.location.href = '/wiki/view/'+page; //success
     },
-    cache: false,
-    timeout: 5000,
     error: function(jqXHR, textStatus, errorThrown){
       console.log(errorThrown);
       $('#error').text('Unable to save edits.');
-      if(jqXHR.status === 409 && jqXHR.responseJSON){
+      if(jqXHR.status === 409 && jqXHR.responseJSON){ //conflict
         var args = jqXHR.responseJSON;
         $('#error').text('Conflict Detected');
         $('#editView').addClass("left");
@@ -103,39 +52,11 @@ var save = function(){
   });
 };
 
-var showEditPage = function(){
-  $.ajax({
-    url: "/getWikiContent",
-    type: "GET",
-    dataType: "json",
-    data: {page: page, noHtml: true},
-    cache: false,
-    timeout: 5000,
-    success: function(data) {
-      clearError();
-      var doc = data.doc;
-      $('#revision').val(doc._rev);
-      $('#editor').val(doc.content);
-      $('#previewButton').click(showPreview);
-      $('#saveButton').click(save);
-      $('#editView').show();
-    },
-    error: function(jqXHR, textStatus, errorThrown){
-      console.log(errorThrown);
-      $('#error').text('Unable to display editor.');
-    }
-  });
-};
-
 var showLoginView = function(){
   getUser(function(error, username){
     if(error) $('#error').text('Error retrieving user info');
-    else clearError();
-    if(!username){
-      showLoginForm();
-    }else{
-      showLogoutForm(username);
-    }
+    if(!username) showLoginForm();
+    else showLogoutForm(username);
   });
 };
 
@@ -150,6 +71,10 @@ var showLoginForm = function(){
   $('#loggedInView').hide();
 };
 
+var showSignup = function(){
+  $('#signupForm').dialog({});
+};
+
 var showLogoutForm = function(username){
   //user is logged in, show logout form and name
   $('#displayUserName').text(username);
@@ -160,9 +85,7 @@ var showLogoutForm = function(username){
 
 var getUser = function(callback){
   $.ajax({
-    url: "/getUser",
-    type: "GET",
-    dataType: "json",
+    url: "/getUser", type: "GET", dataType: "json",
     success: function(data){
       if(data.user)
         return callback(null, data.user);
@@ -176,44 +99,36 @@ var getUser = function(callback){
   });
 };
 
-var validateLoginFormInput = function(usernameId, passwordId, emailId, callback) {
-  var userError;
-  var passwordError;
-  if($('#username').val().trim().length === 0){
-    $('#username').addClass('formerror');
-    userError = 'Please enter your username to log in. ';
-  }else{
-    $('#username').removeClass('formerror');
-  }
-  if($('#password').val().trim().length === 0){
-    $('#password').addClass('formerror');
-    passwordError = 'Please enter your password to log in. ';
-  }else{
-    $('#password').removeClass('formerror');
-  }
-  if(userError || passwordError){
-    var errorMsg = '';
-    if(userError) errorMsg += userError;
-    if(passwordError) errorMsg += passwordError;
-    $('#error').text(errorMsg);
-    return callback(new Error(errorMsg));
-  }else{
-    return callback(null);
-  }
+var validateLoginFormInput = function(usernameId, passwordId, emailId, errorId, callback) {
+  var toValidate = { username: '#'+usernameId, password:'#'+passwordId };
+  if(emailId) toValidate.email = '#'+emailId;
+  var error;
+  $.each(toValidate, function(label, selector){
+    if($(selector).val().trim().length === 0){
+      error = label;
+      $(selector).addClass('formerror');
+      $('#'+errorId).text('Please enter your '+label+'.');
+      return false;
+    }
+    $(selector).removeClass('formerror');
+  });
+  if(error) return callback(error);
+  return callback(null);
+};
+
+var handleLoginSuccess = function(data){
+  clearError();
+  showLogoutForm(data.user.name);
+  redirectIfUnauthorized(data.path);
 };
 
 var doLogin = function(){
-  validateLoginFormInput('username', 'password', null, function(err){
+  validateLoginFormInput('username', 'password', null, 'error', function(err){
     if(err) return false;
     $.ajax({
-      url: "/login",
-      type: "POST",
-      dataType: "json",
+      url: "/login", type: "POST", dataType: "json",
       data: {username: $('#username').val(), password: $('#password').val()},
-      success: function(data){
-        clearError();
-        showLogoutForm(data.user.name);
-      },
+      success: handleLoginSuccess,
       error: function(jqXHR, textStatus, errorThrown){
         console.log(errorThrown);
         $('#error').text('Login failed. Please try again.');
@@ -223,18 +138,21 @@ var doLogin = function(){
   return false;
 };
 
+var redirectIfUnauthorized = function(path){
+  if(window.location.pathname === '/unauthorized/'){
+    window.location.href = path;
+  }
+};
+
 var doSignup = function(){
-  validateLoginFormInput('newusername', 'newpassword', 'newemail', function(err){
+  validateLoginFormInput('newusername', 'newpassword', 'newemail', 'formError', function(err){
     if(err) return false;
     $.ajax({
-      url: "/signup",
-      type: "POST",
-      dataType: "json",
+      url: "/signup", type: "POST", dataType: "json",
       data: {username: $('#newusername').val(), password: $('#newpassword').val()},
       success: function(data){
-        clearError();
-        showLogoutForm(data.user.name);
-        hideSignup();
+        handleLoginSuccess(data);
+        $('#signupForm').dialog('close');
       },
       error: function(jqXHR, textStatus, errorThrown){
         console.log(errorThrown);
@@ -247,11 +165,10 @@ var doSignup = function(){
 
 var doLogout = function(){
   $.ajax({
-    url: "/logout",
-    type: "POST",
+    url: "/logout", type: "POST",
     success: function(data){
       clearError();
-      showLoginForm();
+      window.location.href = window.location.href;
     },
     error: function(jqXHR, textStatus, errorThrown){
       console.log(errorThrown);
@@ -259,12 +176,4 @@ var doLogout = function(){
     }
   });
   return false;
-};
-
-var showSignup = function(){
-  $('#signupForm').dialog({});
-};
-
-var hideSignup = function(){
-  $('#signupForm').dialog('close');
 };
