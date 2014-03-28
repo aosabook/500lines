@@ -83,6 +83,9 @@ class Templite(object):
         for context in contexts:
             self.context.update(context)
 
+        self.all_vars = set()
+        self.loop_vars = set()
+
         # We construct a function in source form, then compile it and hold onto
         # it, and execute it to render the template.
         code = CodeBuilder()
@@ -90,8 +93,6 @@ class Templite(object):
         code.add_line("def render(ctx, dot):")
         code.indent()
         vars_code = code.add_section()
-        self.all_vars = set()
-        self.loop_vars = set()
         code.add_line("result = []")
         code.add_line("a = result.append")
         code.add_line("e = result.extend")
