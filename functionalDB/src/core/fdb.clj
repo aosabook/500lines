@@ -153,7 +153,7 @@
 (defn- update-attr
   [attr new-val new-ts operation]
    {:pre  [(if (single? attr)
-           (= operation :db/reset-to)
+           (contains? #{:db/reset-to :db/remove} operation)
            (contains? #{:db/reset-to :db/add :db/remove} operation))]}
    (-> attr
       (update-attr-modification-time new-ts)
