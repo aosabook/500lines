@@ -29,3 +29,8 @@ a.nav {
   float: right;
   margin: 20px 150px 0 0;
 }
+
+.error { 
+  text-align: center;
+  color: red;
+}
