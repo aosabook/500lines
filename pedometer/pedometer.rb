@@ -4,13 +4,11 @@ Dir['./models/*', './helpers/*'].each {|file| require_relative file }
 
 include FileUtils::Verbose
 
-# TODO: 
-# - Make device_params shorter
 post '/create' do
   begin
     file = params[:parser][:file][:tempfile]
     user_params = params[:user].values
-    device_params = [params[:device][:rate], params[:device][:method], params[:device][:steps], params[:device][:trial]]
+    device_params = params[:device].values
     build_with_params(File.read(file), user_params, device_params)
 
     @file_name = FileHelper.generate_file_name(@parser, @user, @device)

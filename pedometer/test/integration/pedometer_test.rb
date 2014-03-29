@@ -9,20 +9,20 @@ class PedometerTest < Test::Unit::TestCase
     Sinatra::Application
   end
 
-  def test_data
+  def test_trials
     get '/trials'
 
     assert_equal 200, last_response.status
   end
 
-  def test_detail
-    get '/trial/test/data/female-167-70_100-bagwalk-10-1-a.txt'
+  def test_trial
+    get '/trial/test/data/female-167-70_100-10-1-bagwalk-a.txt'
     
     assert_equal 200, last_response.status
   end
 
   def test_create
-    post '/create', {"parser" => {"file"=>{"tempfile" => "test/data/female-167-70_100-bagwalk-10-1-g.txt"}}, "device"=>{"rate" => "100", "steps"=>"10", "trial"=>"one", "method"=>"run"}, "user"=>{"gender"=>"female", "height"=>"157", "stride"=>"90"}}
+    post '/create', {"parser" => {"file"=>{"tempfile" => "test/data/female-167-70_100-10-1-bagwalk-g.txt"}}, "device"=>{"rate" => "100", "steps"=>"10", "trial"=>"one", "method"=>"run"}, "user"=>{"gender"=>"female", "height"=>"157", "stride"=>"90"}}
     
     assert_equal 200, last_response.status
   end

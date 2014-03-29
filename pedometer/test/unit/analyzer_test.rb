@@ -78,18 +78,18 @@ class AnalyzerTest < Test::Unit::TestCase
   # -- Edge Detection Tests -------------------------------------------------
 
   def test_split_on_threshold
-    parser = Parser.new(File.read('test/data/female-167-70_100-walk-10-1-g.txt'))
+    parser = Parser.new(File.read('test/data/female-167-70_100-10-1-walk-g.txt'))
     analyzer = Analyzer.new(parser)
 
-    expected = File.read('test/data/expected/female-167-70_100-walk-10-1-g-positive.txt').split(',').collect(&:to_i)
+    expected = File.read('test/data/expected/female-167-70_100-10-1-walk-g-positive.txt').split(',').collect(&:to_i)
     assert_equal expected, analyzer.send(:split_on_threshold, true)
 
-    expected = File.read('test/data/expected/female-167-70_100-walk-10-1-g-negative.txt').split(',').collect(&:to_i)
+    expected = File.read('test/data/expected/female-167-70_100-10-1-walk-g-negative.txt').split(',').collect(&:to_i)
     assert_equal expected, analyzer.send(:split_on_threshold, false)
   end
 
   def test_detect_edges
-    parser = Parser.new(File.read('test/data/female-167-70_100-walk-10-1-g.txt'))
+    parser = Parser.new(File.read('test/data/female-167-70_100-10-1-walk-g.txt'))
     analyzer = Analyzer.new(parser)
     
     assert_equal 9, analyzer.send(:detect_edges, analyzer.send(:split_on_threshold, true))
@@ -97,7 +97,7 @@ class AnalyzerTest < Test::Unit::TestCase
   end
 
   def test_detect_edges_false_step
-    parser = Parser.new(File.read('test/data/female-167-70_100-walk-0-1-g.txt'))
+    parser = Parser.new(File.read('test/data/female-167-70_100-0-1-walk-g.txt'))
     analyzer = Analyzer.new(parser)
     
     assert_equal 1, analyzer.send(:detect_edges, analyzer.send(:split_on_threshold, true))
@@ -107,7 +107,7 @@ class AnalyzerTest < Test::Unit::TestCase
   # -- Measurement Tests ----------------------------------------------------
 
   def test_measure_steps
-    parser = Parser.new(File.read('test/data/female-167-70_100-walk-10-1-g.txt'))
+    parser = Parser.new(File.read('test/data/female-167-70_100-10-1-walk-g.txt'))
     analyzer = Analyzer.new(parser)
 
     assert_equal 8, analyzer.steps
@@ -115,7 +115,7 @@ class AnalyzerTest < Test::Unit::TestCase
 
   def test_measure_distance_after_steps
     user = User.new(nil, nil, 100)
-    parser = Parser.new(File.read('test/data/female-167-70_100-walk-10-1-g.txt'))
+    parser = Parser.new(File.read('test/data/female-167-70_100-10-1-walk-g.txt'))
     analyzer = Analyzer.new(parser, user)
 
     assert_equal 800, analyzer.distance

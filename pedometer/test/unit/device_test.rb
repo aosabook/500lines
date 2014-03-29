@@ -4,7 +4,7 @@ require_relative '../../models/device'
 class DeviceTest < Test::Unit::TestCase
 
   def test_create
-    device = Device.new(5, 'walk', '10', 'test trial 1')
+    device = Device.new(5, '10', 'test trial 1', 'walk')
     assert_equal 5,              device.rate
     assert_equal 'walk',         device.method
     assert_equal 10,             device.steps
@@ -34,13 +34,13 @@ class DeviceTest < Test::Unit::TestCase
   end
 
   def test_create_with_steps
-    assert_nil Device.new(nil, nil, 0).steps
-    assert_nil Device.new(nil, nil, -1).steps
-    assert_nil Device.new(nil, nil, '0').steps
-    assert_nil Device.new(nil, nil, '-1').steps
+    assert_nil Device.new(nil, 0).steps
+    assert_nil Device.new(nil, -1).steps
+    assert_nil Device.new(nil, '0').steps
+    assert_nil Device.new(nil, '-1').steps
 
-    assert_equal 10, Device.new(nil, nil, 10).steps
-    assert_equal 1,  Device.new(nil, nil, 0.5).steps
+    assert_equal 10, Device.new(nil, 10).steps
+    assert_equal 1,  Device.new(nil, 0.5).steps
   end
 
 end
