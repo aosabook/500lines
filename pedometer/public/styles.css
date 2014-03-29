@@ -34,3 +34,9 @@ a.nav {
   text-align: center;
   color: red;
 }
+
+.graph {
+  min-width: 310px;
+  height: 400px;
+  margin: 0 auto;
+}

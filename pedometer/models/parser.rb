@@ -1,12 +1,12 @@
 class Parser
 
-  GRAVITY_COEFFICIENTS = {
+  GRAVITY_COEFF = {
     alpha: [1, -1.979133761292768, 0.979521463540373],
     beta:  [0.000086384997973502, 0.000172769995947004, 0.000086384997973502]
   }
   
   # Chebyshev II, Astop = 2, Fstop = 5, Fs = 100
-  SMOOTHING_COEFFICIENTS = {
+  SMOOTHING_COEFF = {
     alpha: [1, -1.80898117793047, 0.827224480562408], 
     beta:  [0.095465967120306, -0.172688631608676, 0.095465967120306]
   }  
@@ -35,7 +35,9 @@ private
                                          any_decimal + ';){1})+$')
     @format = 'accelerometer' if regexp_accl.match(@data)
     @format = 'gravity'       if regexp_grav.match(@data)
-    raise "Bad Input. Ensure accelerometer or gravity data is properly formatted." unless @format
+    unless @format
+      raise "Bad Input. Ensure data is properly formatted."
+    end
   end
 
   # TODO: Combine, try to split on pipe, determine format from that
@@ -49,9 +51,9 @@ private
       y_series = coordinates.collect {|data| data.split(',')[1].to_f }
       z_series = coordinates.collect {|data| data.split(',')[2].to_f }
       
-      xg_series = chebyshev_filter(x_series, GRAVITY_COEFFICIENTS)
-      yg_series = chebyshev_filter(y_series, GRAVITY_COEFFICIENTS)
-      zg_series = chebyshev_filter(z_series, GRAVITY_COEFFICIENTS)
+      xg_series = chebyshev_filter(x_series, GRAVITY_COEFF)
+      yg_series = chebyshev_filter(y_series, GRAVITY_COEFF)
+      zg_series = chebyshev_filter(z_series, GRAVITY_COEFF)
 
       @parsed_data = []
       coordinates.length.times do |i|
@@ -81,7 +83,7 @@ private
   end
 
   def filter_dot_product_data
-    @filtered_data = chebyshev_filter(@dot_product_data, SMOOTHING_COEFFICIENTS)
+    @filtered_data = chebyshev_filter(@dot_product_data, SMOOTHING_COEFF)
   end
 
   def chebyshev_filter(input_data, coefficients)

@@ -39,21 +39,21 @@ class ParserTest < Test::Unit::TestCase
   # -- Creation Failure Tests -----------------------------------------------
 
   def test_create_nil
-    message = "Bad Input. Ensure accelerometer or gravity data is properly formatted."
+    message = "Bad Input. Ensure data is properly formatted."
     assert_raise_with_message(RuntimeError, message) do
       Parser.new(nil)
     end
   end
 
   def test_create_empty
-    message = "Bad Input. Ensure accelerometer or gravity data is properly formatted."
+    message = "Bad Input. Ensure data is properly formatted."
     assert_raise_with_message(RuntimeError, message) do
       Parser.new('')
     end
   end
 
   def test_create_bad_input_strings
-    message = "Bad Input. Ensure accelerometer or gravity data is properly formatted."
+    message = "Bad Input. Ensure data is properly formatted."
     assert_raise_with_message(RuntimeError, message) do
       Parser.new("0.123,-0.123,5;a,b,c;")
     end
@@ -64,7 +64,7 @@ class ParserTest < Test::Unit::TestCase
   end
 
   def test_create_bad_input_too_many_values
-    message = "Bad Input. Ensure accelerometer or gravity data is properly formatted."
+    message = "Bad Input. Ensure data is properly formatted."
     assert_raise_with_message(RuntimeError, message) do
       Parser.new("0.123,-0.123,5;0.123,-0.123,5,9;")
     end
@@ -75,7 +75,7 @@ class ParserTest < Test::Unit::TestCase
   end
 
   def test_create_bad_input_too_few_values
-    message = "Bad Input. Ensure accelerometer or gravity data is properly formatted."
+    message = "Bad Input. Ensure data is properly formatted."
     assert_raise_with_message(RuntimeError, message) do
       Parser.new("0.123,-0.123,5;0.123,-0.123;")
     end

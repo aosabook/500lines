@@ -23,12 +23,12 @@
         </tr>
     </table>
 
-    <div id="container-dot-product" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
-    <div id="container-filtered" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+    <div id="container-dot-product"></div>
+    <div id="container-filtered"></div>
 
     <% if @match_filtered_data %>
         <% comparison_title = (@analyzer.parser.format == 'accelerometer') ? 'Gravity' : 'Accelerometer' %>
-        <div id="container-comparison" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+        <div id="container-comparison"></div>
     <% end %>
 </html>
 

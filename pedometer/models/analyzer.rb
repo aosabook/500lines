@@ -34,7 +34,7 @@ private
   def split_on_threshold(positive)
     # TODO: Can this be combined with detect_edges?
     @parser.filtered_data.collect do |data|
-      (positive ? ((data < THRESHOLD) ? 0 : 1) : ((data < -THRESHOLD) ? 1 : 0))
+      positive ? ((data < THRESHOLD) ? 0 : 1) : ((data < -THRESHOLD) ? 1 : 0)
     end
   end
 
