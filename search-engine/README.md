@@ -274,6 +274,7 @@ which takes a sequence
 and writes its contents
 to a file of tuples:
 
+    # in the body of index.py:
     def write_tuples(context_manager, tuples):
         with context_manager as outfile:
             for item in tuples:
@@ -360,6 +361,7 @@ This engine
 stores its index in a directory,
 with a structure like the following:
 
+    # in your filesystem:
     .chispa
     .chispa/0
     .chispa/0/1.gz
@@ -542,6 +544,7 @@ that contain all the search terms,
 given an index to search in,
 this is simple:
 
+    # in the body of index.py:
     def pathnames(index_path, terms):
         return set.intersection(*(set(term_pathnames(index_path, term))
                                   for term in terms))
@@ -999,6 +1002,7 @@ Then, the `main` function provides an additional interface
 kind of compatible with `grep -rl`,
 plus an interface to build a new index:
 
+    # in the end of index.py:
     def main(argv):
         if argv[1] == 'index':
             build_index(index_path=Path(argv[2]), corpus_path=Path(argv[3]))
@@ -1012,6 +1016,28 @@ plus an interface to build a new index:
 
     if __name__ == '__main__':
         main(sys.argv)
+
+Python overhead
+---------------
+
+That covers
+the entire search engine code,
+except for the excise Python demands of us:
+
+    # in index.py:
+    #!/usr/bin/python
+    # -*- coding: utf-8 -*-
+    import gzip
+    import heapq                    # for heapq.merge
+    import itertools
+    import os
+    import re                       # used to extract words from input
+    import sys
+    import shutil                   # to remove directory trees
+    import traceback
+    import urllib                   # for quote and unquote
+    <<the body of index.py>>
+    <<the end of index.py>>
 
 Performance
 -----------
