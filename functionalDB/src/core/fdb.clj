@@ -26,9 +26,9 @@
 (defn make-db "Create an empty database" []
   (atom (Database. [(Timestamped.
                      (initial-storage) ; storage
-                     (Index. #(vector %3 %2 %1)  #(vector %3 %2 %1) #(ref? %) 0) ; VAET - for graph qeries and joins
-                     (Index. #(vector %2 %3 %1)  #(vector %3 %1 %2) #(not (not %))0) ; AVET - for filtering
-                     (Index. #(vector %1 %2 %3)  #(vector %1 %2 %3) #(not (not %))2) )] ; EAVT - for filtering
+                     (Index. #(vector %3 %2 %1)  #(vector %3 %2 %1) #(ref? %) 2) ; VAET - for graph qeries and joins
+                     (Index. #(vector %2 %3 %1)  #(vector %3 %1 %2) #(not (not %))2) ; AVET - for filtering
+                     (Index. #(vector %1 %2 %3)  #(vector %1 %2 %3) #(not (not %))0) )] ; EAVT - for filtering
                    0 0)))
 
 (defn indices[] [:VAET :AVET :EAVT])
@@ -190,7 +190,7 @@
 (defn update-datom
   ([db ent-id attr-name new-val]
    (update-datom db ent-id attr-name  new-val  :db/reset-to ))
-  ([db ent-id attr-name  new-val operation ] ; operation may be either  :db/reset-to  :db/add ,or :db/remove (the last two are valid only if the attr cardinality is :db/multiple)
+  ([db ent-id attr-name  new-val operation ]
      (let [update-ts (next-ts db)
             timestamped (last (:timestamped db))
             attr (attr-at db ent-id attr-name)
@@ -211,7 +211,7 @@
      (= (count old-entries-set) 1)  (update-in index [path-head] dissoc (second path)) ; a path that splits at the second item - just remove the unneeded part of it
      :else (update-in index path-to-items disj val-to-remove))))
 
-(defn- remove-entries-from-index
+(defn remove-entries-from-index
   [ent-id operation index attr]
   (if (= operation :db/add)
        index
@@ -271,16 +271,13 @@
           (list* (conj res#  accum-txs#))))))
 
 (defn _what-if
+  "Operates on the db with the given transactions, but without eventually updating it"
   [ db f  txs]
   (f db txs))
 
-(defmacro what-if
-  [db & txs]
-  `(_transact ~db   _what-if  ~@txs))
+(defmacro what-if [db & txs]  `(_transact ~db   _what-if  ~@txs))
 
-(defmacro transact
-  [db & txs]
-  `(_transact ~db swap! ~@txs))
+(defmacro transact [db & txs]  `(_transact ~db swap! ~@txs))
 
 ;;;;;;;;;;;;;;;;;;;;;;;  queries
 
@@ -349,7 +346,7 @@
            [k2  l3-set] l2map  ; keys and values of the second level
            :when (lvl2-prd k2) ; filtering to keep only the keys and vals of keys that passed the second level predicate
            :let [res (set (filter lvl3-prd l3-set))] ]; keep from the set at the third level only the items that passed the predicate on them
-         (with-meta ((:db-to-eav index) k1 k2 res) (meta path-pred)))) ; constructed to resemble the EAV structure, while keeping the meta of the query to use it later when extracting variables
+         (with-meta [k1 k2 res] (meta path-pred)))) ; constructed to resemble the EAV structure, while keeping the meta of the query to use it later when extracting variables
 
  (defn items-that-answer-all-conditions
    "takes the sequence of all the items collection, each such collection answered one condition, we test here what are the items that answered all of the conditions
@@ -365,8 +362,9 @@
 
 (defn mask-path-leaf-with-items
   "a path is a vector triplet, at the first position there's a set of the path's items, here we intersect the path's items with the set of relevant items"
-  [path relevant-items]
-  (assoc path 0 (CS/intersection relevant-items (path 0))))
+  [index  relevant-items path]
+  (let [leaf-ind  (:db-leaf-index index )]
+    (assoc path leaf-ind (CS/intersection relevant-items (path leaf-ind )))))
 
 (defn query-index
   "an index is a 3 level map (VAE, AVE, EVA) that is found at a specific time (T).
@@ -376,17 +374,20 @@
     -- to-eav is a function that receives a path in the index (3 elements ordered from root to leave in the index) and returns a vector containing these 3 elements, ordered like this [entity attr val]
   The values found at the third level of the map of all the branches that passed the above two filters are fused into one seq"
    [index path-preds]
-   (let [filtered-paths (filter-index index path-preds) ; the paths (vectors) from the root of the index to the leaves (a leaf of an index is a set) where each path fulfils one predicate path
-         relevant-elements (items-that-answer-all-conditions (map first filtered-paths) (count path-preds)) ; the set of elements, each answers all the pred-paths
-         relevant-paths (map mask-path-leaf-with-items  filtered-paths (repeat relevant-elements))] ; the paths, now their leaves are filtered to have only the items that fulfilled the predicates
-     (filter #(not-empty (% 0)) relevant-paths))) ; of these, we'll build a subset-path of the index that contains the paths to the leaves (sets), and these leaves contain only the valid items
+   (let [leaf-ind (:db-leaf-index index)
+         filtered-paths (filter-index index path-preds) ; the paths (vectors) from the root of the index to the leaves (a leaf of an index is a set) where each path fulfils one predicate path
+         relevant-items (items-that-answer-all-conditions (map #(get % leaf-ind ) filtered-paths) (count path-preds)) ; the set of elements, each answers all the pred-paths
+         relevant-paths (map #(mask-path-leaf-with-items index relevant-items %) filtered-paths)] ; the paths, now their leaves are filtered to have only the items that fulfilled the predicates
+     (filter #(not-empty (% leaf-ind)) relevant-paths))) ; of these, we'll build a subset-path of the index that contains the paths to the leaves (sets), and these leaves contain only the valid items
 
 (defmacro q
   "querying the database using datalog queries built in a map structure ({:find [variables*] :where [ [e a v]* ]}).
   At the moment support only filtering queries, no joins is also assumed."
   [db query]
   `(let [query#  (q-clauses ~(:where query) )
-           ind# (choose-index ~db query#)]
+           ind# (choose-index ~db query#)
+
+         ]
     (query-index ind# query#)))
 
 (defn evolution-of
