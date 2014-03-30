@@ -36,18 +36,21 @@ def poll():
             # call the bash script that will update the repo and check for changes.
             # if there's a change, it will drop a .commit_hash file with the latest
             # commit in the current working directory
-            # TODO: uncomment following line for it all to work!
             output = subprocess.check_output(["./update_repo.sh %s" % args.repo], shell=True)
             if os.path.isfile(".commit_hash"):
                 #great, we have a change! let's execute the tests
-                # TODO ping dispatcher to make sure its still running
-                # TODO send runner server the commit_hash
+                # First, check the status of the dispatcher server to see
+                # if we can send the tests
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.connect((dispatcher_host, int(dispatcher_port)))
-                s.send("status")
+                try:
+                    s.connect((dispatcher_host, int(dispatcher_port)))
+                    s.send("status")
+                except socket.error as e:
+                    bail("Could not communicate with dispatcher server: %s" % e)
                 response = s.recv(1024)
                 s.close()
                 if response == "OK":
+                    # Dispatcher is present, let's send it a test
                     commit = ""
                     with open(".commit_hash", "r") as f:
                         commit = f.readline()
@@ -57,10 +60,13 @@ def poll():
                     response = s.recv(1024)
                     s.close()
                     if response != "OK":
-                        bail("Dispatcher could not dispatch the test: %s" % response)
+                        bail("Could not dispatch the test: %s" %
+                        response)
                     print 'dispatched!'
                 else:
-                    bail("Could not communicate with dispatcher server!")
+                    # Something wrong happened to the dispatcher
+                    bail("Could not dispatch the test: %s" %
+                    response)
             time.sleep(90)
         except subprocess.CalledProcessError as e:
             bail("Could not update and check repository. Reason: %s" % e.output)

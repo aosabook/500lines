@@ -1,8 +1,10 @@
 import argparse
 import os
 import re
+import socket
 import SocketServer
 import time
+import threading
 
 import helpers
 
@@ -10,7 +12,7 @@ import helpers
 class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     runners = []
     error = None
-
+    dead = False
 
 def serve():
     parser = argparse.ArgumentParser()
@@ -26,10 +28,31 @@ def serve():
 
     # Create the server, binding to localhost on port 9999
     server = ThreadingTCPServer((args.host, int(args.port)), DispatcherHandler)
-
-    # Activate the server; this will keep running until you
-    # interrupt the program with Ctrl-C
-    server.serve_forever()
+    # Create a thread to check the runner pool
+    def runner_checker(server):
+        while not server.dead:
+            time.sleep(1)
+            for runner in server.runners:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                try:
+                    s.connect((runner["host"], int(runner["port"])))
+                    s.send("ping")
+                    response = s.recv(1024)
+                    s.close()
+                    if response != "pong":
+                        server.runners.remove(runner)
+                except socket.error as e:
+                    server.runners.remove(runner)
+    t = threading.Thread(target=runner_checker, args=(server,))
+    try:
+        t.start()
+        # Activate the server; this will keep running until you
+        # interrupt the program with Ctrl-C
+        server.serve_forever()
+    except (KeyboardInterrupt, Exception):
+        # if anything happens, kill the thread
+        server.dead = True
+        t.join()
 
 
 class DispatcherHandler(SocketServer.BaseRequestHandler):
@@ -57,7 +80,7 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
             if self.server.error:
                 self.request.sendall(self.server.error)
             else:
-                self.request.sendall("OK") #TODO: send back ERRORs if anything fails to notify the poller
+                self.request.sendall("OK")
         elif (command == "dispatch"):
             print "going to dispatch"
             commit_hash = command_groups.group(2)
@@ -69,15 +92,13 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
                 #TODO: add ability to batch tests using manifests
                 self.dispatch_tests(commit_hash)
         elif (command == "register"):
-            #TODO register the new runner
             print "register"
             address = command_groups.group(2)
             host, port = re.findall(r":(\w*)", address)
             runner = {"host": host, "port":port}
             self.server.runners.append(runner)
-            self.request.sendall("OK") #TODO: send back ERRORs if anything fails to notify the poller
+            self.request.sendall("OK")
         elif (command == "results"):
-            #TODO get hash and store results in test_results
             results = command_groups.group(2)
             commit_hash = re.findall(r":(\w*):.*", results)[0]
             if not os.path.exists("test_results"):
