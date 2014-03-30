@@ -1,6 +1,10 @@
 handaxeweb: a minimalist literate-programming system
 ====================================================
 
+**Note for 500lines project**: I’m adding handaxeweb to this project
+not because I think it should appear in the book, but just because I
+want to be able to use it to avoid source code duplication.
+
 > Let us change our traditional attitude to the construction
 > of programs: Instead of imagining that our main task is to
 > instruct a computer what to do, let us concentrate rather
