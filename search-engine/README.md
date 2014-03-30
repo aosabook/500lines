@@ -325,7 +325,6 @@ using a generator function:
         with context_manager as infile:
             for line in infile:
                 yield tuple(urllib.unquote(field) for field in line.split())
-
 <!--
 
 XXX more introductory Python material; omit?
@@ -534,6 +533,40 @@ in my last example above, adding 20k
 resulted in 510k of merging
 that had been postponed previously.
 
+Finding out what files have changed
+-----------------------------------
+
+XXX incomplete
+
+To incrementally update our index,
+we need some way to find out which files have new data
+without having to read the full contents of every file.
+On a standard filesystem, this is not possible in general,
+because it's possible to change a byte anywhere in the file
+and then eliminate any change to the metadata.
+
+In practice, though,
+nearly all content changes will change
+the modification time of the file,
+as well as its size.
+So if we record the size and modification time
+when we index the file,
+then when we go to update the index,
+we have an excellent chance of noticing if the file has changed,
+at which point we can add it to a list to be reindexed.
+
+    # in the body of index.py:
+    # XXX maybe these functions don't need to exist?
+    def read_metadata(index_path):
+        tuples = read_tuples(path['documents'].open())
+        return dict((pathname, (int(mtime), int(size)))
+                    for pathname, size, mtime in tuples)
+
+    # XXX we probably want files_unchanged
+    def file_unchanged(metadatas, path):
+        return any(metadata.get(path.name) == get_metadata(path)
+                   for metadata in metadatas)
+
 Evaluating a query
 ------------------
 
@@ -545,9 +578,10 @@ given an index to search in,
 this is simple:
 
     # in the body of index.py:
-    def pathnames(index_path, terms):
-        return set.intersection(*(set(term_pathnames(index_path, term))
-                                  for term in terms))
+    def doc_ids(index_path, terms):
+        "Actually evaluate a query."
+        doc_id_sets = (set(term_doc_ids(index_path, term)) for term in terms)
+        return set.intersection(*doc_id_sets)
 
 We want the document IDs
 that are in the posting list
@@ -565,13 +599,18 @@ To get the document IDs for a term,
 we need to combine the postings
 from all the segments:
 
-    def term_pathnames(index_path, term):
-        return itertools.chain.from_iterable(segment_term_pathnames(segment, term)
-                                             for segment in index_path)
+    def term_doc_ids(index_path, term):
+        doc_id_sets = (segment_term_doc_ids(segment, term)
+                       for segment in index_segments(index_path))
+        return itertools.chain(*doc_id_sets)
 
-`chain.from_iterable` essentially concatenates
+    # XXX make this a method of the Index object, perhaps returning Segment objects
+    def index_segments(index_path):
+        return [path for path in index_path if path.basename().startswith('seg_')]
+
+`chain` essentially concatenates
 the sequences of document IDs
-from the calls to `segment_term_pathnames`.
+from the calls to `segment_term_doc_ids`.
 
 To iterate over the segments in index_path,
 this is using
@@ -589,6 +628,9 @@ in the directory:
         __iter__     = lambda self: (self[child] for child in os.listdir(self.name))
         open         = lambda self, *args: open(self.name, *args)
         open_gzipped = lambda self, *args: gzip.GzipFile(self.name, *args)
+        basename     = lambda self: os.path.basename(self.name)
+        parent       = lambda self: Path(os.path.dirname(self.name))
+        abspath      = lambda self: os.path.abspath(self.name)
 
 Most manipulation of filesystem paths
 in this engine
@@ -600,13 +642,15 @@ for a given term,
 we read through each of the chunks
 that might contain postings for the term:
 
-    def segment_term_pathnames(segment, term):
-        for chunk_name in segment_term_chunks(segment, term):
-            for term_2, pathname in read_tuples(segment[chunk_name].open_gzipped()):
-                if term_2 == term:
-                    yield pathname
-                if term_2 > term:
-                    break
+    def segment_term_doc_ids(segment, needle_term):
+        for chunk_name in segment_term_chunks(segment, needle_term):
+            tuples = read_tuples(segment[chunk_name].open_gzipped())
+            for haystack_term, doc_id in tuples:
+                if haystack_term == needle_term:
+                    yield doc_id
+                if haystack_term > needle_term: # Once we reach an 
+                    tuples.close()              # alphabetically later term,
+                    break                       # we're done.
 
 Here `[]` invokes `Path.__getitem__`,
 and `open_gzipped` invokes decompression of the chunk.
@@ -614,17 +658,20 @@ and `open_gzipped` invokes decompression of the chunk.
 But which chunks might contain postings?
 We have to read the skip file to find out:
 
+    # XXX maybe return Path objects?
     def segment_term_chunks(segment, term):
+        previous_chunk = None
         for headword, chunk in skip_file_entries(segment):
             if headword >= term:
-                yield last_chunk
+                if previous_chunk is not None:
+                    yield previous_chunk
             if headword > term:
                 break
 
-            last_chunk = chunk
-        else:                   # executed if we don’t break
-            # XXX what if it was empty?
-            yield last_chunk
+            previous_chunk = chunk
+        else:                   # executed if we don't break
+            if previous_chunk is not None:
+                yield previous_chunk
 
 We don’t know
 the full range of the terms in a chunk
@@ -633,20 +680,14 @@ so we’re always yielding the previous chunk.
 
 The contents of `skip_file_entries` is quite simple:
 
-    def skip_file_entries(indexdir):
-        # XXX is sorted() guaranteed correct?
-        return sorted(read_tuples(indexdir['skip'].open()))
+    def skip_file_entries(segment_path):
+        return read_tuples(segment_path['skip'].open())
 
 This invokes the same `read_tuples` function
-as `segment_term_pathnames`;
-it merely converts a text file
-with space-separated fields on each line
-into an iterable of tuples:
+as `segment_term_doc_ids`.
 
-    def read_tuples(context_manager):
-        with context_manager as infile:
-            for line in infile:
-                yield tuple(line.split())
+XXX the paragraph below needs to be split into a part that pertains to
+read_tuples and a part that pertains to its faulty caller.
 
 By using the `with` statement,
 the file is guaranteed to be closed
@@ -728,9 +769,22 @@ it returns the newest files first:
         return int(s.st_mtime), int(s.st_size)
 
     def search_ui(index_path, terms):
+            # Use the crudest possible ranking: newest (largest mtime) first.
             for path in sorted(paths(index_path, terms),
                                key=get_metadata, reverse=True):
                 print(path.name)
+
+This uses a `paths` function
+to convert document ids,
+which are currently paths relative to the location of the index,
+XXX explain why,
+into paths that the user can actually use directly:
+
+    # At the moment, our doc_ids are just pathnames; this converts them to Path objects.
+    def paths(index_path, terms):
+        parent = index_path.parent()
+        for doc_id in doc_ids(index_path, terms):
+            yield Path(os.path.relpath(parent[doc_id].abspath(), start='.'))
 
 Generating an index
 -------------------
@@ -747,14 +801,35 @@ for each segment,
 and then you have to write that sequence into the segment.
 In outline, that is:
 
-    def build_index(index_path, corpus_path):
+    # 2**20 is chosen as the maximum segment size because that uses
+    # typically about a quarter gig, which is a reasonable size these
+    # days.
+    segment_size = 2**20
+
+    def build_index(index_path, corpus_path, postings_filters):
         os.mkdir(index_path.name)
 
-        postings = postings_from_dir(corpus_path)
-        for ii, chunk in enumerate(blocked(postings, 2**20)):
-            write_new_segment(index_path[ii], sorted(chunk))
+        # XXX hmm, these should match the doc_ids in the index
+        corpus_paths = list(find_documents(corpus_path))
+        write_tuples(index_path['documents'].open('w'),
+                     ((path.name,) + get_metadata(path) for path in corpus_paths))
 
-        merge_segments(index_path, list(index_path))
+        postings = tokenize_documents(corpus_paths)
+        for filter_function in postings_filters:
+            postings = filter_function(postings)
+
+        # XXX at this point we should just pass the fucking doc_id into
+        # the analyzer function :(
+        parent = index_path.parent()
+        rel_paths = dict((path.name, os.path.relpath(path.name, start=parent.name))
+                         for path in corpus_paths)
+        rel_postings = ((term, rel_paths[doc_id]) for term, doc_id in postings)
+        for ii, chunk in enumerate(blocked(rel_postings, segment_size)):
+            write_new_segment(index_path['seg_%s' % ii], sorted(chunk))
+
+        merge_segments(index_path, index_segments(index_path))
+
+XXX the constants like `segment_size` need a place
 
 The number `2**20` was chosen
 to keep the memory usage of the indexer
@@ -783,10 +858,18 @@ Its code,
 mostly taken from an answer on Stack Overflow,
 is maybe a little too clever:
 
+    # From nikipore on Stack Overflow <http://stackoverflow.com/a/19264525>
     def blocked(seq, block_size):
         seq = iter(seq)
         while True:
-            yield tuple(itertools.islice(seq, block_size)) or next(seq)
+            # XXX for some reason using list(), and then later sorting in
+            # place, makes the whole program run twice as slow and doesn't
+            # reduce its memory usage.  No idea why.
+            block = tuple(itertools.islice(seq, block_size))
+            if block:
+                yield block
+            else:
+                raise StopIteration
 
 <!--
 
@@ -829,21 +912,41 @@ is currently fairly crude;
 it generates a sequence of (term, doc_id) tuples
 given a directory
 by treating every file in that directory
-as a text file.
+as a text file.  XXX not any more!
 It’s careful not to generate the same posting twice,
 which both simplifies and speeds up the rest of the code.
 
-    def postings_from_dir(path):
+    def find_documents(path):
         for dir_name, _, filenames in os.walk(path.name):
             dir_path = Path(dir_name)
             for filename in filenames:
-                with dir_path[filename].open() as fo:
-                    seen_words = set()
-                    for line in fo:
-                        for word in re.findall('\w+', line):
-                            if word not in seen_words:
-                                yield word, dir_path[filename].name
-                                seen_words.add(word)
+                yield dir_path[filename]
+
+    def tokenize_documents(paths):
+        for path in paths:
+            for posting in remove_duplicates(tokenize_file(path)):
+                yield posting
+
+    # Demonstrate a crude set of smart tokenizer frontends.
+    def tokenize_file(file_path):
+        if file_path.name.endswith('.html'):
+            return tokenize_html(file_path)
+        else:
+            return tokenize_text(file_path)
+
+    def tokenize_text(file_path):
+        word_re = re.compile(r'\w+')
+        with file_path.open() as fo:
+            for line in fo:
+                for word in word_re.findall(line):
+                    yield word, file_path.name
+
+    def remove_duplicates(seq):
+        seen_items = set()
+        for item in seq:
+            if item not in seen_items:
+                yield item
+                seen_items.add(item)
 
 So that’s the sequence of postings
 being broken into 1048576-item blocks by `blocked`
@@ -855,17 +958,21 @@ to write the candidate postings out to a temporary file in such a case,
 sort the file on disk to eliminate duplicates,
 and then yield the postings.
 
-The deep nesting in this function
-is a warning sign of bad code.
-I should probably factor this function into pieces.
-
 So what does `write_new_segment` do?
 
+    chunk_size = 4096
     def write_new_segment(path, postings):
         os.mkdir(path.name)
-        for ii, chunk in enumerate(blocked(postings, 4096)):
-            write_tuples(path['%s.gz' % ii].open_gzipped('w'), chunk)
-        build_skip_file(path)
+        chunks = blocked(postings, chunk_size)
+        skip_file_contents = (write_chunk(path, '%s.gz' % ii, chunk)
+                              for ii, chunk in enumerate(chunks))
+        write_tuples(path['skip'].open('w'), itertools.chain(*skip_file_contents))
+
+    # Yields one skip file entry, or, in the edge case of an empty chunk, none.
+    def write_chunk(path, filename, chunk):
+        write_tuples(path[filename].open_gzipped('w'), chunk)
+        if chunk:
+            yield chunk[0][0], filename
 
 This uses the `write_tuples` function explained earlier,
 passing it a `gzip.GzipFile` to automatically close when it’s done.
@@ -878,22 +985,12 @@ its only tricky bit is that it lists the chunk names
 before opening the skip file
 so it won’t mistake the skip file for a chunk:
 
-    def build_skip_file(path):
-        chunk_names = list(path)
-        # XXX what about fsync?
-        write_tuples(path['skip'].open('w'), generate_skip_entries(chunk_names))
+XXX gone
 
 But that’s because the actual skip-file generation logic
 is in `generate_skip_entries`:
 
-    def generate_skip_entries(chunk_paths):
-        for chunk_path in chunk_paths:
-            chunk_tuples = read_tuples(chunk_path.open_gzipped())
-            try:
-                term, _ = chunk_tuples.next()
-                yield term, os.path.basename(chunk_path.name)
-            finally:
-                chunk_tuples.close()
+XXX gone
 
 We simply read the first tuple from each chunk.
 Since we aren’t reading all the tuples,
@@ -924,6 +1021,54 @@ and the term extraction itself
 is a simple regular expression match,
 with no attention given to the type of the file.
 
+Tokenizing HTML
+---------------
+
+Finding the words in a plain text file
+can be as simple as `re.findall(r'\w+', line)`,
+but people have more than just plain text
+on their system.
+For example, HTML is plain text,
+but if you're putting it into your index,
+you probably don’t want to index the names of its tags
+like `body` and `div`,
+unless they occur in its text.
+But some error rate is acceptable,
+and may be a good tradeoff for indexing speed;
+and if the HTML is syntactically invalid,
+you still need to recover somehow.
+
+Here’s a quick HTML tokenizer I whipped up
+with those desires in mind:
+
+    # Crude approximation of HTML tokenization.  Note that for proper
+    # excerpt generation (as in the "grep" command) the postings generated
+    # need to contain position information, because we need to run this
+    # tokenizer during excerpt generation too.
+    def tokenize_html(file_path):
+        tag_re       = re.compile('<.*?>')
+        tag_start_re = re.compile('<.*')
+        tag_end_re   = re.compile('.*?>')
+        word_re      = re.compile(r'\w+')
+
+        with file_path.open() as fo:
+            in_tag = False
+            for line in fo:
+
+                if in_tag and tag_end_re.search(line):
+                    line = tag_end_re.sub('', line)
+                    in_tag = False
+
+                elif not in_tag:
+                    line = tag_re.subn('', line)[0]
+                    if tag_start_re.search(line):
+                        in_tag = True
+                        line = tag_start_re.sub('', line)
+                    for term in word_re.findall(line):
+                        yield term, file_path.name
+
+XXX talk about pluggable tokenizers
+
 Merging
 -------
 
@@ -937,10 +1082,7 @@ How do we merge segments?
 
         postings = heapq.merge(*(read_segment(segment)
                                  for segment in segments))
-        ii = 0 # XXX factor out
-        while ii in path:
-            ii += 1
-        write_new_segment(path[ii], postings)
+        write_new_segment(path['seg_merged'], postings)
 
         for segment in segments:
             shutil.rmtree(segment.name)
@@ -978,6 +1120,84 @@ We use the skip file entries
 to make sure we are reading the chunks in the correct order.
 XXX I think this can be rewritten in terms of `itertools.chain`.
 
+Stopwords
+---------
+
+A simple measure
+to improve the performance
+of inefficient search engines like this one
+is to exclude very common words like “the” and “of”.
+These words have very large posting lists
+which slow down naïve query evaluation strategies,
+they add significantly to the size of the search index,
+and at the same time,
+they add very little selectivity
+except in phrase searches.
+(Tim Bray’s examples
+are “The Limited”
+and “To be or not to be”.)
+
+These words that we omit from the index
+are called “stopwords”.
+
+Remember that `build_index`
+takes a list of `postings_filters`
+to manipulate the sequence of postings being generated,
+and a stopwords removal filter can fit into that list
+quite comfortably:
+
+    def make_stopwords_filter(stopwords):
+        stopwords = set(stopwords)
+        stopwords |= ( set(word.upper()      for word in stopwords) 
+                     | set(word.capitalize() for word in stopwords))
+        return lambda postings: ((term, doc_id) for term, doc_id in postings
+                                 if term not in stopwords)
+
+Long nonsense words
+-------------------
+
+Another category of “words”
+that provides little value
+and inflates index sizes
+is the random words that occur sometimes
+when base64 or uuencoded text,
+or just text with all the spaces somehow removed,
+somehow finds its way into your full-text indexer.
+These words mostly only occur once,
+it’s unlikely that they will ever be searched for,
+and they can be arbitrarily large,
+again inflating the index for no benefit.
+Unlike stopwords,
+at least they don’t slow down queries
+significantly.
+
+    word_len = 20                   # to eliminate nonsense words
+    def discard_long_nonsense_words_filter(postings):
+        """Drop postings for nonsense words."""
+        return ((term, doc_id) for term, doc_id in postings if len(term) < word_len)
+
+Stemming
+--------
+
+It’s common
+to want queries for, say, “filter”
+to also return documents that contain “filtering” or “filtered”.
+This is achieved by transforming the terms
+in the index and possibly also the query
+into some normalized “stem”.
+The simplest such transformation
+is simply to map indexed terms to their lower-case versions,
+which gives you case-insensitive search
+when you use a lowercase search term:
+
+    def case_insensitive_filter(postings):
+        for term, doc_id in postings:
+            yield term, doc_id
+            if term.lower() != term:
+                yield term.lower(), doc_id
+
+Stemming transformations work the same way.
+
 A Minimal User Interface
 ------------------------
 
@@ -987,12 +1207,12 @@ kind of compatible with `grep -rn`
 and therefore with Emacs:
 
     def grep(index_path, terms):
-        for pathname in pathnames(index_path, terms):
+        for path in paths(index_path, terms):
             try:
-                with open(pathname) as text:
+                with path.open() as text:
                     for ii, line in enumerate(text, start=1):
                         if any(term in line for term in terms):
-                            sys.stdout.write("%s:%s:%s" % (pathname, ii, line))
+                            sys.stdout.write("%s:%s:%s" % (path.name, ii, line))
             except KeyboardInterrupt:
                 return
             except:                 # The file might e.g. no longer exist.
@@ -1004,13 +1224,20 @@ plus an interface to build a new index:
 
     # in the end of index.py:
     def main(argv):
+        # Eliminate the most common English words from queries and indices.
+        stopwords = 'the of and to a in it is was that i for on you he be'.split()
+
         if argv[1] == 'index':
-            build_index(index_path=Path(argv[2]), corpus_path=Path(argv[3]))
+            build_index(index_path=Path(argv[2]), corpus_path=Path(argv[3]),
+                        postings_filters=[discard_long_nonsense_words_filter,
+                                          make_stopwords_filter(stopwords),
+                                          case_insensitive_filter])
         elif argv[1] == 'query':
-            for pathname in pathnames(Path(argv[2]), argv[3:]):
-                print(pathname)
+            search_ui(Path(argv[2]), [term for term in argv[3:]
+                                      if term not in stopwords])
         elif argv[1] == 'grep':
-            grep(Path(argv[2]), argv[3:])
+            grep(Path(argv[2]), [term for term in argv[3:]
+                                 if term not in stopwords])
         else:
             raise Exception("%s (index|query|grep) index_dir ..." % (argv[0]))
 
@@ -1027,6 +1254,7 @@ except for the excise Python demands of us:
     # in index.py:
     #!/usr/bin/python
     # -*- coding: utf-8 -*-
+
     import gzip
     import heapq                    # for heapq.merge
     import itertools
