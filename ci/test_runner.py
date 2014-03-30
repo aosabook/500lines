@@ -33,7 +33,7 @@ def serve():
     parser.add_argument("repo", metavar="REPO", type=str,
                         help="path to the repository this will observe")
     parser.add_argument("tests_dir", metavar="TESTS_DIR", type=str,
-                        help="test subdirectory")
+                        help="path to the tests folder")
     args = parser.parse_args()
 
     # Create the server, binding to localhost on port 9999
@@ -77,41 +77,25 @@ class TestHandler(SocketServer.BaseRequestHandler):
             self.request.sendall("pong")
         elif (command == "runtest"):
             #TODO: check our job queue and return either OK or BUSY
+            print 'got runtest: am I busy? %s' % self.server.busy
             if self.server.busy:
                 self.request.sendall("BUSY")
             else:
-                #TODO: error handling
+                self.request.sendall("OK")
                 print 'running'
                 commit_hash = command_groups.group(2)
-                import pdb;pdb.set_trace()
                 self.server.busy = True
                 results = self.run_tests(commit_hash,
                                          self.server.repo_folder,
                                          self.server.test_folder)
-                #TODO dispatch results
                 #helpers.communicate(self.server.dispatcher_server, "results:%s:%s" % (commit_hash, results))
                 self.server.busy = False
-                self.request.sendall("OK")
 
     def run_tests(self, commit_hash, repo_folder, test_folder):
         # update repo
-        cd = subprocess.Popen(['cd', repo_folder],
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT)
-        if cd.wait() != 0:
-            raise IOError("Repository folder not found!")
-        """
-        pull = subprocess.Popen(['git', 'pull'],
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT)
-        if pull.wait() != 0:
-            raise Exception('Could not successfully call git pull')
-        reset = subprocess.Popen(['git', 'reset', '--hard', commit_hash],
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT)
-        if reset.wait() != 0:
-            raise Exception('Could not successfully update to given commit hash')
-        """
+        output = subprocess.check_output(["./test_runner_script.sh %s %s" % 
+                                        (repo_folder, commit_hash)], shell=True)
+        print output
         # run the tests
         suite = unittest.TestLoader().discover(test_folder)
         result_file = open('results', 'w')

@@ -11,7 +11,6 @@ import helpers
 
 class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     runners = []
-    error = None
     dead = False
 
 def serve():
@@ -30,6 +29,8 @@ def serve():
     server = ThreadingTCPServer((args.host, int(args.port)), DispatcherHandler)
     # Create a thread to check the runner pool
     def runner_checker(server):
+        #TODO:mention that we can do timeout based kills (if BUSY for too long
+        # etc)
         while not server.dead:
             time.sleep(1)
             for runner in server.runners:
@@ -40,8 +41,10 @@ def serve():
                     response = s.recv(1024)
                     s.close()
                     if response != "pong":
+                        print 'killing'
                         server.runners.remove(runner)
                 except socket.error as e:
+                    print 'killing'
                     server.runners.remove(runner)
     t = threading.Thread(target=runner_checker, args=(server,))
     try:
@@ -77,10 +80,7 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
         if (command == "status"):
             print "in status"
             self.last_communication = time.time()
-            if self.server.error:
-                self.request.sendall(self.server.error)
-            else:
-                self.request.sendall("OK")
+            self.request.sendall("OK")
         elif (command == "dispatch"):
             print "going to dispatch"
             commit_hash = command_groups.group(2)
@@ -88,8 +88,8 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
                 self.request.sendall("No runners are registered")
             else:
                 # The coordinator can trust us to dispatch the test
-                self.request.sendall("OK")
                 #TODO: add ability to batch tests using manifests
+                self.request.sendall("OK")
                 self.dispatch_tests(commit_hash)
         elif (command == "register"):
             print "register"
@@ -108,7 +108,6 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
                 data = "\n".join(data)
                 f.write(data)
                 f.close()
-            import pdb; pdb.set_trace()
             self.request.sendall("OK")
         else:
             self.request.sendall("Invalid command")
@@ -118,16 +117,15 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
         # let the server know we're going to handle the request
         # TODO: if too many runners are busy for too long, 
         # we should alert the coordinator
-        tries = 5
-        while (tries > 0):
+        # TODO: usually we handle this more gracefully, instead of hard-stopping
+        while True:
+            print 'trying'
             for runner in self.server.runners:
                 response = helpers.communicate(runner, "runtest:%s" % commit_hash)
+                print 'got response:%s' % response
                 if response == "OK":
                     return
-            tries -= 1
-            time.sleep(10)
-        # TODO: clear this elsewhere.
-        self.server.error = "All runners are backed up!"
+            time.sleep(2)
 
 
 if __name__ == "__main__":

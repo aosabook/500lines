@@ -7,6 +7,11 @@ if [ $? != 0 ]; then
   echo "Repository folder not found!"
   exit 1
 fi
+git reset --hard HEAD
+if [ $? != 0 ]; then
+  echo "Could not reset git"
+  exit 1
+fi
 COMMIT=`git log -n1`
 if [ $? != 0 ]; then
   echo "Could call 'git log' on repository"

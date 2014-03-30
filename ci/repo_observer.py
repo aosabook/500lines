@@ -67,7 +67,7 @@ def poll():
                     # Something wrong happened to the dispatcher
                     bail("Could not dispatch the test: %s" %
                     response)
-            time.sleep(90)
+            time.sleep(5)
         except subprocess.CalledProcessError as e:
             bail("Could not update and check repository. Reason: %s" % e.output)
 
