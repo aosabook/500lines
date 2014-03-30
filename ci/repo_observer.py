@@ -16,9 +16,6 @@ import sys
 import time
 
 
-REPO_FOLDER = "/Users/mdas/Code/500_back"
-
-
 def bail(reason):
     raise Exception(reason)
     sys.exit(1)
@@ -26,28 +23,27 @@ def bail(reason):
 
 def poll():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--host",
-                        help="dispatcher's host, by default it uses localhost",
-                        default="localhost",
+    parser.add_argument("--dispatcher-server",
+                        help="dispatcher host:port, by default it uses localhost:8888",
+                        default="localhost:8888",
                         action="store")
-    parser.add_argument("--port",
-                        help="dispatcher's port, by default it uses 8888",
-                        default=8888,
-                        action="store")
+    parser.add_argument("repo", metavar="REPO", type=str,
+                        help="path to the repository this will observe")
     args = parser.parse_args()
+    dispatcher_host, dispatcher_port = args.dispatcher_server.split(":")
     while True:
         try:
             # call the bash script that will update the repo and check for changes.
             # if there's a change, it will drop a .commit_hash file with the latest
             # commit in the current working directory
             # TODO: uncomment following line for it all to work!
-            #output = subprocess.check_output(["./update_repo.sh %s" % REPO_FOLDER], shell=True)
+            output = subprocess.check_output(["./update_repo.sh %s" % args.repo], shell=True)
             if os.path.isfile(".commit_hash"):
                 #great, we have a change! let's execute the tests
                 # TODO ping dispatcher to make sure its still running
                 # TODO send runner server the commit_hash
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.connect((args.host, int(args.port)))
+                s.connect((dispatcher_host, int(dispatcher_port)))
                 s.send("status")
                 response = s.recv(1024)
                 s.close()
@@ -56,7 +52,7 @@ def poll():
                     with open(".commit_hash", "r") as f:
                         commit = f.readline()
                     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    s.connect((args.host, int(args.port)))
+                    s.connect((dispatcher_host, int(dispatcher_port)))
                     s.send("dispatch:%s" % commit)
                     response = s.recv(1024)
                     s.close()

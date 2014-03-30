@@ -8,12 +8,12 @@ import unittest
 
 import helpers
 
-REPO_FOLDER = "/Users/mdas/Code/500/repo/"
-TEST_FOLDER= "/Users/mdas/Code/500/repo/tests/"
 
 class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     dispatcher_server = None
     busy = False
+    repo_folder = None
+    test_folder = None
 
 
 def serve():
@@ -30,12 +30,18 @@ def serve():
                         help="dispatcher host:port, by default it uses localhost:8888",
                         default="localhost:8888",
                         action="store")
+    parser.add_argument("repo", metavar="REPO", type=str,
+                        help="path to the repository this will observe")
+    parser.add_argument("tests_dir", metavar="TESTS_DIR", type=str,
+                        help="test subdirectory")
     args = parser.parse_args()
 
     # Create the server, binding to localhost on port 9999
     #TODO: add logic to use values above 8900
     runner_host, runner_port = args.host, int(args.port)
     server = ThreadingTCPServer((runner_host, runner_port), TestHandler)
+    server.repo_folder = args.repo
+    server.test_folder = args.tests_dir
 
     dispatcher_host, dispatcher_port = args.dispatcher_server.split(":")
     server.dispatcher_server = {"host":dispatcher_host, "port":dispatcher_port}
@@ -77,16 +83,19 @@ class TestHandler(SocketServer.BaseRequestHandler):
                 #TODO: error handling
                 print 'running'
                 commit_hash = command_groups.group(2)
+                import pdb;pdb.set_trace()
                 self.server.busy = True
-                results = self.run_tests(commit_hash)
+                results = self.run_tests(commit_hash,
+                                         self.server.repo_folder,
+                                         self.server.test_folder)
                 #TODO dispatch results
                 #helpers.communicate(self.server.dispatcher_server, "results:%s:%s" % (commit_hash, results))
                 self.server.busy = False
                 self.request.sendall("OK")
 
-    def run_tests(self, commit_hash):
+    def run_tests(self, commit_hash, repo_folder, test_folder):
         # update repo
-        cd = subprocess.Popen(['cd', REPO_FOLDER],
+        cd = subprocess.Popen(['cd', repo_folder],
                               stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT)
         if cd.wait() != 0:
@@ -104,7 +113,7 @@ class TestHandler(SocketServer.BaseRequestHandler):
             raise Exception('Could not successfully update to given commit hash')
         """
         # run the tests
-        suite = unittest.TestLoader().discover(TEST_FOLDER)
+        suite = unittest.TestLoader().discover(test_folder)
         result_file = open('results', 'w')
         program = unittest.TextTestRunner(result_file).run(suite)
         result_file.close()
