@@ -1,5 +1,5 @@
 /**
-	* Main.als
+	* main.als
 	* 	The "main" model for a client-server system with the same origin policy
 	*
 	* Authors: 
@@ -7,12 +7,12 @@
 	* 	Santiago Perez De Rosso (sperezde@csail.mit.edu)
 	* 	Daniel Jackson (dnj@mit.edu)
 	*/
-module Main
+module main
 
 -- import other model files
-open HTTP
-open SOP
-open CORS
+open http
+open sop
+open cors
 
 
 /* Simulation */

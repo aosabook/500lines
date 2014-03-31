@@ -1,8 +1,8 @@
 /**
-	* Message.als
+	* message.als
 	* 	A model of messaging between endpoints
 	*/
-module Message
+module message
 
 open util/ordering[Msg] as MO
 

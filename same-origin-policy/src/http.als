@@ -1,10 +1,10 @@
 /**
-	* HTTP.als
+	* http.als
 	* 	A model of the Hypertext Transfer Protocol.
 	*/
-module HTTP
+module http
 
-open Message
+open message
 
 
 /* Server-side components */

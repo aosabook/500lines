@@ -1,10 +1,10 @@
 /**
-	* CORS.als
+	* cors.als
 	* 	A model of the cross-origin resource sharing (CORS) mechanism
 	*/
-module CORS
+module cors
 
-open SOP
+open sop
 
 
 sig ReqCORS in HTTPReq {

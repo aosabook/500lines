@@ -1,11 +1,11 @@
 /**
-	* SOP.als
+	* sop.als
 	* 	A model of the same-origin policy
 	*/
-module SOP
+module sop
 
 --  import the HTTP model
-open HTTP
+open http
 
 
 // An origin is defined as a triple (protocol, host, port) where port is optional
