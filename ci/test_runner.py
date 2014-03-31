@@ -27,7 +27,8 @@ def serve():
                         help="runner's port, by default it uses values >=8900",
                         action="store")
     parser.add_argument("--dispatcher-server",
-                        help="dispatcher host:port, by default it uses localhost:8888",
+                        help="dispatcher host:port, by default it uses " \
+                        "localhost:8888",
                         default="localhost:8888",
                         action="store")
     parser.add_argument("repo", metavar="REPO", type=str,
@@ -37,11 +38,9 @@ def serve():
     args = parser.parse_args()
 
     # Create the server, binding to localhost on port 9999
-    #TODO: add logic to use values above 8900
     runner_host = args.host
     runner_port = None
     tries = 0
-    import pdb;pdb.set_trace()
     if not args.port:
         runner_port = 8900
         while tries < 100:
@@ -68,7 +67,8 @@ def serve():
 
     dispatcher_host, dispatcher_port = args.dispatcher_server.split(":")
     server.dispatcher_server = {"host":dispatcher_host, "port":dispatcher_port}
-    response = helpers.communicate(server.dispatcher_server, "register:%s:%s" % (runner_host, runner_port))
+    response = helpers.communicate(server.dispatcher_server, "register:%s:%s" %
+                                  (runner_host, runner_port))
     if response != "OK":
         raise("Can't register with dispatcher!")
         sys.exit(1)
@@ -96,22 +96,21 @@ class TestHandler(SocketServer.BaseRequestHandler):
             self.request.sendall("Invalid command")
             return
         if (command == "ping"):
+            print "pinged"
             self.last_communication = time.time()
             self.request.sendall("pong")
         elif (command == "runtest"):
-            #TODO: check our job queue and return either OK or BUSY
-            print 'got runtest: am I busy? %s' % self.server.busy
+            print "got runtest: am I busy? %s" % self.server.busy
             if self.server.busy:
                 self.request.sendall("BUSY")
             else:
                 self.request.sendall("OK")
-                print 'running'
+                print "running"
                 commit_hash = command_groups.group(2)
                 self.server.busy = True
                 results = self.run_tests(commit_hash,
                                          self.server.repo_folder,
                                          self.server.test_folder)
-                #helpers.communicate(self.server.dispatcher_server, "results:%s:%s" % (commit_hash, results))
                 self.server.busy = False
 
     def run_tests(self, commit_hash, repo_folder, test_folder):
@@ -121,17 +120,18 @@ class TestHandler(SocketServer.BaseRequestHandler):
         print output
         # run the tests
         suite = unittest.TestLoader().discover(test_folder)
-        result_file = open('results', 'w')
+        result_file = open("results", "w")
         program = unittest.TextTestRunner(result_file).run(suite)
         result_file.close()
-        result_file = open('results', 'r')
+        result_file = open("results", "r")
         # give the dispatcher the location of the results
-        # NOTE: typically, we upload results to the result server, which will be used by a webinterface
+        # NOTE: typically, we upload results to the result server,
+        # which will be used by a webinterface
         output = result_file.read()
-        send_results = helpers.communicate(self.server.dispatcher_server, "results:%s:%s" % (commit_hash,
-                                                                                        output))
+        send_results = helpers.communicate(self.server.dispatcher_server,
+                                           "results:%s:%s" % (commit_hash,
+                                                              output))
 
 
 if __name__ == "__main__":
-    #TODO: use argparse to accept a new coordinator address
     serve()

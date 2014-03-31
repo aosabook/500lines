@@ -41,10 +41,10 @@ def serve():
                     response = s.recv(1024)
                     s.close()
                     if response != "pong":
-                        print 'removing runner %s' % runner
+                        print "removing runner %s" % runner
                         server.runners.remove(runner)
                 except socket.error as e:
-                    print 'removing runner %s' % runner
+                    print "removing runner %s" % runner
                     server.runners.remove(runner)
     t = threading.Thread(target=runner_checker, args=(server,))
     try:

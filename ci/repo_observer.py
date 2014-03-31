@@ -24,7 +24,8 @@ def bail(reason):
 def poll():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dispatcher-server",
-                        help="dispatcher host:port, by default it uses localhost:8888",
+                        help="dispatcher host:port, " \
+                        "by default it uses localhost:8888",
                         default="localhost:8888",
                         action="store")
     parser.add_argument("repo", metavar="REPO", type=str,
@@ -33,12 +34,13 @@ def poll():
     dispatcher_host, dispatcher_port = args.dispatcher_server.split(":")
     while True:
         try:
-            # call the bash script that will update the repo and check for changes.
-            # if there's a change, it will drop a .commit_hash file with the latest
-            # commit in the current working directory
-            output = subprocess.check_output(["./update_repo.sh %s" % args.repo], shell=True)
+            # call the bash script that will update the repo and check 
+            # for changes. If there's a change, it will drop a .commit_hash file 
+            # with the latest commit in the current working directory
+            output = subprocess.check_output(["./update_repo.sh %s" % args.repo],
+                                             shell=True)
             if os.path.isfile(".commit_hash"):
-                #great, we have a change! let's execute the tests
+                # great, we have a change! let's execute the tests
                 # First, check the status of the dispatcher server to see
                 # if we can send the tests
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -62,7 +64,7 @@ def poll():
                     if response != "OK":
                         bail("Could not dispatch the test: %s" %
                         response)
-                    print 'dispatched!'
+                    print "dispatched!"
                 else:
                     # Something wrong happened to the dispatcher
                     bail("Could not dispatch the test: %s" %
