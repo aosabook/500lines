@@ -21,13 +21,13 @@ sig Path {}
 sig URL {
 	protocol : Protocol,
 	host : Host,
-	// port and path are optional
+	-- port and path are optional
 	port : lone Port,
 	path : lone Path
 }
 
 sig Server extends message/EndPoint {	
-	resMap : URL -> lone Resource		// maps each URL to at most one resource
+	resMap : URL -> lone message/Resource	-- maps each URL to at most one resource
 }
 
 /* Client-side components */
@@ -60,8 +60,8 @@ sig XMLHTTPReq in HTTPReq {
 }
 
 abstract sig HTTPResp extends message/Msg {
-	res : Resource,
-	inResponseTo: HTTPReq
+	res : message/Resource,
+	inResponseTo : HTTPReq
 }{
 	sender in Server
 	receiver in Browser + Script
@@ -69,10 +69,10 @@ abstract sig HTTPResp extends message/Msg {
 }
 
 /* Frame interactions */
-sig DOM extends Resource {}
+sig DOM extends message/Resource {}
 
 abstract sig DomAPI extends message/Msg {
-	frame : Frame									// frame that contains the DOM
+	frame : Frame	-- frame that contains the DOM
 }{
 	sender in Script
 	receiver in Browser
