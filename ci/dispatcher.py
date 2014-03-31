@@ -1,3 +1,14 @@
+"""
+This is the test dispatcher.
+
+It will dispatch tests against any registered test runners when the repo
+observer sends it a 'dispatch' message with the commit hash to be used. It
+will store results when the test runners have completed running the tests and
+send back the results in a 'results' messagee
+
+It can register as many test runners as you like. To register a test runner,
+be sure the dispatcher is started, then start the test runner.
+"""
 import argparse
 import os
 import re
@@ -76,11 +87,11 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
             self.request.sendall("Invalid command")
             return
         command = command_groups.group(1)
-        if (command == "status"):
+        if command == "status":
             print "in status"
             self.last_communication = time.time()
             self.request.sendall("OK")
-        elif (command == "dispatch"):
+        elif command == "dispatch":
             print "going to dispatch"
             commit_hash = command_groups.group(2)
             if not self.server.runners:
@@ -90,14 +101,14 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
                 #TODO: add ability to batch tests using manifests?
                 self.request.sendall("OK")
                 self.dispatch_tests(commit_hash)
-        elif (command == "register"):
+        elif command == "register":
             print "register"
             address = command_groups.group(2)
             host, port = re.findall(r":(\w*)", address)
             runner = {"host": host, "port":port}
             self.server.runners.append(runner)
             self.request.sendall("OK")
-        elif (command == "results"):
+        elif command == "results":
             print "got results"
             results = command_groups.group(2)
             commit_hash = re.findall(r":(\w*):.*", results)[0]

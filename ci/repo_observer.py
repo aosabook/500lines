@@ -1,10 +1,9 @@
 """
-in written part, talk about design decisions you made (using poll system, using remote machine code vs. forking, etc)
+This is the repo observer.
 
-Issues: 
-- This is may be posix specific (proc ids and subprocess in windows?)
-- Assume we have *some* VCS system, can I use github in my example?
-
+It checks for new commits to the master repo, and will notify the dispatcher of
+the latest commit hash, so the dispatcher can dispatch the tests against this
+commit hash.
 """
 import argparse
 import os
@@ -12,14 +11,13 @@ import re
 import socket
 import SocketServer
 import subprocess
-import sys 
+import sys
 import time
 
 
 def bail(reason):
     raise Exception(reason)
-    sys.exit(1)
-    
+
 
 def poll():
     parser = argparse.ArgumentParser()
@@ -34,11 +32,11 @@ def poll():
     dispatcher_host, dispatcher_port = args.dispatcher_server.split(":")
     while True:
         try:
-            # call the bash script that will update the repo and check 
-            # for changes. If there's a change, it will drop a .commit_hash file 
+            # call the bash script that will update the repo and check
+            # for changes. If there's a change, it will drop a .commit_hash file
             # with the latest commit in the current working directory
-            output = subprocess.check_output(["./update_repo.sh %s" % args.repo],
-                                             shell=True)
+            subprocess.check_output(["./update_repo.sh %s" % args.repo],
+                                    shell=True)
             if os.path.isfile(".commit_hash"):
                 # great, we have a change! let's execute the tests
                 # First, check the status of the dispatcher server to see

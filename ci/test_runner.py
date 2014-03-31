@@ -1,3 +1,13 @@
+"""
+This is the test runner.
+
+It registers itself with the dispatcher when it first starts up, and then waits
+for notification from the dispatcher. When the dispatcher sends it a 'runtest'
+command with a commit hash, it updates its repository clone and checks out the
+given commit. It will then run tests against this version and will send back the
+results to the dispatcher. It will then wait for further instruction from the
+dispatcher.
+"""
 import argparse
 import os
 import re
@@ -51,7 +61,7 @@ def serve():
                 break
             except socket.error as e:
                 if e.errno == 48:
-                    tries+=1
+                    tries += 1
                     runner_port = runner_port + tries
                     continue
                 else:
@@ -68,8 +78,7 @@ def serve():
     response = helpers.communicate(server.dispatcher_server, "register:%s:%s" %
                                   (runner_host, runner_port))
     if response != "OK":
-        raise("Can't register with dispatcher!")
-        sys.exit(1)
+        raise Exception("Can't register with dispatcher!")
 
     def dispatcher_checker(server):
         while not server.dead:
@@ -83,10 +92,9 @@ def serve():
                         server.shutdown()
                         return
                 except socket.error as e:
-                    print "Dispatcher is down"
+                    print "Can't communicate with dispatcher: %s" % e
                     server.shutdown()
                     return
-            
     t = threading.Thread(target=dispatcher_checker, args=(server,))
     try:
         t.start()
@@ -115,11 +123,11 @@ class TestHandler(SocketServer.BaseRequestHandler):
         if not command:
             self.request.sendall("Invalid command")
             return
-        if (command == "ping"):
+        if command == "ping":
             print "pinged"
             self.server.last_communication = time.time()
             self.request.sendall("pong")
-        elif (command == "runtest"):
+        elif command == "runtest":
             print "got runtest: am I busy? %s" % self.server.busy
             if self.server.busy:
                 self.request.sendall("BUSY")
@@ -128,29 +136,29 @@ class TestHandler(SocketServer.BaseRequestHandler):
                 print "running"
                 commit_hash = command_groups.group(2)
                 self.server.busy = True
-                results = self.run_tests(commit_hash,
-                                         self.server.repo_folder)
+                self.run_tests(commit_hash,
+                               self.server.repo_folder)
                 self.server.busy = False
 
     def run_tests(self, commit_hash, repo_folder):
         # update repo
-        output = subprocess.check_output(["./test_runner_script.sh %s %s" % 
+        output = subprocess.check_output(["./test_runner_script.sh %s %s" %
                                         (repo_folder, commit_hash)], shell=True)
         print output
         # run the tests
         test_folder = os.path.sep.join([repo_folder, "tests"])
         suite = unittest.TestLoader().discover(test_folder)
         result_file = open("results", "w")
-        program = unittest.TextTestRunner(result_file).run(suite)
+        unittest.TextTestRunner(result_file).run(suite)
         result_file.close()
         result_file = open("results", "r")
         # give the dispatcher the location of the results
         # NOTE: typically, we upload results to the result server,
         # which will be used by a webinterface
         output = result_file.read()
-        send_results = helpers.communicate(self.server.dispatcher_server,
-                                           "results:%s:%s" % (commit_hash,
-                                                              output))
+        helpers.communicate(self.server.dispatcher_server,
+                            "results:%s:%s" % (commit_hash,
+                            output))
 
 
 if __name__ == "__main__":
