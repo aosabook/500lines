@@ -41,7 +41,7 @@ fun accesses[m : Module] : set Resource {
 }
 
 // A payload in a message must be owned by the sender or received by the sender
-// as part of a previous mesasge			
+// as part of a previous message			
 fact ResourceConstraints {
 	all m : Module, msg : sends[m] |
 		msg.payloads in m.owns + payloadSet[msg.prevs & receives[m]]
