@@ -26,12 +26,12 @@ sig URL {
 	path : lone Path
 }
 
-sig Server extends EndPoint {	
+sig Server extends message/EndPoint {	
 	resMap : URL -> lone Resource		// maps each URL to at most one resource
 }
 
 /* Client-side components */
-sig Browser extends EndPoint {
+sig Browser extends message/EndPoint {
 	frames : set Frame
 }
 sig Frame {
@@ -41,12 +41,12 @@ sig Frame {
 }{
 	some script implies script.context = location
 }
-sig Script extends EndPoint {
+sig Script extends message/EndPoint {
 	context : URL
 }
 
 /* HTTP Messages */
-abstract sig HTTPReq extends Msg {
+abstract sig HTTPReq extends message/Msg {
 	url : URL
 }{
 	sender in Browser + Script
@@ -59,7 +59,7 @@ sig XMLHTTPReq in HTTPReq {
 	sender in Script
 }
 
-abstract sig HTTPResp extends Msg {
+abstract sig HTTPResp extends message/Msg {
 	res : Resource,
 	inResponseTo: HTTPReq
 }{
@@ -71,7 +71,7 @@ abstract sig HTTPResp extends Msg {
 /* Frame interactions */
 sig DOM extends Resource {}
 
-abstract sig DomAPI extends Msg {
+abstract sig DomAPI extends message/Msg {
 	frame : Frame									// frame that contains the DOM
 }{
 	sender in Script

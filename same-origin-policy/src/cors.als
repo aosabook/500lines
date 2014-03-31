@@ -4,26 +4,27 @@
 	*/
 module cors
 
+open http
 open sop
 
 
-sig ReqCORS in HTTPReq {
+sig ReqCORS in http/HTTPReq {
 	-- "origin" header
-	origin : Origin
+	origin : sop/Origin
 }{
 	sender in Script
 }
 
-sig RespCORS in HTTPResp {
+sig RespCORS in http/HTTPResp {
 	-- "access-control-allow-origin" header
-	allowedOrigins : set Origin
+	allowedOrigins : set sop/Origin
 }{
-	receiver in Script
+	receiver in http/Script
 	inResponseTo in ReqCORS
 }
 
 // True iff the URL and origin match in terms of host, protocol, and port
-pred sameOrigin[u : URL, o : Origin] {
+pred sameOrigin[u : http/URL, o : sop/Origin] {
 	u.host = o.host
 	u.protocol = o.protocol
 	u.port = o.port

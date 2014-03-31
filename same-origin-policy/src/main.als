@@ -12,6 +12,7 @@ module main
 -- import other model files
 open cors
 open http
+open message
 open sop
 
 
@@ -24,30 +25,30 @@ run Gen {} for 3
 // Generates an instance with at least one successful same-origin request
 // bound: up to 3 objects of each type, but only up to 2 servers and 1 browser
 run GenWithSameOriginReq {
-	some req :  XMLHTTPReq | sameOrigin[req.url, req.sender.context]
-} for 3 but 2 Server, 1 Browser
+	some req :  http/XMLHTTPReq | sop/sameOrigin[req.url, req.sender.context]
+} for 3 but 2 http/Server, 1 http/Browser
 
 
 // Generate an instance with at least one successful CORS request
 // bound: up to 3 objects of each type, but only up to 2 servers
 run GenWithCORSReq {
-	some RespCORS
-} for 3 but 2 Server
+	some cors/RespCORS
+} for 3 but 2 http/Server
 
 
 /* Property Checking */
 
 -- Designate some subset of resources to be critical, and some of the endpoints
 -- to be "malicious"
-sig CriticalResource in Resource {}
-sig MaliciousEndPoint in EndPoint {}
+sig CriticalResource in message/Resource {}
+sig MaliciousEndPoint in message/EndPoint {}
 
 // Asserts that no bad endpoint can read a critical resource
 assert noResourceLeak {
-	no r : CriticalResource, b : MaliciousEndPoint | r in accesses[b]
+	no r : CriticalResource, b : MaliciousEndPoint | r in message/accesses[b]
 }
 
 // Check whether assertion "noResourceLeak" holds
 // bound: up to 5 objects of each type, but only up to 2 servers
 -- this generates a counterexample that can be visualized with theme file "SOP.thm"
-check noResourceLeak for 5 but 2 Server
+check noResourceLeak for 5 but 2 http/Server

@@ -4,7 +4,7 @@
 	*/
 module message
 
-open util/ordering[Msg] as MO
+open util/ordering[Msg] as ord
 
 
 sig Resource {}
@@ -44,5 +44,5 @@ fun accesses[ep : EndPoint] : set Resource {
 // as part of a previous message			
 fact ResourceConstraints {
 	all ep : EndPoint, msg : sends[ep] |
-		msg.payloads in ep.owns + payloadSet[prevs[msg] & receives[ep]]
+		msg.payloads in ep.owns + payloadSet[ord/prevs[msg] & receives[ep]]
 }
