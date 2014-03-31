@@ -1,8 +1,10 @@
 SuperSimpleCI
 =============
-Author: Malini Das
-Project: SuperSimpleCI
-Requirements: Posix, Python2.7+, Git
+**Author;** Malini Das
+
+**Project:** SuperSimpleCI
+
+**Requirements:** Posix, Python2.7+, Git
 
 This is a simplified version of a distributed continuous integration (CI) system. 
 It assumes you're running against a git repository, and needs git on the PATH.
