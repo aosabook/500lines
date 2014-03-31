@@ -29,7 +29,7 @@ def serve():
     server = ThreadingTCPServer((args.host, int(args.port)), DispatcherHandler)
     # Create a thread to check the runner pool
     def runner_checker(server):
-        #TODO:mention that we can do timeout based kills (if BUSY for too long
+        #NOTE:mention that we can do timeout based kills (if BUSY for too long
         # etc)
         while not server.dead:
             time.sleep(1)
@@ -41,10 +41,10 @@ def serve():
                     response = s.recv(1024)
                     s.close()
                     if response != "pong":
-                        print 'killing'
+                        print 'removing runner %s' % runner
                         server.runners.remove(runner)
                 except socket.error as e:
-                    print 'killing'
+                    print 'removing runner %s' % runner
                     server.runners.remove(runner)
     t = threading.Thread(target=runner_checker, args=(server,))
     try:
@@ -53,7 +53,7 @@ def serve():
         # interrupt the program with Ctrl-C
         server.serve_forever()
     except (KeyboardInterrupt, Exception):
-        # if anything happens, kill the thread
+        # if any exception occurs, kill the thread
         server.dead = True
         t.join()
 
@@ -67,7 +67,6 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
 
     command_re = re.compile(r"""(\w*)([:]*.*)""")
     last_communication = None
-    REPO_FOLDER = "/Users/mdas/Code/500/repo"
 
     def handle(self):
         # self.request is the TCP socket connected to the client
@@ -88,7 +87,7 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
                 self.request.sendall("No runners are registered")
             else:
                 # The coordinator can trust us to dispatch the test
-                #TODO: add ability to batch tests using manifests
+                #TODO: add ability to batch tests using manifests?
                 self.request.sendall("OK")
                 self.dispatch_tests(commit_hash)
         elif (command == "register"):
@@ -99,6 +98,7 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
             self.server.runners.append(runner)
             self.request.sendall("OK")
         elif (command == "results"):
+            print "got results"
             results = command_groups.group(2)
             commit_hash = re.findall(r":(\w*):.*", results)[0]
             if not os.path.exists("test_results"):
@@ -114,20 +114,16 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
 
 
     def dispatch_tests(self, commit_hash):
-        # let the server know we're going to handle the request
-        # TODO: if too many runners are busy for too long, 
-        # we should alert the coordinator
-        # TODO: usually we handle this more gracefully, instead of hard-stopping
+        # NOTE: usually we don't run this forever
         while True:
-            print 'trying'
+            print "trying to dispatch to runners"
             for runner in self.server.runners:
-                response = helpers.communicate(runner, "runtest:%s" % commit_hash)
-                print 'got response:%s' % response
+                response = helpers.communicate(runner,
+                                               "runtest:%s" % commit_hash)
                 if response == "OK":
                     return
             time.sleep(2)
 
 
 if __name__ == "__main__":
-    #TODO: use argparse to accept a new coordinator address
     serve()
