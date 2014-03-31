@@ -5,6 +5,7 @@ import socket
 import SocketServer
 import subprocess
 import time
+import threading
 import unittest
 
 import helpers
@@ -12,9 +13,9 @@ import helpers
 
 class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     dispatcher_server = None
+    last_communication = None
     busy = False
-    repo_folder = None
-    test_folder = None
+    dead = False
 
 
 def serve():
@@ -33,8 +34,6 @@ def serve():
                         action="store")
     parser.add_argument("repo", metavar="REPO", type=str,
                         help="path to the repository this will observe")
-    parser.add_argument("tests_dir", metavar="TESTS_DIR", type=str,
-                        help="path to the tests folder")
     args = parser.parse_args()
 
     # Create the server, binding to localhost on port 9999
@@ -63,7 +62,6 @@ def serve():
         runner_port = int(args.port)
         server = ThreadingTCPServer((runner_host, runner_port), TestHandler)
     server.repo_folder = args.repo
-    server.test_folder = args.tests_dir
 
     dispatcher_host, dispatcher_port = args.dispatcher_server.split(":")
     server.dispatcher_server = {"host":dispatcher_host, "port":dispatcher_port}
@@ -73,9 +71,32 @@ def serve():
         raise("Can't register with dispatcher!")
         sys.exit(1)
 
-    # Activate the server; this will keep running until you
-    # interrupt the program with Ctrl-C
-    server.serve_forever()
+    def dispatcher_checker(server):
+        while not server.dead:
+            time.sleep(5)
+            if (time.time() - server.last_communication) > 5:
+                try:
+                    response = helpers.communicate(server.dispatcher_server,
+                                                   "status")
+                    if response != "OK":
+                        print "Dispatcher is no longer functional"
+                        server.shutdown()
+                        return
+                except socket.error as e:
+                    print "Dispatcher is down"
+                    server.shutdown()
+                    return
+            
+    t = threading.Thread(target=dispatcher_checker, args=(server,))
+    try:
+        t.start()
+        # Activate the server; this will keep running until you
+        # interrupt the program with Ctrl-C
+        server.serve_forever()
+    except (KeyboardInterrupt, Exception):
+        # if any exception occurs, kill the thread
+        server.dead = True
+        t.join()
 
 
 class TestHandler(SocketServer.BaseRequestHandler):
@@ -84,7 +105,6 @@ class TestHandler(SocketServer.BaseRequestHandler):
     """
 
     command_re = re.compile(r"""(\w*)(?::(\w*))*""")
-    last_communication = None
 
 
     def handle(self):
@@ -97,7 +117,7 @@ class TestHandler(SocketServer.BaseRequestHandler):
             return
         if (command == "ping"):
             print "pinged"
-            self.last_communication = time.time()
+            self.server.last_communication = time.time()
             self.request.sendall("pong")
         elif (command == "runtest"):
             print "got runtest: am I busy? %s" % self.server.busy
@@ -109,16 +129,16 @@ class TestHandler(SocketServer.BaseRequestHandler):
                 commit_hash = command_groups.group(2)
                 self.server.busy = True
                 results = self.run_tests(commit_hash,
-                                         self.server.repo_folder,
-                                         self.server.test_folder)
+                                         self.server.repo_folder)
                 self.server.busy = False
 
-    def run_tests(self, commit_hash, repo_folder, test_folder):
+    def run_tests(self, commit_hash, repo_folder):
         # update repo
         output = subprocess.check_output(["./test_runner_script.sh %s %s" % 
                                         (repo_folder, commit_hash)], shell=True)
         print output
         # run the tests
+        test_folder = os.path.sep.join([repo_folder, "tests"])
         suite = unittest.TestLoader().discover(test_folder)
         result_file = open("results", "w")
         program = unittest.TextTestRunner(result_file).run(suite)
