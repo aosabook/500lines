@@ -44,5 +44,5 @@ fun accesses[ep : EndPoint] : set Resource {
 // as part of a previous message			
 fact ResourceConstraints {
 	all ep : EndPoint, msg : sends[ep] |
-		msg.payloads in ep.owns + payloadSet[msg.prevs & receives[ep]]
+		msg.payloads in ep.owns + payloadSet[prevs[msg] & receives[ep]]
 }
