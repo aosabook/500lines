@@ -26,12 +26,12 @@ sig URL {
 	path : lone Path
 }
 
-sig Server extends Module {	
+sig Server extends EndPoint {	
 	resMap : URL -> lone Resource		// maps each URL to at most one resource
 }
 
 /* Client-side components */
-sig Browser extends Module {
+sig Browser extends EndPoint {
 	frames : set Frame
 }
 sig Frame {
@@ -41,7 +41,7 @@ sig Frame {
 }{
 	some script implies script.context = location
 }
-sig Script extends Module {
+sig Script extends EndPoint {
 	context : URL
 }
 

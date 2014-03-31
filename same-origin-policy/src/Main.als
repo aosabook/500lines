@@ -37,14 +37,14 @@ run GenWithCORSReq {
 
 /* Property Checking */
 
--- Designate some subset of resources to be critical, and some of the modules
+-- Designate some subset of resources to be critical, and some of the endpoints
 -- to be "malicious"
 sig CriticalResource in Resource {}
-sig MaliciousModule in Module {}
+sig MaliciousEndPoint in EndPoint {}
 
-// Asserts that no bad module can read a critical resource
+// Asserts that no bad endpoint can read a critical resource
 assert noResourceLeak {
-	no r : CriticalResource, b : MaliciousModule | r in accesses[b]
+	no r : CriticalResource, b : MaliciousEndPoint | r in accesses[b]
 }
 
 // Check whether assertion "noResourceLeak" holds
