@@ -37,12 +37,12 @@ fun payloadSet[msgs : set Msg] : set Resource {
 fun accesses[m : Module] : set Resource {
 	-- "m" can only access a resource "r" iff it owns "r" or if "m" receives a
 	-- message that carries "r"
-	m.owns + payloadSet[m.receives]
+	m.owns + payloadSet[receives[m]]
 }
 
 // A payload in a message must be owned by the sender or received by the sender
 // as part of a previous mesasge			
 fact ResourceConstraints {
-	all m : Module, msg : m.sends |
-		msg.payloads in m.owns + payloadSet[msg.prevs & m.receives]
+	all m : Module, msg : sends[m] |
+		msg.payloads in m.owns + payloadSet[msg.prevs & receives[m]]
 }

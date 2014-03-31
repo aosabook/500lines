@@ -44,7 +44,7 @@ sig MaliciousModule in Module {}
 
 // Asserts that no bad module can read a critical resource
 assert noResourceLeak {
-	no r : CriticalResource, b : MaliciousModule | r in b.accesses
+	no r : CriticalResource, b : MaliciousModule | r in accesses[b]
 }
 
 // Check whether assertion "noResourceLeak" holds
