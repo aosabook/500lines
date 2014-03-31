@@ -54,6 +54,11 @@ abstract sig HTTPReq extends Msg {
 }
 sig GET, POST, OPTIONS extends HTTPReq {}
 
+sig XMLHTTPReq in HTTPReq {
+}{
+	sender in Script
+}
+
 abstract sig HTTPResp extends Msg {
 	res : Resource,
 	inResponseTo: HTTPReq

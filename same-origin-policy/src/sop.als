@@ -17,11 +17,6 @@ sig Origin {
 	port : lone Port
 }
 
-sig XMLHTTPReq in HTTPReq {
-}{
-	sender in Script
-}
-
 // True iff the two URLs match in terms of host, protocol, and port
 pred sameOrigin[u1, u2 : URL] {
 	u1.host = u2.host
