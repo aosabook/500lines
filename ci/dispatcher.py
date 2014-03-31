@@ -47,10 +47,9 @@ def serve():
             for runner in server.runners:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 try:
-                    s.connect((runner["host"], int(runner["port"])))
-                    s.send("ping")
-                    response = s.recv(1024)
-                    s.close()
+                    response = helpers.communicate(runner["host"],
+                                                   int(runner["port"]),
+                                                   "ping")
                     if response != "pong":
                         print "removing runner %s" % runner
                         server.runners.remove(runner)
@@ -129,7 +128,8 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
         while True:
             print "trying to dispatch to runners"
             for runner in self.server.runners:
-                response = helpers.communicate(runner,
+                response = helpers.communicate(runner["host"],
+                                               int(runner["port"]),
                                                "runtest:%s" % commit_hash)
                 if response == "OK":
                     return

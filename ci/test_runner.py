@@ -75,8 +75,10 @@ def serve():
 
     dispatcher_host, dispatcher_port = args.dispatcher_server.split(":")
     server.dispatcher_server = {"host":dispatcher_host, "port":dispatcher_port}
-    response = helpers.communicate(server.dispatcher_server, "register:%s:%s" %
-                                  (runner_host, runner_port))
+    response = helpers.communicate(server.dispatcher_server["host"],
+                                   int(server.dispatcher_server["port"]),
+                                   "register:%s:%s" %
+                                   (runner_host, runner_port))
     if response != "OK":
         raise Exception("Can't register with dispatcher!")
 
@@ -85,8 +87,10 @@ def serve():
             time.sleep(5)
             if (time.time() - server.last_communication) > 5:
                 try:
-                    response = helpers.communicate(server.dispatcher_server,
-                                                   "status")
+                    response = helpers.communicate(
+                                       server.dispatcher_server["host"],
+                                       int(server.dispatcher_server["port"]),
+                                       "status")
                     if response != "OK":
                         print "Dispatcher is no longer functional"
                         server.shutdown()
@@ -156,9 +160,9 @@ class TestHandler(SocketServer.BaseRequestHandler):
         # NOTE: typically, we upload results to the result server,
         # which will be used by a webinterface
         output = result_file.read()
-        helpers.communicate(self.server.dispatcher_server,
-                            "results:%s:%s" % (commit_hash,
-                            output))
+        helpers.communicate(self.server.dispatcher_server["host"],
+                            int(self.server.dispatcher_server["port"]),
+                            "results:%s:%s" % (commit_hash, output))
 
 
 if __name__ == "__main__":

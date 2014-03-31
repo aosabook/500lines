@@ -14,6 +14,8 @@ import subprocess
 import sys
 import time
 
+import helpers
+
 
 def bail(reason):
     raise Exception(reason)
@@ -41,24 +43,20 @@ def poll():
                 # great, we have a change! let's execute the tests
                 # First, check the status of the dispatcher server to see
                 # if we can send the tests
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 try:
-                    s.connect((dispatcher_host, int(dispatcher_port)))
-                    s.send("status")
+                    response = helpers.communicate(dispatcher_host,
+                                                   int(dispatcher_port),
+                                                   "status")
                 except socket.error as e:
                     bail("Could not communicate with dispatcher server: %s" % e)
-                response = s.recv(1024)
-                s.close()
                 if response == "OK":
                     # Dispatcher is present, let's send it a test
                     commit = ""
                     with open(".commit_hash", "r") as f:
                         commit = f.readline()
-                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    s.connect((dispatcher_host, int(dispatcher_port)))
-                    s.send("dispatch:%s" % commit)
-                    response = s.recv(1024)
-                    s.close()
+                    response = helpers.communicate(dispatcher_host,
+                                                   int(dispatcher_port),
+                                                   "dispatch:%s" % commit)
                     if response != "OK":
                         bail("Could not dispatch the test: %s" %
                         response)
