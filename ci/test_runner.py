@@ -1,6 +1,7 @@
 import argparse
 import os
 import re
+import socket
 import SocketServer
 import subprocess
 import time
@@ -24,7 +25,6 @@ def serve():
                         action="store")
     parser.add_argument("--port",
                         help="runner's port, by default it uses values >=8900",
-                        default=8900,
                         action="store")
     parser.add_argument("--dispatcher-server",
                         help="dispatcher host:port, by default it uses localhost:8888",
@@ -38,8 +38,31 @@ def serve():
 
     # Create the server, binding to localhost on port 9999
     #TODO: add logic to use values above 8900
-    runner_host, runner_port = args.host, int(args.port)
-    server = ThreadingTCPServer((runner_host, runner_port), TestHandler)
+    runner_host = args.host
+    runner_port = None
+    tries = 0
+    import pdb;pdb.set_trace()
+    if not args.port:
+        runner_port = 8900
+        while tries < 100:
+            try:
+                server = ThreadingTCPServer((runner_host, runner_port),
+                                            TestHandler)
+                print server
+                print runner_port
+                break
+            except socket.error as e:
+                if e.errno == 48:
+                    tries+=1
+                    runner_port = runner_port + tries
+                    continue
+                else:
+                    raise e
+        else:
+            raise Exception("Could not bind to ports in range 8900-9000")
+    else:
+        runner_port = int(args.port)
+        server = ThreadingTCPServer((runner_host, runner_port), TestHandler)
     server.repo_folder = args.repo
     server.test_folder = args.tests_dir
 
