@@ -10,14 +10,11 @@ It assumes you're running against a git repository, and needs git on the PATH.
 Files
 =====
 * repo_observer.py -- Checks the repo for changes and notifies the dispatcher
-* dispatcher.py -- Receives test requests and dispatches them against test
-runners
+* dispatcher.py -- Receives test requests and dispatches them against test runners
 * test_runner.py -- Runs the tests and returns the results 
 * helpers.py -- Holds shared code
-* update_repo.sh -- Updates the shared repo and drops a new file with the hash
-if there's a change
-* test_runner_script.sh -- Updates the test runner's repository to the given
-commit hash
+* update_repo.sh -- Updates the shared repo and drops a new file with the hash if there's a change
+* test_runner_script.sh -- Updates the test runner's repository to the given commit hash
 * tests/ -- Holds some demo tests to run
 
 Idea
