@@ -10,9 +10,9 @@
 module main
 
 -- import other model files
+open cors
 open http
 open sop
-open cors
 
 
 /* Simulation */
