@@ -34,9 +34,11 @@ test runner will register itself with the dispatcher to let it know its
 host/port and that it is available. After that, we start the observer, and
 we can start changing our master repository to see the system in action.
 
-Running the Code
-================
+Running the CI
+==============
 
+File Setup
+----------
 To get the example working, we need to have a repository for this CI system to
 check against. Let's start a local git repository in a separate folder.
 Let's call this test_repo::
@@ -64,10 +66,19 @@ Copy the tests/ folder from this code base to test_repo and commit it::
 
 The repo observer will need its own clone of the code::
 
-  git clone /path/to/test_repo test_repo_clone
+  git clone /path/to/test_repo test_repo_clone_obs
 
 this will be the repo used by the repo observer. It will check this repo for
 changes from the master.
+
+The test runner will *also* need its own clone of the code::
+
+  git clone /path/to/test_repo test_repo_clone_runner
+
+The test runner will use this clone to checkout the commit it needs to test.
+
+Running the Code
+----------------
 
 The repo observer merely checks for changes. It does not do any test running.
 Instead, it notifies a main server in dispatcher.py of a change. Dispatcher.py
@@ -76,19 +87,19 @@ a testrunner.
 
 For our CI system, let's start the dispatcher first, running on port 8888::
 
-  python dispatcher.py --port=8888
+  python dispatcher.py
 
-In a new shell, start the test_runner (so it can register itself with the
+In a new shell, we should start the test_runner (so it can register itself with the
 dispatcher)::
 
-  python test_runner.py --dispatcher-server=localhost:8888
+  python test_runner.py <path/to/test_repo_clone_runner>
 
 The test runner will assign itself its own port, in the range 8900->9000. You
 may run as many test runners as you like.
 
 Lastly, in another new shell, let's start the repo_observer::
 
-  python repo_observer.py ---dispatcher-server=localhost:8888 <path/to/test_repo>
+  python repo_observer.py ---dispatcher-server=localhost:8888 <path/to/test_repo_clone_obs>
 
 Now that everything is set up, let's trigger some tests! To do that, we'll need
 to make a new commit. Go to your master repo and make an arbitrary change::
@@ -99,7 +110,10 @@ to make a new commit. Go to your master repo and make an arbitrary change::
   git commit -m"new file" new_file
 
 then repo_observer.py will realize that there's a new commit and will notify
-the dispatcher. You can see the output in their respective shells.
+the dispatcher. You can see the output in their respective shells, so you
+can monitor them. Once the dispatcher receives the test results, it stores them
+in a test_results/ folder in this code base, using the commit hash as the
+file name.
 
 Error Handling
 ==============
