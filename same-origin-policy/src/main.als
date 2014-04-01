@@ -10,6 +10,7 @@
 module main
 
 -- import other model files
+open browser
 open cors
 open http
 open message
@@ -25,8 +26,8 @@ run Gen {} for 3
 // Generates an instance with at least one successful same-origin request
 // bound: up to 3 objects of each type, but only up to 2 servers and 1 browser
 run GenWithSameOriginReq {
-	some req :  http/XMLHTTPReq | sop/sameOrigin[req.url, req.sender.context]
-} for 3 but 2 http/Server, 1 http/Browser
+	some req :  browser/XMLHTTPReq | sop/sameOrigin[req.url, req.sender.context]
+} for 3 but 2 http/Server, 1 browser/Browser
 
 
 // Generate an instance with at least one successful CORS request
