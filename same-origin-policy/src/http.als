@@ -1,10 +1,10 @@
 /**
-	* HTTP.als
+	* http.als
 	* 	A model of the Hypertext Transfer Protocol.
 	*/
-module HTTP
+module http
 
-open Message
+open message
 
 
 /* Server-side components */
@@ -21,17 +21,17 @@ sig Path {}
 sig URL {
 	protocol : Protocol,
 	host : Host,
-	// port and path are optional
+	-- port and path are optional
 	port : lone Port,
 	path : lone Path
 }
 
-sig Server extends Module {	
-	resMap : URL -> lone Resource		// maps each URL to at most one resource
+sig Server extends message/EndPoint {	
+	resMap : URL -> lone message/Resource	-- maps each URL to at most one resource
 }
 
 /* Client-side components */
-sig Browser extends Module {
+sig Browser extends message/EndPoint {
 	frames : set Frame
 }
 sig Frame {
@@ -41,12 +41,12 @@ sig Frame {
 }{
 	some script implies script.context = location
 }
-sig Script extends Module {
+sig Script extends message/EndPoint {
 	context : URL
 }
 
 /* HTTP Messages */
-abstract sig HTTPReq extends Msg {
+abstract sig HTTPReq extends message/Msg {
 	url : URL
 }{
 	sender in Browser + Script
@@ -54,9 +54,14 @@ abstract sig HTTPReq extends Msg {
 }
 sig GET, POST, OPTIONS extends HTTPReq {}
 
-abstract sig HTTPResp extends Msg {
-	res : Resource,
-	inResponseTo: HTTPReq
+sig XMLHTTPReq in HTTPReq {
+}{
+	sender in Script
+}
+
+abstract sig HTTPResp extends message/Msg {
+	res : message/Resource,
+	inResponseTo : HTTPReq
 }{
 	sender in Server
 	receiver in Browser + Script
@@ -64,10 +69,10 @@ abstract sig HTTPResp extends Msg {
 }
 
 /* Frame interactions */
-sig DOM extends Resource {}
+sig DOM extends message/Resource {}
 
-abstract sig DomAPI extends Msg {
-	frame : Frame									// frame that contains the DOM
+abstract sig DomAPI extends message/Msg {
+	frame : Frame	-- frame that contains the DOM
 }{
 	sender in Script
 	receiver in Browser
