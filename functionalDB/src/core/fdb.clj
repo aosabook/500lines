@@ -363,8 +363,22 @@
 (defn mask-path-leaf-with-items
   "a path is a vector triplet, at the first position there's a set of the path's items, here we intersect the path's items with the set of relevant items"
   [index  relevant-items path]
-  (let [leaf-ind  (:db-leaf-index index )]
-    (assoc path leaf-ind (CS/intersection relevant-items (path leaf-ind )))))
+    (update-in path [2] CS/intersection relevant-items ));)
+
+ (defn seqify-result-path
+   "A result-path is a path whose leaves are the items representing the items of the query chaining variable. This function
+   returns for a result path a seq of vectors, each vector is a path from the root of the result path to one of its items, each item is followed
+   by it's variable name as was inserted in the query"
+   [index path ]
+   (let [seq-path   [ (repeat (first path))  (repeat (second path)) (last path)]
+         meta-path(apply (:db-from-eav index) (map repeat (:db/variable (meta path))))
+         all-path (interleave   seq-path meta-path)]
+     (apply (partial map vector)  all-path)))
+
+(defn merge-query-and-meta [q-res index]
+  (let [seq-res-path (mapcat (partial seqify-result-path index)  q-res )
+          reversed-res-path  (map reverse seq-res-path)]
+    (reduce #(assoc-in %1  (butlast %2) (last %2)) {} reversed-res-path)))
 
 (defn query-index
   "an index is a 3 level map (VAE, AVE, EVA) that is found at a specific time (T).
@@ -374,11 +388,11 @@
     -- to-eav is a function that receives a path in the index (3 elements ordered from root to leave in the index) and returns a vector containing these 3 elements, ordered like this [entity attr val]
   The values found at the third level of the map of all the branches that passed the above two filters are fused into one seq"
    [index path-preds]
-   (let [leaf-ind (:db-leaf-index index)
+   (let [;leaf-ind (:db-leaf-index index)
          filtered-paths (filter-index index path-preds) ; the paths (vectors) from the root of the index to the leaves (a leaf of an index is a set) where each path fulfils one predicate path
-         relevant-items (items-that-answer-all-conditions (map #(get % leaf-ind ) filtered-paths) (count path-preds)) ; the set of elements, each answers all the pred-paths
+         relevant-items (items-that-answer-all-conditions (map last filtered-paths) (count path-preds)) ; the set of elements, each answers all the pred-paths
          relevant-paths (map #(mask-path-leaf-with-items index relevant-items %) filtered-paths)] ; the paths, now their leaves are filtered to have only the items that fulfilled the predicates
-     (filter #(not-empty (% leaf-ind)) relevant-paths))) ; of these, we'll build a subset-path of the index that contains the paths to the leaves (sets), and these leaves contain only the valid items
+     (filter #(not-empty (last %)) relevant-paths))) ; of these, we'll build a subset-path of the index that contains the paths to the leaves (sets), and these leaves contain only the valid items
 
 (defmacro q
   "querying the database using datalog queries built in a map structure ({:find [variables*] :where [ [e a v]* ]}).
@@ -386,9 +400,10 @@
   [db query]
   `(let [query#  (q-clauses ~(:where query) )
            ind# (choose-index ~db query#)
-
-         ]
-    (query-index ind# query#)))
+           q-res# (query-index ind# query#)
+           ;res# (merge-query-and-meta q-res# ind#)
+         ]q-res#
+    ))
 
 (defn evolution-of
   "The sequence of the values of of an entity's attribute, as changed through time"
