@@ -401,8 +401,8 @@
   `(let [query#  (q-clauses ~(:where query) )
            ind# (choose-index ~db query#)
            q-res# (query-index ind# query#)
-           ;res# (merge-query-and-meta q-res# ind#)
-         ]q-res#
+           res# (merge-query-and-meta q-res# ind#)
+         ]res#
     ))
 
 (defn evolution-of
