@@ -46,3 +46,13 @@ fact ResourceConstraints {
 	all ep : EndPoint, msg : sends[ep] |
 		msg.payloads in ep.owns + payloadSet[ord/prevs[msg] & receives[ep]]
 }
+
+// Generates an instance with a non-empty message between two different end
+// points.
+// bound: exactly 2 EndPoints, 1 Msg and 1 Resource
+run Gen {
+	-- let's have the sender and receiver be different
+	all msg : Msg | msg.sender not in msg.receiver
+	-- let's have the message have a non-empty payload
+	all msg : Msg | #msg.payloads > 0
+} for exactly 2 EndPoint, exactly 1 Msg, exactly 1 Resource
