@@ -4,18 +4,10 @@
 	*/
 module sop
 
---  import the HTTP model
+open browser
 open http
+open cors
 
-
-// An origin is defined as a triple (protocol, host, port) where port is optional
-sig Origin {
-	host : http/Host,
-	protocol : http/Protocol,
-	-- lone means zero or one. It may help to think of the word as short for
-	-- "less than or equal to one"
-	port : lone http/Port
-}
 
 // True iff the two URLs match in terms of host, protocol, and port
 pred sameOrigin[u1, u2 : http/URL] {
@@ -26,7 +18,7 @@ pred sameOrigin[u1, u2 : http/URL] {
 
 fact SameOriginPolicy {
 	-- A script can only access the DOM of a frame with the same origin
-	all d : http/DomAPI | sameOrigin[d.frame.location, d.sender.context]
+	all d : browser/DomAPICall | sameOrigin[d.frame.location, d.sender.context]
 	-- A script can only make an AJAX call to a server with the same origin
-	all x : http/XMLHTTPReq | sameOrigin[x.url, x.sender.context]
+	all x : browser/XMLHTTPReq | x in cors/ReqCORS or sameOrigin[x.url, x.sender.context]
 }

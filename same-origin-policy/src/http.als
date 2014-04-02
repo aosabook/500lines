@@ -7,7 +7,6 @@ module http
 open message
 
 
-/* Server-side components */
 sig Host {}
 sig Port {}
 sig Protocol {}
@@ -26,65 +25,35 @@ sig URL {
 	path : lone Path
 }
 
+// An origin is defined as a triple (protocol, host, port) where port is optional
+sig Origin {
+	host : Host,
+	protocol : Protocol,
+	port : lone Port
+}
+
 sig Server extends message/EndPoint {	
 	resMap : URL -> lone message/Resource	-- maps each URL to at most one resource
 }
 
-/* Client-side components */
-sig Browser extends message/EndPoint {
-	frames : set Frame
-}
-sig Frame {
-	location : URL,
-	dom : DOM,
-	script : lone Script
-}{
-	some script implies script.context = location
-}
-sig Script extends message/EndPoint {
-	context : URL
-}
 
 /* HTTP Messages */
 abstract sig HTTPReq extends message/Msg {
 	url : URL
 }{
-	sender in Browser + Script
+	sender not in Server
 	receiver in Server
 }
-sig GET, POST, OPTIONS extends HTTPReq {}
 
-sig XMLHTTPReq in HTTPReq {
-}{
-	sender in Script
-}
+-- a more detailed model could include the other request methods (like HEAD,
+-- PUT, OPTIONS) but these are not relevant to the analysis.
+sig GET, POST extends HTTPReq {}
 
 abstract sig HTTPResp extends message/Msg {
 	res : message/Resource,
 	inResponseTo : HTTPReq
 }{
 	sender in Server
-	receiver in Browser + Script
+	receiver not in Server
 	payloads = res
-}
-
-/* Frame interactions */
-sig DOM extends message/Resource {}
-
-abstract sig DomAPI extends message/Msg {
-	frame : Frame	-- frame that contains the DOM
-}{
-	sender in Script
-	receiver in Browser
-	frame in Browser.frames
-}
-sig ReadDOM extends DomAPI {
-	dom : DOM,
-}{
-	payloads = dom
-}
-sig WriteDOM extends DomAPI {
-	newDOM : DOM
-}{
-	payloads = newDOM
 }

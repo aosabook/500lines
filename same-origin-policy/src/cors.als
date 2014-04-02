@@ -4,22 +4,21 @@
 	*/
 module cors
 
+open browser
 open http
-open sop
-
 
 sig ReqCORS in http/HTTPReq {
 	-- "origin" header
-	origin : sop/Origin
+	origin : http/Origin
 }{
-	sender in Script
+	sender in browser/Script
 }
 
 sig RespCORS in http/HTTPResp {
 	-- "access-control-allow-origin" header
-	allowedOrigins : set sop/Origin
+	allowedOrigins : set http/Origin
 }{
-	receiver in http/Script
+	receiver in browser/Script
 	inResponseTo in ReqCORS
 }
 
