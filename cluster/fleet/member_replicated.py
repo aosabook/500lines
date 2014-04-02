@@ -19,7 +19,7 @@ class ClusterMember(Member):
         def bootstrapped(state, slot_num, decisions, view_id, peers, peer_history):
             self.replica = replica_cls(self, execute_fn)
             self.acceptor = acceptor_cls(self)
-            self.leader = leader_cls(self, node.unique_id, peer_history, commander_cls=commander_cls, scout_cls=scout_cls)
+            self.leader = leader_cls(self, node.unique_id, peers, commander_cls=commander_cls, scout_cls=scout_cls)
             # start up the replica, now that its information is ready
             self.replica.start(state, slot_num, decisions, view_id, peers, peer_history)
 
