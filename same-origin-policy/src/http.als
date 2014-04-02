@@ -12,7 +12,10 @@ sig Port {}
 sig Protocol {}
 sig Path {}
 abstract sig Method {}
-one sig GET, POST extends Method {}	// can be expanded for other methods
+
+-- a more detailed model could include the other request methods (like HEAD,
+-- PUT, OPTIONS) but these are not relevant to the analysis.
+one sig GET, POST extends Method {}
 
 // Given an example URL "http://www.example.com/dir/page.html",
 // "http" is the protocol,
@@ -46,10 +49,6 @@ abstract sig HTTPReq extends message/Msg {
 	sender not in Server
 	receiver in Server
 }
-
--- a more detailed model could include the other request methods (like HEAD,
--- PUT, OPTIONS) but these are not relevant to the analysis.
-sig GET, POST extends HTTPReq {}
 
 abstract sig HTTPResp extends message/Msg {
 	res : message/Resource,

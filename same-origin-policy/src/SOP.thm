@@ -3,8 +3,6 @@
 
 <view nodetheme="Martha" edgetheme="Martha">
 
-<projection> <type name="HTTP/Message/Msg"/> </projection>
-
 <defaultnode/>
 
 <defaultedge/>
@@ -13,123 +11,73 @@
    <type name="Int"/>
    <type name="String"/>
    <type name="univ"/>
-   <type name="HTTP/DomAPI"/>
-   <type name="HTTP/HTTPReq"/>
-   <type name="HTTP/OPTIONS"/>
+   <type name="browser/Browser"/>
+   <type name="browser/DOM"/>
+   <type name="browser/DomAPICall"/>
+   <type name="browser/FormTag"/>
+   <type name="browser/Frame"/>
+   <type name="browser/HTMLTag"/>
+   <type name="browser/ImgSrcTag"/>
+   <type name="browser/ReadDOM"/>
+   <type name="browser/Script"/>
+   <type name="browser/ScriptTag"/>
+   <type name="browser/SrcTag"/>
+   <type name="browser/WriteDOM"/>
+   <type name="http/GET"/>
+   <type name="http/Host"/>
+   <type name="http/HTTPReq"/>
+   <type name="http/HTTPResp"/>
+   <type name="http/Method"/>
+   <type name="http/Origin"/>
+   <type name="http/Path"/>
+   <type name="http/Port"/>
+   <type name="http/POST"/>
+   <type name="http/Protocol"/>
+   <type name="http/Server"/>
+   <type name="http/URL"/>
+   <type name="postmessage/PostMessage"/>
    <type name="seq/Int"/>
-   <type name="HTTP/Message/Module"/>
-   <type name="HTTP/Message/MO/Ord"/>
-   <set name="allowedOrigins" type="SOP/Origin"/>
-   <set name="dom" type="HTTP/DOM"/>
-   <set name="First" type="HTTP/Message/MO/Ord"/>
-   <set name="frame" type="HTTP/Frame"/>
-   <set name="newDOM" type="HTTP/DOM"/>
-   <set name="Next" type="HTTP/Message/MO/Ord"/>
-   <set name="origin" type="SOP/Origin"/>
-   <set name="payloads" type="HTTP/Message/Resource"/>
-   <set name="receiver" type="HTTP/Message/Module"/>
-   <set name="res" type="HTTP/Message/Resource"/>
-   <set name="sender" type="HTTP/Message/Module"/>
-   <set name="url" type="HTTP/URL"/>
-   <set name="CORS/RespCORS" type="HTTP/HTTPResp"/>
+   <type name="message/ord/Ord"/>
+   <set name="this/CriticalResource" type="message/Resource"/>
+   <set name="this/MaliciousEndPoint" type="message/EndPoint"/>
+   <set name="$noResourceLeak_b" type="message/EndPoint"/>
+   <set name="$noResourceLeak_r" type="message/Resource"/>
+   <set name="browser/XMLHTTPReq" type="http/HTTPReq"/>
+   <set name="cors/ReqCORS" type="http/HTTPReq"/>
+   <set name="cors/RespCORS" type="http/HTTPResp"/>
 </node>
 
 <node color="Gray">
-   <type name="HTTP/Message/Msg"/>
+   <type name="message/EndPoint"/>
 </node>
 
-<node color="Gray" label="Frame">
-   <type name="HTTP/Frame"/>
-</node>
-
-<node color="Red" label="MaliciousModule">
-   <set name="this/MaliciousModule" type="HTTP/Message/Module"/>
-</node>
-
-<node label="Browser">
-   <type name="HTTP/Browser"/>
-</node>
-
-<node label="CriticalResource">
-   <set name="this/CriticalResource" type="HTTP/Message/Resource"/>
-</node>
-
-<node label="DOM">
-   <type name="HTTP/DOM"/>
-</node>
-
-<node label="GET">
-   <type name="HTTP/GET"/>
-</node>
-
-<node label="HTTPResp">
-   <type name="HTTP/HTTPResp"/>
-</node>
-
-<node label="Host">
-   <type name="HTTP/Host"/>
-</node>
-
-<node label="Origin">
-   <type name="SOP/Origin"/>
-</node>
-
-<node label="POST">
-   <type name="HTTP/POST"/>
-</node>
-
-<node label="Path">
-   <type name="HTTP/Path"/>
-</node>
-
-<node label="Port">
-   <type name="HTTP/Port"/>
-</node>
-
-<node label="Protocol">
-   <type name="HTTP/Protocol"/>
-</node>
-
-<node label="ReadDOM">
-   <type name="HTTP/ReadDOM"/>
-</node>
-
-<node label="ReqCORS">
-   <set name="CORS/ReqCORS" type="HTTP/HTTPReq"/>
-</node>
-
-<node label="Script">
-   <type name="HTTP/Script"/>
-</node>
-
-<node label="Server">
-   <type name="HTTP/Server"/>
-</node>
-
-<node label="URL">
-   <type name="HTTP/URL"/>
-</node>
-
-<node label="WriteDOM">
-   <type name="HTTP/WriteDOM"/>
-</node>
-
-<node label="XMLHTTPReq">
-   <set name="SOP/XMLHTTPReq" type="HTTP/HTTPReq"/>
+<node color="White">
+   <type name="message/Resource"/>
 </node>
 
 <node shape="Ellipse" color="Green">
-   <type name="HTTP/Message/Resource"/>
+   <type name="message/Msg"/>
 </node>
 
+<edge visible="no">
+   <relation name="payloads"> <type name="message/Msg"/> <type name="message/Resource"/> </relation>
+</edge>
+
+<edge visible="no" attribute="no">
+   <relation name="res"> <type name="http/HTTPResp"/> <type name="message/Resource"/> </relation>
+</edge>
+
 <edge visible="no" attribute="yes">
-   <relation name="host"> <type name="HTTP/URL"/> <type name="HTTP/Host"/> </relation>
-   <relation name="host"> <type name="SOP/Origin"/> <type name="HTTP/Host"/> </relation>
-   <relation name="path"> <type name="HTTP/URL"/> <type name="HTTP/Path"/> </relation>
-   <relation name="port"> <type name="HTTP/URL"/> <type name="HTTP/Port"/> </relation>
-   <relation name="port"> <type name="SOP/Origin"/> <type name="HTTP/Port"/> </relation>
-   <relation name="protocol"> <type name="HTTP/URL"/> <type name="HTTP/Protocol"/> </relation>
-   <relation name="protocol"> <type name="SOP/Origin"/> <type name="HTTP/Protocol"/> </relation>
+   <relation name="allowedOrigins"> <type name="http/HTTPResp"/> <type name="http/Origin"/> </relation>
+   <relation name="host"> <type name="http/Origin"/> <type name="http/Host"/> </relation>
+   <relation name="host"> <type name="http/URL"/> <type name="http/Host"/> </relation>
+   <relation name="inResponseTo"> <type name="http/HTTPResp"/> <type name="http/HTTPReq"/> </relation>
+   <relation name="method"> <type name="http/HTTPReq"/> <type name="http/Method"/> </relation>
+   <relation name="origin"> <type name="http/HTTPReq"/> <type name="http/Origin"/> </relation>
+   <relation name="origin"> <type name="postmessage/PostMessage"/> <type name="http/URL"/> </relation>
+   <relation name="owns"> <type name="message/EndPoint"/> <type name="message/Resource"/> </relation>
+   <relation name="protocol"> <type name="http/Origin"/> <type name="http/Protocol"/> </relation>
+   <relation name="protocol"> <type name="http/URL"/> <type name="http/Protocol"/> </relation>
 </edge>
 
 </view>

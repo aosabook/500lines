@@ -23,7 +23,7 @@ sig RespCORS in http/HTTPResp {
 	inResponseTo in ReqCORS
 }
 
-fact CORSRules {
+pred corsRule {
 	-- A CORS response is accepted iff it is allowed by the server, as indicated
 	-- in "access-control-allow-origin" header
 	all r : RespCORS | r.inResponseTo.origin in r.allowedOrigins

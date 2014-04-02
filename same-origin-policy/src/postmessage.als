@@ -6,14 +6,20 @@
 module postMessage
 
 open http
+open browser
 open sop
 
-sig PostMessage extends http/DomAPI {
-	data : Resource,
-	origin : Origin
+sig PostMessage extends browser/DomAPICall {
+	message : Resource,
+	origin, targetOrigin : URL
 }{
-	sender + receiver in http/Script
-	payloads = data
+	sender + receiver in browser/Script
+	payloads = message
+}
+
+pred postMessageRule {
+  all m : PostMessage |	sop/sameOrigin[m.targetOrigin, m.receiver.context]
 }
 
 run {} for 3
+

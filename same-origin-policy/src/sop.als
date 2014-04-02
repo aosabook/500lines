@@ -16,9 +16,18 @@ pred sameOrigin[u1, u2 : http/URL] {
 	u1.port = u2.port
 }
 
-fact SameOriginPolicy {
+pred sameOriginPolicy {
+	-- same origin policy actually has multiple parts
+	domSOP
+	xmlhttpreqSOP
+}
+
+pred domSOP {
 	-- A script can only access the DOM of a frame with the same origin
-	all d : http/ReadDOM + http/WriteDOM | sameOrigin[d.frame.location, d.sender.context]
+	all d : browser/ReadDOM + browser/WriteDOM | sameOrigin[d.frame.location, d.sender.context]
+}
+pred xmlhttpreqSOP {
 	-- A script can only make an AJAX call to a server with the same origin
 	all x : browser/XMLHTTPReq | x in cors/ReqCORS or sameOrigin[x.url, x.sender.context]
 }
+

@@ -13,6 +13,7 @@ sig Browser extends message/EndPoint {
 }
 sig Frame {
 	location : http/URL,
+	tags : set HTMLTag,
 	dom : DOM,
 	script : lone Script
 }{

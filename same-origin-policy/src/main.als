@@ -11,10 +11,20 @@ module main
 
 -- import other model files
 open browser
-open cors
 open http
 open message
 open sop
+open cors
+open postmessage
+
+// Security policies 
+// Comment out to see what might happen when one or more of them don't hold
+fact Policies {
+	domSOP
+	xmlhttpreqSOP
+	corsRule
+	postMessageRule
+}
 
 /* Simulation */
 
@@ -63,4 +73,4 @@ assert noResourceLeak {
 // Check whether assertion "noResourceLeak" holds
 // bound: up to 5 objects of each type, but only up to 2 servers
 -- this generates a counterexample that can be visualized with theme file "SOP.thm"
-check noResourceLeak for 5 but 2 http/Server
+check noResourceLeak for 3 but 2 http/Server
