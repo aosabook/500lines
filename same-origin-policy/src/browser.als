@@ -8,7 +8,7 @@ open http
 open message
 
 
-sig Browser extends http/Client {
+sig Browser extends message/EndPoint {
 	frames : set Frame
 }
 sig Frame {
