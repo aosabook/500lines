@@ -15,7 +15,6 @@ open http
 open message
 open sop
 
-
 /* Simulation */
 
 // Generates an instance
@@ -26,7 +25,7 @@ run Gen {} for 3
 // bound: up to 3 objects of each type, but only up to 2 servers and 1 browser
 run GenWithSameOriginReq {
 	some req :  http/XMLHTTPReq | sop/sameOrigin[req.url, req.sender.context]
-} for 3 but 2 http/Server, 1 http/Browser
+} for 3 but 2 http/Server, 1 http/Browser, 4 EndPoint
 
 
 // Generate an instance with at least one successful CORS request

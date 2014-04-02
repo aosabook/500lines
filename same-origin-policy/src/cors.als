@@ -1,6 +1,7 @@
 /**
 	* cors.als
 	* 	A model of the cross-origin resource sharing (CORS) mechanism
+	* 		intended for cross-domain communication from a script and a server
 	*/
 module cors
 
@@ -12,7 +13,7 @@ sig ReqCORS in http/HTTPReq {
 	-- "origin" header
 	origin : sop/Origin
 }{
-	sender in Script
+	sender in http/Script
 }
 
 sig RespCORS in http/HTTPResp {

@@ -26,7 +26,7 @@ pred sameOrigin[u1, u2 : http/URL] {
 
 fact SameOriginPolicy {
 	-- A script can only access the DOM of a frame with the same origin
-	all d : http/DomAPI | sameOrigin[d.frame.location, d.sender.context]
+	all d : http/ReadDOM + http/WriteDOM | sameOrigin[d.frame.location, d.sender.context]
 	-- A script can only make an AJAX call to a server with the same origin
 	all x : http/XMLHTTPReq | sameOrigin[x.url, x.sender.context]
 }

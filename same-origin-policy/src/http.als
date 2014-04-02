@@ -12,6 +12,8 @@ sig Host {}
 sig Port {}
 sig Protocol {}
 sig Path {}
+abstract sig Method {}
+one sig GET, POST extends Method {}	// can be expanded for other methods
 
 // Given an example URL "http://www.example.com/dir/page.html",
 // "http" is the protocol,
@@ -37,6 +39,7 @@ sig Browser extends message/EndPoint {
 sig Frame {
 	location : URL,
 	dom : DOM,
+	tags : set HTMLTag,
 	script : lone Script
 }{
 	some script implies script.context = location
@@ -47,12 +50,12 @@ sig Script extends message/EndPoint {
 
 /* HTTP Messages */
 abstract sig HTTPReq extends message/Msg {
-	url : URL
+	url : URL,
+	method : Method
 }{
 	sender in Browser + Script
 	receiver in Server
 }
-sig GET, POST, OPTIONS extends HTTPReq {}
 
 sig XMLHTTPReq in HTTPReq {
 }{
@@ -88,3 +91,38 @@ sig WriteDOM extends DomAPI {
 }{
 	payloads = newDOM
 }
+
+/* HTML Tags */
+abstract sig HTMLTag {}
+abstract sig SrcTag extends HTMLTag {
+	src : URL
+}
+sig ImgSrcTag, ScriptTag extends SrcTag {}
+
+sig FormTag extends HTMLTag {
+	action: URL,
+	method : Method
+}
+
+fact {
+	// Browser makes an HTTP request 
+	all b : Browser, f : b.frames, t : f.tags {
+		t in SrcTag implies {
+			// for every HTML tag that has a "src" attribute
+			some r : HTTPReq {
+				r.sender = b 
+				r.url = t.src 
+				r.method = GET
+			}
+		}
+		t in FormTag implies {
+			// for every form input tag
+			some r : HTTPReq {
+				r.sender = b
+				r.url = t.action
+				r.method = t.method
+			}
+		}
+	}
+}
+
