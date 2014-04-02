@@ -38,8 +38,7 @@ class Commander(Component):
             if len(self.accepted) < self.quorum:
                 return
             # make sure that this node hears about the decision, otherwise the
-            # slot can get "stuck" if all of the DECISION messages get lost, or
-            # if this node is not in self.peers
+            # slot can get "stuck" if all of the DECISION messages get lost
             self.event('decision', slot=self.slot, proposal=self.proposal)
             self.send(self.peers, 'DECISION',
                       slot=self.slot,

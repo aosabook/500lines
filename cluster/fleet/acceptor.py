@@ -7,7 +7,7 @@ class Acceptor(Component):
 
     def __init__(self, member):
         super(Acceptor, self).__init__(member)
-        self.ballot_num = Ballot(-1, -1, -1)
+        self.ballot_num = Ballot(-1, -1)
         self.accepted = defaultdict()  # { (b, s) : p }
 
     def do_PREPARE(self, scout_id, ballot_num):  # p1a

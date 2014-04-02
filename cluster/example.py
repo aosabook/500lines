@@ -26,11 +26,12 @@ def main():
                 seed=seed)
     ship.start()
 
-    for event in ship.events():
-        print event
-        old = ship.invoke(('get', sys.argv[1])) or 0
-        print "got", old
-        ship.invoke(('set', sys.argv[1], old + 1))
+    while True:
+        command = raw_input("fleet> ").split()
+        if command[0] == 'set':
+            ship.invoke(('set', command[1], command[2]))
+        elif command[0] == 'get':
+            print "got", ship.invoke(('get', command[1]))
 
 
 if __name__ == "__main__":
