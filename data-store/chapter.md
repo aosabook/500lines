@@ -51,7 +51,8 @@ Explore code
 a CLI tool for exploring a database.
 
 ``interface.py`` defines
-a simple front-end dictionary-like interface.
+a simple front-end interface
+that acts like a Python dictionary.
 
 ``tree.py`` defines
 lower level interfaces
