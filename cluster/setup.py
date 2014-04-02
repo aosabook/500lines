@@ -11,6 +11,12 @@ setup(
     packages=find_packages(),
     entry_points="""
     [console_scripts]
-    fleet = fleet.run:main
+        fleet = fleet.run:main
     """,
+    extras_require = { 
+        'test': [
+            'nose',
+            'mock'
+        ]   
+    },  
 )
