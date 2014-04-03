@@ -7,9 +7,9 @@ module http
 open message
 
 
-sig Host {}
-sig Port {}
 sig Protocol {}
+sig Host {} -- Hostname (e.g. www.example.com)
+sig Port {}
 sig Path {}
 abstract sig Method {}
 
@@ -32,8 +32,8 @@ sig URL {
 
 // An origin is defined as a triple (protocol, host, port) where port is optional
 sig Origin {
-	host : Host,
 	protocol : Protocol,
+	host : Host,
 	port : lone Port
 }
 
