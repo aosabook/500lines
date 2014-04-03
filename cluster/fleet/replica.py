@@ -16,14 +16,13 @@ class Replica(Component):
         self.next_slot = slot_num
         self.decisions = decisions
         self.peers = peers
-        self.welcome_peers = set()
 
         # TODO: Can be replaced with 'assert slot_num not in self._decisions' if decision value cannot be None
         assert decisions.get(slot_num) is None
 
         self.catchup()
 
-    # creating proposals
+    # making proposals
 
     def do_INVOKE(self, caller, client_id, input_value):
         proposal = Proposal(caller, client_id, input_value)
@@ -31,20 +30,11 @@ class Replica(Component):
             self.propose(proposal)
         else:
             # It's the only drawback of using dict instead of defaultlist
-            slot = next(s for s, p in self._proposals.iteritems() if p == proposal)
+            slot = next(s for s, p in self.proposals.iteritems() if p == proposal)
             self.logger.info("proposal %s already proposed in slot %d", proposal, slot)
 
-    def do_JOIN(self, requester):
-        if requester in self.peers:
-            self.send(list(self.welcome_peers), 'WELCOME',
-                      state=self.state,
-                      slot_num=self.slot_num,
-                      decisions=self.decisions,
-                      peers=self.peers)
-
-    # injecting proposals
-
     def propose(self, proposal, slot=None):
+        """Send (or resend, if slot is specified) a proposal to the leader"""
         if not slot:
             slot = self.next_slot
             self.next_slot += 1
@@ -55,8 +45,11 @@ class Replica(Component):
                          (proposal, slot, leader))
         self.send([leader], 'PROPOSE', slot=slot, proposal=proposal)
 
+    # catching up with the rest of the cluster
+
     def catchup(self):
         """Try to catch up on un-decided slots"""
+        # TODO: some way to gossip about `next_slot` with other replicas
         if self.slot_num != self.next_slot:
             self.logger.debug("catching up on %d .. %d" % (self.slot_num, self.next_slot-1))
         for slot in xrange(self.slot_num, self.next_slot):
@@ -72,6 +65,13 @@ class Replica(Component):
                 self.propose(Proposal(None, None, None), slot)
         self.set_timer(CATCHUP_INTERVAL, self.catchup)
 
+    def do_CATCHUP(self, slot, sender):
+        # if we have a decision for this proposal, spread the knowledge
+        # TODO: Can be replaced with 'if slot in self._decisions' if decision value cannot be None
+        if self.decisions.get(slot):
+            self.send([sender], 'DECISION',
+                      slot=slot, proposal=self.decisions[slot])
+
     # handling decided proposals
 
     def do_DECISION(self, slot, proposal):
@@ -86,7 +86,7 @@ class Replica(Component):
 
         # execute any pending, decided proposals, eliminating duplicates
         while True:
-            commit_proposal = self.decisions.get(self._slot_num)
+            commit_proposal = self.decisions.get(self.slot_num)
             if not commit_proposal:
                 break  # not decided yet
             commit_slot, self.slot_num = self.slot_num, self.slot_num + 1
@@ -115,9 +115,13 @@ class Replica(Component):
             self.send([proposal.caller], 'INVOKED',
                       client_id=proposal.client_id, output=output)
 
-    def do_CATCHUP(self, slot, sender):
-        # if we have a decision for this proposal, spread the knowledge
-        # TODO: Can be replaced with 'if slot in self._decisions' if decision value cannot be None
-        if self.decisions.get(slot):
-            self.send([sender], 'DECISION',
-                      slot=slot, proposal=self.decisions[slot])
+    # adding new cluster members
+
+    def do_JOIN(self, requester):
+        if requester in self.peers:
+            self.send([requester], 'WELCOME',
+                      state=self.state,
+                      slot_num=self.slot_num,
+                      decisions=self.decisions,
+                      peers=self.peers)
+

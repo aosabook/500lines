@@ -17,6 +17,9 @@ class ComponentTestCase(unittest.TestCase):
         got = self.node.sent.pop(0)
         self.assertEqual((sorted(got[0]), got[1], got[2]), (sorted(destinations), action, kwargs))
 
+    def assertNoMessages(self):
+        self.assertEqual(self.node.sent, [])
+
     def assertTimers(self, times):
         self.assertEqual(self.node.get_times(), times)
 

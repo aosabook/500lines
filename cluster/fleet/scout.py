@@ -26,12 +26,10 @@ class Scout(Component):
         self.retransmit_timer = self.set_timer(PREPARE_RETRANSMIT, self.send_prepare)
 
     def finished(self, adopted, ballot_num):
-        self.cancel_timer(self.retransmit_timer)
         self.logger.info(
             "finished - adopted" if adopted else "finished - preempted")
         self.leader.scout_finished(adopted, ballot_num, self.pvals)
-        if self.retransmit_timer:
-            self.cancel_timer(self.retransmit_timer)
+        self.cancel_timer(self.retransmit_timer)
         self.stop()
 
     def do_PROMISE(self, scout_id, acceptor, ballot_num, accepted):  # p1b
