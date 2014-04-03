@@ -32,7 +32,7 @@ fact Policies {
 // bound: up to 3 objects of each type, but exactly one server, browser, url,
 // dom and origin.
 run GenWithSameOriginReq {
-	some req :  browser/XMLHTTPReq | sop/sameOrigin[req.url, req.sender.context]
+	some req :  browser/XMLHTTPReq | sop/sameOrigin[req.url, req.from.context]
 } for 3 but 1 http/Server, 1 browser/Browser, 1 http/URL, 1 browser/DOM,
 1 sop/Origin
 
@@ -41,9 +41,8 @@ run GenWithSameOriginReq {
 // bound: up to 3 objects of each type, but exactly one server, browser, url,
 // dom and origin.
 run GenWithSameOriginReqNoCors {
-	some req :  browser/XMLHTTPReq | sop/sameOrigin[req.url, req.sender.context]
+	some req :  browser/XMLHTTPReq | sop/sameOrigin[req.url, req.from.context]
     no cors/ReqCORS
-	some payloads
 } for 3 but 1 http/Server, 1 browser/Browser, 1 http/URL, 1 browser/DOM,
 1 sop/Origin
 
@@ -54,7 +53,7 @@ run GenWithSameOriginReqNoCors {
 // and exactly two urls and origins.
 run GenWithDifferentOriginReqCors {
 	some req :  browser/XMLHTTPReq |
-		not sop/sameOrigin[req.url, req.sender.context]
+		not sop/sameOrigin[req.url, req.from.context]
 } for 5 but exactly 1 http/Server, exactly 1 browser/Browser,
 exactly 2 http/URL, exactly 1 browser/DOM, exactly 2 sop/Origin
 
@@ -89,27 +88,27 @@ fun follows : Msg -> Msg {
 	}
 }
 
-fun sender : Msg -> EndPoint -> Step {
+fun from : Msg -> EndPoint -> Step {
 	{m : Msg, e : EndPoint, s : Step |
-		m = s.evt and e = m.sender
+		m = s.evt and e = m.from
 	}	
 }
 
-fun receiver : Msg -> EndPoint -> Step {
+fun to : Msg -> EndPoint -> Step {
 	{m : Msg, e : EndPoint, s : Step |
-		m = s.evt and e = m.receiver
+		m = s.evt and e = m.to
 	}	
 }
 
 fun talksTo : EndPoint -> EndPoint -> Step {
 	{e1, e2 : EndPoint, s : Step |
-		s.evt.sender = e1 and s.evt.receiver = e2
+		s.evt.from = e1 and s.evt.to = e2
 	}
 }
 
 fun payload : Msg -> Resource -> Step {
 	{m : Msg, r : Resource, s : Step |
-		m = s.evt and r in m.payloads
+		m = s.evt and r in m.payload
 	}		
 }
 

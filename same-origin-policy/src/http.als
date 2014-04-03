@@ -46,16 +46,16 @@ abstract sig HTTPReq extends message/Msg {
 	url : URL,
 	method : Method
 }{
-	sender not in Server
-	receiver in Server
+	from not in Server
+	to in Server
 }
 
 abstract sig HTTPResp extends message/Msg {
 	inResponseTo : HTTPReq
 }{
-	sender in Server
-	receiver not in Server
-	one payloads
+	from in Server
+	to not in Server
+	one payload
 	payload in message/Resource
 	inResponseTo in prevs[this]
 }

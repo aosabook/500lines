@@ -12,14 +12,14 @@ sig ReqCORS in http/HTTPReq {
 	-- "origin" header
 	origin : http/Origin
 }{
-	sender in browser/Script
+	from in browser/Script
 }
 
 sig RespCORS in http/HTTPResp {
 	-- "access-control-allow-origin" header
 	allowedOrigins : set http/Origin
 }{
-	receiver in browser/Script
+	to in browser/Script
 	inResponseTo in ReqCORS
 }
 
