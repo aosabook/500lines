@@ -41,13 +41,13 @@ abstract sig DomAPICall extends message/Msg {
 }
 sig ReadDOM extends DomAPICall {
 }{
-	payloads in DOM
-	one payloads
+	payload in DOM
+	one payload
 }
 sig WriteDOM extends DomAPICall {
 }{
-	payloads in DOM
-	one payloads
+	payload in DOM
+	one payload
 }
 
 /* HTML Tags */

@@ -14,7 +14,7 @@ sig PostMessage extends browser/DomAPICall {
 	origin, targetOrigin : URL
 }{
 	sender + receiver in browser/Script
-	payloads = message
+	payload = message
 }
 
 pred postMessageRule {

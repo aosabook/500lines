@@ -55,8 +55,8 @@ abstract sig HTTPResp extends message/Msg {
 }{
 	sender in Server
 	receiver not in Server
-	one payloads 
-	payloads in message/Resource
+	one payloads
+	payload in message/Resource
 	inResponseTo in prevs[this]
 }
 
