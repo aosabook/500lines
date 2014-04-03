@@ -4,8 +4,8 @@
 	*/
 module message
 
-open util/ordering[Msg] as ord
-
+//open util/ordering[Msg] as ord
+open stepper[Msg] as ord
 
 sig Resource {}
 abstract sig EndPoint {

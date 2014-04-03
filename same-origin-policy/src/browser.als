@@ -21,6 +21,8 @@ sig Frame {
 }
 sig Script extends message/EndPoint {
 	context : http/URL
+}{
+	some script.this
 }
 
 sig XMLHTTPReq in http/HTTPReq {
@@ -38,14 +40,14 @@ abstract sig DomAPICall extends message/Msg {
 	frame in Browser.frames
 }
 sig ReadDOM extends DomAPICall {
-	dom : DOM,
 }{
-	payloads = dom
+	payloads in DOM
+	one payloads
 }
 sig WriteDOM extends DomAPICall {
-	newDOM : DOM
 }{
-	payloads = newDOM
+	payloads in DOM
+	one payloads
 }
 
 /* HTML Tags */

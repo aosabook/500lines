@@ -3,7 +3,9 @@
 
 <view nodetheme="Martha" edgetheme="Martha">
 
-<defaultnode/>
+<projection> <type name="message/ord/Step"/> </projection>
+
+<defaultnode hideunconnected="yes"/>
 
 <defaultedge/>
 
@@ -12,38 +14,20 @@
    <type name="String"/>
    <type name="univ"/>
    <type name="browser/Browser"/>
-   <type name="browser/DOM"/>
    <type name="browser/DomAPICall"/>
    <type name="browser/FormTag"/>
-   <type name="browser/Frame"/>
-   <type name="browser/HTMLTag"/>
    <type name="browser/ImgSrcTag"/>
    <type name="browser/ReadDOM"/>
-   <type name="browser/Script"/>
    <type name="browser/ScriptTag"/>
    <type name="browser/SrcTag"/>
    <type name="browser/WriteDOM"/>
-   <type name="http/GET"/>
-   <type name="http/Host"/>
-   <type name="http/HTTPReq"/>
-   <type name="http/HTTPResp"/>
-   <type name="http/Method"/>
-   <type name="http/Origin"/>
-   <type name="http/Path"/>
-   <type name="http/Port"/>
-   <type name="http/POST"/>
-   <type name="http/Protocol"/>
-   <type name="http/Server"/>
-   <type name="http/URL"/>
    <type name="postmessage/PostMessage"/>
    <type name="seq/Int"/>
-   <type name="message/ord/Ord"/>
+   <type name="message/ord/Step"/>
+   <type name="message/ord/SO/Ord"/>
    <set name="this/CriticalResource" type="message/Resource"/>
-   <set name="this/MaliciousEndPoint" type="message/EndPoint"/>
-   <set name="$noResourceLeak_b" type="message/EndPoint"/>
-   <set name="$noResourceLeak_r" type="message/Resource"/>
-   <set name="browser/XMLHTTPReq" type="http/HTTPReq"/>
-   <set name="cors/ReqCORS" type="http/HTTPReq"/>
+   <set name="First" type="message/ord/SO/Ord"/>
+   <set name="Next" type="message/ord/SO/Ord"/>
    <set name="cors/RespCORS" type="http/HTTPResp"/>
 </node>
 
@@ -51,33 +35,143 @@
    <type name="message/EndPoint"/>
 </node>
 
-<node color="White">
+<node color="Red" label="Malicious">
+   <set name="this/MaliciousEndPoint" type="message/EndPoint"/>
+</node>
+
+<node color="White" label="Resource">
    <type name="message/Resource"/>
 </node>
 
-<node shape="Ellipse" color="Green">
+<node label="DOM">
+   <type name="browser/DOM"/>
+</node>
+
+<node label="Frame">
+   <type name="browser/Frame"/>
+</node>
+
+<node label="GET">
+   <type name="http/GET"/>
+</node>
+
+<node label="Host">
+   <type name="http/Host"/>
+</node>
+
+<node label="Method">
+   <type name="http/Method"/>
+</node>
+
+<node label="Origin">
+   <type name="http/Origin"/>
+</node>
+
+<node label="POST">
+   <type name="http/POST"/>
+</node>
+
+<node label="Path">
+   <type name="http/Path"/>
+</node>
+
+<node label="Port">
+   <type name="http/Port"/>
+</node>
+
+<node label="Protocol">
+   <type name="http/Protocol"/>
+</node>
+
+<node label="Req">
+   <type name="http/HTTPReq"/>
+</node>
+
+<node label="ReqCORS">
+   <set name="cors/ReqCORS" type="http/HTTPReq"/>
+</node>
+
+<node label="Resp">
+   <type name="http/HTTPResp"/>
+</node>
+
+<node label="Script">
+   <type name="browser/Script"/>
+</node>
+
+<node label="Server">
+   <type name="http/Server"/>
+</node>
+
+<node label="URL">
+   <type name="http/URL"/>
+</node>
+
+<node label="XMLHTTPReq">
+   <set name="browser/XMLHTTPReq" type="http/HTTPReq"/>
+</node>
+
+<node showlabel="no">
+   <set name="$GenWithDifferentOriginReqCors_req" type="http/HTTPReq"/>
+</node>
+
+<node style="Bold">
+   <set name="evt" type="message/Msg"/>
+</node>
+
+<node visible="no">
+   <type name="browser/HTMLTag"/>
+</node>
+
+<node visible="no" shape="Ellipse" color="Green">
    <type name="message/Msg"/>
 </node>
 
-<edge visible="no">
+<node visible="yes" showlabel="no">
+   <set name="$pastEvents" type="message/Msg"/>
+</node>
+
+<edge color="Black" style="Bold">
+   <relation name="$follows"> <type name="message/Msg"/> <type name="message/Msg"/> </relation>
+   <relation name="$payload"> <type name="message/Msg"/> <type name="message/Resource"/> </relation>
+   <relation name="$talksTo"> <type name="message/EndPoint"/> <type name="message/EndPoint"/> </relation>
+   <relation name="inResponseTo"> <type name="http/HTTPResp"/> <type name="http/HTTPReq"/> </relation>
+</edge>
+
+<edge color="Black" style="Bold" visible="no" attribute="yes">
    <relation name="payloads"> <type name="message/Msg"/> <type name="message/Resource"/> </relation>
 </edge>
 
-<edge visible="no" attribute="no">
-   <relation name="res"> <type name="http/HTTPResp"/> <type name="message/Resource"/> </relation>
+<edge color="Red" style="Dashed">
+   <relation name="$sender"> <type name="message/Msg"/> <type name="message/EndPoint"/> </relation>
+</edge>
+
+<edge color="Red" style="Dotted">
+   <relation name="$receiver"> <type name="message/Msg"/> <type name="message/EndPoint"/> </relation>
+</edge>
+
+<edge visible="no">
+   <relation name="receiver"> <type name="message/Msg"/> <type name="message/EndPoint"/> </relation>
+   <relation name="sender"> <type name="message/Msg"/> <type name="message/EndPoint"/> </relation>
 </edge>
 
 <edge visible="no" attribute="yes">
    <relation name="allowedOrigins"> <type name="http/HTTPResp"/> <type name="http/Origin"/> </relation>
+   <relation name="context"> <type name="browser/Script"/> <type name="http/URL"/> </relation>
+   <relation name="dom"> <type name="browser/Frame"/> <type name="browser/DOM"/> </relation>
    <relation name="host"> <type name="http/Origin"/> <type name="http/Host"/> </relation>
    <relation name="host"> <type name="http/URL"/> <type name="http/Host"/> </relation>
-   <relation name="inResponseTo"> <type name="http/HTTPResp"/> <type name="http/HTTPReq"/> </relation>
+   <relation name="method"> <type name="browser/FormTag"/> <type name="http/Method"/> </relation>
    <relation name="method"> <type name="http/HTTPReq"/> <type name="http/Method"/> </relation>
    <relation name="origin"> <type name="http/HTTPReq"/> <type name="http/Origin"/> </relation>
    <relation name="origin"> <type name="postmessage/PostMessage"/> <type name="http/URL"/> </relation>
    <relation name="owns"> <type name="message/EndPoint"/> <type name="message/Resource"/> </relation>
+   <relation name="port"> <type name="http/Origin"/> <type name="http/Port"/> </relation>
+   <relation name="port"> <type name="http/URL"/> <type name="http/Port"/> </relation>
    <relation name="protocol"> <type name="http/Origin"/> <type name="http/Protocol"/> </relation>
    <relation name="protocol"> <type name="http/URL"/> <type name="http/Protocol"/> </relation>
+   <relation name="resMap"> <type name="http/Server"/> <type name="http/URL"/> <type name="message/Resource"/> </relation>
+   <relation name="url"> <type name="http/HTTPReq"/> <type name="http/URL"/> </relation>
 </edge>
 
 </view>
