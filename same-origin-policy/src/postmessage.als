@@ -18,7 +18,7 @@ sig PostMessage extends browser/DomAPICall {
 }
 
 pred postMessageRule {
-  all m : PostMessage |	sop/sameOrigin[m.targetOrigin, m.receiver.context]
+  all m : PostMessage | sop/sameOrigin[m.targetOrigin, m.receiver.context]
 }
 
 run {} for 3
