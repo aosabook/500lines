@@ -1,4 +1,6 @@
 from .. import leader
+from .. import commander
+from .. import scout
 from .. import Ballot, CommanderId, Proposal
 from . import utils
 import mock
@@ -9,63 +11,35 @@ PROPOSAL1 = Proposal(caller='cli', client_id=123, input='one')
 PROPOSAL2 = Proposal(caller='cli', client_id=125, input='two')
 PROPOSAL3 = Proposal(caller='cli', client_id=127, input='tre')
 
-
-class FakeScout(object):
-
-    def __init__(self, member, leader, ballot_num, peers):
-        self.member = member
-        self.leader = leader
-        self.ballot_num = ballot_num
-        self.peers = peers
-
-    def start(self):
-        self.started = True
-
-
-class FakeCommander(object):
-
-    def __init__(self, member, leader, ballot_num, slot, proposal, commander_id, peers):
-        self.member = member
-        self.leader = leader
-        self.ballot_num = ballot_num
-        self.slot = slot
-        self.proposal = proposal
-        self.commander_id = commander_id
-        self.peers = peers
-
-    def start(self):
-        self.started = True
+Commander = mock.create_autospec(commander.Commander)
+Scout = mock.create_autospec(scout.Scout)
 
 
 class Tests(utils.ComponentTestCase):
 
     def setUp(self):
         super(Tests, self).setUp()
+        Scout.reset_mock()
+        Commander.reset_mock()
         self.ldr = leader.Leader(self.member, UNIQUE_ID, ['p1', 'p2'],
-                                 commander_cls=FakeCommander,
-                                 scout_cls=FakeScout)
+                                 commander_cls=Commander,
+                                 scout_cls=Scout)
 
     def assertScoutStarted(self, ballot_num):
-        self.assertEqual(self.ldr.scout.member, self.member)
-        self.assertEqual(self.ldr.scout.leader, self.ldr)
-        self.assertEqual(self.ldr.scout.ballot_num, ballot_num)
-        self.assertEqual(self.ldr.scout.peers, ['p1', 'p2'])
-        self.assertTrue(self.ldr.scout.started)
+        Scout.assert_called_with(
+            self.member, self.ldr, ballot_num, ['p1', 'p2'])
+        scout = Scout(self.member, self.ldr, ballot_num, ['p1', 'p2'])
+        scout.start.assert_called_with()
 
     def assertNoScout(self):
         self.assertEqual(self.ldr.scout, None)
 
     def assertCommanderStarted(self, ballot_num, slot, proposal):
         commander_id = CommanderId(self.node.address, slot, proposal)
+        Commander.assert_called_with(self.member, self.ldr, ballot_num, slot,
+                                     proposal, commander_id, ['p1', 'p2'])
         cmd = self.ldr.commanders[commander_id]
-        self.assertEqual(cmd.member, self.member)
-        self.assertEqual(cmd.leader, self.ldr)
-        self.assertEqual(cmd.ballot_num, ballot_num)
-        self.assertEqual(cmd.slot, slot)
-        self.assertEqual(cmd.proposal, proposal)
-        self.assertEqual(cmd.commander_id, commander_id)
-        self.assertEqual(cmd.peers, ['p1', 'p2'])
-        self.assertTrue(cmd.started)
+        cmd.start.assert_called_with()
 
     def assertNoCommander(self, slot):
         for commander_id in self.ldr.commanders:

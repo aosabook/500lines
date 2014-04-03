@@ -3,18 +3,18 @@ class FakeNode(object):
     def __init__(self):
         self.unique_id = 999
         self.address = 'F999'
-        self.component = None
+        self.components = []
         self._now = 0.0
         self.timers = []
         self.sent = []
 
     def register(self, component):
-        assert not self.component
-        self.component = component
+        assert component not in self.components
+        self.components.append(component)
 
     def unregister(self, component):
-        assert self.component is component
-        self.component = None
+        assert component in self.components
+        self.components.remove(component)
 
     def set_timer(self, seconds, callback):
         self.timers.append([self._now + seconds, callback, True])
@@ -40,5 +40,6 @@ class FakeNode(object):
         self.sent.append((destinations, action, kwargs))
 
     def fake_message(self, action, **kwargs):
-        fn = getattr(self.component, 'do_%s' % action)
-        fn(**kwargs)
+        for component in self.components:
+            fn = getattr(component, 'do_%s' % action)
+            fn(**kwargs)

@@ -20,7 +20,7 @@ class Ship(object):
         self.node = network.Node(port)
         if seed is not None:
             self.cluster_member = member_replicated.ClusterSeed(
-                self.node, seed)
+                self.node, seed, peers)
         else:
             self.cluster_member = member_replicated.ClusterMember(
                 self.node, state_machine, peers=peers)
