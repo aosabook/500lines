@@ -27,7 +27,8 @@ pred domSOP {
 	all d : browser/ReadDOM + browser/WriteDOM | sameOrigin[d.frame.location, d.sender.context]
 }
 pred xmlhttpreqSOP {
-	-- A script can only make an AJAX call to a server with the same origin
-	all x : browser/XMLHTTPReq | x in cors/ReqCORS or sameOrigin[x.url, x.sender.context]
+	-- A script can only make an AJAX call to a server with the same origin if
+	-- it's not a CORS request.
+	all x : browser/XMLHTTPReq | sameOrigin[x.url, x.sender.context] or x in cors/ReqCORS
 }
 
