@@ -21,4 +21,4 @@ class ComponentTestCase(unittest.TestCase):
         self.assertEqual(self.node.get_times(), times)
 
     def assertUnregistered(self):
-        self.assertEqual(self.node.component, None)
+        self.assertEqual(self.node.components, [])
