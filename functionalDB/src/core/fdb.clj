@@ -26,9 +26,9 @@
 (defn make-db "Create an empty database" []
   (atom (Database. [(Timestamped.
                      (initial-storage) ; storage
-                     (Index. #(vector %3 %2 %1)  #(vector %3 %2 %1) #(ref? %) 2) ; VAET - for graph qeries and joins
-                     (Index. #(vector %2 %3 %1)  #(vector %3 %1 %2) #(not (not %))2) ; AVET - for filtering
-                     (Index. #(vector %1 %2 %3)  #(vector %1 %2 %3) #(not (not %))0) )] ; EAVT - for filtering
+                     (Index. #(vector %3 %2 %1)  #(vector %3 %2 %1) #(ref? %) 0) ; VAET - for graph qeries and joins
+                     (Index. #(vector %2 %3 %1)  #(vector %3 %1 %2) #(not (not %))0) ; AVET - for filtering
+                     (Index. #(vector %1 %2 %3)  #(vector %1 %2 %3) #(not (not %))2) )] ; EAVT - for filtering
                    0 0)))
 
 (defn indices[] [:VAET :AVET :EAVT])
@@ -335,9 +335,10 @@
 
 (defn filter-index
   "Helper function to return only the sub-index (subsetting paths and leaves) that passes the given predicates. The result is a seq of triplet built as follows:
-   -- At index 0 : the elements (e-ids or attribute names) that are found at the leave of the path.
-   -- At index 1 : the key used at the first level of the path.
-   -- At index 2 : the key used at the second level of the path" ; the triplet structure results in a EAV structure for the common usage
+   -- At index 0 : the key used at the first level of the path.
+   -- At index 1 : the key used at the second level of the path
+   -- At index 2 : the elements (e-ids or attribute names) that are found at the leave of the path."
+
   [index path-preds]
   (for [ path-pred path-preds
         :let [[lvl1-prd lvl2-prd lvl3-prd] (apply (:db-from-eav index) path-pred)]     ; predicates for the first and second level of the index, also keeping the path to later use its meta
@@ -371,14 +372,15 @@
    by it's variable name as was inserted in the query"
    [index path ]
    (let [seq-path   [ (repeat (first path))  (repeat (second path)) (last path)]
-         meta-path(apply (:db-from-eav index) (map repeat (:db/variable (meta path))))
-         all-path (interleave   seq-path meta-path)]
+         meta-path(apply (:db-from-eav index) (map repeat (:db/variable (meta path)))) ; re-ordering the meta to be in the order of the index
+         all-path (interleave  seq-path meta-path)]
      (apply (partial map vector)  all-path)))
 
 (defn merge-query-and-meta [q-res index]
   (let [seq-res-path (mapcat (partial seqify-result-path index)  q-res )
-          reversed-res-path  (map reverse seq-res-path)]
-    (reduce #(assoc-in %1  (butlast %2) (last %2)) {} reversed-res-path)))
+          reversed-res-path  (map reverse seq-res-path)
+          paired-path-meta (map  (partial partition 2) reversed-res-path)]
+    (reduce #(assoc-in %1  (butlast %2) (last %2)) {} paired-path-meta)))
 
 (defn query-index
   "an index is a 3 level map (VAE, AVE, EVA) that is found at a specific time (T).
@@ -388,11 +390,21 @@
     -- to-eav is a function that receives a path in the index (3 elements ordered from root to leave in the index) and returns a vector containing these 3 elements, ordered like this [entity attr val]
   The values found at the third level of the map of all the branches that passed the above two filters are fused into one seq"
    [index path-preds]
-   (let [;leaf-ind (:db-leaf-index index)
-         filtered-paths (filter-index index path-preds) ; the paths (vectors) from the root of the index to the leaves (a leaf of an index is a set) where each path fulfils one predicate path
+   (let [filtered-paths (filter-index index path-preds) ; the paths (vectors) from the root of the index to the leaves (a leaf of an index is a set) where each path fulfils one predicate path
          relevant-items (items-that-answer-all-conditions (map last filtered-paths) (count path-preds)) ; the set of elements, each answers all the pred-paths
          relevant-paths (map #(mask-path-leaf-with-items index relevant-items %) filtered-paths)] ; the paths, now their leaves are filtered to have only the items that fulfilled the predicates
      (filter #(not-empty (last %)) relevant-paths))) ; of these, we'll build a subset-path of the index that contains the paths to the leaves (sets), and these leaves contain only the valid items
+
+(defn values-of-vars
+  "For a given query result (a merge of the result and the metadata), returns the variable values found at the requested variable set"
+  [vars-set q-res]
+  (let [[root-pair child-map] q-res ; breaking the result to have both the root pair and all the rest of the pairs
+          united-children (CS/union (set (keys child-map)) (set (vals child-map))) ; uniting the child pairs to one set of bindings
+          all-binding-set  (conj united-children root-pair) ; adding to the set of bindings the root pair
+          relevant-binds (filter #(contains? vars-set (first %)) all-binding-set)] ; keeping only the relevant pairs
+    (zipmap (map first relevant-binds) (map second relevant-binds))) ) ; turning the pairs into map
+
+(defmacro settify [coll] (set (map str coll)))
 
 (defmacro q
   "querying the database using datalog queries built in a map structure ({:find [variables*] :where [ [e a v]* ]}).
@@ -401,7 +413,9 @@
   `(let [query#  (q-clauses ~(:where query) )
            ind# (choose-index ~db query#)
            q-res# (query-index ind# query#)
-           res# (merge-query-and-meta q-res# ind#)
+           merged-res# (merge-query-and-meta q-res# ind#)
+           find-items# (settify  ~(:find query))
+          res# (map (partial values-of-vars (set find-items#) ) merged-res# )
          ]res#
     ))
 
