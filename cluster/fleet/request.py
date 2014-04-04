@@ -1,11 +1,11 @@
-import sys
+import itertools
+from . import INVOKE_RETRANSMIT
 from member import Component
 
 
 class Request(Component):
 
-    client_ids = iter(xrange(1000000, sys.maxint))
-    RETRANSMIT_TIME = 0.5
+    client_ids = itertools.count(start=100000)
 
     def __init__(self, member, n, callback):
         super(Request, self).__init__(member)
@@ -16,7 +16,7 @@ class Request(Component):
 
     def start(self):
         self.send([self.address], 'INVOKE', caller=self.address, client_id=self.client_id, input_value=self.n)
-        self.invoke_timer = self.set_timer(self.RETRANSMIT_TIME, self.start)
+        self.invoke_timer = self.set_timer(INVOKE_RETRANSMIT, self.start)
 
     def do_INVOKED(self, client_id, output):
         if client_id != self.client_id:

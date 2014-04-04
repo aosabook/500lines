@@ -1,32 +1,25 @@
 import Queue
 import threading
 from . import request
-from . import member
 from . import member_replicated
 from . import network
 
 
-class Listener(member.Component):
-
-    def __init__(self, member, event_queue):
-        super(Listener, self).__init__(member)
-        self.event_queue = event_queue
-
-
 class Ship(object):
 
-    def __init__(self, state_machine, port=10001, peers=None, seed=None):
+    def __init__(self, state_machine, port=10001, peers=None, seed=None,
+            node_cls=network.Node, clusterseed_cls=member_replicated.ClusterSeed,
+            clustermember_cls=member_replicated.ClusterMember):
         peers = peers or ['255.255.255.255-%d' % port]
-        self.node = network.Node(port)
+        self.node = node_cls(port)
         if seed is not None:
-            self.cluster_member = member_replicated.ClusterSeed(
-                self.node, seed, peers)
+            self.cluster_member = clusterseed_cls(self.node, initial_state=seed,
+                                                  peers=peers)
         else:
-            self.cluster_member = member_replicated.ClusterMember(
-                self.node, state_machine, peers=peers)
-        self.event_queue = Queue.Queue()
+            self.cluster_member = clustermember_cls(self.node,
+                                                    execute_fn=state_machine,
+                                                    peers=peers)
         self.current_request = None
-        self.listener = Listener(self.cluster_member, self.event_queue)
 
     def start(self):
         def run():
@@ -37,18 +30,13 @@ class Ship(object):
         self.thread.setDaemon(1)
         self.thread.start()
 
-    def invoke(self, input_value):
+    def invoke(self, input_value, request_cls=request.Request):
         assert self.current_request is None
         q = Queue.Queue()
 
         def done(output):
             self.current_request = None
             q.put(output)
-        self.current_request = request.Request(self.cluster_member, input_value, done)
+        self.current_request = request_cls(self.cluster_member, input_value, done)
         self.current_request.start()
         return q.get()
-
-    def events(self):
-        while True:
-            evt = self.event_queue.get()
-            yield evt

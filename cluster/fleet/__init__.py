@@ -9,6 +9,7 @@ JOIN_RETRANSMIT = 0.7
 CATCHUP_INTERVAL = 0.6
 ACCEPT_RETRANSMIT = 1
 PREPARE_RETRANSMIT = 1
+INVOKE_RETRANSMIT = 0.5
 
 # replicas should be able to re-propose a view change before the new node
 # re-transmits the JOIN

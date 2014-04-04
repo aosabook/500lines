@@ -20,7 +20,7 @@ class Seed(Component):
             return
 
         # cluster is ready - welcome everyone
-        self.send(self.peers, 'WELCOME',
+        self.send(list(self.seen_peers), 'WELCOME',
                   state=self.initial_state,
                   slot_num=1,
                   decisions={},
