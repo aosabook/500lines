@@ -48,13 +48,12 @@ run GenWithSameOriginReqNoCors {
 
 
 // Generates an instance with at least one successful request with different origin.
-// bound: up to 3 objects of each type, but only up to 2 servers and 1 browser
 // bound: up to 3 objects of each type, but exactly one server, browser, dom,
 // and exactly two urls and origins.
 run GenWithDifferentOriginReqCors {
 	some req :  browser/XMLHTTPReq |
 		not sop/sameOrigin[req.url, req.from.context]
-} for 5 but exactly 1 http/Server, exactly 1 browser/Browser,
+} for 3 but exactly 1 http/Server, exactly 1 browser/Browser,
 exactly 2 http/URL, exactly 1 browser/DOM, exactly 2 sop/Origin
 
 

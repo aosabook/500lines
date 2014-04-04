@@ -29,7 +29,7 @@ fun sends[ep : EndPoint] : set Msg {
 }
 
 // Returns the payloads of all the given msgs
-fun payloadSet[msgs : set Msg] : set Resource {
+fun payloads[msgs : set Msg] : set Resource {
 	msgs.payload
 }
 
@@ -37,14 +37,14 @@ fun payloadSet[msgs : set Msg] : set Resource {
 fun accesses[ep : EndPoint] : set Resource {
 	-- "ep" can only access a resource "r" iff it owns "r" or if "ep" receives a
 	-- message that carries "r"
-	ep.owns + payloadSet[receives[ep]]
+	ep.owns + payloads[receives[ep]]
 }
 
 // A payload in a message must be owned by the sender or received by the sender
 // as part of a previous message			
 fact ResourceConstraints {
 	all ep : EndPoint, msg : sends[ep] |
-		msg.payload in ep.owns + payloadSet[ord/prevs[msg] & receives[ep]]
+		msg.payload in ep.owns + payloads[ord/prevs[msg] & receives[ep]]
 }
 
 // Generates an instance with a non-empty message between two different end
