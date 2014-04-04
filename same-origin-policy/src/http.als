@@ -7,9 +7,9 @@ module http
 open message
 
 
-sig Host {}
-sig Port {}
 sig Protocol {}
+sig Host {} -- Hostname (e.g. www.example.com)
+sig Port {}
 sig Path {}
 abstract sig Method {}
 
@@ -32,8 +32,8 @@ sig URL {
 
 // An origin is defined as a triple (protocol, host, port) where port is optional
 sig Origin {
-	host : Host,
 	protocol : Protocol,
+	host : Host,
 	port : lone Port
 }
 
@@ -46,17 +46,17 @@ abstract sig HTTPReq extends message/Msg {
 	url : URL,
 	method : Method
 }{
-	sender not in Server
-	receiver in Server
+	from not in Server
+	to in Server
 }
 
 abstract sig HTTPResp extends message/Msg {
 	inResponseTo : HTTPReq
 }{
-	sender in Server
-	receiver not in Server
-	one payloads 
-	payloads in message/Resource
+	from in Server
+	to not in Server
+	one payload
+	payload in message/Resource
 	inResponseTo in prevs[this]
 }
 

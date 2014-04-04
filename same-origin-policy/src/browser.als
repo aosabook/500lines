@@ -27,7 +27,7 @@ sig Script extends message/EndPoint {
 
 sig XMLHTTPReq in http/HTTPReq {
 }{
-	sender in Script
+	from in Script
 }
 
 sig DOM extends message/Resource {}
@@ -35,19 +35,19 @@ sig DOM extends message/Resource {}
 abstract sig DomAPICall extends message/Msg {
 	frame : Frame	-- frame that contains the DOM
 }{
-	sender in Script
-	receiver in Browser
+	from in Script
+	to in Browser
 	frame in Browser.frames
 }
 sig ReadDOM extends DomAPICall {
 }{
-	payloads in DOM
-	one payloads
+	payload in DOM
+	one payload
 }
 sig WriteDOM extends DomAPICall {
 }{
-	payloads in DOM
-	one payloads
+	payload in DOM
+	one payload
 }
 
 /* HTML Tags */
@@ -68,7 +68,7 @@ fact {
 		t in SrcTag implies {
 			// for every HTML tag that has a "src" attribute
 			some r : HTTPReq {
-				r.sender = b 
+				r.from = b 
 				r.url = t.src 
 				r.method = GET
 			}
@@ -76,7 +76,7 @@ fact {
 		t in FormTag implies {
 			// for every form input tag
 			some r : HTTPReq {
-				r.sender = b
+				r.from = b
 				r.url = t.action
 				r.method = t.method
 			}

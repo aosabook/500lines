@@ -13,12 +13,12 @@ sig PostMessage extends browser/DomAPICall {
 	message : Resource,
 	origin, targetOrigin : URL
 }{
-	sender + receiver in browser/Script
-	payloads = message
+	from + to in browser/Script
+	payload = message
 }
 
 pred postMessageRule {
-  all m : PostMessage |	sop/sameOrigin[m.targetOrigin, m.receiver.context]
+  all m : PostMessage | sop/sameOrigin[m.targetOrigin, m.to.context]
 }
 
 run {} for 3
