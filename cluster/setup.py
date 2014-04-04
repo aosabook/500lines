@@ -13,10 +13,10 @@ setup(
     [console_scripts]
         fleet = fleet.run:main
     """,
-    extras_require = { 
+    extras_require={
         'test': [
             'nose',
             'mock'
-        ]   
-    },  
+        ]
+    },
 )

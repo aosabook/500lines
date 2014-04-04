@@ -25,7 +25,8 @@ class Commander(Component):
         self.timer = self.set_timer(ACCEPT_RETRANSMIT, self.start)
 
     def finished(self, ballot_num, preempted):
-        self.leader.commander_finished(self.commander_id, ballot_num, preempted)
+        self.leader.commander_finished(
+            self.commander_id, ballot_num, preempted)
         if self.timer:
             self.cancel_timer(self.timer)
         self.stop()

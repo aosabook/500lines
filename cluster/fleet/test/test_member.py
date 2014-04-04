@@ -5,7 +5,7 @@ import mock
 
 
 class MyComp(member.Component):
-    
+
     def on_birthday_event(self, **kwargs):
         self.birthday = kwargs
 

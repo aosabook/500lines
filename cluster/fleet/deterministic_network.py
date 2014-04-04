@@ -7,7 +7,8 @@ import random
 
 
 class Node(object):
-    # # TODO: consider using itertools.count() instead of iter(xrange(1000)) - 1000 seems ot be a magic number
+    # TODO: consider using itertools.count() instead of iter(xrange(1000)) -
+    # 1000 seems ot be a magic number
     unique_ids = iter(xrange(1000))
 
     def __init__(self, network):
@@ -31,7 +32,8 @@ class Node(object):
         self.network.cancel_timer(timer)
 
     def send(self, destinations, action, **kwargs):
-        self.logger.debug("sending %s with args %s to %s", action, kwargs, destinations)
+        self.logger.debug("sending %s with args %s to %s",
+                          action, kwargs, destinations)
         self.network.send(destinations, action, **kwargs)
 
     def register(self, component):
@@ -101,6 +103,8 @@ class Network(object):
     def send(self, destinations, action, **kwargs):
         for dest in destinations:
             if self.rnd.uniform(0, 1.0) > self.DROP_PROB:
-                delay = self.PROP_DELAY + self.rnd.uniform(-self.PROP_JITTER, self.PROP_JITTER)
+                delay = self.PROP_DELAY + \
+                    self.rnd.uniform(-self.PROP_JITTER, self.PROP_JITTER)
                 # copy the kwargs now, before the sender modifies them
-                self.set_timer(delay, dest, functools.partial(self._receive, dest, action, copy.deepcopy(kwargs)))
+                self.set_timer(delay, dest, functools.partial(
+                    self._receive, dest, action, copy.deepcopy(kwargs)))

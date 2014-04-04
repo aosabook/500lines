@@ -17,7 +17,8 @@ class Replica(Component):
         self.decisions = decisions
         self.peers = peers
 
-        # TODO: Can be replaced with 'assert slot_num not in self._decisions' if decision value cannot be None
+        # TODO: Can be replaced with 'assert slot_num not in self._decisions'
+        # if decision value cannot be None
         assert decisions.get(slot_num) is None
 
         self.catchup()
@@ -30,8 +31,10 @@ class Replica(Component):
             self.propose(proposal)
         else:
             # It's the only drawback of using dict instead of defaultlist
-            slot = next(s for s, p in self.proposals.iteritems() if p == proposal)
-            self.logger.info("proposal %s already proposed in slot %d", proposal, slot)
+            slot = next(s for s, p in self.proposals.iteritems()
+                        if p == proposal)
+            self.logger.info(
+                "proposal %s already proposed in slot %d", proposal, slot)
 
     def propose(self, proposal, slot=None):
         """Send (or resend, if slot is specified) a proposal to the leader"""
@@ -51,7 +54,8 @@ class Replica(Component):
         """Try to catch up on un-decided slots"""
         # TODO: some way to gossip about `next_slot` with other replicas
         if self.slot_num != self.next_slot:
-            self.logger.debug("catching up on %d .. %d" % (self.slot_num, self.next_slot-1))
+            self.logger.debug("catching up on %d .. %d" %
+                              (self.slot_num, self.next_slot - 1))
         for slot in xrange(self.slot_num, self.next_slot):
             # ask peers for information regardless
             self.send(self.peers, 'CATCHUP', slot=slot, sender=self.address)
@@ -67,7 +71,8 @@ class Replica(Component):
 
     def do_CATCHUP(self, slot, sender):
         # if we have a decision for this proposal, spread the knowledge
-        # TODO: Can be replaced with 'if slot in self._decisions' if decision value cannot be None
+        # TODO: Can be replaced with 'if slot in self._decisions' if decision
+        # value cannot be None
         if self.decisions.get(slot):
             self.send([sender], 'DECISION',
                       slot=slot, proposal=self.decisions[slot])
@@ -75,7 +80,8 @@ class Replica(Component):
     # handling decided proposals
 
     def do_DECISION(self, slot, proposal):
-        # TODO: Can be replaced with 'if slot in self._decisions' if decision value cannot be None
+        # TODO: Can be replaced with 'if slot in self._decisions' if decision
+        # value cannot be None
         if self.decisions.get(slot) is not None:
             assert self.decisions[slot] == proposal, \
                 "slot %d already decided: %r!" % (
@@ -101,9 +107,11 @@ class Replica(Component):
 
     def commit(self, slot, proposal):
         """Actually commit a proposal that is decided and in sequence"""
-        decided_proposals = [p for s, p in self.decisions.iteritems() if s < slot]
+        decided_proposals = [p for s,
+                             p in self.decisions.iteritems() if s < slot]
         if proposal in decided_proposals:
-            self.logger.info("not committing duplicate proposal %r at slot %d", proposal, slot)
+            self.logger.info(
+                "not committing duplicate proposal %r at slot %d", proposal, slot)
             return  # duplicate
 
         self.logger.info("committing %r at slot %d" % (proposal, slot))
@@ -124,4 +132,3 @@ class Replica(Component):
                       slot_num=self.slot_num,
                       decisions=self.decisions,
                       peers=self.peers)
-

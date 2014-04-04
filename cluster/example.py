@@ -13,7 +13,8 @@ def key_value_state_machine(state, input_value):
 
 
 def main():
-    logging.basicConfig(format="%(asctime)s - %(name)s - %(message)s", level=logging.WARNING)
+    logging.basicConfig(
+        format="%(asctime)s - %(name)s - %(message)s", level=logging.WARNING)
 
     if sys.argv[1] == '--seed':
         sys.argv.pop(1)

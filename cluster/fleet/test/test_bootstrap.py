@@ -8,7 +8,8 @@ class Tests(utils.ComponentTestCase):
     def setUp(self):
         super(Tests, self).setUp()
         self.cb_args = None
-        self.bs = bootstrap.Bootstrap(self.member, ['p1', 'p2', 'p3'], self.bootstrapped_cb)
+        self.bs = bootstrap.Bootstrap(
+            self.member, ['p1', 'p2', 'p3'], self.bootstrapped_cb)
 
     def bootstrapped_cb(self, state, slot_num, decisions):
         self.cb_args = state, slot_num, decisions
@@ -21,7 +22,8 @@ class Tests(utils.ComponentTestCase):
             self.node.tick(JOIN_RETRANSMIT)
         self.assertMessage(['p2'], 'JOIN', requester=self.node.address)
 
-        self.node.fake_message('WELCOME', state='st', slot_num='sl', decisions='dec')
+        self.node.fake_message(
+            'WELCOME', state='st', slot_num='sl', decisions='dec')
         self.assertEqual(self.cb_args, ('st', 'sl', 'dec'))
         self.assertTimers([])
         self.assertUnregistered()

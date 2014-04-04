@@ -19,11 +19,13 @@ class Tests(utils.ComponentTestCase):
         self.ac.accepted = {(Ballot(19, 19), 33): proposal}
         self.ac.ballot_num = Ballot(10, 10)
         self.node.fake_message('PREPARE',
-                               scout_id=ScoutId(address='SC', ballot_num=Ballot(19, 19)),
+                               scout_id=ScoutId(
+                                   address='SC', ballot_num=Ballot(19, 19)),
                                # newer than the acceptor's ballot_num
                                ballot_num=Ballot(19, 19))
         self.assertMessage(['SC'], 'PROMISE',
-                           scout_id=ScoutId(address='SC', ballot_num=Ballot(19, 19)),
+                           scout_id=ScoutId(
+                               address='SC', ballot_num=Ballot(19, 19)),
                            acceptor='F999',
                            # replies with updated ballot_num
                            ballot_num=Ballot(19, 19),
@@ -36,11 +38,13 @@ class Tests(utils.ComponentTestCase):
         existing (newer) ballot"""
         self.ac.ballot_num = Ballot(10, 10)
         self.node.fake_message('PREPARE',
-                               scout_id=ScoutId(address='SC', ballot_num=Ballot(5, 10)),
+                               scout_id=ScoutId(
+                                   address='SC', ballot_num=Ballot(5, 10)),
                                # older than the acceptor's ballot_num
                                ballot_num=Ballot(5, 10))
         self.assertMessage(['SC'], 'PROMISE',
-                           scout_id=ScoutId(address='SC', ballot_num=Ballot(5, 10)),
+                           scout_id=ScoutId(
+                               address='SC', ballot_num=Ballot(5, 10)),
                            acceptor='F999',
                            # replies with newer ballot_num
                            ballot_num=Ballot(10, 10),

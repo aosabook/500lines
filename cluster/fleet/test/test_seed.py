@@ -19,13 +19,13 @@ class Tests(utils.ComponentTestCase):
         self.node.fake_message('JOIN', requester='p3')
         self.assertMessage(['p1', 'p3'], 'WELCOME',
                            state='state', slot_num=1, decisions={},
-                           peers=['p1', 'p2','p3'])
+                           peers=['p1', 'p2', 'p3'])
 
         self.node.tick(JOIN_RETRANSMIT)
         self.node.fake_message('JOIN', requester='p2')
         self.assertMessage(['p1', 'p2', 'p3'], 'WELCOME',
                            state='state', slot_num=1, decisions={},
-                           peers=['p1', 'p2','p3'])
+                           peers=['p1', 'p2', 'p3'])
 
         self.node.tick(JOIN_RETRANSMIT * 2)
         self.node.fake_message('JOIN', requester='p2')

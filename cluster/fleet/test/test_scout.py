@@ -38,7 +38,8 @@ class Tests(utils.ComponentTestCase):
         self.assertMessage(['p1', 'p2', 'p3'], 'PREPARE',
                            scout_id=self.sct.scout_id, ballot_num=Ballot(10, 10))
         self.sct.finished(True, Ballot(20, 20))
-        self.leader.scout_finished.assert_called_once_with(True, Ballot(20, 20), {'pvals': 1})
+        self.leader.scout_finished.assert_called_once_with(
+            True, Ballot(20, 20), {'pvals': 1})
         self.node.tick(PREPARE_RETRANSMIT)
         self.assertNoMessages()
         self.assertUnregistered()
@@ -79,7 +80,7 @@ class Tests(utils.ComponentTestCase):
     def test_PROMISE_preempted(self, finished):
         """PROMISEs with different ballot_nums mean preemption"""
         self.node.fake_message('PROMISE', scout_id=self.sct.scout_id,
-                                acceptor='p2',
-                                ballot_num=Ballot(99, 99),
-                                accepted={})
+                               acceptor='p2',
+                               ballot_num=Ballot(99, 99),
+                               accepted={})
         finished.assert_called_once_with(False, Ballot(99, 99))

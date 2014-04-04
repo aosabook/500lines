@@ -32,7 +32,8 @@ class Component(object):  # TODO: rename
         self.member = member
         self.member.register(self)
         self.address = member.address
-        self.logger = logging.getLogger("%s.%s" % (self.address, type(self).__name__))
+        self.logger = logging.getLogger("%s.%s" %
+                                        (self.address, type(self).__name__))
 
     def event(self, message, **kwargs):
         self.member.event(message, **kwargs)

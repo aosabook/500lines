@@ -8,13 +8,14 @@ from . import network
 class Ship(object):
 
     def __init__(self, state_machine, port=10001, peers=None, seed=None,
-            node_cls=network.Node, clusterseed_cls=member_replicated.ClusterSeed,
-            clustermember_cls=member_replicated.ClusterMember):
+                 node_cls=network.Node, clusterseed_cls=member_replicated.ClusterSeed,
+                 clustermember_cls=member_replicated.ClusterMember):
         peers = peers or ['255.255.255.255-%d' % port]
         self.node = node_cls(port)
         if seed is not None:
-            self.cluster_member = clusterseed_cls(self.node, initial_state=seed,
-                                                  peers=peers)
+            self.cluster_member = clusterseed_cls(
+                self.node, initial_state=seed,
+                peers=peers)
         else:
             self.cluster_member = clustermember_cls(self.node,
                                                     execute_fn=state_machine,
@@ -37,6 +38,7 @@ class Ship(object):
         def done(output):
             self.current_request = None
             q.put(output)
-        self.current_request = request_cls(self.cluster_member, input_value, done)
+        self.current_request = request_cls(
+            self.cluster_member, input_value, done)
         self.current_request.start()
         return q.get()

@@ -4,6 +4,7 @@ from .member import Component
 
 
 class Scout(Component):
+
     def __init__(self, member, leader, ballot_num, peers):
         super(Scout, self).__init__(member)
         self.leader = leader
@@ -23,7 +24,8 @@ class Scout(Component):
         self.send(self.peers, 'PREPARE',  # p1a
                   scout_id=self.scout_id,
                   ballot_num=self.ballot_num)
-        self.retransmit_timer = self.set_timer(PREPARE_RETRANSMIT, self.send_prepare)
+        self.retransmit_timer = self.set_timer(
+            PREPARE_RETRANSMIT, self.send_prepare)
 
     def finished(self, adopted, ballot_num):
         self.logger.info(
@@ -47,4 +49,3 @@ class Scout(Component):
             # ballot_num > self.ballot_num; responses to other scouts don't
             # result in a call to this method
             self.finished(False, ballot_num)
-

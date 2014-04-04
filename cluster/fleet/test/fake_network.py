@@ -34,7 +34,7 @@ class FakeNode(object):
         self._now = until
 
     def get_times(self):
-        return sorted([t[0]-self._now for t in self.timers if t[2]])
+        return sorted([t[0] - self._now for t in self.timers if t[2]])
 
     def send(self, destinations, action, **kwargs):
         self.sent.append((destinations, action, kwargs))

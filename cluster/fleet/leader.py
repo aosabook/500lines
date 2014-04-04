@@ -63,7 +63,8 @@ class Leader(Component):
     def preempted(self, ballot_num):
         self.logger.info("leader preempted by %s" % (ballot_num.leader,))
         self.active = False
-        self.ballot_num = Ballot((ballot_num or self.ballot_num).n + 1, self.ballot_num.leader)
+        self.ballot_num = Ballot(
+            (ballot_num or self.ballot_num).n + 1, self.ballot_num.leader)
 
     def do_PROPOSE(self, slot, proposal):
         if slot not in self.proposals:

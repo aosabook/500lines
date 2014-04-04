@@ -1,5 +1,7 @@
 from collections import namedtuple
 
+__all__ = ['Ship']
+
 Proposal = namedtuple('Proposal', ['caller', 'client_id', 'input'])
 Ballot = namedtuple('Ballot', ['n', 'leader'])
 ScoutId = namedtuple('ScoutId', ['address', 'ballot_num'])

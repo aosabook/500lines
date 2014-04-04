@@ -15,7 +15,8 @@ class ComponentTestCase(unittest.TestCase):
 
     def assertMessage(self, destinations, action, **kwargs):
         got = self.node.sent.pop(0)
-        self.assertEqual((sorted(got[0]), got[1], got[2]), (sorted(destinations), action, kwargs))
+        self.assertEqual((sorted(got[0]), got[1], got[2]),
+                         (sorted(destinations), action, kwargs))
 
     def assertNoMessages(self):
         self.assertEqual(self.node.sent, [])

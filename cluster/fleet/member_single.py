@@ -50,9 +50,11 @@ class MemberTests(unittest.TestCase):
         member = Member()
         client = FakeClient()
         client.member = member
-        memberthd = threading.Thread(target=member.start, args=(sequence_generator, 0,))
+        memberthd = threading.Thread(
+            target=member.start, args=(sequence_generator, 0,))
         memberthd.daemon = 1
         memberthd.start()
-        client.send([member.address], 'INVOKE', input_value=5, caller=client.address)
+        client.send([member.address], 'INVOKE',
+                    input_value=5, caller=client.address)
         client.run()
         self.assertEqual(client.output, [0, 1, 2, 3, 4])

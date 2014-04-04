@@ -8,11 +8,13 @@ PROPOSAL2 = Proposal(caller='test', client_id=222, input='two')
 PROPOSAL3 = Proposal(caller='test', client_id=333, input='tre')
 PROPOSAL4 = Proposal(caller='test', client_id=444, input='qua')
 
+
 class Tests(utils.ComponentTestCase):
 
     def setUp(self):
         super(Tests, self).setUp()
-        self.execute_fn = mock.Mock(name='execute_fn', spec=lambda state, input: None)
+        self.execute_fn = mock.Mock(
+            name='execute_fn', spec=lambda state, input: None)
         self.rep = replica.Replica(self.member, self.execute_fn)
         self.rep.start('state', 2, {1: PROPOSAL1}, ['p1', 'p2'])
         self.assertNoMessages()
@@ -23,8 +25,9 @@ class Tests(utils.ComponentTestCase):
     @mock.patch.object(replica.Replica, 'propose')
     def test_INVOKE_new(self, propose):
         """An INVOKE with a new proposal results in a proposal"""
-        self.node.fake_message('INVOKE', caller=PROPOSAL2.caller, client_id=PROPOSAL2.client_id,
-                               input_value=PROPOSAL2.input)
+        self.node.fake_message(
+            'INVOKE', caller=PROPOSAL2.caller, client_id=PROPOSAL2.client_id,
+            input_value=PROPOSAL2.input)
         propose.assert_called_with(PROPOSAL2)
 
     @mock.patch.object(replica.Replica, 'propose')
@@ -67,7 +70,8 @@ class Tests(utils.ComponentTestCase):
         self.assertMessage(['p1', 'p2'], 'CATCHUP', slot=4, sender='F999')
         self.assertEqual(propose.call_args_list, [
             mock.call(PROPOSAL2, 2),
-            mock.call(Proposal(None, None, None), 3),  # TODO: doesn't make sense
+            # TODO: doesn't make sense
+            mock.call(Proposal(None, None, None), 3),
             mock.call(Proposal(None, None, None), 4),
         ])
 
@@ -123,7 +127,7 @@ class Tests(utils.ComponentTestCase):
     def test_DECISION_repeat_conflict(self, commit):
         """On DECISION for a committed slot with a *non*-matching proposal, do nothing"""
         self.assertRaises(AssertionError, lambda:
-            self.node.fake_message('DECISION', slot=1, proposal=PROPOSAL2))
+                          self.node.fake_message('DECISION', slot=1, proposal=PROPOSAL2))
 
     def test_join(self):
         """A JOIN from a cluster member gets a warm WELCOME."""

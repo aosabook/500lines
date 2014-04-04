@@ -32,22 +32,27 @@ class Tests(unittest.TestCase):
 
     def test_Ship_no_seed(self):
         """With no seed, the Ship constructor builds a Node and a ClusterMember"""
-        sh = ship.Ship(self.state_machine, port=9999, peers=['p1', 'p2'], **self.cls_args)
+        sh = ship.Ship(self.state_machine, port=9999,
+                       peers=['p1', 'p2'], **self.cls_args)
         Node.assert_called_once_with(9999)
         self.failIf(ClusterSeed.called)
-        ClusterMember.assert_called_with(sh.node, execute_fn=self.state_machine, peers=['p1', 'p2'])
+        ClusterMember.assert_called_with(
+            sh.node, execute_fn=self.state_machine, peers=['p1', 'p2'])
 
     def test_Ship_seed(self):
         """With a seed, the Ship constructor builds a Node and a ClusterSeed"""
-        sh = ship.Ship(self.state_machine, port=9999, peers=['p1', 'p2'], seed=44,
-                            **self.cls_args)
+        sh = ship.Ship(
+            self.state_machine, port=9999, peers=['p1', 'p2'], seed=44,
+            **self.cls_args)
         Node.assert_called_once_with(9999)
-        ClusterSeed.assert_called_with(sh.node, initial_state=44, peers=['p1', 'p2'])
+        ClusterSeed.assert_called_with(
+            sh.node, initial_state=44, peers=['p1', 'p2'])
         self.failIf(ClusterMember.called)
 
     def test_start(self):
         """Ship.start starts the cluster_member and node in self.thread"""
-        sh = ship.Ship(self.state_machine, port=9999, peers=['p1', 'p2'], **self.cls_args)
+        sh = ship.Ship(self.state_machine, port=9999,
+                       peers=['p1', 'p2'], **self.cls_args)
         sh.start()
         sh.thread.join()
         sh.cluster_member.start.assert_called_once_with()
@@ -55,7 +60,8 @@ class Tests(unittest.TestCase):
 
     def test_invoke(self):
         """Ship.invoke makes a new Request, starts it, and waits for its callback to be called."""
-        sh = ship.Ship(self.state_machine, port=9999, peers=['p1', 'p2'], **self.cls_args)
+        sh = ship.Ship(self.state_machine, port=9999,
+                       peers=['p1', 'p2'], **self.cls_args)
         res = sh.invoke('ROTATE', request_cls=FakeRequest)
         self.assertEqual(sh.current_request, None)
         self.assertEqual(res, ('ROTATED', sh.cluster_member, 'ROTATE'))

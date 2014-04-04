@@ -3,6 +3,7 @@ from .member import Component
 
 
 class Seed(Component):
+
     """A component which simply provides an initial state.  It waits
     until it has heard JOIN requests from enough nodes to form a cluster, then
     WELCOMEs them all with the given initial state."""
