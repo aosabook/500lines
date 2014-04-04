@@ -41,6 +41,13 @@ sig Server extends message/EndPoint {
 	resMap : URL -> lone message/Resource	-- maps each URL to at most one resource
 }
 
+fact {
+  -- all urls are mapped by some server
+  all u : URL | some s : Server | some s.resMap[u]
+  -- no two servers map the same url
+  no disj s1, s2 : Server | some u : URL | some s1.resMap[u] and some s2.resMap[u]
+}
+
 /* HTTP Messages */
 abstract sig HTTPReq extends message/Msg {
 	url : URL,
