@@ -60,3 +60,9 @@ abstract sig HTTPResp extends message/Msg {
 	inResponseTo in prevs[this]
 }
 
+fact {
+  -- no request goes unanswered and there's only one response per request
+  all req : HTTPReq | one resp : HTTPResp | req in resp.inResponseTo
+  -- response goes to whoever sent the request
+  all resp : HTTPResp | resp.to = resp.inResponseTo.from
+}
