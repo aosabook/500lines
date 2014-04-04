@@ -12,6 +12,8 @@ class Tests(utils.ComponentTestCase):
         self.seed = seed.Seed(self.member, 'state', ['p1', 'p2', 'p3'])
 
     def test_JOIN(self):
+        """Seed waits for quorum, then sends a WELCOME in response to every JOIN until
+        2* JOIN_RETRANSMIT seconds have passed with no JOINs"""
         self.node.fake_message('JOIN', requester='p1')
         self.assertNoMessages()  # no quorum
         self.node.fake_message('JOIN', requester='p3')

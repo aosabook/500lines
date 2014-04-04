@@ -53,5 +53,6 @@ class Tests(utils.ComponentTestCase):
             peers=['p1', 'p2'])
 
     def test_ClusterSeed(self):
+        """ClusterSeed sets up a Seed component on initialization"""
         seed = member_replicated.ClusterSeed(self.node, 'state', ['p1', 'p2'], seed_cls=Seed)
         Seed.assert_called_with(seed, 'state', ['p1', 'p2'])

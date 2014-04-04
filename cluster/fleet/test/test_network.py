@@ -1,6 +1,5 @@
 from .. import network
 from .. import member
-from . import utils
 import mock
 import unittest
 import threading
@@ -17,6 +16,7 @@ class TestComp(member.Component):
 class NodeTests(unittest.TestCase):
 
     def test_comm(self):
+        """Node can successfully send a message between instances"""
         sender = network.Node(0)
         receiver = network.Node(0)
         memb = member.Member(receiver)
@@ -28,6 +28,7 @@ class NodeTests(unittest.TestCase):
         self.failUnless(comp.foo_called)
 
     def test_timeout(self):
+        """Node's timeouts trigger at the appropriate time"""
         node = network.Node(0)
 
         cb = mock.Mock(side_effect=node.kill)
@@ -36,6 +37,7 @@ class NodeTests(unittest.TestCase):
         self.failUnless(cb.called)
 
     def test_cancel_timeout(self):
+        """Node's timeouts do not occur if they are cancelled."""
         node = network.Node(0)
 
         def fail():
