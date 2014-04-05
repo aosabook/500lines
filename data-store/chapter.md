@@ -123,12 +123,22 @@ and setting it as the ``value_ref_clas``.
 
 ### Tradeoffs (time/space, performance/readability)
 
-The binary tree is easier to write
+The binary tree is much easier to write
 and hopefully easier to read
-than a B-tree would have been,
-but I/O performance of a B-tree
-ought to be superior
-for most workloads.
+than other tree structures would have been.
+Structures like B-tree, B+ tree, B\*-tree
+[and others](http://en.wikipedia.org/wiki/Tree_%28data_structure%29)
+provide superior performance,
+particularly for on-disk structures like this.
+While a balanced binary tree
+(and this one isn't)
+needs to do $O(log_2(n))$ random node reads to find a value,
+a B+tree needs many fewer, e.g. $O(log_32(n))$
+because each node splits 32 ways instead of just 2.
+This makes a huge different in practise,
+since looking through 4 billion entries would go from
+$log_2(2^32) = 32$ to $log_32(2^32) \approx 6.4$ lookups.
+
 
 ### Patterns or principles that can be used elsewhere
 
