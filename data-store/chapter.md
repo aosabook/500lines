@@ -52,31 +52,42 @@ from the contents of the key/value store
 ### Organizational units
 
 * ``tool.py`` defines
-    a CLI tool for exploring a database.
+    a CLI tool
+    for exploring a database
+    from a terminal window.
 
 * ``interface.py`` defines
-    a simple front-end interface
-    that acts like a Python dictionary.
+    an API
+    like a Python dictionary
+    using the concrete ``BinaryTree`` implementation
+    for using DBDB inside a Python program.
 
 * ``tree.py`` defines
-    lower level interfaces
-    and provides primitives
-    for building a data store
-    on top of a storage abstraction.
+    an abstract, lower-level interface to
+    the data store's structure.
+    It's not tree-specific,
+    and defers to a concrete sub-class to implement updates.
+    It manages storage locking and dereferencing internal nodes.
 
 * ``binary_tree.py`` defines
     a concrete binary tree algorithm
     underneath the tree interface
     using the storage abstraction.
+    It provides methods for getting, inserting, and deleting
+    key/value pairs, as well as its own data structures.
 
 * ``storage.py`` defines
-    addressable, persistent byte storage.
+    addressable, persistent, append-only
+    byte storage.
+    Well, append-only except for an atomic "commit"
+    pointing to a root record.
+
 
 ### Why?
 
-* Single Responsibility Principle,
-    which translates to
-    "a piece of code should have only one reason to change".
+An attempt was made to give each class a single responsibility,
+which can also be seen as "each class has only one reason to change".
+
 
 ### Points of extensibility
 
