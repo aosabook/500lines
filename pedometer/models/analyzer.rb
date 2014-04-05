@@ -12,15 +12,12 @@ class Analyzer
 
   def initialize(parser, user = User.new, device = Device.new)
     raise "Parser invalid." unless parser.kind_of? Parser
-    raise "User invalid." unless user.kind_of? User
+    raise "User invalid."   unless user.kind_of? User
     raise "Device invalid." unless device.kind_of? Device
 
-    @parser   = parser
-    @user     = user
-    @device   = device
-    @steps    = 0
-    @distance = 0
-    @time     = 0
+    @parser = parser
+    @user   = user
+    @device = device
 
     measure_steps
     measure_distance

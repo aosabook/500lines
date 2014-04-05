@@ -8,15 +8,9 @@ class User
 
   # TODO: Named params ruby 2.0 useful here?
   def initialize(gender = nil, height = nil, stride = nil)
-    params = {} unless params.kind_of? Hash
-
-    gender_param = gender.to_s.downcase
-    height_param = height.to_f
-    stride_param = stride.to_f
-
-    @gender = gender_param if GENDER.include? gender_param
-    @height = height_param if height_param > 0
-    @stride = (stride_param > 0) ? stride_param : calculate_stride
+    @gender = gender.to_s.downcase if GENDER.include? gender.to_s.downcase
+    @height = height.to_f if height.to_f > 0
+    @stride = (stride.to_f > 0) ? stride.to_f : calculate_stride
   end
 
 private
