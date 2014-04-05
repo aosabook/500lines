@@ -57,36 +57,46 @@ from the contents of the key/value store
     from a terminal window.
 
 * ``interface.py`` defines
-    an API
+    a class (``DBDB``)
+    which exposes an API
     like a Python dictionary
     using the concrete ``BinaryTree`` implementation
     for using DBDB inside a Python program.
 
 * ``tree.py`` defines
-    an abstract, lower-level interface to
-    the data store's structure.
-    It's not tree-specific,
-    and defers to a concrete sub-class to implement updates.
-    It manages storage locking and dereferencing internal nodes.
+    an abstract interface to a data store.
+
+    - ``Tree`` is not tree-specific,
+        and defers to a concrete sub-class to implement updates.
+        It manages storage locking and dereferencing internal nodes.
+
+    - ``ValueRef`` is a Python object that refers to
+        a binary blob stored in the database.
 
 * ``binary_tree.py`` defines
     a concrete binary tree algorithm
     underneath the tree interface
     using the storage abstraction.
-    It provides methods for getting, inserting, and deleting
-    key/value pairs, as well as its own data structures.
 
-* ``storage.py`` defines
-    addressable, persistent, append-only
-    byte storage.
-    Well, append-only except for an atomic "commit"
-    pointing to a root record.
+    - ``BinaryTree`` provides a concrete implementation
+        of a binary tree, with methods for
+        getting, inserting, and deleting key/value pairs.
 
+    - ``BinaryNode`` implements a node in the binary tree.
 
-### Why?
+    - ``BinaryNodeRef`` knows how to serialize and deserialize
+        a ``BinaryNode``.
 
-An attempt was made to give each class a single responsibility,
-which can also be seen as "each class has only one reason to change".
+* ``storage.py`` defines ``Storage`` class
+    providing persistent, append-only record storage.
+    Well, append-only except for an atomic "commit" operation
+    used to atomically point to a new "root" record.
+    A record is a variable-length string of bytes.
+
+These modules grew from attempting
+to give each class a single responsibility.
+In other words,
+each class should have only one reason to change.
 
 
 ### Points of extensibility
