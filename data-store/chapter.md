@@ -30,12 +30,41 @@ Consistency is not covered
 and isolation is not guaranteed
 (since dirty reads will not cause an abort on commit).
 
-Intro to toolchain (maybe optional?)
-------------------------------------
+Stale data is not reclaimed in this implementation,
+so repeated updates to the same key
+will eventually consume all disk space.
+Postgres calls this reclamation "vacuuming",
+and CouchDB calls it "compaction".
 
-The example is written in Python 2
+
+Intro to toolchain
+------------------
+
+The example is written in Python 2.
 (THOUGH I WOULD LIKE IT TO WORK IN 2 AND 3 BOTH BEFORE THIS IS PUBLISHED).
-Tests are driven using nosetests.
+
+It is highly recommended to use the ``virtualenv`` tool
+when installing dependencies:
+
+```bash
+500lines/data-store$ virtualenv env
+...
+500lines/data-store$ source env/bin/activate
+500lines/data-store$ pip install -r requirements.txt
+...
+```
+
+Tests can be run using ``nosetests``:
+
+```bash
+500lines/data-store$ nosetests
+.....................
+----------------------------------------------------------------------
+Ran 21 tests in 0.102s
+
+OK
+
+```
 
 
 Explore code
