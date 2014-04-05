@@ -110,11 +110,15 @@ not binary trees
 to improve the nodes-per-byte ratio
 of the tree.
 
-The choice of serializer for values
-is restricted to
-the ``ValueRef`` implementation.
+By default, values are stored by ``ValueRef``
+which expects bytes as values
+(to be passed directly to ``Storage``).
 The binary tree nodes themselves
 are just a sublcass of ``ValueRef``.
+Storing richer data
+(via ``json``, ``msgpack``, ``pickle``, or your own invention)
+is just a matter of writing your own
+and setting it as the ``value_ref_clas``.
 
 
 ### Tradeoffs (time/space, performance/readability)
