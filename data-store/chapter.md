@@ -41,7 +41,7 @@ Tests are driven using nosetests.
 Explore code
 ------------
 
-DBDB  separates the concerns of "put this on disk somewhere"
+DBDB separates the concerns of "put this on disk somewhere"
 (how data are laid out in a file)
 from the logical structure of the data
 (a binary tree in this example)
@@ -118,7 +118,7 @@ are just a sublcass of ``ValueRef``.
 Storing richer data
 (via ``json``, ``msgpack``, ``pickle``, or your own invention)
 is just a matter of writing your own
-and setting it as the ``value_ref_clas``.
+and setting it as the ``value_ref_class``.
 
 
 ### Tradeoffs (time/space, performance/readability)
