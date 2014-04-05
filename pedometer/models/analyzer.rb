@@ -28,26 +28,20 @@ private
 
   # -- Edge Detection -------------------------------------------------------
 
-  def split_on_threshold(positive)
-    # TODO: Can this be combined with detect_edges?
-    @parser.filtered_data.collect do |data|
-      positive ? ((data < THRESHOLD) ? 0 : 1) : ((data < -THRESHOLD) ? 1 : 0)
-    end
-  end
-
   # TODO: Count the number of false steps, 
   # and if too many are occurring, don't count 
   # any steps at all
-  def detect_edges(split)
-    min_interval = (@device.rate/MAX_STEPS_PER_SECOND)
-    
-    count = 0
+  def count_edges(positive)
+    count           = 0
     index_last_step = 0
-    split.each_with_index do |data, i|
-      # If the current value is 1 and the previous was 0, AND the 
-      # interval between now and the last time a step was counted is 
+    threshold       = positive ? THRESHOLD : -THRESHOLD
+    min_interval    = (@device.rate/MAX_STEPS_PER_SECOND)
+
+    @parser.filtered_data.each_with_index do |data, i|
+      # If the current value >= the threshold, and the previous was < the threshold
+      # AND the interval between now and the last time a step was counted is 
       # above the minimun threshold, count this as a step
-      if (data == 1) && (split[i-1] == 0)
+      if (data >= threshold) && (@parser.filtered_data[i-1] < threshold)
         next if index_last_step > 0 && (i-index_last_step) < min_interval
         count += 1
         index_last_step = i
@@ -58,12 +52,11 @@ private
 
   # -- Measurement ----------------------------------------------------------
 
-  # TODO: One method, rewrite
   def measure_steps
-    edges_positive = detect_edges(split_on_threshold(true))
-    edges_negative = detect_edges(split_on_threshold(false))
+    positive_edge_count = count_edges(true)
+    negative_edge_count = count_edges(false)
     
-    @steps = ((edges_positive + edges_negative)/2).to_f.round
+    @steps = ((positive_edge_count + negative_edge_count)/2).to_f.round
   end
 
   def measure_distance
