@@ -1,0 +1,5 @@
+require "catechism/version"
+require "core_ext/object"
+require "catechism/describe_block"
+require "catechism/subject_wrapper"
+require "catechism/cli"
