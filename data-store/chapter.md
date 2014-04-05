@@ -45,36 +45,36 @@ Tests are driven using nosetests.
 Explore code
 ------------
 
-- Organizational units
+### Organizational units
 
-``tool.py`` defines
-a CLI tool for exploring a database.
+* ``tool.py`` defines
+    a CLI tool for exploring a database.
 
-``interface.py`` defines
-a simple front-end interface
-that acts like a Python dictionary.
+* ``interface.py`` defines
+    a simple front-end interface
+    that acts like a Python dictionary.
 
-``tree.py`` defines
-lower level interfaces
-and provides primitives
-for building a data store
-on top of a storage abstraction.
+* ``tree.py`` defines
+    lower level interfaces
+    and provides primitives
+    for building a data store
+    on top of a storage abstraction.
 
-``binary_tree.py`` defines
-a concrete binary tree algorithm
-underneath the tree interface
-using the storage abstraction.
+* ``binary_tree.py`` defines
+    a concrete binary tree algorithm
+    underneath the tree interface
+    using the storage abstraction.
 
-``storage.py`` defines
-addressable, persistent byte storage.
+* ``storage.py`` defines
+    addressable, persistent byte storage.
 
-- Why?
+### Why?
 
-Single Responsibility Principle,
-which translates to
-"a piece of code should have only one reason to change".
+* Single Responsibility Principle,
+    which translates to
+    "a piece of code should have only one reason to change".
 
-- Points of extensibility
+### Points of extensibility
 
 The algorithm used to update the data store
 can be completely changed out
@@ -92,7 +92,7 @@ The binary tree nodes themselves
 are just a sublcass of ``ValueRef``.
 
 
-- Tradeoffs (time/space, performance/readability)
+### Tradeoffs (time/space, performance/readability)
 
 The binary tree is easier to write
 and hopefully easier to read
@@ -101,42 +101,43 @@ but I/O performance of a B-tree
 ought to be superior
 for most workloads.
 
-- Patterns or principles that can be used elsewhere
+### Patterns or principles that can be used elsewhere
 
 Test interfaces, not implementation.
 
 
 Conclusion
+----------
 
-- Futher extensions to make
+* Futher extensions to make
 
- - Full and proper multi-client, non-clobbering support.
-   Concurrent dirty readers already "just work",
-   but concurrent writers,
-   and readers-who-then-write
-   could cause problems.
-   Beyond making the implementation "safe",
-   it's important to provide a useful
-   and hard-to-use-incorrectly
-   interface to users.
+    - Full and proper multi-client, non-clobbering support.
+        Concurrent dirty readers already "just work",
+        but concurrent writers,
+        and readers-who-then-write
+        could cause problems.
+        Beyond making the implementation "safe",
+        it's important to provide a useful
+        and hard-to-use-incorrectly
+        interface to users.
 
- - Database compaction.
-   Compacting should be as simple as
-   doing an infix-of-median traversal of the tree
-   writing things out as you go.
-   It's probably best if the tree nodes all go together,
-   since they're what have to be traversed
-   to find any piece of data.
-   Packing as many intermediate nodes as possible
-   into a disk sector
-   should improve read performance
-   at least right after compaction.
+    - Database compaction.
+        Compacting should be as simple as
+        doing an infix-of-median traversal of the tree
+        writing things out as you go.
+        It's probably best if the tree nodes all go together,
+        since they're what have to be traversed
+        to find any piece of data.
+        Packing as many intermediate nodes as possible
+        into a disk sector
+        should improve read performance
+        at least right after compaction.
 
- - If compaction is enabled,
-   it's probably not useful to truncate uncommitted writes
-   on crash recovery.
+    - If compaction is enabled,
+        it's probably not useful to truncate uncommitted writes
+        on crash recovery.
 
    
-- Similar real-world projects to explore
+* Similar real-world projects to explore:
 
-CouchDB
+    - CouchDB
