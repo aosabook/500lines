@@ -15,24 +15,20 @@ it's incredibly useful to understand
 how they work.
 This will inform your use of it
 from a performance
-as well as crash recovery/durability
-perspective.
+as well as crash recovery
+and durability perspectives.
 
 
 Simplifications
 ---------------
 
-DBDB tries to show the basic patterns you can use
+DBDB tries to show the basic patterns used
 to create a key/value store
-with atmoic, consistent, durable updates. 
-
-It separates the concerns of "put this on disk somewhere"
-(how data are laid out in a file)
-from the logical structure of the data
-(a binary tree in this example)
-from the contents of the key/value store
-(the association of key "a" to value "foo").
-
+with atomic, durable updates.
+Consistency is not covered
+(there are no constraints on the data stored)
+and isolation is not guaranteed
+(since dirty reads will not cause an abort on commit).
 
 Intro to toolchain (maybe optional?)
 ------------------------------------
@@ -44,6 +40,14 @@ Tests are driven using nosetests.
 
 Explore code
 ------------
+
+DBDB  separates the concerns of "put this on disk somewhere"
+(how data are laid out in a file)
+from the logical structure of the data
+(a binary tree in this example)
+from the contents of the key/value store
+(the association of key "a" to value "foo").
+
 
 ### Organizational units
 
