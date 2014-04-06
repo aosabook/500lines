@@ -1,3 +1,5 @@
+require 'enumerator'
+
 class Parser
 
   GRAVITY_COEFF = {
@@ -40,16 +42,18 @@ private
     end
   end
 
+  # def parse_raw_data
+  #   @data.split(';').collect
+  # end
+
   # TODO: Combine, try to split on pipe, determine format from that
   def parse_raw_data
     case @format
     when 'accelerometer'
       coordinates = @data.split(';')
 
-      # TODO: Too much repetition?
-      x_series = coordinates.collect {|data| data.split(',')[0].to_f }
-      y_series = coordinates.collect {|data| data.split(',')[1].to_f }
-      z_series = coordinates.collect {|data| data.split(',')[2].to_f }
+      x_series, y_series, z_series = 
+        coordinates.collect {|data| data.split(',').collect(&:to_f) }.transpose
       
       xg_series = chebyshev_filter(x_series, GRAVITY_COEFF)
       yg_series = chebyshev_filter(y_series, GRAVITY_COEFF)
