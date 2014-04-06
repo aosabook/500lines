@@ -52,21 +52,20 @@ private
     when 'accelerometer'
       coordinates = @data.split(';')
 
-      x_series, y_series, z_series = 
+      x, y, z = 
         coordinates.collect {|data| data.split(',').collect(&:to_f) }.transpose
       
-      xg_series = chebyshev_filter(x_series, GRAVITY_COEFF)
-      yg_series = chebyshev_filter(y_series, GRAVITY_COEFF)
-      zg_series = chebyshev_filter(z_series, GRAVITY_COEFF)
+      xg, yg, zg = 
+        [x, y, z].collect {|series| chebyshev_filter(series, GRAVITY_COEFF)}
 
       @parsed_data = []
       coordinates.length.times do |i|
-        @parsed_data << {:x => (x_series[i]-xg_series[i]), 
-                         :y => (y_series[i]-yg_series[i]), 
-                         :z => (z_series[i]-zg_series[i]), 
-                         :xg => xg_series[i], 
-                         :yg => yg_series[i], 
-                         :zg => zg_series[i]}
+        @parsed_data << {:x => (x[i] - xg[i]), 
+                         :y => (y[i] - yg[i]), 
+                         :z => (z[i] - zg[i]), 
+                         :xg => xg[i], 
+                         :yg => yg[i], 
+                         :zg => zg[i]}
       end
     when 'gravity'
       @parsed_data = @data.split(';').collect do |data|
@@ -94,11 +93,11 @@ private
     output_data = [0,0]
     (2..input_data.length-1).each do |i|
       output_data << coefficients[:alpha][0] * 
-                      (input_data[i]   * coefficients[:beta][0] +
-                      input_data[i-1]  * coefficients[:beta][1] +
-                      input_data[i-2]  * coefficients[:beta][2] -
-                      output_data[i-1] * coefficients[:alpha][1] -
-                      output_data[i-2] * coefficients[:alpha][2])
+                      (input_data[i]    * coefficients[:beta][0] +
+                       input_data[i-1]  * coefficients[:beta][1] +
+                       input_data[i-2]  * coefficients[:beta][2] -
+                       output_data[i-1] * coefficients[:alpha][1] -
+                       output_data[i-2] * coefficients[:alpha][2])
     end
     output_data
   end
