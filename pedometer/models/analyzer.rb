@@ -64,8 +64,7 @@ private
   end
 
   def measure_time
-    sampling_rate = @device.rate
-    @time = @parser.parsed_data.count/sampling_rate
+    @time = @parser.parsed_data.count/@device.rate
   end
 
 end

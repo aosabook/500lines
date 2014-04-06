@@ -18,7 +18,6 @@ class Parser
   def initialize(data)
     @data = data.to_s
 
-    set_format
     parse_raw_data
     dot_product_parsed_data
     filter_dot_product_data
@@ -26,57 +25,39 @@ class Parser
 
 private
 
-  # TODO: Get rid of this. Just parse raw data and if it blows up throw exception.
-  def set_format
-    any_decimal = '-?\d+(?:\.\d+)?'
-    regexp_accl = Regexp.new('^((' + any_decimal + ',){2}' + 
-                                              any_decimal + ';)+$')
-    regexp_grav = Regexp.new('^(((' + any_decimal + ',){2}(' +
-                                         any_decimal + ')){1}\|(' +
-                                         any_decimal + ',){2}(' +
-                                         any_decimal + ';){1})+$')
-    @format = 'accelerometer' if regexp_accl.match(@data)
-    @format = 'gravity'       if regexp_grav.match(@data)
-    unless @format
-      raise "Bad Input. Ensure data is properly formatted."
-    end
-  end
-
-  # def parse_raw_data
-  #   @data.split(';').collect
-  # end
-
-  # TODO: Combine, try to split on pipe, determine format from that
   def parse_raw_data
-    case @format
-    when 'accelerometer'
-      coordinates = @data.split(';')
+    coordinates = @data.split(';')
+    accl = coordinates.collect { |i| i.split('|') }
+    
+    if accl.first.count == 1
+      @format = 'accelerometer'
+      accl = accl.collect { |i| i.first.split(',').collect(&:to_f) }
 
-      x, y, z = 
-        coordinates.collect {|data| data.split(',').collect(&:to_f) }.transpose
+      total_x, total_y, total_z = accl.transpose
       
-      xg, yg, zg = 
-        [x, y, z].collect {|series| chebyshev_filter(series, GRAVITY_COEFF)}
-
-      @parsed_data = []
-      coordinates.length.times do |i|
-        @parsed_data << {:x => (x[i] - xg[i]), 
-                         :y => (y[i] - yg[i]), 
-                         :z => (z[i] - zg[i]), 
-                         :xg => xg[i], 
-                         :yg => yg[i], 
-                         :zg => zg[i]}
+      grav_x, grav_y, grav_z = [total_x, total_y, total_z].collect do |series| 
+        chebyshev_filter(series, GRAVITY_COEFF)
       end
-    when 'gravity'
-      @parsed_data = @data.split(';').collect do |data|
-        accl, grav = data.split('|')
-        accl = accl.split(',')
-        grav = grav.split(',')
 
-        {:x => accl[0].to_f, :y => accl[1].to_f, :z => accl[2].to_f,
-         :xg => grav[0].to_f, :yg => grav[1].to_f, :zg => grav[2].to_f}
-      end
+      user_x = total_x.zip(grav_x).collect { |a, b| a - b }
+      user_y = total_y.zip(grav_y).collect { |a, b| a - b }
+      user_z = total_z.zip(grav_z).collect { |a, b| a - b }
+    else
+      @format = 'gravity'
+      accl = accl.collect { |i| i.collect { |i| i.split(',').collect(&:to_f) } }
+      user_accl, grav_accl = accl.transpose
+      
+      user_x, user_y, user_z = user_accl.transpose
+      grav_x, grav_y, grav_z = grav_accl.transpose
     end
+
+    @parsed_data = []
+    coordinates.length.times do |i|
+      @parsed_data << { x: user_x[i], y: user_y[i], z: user_z[i],
+                        xg: grav_x[i], yg: grav_y[i], zg: grav_z[i] }
+    end
+  rescue
+    raise 'Bad Input. Ensure data is properly formatted.'
   end
 
   def dot_product_parsed_data
@@ -101,4 +82,5 @@ private
     end
     output_data
   end
+
 end
