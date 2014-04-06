@@ -26,8 +26,7 @@ class Parser
 private
 
   def parse_raw_data
-    coordinates = @data.split(';')
-    accl = coordinates.collect { |i| i.split('|') }
+    accl = @data.split(';').collect { |i| i.split('|') }
     
     if accl.first.count == 1
       @format = 'accelerometer'
@@ -39,9 +38,10 @@ private
         chebyshev_filter(series, GRAVITY_COEFF)
       end
 
-      user_x = total_x.zip(grav_x).collect { |a, b| a - b }
-      user_y = total_y.zip(grav_y).collect { |a, b| a - b }
-      user_z = total_z.zip(grav_z).collect { |a, b| a - b }
+      total_grav = [[total_x, grav_x], [total_y, grav_y], [total_z, grav_z]]
+      user_x, user_y, user_z = total_grav.collect do |total, grav|
+        total.zip(grav).collect { |a, b| a - b }
+      end
     else
       @format = 'gravity'
       accl = accl.collect { |i| i.collect { |i| i.split(',').collect(&:to_f) } }
@@ -52,7 +52,7 @@ private
     end
 
     @parsed_data = []
-    coordinates.length.times do |i|
+    accl.length.times do |i|
       @parsed_data << { x: user_x[i], y: user_y[i], z: user_z[i],
                         xg: grav_x[i], yg: grav_y[i], zg: grav_z[i] }
     end
