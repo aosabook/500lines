@@ -30,23 +30,23 @@ private
     
     if accl.first.count == 1
       @format = 'accelerometer'
-      accl = accl.collect { |i| i.first.split(',').collect(&:to_f) }
-
-      total_x, total_y, total_z = accl.transpose
       
-      grav_x, grav_y, grav_z = [total_x, total_y, total_z].collect do |series| 
-        chebyshev_filter(series, GRAVITY_COEFF)
+      accl = accl.collect { |i| i.first.split(',').collect(&:to_f) }
+      
+      split_accl = accl.transpose.collect do |total_accl|
+        grav = chebyshev_filter(total_accl, GRAVITY_COEFF)
+        user = total_accl.zip(grav).collect { |a, b| a - b }
+        [grav, user]
       end
 
-      total_grav = [[total_x, grav_x], [total_y, grav_y], [total_z, grav_z]]
-      user_x, user_y, user_z = total_grav.collect do |total, grav|
-        total.zip(grav).collect { |a, b| a - b }
-      end
+      grav_accl, user_accl = split_accl.transpose
+      grav_x, grav_y, grav_z = grav_accl
+      user_x, user_y, user_z = user_accl
     else
       @format = 'gravity'
+      
       accl = accl.collect { |i| i.collect { |i| i.split(',').collect(&:to_f) } }
       user_accl, grav_accl = accl.transpose
-      
       user_x, user_y, user_z = user_accl.transpose
       grav_x, grav_y, grav_z = grav_accl.transpose
     end
