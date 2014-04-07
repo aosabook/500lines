@@ -1,5 +1,6 @@
 (ns core.query
-   [:require [clojure.set :as CS :only (intersection)]])
+   [:use [core constructs]
+    [clojure.set :as CS :only (intersection)]])
 
 (defn variable?
   "A predicate that accepts a string and checks whether it describes a datalog variable (either starts with ? or it is _)"
@@ -71,7 +72,7 @@
    -- At index 2 : the elements (e-ids or attribute names) that are found at the leave of the path."
   [index path-preds]
   (for [ path-pred path-preds
-        :let [[lvl1-prd lvl2-prd lvl3-prd] (apply (:db-from-eav index) path-pred)]     ; predicates for the first and second level of the index, also keeping the path to later use its meta
+        :let [[lvl1-prd lvl2-prd lvl3-prd] (apply (from-eav index) path-pred)]     ; predicates for the first and second level of the index, also keeping the path to later use its meta
            [k1 l2map] index  ; keys and values of the first level
            :when (try (lvl1-prd k1) (catch Exception e false))  ; filtering to keep only the keys and the vals of the keys that passed the first level predicate
            [k2  l3-set] l2map  ; keys and values of the second level
@@ -102,7 +103,7 @@
    by it's variable name as was inserted in the query"
    [index path]
    (let [seq-path   [ (repeat (first path))  (repeat (second path)) (last path)]
-         meta-path(apply (:db-from-eav index) (map repeat (:db/variable (meta path)))) ; re-ordering the meta to be in the order of the index
+         meta-path(apply (from-eav index) (map repeat (:db/variable (meta path)))) ; re-ordering the meta to be in the order of the index
          all-path (interleave meta-path seq-path)]
      (apply (partial map vector)  all-path)))
 
@@ -112,7 +113,7 @@
   attribute, and the value is the binding pair of that found attribute's value"
   [q-res index]
   (let [seq-res-path (mapcat (partial seqify-result-path index)  q-res) ; seq-ing a result to hold the meta
-         res-path (map #(->> %1 (partition 2)(apply (:db-to-eav index))) seq-res-path)] ; making binding pairs
+         res-path (map #(->> %1 (partition 2)(apply (to-eav index))) seq-res-path)] ; making binding pairs
     (reduce #(assoc-in %1  (butlast %2) (last %2)) {} res-path))) ; structuring the pairs into the wanted map structure
 
 (defn query-index

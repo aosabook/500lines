@@ -1,50 +1,6 @@
 (ns core.fdb
-  [:use [core storage query]]
+  [:use [core storage query constructs]]
   [:require [clojure.set :as CS :only (union difference intersection)]])
-
-(defrecord Database [timestamped top-id curr-time])
-(defrecord Index [db-from-eav db-to-eav db-usage-pred db-leaf-index])
-(defrecord Timestamped [storage VAET AVET VEAT EAVT])
-(defrecord Entity [id attrs])
-(defrecord Attr [name value ts prev-ts])
-
-(defn single? [attr] (= :db/single (:cardinality (meta attr))))
-
-(defn ref? [attr] (= :db/ref (:type (meta attr))))
-
-(defn make-db
-  "Create an empty database"
-  []
-  (atom (Database. [(Timestamped.
-                     (initial-storage) ; storage
-                     (Index. #(vector %3 %2 %1)  #(vector %3 %2 %1) #(ref? %) 0) ; VAET - for graph qeries and joins
-                     (Index. #(vector %2 %3 %1)  #(vector %3 %1 %2) #(not (not %))0) ; AVET - for filtering
-                      (Index. #(vector %3 %1 %2)  #(vector %2 %3 %1) #(not (not %))1) ; VEAT - for filtering
-                     (Index. #(vector %1 %2 %3)  #(vector %1 %2 %3) #(not (not %))2) )] ; EAVT - for filtering
-                   0 0)))
-
-(defn indices[] [:VAET :AVET :VEAT :EAVT])
-
-(defn make-entity
-  "creates an entity, if id is not supplied, a running id is assigned to the entity"
-  ([] (make-entity :db/no-id-yet ))
-  ([id] (Entity.  id {})))
-
-(defn make-attr
-  "creation of an attribute. The name, value and type of an attribute are mandatory arguments, further arguments can be passed as named arguguments.
-   The type of the attribute may be either :string, :number, :boolean or :db/ref . If the type is :db/ref, the value is an id of another entity and indexing of backpointing is maintained.
-  The named arguments are as follows:
-  :indexed - a boolean, can be either true or false - marks whether this attribute should be indexed. By defaults attributes are not inexed.
-  :cardinality - the cardinality of an attribute, can be either:
-                     :db/single - which means that this attribute can be a single value at any given time (this is the default cardinality)
-                     :db/multiple - which means that this attribute is actually a set of values. In this case updates of this attribute may be one of the following (NOTE that all these operations accept a set as argument):
-                                          :db/add - adds a set of values to the currently existing set of values
-                                          :db/reset-to - resets the value of this attribute to be the given set of values
-                                          :db/remove - removes the given set of values from the attribute's current set of values"
-  ([name value type ; these ones are required
-      & {:keys [indexed cardinality] :or {indexed false cardinality :db/single}} ]
-    {:pre [(contains? #{true false} indexed) (contains? #{:db/single :db/multiple} cardinality)]}
-   (with-meta (Attr. name value -1 -1) {:type type :indexed indexed :cardinality cardinality} )))
 
 (defn collify [x] (if (coll? x) x [x]))
 
@@ -111,15 +67,15 @@
 (defn update-attr-in-index
   [index ent-id attr-name target-val operation]
   (let [ colled-target-val (collify target-val)
-         add-entry-fn (fn [indx vl] (add-entry-to-index indx ((:db-from-eav index) ent-id attr-name vl) operation))
-         ] (reduce add-entry-fn index colled-target-val)))
+         add-entry-fn (fn [indx vl] (add-entry-to-index indx ((from-eav index) ent-id attr-name vl) operation))]
+    (reduce add-entry-fn index colled-target-val)))
 
 (defn add-entity-to-index
   [ent timestamped ind-name]
   (let [ent-id (:id ent)
         index (ind-name timestamped)
         all-attrs  (vals (:attrs ent))
-        relevant-attrs (filter #((:db-usage-pred index) %) all-attrs )
+        relevant-attrs (filter #((usage-pred index) %) all-attrs )
         add-in-index-fn (fn [ind attr] (update-attr-in-index ind ent-id (:name attr) (:value attr) :db/add))]
        (assoc timestamped ind-name  (reduce add-in-index-fn index relevant-attrs))))
 
@@ -167,7 +123,7 @@
           old-entries-set (get-in index path-to-items)]
     (cond
      (not (contains?  old-entries-set val-to-remove)) index ; the set of items does not contain the item to remove, => nothing to do here
-     (and (= 1 (count old-entries-set) ) (= 1 (count (path-head index)))) (dissoc index path-head) ; a path representing a single EAV - remove it entirely
+     (and (= 1 (count old-entries-set) ) (= 1 (count (index path-head)))) (dissoc index path-head) ; a path representing a single EAV - remove it entirely
      (= (count old-entries-set) 1)  (update-in index [path-head] dissoc (second path)) ; a path that splits at the second item - just remove the unneeded part of it
      :else (update-in index path-to-items disj val-to-remove))))
 
@@ -177,12 +133,12 @@
        index
       (let  [attr-name (:name attr)
                datom-vals (collify (:value attr))
-               paths (map #((:db-from-eav index) ent-id attr-name %) datom-vals)]
+               paths (map #((from-eav index) ent-id attr-name %) datom-vals)]
        (reduce remove-entry-from-index index paths))))
 
 (defn update-index
   [ent-id old-attr target-val operation timestamped ind-name]
-  (if-not ((get-in timestamped [ind-name :db-usage-pred]) old-attr)
+  (if-not ((usage-pred (get-in timestamped [ind-name])) old-attr)
     timestamped
     (let [index (ind-name timestamped)
           old-vals (:value old-attr)
@@ -219,7 +175,7 @@
   (let [ent-id (:id ent)
         index (ind-name timestamped)
         all-attrs  (vals (:attrs ent))
-        relevant-attrs (filter #((:db-usage-pred index) %) all-attrs )
+        relevant-attrs (filter #((usage-pred index) %) all-attrs )
         remove-from-index-fn (partial remove-entries-from-index  ent-id  :db/remove)]
     (assoc timestamped ind-name (reduce remove-from-index-fn index relevant-attrs))))
 
