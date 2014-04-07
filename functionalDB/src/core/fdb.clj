@@ -143,9 +143,9 @@
     (let [index (ind-name timestamped)
           old-vals (:value old-attr)
           attr-name (:name old-attr)
-           remove-paths  (remove-path-values old-vals target-val operation)
-           cleaned-index (remove-entries-from-index  ent-id operation index old-attr)
-           updated-index  (update-attr-in-index cleaned-index ent-id attr-name target-val operation)]
+          remove-paths  (remove-path-values old-vals target-val operation)
+          cleaned-index (remove-entries-from-index  ent-id operation index old-attr)
+          updated-index  (update-attr-in-index cleaned-index ent-id attr-name target-val operation)]
       (assoc timestamped ind-name updated-index))))
 
 (defn update-entity
@@ -166,9 +166,8 @@
             timestamped (last (:timestamped db))
             attr (attr-at db ent-id attr-name)
             updated-attr (update-attr attr new-val update-ts operation)
-            fully-updated-timestamped (update-timestamped timestamped ent-id attr updated-attr new-val operation)
-          new-db (update-in db [:timestamped] conj fully-updated-timestamped)]
-       new-db)))
+            fully-updated-timestamped (update-timestamped timestamped ent-id attr updated-attr new-val operation)]
+       (update-in db [:timestamped] conj fully-updated-timestamped))))
 
 (defn remove-entity-from-index
   [ent timestamped ind-name]
@@ -183,7 +182,7 @@
   [e-id timestamped]
   (let [vaet (:VAET timestamped)]
         (for [[attr-name reffing-set] (e-id vaet)
-                 reffing reffing-set]
+                reffing reffing-set]
                [reffing attr-name e-id])))
 
 (defn remove-back-refs
@@ -196,11 +195,10 @@
 (defn remove-entity
   [db ent-id]
   (let [ent (entity-at db ent-id)
-        timestamped (remove-back-refs db ent-id (last (:timestamped db)))
-         timestamped (update-in timestamped [:VAET] dissoc ent-id)
-         new-timestamped (assoc timestamped :storage (remove-entity-from-storage (:storage timestamped) ent))
-         remove-fn (partial remove-entity-from-index ent)
-         new-timestamped (reduce remove-fn new-timestamped (indices))]
+         timestamped (remove-back-refs db ent-id (last (:timestamped db)))
+         retimed-timestamped (update-in timestamped [:VAET] dissoc ent-id)
+         no-ent-timestamped (assoc retimed-timestamped :storage (remove-entity-from-storage (:storage retimed-timestamped) ent))
+         new-timestamped (reduce (partial remove-entity-from-index ent) no-ent-timestamped (indices))]
     (assoc db :timestamped (conj  (:timestamped db) new-timestamped))))
 
 (defn transact-on-db
@@ -209,15 +207,13 @@
       (if tx
           (recur rst-tx (apply (first tx) transacted (rest tx)))
           (let [initial-timestamped  (:timestamped initial-db)
-                  new-timestamped (last (:timestamped transacted))
-                  res (assoc initial-db :timestamped (conj  initial-timestamped new-timestamped)
-                                                :curr-time (next-ts initial-db) :top-id (:top-id transacted))]
-                  res))))
+                  new-timestamped (last (:timestamped transacted))]
+            (assoc initial-db :timestamped (conj  initial-timestamped new-timestamped)  :curr-time (next-ts initial-db) :top-id (:top-id transacted))))))
 
 (defmacro  _transact
   [db op & txs]
   (when txs
-    (loop [[frst-tx# & rst-tx#] txs  res#  [op db 'transact-on-db]  accum-txs# []]
+    (loop [[frst-tx# & rst-tx#] txs  res#  [op db `transact-on-db]  accum-txs# []]
       (if frst-tx#
           (recur rst-tx# res#  (conj  accum-txs#  (vec  frst-tx#)))
           (list* (conj res#  accum-txs#))))))
