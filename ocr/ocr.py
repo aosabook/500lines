@@ -95,10 +95,10 @@ class ocrNN:
 	def save(self):
 		nnFile = open(ocrNN.NN_FILE_PATH,'w');
 		json.dump({
-			"theta1":[npArr.tolist() for npArr in self.theta1],
-			"theta2":[npArr.tolist() for npArr in self.theta2],
-			"b1":self.b1[0].tolist(),
-			"b2":self.b2[0].tolist()
+			"theta1":[npMat.tolist()[0] for npMat in self.theta1],
+			"theta2":[npMat.tolist()[0] for npMat in self.theta2],
+			"b1":self.b1[0].tolist()[0],
+			"b2":self.b2[0].tolist()[0]
 		}, nnFile)
 		nnFile.close()
 
@@ -124,7 +124,7 @@ class ocrNN:
 
 			# Train using sample data
 			self.train([{"y0":self.dataMatrix[i], "label":int(ocrNN.dataLabels[i])} for i in ocrNN.sampleIndices[:3500]])
-			self.test()
 			self.save()
 		else:
 			self.load()
+		#self.test()
