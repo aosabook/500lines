@@ -13,25 +13,24 @@
 ;;
 (defrecord Database [timestamped top-id curr-time])
 (defrecord Index [db-from-eav db-to-eav db-usage-pred db-leaf-index])
-(defrecord Timestamped [storage VAET AVET EAVT])
+(defrecord Timestamped [storage VAET AVET VEAT EAVT])
 (defrecord Entity [id attrs])
 (defrecord Attr [name value ts prev-ts])
 
-(defn- single? [attr] (= :db/single (:cardinality (meta attr))))
+(defn single? [attr] (= :db/single (:cardinality (meta attr))))
 
-(defn- indexed? [attr] (:indexed (meta attr)))
-
-(defn- ref? [attr] (= :db/ref (:type (meta attr))))
+(defn ref? [attr] (= :db/ref (:type (meta attr))))
 
 (defn make-db "Create an empty database" []
   (atom (Database. [(Timestamped.
                      (initial-storage) ; storage
                      (Index. #(vector %3 %2 %1)  #(vector %3 %2 %1) #(ref? %) 0) ; VAET - for graph qeries and joins
                      (Index. #(vector %2 %3 %1)  #(vector %3 %1 %2) #(not (not %))0) ; AVET - for filtering
+                      (Index. #(vector %3 %1 %2)  #(vector %2 %3 %1) #(not (not %))1) ; VEAT - for filtering
                      (Index. #(vector %1 %2 %3)  #(vector %1 %2 %3) #(not (not %))2) )] ; EAVT - for filtering
                    0 0)))
 
-(defn indices[] [:VAET :AVET :EAVT])
+(defn indices[] [:VAET :AVET :VEAT :EAVT])
 
 (defn make-entity
   "creates an entity, if id is not supplied, a running id is assigned to the entity"
@@ -56,9 +55,9 @@
 
 (defn collify [x] (if (coll? x) x [x]))
 
-(defn- next-ts [db] (inc (:curr-time db)))
+(defn next-ts [db] (inc (:curr-time db)))
 
-(defn- next-id
+(defn next-id
   "returns a pair composed of the id to use for the given entity and the next free running id in the database"
   [db ent]
   (let [top-id (:top-id db)
@@ -86,7 +85,7 @@
   ([db ent-id attr-name]  (:value (attr-at db ent-id attr-name)))
   ([db ent-id attr-name ts] (:value (attr-at db ent-id attr-name ts))))
 
-(defn- update-attr-value
+(defn update-attr-value
   "updating the attribute value based on the kind of the operation, the cardinality defined for this attribute and the given value"
   [attr value operation]
   (cond
@@ -102,12 +101,12 @@
   (let [attr-id (keyword (:name attr))]
      (assoc-in ent [:attrs attr-id] attr)))
 
-(defn- update-creation-ts
+(defn update-creation-ts
   "updates the timestamp value of all the attributes of an entity to the given timestamp"
   [ent ts-val]
  (reduce #(assoc-in %1 [:attrs %2 :ts ] ts-val) ent (keys (:attrs ent))))
 
-(defn- add-entry-to-index
+(defn add-entry-to-index
   [index path operation]
   (if (= operation :db/remove)
       index
@@ -116,7 +115,7 @@
             to-be-updated-set (get-in index update-path #{})]
       (assoc-in index update-path (conj to-be-updated-set update-value) ))))
 
-(defn- update-attr-in-index
+(defn update-attr-in-index
   [index ent-id attr-name target-val operation]
   (let [ colled-target-val (collify target-val)
          add-entry-fn (fn [indx vl] (add-entry-to-index indx ((:db-from-eav index) ent-id attr-name vl) operation))
@@ -146,11 +145,11 @@
 
 (defn add-entities  [db ents-seq] (reduce add-entity db ents-seq))
 
-(defn- update-attr-modification-time
+(defn update-attr-modification-time
   [attr new-ts]
     (assoc attr :ts new-ts :prev-ts ( :ts attr)))
 
-(defn- update-attr
+(defn update-attr
   [attr new-val new-ts operation]
    {:pre  [(if (single? attr)
            (contains? #{:db/reset-to :db/remove} operation)
@@ -159,14 +158,14 @@
       (update-attr-modification-time new-ts)
       (update-attr-value new-val operation)))
 
-(defn- remove-path-values
+(defn remove-path-values
   [old-vals target-val operation]
   (cond
    (= operation :db/add) [] ; nothing to remove
    (= operation :db/reset-to) old-vals ; removing all of the old values
    (= operation :db/remove) (collify target-val))) ; removing the values defined by the caller
 
-(defn- update-index
+(defn update-index
   [ent-id old-attr target-val operation timestamped ind-name]
   (if-not ((get-in timestamped [ind-name :db-usage-pred]) old-attr)
     timestamped
@@ -181,7 +180,7 @@
 (defn update-entity [storage e-id new-attr]
   (assoc-in (stored-entity storage e-id) [:attrs (:name new-attr)] new-attr))
 
-(defn- update-timestamped
+(defn update-timestamped
   [timestamped ent-id old-attr updated-attr new-val operation]
   (let [storage (:storage timestamped)
          new-timestamped (reduce (partial update-index  ent-id old-attr new-val operation) timestamped (indices))]
@@ -220,7 +219,7 @@
                paths (map #((:db-from-eav index) ent-id attr-name %) datom-vals)]
        (reduce remove-entry-from-index index paths))))
 
-(defn- remove-entity-from-index
+(defn remove-entity-from-index
   [ent timestamped ind-name]
   (let [ent-id (:id ent)
         index (ind-name timestamped)
@@ -283,8 +282,9 @@
 
 (defn variable?
   "A predicate that accepts a string and checks whether it describes a datalog variable (either starts with ? or it is _)"
-  [x]  ; intentionally accepts a string and implemented as function and not a macro so we'd be able to use it as a HOF
-  (or (= x "_") (= (first x) \?)))
+  ([x] (variable? x true))
+  ([x accept_]  ; intentionally accepts a string and implemented as function and not a macro so we'd be able to use it as a HOF
+  (or (and accept_ (= x "_")) (= (first x) \?))))
 
 (defn ind-at
   "inspecting a specific index at a given time, defaults to current. The kind argument may be of of these:  :AVET :VAET :EAVT"
@@ -312,7 +312,7 @@
    (variable? (str (last clause-item))) `#(~(first clause-item) ~(second clause-item) %))) ; was something like (>  42 ?a)
 
 (defmacro  q-clause
-  "The aim of this macro  to build for a datalog clause (a vector with three elements describing EAV) a vector of predicates that would operate on
+  "Build from a datalog clause (a vector with three elements describing EAV) a vector of predicates that would operate on
     an index, and set for that vector's metadata to be the names of the variables that the user assiged for each item in the clause"
   [clause]
   (loop [[frst-itm# & rst-itm#] clause exprs# [] metas# [] ]
@@ -321,31 +321,40 @@
          (with-meta exprs# {:db/variable metas#}))))
 
  (defmacro q-clauses
-   "create a vector of queries to operate on indexes based on the given vector of clauses "
+   "create a vector of queries to operate on indices, based on the given vector of clauses "
    [clauses]
     (loop [[frst# & rst#] clauses preds-vecs# []  ]
       (if-not frst#  preds-vecs#
         (recur rst# `(conj ~preds-vecs# (q-clause ~frst#))) )))
 
-  (defn choose-index ;; TODO !!! at the moment not optimzing, just returning always the AVET index
+ (defn index-of-chaining-variable
+  "A chaining variable is the variable that is found on all of the query clauses"
+  [query-clauses]
+  (let [metas-seq  (map #(:db/variable (meta %)) query-clauses)
+        collapse-seqs (fn [s1 s2] (map #(when (= %1 %2) %1) s1 s2))
+        collapsed (reduce collapse-seqs metas-seq)]
+    (first (keep-indexed #(when (variable? %2 false) %1)  collapsed))))
+
+  (defn choose-index
    "Upon receiving a database and query clauses, this function responsible to deduce on which index in the db it is best to perfom the query clauses, and then return
    a vector in which the first element is the decided index and the second element is a function that knows how to restore an EAV structure from that decided index path structure."
    [db query]
-    (ind-at db :AVET))
+    (let [var-ind (index-of-chaining-variable query)
+            ind-to-use (case var-ind 0 :AVET 1 :VEAT 2 :EAVT)]
+      (ind-at db ind-to-use)))
 
 (defn filter-index
   "Helper function to return only the sub-index (subsetting paths and leaves) that passes the given predicates. The result is a seq of triplet built as follows:
    -- At index 0 : the key used at the first level of the path.
    -- At index 1 : the key used at the second level of the path
    -- At index 2 : the elements (e-ids or attribute names) that are found at the leave of the path."
-
   [index path-preds]
   (for [ path-pred path-preds
         :let [[lvl1-prd lvl2-prd lvl3-prd] (apply (:db-from-eav index) path-pred)]     ; predicates for the first and second level of the index, also keeping the path to later use its meta
            [k1 l2map] index  ; keys and values of the first level
-           :when (lvl1-prd k1)  ; filtering to keep only the keys and the vals of the keys that passed the first level predicate
+           :when (try (lvl1-prd k1) (catch Exception e false))  ; filtering to keep only the keys and the vals of the keys that passed the first level predicate
            [k2  l3-set] l2map  ; keys and values of the second level
-           :when (lvl2-prd k2) ; filtering to keep only the keys and vals of keys that passed the second level predicate
+           :when (try (lvl2-prd k2) (catch Exception e false)) ; filtering to keep only the keys and vals of keys that passed the second level predicate
            :let [res (set (filter lvl3-prd l3-set))] ]; keep from the set at the third level only the items that passed the predicate on them
          (with-meta [k1 k2 res] (meta path-pred)))) ; constructed to resemble the EAV structure, while keeping the meta of the query to use it later when extracting variables
 
@@ -357,7 +366,7 @@
            (map vec) ; make each collection (actually a set) into a vector
            (reduce into []) ;reduce all the vectors into one big vector
            (frequencies) ; count for each item in how many collections (sets) it was in originally
-           (filter #(= num-of-conditions (last %))) ; keep only the items that answered all of the conditions
+           (filter #(<= num-of-conditions (last %))) ; keep only the items that answered all of the conditions
            (map first) ; take from the duos the items themeselves
            (set))) ; return it as set
 
@@ -373,17 +382,16 @@
    [index path ]
    (let [seq-path   [ (repeat (first path))  (repeat (second path)) (last path)]
          meta-path(apply (:db-from-eav index) (map repeat (:db/variable (meta path)))) ; re-ordering the meta to be in the order of the index
-         all-path (interleave  seq-path meta-path)]
+         all-path (interleave meta-path seq-path)]
      (apply (partial map vector)  all-path)))
 
 (defn merge-query-and-meta [q-res index]
   (let [seq-res-path (mapcat (partial seqify-result-path index)  q-res )
-          reversed-res-path  (map reverse seq-res-path)
-          paired-path-meta (map  (partial partition 2) reversed-res-path)]
-    (reduce #(assoc-in %1  (butlast %2) (last %2)) {} paired-path-meta)))
+         res-path (map #(->> %1 (partition 2)(apply (:db-to-eav index))) seq-res-path)]
+    (reduce #(assoc-in %1  (butlast %2) (last %2)) {} res-path)))
 
 (defn query-index
-  "an index is a 3 level map (VAE, AVE, EVA) that is found at a specific time (T).
+  "an index is a 3 level map (AVE, EAV, VEA) that is found at a specific time (T).
    The path-preds argument is a seq of vectors. Each of these vectors contains two elements:
     -- The first element is used as a filter predicator on the first level of the index (V -> any relevant function may be used, A -> an attribute name matching predicator,  E -> an id matching predicator)
     -- The second element is used as a filter on the second level of the index, and it is to be used for the branches of the index that passed the first element predicator.
@@ -395,14 +403,24 @@
          relevant-paths (map #(mask-path-leaf-with-items index relevant-items %) filtered-paths)] ; the paths, now their leaves are filtered to have only the items that fulfilled the predicates
      (filter #(not-empty (last %)) relevant-paths))) ; of these, we'll build a subset-path of the index that contains the paths to the leaves (sets), and these leaves contain only the valid items
 
-(defn values-of-vars
-  "For a given query result (a merge of the result and the metadata), returns the variable values found at the requested variable set"
+(defn resultify-bind-pair
+  "A bind pair is composed of two elements - the variable name and its value. Resultifying means to check whether the variable is suppose to be part of the
+  result, and if it does, adds it to the accumulated result"
+  [vars-set accum pair]
+  (let [[ var-name _] pair]
+    (if (contains? vars-set var-name) (conj accum pair) accum)))
+
+(defn resultify-av-pair
+  "An av pair is a pair composed of two binding pairs, one for an attribute and one for the attribute's value"
+  [vars-set accum-res av-pair]
+   (reduce (partial resultify-bind-pair vars-set) accum-res  av-pair))
+
+(defn vars-in-query-res
+  "this function would look for all the binding found in the query result and return the binding that were requested by the user (captured at the vars-set)"
   [vars-set q-res]
-  (let [[root-pair child-map] q-res ; breaking the result to have both the root pair and all the rest of the pairs
-          united-children (CS/union (set (keys child-map)) (set (vals child-map))) ; uniting the child pairs to one set of bindings
-          all-binding-set  (conj united-children root-pair) ; adding to the set of bindings the root pair
-          relevant-binds (filter #(contains? vars-set (first %)) all-binding-set)] ; keeping only the relevant pairs
-    (zipmap (map first relevant-binds) (map second relevant-binds))) ) ; turning the pairs into map
+  (let [[e-pair av-map]  q-res
+          e-res (resultify-bind-pair vars-set [] e-pair )]
+    (reduce (partial resultify-av-pair vars-set) e-res  av-map)))
 
 (defmacro settify [coll] (set (map str coll)))
 
@@ -415,7 +433,7 @@
            q-res# (query-index ind# query#)
            merged-res# (merge-query-and-meta q-res# ind#)
            find-items# (settify  ~(:find query))
-          res# (map (partial values-of-vars (set find-items#) ) merged-res# )
+           res# (map (partial vars-in-query-res find-items# ) merged-res#)
          ]res#
     ))
 
