@@ -29,20 +29,22 @@ private
     if accl.first.count == 1
       @format = 'accelerometer'
       
-      accl = accl.collect { |i| i.first.split(',').collect(&:to_f) }
+      accl = accl.flatten.collect { |i| i.split(',').collect(&:to_f) }
       split_accl = accl.transpose.collect do |total_accl|
         grav = chebyshev_filter(total_accl, GRAVITY_COEFF)
         user = total_accl.zip(grav).collect { |a, b| a - b }
         [user, grav]
       end
+      split_accl = split_accl.transpose
     else
       @format = 'gravity'
       
       accl = accl.collect { |i| i.collect { |i| i.split(',').collect(&:to_f) } }
-      split_accl = [accl.collect {|a| a.first}.transpose, accl.collect {|a| a.last}.transpose].transpose
+      split_accl = [accl.collect {|a| a.first}.transpose, 
+                    accl.collect {|a| a.last}.transpose]
     end
 
-    user_accl, grav_accl = split_accl.transpose
+    user_accl, grav_accl   = split_accl
     grav_x, grav_y, grav_z = grav_accl
     user_x, user_y, user_z = user_accl
 
