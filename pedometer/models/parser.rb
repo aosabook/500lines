@@ -1,5 +1,3 @@
-require 'enumerator'
-
 class Parser
 
   GRAVITY_COEFF = {
@@ -32,24 +30,21 @@ private
       @format = 'accelerometer'
       
       accl = accl.collect { |i| i.first.split(',').collect(&:to_f) }
-      
       split_accl = accl.transpose.collect do |total_accl|
         grav = chebyshev_filter(total_accl, GRAVITY_COEFF)
         user = total_accl.zip(grav).collect { |a, b| a - b }
-        [grav, user]
+        [user, grav]
       end
-
-      grav_accl, user_accl = split_accl.transpose
-      grav_x, grav_y, grav_z = grav_accl
-      user_x, user_y, user_z = user_accl
     else
       @format = 'gravity'
       
       accl = accl.collect { |i| i.collect { |i| i.split(',').collect(&:to_f) } }
-      user_accl, grav_accl = accl.transpose
-      user_x, user_y, user_z = user_accl.transpose
-      grav_x, grav_y, grav_z = grav_accl.transpose
+      split_accl = [accl.collect {|a| a.first}.transpose, accl.collect {|a| a.last}.transpose].transpose
     end
+
+    user_accl, grav_accl = split_accl.transpose
+    grav_x, grav_y, grav_z = grav_accl
+    user_x, user_y, user_z = user_accl
 
     @parsed_data = []
     accl.length.times do |i|
