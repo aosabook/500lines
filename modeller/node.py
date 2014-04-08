@@ -14,7 +14,6 @@ class Node(object):
     def __init__(self):
         self.location = [0, 0, 0]
         self.color_index = random.randint(color.MIN_COLOR, color.MAX_COLOR)
-        self.call_list = None
         self.aabb = AABB([0.0, 0.0, 0.0], [0.5, 0.5, 0.5])
         self.translation = numpy.identity(4)
         self.scalemat = numpy.identity(4)
@@ -23,18 +22,7 @@ class Node(object):
 
     def render(self):
         """ renders the item to the screen """
-        glPushMatrix()
-        glMultMatrixf(numpy.transpose(self.translation))
-        glMultMatrixf(self.scalemat)
-        cur_color = color.COLORS[self.color_index]
-        glColor3f(cur_color[0], cur_color[1], cur_color[2])
-        if self.selected:  # emit light if the node is selected
-            glMaterialfv(GL_FRONT, GL_EMISSION, [0.3, 0.3, 0.3])
-        glCallList(self.call_list)
-        if self.selected:
-            glMaterialfv(GL_FRONT, GL_EMISSION, [0.0, 0.0, 0.0])
-
-        glPopMatrix()
+        raise NotImplementedError("The Abstract Node Class doesn't define 'render'")
 
     def translate(self, x, y, z):
         self.translation = numpy.dot(self.translation, translation([x, y, z]))
@@ -68,15 +56,35 @@ class Node(object):
         else:
             self.selected = not self.selected
 
+class Primitive(Node):
+    def __init__(self):
+        super(Primitive, self).__init__()
+        self.call_list = None
 
-class Sphere(Node):
+    def render(self):
+        glPushMatrix()
+        glMultMatrixf(numpy.transpose(self.translation))
+        glMultMatrixf(self.scalemat)
+        cur_color = color.COLORS[self.color_index]
+        glColor3f(cur_color[0], cur_color[1], cur_color[2])
+        if self.selected:  # emit light if the node is selected
+            glMaterialfv(GL_FRONT, GL_EMISSION, [0.3, 0.3, 0.3])
+        glCallList(self.call_list)
+        if self.selected:
+            glMaterialfv(GL_FRONT, GL_EMISSION, [0.0, 0.0, 0.0])
+
+        glPopMatrix()
+
+
+
+class Sphere(Primitive):
     """ Sphere primitive """
     def __init__(self):
         super(Sphere, self).__init__()
         self.call_list = G_OBJ_SPHERE
 
 
-class Cube(Node):
+class Cube(Primitive):
     """ Cube primitive """
     def __init__(self):
         super(Cube, self).__init__()
