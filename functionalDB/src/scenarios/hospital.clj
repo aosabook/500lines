@@ -1,5 +1,5 @@
 (ns scenarios.hospital
-  (:use [core fdb query constructs] )
+  (:use [core fdb constructs ] )
   [:require [core.manage :as M]
                 [clojure.set     :as CS :only (union difference )]])
 
@@ -50,25 +50,13 @@
 
  (defn keep-on-equals [a b](if (= a b) a nil ))
 
-;(def qq(map #(:db/variable (meta %)) (q-clauses [[ ?e :test/bp-systolic (> 150 ?b)][ ?e :test/bp-diastolic ?k]] )))
-(ind-at @hospital-db :EAVT)
 (q @hospital-db {:find [?e ?k] :where [[ ?e :test/bp-systolic (> 200 ?b)] [ ?e :test/bp-diastolic ?k]]} )
 
-;(def ind (ind-at @hospital-db :VEAT))
-;(def q-m
+
  (q @hospital-db {:find [?a ?b] :where [[ _  ?a (> 200 ?b)] ]})
 
  (q @hospital-db {:find [?e ?k ] :where [[ ?e :test/bp-systolic (> 180 ?b)][ ?e :test/bp-diastolic ?k] ]})
- ;)
- ;(map (partial vars-in-query-res st ) q-m)
 
-
-;(vars-in-query-res q-m st)
- ;(def mc (mapcat (partial seqify-result-path ind)  q-res ))
- ;(map (comp(partial apply (:db-to-eav ind))(partial partition 2)) mc)
-;(def aa1 (map #(->> %1 (partition 2)(apply (:db-to-eav ind))) mc) )
-;(reduce #(assoc-in %1  (butlast %2) (last %2)) {} aa1)
- ;(merge-query-and-meta q-res ind)
 
 (evolution-of (M/db-from-conn hospital-db) :pat1 :patient/symptoms)
 (evolution-of (M/db-from-conn hospital-db) :pat1 :patient/tests)

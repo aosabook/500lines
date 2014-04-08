@@ -93,41 +93,38 @@
            (set))) ; return it as set
 
 (defn mask-path-leaf-with-items
-  "a path is a vector triplet, at the first position there's a set of the path's items, here we intersect the path's items with the set of relevant items"
-  [index  relevant-items path]
-    (update-in path [2] CS/intersection relevant-items ));)
+  "Returning the path with only the items found in the intersection of that path's items and the relevant items"
+  [relevant-items path]
+    (update-in path [2] CS/intersection relevant-items ))
 
- (defn seqify-result-path
+ (defn seqify-index-path
    "A result-path is a path whose leaves are the items representing the items of the query chaining variable. This function
    returns for a result path a seq of vectors, each vector is a path from the root of the result path to one of its items, each item is followed
-   by it's variable name as was inserted in the query"
+   by its variable name as was inserted in the query"
    [index path]
    (let [seq-path   [ (repeat (first path))  (repeat (second path)) (last path)]
          meta-path(apply (from-eav index) (map repeat (:db/variable (meta path)))) ; re-ordering the meta to be in the order of the index
          all-path (interleave meta-path seq-path)]
      (apply (partial map vector)  all-path)))
 
-(defn merge-query-and-meta
-  "A function that receives the query results and restructues them to be a map, where
-  the key is a binding pair of a found entity-id, and the value is also a map, where its key is the binding pair of a found
+(defn bind-variables-to-query
+  "A function that receives the query results and restructues them to be an binding structure which resembles in its shape to an entity.
+   The binding structure is a map whose key is a binding pair of a found entity-id, and the value is also a map, where its key is the binding pair of a found
   attribute, and the value is the binding pair of that found attribute's value"
   [q-res index]
-  (let [seq-res-path (mapcat (partial seqify-result-path index)  q-res) ; seq-ing a result to hold the meta
+  (let [seq-res-path (mapcat (partial seqify-index-path index)  q-res) ; seq-ing a result to hold the meta
          res-path (map #(->> %1 (partition 2)(apply (to-eav index))) seq-res-path)] ; making binding pairs
-    (reduce #(assoc-in %1  (butlast %2) (last %2)) {} res-path))) ; structuring the pairs into the wanted map structure
+    (reduce #(assoc-in %1  (butlast %2) (last %2)) {} res-path))) ; structuring the pairs into the wanted binding structure
 
 (defn query-index
-  "an index is a 3 level map (AVE, EAV, VEA) that is found at a specific time (T).
-   The path-preds argument is a seq of vectors. Each of these vectors contains two elements:
-    -- The first element is used as a filter predicator on the first level of the index (V -> any relevant function may be used, A -> an attribute name matching predicator,  E -> an id matching predicator)
-    -- The second element is used as a filter on the second level of the index, and it is to be used for the branches of the index that passed the first element predicator.
-    -- to-eav is a function that receives a path in the index (3 elements ordered from root to leave in the index) and returns a vector containing these 3 elements, ordered like this [entity attr val]
-  The values found at the third level of the map of all the branches that passed the above two filters are fused into one seq"
+  "Quering an index based a seq of path predicates. A path predicate is composed of 3 predicates, each one to operate on a different level of the index. Querying an index with
+  a specific path-pred returns a result-path. We then take all the result paths and find within them the items that passed all the path-preds, and eventually return the result path, each contains
+  only the items that passed all the path predicates."
    [index path-preds]
-   (let [filtered-paths (filter-index index path-preds) ; the paths (vectors) from the root of the index to the leaves (a leaf of an index is a set) where each path fulfils one predicate path
-         relevant-items (items-that-answer-all-conditions (map last filtered-paths) (count path-preds)) ; the set of elements, each answers all the pred-paths
-         relevant-paths (map #(mask-path-leaf-with-items index relevant-items %) filtered-paths)] ; the paths, now their leaves are filtered to have only the items that fulfilled the predicates
-     (filter #(not-empty (last %)) relevant-paths))) ; of these, we'll build a subset-path of the index that contains the paths to the leaves (sets), and these leaves contain only the valid items
+   (let [result-paths (filter-index index path-preds) ; the paths (vectors) from the root of the index to the leaves (a leaf of an index is a set) where each path fulfils one predicate path
+         relevant-items (items-that-answer-all-conditions (map last result-paths) (count path-preds)) ; the set of elements, each answers all the pred-paths
+         cleaned-paths (map (partial mask-path-leaf-with-items relevant-items) filtered-paths)] ; the paths, now their leaves are filtered to have only the items that fulfilled the predicates
+     (filter #(not-empty (last %)) cleaned-paths))) ; of these, we'll build a subset-path of the index that contains the paths to the leaves (sets), and these leaves contain only the valid items
 
 (defn resultify-bind-pair
   "A bind pair is composed of two elements - the variable name and its value. Resultifying means to check whether the variable is suppose to be part of the

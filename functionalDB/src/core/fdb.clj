@@ -234,9 +234,9 @@
   `(let [query#  (q-clauses ~(:where query)) ; extracting the query clauses from the query
            ind# (choose-index ~db query#) ; selecting which index to use
            q-res# (query-index ind# query#) ; actually quering, from now on just preparing results
-           merged-res# (merge-query-and-meta q-res# ind#) ; building a meta + real results structure
+           binded-res# (bind-variables-to-query q-res# ind#) ; building a meta + real results structure
            needed-vars# (settify  ~(:find query))] ; extracting out the needed to be reported variables
-     (map (partial locate-vars-in-query-res needed-vars# ) merged-res#))) ; picking the needed variables from the query result
+     (map (partial locate-vars-in-query-res needed-vars# ) binded-res#))) ; picking the needed variables from the query result
 
 (defn evolution-of
   "The sequence of the values of of an entity's attribute, as changed through time"
