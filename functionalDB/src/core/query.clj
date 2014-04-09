@@ -5,8 +5,8 @@
 (defn variable?
   "A predicate that accepts a string and checks whether it describes a datalog variable (either starts with ? or it is _)"
   ([x] (variable? x true))
-  ([x accept_]  ; intentionally accepts a string and implemented as function and not a macro so we'd be able to use it as a HOF
-  (or (and accept_ (= x "_")) (= (first x) \?))))
+  ([x accept_?]  ; intentionally accepts a string and implemented as function and not a macro so we'd be able to use it as a HOF
+  (or (and accept_? (= x "_")) (= (first x) \?))))
 
 (defn ind-at
   "inspecting a specific index at a given time, defaults to current. The kind argument may be of of these:  :AVET :VAET :EAVT"
@@ -66,13 +66,11 @@
       (ind-at db ind-to-use)))
 
 (defn filter-index
-  "Helper function to return only the sub-index (subsetting paths and leaves) that passes the given predicates. The result is a seq of triplet built as follows:
-   -- At index 0 : the key used at the first level of the path.
-   -- At index 1 : the key used at the second level of the path
-   -- At index 2 : the elements (e-ids or attribute names) that are found at the leave of the path."
+  "Function that accepts an index and a path-predicate (which is a tripet of predicates to apply on paths in an index). For each path predicates it creates a result path (a triplet
+  representing one path in the index) and returns a seq of result paths."
   [index path-preds]
   (for [ path-pred path-preds
-        :let [[lvl1-prd lvl2-prd lvl3-prd] (apply (from-eav index) path-pred)]     ; predicates for the first and second level of the index, also keeping the path to later use its meta
+        :let [[lvl1-prd lvl2-prd lvl3-prd] (apply (from-eav index) path-pred)] ; predicates for the first and second level of the index, also keeping the path to later use its meta
            [k1 l2map] index  ; keys and values of the first level
            :when (try (lvl1-prd k1) (catch Exception e false))  ; filtering to keep only the keys and the vals of the keys that passed the first level predicate
            [k2  l3-set] l2map  ; keys and values of the second level
