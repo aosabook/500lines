@@ -8,13 +8,6 @@
   ([x accept_?]  ; intentionally accepts a string and implemented as function and not a macro so we'd be able to use it as a HOF
   (or (and accept_? (= x "_")) (= (first x) \?))))
 
-(defn ind-at
-  "inspecting a specific index at a given time, defaults to current. The kind argument may be of of these:  :AVET :VAET :EAVT"
-  ([db kind]
-   (ind-at db kind  (:curr-time db)))
-  ([db kind ts]
-   (kind ((:timestamped db) ts))))
-
 (defmacro clause-item-meta
   "Finds the name of the variable at an item of a datalog clause element. If no variable, returning nil"
   [clause-item]

@@ -251,3 +251,10 @@
   [db ts]
   (let [timestamped-before (subvec (:timestamped db) 0 ts )]
     (assoc db :timestamped timestamped-before :curr-time ts)))
+
+(defn ind-at
+  "inspecting a specific index at a given time, defaults to current. The kind argument mayone of the index name (e.g., AVET)"
+  ([db kind]
+   (ind-at db kind  (:curr-time db)))
+  ([db kind ts]
+   (kind ((:timestamped db) ts))))
