@@ -93,6 +93,12 @@ def _neighbours_idle(data, perm, size=4):
 ## Heuristics ##
 ################
 
+################################################################
+## A heuristic returns a single candidate permutation from
+##  a set of candidates that is given. The heuristic is also
+##  given access to the problem data in order to evaluate
+##  which candidate might be preferred.
+
 def _heur_hillclimbing(data, candidates):
     # Returns the best candidate in the list
     scores = [(makespan(data, perm), perm) for perm in candidates]
@@ -104,11 +110,11 @@ def _heur_random(data, candidates):
 
 def _heur_random_hillclimbing(data, candidates):
     # Returns a candidate with probability proportional to its rank in sorted quality
-    scores = sorted([(makespan(data, perm), perm) for perm in candidates])
+    scores = [(makespan(data, perm), perm) for perm in candidates]
     i = 0
     while (random.random() < 0.5) and (i < len(scores) - 1):
         i += 1
-    return scores[i][1]
+    return sorted(scores)[i][1]
 
 
 ################################
@@ -161,47 +167,64 @@ def parse_problem(filename):
     print "\nParsing..."
 
     with open(filename, 'r') as f:
+        # Identify the string that separates instances
         problem_line = 'number of jobs, number of machines, initial seed, upper bound and lower bound :'
-        lines = map(str.strip, f.readlines())
-        lines = lines[3:lines.index(problem_line, 1)]
-        data = map(lambda x: map(int, map(str.strip, x.split())), lines)
 
+        # Strip spaces and newline characters from every line
+        lines = map(str.strip, f.readlines())
+
+        # We know the first instance is from line 3 to the start of instance 2
+        lines = lines[3:lines.index(problem_line, 1)]
+
+        # Split every line based on spaces and convert each item to an int
+        data = [map(int, line.split()) for line in lines]
+
+    # We return the zipped data to rotate the rows and columns, making each
+    #  item in data the durations of tasks for a particular job
     return zip(*data)
 
 
 def makespan(data, perm):
-    """Computes the makespan of the provided solution"""
+    """Computes the makespan of the provided solution
+
+    For scheduling problems, the makespan refers to the difference between
+    the earliest start time of any job and the latest completion time of
+    any job. Minimizing the makespan amounts to minimizing the total time
+    it takes to process all jobs from start to finish."""
     return compile_solution(data, perm)[-1][-1] + data[perm[-1]][-1]
 
 
 def compile_solution(data, perm):
     """Compiles a scheduling on the machines given a permutation of jobs"""
 
-    nmach = len(data[0])
+    num_machines = len(data[0])
 
-    mach_times = [[] for i in range(nmach)]
+    # Note that using [[]] * range(k) would be incorrect, as it would simply
+    #  copy the same list k times (as opposed to creating k distinct lists).
+    machine_times = [[] for _ in range(num_machines)]
 
     # Assign the initial job to the machines
-    mach_times[0].append(0)
-    for mach in range(1,nmach):
+    machine_times[0].append(0)
+    for mach in range(1,num_machines):
         # Start the next task in the job when the previous finishes
-        mach_times[mach].append(mach_times[mach-1][0] + data[perm[0]][mach-1])
+        machine_times[mach].append(machine_times[mach-1][0] +
+                                   data[perm[0]][mach-1])
 
     # Assign the remaining jobs
     for i in range(1, len(perm)):
 
         # The first machine never contains any idle time
         job = perm[i]
-        mach_times[0].append(mach_times[0][-1] + data[perm[i-1]][0])
+        machine_times[0].append(machine_times[0][-1] + data[perm[i-1]][0])
 
         # For the remaining machines, the start time is the max of when the
         #  previous task in the job completed, or when the current machine
         #  completes the task for the previous job.
-        for mach in range(1, nmach):
-            mach_times[mach].append(max(mach_times[mach-1][i] + data[perm[i]][mach-1],
-                                        mach_times[mach][i-1] + data[perm[i-1]][mach]))
+        for mach in range(1, num_machines):
+            machine_times[mach].append(max(machine_times[mach-1][i] + data[perm[i]][mach-1],
+                                        machine_times[mach][i-1] + data[perm[i-1]][mach]))
 
-    return mach_times
+    return machine_times
 
 
 def solve(data):
@@ -242,24 +265,32 @@ def solve(data):
         iteration += 1
 
         # Heuristically choose the best strategy
-        (s,i) = _pick_strategy(STRATEGIES)
+        (strategy, strategy_index) = _pick_strategy(STRATEGIES)
 
-        # Use the strategy to change the solution
         old_val = res
         old_time = time.time()
-        perm = s['heur'](data, s['neigh'](data, perm))
+
+        # Use the current strategy's heuristic to pick the next permutation from
+        #  the set of candidates generated by the strategy's neighbourhood
+        heuristic = strategy['heur']
+        neighbourhood_generator = strategy['neigh']
+        candidates = neighbourhood_generator(data, perm)
+
+        perm = heuristic(data, candidates)
         res = makespan(data, perm)
 
         # Record the statistics on how the strategy did
-        improvements[i] += res - old_val
-        time_spent[i] += time.time() - old_time
-        STRATEGIES[i]['usage'] += 1
+        improvements[strategy_index] += res - old_val
+        time_spent[strategy_index] += time.time() - old_time
+        STRATEGIES[strategy_index]['usage'] += 1
 
         if res < best_make:
             best_make = res
             best_perm = perm[:]
 
-        # At regular intervals, switch the weighting on the strategies available
+        # At regular intervals, switch the weighting on the strategies available.
+        #  This way, the search can dynamically shift towards strategies that have
+        #  proven more effective recently.
         if time.time() > time_last_switch + TIME_INCREMENT:
 
             # Normalize the improvements made by the time it takes to make them
