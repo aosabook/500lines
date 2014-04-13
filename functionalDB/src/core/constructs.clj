@@ -17,7 +17,7 @@
 (defn from-eav [index] (:from-eav (meta index)))
 (defn to-eav [index] (:to-eav (meta index)))
 (defn usage-pred [index] (:usage-pred (meta index)))
-(defn leaf-index [index] (:usage-pred (meta leaf-index)))
+(defn leaf-index [index] (:leaf-index (meta leaf-index)))
 
 (defn single? [attr] (= :db/single (:cardinality (meta attr))))
 
