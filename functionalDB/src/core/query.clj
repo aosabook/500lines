@@ -2,6 +2,13 @@
    [:use [core constructs]
     [clojure.set :as CS :only (intersection)]])
 
+(defn ind-at
+  "inspecting a specific index at a given time, defaults to current. The kind argument mayone of the index name (e.g., AVET)"
+  ([db kind]
+   (ind-at db kind  (:curr-time db)))
+  ([db kind ts]
+   (kind ((:timestamped db) ts))))
+
 (defn variable?
   "A predicate that accepts a string and checks whether it describes a datalog variable (either starts with ? or it is _)"
   ([x] (variable? x true))
@@ -114,7 +121,7 @@
    [index path-preds]
    (let [result-paths (filter-index index path-preds) ; the paths (vectors) from the root of the index to the leaves (a leaf of an index is a set) where each path fulfils one predicate path
          relevant-items (items-that-answer-all-conditions (map last result-paths) (count path-preds)) ; the set of elements, each answers all the pred-paths
-         cleaned-paths (map (partial mask-path-leaf-with-items relevant-items) filtered-paths)] ; the paths, now their leaves are filtered to have only the items that fulfilled the predicates
+         cleaned-paths (map (partial mask-path-leaf-with-items relevant-items) result-paths)] ; the paths, now their leaves are filtered to have only the items that fulfilled the predicates
      (filter #(not-empty (last %)) cleaned-paths))) ; of these, we'll build a subset-path of the index that contains the paths to the leaves (sets), and these leaves contain only the valid items
 
 (defn resultify-bind-pair
