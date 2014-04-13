@@ -11,10 +11,13 @@ class Parser
     beta:  [0.095465967120306, -0.172688631608676, 0.095465967120306]
   }  
 
+  FORMAT_ACCELEROMETER = 'accelerometer'
+  FORMAT_GRAVITY       = 'gravity'
+
   attr_reader :data, :format, :parsed_data, :dot_product_data, :filtered_data
 
   # TODO: 
-  # - Should the methods be moved out of the initializer? Or, renamed to:
+  # Should the methods be moved out of the initializer? Or, renamed to:
   # set_parsed_data, set_dot_product_data, set_filtered_data?
   def initialize(data)
     @data = data.to_s
@@ -24,13 +27,17 @@ class Parser
     filter_dot_product_data
   end
 
+  def is_data_accelerometer?
+    @format == FORMAT_ACCELEROMETER
+  end
+
 private
 
   # Split acceleration data into the following format:
   # [ [ [x1, x2, ..., xn],    [y1, y2, ..., yn],    [z1, z2, ..., zn] ],
   #   [ [xg1, xg2, ..., xgn], [yg1, yg2, ..., ygn], [zg1, zg2, ..., zgn] ] ]
   def split_accl_accelerometer(accl)
-    @format = 'accelerometer'
+    @format = FORMAT_ACCELEROMETER
     
     accl = accl.flatten.collect { |i| i.split(',').collect(&:to_f) }
     split_accl = accl.transpose.collect do |total_accl|
@@ -42,13 +49,13 @@ private
   end
 
   def split_accL_gravity(accl)
-    @format = 'gravity'
+    @format = FORMAT_GRAVITY
     
     accl = accl.collect { |i| i.collect { |i| i.split(',').collect(&:to_f) } }
     [accl.collect {|a| a.first}.transpose, accl.collect {|a| a.last}.transpose]
   end
 
-  # TODO
+  # TODO:
   # You should be more explicit with your exception catching. It's better to 
   # have specific exceptions that you except to be raised, and have logic to handle those cases.
   def parse_raw_data

@@ -73,8 +73,7 @@ def set_match_filtered_data
   files = Dir.glob(File.join('public/uploads', "*"))
   files.delete(@file_name)
 
-  # TODO Magic string.
-  match = if @parser.format == 'accelerometer'
+  match = if @parser.is_data_accelerometer?
     files.select { |f| @file_name == f.gsub('-g.', '-a.') }.first
   else
     files.select { |f| @file_name == f.gsub('-a.', '-g.') }.first
