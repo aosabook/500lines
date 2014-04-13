@@ -20,9 +20,28 @@ import threading
 import helpers
 
 
+# Shared dispatcher code
+def dispatch_tests(server, commit_hash):
+    # NOTE: usually we don't run this forever
+    while True:
+        print "trying to dispatch to runners"
+        for runner in server.runners:
+            response = helpers.communicate(runner["host"],
+                                           int(runner["port"]),
+                                           "runtest:%s" % commit_hash)
+            if response == "OK":
+                print "adding hash %s" % commit_hash
+                server.dispatched_commits[commit_hash] = runner
+                return
+        time.sleep(2)
+
+
 class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     runners = []
     dead = False
+    dispatched_commits = {}
+    pending_commits = []
+
 
 def serve():
     parser = argparse.ArgumentParser()
@@ -42,6 +61,13 @@ def serve():
     def runner_checker(server):
         #NOTE:mention that we can do timeout based kills (if BUSY for too long
         # etc)
+        def manage_commit_lists(runner):
+            for commit, assigned_runner in server.dispatched_commits.iteritems():
+                if assigned_runner == runner:
+                    del server.dispatched_commits[commit]
+                    server.pending_commits.append(commit)
+                    break
+            server.runners.remove(runner)
         while not server.dead:
             time.sleep(1)
             for runner in server.runners:
@@ -52,20 +78,32 @@ def serve():
                                                    "ping")
                     if response != "pong":
                         print "removing runner %s" % runner
-                        server.runners.remove(runner)
+                        manage_commit_lists(runner)
                 except socket.error as e:
-                    print "removing runner %s" % runner
-                    server.runners.remove(runner)
-    t = threading.Thread(target=runner_checker, args=(server,))
+                    manage_commit_lists(runner)
+
+    # this will kick off tests that failed
+    def redistribute(server):
+        while not server.dead:
+            for commit in server.pending_commits:
+                print "running redistribute"
+                print server.pending_commits
+                dispatch_tests(server, commit)
+                time.sleep(5)
+
+    runner_heartbeat = threading.Thread(target=runner_checker, args=(server,))
+    redistributor = threading.Thread(target=redistribute, args=(server,))
     try:
-        t.start()
+        runner_heartbeat.start()
+        redistributor.start()
         # Activate the server; this will keep running until you
         # interrupt the program with Ctrl-C
         server.serve_forever()
     except (KeyboardInterrupt, Exception):
         # if any exception occurs, kill the thread
         server.dead = True
-        t.join()
+        runner_heartbeat.join()
+        redistributor.join()
 
 
 class DispatcherHandler(SocketServer.BaseRequestHandler):
@@ -75,7 +113,7 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
     and handle their test results
     """
 
-    command_re = re.compile(r"""(\w*)([:]*.*)""")
+    command_re = re.compile(r"""(\w*)([:]*(.*))""")
     last_communication = None
 
     def handle(self):
@@ -92,14 +130,14 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
             self.request.sendall("OK")
         elif command == "dispatch":
             print "going to dispatch"
-            commit_hash = command_groups.group(2)
+            commit_hash = command_groups.group(3)
             if not self.server.runners:
                 self.request.sendall("No runners are registered")
             else:
                 # The coordinator can trust us to dispatch the test
                 #TODO: add ability to batch tests using manifests?
                 self.request.sendall("OK")
-                self.dispatch_tests(commit_hash)
+                dispatch_tests(self.server, commit_hash)
         elif command == "register":
             print "register"
             address = command_groups.group(2)
@@ -111,6 +149,7 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
             print "got results"
             results = command_groups.group(2)
             commit_hash = re.findall(r":(\w*):.*", results)[0]
+            del self.server.dispatched_commits[commit_hash]
             if not os.path.exists("test_results"):
                 os.makedirs("test_results")
             with open("test_results/%s" % commit_hash, "w") as f:
@@ -122,18 +161,6 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
         else:
             self.request.sendall("Invalid command")
 
-
-    def dispatch_tests(self, commit_hash):
-        # NOTE: usually we don't run this forever
-        while True:
-            print "trying to dispatch to runners"
-            for runner in self.server.runners:
-                response = helpers.communicate(runner["host"],
-                                               int(runner["port"]),
-                                               "runtest:%s" % commit_hash)
-                if response == "OK":
-                    return
-            time.sleep(2)
 
 
 if __name__ == "__main__":
