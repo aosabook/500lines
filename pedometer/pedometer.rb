@@ -16,13 +16,13 @@ include FileUtils::Verbose
 # - Is file sanitized here? We don't want to be passing around untrusted data, especially not if it's touching the filesystem.
 post '/create' do
   begin
-    file = params[:parser][:file][:tempfile]
-    user_params = params[:user].values
+    file_upload   = params[:parser][:file_upload][:tempfile]
+    user_params   = params[:user].values
     device_params = params[:device].values
-    build_with_params(File.read(file), user_params, device_params)
+    build_with_params(File.read(file_upload), user_params, device_params)
 
     @file_name = FileHelper.generate_file_name(@parser, @user, @device)
-    cp(file, @file_name)
+    cp(file_upload, @file_name)
 
     set_match_filtered_data
 

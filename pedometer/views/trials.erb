@@ -19,11 +19,11 @@
   </table>
   <form method="post" action="/create" enctype="multipart/form-data">
     <h3 class="upload-header">Device Info</h3>
-    <input id="file" name="parser[file]" type="file">
-    <input class="params" type="number" name="device[rate]" placeholder="Sampling Rate">
-    <input class="params" type="number" name="device[steps]" placeholder="Actual Step Count">
-    <input class="params" type="number" name="device[trial]" placeholder="Trial Number">
-    <select class="params" name="device[method]">
+    <input name="parser[file_upload]" type="file">
+    <input name="device[rate]" type="number" class="params" placeholder="Sampling Rate">
+    <input name="device[steps]" type="number" class="params" placeholder="Actual Step Count">
+    <input name="device[trial]" type="number" class="params" placeholder="Trial Number">
+    <select name="device[method]" class="params">
       <option value="">(Select a method)</option>
       <option value="walk">Walking</option>
       <option value="run">Running</option>
