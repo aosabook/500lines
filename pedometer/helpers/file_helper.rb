@@ -12,9 +12,12 @@ class FileHelper
     "#{device.method}-#{parser.format[0]}.txt"
   end
 
-  def self.parse_file_name(file_name = '--_----')
-    u, d = file_name.split('/').last.split('_').collect { |i| i.split('-') }
-    [u, d[0...-1]]
+  def self.parse_file_name(file_name)
+    raise 'file_name cannot be nil.' unless file_name
+    
+    user, device = 
+      file_name.split('/').last.split('_').collect { |i| i.split('-') }
+    [user, device[0...-1]]
   end
 
 end

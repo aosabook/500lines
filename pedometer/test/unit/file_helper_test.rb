@@ -16,4 +16,10 @@ class FileHelperTest < Test::Unit::TestCase
     assert_equal expected, FileHelper.parse_file_name('public/uploads/a-b-c_d-e-f-g-h')
   end
 
+  def test_parse_file_name_nil
+    assert_raise_with_message(RuntimeError, 'file_name cannot be nil.') do
+      FileHelper.parse_file_name(nil)
+    end
+  end
+
 end
