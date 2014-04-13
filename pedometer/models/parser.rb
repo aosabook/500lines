@@ -26,34 +26,44 @@ class Parser
 
 private
 
+  # Split acceleration data into the following format:
+  # [ [ [x1, x2, ..., xn],    [y1, y2, ..., yn],    [z1, z2, ..., zn] ],
+  #   [ [xg1, xg2, ..., xgn], [yg1, yg2, ..., ygn], [zg1, zg2, ..., zgn] ] ]
+  def split_accl_accelerometer(accl)
+    @format = 'accelerometer'
+    
+    accl = accl.flatten.collect { |i| i.split(',').collect(&:to_f) }
+    split_accl = accl.transpose.collect do |total_accl|
+      grav = chebyshev_filter(total_accl, GRAVITY_COEFF)
+      user = total_accl.zip(grav).collect { |a, b| a - b }
+      [user, grav]
+    end
+    split_accl.transpose
+  end
+
+  def split_accL_gravity(accl)
+    @format = 'gravity'
+    
+    accl = accl.collect { |i| i.collect { |i| i.split(',').collect(&:to_f) } }
+    [accl.collect {|a| a.first}.transpose, accl.collect {|a| a.last}.transpose]
+  end
+
   # TODO
-  # - the actual logic for parsing accelerometer data and gravity data should be within their own functions.
-  # - You should be more explicit with your exception catching. It's better to have specific exceptions that you except to be raised, and have logic to handle those cases.
+  # You should be more explicit with your exception catching. It's better to 
+  # have specific exceptions that you except to be raised, and have logic to handle those cases.
   def parse_raw_data
     accl = @data.split(';').collect { |i| i.split('|') }
     
-    if accl.first.count == 1
-      @format = 'accelerometer'
-      
-      accl = accl.flatten.collect { |i| i.split(',').collect(&:to_f) }
-      split_accl = accl.transpose.collect do |total_accl|
-        grav = chebyshev_filter(total_accl, GRAVITY_COEFF)
-        user = total_accl.zip(grav).collect { |a, b| a - b }
-        [user, grav]
-      end
-      split_accl = split_accl.transpose
+    split_accl = if accl.first.count == 1
+      split_accl_accelerometer(accl)
     else
-      @format = 'gravity'
-      
-      accl = accl.collect { |i| i.collect { |i| i.split(',').collect(&:to_f) } }
-      split_accl = [accl.collect {|a| a.first}.transpose, 
-                    accl.collect {|a| a.last}.transpose]
+      split_accL_gravity(accl)
     end
 
     user_accl, grav_accl   = split_accl
-    grav_x, grav_y, grav_z = grav_accl
     user_x, user_y, user_z = user_accl
-
+    grav_x, grav_y, grav_z = grav_accl
+    
     @parsed_data = []
     accl.length.times do |i|
       @parsed_data << { x: user_x[i], y: user_y[i], z: user_z[i],
