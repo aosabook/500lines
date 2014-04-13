@@ -1,5 +1,5 @@
 require 'sinatra'
-require 'sinatra/jbuilder'
+
 Dir['./models/*', './helpers/*'].each {|file| require_relative file }
 
 include FileUtils::Verbose
