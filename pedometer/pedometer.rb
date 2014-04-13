@@ -12,7 +12,6 @@ Dir['./models/*', './helpers/*'].each {|file| require_relative file }
 include FileUtils::Verbose
 
 # TODO
-# - file as a variable name is a little too generic. Maybe file_name, or file_object.
 # - Is file sanitized here? We don't want to be passing around untrusted data, especially not if it's touching the filesystem.
 post '/create' do
   begin
@@ -38,12 +37,12 @@ get '/trials' do
   end
 
   @data = []
-  files = Dir.glob(File.join('public/uploads', "*"))
-  files.each do |file|
-    user_params, device_params = FileHelper.parse_file_name(file)
-    build_with_params(File.read(file), user_params, device_params)
+  files_names = Dir.glob(File.join('public/uploads', "*"))
+  files_names.each do |file_name|
+    user_params, device_params = FileHelper.parse_file_name(file_name)
+    build_with_params(File.read(file_name), user_params, device_params)
 
-    @data << {:file => file, :analyzer => @analyzer}
+    @data << {:file_name => file_name, :analyzer => @analyzer}
   end
 
   erb :trials
