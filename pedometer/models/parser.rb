@@ -13,6 +13,9 @@ class Parser
 
   attr_reader :data, :format, :parsed_data, :dot_product_data, :filtered_data
 
+  # TODO: 
+  # - Should the methods be moved out of the initializer? Or, renamed to:
+  # set_parsed_data, set_dot_product_data, set_filtered_data?
   def initialize(data)
     @data = data.to_s
 
@@ -23,6 +26,9 @@ class Parser
 
 private
 
+  # TODO
+  # - the actual logic for parsing accelerometer data and gravity data should be within their own functions.
+  # - You should be more explicit with your exception catching. It's better to have specific exceptions that you except to be raised, and have logic to handle those cases.
   def parse_raw_data
     accl = @data.split(';').collect { |i| i.split('|') }
     

@@ -3,6 +3,8 @@ class ViewHelper
   DISTANCE = { cm_per_m: 100, cm_per_km: 100000, m_per_km: 1000 }
 
   # TODO: Can this be cleaner?
+  # - 2 is a magic number here. Maybe we can add it as a class variable?
+  # - (expr).round(2) is repeated multiple times within this function. It might be a good idea to define an anonymous function to reduce code repetition.
   def self.format_distance(distance_cm)
     distance_cm = distance_cm.round(2)
     if distance_cm >= DISTANCE[:cm_per_km]

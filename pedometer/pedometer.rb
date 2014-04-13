@@ -1,9 +1,19 @@
+# TODO
+# - This module seems to be the web interface for your pedometer service. 
+# However it has some file handling logic that should probably be in another module. 
+# This allows you to separate responsibilities. 
+# And if in the future you decided to change how data is stored (maybe from file objects to a small database) 
+# refactoring your code will be a lot easier.
+
 require 'sinatra'
 
 Dir['./models/*', './helpers/*'].each {|file| require_relative file }
 
 include FileUtils::Verbose
 
+# TODO
+# - file as a variable name is a little too generic. Maybe file_name, or file_object.
+# - Is file sanitized here? We don't want to be passing around untrusted data, especially not if it's touching the filesystem.
 post '/create' do
   begin
     file = params[:parser][:file][:tempfile]
@@ -54,12 +64,16 @@ def build_with_params(data, user_params, device_params)
   @user     = User.new(*user_params)
   @device   = Device.new(*device_params)
   @analyzer = Analyzer.new(@parser, @user, @device)
+  @analyzer.measure
 end
 
+# TODO
+# - Can you add a comment here to explain what's going on? We spent a few minutes looking at it and couldn't figure it out.
 def set_match_filtered_data
   files = Dir.glob(File.join('public/uploads', "*"))
   files.delete(@file_name)
 
+  # TODO Magic string.
   match = if @parser.format == 'accelerometer'
     files.select { |f| @file_name == f.gsub('-g.', '-a.') }.first
   else

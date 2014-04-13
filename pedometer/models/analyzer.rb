@@ -18,7 +18,9 @@ class Analyzer
     @parser = parser
     @user   = user
     @device = device
+  end
 
+  def measure
     measure_steps
     measure_distance
     measure_time
@@ -28,7 +30,10 @@ private
 
   # -- Edge Detection -------------------------------------------------------
 
-  # TODO: Count the number of false steps, 
+  # TODO: 
+  # - It would help to have an explanation of why we 
+  # need to do edge detection here. What is an edge?
+  # - Count the number of false steps, 
   # and if too many are occurring, don't count 
   # any steps at all
   def count_edges(positive)
