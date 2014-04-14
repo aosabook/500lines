@@ -155,20 +155,17 @@ class Viewer(object):
         return (start, direction)
 
     def pick(self, x, y):
-        """ Execute pick of an object. Selects an object in the scene.
-            Consumes: x, y coordinates of the mouse on the screen """
+        """ Execute pick of an object. Selects an object in the scene. """
         start, direction = self.get_ray(x, y)
         self.scene.pick(start, direction, self.modelView)
 
     def move(self, x, y):
-        """ Execute a move command on the scene.
-            Consumes: x, y coordinates of the mouse on the screen """
+        """ Execute a move command on the scene. """
         start, direction = self.get_ray(x, y)
         self.scene.move(start, direction, self.inverseModelView)
 
     def place(self, shape, x, y):
-        """ Execute a placement of a new primitive into the scene.
-            Consumes: x, y coordinates of the mouse on the screen """
+        """ Execute a placement of a new primitive into the scene. """
         start, direction = self.get_ray(x, y)
         self.scene.place(shape, start, direction, self.inverseModelView)
 
