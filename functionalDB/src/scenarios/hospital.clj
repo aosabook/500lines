@@ -30,15 +30,13 @@
 
 (defn add-test-results-to-patient [pat-id test-result]
   (let [test-id (:id test-result)
-        a (transact hospital-db  (add-entity test-result))
-        ]
+        a (transact hospital-db  (add-entity test-result))]
    (transact hospital-db  (update-datom pat-id  :patient/tests #{test-id} :db/add))))
 
 ;; world setup
 (transact hospital-db  (add-entities (map #(make-entity %) basic-kinds )))
 
 (add-patient :pat1 "London" ["fever" "cough"] )
-
 (add-patient :pat2 "London" ["fever" "cough"] )
 
 (add-test-results-to-patient :pat1  (make-test :t2-pat1  {:test/bp-systolic 170 :test/bp-diastolic 80 :test/machine "XXX"} {:test/machine "string"} ))

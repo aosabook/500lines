@@ -10,8 +10,7 @@
 
 (defn _as-db-name [db-name] (keyword db-name))
 
-(defn get-db-conn
-  [db-name]
+(defn get-db-conn [db-name]
   (let [stored-db-name (_as-db-name db-name)]
   (stored-db-name (swap! __ALL-DBS__ _get-db stored-db-name))))
 

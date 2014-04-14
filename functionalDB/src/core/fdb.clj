@@ -55,8 +55,7 @@
   [ent ts-val]
  (reduce #(assoc-in %1 [:attrs %2 :ts ] ts-val) ent (keys (:attrs ent))))
 
-(defn add-entry-to-index
-  [index path operation]
+(defn add-entry-to-index [index path operation]
   (if (= operation :db/remove)
       index
     (let [update-path (butlast path)
@@ -64,14 +63,12 @@
             to-be-updated-set (get-in index update-path #{})]
       (assoc-in index update-path (conj to-be-updated-set update-value) ))))
 
-(defn update-attr-in-index
-  [index ent-id attr-name target-val operation]
+(defn update-attr-in-index [index ent-id attr-name target-val operation]
   (let [ colled-target-val (collify target-val)
          add-entry-fn (fn [indx vl] (add-entry-to-index indx ((from-eav index) ent-id attr-name vl) operation))]
     (reduce add-entry-fn index colled-target-val)))
 
-(defn add-entity-to-index
-  [ent timestamped ind-name]
+(defn add-entity-to-index  [ent timestamped ind-name]
   (let [ent-id (:id ent)
         index (ind-name timestamped)
         all-attrs  (vals (:attrs ent))
@@ -79,14 +76,12 @@
         add-in-index-fn (fn [ind attr] (update-attr-in-index ind ent-id (:name attr) (:value attr) :db/add))]
        (assoc timestamped ind-name  (reduce add-in-index-fn index relevant-attrs))))
 
-(defn fix-new-entity
-  [db ent]
+(defn fix-new-entity [db ent]
       (let [[ent-id next-top-id] (next-id db ent)
               new-ts (next-ts db)]
       [(update-creation-ts (assoc ent :id ent-id) new-ts) next-top-id]))
 
-(defn add-entity ;when adding an entity, its attributes' timestamp would be set to be the current one
-  [db ent]
+(defn add-entity  [db ent]
   (let [[fixed-ent next-top-id](fix-new-entity db ent)
           new-timestamped (update-in  (last (:timestamped db)) [:storage] update-storage fixed-ent)
           add-fn (partial add-entity-to-index fixed-ent)
@@ -95,12 +90,9 @@
 
 (defn add-entities  [db ents-seq] (reduce add-entity db ents-seq))
 
-(defn update-attr-modification-time
-  [attr new-ts]
-    (assoc attr :ts new-ts :prev-ts ( :ts attr)))
+(defn update-attr-modification-time  [attr new-ts]  (assoc attr :ts new-ts :prev-ts ( :ts attr)))
 
-(defn update-attr
-  [attr new-val new-ts operation]
+(defn update-attr [attr new-val new-ts operation]
    {:pre  [(if (single? attr)
            (contains? #{:db/reset-to :db/remove} operation)
            (contains? #{:db/reset-to :db/add :db/remove} operation))]}
@@ -108,15 +100,13 @@
       (update-attr-modification-time new-ts)
       (update-attr-value new-val operation)))
 
-(defn remove-path-values
-  [old-vals target-val operation]
+(defn remove-path-values [old-vals target-val operation]
   (cond
    (= operation :db/add) [] ; nothing to remove
    (= operation :db/reset-to) old-vals ; removing all of the old values
    (= operation :db/remove) (collify target-val))) ; removing the values defined by the caller
 
-(defn remove-entry-from-index
-  [index path]
+(defn remove-entry-from-index [index path]
   (let [path-head (first path)
           path-to-items (butlast path)
           val-to-remove (last path)
@@ -127,8 +117,7 @@
      (= (count old-entries-set) 1)  (update-in index [path-head] dissoc (second path)) ; a path that splits at the second item - just remove the unneeded part of it
      :else (update-in index path-to-items disj val-to-remove))))
 
-(defn remove-entries-from-index
-  [ent-id operation index attr]
+(defn remove-entries-from-index [ent-id operation index attr]
   (if (= operation :db/add)
        index
       (let  [attr-name (:name attr)
@@ -136,8 +125,7 @@
                paths (map #((from-eav index) ent-id attr-name %) datom-vals)]
        (reduce remove-entry-from-index index paths))))
 
-(defn update-index
-  [ent-id old-attr target-val operation timestamped ind-name]
+(defn update-index [ent-id old-attr target-val operation timestamped ind-name]
   (if-not ((usage-pred (get-in timestamped [ind-name])) old-attr)
     timestamped
     (let [index (ind-name timestamped)
@@ -148,8 +136,7 @@
           updated-index  (update-attr-in-index cleaned-index ent-id attr-name target-val operation)]
       (assoc timestamped ind-name updated-index))))
 
-(defn update-entity
-  [storage e-id new-attr]
+(defn update-entity [storage e-id new-attr]
   (assoc-in (stored-entity storage e-id) [:attrs (:name new-attr)] new-attr))
 
 (defn update-timestamped
@@ -169,8 +156,7 @@
             fully-updated-timestamped (update-timestamped timestamped ent-id attr updated-attr new-val operation)]
        (update-in db [:timestamped] conj fully-updated-timestamped))))
 
-(defn remove-entity-from-index
-  [ent timestamped ind-name]
+(defn remove-entity-from-index [ent timestamped ind-name]
   (let [ent-id (:id ent)
         index (ind-name timestamped)
         all-attrs  (vals (:attrs ent))
@@ -178,22 +164,19 @@
         remove-from-index-fn (partial remove-entries-from-index  ent-id  :db/remove)]
     (assoc timestamped ind-name (reduce remove-from-index-fn index relevant-attrs))))
 
-(defn reffing-datoms-to
-  [e-id timestamped]
+(defn reffing-datoms-to [e-id timestamped]
   (let [vaet (:VAET timestamped)]
         (for [[attr-name reffing-set] (e-id vaet)
                 reffing reffing-set]
                [reffing attr-name e-id])))
 
-(defn remove-back-refs
-  [db e-id timestamped]
+(defn remove-back-refs [db e-id timestamped]
   (let [refing-datoms (reffing-datoms-to e-id timestamped)
           remove-fn (fn[d [e a v]] (update-datom db e a v :db/remove))
           clean-db (reduce remove-fn db refing-datoms)]
        (last (:timestamped db))))
 
-(defn remove-entity
-  [db ent-id]
+(defn remove-entity  [db ent-id]
   (let [ent (entity-at db ent-id)
          timestamped (remove-back-refs db ent-id (last (:timestamped db)))
          retimed-timestamped (update-in timestamped [:VAET] dissoc ent-id)
@@ -201,8 +184,7 @@
          new-timestamped (reduce (partial remove-entity-from-index ent) no-ent-timestamped (indices))]
     (assoc db :timestamped (conj  (:timestamped db) new-timestamped))))
 
-(defn transact-on-db
-  [initial-db  txs]
+(defn transact-on-db [initial-db  txs]
     (loop [[tx & rst-tx] txs transacted initial-db]
       (if tx
           (recur rst-tx (apply (first tx) transacted (rest tx)))
@@ -210,8 +192,7 @@
                   new-timestamped (last (:timestamped transacted))]
             (assoc initial-db :timestamped (conj  initial-timestamped new-timestamped)  :curr-time (next-ts initial-db) :top-id (:top-id transacted))))))
 
-(defmacro  _transact
-  [db op & txs]
+(defmacro  _transact [db op & txs]
   (when txs
     (loop [[frst-tx# & rst-tx#] txs  res#  [op db `transact-on-db]  accum-txs# []]
       (if frst-tx#
