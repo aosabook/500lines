@@ -1,6 +1,6 @@
 MAX_COLOR = 9
 MIN_COLOR = 0
-COLORS = {
+COLORS = { # RGB Colors
     0:  (1.0, 1.0, 1.0),
     1:  (0.05, 0.05, 0.9),
     2:  (0.05, 0.9, 0.05),

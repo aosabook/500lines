@@ -13,9 +13,8 @@ class Interaction(object):
         """ Handles user interaction """
         # currently pressed mouse button
         self.pressed = None
-        # current rotation, stored as quaternion
-        #self.rotation = quaternion.fromEuler()
-        self.camera_loc = [0, 0, 0, 0]
+        # the current location of the camera
+        self.translation = [0, 0, 0, 0]
         # the trackball to calculate rotation
         self.trackball = trackball.Trackball(theta = -25, distance=15)
         # the current mouse location
@@ -45,9 +44,9 @@ class Interaction(object):
 
     def translate(self, x, y, z):
         """ translate the camera """
-        self.camera_loc[0] += x
-        self.camera_loc[1] += y
-        self.camera_loc[2] += z
+        self.translation[0] += x
+        self.translation[1] += y
+        self.translation[2] += z
 
     def handle_mouse_button(self, button, mode, x, y):
         """ Called when the mouse button is pressed or released """
@@ -101,7 +100,7 @@ class Interaction(object):
         elif key == GLUT_KEY_DOWN:
             self.trigger('scale', up=False)
         elif key == GLUT_KEY_LEFT:
-            self.trigger('color', forward=True)
+            self.trigger('rotate_color', forward=True)
         elif key == GLUT_KEY_RIGHT:
-            self.trigger('color', forward=False)
+            self.trigger('rotate_color', forward=False)
         glutPostRedisplay()

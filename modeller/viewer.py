@@ -12,7 +12,7 @@ from OpenGL.GLUT import glutCreateWindow, glutDisplayFunc, glutGet, glutInit, gl
 from OpenGL.GLUT import GLUT_SINGLE, GLUT_RGB, GLUT_WINDOW_HEIGHT, GLUT_WINDOW_WIDTH
 
 import numpy
-from numpy.linalg import norm
+from numpy.linalg import norm, inv
 
 from interaction import Interaction
 from primitive import init_primitives, G_OBJ_PLANE
@@ -43,7 +43,7 @@ class Viewer(object):
         self.interaction.register_callback('pick', self.pick)
         self.interaction.register_callback('move', self.move)
         self.interaction.register_callback('place', self.place)
-        self.interaction.register_callback('color', self.color)
+        self.interaction.register_callback('rotate_color', self.rotate_color)
         self.interaction.register_callback('scale', self.scale)
 
     def init_scene(self):
@@ -86,14 +86,14 @@ class Viewer(object):
         glMatrixMode(GL_MODELVIEW)
         glPushMatrix()
         glLoadIdentity()
-        loc = self.interaction.camera_loc
+        loc = self.interaction.translation
         glTranslated(-loc[0], -loc[1], -loc[2])
         glMultMatrixf(self.interaction.trackball.matrix)
 
         # store the inverse of the current modelview.
-        mat = numpy.array(glGetFloatv(GL_MODELVIEW_MATRIX))
-        self.inverseModelView = numpy.linalg.inv(numpy.transpose(mat))
-        self.modelView = numpy.transpose(mat)
+        currentModelView = numpy.array(glGetFloatv(GL_MODELVIEW_MATRIX))
+        self.modelView = numpy.transpose(currentModelView)
+        self.inverseModelView = inv(numpy.transpose(currentModelView))
 
         # render the scene. This will call the render function for each object in the scene
         self.scene.render()
@@ -103,20 +103,20 @@ class Viewer(object):
         glCallList(G_OBJ_PLANE)
         glPopMatrix()
 
-        # flush the buffer to draw to the screen!
+        # flush the buffers so that the scene can be drawn
         glFlush()
 
     def init_view(self):
         """ initialize the projection matrix """
         xSize, ySize = glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT)
-        aspect_rat = float(xSize) / float(ySize)
+        aspect_ratio = float(xSize) / float(ySize)
 
         # load the projection matrix. Always the same
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
 
         glViewport(0, 0, xSize, ySize)
-        gluPerspective(70, aspect_rat, 0.1, 1000.0)
+        gluPerspective(70, aspect_ratio, 0.1, 1000.0)
         glTranslated(0, 0, -15)
 
     def initial_scene(self):
@@ -125,15 +125,15 @@ class Viewer(object):
         cube_node.color_index = 2
         self.scene.add_node(cube_node)
 
-        cube_node = Sphere()
-        cube_node.translate(-2, 0, 2)
-        cube_node.color_index = 3
-        self.scene.add_node(cube_node)
+        sphere_node = Sphere()
+        sphere_node.translate(-2, 0, 2)
+        sphere_node.color_index = 3
+        self.scene.add_node(sphere_node)
 
-        cube_node = Sphere()
-        cube_node.translate(-2, 0, -2)
-        cube_node.color_index = 1
-        self.scene.add_node(cube_node)
+        sphere_node_2 = Sphere()
+        sphere_node_2.translate(-2, 0, -2)
+        sphere_node_2.color_index = 1
+        self.scene.add_node(sphere_node_2)
 
     def get_ray(self, x, y):
         """ Generate a ray beginning at the near plane, in the direction that the x, y coordinates are facing
@@ -172,7 +172,7 @@ class Viewer(object):
         start, direction = self.get_ray(x, y)
         self.scene.place(shape, start, direction, self.inverseModelView)
 
-    def color(self, forward):
+    def rotate_color(self, forward):
         """ Rotate the color of the selected Node. Boolean 'forward' indicates direction of rotation. """
         self.scene.rotate_color(forward)
 
