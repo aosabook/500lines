@@ -1,6 +1,6 @@
 import random
-from OpenGL.GL import glCallList, glColor3f, glMaterialfv, glMultMatrixf, glPopMatrix, glPushMatrix
-from OpenGL.GL import GL_EMISSION, GL_FRONT
+from OpenGL.GL import glCallList, glColor3f, glMaterialfv, glMultMatrixf, glPopMatrix, glPushMatrix, \
+                      GL_EMISSION, GL_FRONT
 import numpy
 
 from primitive import G_OBJ_CUBE, G_OBJ_SPHERE

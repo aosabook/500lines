@@ -1,5 +1,5 @@
-from OpenGL.GL import glBegin, glColor3f, glEnd, glEndList, glLineWidth, glNewList, glNormal3f, glVertex3f
-from OpenGL.GL import GL_COMPILE, GL_LINES, GL_QUADS
+from OpenGL.GL import glBegin, glColor3f, glEnd, glEndList, glLineWidth, glNewList, glNormal3f, glVertex3f, \
+                      GL_COMPILE, GL_LINES, GL_QUADS
 from OpenGL.GLU import gluDeleteQuadric, gluNewQuadric, gluSphere
 
 G_OBJ_PLANE = 1
