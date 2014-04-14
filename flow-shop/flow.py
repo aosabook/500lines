@@ -123,7 +123,6 @@ def solve(data):
         strat_usage[strategy] += 1
 
         if res < best_make:
-            print "New best (%d)" % res
             best_make = res
             best_perm = perm[:]
 
@@ -187,8 +186,7 @@ def parse_problem(filename, k=1):
         # Strip spaces and newline characters from every line
         lines = map(str.strip, f.readlines())
 
-        # We know the last line is blank, and we prep the first line for later
-        lines = lines[:-1]
+        # We prep the first line for later
         lines[0] = '/' + lines[0]
 
         # We also know '/' does not appear in the files, so we can use it as
