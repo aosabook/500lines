@@ -20,9 +20,7 @@ class CodeBuilder(object):
         Don't include indentations or newlines.
 
         """
-        self.code.append(" " * self.indent_amount)
-        self.code.append(line)
-        self.code.append("\n")
+        self.code.extend([" " * self.indent_amount, line, "\n"])
 
     def add_section(self):
         """Add a section, a sub-CodeBuilder."""
