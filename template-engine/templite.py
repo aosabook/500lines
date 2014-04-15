@@ -8,6 +8,8 @@ import re
 class CodeBuilder(object):
     """Build source code conveniently."""
 
+    INDENT_STEP = 4      # PEP8 says so!
+
     def __init__(self, indent=0):
         self.code = []
         self.indent_amount = indent
@@ -30,11 +32,11 @@ class CodeBuilder(object):
 
     def indent(self):
         """Increase the current indent for following lines."""
-        self.indent_amount += 4
+        self.indent_amount += self.INDENT_STEP
 
     def dedent(self):
         """Decrease the current indent for following lines."""
-        self.indent_amount -= 4
+        self.indent_amount -= self.INDENT_STEP
 
     def __str__(self):
         return "".join(str(c) for c in self.code)
