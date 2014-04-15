@@ -39,13 +39,16 @@ class CodeBuilder(object):
     def __str__(self):
         return "".join(str(c) for c in self.code)
 
-    def get_function(self, fn_name):
-        """Compile the code, and return the function `fn_name`."""
+    def get_globals(self):
+        """Compile the code, and return a dict of globals it defines."""
+        # A check that the caller really finished all the blocks they started.
         assert self.indent_amount == 0
-        g = {}
-        code_text = str(self)
-        exec(code_text, g)
-        return g[fn_name]
+        # Get the Python source as a single string.
+        python_source = str(self)
+        # Execute the source, defining globals, and return them.
+        globals = {}
+        exec(python_source, globals)
+        return globals
 
 
 class Templite(object):
@@ -143,7 +146,7 @@ class Templite(object):
                     )
                     code.indent()
                 elif words[0].startswith('end'):
-                    # Endsomething.  Pop the ops stack
+                    # Endsomething.  Pop the ops stack.
                     end_what = words[0][3:]
                     if ops_stack[-1] != end_what:
                         self.syntax_error("Mismatched end tag", end_what)
@@ -165,7 +168,7 @@ class Templite(object):
 
         code.add_line("return ''.join(result)")
         code.dedent()
-        self.render_function = code.get_function('render')
+        self.render_function = code.get_globals()['render']
 
     def syntax_error(self, msg, thing):
         """Raise a syntax error using `msg`, and showing `thing`."""
