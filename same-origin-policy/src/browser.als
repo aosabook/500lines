@@ -8,10 +8,10 @@ open http
 open message
 
 
-sig Browser extends message/EndPoint {
+abstract sig Browser extends message/EndPoint {
 	frames : set Frame
 }
-sig Frame {
+abstract sig Frame {
 	location : http/URL,
 	tags : set HTMLTag,
 	dom : DOM,
@@ -19,7 +19,7 @@ sig Frame {
 }{
 	some script implies script.context = location
 }
-sig Script extends message/EndPoint {
+abstract sig Script extends message/EndPoint {
 	context : http/URL
 }{
 	some script.this
@@ -30,7 +30,7 @@ sig XMLHTTPReq in http/HTTPReq {
 	from in Script
 }
 
-sig DOM extends message/Resource {}
+abstract sig DOM extends message/Resource {}
 
 abstract sig DomAPICall extends message/Msg {
 	frame : Frame	-- frame that contains the DOM

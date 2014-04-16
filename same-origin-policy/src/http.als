@@ -37,15 +37,16 @@ sig Origin {
 	port : lone Port
 }
 
-sig Server extends message/EndPoint {	
-	resMap : URL -> lone message/Resource	-- maps each URL to at most one resource
+abstract sig Server extends message/EndPoint {	
+	urls : set URL,
+	resMap : urls -> lone message/Resource	-- maps each URL to at most one resource
 }
 
 fact {
   -- all urls are mapped by some server
   all u : URL | some s : Server | some s.resMap[u]
   -- no two servers map the same url
-  no disj s1, s2 : Server | some u : URL | some s1.resMap[u] and some s2.resMap[u]
+  no disj s1, s2 : Server | some s1.urls & s2.urls
 }
 
 /* HTTP Messages */
@@ -53,7 +54,6 @@ abstract sig HTTPReq extends message/Msg {
 	url : URL,
 	method : Method
 }{
-	from not in Server
 	to in Server
 }
 
@@ -61,7 +61,6 @@ abstract sig HTTPResp extends message/Msg {
 	inResponseTo : HTTPReq
 }{
 	from in Server
-	to not in Server
 	one payload
 	payload in message/Resource
 	inResponseTo in prevs[this]

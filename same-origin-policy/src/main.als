@@ -26,6 +26,29 @@ fact Policies {
 	postMessageRule
 }
 
+one sig Facebook extends Server {}
+one sig MyProfilePage extends Frame {
+}{
+	location in Facebook.urls
+	dom = MyProfile
+}
+one sig MyProfile extends DOM {}
+
+one sig EvilServer extends Server {}
+one sig AdPage extends Frame {}{
+	location in EvilServer.urls
+	script = EvilScript
+}
+one sig EvilScript extends Script {}
+
+one sig MyBrowser extends Browser {}{
+	frames = MyProfilePage + AdPage
+}
+
+fact Assumptions {
+	owns.MyProfile in MyBrowser
+}
+
 /* Simulation */
 
 // Generates an instance with at least one successful same-origin request
@@ -33,8 +56,7 @@ fact Policies {
 // dom and origin.
 run GenWithSameOriginReq {
 	some req :  browser/XMLHTTPReq | sop/sameOrigin[req.url, req.from.context]
-} for 3 but 1 http/Server, 1 browser/Browser, 1 http/URL, 1 browser/DOM,
-1 sop/Origin
+} for 4
 
 // Generates an instance with at least one successful same-origin request that
 // is not a CORS one
@@ -43,9 +65,7 @@ run GenWithSameOriginReq {
 run GenWithSameOriginReqNoCors {
 	some req :  browser/XMLHTTPReq | sop/sameOrigin[req.url, req.from.context]
     no cors/ReqCORS
-} for 3 but 1 http/Server, 1 browser/Browser, 1 http/URL, 1 browser/DOM,
-1 sop/Origin
-
+} for 3 
 
 // Generates an instance with at least one successful request with different origin.
 // bound: up to 3 objects of each type, but exactly one server, browser, dom,
@@ -53,9 +73,7 @@ run GenWithSameOriginReqNoCors {
 run GenWithDifferentOriginReqCors {
 	some req :  browser/XMLHTTPReq |
 		not sop/sameOrigin[req.url, req.from.context]
-} for 3 but exactly 1 http/Server, exactly 1 browser/Browser,
-exactly 2 http/URL, exactly 1 browser/DOM, exactly 2 sop/Origin
-
+} for 3
 
 /* Property Checking */
 
@@ -75,6 +93,13 @@ assert noResourceLeak {
 check noResourceLeak for 3 but 2 http/Server
 
 /** for visualization only **/
+
+fact {
+	all m1 : Msg - last | 
+		let m2 = m1.next | 
+			m1 in HTTPReq implies m1 = m2.inResponseTo
+}
+
 fun pastEvents : Msg -> Step {
 	{m : Msg, s : Step |
 		m in (s.prevs + s).evt
@@ -87,28 +112,33 @@ fun follows : Msg -> Msg {
 	}
 }
 
-fun from : Msg -> EndPoint -> Step {
-	{m : Msg, e : EndPoint, s : Step |
-		m = s.evt and e = m.from
-	}	
-}
-
-fun to : Msg -> EndPoint -> Step {
-	{m : Msg, e : EndPoint, s : Step |
-		m = s.evt and e = m.to
-	}	
-}
-
-fun talksTo : EndPoint -> EndPoint -> Step {
+fun sendsTo : EndPoint -> EndPoint -> Step {
 	{e1, e2 : EndPoint, s : Step |
 		s.evt.from = e1 and s.evt.to = e2
 	}
 }
 
-fun payload : Msg -> Resource -> Step {
-	{m : Msg, r : Resource, s : Step |
-		m = s.evt and r in m.payload
-	}		
+fun server : Frame -> Server {
+	{e : Frame, s : Server |
+		e.location in s.urls
+	}	
 }
 
+fun from : EndPoint -> Step {
+	{e : EndPoint, s : Step |
+		e = s.evt.from
+	}	
+}
+
+fun to : EndPoint -> Step {
+	{e : EndPoint, s : Step |
+		e = s.evt.to
+	}	
+}
+
+fun from : Msg -> EndPoint -> Step {
+	{m : Msg, e : EndPoint, s : Step |
+		m = s.evt and e = m.from
+	}	
+}
 
