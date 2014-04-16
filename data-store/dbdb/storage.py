@@ -27,7 +27,7 @@ class Storage(object):
         self._seek_end()
         end_address = self._f.tell()
         if end_address < self.SUPERBLOCK_SIZE:
-            self._f.write('\x00' * (self.SUPERBLOCK_SIZE - end_address))
+            self._f.write(b'\x00' * (self.SUPERBLOCK_SIZE - end_address))
         self.unlock()
 
     def lock(self):

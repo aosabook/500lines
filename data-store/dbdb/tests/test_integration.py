@@ -63,7 +63,7 @@ class TestTool(object):
         eq_(raised.exception.returncode, dbdb.tool.BAD_KEY)
 
     def test_tool(self):
-        expected = 'b'
+        expected = b'b'
         self._tool('set', 'a', expected)
         actual = self._tool('get', 'a')
         eq_(actual, expected)

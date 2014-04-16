@@ -1,3 +1,4 @@
+from __future__ import print_function
 import sys
 
 import dbdb
@@ -10,9 +11,9 @@ BAD_KEY = 3
 
 
 def usage():
-    print >> sys.stderr, "Usage:"
-    print >> sys.stderr, "\tpython -m dbdb.tool DBNAME get KEY"
-    print >> sys.stderr, "\tpython -m dbdb.tool DBNAME set KEY VALUE"
+    print("Usage:", file=sys.stderr)
+    print("\tpython -m dbdb.tool DBNAME get KEY", file=sys.stderr)
+    print("\tpython -m dbdb.tool DBNAME set KEY VALUE", file=sys.stderr)
 
 
 def main():
@@ -28,7 +29,7 @@ def main():
         try:
             sys.stdout.write(db[key])
         except KeyError:
-            print >> sys.stderr, "Key not found"
+            print("Key not found", file=sys.stderr)
             return BAD_KEY
     else:
         db[key] = value

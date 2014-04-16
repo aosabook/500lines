@@ -4,11 +4,11 @@ class ValueRef(object):
 
     @staticmethod
     def referent_to_string(referent):
-        return referent
+        return referent.encode('utf-8')
 
     @staticmethod
     def string_to_referent(string):
-        return string
+        return string.decode('utf-8')
 
     def __init__(self, referent=None, address=0):
         self._referent = referent
