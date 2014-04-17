@@ -121,4 +121,12 @@ Contributors
     <td>@gvanrossum</td>
     <td>guido@python.org</td>
   </tr>
+  <tr>
+    <td>Christian Muise</td>
+    <td>University of Melbourne</td>
+    <td>flow-shop</td>
+    <td>@haz</td>
+    <td>@cjmuise</td>
+    <td>christian.muise@gmail.com</td>
+  </tr>
 </table>
