@@ -101,10 +101,10 @@
       (update-attr-value new-val operation)))
 
 (defn remove-path-values [old-vals target-val operation]
-  (cond
-   (= operation :db/add) [] ; nothing to remove
-   (= operation :db/reset-to) old-vals ; removing all of the old values
-   (= operation :db/remove) (collify target-val))) ; removing the values defined by the caller
+  (case operation
+    :db/add [] ; nothing to remove
+    :db/reset-to old-vals ; removing all of the old values
+    :db/remove (collify target-val))) ; removing the values defined by the caller
 
 (defn remove-entry-from-index [index path]
   (let [path-head (first path)
