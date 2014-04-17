@@ -121,4 +121,11 @@ Contributors
     <td>@gvanrossum</td>
     <td>guido@python.org</td>
   </tr>
+    <td>Erick Dransch</td>
+    <td>Upverter</td>
+    <td>Modeller</td>
+    <td>@EkkiD</td>
+    <td>@ErickDransch</td>
+    <td>erick.dransch@upverter.com</td>
+  </tr>
 </table>
