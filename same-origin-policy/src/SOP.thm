@@ -10,14 +10,15 @@
 <defaultedge/>
 
 <node>
+   <type name="Ad"/>
    <type name="AdPage"/>
    <type name="EvilScript"/>
    <type name="EvilServer"/>
    <type name="Facebook"/>
    <type name="Int"/>
    <type name="MyBrowser"/>
-   <type name="MyProfile"/>
    <type name="MyProfilePage"/>
+   <type name="Profile"/>
    <type name="String"/>
    <type name="univ"/>
    <type name="browser/Browser"/>
@@ -33,6 +34,10 @@
    <type name="message/ord/Step"/>
    <type name="message/ord/SO/Ord"/>
    <set name="this/CriticalResource" type="message/Resource"/>
+   <set name="this/EvilHost" type="http/Host"/>
+   <set name="this/FBHost" type="http/Host"/>
+   <set name="this/MyProfile" type="Profile"/>
+   <set name="$noResourceLeak_r" type="message/Resource"/>
    <set name="First" type="message/ord/SO/Ord"/>
    <set name="Next" type="message/ord/SO/Ord"/>
    <set name="cors/RespCORS" type="http/HTTPResp"/>
@@ -40,10 +45,6 @@
 
 <node color="Gray">
    <type name="message/EndPoint"/>
-</node>
-
-<node color="Red" label="Malicious">
-   <set name="this/MaliciousEndPoint" type="message/EndPoint"/>
 </node>
 
 <node color="White" label="Resource">
@@ -119,7 +120,15 @@
 </node>
 
 <node showlabel="no">
-   <set name="$GenWithSameOriginReq_req" type="http/HTTPReq"/>
+   <set name="$noResourceLeak_e" type="message/EndPoint"/>
+</node>
+
+<node showlabel="no" color="Gray">
+   <set name="this/Trusted" type="message/EndPoint"/>
+</node>
+
+<node showlabel="no" color="Red">
+   <set name="$Untrusted" type="message/EndPoint"/>
 </node>
 
 <node showlabel="no" style="Bold">
@@ -144,6 +153,10 @@
    <relation name="inResponseTo"> <type name="http/HTTPResp"/> <type name="http/HTTPReq"/> </relation>
 </edge>
 
+<edge color="Black" style="Bold" attribute="no">
+   <relation name="$sendsTo"> <type name="message/EndPoint"/> <type name="message/EndPoint"/> </relation>
+</edge>
+
 <edge color="Black" style="Bold" label="$from">
    <relation name="$from&apos;"> <type name="message/Msg"/> <type name="message/EndPoint"/> </relation>
 </edge>
@@ -152,22 +165,23 @@
    <relation name="from"> <type name="message/Msg"/> <type name="message/EndPoint"/> </relation>
 </edge>
 
-<edge color="Black" style="Dotted">
+<edge color="Black" style="Dotted" label="">
    <relation name="$follows"> <type name="message/Msg"/> <type name="message/Msg"/> </relation>
+</edge>
+
+<edge layout="yes">
+   <relation name="$server"> <type name="browser/Frame"/> <type name="http/Server"/> </relation>
 </edge>
 
 <edge visible="no">
    <relation name="to"> <type name="message/Msg"/> <type name="message/EndPoint"/> </relation>
 </edge>
 
-<edge visible="no" attribute="no">
-   <relation name="$GenWithSameOriginReq_s"> <type name="http/URL"/> <type name="http/Server"/> </relation>
-</edge>
-
 <edge visible="no" attribute="yes">
    <relation name="allowedOrigins"> <type name="http/HTTPResp"/> <type name="http/Origin"/> </relation>
    <relation name="context"> <type name="browser/Script"/> <type name="http/URL"/> </relation>
-   <relation name="dom"> <type name="browser/Frame"/> <type name="browser/DOM"/> </relation>
+   <relation name="dom"> <type name="browser/Frame"/> <type name="message/Resource"/> </relation>
+   <relation name="frame"> <type name="browser/DomAPICall"/> <type name="browser/Frame"/> </relation>
    <relation name="host"> <type name="http/Origin"/> <type name="http/Host"/> </relation>
    <relation name="host"> <type name="http/URL"/> <type name="http/Host"/> </relation>
    <relation name="location"> <type name="browser/Frame"/> <type name="http/URL"/> </relation>
@@ -183,6 +197,7 @@
    <relation name="protocol"> <type name="http/Origin"/> <type name="http/Protocol"/> </relation>
    <relation name="protocol"> <type name="http/URL"/> <type name="http/Protocol"/> </relation>
    <relation name="resMap"> <type name="http/Server"/> <type name="http/URL"/> <type name="message/Resource"/> </relation>
+   <relation name="return"> <type name="message/Msg"/> <type name="message/Resource"/> </relation>
    <relation name="url"> <type name="http/HTTPReq"/> <type name="http/URL"/> </relation>
    <relation name="urls"> <type name="http/Server"/> <type name="http/URL"/> </relation>
 </edge>

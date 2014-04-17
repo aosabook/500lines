@@ -24,7 +24,10 @@ sig RespCORS in http/HTTPResp {
 }
 
 pred corsRule {
+	-- "origin" header of every CORS req matches the script context 
+	all r : ReqCORS | r.origin = url2origin[r.from.context]
 	-- A CORS response is accepted iff it is allowed by the server, as indicated
 	-- in "access-control-allow-origin" header
 	all r : RespCORS | r.inResponseTo.origin in r.allowedOrigins
+	all r : HTTPResp | r.inResponseTo in ReqCORS implies r in RespCORS
 }

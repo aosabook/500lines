@@ -17,80 +17,87 @@ open sop
 open cors
 open postmessage
 
+
 // Security policies 
 // Comment out to see what might happen when one or more of them don't hold
-fact Policies {
+pred policies {
 	domSOP
 	xmlhttpreqSOP
 	corsRule
 	postMessageRule
 }
 
-one sig Facebook extends Server {}
-one sig MyProfilePage extends Frame {
-}{
+/* An example web system with
+		- two servers (Facebook and Evil Server)
+		- the user's browser (MyBrowser)
+		- a Facebook page containing the user profile (MyProfile)
+		- an ad page from EvilServer with a malicious script (EvilScript)
+ */
+
+// Facebook server and its related parts
+one sig FBHost in Host {}
+one sig Facebook extends http/Server {}{
+	urls.host = FBHost
+}
+one sig MyProfilePage extends browser/Frame {}{
 	location in Facebook.urls
 	dom = MyProfile
 }
-one sig MyProfile extends DOM {}
+sig Profile extends browser/DOM {}
+one sig MyProfile in Profile {}
 
-one sig EvilServer extends Server {}
-one sig AdPage extends Frame {}{
+// Malicious server and its related parts
+one sig EvilHost in Host {}
+one sig EvilServer extends http/Server {}{
+	urls.host = EvilHost
+}
+one sig AdPage extends browser/Frame {}{
 	location in EvilServer.urls
 	script = EvilScript
+	dom in Ad
 }
-one sig EvilScript extends Script {}
+sig Ad extends browser/DOM {}
+one sig EvilScript extends browser/Script {}
 
-one sig MyBrowser extends Browser {}{
+// User's browser
+one sig MyBrowser extends browser/Browser {}{
 	frames = MyProfilePage + AdPage
 }
 
-fact Assumptions {
-	owns.MyProfile in MyBrowser
+fact SystemAssumptions {
+	FBHost != EvilHost
+	MyProfile not in EvilServer.owns
+	all r : RespCORS | r.from = Facebook implies r.allowedOrigins.host = FBHost 
+	no r : HTTPReq + HTTPResp |
+		r.from = Facebook and 
+		r.to = EvilServer and
+		some CriticalResource & r.payload
 }
 
-/* Simulation */
+/* Checking a Security Property */
 
-// Generates an instance with at least one successful same-origin request
-// bound: up to 3 objects of each type, but exactly one server, browser, url,
-// dom and origin.
-run GenWithSameOriginReq {
-	some req :  browser/XMLHTTPReq | sop/sameOrigin[req.url, req.from.context]
-} for 4
-
-// Generates an instance with at least one successful same-origin request that
-// is not a CORS one
-// bound: up to 3 objects of each type, but exactly one server, browser, url,
-// dom and origin.
-run GenWithSameOriginReqNoCors {
-	some req :  browser/XMLHTTPReq | sop/sameOrigin[req.url, req.from.context]
-    no cors/ReqCORS
-} for 3 
-
-// Generates an instance with at least one successful request with different origin.
-// bound: up to 3 objects of each type, but exactly one server, browser, dom,
-// and exactly two urls and origins.
-run GenWithDifferentOriginReqCors {
-	some req :  browser/XMLHTTPReq |
-		not sop/sameOrigin[req.url, req.from.context]
-} for 3
-
-/* Property Checking */
-
--- Designate some subset of resources to be critical, and some of the endpoints
--- to be "malicious"
+// Designate some subset of resources to be critical, and 
+// some of the endpoints to be trusted
 sig CriticalResource in message/Resource {}
-sig MaliciousEndPoint in message/EndPoint {}
+sig Trusted in message/EndPoint {}
+
+fact SecurityBoundary {
+	Trusted = Facebook + MyBrowser
+	CriticalResource = MyProfile
+}
 
 // Asserts that no bad endpoint can read a critical resource
 assert noResourceLeak {
-	no r : CriticalResource, b : MaliciousEndPoint | r in message/accesses[b]
+	policies implies 
+		all r : CriticalResource, e : EndPoint | 
+			r in message/accesses[e] implies
+				e in Trusted
 }
 
 // Check whether assertion "noResourceLeak" holds
-// bound: up to 5 objects of each type, but only up to 2 servers
--- this generates a counterexample that can be visualized with theme file "SOP.thm"
-check noResourceLeak for 3 but 2 http/Server
+// bound: up to 5 objects of each type
+// This generates a counterexample that can be visualized with theme file "SOP.thm"
+check noResourceLeak for 5
 
 /** for visualization only **/
 
@@ -142,3 +149,6 @@ fun from : Msg -> EndPoint -> Step {
 	}	
 }
 
+fun Untrusted : set EndPoint {
+	EndPoint - Trusted
+}

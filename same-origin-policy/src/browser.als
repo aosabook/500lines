@@ -7,31 +7,47 @@ module browser
 open http
 open message
 
-
+/* Components */
 abstract sig Browser extends message/EndPoint {
 	frames : set Frame
+}{
+	owns = frames.dom
 }
+
 abstract sig Frame {
+	-- URL from which this frame originated
 	location : http/URL,
+	-- HTML tags associated with 
 	tags : set HTMLTag,
 	dom : DOM,
 	script : lone Script
 }{
 	some script implies script.context = location
 }
+
 abstract sig Script extends message/EndPoint {
+	-- the context in which this script is executing
 	context : http/URL
 }{
+	-- every script must belong to some frame
 	some script.this
+	no owns
 }
 
+abstract sig DOM extends message/Resource {}
+abstract sig HTMLTag {}
+
+/* XMLHTTPReq message */
+// HTTPReq requests that are made by a script
 sig XMLHTTPReq in http/HTTPReq {
 }{
 	from in Script
 }
+fact {
+	all r : HTTPReq | r.from in Script implies r in XMLHTTPReq
+}
 
-abstract sig DOM extends message/Resource {}
-
+/* DOM API messages */
 abstract sig DomAPICall extends message/Msg {
 	frame : Frame	-- frame that contains the DOM
 }{
@@ -41,45 +57,12 @@ abstract sig DomAPICall extends message/Msg {
 }
 sig ReadDOM extends DomAPICall {
 }{
-	payload in DOM
-	one payload
+	no payload
+	return = frame.dom
 }
 sig WriteDOM extends DomAPICall {
 }{
 	payload in DOM
 	one payload
-}
-
-/* HTML Tags */
-abstract sig HTMLTag {}
-abstract sig SrcTag extends HTMLTag {
-	src : URL
-}
-sig ImgSrcTag, ScriptTag extends SrcTag {}
-
-sig FormTag extends HTMLTag {
-	action: URL,
-	method : Method
-}
-
-fact {
-	// Browser makes an HTTP request 
-	all b : Browser, f : b.frames, t : f.tags {
-		t in SrcTag implies {
-			// for every HTML tag that has a "src" attribute
-			some r : HTTPReq {
-				r.from = b 
-				r.url = t.src 
-				r.method = GET
-			}
-		}
-		t in FormTag implies {
-			// for every form input tag
-			some r : HTTPReq {
-				r.from = b
-				r.url = t.action
-				r.method = t.method
-			}
-		}
-	}
+	no return
 }

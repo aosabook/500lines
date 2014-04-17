@@ -37,16 +37,20 @@ sig Origin {
 	port : lone Port
 }
 
+fun url2origin[u : URL] : Origin {
+	{o : Origin | o.host = u.host and o.protocol = u.protocol and o.port = u.port }
+}
+
 abstract sig Server extends message/EndPoint {	
 	urls : set URL,
 	resMap : urls -> lone message/Resource	-- maps each URL to at most one resource
-}
-
-fact {
-  -- all urls are mapped by some server
-  all u : URL | some s : Server | some s.resMap[u]
-  -- no two servers map the same url
-  no disj s1, s2 : Server | some s1.urls & s2.urls
+}{
+	owns = resMap[urls]
+	
+	all resp : HTTPResp |
+		resp.from = this implies
+			let req = resp.inResponseTo | 
+				resp.payload = resMap[req.url]
 }
 
 /* HTTP Messages */
@@ -55,6 +59,8 @@ abstract sig HTTPReq extends message/Msg {
 	method : Method
 }{
 	to in Server
+	no return
+	no payload
 }
 
 abstract sig HTTPResp extends message/Msg {
@@ -64,11 +70,14 @@ abstract sig HTTPResp extends message/Msg {
 	one payload
 	payload in message/Resource
 	inResponseTo in prevs[this]
+	no return
 }
 
 fact {
   -- no request goes unanswered and there's only one response per request
   all req : HTTPReq | one resp : HTTPResp | req in resp.inResponseTo
   -- response goes to whoever sent the request
-  all resp : HTTPResp | resp.to = resp.inResponseTo.from
+  all resp : HTTPResp | 
+	resp.to = resp.inResponseTo.from and
+	resp.from = resp.inResponseTo.to
 }
