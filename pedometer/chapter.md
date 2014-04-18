@@ -28,7 +28,7 @@ TODO: Intro
 * Using Sinatra and Highcharts requires very little additional code and presents our data nicely, so, well, why not have some fancy charts to really satisfy our data craving?
 
 ## The Platform
-TODO: Describe basic flow.
+TODO: Describe basic flow. 
 
 1. Upload data in one of two formats:
 	* Combined: Data in what we'll call the **combined** format is user acceleration combined with gravitational acceleration. Data in this format is passed in as x, y, z coordinates, each of which shows combined acceleration in that direction at a point in time.
@@ -48,6 +48,14 @@ TODO: Describe basic flow.
 	* Charts representing the data in two different stages of parsing
 
 The meat and potatoes of our program is in step 3, where we parse the input data. 
+
+## Parsing Input Data
+
+Let's look at what input data will look like. The sample data we'll be using here is data collected by an iPhone aceelerometer. Let's assume that to start out, our program will take data in the separated format:
+
+$x1_{user}, y1_{user}, z1_{user}|x1_{gravity}, y1_{gravity}, z1_{gravity};...xn_{user}, yn_{user}, zn_{user}|xn_{gravity}, yn_{gravity}, zn_{gravity};$
+
+
 
 
 
