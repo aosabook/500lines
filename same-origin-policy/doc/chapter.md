@@ -91,42 +91,41 @@ pred sameOrigin[u1, u2 : http/URL] {
   u1.host = u2.host and u1.protocol = u2.protocol and u1.port = u2.port
 }
 ```
-The SOPitself has two parts, constraining the ability of a script to (1) make DOM AP calls and (2) send HTTP requests. More specifically, the first part of the policy states that a script can only read and write to a DOM inside a frame that comes from the same origin as the script:
+The policy itself has two parts, constraining the ability of a script to (1) make DOM AP calls and (2) send HTTP requests. More specifically, the first part of the policy states that a script can only read and write to a DOM inside a frame that comes from the same origin as the script:
 ```
 pred domSOP {
   all d : browser/ReadDOM + browser/WriteDOM | sameOrigin[d.frame.location, d.from.context]
 }
 ```
-The second part of the policy prevents a script from sending an HTTP request (to be more specific, XMLHTTPRequest) to a server unless the script belongs to the same origin as the desintation URL: 
+The second part of the policy prevents a script from sending an HTTP request (i.e., XMLHTTPRequest) to a server unless the script belongs to the same origin as the destination URL: 
 ```
 pred xmlhttpreqSOP {
   all x : browser/XMLHTTPReq | sameOrigin[x.url, x.from.context]
 }
 ```
-But why exactly are these restrictions necessary? What would be consequences if today's browsers hadn't adhered to the policy? 
+But why exactly are these restrictions necessary? What would be consequences if today's browsers hadn't enforced to the policy? In the next section, we will see how the Alloy Analyer can be used to answer these types of questions.
 
 ### Analyzing the Model
 
 We have already discussed how the Alloy Analyzer can be used to generate valid instances of a system. Another type of analysis is _checking_ whether a model satisfies a property. 
 
-Since our primary concern in this chapter is security, let us consider one property that is desirable in many web applications: _critical resources should never be accessible to malicious modules_. Before stating this property precisely in Alloy, we first designate some subsets of resources and modules to be _critical_ and _malicious_, respectively. Furthermore, we extend the  **Module** signature with a set of resources that a module accesses: 
+Since our primary concern in this chapter is security, let us consider one property that is desirable in many web applications: _critical resources should only be accessible to trusted modules_. Before stating this property precisely in Alloy, we first designate some subsets of resources and modules to be _critical_ and _trusted_, respectively:
 ```
-sig CriticalResource in Resource {}     // some subset of resources are critical
-abstract sig Module {
-    accesses : set Resource
-}
-sig MaliciousModule in Module {}
+sig CriticalResource in message/Resource {} 
+sig Trusted in message/EndPoint {}
 ```
 Then, we state our security property as an _assertion_ and _check_ whether it holds true over every instance of the model:
 ```
 assert noResourceLeak {
-    no r : CriticalResource, b : MaliciousModule | r in b.accesses 
+  all r : CriticalResource, e : EndPoint | r in message/accesses[e] implies e in Trusted
 }
 check noResourceLeak for 5
 ```
-When executed, the _check_ command instructs the analyzer to look for a _counterexample_ -- a system trace that represents a violation of the property. In our case, a counterexample, if it exists would consist of a scenario in which a malicious script or server accesses a piece of critical resource.
+When executed, the _check_ command instructs the analyzer to explore all possible traces of the system (with at most 5 endpoints, resources, etc.) and look for a _counterexample_ that represents a violation of the property. The analysis is _exhaustive_, and so if there exists a counterexample within the bound, the analyzer is guaranteed to find it. 
 
-The analysis is _exhaustive_, in that it will consider every possible configuration and behavior of the system (up to the specified bound), and so if there is a counterexample to the property, then the analyzer is guaranteed to find it.
+In our case, a counterexample, if it exists would consist of a scenario in which a non-trusted script or server accesses a piece of critical resource:
+
+[figure]
 
 ### Modeling the SOP
 
@@ -139,6 +138,29 @@ We can now build on top of the basic web model to describe the same-origin polic
 ### Cross-Origin Resource Sharing (CORS)
 
 [TODO]
+
+### Cross-Document Messaging
+
+Another method for enabling communication between two different origins is a new feature that has been introduced in HTML5 called _cross-document messaging_.
+
+Most browsers implement cross-document messaging using an API function called _postMessage_. In short, postMessage can be used by a script to send data to another script in a different frame, given that the latter has already set up to receive such messages. The key idea is that by setting up mutual agreement, two scripts can safely communicate to each other, even if they are from different origins.
+
+In Alloy, we extend our original browser model with a new type of message:
+```
+sig PostMessage extends browser/DomAPICall {
+    message : Resource, 
+    srcOrigin, targetOrigin : URL
+}{
+	from + to in browser/Script
+	payload = message
+}
+```
+The browser, as a security measure, ensures that **targetOrigin**, provided as a field of the API call by the sender, matches the origin of the receiving script. Otherwise, the message could end up in a (potentially malicious) script that the sender did not intended:
+```
+all m : PostMessage | sop/sameOrigin[m.targetOrigin, m.to.context]
+```
+
+But postMessage is not perfect, and a careless use of postMessage can be dangerous! As a guideline, the receiving script is encouraged to check the origin of the message (and discard it if it comes from a dubious origin), but no such check is enforced by default. This means that an attacker's script could easily exploit a lack of an origin check and inject malicious data into the receiving frame, potentially leading to an XSS attack; in fact, a recent study demonstrated that many of the most popular sites on the web suffered from this vulnerability [cite postMessage study paper].
 
 ## Conclusion
 

@@ -11,7 +11,7 @@ open sop
 
 sig PostMessage extends browser/DomAPICall {
 	message : Resource,
-	origin, targetOrigin : URL
+	srcOrigin, targetOrigin : URL
 }{
 	from + to in browser/Script
 	payload = message
