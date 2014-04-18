@@ -49,7 +49,7 @@ run {}
 ```
 which tells the analyzer to find any instance satisfying the constraints we’ve written. This might sound silly, but it’s surprising how helpful it can be to be shown some sample scenarios. In this case, we get a scenario with two endpoints, and two messages, one in each direction, and a single resource carried by one message and owned by neither endpoint:
 
-[… figure]
+![alt-text](fig-message.png)
 
 This makes us wonder how message payloads are related to ownership. We could require that the payload of every message m is in the set of resources owned by its sender. Running the command
 ```
