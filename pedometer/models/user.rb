@@ -1,12 +1,11 @@
 class User
 
-  GENDER = ['male', 'female']
-  AVERAGES = {'female' => 70, 'male' => 78}
+  GENDER      = ['male', 'female']
+  AVERAGES    = {'female' => 70, 'male' => 78}
   MULTIPLIERS = {'female' => 0.413, 'male' => 0.415}
 
   attr_reader :gender, :height, :stride
 
-  # TODO: Named params ruby 2.0 useful here?
   def initialize(gender = nil, height = nil, stride = nil)
     @gender = gender.to_s.downcase if GENDER.include? gender.to_s.downcase
     @height = height.to_f if height.to_f > 0

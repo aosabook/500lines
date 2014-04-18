@@ -48,7 +48,7 @@ private
     split_accl.transpose
   end
 
-  def split_accL_separated(accl)
+  def split_accl_separated(accl)
     @format = FORMAT_SEPARATED
     
     accl = accl.collect { |i| i.collect { |i| i.split(',').collect(&:to_f) } }
@@ -64,7 +64,7 @@ private
     split_accl = if accl.first.count == 1
       split_accl_combined(accl)
     else
-      split_accL_separated(accl)
+      split_accl_separated(accl)
     end
 
     user_accl, grav_accl   = split_accl
