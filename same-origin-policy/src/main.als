@@ -21,7 +21,7 @@ open postmessage
 // Security policies 
 // Comment out to see what might happen when one or more of them don't hold
 pred policies {
-	domSOP
+//	domSOP
 	xmlhttpreqSOP
 	corsRule
 	postMessageRule

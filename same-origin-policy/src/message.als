@@ -12,12 +12,13 @@ abstract sig Resource {}
 abstract sig EndPoint {
 	owns : set Resource
 }
+// One-way message
 abstract sig Msg {
 	-- each message is associated with a sender and a receiver
 	from, to : EndPoint,
 	-- each message may contain a number of resources
 	payload : set Resource,
-	-- and is potentially associated with multiple return resources
+	-- in addition to payload, a call is associated with multiple return resources
 	return : set Resource
 }
 
@@ -44,7 +45,7 @@ fun accesses[ep : EndPoint] : set Resource {
 // as part of a previous message			
 fact ResourceConstraints {
 	all ep : EndPoint, msg : sends[ep] |
-		let prevMsgs = ord/prevs[msg] |
+		let prevMsgs = prevs[msg] |
 			msg.payload in ep.owns + (prevMsgs & receives[ep]).payload + (prevMsgs & sends[ep]).return 
 }
 
