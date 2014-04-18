@@ -27,7 +27,7 @@
     <div id="container-filtered"></div>
 
     <% if @match_filtered_data %>
-        <% comparison_title = @analyzer.parser.is_data_accelerometer? ? 'Gravity' : 'Accelerometer' %>
+        <% comparison_title = @analyzer.parser.is_data_combined? ? 'Separated' : 'Combined' %>
         <div id="container-comparison"></div>
     <% end %>
 </html>

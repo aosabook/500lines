@@ -11,8 +11,8 @@ class Parser
     beta:  [0.095465967120306, -0.172688631608676, 0.095465967120306]
   }  
 
-  FORMAT_ACCELEROMETER = 'accelerometer'
-  FORMAT_GRAVITY       = 'gravity'
+  FORMAT_COMBINED  = 'combined'
+  FORMAT_SEPARATED = 'separated'
 
   attr_reader :data, :format, :parsed_data, :dot_product_data, :filtered_data
 
@@ -27,8 +27,8 @@ class Parser
     filter_dot_product_data
   end
 
-  def is_data_accelerometer?
-    @format == FORMAT_ACCELEROMETER
+  def is_data_combined?
+    @format == FORMAT_COMBINED
   end
 
 private
@@ -36,8 +36,8 @@ private
   # Split acceleration data into the following format:
   # [ [ [x1, x2, ..., xn],    [y1, y2, ..., yn],    [z1, z2, ..., zn] ],
   #   [ [xg1, xg2, ..., xgn], [yg1, yg2, ..., ygn], [zg1, zg2, ..., zgn] ] ]
-  def split_accl_accelerometer(accl)
-    @format = FORMAT_ACCELEROMETER
+  def split_accl_combined(accl)
+    @format = FORMAT_COMBINED
     
     accl = accl.flatten.collect { |i| i.split(',').collect(&:to_f) }
     split_accl = accl.transpose.collect do |total_accl|
@@ -48,8 +48,8 @@ private
     split_accl.transpose
   end
 
-  def split_accL_gravity(accl)
-    @format = FORMAT_GRAVITY
+  def split_accL_separated(accl)
+    @format = FORMAT_SEPARATED
     
     accl = accl.collect { |i| i.collect { |i| i.split(',').collect(&:to_f) } }
     [accl.collect {|a| a.first}.transpose, accl.collect {|a| a.last}.transpose]
@@ -62,9 +62,9 @@ private
     accl = @data.split(';').collect { |i| i.split('|') }
     
     split_accl = if accl.first.count == 1
-      split_accl_accelerometer(accl)
+      split_accl_combined(accl)
     else
-      split_accL_gravity(accl)
+      split_accL_separated(accl)
     end
 
     user_accl, grav_accl   = split_accl

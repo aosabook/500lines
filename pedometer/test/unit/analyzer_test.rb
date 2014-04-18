@@ -9,7 +9,7 @@ class AnalyzerTest < Test::Unit::TestCase
 
   # -- Creation Tests -------------------------------------------------------
 
-  def test_create_accelerometer_data
+  def test_create_combined_data
     parser = Parser.new('0.123,-0.123,5;')
     user   = User.new
     device = Device.new
@@ -25,7 +25,7 @@ class AnalyzerTest < Test::Unit::TestCase
     assert_nil analyzer.time
   end
 
-  def test_create_gravity_data
+  def test_create_separated_data
     parser = Parser.new('0.028,-0.072,5|0.129,-0.945,-5;')
     user   = User.new
     device = Device.new

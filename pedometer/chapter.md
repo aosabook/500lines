@@ -20,14 +20,18 @@ TODO: Intro
   * There are many methods present to analyze movement data and count steps. Some are more accurate than others in specific instances, for example, day-to-day tracking vs. step counting during a jog.
   * This is just one of many ways. 
 
-## The Platform
+## The Toolchain
 * Sinatra web app, using Highcharts to display data.
 * This was chosen to be built as a web app because a web app naturally separates the data processing from the presentation.
 * Sinatra gives us the ability to demosntrate a fully-functional web app accepting input and presenting output very easily, without worrying about the piping. 
 * While this project is not intended to show the separation of concerns present in a well-built web app, using Sinatra allows us to naturally segment those concerns and isolate the data processing from the presentation.
 * Using Sinatra and Highcharts requires very little additional code and presents our data nicely, so, well, why not have some fancy charts to really satisfy our data craving?
 
-
+## The Platform
+* TODO: Describe basic flow.
+1. Upload data in one of two formats:
+  i. Combined: Data in what we'll call the **combined** format is user acceleration combined with gravitational acceleration. Data in this format is passed in as x, y, z coordinates, each of which shows combined acceleration in that direction at a point in time.
+  ii. Separated: Data in what we'll call the **separated** format is user acceleration separated from gravitational acceleration. Data in this format is passed in as x, y, z coordinates showing user acceleration is each of the directions, followed by x, y, z coordinates showing gravitational acceleration.
 
 
 

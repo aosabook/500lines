@@ -4,7 +4,7 @@ require_relative '../../helpers/file_helper'
 class FileHelperTest < Test::Unit::TestCase
 
   def test_generate_file_name
-    expected = 'public/uploads/male-167.5-80.0_20-10-testtrial1-walk-a.txt'
+    expected = 'public/uploads/male-167.5-80.0_20-10-testtrial1-walk-c.txt'
     user = User.new('male', 167.5, 80)
     device = Device.new(20, '10', 'test trial 1', 'walk')
     parser = Parser.new('0.123,-0.123,5;')
