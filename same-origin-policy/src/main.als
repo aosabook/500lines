@@ -21,7 +21,7 @@ open postmessage
 // Security policies 
 // Comment out to see what might happen when one or more of them don't hold
 pred policies {
-//	domSOP
+	domSOP
 	xmlhttpreqSOP
 	corsRule
 	postMessageRule
@@ -60,18 +60,16 @@ sig Ad extends browser/DOM {}
 one sig EvilScript extends browser/Script {}
 
 // User's browser
-one sig MyBrowser extends browser/Browser {}{
-	frames = MyProfilePage + AdPage
-}
+one sig MyBrowser extends browser/Browser {}
 
 fact SystemAssumptions {
 	FBHost != EvilHost
 	MyProfile not in EvilServer.owns
-	all r : RespCORS | r.from = Facebook implies r.allowedOrigins.host = FBHost 
-	no r : HTTPReq + HTTPResp |
+	all r : ReqCORS | r.to = Facebook implies r.allowedOrigins.host = FBHost 
+	no r : HTTPReq |
 		r.from = Facebook and 
 		r.to = EvilServer and
-		some CriticalResource & r.payload
+		some CriticalResource & r.args
 }
 
 /* Checking a Security Property */
@@ -100,12 +98,6 @@ assert noResourceLeak {
 check noResourceLeak for 5
 
 /** for visualization only **/
-
-fact {
-	all m1 : Msg - last | 
-		let m2 = m1.next | 
-			m1 in HTTPReq implies m1 = m2.inResponseTo
-}
 
 fun pastEvents : Msg -> Step {
 	{m : Msg, s : Step |

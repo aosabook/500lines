@@ -17,9 +17,8 @@ abstract sig Msg {
 	-- each message is associated with a sender and a receiver
 	from, to : EndPoint,
 	-- each message may contain a number of resources
-	payload : set Resource,
-	-- in addition to payload, a call is associated with multiple return resources
-	return : set Resource
+	args : set Resource,
+	returns : set Resource
 }
 
 // Returns the messages that the given endpoint ep receives
@@ -38,7 +37,7 @@ fun accesses[ep : EndPoint] : set Resource {
 	-- (1) it owns "r" or 
 	-- (2) if "ep" receives a message that carries "r" or
 	-- (3) if "ep" sends a message that returns "r" 
-	ep.owns + receives[ep].payload + sends[ep].return
+	ep.owns + receives[ep].args + sends[ep].returns
 }
 
 // A payload in a message must be owned by the sender or received by the sender
@@ -46,7 +45,7 @@ fun accesses[ep : EndPoint] : set Resource {
 fact ResourceConstraints {
 	all ep : EndPoint, msg : sends[ep] |
 		let prevMsgs = prevs[msg] |
-			msg.payload in ep.owns + (prevMsgs & receives[ep]).payload + (prevMsgs & sends[ep]).return 
+			msg.args in ep.owns + (prevMsgs & receives[ep]).args + (prevMsgs & sends[ep]).returns
 }
 
 // Generates an instance with a non-empty message between two different end
@@ -56,5 +55,5 @@ run Gen {
 	-- let's have the sender and receiver be different
 	all msg : Msg | msg.from not in msg.to
 	-- let's have the message have a non-empty payload
-	all msg : Msg | #msg.payload > 0
-} for 3 
+	all msg : Msg | #msg.args > 0
+} for 3

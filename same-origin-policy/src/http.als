@@ -47,37 +47,18 @@ abstract sig Server extends message/EndPoint {
 }{
 	owns = resMap[urls]
 	
-	all resp : HTTPResp |
-		resp.from = this implies
-			let req = resp.inResponseTo | 
-				resp.payload = resMap[req.url]
+	all req : HTTPReq |
+		req.to = this implies
+				req.returns = resMap[req.url]
 }
 
-/* HTTP Messages */
+/* HTTP requests */
 abstract sig HTTPReq extends message/Msg {
 	url : URL,
 	method : Method
 }{
 	to in Server
-	no return
-	no payload
-}
-
-abstract sig HTTPResp extends message/Msg {
-	inResponseTo : HTTPReq
-}{
-	from in Server
-	one payload
-	payload in message/Resource
-	inResponseTo in prevs[this]
-	no return
-}
-
-fact {
-  -- no request goes unanswered and there's only one response per request
-  all req : HTTPReq | one resp : HTTPResp | req in resp.inResponseTo
-  -- response goes to whoever sent the request
-  all resp : HTTPResp | 
-	resp.to = resp.inResponseTo.from and
-	resp.from = resp.inResponseTo.to
+	no args
+	one returns
+	returns in message/Resource
 }

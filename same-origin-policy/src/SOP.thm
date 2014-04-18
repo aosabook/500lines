@@ -23,11 +23,7 @@
    <type name="univ"/>
    <type name="browser/Browser"/>
    <type name="browser/DomAPICall"/>
-   <type name="browser/FormTag"/>
-   <type name="browser/ImgSrcTag"/>
    <type name="browser/ReadDOM"/>
-   <type name="browser/ScriptTag"/>
-   <type name="browser/SrcTag"/>
    <type name="browser/WriteDOM"/>
    <type name="postmessage/PostMessage"/>
    <type name="seq/Int"/>
@@ -37,7 +33,11 @@
    <set name="this/EvilHost" type="http/Host"/>
    <set name="this/FBHost" type="http/Host"/>
    <set name="this/MyProfile" type="Profile"/>
+   <set name="$from" type="message/EndPoint"/>
    <set name="$noResourceLeak_r" type="message/Resource"/>
+   <set name="$pastEvents" type="message/Msg"/>
+   <set name="$to" type="message/EndPoint"/>
+   <set name="evt" type="message/Msg"/>
    <set name="First" type="message/ord/SO/Ord"/>
    <set name="Next" type="message/ord/SO/Ord"/>
    <set name="cors/RespCORS" type="http/HTTPResp"/>
@@ -131,12 +131,6 @@
    <set name="$Untrusted" type="message/EndPoint"/>
 </node>
 
-<node showlabel="no" style="Bold">
-   <set name="$from" type="message/EndPoint"/>
-   <set name="$to" type="message/EndPoint"/>
-   <set name="evt" type="message/Msg"/>
-</node>
-
 <node visible="no">
    <type name="browser/HTMLTag"/>
 </node>
@@ -145,20 +139,13 @@
    <type name="message/Msg"/>
 </node>
 
-<node visible="yes" showlabel="no">
-   <set name="$pastEvents" type="message/Msg"/>
-</node>
+<edge color="Black">
+   <relation name="frames"> <type name="browser/Browser"/> <type name="browser/Frame"/> </relation>
+   <relation name="script"> <type name="browser/Frame"/> <type name="browser/Script"/> </relation>
+</edge>
 
 <edge color="Black" style="Bold">
    <relation name="inResponseTo"> <type name="http/HTTPResp"/> <type name="http/HTTPReq"/> </relation>
-</edge>
-
-<edge color="Black" style="Bold" attribute="no">
-   <relation name="$sendsTo"> <type name="message/EndPoint"/> <type name="message/EndPoint"/> </relation>
-</edge>
-
-<edge color="Black" style="Bold" label="$from">
-   <relation name="$from&apos;"> <type name="message/Msg"/> <type name="message/EndPoint"/> </relation>
 </edge>
 
 <edge color="Black" style="Bold" visible="no" attribute="no">
@@ -169,7 +156,7 @@
    <relation name="$follows"> <type name="message/Msg"/> <type name="message/Msg"/> </relation>
 </edge>
 
-<edge layout="yes">
+<edge color="Black" style="Solid" layout="yes" label="server">
    <relation name="$server"> <type name="browser/Frame"/> <type name="http/Server"/> </relation>
 </edge>
 
@@ -185,19 +172,15 @@
    <relation name="host"> <type name="http/Origin"/> <type name="http/Host"/> </relation>
    <relation name="host"> <type name="http/URL"/> <type name="http/Host"/> </relation>
    <relation name="location"> <type name="browser/Frame"/> <type name="http/URL"/> </relation>
-   <relation name="method"> <type name="browser/FormTag"/> <type name="http/Method"/> </relation>
    <relation name="method"> <type name="http/HTTPReq"/> <type name="http/Method"/> </relation>
    <relation name="origin"> <type name="http/HTTPReq"/> <type name="http/Origin"/> </relation>
-   <relation name="origin"> <type name="postmessage/PostMessage"/> <type name="http/URL"/> </relation>
    <relation name="owns"> <type name="message/EndPoint"/> <type name="message/Resource"/> </relation>
    <relation name="path"> <type name="http/URL"/> <type name="http/Path"/> </relation>
-   <relation name="payload"> <type name="message/Msg"/> <type name="message/Resource"/> </relation>
    <relation name="port"> <type name="http/Origin"/> <type name="http/Port"/> </relation>
    <relation name="port"> <type name="http/URL"/> <type name="http/Port"/> </relation>
    <relation name="protocol"> <type name="http/Origin"/> <type name="http/Protocol"/> </relation>
    <relation name="protocol"> <type name="http/URL"/> <type name="http/Protocol"/> </relation>
    <relation name="resMap"> <type name="http/Server"/> <type name="http/URL"/> <type name="message/Resource"/> </relation>
-   <relation name="return"> <type name="message/Msg"/> <type name="message/Resource"/> </relation>
    <relation name="url"> <type name="http/HTTPReq"/> <type name="http/URL"/> </relation>
    <relation name="urls"> <type name="http/Server"/> <type name="http/URL"/> </relation>
 </edge>

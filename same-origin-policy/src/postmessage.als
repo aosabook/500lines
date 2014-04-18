@@ -9,15 +9,18 @@ open http
 open browser
 open sop
 
+// Browser API function for cross-document messaging
+// used to send a message from one script to another
 sig PostMessage extends browser/DomAPICall {
 	message : Resource,
 	srcOrigin, targetOrigin : URL
 }{
 	from + to in browser/Script
-	payload = message
+	args = message
 }
 
 pred postMessageRule {
+  -- the receiving frame of a PostMessage must belong to the same origin as targetOrigin
   all m : PostMessage | sop/sameOrigin[m.targetOrigin, m.to.context]
 }
 

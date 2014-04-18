@@ -9,9 +9,17 @@ open message
 
 /* Components */
 abstract sig Browser extends message/EndPoint {
-	frames : set Frame
+	frames :  Frame -> Msg
 }{
-	owns = frames.dom
+	-- every frame must have been received as a respones of some previous request
+	all f : Frame, m : Msg |
+ 		f -> m in frames implies
+			some r : (m + prevs[m]) & HTTPReq | 	
+				f.dom in r.returns and
+				f.location = r.url 
+
+	-- initially does not own any resource
+	no owns
 }
 
 abstract sig Frame {
@@ -53,16 +61,16 @@ abstract sig DomAPICall extends message/Msg {
 }{
 	from in Script
 	to in Browser
-	frame in Browser.frames
+	frame in Browser.frames.this
 }
 sig ReadDOM extends DomAPICall {
 }{
-	no payload
-	return = frame.dom
+	no args
+	returns = frame.dom
 }
 sig WriteDOM extends DomAPICall {
 }{
-	payload in DOM
-	one payload
-	no return
+	args in DOM
+	one args
+	no returns
 }

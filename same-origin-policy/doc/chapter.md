@@ -155,7 +155,7 @@ sig PostMessage extends browser/DomAPICall {
 	payload = message
 }
 ```
-The browser, as a security measure, ensures that **targetOrigin**, provided as a field of the API call by the sender, matches the origin of the receiving script. Otherwise, the message could end up in a (potentially malicious) script that the sender did not intended:
+The browser, as a security measure, ensures that `targetOrigin`, provided as a field of the API call by the sender, matches the origin of the receiving script. Otherwise, the message could end up in a (potentially malicious) script that the sender did not intended:
 ```
 all m : PostMessage | sop/sameOrigin[m.targetOrigin, m.to.context]
 ```
