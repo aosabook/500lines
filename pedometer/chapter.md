@@ -14,6 +14,32 @@ TODO: Intro
   * Data has been collected from an iPhone in two formats, and is being abalzed by our web application in Ruby.
 * Error detection can be enhanced
   * Currently we're not counting steps that are too close together. 
-  * One enhancement would be to discount any steps if there are too many false steps.
+  * One enhancement would be to discount any steps if there are too many false steps. 
   * TODO: More error detection suggestions.
-* 
+* Many ways to analyze data to count steps
+  * There are many methods present to analyze movement data and count steps. Some are more accurate than others in specific instances, for example, day-to-day tracking vs. step counting during a jog.
+  * This is just one of many ways. 
+
+## The Platform
+* Sinatra web app, using Highcharts to display data.
+* This was chosen to be built as a web app because a web app naturally separates the data processing from the presentation.
+* Sinatra gives us the ability to demosntrate a fully-functional web app accepting input and presenting output very easily, without worrying about the piping. 
+* While this project is not intended to show the separation of concerns present in a well-built web app, using Sinatra allows us to naturally segment those concerns and isolate the data processing from the presentation.
+* Using Sinatra and Highcharts requires very little additional code and presents our data nicely, so, well, why not have some fancy charts to really satisfy our data craving?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
