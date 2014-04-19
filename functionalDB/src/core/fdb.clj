@@ -19,15 +19,15 @@
 
 (defn entity-at
   "the entity with the given ent-id at the given time (defualts to the latest time)"
-  ([db ent-id] (entity-at db ent-id (:curr-time db)))
-  ([db ent-id ts] (stored-entity (get-in db [:timestamped ts :storage]) ent-id)))
+  ([db ent-id] (entity-at db  (:curr-time db) ent-id))
+  ([db ts ent-id] (stored-entity (get-in db [:timestamped ts :storage]) ent-id)))
 
 (defn attr-at
   "The attribute of an entity at a given time (defaults to recent time)"
   ([db ent-id attr-name]
    (attr-at db ent-id attr-name (:curr-time db)))
   ([db ent-id attr-name ts]
-  (get-in (entity-at db ent-id ts) [:attrs attr-name])))
+  (get-in (entity-at db ts ent-id) [:attrs attr-name])))
 
 (defn value-of-at
   "value of a datom at a given time, if no time is provided, we default to the most recent value"
@@ -232,3 +232,29 @@
   [db ts]
   (let [timestamped-before (subvec (:timestamped db) 0 ts )]
     (assoc db :timestamped timestamped-before :curr-time ts)))
+
+(defn outgoing-refs [db ts ent-id]
+  (if ent-id
+    (->> (entity-at db ent-id ts)
+          (:attrs)
+          (vals)
+          (filter ref?)
+          (mapcat  (comp collify :value)))
+    []))
+
+(defn remove-explored [pendings explored]
+  (if (contains? explored (first pendings))
+    (recur (rest pendings) explored)
+      pendings))
+
+(defn traverse [pendings explored  out-reffing ent-at]
+    (let [cleaned-pendings (remove-explored pendings explored)
+           item (first cleaned-pendings)
+           next-pends (reduce conj (rest cleaned-pendings) (out-reffing item))]
+      (when item (cons (ent-at item)
+                       (lazy-seq (traverse next-pends  (conj explored item)  out-reffing ent-at))))))
+
+(defn traverse-db
+  ([start-ent-id db bfs?] (traverse-db start-ent-id db (:curr-time db) bfs-or-dfs))
+  ([start-ent-id db ts bfs-or-dfs]
+  (traverse (if (= :bfs bfs-or-dfs) [start-ent-id] '(start-ent-id))  #{}  (partial outgoing-refs db ts) (partial entity-at db ts))))

@@ -59,3 +59,9 @@
 (evolution-of (M/db-from-conn hospital-db) :pat1 :patient/symptoms)
 (evolution-of (M/db-from-conn hospital-db) :pat1 :patient/tests)
 
+
+
+   (take 4 (traverse-db  :pat2 @hospital-db (:curr-time @hospital-db) :bfs))
+
+   (outgoing-refs  @hospital-db 9 :pat2)
+;(entity-at @hospital-db :pat1 9)
