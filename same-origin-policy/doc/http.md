@@ -1,6 +1,3 @@
-Web
----
-
 Http
 ----
 
@@ -86,48 +83,13 @@ abstract sig HTTPReq extends message/Msg {
 }
 ```
 
-So an `HttpRequest` will inherit `from`, `to` and `payload` from
-message. An HTTP response is also a message, and we add a field `inResponseTo`
-that connects the response to the request that originated the response:
-
-```
-abstract sig HTTPResp extends message/Msg {
-  inResponseTo : HTTPReq
-}
-```
+So an `HttpRequest` will inherit `from`, `to`, `args` and `returns` from
+message. 
 
 We can execute what we have so far of the http module.
 
 TODO: add appropriate run cmd
 
-Upon closer inspection we can see that something is a bit off. Though the
-`inResponseTo` field is connecting a response to a request we never constrained
-it to a request that happens **before** the HTTP response was issued. So we add
-a constraint to `HttpResp` to
-enforce that a `HttpResp` must be in response to a message that happened
-before the `HttpResp` was issued. To do this, we extend the signature
-declaration with a *signature fact*:
-
-TODO: explain signature fact
-
-```
-abstract sig HTTPResp extends message/Msg {
-  inResponseTo : HTTPReq
-}{
-  inResponseTo in prevs[this]
-}
-```
-
-Finally,  we add a `fact` to avoid generating some spurious instances:
-
-```
-fact {
-  -- no request goes unanswered and there's only one response per request
-  all req : HTTPReq | one resp : HTTPResp | req in resp.inResponseTo
-  -- response goes to whoever sent the request
-  all resp : HTTPResp | resp.to = resp.inResponseTo.from
-}
-```
 
 And we now have HTTP messages.
 
@@ -141,11 +103,11 @@ messages) that maps URLs to resources:
 
 ```
 sig Server extends message/EndPoint {	
-	resMap : URL -> lone message/Resource
+  resMap : Url -> lone message/Resource
 }
 ```
 
-The expression `URL -> lone message/Resource` denotes a binary relation. So
+The expression `Url -> lone message/Resource` denotes a binary relation. So
 `resMap` can be seen as a set of tuples (url, resource). The use of the `lone`
 keyword before `message/Resource` imposes a multiplicity constraint: it says that
 `resMap` is required to contain, for each resource `r`, `lone` tuples that
@@ -199,16 +161,4 @@ abstract sig HTTPReq extends message/Msg {
 }
 ```
 
-and a response to be sent from a server to a client:
-
-```
-abstract sig HTTPResp extends message/Msg {
-	inResponseTo : HTTPReq
-}{
-	from in Server
-	to not in Server
-	inResponseTo in prevs[this]
-}
-```
-
-We now have HTTP requests, responses and servers that map URLs to resources.
+We now have HTTP requests and servers that map URLs to resources.
