@@ -139,30 +139,62 @@ abstract sig Frame {
 }
 ```
 
-Now that we have frames, we can talk about the DOM Api calls.
+Now that we have frames, we can talk about DOM calls. A DOM call
+is a message from a script to the browser. We'll add a `frame`
+field to capture the target frame of the call:
 
 ```
-abstract sig DomAPICall extends message/Msg {
-	frame : Frame	-- frame that contains the DOM
+abstract sig DomCall extends message/Msg {
+	frame : Frame
 }{
 	from in Script
 	to in Browser
-	frame in Browser.frames.this
 }
-sig ReadDOM extends DomAPICall {
+```
+
+We refine DOM calls into reads and writes:
+
+```
+sig ReadDom extends DomCall {
 }{
 	no args
 	returns = frame.dom
 }
-sig WriteDOM extends DomAPICall {
+sig WriteDom extends DomCall {
 }{
-	args in DOM
+	args in Dom
 	one args
 	no returns
 }
 ```
 
+We can now run what we have.
+TODO: add some interesting run commands
+
 Making our browser dynamic
 --------------------------
 
-TODO
+As it is now, our browser model is static: it appears with frames loaded. We
+want our browser to get frames as a result of sending messages to a webserver,
+thus adding some dynanism to our model. So, we change `frames` in
+`Browser` to connect a frame with a message:
+
+```
+abstract sig Browser extends message/EndPoint {
+	frames :  Frame -> Msg
+}{
+	-- every frame must have been received as a response of some previous
+    -- request
+	all f : Frame, m : Msg |
+ 		f -> m in frames implies
+			some r : (m + prevs[m]) & HTTPReq | 	
+				f.dom in r.returns and
+				f.location = r.url 
+
+	-- initially does not own any resource
+	no owns
+}
+```
+
+We are now done with our browser model. We can execute it...
+TODO: run cmds
