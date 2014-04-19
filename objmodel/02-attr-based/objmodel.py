@@ -64,9 +64,9 @@ def _make_boundmethod(meth, self):
 class Class(Base):
     """ A User-defined class. """
 
-    def __init__(self, name, base_class, dct, metaclass):
+    def __init__(self, name, base_class, fields, metaclass):
         Base.__init__(self, metaclass)
-        self._fields = dct
+        self._fields = fields
         self.name = name
         self.base_class = base_class
 
