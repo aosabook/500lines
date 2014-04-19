@@ -231,11 +231,6 @@ def test_get():
         def __get__(self, inst, cls):
             return inst.read_attr("celsius") * 9. / 5. + 32
 
-    def __getattr__(self, name):
-        if name == "fahrenheit":
-            return self.read_attr("celsius") * 9. / 5. + 32
-        raise AttributeError(name)
-
     A = Class("A", OBJECT, {"fahrenheit": FahrenheitGetter()}, TYPE)
     obj = Instance(A)
     obj.write_field("celsius", 30)
