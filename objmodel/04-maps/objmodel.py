@@ -41,7 +41,7 @@ class Base(object):
             raise AttributeError(fieldname)
         return meth(self, fieldname)
 
-    def write_field(self, fieldname, value):
+    def write_attr(self, fieldname, value):
         """ write field 'fieldname' into the object """
         meth = self.cls._read_from_class("__setattr__")
         return meth(self, fieldname, value)

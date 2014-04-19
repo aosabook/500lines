@@ -41,14 +41,14 @@ def test_read_write_field():
     # Object model code
     A = Class("A", OBJECT, {}, TYPE)
     obj = Instance(A)
-    obj.write_field("a", 1)
+    obj.write_attr("a", 1)
     assert obj.read_attr("a") == 1
 
-    obj.write_field("b", 5)
+    obj.write_attr("b", 5)
     assert obj.read_attr("a") == 1
     assert obj.read_attr("b") == 5
 
-    obj.write_field("a", 2)
+    obj.write_attr("a", 2)
     assert obj.read_attr("a") == 2
     assert obj.read_attr("b") == 5
 
@@ -65,9 +65,9 @@ def test_read_write_field_class():
 
     # Object model code
     A = Class("A", OBJECT, {}, TYPE)
-    A.write_field("a", 1)
+    A.write_attr("a", 1)
     assert A.read_attr("a") == 1
-    A.write_field("a", 5)
+    A.write_attr("a", 5)
     assert A.read_attr("a") == 5
 
 
@@ -91,12 +91,12 @@ def test_send_simple():
         return self.read_attr("x") + 1
     A = Class("A", OBJECT, {"f": f}, TYPE)
     obj = Instance(A)
-    obj.write_field("x", 1)
+    obj.write_attr("x", 1)
     assert obj.send("f") == 2
 
     B = Class("B", A, {}, TYPE)
     obj = Instance(B)
-    obj.write_field("x", 2)
+    obj.write_attr("x", 2)
     assert obj.send("f") == 3
 
 
@@ -121,13 +121,13 @@ def test_send_subclassing_and_arguments():
         return self.read_attr("x") + arg
     A = Class("A", OBJECT, {"g": g_A}, TYPE)
     obj = Instance(A)
-    obj.write_field("x", 1)
+    obj.write_attr("x", 1)
     assert obj.send("g", 4) == 5
 
     def g_B(self, arg):
         return self.read_attr("x") + arg * 2
     B = Class("B", A, {"g": g_B}, TYPE)
     obj = Instance(B)
-    obj.write_field("x", 4)
+    obj.write_attr("x", 4)
     assert obj.send("g", 4) == 12
 

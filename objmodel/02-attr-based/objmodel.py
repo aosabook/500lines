@@ -19,7 +19,7 @@ class Base(object):
             raise AttributeError(fieldname)
         return result
 
-    def write_field(self, fieldname, value):
+    def write_attr(self, fieldname, value):
         """ write field 'fieldname' into the object """
         self._write_dict(fieldname, value)
 

@@ -11,7 +11,7 @@ class Base(object):
         """ read field 'fieldname' out of the object """
         return self._read_dict(fieldname)
 
-    def write_field(self, fieldname, value):
+    def write_attr(self, fieldname, value):
         """ write field 'fieldname' into the object """
         self._write_dict(fieldname, value)
 
