@@ -235,7 +235,7 @@
 
 (defn outgoing-refs [db ts ent-id]
   (if ent-id
-    (->> (entity-at db ent-id ts)
+    (->> (entity-at db ts ent-id)
           (:attrs)
           (vals)
           (filter ref?)
@@ -255,6 +255,6 @@
                        (lazy-seq (traverse next-pends  (conj explored item)  out-reffing ent-at))))))
 
 (defn traverse-db
-  ([start-ent-id db bfs?] (traverse-db start-ent-id db (:curr-time db) bfs-or-dfs))
+  ([start-ent-id db bfs-or-dfs] (traverse-db start-ent-id db (:curr-time db) bfs-or-dfs))
   ([start-ent-id db ts bfs-or-dfs]
   (traverse (if (= :bfs bfs-or-dfs) [start-ent-id] '(start-ent-id))  #{}  (partial outgoing-refs db ts) (partial entity-at db ts))))
