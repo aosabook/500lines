@@ -5,31 +5,30 @@ Building blocks
 ---------------
 
 The `browser` module models a web browser. We'll build this module using
-messages and http.
+the `message` and `http` modules we explained before.
 
 We begin by creating a `Browser` signature that extends `message/EndPoint`.
-This means that the browser will own a set of resources and will also be able
-to send or receive messages. It will be able, to, for example, send Http
-requests and receive responses.
+This means that the browser will be able to send or receive messages like HTTP
+requests.
 
 ```
 sig Browser extends message/EndPoint {}
 ```
 
-A lot of things are happening in the browser. There's the set of html tags that
+A lot of things happen in the browser. There's the set of HTML tags that
 make up the web pages, scripts are running, and there's also the DOM
 (Document Object Model) interface that allows scripts to read/write the content
-of pages. Let's begin by creating a signature for the html tags:
+of pages. Let's begin by creating a signature for the HTML tags:
 
 ```
-abstract sig HTMLTag {}
+abstract sig HtmlTag {}
 ```
 
 We make it abstract because we intend to refine it later into relevant tags
 ... TODO: what happened with srctag and that stuff?
 
 We model a script as an endpoint. That means it'll be able to send messages, in
-particular, it will send XmlHttpRequests. This way of modeling migt be strange at
+particular, send XmlHttpRequests. This way of modeling a script might be strange at
 first sight, since a script doesn't really send any requests per-se, it's the
 browser that sends it on behalf of the script. But it's best to overlook this
 low-level detail since it makes the model simpler and more understandable:
@@ -39,20 +38,6 @@ details that are not relevant to the analysis and thus best to ignore.
 
 ```
 abstract sig Script extends message/EndPoint {}
-```
-
-Scripts have a context under which they are executing, this is the URL of the
-page that's executing the script. Note that it's not the url from where the
-script is loaded. If on your personal website "me.com", you include a script tag
-with `src` equal to `//someotherwebapp.com/script.js` that script is still
-executing in the context of your personal website "me.com", despite the fact
-that it's loaded from a different place. So let's add a `context` field to our
-`Script` signature:
-
-```
-abstract sig Script extends message/EndPoint {
-	context : http/URL
-}
 ```
 
 And we are now only missing the DOM, the interface that allows scripts to modify
@@ -67,7 +52,7 @@ abstract sig DOM extends message/Resource {}
 No model of the same-origin policy would be complete without the XmlHttpRequest
 object, which enables scripts to send requests to a web server. We'll model
 XmlHttpRequets as a subset of HTTP Requests. We do this by declaring a
-*subset signature**, using the keyword `in`:
+*subset signature*, using the keyword `in`:
 
 ```
 sig XMLHTTPReq in http/HTTPReq {
@@ -122,20 +107,6 @@ sig Frame {
 	tags : set HTMLTag,
 	dom : DOM,
 	script : lone Script
-}
-```
-
-The script's context is determined by the location of the frame, so let's add
-a signature fact:
-
-```
-abstract sig Frame {
-	location : http/URL,
-	tags : set HTMLTag,
-	dom : DOM,
-	script : lone Script
-}{
-	some script implies script.context = location
 }
 ```
 
