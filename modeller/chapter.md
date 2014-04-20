@@ -122,11 +122,11 @@ There are two types of interaction with the scene: rotation and translation.
 ##### Rotation via a Trackball
 We accomplish rotation of the scene by using a Trackball algorithm. The trackball is an intuitive interface for manipulating the scene in 3 dimensions.
 Conceptually, a trackball interface functions as if the scene was inside a transparent globe. Placing a hand on the surface of the globe and pushing it rotates the globe. Similarly, clicking the right mouse button and moving it on the screen rotates the scene.
-You can find out more about the theory of the trackball in [http://www.opengl.org/wiki/Object_Mouse_Trackball].
+You can find out more about the theory of the trackball at the [OpenGL Wiki](http://www.opengl.org/wiki/Object_Mouse_Trackball).
 In this project, we use a trackball implementation provided as part of Glumpy. It's available in Appendix ??? (TODO: this?).
 
 Rotations are traditionally represented in one of two ways. The first is a rotation value around each axis. You could store this as a 3-tuple of floating point numbers.
-The other common representation for rotations is a quaternion. Using quaternions has numerous benefits over per-axis rotation. In particular, they are more numerically stable. Using quaternions avoids some tricky problems like [http://en.wikipedia.org/wiki/Gimbal_lock](Gimbal Lock).
+The other common representation for rotations is a quaternion. Using quaternions has numerous benefits over per-axis rotation. In particular, they are more numerically stable. Using quaternions avoids some tricky problems like [Gimbal Lock](http://en.wikipedia.org/wiki/Gimbal_lock).
 The unfortunate downside of quaternions is that they are much less intuitive and much harder to understand. If you would like to learn more about quaternions, you can check out [??? TODO]
 
 The trackball implementation avoids Gimbal Lock by using quaternions internally to store the rotation of the scene.
