@@ -25,6 +25,11 @@
                                                                 :indexed true ));indexed
                   ent tests-map)))
 
+(defn add-machine [id nm]
+  (transact hospital-db (add-entity (-> (make-entity id)
+        (add-attr (make-attr :machine/name nm :string))))))
+
+
 (defn add-patient [id address symptoms]
   (transact hospital-db (add-entity (make-patient id address symptoms))))
 
@@ -39,8 +44,12 @@
 (add-patient :pat1 "London" ["fever" "cough"] )
 (add-patient :pat2 "London" ["fever" "cough"] )
 
-(add-test-results-to-patient :pat1  (make-test :t2-pat1  {:test/bp-systolic 170 :test/bp-diastolic 80 :test/machine "XXX"} {:test/machine "string"} ))
-(add-test-results-to-patient :pat2  (make-test :t4-pat1  {:test/bp-systolic 170 :test/bp-diastolic 90 :test/machine "XYY"} {:test/machine "string"} ))
+(add-machine :1machine1 "M11")
+(add-machine :2machine2 "M222")
+
+(add-test-results-to-patient :pat1  (make-test :t2-pat1  {:test/bp-systolic 170 :test/bp-diastolic 80 :test/machine :2machine2 } {:test/machine :db/ref} ))
+(add-test-results-to-patient :pat2  (make-test :t4-pat2  {:test/bp-systolic 170 :test/bp-diastolic 90 :test/machine :1machine1} {:test/machine :db/ref} ))
+(add-test-results-to-patient :pat2  (make-test :t3-pat2  {:test/bp-systolic 140 :test/bp-diastolic 80 :test/machine :2machine2} {:test/machine :db/ref} ))
 
 (transact hospital-db (update-datom :pat1 :patient/symptoms #{"cold sweat" "sneeze"} :db/reset-to))
 (transact hospital-db (update-datom :pat1 :patient/tests #{:t2-pat1} :db/remove))
@@ -61,7 +70,8 @@
 
 
 
-   (take 4 (traverse-db  :pat2 @hospital-db (:curr-time @hospital-db) :bfs))
+   (take 7
+         (traverse-db  :pat2 @hospital-db :bfs :outgoing))
 
-   (outgoing-refs  @hospital-db 9 :pat2)
+
 ;(entity-at @hospital-db :pat1 9)

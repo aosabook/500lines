@@ -236,25 +236,35 @@
 (defn outgoing-refs [db ts ent-id]
   (if ent-id
     (->> (entity-at db ts ent-id)
-          (:attrs)
-          (vals)
-          (filter ref?)
-          (mapcat  (comp collify :value)))
+          (:attrs) (vals)  (filter ref?) (mapcat  (comp collify :value)))
     []))
 
-(defn remove-explored [pendings explored]
-  (if (contains? explored (first pendings))
-    (recur (rest pendings) explored)
-      pendings))
+(defn incoming-refs [db ts ent-id]
+  (let [vaet (ind-at db ts :VAET)]
+    (reduce into (vals (ent-id vaet)))))
 
-(defn traverse [pendings explored  out-reffing ent-at]
-    (let [cleaned-pendings (remove-explored pendings explored)
+(defn remove-explored [pendings explored restruct-fn]
+  (if (contains? explored (first pendings))
+    (recur (rest pendings) explored restruct-fn)
+      (restruct-fn pendings)))
+
+(defn traverse [pendings explored  out-reffing ent-at restruct-fn]
+    (let [_ (println "\n\nexplo" explored)
+          _ (println "all pends " pendings)
+          cleaned-pendings (remove-explored pendings explored restruct-fn)
+          _ (println "cleaned = " cleaned-pendings)
            item (first cleaned-pendings)
-           next-pends (reduce conj (rest cleaned-pendings) (out-reffing item))]
+          _ (println "item ==" item)
+           next-pends (reduce conj (restruct-fn (rest cleaned-pendings)) (out-reffing item))
+
+          ;stam (println "cleaned pends" next-pends)
+          ]
       (when item (cons (ent-at item)
-                       (lazy-seq (traverse next-pends  (conj explored item)  out-reffing ent-at))))))
+                       (lazy-seq (traverse next-pends  (conj explored item)  out-reffing ent-at restruct-fn))))))
 
 (defn traverse-db
-  ([start-ent-id db bfs-or-dfs] (traverse-db start-ent-id db (:curr-time db) bfs-or-dfs))
-  ([start-ent-id db ts bfs-or-dfs]
-  (traverse (if (= :bfs bfs-or-dfs) [start-ent-id] '(start-ent-id))  #{}  (partial outgoing-refs db ts) (partial entity-at db ts))))
+  ([start-ent-id db algo direction] (traverse-db start-ent-id db algo direction (:curr-time db)))
+  ([start-ent-id db algo direction ts]
+   (let [pend-struct (if (= :bfs algo) vec list*)
+           explor-fn (if (= :outgoing direction) outgoing-refs incoming-refs)]
+  (traverse [start-ent-id] #{}  (partial explor-fn db ts) (partial entity-at db ts) pend-struct))))
