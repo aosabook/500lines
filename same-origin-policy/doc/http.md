@@ -6,7 +6,7 @@ Http messages
 
 The `http` module models the Hypertext Transfer Protocol. We'll build this
 module using the messages module explained before. That is, we'll
-model http requests and responses as messages, and servers as endpoints.
+model HTTP requests as messages, and servers as endpoints.
 
 But let's begin with HTTP messages. A critical piece of the protocol is
 the notion of a URL (Uniform Resource Locator) which is composed of a
@@ -39,16 +39,16 @@ have a port or a path, both or none.
 
 TODO: insert figure
 
-Now that we have URLs we are almost ready to model http requests. We are
+Now that we have URLs we are almost ready to model HTTP requests. We are
 missing the method of the request (i.e., "GET", "POST" and so on). So, let's
-introduce a set of methods, which we declare as abstract since we intend to
+introduce a set of methods, which we declare as `abstract` since we intend to
 classify it into more concrete types (like "GET"):
 
 ```
 abstract sig Method {}
 ```
 
-We now classify http request methods into "GET" and "POST":
+We now classify HTTP request methods into "GET" and "POST":
 
 ```
 one sig Get, Post extends Method {}
@@ -86,7 +86,7 @@ abstract sig HTTPReq extends message/Msg {
 So an `HttpRequest` will inherit `from`, `to`, `args` and `returns` from
 message. 
 
-We can execute what we have so far of the http module.
+We can execute what we have so far of the `http` module.
 
 TODO: add appropriate run cmd
 
@@ -147,8 +147,8 @@ previous `fact` with the following statement:
   no disj s1, s2 : Server | some u : URL | some s1.resMap[u] and some s2.resMap[u]
 ```
 
-Finally, since http is a client/server protocol
-we enforce an http request to be sent from a client to a server by extending the
+Finally, since HTTP is a client/server protocol
+we enforce an HTTP request to be sent from a client to a server by extending the
 signature declaration with a signature fact:
 
 ```
