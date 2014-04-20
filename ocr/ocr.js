@@ -44,7 +44,6 @@ var ocrDemo = {
         canvas.onmouseup = function(e) { this.onMouseUp(e, ctx) }.bind(this);
     },
 
-
     drawGrid: function(ctx) {
         for (var x = this.PIXEL_WIDTH, y = this.PIXEL_WIDTH; x < this.CANVAS_WIDTH; x += this.PIXEL_WIDTH, y += this.PIXEL_WIDTH) {
             ctx.strokeStyle = this.BLUE;
