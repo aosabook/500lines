@@ -19,9 +19,9 @@ The Primitive class contains the code to render a primitive. It requires a call 
 OpenGL calls that are bundled together and named. The calls can be dispatched with `glClassList(LIST_NAME)`.
 Finally, the concrete primitives (Sphere and Cube) define the call list required to render them. They could also specialize any of the other Node behaviour, if necessary.
 
-Using a class structure like this means that the Node class is easily extensible. As an example of the extensibility, consider adding a new Node type
-containing multiple primitives, say a snow figure. It would have 3 white Spheres, and a few small colored Spheres to add features. We can easily
-extend the node class for this situation by creating a new class `class SnowFigure(Node)` which will override some of the functionality of the Node.
+Using a class structure like this means that the Node class is easily extensible. As an example of the extensibility, consider adding a Node type that combines multiple
+primitived, like a figure for a character. We can easily extend the node class for this situation by creating a new class `class Figure(Node)` which will override some of
+the functionality of the Node.
 
 It would contain multiple sub-nodes that represent the figure.  Most call will simply dispatch to all of the sub-nodes: `render`, `translate`, `scale`.
 To disable changing the color, we simply make `rotate_color` a no-op. Finally, `pick` remains unchanged, since it is used for selecting the entire
@@ -40,11 +40,11 @@ OpenGL is two major variants. They are "Legacy OpenGL" and "Modern OpenGL".
 Rendering in OpenGL is based on polygons defined by vertices and normals. For example, to render one side of a cube, one would specify the 4 vertices and the normal of the side.
 
 Legacy OpenGL provides a "fixed function pipeline". By setting global variables, the programmer can enable and disable automatic features such
-as lighting, coloring, face culling, etc. OpenGL then automatically renders the scene with the enabled functionality.
+as lighting, coloring, face culling, etc. OpenGL then automatically renders the scene with the enabled functionality. This functionality is deprecated.
 
 Modern OpenGL, on the other hand, features a programmable rendering pipeline where the programmer writes small programs called "shaders" that
 run on dedicated graphics hardware (GPUs). Most features of Modern OpenGL were introduced in version 2.1. The programmable
-pipeline of Modern OpenGL has replaced Legacy OpenGL, which is considered deprecated. In this programmable pipeline, the programmer must
+pipeline of Modern OpenGL has replaced Legacy OpenGL. In this programmable pipeline, the programmer must
 write the code to calculate anything that needs to be rendered. For example, the programmer is responsible for calculating the color of each
 polygon. The shader program will use the positions of the lights in the scene, the direction they're facing, and other parameters to calculate
 the final color of each polygon in the scene. (This is a simplified description, but it gives and idea of the differences between the variants).
@@ -53,14 +53,15 @@ In this project, despite the fact that it is deprecated, we use Legacy OpenGL. T
 code size small. It reduces the amount of linear algebra knowledge required, and it simplifies the code we will write. Most production
 software has moved on to using Modern OpenGL.
 
+##### OpenGL's State Machine
 Legacy OpenGL can be considered a State Machine. The API to enable/disable functionality modifies the current state of the OpenGL machine.
 When a polygon render call is made, the current state of the machine is used.
 OpenGL also stores two matrices.  These are called the "ModelView" matrix and the "Projection" matrix.
 The ModelView matrix determines the transformation of the current polyon within the scene. The Projection matrix is used to project that polygon onto the screen.
-The matrices are manipulated with "glMultMatrix", which multiplies the current matrix by the matrix parameter.
+The matrices are manipulated with `glMultMatrix`, which multiplies the current matrix by the matrix parameter.
 OpenGL also maintains a stack of matrices. The programmer can choose to push and pop from this stack. This facilitates traversing a scene graph for rendering purposes, as we will discuss later.
 
-Most of the setup and interfacting with OpenGL is found in the viewer.py file.
+Most of the setup and interfacing with OpenGL is found in the viewer.py file.
 
 ### Linear algebra (TODO)
 #### Matrix arithmetic (TODO: is this necessary?)
@@ -109,9 +110,6 @@ GLUT is the OpenGL Utility Toolkit. Is is bundled with OpenGL and it provides a 
 offers is sufficient for our purposes in this project. If we wanted a more full featured library for window management and user interaction, we would consider using
 a full featured game engine like PyGame.
 
-GLUT is very limited in its ability to provide
-* What are some limitations of glut? Some reasons you might use PyGame?
-
 #### Moving the Camera
 There are two camera controls available in this project. In this project, we accomplish camera motion by tranforming the scene. In other words, the
 camera is at a fixed location and the camera controls actually move the scene instead of moving the camera. The camera is placed at `[0, 0, -15]` and
@@ -144,7 +142,7 @@ Several techniques can be used for selecting Nodes in a modeller. One simple tec
 This technique is very accurate, but there is a high performance cost to pay for it. Rendering the scene requires many round trips of reading and writing to video memory, which is an expensive operation. Therefore, most production
 modellers favour a selection algorithm that leverages the scene data structure.
 
-In this project, we implement a very simple ray-based picking algorithm. Each node stores an Axis-Aligned Bounding Box which is an approximation of the
+In this project, we implement a very simple ray-based picking [algorithm](http://www.opengl-tutorial.org/miscellaneous/clicking-on-objects/picking-with-custom-ray-obb-function/). Each node stores an Axis-Aligned Bounding Box which is an approximation of the
 space it occupies. When the user clicks in the window, we use the current projection matrix to generate a ray that represents the mouse click, as if the mouse pointer shoots a ray into the scene.
 To determine which Node was clicked on, we test whether the ray intersects with each Node's Bounding Box. We choose the Node with the intersection closest to the ray origin.
 The Ray-AABB selection approach is very simple to understand and implement. However, it sometimes gives the wrong answer. Think about the Sphere primitive. The Sphere itself only touches
@@ -156,8 +154,6 @@ can be made over the AABB implementation. For example, the picking algorithm cou
 implementation of Ray intersection. Intersection with arbitrary objects is much more complex than AABB intersection, so there is also a performance penalty to be paid for using exact intersection. The performance
 penalty can be assuages by using increasingly sophisticated algorithms for collision detection. Often, these will involve partitioning the scene into Cubes, and only testing for intersection in cubes that the ray
 actually hits.
-
-Considering the complexity, accuracy and speed tradeoffs, the Ray-AABB picking algorithm is the one best suited to this small 3d modeller project.
 
 #### Transformating Nodes
 A selected node can be moved, resized, or colorized.
