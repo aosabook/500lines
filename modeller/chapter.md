@@ -8,9 +8,10 @@ include a 3D modelling component to their software.
 The first architectural challenge we encounter when designind a 3d modeller is the representation of the objects in the scene.
 We would like to design the scene so that it can store all types of objects that we want to include, and so that it can be easily extended to
 store new types of objects.
-We use a base class to represent an object that can be placed in the scene, called a "node". Using the general concept of a node allows
-us to reason about the scene in an abstract manner. The scene object doesn't need to know about the details of every type of object it displays.
-It only needs to know that it contains a list of nodes. Each type of node then defines its own behaviour for rendering itself and for any other necessary
+
+We use a base class to represent an object that can be placed in the scene, called a "Node". This base class allows
+us to reason about the scene abstractly. The scene object doesn't need to know about the details of every type of object it displays,
+it only needs to know that it contains a list of nodes. Each type of node then defines its own behaviour for rendering itself and for any other necessar,
 interactions.
 In this project, the nodes are all primitive shapes. We have a Sphere and a Cube available. More shapes can be added easily by extending the Node class again.
 
@@ -21,11 +22,7 @@ Finally, the concrete primitives (Sphere and Cube) define the call list required
 
 Using a class structure like this means that the Node class is easily extensible. As an example of the extensibility, consider adding a Node type that combines multiple
 primitived, like a figure for a character. We can easily extend the node class for this situation by creating a new class `class Figure(Node)` which will override some of
-the functionality of the Node.
-
-It would contain multiple sub-nodes that represent the figure.  Most call will simply dispatch to all of the sub-nodes: `render`, `translate`, `scale`.
-To disable changing the color, we simply make `rotate_color` a no-op. Finally, `pick` remains unchanged, since it is used for selecting the entire
-figure.
+the functionality of the Node manage a list of sub-nodes.
 
 By making the Node class extensible in this way, we are able to add new types of shapes to the scene without changing any of the other code around scene
 manipulation and rendering.
@@ -92,7 +89,7 @@ The `PushMatrix` and `PopMatrix` functions in OpenGL provide us access to a stac
 This suits us perfectly, as we're traversing a graph of nodes.
 The OpenGL matrix stack is used to store the matrix state of each node when it is rendered.
 
-This allows us to have a single render list for each node. For example, the render list for the Cube primitive draws a size 1 cube at the origin.
+Manipulating the ModelView matrix allows us to have a single render list for each type of primitive. For example, the render list for the Cube primitive draws a cube at the origin with sides of length 1.
 By setting the OpenGL matrix, we can change the size and location the rendered cube.
 
 Again, the Matrix stack functionality of OpenGL allows us to extend the Node class to contain nested nodes. If there are a nested nodes, we simply
@@ -111,7 +108,7 @@ offers is sufficient for our purposes in this project. If we wanted a more full 
 a full featured game engine like PyGame.
 
 #### Moving the Camera
-There are two camera controls available in this project. In this project, we accomplish camera motion by tranforming the scene. In other words, the
+There are two camera controls available in this project. In this project, we accomplish camera motion by transforming the scene. In other words, the
 camera is at a fixed location and the camera controls actually move the scene instead of moving the camera. The camera is placed at `[0, 0, -15]` and
 faces the origin. In a different implementation, we could change the perspective matrix to effectively move the camera instead of the scene.
 This design decision has very little impact on the rest of the project. We move the scene instead of the camera because it is the standard practise.
