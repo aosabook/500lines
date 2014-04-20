@@ -84,7 +84,7 @@ function train() {
         alert("Please type a digit value in order to train the network");
         return;
     }
-    trainArray.push({y0: data, label: parseInt(digitVal)});
+    trainArray.push({"y0": data, "label": parseInt(digitVal)});
     trainingRequestCount++;
 
     // Time to send a training batch to the server.
