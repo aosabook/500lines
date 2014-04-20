@@ -169,7 +169,7 @@ color is passed to OpenGL with `glColor` when the Node is rendered.
 ##### Scale
 Each Node stores a current matrix that stores its scale. A matrix that scales by parameters `x`, `y` and `z` in those respective directions is:
 
-[Scale Matrix](scale.png?raw=true)
+![Scale Matrix](scale.png?raw=true)
 
 When the user modifies the scale of a Node, a scaling matrix for the modification is constructed and multiplied into the current scaling matrix for
 the Node.
