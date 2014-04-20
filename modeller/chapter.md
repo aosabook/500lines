@@ -1,28 +1,6 @@
-# A Small 3D Modeller
-
 ## Intro
-
-## Background
-CAD, or Computer Assisted Design, tools have a rich history in computing. CAD tools have
-reached across all domains of design and development, including electrical engineering, industrial
-design, architecture, entertainment.
-
-<-- FIXME: How to tie into 3D modelling??? -->
-Some CAD tools include a modelling env
-
-## Intro
- * mention Blender, and how it's a source of inspiration for this project
- * talk about how a modeller could be used
-
-## Matrix arithmetic
- * what is a matrix?
- * what is a projection matrix?
- * what is a ModelView matrix?
-
-## Modeller structure
- * Viewer. What does it do? How does it interact with OpenGL. Be careful that this isn't an OpenGL tutorial
-
- * Interaction. How does user interaction flow through the program?
+3D modelling software is widely used as a component of Computer Assisted Design (CAD) software. For example, AutoCAD, Maya, Blender, and others all
+include a 3D modelling component to their software.
 
 ## Modeller structure
 
@@ -85,6 +63,12 @@ OpenGL also maintains a stack of matrices. The programmer can choose to push and
 Most of the setup and interfacting with OpenGL is found in the viewer.py file.
 
 ### Linear algebra (TODO)
+#### Matrix arithmetic (TODO: is this necessary?)
+ * what is a matrix?
+ * what is a projection matrix?
+ * what is a ModelView matrix?
+ * The 4th vector element to distinguish points from vectors
+
 The purposes of the ModelView and Projection matrices can be understood with some basic linear algebra. Detailed explanations can be found here: (TODO!!!).
 
 TODO: Should we put some linear algebra here? This topic is covered in every OpenGL tutorial, but it will be unfamiliar to many people. I'm not sure if it's best to redirect to another tutorial,
@@ -131,8 +115,8 @@ GLUT is very limited in its ability to provide
 #### Moving the Camera
 There are two camera controls available in this project. In this project, we accomplish camera motion by tranforming the scene. In other words, the
 camera is at a fixed location and the camera controls actually move the scene instead of moving the camera. The camera is placed at `[0, 0, -15]` and
-faces the origin. In a different implementation, we could move the camera instead of the scene.
-This design decision has very little impact on the rest of the project. (TODO: I don't really know why this way is better...)
+faces the origin. In a different implementation, we could change the perspective matrix to effectively move the camera instead of the scene.
+This design decision has very little impact on the rest of the project. We move the scene instead of the camera because it is the standard practise.
 There are two types of interaction with the scene: rotation and translation.
 
 ##### Rotation via a Trackball
@@ -183,8 +167,11 @@ Colorization is accomplished with a very simplistic list of possible colors. The
 color is passed to OpenGL with `glColor` when the Node is rendered.
 
 ##### Scale
-Each Node stores a current matrix that stores its scale. A matrix that scales by a factor of x looks like (TODO: what does it look like). When the
-user modifies the scale of a Node, a scaling matrix for the modification is constructed and multiplied into the current scaling matrix for
+Each Node stores a current matrix that stores its scale. A matrix that scales by parameters `x`, `y` and `z` in those respective directions is:
+
+[Scale Matrix](scale.png)
+
+When the user modifies the scale of a Node, a scaling matrix for the modification is constructed and multiplied into the current scaling matrix for
 the Node.
 
 ##### Translation
