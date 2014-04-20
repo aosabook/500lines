@@ -16,6 +16,10 @@ const BATCH_SIZE = 1
 const PORT = "8000"
 const HOST = "http://localhost"
 
+// Colors
+const BLACK = "#000000"
+const BLUE = "#0000ff"
+
 var ctx, canvas;
 var data = [];
 var trainArray = [];
@@ -34,7 +38,7 @@ function onLoadFunction() {
 
 function resetCanvas() {
     data = [];
-    ctx.fillStyle = '#000000';
+    ctx.fillStyle = BLACK;
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_WIDTH);
     var matrixSize = 400;
     while (matrixSize--) data.push(0);
@@ -44,7 +48,7 @@ function resetCanvas() {
 
 function drawGrid() {
     for (var x = PIXEL_WIDTH, y = PIXEL_WIDTH; x < CANVAS_WIDTH; x += PIXEL_WIDTH, y += PIXEL_WIDTH) {
-        ctx.strokeStyle = '#0000ff';
+        ctx.strokeStyle = BLUE;
         ctx.beginPath();
         ctx.moveTo(x, 0);
         ctx.lineTo(x, CANVAS_WIDTH);
