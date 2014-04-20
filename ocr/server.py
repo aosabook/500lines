@@ -3,7 +3,7 @@ import json
 from ocr import ocrNN
 
 HOST_NAME = 'localhost'
-PORT_NUMBER = 80
+PORT_NUMBER = 8000
 nn = ocrNN(15)
 
 class JSONHandler(BaseHTTPServer.BaseHTTPRequestHandler):

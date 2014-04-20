@@ -12,6 +12,10 @@ const TRANSLATED_WIDTH = 20
 const PIXEL_WIDTH = 10 // TRANSLATED_WIDTH = CANVAS_WIDTH / PIXEL_WIDTH
 const BATCH_SIZE = 1
 
+// Server Variables
+const PORT = "8000"
+const HOST = "http://localhost"
+
 var ctx, canvas;
 var data = [];
 var trainArray = [];
@@ -122,7 +126,7 @@ function onError(e) {
 
 function sendData(json) {
     var xmlHttp = new XMLHttpRequest();
-    xmlHttp.open('POST', "http://localhost:80", false);
+    xmlHttp.open('POST', HOST + ":" + PORT, false);
     xmlHttp.onload = receiveResponse;
     xmlHttp.onerror = onError;
     var msg = JSON.stringify(json);
