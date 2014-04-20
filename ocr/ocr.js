@@ -7,134 +7,134 @@
   * canvas to be processed as an input array of 1s (white) and 0s (black) on
   * on the server side. Each new translated pixel's size is 10x10px
   */
-const CANVAS_WIDTH = 200
-const TRANSLATED_WIDTH = 20
-const PIXEL_WIDTH = 10 // TRANSLATED_WIDTH = CANVAS_WIDTH / PIXEL_WIDTH
-const BATCH_SIZE = 1
+var ocrDemo = {
+    CANVAS_WIDTH: 200,
+    TRANSLATED_WIDTH: 20,
+    PIXEL_WIDTH: 10, // TRANSLATED_WIDTH = CANVAS_WIDTH / PIXEL_WIDTH
+    BATCH_SIZE: 1,
 
-// Server Variables
-const PORT = "8000"
-const HOST = "http://localhost"
+    // Server Variables
+    PORT: "8000",
+    HOST: "http://localhost",
 
-// Colors
-const BLACK = "#000000"
-const BLUE = "#0000ff"
+    // Colors
+    BLACK: "#000000",
+    BLUE: "#0000ff",
 
-var ctx, canvas;
-var data = [];
-var trainArray = [];
-var trainingRequestCount = 0;
+    trainArray: [],
+    trainingRequestCount: 0,
 
-function onLoadFunction() {
-    canvas = document.getElementById('canvas');
-    ctx = canvas.getContext('2d');
-    resetCanvas();
+    onLoadFunction: function() {
+        this.resetCanvas();
+    },
 
-    ctx.fillSquare = fillSquare;
-    canvas.onmousemove = onMouseMove;
-    canvas.onmousedown = onMouseDown;
-    canvas.onmouseup = onMouseUp;
-}
+    resetCanvas: function() {
+        var canvas = document.getElementById('canvas');
+        var ctx = canvas.getContext('2d');
 
-function resetCanvas() {
-    data = [];
-    ctx.fillStyle = BLACK;
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_WIDTH);
-    var matrixSize = 400;
-    while (matrixSize--) data.push(0);
-    drawGrid();
-}
+        this.data = [];
+        ctx.fillStyle = this.BLACK;
+        ctx.fillRect(0, 0, this.CANVAS_WIDTH, this.CANVAS_WIDTH);
+        var matrixSize = 400;
+        while (matrixSize--) this.data.push(0);
+        this.drawGrid(ctx);
+
+        canvas.onmousemove = function(e) { this.onMouseMove(e, ctx, canvas) }.bind(this);
+        canvas.onmousedown = function(e) { this.onMouseDown(e, ctx, canvas) }.bind(this);
+        canvas.onmouseup = function(e) { this.onMouseUp(e, ctx) }.bind(this);
+    },
 
 
-function drawGrid() {
-    for (var x = PIXEL_WIDTH, y = PIXEL_WIDTH; x < CANVAS_WIDTH; x += PIXEL_WIDTH, y += PIXEL_WIDTH) {
-        ctx.strokeStyle = BLUE;
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, CANVAS_WIDTH);
-        ctx.stroke();
+    drawGrid: function(ctx) {
+        for (var x = this.PIXEL_WIDTH, y = this.PIXEL_WIDTH; x < this.CANVAS_WIDTH; x += this.PIXEL_WIDTH, y += this.PIXEL_WIDTH) {
+            ctx.strokeStyle = this.BLUE;
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, this.CANVAS_WIDTH);
+            ctx.stroke();
 
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(CANVAS_WIDTH, y);
-        ctx.stroke();
-    }
-}
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(this.CANVAS_WIDTH, y);
+            ctx.stroke();
+        }
+    },
 
-function onMouseMove(e) {
-    if (!canvas.isDrawing) {
-        return;
-    }
-    ctx.fillSquare(e.clientX - this.offsetLeft, e.clientY - this.offsetTop);
-}
+    onMouseMove: function(e, ctx, canvas) {
+        if (!canvas.isDrawing) {
+            return;
+        }
+        this.fillSquare(ctx, e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+    },
 
-function onMouseDown(e) {
-    canvas.isDrawing = true;
-    ctx.fillSquare(e.clientX - this.offsetLeft, e.clientY - this.offsetTop);
-}
+    onMouseDown: function(e, ctx, canvas) {
+        canvas.isDrawing = true;
+        this.fillSquare(ctx, e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+    },
 
-function onMouseUp(e) {
-    canvas.isDrawing = false;
-}
+    onMouseUp: function(e) {
+        canvas.isDrawing = false;
+    },
 
-function fillSquare(x, y) {
-    var xPixel = Math.floor(x / PIXEL_WIDTH);
-    var yPixel = Math.floor(y / PIXEL_WIDTH);
-    data[((xPixel - 1)  * TRANSLATED_WIDTH + yPixel) - 1] = 1;
+    fillSquare: function(ctx, x, y) {
+        var xPixel = Math.floor(x / this.PIXEL_WIDTH);
+        var yPixel = Math.floor(y / this.PIXEL_WIDTH);
+        this.data[((xPixel - 1)  * this.TRANSLATED_WIDTH + yPixel) - 1] = 1;
 
-    this.fillStyle = '#ffffff';
-    this.fillRect(xPixel * PIXEL_WIDTH, yPixel * PIXEL_WIDTH, PIXEL_WIDTH, PIXEL_WIDTH);
-}
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(xPixel * this.PIXEL_WIDTH, yPixel * this.PIXEL_WIDTH, this.PIXEL_WIDTH, this.PIXEL_WIDTH);
+    },
 
-function train() {
-    var digitVal = document.getElementById("digit").value;
-    if (!digitVal) {
-        alert("Please type a digit value in order to train the network");
-        return;
-    }
-    trainArray.push({"y0": data, "label": parseInt(digitVal)});
-    trainingRequestCount++;
+    train: function() {
+        var digitVal = document.getElementById("digit").value;
+        if (!digitVal) {
+            alert("Please type a digit value in order to train the network");
+            return;
+        }
+        this.trainArray.push({"y0": this.data, "label": parseInt(digitVal)});
+        this.trainingRequestCount++;
 
-    // Time to send a training batch to the server.
-    if (trainingRequestCount == BATCH_SIZE) {
-        alert("Sending training data to server...");
+        // Time to send a training batch to the server.
+        if (this.trainingRequestCount == this.BATCH_SIZE) {
+            alert("Sending training data to server...");
+            var json = {
+                trainArray: this.trainArray,
+                train: true
+            };
+
+            this.sendData(json);
+            this.trainingRequestCount = 0;
+            this.trainArray = [];
+        }
+    },
+
+    test: function() {
         var json = {
-            trainArray: trainArray,
-            train: true
+            image: this.data,
+            train: false
         };
+        this.sendData(json);
+    },
 
-        sendData(json);
-        trainingRequestCount = 0;
-        trainArray = [];
+    receiveResponse: function(xmlHttp) {
+        var responseJSON = JSON.parse(xmlHttp.responseText);
+        if (xmlHttp.responseText && responseJSON.type == "test") {
+            alert("The neural network predicts you wrote a \'" + responseJSON.result + '\'');
+        }
+    },
+
+    onError: function(e) {
+        alert("Error occurred while connecting to server: " + e.target.statusText);
+    },
+
+    sendData: function(json) {
+        var xmlHttp = new XMLHttpRequest();
+        xmlHttp.open('POST', this.HOST + ":" + this.PORT, false);
+        xmlHttp.onload = function() { this.receiveResponse(xmlHttp); }.bind(this);
+        xmlHttp.onerror = function() { this.onError(xmlHttp) }.bind(this);
+        var msg = JSON.stringify(json);
+        xmlHttp.setRequestHeader('Content-length', msg.length);
+        xmlHttp.setRequestHeader("Connection", "close");
+        xmlHttp.send(msg);
     }
-}
-
-function test() {
-    var json = {
-        image: data,
-        train: false
-    };
-    sendData(json);
-}
-
-function receiveResponse() {
-    var responseJSON = JSON.parse(this.responseText);
-    if (this.responseText && responseJSON.type == "test") {
-        alert("The neural network predicts you wrote a \'" + responseJSON.result + '\'');
-    }
-}
-
-function onError(e) {
-    alert("Error occurred while connecting to server: " + e.target.statusText);
-}
-
-function sendData(json) {
-    var xmlHttp = new XMLHttpRequest();
-    xmlHttp.open('POST', HOST + ":" + PORT, false);
-    xmlHttp.onload = receiveResponse;
-    xmlHttp.onerror = onError;
-    var msg = JSON.stringify(json);
-    xmlHttp.setRequestHeader('Content-length', msg.length);
-    xmlHttp.setRequestHeader("Connection", "close");
-    xmlHttp.send(msg);
 }
