@@ -18,7 +18,7 @@ Despite these similarities, agile modeling differs from agile programming in one
 
 ### Simplification
 
-Our Alloy model, like any other model, is not intended to be a complete description of the web system, and abstracts away details that we deemed to be of little importance to our discussion of the SOP. In particular, some of the details that are omitted from our model are:
+Our Alloy model, like any other model, is not intended to be a complete description of the SOP, and abstracts away many details that were not relevant for our discussion. In particular, we omit:
 * Low-level network communication between a server and a client (routing, naming server, packet structure, etc.)
 * Many aspects of a web browser, including page layout, cookies, DOM events
 * Server configuration and interaction with its underlying OS
@@ -31,7 +31,7 @@ At its heart, the purpose of the web is to share some resources, so we start by 
 ```
 abstract sig Resource {}
 ```
-The keyword “sig” identifies this as an Alloy signature declaration. This introduces a set of resource objects; think of these, just like the objects of a class with no instance variables as blobs that have identity but no contents. The keyword “abstract” means that when we later declare particular subsets of resources every resource will belong to one of those subsets (just as every member of an abstract class must be a member of one of its subclasses). 
+The keyword “sig” identifies this as an Alloy signature declaration. This introduces a set of resource objects; think of these, just like the objects of a class with no instance variables, as blobs that have identity but no contents. The keyword “abstract” means that when we later declare particular subsets of resources every resource will belong to one of those subsets (just as every member of an abstract class must be a member of one of its subclasses). 
 
 Likewise, we introduce a set of endpoints:
 ```
