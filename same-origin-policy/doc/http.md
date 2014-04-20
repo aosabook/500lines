@@ -108,7 +108,7 @@ sig Server extends message/EndPoint {
 ```
 
 The expression `Url -> lone message/Resource` denotes a binary relation. So
-`resMap` can be seen as a set of tuples (url, resource). The use of the `lone`
+`Server.resMap` can be seen as a set of tuples (url, resource). The use of the `lone`
 keyword before `message/Resource` imposes a multiplicity constraint: it says that
 `resMap` is required to contain, for each resource `r`, `lone` tuples that
 end with `r`. In other words, `resMap` is a partial function: Not every url is
