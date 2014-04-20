@@ -182,7 +182,11 @@ from the camera are available when it's selected, we store that information at s
 With the distance from the camera, we can place the Node at that distance along the ray. We then calculate the vector difference between the new and old
 locations, and translate the node by that difference.
 
-As with scale, each node stores a matrix which represents its translation. When the node is translated, we construct a new translation matrix for the
+As with scale, each node stores a matrix which represents its translation. A translation matrix looks like:
+
+![Translation Matrix](translate.png?raw=true)
+
+When the node is translated, we construct a new translation matrix for the
 current translation, and multiply it into the Node's translation matrix.
 
 #### Placing Nodes
