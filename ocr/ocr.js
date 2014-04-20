@@ -1,3 +1,15 @@
+/**
+  * This module creates a 200x200 pixel canvas for a user to draw
+  * digits. The digits can either be used to to train the neural network
+  * or to test the network's current prediction for that digit.
+  *
+  * To simplify computation, the 200x200px canvas is translated as a 20x20px
+  * canvas to be processed as an input array of 1s (white) and 0s (black) on
+  * on the server side. Each new translated pixel's size is 10x10px
+  */
+const CANVAS_WIDTH = 200
+const TRANSLATED_WIDTH = 20
+const PIXEL_WIDTH = 10 // TRANSLATED_WIDTH = CANVAS_WIDTH / PIXEL_WIDTH
 const BATCH_SIZE = 1
 
 var ctx, canvas;
@@ -19,7 +31,7 @@ function onLoadFunction() {
 function resetCanvas() {
     data = [];
     ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, 200, 200);
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_WIDTH);
     var matrixSize = 400;
     while (matrixSize--) data.push(0);
     drawGrid();
@@ -27,16 +39,16 @@ function resetCanvas() {
 
 
 function drawGrid() {
-    for (var x = 10, y = 10; x < 200; x += 10, y += 10) {
+    for (var x = PIXEL_WIDTH, y = PIXEL_WIDTH; x < CANVAS_WIDTH; x += PIXEL_WIDTH, y += PIXEL_WIDTH) {
         ctx.strokeStyle = '#0000ff';
         ctx.beginPath();
         ctx.moveTo(x, 0);
-        ctx.lineTo(x, 200);
+        ctx.lineTo(x, CANVAS_WIDTH);
         ctx.stroke();
 
         ctx.beginPath();
         ctx.moveTo(0, y);
-        ctx.lineTo(200, y);
+        ctx.lineTo(CANVAS_WIDTH, y);
         ctx.stroke();
     }
 }
@@ -58,12 +70,12 @@ function onMouseUp(e) {
 }
 
 function fillSquare(x, y) {
-    var xPixel = Math.floor(x / 10);
-    var yPixel = Math.floor(y / 10);
-    data[((xPixel - 1)  * 20 + yPixel) - 1] = 1;
+    var xPixel = Math.floor(x / PIXEL_WIDTH);
+    var yPixel = Math.floor(y / PIXEL_WIDTH);
+    data[((xPixel - 1)  * TRANSLATED_WIDTH + yPixel) - 1] = 1;
 
     this.fillStyle = '#ffffff';
-    this.fillRect(xPixel * 10, yPixel * 10, 10, 10);
+    this.fillRect(xPixel * PIXEL_WIDTH, yPixel * PIXEL_WIDTH, PIXEL_WIDTH, PIXEL_WIDTH);
 }
 
 function train() {
