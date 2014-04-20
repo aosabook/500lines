@@ -67,7 +67,19 @@ def __setattr__OBJECT(self, fieldname, value):
     self._write_dict(fieldname, value)
 
 
-class Instance(Base):
+class BaseWithDict(Base):
+    def __init__(self, cls, fields):
+        Base.__init__(self, cls)
+        self._fields = fields
+
+    def _read_dict(self, fieldname):
+        return self._fields.get(fieldname, MISSING)
+
+    def _write_dict(self, fieldname, value):
+        self._fields[fieldname] = value
+
+
+class Instance(BaseWithDict):
     """Instance of a user-defined class. """
 
     def __init__(self, cls):
@@ -95,20 +107,13 @@ class Instance(Base):
 def _make_boundmethod(meth, cls, self):
     return meth.__get__(self, cls)
 
-class Class(Base):
+class Class(BaseWithDict):
     """ A User-defined class. """
 
     def __init__(self, name, base_class, fields, metaclass):
-        Base.__init__(self, metaclass)
-        self._fields = fields
+        BaseWithDict.__init__(self, metaclass, fields)
         self.name = name
         self.base_class = base_class
-
-    def _read_dict(self, fieldname):
-        return self._fields.get(fieldname, MISSING)
-
-    def _write_dict(self, fieldname, value):
-        self._fields[fieldname] = value
 
     def mro(self):
         """ compute the mro (method resolution order) of the class """
