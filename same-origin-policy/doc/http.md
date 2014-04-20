@@ -29,8 +29,8 @@ sig Url {
 
 We use the keyword `lone` to constrain `port` and `path` to be an option
 (`lone` constraints the multiplicity of the set to at most one element --might
-help to think of the word as *l*ess than or equal to *one*). We thus allow
-URLs that have no port or path specified.
+help to think of the word as <em>l</em>ess than or equal to *one*). We thus
+allow URLs that have no port or path specified.
 
 We can now execute our model to see what a URL would look like by adding a
 `run {}` command. Moreover, we can use the Alloy visualizer to iterate through
