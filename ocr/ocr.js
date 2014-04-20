@@ -1,11 +1,14 @@
 /**
   * This module creates a 200x200 pixel canvas for a user to draw
-  * digits. The digits can either be used to to train the neural network
+  * digits. The digits can either be used to train the neural network
   * or to test the network's current prediction for that digit.
   *
   * To simplify computation, the 200x200px canvas is translated as a 20x20px
   * canvas to be processed as an input array of 1s (white) and 0s (black) on
   * on the server side. Each new translated pixel's size is 10x10px
+  *
+  * When training the network, traffic to the server can be reduced by batching
+  * requests to train based on BATCH_SIZE.
   */
 var ocrDemo = {
     CANVAS_WIDTH: 200,
