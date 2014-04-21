@@ -87,8 +87,10 @@ class RejectionSampler(object):
         try:
             d = len(first)
         except TypeError:
+            # create an empty numpy array with shape (n,)
             self.samples = np.empty(n)
         else:
+            # create an empty numpy array with shape (n, d)
             self.samples = np.empty((n, d))
 
         # Run the sampling loop for the number of requested samples.
