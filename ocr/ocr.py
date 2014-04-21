@@ -49,7 +49,7 @@ class ocrNeuralNetwork:
         #self._test()
 
     def _randInitializeWeights(self, sizeIn, sizeOut):
-        return [x * 0.12 - 0.06 for x in np.random.rand(sizeOut, sizeIn)]
+        return [((x * 0.12) - 0.06) for x in np.random.rand(sizeOut, sizeIn)]
 
     # The sigmoid activation function. Operates on scalars.
     def _sigmoidScalar(self, z):
