@@ -80,6 +80,15 @@ Our parser class takes string data as input. In the initalizer, we ensure the in
 
 TODO: Pull out comments from parser1.rb and insert here to describe the method.
 
+### Step 2: Isolating movement in the direction of gravity
+
+First, a very small amount of liner algebra 101. 
+
+TODO: Short explanation of why the dot product is used to help us isolate movement in the direction of gravity.
+
+Taking the dot product in our Parser class is straightforward. We add a @dot_product_data instance variable, and a method, dot_product_parsed_data, to set that variable. The dot_product_parsed_data method iterates through our @parsed_data hash and calculates the dot product with collect, and sets the result to @dot_product_data. 
+
+TODO: Code block from parser2.rb
 
 
 
