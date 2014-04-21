@@ -28,13 +28,75 @@ here.
 The file `sampler.py` contains the basic code for implementing a
 sampler. On initialization, it takes functions to sample from the
 proposal distribution and to compute the log-PDF values for both the
-proposal and target distributions. 
+proposal and target distributions.
 
-> *Why the log-PDF?* When working with sampling methods, it is almost
-> always a good idea to work in "log-space", meaning that your
-> functions should always return log probabilities rather than
-> probabilities. This is because probabilities can get very small very
-> quickly, resulting in underflow errors.
+### Working in "log-space"
+
+Why the log-PDF? When working with sampling methods, it is almost
+always a good idea to work in "log-space", meaning that your functions
+should always return log probabilities rather than probabilities. This
+is because probabilities can get very small very quickly, resulting in
+underflow errors.
+
+To motivate this, consider that probabilities must range between 0 and
+1 (inclusive). NumPy has a useful function, `finfo`, that will tell us
+the limits of floating point values for our system. For example, on a
+64-bit machine, we see that the smallest usable positive number (given
+by `tiny`) is:
+
+```
+>>> import numpy as np
+>>> np.finfo(float).tiny
+2.2250738585072014e-308
+```
+
+While that may seem very small, it is not unusual to encounter
+probabilities of this magnitude, or even smaller! Moreover, it is a
+common operation to multiply probabilities, yet if we try to do this
+with very small probabilities, we encounter underflow problems:
+
+```
+>>> tiny = np.finfo(float).tiny
+>>> tiny * tiny
+0.0
+```
+
+However, taking the log can help alleviate this issue for two reasons.
+First, "log-space" ranges from $-\infty$ to zero; in practice, this
+means it ranges from the `min` value returned by `finfo` to zero. Yet,
+the log of the smallest positive value is much larger than that! So,
+we have greatly expaned our range of representable numbers:
+
+```
+>>> np.finfo(float).min
+-1.7976931348623157e+308
+>>> np.log(tiny)
+-708.39641853226408
+```
+
+Second, we can perform multiplication in log-space using addition,
+ because of the identity that $\log(x\cdot{}y) = \log(x) +
+ \log(y)$. Thus, if we do the multiplication above in log-space, we do
+ not have to deal with loss of precision due to underflow:
+
+```
+>>> np.log(tiny) + np.log(tiny)
+-1416.7928370645282
+```
+
+Of course, this solution is not a magic bullet. If we need to bring
+the number *out* of log-space (for example, to add probabilities,
+rather than multiply them), then we are back to the issue of
+underflow:
+
+```
+>>> tiny*tiny
+0.0
+>>> np.exp(np.log(tiny) + np.log(tiny))
+0.0
+```
+
+### Structure of the rejection sampler
 
 The `RejectionSampler` class uses two methods to draw samples:
 `sample` and `draw`. The first of these, `sample`, is the main outer
