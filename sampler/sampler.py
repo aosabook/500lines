@@ -100,18 +100,18 @@ class RejectionSampler(object):
 
         return self.samples
 
-    def plot(self, ax, xmin, xmax, ymax):
+    def plot(self, axes, x_min, x_max, y_max):
         """Plot the proposal distribution, target distribution, and histogram
         of the samples drawn by `self.sample`.
 
         Parameters
         ----------
-        ax : matplotlib axes object
-        xmin : number
+        axes : matplotlib axes object
+        x_min : number
             Minimum value for the x-axis
-        xmax : number
+        x_max : number
             Maximum value for the x-axis
-        ymax : number
+        y_max : number
             Maximum value for the y-axis
 
         """
@@ -122,32 +122,33 @@ class RejectionSampler(object):
             raise ValueError(
                 "visualization for dimensions great than 1 not supported")
 
-        X = np.linspace(xmin, xmax, 1000)
+        X = np.linspace(x_min, x_max, 1000)
         Yp = np.exp(np.array([self.propose_logpdf(x) for x in X]))
         Yt = np.exp(np.array([self.target_logpdf(x) for x in X]))
 
         # plot the histogram of samples
-        ax.hist(
+        axes.hist(
             self.samples,
             bins=100,
-            color='k',
+            color='#999999',
             label="samples",
-            normed=True)
+            normed=True,
+            edgecolor='#999999')
 
         # plot the proposal distribution PDF
-        ax.plot(
+        axes.plot(
             X, Yp, 'r-',
             linewidth=2,
             label="proposal")
 
         # plot the target distribution PDF
-        ax.plot(
+        axes.plot(
             X, Yt, 'b-',
             linewidth=2,
             label="target")
 
-        ax.legend(loc='upper right')
-        ax.set_xlabel("x")
-        ax.set_ylabel("p(x)")
-        ax.set_xlim(xmin, xmax)
-        ax.set_ylim(0, ymax)
+        axes.legend(loc='upper right')
+        axes.set_xlabel("x")
+        axes.set_ylabel("p(x)")
+        axes.set_xlim(x_min, x_max)
+        axes.set_ylim(0, y_max)
