@@ -29,36 +29,36 @@ class ocrNeuralNetwork:
     NN_FILE_PATH = 'nn.json'
 
     def __init__(self, numHiddenNodes, dataMatrix, dataLabels):
-        self.sigmoid = np.vectorize(self.sigmoidScalar)
-        self.sigmoidPrime = np.vectorize(self.sigmoidPrimeScalar)
+        self.sigmoid = np.vectorize(self._sigmoidScalar)
+        self.sigmoidPrime = np.vectorize(self._sigmoidPrimeScalar)
         self.dataMatrix = dataMatrix
         self.dataLabels = dataLabels
 
         if (not os.path.isfile(ocrNeuralNetwork.NN_FILE_PATH)):
             # Step 1: Initialize weights to small numbers
-            self.theta1 = self.randInitializeWeights(400, numHiddenNodes)
-            self.theta2 = self.randInitializeWeights(numHiddenNodes, 10)
-            self.input_layer_bias = self.randInitializeWeights(1, numHiddenNodes)
-            self.hidden_layer_bias = self.randInitializeWeights(1, 10)
+            self.theta1 = self._randInitializeWeights(400, numHiddenNodes)
+            self.theta2 = self._randInitializeWeights(numHiddenNodes, 10)
+            self.input_layer_bias = self._randInitializeWeights(1, numHiddenNodes)
+            self.hidden_layer_bias = self._randInitializeWeights(1, 10)
 
             # Train using sample data
             self.train([{"y0":self.dataMatrix[i], "label":int(ocrNeuralNetwork.dataLabels[i])} for i in ocrNeuralNetwork.sampleIndices[:3500]])
             self.save()
         else:
-            self.load()
-        #self.test()
+            self._load()
+        #self._test()
 
-    def randInitializeWeights(self, sizeIn, sizeOut):
+    def _randInitializeWeights(self, sizeIn, sizeOut):
         return [x * 0.12 - 0.06 for x in np.random.rand(sizeOut, sizeIn)]
 
     # The sigmoid activation function. Operates on scalars.
-    def sigmoidScalar(self, z):
+    def _sigmoidScalar(self, z):
         return 1 / (1 + math.e ** -z)
 
-    def sigmoidPrimeScalar(self, z):
+    def _sigmoidPrimeScalar(self, z):
         return self.sigmoid(z) * (1 - self.sigmoid(z))
 
-    def draw(self, sample):
+    def _draw(self, sample):
         pixelArray = [sample[j:j+WIDTH_IN_PIXELS] for j in xrange(0, len(sample), WIDTH_IN_PIXELS)]
         plt.imshow(zip(*pixelArray), cmap = cm.Greys_r, interpolation="nearest")
         plt.show()
@@ -86,7 +86,7 @@ class ocrNeuralNetwork:
             self.hidden_layer_bias += ocrNeuralNetwork.LEARNING_RATE * outputErrors
             self.input_layer_bias += ocrNeuralNetwork.LEARNING_RATE * hiddenErrors
 
-    def test(self):
+    def _test(self):
         avgSum = 0
         for j in range(100):
             correctGuessCount = 0
@@ -111,7 +111,7 @@ class ocrNeuralNetwork:
         results = y2.T.tolist()[0]
         return results.index(max(results))
 
-    def normalize(self, intensity, newMax, newMin):
+    def _normalize(self, intensity, newMax, newMin):
         return intensity * (float(newMax - newMin) / float(255)) + newMin
 
     def save(self):
@@ -124,7 +124,7 @@ class ocrNeuralNetwork:
         }, nnFile)
         nnFile.close()
 
-    def load(self):
+    def _load(self):
         nnFile = open(ocrNeuralNetwork.NN_FILE_PATH);
         nn = json.load(nnFile)
         self.theta1 = [np.array(li) for li in nn['theta1']]
