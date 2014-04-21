@@ -37,5 +37,7 @@ if __name__ == '__main__':
         httpd.serve_forever()
     except KeyboardInterrupt:
         pass
-
-    httpd.server_close()
+    else:
+        print "Unexpected server exception occurred."
+    finally:
+        httpd.server_close()
