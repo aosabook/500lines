@@ -47,11 +47,11 @@ class ocrNeuralNetwork:
         for data in trainingDataArray:
             # Step 2: Forward propagation
             y1 = np.dot(np.mat(self.theta1), np.mat(data['y0']).T)
-            sum1 =  y1 + np.mat(self.b1) # Add the bias
+            sum1 =  y1 + np.mat(self.input_layer_bias) # Add the bias
             y1 = self.sigmoid(sum1)
 
             y2 = np.dot(np.array(self.theta2), y1)
-            y2 = np.add(y2, self.b2) # Add the bias
+            y2 = np.add(y2, self.hidden_layer_bias) # Add the bias
             y2 = self.sigmoid(y2)
 
             # Step 3: Back propagation
@@ -63,8 +63,8 @@ class ocrNeuralNetwork:
             # Step 4: Update weights
             self.theta1 += ocrNeuralNetwork.LEARNING_RATE * np.dot(np.mat(hiddenErrors), np.mat(data['y0']))
             self.theta2 += ocrNeuralNetwork.LEARNING_RATE * np.dot(np.mat(outputErrors), np.mat(y1).T)
-            self.b2 += ocrNeuralNetwork.LEARNING_RATE * outputErrors
-            self.b1 += ocrNeuralNetwork.LEARNING_RATE * hiddenErrors
+            self.hidden_layer_bias += ocrNeuralNetwork.LEARNING_RATE * outputErrors
+            self.input_layer_bias += ocrNeuralNetwork.LEARNING_RATE * hiddenErrors
 
     def test(self):
         avgSum = 0
@@ -81,11 +81,11 @@ class ocrNeuralNetwork:
 
     def predict(self, test):
         y1 = np.dot(np.mat(self.theta1), np.mat(test).T)
-        y1 =  y1 + np.mat(self.b1) # Add the bias
+        y1 =  y1 + np.mat(self.input_layer_bias) # Add the bias
         y1 = self.sigmoid(y1)
 
         y2 = np.dot(np.array(self.theta2), y1)
-        y2 = np.add(y2, self.b2) # Add the bias
+        y2 = np.add(y2, self.hidden_layer_bias) # Add the bias
         y2 = self.sigmoid(y2)
 
         results = y2.T.tolist()[0]
@@ -99,8 +99,8 @@ class ocrNeuralNetwork:
         json.dump({
             "theta1":[npMat.tolist()[0] for npMat in self.theta1],
             "theta2":[npMat.tolist()[0] for npMat in self.theta2],
-            "b1":self.b1[0].tolist()[0],
-            "b2":self.b2[0].tolist()[0]
+            "b1":self.input_layer_bias[0].tolist()[0],
+            "b2":self.hidden_layer_bias[0].tolist()[0]
         }, nnFile)
         nnFile.close()
 
@@ -109,8 +109,8 @@ class ocrNeuralNetwork:
         nn = json.load(nnFile)
         self.theta1 = [np.array(li) for li in nn['theta1']]
         self.theta2 = [np.array(li) for li in nn['theta2']]
-        self.b1 = [np.array(nn['b1'][0])]
-        self.b2 = [np.array(nn['b2'][0])]
+        self.input_layer_bias = [np.array(nn['b1'][0])]
+        self.hidden_layer_bias = [np.array(nn['b2'][0])]
         nnFile.close()
 
     def __init__(self, numHiddenNodes, dataMatrix, dataLabels):
@@ -123,8 +123,8 @@ class ocrNeuralNetwork:
             # Step 1: Initialize weights to small numbers
             self.theta1 = self.randInitializeWeights(400, numHiddenNodes)
             self.theta2 = self.randInitializeWeights(numHiddenNodes, 10)
-            self.b1 = self.randInitializeWeights(1, numHiddenNodes)
-            self.b2 = self.randInitializeWeights(1, 10)
+            self.input_layer_bias = self.randInitializeWeights(1, numHiddenNodes)
+            self.hidden_layer_bias = self.randInitializeWeights(1, 10)
 
             # Train using sample data
             self.train([{"y0":self.dataMatrix[i], "label":int(ocrNeuralNetwork.dataLabels[i])} for i in ocrNeuralNetwork.sampleIndices[:3500]])
