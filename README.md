@@ -121,11 +121,20 @@ Contributors
     <td>@gvanrossum</td>
     <td>guido@python.org</td>
   </tr>
+  <tr>
     <td>Erick Dransch</td>
     <td>Upverter</td>
     <td>Modeller</td>
     <td>@EkkiD</td>
     <td>@ErickDransch</td>
     <td>erick.dransch@upverter.com</td>
+  </tr>
+  <tr>
+    <td>Sarah Mei</td>
+    <td>Ministry of Velocity</td>
+    <td>testing framework</td>
+    <td><a href='http://github.com/sarahmei'>@sarahmei</a></td>
+    <td><a href='http://twitter.com/sarahmei'>@sarahmei</a></td>
+    <td></td>
   </tr>
 </table>
