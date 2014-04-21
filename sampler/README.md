@@ -40,6 +40,8 @@ as methods of the subclass.
 TODO: include discussion about using `import numpy as np` rather than
 `import numpy`.
 
+TODO: include discussion about variable names (descriptive vs math?)
+
 ### Working in "log-space"
 
 Why the log-PDF? When working with sampling methods, it is almost
