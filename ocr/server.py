@@ -1,10 +1,20 @@
 import BaseHTTPServer
 import json
 from ocr import ocrNN
+import numpy as np
 
 HOST_NAME = 'localhost'
 PORT_NUMBER = 8000
-nn = ocrNN(15)
+
+# Load data samples and labels into matrix
+dataMatrix = np.loadtxt(open('data.csv', 'rb'), delimiter = ',')
+dataLabels = np.loadtxt(open('dataLabels.csv', 'rb'))
+
+# Convert from numpy ndarrays to python lists
+dataMatrix = dataMatrix.tolist()
+dataLabels = dataLabels.tolist()
+
+nn = ocrNN(15, dataMatrix, dataLabels);
 
 class JSONHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_HEAD(s):

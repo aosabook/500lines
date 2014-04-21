@@ -18,14 +18,6 @@ class ocrNN:
     LEARNING_RATE = 0.1
     NN_FILE_PATH = 'nn.json'
 
-    # Load data samples and labels into matrix
-    dataMatrix = np.loadtxt(open('data.csv', 'rb'), delimiter = ',')
-    dataLabels = np.loadtxt(open('dataLabels.csv', 'rb'))
-
-    # Convert from numpy ndarrays to python lists
-    dataMatrix = dataMatrix.tolist()
-    dataLabels = dataLabels.tolist()
-
     def randInitializeWeights(self, sizeIn, sizeOut):
         return [x * 0.12 - 0.06 for x in np.random.rand(sizeOut, sizeIn)]
 
@@ -111,9 +103,11 @@ class ocrNN:
         self.b2 = [np.array(nn['b2'][0])]
         nnFile.close()
 
-    def __init__(self, numHiddenNodes):
+    def __init__(self, numHiddenNodes, dataMatrix, dataLabels):
         self.sigmoid = np.vectorize(self.sigmoid)
         self.sigmoidPrime = np.vectorize(self.sigmoidPrime)
+        self.dataMatrix = dataMatrix
+        self.dataLabels = dataLabels
 
         if (not os.path.isfile('nn.json')):
             # Step 1: Initialize weights to small numbers
