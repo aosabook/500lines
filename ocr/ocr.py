@@ -25,6 +25,7 @@ class ocrNeuralNetwork:
     random.shuffle(sampleIndices)
 
     LEARNING_RATE = 0.1
+    WIDTH_IN_PIXELS = 20
     NN_FILE_PATH = 'nn.json'
 
     def randInitializeWeights(self, sizeIn, sizeOut):
@@ -38,7 +39,7 @@ class ocrNeuralNetwork:
         return self.sigmoid(z) * (1 - self.sigmoid(z))
 
     def draw(self, sample):
-        pixelArray = [sample[j:j+20] for j in xrange(0, len(sample), 20)]
+        pixelArray = [sample[j:j+WIDTH_IN_PIXELS] for j in xrange(0, len(sample), WIDTH_IN_PIXELS)]
         plt.imshow(zip(*pixelArray), cmap = cm.Greys_r, interpolation="nearest")
         plt.show()
 
