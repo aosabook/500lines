@@ -45,20 +45,20 @@ class RejectionSampler(object):
         """
 
         while True:
-            # 1. Sample a candidate value
+            # 1. Sample a candidate value (x ~ q)
             x = self.propose_func()
 
             # 2. Sample a point uniformly between 0 and the PDF of the
-            # proposal distribution
+            # proposal distribution (y ~ Uniform(0, q(x)))
             upper = self.propose_logpdf(x)
-            if upper < MIN:
-                continue
-            logy = np.log(np.random.uniform(0.0, np.exp(upper)))
+            if upper >= MIN:
+                log_y = np.log(np.random.uniform(0.0, np.exp(upper)))
 
-            # 3. If this point is less than the target PDF, then we
-            # accept the candidate value (otherwise, we reject it).
-            if logy < self.target_logpdf(x):
-                break
+                # 3. If this point is less than the target PDF (y <
+                # p(x)), then we accept the candidate value;
+                # otherwise, we reject it.
+                if log_y < self.target_logpdf(x):
+                    break
 
         return x
 
