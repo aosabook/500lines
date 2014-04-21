@@ -68,7 +68,7 @@ module.exports = function (app, store) {
     });
   });
 
-  app.get('/wiki/view/:page', function(request, response){
+  app.get('/wiki/:page', function(request, response){
     var page = request.params.page;
     request.session.currentPage = request.path;
     store.getWikiContents(page, function(error, doc){
@@ -80,7 +80,7 @@ module.exports = function (app, store) {
     });
   });
 
-  app.get('/wiki/edit/:page', this.checkAuthenticated, function(request, response){
+  app.get('/wiki/:page/edit', this.checkAuthenticated, function(request, response){
     var page = request.params.page;
     request.session.currentPage = request.path;
     store.getWikiContents(page, function(error, doc){
@@ -90,7 +90,7 @@ module.exports = function (app, store) {
   });
 
   app.post('/wiki/add', function(request, response){
-    response.redirect('/wiki/edit/'+request.body.title);
+    response.redirect('/wiki/'+request.body.title+'/edit');
   });
 
   //AJAX routes

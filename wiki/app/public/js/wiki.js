@@ -98,7 +98,7 @@ var save = function(){
     url: "/save", type: "POST", dataType: "json",
     data: { page: page, content: $('#editor').val(), revision: $('#revision').val(), comment: $('#comment').val() },
     success: function(){
-      window.location.href = '/wiki/view/'+page; //success
+      window.location.href = '/wiki/'+page; //success
     },
     error: function(jqXHR, textStatus, errorThrown){
       $('#error').text('Unable to save edits.');

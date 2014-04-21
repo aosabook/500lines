@@ -1,7 +1,7 @@
 <div id="listView">
     <h1>Existing Pages</h1>
     {for page in pages}
-        <a href="/wiki/view/{page.id}">{page.id}</a><br/>
+        <a href="/wiki/{page.id}">{page.id}</a><br/>
     {/for}
     <div id="pages"></div>
     <form action="/wiki/add" method="post" id="addform">
