@@ -70,3 +70,20 @@ TODO: Code block with parser1.rb, pull comments out of file and insert into chap
 Let's look at what this data looks like when plotted. Below is a small portion of data, sampled 100 times per second, of a person walking with an iPhone in a bag on their shoulder.
 
 TODO: Add 2 plots, one for x,y,z user and one for x,y,z gravity.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

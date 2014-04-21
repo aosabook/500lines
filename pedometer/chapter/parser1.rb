@@ -20,8 +20,8 @@ private
     accl = accl.collect { |i| i.collect { |i| i.split(',').collect(&:to_f) } }
 
     # Split acceleration data into the following format:
-    # [ [ [x1, x2, ..., xn],    [y1, y2, ..., yn],    [z1, z2, ..., zn] ],
-    #   [ [xg1, xg2, ..., xgn], [yg1, yg2, ..., ygn], [zg1, zg2, ..., zgn] ] ]
+    # [[[x1,x2,...,xn],     [y1,y2,...,yn],    [z1,z2,...,zn]],
+    #  [[xg1,xg2,...,xgn],  [yg1,yg2,...,ygn], [zg1,zg2,...,zgn]]]
     split_accl = [accl.collect {|a| a.first}.transpose, 
                   accl.collect {|a| a.last}.transpose]
 

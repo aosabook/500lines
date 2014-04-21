@@ -19,5 +19,5 @@ tmp
 .yardoc
 _yardoc
 doc/
-chapter.html
-chapter.pdf
+chapter/chapter.html
+chapter/chapter.pdf
