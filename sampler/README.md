@@ -2,7 +2,7 @@
 
 The idea behind sampling is that we want to draw samples from a
 probability distribution, but we only have the *equation* of the
-distributions Probability Density Function (PDF), rather than an
+distribution's Probability Density Function (PDF), rather than an
 algorithm for actually drawing samples.
 
 ## Rejection sampling
