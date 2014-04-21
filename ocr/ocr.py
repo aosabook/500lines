@@ -28,6 +28,26 @@ class ocrNeuralNetwork:
     WIDTH_IN_PIXELS = 20
     NN_FILE_PATH = 'nn.json'
 
+    def __init__(self, numHiddenNodes, dataMatrix, dataLabels):
+        self.sigmoid = np.vectorize(self.sigmoidScalar)
+        self.sigmoidPrime = np.vectorize(self.sigmoidPrimeScalar)
+        self.dataMatrix = dataMatrix
+        self.dataLabels = dataLabels
+
+        if (not os.path.isfile('nn.json')):
+            # Step 1: Initialize weights to small numbers
+            self.theta1 = self.randInitializeWeights(400, numHiddenNodes)
+            self.theta2 = self.randInitializeWeights(numHiddenNodes, 10)
+            self.input_layer_bias = self.randInitializeWeights(1, numHiddenNodes)
+            self.hidden_layer_bias = self.randInitializeWeights(1, 10)
+
+            # Train using sample data
+            self.train([{"y0":self.dataMatrix[i], "label":int(ocrNeuralNetwork.dataLabels[i])} for i in ocrNeuralNetwork.sampleIndices[:3500]])
+            self.save()
+        else:
+            self.load()
+        #self.test()
+
     def randInitializeWeights(self, sizeIn, sizeOut):
         return [x * 0.12 - 0.06 for x in np.random.rand(sizeOut, sizeIn)]
 
@@ -112,23 +132,3 @@ class ocrNeuralNetwork:
         self.input_layer_bias = [np.array(nn['b1'][0])]
         self.hidden_layer_bias = [np.array(nn['b2'][0])]
         nnFile.close()
-
-    def __init__(self, numHiddenNodes, dataMatrix, dataLabels):
-        self.sigmoid = np.vectorize(self.sigmoidScalar)
-        self.sigmoidPrime = np.vectorize(self.sigmoidPrimeScalar)
-        self.dataMatrix = dataMatrix
-        self.dataLabels = dataLabels
-
-        if (not os.path.isfile('nn.json')):
-            # Step 1: Initialize weights to small numbers
-            self.theta1 = self.randInitializeWeights(400, numHiddenNodes)
-            self.theta2 = self.randInitializeWeights(numHiddenNodes, 10)
-            self.input_layer_bias = self.randInitializeWeights(1, numHiddenNodes)
-            self.hidden_layer_bias = self.randInitializeWeights(1, 10)
-
-            # Train using sample data
-            self.train([{"y0":self.dataMatrix[i], "label":int(ocrNeuralNetwork.dataLabels[i])} for i in ocrNeuralNetwork.sampleIndices[:3500]])
-            self.save()
-        else:
-            self.load()
-        #self.test()
