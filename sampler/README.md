@@ -18,6 +18,8 @@ sample from. Then, the procedure is as follows:
 3. If $y < p(x)$, then accept $x$ as a sample. Otherwise, reject $x$
    and start over from step 1.
 
+TODO: Give more of an intuition for how this works.
+
 There are many other sampling methods that you could choose from, but
 all of them have relatively similar design patterns behind the
 implementation, so we will just be focusing on rejection sampling
@@ -29,6 +31,14 @@ The file `sampler.py` contains the basic code for implementing a
 sampler. On initialization, it takes functions to sample from the
 proposal distribution and to compute the log-PDF values for both the
 proposal and target distributions.
+
+TODO: discuss the design decision of having `RejectionSampler` take
+the functions, and then requiring users to instantiate it directly,
+rather than subclassing it and having users write write the functions
+as methods of the subclass.
+
+TODO: include discussion about using `import numpy as np` rather than
+`import numpy`.
 
 ### Working in "log-space"
 
@@ -141,6 +151,10 @@ are using $p(x)=\frac{1}{3}(\mathcal{N}(x; -2.5, 0.2) + \mathcal{N}(x;
 > easy, and most statistics packages come with methods for doing
 > so. We are using a mixture of Gaussians here mostly just for
 > illustration purposes.
+
+TODO: include multi-dimensional example
+
+TODO: include discussion about where to include visualization code
 
 ## Possible extensions
 
