@@ -100,9 +100,9 @@ TODO: Basics of filtering, Chebyshev filter specifically
 
 Following the pattern from steps 1 and 2, we add another instance variable, @filtered_data, to store the filtered data series, and a method, filter_dot_product_data, that we call from the initializer.
 
-TODO: Code block for parser2.rb
+TODO: Code block from parser3.rb
 
-The filter_dot_product method initalizes the data series by setting the first two elements to 0, and then iterates through the remaining element indeces in @dot_product_data, applying the Chebyshev filter. 
+The filter_dot_product_data method initalizes the data series by setting the first two elements to 0, and then iterates through the remaining element indeces in @dot_product_data, applying the Chebyshev filter. 
 
 Our Parser now takes string data in the separated format, converts it into a more useable format, isolates movement inthe direction of gravity through the dot product operation, and filters the resulting data series to smooth it out. 
 
@@ -114,6 +114,25 @@ However, our parser only takes data in the separated format. What happens if we 
 
 ### Enhancing our parser to accept combined data
 
+TODO: Explain final changes with parser.rb
+
+## TODO: ROUGH OUTLINE OF REMAINING CHAPTER STARTS BELOW
+
+## Counting steps
+* Now that we have our data in a workable format, we're ready to count steps.
+* Discussion around how that isn't the role of the parser, so introduce analyzer class. 
+* Take out user and device (and therefore distance and time) from Aanalyzer and explain step counting
+* Show some working examples through command line of both classes in action. 
+
+## Adding features to our program
+* Introduce User class and discuss
+* Introduce Device class and discuss
+* Command line examles of all 4 working together
+
+## Adding some friendly
+* Sinatra layout
+* /trials and a basic table with calculations, pulling from the public directory
+* ...
 
 
 
