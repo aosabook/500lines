@@ -34,7 +34,7 @@ class ocrNeuralNetwork:
         self.dataMatrix = dataMatrix
         self.dataLabels = dataLabels
 
-        if (not os.path.isfile('nn.json')):
+        if (not os.path.isfile(ocrNeuralNetwork.NN_FILE_PATH)):
             # Step 1: Initialize weights to small numbers
             self.theta1 = self.randInitializeWeights(400, numHiddenNodes)
             self.theta2 = self.randInitializeWeights(numHiddenNodes, 10)
