@@ -16,17 +16,18 @@ class RejectionSampler(object):
             return one sample from this distribution.
 
         propose_logpdf : function
-            The proposal distribution's log-PDF. Calling this function
-            with a sample from `proposal_func` should return the log
-            probability density for the proposal distribution at that
+            The proposal distribution's log probability density
+            function (log-PDF). Calling this function with a sample
+            from `propose_func` should return the log probability
+            density for the proposal distribution at that
             location. This MUST be greater than the log-PDF of the
             target distribution, for any given input.
 
         target_logpdf : function
-            The target distribution's log-PDF. Calling this function
-            with a sample from `proposal_func` should return the log
-            probability density for the target distribution at that
-            location.
+            The target distribution's log probability density function
+            (log-PDF). Calling this function with a sample from
+            `propose_func` should return the log probability density
+            for the target distribution at that location.
 
         """
 
@@ -37,7 +38,8 @@ class RejectionSampler(object):
         self.samples = None
 
     def draw(self):
-        """Sample a single value from `self.target_logpdf` using rejection
+        """Sample a single value from the target log probability
+        density function (`self.target_logpdf`) using rejection
         sampling.
 
         """
@@ -61,8 +63,8 @@ class RejectionSampler(object):
         return x
 
     def sample(self, n, seed=None):
-        """Sample `n` values from `self.target_logpdf` using rejection
-        sampling.
+        """Sample `n` values from the target log probability density function
+        (`self.target_logpdf`) using rejection sampling.
 
         Parameters
         ----------
