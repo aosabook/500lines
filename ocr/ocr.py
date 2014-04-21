@@ -31,11 +31,11 @@ class ocrNeuralNetwork:
     def randInitializeWeights(self, sizeIn, sizeOut):
         return [x * 0.12 - 0.06 for x in np.random.rand(sizeOut, sizeIn)]
 
-    # The sigmoid activation function
-    def sigmoid(self, z):
+    # The sigmoid activation function. Operates on scalars.
+    def sigmoidScalar(self, z):
         return 1 / (1 + math.e ** -z)
 
-    def sigmoidPrime(self, z):
+    def sigmoidPrimeScalar(self, z):
         return self.sigmoid(z) * (1 - self.sigmoid(z))
 
     def draw(self, sample):
@@ -114,8 +114,8 @@ class ocrNeuralNetwork:
         nnFile.close()
 
     def __init__(self, numHiddenNodes, dataMatrix, dataLabels):
-        self.sigmoid = np.vectorize(self.sigmoid)
-        self.sigmoidPrime = np.vectorize(self.sigmoidPrime)
+        self.sigmoid = np.vectorize(self.sigmoidScalar)
+        self.sigmoidPrime = np.vectorize(self.sigmoidPrimeScalar)
         self.dataMatrix = dataMatrix
         self.dataLabels = dataLabels
 
