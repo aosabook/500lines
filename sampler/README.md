@@ -66,7 +66,7 @@ a mixture of Gaussians. A Gaussian distribution is given by the
 following equation:
 
 $$
-\mathcal(x; \mu, \sigma^2) = \frac{1}{\sqrt{2\pi\sigma^2}}\exp{\frac{-(x-\mu)^2}{2\sigma^2}}
+\mathcal{N}(x; \mu, \sigma^2) = \frac{1}{\sqrt{2\pi\sigma^2}}\exp{\frac{-(x-\mu)^2}{2\sigma^2}}
 $$
 
 where $\mu$ and $\sigma^2$ are the parameters of the Gaussian
