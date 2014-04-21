@@ -9,7 +9,16 @@ import random
 import os.path
 import json
 
-class ocrNN:
+"""
+This class does some initial training of a neural network for predicting drawn
+digits based on a data set in dataMatrix and dataLabels. It can then be used to
+train the network further by calling train() with any array of data or to predict
+what a drawn digit is by calling predict().
+
+The weights that define the neural network can be saved to a file, NN_FILE_PATH,
+to be reloaded upon initilization.
+"""
+class ocrNeuralNetwork:
     # Shuffle the indices of the 5000 samples and use the first 3500 for
     # training and the rest for testing.
     sampleIndices = list(range(5000))
@@ -51,19 +60,19 @@ class ocrNN:
             hiddenErrors = np.multiply(np.dot(np.mat(self.theta2).T, outputErrors), self.sigmoidPrime(sum1))
 
             # Step 4: Update weights
-            self.theta1 += ocrNN.LEARNING_RATE * np.dot(np.mat(hiddenErrors), np.mat(data['y0']))
-            self.theta2 += ocrNN.LEARNING_RATE * np.dot(np.mat(outputErrors), np.mat(y1).T)
-            self.b2 += ocrNN.LEARNING_RATE * outputErrors
-            self.b1 += ocrNN.LEARNING_RATE * hiddenErrors
+            self.theta1 += ocrNeuralNetwork.LEARNING_RATE * np.dot(np.mat(hiddenErrors), np.mat(data['y0']))
+            self.theta2 += ocrNeuralNetwork.LEARNING_RATE * np.dot(np.mat(outputErrors), np.mat(y1).T)
+            self.b2 += ocrNeuralNetwork.LEARNING_RATE * outputErrors
+            self.b1 += ocrNeuralNetwork.LEARNING_RATE * hiddenErrors
 
     def test(self):
         avgSum = 0
         for j in range(100):
             correctGuessCount = 0
-            for i in ocrNN.sampleIndices[3500:]:
-                test = ocrNN.dataMatrix[i]
+            for i in ocrNeuralNetwork.sampleIndices[3500:]:
+                test = ocrNeuralNetwork.dataMatrix[i]
                 prediction = self.predict(test)
-                if ocrNN.dataLabels[i] == prediction:
+                if ocrNeuralNetwork.dataLabels[i] == prediction:
                     correctGuessCount += 1
 
             avgSum += (correctGuessCount / float(1500))
@@ -85,7 +94,7 @@ class ocrNN:
         return intensity * (float(newMax - newMin) / float(255)) + newMin
 
     def save(self):
-        nnFile = open(ocrNN.NN_FILE_PATH,'w');
+        nnFile = open(ocrNeuralNetwork.NN_FILE_PATH,'w');
         json.dump({
             "theta1":[npMat.tolist()[0] for npMat in self.theta1],
             "theta2":[npMat.tolist()[0] for npMat in self.theta2],
@@ -95,7 +104,7 @@ class ocrNN:
         nnFile.close()
 
     def load(self):
-        nnFile = open(ocrNN.NN_FILE_PATH);
+        nnFile = open(ocrNeuralNetwork.NN_FILE_PATH);
         nn = json.load(nnFile)
         self.theta1 = [np.array(li) for li in nn['theta1']]
         self.theta2 = [np.array(li) for li in nn['theta2']]
@@ -117,7 +126,7 @@ class ocrNN:
             self.b2 = self.randInitializeWeights(1, 10)
 
             # Train using sample data
-            self.train([{"y0":self.dataMatrix[i], "label":int(ocrNN.dataLabels[i])} for i in ocrNN.sampleIndices[:3500]])
+            self.train([{"y0":self.dataMatrix[i], "label":int(ocrNeuralNetwork.dataLabels[i])} for i in ocrNeuralNetwork.sampleIndices[:3500]])
             self.save()
         else:
             self.load()

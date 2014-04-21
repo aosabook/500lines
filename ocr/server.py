@@ -1,6 +1,6 @@
 import BaseHTTPServer
 import json
-from ocr import ocrNN
+from ocr import ocrNeuralNetwork
 import numpy as np
 
 HOST_NAME = 'localhost'
@@ -14,7 +14,7 @@ dataLabels = np.loadtxt(open('dataLabels.csv', 'rb'))
 dataMatrix = dataMatrix.tolist()
 dataLabels = dataLabels.tolist()
 
-nn = ocrNN(15, dataMatrix, dataLabels);
+nn = ocrNeuralNetwork(15, dataMatrix, dataLabels);
 
 class JSONHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_HEAD(s):
