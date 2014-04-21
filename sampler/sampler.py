@@ -1,7 +1,7 @@
 import numpy as np
 
 # this is the minimum value we can exponentiate
-MIN = np.finfo('float64').minexp
+MIN = np.log(np.finfo('float64').tiny)
 
 
 class RejectionSampler(object):
@@ -12,22 +12,24 @@ class RejectionSampler(object):
         Parameters
         ----------
         propose_func : function
-            The proposal distribution. Calling this function should
-            return one sample from this distribution.
+            The proposal distribution, q. Calling this function should
+            return one sample, x, from this distribution.
 
         propose_logpdf : function
             The proposal distribution's log probability density
             function (log-PDF). Calling this function with a sample
             from `propose_func` should return the log probability
-            density for the proposal distribution at that
-            location. This MUST be greater than the log-PDF of the
-            target distribution, for any given input.
+            density for the proposal distribution at that location,
+            i.e. log(q(x)). This MUST be greater than the log-PDF of
+            the target distribution, for any given input (i.e., q(x) >
+            p(x) for all x)
 
         target_logpdf : function
             The target distribution's log probability density function
             (log-PDF). Calling this function with a sample from
             `propose_func` should return the log probability density
-            for the target distribution at that location.
+            for the target distribution at that location,
+            i.e. log(p(x)).
 
         """
 
@@ -38,33 +40,35 @@ class RejectionSampler(object):
         self.samples = None
 
     def draw(self):
-        """Sample a single value from the target log probability
-        density function (`self.target_logpdf`) using rejection
+        """Sample a single value, x, from the target log probability density
+        function (`self.target_logpdf`, or p) using rejection
         sampling.
 
         """
 
         while True:
             # 1. Sample a candidate value (x ~ q)
-            x = self.propose_func()
+            candidate_sample = self.propose_func()
 
             # 2. Sample a point uniformly between 0 and the PDF of the
             # proposal distribution (y ~ Uniform(0, q(x)))
-            upper = self.propose_logpdf(x)
+            upper = self.propose_logpdf(candidate_sample)
             if upper >= MIN:
-                log_y = np.log(np.random.uniform(0.0, np.exp(upper)))
+                threshold = np.random.uniform(0.0, np.exp(upper))
+                log_threshold = np.log(threshold)
 
                 # 3. If this point is less than the target PDF (y <
                 # p(x)), then we accept the candidate value;
                 # otherwise, we reject it.
-                if log_y < self.target_logpdf(x):
+                if log_threshold < self.target_logpdf(candidate_sample):
                     break
 
-        return x
+        return candidate_sample
 
     def sample(self, n, seed=None):
-        """Sample `n` values from the target log probability density function
-        (`self.target_logpdf`) using rejection sampling.
+        """Sample `n` values of x from the target log probability density
+        function (`self.target_logpdf`, or p) using rejection
+        sampling.
 
         Parameters
         ----------
@@ -101,8 +105,9 @@ class RejectionSampler(object):
         return self.samples
 
     def plot(self, axes, x_min, x_max, y_max):
-        """Plot the proposal distribution, target distribution, and histogram
-        of the samples drawn by `self.sample`.
+        """Plot the proposal distribution (q), target distribution (p), and
+        normalized histogram of the samples (x) drawn by
+        `self.sample`.
 
         Parameters
         ----------
