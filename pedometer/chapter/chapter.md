@@ -51,26 +51,34 @@ The meat and potatoes of our program is in step 3, where we parse the input data
 
 ## Parsing Input Data
 
-Let's look at what our input data will look like. The sample data we'll be using here is data collected by an iPhone aceelerometer. Let's assume that to start out, our program will take data in the separated format:
+Let's look at what our input data will look like. The sample data we'll be using here is data collected by an iPhone aceelerometer. Let's assume that to start out, our program will only take data in the separated format:
 
 $x1_{user}, y1_{user}, z1_{user}|x1_{gravity}, y1_{gravity}, z1_{gravity};...xn_{user}, yn_{user}, zn_{user}|xn_{gravity}, yn_{gravity}, zn_{gravity};$
 
 The data we get from the iPhone is user acceleration in the x,y,z directions along with gravitational acceleration in the x,y,z directions at points in time. 
 
-We need to do 3 things to our input data:
-
-1. Parse our text file and extract numerical data.
-2. Isolate movement in the direction of gravity to get a single series of data resembling a sine wave.
-3. Filter our data series to smooth our our sine wave.
-
-These 3 tasks are related, and it makes sense to combine them into one class called a **Parser**. Looking at step 1 above, our **Parser** class looks like:
-
-TODO: Code block with parser1.rb, pull comments out of file and insert into chapter.
-
 Let's look at what this data looks like when plotted. Below is a small portion of data, sampled 100 times per second, of a person walking with an iPhone in a bag on their shoulder.
 
 TODO: Add 2 plots, one for x,y,z user and one for x,y,z gravity.
 
+Currently, we have user andd gravitation acceleration, both in x,y,z directions. Although we can start to see a pattern, we don't have enough, yet, to count steps. 
+
+We need to do 3 things to our input data:
+
+1. Parse our text data and extract numerical data.
+2. Isolate movement in the direction of gravity to get a single data series resembling a sine wave.
+3. Filter our data series to smooth out our sine wave.
+
+These 3 tasks are related, and it makes sense to combine them into one class called a **Parser**. 
+
+### Step 1: Parsing text to extract numerical data
+Starting with step 1 above, our **Parser** class looks like:
+
+TODO: Code block with parser1.rb
+
+Our parser class takes string data as input. In the initalizer, we ensure the input is a string by explicitly converting it, and then we call parse_raw_data. The goal of this method is to take a single string in the format above, and convert it to a hash, @parsed_data, so that we can work with it more easily later on.
+
+TODO: Pull out comments from parser1.rb and insert here to describe the method.
 
 
 
