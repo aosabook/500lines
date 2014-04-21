@@ -76,7 +76,9 @@ Starting with step 1 above, our **Parser** class looks like:
 
 TODO: Code block with parser1.rb
 
-Our parser class takes string data as input. In the initalizer, we ensure the input is a string by explicitly converting it, and then we call parse_raw_data. The goal of this method is to take a single string in the format above, and convert it to a hash, @parsed_data, so that we can work with it more easily later on.
+Our parser class takes string data as input, that we want to convert to a format we can more easily work with. We'll store this converted data in an instance variable called @parsed_data. 
+
+In the initalizer, we ensure the input is a string by explicitly converting it, and then we call parse_raw_data. The goal of this method is to take a single string in the format above, and convert it to a hash to store in @parsed_data.
 
 TODO: Pull out comments from parser1.rb and insert here to describe the method.
 
@@ -89,6 +91,33 @@ TODO: Short explanation of why the dot product is used to help us isolate moveme
 Taking the dot product in our Parser class is straightforward. We add a @dot_product_data instance variable, and a method, dot_product_parsed_data, to set that variable. The dot_product_parsed_data method iterates through our @parsed_data hash and calculates the dot product with collect, and sets the result to @dot_product_data. 
 
 TODO: Code block from parser2.rb
+
+### Step 3: Filtering our data series
+
+Again, back to the mathematics for some signal processing 101.
+
+TODO: Basics of filtering, Chebyshev filter specifically
+
+Following the pattern from steps 1 and 2, we add another instance variable, @filtered_data, to store the filtered data series, and a method, filter_dot_product_data, that we call from the initializer.
+
+TODO: Code block for parser2.rb
+
+The filter_dot_product method initalizes the data series by setting the first two elements to 0, and then iterates through the remaining element indeces in @dot_product_data, applying the Chebyshev filter. 
+
+Our Parser now takes string data in the separated format, converts it into a more useable format, isolates movement inthe direction of gravity through the dot product operation, and filters the resulting data series to smooth it out. 
+
+Our parser class is useable as is. We can take a simpled data series, below, and pass it through out parser:
+
+TODO: Add lines from parser3_test.rb to show functioning parser. 
+
+However, our parser only takes data in the separated format. What happens if we only have data in the combined format, and we need to separate it ourselves? 
+
+### Enhancing our parser to accept combined data
+
+
+
+
+    
 
 
 
