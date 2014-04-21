@@ -59,9 +59,10 @@ distribution.
 
 ## Example application: sampling from a mixture of Gaussians
 
-The file `gaussian_mixture_sampler.py` creates a subclass of
-`RejectionSampler` for the specific application of sampling from a
-mixture of Gaussians. A Gaussian distribution is given by the
+The
+[IPython notebook](http://nbviewer.org/github/jhamrick/500lines/blob/sampler/sampler/Sampling%20example.ipynb)
+uses `RejectionSampler` for the specific application of sampling from
+a mixture of Gaussians. A Gaussian distribution is given by the
 following equation:
 
 $$
@@ -78,11 +79,6 @@ are using $p(x)=\frac{1}{3}(\mathcal{N}(x; -2.5, 0.2) + \mathcal{N}(x;
 > easy, and most statistics packages come with methods for doing
 > so. We are using a mixture of Gaussians here mostly just for
 > illustration purposes.
-
-The
-[IPython notebook](http://nbviewer.ipython.org/github/jhamrick/500lines/blob/sampler/sampler/Sampling%20example.ipynb)
-creates an instance of this `GaussianMixtureSampler` and plots the
-samples that are drawn.
 
 ## Possible extensions
 
