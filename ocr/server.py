@@ -21,7 +21,7 @@ class JSONHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         content = s.rfile.read(varLen);
         payload = json.loads(content);
 
-        if (payload['train']):
+        if payload['train']:
             nn.train(payload['trainArray'])
             nn.save()
         else:
