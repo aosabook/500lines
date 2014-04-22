@@ -1,7 +1,5 @@
-import protocol
-from util import defaultlist, view_primary
-from protocol import Proposal, ViewChange
-from member import Component
+from . import Proposal, ViewChange, CATCHUP_INTERVAL, ALPHA, view_primary
+from .member import Component
 
 
 class Replica(Component):
@@ -9,39 +7,40 @@ class Replica(Component):
     def __init__(self, member, execute_fn):
         super(Replica, self).__init__(member)
         self.execute_fn = execute_fn
-        self.proposals = defaultlist()
+        self.proposals = {}
         self.viewchange_proposal = None
 
-    def start(self, state, slot_num, decisions, viewid, peers, peer_history):
+    def start(self, state, slot_num, decisions, view_id, peers, peer_history):
         self.state = state
         self.slot_num = slot_num
         # next slot num for a proposal (may lead slot_num)
         self.next_slot = slot_num
-        self.decisions = defaultlist(decisions)
-        self.viewid = viewid
+        self.decisions = decisions
+        self.view_id = view_id
         self.peers = peers
         self.peers_down = set()
         self.peer_history = peer_history
         self.welcome_peers = set()
 
-        assert decisions[slot_num] is None
+        # TODO: Can be replaced with 'assert slot_num not in self._decisions' if decision value cannot be None
+        assert decisions.get(slot_num) is None
 
         self.catchup()
 
     # creating proposals
 
-    def do_INVOKE(self, caller, cid, input):
-        proposal = Proposal(caller, cid, input)
-        if proposal not in self.proposals:
+    def do_INVOKE(self, caller, client_id, input_value):
+        proposal = Proposal(caller, client_id, input_value)
+        if proposal not in self.proposals.viewvalues():
             self.propose(proposal)
         else:
-            slot = self.proposals.index(proposal)
-            self.logger.info("proposal %s already proposed in slot %d" %
-                             (proposal, slot))
+            # It's the only drawback of using dict instead of defaultlist
+            slot = next(s for s, p in self._proposals.iteritems() if p == proposal)
+            self.logger.info("proposal %s already proposed in slot %d", proposal, slot)
 
     def do_JOIN(self, requester):
         if requester not in self.peers:
-            viewchange = ViewChange(self.viewid + 1,
+            viewchange = ViewChange(self.view_id + 1,
                                     tuple(sorted(set(self.peers) | set([requester]))))
             self.propose(Proposal(None, None, viewchange))
 
@@ -53,7 +52,7 @@ class Replica(Component):
             self.next_slot += 1
         self.proposals[slot] = proposal
         # find a leader we think is working, deterministically
-        leaders = [view_primary(self.viewid, self.peers)] + \
+        leaders = [view_primary(self.view_id, self.peers)] + \
             list(self.peers)
         leader = (l for l in leaders if l not in self.peers_down).next()
         self.logger.info("proposing %s at slot %d to leader %s" %
@@ -61,24 +60,25 @@ class Replica(Component):
         self.send([leader], 'PROPOSE', slot=slot, proposal=proposal)
 
     def catchup(self):
-        "try to catch up on un-decided slots"
+        """Try to catch up on un-decided slots"""
         if self.slot_num != self.next_slot:
-            self.logger.warning("catching up on %d .. %d" % (self.slot_num, self.next_slot-1))
+            self.logger.debug("catching up on %d .. %d" % (self.slot_num, self.next_slot-1))
         for slot in xrange(self.slot_num, self.next_slot):
             # ask peers for information regardless
             self.send(self.peers, 'CATCHUP', slot=slot, sender=self.address)
-            if self.proposals[slot]:
+            # TODO: Can be replaced with 'if slot in self._proposals and slot not in self._decisions'
+            # TODO: if proposal value cannot be None
+            if self.proposals.get(slot) and not self.decisions.get(slot):
                 # resend a proposal we initiated
-                if not self.decisions[slot]:
-                    self.propose(self.proposals[slot], slot)
+                self.propose(self.proposals[slot], slot)
             else:
                 # make an empty proposal in case nothing has been decided
                 self.propose(Proposal(None, None, None), slot)
-        self.set_timer(protocol.CATCHUP_INTERVAL, self.catchup)
+        self.set_timer(CATCHUP_INTERVAL, self.catchup)
 
     # view changes
 
-    def on_view_change_event(self, slot, viewid, peers):
+    def on_view_change_event(self, slot, view_id, peers):
         self.peers = peers
         self.peers_down = set()
 
@@ -86,7 +86,7 @@ class Replica(Component):
         self.peers_down = down
         if not self.peers_down:
             return
-        if self.viewchange_proposal and self.viewchange_proposal not in self.decisions:
+        if self.viewchange_proposal and self.viewchange_proposal not in self.decisions.viewvalues():
             return  # we're still working on a viewchange that hasn't been decided
         new_peers = tuple(sorted(set(self.peers) - set(down)))
         if len(new_peers) < 3:
@@ -95,13 +95,14 @@ class Replica(Component):
         self.logger.info("lost peer(s) %s; proposing new view" % (down,))
         self.viewchange_proposal = Proposal(
                 None, None,
-                ViewChange(self.viewid + 1, tuple(sorted(set(self.peers) - set(down)))))
+                ViewChange(self.view_id + 1, tuple(sorted(set(self.peers) - set(down)))))
         self.propose(self.viewchange_proposal)
 
     # handling decided proposals
 
     def do_DECISION(self, slot, proposal):
-        if self.decisions[slot] is not None:
+        # TODO: Can be replaced with 'if slot in self._decisions' if decision value cannot be None
+        if self.decisions.get(slot) is not None:
             assert self.decisions[slot] == proposal, \
                 "slot %d already decided: %r!" % (
                     slot, self.decisions[slot])
@@ -111,7 +112,7 @@ class Replica(Component):
 
         # execute any pending, decided proposals, eliminating duplicates
         while True:
-            commit_proposal = self.decisions[self.slot_num]
+            commit_proposal = self.decisions.get(self._slot_num)
             if not commit_proposal:
                 break  # not decided yet
             commit_slot, self.slot_num = self.slot_num, self.slot_num + 1
@@ -119,9 +120,9 @@ class Replica(Component):
             # update the view history *before* committing, so the WELCOME message contains
             # an appropriate history
             self.peer_history[commit_slot] = self.peers
-            if commit_slot - protocol.ALPHA in self.peer_history:
-                del self.peer_history[commit_slot - protocol.ALPHA]
-            exp_peer_history = list(range(commit_slot - protocol.ALPHA + 1, commit_slot + 1))
+            if commit_slot - ALPHA in self.peer_history:
+                del self.peer_history[commit_slot - ALPHA]
+            exp_peer_history = list(range(commit_slot - ALPHA + 1, commit_slot + 1))
             assert list(sorted(self.peer_history)) == exp_peer_history, \
                     "bad peer history %s, exp %s" % (self.peer_history, exp_peer_history)
             self.event('update_peer_history', peer_history=self.peer_history)
@@ -129,17 +130,18 @@ class Replica(Component):
             self.commit(commit_slot, commit_proposal)
 
             # re-propose any of our proposals which have lost in their slot
-            our_proposal = self.proposals[commit_slot]
+            our_proposal = self.proposals.get(commit_slot)
             if our_proposal is not None and our_proposal != commit_proposal:
                 # TODO: filter out unnecessary proposals - no-ops and outdated
-                # view changes (proposal.input.viewid <= self.viewid)
+                # view changes (proposal.input.view_id <= self.view_id)
                 self.propose(our_proposal)
     on_decision_event = do_DECISION
 
     def commit(self, slot, proposal):
-        "actually commit a proposal that is decided and in sequence"
-        if proposal in self.decisions[:slot]:
-            self.logger.info("not committing duplicate proposal %r at slot %d" % (proposal, slot))
+        """Actually commit a proposal that is decided and in sequence"""
+        decided_proposals = [p for s, p in self.decisions.iteritems() if s < slot]
+        if proposal in decided_proposals:
+            self.logger.info("not committing duplicate proposal %r at slot %d", proposal, slot)
             return  # duplicate
 
         self.logger.info("committing %r at slot %d" % (proposal, slot))
@@ -149,10 +151,9 @@ class Replica(Component):
             self.commit_viewchange(slot, proposal.input)
         elif proposal.caller is not None:
             # perform a client operation
-            self.state, output = self.execute_fn(
-                self.state, proposal.input)
+            self.state, output = self.execute_fn(self.state, proposal.input)
             self.send([proposal.caller], 'INVOKED',
-                      cid=proposal.cid, output=output)
+                      client_id=proposal.client_id, output=output)
 
     def send_welcome(self):
         if self.welcome_peers:
@@ -160,21 +161,20 @@ class Replica(Component):
                       state=self.state,
                       slot_num=self.slot_num,
                       decisions=self.decisions,
-                      viewid=self.viewid,
+                      view_id=self.view_id,
                       peers=self.peers,
                       peer_history=self.peer_history)
             self.welcome_peers = set()
 
     def commit_viewchange(self, slot, viewchange):
-        if viewchange.viewid == self.viewid + 1:
-            self.logger.info("entering view %d with peers %s" %
-                                (viewchange.viewid, viewchange.peers))
-            self.viewid = viewchange.viewid
+        if viewchange.view_id == self.view_id + 1:
+            self.logger.info("entering view %d with peers %s" % (viewchange.view_id, viewchange.peers))
+            self.view_id = viewchange.view_id
 
             # now make sure that next_slot is at least slot + ALPHA, so that we don't
             # try to make any new proposals depending on the old view.  The catchup()
             # method will take care of proposing these later.
-            self.next_slot = max(slot + protocol.ALPHA, self.next_slot)
+            self.next_slot = max(slot + ALPHA, self.next_slot)
 
             # WELCOMEs need to be based on a quiescent state of the replica,
             # not in the middle of a decision-commiting loop, so defer this
@@ -185,13 +185,14 @@ class Replica(Component):
             if self.address not in viewchange.peers:
                 self.stop()
                 return
-            self.event('view_change', slot=slot, viewid=viewchange.viewid, peers=viewchange.peers)
+            self.event('view_change', slot=slot, view_id=viewchange.view_id, peers=viewchange.peers)
         else:
             self.logger.info(
                 "ignored out-of-sequence view change operation")
 
     def do_CATCHUP(self, slot, sender):
         # if we have a decision for this proposal, spread the knowledge
-        if self.decisions[slot]:
+        # TODO: Can be replaced with 'if slot in self._decisions' if decision value cannot be None
+        if self.decisions.get(slot):
             self.send([sender], 'DECISION',
                       slot=slot, proposal=self.decisions[slot])

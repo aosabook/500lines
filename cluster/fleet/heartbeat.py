@@ -1,5 +1,5 @@
-import protocol
-from member import Component
+from . import HEARTBEAT_GONE_COUNT, HEARTBEAT_INTERVAL
+from .member import Component
 
 
 class Heartbeat(Component):
@@ -11,7 +11,7 @@ class Heartbeat(Component):
         self.peers = None
         self.clock = clock
 
-    def on_view_change_event(self, slot, viewid, peers):
+    def on_view_change_event(self, slot, view_id, peers):
         self.peers = set(peers)
         for peer in self.peers:
             self.last_heard_from[peer] = self.clock()
@@ -24,13 +24,13 @@ class Heartbeat(Component):
 
     def heartbeat(self):
         # send heartbeats to other nodes
-        self.send(self.last_heard_from.keys(), 'HEARTBEAT', sender=self.address)
+        self.send(self.peers, 'HEARTBEAT', sender=self.address)
 
         # determine if any peers are down, and notify if so; note that this
         # notification will occur repeatedly until a view change
-        too_old = self.clock() - protocol.HEARTBEAT_GONE_COUNT * protocol.HEARTBEAT_INTERVAL
+        too_old = self.clock() - HEARTBEAT_GONE_COUNT * HEARTBEAT_INTERVAL
         active_peers = set(p for p in self.last_heard_from if self.last_heard_from[p] >= too_old)
         if active_peers != self.peers:
             self.event('peers_down', down=self.peers - active_peers)
 
-        self.set_timer(protocol.HEARTBEAT_INTERVAL, self.heartbeat)
+        self.set_timer(HEARTBEAT_INTERVAL, self.heartbeat)

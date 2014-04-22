@@ -11,8 +11,8 @@ class FakeNode(object):
         assert not self.component
         self.component = component
 
-    def set_timer(self, seconds, callable):
-        self.timers.append([seconds, callable, True])
+    def set_timer(self, seconds, callback):
+        self.timers.append([seconds, callback, True])
         return self.timers[-1]
 
     def cancel_timer(self, timer):

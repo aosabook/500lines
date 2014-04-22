@@ -9,19 +9,19 @@ from statemachine import sequence_generator
 class Member(Node):
 
     def __init__(self):
-        Node.__init__(self)
+        super(Member, self).__init__()
 
     def start(self, execute_fn, initial_value=None):
         self.execute_fn = execute_fn
         self.state = initial_value
         self.run()
 
-    def invoke(self, input):
-        self.state, output = self.execute_fn(self.state, input)
+    def invoke(self, input_value):
+        self.state, output = self.execute_fn(self.state, input_value)
         return output
 
-    def do_INVOKE(self, input, cid, caller):
-        self.send([caller], 'INVOKED', output=self.invoke(input))
+    def do_INVOKE(self, input_value, client_id, caller):
+        self.send([caller], 'INVOKED', output=self.invoke(input_value))
 
 
 if __name__ == "__main__":
@@ -53,6 +53,6 @@ class MemberTests(unittest.TestCase):
         memberthd = threading.Thread(target=member.start, args=(sequence_generator, 0,))
         memberthd.daemon = 1
         memberthd.start()
-        client.send([member.address], 'INVOKE', input=5, caller=client.address)
+        client.send([member.address], 'INVOKE', input_value=5, caller=client.address)
         client.run()
         self.assertEqual(client.output, [0, 1, 2, 3, 4])

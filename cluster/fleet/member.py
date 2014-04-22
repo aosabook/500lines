@@ -22,6 +22,9 @@ class Member(object):  # TODO: rename
             if hasattr(comp, method):
                 getattr(comp, method)(**kwargs)
 
+    def start(self):
+        pass
+
 
 class Component(object):  # TODO: rename
 
@@ -29,7 +32,7 @@ class Component(object):  # TODO: rename
         self.member = member
         self.member.register(self)
         self.address = member.address
-        self.logger = logging.getLogger("%s.%s" % (self.address, self.__class__.__name__))
+        self.logger = logging.getLogger("%s.%s" % (self.address, type(self).__name__))
 
     def event(self, message, **kwargs):
         self.member.event(message, **kwargs)
@@ -37,9 +40,9 @@ class Component(object):  # TODO: rename
     def send(self, destinations, action, **kwargs):
         self.member.node.send(destinations, action, **kwargs)
 
-    def set_timer(self, seconds, callable):
+    def set_timer(self, seconds, callback):
         # TODO: refactor to attach timer to this component, not address
-        return self.member.node.set_timer(seconds, callable)
+        return self.member.node.set_timer(seconds, callback)
 
     def cancel_timer(self, timer):
         self.member.node.cancel_timer(timer)
