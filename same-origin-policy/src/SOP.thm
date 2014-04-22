@@ -3,7 +3,7 @@
 
 <view nodetheme="Martha" edgetheme="Martha">
 
-<projection> <type name="message/ord/Step"/> </projection>
+<projection> <type name="browser/call/event/Time"/> </projection>
 
 <defaultnode hideunconnected="yes"/>
 
@@ -17,47 +17,45 @@
    <type name="Facebook"/>
    <type name="Int"/>
    <type name="MyBrowser"/>
+   <type name="MyFBCookie"/>
    <type name="MyProfilePage"/>
    <type name="Profile"/>
    <type name="String"/>
    <type name="univ"/>
    <type name="browser/Browser"/>
+   <type name="browser/Cookie"/>
+   <type name="browser/DOM"/>
    <type name="browser/DomAPICall"/>
-   <type name="browser/ReadDOM"/>
-   <type name="browser/WriteDOM"/>
+   <type name="browser/Frame"/>
+   <type name="browser/HTMLTag"/>
+   <type name="browser/Script"/>
+   <type name="http/Path"/>
+   <type name="http/Port"/>
+   <type name="http/Resource"/>
+   <type name="http/Server"/>
    <type name="postmessage/PostMessage"/>
    <type name="seq/Int"/>
-   <type name="message/ord/Step"/>
-   <type name="message/ord/SO/Ord"/>
-   <set name="this/CriticalResource" type="message/Resource"/>
+   <type name="browser/call/Call"/>
+   <type name="browser/call/Data"/>
+   <type name="browser/call/event/Time"/>
+   <type name="browser/call/event/ordering/Ord"/>
    <set name="this/EvilHost" type="http/Host"/>
    <set name="this/FBHost" type="http/Host"/>
-   <set name="this/MyProfile" type="Profile"/>
-   <set name="$from" type="message/EndPoint"/>
-   <set name="$noResourceLeak_r" type="message/Resource"/>
-   <set name="$to" type="message/EndPoint"/>
-   <set name="First" type="message/ord/SO/Ord"/>
-   <set name="Next" type="message/ord/SO/Ord"/>
+   <set name="First" type="browser/call/event/ordering/Ord"/>
+   <set name="Next" type="browser/call/event/ordering/Ord"/>
+   <set name="post" type="browser/call/event/Event"/>
 </node>
 
 <node color="Gray">
-   <type name="message/EndPoint"/>
-</node>
-
-<node color="White" label="Resource">
-   <type name="message/Resource"/>
-</node>
-
-<node label="DOM">
-   <type name="browser/DOM"/>
-</node>
-
-<node label="Frame">
-   <type name="browser/Frame"/>
+   <type name="browser/call/Component"/>
 </node>
 
 <node label="GET">
    <type name="http/GET"/>
+</node>
+
+<node label="HTTPReq">
+   <type name="http/HTTPReq"/>
 </node>
 
 <node label="Host">
@@ -68,6 +66,10 @@
    <type name="http/Method"/>
 </node>
 
+<node label="MyProfile">
+   <set name="this/MyProfile" type="Profile"/>
+</node>
+
 <node label="Origin">
    <type name="http/Origin"/>
 </node>
@@ -76,36 +78,24 @@
    <type name="http/POST"/>
 </node>
 
-<node label="Path">
-   <type name="http/Path"/>
-</node>
-
-<node label="Port">
-   <type name="http/Port"/>
-</node>
-
 <node label="Protocol">
    <type name="http/Protocol"/>
 </node>
 
-<node label="Req">
-   <type name="http/HTTPReq"/>
+<node label="ReadDOM">
+   <type name="browser/ReadDOM"/>
 </node>
 
 <node label="ReqCORS">
    <set name="cors/ReqCORS" type="http/HTTPReq"/>
 </node>
 
-<node label="Script">
-   <type name="browser/Script"/>
-</node>
-
-<node label="Server">
-   <type name="http/Server"/>
-</node>
-
 <node label="URL">
    <type name="http/URL"/>
+</node>
+
+<node label="WriteDOM">
+   <type name="browser/WriteDOM"/>
 </node>
 
 <node label="XMLHTTPReq">
@@ -113,67 +103,39 @@
 </node>
 
 <node showlabel="no">
-   <set name="$noResourceLeak_e" type="message/EndPoint"/>
-</node>
-
-<node showlabel="no" color="Gray">
-   <set name="this/Trusted" type="message/EndPoint"/>
+   <set name="this/CriticalData" type="browser/call/Data"/>
+   <set name="this/Trusted" type="browser/call/Component"/>
+   <set name="$noResourceLeak_m" type="browser/call/Component"/>
+   <set name="$noResourceLeak_r" type="browser/call/Data"/>
 </node>
 
 <node showlabel="no" color="Red">
-   <set name="$Untrusted" type="message/EndPoint"/>
+   <set name="$Untrusted" type="browser/call/Component"/>
 </node>
 
 <node visible="no">
-   <type name="browser/HTMLTag"/>
-   <set name="$pastEvents" type="message/Msg"/>
+   <type name="browser/call/event/Event"/>
 </node>
 
-<node visible="no" shape="Ellipse" color="Green">
-   <type name="message/Msg"/>
+<node visible="yes" showlabel="no" shape="Ellipse" color="Green">
+   <set name="pre" type="browser/call/event/Event"/>
 </node>
-
-<node visible="yes">
-   <set name="evt" type="message/Msg"/>
-</node>
-
-<edge color="Black">
-   <relation name="script"> <type name="browser/Frame"/> <type name="browser/Script"/> </relation>
-</edge>
-
-<edge color="Black" style="Bold" visible="no" attribute="no">
-   <relation name="from"> <type name="message/Msg"/> <type name="message/EndPoint"/> </relation>
-</edge>
-
-<edge color="Black" style="Dotted" label="">
-   <relation name="$follows"> <type name="message/Msg"/> <type name="message/Msg"/> </relation>
-</edge>
-
-<edge color="Black" style="Solid" layout="yes" label="server">
-   <relation name="$server"> <type name="browser/Frame"/> <type name="http/Server"/> </relation>
-</edge>
 
 <edge visible="no">
-   <relation name="frames"> <type name="browser/Browser"/> <type name="browser/Frame"/> <type name="message/Msg"/> </relation>
-   <relation name="to"> <type name="message/Msg"/> <type name="message/EndPoint"/> </relation>
+   <relation name="tags"> <type name="browser/Frame"/> <type name="browser/HTMLTag"/> </relation>
 </edge>
 
 <edge visible="no" attribute="yes">
-   <relation name="context"> <type name="browser/Script"/> <type name="http/URL"/> </relation>
-   <relation name="dom"> <type name="browser/Frame"/> <type name="message/Resource"/> </relation>
-   <relation name="frame"> <type name="browser/DomAPICall"/> <type name="browser/Frame"/> </relation>
+   <relation name="allowedOrigins"> <type name="http/HTTPReq"/> <type name="http/Origin"/> </relation>
    <relation name="host"> <type name="http/Origin"/> <type name="http/Host"/> </relation>
    <relation name="host"> <type name="http/URL"/> <type name="http/Host"/> </relation>
-   <relation name="location"> <type name="browser/Frame"/> <type name="http/URL"/> </relation>
    <relation name="method"> <type name="http/HTTPReq"/> <type name="http/Method"/> </relation>
-   <relation name="origin"> <type name="http/HTTPReq"/> <type name="http/Origin"/> </relation>
-   <relation name="owns"> <type name="message/EndPoint"/> <type name="message/Resource"/> </relation>
-   <relation name="path"> <type name="http/URL"/> <type name="http/Path"/> </relation>
+   <relation name="owns"> <type name="browser/call/Component"/> <type name="browser/call/Data"/> </relation>
    <relation name="port"> <type name="http/Origin"/> <type name="http/Port"/> </relation>
    <relation name="port"> <type name="http/URL"/> <type name="http/Port"/> </relation>
    <relation name="protocol"> <type name="http/Origin"/> <type name="http/Protocol"/> </relation>
    <relation name="protocol"> <type name="http/URL"/> <type name="http/Protocol"/> </relation>
-   <relation name="resMap"> <type name="http/Server"/> <type name="http/URL"/> <type name="message/Resource"/> </relation>
+   <relation name="resMap"> <type name="http/Server"/> <type name="http/URL"/> <type name="browser/call/Data"/> </relation>
    <relation name="url"> <type name="http/HTTPReq"/> <type name="http/URL"/> </relation>
    <relation name="urls"> <type name="http/Server"/> <type name="http/URL"/> </relation>
 </edge>

@@ -5,17 +5,18 @@
 module browser
 
 open http
-open message
+open call
 
 /* Components */
-abstract sig Browser extends message/EndPoint {
-	frames :  Frame -> Msg,
+abstract sig Browser extends Component {
+	frames :  Frame -> Time,
 	cookies : URL -> Cookie
 }{
 	-- every frame must have been received as a respones of some previous request
-	all f : Frame, m : Msg |
- 		f -> m in frames iff
-			some r : (prevs[m]) & HTTPReq | 	
+	all f : Frame, t : Time |
+ 		f -> t in frames iff
+			some r : HTTPReq | 	
+				r.pre in prevs[t] and
 				r.from = this and
 				f.dom in r.returns and
 				f.location = r.url 
@@ -34,7 +35,7 @@ abstract sig Frame {
 	some script implies script.context = location
 }
 
-abstract sig Script extends message/EndPoint {
+abstract sig Script extends Component {
 	-- the context in which this script is executing
 	context : http/URL
 }{
@@ -42,14 +43,15 @@ abstract sig Script extends message/EndPoint {
 	some script.this
 }
 
-abstract sig Cookie extends message/Resource {}
-abstract sig DOM extends message/Resource {}
+abstract sig Cookie extends Resource {}
+abstract sig DOM extends Resource {}
 abstract sig HTMLTag {}
 
 fact CookieBehavior {
 	all r : HTTPReq, b : Browser |
-		r.from in b + b.(frames.r).script implies
-			r.args & Cookie in b.cookies[r.url] 
+		let t = r.pre | 
+			r.from in b + b.(frames.t).script implies
+				r.args & Cookie in b.cookies[r.url] 
 }
 
 /* XMLHTTPReq message */
@@ -63,12 +65,12 @@ fact {
 }
 
 /* DOM API messages */
-abstract sig DomAPICall extends message/Msg {
+abstract sig DomAPICall extends Call {
 	frame : Frame	-- frame that contains the DOM
 }{
 	from in Script
 	to in Browser
-	frame in Browser.frames.this
+	frame in to.frames.pre
 }
 sig ReadDOM extends DomAPICall {
 }{
@@ -81,3 +83,5 @@ sig WriteDOM extends DomAPICall {
 	one args
 	no returns
 }
+
+
