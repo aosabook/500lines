@@ -21,7 +21,7 @@ open postmessage
 // Security policies 
 // Comment out to see what might happen when one or more of them don't hold
 pred policies {
-	domSOP
+ 	domSOP
 	xmlhttpreqSOP
 	corsRule
 	postMessageRule
@@ -34,10 +34,19 @@ pred policies {
 		- an ad page from EvilServer with a malicious script (EvilScript)
  */
 
+// User's browser
+one sig MyFBCookie extends browser/Cookie {}
+one sig MyBrowser extends browser/Browser {}{
+	cookies in Facebook.urls -> MyFBCookie
+}
+
 // Facebook server and its related parts
 one sig FBHost in Host {}
 one sig Facebook extends http/Server {}{
 	urls.host = FBHost
+	all r : HTTPReq |
+		(r.to = this and MyProfile in r.returns) implies
+			MyFBCookie in r.args
 }
 one sig MyProfilePage extends browser/Frame {}{
 	location in Facebook.urls
@@ -59,18 +68,22 @@ one sig AdPage extends browser/Frame {}{
 sig Ad extends browser/DOM {}
 one sig EvilScript extends browser/Script {}
 
-// User's browser
-one sig MyBrowser extends browser/Browser {}
-
 fact SystemAssumptions {
 	FBHost != EvilHost
-	MyProfile not in EvilServer.owns
+	no m : Msg | m.to = m.from
+	MyProfile not in (EvilServer + EvilScript).owns
+	MyFBCookie not in Server.owns
 	all r : ReqCORS | r.to = Facebook implies r.allowedOrigins.host = FBHost 
 	no r : HTTPReq |
-		r.from = Facebook and 
-		r.to = EvilServer and
-		some CriticalResource & r.args
+		(r.from = Facebook and r.to = EvilServer and some CriticalResource & r.args) or
+		(r.from = MyBrowser and r.to = EvilServer and some CriticalResource & r.args)
 }
+
+run {
+//	some m : Msg | 
+//		MyProfilePage -> m in MyBrowser.frames
+//	some r : HTTPReq | r.url.host = FBHost
+} for 7
 
 /* Checking a Security Property */
 
@@ -139,6 +152,12 @@ fun from : Msg -> EndPoint -> Step {
 	{m : Msg, e : EndPoint, s : Step |
 		m = s.evt and e = m.from
 	}	
+}
+
+fun frames : Browser -> Frame -> Step {
+	{b : Browser, f : Frame, s : Step |
+		f -> s.evt in b.frames
+	}
 }
 
 fun Untrusted : set EndPoint {

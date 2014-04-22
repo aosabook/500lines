@@ -47,9 +47,10 @@ abstract sig Server extends message/EndPoint {
 }{
 	owns = resMap[urls]
 	
-	all req : HTTPReq |
-		req.to = this implies
-				req.returns = resMap[req.url]
+	all req : HTTPReq {
+		req.url in urls
+		req.to = this implies req.returns = resMap[req.url]
+	}
 }
 
 /* HTTP requests */
@@ -58,7 +59,5 @@ abstract sig HTTPReq extends message/Msg {
 	method : Method
 }{
 	to in Server
-	no args
-	one returns
-	returns in message/Resource
+	args + returns in message/Resource
 }

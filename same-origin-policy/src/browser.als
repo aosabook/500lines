@@ -9,17 +9,18 @@ open message
 
 /* Components */
 abstract sig Browser extends message/EndPoint {
-	frames :  Frame -> Msg
+	frames :  Frame -> Msg,
+	cookies : URL -> Cookie
 }{
 	-- every frame must have been received as a respones of some previous request
 	all f : Frame, m : Msg |
- 		f -> m in frames implies
-			some r : (m + prevs[m]) & HTTPReq | 	
+ 		f -> m in frames iff
+			some r : (prevs[m]) & HTTPReq | 	
+				r.from = this and
 				f.dom in r.returns and
 				f.location = r.url 
 
 	-- initially does not own any resource
-	no owns
 }
 
 abstract sig Frame {
@@ -39,11 +40,17 @@ abstract sig Script extends message/EndPoint {
 }{
 	-- every script must belong to some frame
 	some script.this
-	no owns
 }
 
+abstract sig Cookie extends message/Resource {}
 abstract sig DOM extends message/Resource {}
 abstract sig HTMLTag {}
+
+fact CookieBehavior {
+	all r : HTTPReq, b : Browser |
+		r.from in b + b.(frames.r).script implies
+			r.args & Cookie in b.cookies[r.url] 
+}
 
 /* XMLHTTPReq message */
 // HTTPReq requests that are made by a script

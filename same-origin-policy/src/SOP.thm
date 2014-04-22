@@ -35,12 +35,9 @@
    <set name="this/MyProfile" type="Profile"/>
    <set name="$from" type="message/EndPoint"/>
    <set name="$noResourceLeak_r" type="message/Resource"/>
-   <set name="$pastEvents" type="message/Msg"/>
    <set name="$to" type="message/EndPoint"/>
-   <set name="evt" type="message/Msg"/>
    <set name="First" type="message/ord/SO/Ord"/>
    <set name="Next" type="message/ord/SO/Ord"/>
-   <set name="cors/RespCORS" type="http/HTTPResp"/>
 </node>
 
 <node color="Gray">
@@ -99,10 +96,6 @@
    <set name="cors/ReqCORS" type="http/HTTPReq"/>
 </node>
 
-<node label="Resp">
-   <type name="http/HTTPResp"/>
-</node>
-
 <node label="Script">
    <type name="browser/Script"/>
 </node>
@@ -133,19 +126,19 @@
 
 <node visible="no">
    <type name="browser/HTMLTag"/>
+   <set name="$pastEvents" type="message/Msg"/>
 </node>
 
 <node visible="no" shape="Ellipse" color="Green">
    <type name="message/Msg"/>
 </node>
 
-<edge color="Black">
-   <relation name="frames"> <type name="browser/Browser"/> <type name="browser/Frame"/> </relation>
-   <relation name="script"> <type name="browser/Frame"/> <type name="browser/Script"/> </relation>
-</edge>
+<node visible="yes">
+   <set name="evt" type="message/Msg"/>
+</node>
 
-<edge color="Black" style="Bold">
-   <relation name="inResponseTo"> <type name="http/HTTPResp"/> <type name="http/HTTPReq"/> </relation>
+<edge color="Black">
+   <relation name="script"> <type name="browser/Frame"/> <type name="browser/Script"/> </relation>
 </edge>
 
 <edge color="Black" style="Bold" visible="no" attribute="no">
@@ -161,11 +154,11 @@
 </edge>
 
 <edge visible="no">
+   <relation name="frames"> <type name="browser/Browser"/> <type name="browser/Frame"/> <type name="message/Msg"/> </relation>
    <relation name="to"> <type name="message/Msg"/> <type name="message/EndPoint"/> </relation>
 </edge>
 
 <edge visible="no" attribute="yes">
-   <relation name="allowedOrigins"> <type name="http/HTTPResp"/> <type name="http/Origin"/> </relation>
    <relation name="context"> <type name="browser/Script"/> <type name="http/URL"/> </relation>
    <relation name="dom"> <type name="browser/Frame"/> <type name="message/Resource"/> </relation>
    <relation name="frame"> <type name="browser/DomAPICall"/> <type name="browser/Frame"/> </relation>
