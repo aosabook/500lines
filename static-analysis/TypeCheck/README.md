@@ -129,11 +129,11 @@ julia> whos(xyz)
 	z	Any
 ~~~
 
-####`methodswithdescendants(t::DataType;onlyleaves::Bool=false,lim::Int=10)
+####`methodswithdescendants(t::DataType;onlyleaves::Bool=false,lim::Int=10)`
 
 This method goes through the descendents of a given type and finds what methods are implemented for them. It returns a list of (Symbol,Float64) tuples, where the Symbol is the name of a function and the Float64 is the percentage of subtypes whose `methodswith` shows a result for that function.
 
-Here's an example of call it:
+Here's an example of calling it:
 ~~~julia
 julia> using TypeCheck
 

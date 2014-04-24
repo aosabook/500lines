@@ -1,7 +1,7 @@
 # These are some functions to allow static type-checking of Julia programs
 
 module TypeCheck
-export check_return_types, check_loop_types, check_method_calls,
+export checkreturntypes, checklooptypes, checkmethodcalls,
   methodswithdescendants
 
 ## Modifying functions from Base
@@ -47,7 +47,7 @@ returns(e::Expr) = filter(x-> typeof(x) == Expr && x.head==:return,body(e))
 
 # given an Expr representing a method,
 # return all function all Exprs contained in return statements in the method body
-function extract_calls_from_returns(e::Expr)
+function extractcallsfromreturns(e::Expr)
   rs = returns(e)
   rs_with_calls = filter(x->typeof(x.args[1]) == Expr && x.args[1].head == :call,rs)
   Expr[expr.args[1] for expr in rs_with_calls]
@@ -65,7 +65,7 @@ end
 
 # given an Expr, determine if it is calling a TopNode
 # (this affects how we should handle resolving the callee name)
-is_top(e) = Base.is_expr(e,:call) && typeof(e.args[1]) == TopNode
+istop(e) = Base.is_expr(e,:call) && typeof(e.args[1]) == TopNode
 
 # given a call Expr (:call, :call1, :new), determine its return type
 function returntype(e::Expr,context::Expr) #must be :call,:new,:call1
@@ -73,12 +73,12 @@ function returntype(e::Expr,context::Expr) #must be :call,:new,:call1
   if Base.is_expr(e,:call1) && isa(e.args[1], TopNode); return e.typ; end
   if !Base.is_expr(e,:call); error("Expected :call Expr"); end
 
-  if is_top(e)
+  if istop(e)
     return e.typ
   end
 
   callee = e.args[1]
-  if is_top(callee)
+  if istop(callee)
     return returntype(callee,context)
   elseif isa(callee,SymbolNode) # only seen (func::F), so non-generic function
     return Any
@@ -171,7 +171,7 @@ function methodswithdescendants(t::DataType;onlyleaves::Bool=false,lim::Int=10)
 end
 
 # check all the generic functions in a module
-function check_all_module(m::Module;test=check_return_types,kwargs...)
+function checkallmodule(m::Module;test=checkreturntypes,kwargs...)
   score = 0
   for n in names(m)
     f = eval(m,n)
@@ -184,10 +184,10 @@ function check_all_module(m::Module;test=check_return_types,kwargs...)
   println("The total number of failed methods in $m is $score")
 end
 
-# use check_all_module to implement the Module version of other checks
-check_return_types(m::Module;kwargs...) = check_all_module(m;test=check_return_types,kwargs...)
-check_loop_types(m::Module) = check_all_module(m;test=check_loop_types)
-check_method_calls(m::Module) = check_all_module(m;test=check_method_calls)
+# use checkallmodule to implement the Module version of other checks
+checkreturntypes(m::Module;kwargs...) = checkallmodule(m;test=checkreturntypes,kwargs...)
+checklooptypes(m::Module) = checkallmodule(m;test=checklooptypes)
+checkmethodcalls(m::Module) = checkallmodule(m;test=checkmethodcalls)
 
 ## Checking that return values are base only on input *types*, not values.
 
@@ -212,11 +212,11 @@ function Base.writemime(io, ::MIME"text/plain", x::FunctionSignature)
   end
 end
 
-# given a function, run check_return_types on each method
-function check_return_types(f::Function;kwargs...)
+# given a function, run checkreturntypes on each method
+function checkreturntypes(f::Function;kwargs...)
   results = MethodSignature[]
   for e in code_typed(f)
-    (ms,b) = check_return_type(e;kwargs...)
+    (ms,b) = checkreturntype(e;kwargs...)
     if b push!(results,ms) end
   end
   FunctionSignature(results,f.env.name)
@@ -227,7 +227,7 @@ end
 # only on the arugment types or whether it is
 # also influenced by argument values
 # (the Method fails the check if the return type depends on values)
-function check_return_type(e::Expr;kwargs...)
+function checkreturntype(e::Expr;kwargs...)
   (typ,b) = isreturnbasedonvalues(e;kwargs...)
   (MethodSignature(argumenttypes(e),typ),b)
 end
@@ -244,7 +244,7 @@ function isreturnbasedonvalues(e::Expr;mod=Base)
     end
   end
 
-  cs = [returntype(c,e) for c in extract_calls_from_returns(e)]
+  cs = [returntype(c,e) for c in extractcallsfromreturns(e)]
   for c in cs
     if rt == c
        return (rt,false)
@@ -281,11 +281,11 @@ function Base.writemime(io, ::MIME"text/plain", x::LoopResults)
   end
 end
 
-# for a given Function, run check_loop_types on each Method
-function check_loop_types(f::Function;kwargs...)
+# for a given Function, run checklooptypes on each Method
+function checklooptypes(f::Function;kwargs...)
   lrs = LoopResult[]
   for e in code_typed(f)
-    lr = check_loop_types(e)
+    lr = checklooptypes(e)
     if length(lr.lines) > 0 push!(lrs,lr) end
   end
   LoopResults(f.env.name,lrs)
@@ -294,7 +294,7 @@ end
 # for an Expr representing a Method,
 # check that the type of each variable used in a loop
 # has a concrete type
-check_loop_types(e::Expr;kwargs...) = LoopResult(MethodSignature(e),loosetypes(loopcontents(e)))
+checklooptypes(e::Expr;kwargs...) = LoopResult(MethodSignature(e),loosetypes(loopcontents(e)))
 
 # This is a function for trying to detect loops in the body of a Method
 # Returns lines that are inside one or more loops
@@ -383,13 +383,13 @@ function Base.writemime(io, ::MIME"text/plain", x::FunctionCalls)
   end
 end
 
-# given a Function, run `check_method_calls` on each Method
+# given a Function, run `checkmethodcalls` on each Method
 # and collect the results into a FunctionCalls
-function check_method_calls(f::Function;kwargs...)
+function checkmethodcalls(f::Function;kwargs...)
   calls = MethodCalls[] 
   for m in f.env
     e = code_typed(m)
-    mc = check_method_calls(e,m;kwargs...)
+    mc = checkmethodcalls(e,m;kwargs...)
     if !isempty(mc.calls)
       push!(calls, mc)
     end
@@ -400,7 +400,7 @@ end
 # given an Expr representing a Method,
 # and the Method it represents,
 # check the Method body for calls to non-existant Methods
-function check_method_calls(e::Expr,m::Method;kwargs...)
+function checkmethodcalls(e::Expr,m::Method;kwargs...)
   if Base.arg_decl_parts(m)[3] == symbol("deprecated.jl")
     CallSignature[]
   end
