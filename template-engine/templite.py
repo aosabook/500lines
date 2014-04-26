@@ -46,9 +46,9 @@ class CodeBuilder(object):
         # Get the Python source as a single string.
         python_source = str(self)
         # Execute the source, defining globals, and return them.
-        globals = {}
-        exec(python_source, globals)
-        return globals
+        global_namespace = {}
+        exec(python_source, global_namespace)
+        return global_namespace
 
 
 class Templite(object):
