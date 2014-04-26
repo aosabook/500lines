@@ -61,6 +61,8 @@ Contributors
     <th>Name</th>
     <th>Affiliation</th>
     <th>Project</th>
+    <!-- Is there some way we can loosen up the idea that Github is the one and only place to find code online? -->
+    <!-- Also, are home pages not a thing any more? -->
     <th>GitHub</th>
     <th>Twitter</th>
     <th>Email (if you choose)</th>
@@ -136,5 +138,13 @@ Contributors
     <td><a href='http://github.com/sarahmei'>@sarahmei</a></td>
     <td><a href='http://twitter.com/sarahmei'>@sarahmei</a></td>
     <td></td>
+  </tr>
+  <tr>
+    <td>Ned Batchelder</td>
+    <td>edX</td>
+    <td>templating engine</td>
+    <td>@nedbat</td>
+    <td>@nedbat</td>
+    <td>ned@nedbatchelder.com</td>
   </tr>
 </table>
