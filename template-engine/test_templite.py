@@ -31,6 +31,9 @@ class TempliteTest(TestCase):
         if result:
             self.assertEqual(actual, result)
 
+    def assertSynErr(self, msg):
+        return self.assertRaisesRegexp(SyntaxError, msg)
+
     def test_passthrough(self):
         # Strings without variables are passed through unchanged.
         self.assertEqual(Templite("Hello").render(), "Hello")
@@ -230,41 +233,31 @@ class TempliteTest(TestCase):
             )
 
     def test_bad_names(self):
-        msg = "Not a valid name: 'var%&!@'"
-        with self.assertRaisesRegexp(SyntaxError, msg):
+        with self.assertSynErr("Not a valid name: 'var%&!@'"):
             self.try_render("Wat: {{ var%&!@ }}")
-        msg = "Not a valid name: 'filter%&!@'"
-        with self.assertRaisesRegexp(SyntaxError, msg):
+        with self.assertSynErr("Not a valid name: 'filter%&!@'"):
             self.try_render("Wat: {{ foo|filter%&!@ }}")
 
     def test_bogus_tag_syntax(self):
-        msg = "Don't understand tag: 'bogus'"
-        with self.assertRaisesRegexp(SyntaxError, msg):
+        with self.assertSynErr("Don't understand tag: 'bogus'"):
             self.try_render("Huh: {% bogus %}!!{% endbogus %}??")
 
     def test_malformed_if(self):
-        msg = "Don't understand if: '{% if %}'"
-        with self.assertRaisesRegexp(SyntaxError, msg):
+        with self.assertSynErr("Don't understand if: '{% if %}'"):
             self.try_render("Buh? {% if %}hi!{% endif %}")
-        msg = "Don't understand if: '{% if this or that %}'"
-        with self.assertRaisesRegexp(SyntaxError, msg):
+        with self.assertSynErr("Don't understand if: '{% if this or that %}'"):
             self.try_render("Buh? {% if this or that %}hi!{% endif %}")
 
     def test_malformed_for_(self):
-        msg = "Don't understand for: '{% for %}'"
-        with self.assertRaisesRegexp(SyntaxError, msg):
+        with self.assertSynErr("Don't understand for: '{% for %}'"):
             self.try_render("Weird: {% for %}loop{% endfor %}")
-        msg = "Don't understand for: '{% for x from y %}'"
-        with self.assertRaisesRegexp(SyntaxError, msg):
+        with self.assertSynErr("Don't understand for: '{% for x from y %}'"):
             self.try_render("Weird: {% for x from y %}loop{% endfor %}")
-        msg = "Don't understand for: '{% for x, y in z %}'"
-        with self.assertRaisesRegexp(SyntaxError, msg):
+        with self.assertSynErr("Don't understand for: '{% for x, y in z %}'"):
             self.try_render("Weird: {% for x, y in z %}loop{% endfor %}")
 
     def test_bad_nesting(self):
-        msg = "Unmatched action tag: 'if'"
-        with self.assertRaisesRegexp(SyntaxError, msg):
+        with self.assertSynErr("Unmatched action tag: 'if'"):
             self.try_render("{% if x %}X")
-        msg = "Mismatched end tag: 'for'"
-        with self.assertRaisesRegexp(SyntaxError, msg):
+        with self.assertSynErr("Mismatched end tag: 'for'"):
             self.try_render("{% if x %}X{% endfor %}")
