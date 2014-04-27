@@ -14,7 +14,8 @@ dataLabels = np.loadtxt(open('dataLabels.csv', 'rb'))
 dataMatrix = dataMatrix.tolist()
 dataLabels = dataLabels.tolist()
 
-nn = ocrNeuralNetwork(15, dataMatrix, dataLabels);
+# If a neural network file does not exist, train it using all 5000 existing data samples.
+nn = ocrNeuralNetwork(15, dataMatrix, dataLabels, list(range(5000)));
 
 class JSONHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_POST(s):

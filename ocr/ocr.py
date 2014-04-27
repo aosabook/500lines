@@ -19,22 +19,18 @@ The weights that define the neural network can be saved to a file, NN_FILE_PATH,
 to be reloaded upon initilization.
 """
 class ocrNeuralNetwork:
-    # Shuffle the indices of the 5000 samples and use the first 3500 for
-    # training and the rest for testing.
-    sampleIndices = list(range(5000))
-    random.shuffle(sampleIndices)
-
     LEARNING_RATE = 0.1
     WIDTH_IN_PIXELS = 20
     NN_FILE_PATH = 'nn.json'
 
-    def __init__(self, numHiddenNodes, dataMatrix, dataLabels):
+    def __init__(self, numHiddenNodes, dataMatrix, dataLabels, trainingIndices, useFile=True):
         self.sigmoid = np.vectorize(self._sigmoidScalar)
         self.sigmoidPrime = np.vectorize(self._sigmoidPrimeScalar)
+        self._useFile = useFile
         self.dataMatrix = dataMatrix
         self.dataLabels = dataLabels
 
-        if (not os.path.isfile(ocrNeuralNetwork.NN_FILE_PATH)):
+        if (not os.path.isfile(ocrNeuralNetwork.NN_FILE_PATH) or not useFile):
             # Step 1: Initialize weights to small numbers
             self.theta1 = self._randInitializeWeights(400, numHiddenNodes)
             self.theta2 = self._randInitializeWeights(numHiddenNodes, 10)
@@ -42,7 +38,7 @@ class ocrNeuralNetwork:
             self.hidden_layer_bias = self._randInitializeWeights(1, 10)
 
             # Train using sample data
-            self.train([{"y0":self.dataMatrix[i], "label":int(self.dataLabels[i])} for i in ocrNeuralNetwork.sampleIndices[:3500]])
+            self.train([{"y0":self.dataMatrix[i], "label":int(self.dataLabels[i])} for i in trainingIndices])
             self.save()
         else:
             self._load()
@@ -112,6 +108,9 @@ class ocrNeuralNetwork:
         return results.index(max(results))
 
     def save(self):
+        if not self._useFile:
+            return
+
         jsonNeuralNetwork = {
             "theta1":[npMat.tolist()[0] for npMat in self.theta1],
             "theta2":[npMat.tolist()[0] for npMat in self.theta2],
@@ -122,6 +121,9 @@ class ocrNeuralNetwork:
             json.dump(jsonNeuralNetwork, nnFile)
 
     def _load(self):
+        if not self._useFile:
+            return
+
         with open(ocrNeuralNetwork.NN_FILE_PATH) as nnFile:
             nn = json.load(nnFile)
         self.theta1 = [np.array(li) for li in nn['theta1']]
