@@ -111,9 +111,6 @@ class ocrNeuralNetwork:
         results = y2.T.tolist()[0]
         return results.index(max(results))
 
-    def _normalize(self, intensity, newMax, newMin):
-        return intensity * (float(newMax - newMin) / float(255)) + newMin
-
     def save(self):
         jsonNeuralNetwork = {
             "theta1":[npMat.tolist()[0] for npMat in self.theta1],
