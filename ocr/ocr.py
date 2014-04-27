@@ -42,7 +42,6 @@ class ocrNeuralNetwork:
             self.save()
         else:
             self._load()
-        #self._test()
 
     def _randInitializeWeights(self, sizeIn, sizeOut):
         return [((x * 0.12) - 0.06) for x in np.random.rand(sizeOut, sizeIn)]
@@ -81,19 +80,6 @@ class ocrNeuralNetwork:
             self.theta2 += ocrNeuralNetwork.LEARNING_RATE * np.dot(np.mat(outputErrors), np.mat(y1).T)
             self.hidden_layer_bias += ocrNeuralNetwork.LEARNING_RATE * outputErrors
             self.input_layer_bias += ocrNeuralNetwork.LEARNING_RATE * hiddenErrors
-
-    def _test(self):
-        avgSum = 0
-        for j in range(100):
-            correctGuessCount = 0
-            for i in ocrNeuralNetwork.sampleIndices[3500:]:
-                test = self.dataMatrix[i]
-                prediction = self.predict(test)
-                if self.dataLabels[i] == prediction:
-                    correctGuessCount += 1
-
-            avgSum += (correctGuessCount / float(1500))
-        print avgSum / float(100)
 
     def predict(self, test):
         y1 = np.dot(np.mat(self.theta1), np.mat(test).T)
