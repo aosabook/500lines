@@ -42,7 +42,7 @@ class ocrNeuralNetwork:
             self.hidden_layer_bias = self._randInitializeWeights(1, 10)
 
             # Train using sample data
-            self.train([{"y0":self.dataMatrix[i], "label":int(ocrNeuralNetwork.dataLabels[i])} for i in ocrNeuralNetwork.sampleIndices[:3500]])
+            self.train([{"y0":self.dataMatrix[i], "label":int(self.dataLabels[i])} for i in ocrNeuralNetwork.sampleIndices[:3500]])
             self.save()
         else:
             self._load()
@@ -91,9 +91,9 @@ class ocrNeuralNetwork:
         for j in range(100):
             correctGuessCount = 0
             for i in ocrNeuralNetwork.sampleIndices[3500:]:
-                test = ocrNeuralNetwork.dataMatrix[i]
+                test = self.dataMatrix[i]
                 prediction = self.predict(test)
-                if ocrNeuralNetwork.dataLabels[i] == prediction:
+                if self.dataLabels[i] == prediction:
                     correctGuessCount += 1
 
             avgSum += (correctGuessCount / float(1500))
