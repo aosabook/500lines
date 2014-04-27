@@ -125,10 +125,9 @@ class ocrNeuralNetwork:
         nnFile.close()
 
     def _load(self):
-        nnFile = open(ocrNeuralNetwork.NN_FILE_PATH);
-        nn = json.load(nnFile)
+        with open(ocrNeuralNetwork.NN_FILE_PATH) as nnFile:
+            nn = json.load(nnFile)
         self.theta1 = [np.array(li) for li in nn['theta1']]
         self.theta2 = [np.array(li) for li in nn['theta2']]
         self.input_layer_bias = [np.array(nn['b1'][0])]
         self.hidden_layer_bias = [np.array(nn['b2'][0])]
-        nnFile.close()
