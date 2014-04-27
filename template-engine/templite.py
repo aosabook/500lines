@@ -173,13 +173,22 @@ class Templite(object):
         """Raise a syntax error using `msg`, and showing `thing`."""
         raise SyntaxError("%s: %r" % (msg, thing))
 
+    def variable(self, name):
+        """Track that `name` is used as a variable.
+
+        Raises an exception if `name` is not a valid name.
+        """
+        if not re.match(r"[_a-zA-Z][_a-zA-Z0-9]*$", name):
+            self.syntax_error("Not a valid name", name)
+        self.all_vars.add(name)
+
     def expr_code(self, expr):
         """Generate a Python expression for `expr`."""
         if "|" in expr:
             pipes = expr.split("|")
             code = self.expr_code(pipes[0])
             for func in pipes[1:]:
-                self.all_vars.add(func)
+                self.variable(func)
                 code = "c_%s(%s)" % (func, code)
         elif "." in expr:
             dots = expr.split(".")
@@ -187,7 +196,7 @@ class Templite(object):
             args = ", ".join(repr(d) for d in dots[1:])
             code = "dot(%s, %s)" % (code, args)
         else:
-            self.all_vars.add(expr)
+            self.variable(expr)
             code = "c_%s" % expr
         return code
 

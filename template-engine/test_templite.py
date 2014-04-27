@@ -229,6 +229,14 @@ class TempliteTest(TestCase):
                 "Hey {{foo.bar.baz}} there", {'foo': None}, "Hey ??? there"
             )
 
+    def test_bad_names(self):
+        msg = "Not a valid name: 'var%&!@'"
+        with self.assertRaisesRegexp(SyntaxError, msg):
+            self.try_render("Wat: {{ var%&!@ }}")
+        msg = "Not a valid name: 'filter%&!@'"
+        with self.assertRaisesRegexp(SyntaxError, msg):
+            self.try_render("Wat: {{ foo|filter%&!@ }}")
+
     def test_bogus_tag_syntax(self):
         msg = "Don't understand tag: 'bogus'"
         with self.assertRaisesRegexp(SyntaxError, msg):
