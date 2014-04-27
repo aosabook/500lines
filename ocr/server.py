@@ -17,11 +17,6 @@ dataLabels = dataLabels.tolist()
 nn = ocrNeuralNetwork(15, dataMatrix, dataLabels);
 
 class JSONHandler(BaseHTTPServer.BaseHTTPRequestHandler):
-    def do_HEAD(s):
-        s.send_response(200)
-        s.send_header("Content-type", "application/json")
-        s.end_headers()
-
     def do_POST(s):
         s.send_response(200)
         s.send_header("Access-Control-Allow-Origin", "*")
