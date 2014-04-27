@@ -81,7 +81,6 @@ class Templite(object):
         These are good for filters and global values.
 
         """
-        self.text = text
         self.context = {}
         for context in contexts:
             self.context.update(context)
