@@ -115,14 +115,14 @@ class ocrNeuralNetwork:
         return intensity * (float(newMax - newMin) / float(255)) + newMin
 
     def save(self):
-        nnFile = open(ocrNeuralNetwork.NN_FILE_PATH,'w');
-        json.dump({
+        jsonNeuralNetwork = {
             "theta1":[npMat.tolist()[0] for npMat in self.theta1],
             "theta2":[npMat.tolist()[0] for npMat in self.theta2],
             "b1":self.input_layer_bias[0].tolist()[0],
             "b2":self.hidden_layer_bias[0].tolist()[0]
-        }, nnFile)
-        nnFile.close()
+        };
+        with open(ocrNeuralNetwork.NN_FILE_PATH,'w') as nnFile:
+            json.dump(jsonNeuralNetwork, nnFile)
 
     def _load(self):
         with open(ocrNeuralNetwork.NN_FILE_PATH) as nnFile:
