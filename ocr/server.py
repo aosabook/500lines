@@ -19,20 +19,25 @@ nn = ocrNeuralNetwork(15, dataMatrix, dataLabels, list(range(5000)));
 
 class JSONHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_POST(s):
-        s.send_response(200)
-        s.send_header("Content-type", "application/json")
-        s.send_header("Access-Control-Allow-Origin", "*")
-        s.end_headers()
-
+        responseCode = 200
+        response = ""
         varLen = int(s.headers.get('Content-Length'))
         content = s.rfile.read(varLen);
         payload = json.loads(content);
 
-        if payload['train']:
+        if payload.get('train'):
             nn.train(payload['trainArray'])
             nn.save()
-        else:
+        elif payload.get('predict'):
             response = {"type":"test", "result":nn.predict(str(payload['image']))}
+        else:
+            responseCode = 400
+
+        s.send_response(responseCode)
+        s.send_header("Content-type", "application/json")
+        s.send_header("Access-Control-Allow-Origin", "*")
+        s.end_headers()
+        if response:
             s.wfile.write(json.dumps(response))
         return
 
