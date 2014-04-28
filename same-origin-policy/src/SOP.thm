@@ -23,47 +23,61 @@
    <type name="String"/>
    <type name="univ"/>
    <type name="browser/Browser"/>
-   <type name="browser/Cookie"/>
-   <type name="browser/DOM"/>
-   <type name="browser/DomAPICall"/>
-   <type name="browser/Frame"/>
-   <type name="browser/HTMLTag"/>
+   <type name="browser/Document"/>
+   <type name="browser/DOMAPICall"/>
+   <type name="browser/HTML"/>
    <type name="browser/Script"/>
-   <type name="http/Path"/>
-   <type name="http/Port"/>
-   <type name="http/Resource"/>
+   <type name="http/Client"/>
+   <type name="http/Cookie"/>
+   <type name="http/Get"/>
+   <type name="http/Post"/>
    <type name="http/Server"/>
    <type name="postmessage/PostMessage"/>
    <type name="seq/Int"/>
    <type name="browser/call/Call"/>
-   <type name="browser/call/Data"/>
+   <type name="browser/call/Resource"/>
    <type name="browser/call/event/Time"/>
-   <type name="browser/call/event/ordering/Ord"/>
-   <set name="this/EvilHost" type="http/Host"/>
-   <set name="this/FBHost" type="http/Host"/>
-   <set name="First" type="browser/call/event/ordering/Ord"/>
-   <set name="Next" type="browser/call/event/ordering/Ord"/>
+   <type name="browser/call/event/ord/Ord"/>
+   <set name="this/EvilHost" type="http/Domain"/>
+   <set name="this/FBHost" type="http/Domain"/>
+   <set name="First" type="browser/call/event/ord/Ord"/>
+   <set name="Next" type="browser/call/event/ord/Ord"/>
    <set name="post" type="browser/call/event/Event"/>
+   <set name="browser/BrowserHttpRequest" type="http/HttpRequest"/>
+   <set name="cors/CORSRequest" type="http/HttpRequest"/>
+   <set name="http/Host" type="http/Domain"/>
 </node>
 
 <node color="Gray">
    <type name="browser/call/Component"/>
 </node>
 
-<node label="GET">
-   <type name="http/GET"/>
+<node label="BrowserCookie">
+   <type name="browser/BrowserCookie"/>
 </node>
 
-<node label="HTTPReq">
-   <type name="http/HTTPReq"/>
+<node label="DNS">
+   <type name="http/DNS"/>
 </node>
 
-<node label="Host">
-   <type name="http/Host"/>
+<node label="DOM">
+   <set name="browser/DOM" type="browser/call/Resource"/>
+</node>
+
+<node label="Domain">
+   <type name="http/Domain"/>
+</node>
+
+<node label="HttpRequest">
+   <type name="http/HttpRequest"/>
 </node>
 
 <node label="Method">
    <type name="http/Method"/>
+</node>
+
+<node label="ModifyDomainProperty">
+   <type name="browser/ModifyDomainProperty"/>
 </node>
 
 <node label="MyProfile">
@@ -71,11 +85,15 @@
 </node>
 
 <node label="Origin">
-   <type name="http/Origin"/>
+   <type name="cors/origin/Origin"/>
 </node>
 
-<node label="POST">
-   <type name="http/POST"/>
+<node label="Path">
+   <type name="http/Path"/>
+</node>
+
+<node label="Port">
+   <type name="http/Port"/>
 </node>
 
 <node label="Protocol">
@@ -86,10 +104,6 @@
    <type name="browser/ReadDOM"/>
 </node>
 
-<node label="ReqCORS">
-   <set name="cors/ReqCORS" type="http/HTTPReq"/>
-</node>
-
 <node label="URL">
    <type name="http/URL"/>
 </node>
@@ -98,15 +112,11 @@
    <type name="browser/WriteDOM"/>
 </node>
 
-<node label="XMLHTTPReq">
-   <set name="browser/XMLHTTPReq" type="http/HTTPReq"/>
-</node>
-
 <node showlabel="no">
-   <set name="this/CriticalData" type="browser/call/Data"/>
+   <set name="this/CriticalData" type="browser/call/Resource"/>
    <set name="this/Trusted" type="browser/call/Component"/>
    <set name="$noResourceLeak_m" type="browser/call/Component"/>
-   <set name="$noResourceLeak_r" type="browser/call/Data"/>
+   <set name="$noResourceLeak_r" type="browser/call/Resource"/>
 </node>
 
 <node showlabel="no" color="Red">
@@ -121,23 +131,35 @@
    <set name="pre" type="browser/call/event/Event"/>
 </node>
 
+<edge attribute="no">
+   <relation name="url"> <type name="browser/Document"/> <type name="http/URL"/> </relation>
+   <relation name="url"> <type name="http/HttpRequest"/> <type name="http/URL"/> </relation>
+</edge>
+
 <edge visible="no">
-   <relation name="tags"> <type name="browser/Frame"/> <type name="browser/HTMLTag"/> </relation>
+   <relation name="cookies"> <type name="http/HttpRequest"/> <type name="http/Cookie"/> </relation>
+   <relation name="method"> <type name="http/HttpRequest"/> <type name="http/Method"/> </relation>
+   <relation name="ret_body"> <type name="http/HttpRequest"/> <type name="browser/call/Resource"/> </relation>
+   <relation name="ret_set_cookies"> <type name="http/HttpRequest"/> <type name="http/Cookie"/> </relation>
 </edge>
 
 <edge visible="no" attribute="yes">
-   <relation name="allowedOrigins"> <type name="http/HTTPReq"/> <type name="http/Origin"/> </relation>
-   <relation name="host"> <type name="http/Origin"/> <type name="http/Host"/> </relation>
-   <relation name="host"> <type name="http/URL"/> <type name="http/Host"/> </relation>
-   <relation name="method"> <type name="http/HTTPReq"/> <type name="http/Method"/> </relation>
-   <relation name="owns"> <type name="browser/call/Component"/> <type name="browser/call/Data"/> </relation>
-   <relation name="port"> <type name="http/Origin"/> <type name="http/Port"/> </relation>
+   <relation name="args"> <type name="browser/call/event/Event"/> <type name="browser/call/Resource"/> </relation>
+   <relation name="cookies"> <type name="browser/Browser"/> <type name="browser/BrowserCookie"/> </relation>
+   <relation name="domain"> <type name="http/Cookie"/> <type name="http/Domain"/> </relation>
+   <relation name="host"> <type name="browser/BrowserCookie"/> <type name="http/Domain"/> </relation>
+   <relation name="host"> <type name="http/URL"/> <type name="http/Domain"/> </relation>
+   <relation name="map"> <type name="http/DNS"/> <type name="http/Domain"/> <type name="http/Server"/> </relation>
+   <relation name="new_domain"> <type name="browser/ModifyDomainProperty"/> <type name="http/Domain"/> </relation>
+   <relation name="owns"> <type name="browser/call/Component"/> <type name="browser/call/Resource"/> </relation>
+   <relation name="path"> <type name="http/Cookie"/> <type name="http/Path"/> </relation>
+   <relation name="path"> <type name="http/URL"/> <type name="http/Path"/> </relation>
+   <relation name="paths"> <type name="http/Server"/> <type name="http/Path"/> </relation>
    <relation name="port"> <type name="http/URL"/> <type name="http/Port"/> </relation>
-   <relation name="protocol"> <type name="http/Origin"/> <type name="http/Protocol"/> </relation>
+   <relation name="port"> <type name="cors/origin/Origin"/> <type name="http/Port"/> </relation>
    <relation name="protocol"> <type name="http/URL"/> <type name="http/Protocol"/> </relation>
-   <relation name="resMap"> <type name="http/Server"/> <type name="http/URL"/> <type name="browser/call/Data"/> </relation>
-   <relation name="url"> <type name="http/HTTPReq"/> <type name="http/URL"/> </relation>
-   <relation name="urls"> <type name="http/Server"/> <type name="http/URL"/> </relation>
+   <relation name="protocol"> <type name="cors/origin/Origin"/> <type name="http/Protocol"/> </relation>
+   <relation name="returns"> <type name="browser/call/event/Event"/> <type name="browser/call/Resource"/> </relation>
 </edge>
 
 </view>

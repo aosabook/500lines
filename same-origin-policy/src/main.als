@@ -20,11 +20,14 @@ open postmessage
 // Security policies 
 // Comment out to see what might happen when one or more of them don't hold
 pred policies {
- 	domSOP
+ 	//domSOP
 	xmlhttpreqSOP
+    -- TODO: cookieSop
 	corsRule
 	postMessageRule
 }
+
+
 
 /* An example web system with
 		- two servers (Facebook and Evil Server)
@@ -36,44 +39,47 @@ pred policies {
 // User's browser
 one sig MyFBCookie extends browser/Cookie {}
 one sig MyBrowser extends browser/Browser {}{
-	cookies in Facebook.urls -> MyFBCookie
+//	cookies in Facebook.paths -> MyFBCookie
 }
 
 // Facebook server and its related parts
-one sig FBHost in Host {}
+one sig FBHost in Domain {}
 one sig Facebook extends http/Server {}{
-	urls.host = FBHost
-	all r : HTTPReq |
+//	urls.host = FBHost
+	all r : HttpRequest |
 		(r.to = this and MyProfile in r.returns) implies
 			MyFBCookie in r.args
 }
-one sig MyProfilePage extends browser/Frame {}{
-	location in Facebook.urls
-	dom = MyProfile
+one sig MyProfilePage extends Document {}{
+	url.host in FBHost.subsumes
+	url.path in Facebook.paths
+//	dom = MyProfile
 }
-sig Profile extends browser/DOM {}
+sig Profile extends HTML {}
 one sig MyProfile in Profile {}
 
 // Malicious server and its related parts
-one sig EvilHost in Host {}
+one sig EvilHost in Domain {}
 one sig EvilServer extends http/Server {}{
-	urls.host = EvilHost
+//	urls.host = EvilHost
 }
-one sig AdPage extends browser/Frame {}{
-	location in EvilServer.urls
-	script = EvilScript
-	dom in Ad
+one sig AdPage extends Document {}{
+	url.host in EvilHost.subsumes
+	url.path in EvilServer.paths
+//	dom in Ad
 }
-sig Ad extends browser/DOM {}
-one sig EvilScript extends browser/Script {}
+sig Ad extends HTML {}
+one sig EvilScript extends browser/Script {}{
+	doc = AdPage
+}
 
 fact SystemAssumptions {
-	FBHost != EvilHost
-	no c : Call | c.to = c.from
+	no FBHost.subsumes & EvilHost.subsumes
+	DNS.map = FBHost -> Facebook + EvilHost -> EvilServer
 	MyProfile not in (EvilServer + EvilScript).owns
 	MyFBCookie not in Server.owns
-	all r : ReqCORS | r.to = Facebook implies r.allowedOrigins.host = FBHost 
-	no r : HTTPReq |
+	all r : CORSRequest | r.to = Facebook implies r.ret_allowedOrigins.host = FBHost.subsumes
+	no r : HttpRequest |
 		(r.from = Facebook and r.to = EvilServer and some CriticalData & r.args) or
 		(r.from = MyBrowser and r.to = EvilServer and some CriticalData & r.args)
 }
@@ -82,7 +88,7 @@ fact SystemAssumptions {
 
 // Designate some subset of resources to be critical, and 
 // some of the endpoints to be trusted
-sig CriticalData in Data {}
+sig CriticalData in Resource {}
 sig Trusted in Component {}
 
 fact SecurityBoundary {
@@ -98,10 +104,16 @@ assert noResourceLeak {
 				m in Trusted
 }
 
+
 // Check whether assertion "noResourceLeak" holds
 // bound: up to 5 objects of each type
 // This generates a counterexample that can be visualized with theme file "SOP.thm"
-check noResourceLeak for 5
+check noResourceLeak for 7
+
+run {
+	some o : ReadDOM | 
+		MyProfile in o.returns
+} for 5
 
 /** for visualization only **/
 fun Untrusted : set Component {

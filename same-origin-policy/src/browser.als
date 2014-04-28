@@ -1,87 +1,131 @@
 /**
 	* browser.als
-	* 	A model of a browser.
+	* 	A model of a browser with no-SOP.
 	*/
 module browser
 
 open http
 open call
 
-/* Components */
-abstract sig Browser extends Component {
-	frames :  Frame -> Time,
-	cookies : URL -> Cookie
+abstract sig HTML extends Resource {}
+
+sig Document {
+  url : URL , -- URL from which this document was originated
+  dom : DOM -> Time,				-- DOM, the content of the document
+  domain_prop : Domain -> Time, 	-- "document.domain" property
 }{
-	-- every frame must have been received as a respones of some previous request
-	all f : Frame, t : Time |
- 		f -> t in frames iff
-			some r : HTTPReq | 	
+	all t : Time - last | let t' = t.next | 
+		(some r : BrowserHttpRequest | r.pre = t and r.@url = url and dom.t' = r.ret_body) or
+		(some w : WriteDOM | w.pre = t and w.target_document = this and dom.t' = w.args) or	
+		dom.t' = dom.t 	 
+}
+
+sig BrowserCookie extends Cookie {
+  host : http/Host  -- we record the host where we got the cookie from
+}
+
+one sig Browser extends http/Client {
+  frames : Document -> Time,
+  cookies : BrowserCookie -> Time,
+}{
+	-- Every frame must have been received as a respones of some previous request
+	all d : Document, t : Time |
+ 		d -> t in frames iff
+			some r : BrowserHttpRequest & this.sends | 	
 				r.pre in prevs[t] and
-				r.from = this and
-				f.dom in r.returns and
-				f.location = r.url 
+				d.url = r.url
 
-	-- initially does not own any resource
+   -- Every cookie must have been received as a response of some prev request	
+	all c : Cookie, t : Time | 
+		c -> t in cookies iff 
+			(c in owns or
+			some r : HttpRequest & this.sends | r.pre in prevs[t] and c in r.ret_set_cookies)
 }
-
-abstract sig Frame {
-	-- URL from which this frame originated
-	location : http/URL,
-	-- HTML tags associated with 
-	tags : set HTMLTag,
-	dom : DOM,
-	script : lone Script
-}{
-	some script implies script.context = location
-}
-
-abstract sig Script extends Component {
-	-- the context in which this script is executing
-	context : http/URL
-}{
-	-- every script must belong to some frame
-	some script.this
-}
-
-abstract sig Cookie extends Resource {}
-abstract sig DOM extends Resource {}
-abstract sig HTMLTag {}
 
 fact CookieBehavior {
-	all r : HTTPReq, b : Browser |
+	-- Every cookie sent from a browser or one of its script must be scoped to a domain
+	-- that matches or subsumes the destination host of the request
+	all r : HttpRequest, b : Browser |
 		let t = r.pre | 
-			r.from in b + b.(frames.t).script implies
-				r.args & Cookie in b.cookies[r.url] 
+			r.from in b + b.(frames.t).~doc implies
+				r.args & Cookie in {c : BrowserCookie | r.url.host in c.domain.subsumes }
 }
 
-/* XMLHTTPReq message */
-// HTTPReq requests that are made by a script
-sig XMLHTTPReq in http/HTTPReq {
+sig BrowserHttpRequest in HttpRequest {
+	doc : Document
 }{
-	from in Script
+	from in Browser
+	doc = from.frames.post
+	doc.@url = url
+	doc.dom.post = ret_body
+	doc.domain_prop.post = url.host
 }
 fact {
-	all r : HTTPReq | r.from in Script implies r in XMLHTTPReq
+	all r : HttpRequest | 
+		r.from in Browser implies
+			r in BrowserHttpRequest
+}
+
+
+// A script can issue requests through the XmlHttpRequest object
+// In reality though, these requests are issued by the browser on behalf
+// of the script but that's fine.
+abstract sig Script extends http/Client {
+	-- the document under which this script is executing
+	doc : Document
+}
+fun context : Script -> URL {
+	(Script <: doc).url
+}
+
+sig DOM in Resource {}
+fact {
+	// A DOM is just another representation of an HTML file
+	DOM = HTML
 }
 
 /* DOM API messages */
-abstract sig DomAPICall extends Call {
-	frame : Frame	-- frame that contains the DOM
+abstract sig DOMAPICall extends Call {
+  target_document : Document	-- frame that contains the DOM
 }{
-	from in Script
-	to in Browser
-	frame in to.frames.pre
-}
-sig ReadDOM extends DomAPICall {
-}{
-	no args
-	returns = frame.dom
-}
-sig WriteDOM extends DomAPICall {
-}{
-	args in DOM
-	one args
-	no returns
+  from in Script
+  to in Browser 
+  target_document in to.frames.pre
 }
 
+sig ReadDOM extends DOMAPICall {}{
+  no args
+  returns = target_document.dom.pre
+}
+
+sig WriteDOM extends DOMAPICall {}{
+  args in DOM
+  no returns
+  target_document.dom.post = args
+}
+
+sig ModifyDomainProperty extends Call {
+  new_domain : Domain
+} {
+  from in Script
+  to in Browser
+  no args
+  no returns
+ // from.context.Document.url
+  url.(from.context).domain_prop.post = new_domain
+}
+
+run {} for 3
+
+/* EK: Commented out; not needed?
+// TODO: this can be done above automatically instead of having a Parse signature
+one sig Parse {
+  doc_map : http/HtmlResource -> Document,
+  script_map : http/HtmlResource -> lone Script,
+} {
+-- TODO: if there's a script there's a Document or that resource
+}
+// We know how to parse all html
+fact { all r : http/Resource | some d : Document | r -> d in Parse.doc_map }
+*/
 

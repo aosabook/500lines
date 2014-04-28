@@ -7,21 +7,26 @@ module cors
 
 open browser
 open http
+open origin
 
-sig ReqCORS in http/HTTPReq {
-	-- "origin" header
-	origin : http/Origin,
-	-- "access-control-allow-origin" header
-	allowedOrigins : set http/Origin
+sig CORSRequest in http/HttpRequest {
+  -- "origin" header
+  origin : origin/Origin,
+  -- "access-control-allow-origin" header
+  ret_allowedOrigins : set origin/Origin
 }{
-	from in browser/Script
+  from in browser/Script
 }
+
+-- in some cases requests are pre-flighted, but we leave this out of the model
 
 pred corsRule {
-	-- "origin" header of every CORS req matches the script context 
-	all r : ReqCORS | 
-		r.origin = url2origin[r.from.context] and
-		-- A CORS response is accepted iff it is allowed by the server, as indicated
-		-- in "access-control-allow-origin" header
-		r.origin in r.allowedOrigins
+  -- "origin" header of every CORS req matches the script context 
+  all r : CORSRequest | 
+    r.origin = url2origin[r.from.context] and
+    -- A CORS response is accepted iff it is allowed by the server, as
+   -- indicated in "access-control-allow-origin" header
+    r.origin in r.ret_allowedOrigins
 }
+
+run {}
