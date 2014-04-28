@@ -15,6 +15,8 @@ dataMatrix = dataMatrix.tolist()
 dataLabels = dataLabels.tolist()
 
 # If a neural network file does not exist, train it using all 5000 existing data samples.
+# Based on data collected from neuralNetworkDesign.py, 15 is the optimal number
+# for hidden nodes
 nn = ocrNeuralNetwork(15, dataMatrix, dataLabels, list(range(5000)));
 
 class JSONHandler(BaseHTTPServer.BaseHTTPRequestHandler):
