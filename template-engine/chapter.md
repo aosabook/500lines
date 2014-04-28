@@ -16,7 +16,7 @@ ways.
 
 One simple way to make the HTML would be to have large string constants in our
 code, and join them together to produce the page.  Dynamic data would be
-inserted with string substitution of some sort.  Some of our dynamica data is
+inserted with string substitution of some sort.  Some of our dynamic data is
 repetitive, for example, lists of products, so we can't predict ahead of time
 how many items will be included.  This means we'll have chunks that repeat, so
 those would have to be handled separately and combined with the rest of the
@@ -64,6 +64,11 @@ literal text, with notation to indicate the executable dynamic parts:
 Here the text is meant to appear literally in the resulting HTML page, but the
 {{ notation indicates a switch into dynamic mode, where the user_name variable
 will be substituted into the output.
+
+String formatting functions such as Python's `"foo = {foo}!".format(foo=17)`
+are examples of mini-languages used to create strings from a literal and data
+to be inserted.  Templates extend this idea to include logic constructs like
+conditionals and loops, but are really just a difference of degree.
 
 These files are called templates because they are used to produce many
 different pages with similar structure but differing details.
@@ -150,6 +155,7 @@ code small, we're leaving out interesting ideas like:
 * Automatic escaping
 * Arguments to filters
 * Complex logic like elif and for/else
+* Loops with more than one loop variable
 * Whitespace control
 
 Even so, our simple template engine is useful.  In fact, it is the template
@@ -168,18 +174,152 @@ In broad strokes, the template engine will have two main phases:
 
 A key decision in the implementation is what will be passed from the parsing
 phase to the execution phase.  What does parsing produce that can be executed?
-We'll call the two main options interpretation and compilation, using the terms
-loosely from other languages.
+There are two main options here.  We'll call them interpretation and
+compilation, using the terms loosely from other language implementations.
 
-In an interpretation model, the parsing phase produces a data structure
-representing the structure of the template. The execution phase walks
-that data structure, assembling the result string based on the instructions it
-found.
+In an interpretation model, parsing produces a data structure representing the
+structure of the template. The execution phase walks that data structure,
+assembling the result string based on the instructions it found.
 
-In a compilation model, the parsing phase produces some form of executable
-code.  The execution phases executes that code, producing the result.
+In a compilation model, parsing produces some form of executable code.  The
+execution phases executes that code, producing the result.
 
 Our implementation of the engine uses the compilation model.  We compile the
 template into Python code.  When run, the Python code assembles the result.
+If you are interested in seeing an implementation of the interpretation model,
+an earlier version of this same code used interpretation, and is in the history
+of the coverage.py repository on Bitbucket.  
+
+For coverage.py's use case, there are only a few templates, and they are used
+over and over to produce many files from the same template.  Overall, the
+program ran faster if the templates were compiled to Python code, because even
+though the compilation process was a bit more complicated, it only had to run
+once, while the execution of the compiled code ran many times, and was faster
+than interpreting a data structure many times.
+
+
+## Compiling to Python
+
+Before we get to the code of the template engine, let's look at what it
+produces.  The parsing phase will convert a template into a Python function.
+Here is a small template:
+
+```
+<p>Welcome, {{user_name}}!</p>
+<p>Products:</p>
+<ul>
+{% for product in product_list %}
+    <li>{{ product.name }}:
+        {{ product.price|format_price }}</li>
+{% endfor %}
+</ul>
+```
+
+Our engine will compile this template to this Python code (slightly reformatted
+for readability):
+
+```
+def render(ctx, dot):
+    c_user_name = ctx['user_name']
+    c_product_list = ctx['product_list']
+    c_format_price = ctx['format_price']
+
+    result = []
+    a = result.append
+    e = result.extend
+    s = str
+
+    e(['<p>Welcome, ', s(c_user_name), '!</p>\n<p>Products:</p>\n<ul>\n'])
+    for c_product in c_product_list:
+        e([
+            '\n    <li>',
+            s(dot(c_product, 'name')),
+            ':\n        ',
+            s(c_format_price(dot(c_product, 'price'))),
+            '</li>\n'
+        ])
+    a('\n</ul>\n')
+    return ''.join(result)
+```
+
+This Python code looks unusual, because we've chosen some shortcuts that
+produce slightly faster code.  Each template is converted into a `render`
+function that takes a dictionary of data called the context (abbreviated to
+`ctx`). The body of the function starts by unpacking the data from the context
+into local names, because they are faster for repeated use.  We use locals with
+a `c_` prefix so that we can use other local names without fear of collisions.
+
+The result of the template will be a string, but the fastest way to build a
+string from parts is to create a list of strings, and join them together at the
+end.  `result` will be the list of strings.  Because we're going to add strings
+to this list, we capture its `append` and `extend` methods in the local names
+`a` and `e`.  [[[ Reviewers: should I explain more about this unusual use of
+Python methods??]]] The last local we create is a shorthand for the `str`
+built-in.
+
+With those preliminaries out of the way, we're ready for the Python lines
+created from our particular template. Strings will be added to the result list
+using the `a` or `e` shorthands, depending on whether we have one string to add
+or more than one.  Literal text in the template becomes a simple string
+literal.
+
+Expressions in `{{ ... }}` are computed, converted to strings, and added to the
+result.  Dots in the expression are handled by the `dot` function passed into
+our function, because the meaning of the dotted expressions depends on the data
+in the context: it could be attribute access or item access, and it could be a
+callable.
+
+The logical structures `{{ if ... }}` and `{{ for ... }}` are converted into
+Python conditionals and loops in a relatively straightforward way.
+
+
+## Writing the Engine
+
+Now that we understand what the engine will do, let's walk through the
+implementation.
+
+### CodeBuilder
+
+The bulk of the work in our engine is parsing the template and producing the
+necessary Python code.  To help with that, we have the `CodeBuilder` class,
+which handles the bookkeeping for us as we add lines of code, manage
+indentation, and finally get a dict of global values from the compiled Python.
+
+A CodeBuilder object keeps a list of strings that will together be the final
+Python code.  The only other state it needs is the current indentation level.
+
+CodeBuilder is quite simple, it has:
+
+* a method to add a new line of code, which automatically indents the text to
+  the current indentation level, and supplies a newline:
+
+<!-- code -->
+
+* two methods to increase or decrease the indentation level:
+
+<!-- code -->
+
+* a method to add a sub-builder.  This lets us keep a reference to a place in
+  the code, and add text to it later.  The self.code list is mostly a list of
+  strings, but will also hold references to these sub-builders:
+
+<!-- code -->
+
+* a `__str__` method for producing a single string with all the code. This
+  simply joins together all the strings in `self.code`.  Note that because
+  `self.code` can contain sub-builders, this might call other `CodeBuilder`
+  objects recursively:
+
+<!-- code -->
+
+* a method to produce the final vaues by executing the code.  This stringifies
+  the object, executes it in a new globals namespace, and returns the resulting
+  values:
+
+<!-- code -->
+
+Notice that although we only use this class to produce one function, there's
+nothing in this class that limits it to that use.  This makes the class simpler
+to implement, and easier to understand.
 
 [[much more to come...]]
