@@ -31,7 +31,10 @@ class JSONHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             nn.train(payload['trainArray'])
             nn.save()
         elif payload.get('predict'):
-            response = {"type":"test", "result":nn.predict(str(payload['image']))}
+            try:
+                response = {"type":"test", "result":nn.predict(str(payload['image']))}
+            except:
+                responseCode = 500
         else:
             responseCode = 400
 
