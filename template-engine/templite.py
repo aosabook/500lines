@@ -12,37 +12,37 @@ class CodeBuilder(object):
 
     def __init__(self, indent=0):
         self.code = []
-        self.indent_amount = indent
+        self.ident_level = indent
+
+    def __str__(self):
+        return "".join(str(c) for c in self.code)
 
     def add_line(self, line):
         """Add a line of source to the code.
 
-        Don't include indentations or newlines.
+        Indentation and newline will be added for you, don't provide them.
 
         """
-        self.code.extend([" " * self.indent_amount, line, "\n"])
+        self.code.extend([" " * self.ident_level, line, "\n"])
 
     def add_section(self):
         """Add a section, a sub-CodeBuilder."""
-        sect = CodeBuilder(self.indent_amount)
+        sect = CodeBuilder(self.ident_level)
         self.code.append(sect)
         return sect
 
     def indent(self):
         """Increase the current indent for following lines."""
-        self.indent_amount += self.INDENT_STEP
+        self.ident_level += self.INDENT_STEP
 
     def dedent(self):
         """Decrease the current indent for following lines."""
-        self.indent_amount -= self.INDENT_STEP
-
-    def __str__(self):
-        return "".join(str(c) for c in self.code)
+        self.ident_level -= self.INDENT_STEP
 
     def get_globals(self):
         """Compile the code, and return a dict of globals it defines."""
         # A check that the caller really finished all the blocks they started.
-        assert self.indent_amount == 0
+        assert self.ident_level == 0
         # Get the Python source as a single string.
         python_source = str(self)
         # Execute the source, defining globals, and return them.
@@ -106,7 +106,7 @@ class Templite(object):
             if len(buffered) == 1:
                 code.add_line("a(%s)" % buffered[0])
             elif len(buffered) > 1:
-                code.add_line("e([%s])" % ",".join(buffered))
+                code.add_line("e([%s])" % ", ".join(buffered))
             del buffered[:]
 
         # Split the text to form a list of tokens.
@@ -147,16 +147,17 @@ class Templite(object):
                 elif words[0].startswith('end'):
                     # Endsomething.  Pop the ops stack.
                     end_what = words[0][3:]
-                    if ops_stack[-1] != end_what:
+                    start_what = ops_stack.pop()
+                    if start_what != end_what:
                         self.syntax_error("Mismatched end tag", end_what)
-                    ops_stack.pop()
                     code.dedent()
                 else:
                     self.syntax_error("Don't understand tag", words[0])
             else:
                 # Literal content.  If it isn't empty, output it.
                 if token:
-                    buffered.append("%r" % token)
+                    buffered.append(repr(token))
+
         flush_output()
 
         for var_name in self.all_vars - self.loop_vars:
