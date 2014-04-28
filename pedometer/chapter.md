@@ -56,7 +56,7 @@ The sample data we'll be using here is data collected by an iPhone. Let's look a
 ### Combined Format
 The first, more rudimentary data format we'll accept is in the combined format. Data in the combined format is simply total acceleration in the x, y, z directions, over time. 
 
-$x1, y1, z1;...xn, yn, zn;$
+$"x1,y1,z1;...xn,yn,zn;"$
 
 Let's look at what this data looks like when plotted. Below is a small portion of data, sampled 100 times per second, of a person walking with an iPhone in a bag on their shoulder.
 
@@ -66,7 +66,7 @@ TODO: Add plot.
 
 The second data format we'll accept is user acceleration in the x,y,z directions separated from gravitational acceleration in the x,y,z directions, over time:
 
-$x1_{user}, y1_{user}, z1_{user}|x1_{gravity}, y1_{gravity}, z1_{gravity};...xn_{user}, yn_{user}, zn_{user}|xn_{gravity}, yn_{gravity}, zn_{gravity};$
+$"x1_{u},y1_{u},z1_{u}|x1_{g},y1_{g},z1_{g};...xn_{u},yn_{u},zn_{u}|xn_{g},yn_{g},zn_{g};"$
 
 Let's look at what this data looks like when plotted. Below is a small portion of data, sampled 100 times per second, of a person walking with an iPhone in a bag on their shoulder.
 
@@ -94,20 +94,21 @@ Each method accomplishes one of our three steps above. Let's look at each method
 
 ### Step 1: Parsing text to extract numerical data (parse_raw_data)
 
-The goal of parse_raw_data is to convert string data to a format we can more easily work with, and store it in @parsed_data. The first line splits the string by a semicolon,, and then splits each individual 
+The goal of parse_raw_data is to convert string data to a format we can more easily work with, and store it in @parsed_data. The first line splits the string by semicolon into as many arrays as samples taken, and then splits each individual array by the pipe, storing the result in accl.
 
+We determine the input format by the first element of accl, which is an array. 
 
+* accl in the combined format: $[["x1,y1,z1"],...["xn,yn,zn"]]$
+* accl in the separated format: $[["x1_{u},y1_{u},z1_{u}", "x1_{g},y1_{g},z1_{g}"],...["xn_{u},yn_{u},zn_{u}", "xn_{g},yn_{g},zn_{g}"]]$
 
-Starting with step 1 above, our **Parser** class looks like:
+If the array has exactly one element, we know that out inout format is combined. Otherwise, our input format is separated. Based on this, we call either split_accl_combined or split_accl_separated. Each of these methods sets the @format instance variable, and generates data in the format below. We store this result in split_accl:
 
-TODO: Code block with parser1.rb
+$[[x1_{u},...xn_{u}], [y1_{u},...yn_{u}], [z1_{u},...zn_{u}],
+[x1_{g},...xn_{g}], [y1_{g},...yn_{g}], [z1_{g},...zn_{g}]]$
 
-Our parser class takes string data as input, that we want to convert to a format we can more easily work with. We'll store this converted data in an instance variable called @parsed_data. 
+From split_accl, we can pull split out user acceleration from .......
 
-In the initalizer, we ensure the input is a string by explicitly converting it, and then we call parse_raw_data. The goal of this method is to take a single string in the format above, and convert it to a hash to store in @parsed_data.
-
-TODO: Pull out comments from parser1.rb and insert here to describe the method.
-
+TODO: Content below written for longer option. 
 ### Step 2: Isolating movement in the direction of gravity
 
 First, a very small amount of liner algebra 101. 
