@@ -137,4 +137,12 @@ Contributors
     <td><a href='http://twitter.com/sarahmei'>@sarahmei</a></td>
     <td></td>
   </tr>
+  <tr>
+    <td>Leah Hanson</td>
+    <td>Google</td>
+    <td>static analysis</td>
+    <td>@astrieanna</td>
+    <td>@astrieanna</td>
+    <td>leah.a.hanson@gmail.com</td>
+  </tr>
 </table>
