@@ -5,6 +5,7 @@ import numpy as np
 
 HOST_NAME = 'localhost'
 PORT_NUMBER = 8000
+HIDDEN_NODE_COUNT = 15
 
 # Load data samples and labels into matrix
 dataMatrix = np.loadtxt(open('data.csv', 'rb'), delimiter = ',')
@@ -17,7 +18,7 @@ dataLabels = dataLabels.tolist()
 # If a neural network file does not exist, train it using all 5000 existing data samples.
 # Based on data collected from neuralNetworkDesign.py, 15 is the optimal number
 # for hidden nodes
-nn = ocrNeuralNetwork(15, dataMatrix, dataLabels, list(range(5000)));
+nn = ocrNeuralNetwork(HIDDEN_NODE_COUNT, dataMatrix, dataLabels, list(range(5000)));
 
 class JSONHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_POST(s):
