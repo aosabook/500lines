@@ -16,7 +16,7 @@ class FileHelper
     raise 'file_name cannot be nil.' unless file_name
     
     user, device = 
-      file_name.split('/').last.split('_').collect { |i| i.split('-') }
+      file_name.split('/').last.split('_').map { |i| i.split('-') }
     [user, device[0...-1]]
   end
 

@@ -33,16 +33,13 @@ class Parser
 
 private
 
-  # Split acceleration data into the following format:
-  # [ [ [x1, x2, ..., xn],    [y1, y2, ..., yn],    [z1, z2, ..., zn] ],
-  #   [ [xg1, xg2, ..., xgn], [yg1, yg2, ..., ygn], [zg1, zg2, ..., zgn] ] ]
   def split_accl_combined(accl)
     @format = FORMAT_COMBINED
     
-    accl = accl.flatten.collect { |i| i.split(',').collect(&:to_f) }
-    split_accl = accl.transpose.collect do |total_accl|
+    accl = accl.flatten.map { |i| i.split(',').map(&:to_f) }
+    split_accl = accl.transpose.map do |total_accl|
       grav = chebyshev_filter(total_accl, GRAVITY_COEFF)
-      user = total_accl.zip(grav).collect { |a, b| a - b }
+      user = total_accl.zip(grav).map { |a, b| a - b }
       [user, grav]
     end
     split_accl.transpose
@@ -51,16 +48,23 @@ private
   def split_accl_separated(accl)
     @format = FORMAT_SEPARATED
     
-    accl = accl.collect { |i| i.collect { |i| i.split(',').collect(&:to_f) } }
-    [accl.collect {|a| a.first}.transpose, accl.collect {|a| a.last}.transpose]
+    accl = accl.map { |i| i.map { |i| i.split(',').map(&:to_f) } }
+    [accl.map {|a| a.first}.transpose, accl.map {|a| a.last}.transpose]
   end
 
   # TODO:
   # You should be more explicit with your exception catching. It's better to 
   # have specific exceptions that you except to be raised, and have logic to handle those cases.
   def parse_raw_data
-    accl = @data.split(';').collect { |i| i.split('|') }
+    # Split on ; first, followed by |, to get data into the format:
+    # [["x1,y1,z1"], ..., ["xn,yn,zn"]]
+    # OR
+    # [["x1,y1,z1", "xg1,yg1,zg1"], ..., ["xn,yn,zn", "xgn,ygn,zgn"]]
+    accl = @data.split(';').map { |i| i.split('|') }
     
+    # Split acceleration data into the following format:
+    # [ [ [x1, x2, ..., xn],    [y1, y2, ..., yn],    [z1, z2, ..., zn] ],
+    #   [ [xg1, xg2, ..., xgn], [yg1, yg2, ..., ygn], [zg1, zg2, ..., zgn] ] ]
     split_accl = if accl.first.count == 1
       split_accl_combined(accl)
     else
@@ -81,7 +85,7 @@ private
   end
 
   def dot_product_parsed_data
-    @dot_product_data = @parsed_data.collect do |data|
+    @dot_product_data = @parsed_data.map do |data|
       data[:x] * data[:xg] + data[:y] * data[:yg] + data[:z] * data[:zg]
     end
   end
