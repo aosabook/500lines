@@ -51,17 +51,30 @@ The meat and potatoes of our program is in step 3, where we parse the input data
 
 ## Parsing Input Data
 
-Let's look at what our input data will look like. The sample data we'll be using here is data collected by an iPhone aceelerometer. Let's assume that to start out, our program will only take data in the separated format:
+The sample data we'll be using here is data collected by an iPhone. Let's look at what our input data will look like in each format. 
+
+### Combined Format
+The first, more rudimentary data format we'll accept is in the combined format. Data in the combined format is simply total acceleration in the x, y, z directions, over time. 
+
+$x1, y1, z1;...xn, yn, zn;$
+
+Let's look at what this data looks like when plotted. Below is a small portion of data, sampled 100 times per second, of a person walking with an iPhone in a bag on their shoulder.
+
+TODO: Add plot.
+
+### Separated Format
+
+The second data format we'll accept is user acceleration in the x,y,z directions separated from gravitational acceleration in the x,y,z directions, over time:
 
 $x1_{user}, y1_{user}, z1_{user}|x1_{gravity}, y1_{gravity}, z1_{gravity};...xn_{user}, yn_{user}, zn_{user}|xn_{gravity}, yn_{gravity}, zn_{gravity};$
-
-The data we get from the iPhone is user acceleration in the x,y,z directions along with gravitational acceleration in the x,y,z directions at points in time. 
 
 Let's look at what this data looks like when plotted. Below is a small portion of data, sampled 100 times per second, of a person walking with an iPhone in a bag on their shoulder.
 
 TODO: Add 2 plots, one for x,y,z user and one for x,y,z gravity.
 
-Currently, we have user andd gravitation acceleration, both in x,y,z directions. Although we can start to see a pattern, we don't have enough, yet, to count steps. 
+### Making Sense of Data
+
+Looking at our plots, we can start to see a pattern, but we don't have enough, yet, to count steps. 
 
 We need to do 3 things to our input data:
 
@@ -71,7 +84,20 @@ We need to do 3 things to our input data:
 
 These 3 tasks are related, and it makes sense to combine them into one class called a **Parser**. 
 
-### Step 1: Parsing text to extract numerical data
+### The Parser Class
+
+TODO: Code from parser.rb
+
+Let's start with the initialize method. Our parser class takes string data as input and stores it in the @data instance variable. It then calls three methods in sequence: parse_raw_data, dot_product_parsed_data, and filter_dot_product_data. 
+
+Each method accomplishes one of our three steps above. Let's look at each method individually. 
+
+### Step 1: Parsing text to extract numerical data (parse_raw_data)
+
+The goal of parse_raw_data is to convert string data to a format we can more easily work with, and store it in @parsed_data. The first line splits the string by a semicolon,, and then splits each individual 
+
+
+
 Starting with step 1 above, our **Parser** class looks like:
 
 TODO: Code block with parser1.rb
