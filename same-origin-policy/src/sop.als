@@ -4,8 +4,9 @@
 	*/
 module sop
 
-open browser
 open http
+open browser
+open script
 open cors
 
 
@@ -23,14 +24,13 @@ pred sameOriginPolicy {
 
 pred domSOP {
 	-- A script can only access the DOM of a frame with the same origin
-	all c : browser/ReadDOM + browser/WriteDOM | sameOrigin[c.target_document.url, c.from.context]
+	all c : ReadDOM +WriteDOM | sameOrigin[c.target_document.src, c.from.context]
   -- TODO: or they have the same document.domain or they are using post message
 }
 pred xmlhttpreqSOP {
 	-- A script can only make an AJAX call to a server with the same origin if
 	-- it's not a CORS request.
-	all x : HttpRequest |
-		x.from in Script implies 
+	all x : XMLHttpRequest |
 			sameOrigin[x.url, x.from.context] or x in cors/CORSRequest
 }
 

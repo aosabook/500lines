@@ -18,26 +18,20 @@ abstract sig Call extends Event {
   to != from
 }	
 
-// Returns the messages that the given component c receives
-fun receives[c : Component] : set Call { c.~to }
-
-// Returns the messages that the given component c sends
-fun sends[c : Component] : set Call { c.~from }
-
 // Returns the data elements the given component c can access
-fun accesses[c : Component] : set Resource {
+fun accesses[m : Component] : set Resource {
 	-- "c" can only access a data "d" iff 
 	-- (1) it owns "d" or 
 	-- (2) if "c" receives a message that carries "d" or
 	-- (3) if "c" sends a message that returns "d" 
-	c.owns + receives[c].args + sends[c].returns
+	m.owns + (to.m).args + (from.m).returns
 }
 
 // A payload in a message must be owned by the sender or received by the sender
 // as part of a previous message			
 fact ResourceConstraints {
-	all m : Component, c : sends[m] |
-		c.args in m.owns + (c.prevs & receives[m]).args + (c.prevs & sends[m]).returns
+	all m : Component, c : from.m |
+		c.args in m.owns + (c.prevs & to.m).args + (c.prevs & from.m).returns
 }
 
 // Generates an instance with a non-empty message between two different end

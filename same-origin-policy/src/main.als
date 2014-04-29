@@ -10,8 +10,9 @@
 module main
 
 -- import other model files
-open browser
 open http
+open browser
+open script
 open sop
 open cors
 open postmessage
@@ -20,7 +21,7 @@ open postmessage
 // Security policies 
 // Comment out to see what might happen when one or more of them don't hold
 pred policies {
- 	//domSOP
+ 	domSOP
 	xmlhttpreqSOP
     -- TODO: cookieSop
 	corsRule
@@ -51,11 +52,11 @@ one sig Facebook extends http/Server {}{
 			MyFBCookie in r.args
 }
 one sig MyProfilePage extends Document {}{
-	url.host in FBHost.subsumes
-	url.path in Facebook.paths
+	src.host in FBHost.matches
+	src.path in Facebook.paths
 //	dom = MyProfile
 }
-sig Profile extends HTML {}
+sig Profile extends Resource {}
 one sig MyProfile in Profile {}
 
 // Malicious server and its related parts
@@ -64,21 +65,21 @@ one sig EvilServer extends http/Server {}{
 //	urls.host = EvilHost
 }
 one sig AdPage extends Document {}{
-	url.host in EvilHost.subsumes
-	url.path in EvilServer.paths
+	src.host in EvilHost.matches
+	src.path in EvilServer.paths
 //	dom in Ad
 }
-sig Ad extends HTML {}
-one sig EvilScript extends browser/Script {}{
+sig Ad extends Resource {}
+one sig EvilScript extends Script {}{
 	doc = AdPage
 }
 
 fact SystemAssumptions {
-	no FBHost.subsumes & EvilHost.subsumes
+	no FBHost.matches & EvilHost.matches
 	DNS.map = FBHost -> Facebook + EvilHost -> EvilServer
 	MyProfile not in (EvilServer + EvilScript).owns
 	MyFBCookie not in Server.owns
-	all r : CORSRequest | r.to = Facebook implies r.ret_allowedOrigins.host = FBHost.subsumes
+	all r : CORSRequest | r.to = Facebook implies r.ret_allowedOrigins.host = FBHost.matches
 	no r : HttpRequest |
 		(r.from = Facebook and r.to = EvilServer and some CriticalData & r.args) or
 		(r.from = MyBrowser and r.to = EvilServer and some CriticalData & r.args)
@@ -108,7 +109,7 @@ assert noResourceLeak {
 // Check whether assertion "noResourceLeak" holds
 // bound: up to 5 objects of each type
 // This generates a counterexample that can be visualized with theme file "SOP.thm"
-check noResourceLeak for 7
+check noResourceLeak for 5 
 
 run {
 	some o : ReadDOM | 

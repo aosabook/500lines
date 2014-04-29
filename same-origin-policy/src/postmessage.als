@@ -5,16 +5,16 @@
 	*/
 module postMessage
 
-open browser
+open script
 open sop
 
 // Browser API function for cross-document messaging
 // used to send a message from one script to another
-sig PostMessage extends browser/DOMAPICall {
+sig PostMessage extends DOMAPICall {
   message : Resource,
-  srcOrigin, targetOrigin : browser/URL
+  srcOrigin, targetOrigin : URL
 }{
-  from + to in browser/Script
+  from + to in Script
   args = message
 }
 

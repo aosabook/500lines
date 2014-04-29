@@ -9,9 +9,7 @@ open call
 
 // A domain name
 sig Domain {
-	subsumes : set Domain
-}{
-	this in subsumes
+	matches : set Domain
 }
 sig Path {}
 // Host is a domain name with a specific IP attached to it
@@ -44,8 +42,7 @@ abstract sig HttpRequest extends Call {
   ret_body : lone Resource,
 }{
   from in Client
-  to in Server
-  to = dns_resolve[url.host]	
+  to in dns_resolve[url.host]	
   -- cookies are always part of the header, never the body
   no ret_body & Cookie
   returns = ret_set_cookies + ret_body
@@ -61,7 +58,7 @@ abstract sig Server extends Component {
 	resources : paths -> Resource
 }{
 	owns = paths.resources
-	all req : HttpRequest & receives[this] {
+	all req : HttpRequest & to.this {
 		-- server can't get requests with the wrong path
 		req.url.path in paths
 		-- returns the corresponding resource
@@ -84,26 +81,4 @@ fun dns_resolve[h : Host] : Server {
 	DNS.map[h] 
 }
 
-// EK: Commented out; not really necessary?
-/*
-fact {
-  // all cookies are mapped by some server -- i.e., no lingering cookies
-  // TODO: all html resources are mapped by some server
-   all c : Cookie | some s : Server | c in s.paths.(s.resources)
-}
-*/
-
-// EK: Commented out for now
-/*
-// TODO: Maybe we don't need this. We can just have the browser "parse"
-// "Resources" into Documents and Scripts instead of HtmlResources
-
-sig HtmlResource extends Resource {}
-
-// An HTTP server that only serves HTML.
-// (TODO: read comment above, maybe we don't need this)
-sig HtmlServer extends Server {
-} { resources in Path -> (HtmlResource + Cookie) }
-*/
-
-run {}
+run {} for 3

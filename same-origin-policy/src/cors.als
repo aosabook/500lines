@@ -7,15 +7,16 @@ module cors
 
 open browser
 open http
+open script
 open origin
 
 sig CORSRequest in http/HttpRequest {
   -- "origin" header
-  origin : origin/Origin,
+  origin : Origin,
   -- "access-control-allow-origin" header
-  ret_allowedOrigins : set origin/Origin
+  ret_allowedOrigins : set Origin
 }{
-  from in browser/Script
+  from in Script
 }
 
 -- in some cases requests are pre-flighted, but we leave this out of the model

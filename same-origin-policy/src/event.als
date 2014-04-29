@@ -17,7 +17,7 @@ fun prevs[e : Event] : set Event {
 fact {
 	-- exactly one event occurs between consecutive time steps
 	all t : Time - ord/last | 
-		one e : Event | e.pre = t and e.post = t.next
+		some e : Event | e.pre = t and e.post = t.next
 	-- every time takes exactly one time step
 	all e : Event | e.post = (e.pre).next
 }

@@ -24,15 +24,14 @@
    <type name="univ"/>
    <type name="browser/Browser"/>
    <type name="browser/Document"/>
-   <type name="browser/DOMAPICall"/>
-   <type name="browser/HTML"/>
-   <type name="browser/Script"/>
    <type name="http/Client"/>
    <type name="http/Cookie"/>
    <type name="http/Get"/>
    <type name="http/Post"/>
    <type name="http/Server"/>
    <type name="postmessage/PostMessage"/>
+   <type name="script/DOMAPICall"/>
+   <type name="script/Script"/>
    <type name="seq/Int"/>
    <type name="browser/call/Call"/>
    <type name="browser/call/Resource"/>
@@ -43,7 +42,6 @@
    <set name="First" type="browser/call/event/ord/Ord"/>
    <set name="Next" type="browser/call/event/ord/Ord"/>
    <set name="post" type="browser/call/event/Event"/>
-   <set name="browser/BrowserHttpRequest" type="http/HttpRequest"/>
    <set name="cors/CORSRequest" type="http/HttpRequest"/>
    <set name="http/Host" type="http/Domain"/>
 </node>
@@ -52,16 +50,12 @@
    <type name="browser/call/Component"/>
 </node>
 
-<node label="BrowserCookie">
-   <type name="browser/BrowserCookie"/>
+<node label="BrowserHttpRequest">
+   <type name="browser/BrowserHttpRequest"/>
 </node>
 
 <node label="DNS">
    <type name="http/DNS"/>
-</node>
-
-<node label="DOM">
-   <set name="browser/DOM" type="browser/call/Resource"/>
 </node>
 
 <node label="Domain">
@@ -77,7 +71,7 @@
 </node>
 
 <node label="ModifyDomainProperty">
-   <type name="browser/ModifyDomainProperty"/>
+   <type name="script/ModifyDomainProperty"/>
 </node>
 
 <node label="MyProfile">
@@ -101,7 +95,7 @@
 </node>
 
 <node label="ReadDOM">
-   <type name="browser/ReadDOM"/>
+   <type name="script/ReadDOM"/>
 </node>
 
 <node label="URL">
@@ -109,12 +103,17 @@
 </node>
 
 <node label="WriteDOM">
-   <type name="browser/WriteDOM"/>
+   <type name="script/WriteDOM"/>
+</node>
+
+<node label="XMLHttpRequest">
+   <type name="script/XMLHttpRequest"/>
 </node>
 
 <node showlabel="no">
    <set name="this/CriticalData" type="browser/call/Resource"/>
    <set name="this/Trusted" type="browser/call/Component"/>
+   <set name="$noResourceLeak_e" type="browser/call/event/Event"/>
    <set name="$noResourceLeak_m" type="browser/call/Component"/>
    <set name="$noResourceLeak_r" type="browser/call/Resource"/>
 </node>
@@ -132,7 +131,6 @@
 </node>
 
 <edge attribute="no">
-   <relation name="url"> <type name="browser/Document"/> <type name="http/URL"/> </relation>
    <relation name="url"> <type name="http/HttpRequest"/> <type name="http/URL"/> </relation>
 </edge>
 
@@ -145,12 +143,9 @@
 
 <edge visible="no" attribute="yes">
    <relation name="args"> <type name="browser/call/event/Event"/> <type name="browser/call/Resource"/> </relation>
-   <relation name="cookies"> <type name="browser/Browser"/> <type name="browser/BrowserCookie"/> </relation>
    <relation name="domain"> <type name="http/Cookie"/> <type name="http/Domain"/> </relation>
-   <relation name="host"> <type name="browser/BrowserCookie"/> <type name="http/Domain"/> </relation>
    <relation name="host"> <type name="http/URL"/> <type name="http/Domain"/> </relation>
    <relation name="map"> <type name="http/DNS"/> <type name="http/Domain"/> <type name="http/Server"/> </relation>
-   <relation name="new_domain"> <type name="browser/ModifyDomainProperty"/> <type name="http/Domain"/> </relation>
    <relation name="owns"> <type name="browser/call/Component"/> <type name="browser/call/Resource"/> </relation>
    <relation name="path"> <type name="http/Cookie"/> <type name="http/Path"/> </relation>
    <relation name="path"> <type name="http/URL"/> <type name="http/Path"/> </relation>
