@@ -86,7 +86,104 @@ These 3 tasks are related, and it makes sense to combine them into one class cal
 
 ### The Parser Class
 
-TODO: Code from parser.rb
+~~~~~~~
+class Parser
+
+  GRAVITY_COEFF = {
+    alpha: [1, -1.979133761292768, 0.979521463540373],
+    beta:  [0.000086384997973502, 0.000172769995947004, 0.000086384997973502]
+  }
+  
+  SMOOTHING_COEFF = {
+    alpha: [1, -1.80898117793047, 0.827224480562408], 
+    beta:  [0.095465967120306, -0.172688631608676, 0.095465967120306]
+  }  
+
+  FORMAT_COMBINED  = 'combined'
+  FORMAT_SEPARATED = 'separated'
+
+  attr_reader :data, :format, :parsed_data, :dot_product_data, :filtered_data
+
+  def initialize(data)
+    @data = data.to_s
+
+    parse_raw_data
+    dot_product_parsed_data
+    filter_dot_product_data
+  end
+
+  def is_data_combined?
+    @format == FORMAT_COMBINED
+  end
+
+private
+
+  def split_accl_combined(accl)
+    @format = FORMAT_COMBINED
+    
+    accl = accl.flatten.map { |i| i.split(',').map(&:to_f) }
+    split_accl = accl.transpose.map do |total_accl|
+      grav = chebyshev_filter(total_accl, GRAVITY_COEFF)
+      user = total_accl.zip(grav).map { |a, b| a - b }
+      [user, grav]
+    end
+    split_accl.transpose
+  end
+
+  def split_accl_separated(accl)
+    @format = FORMAT_SEPARATED
+    
+    accl = accl.map { |i| i.map { |i| i.split(',').map(&:to_f) } }
+    [accl.map {|a| a.first}.transpose, accl.map {|a| a.last}.transpose]
+  end
+
+  def parse_raw_data
+    accl = @data.split(';').map { |i| i.split('|') }
+    
+    split_accl = if accl.first.count == 1
+      split_accl_combined(accl)
+    else
+      split_accl_separated(accl)
+    end
+
+    user_accl, grav_accl   = split_accl
+    user_x, user_y, user_z = user_accl
+    grav_x, grav_y, grav_z = grav_accl
+    
+    @parsed_data = []
+    accl.length.times do |i|
+      @parsed_data << { x: user_x[i], y: user_y[i], z: user_z[i],
+                        xg: grav_x[i], yg: grav_y[i], zg: grav_z[i] }
+    end
+  rescue
+    raise 'Bad Input. Ensure data is properly formatted.'
+  end
+
+  def dot_product_parsed_data
+    @dot_product_data = @parsed_data.map do |data|
+      data[:x] * data[:xg] + data[:y] * data[:yg] + data[:z] * data[:zg]
+    end
+  end
+
+  def filter_dot_product_data
+    @filtered_data = chebyshev_filter(@dot_product_data, SMOOTHING_COEFF)
+  end
+
+  def chebyshev_filter(input_data, coefficients)
+    output_data = [0,0]
+    (2..input_data.length-1).each do |i|
+      output_data << coefficients[:alpha][0] * 
+                      (input_data[i]    * coefficients[:beta][0] +
+                       input_data[i-1]  * coefficients[:beta][1] +
+                       input_data[i-2]  * coefficients[:beta][2] -
+                       output_data[i-1] * coefficients[:alpha][1] -
+                       output_data[i-2] * coefficients[:alpha][2])
+    end
+    output_data
+  end
+
+end
+~~~~~~~
 
 Let's start with the initialize method. Our parser class takes string data as input and stores it in the @data instance variable. It then calls three methods in sequence: parse_raw_data, dot_product_parsed_data, and filter_dot_product_data. 
 
@@ -101,23 +198,33 @@ We determine the input format by the first element of accl, which is an array.
 * accl in the combined format: $[["x1,y1,z1"],...["xn,yn,zn"]]$
 * accl in the separated format: $[["x1_{u},y1_{u},z1_{u}", "x1_{g},y1_{g},z1_{g}"],...["xn_{u},yn_{u},zn_{u}", "xn_{g},yn_{g},zn_{g}"]]$
 
-If the array has exactly one element, we know that out inout format is combined. Otherwise, our input format is separated. Based on this, we call either split_accl_combined or split_accl_separated. Each of these methods sets the @format instance variable, and generates data in the format below. We store this result in split_accl:
+If the array has exactly one element, we know that our input format is combined. Otherwise, our input format is separated. Based on this, we call either split_accl_combined or split_accl_separated. Each of these methods sets the @format instance variable, and generates data in the format below. We store this result in split_accl:
 
-$[[x1_{u},...xn_{u}], [y1_{u},...yn_{u}], [z1_{u},...zn_{u}],
-[x1_{g},...xn_{g}], [y1_{g},...yn_{g}], [z1_{g},...zn_{g}]]$
+TODO: Dig into the details of split_accl_combined and split_accl_separated. Specifically, chat about how split_accl_combined low pass filters to grab the gravitational data.
 
-From split_accl, we can pull split out user acceleration from .......
+$[[[x1_{u},...xn_{u}], [y1_{u},...yn_{u}], [z1_{u},...zn_{u}]],
+[[x1_{g},...xn_{g}], [y1_{g},...yn_{g}], [z1_{g},...zn_{g}]]$
 
-TODO: Content below written for longer option. 
+The next 3 lines split out the arrays as follows:
+
+TODO: Add diagram to label user_accl, grav_accl, user_x, user_y, user_z, and grav_x, grav_y, and grav_z.
+
+$[[[x1_{u},...xn_{u}], [y1_{u},...yn_{u}], [z1_{u},...zn_{u}]],
+[[x1_{g},...xn_{g}], [y1_{g},...yn_{g}], [z1_{g},...zn_{g}]]$
+
+In order to get one data series we can work with, we then create an array of hashes in the following format:
+
+$[\lbrace x\colon x1_{u}, y\colon y1_{u}, z\colon z1_{u}, xg\colon x1_{g}, yg\colon y1_{g}, zg\colon z1_{g} \rbrace,...\lbrace x\colon xn_{u}, y\colon yn_{u}, z\colon zn_{u}, xg\colon xn_{g}, yg\colon yn_{g}, zg\colon zn_{g}\rbrace]$
+
+The entire purpose of the parse_raw_data method is to take input data in one of two formats, and output data in this more workable format.
+
 ### Step 2: Isolating movement in the direction of gravity
 
 First, a very small amount of liner algebra 101. 
 
 TODO: Short explanation of why the dot product is used to help us isolate movement in the direction of gravity.
 
-Taking the dot product in our Parser class is straightforward. We add a @dot_product_data instance variable, and a method, dot_product_parsed_data, to set that variable. The dot_product_parsed_data method iterates through our @parsed_data hash and calculates the dot product with collect, and sets the result to @dot_product_data. 
-
-TODO: Code block from parser2.rb
+Taking the dot product in our Parser class is straightforward. We add a @dot_product_data instance variable, and a method, dot_product_parsed_data, to set that variable. The dot_product_parsed_data method is called immeditely after parse_raw_data in the initializer, and iterates through our @parsed_data hash, calculates the dot product with map, and sets the result to @dot_product_data. 
 
 ### Step 3: Filtering our data series
 
@@ -127,28 +234,67 @@ TODO: Basics of filtering, Chebyshev filter specifically
 
 Following the pattern from steps 1 and 2, we add another instance variable, @filtered_data, to store the filtered data series, and a method, filter_dot_product_data, that we call from the initializer.
 
-TODO: Code block from parser3.rb
-
 The filter_dot_product_data method initalizes the data series by setting the first two elements to 0, and then iterates through the remaining element indeces in @dot_product_data, applying the Chebyshev filter. 
 
-Our Parser now takes string data in the separated format, converts it into a more useable format, isolates movement inthe direction of gravity through the dot product operation, and filters the resulting data series to smooth it out. 
+### Our Parser class in the wild
 
-Our parser class is useable as is. We can take a simpled data series, below, and pass it through out parser:
+Our Parser now takes string data in the separated format, converts it into a more useable format, isolates movement in the direction of gravity through the dot product operation, and filters the resulting data series to smooth it out. 
 
-TODO: Add lines from parser3_test.rb to show functioning parser. 
+Our parser class is useable on its own as is. An example with combined data:
 
-However, our parser only takes data in the separated format. What happens if we only have data in the combined format, and we need to separate it ourselves? 
+~~~~~~~
+> data = '0.123,-0.123,5;0.456,-0.789,0.111;-0.212,0.001,1;'
+> parser = Parser.new(data)
 
-### Enhancing our parser to accept combined data
+> parser.format
+=> 'combined'
+> parser.parsed_data
+=> [{:x=>0.123, :y=>-0.123, :z=>5.0, :xg=>0, :yg=>0, :zg=>0},
+    {:x=>0.456, :y=>-0.789, :z=>0.111, :xg=>0, :yg=>0, :zg=>0},
+    {:x=>-0.2120710948533322,
+   	 :y=>0.0011468544965549535,
+   	 :z=>0.9994625125426089,
+   	 :xg=>7.109485333219216e-05,
+     :yg=>-0.00014685449655495343,
+     :zg=>0.0005374874573911294}]
+> parser.dot_product_data
+=> [0.0, 0.0, 0.0005219529804999682]
+> parser.filtered_data
+=> [0, 0, 4.9828746074755684e-05]
+~~~~~~~
 
-TODO: Explain final changes with parser.rb
+An example with separated data:
+
+~~~~~~~
+> data = '0.028,-0.072,5|0.129,-0.945,-5;0,-0.07,0.06|0.123,-0.947,5;0.2,-1,2|0.1,-0.9,3;'
+> parser = Parser.new(data)
+
+> parser.format
+=> 'separated'
+> parser.parsed_data
+=> [{:x=>0.028, :y=>-0.072, :z=>5, :xg=>0.129, :yg=>-0.945, :zg=>-5}, 
+	{:x=>0, :y=>-0.07, :z =>0.06, :xg=>0.123, :yg=>-0.947, :zg=>5},
+	{:x=>0.2, :y=>-1.0, :z=>2.0, :xg=>0.1, :yg=>-0.9, :zg=>3.0}]
+> parser.dot_product_data
+=> [-24.928348, 0.36629, 6.92]
+> parser.filtered_data
+=> [0, 0, -1.7824384769309702]
+~~~~~~~
+
+### Things to note
+* Ability to pass in either format and the Parser determines it. It's the only class that has to be concerned with it. 
+* ...
 
 ## TODO: ROUGH OUTLINE OF REMAINING CHAPTER STARTS BELOW
+
+## Pedometer functionality
+
+Above and beyond counting steps, pedometer functuonality can also include 
 
 ## Counting steps
 * Now that we have our data in a workable format, we're ready to count steps.
 * Discussion around how that isn't the role of the parser, so introduce analyzer class. 
-* Take out user and device (and therefore distance and time) from Aanalyzer and explain step counting
+* Take out user and device (and therefore distance and time) from Analyzer and explain step counting.
 * Show some working examples through command line of both classes in action. 
 
 ## Adding features to our program
