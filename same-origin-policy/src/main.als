@@ -56,7 +56,7 @@ one sig MyProfilePage extends Document {}{
 	src.path in Facebook.paths
 //	dom = MyProfile
 }
-sig Profile extends Resource {}
+sig Profile in Resource {}
 one sig MyProfile in Profile {}
 
 // Malicious server and its related parts
@@ -69,7 +69,7 @@ one sig AdPage extends Document {}{
 	src.path in EvilServer.paths
 //	dom in Ad
 }
-sig Ad extends Resource {}
+sig Ad in Resource {}
 one sig EvilScript extends Script {}{
 	context = AdPage
 }

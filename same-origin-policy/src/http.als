@@ -61,7 +61,7 @@ abstract sig Server extends Component {
     }
 }
 
-abstract sig Cookie extends Resource {
+sig Cookie in Resource {
   -- by default all cookies are scoped to the host. The cookie domain and path
   -- field could be used to broaden (thus adding more hosts) or limit the scope
   -- of the cookie.
