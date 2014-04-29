@@ -7,15 +7,7 @@ module http
 open call
 
 
-// A domain name
-sig Domain {
-	matches : set Domain
-}
-sig Path {}
-// Host is a domain name with a specific IP attached to it
-// http://en.wikipedia.org/wiki/Domain_name#Domain_name_space
-sig Host in Domain {} -- Host (e.g. www.example.com)
-sig Protocol, Port {}
+sig Protocol, Host, Port, Path {}
 
 sig URL {
   protocol : Protocol,
@@ -47,6 +39,7 @@ abstract sig HttpRequest extends Call {
   no ret_body & Cookie
   returns = ret_set_cookies + ret_body
   args = cookies
+  all c : ret_set_cookies | url.host in c.hosts 
 }
 
 /* HTTP Components */
@@ -68,8 +61,9 @@ abstract sig Server extends Component {
 
 abstract sig Cookie extends Resource {
   -- by default all cookies are scoped to the host. The cookie domain and path
-  -- field could be used to broaden or limit the scope of the cookie.
-  domain : lone Domain,
+  -- field could be used to broaden (thus adding more hosts) or limit the scope
+  -- of the cookie.
+  hosts : set Host,
   path : lone Path
 }
 

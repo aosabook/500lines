@@ -44,7 +44,7 @@ one sig MyBrowser extends browser/Browser {}{
 }
 
 // Facebook server and its related parts
-one sig FBHost in Domain {}
+one sig FBHost in Host {}
 one sig Facebook extends http/Server {}{
 //	urls.host = FBHost
 	all r : HttpRequest |
@@ -52,7 +52,7 @@ one sig Facebook extends http/Server {}{
 			MyFBCookie in r.args
 }
 one sig MyProfilePage extends Document {}{
-	src.host in FBHost.matches
+	src.host = FBHost
 	src.path in Facebook.paths
 //	dom = MyProfile
 }
@@ -60,12 +60,12 @@ sig Profile extends Resource {}
 one sig MyProfile in Profile {}
 
 // Malicious server and its related parts
-one sig EvilHost in Domain {}
+one sig EvilHost in Host {}
 one sig EvilServer extends http/Server {}{
 //	urls.host = EvilHost
 }
 one sig AdPage extends Document {}{
-	src.host in EvilHost.matches
+	src.host = EvilHost
 	src.path in EvilServer.paths
 //	dom in Ad
 }
@@ -75,11 +75,11 @@ one sig EvilScript extends Script {}{
 }
 
 fact SystemAssumptions {
-	no FBHost.matches & EvilHost.matches
+	no FBHost & EvilHost
 	DNS.map = FBHost -> Facebook + EvilHost -> EvilServer
 	MyProfile not in (EvilServer + EvilScript).owns
 	MyFBCookie not in Server.owns
-	all r : CORSRequest | r.to = Facebook implies r.ret_allowedOrigins.host = FBHost.matches
+	all r : CORSRequest | r.to = Facebook implies r.ret_allowedOrigins.host = FBHost
 	no r : HttpRequest |
 		(r.from = Facebook and r.to = EvilServer and some CriticalData & r.args) or
 		(r.from = MyBrowser and r.to = EvilServer and some CriticalData & r.args)

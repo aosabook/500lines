@@ -46,7 +46,7 @@ sig WriteDOM extends DOMAPICall {}{
 
 // Modify the document.domain property
 sig ModifyDomainProperty extends Call {
-  new_domain : Domain
+  new_domain : set Host
 } {
   from in Script
   to in Browser
