@@ -44,7 +44,9 @@ abstract sig HttpRequest extends Call {
 
 /* HTTP Components */
 
-abstract sig Client extends Component {}
+abstract sig Client extends Component {} {
+  no owns
+}
 
 abstract sig Server extends Component {
     paths : set Path, -- paths mapped by this server
