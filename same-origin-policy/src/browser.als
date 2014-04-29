@@ -41,7 +41,7 @@ fact CookieBehavior {
 	all r : HttpRequest, b : Browser |
 		let t = r.pre | 
 			r.from in b + b.(documents.t).~doc implies
-				r.args & Cookie in {c : Cookie | r.url.host in c.hosts }
+				r.args & Cookie in {c : Cookie | r.url.host in c.hosts and r.url.path in c.path }
 }
 
 run {} for 3
