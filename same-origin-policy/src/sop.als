@@ -24,14 +24,14 @@ pred sameOriginPolicy {
 
 pred domSOP {
 	-- A script can only access the DOM of a frame with the same origin
-	all c : ReadDOM +WriteDOM | sameOrigin[c.target_document.src, c.from.context]
+	all c : ReadDOM +WriteDOM | sameOrigin[c.target_document.src, c.from.context.src]
   -- TODO: or they have the same document.domain or they are using post message
 }
 pred xmlhttpreqSOP {
 	-- A script can only make an AJAX call to a server with the same origin if
 	-- it's not a CORS request.
 	all x : XMLHttpRequest |
-			sameOrigin[x.url, x.from.context] or x in cors/CORSRequest
+			sameOrigin[x.url, x.from.context.src] or x in cors/CORSRequest
 }
 
 pred cookieSop {

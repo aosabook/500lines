@@ -10,7 +10,9 @@ open call
 abstract sig Document {
   src : URL ,										-- URL from which this document was originated
   content : Resource -> Time,			-- the content of the document (i.e., DOM)
-  domain_prop : Domain -> Time, 	-- "document.domain" property
+  -- "document.domain" property, at any time it could match several hosts (if
+  -- for example is set to something like *.foo.com)
+  domain_prop : Host -> Time, 	
 }
 
 abstract sig Browser extends http/Client {
@@ -39,7 +41,7 @@ fact CookieBehavior {
 	all r : HttpRequest, b : Browser |
 		let t = r.pre | 
 			r.from in b + b.(documents.t).~doc implies
-				r.args & Cookie in {c : Cookie | r.url.host in c.domain.matches }
+				r.args & Cookie in {c : Cookie | r.url.host in c.hosts }
 }
 
 run {} for 3
