@@ -289,18 +289,36 @@ An example with separated data:
 
 ## Pedometer functionality
 
-Above and beyond counting steps, pedometer functuonality can also include 
+Our pedometer will measure 3 metrics:
+1. Steps taken
+2. Distance traveled
+3. Time traveled
 
-## Counting steps
-* Now that we have our data in a workable format, we're ready to count steps.
-* Discussion around how that isn't the role of the parser, so introduce analyzer class. 
-* Take out user and device (and therefore distance and time) from Analyzer and explain step counting.
-* Show some working examples through command line of both classes in action. 
+Let's discuss the infomation we'll need to calculate each of these metrics.
 
-## Adding features to our program
-* Introduce User class and discuss
-* Introduce Device class and discuss
-* Command line examles of all 4 working together
+### Steps taken
+TODO: above
+
+### Distance traveled
+A mobile pedometer app would generally be used by one person. The stride length of that person would be a necessary value to determine distance travelled. The pedometer can "ask" the user for info.
+
+If the user can directly provide their stride length, then we're good to go. If not, and they provide their gender and their height, we can use $0.413 * height$ for a female, and $0.415 * height$ for a male. 
+
+If they only provide their height, we can use $(0.413 + 0.415)/2 * height$, averaging the two multipliers. 
+
+If they only provide their gender, we can use the average of 70 cm for a female, and 78 cm for a male.
+
+TODO: Add references for multipliers and averages above.
+
+All of this information is related to the user, so it makes sense to include it in a User class. 
+
+TODO: Code for user.rb and discussion.
+
+Things to note:
+* Information is optional. The class handles it.
+* Magic numbers are defined at the top.
+
+TODO: Introduce User, Device, and Analyzer class at once. Show some working examples through command line of both classes in action. 
 
 ## Adding some friendly
 * Sinatra layout
