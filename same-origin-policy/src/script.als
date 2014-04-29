@@ -11,11 +11,7 @@ open browser
 // In reality though, these requests are issued by the browser on behalf
 // of the script but that's fine.
 abstract sig Script extends Client {
-	-- the document under which this script is executing
-	doc : Document
-}
-fun context : Script -> URL {
-	(Script <: doc).src
+  context : Document
 }
 
 /* Calls initiated by scripts*/
@@ -55,7 +51,7 @@ sig ModifyDomainProperty extends Call {
   from in Script
   to in Browser
   no args + returns
-  src.(from.context).domain_prop.post = new_domain
+  from.context.domain_prop.post = new_domain
 }
 
 fact FrameConditions {

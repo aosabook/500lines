@@ -71,7 +71,7 @@ one sig AdPage extends Document {}{
 }
 sig Ad extends Resource {}
 one sig EvilScript extends Script {}{
-	doc = AdPage
+	context = AdPage
 }
 
 fact SystemAssumptions {

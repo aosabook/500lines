@@ -20,7 +20,7 @@ sig PostMessage extends DOMAPICall {
 
 pred postMessageRule {
   -- the receiving frame of a PostMessage must belong to the same origin as targetOrigin
-  all m : PostMessage | sop/sameOrigin[m.targetOrigin, m.to.context]
+  all m : PostMessage | sop/sameOrigin[m.targetOrigin, m.to.context.src]
 }
 
 run {} for 3
