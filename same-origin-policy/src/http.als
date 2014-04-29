@@ -44,11 +44,14 @@ abstract sig HttpRequest extends Call {
 
 /* HTTP Components */
 
-abstract sig Client extends Component {}
+abstract sig Client extends Component {} {
+  no owns
+}
 
 abstract sig Server extends Component {
-    paths : set Path, -- paths mapped by this server
-	resources : paths -> Resource
+ -- TODO: I think we want "some" so that there are no server that maps no paths
+    paths : some Path, -- paths mapped by this server
+	resources : paths -> one Resource
 }{
 	owns = paths.resources
 	all req : HttpRequest & to.this {
@@ -59,7 +62,7 @@ abstract sig Server extends Component {
     }
 }
 
-abstract sig Cookie extends Resource {
+sig Cookie in Resource {
   -- by default all cookies are scoped to the host. The cookie domain and path
   -- field could be used to broaden (thus adding more hosts) or limit the scope
   -- of the cookie.
@@ -75,4 +78,12 @@ fun dns_resolve[h : Host] : Server {
 	DNS.map[h] 
 }
 
-run {} for 3
+-- TODO: Seems like we can't get instances with one Event
+
+// A simple "GET" request
+run {
+  all r : HttpRequest | r.method in Get
+  // comment out to get cookies
+  no Cookie
+}  for 3 but exactly 1 Client, 1 Server, 1 URL, 1 Host, 1 Path, 2 HttpRequest,
+2 Resource

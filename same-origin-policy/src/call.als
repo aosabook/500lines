@@ -6,7 +6,7 @@ module call
 
 open event
 
-abstract sig Resource {}
+sig Resource {}
 abstract sig Component { owns : set Resource }
 abstract sig Call extends Event {
   -- each call is invoked by one component one another
