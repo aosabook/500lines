@@ -11,11 +11,10 @@
   [db ent]
   (let [top-id (:top-id db)
           ent-id (:id ent)
-          inceased-id (inc top-id)
-          [id-to-use next-top] (if (= ent-id :db/no-id-yet)
-                                             [(keyword (str inceased-id)) inceased-id]
-                                             [ent-id top-id])]
-  [id-to-use next-top]))
+          inceased-id (inc top-id)]
+          (if (= ent-id :db/no-id-yet)
+              [(keyword (str inceased-id)) inceased-id]
+              [ent-id top-id])))
 
 (defn entity-at
   "the entity with the given ent-id at the given time (defualts to the latest time)"
