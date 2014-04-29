@@ -49,8 +49,9 @@ abstract sig Client extends Component {} {
 }
 
 abstract sig Server extends Component {
-    paths : set Path, -- paths mapped by this server
-	resources : paths -> Resource
+ -- TODO: I think we want "some" so that there are no server that maps no paths
+    paths : some Path, -- paths mapped by this server
+	resources : paths -> one Resource
 }{
 	owns = paths.resources
 	all req : HttpRequest & to.this {
