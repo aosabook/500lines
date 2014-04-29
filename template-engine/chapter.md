@@ -253,8 +253,8 @@ The result of the template will be a string, but the fastest way to build a
 string from parts is to create a list of strings, and join them together at the
 end.  `result` will be the list of strings.  Because we're going to add strings
 to this list, we capture its `append` and `extend` methods in the local names
-`a` and `e`.  [[[ Reviewers: should I explain more about this unusual use of
-Python methods??]]] The last local we create is a shorthand for the `str`
+`a` and `e`.  [[ Reviewers: should I explain more about this unusual use of
+Python methods??]] The last local we create is a shorthand for the `str`
 built-in.
 
 With those preliminaries out of the way, we're ready for the Python lines
@@ -273,6 +273,9 @@ The logical structures `{{ if ... }}` and `{{ for ... }}` are converted into
 Python conditionals and loops in a relatively straightforward way.
 
 
+<!-- [[[cog from cogutil import include ]]] -->
+<!-- [[[end]]] -->
+
 ## Writing the Engine
 
 Now that we understand what the engine will do, let's walk through the
@@ -286,40 +289,99 @@ which handles the bookkeeping for us as we add lines of code, manage
 indentation, and finally get a dict of global values from the compiled Python.
 
 A CodeBuilder object keeps a list of strings that will together be the final
-Python code.  The only other state it needs is the current indentation level.
+Python code.  The only other state it needs is the current indentation level:
+
+<!-- [[[cog include("templite.py", first="class CodeBuilder", numblanks=2) ]]] -->
+```
+class CodeBuilder(object):
+    """Build source code conveniently."""
+
+    def __init__(self, indent=0):
+        self.code = []
+        self.ident_level = indent
+```
+<!-- [[[end]]] -->
 
 CodeBuilder is quite simple, it has:
 
 * a method to add a new line of code, which automatically indents the text to
   the current indentation level, and supplies a newline:
 
-<!-- code -->
+<!-- [[[cog include("templite.py", first="def add_line", numblanks=3, dedent=False) ]]] -->
+```
+    def add_line(self, line):
+        """Add a line of source to the code.
+
+        Indentation and newline will be added for you, don't provide them.
+
+        """
+        self.code.extend([" " * self.ident_level, line, "\n"])
+```
+<!-- [[[end]]] -->
 
 * two methods to increase or decrease the indentation level:
 
-<!-- code -->
+<!-- [[[cog include("templite.py", first="INDENT_STEP = 4", numblanks=3, dedent=False) ]]] -->
+```
+    INDENT_STEP = 4      # PEP8 says so!
+
+    def indent(self):
+        """Increase the current indent for following lines."""
+        self.ident_level += self.INDENT_STEP
+
+    def dedent(self):
+        """Decrease the current indent for following lines."""
+        self.ident_level -= self.INDENT_STEP
+```
+<!-- [[[end]]] -->
 
 * a method to add a sub-builder.  This lets us keep a reference to a place in
   the code, and add text to it later.  The self.code list is mostly a list of
   strings, but will also hold references to these sub-builders:
 
-<!-- code -->
+<!-- [[[cog include("templite.py", first="def add_subbuilder", numblanks=1, dedent=False) ]]] -->
+```
+    def add_subbuilder(self):
+        """Add a section, a sub-CodeBuilder."""
+        sect = CodeBuilder(self.ident_level)
+        self.code.append(sect)
+        return sect
+```
+<!-- [[[end]]] -->
 
 * a `__str__` method for producing a single string with all the code. This
   simply joins together all the strings in `self.code`.  Note that because
   `self.code` can contain sub-builders, this might call other `CodeBuilder`
   objects recursively:
 
-<!-- code -->
+<!-- [[[cog include("templite.py", first="def __str__", numblanks=1, dedent=False) ]]] -->
+```
+    def __str__(self):
+        return "".join(str(c) for c in self.code)
+```
+<!-- [[[end]]] -->
 
 * a method to produce the final vaues by executing the code.  This stringifies
   the object, executes it in a new globals namespace, and returns the resulting
   values:
 
-<!-- code -->
+<!-- [[[cog include("templite.py", first="def get_globals", numblanks=1, dedent=False) ]]] -->
+```
+    def get_globals(self):
+        """Compile the code, and return a dict of globals it defines."""
+        # A check that the caller really finished all the blocks they started.
+        assert self.ident_level == 0
+        # Get the Python source as a single string.
+        python_source = str(self)
+        # Execute the source, defining globals, and return them.
+        global_namespace = {}
+        exec(python_source, global_namespace)
+        return global_namespace
+```
+<!-- [[[end]]] -->
 
-Notice that although we only use this class to produce one function, there's
-nothing in this class that limits it to that use.  This makes the class simpler
-to implement, and easier to understand.
+Although we only use this class to produce one function, there's nothing here
+that limits it to that use.  This makes the class simpler to implement, and
+easier to understand.
 
 [[much more to come...]]

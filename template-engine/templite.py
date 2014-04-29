@@ -8,8 +8,6 @@ import re
 class CodeBuilder(object):
     """Build source code conveniently."""
 
-    INDENT_STEP = 4      # PEP8 says so!
-
     def __init__(self, indent=0):
         self.code = []
         self.ident_level = indent
@@ -25,11 +23,13 @@ class CodeBuilder(object):
         """
         self.code.extend([" " * self.ident_level, line, "\n"])
 
-    def add_section(self):
+    def add_subbuilder(self):
         """Add a section, a sub-CodeBuilder."""
         sect = CodeBuilder(self.ident_level)
         self.code.append(sect)
         return sect
+
+    INDENT_STEP = 4      # PEP8 says so!
 
     def indent(self):
         """Increase the current indent for following lines."""
@@ -94,7 +94,7 @@ class Templite(object):
 
         code.add_line("def render(ctx, dot):")
         code.indent()
-        vars_code = code.add_section()
+        vars_code = code.add_subbuilder()
         code.add_line("result = []")
         code.add_line("a = result.append")
         code.add_line("e = result.extend")
