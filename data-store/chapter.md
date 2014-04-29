@@ -40,8 +40,7 @@ and CouchDB calls it "compaction".
 Intro to toolchain
 ------------------
 
-The example is written in Python 2.
-(THOUGH I WOULD LIKE IT TO WORK IN 2 AND 3 BOTH BEFORE THIS IS PUBLISHED).
+The example is written in polyglot Python 2/3.
 
 It is highly recommended to use the ``virtualenv`` tool
 when installing dependencies:
@@ -128,6 +127,45 @@ In other words,
 each class should have only one reason to change.
 
 
+### How it works
+
+DBDB uses immutable data structures in memory
+which map nicely onto an append-only serialisation format.
+When a new value is inserted into the tree,
+all in-memory nodes between the root and the insertion point
+are replaced.
+
+The insertion function returns a new root node,
+and the old one is garbage collected if it's no longer referenced.
+When it's time to commit the changes to disk,
+the tree is walked from the bottom-up
+(postfix traversal),
+new nodes are serialised to disk,
+and the disk address of the new root node is written atomically
+(because single-block disk writes are atomic).
+
+[INSERT PIC OF DIRTY NODES BEING WRITTEN TO DISK]
+
+This also means that readers get lock-free access to a consistent view of the tree.
+
+To avoid keeping the entire tree structure in memory concurrently,
+when a logical node is read in from disk,
+the disk address of its left and right children
+(as well as its value)
+are loaded into memory.
+Accessing children and values
+requires one extra function call to `NodeRef.get()`
+to "really get" the thing.
+
+[INSERT PIC OF TREE WALK]
+
+When changes to the tree are not committed,
+they exist in memory
+with strong references from the root down to the changed leaves.
+Additional updates can be made before issuing a commit
+because `NodeRef.get()` will return the uncommitted value if it has one.
+
+
 ### Points of extensibility
 
 The algorithm used to update the data store
@@ -172,12 +210,23 @@ $log_2(2^32) = 32$ to $log_32(2^32) \approx 6.4$ lookups.
 ### Patterns or principles that can be used elsewhere
 
 Test interfaces, not implementation.
+I wrote my first tests against an in-memory version of the database,
+then extended it to persist to disk,
+then added the concept of NodeRefs.
+Most of the tests didn't have to change,
+which gave me confidence that things were still working.
+
+Single Responsibility Principle.
+Classes should have at most one reason to change.
+That's not strictly the case with DBDB,
+but there are multiple avenues of extension
+with only localised changes required.
 
 
 Conclusion
 ----------
 
-* Futher extensions to make
+* Futher extensions to make:
 
     - Full and proper multi-client, non-clobbering support.
         Concurrent dirty readers already "just work",
