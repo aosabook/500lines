@@ -135,6 +135,10 @@ When a new value is inserted into the tree,
 all in-memory nodes between the root and the insertion point
 are replaced.
 
+![Immutable tree](immutable.svg)
+
+![Immutable tree with updates](immutable2.svg)
+
 The insertion function returns a new root node,
 and the old one is garbage collected if it's no longer referenced.
 When it's time to commit the changes to disk,
