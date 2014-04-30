@@ -4,8 +4,7 @@
 	*/
 module http
 
-open call
-
+open event
 
 sig Protocol, Host, Port, Path {}
 
@@ -24,35 +23,30 @@ abstract sig Method {}
 -- TODO: do we need POST requests?
 one sig Get, Post extends Method {}
 
-abstract sig HttpRequest extends Call {
+abstract sig HttpRequest extends Event {
   -- request
   url : URL,
   method : Method,
   cookies : set Cookie,
+  req_body : lone Data,
   -- response
   ret_set_cookies : set Cookie,
-  ret_body : lone Resource,
+  ret_body : lone Data,
+  -- from, to
+  client : Client,
+  server : Server
 }{
-  from in Client
-  to in dns_resolve[url.host]	
-  -- cookies are always part of the header, never the body
-  no ret_body & Cookie
-  returns = ret_set_cookies + ret_body
-  args = cookies
-  all c : ret_set_cookies | url.host in c.hosts 
+	all c : ret_set_cookies | url.host in c.hosts 	
 }
 
 /* HTTP Components */
+abstract sig Client {}
 
-abstract sig Client extends Component {} {
-  no owns
-}
-
-abstract sig Server extends Component {
- -- TODO: I think we want "some" so that there are no server that maps no paths
-    paths : some Path, -- paths mapped by this server
-	resources : paths -> one Resource
+abstract sig Server {
+    paths : set Path, -- paths mapped by this server
+	resources : paths -> Data
 }{
+/*
 	owns = paths.resources
 	all req : HttpRequest & to.this {
 		-- server can't get requests with the wrong path
@@ -60,9 +54,11 @@ abstract sig Server extends Component {
 		-- returns the corresponding resource
 		req.returns = resources[req.url.path]
     }
+*/
 }
 
-sig Cookie in Resource {
+abstract sig Data {}
+abstract sig Cookie  {
   -- by default all cookies are scoped to the host. The cookie domain and path
   -- field could be used to broaden (thus adding more hosts) or limit the scope
   -- of the cookie.
@@ -78,12 +74,10 @@ fun dns_resolve[h : Host] : Server {
 	DNS.map[h] 
 }
 
--- TODO: Seems like we can't get instances with one Event
 
-// A simple "GET" request
+// A simple "GET" request from client to server
 run {
   all r : HttpRequest | r.method in Get
-  // comment out to get cookies
-  no Cookie
-}  for 3 but exactly 1 Client, 1 Server, 1 URL, 1 Host, 1 Path, 2 HttpRequest,
-2 Resource
+}  for 3 but exactly 1 Client, 1 Server, 1 Host, 2 HttpRequest
+
+run {} for 3

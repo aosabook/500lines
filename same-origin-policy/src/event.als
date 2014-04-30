@@ -7,17 +7,17 @@ module event
 open util/ordering[Time] as ord
 
 sig Time {}
-abstract sig Event { pre, post : Time }
+abstract sig Event { before, after : Time }
 
 // Returns the set of the events that occured prior to event e
 fun prevs[e : Event] : set Event {
-	{ e' : Event | e'.pre in e.pre.prevs }
+	{ e' : Event | e'.before in e.before.prevs }
 }
 
 fact {
 	-- exactly one event occurs between consecutive time steps
 	all t : Time - ord/last | 
-		some e : Event | e.pre = t and e.post = t.next
+		some e : Event | e.before = t and e.after = t.next
 	-- every time takes exactly one time step
-	all e : Event | e.post = (e.pre).next
+	all e : Event | e.after = (e.before).next
 }
