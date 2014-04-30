@@ -1,10 +1,11 @@
 /**
-	* http.als
-	*   A model of the Hypertext Transfer Protocol.
-	*/
+   *  http.als
+   *    A model of the Hypertext Transfer Protocol.
+   */
 module http
 
 open event
+
 
 -- TODO: Hos t->Domain
 sig Protocol, Host, Port, Path {}
@@ -32,11 +33,11 @@ abstract sig HttpRequest extends Event {
   -- response
   ret_set_cookies : set Cookie,
   ret_body : lone Resource,
-  -- from, to
-  client : Client,
-  server : Server
+  from : Client,
+  to : Server
 }{
-	all c : ret_set_cookies | url.host in c.hosts 	
+	to = dns_resolve[url.host]  // C2
+	all c : ret_set_cookies | url.host in c.hosts  // C3
 }
 
 /* HTTP Components */
@@ -46,15 +47,7 @@ abstract sig Server {
     paths : set Path, -- paths mapped by this server
 	responses : paths -> (Resource + Cookie)
 }{
-/*
-	owns = paths.resources
-	all req : HttpRequest & to.this {
-		-- server can't get requests with the wrong path
-		req.url.path in paths
-		-- returns the corresponding resource
-		req.returns = resources[req.url.path]
-    }
-*/
+   all r : HttpRequest & to.this | r.ret_body + r.ret_set_cookies in responses[r.url.path]  // C1
 }
 
 abstract sig Resource {}
@@ -62,22 +55,48 @@ abstract sig Cookie {
   -- by default all cookies are scoped to the host. The cookie domain and path
   -- field could be used to broaden (thus adding more hosts) or limit the scope
   -- of the cookie.
-  hosts : set Host,
+  hosts : some Host,
   path : lone Path
 }
 
 /* Domain Name Server */
 one sig DNS { 
-	map : Host -> Server 
+	map : Host -> one Server 
+}{
+	all s : Server | some h : Host | h.map = s  // C5
 }
 fun dns_resolve[h : Host] : Server { 
 	DNS.map[h] 
 }
 
 
-// A simple "GET" request from client to server
-run {
-  all r : HttpRequest | r.method in Get
-}  for 3 but exactly 1 Client, 1 Server, 1 Host, 2 HttpRequest
+/* Run commands */
 
+// To follow the same steps as in the book chapter: 
+//   1 - comment all C1-C5
+//   2 - remove `one` in `map : Host -> one Server`
+
+
+// A simple request
+// We discover that a server could return an incorrect resource (uncomment C1)
+run {}  for 2 but exactly 2 Path
+
+// Let's force to have some DNS map
+// We discover that the request is not being routed to the correct server
+// (uncomment C2)
+run { some map } for 2 but exactly 2 Host
+
+// Let's force responses to set cookies
+// We discover that cookies could be scoped to a host that is not the
+// corresponding one (uncomment C3)
+run { all r : HttpRequest | some r.ret_set_cookies } for 3
+
+// We can get the same host mapping to multiple servers! (change `map` to
+// `Host -> one Server`)
+// We can get servers that serve no hosts (though true in reality that's not
+// very useful because no requests would go to them) (uncomment C5)
 run {} for 3
+
+// Can we get a request for a path that's not mapped by the server?
+// We do, this will generate a counterexample
+check { all r : HttpRequest | r.url.path in r.to.paths } for 3
