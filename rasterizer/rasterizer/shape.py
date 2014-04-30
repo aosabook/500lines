@@ -6,6 +6,11 @@ import random
 class Shape:
     def __init__(self, color=None):
         self.color = color if color is not None else Color()
+        self.bound = None
+    def contains(self, p):
+        raise NotImplementedError("Undefined method")
+    def signed_distance_bound(self, p):
+        raise NotImplementedError("Undefined method")
     def draw(self, image, super_sampling = 6):
         if not self.bound.overlaps(image.bounds()):
             return
