@@ -9,41 +9,37 @@ open script
 
 sig Data in Resource + Cookie {}
 
-sig Call in HttpRequest + BrowserOp {
+sig FlowCall in Call {
   args, returns : set Data,	-- arguments and return data of this call
-  sender, receiver : Component		-- sender, receiver of the call
 }{
-  this in HttpRequest implies {
-    sender = client and receiver = server
-    args = req_cookies + req_body
-    returns = ret_set_cookies + ret_body
-  }
+  this in HttpRequest implies 
+	args = this.req_cookies + this.req_body and
+	returns = this.ret_set_cookies + this.ret_body
 
-  this in BrowserOp implies sender = from and receiver = to
   this in ReadDOM implies no args and returns = this.result
   this in WriteDOM implies args = this.new_dom and no returns
-  this in ModifyDomainProperty implies no args + returns 
+  this in SetDomain implies no args + returns 
 }
 
-sig Component in Client + Server + Browser + Script {
+sig FlowModule in Module {
 	-- set of data that this component iniitally owns
 	owns : set Data
 }
 
 // Returns the data elements the given component c can access
-fun accesses[m : Component] : set Data {
-  -- "c" can only access a data "d" iff 
+fun accesses[m : Module] : set Data {
+  -- "m" can only access a data "d" iff 
   -- (1) it owns "d" or 
-  -- (2) if "c" receives a message that carries "d" or
-  -- (3) if "c" sends a message that returns "d" 
-  m.owns + (receiver.m).args + (sender.m).returns
+  -- (2) if "m" receives a message that carries "d" or
+  -- (3) if "m" sends a message that returns "d" 
+  m.owns + (to.m).args + (from.m).returns
 }
 
 // A payload in a message must be owned by the sender or received by the sender
 // as part of a previous message			
 fact FlowConstraint {
-  all m : Component, c : sender.m |
-    c.args in m.owns + (c.prevs & receiver.m).args + (c.prevs & sender.m).returns
+  all m : Module, c : from.m |
+    c.args in m.owns + (c.prevs & to.m).args + (c.prevs & from.m).returns
 }
 
 run {

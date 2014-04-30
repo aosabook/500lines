@@ -31,7 +31,7 @@ pred xmlhttpreqSOP {
 	-- A script can only make an AJAX call to a server with the same origin if
 	-- it's not a CORS request.
 	all x : XMLHttpRequest |
-			sameOrigin[x.url, x.from.context.src] or x in cors/CORSRequest
+			sameOrigin[x.url, x.from.context.src] or x in CORSRequest
 }
 
 pred cookieSop {

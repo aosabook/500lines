@@ -18,53 +18,48 @@ abstract sig Script extends Client {
 
 // HTTP requests sent by a script
 sig XMLHttpRequest extends HttpRequest {}{
-  client in Script
+  from in Script
 }
 
-abstract sig BrowserOp extends Event {
-	from : Script,
-	to : Browser
+abstract sig BrowserOp extends Call {
+  target_document : Document	
 }{
-  from.context in to.documents.before
-}
-
-// API calls for accessing the content of a document (i.e. DOM)
-abstract sig DomApi extends BrowserOp {
-  target_document : Document		-- document that contains the DOM to be accessed
-}{
-  -- target document must currently exist in the browser 
-  target_document in to.documents.before
+  from in Script
+  to in Browser
+  from.context +  target_document in to.documents.before
+  -- states of browsers remain the same; only documents themselves change
+  documents.after = documents.before and cookies.after = cookies.before
 }
 
 // Reads the content of a document 
 // Represents a set of accessor methods such as "document.documentElement"
-sig ReadDOM extends DomApi {
+sig ReadDOM extends BrowserOp {
   result : Resource
 }{
   -- return the current content of the target document
   result = target_document.content.before
-  modified_docs[none, before, after]
+  -- neither content nor domain property of document changes
+  content.after = content.before and domain.after = domain.before
 }
 
 // Modify the content of a document
-sig WriteDOM extends DomApi {
+sig WriteDOM extends BrowserOp {
   new_dom : Resource
 }{
   -- the new content of the document is set to input argument
-  target_document.content.after = new_dom
-  modified_docs[target_document, before, after]
+  content.after = content.before ++ target_document -> new_dom
+  -- domain property doesn't change
+  domain.after = domain.before
 }
 
 // Modify the document.domain property
 sig SetDomain extends BrowserOp {
-  new_domain : set Host
-} {
-  let doc = from.context |
-    doc.domain_prop.after = new_domain and
-    -- no change to the content of the document
-    doc.content.after = doc.content.before and
-    -- does not modify any other document
-	modified_docs[doc, before, after]
+  new_domain : set Domain
+}{
+  target_document = from.context
+  domain.after = domain.before ++ target_document -> new_domain
+  -- no change to the content of the document
+  content.after = content.before
 }
 
 run {} for 3
