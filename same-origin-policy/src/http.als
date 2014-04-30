@@ -1,10 +1,11 @@
 /**
-	* http.als
-	*   A model of the Hypertext Transfer Protocol.
-	*/
+   *  http.als
+   *    A model of the Hypertext Transfer Protocol.
+   */
 module http
 
 open event
+
 
 -- TODO: Hos t->Domain
 sig Protocol, Host, Port, Path {}
@@ -46,10 +47,7 @@ abstract sig Server {
     paths : set Path, -- paths mapped by this server
 	responses : paths -> (Resource + Cookie)
 }{
-	// C1
-   all req : HttpRequest & to.this {
-	 req.ret_body + req.ret_set_cookies in responses[req.url.path]
-    }
+   all r : HttpRequest & to.this | r.ret_body + r.ret_set_cookies in responses[r.url.path]  // C1
 }
 
 abstract sig Resource {}
