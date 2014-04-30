@@ -32,11 +32,13 @@ abstract sig HttpRequest extends Event {
   -- response
   ret_set_cookies : set Cookie,
   ret_body : lone Resource,
-  -- from, to
-  client : Client,
-  server : Server
+  from : Client,
+  to : Server
 }{
-	all c : ret_set_cookies | url.host in c.hosts 	
+	// C2
+	//server = dns_resolve[url.host]
+	// C3
+	//all c : ret_set_cookies | url.host in c.hosts 	
 }
 
 /* HTTP Components */
@@ -46,15 +48,15 @@ abstract sig Server {
     paths : set Path, -- paths mapped by this server
 	responses : paths -> (Resource + Cookie)
 }{
-/*
-	owns = paths.resources
-	all req : HttpRequest & to.this {
+
 		-- server can't get requests with the wrong path
-		req.url.path in paths
+
 		-- returns the corresponding resource
-		req.returns = resources[req.url.path]
-    }
-*/
+	// C1
+   /*all req : HttpRequest & server.this {
+        //req.url.path in paths
+	 req.ret_body + req.ret_set_cookies in responses[req.url.path]
+    }*/
 }
 
 abstract sig Resource {}
@@ -62,7 +64,7 @@ abstract sig Cookie {
   -- by default all cookies are scoped to the host. The cookie domain and path
   -- field could be used to broaden (thus adding more hosts) or limit the scope
   -- of the cookie.
-  hosts : set Host,
+  hosts : some Host,
   path : lone Path
 }
 
@@ -74,10 +76,19 @@ fun dns_resolve[h : Host] : Server {
 	DNS.map[h] 
 }
 
+// A simple request.
+// We discover that a server could return an incorrect resource (uncomment C1)
+run {}  for 2 but exactly 2 Path
+/*
+exactly 1 Client, exactly 1 Server, exactly 1 Host, exactly 2 HttpRequest,
+exactly 2 Path*/
 
-// A simple "GET" request from client to server
-run {
-  all r : HttpRequest | r.method in Get
-}  for 3 but exactly 1 Client, 1 Server, 1 Host, 2 HttpRequest
+// Let's force to have some Dns map
+// We discover that the request is not being routed to the correct server
+// (uncomment C2)
+run { some map } for 2 but exactly 2 Host//but exactly 1 Client, exactly 1 Server, exactly 2 Host, exactly 2 HttpRequest
 
-run {} for 3
+// Let's force responses to set cookies
+// We discover that cookies could be scoped to a host that is not the
+// corresponding one (uncomment C3)
+run { all r : HttpRequest | some r.ret_set_cookies } for 3 but exactly 1 Client, exactly 1 Server, exactly 2 Host, exactly 2 HttpRequest
