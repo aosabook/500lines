@@ -28,10 +28,10 @@ abstract sig HttpRequest extends Event {
   url : URL,
   method : Method,
   cookies : set Cookie,
-  req_body : lone Data,
+  req_body : lone Resource,
   -- response
   ret_set_cookies : set Cookie,
-  ret_body : lone Data,
+  ret_body : lone Resource,
   -- from, to
   client : Client,
   server : Server
@@ -44,7 +44,7 @@ abstract sig Client {}
 
 abstract sig Server {
     paths : set Path, -- paths mapped by this server
-	resources : paths -> Data
+	resources : paths -> Resource
 }{
 /*
 	owns = paths.resources
@@ -57,8 +57,8 @@ abstract sig Server {
 */
 }
 
-abstract sig Data {}
-abstract sig Cookie  {
+abstract sig Resource {}
+sig Cookie in Resource {
   -- by default all cookies are scoped to the host. The cookie domain and path
   -- field could be used to broaden (thus adding more hosts) or limit the scope
   -- of the cookie.
@@ -73,7 +73,6 @@ one sig DNS {
 fun dns_resolve[h : Host] : Server { 
 	DNS.map[h] 
 }
-
 
 // A simple "GET" request from client to server
 run {

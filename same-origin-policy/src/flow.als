@@ -2,12 +2,12 @@ module flow
 
 open http
 
-sig Resource in Cookie + Data {
+sig Data in Resource {
 	flows : Component -> Component
 }
 
 sig Call in HttpRequest {
-	args, returns : set Resource,
+	args, returns : set Data,
 	from, to : Component
 }{
 	
@@ -21,11 +21,11 @@ sig Call in HttpRequest {
 }
 
 sig Component in Client + Server {
-	owns : set Resource
+	owns : set Data
 }
 
 // Returns the data elements the given component c can access
-fun accesses[m : Component] : set Resource {
+fun accesses[m : Component] : set Data {
 	-- "c" can only access a data "d" iff 
 	-- (1) it owns "d" or 
 	-- (2) if "c" receives a message that carries "d" or
@@ -35,7 +35,7 @@ fun accesses[m : Component] : set Resource {
 
 // A payload in a message must be owned by the sender or received by the sender
 // as part of a previous message			
-fact ResourceConstraints {
+fact FlowConstraints {
 	all m : Component, c : from.m |
 		c.args in m.owns + (c.prevs & to.m).args + (c.prevs & from.m).returns
 }
