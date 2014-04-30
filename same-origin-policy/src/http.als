@@ -36,18 +36,21 @@ abstract sig HttpRequest extends Event {
   from : Client,
   to : Server
 }{
-	to = dns_resolve[url.host]  // C2
-	all c : ret_set_cookies | url.host in c.hosts  // C3
+	to = dns_resolve[url.host]
+	all c : ret_set_cookies | url.host in c.hosts
 }
 
 /* HTTP Components */
 abstract sig Client {}
 
 abstract sig Server {
+  -- TODO: remove paths
     paths : set Path, -- paths mapped by this server
+    -- TODO: remove Cookie from responses
 	responses : paths -> (Resource + Cookie)
 }{
-   all r : HttpRequest & to.this | r.ret_body + r.ret_set_cookies in responses[r.url.path]  // C1
+  -- TODO: move to request
+   all r : HttpRequest & to.this | r.ret_body + r.ret_set_cookies in responses[r.url.path]
 }
 
 abstract sig Resource {}
@@ -56,14 +59,15 @@ abstract sig Cookie {
   -- field could be used to broaden (thus adding more hosts) or limit the scope
   -- of the cookie.
   hosts : some Host,
+        -- TODO: remove path
   path : lone Path
 }
 
 /* Domain Name Server */
 one sig DNS { 
-	map : Host -> one Server 
+	map : Host -> Server 
 }{
-	all s : Server | some h : Host | h.map = s  // C5
+	all s : Server | some h : Host | h.map = s
 }
 fun dns_resolve[h : Host] : Server { 
 	DNS.map[h] 
@@ -72,31 +76,13 @@ fun dns_resolve[h : Host] : Server {
 
 /* Run commands */
 
-// To follow the same steps as in the book chapter: 
-//   1 - comment all C1-C5
-//   2 - remove `one` in `map : Host -> one Server`
-
-
 // A simple request
-// We discover that a server could return an incorrect resource (uncomment C1)
-run {}  for 2 but exactly 2 Path
-
-// Let's force to have some DNS map
-// We discover that the request is not being routed to the correct server
-// (uncomment C2)
-run { some map } for 2 but exactly 2 Host
+run {} for 2 but exactly 2 Path
 
 // Let's force responses to set cookies
-// We discover that cookies could be scoped to a host that is not the
-// corresponding one (uncomment C3)
 run { all r : HttpRequest | some r.ret_set_cookies } for 3
 
-// We can get the same host mapping to multiple servers! (change `map` to
-// `Host -> one Server`)
-// We can get servers that serve no hosts (though true in reality that's not
-// very useful because no requests would go to them) (uncomment C5)
-run {} for 3
-
+-- TODO: We can get the same host mapping to multiple servers!
 // Can we get a request for a path that's not mapped by the server?
 // We do, this will generate a counterexample
 check { all r : HttpRequest | r.url.path in r.to.paths } for 3
