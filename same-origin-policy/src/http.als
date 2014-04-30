@@ -1,6 +1,6 @@
 /**
 	* http.als
-	* 	A model of the Hypertext Transfer Protocol.
+	*   A model of the Hypertext Transfer Protocol.
 	*/
 module http
 
@@ -20,7 +20,6 @@ sig URL {
 
 abstract sig Method {}
 
--- TODO: do we need POST requests?
 one sig Get, Post extends Method {}
 
 abstract sig HttpRequest extends Event {
@@ -44,7 +43,7 @@ abstract sig Client {}
 
 abstract sig Server {
     paths : set Path, -- paths mapped by this server
-	resources : paths -> Resource
+	responses : paths -> (Resource + Cookie)
 }{
 /*
 	owns = paths.resources
@@ -58,7 +57,7 @@ abstract sig Server {
 }
 
 abstract sig Resource {}
-sig Cookie in Resource {
+abstract sig Cookie {
   -- by default all cookies are scoped to the host. The cookie domain and path
   -- field could be used to broaden (thus adding more hosts) or limit the scope
   -- of the cookie.

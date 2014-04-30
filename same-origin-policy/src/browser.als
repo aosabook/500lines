@@ -5,7 +5,6 @@
 module browser
 
 open http
-open call
 
 abstract sig Document {
   src : URL ,										-- URL from which this document was originated
@@ -22,17 +21,17 @@ abstract sig Browser extends http/Client {
 
 /* HTTP request sent from a browser to a server */
 
-sig BrowserHttpRequest extends  HttpRequest {
+sig BrowserHttpRequest extends HttpRequest {
 	doc : Document
 }{
-	from in Browser
+	client in Browser
 	-- browser creates a new document to display the content of the response
-	from.documents.post = from.documents.pre + doc
-	doc.content.post = ret_body
-	doc.domain_prop.post = url.host
+	client.documents.after = client.documents.before + doc
+	doc.content.after = ret_body
+	doc.domain_prop.after = url.host
 	doc.src = url	
 	-- new cookies are stored by the browser
-	from.cookies.post = from.cookies.pre + ret_set_cookies
+	client.cookies.after = client.cookies.before + ret_set_cookies
 }
 
 fact CookieBehavior {
