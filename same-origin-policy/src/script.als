@@ -1,6 +1,6 @@
 /**
-	* browser.als
-	* 	A model of a browser with no-SOP.
+	* script.als
+	* 	A model of a browser script
 	*/
 module script
 
@@ -18,58 +18,54 @@ abstract sig Script extends Client {
 
 // HTTP requests sent by a script
 sig XMLHttpRequest extends HttpRequest {}{
-	from in Script
+  client in Script
 }
 
+abstract sig BrowserOp extends Event {
+	from : Script,
+	to : Browser
+}{
+  from.context in to.documents.before
+}
 
 // API calls for accessing the content of a document (i.e. DOM)
-abstract sig DOMAPICall extends Call {
+abstract sig DomApi extends BrowserOp {
   target_document : Document		-- document that contains the DOM to be accessed
 }{
-  from in Script
-  to in Browser 
-  target_document in to.documents.pre
+  -- target document must currently exist in the browser 
+  target_document in to.documents.before
 }
 
 // Reads the content of a document 
 // Represents a set of accessor methods such as "document.documentElement"
-sig ReadDOM extends DOMAPICall {}{
-  no args
-  returns = target_document.content.pre
+sig ReadDOM extends DomApi {
+  result : Resource
+}{
+  -- return the current content of the target document
+  result = target_document.content.before
+  modified_docs[none, before, after]
 }
 
 // Modify the content of a document
-sig WriteDOM extends DOMAPICall {}{
-  no returns
-  target_document.content.post = args
+sig WriteDOM extends DomApi {
+  new_dom : Resource
+}{
+  -- the new content of the document is set to input argument
+  target_document.content.after = new_dom
+  modified_docs[target_document, before, after]
 }
 
 // Modify the document.domain property
-sig ModifyDomainProperty extends Call {
+sig SetDomain extends BrowserOp {
   new_domain : set Host
 } {
-  from in Script
-  to in Browser
-  no args + returns
-  from.context.domain_prop.post = new_domain
-}
-
-fact FrameConditions {
-	all t: Time-last | let t' = t.next {
-		all d : Document | 
-			-- the content of a document can only change iff 
-			d.content.t != d.content.t' implies
-				some c : Call & pre.t |
-					-- browser sends a new HTTP request or 
-					(c in BrowserHttpRequest and c.doc = d) or
-					-- a script modifies the document
-					(c in WriteDOM and c.target_document = d)
-
-		all b : Browser |
-			-- the browser cookies only change when it sends a new HTTP request
-			(b.documents.t != b.documents.t' or b.cookies.t != b.cookies.t') implies
-				(some c : BrowserHttpRequest & pre.t | c.from = b)
-	}
+  let doc = from.context |
+    doc.domain_prop.after = new_domain and
+    -- no change to the content of the document
+    doc.content.after = doc.content.before and
+    -- does not modify any other document
+	modified_docs[doc, before, after]
 }
 
 run {} for 3
+

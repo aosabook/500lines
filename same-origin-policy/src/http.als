@@ -6,6 +6,7 @@ module http
 
 open event
 
+-- TODO: Hos t->Domain
 sig Protocol, Host, Port, Path {}
 
 sig URL {
@@ -26,7 +27,7 @@ abstract sig HttpRequest extends Event {
   -- request
   url : URL,
   method : Method,
-  cookies : set Cookie,
+  req_cookies : set Cookie,
   req_body : lone Resource,
   -- response
   ret_set_cookies : set Cookie,
@@ -72,6 +73,7 @@ one sig DNS {
 fun dns_resolve[h : Host] : Server { 
 	DNS.map[h] 
 }
+
 
 // A simple "GET" request from client to server
 run {
