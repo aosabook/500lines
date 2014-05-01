@@ -94,8 +94,6 @@ abstract sig HttpRequest extends Call {
   all c: setCookies | url.host in c.domains
   response in to.resources[url.path]
 }
-
-abstract sig GetRequest, PostRequest extends HttpRequest {}
 ```
 
 We're modeling an HTTP request and response in a single object; the `url`, `cookies` and `body` are sent by the client, and the `setCookies` and `response` are sent back by the server. Don't be confused by the two meanings of the word "set" in the declaration of `setCookies`. The field name (following W3C terminology) uses "set" to mean that the cookies that are returned are installed in the browser, "setting" their values; on the right hand side, the word "set" means that any number of cookies (including zero) may be returned.
@@ -113,3 +111,71 @@ Following the field declarations in `HTTPRequest` is a collection of constraints
 [what does allowing cookie to include domains from other servers do?]
 
 Now do some runs...
+
+## The Browser
+
+Let's introduce browsers:
+
+```
+sig Browser extends Client {
+  documents: Document -> Time,
+  cookies: Cookie -> Time,
+}
+```
+
+This is our first example of a signature with "dynamic fields". Alloy has no built-in notions of time or behavior, which means that a variety of idioms can be used. In this model, we're using a common idiom in which you introduce a set of times
+
+```
+sig Time {}
+```
+
+(a signature that is actually declared in the `call` module), and then you attach `Time` as a final column for every time-varying field. Take `cookies` for example. As explained above (when we were talking about the `resources` field of `Server`), `cookies` is a relation with three columns. For a browser `b`, `b.cookies` will be a relation from cookies to time, and `b.cookies.t` will be the cookies held in `b` at time `t`. Likewise, the `documents` field associates a set of documents with each browser at a given time.
+
+A document has a URL, some content and domain:
+
+```
+sig Document {
+  src: URL,
+  content: Resource -> Time,
+  domain: Domain -> Time
+}
+```
+
+The inclusion of the `Time` column for the last two tells us that they can vary over time, but the first (`src`, representing the source URL of the document) is fixed.
+
+To model the effect of an HTTP request on a browser, we introduce a new signature, since not all HTTP requests will originate at the level of the browser; the rest will come from scripts.
+
+```
+sig BrowserHttpRequest extends HttpRequest {
+  doc: Document
+}{
+  -- the request comes from a browser
+  from in Browser
+  -- the cookies that are sent were in the browser before the request
+  sentCookies in from.cookies.before
+  -- every sent cookie is scoped to the url of the request
+  all c: sentCookies | url.host in c.domains
+  -- a new document in the browser from which the request is sent
+  documents.after = documents.before + from -> doc
+  -- the new document has the response as its contents
+  content.after = content.before ++ doc -> response
+  -- the new document has the host of the url as its domain
+  domain.after = domain.before ++ doc -> url.host
+  -- the document's source field is the url of the request
+  doc.src = url	
+  -- the returned cookies are stored by the browser
+  cookies.after = cookies.before + from -> sentCookies
+}
+```
+
+This kind of request has one new field, `doc`, which is the document created in the browser from the resource returned by the request. As with `HTTPRequest`, the behavior is described as a collection of constraints. Some of these say when the call can happen: for example, that the call has to come from a browser. Some of these constrain the arguments of the call: for example, that the cookies must be scoped appropriately. Some of these constrain the effect, and have a common form that relates the value of a relation after the call to its value before. For example, to understand
+
+```
+documents.after = documents.before + from -> doc
+```
+
+remember that `documents` is a 3-column relation on browsers, documents and times. The fields `before` and `after` come from the declaration of `Call` (which we haven't seen, but is included in the listing at the end), and represent the times before and after the call. The expression `documents.after` gives the mapping from browsers to documents after the call. So this constraint says that after the call, the mapping is the same, except for a new entry in the table mapping `from` to `doc`.
+
+## Reflections
+
+Some reflections on what we've done so far. Note how non-deterministic the model is. `HTTPRequest` and `BrowserHTTPRequest` for example.

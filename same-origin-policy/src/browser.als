@@ -6,7 +6,7 @@ module browser
 
 open http
 
-abstract sig Document {
+sig Document {
   src : URL ,										-- URL from which this document was originated
   content : Resource -> Time,			-- the content of the document (i.e., DOM)
   -- "document.domain" property, at any time it could match several hosts (if
@@ -14,7 +14,7 @@ abstract sig Document {
   domain : Domain -> Time, 	
 }
 
-abstract sig Browser extends Client {
+sig Browser extends Client {
   documents : Document -> Time,	-- documents that browser displays over time
   cookies : Cookie -> Time,				-- cookies stored by the browser over time
 }
@@ -26,6 +26,8 @@ sig BrowserHttpRequest extends HttpRequest {
 }{
   from in Browser
   sentCookies in from.cookies.before
+
+  -- maybe drop this? DNJ
   doc not in from.documents.before
 
   -- every cookie sent must be scoped to the url of the request
