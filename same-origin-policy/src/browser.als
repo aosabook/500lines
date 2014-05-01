@@ -27,7 +27,7 @@ sig BrowserHttpRequest extends HttpRequest {
   from in Browser
 
   -- every cookie sent must be scoped to the url of the request
-  req_cookies in matchingCookies[from.cookies.before, url]
+  all c : req_cookies | url.host in c.domains
 
   -- browser creates a new document to display the content of the response
   documents.after = documents.before + from -> doc
@@ -37,11 +37,6 @@ sig BrowserHttpRequest extends HttpRequest {
 
   -- new cookies are stored by the browser
   cookies.after = cookies.before + from -> ret_set_cookies
-}
-
-// return the subset of "cookies" with the scope that matches the url "u"
-fun matchingCookies[cookies : set Cookie, u : URL] : set Cookie {
-	{ c : cookies | u.host in c.domains }
 }
 
 run {} for 3
