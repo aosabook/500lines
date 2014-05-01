@@ -62,5 +62,10 @@ sig SetDomain extends BrowserOp {
   content.after = content.before
 }
 
-run {} for 3
+/* Commands */
 
+run {}
+
+// Can a script set the "document.domain" property with a new_domain that doesn't
+// match the src?
+check { all sd : SetDomain | sd.doc.src.host in sd.new_domain }

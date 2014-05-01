@@ -41,4 +41,13 @@ sig BrowserHttpRequest extends HttpRequest {
   cookies.after = cookies.before + from -> set_cookies
 }
 
-run {} for 3
+/* Commands */
+
+run {}
+
+// Can we have two documents with different src but the same "document.domain"
+// property at some point in time?
+check {
+  no disj d1, d2 : Document | some t : Time |
+    d1.src not in d2.src and d1.domain.t = d2.domain.t
+}
