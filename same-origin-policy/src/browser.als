@@ -26,6 +26,7 @@ sig BrowserHttpRequest extends HttpRequest {
 }{
   from in Browser
   cookies in from.cookies.before
+  doc not in from.documents.before
 
   -- every cookie sent must be scoped to the url of the request
   all c : cookies | url.host in c.domains
