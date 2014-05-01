@@ -37,7 +37,7 @@ abstract sig HttpRequest extends Call {
   ret_body : lone Resource,
 }{
   from in Client
-  to in dns_resolve[url.host]
+  to in DNS.map[url.host]
   all c : ret_set_cookies | url.host in c.domains
   ret_body in to.responses[url.path]
 }
@@ -59,9 +59,6 @@ one sig DNS {
 }{
 	all s : Server | some d : Domain | d.map = s
 }
-fun dns_resolve[d : Domain] : Server { 
-	DNS.map[d] 
-}
 
 
 /* Run commands */
@@ -76,4 +73,4 @@ run { all r : HttpRequest | some r.ret_set_cookies }
 check { all r : HttpRequest | r.url.path in r.to.responses.Resource }
 
 // Can we get the same domain mapping to multiple servers?
-check { all d : Domain | no disj s1, s2 : Server | s1 + s2 in dns_resolve[d] }
+check { all d : Domain | no disj s1, s2 : Server | s1 + s2 in DNS.map[d] }
