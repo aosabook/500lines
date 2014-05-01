@@ -25,20 +25,20 @@ sig BrowserHttpRequest extends HttpRequest {
   doc : Document
 }{
   from in Browser
-  sent_cookies in from.cookies.before
+  sentCookies in from.cookies.before
   doc not in from.documents.before
 
   -- every cookie sent must be scoped to the url of the request
-  all c : sent_cookies | url.host in c.domains
+  all c : sentCookies | url.host in c.domains
 
   -- browser creates a new document to display the content of the response
   documents.after = documents.before + from -> doc
-  content.after = content.before ++ doc -> resp_body
+  content.after = content.before ++ doc -> response
   domain.after = domain.before ++ doc -> url.host
   doc.src = url	
 
   -- new cookies are stored by the browser
-  cookies.after = cookies.before + from -> set_cookies
+  cookies.after = cookies.before + from -> sentCookies
 }
 
 /* Commands */
