@@ -2,17 +2,15 @@
 	* call.als
 	* 	A generic model of calls
 	*/
-module call
+module call[T]
 
 open util/ordering[Time] as ord
 
 sig Time {}
 abstract sig Call { 
 	before, after : Time, 
-	from, to : Module
+	from, to : T
 }
-
-abstract sig Module {}
 
 // Returns the set of the calls that occured prior to "c"
 fun prevs[c : Call] : set Call {

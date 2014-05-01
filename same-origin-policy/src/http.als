@@ -4,7 +4,9 @@
    */
 module http
 
-open call
+open call[Module]
+
+abstract sig Module {}
 
 
 sig Protocol, Domain, Port, Path {}
