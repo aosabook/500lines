@@ -22,11 +22,11 @@ sig XMLHttpRequest extends HttpRequest {}{
 }
 
 abstract sig BrowserOp extends Call {
-  target_document : Document	
+  doc : Document	
 }{
   from in Script
   to in Browser
-  from.context +  target_document in to.documents.before
+  from.context + doc in to.documents.before
   -- states of browsers remain the same; only documents themselves change
   documents.after = documents.before and cookies.after = cookies.before
 }
@@ -37,7 +37,7 @@ sig ReadDOM extends BrowserOp {
   result : Resource
 }{
   -- return the current content of the target document
-  result = target_document.content.before
+  result = doc.content.before
   -- neither content nor domain property of document changes
   content.after = content.before and domain.after = domain.before
 }
@@ -47,7 +47,7 @@ sig WriteDOM extends BrowserOp {
   new_dom : Resource
 }{
   -- the new content of the document is set to input argument
-  content.after = content.before ++ target_document -> new_dom
+  content.after = content.before ++ doc -> new_dom
   -- domain property doesn't change
   domain.after = domain.before
 }
@@ -56,8 +56,8 @@ sig WriteDOM extends BrowserOp {
 sig SetDomain extends BrowserOp {
   new_domain : set Domain
 }{
-  target_document = from.context
-  domain.after = domain.before ++ target_document -> new_domain
+  doc = from.context
+  domain.after = domain.before ++ doc -> new_domain
   -- no change to the content of the document
   content.after = content.before
 }

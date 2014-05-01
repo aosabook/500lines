@@ -24,7 +24,7 @@ pred sameOriginPolicy {
 
 pred domSOP {
 	-- A script can only access the DOM of a frame with the same origin
-	all c : ReadDOM +WriteDOM | sameOrigin[c.target_document.src, c.from.context.src]
+	all c : ReadDOM +WriteDOM | sameOrigin[c.doc.src, c.from.context.src]
   -- TODO: or they have the same document.domain or they are using post message
 }
 pred xmlhttpreqSOP {
