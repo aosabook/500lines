@@ -39,12 +39,12 @@ abstract sig HttpRequest extends Call {
   from in Client
   to in DNS.map[url.host]
   all c : ret_set_cookies | url.host in c.domains
-  ret_body in to.responses[url.path]
+  ret_body in to.resources[url.path]
 }
 
 /* HTTP Components */
 abstract sig Client extends Module {}
-abstract sig Server extends Module { responses : Path -> Resource }
+abstract sig Server extends Module { resources : Path -> Resource }
 abstract sig Resource {}
 abstract sig Cookie {
   -- by default all cookies are scoped to the host. The cookie domain and path
@@ -70,7 +70,7 @@ run {}
 run { all r : HttpRequest | some r.ret_set_cookies }
 
 // Can we get a request for a path that's not mapped by the server?
-check { all r : HttpRequest | r.url.path in r.to.responses.Resource }
+check { all r : HttpRequest | r.url.path in r.to.resources.Resource }
 
 // Can we get the same domain mapping to multiple servers?
 check { all d : Domain | no disj s1, s2 : Server | s1 + s2 in DNS.map[d] }
