@@ -13,8 +13,8 @@ sig FlowCall in Call {
   args, returns : set Data,	-- arguments and return data of this call
 }{
   this in HttpRequest implies 
-	args = this.req_cookies + this.req_body and
-	returns = this.ret_set_cookies + this.ret_body
+	args = this.cookies + this.body and
+	returns = this.set_cookies + this.resp_body
 
   this in ReadDOM implies no args and returns = this.result
   this in WriteDOM implies args = this.new_dom and no returns
