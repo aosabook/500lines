@@ -14,9 +14,8 @@ sig Protocol, Domain, Port, Path {}
 sig URL {
   protocol : Protocol,
   host : Domain,
-  -- port and path are optional
   port : lone Port,
-  path : lone Path
+  path : Path
 }
 
 /* HTTP Requests */
@@ -28,22 +27,21 @@ abstract sig HttpRequest extends Call {
   -- request
   url : URL,
   method : Method,
-  req_cookies : set Cookie,
-  req_body : lone Resource,
+  sent_cookies : set Cookie,
+  body : lone Resource,
   -- response
-  ret_set_cookies : set Cookie,
-  ret_body : lone Resource,
+  set_cookies : set Cookie,
+  resp_body : lone Resource,
 }{
   from in Client
-  to in Server
-  to = dns_resolve[url.host]
-  all c : ret_set_cookies | url.host in c.domains
-  ret_body in to.responses[url.path]
+  to in DNS.map[url.host]
+  all c : set_cookies | url.host in c.domains
+  resp_body in to.resources[url.path]
 }
 
 /* HTTP Components */
 abstract sig Client extends Module {}
-abstract sig Server extends Module { responses : Path -> Resource }
+abstract sig Server extends Module { resources : Path -> Resource }
 abstract sig Resource {}
 abstract sig Cookie {
   -- by default all cookies are scoped to the host. The cookie domain and path
@@ -58,20 +56,21 @@ one sig DNS {
 }{
 	all s : Server | some d : Domain | d.map = s
 }
-fun dns_resolve[d : Domain] : Server { 
-	DNS.map[d] 
-}
 
 
-/* Run commands */
+/* Commands */
 
 // A simple request
-run {} for 2 but exactly 2 Path
+run {}
 
 // Let's force responses to set cookies
-run { all r : HttpRequest | some r.ret_set_cookies } for 3
+run { all r : HttpRequest | some r.set_cookies }
 
--- TODO: We can get the same host mapping to multiple servers!
 // Can we get a request for a path that's not mapped by the server?
-// We do, this will generate a counterexample
-check { all r : HttpRequest | r.url.path in r.to.responses.Resource } for 3
+check { all r : HttpRequest | r.url.path in r.to.resources.Resource }
+
+// Can we get the same domain mapping to multiple servers?
+check { all d : Domain | no disj s1, s2 : Server | s1 + s2 in DNS.map[d] }
+
+// If we do the same request twice, can we get a different response?
+check { no disj r1, r2 : HttpRequest | r1.url = r2.url and r1.resp_body not in r2.resp_body }

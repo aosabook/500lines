@@ -61,4 +61,8 @@ pred noDocumentChange[before, after : Time] {
 }
 
 run {} for 3
+/* Commands */
 
+// Can a script set the "document.domain" property with a new_domain that doesn't
+// match the src?
+check { all sd : SetDomain | sd.doc.src.host in sd.new_domain }

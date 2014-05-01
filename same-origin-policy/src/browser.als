@@ -25,23 +25,29 @@ sig BrowserHttpRequest extends HttpRequest {
   doc : Document
 }{
   from in Browser
+  sent_cookies in from.cookies.before
+  doc not in from.documents.before
 
   -- every cookie sent must be scoped to the url of the request
-  req_cookies in matchingCookies[from.cookies.before, url]
+  all c : sent_cookies | url.host in c.domains
 
   -- browser creates a new document to display the content of the response
   documents.after = documents.before + from -> doc
-  content.after = content.before ++ doc -> ret_body
+  content.after = content.before ++ doc -> resp_body
   domain.after = domain.before ++ doc -> url.host
   doc.src = url	
 
   -- new cookies are stored by the browser
-  cookies.after = cookies.before + from -> ret_set_cookies
+  cookies.after = cookies.before + from -> set_cookies
 }
 
-// return the subset of "cookies" with the scope that matches the url "u"
-fun matchingCookies[cookies : set Cookie, u : URL] : set Cookie {
-	{ c : cookies | u.host in c.domains }
-}
+/* Commands */
 
-run {} for 3
+run {}
+
+// Can we have two documents with different src but the same "document.domain"
+// property at some point in time?
+check {
+  no disj d1, d2 : Document | some t : Time |
+    d1.src not in d2.src and d1.domain.t = d2.domain.t
+}
