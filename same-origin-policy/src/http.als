@@ -56,7 +56,7 @@ one sig DNS {
 }
 
 
-/* Run commands */
+/* Commands */
 
 // A simple request
 run {}
@@ -69,3 +69,6 @@ check { all r : HttpRequest | r.url.path in r.to.resources.Resource }
 
 // Can we get the same domain mapping to multiple servers?
 check { all d : Domain | no disj s1, s2 : Server | s1 + s2 in DNS.map[d] }
+
+// If we do the same request twice, can we get a different response?
+check { no disj r1, r2 : HttpRequest | r1.url = r2.url and r1.resp_body not in r2.resp_body }
