@@ -10,7 +10,7 @@ open browser
 // A script can issue requests through the XmlHttpRequest object
 // In reality though, these requests are issued by the browser on behalf
 // of the script but that's fine.
-abstract sig Script extends Client { context : Document }
+sig Script extends Client { context : Document }
 
 /* Calls initiated by scripts*/
 
@@ -60,7 +60,6 @@ pred noDocumentChange[before, after : Time] {
   content.after = content.before and domain.after = domain.before  
 }
 
-run {} for 3
 /* Commands */
 
 // Can a script set the "document.domain" property with a new_domain that doesn't
