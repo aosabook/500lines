@@ -12,14 +12,9 @@ sig Protocol, Domain, Port, Path {}
 sig URL {
   protocol : Protocol,
   host : Domain,
-  -- port and path are optional
   port : lone Port,
-  path : lone Path
+  path : Path
 }
-
--- TODO: what do we do if we get a request with no path? Servers usually
--- return some resource in this case (say, index.html) but in our model we
--- wouldn't be returning anything.
 
 /* HTTP Requests */
 
