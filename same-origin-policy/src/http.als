@@ -25,16 +25,16 @@ abstract sig HttpRequest extends Call {
   -- request
   url : URL,
   method : Method,
-  req_cookies : set Cookie,
-  req_body : lone Resource,
+  cookies : set Cookie,
+  body : lone Resource,
   -- response
-  ret_set_cookies : set Cookie,
-  ret_body : lone Resource,
+  set_cookies : set Cookie,
+  resp_body : lone Resource,
 }{
   from in Client
   to in DNS.map[url.host]
-  all c : ret_set_cookies | url.host in c.domains
-  ret_body in to.resources[url.path]
+  all c : set_cookies | url.host in c.domains
+  resp_body in to.resources[url.path]
 }
 
 /* HTTP Components */
@@ -62,7 +62,7 @@ one sig DNS {
 run {}
 
 // Let's force responses to set cookies
-run { all r : HttpRequest | some r.ret_set_cookies }
+run { all r : HttpRequest | some r.set_cookies }
 
 // Can we get a request for a path that's not mapped by the server?
 check { all r : HttpRequest | r.url.path in r.to.resources.Resource }
