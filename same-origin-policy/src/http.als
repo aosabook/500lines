@@ -17,6 +17,10 @@ sig URL {
   path : lone Path
 }
 
+-- TODO: what do we do if we get a request with no path? Servers usually
+-- return some resource in this case (say, index.html) but in our model we
+-- wouldn't be returning anything.
+
 /* HTTP Requests */
 
 abstract sig Method {}
@@ -33,8 +37,7 @@ abstract sig HttpRequest extends Call {
   ret_body : lone Resource,
 }{
   from in Client
-  to in Server
-  to = dns_resolve[url.host]
+  to in dns_resolve[url.host]
   all c : ret_set_cookies | url.host in c.domains
   ret_body in to.responses[url.path]
 }
@@ -64,12 +67,13 @@ fun dns_resolve[d : Domain] : Server {
 /* Run commands */
 
 // A simple request
-run {} for 2 but exactly 2 Path
+run {}
 
 // Let's force responses to set cookies
-run { all r : HttpRequest | some r.ret_set_cookies } for 3
+run { all r : HttpRequest | some r.ret_set_cookies }
 
--- TODO: We can get the same host mapping to multiple servers!
 // Can we get a request for a path that's not mapped by the server?
-// We do, this will generate a counterexample
-check { all r : HttpRequest | r.url.path in r.to.responses.Resource } for 3
+check { all r : HttpRequest | r.url.path in r.to.responses.Resource }
+
+// Can we get the same domain mapping to multiple servers?
+check { all d : Domain | no disj s1, s2 : Server | s1 + s2 in dns_resolve[d] }
