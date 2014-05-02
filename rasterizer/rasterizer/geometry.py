@@ -29,8 +29,6 @@ class Vector:
         return Vector(min(self.x, o.x), min(self.y, o.y))
     def max(self, o):
         return Vector(max(self.x, o.x), max(self.y, o.y))
-    def union(*args):
-        return AABox(reduce(Vector.min, args), reduce(Vector.max, args))
     def length(self):
         return (self.x * self.x + self.y * self.y) ** 0.5
     def __repr__(self):
@@ -52,6 +50,9 @@ class AABox:
                     r.low.y >= self.high.y or r.high.y <= self.low.y)
     def intersection(self, other):
         return AABox(self.low.max(other.low), self.high.min(other.high))
+    @staticmethod
+    def from_vectors(*args):
+        return AABox(reduce(Vector.min, args), reduce(Vector.max, args))
 
 class HalfPlane:
     def __init__(self, p1, p2):

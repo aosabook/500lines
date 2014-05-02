@@ -1,11 +1,11 @@
 from shape import Shape
-from geometry import HalfPlane, Vector
+from geometry import HalfPlane, Vector, AABox
 
 class ConvexPoly(Shape): # a *convex* poly, in ccw order, with no repeating vertices
     def __init__(self, ps, color=None):
         Shape.__init__(self, color)
         self.vs = ps
-        self.bound = Vector.union(*self.vs)
+        self.bound = AABox.from_vectors(*self.vs)
         self.half_planes = []
         for i in xrange(len(self.vs)):
             h = HalfPlane(self.vs[i], self.vs[(i+1) % len(self.vs)])

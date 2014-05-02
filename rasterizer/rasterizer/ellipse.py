@@ -19,10 +19,10 @@ class Ellipse(Shape):
         self.center = self.gradient.inverse() * Vector(0, 0)
         y1, y2 = quadratic(b-c*c/4*a, e-c*d/2*a, f-d*d/4*a)
         x1, x2 = quadratic(a-c*c/4*b, d-c*e/2*b, f-e*e/4*b)
-        self.bound = Vector.union(Vector(-(d + c*y1)/2*a, y1),
-                                  Vector(-(d + c*y2)/2*a, y2),
-                                  Vector(x1, -(e + c*x1)/2*b),
-                                  Vector(x2, -(e + c*x2)/2*b))
+        self.bound = AABox.from_vectors(Vector(-(d + c*y1)/2*a, y1),
+                                        Vector(-(d + c*y2)/2*a, y2),
+                                        Vector(x1, -(e + c*x1)/2*b),
+                                        Vector(x2, -(e + c*x2)/2*b))
         if not self.contains(self.center):
             raise Exception("Internal error, center not inside ellipse")
     def value(self, p):

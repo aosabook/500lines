@@ -13,8 +13,8 @@ class CSG(Shape):
 class Union(CSG):
     def __init__(self, v1, v2, color=None):
         CSG.__init__(self, v1, v2, color=color)
-        self.bound = Vector.union(v1.bound.low, v1.bound.high,
-                                  v2.bound.low, v2.bound.high)
+        self.bound = AABox.from_vectors(v1.bound.low, v1.bound.high,
+                                        v2.bound.low, v2.bound.high)
     def contains(self, p):
         return self.v1.contains(p) or self.v2.contains(p)
     def signed_distance_bound(self, p):
