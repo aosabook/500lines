@@ -14,7 +14,7 @@ sig CorsRequest in http/HttpRequest {
   -- "origin" header
   origin: Origin,
   -- "access-control-allow-origin" header
-  allowed_origins: set Origin
+  allowedOrigins: set Origin
 }{
   from in Script
 }
@@ -27,7 +27,7 @@ pred corsRule {
     r.origin = url2origin[r.from.context.src] and
     -- A CORS response is accepted iff it is allowed by the server, as
    -- indicated in "access-control-allow-origin" header
-    r.origin in r.allowed_origins
+    r.origin in r.allowedOrigins
 }
 
 run {}
