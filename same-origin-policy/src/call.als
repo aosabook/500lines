@@ -7,8 +7,8 @@ module call[T]
 open util/ordering[Time] as ord
 
 sig Time {}
-abstract sig Call { 
-  before, after: Time, 
+abstract sig Call {
+  before, after: Time,
   from, to: T
 }
 

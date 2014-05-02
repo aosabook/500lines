@@ -48,8 +48,8 @@ abstract sig Cookie {
 }
 
 /* Domain Name Server */
-one sig DNS { 
-  map: Domain -> Server 
+one sig DNS {
+  map: Domain -> Server
 }{
   -- drop this? don't think it's needed
   all s: Server | some d: Domain | d.map = s

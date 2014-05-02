@@ -12,13 +12,13 @@ sig Data in Resource + Cookie {}
 sig FlowCall in Call {
   args, returns: set Data,  -- arguments and return data of this call
 }{
-  this in HttpRequest implies 
+  this in HttpRequest implies
     args = this.cookies + this.body and
     returns = this.set_cookies + this.resp_body
 
   this in ReadDOM implies no args and returns = this.result
   this in WriteDOM implies args = this.new_dom and no returns
-  this in SetDomain implies no args + returns 
+  this in SetDomain implies no args + returns
 }
 
 sig FlowModule in Module {
@@ -28,10 +28,10 @@ sig FlowModule in Module {
 
 // Returns the data elements the given component c can access
 fun accesses[m: Module] : set Data {
-  -- "m" can only access a data "d" iff 
-  -- (1) it owns "d" or 
+  -- "m" can only access a data "d" iff
+  -- (1) it owns "d" or
   -- (2) if "m" receives a message that carries "d" or
-  -- (3) if "m" sends a message that returns "d" 
+  -- (3) if "m" sends a message that returns "d"
   m.owns + (to.m).args + (from.m).returns
 }
 

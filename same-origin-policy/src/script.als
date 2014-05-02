@@ -27,7 +27,7 @@ abstract sig BrowserOp extends Call { doc: Document }{
   noBrowserChange[before, after]
 }
 
-// Reads the content of a document 
+// Reads the content of a document
 // Represents a set of accessor methods such as "document.documentElement"
 sig ReadDOM extends BrowserOp { result: Resource }{
   -- return the current content of the target document
@@ -53,11 +53,11 @@ sig SetDomain extends BrowserOp { new_domain: set Domain }{
 }
 
 pred noBrowserChange[before, after: Time] {
-  documents.after = documents.before and cookies.after = cookies.before  
+  documents.after = documents.before and cookies.after = cookies.before
 }
 
 pred noDocumentChange[before, after: Time] {
-  content.after = content.before and domain.after = domain.before  
+  content.after = content.before and domain.after = domain.before
 }
 
 /* Commands */
