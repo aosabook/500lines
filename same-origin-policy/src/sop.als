@@ -1,7 +1,7 @@
 /**
-   *  sop.als
-   *    A model of the same-origin policy
-   */
+  *  sop.als
+  *    A model of the same-origin policy
+  */
 module sop
 
 open http
@@ -24,7 +24,7 @@ pred sameOriginPolicy {
 
 pred domSop {
   -- A script can only access the DOM of a frame with the same origin
-  all c: ReadDOM +WriteDOM | sameOrigin[c.doc.src, c.from.context.src]
+  all c: ReadDom + WriteDom | sameOrigin[c.doc.src, c.from.context.src]
   -- TODO: or they have the same document.domain or they are using post message
 }
 pred xmlHttpReqSop {

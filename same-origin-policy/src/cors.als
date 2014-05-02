@@ -1,8 +1,8 @@
 /**
-   *  cors.als
-   *    A model of the cross-origin resource sharing (CORS) mechanism
-   *    intended for cross-domain communication from a script and a server
-   */
+  *  cors.als
+  *    A model of the cross-origin resource sharing (CORS) mechanism
+  *    intended for cross-domain communication from a script and a server
+  */
 module cors
 
 open browser
@@ -14,7 +14,7 @@ sig CorsRequest in http/HttpRequest {
   -- "origin" header
   origin: Origin,
   -- "access-control-allow-origin" header
-  allowed_origins: set Origin
+  allowedOrigins: set Origin
 }{
   from in Script
 }
@@ -27,7 +27,7 @@ pred corsRule {
     r.origin = url2origin[r.from.context.src] and
     -- A CORS response is accepted iff it is allowed by the server, as
    -- indicated in "access-control-allow-origin" header
-    r.origin in r.allowed_origins
+    r.origin in r.allowedOrigins
 }
 
 run {}

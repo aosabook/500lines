@@ -32,7 +32,7 @@
 </node>
 
 <node hideunconnected="no" color="White">
-   <type name="DNS"/>
+   <type name="Dns"/>
 </node>
 
 <node shape="Box" color="Gray">
@@ -44,7 +44,7 @@
 </node>
 
 <node shape="Egg" color="Black">
-   <type name="URL"/>
+   <type name="Url"/>
 </node>
 
 <node showlabel="no">
@@ -62,7 +62,7 @@
 </node>
 
 <edge color="Black">
-   <relation name="url"> <type name="call/Call"/> <type name="URL"/> </relation>
+   <relation name="url"> <type name="call/Call"/> <type name="Url"/> </relation>
 </edge>
 
 <edge color="Blue">
@@ -74,11 +74,11 @@
 </edge>
 
 <edge visible="no" attribute="yes">
-   <relation name="host"> <type name="URL"/> <type name="Domain"/> </relation>
-   <relation name="map"> <type name="DNS"/> <type name="Domain"/> <type name="Server"/> </relation>
-   <relation name="path"> <type name="URL"/> <type name="Path"/> </relation>
-   <relation name="port"> <type name="URL"/> <type name="Port"/> </relation>
-   <relation name="protocol"> <type name="URL"/> <type name="Protocol"/> </relation>
+   <relation name="host"> <type name="Url"/> <type name="Domain"/> </relation>
+   <relation name="map"> <type name="Dns"/> <type name="Domain"/> <type name="Server"/> </relation>
+   <relation name="path"> <type name="Url"/> <type name="Path"/> </relation>
+   <relation name="port"> <type name="Url"/> <type name="Port"/> </relation>
+   <relation name="protocol"> <type name="Url"/> <type name="Protocol"/> </relation>
    <relation name="resources"> <type name="Server"/> <type name="Path"/> <type name="Resource"/> </relation>
 </edge>
 

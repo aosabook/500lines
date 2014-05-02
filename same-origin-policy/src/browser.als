@@ -1,7 +1,7 @@
 /**
-   *  browser.als
-   *    A model of a browser
-   */
+  *  browser.als
+  *    A model of a browser
+  */
 module browser
 
 open http

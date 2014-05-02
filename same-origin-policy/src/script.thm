@@ -12,18 +12,18 @@
 <node>
    <type name="BrowserOp"/>
    <type name="Int"/>
-   <type name="ReadDOM"/>
+   <type name="ReadDom"/>
    <type name="SetDomain"/>
    <type name="String"/>
    <type name="univ"/>
-   <type name="WriteDOM"/>
-   <type name="XMLHttpRequest"/>
+   <type name="WriteDom"/>
+   <type name="XmlHttpRequest"/>
    <type name="browser/Browser"/>
    <type name="browser/BrowserHttpRequest"/>
    <type name="browser/Document"/>
    <type name="seq/Int"/>
    <type name="browser/http/Cookie"/>
-   <type name="browser/http/DNS"/>
+   <type name="browser/http/Dns"/>
    <type name="browser/http/Domain"/>
    <type name="browser/http/HttpRequest"/>
    <type name="browser/http/Path"/>
@@ -56,7 +56,7 @@
 </node>
 
 <node shape="Egg" color="Black">
-   <type name="browser/http/URL"/>
+   <type name="browser/http/Url"/>
 </node>
 
 <node visible="no" shape="Parallelogram" color="Green">
@@ -67,11 +67,15 @@
    <set name="before" type="browser/http/call/Call"/>
 </node>
 
+<edge color="Black">
+   <relation name="url"> <type name="browser/http/HttpRequest"/> <type name="browser/http/Url"/> </relation>
+</edge>
+
 <edge visible="no" attribute="yes">
-   <relation name="host"> <type name="browser/http/URL"/> <type name="browser/http/Domain"/> </relation>
-   <relation name="path"> <type name="browser/http/URL"/> <type name="browser/http/Path"/> </relation>
-   <relation name="port"> <type name="browser/http/URL"/> <type name="browser/http/Port"/> </relation>
-   <relation name="protocol"> <type name="browser/http/URL"/> <type name="browser/http/Protocol"/> </relation>
+   <relation name="host"> <type name="browser/http/Url"/> <type name="browser/http/Domain"/> </relation>
+   <relation name="path"> <type name="browser/http/Url"/> <type name="browser/http/Path"/> </relation>
+   <relation name="port"> <type name="browser/http/Url"/> <type name="browser/http/Port"/> </relation>
+   <relation name="protocol"> <type name="browser/http/Url"/> <type name="browser/http/Protocol"/> </relation>
 </edge>
 
 </view>
