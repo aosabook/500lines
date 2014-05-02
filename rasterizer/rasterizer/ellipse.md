@@ -103,9 +103,9 @@ to the distance between `p` and `s'`, since they form parallel
 lines. Now take the line from `p` to `e`. Notice that it intersects
 the line from `i` to `s'`, at a point we will call `e'`. Now notice
 that `e'`, `s'` and `p` form a right triangle, of which the line from
-`e'` to `s'` is the hypotenuse (and it's *shorter* than the original
-line too). This shortened line, in turn, is yet shorter than the leg
-`s'` to `p`. But length of this leg is precisely the distance from `s`
+`p` to `e'` is the hypotenuse (and it's *shorter* than the original
+line from `p` to `i`). This shortened line, in turn, is yet shorter than the leg
+`p` to `s'`. But length of this leg is precisely the distance from `s`
 to `i`, and so we know that it's a lower bound to the distance from
 `e` to `p`, and we are done.
 
