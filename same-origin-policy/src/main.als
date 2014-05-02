@@ -21,8 +21,8 @@ open postmessage
 // Security policies 
 // Comment out to see what might happen when one or more of them don't hold
 pred policies {
- 	domSOP
-	xmlhttpreqSOP
+ 	domSop
+	xmlHttpReqSOP
     -- TODO: cookieSop
 	corsRule
 	postMessageRule
@@ -79,7 +79,7 @@ fact SystemAssumptions {
 	DNS.map = FBHost -> Facebook + EvilHost -> EvilServer
 	MyProfile not in (EvilServer + EvilScript).owns
 	MyFBCookie not in Server.owns
-	all r : CORSRequest | r.to = Facebook implies r.allowed_origins.host = FBHost
+	all r : CorsRequest | r.to = Facebook implies r.allowed_origins.host = FBHost
 	no r : HttpRequest |
 		(r.from = Facebook and r.to = EvilServer and some CriticalData & r.args) or
 		(r.from = MyBrowser and r.to = EvilServer and some CriticalData & r.args)

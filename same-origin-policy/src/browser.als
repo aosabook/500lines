@@ -7,7 +7,7 @@ module browser
 open http
 
 sig Document {
-  src: URL,  -- URL from which this document was originated
+  src: Url,  -- URL from which this document was originated
   content: Resource -> Time,  -- the content of the document (i.e., DOM)
   -- "document.domain" property, at any time it could match several hosts (if
   -- for example is set to something like *.foo.com)

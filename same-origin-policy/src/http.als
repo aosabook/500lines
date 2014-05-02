@@ -11,7 +11,7 @@ abstract sig Endpoint {}
 
 sig Protocol, Domain, Port, Path {}
 
-sig URL {
+sig Url {
   protocol: Protocol,
   host: Domain,
   port: lone Port,
@@ -22,7 +22,7 @@ sig URL {
 
 abstract sig HttpRequest extends Call {
   -- request
-  url: URL,
+  url: Url,
   sentCookies: set Cookie,
   body: lone Resource,
   -- response
@@ -30,7 +30,7 @@ abstract sig HttpRequest extends Call {
   response: lone Resource,
 }{
   from in Client
-  to in DNS.map[url.host]
+  to in Dns.map[url.host]
   all c: setCookies | url.host in c.domains
   response in to.resources[url.path]
 }
@@ -48,7 +48,7 @@ abstract sig Cookie {
 }
 
 /* Domain Name Server */
-one sig DNS {
+one sig Dns {
   map: Domain -> Server
 }{
   -- drop this? don't think it's needed
@@ -68,7 +68,7 @@ run { all r: HttpRequest | some r.setCookies }
 check { all r: HttpRequest | r.url.path in r.to.resources.Resource }
 
 // Can we get the same domain mapping to multiple servers?
-check { all d: Domain | no disj s1, s2: Server | s1 + s2 in DNS.map[d] }
+check { all d: Domain | no disj s1, s2: Server | s1 + s2 in Dns.map[d] }
 
 // If we do the same request twice, can we get a different response?
 check { no disj r1, r2: HttpRequest | r1.url = r2.url and r1.response not in r2.response}

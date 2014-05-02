@@ -15,7 +15,7 @@ sig Script extends Client { context: Document }
 /* Calls initiated by scripts*/
 
 // HTTP requests sent by a script
-sig XMLHttpRequest extends HttpRequest {}{
+sig XmlHttpRequest extends HttpRequest {}{
   from in Script
   noBrowserChange[before, after] and noDocumentChange[before, after]
 }

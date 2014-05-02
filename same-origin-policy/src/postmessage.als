@@ -12,7 +12,7 @@ open sop
 // used to send a message from one script to another
 sig PostMessage extends BrowserOp {
   message: Resource,
-  srcOrigin, targetOrigin: URL
+  srcOrigin, targetOrigin: Url
 }{
   from + to in Script
 }
