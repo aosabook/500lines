@@ -1,7 +1,7 @@
 from geometry import identity
-from shape import Shape
+from shape import Shape, SceneObject
 
-class Scene:
+class Scene(SceneObject):
     def __init__(self, nodes=None, transform=None):
         if transform is None:
             transform = identity()
@@ -12,8 +12,8 @@ class Scene:
     def add(self, node):
         self.nodes.append(node)
     def draw(self, image):
-        for shape in self.traverse(identity()):
-            shape.draw(image)
+        for scene_object in self.traverse(identity()):
+            scene_object.draw(image)
     def traverse(self, xform):
         this_xform = xform * self.transform
         for node in self.nodes:

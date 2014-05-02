@@ -3,7 +3,11 @@ from itertools import product
 from geometry import Vector
 import random
 
-class Shape:
+class SceneObject:
+    def draw(self, image):
+        raise NotImplementedError("Undefined method")
+
+class Shape(SceneObject):
     def __init__(self, color=None):
         self.color = color if color is not None else Color()
         self.bound = None
