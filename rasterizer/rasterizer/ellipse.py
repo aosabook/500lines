@@ -58,12 +58,8 @@ class Ellipse(Shape):
              + self.d*c.x + self.e*c.y + self.f
         try:
             sols = quadratic(u2, u1, u0)
-        except:
-            print self.value(c)
-            print self.value(p)
-            print self.a, self.b, self.c, self.d, self.e, self.f
-            print u2, u1, u0, c, p
-            raise
+        except ValueError:
+            raise Exception("Internal error, solutions be real numbers")
         return c+pc*sols[0], c+pc*sols[1]
     def signed_distance_bound(self, p):
         v = self.value(p)
