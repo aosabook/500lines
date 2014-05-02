@@ -10,7 +10,7 @@ open script
 sig Data in Resource + Cookie {}
 
 sig FlowCall in Call {
-  args, returns : set Data,	-- arguments and return data of this call
+  args, returns: set Data,	-- arguments and return data of this call
 }{
   this in HttpRequest implies 
 	args = this.cookies + this.body and
@@ -23,11 +23,11 @@ sig FlowCall in Call {
 
 sig FlowModule in Module {
 	-- set of data that this component iniitally owns
-	owns : set Data
+	owns: set Data
 }
 
 // Returns the data elements the given component c can access
-fun accesses[m : Module] : set Data {
+fun accesses[m: Module] : set Data {
   -- "m" can only access a data "d" iff 
   -- (1) it owns "d" or 
   -- (2) if "m" receives a message that carries "d" or
@@ -38,7 +38,7 @@ fun accesses[m : Module] : set Data {
 // A payload in a message must be owned by the sender or received by the sender
 // as part of a previous message			
 fact FlowConstraint {
-  all m : Module, c : from.m |
+  all m: Module, c: from.m |
     c.args in m.owns + (c.prevs & to.m).args + (c.prevs & from.m).returns
 }
 

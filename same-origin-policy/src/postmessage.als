@@ -11,15 +11,15 @@ open sop
 // Browser API function for cross-document messaging
 // used to send a message from one script to another
 sig PostMessage extends BrowserOp {
-  message : Resource,
-  srcOrigin, targetOrigin : URL
+  message: Resource,
+  srcOrigin, targetOrigin: URL
 }{
   from + to in Script
 }
 
 pred postMessageRule {
   -- the receiving frame of a PostMessage must belong to the same origin as targetOrigin
-  all m : PostMessage | sameOrigin[m.targetOrigin, m.to.context.src]
+  all m: PostMessage | sameOrigin[m.targetOrigin, m.to.context.src]
 }
 
 run {} for 3
