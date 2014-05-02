@@ -18,7 +18,7 @@ fun prevs[c: Call] : set Call {
 }
 
 fact {
-  -- exactly one call occurs between consecutive time steps
+  -- some call occurs between consecutive time steps
   all t: Time - ord/last | some c: Call | c.before = t and c.after = t.next
   -- every call time takes exactly one time step
   all c: Call | c.after = (c.before).next
