@@ -1,8 +1,8 @@
 /**
-   *  flow.als
-   *    A model of how differet data elements flow from one component to another
-   *    as an argument or return type in calls
-   */
+  *  flow.als
+  *    A model of how differet data elements flow from one component to another
+  *    as an argument or return type in calls
+  */
 module flow
 
 open script

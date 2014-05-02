@@ -1,7 +1,7 @@
 /**
-   *  sop.als
-   *    A model of the same-origin policy
-   */
+  *  sop.als
+  *    A model of the same-origin policy
+  */
 module sop
 
 open http

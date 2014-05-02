@@ -1,7 +1,7 @@
 /**
-   *  http.als
-   *    A model of the Hypertext Transfer Protocol.
-   */
+  *  http.als
+  *    A model of the Hypertext Transfer Protocol.
+  */
 module http
 
 open call[Endpoint]
