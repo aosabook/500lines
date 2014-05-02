@@ -1,22 +1,22 @@
 /**
-	* browser.als
-	* 	A model of a browser
-	*/
+   *  browser.als
+   *    A model of a browser
+   */
 module browser
 
 open http
 
 sig Document {
-  src: URL ,										-- URL from which this document was originated
-  content: Resource -> Time,			-- the content of the document (i.e., DOM)
+  src: URL,  -- URL from which this document was originated
+  content: Resource -> Time,  -- the content of the document (i.e., DOM)
   -- "document.domain" property, at any time it could match several hosts (if
   -- for example is set to something like *.foo.com)
-  domain: Domain -> Time, 	
+  domain: Domain -> Time,
 }
 
 sig Browser extends Client {
-  documents: Document -> Time,	-- documents that browser displays over time
-  cookies: Cookie -> Time,				-- cookies stored by the browser over time
+  documents: Document -> Time,  -- documents that browser displays over time
+  cookies: Cookie -> Time,  -- cookies stored by the browser over time
 }
 
 /* HTTP request sent from a browser to a server */
@@ -37,7 +37,7 @@ sig BrowserHttpRequest extends HttpRequest {
   documents.after = documents.before + from -> doc
   content.after = content.before ++ doc -> response
   domain.after = domain.before ++ doc -> url.host
-  doc.src = url	
+  doc.src = url
 
   -- new cookies are stored by the browser
   cookies.after = cookies.before + from -> sentCookies

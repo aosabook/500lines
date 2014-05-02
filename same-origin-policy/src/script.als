@@ -1,7 +1,7 @@
 /**
-	* script.als
-	* 	A model of a browser script
-	*/
+   *  script.als
+   *    A model of a browser script
+   */
 module script
 
 open browser

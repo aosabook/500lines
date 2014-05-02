@@ -1,8 +1,8 @@
 /**
-	* cors.als
-	* 	A model of the cross-origin resource sharing (CORS) mechanism
-	* 		intended for cross-domain communication from a script and a server
-	*/
+   *  cors.als
+   *    A model of the cross-origin resource sharing (CORS) mechanism
+   *    intended for cross-domain communication from a script and a server
+   */
 module cors
 
 open browser

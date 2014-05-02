@@ -1,7 +1,7 @@
 /**
-	* sop.als
-	* 	A model of the same-origin policy
-	*/
+   *  sop.als
+   *    A model of the same-origin policy
+   */
 module sop
 
 open http
@@ -16,22 +16,22 @@ pred sameOrigin[u1, u2: URL] {
 }
 
 pred sameOriginPolicy {
-	-- same origin policy actually has multiple parts
+  -- same origin policy actually has multiple parts
   domSOP
   xmlhttpreqSOP
   cookieSop
 }
 
 pred domSOP {
-	-- A script can only access the DOM of a frame with the same origin
-	all c: ReadDOM +WriteDOM | sameOrigin[c.doc.src, c.from.context.src]
+  -- A script can only access the DOM of a frame with the same origin
+  all c: ReadDOM +WriteDOM | sameOrigin[c.doc.src, c.from.context.src]
   -- TODO: or they have the same document.domain or they are using post message
 }
 pred xmlhttpreqSOP {
-	-- A script can only make an AJAX call to a server with the same origin if
-	-- it's not a CORS request.
-	all x: XMLHttpRequest |
-			sameOrigin[x.url, x.from.context.src] or x in CORSRequest
+  -- A script can only make an AJAX call to a server with the same origin if
+  -- it's not a CORS request.
+  all x: XMLHttpRequest |
+    sameOrigin[x.url, x.from.context.src] or x in CORSRequest
 }
 
 pred cookieSop {
