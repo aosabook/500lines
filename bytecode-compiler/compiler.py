@@ -10,11 +10,11 @@ jump_stack_effects = {dis.opmap['FOR_ITER']: -1,
                       dis.opmap['JUMP_IF_FALSE_OR_POP']: 0}
 
 def take_argument(opcode):
-    code0 = encode(opcode, 0)
-    if opcode in dis.hasjrel:
-        return lambda label: (code0, [(label, lambda addr: addr, jump_stack_effect(opcode))], stack_effect(opcode), None)
-    elif opcode in dis.hasjabs:
-        return lambda label: (code0, [(label, lambda addr: 0, jump_stack_effect(opcode))], stack_effect(opcode), None)
+    if opcode in dis.hasjrel or opcode in dis.hasjabs:
+        code0 = encode(opcode, 0)
+        fixup = (lambda addr: addr) if opcode in dis.hasjrel else (lambda addr: 0)
+        linking = lambda label: [(label, fixup, jump_stack_effect(opcode))]
+        return lambda label: (code0, linking(label), stack_effect(opcode), None)
     else:
         return lambda arg: (encode(opcode, arg), [], stack_effect(opcode, arg), None)
 
