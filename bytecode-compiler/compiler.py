@@ -1,14 +1,224 @@
-"""
-Byte-compile a subset of Python from AST to code objects.
-"""
-
 import ast, collections, dis, types
 from functools import reduce
-
-from assembler import assemble, op, set_lineno
+from stack_effect import stack_effect
 from check_subset import check_conformity
-from desugar import desugar
-from scoper import top_scope
+
+def jump_stack_effect(opcode):
+    return jump_stack_effects.get(opcode, stack_effect(opcode))
+jump_stack_effects = {dis.opmap['FOR_ITER']: -1,
+                      dis.opmap['JUMP_IF_TRUE_OR_POP']: 0,
+                      dis.opmap['JUMP_IF_FALSE_OR_POP']: 0}
+
+def take_argument(opcode):
+    code0 = encode(opcode, 0)
+    if opcode in dis.hasjrel:
+        return lambda label: (code0, [(label, lambda addr: addr, jump_stack_effect(opcode))], stack_effect(opcode), None)
+    elif opcode in dis.hasjabs:
+        return lambda label: (code0, [(label, lambda addr: 0, jump_stack_effect(opcode))], stack_effect(opcode), None)
+    else:
+        return lambda arg: (encode(opcode, arg), [], stack_effect(opcode, arg), None)
+
+def encode(opcode, arg): return [opcode, arg % 256, arg // 256]
+
+class Opcodes: pass
+op = Opcodes()
+for name, opcode in dis.opmap.items():
+    defn = (take_argument(opcode) if dis.HAVE_ARGUMENT <= opcode
+            else ([opcode], [], stack_effect(opcode), None))
+    setattr(op, name, defn)
+
+def set_lineno(line):
+    return ([], [], 0, line)
+
+def assemble(assembly):
+    code = []
+    max_depth = 0
+    firstlineno, lnotab, cur_byte, cur_line = None, [], 0, None
+
+    def flatten(assembly, refs, depth, depth_at_label):
+        nonlocal max_depth, firstlineno, lnotab, cur_byte, cur_line
+        if isinstance(assembly, tuple):
+            my_code, my_linking, my_stack_effect, my_lineno = assembly
+
+            if my_lineno is not None:
+                if firstlineno is None:
+                    firstlineno = cur_line = my_lineno
+                elif my_lineno > cur_line: # XXX should be != ideally
+                    byte_step = len(code) - cur_byte
+                    line_step = my_lineno - cur_line
+                    cur_byte, cur_line = len(code), my_lineno
+                    while 255 < byte_step:
+                        lnotab += [255, 0]
+                        byte_step -= 255
+                    while 255 < line_step:
+                        lnotab += [byte_step, 255]
+                        byte_step = 0
+                        line_step -= 255
+                    if (byte_step, line_step) != (0, 0):
+                        lnotab += [byte_step, line_step]
+                    
+            for label, fixup, stack_effect in my_linking:
+                refs.append((len(code) + 1, label, fixup))
+                depth_at_label[label] = depth + stack_effect
+
+            depth += my_stack_effect
+            max_depth = max(max_depth, depth)
+
+            code.extend(my_code)
+
+        elif isinstance(assembly, list):
+            for subassembly in assembly:
+                depth = flatten(subassembly, refs, depth, depth_at_label)
+
+        elif isinstance(assembly, dict):
+            my_refs = []
+            my_addresses = {}
+            my_depth_at_label = {}
+            for label, subassembly in sorted(assembly.items()):
+                my_addresses[label] = len(code)
+                depth = my_depth_at_label.get(label, depth)
+                depth = flatten(subassembly, my_refs, depth, my_depth_at_label)
+            for address, label, fixup in my_refs:
+                target = my_addresses[label] - fixup(address+2)
+                code[address+0] = target % 256
+                code[address+1] = target // 256
+
+        else:
+            raise TypeError("Not an assembly", assembly)
+
+        return depth
+
+    refs = []
+    depth_at_label = {}
+    flatten(assembly, refs, 0, depth_at_label)
+    assert not refs and not depth_at_label
+    return bytes(tuple(code)), max_depth, firstlineno, bytes(lnotab)
+
+def desugar(t):
+    return ast.fix_missing_locations(Expander().visit(t))
+
+class Function(ast.FunctionDef): # from FunctionDef so that ast.get_docstring works. Ugh!
+    _fields = ('name', 'args', 'body')
+
+load, store = ast.Load(), ast.Store()
+
+class Expander(ast.NodeTransformer):
+
+    def visit_Lambda(self, t):
+        t = self.generic_visit(t)
+        result = Function('<lambda>', t.args, [ast.Return(t.body)])
+        return ast.copy_location(result, t) # TODO do this automatically for every visit method?
+
+    def visit_FunctionDef(self, t):
+        t = self.generic_visit(t)
+        fn = Function(t.name, t.args, t.body)
+        result = ast.Assign([ast.Name(t.name, store)], fn)
+        for d in reversed(t.decorator_list):  # TODO use reduce?
+            result = ast.Call(d, [result], [], None, None)
+        return ast.copy_location(result, t)
+
+    def visit_ListComp(self, t):
+        t = self.generic_visit(t)
+        body = ast.Expr(ast.Call(ast.Attribute(ast.Name('.result', load), 'append', load),
+                                 [t.elt], [], None, None))
+        for loop in reversed(t.generators):
+            for test in reversed(loop.ifs):
+                body = ast.If(test, [body], [])
+            body = ast.For(loop.target, loop.iter, [body], [])
+        fn = [ast.Assign([ast.Name('.result', store)], ast.List([], load)),
+              body,
+              ast.Return(ast.Name('.result', load))]
+        result = ast.Call(Function('<listcomp>', no_args, fn),
+                          [], [], None, None)
+        return ast.copy_location(result, t)
+
+    def visit_Assert(self, t):
+        t = self.generic_visit(t)
+        result = ast.If(ast.UnaryOp(ast.Not(), t.test),
+                        [ast.Raise(ast.Call(ast.Name('AssertionError', load),
+                                            [] if t.msg is None else [t.msg],
+                                            [], None, None),
+                                   None)],
+                        [])
+        return ast.copy_location(result, t)
+
+no_args = ast.arguments([], None, [], None, [], [])
+
+def top_scope(t):
+    top = Scope(t, ())
+    top.visit(t)
+    top.analyze(set())
+    return top
+
+def get_type(t):
+    if   isinstance(t, ast.Module):
+        return 'module'
+    elif isinstance(t, ast.ClassDef):
+        return 'class'
+    elif isinstance(t, Function):
+        return 'function'
+    else:
+        assert False
+
+class Scope(ast.NodeVisitor):
+    def __init__(self, t, defs):
+        self.t = t
+        self.children = []
+        self.defs = set(defs)
+        self.uses = set()
+
+    def dump(self, indent):
+        print(indent, get_type(self.t), getattr(self.t, 'name', '<nameless>'))
+        indent = indent + '  '
+        for name in sorted(self.defs | self.uses):
+            print(indent, '| %-8s %s' % (self.access(name), name))
+        for ch in self.children:
+            ch.dump(indent)
+
+    def analyze(self, parent_defs):
+        self.maskvars = self.defs if get_type(self.t) == 'function' else set()
+        for child in self.children:
+            child.analyze(parent_defs | self.maskvars)
+        child_freevars = set([var for child in self.children for var in child.freevars])
+        self.cellvars = tuple(child_freevars & self.maskvars)
+        self.freevars = tuple(parent_defs & ((self.uses | child_freevars) - self.maskvars))
+        self.derefvars = self.cellvars + self.freevars
+
+    def access(self, name):
+        return ('deref' if name in self.derefvars else
+                'fast' if name in self.maskvars else
+                'name')
+
+    def get_child(self, t):
+        for child in self.children:
+            if child.t is t:
+                return child
+        assert False
+
+    def visit_ClassDef(self, t):
+        self.defs.add(t.name)
+        for expr in t.bases: self.visit(expr)
+        subscope = Scope(t, ())
+        self.children.append(subscope)
+        for stmt in t.body: subscope.visit(stmt)
+
+    def visit_Function(self, t):
+        subscope = Scope(t, [arg.arg for arg in t.args.args])
+        self.children.append(subscope)
+        for stmt in t.body: subscope.visit(stmt)
+
+    def visit_Import(self, t):
+        for alias in t.names:
+            self.defs.add(alias.asname or alias.name.split('.')[0])
+
+    def visit_ImportFrom(self, t):
+        for alias in t.names:
+            self.defs.add(alias.asname or alias.name)
+
+    def visit_Name(self, t):
+        if   isinstance(t.ctx, ast.Load):  return self.uses.add(t.id)
+        elif isinstance(t.ctx, ast.Store): return self.defs.add(t.id)
+        else: assert False
 
 def byte_compile(module_name, filename, t, f_globals):
     t = desugar(t)
@@ -18,7 +228,6 @@ def byte_compile(module_name, filename, t, f_globals):
     return types.FunctionType(code, f_globals)
 
 class CodeGen(ast.NodeVisitor):
-
     def __init__(self, filename, scope):
         self.filename  = filename
         self.scope     = scope
@@ -50,7 +259,6 @@ class CodeGen(ast.NodeVisitor):
         kwonlyargcount = 0
         nlocals = len(self.varnames)
         bytecode, stacksize, firstlineno, lnotab = assemble(assembly)
-        # XXX start with 0x01 for functions
         flags = (0x00 | (0x02 if nlocals else 0)
                       | (0x10 if self.scope.freevars else 0)
                       | (0x40 if not self.scope.derefvars else 0))
@@ -274,7 +482,6 @@ class CodeGen(ast.NodeVisitor):
         if   isinstance(t.ctx, ast.Load):
             return [self(t.elts), build_op(len(t.elts))]
         elif isinstance(t.ctx, ast.Store):
-            # XXX make sure there are no stars in elts
             return [op.UNPACK_SEQUENCE(len(t.elts)), self(t.elts)]
         else:
             assert False
@@ -285,16 +492,3 @@ def make_table():
 
 def collect(table):
     return tuple(sorted(table, key=table.get))
-
-if __name__ == '__main__':
-
-    def run(module_name, filename, source):
-        f = compile_toplevel(module_name, filename, source)
-        f()   # It's alive!
-
-    def compile_toplevel(module_name, filename, source):
-        t = ast.parse(source)
-        f = byte_compile(module_name, filename, t, globals())
-        return f
-
-    run('silly', 'silly.py', open('silly.py').read())

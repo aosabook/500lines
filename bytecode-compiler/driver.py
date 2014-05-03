@@ -3,7 +3,7 @@ Test-drive the byte-compiler.
 """
 
 import ast, dis, sys, types
-import codegen
+import compiler
 
 loud = 0
 
@@ -23,7 +23,7 @@ def compile_toplevel(module_name, filename, source):
     except ImportError:
         astpp = ast
     report(astpp.dump(t))
-    f = codegen.byte_compile(module_name, filename, t, globals())
+    f = compiler.byte_compile(module_name, filename, t, globals())
     diss(f.__code__)
     return f
 
