@@ -26,10 +26,6 @@ sig BrowserHttpRequest extends HttpRequest {
 }{
   from in Browser
   sentCookies in from.cookies.before
-
-  -- maybe drop this? DNJ
-  doc not in from.documents.before
-
   -- every cookie sent must be scoped to the url of the request
   all c: sentCookies | url.host in c.domains
 

@@ -65,3 +65,35 @@ pred noDocumentChange[before, after: Time] {
 // Can a script set the "document.domain" property with a new_domain that doesn't
 // match the src?
 check { all sd: SetDomain | sd.doc.src.host in sd.newDomain }
+
+run {
+  some ReadDom
+  some XmlHttpRequest
+  all t : Time | #documents.t = 2
+  no cookies
+  no sentCookies
+  no setCookies
+  no response
+  some body
+  ReadDom in XmlHttpRequest.prevs
+  XmlHttpRequest.url = Script.context.src
+  #Resource > 1
+  #Document.src > 1
+  all t : Time - last | one before.t
+} for 3
+
+run {
+	some r : XmlHttpRequest {
+		r.from.context.src.host != r.url.host
+	}
+  all t : Time | #documents.t = 2
+  no content
+   no cookies
+  no sentCookies
+  no setCookies
+  some response
+  no body
+  #Document = 2
+  #Resource > 1
+  all t : Time - last | one before.t
+} for 3 but 2 Time
