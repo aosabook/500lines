@@ -3,33 +3,6 @@ from functools import reduce
 from stack_effect import stack_effect
 from check_subset import check_conformity
 
-def jump_stack_effect(opcode):
-    return jump_stack_effects.get(opcode, stack_effect(opcode))
-jump_stack_effects = {dis.opmap['FOR_ITER']: -1,
-                      dis.opmap['JUMP_IF_TRUE_OR_POP']: 0,
-                      dis.opmap['JUMP_IF_FALSE_OR_POP']: 0}
-
-def take_argument(opcode):
-    if opcode in dis.hasjrel or opcode in dis.hasjabs:
-        code0 = encode(opcode, 0)
-        fixup = (lambda addr: addr) if opcode in dis.hasjrel else (lambda addr: 0)
-        linking = lambda label: [(label, fixup, jump_stack_effect(opcode))]
-        return lambda label: (code0, linking(label), stack_effect(opcode), None)
-    else:
-        return lambda arg: (encode(opcode, arg), [], stack_effect(opcode, arg), None)
-
-def encode(opcode, arg): return [opcode, arg % 256, arg // 256]
-
-class Opcodes: pass
-op = Opcodes()
-for name, opcode in dis.opmap.items():
-    defn = (take_argument(opcode) if dis.HAVE_ARGUMENT <= opcode
-            else ([opcode], [], stack_effect(opcode), None))
-    setattr(op, name, defn)
-
-def set_lineno(line):
-    return ([], [], 0, line)
-
 def assemble(assembly):
     code = []
     max_depth = 0
@@ -93,6 +66,33 @@ def assemble(assembly):
     flatten(assembly, refs, 0, depth_at_label)
     assert not refs and not depth_at_label
     return bytes(tuple(code)), max_depth, firstlineno, bytes(lnotab)
+
+def set_lineno(line):
+    return ([], [], 0, line)
+
+def take_argument(opcode):
+    if opcode in dis.hasjrel or opcode in dis.hasjabs:
+        code0 = encode(opcode, 0)
+        fixup = (lambda addr: addr) if opcode in dis.hasjrel else (lambda addr: 0)
+        linking = lambda label: [(label, fixup, jump_stack_effect(opcode))]
+        return lambda label: (code0, linking(label), stack_effect(opcode), None)
+    else:
+        return lambda arg: (encode(opcode, arg), [], stack_effect(opcode, arg), None)
+
+def encode(opcode, arg): return [opcode, arg % 256, arg // 256]
+
+def jump_stack_effect(opcode):
+    return jump_stack_effects.get(opcode, stack_effect(opcode))
+jump_stack_effects = {dis.opmap['FOR_ITER']: -1,
+                      dis.opmap['JUMP_IF_TRUE_OR_POP']: 0,
+                      dis.opmap['JUMP_IF_FALSE_OR_POP']: 0}
+
+class Opcodes: pass
+op = Opcodes()
+for name, opcode in dis.opmap.items():
+    defn = (take_argument(opcode) if dis.HAVE_ARGUMENT <= opcode
+            else ([opcode], [], stack_effect(opcode), None))
+    setattr(op, name, defn)
 
 def desugar(t):
     return ast.fix_missing_locations(Expander().visit(t))
