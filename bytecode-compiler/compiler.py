@@ -148,14 +148,10 @@ def top_scope(t):
     return top
 
 def get_type(t):
-    if   isinstance(t, ast.Module):
-        return 'module'
-    elif isinstance(t, ast.ClassDef):
-        return 'class'
-    elif isinstance(t, Function):
-        return 'function'
-    else:
-        assert False
+    if   isinstance(t, ast.Module):   return 'module'
+    elif isinstance(t, ast.ClassDef): return 'class'
+    elif isinstance(t, Function):     return 'function'
+    else: assert False
 
 class Scope(ast.NodeVisitor):
     def __init__(self, t, defs):
