@@ -1,0 +1,87 @@
+<?xml version="1.0"?>
+<alloy>
+
+<view nodetheme="Martha" edgetheme="Martha">
+
+<projection> <type name="call/Time"/> </projection>
+
+<defaultnode/>
+
+<defaultedge/>
+
+<node>
+   <type name="Client"/>
+   <type name="Cookie"/>
+   <type name="Domain"/>
+   <type name="HttpRequest"/>
+   <type name="Int"/>
+   <type name="Path"/>
+   <type name="Port"/>
+   <type name="Protocol"/>
+   <type name="Resource"/>
+   <type name="String"/>
+   <type name="univ"/>
+   <type name="seq/Int"/>
+   <type name="call/ord/Ord"/>
+   <set name="First" type="call/ord/Ord"/>
+   <set name="Next" type="call/ord/Ord"/>
+</node>
+
+<node hideunconnected="no">
+   <type name="call/Time"/>
+</node>
+
+<node hideunconnected="no" color="White">
+   <type name="Dns"/>
+</node>
+
+<node shape="Box" color="Gray">
+   <type name="Server"/>
+</node>
+
+<node shape="Circle" color="Blue">
+   <type name="Endpoint"/>
+</node>
+
+<node shape="Egg" color="Black">
+   <type name="Url"/>
+</node>
+
+<node showlabel="no">
+   <set name="$c" type="call/Call"/>
+   <set name="$r" type="call/Call"/>
+   <set name="after" type="call/Call"/>
+</node>
+
+<node visible="no" shape="Parallelogram" color="Green">
+   <type name="call/Call"/>
+</node>
+
+<node visible="yes" showlabel="no">
+   <set name="before" type="call/Call"/>
+</node>
+
+<edge color="Black">
+   <relation name="url"> <type name="call/Call"/> <type name="Url"/> </relation>
+</edge>
+
+<edge color="Blue">
+   <relation name="from"> <type name="call/Call"/> <type name="Endpoint"/> </relation>
+</edge>
+
+<edge color="Gray" style="Bold">
+   <relation name="to"> <type name="call/Call"/> <type name="Endpoint"/> </relation>
+</edge>
+
+<edge visible="no" attribute="yes">
+   <relation name="host"> <type name="Url"/> <type name="Domain"/> </relation>
+   <relation name="map"> <type name="Dns"/> <type name="Domain"/> <type name="Server"/> </relation>
+   <relation name="path"> <type name="Url"/> <type name="Path"/> </relation>
+   <relation name="port"> <type name="Url"/> <type name="Port"/> </relation>
+   <relation name="protocol"> <type name="Url"/> <type name="Protocol"/> </relation>
+   <relation name="resources"> <type name="Server"/> <type name="Path"/> <type name="Resource"/> </relation>
+</edge>
+
+</view>
+
+</alloy>

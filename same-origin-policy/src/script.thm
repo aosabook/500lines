@@ -1,0 +1,83 @@
+<?xml version="1.0"?>
+<alloy>
+
+<view nodetheme="Martha" edgetheme="Martha">
+
+<projection> <type name="browser/http/call/Time"/> </projection>
+
+<defaultnode/>
+
+<defaultedge/>
+
+<node>
+   <type name="BrowserOp"/>
+   <type name="Int"/>
+   <type name="ReadDom"/>
+   <type name="SetDomain"/>
+   <type name="String"/>
+   <type name="univ"/>
+   <type name="WriteDom"/>
+   <type name="XmlHttpRequest"/>
+   <type name="browser/Browser"/>
+   <type name="browser/BrowserHttpRequest"/>
+   <type name="browser/Document"/>
+   <type name="seq/Int"/>
+   <type name="browser/http/Cookie"/>
+   <type name="browser/http/Dns"/>
+   <type name="browser/http/Domain"/>
+   <type name="browser/http/HttpRequest"/>
+   <type name="browser/http/Path"/>
+   <type name="browser/http/Port"/>
+   <type name="browser/http/Protocol"/>
+   <type name="browser/http/Resource"/>
+   <type name="browser/http/call/Time"/>
+   <type name="browser/http/call/ord/Ord"/>
+   <set name="$c" type="browser/http/call/Call"/>
+   <set name="$sd" type="SetDomain"/>
+   <set name="after" type="browser/http/call/Call"/>
+   <set name="First" type="browser/http/call/ord/Ord"/>
+   <set name="Next" type="browser/http/call/ord/Ord"/>
+</node>
+
+<node shape="Box">
+   <type name="browser/http/Client"/>
+</node>
+
+<node shape="Circle">
+   <type name="Script"/>
+</node>
+
+<node shape="Circle" color="Blue">
+   <type name="browser/http/Endpoint"/>
+</node>
+
+<node shape="Circle" color="Gray">
+   <type name="browser/http/Server"/>
+</node>
+
+<node shape="Egg" color="Black">
+   <type name="browser/http/Url"/>
+</node>
+
+<node visible="no" shape="Parallelogram" color="Green">
+   <type name="browser/http/call/Call"/>
+</node>
+
+<node visible="yes" showlabel="no">
+   <set name="before" type="browser/http/call/Call"/>
+</node>
+
+<edge color="Black">
+   <relation name="url"> <type name="browser/http/HttpRequest"/> <type name="browser/http/Url"/> </relation>
+</edge>
+
+<edge visible="no" attribute="yes">
+   <relation name="host"> <type name="browser/http/Url"/> <type name="browser/http/Domain"/> </relation>
+   <relation name="path"> <type name="browser/http/Url"/> <type name="browser/http/Path"/> </relation>
+   <relation name="port"> <type name="browser/http/Url"/> <type name="browser/http/Port"/> </relation>
+   <relation name="protocol"> <type name="browser/http/Url"/> <type name="browser/http/Protocol"/> </relation>
+</edge>
+
+</view>
+
+</alloy>
