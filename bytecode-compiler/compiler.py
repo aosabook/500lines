@@ -61,14 +61,12 @@ def assemble(assembly):
 
         return depth
 
-    refs = []
-    depth_at_label = {}
+    refs, depth_at_label = [], {}
     flatten(assembly, refs, 0, depth_at_label)
     assert not refs and not depth_at_label
     return bytes(tuple(code)), max_depth, firstlineno, bytes(lnotab)
 
-def set_lineno(line):
-    return ([], [], 0, line)
+def set_lineno(line): return ([], [], 0, line)
 
 def take_argument(opcode):
     if opcode in dis.hasjrel or opcode in dis.hasjabs:
@@ -94,8 +92,7 @@ for name, opcode in dis.opmap.items():
             else ([opcode], [], stack_effect(opcode), None))
     setattr(op, name, defn)
 
-def desugar(t):
-    return ast.fix_missing_locations(Expander().visit(t))
+def desugar(t): return ast.fix_missing_locations(Expander().visit(t))
 
 class Function(ast.FunctionDef): # from FunctionDef so that ast.get_docstring works. Ugh!
     _fields = ('name', 'args', 'body')
