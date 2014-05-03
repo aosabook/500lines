@@ -457,11 +457,8 @@ class CodeGen(ast.NodeVisitor):
         elif access == 'name':   return op.STORE_NAME(self.names[name])
         else: assert False
 
-    def visit_List(self, t):
-        return self.visit_sequence(t, op.BUILD_LIST)
-
-    def visit_Tuple(self, t):
-        return self.visit_sequence(t, op.BUILD_TUPLE)
+    def visit_List(self, t):  return self.visit_sequence(t, op.BUILD_LIST)
+    def visit_Tuple(self, t): return self.visit_sequence(t, op.BUILD_TUPLE)
 
     def visit_sequence(self, t, build_op):
         if   isinstance(t.ctx, ast.Load):
