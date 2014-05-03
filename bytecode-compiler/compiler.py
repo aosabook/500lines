@@ -147,12 +147,6 @@ def top_scope(t):
     top.analyze(set())
     return top
 
-def get_type(t):
-    if   isinstance(t, ast.Module):   return 'module'
-    elif isinstance(t, ast.ClassDef): return 'class'
-    elif isinstance(t, Function):     return 'function'
-    else: assert False
-
 class Scope(ast.NodeVisitor):
     def __init__(self, t, defs):
         self.t = t
@@ -160,16 +154,8 @@ class Scope(ast.NodeVisitor):
         self.defs = set(defs)
         self.uses = set()
 
-    def dump(self, indent):
-        print(indent, get_type(self.t), getattr(self.t, 'name', '<nameless>'))
-        indent = indent + '  '
-        for name in sorted(self.defs | self.uses):
-            print(indent, '| %-8s %s' % (self.access(name), name))
-        for ch in self.children:
-            ch.dump(indent)
-
     def analyze(self, parent_defs):
-        self.maskvars = self.defs if get_type(self.t) == 'function' else set()
+        self.maskvars = self.defs if isinstance(self.t, Function) else set()
         for child in self.children:
             child.analyze(parent_defs | self.maskvars)
         child_freevars = set([var for child in self.children for var in child.freevars])
