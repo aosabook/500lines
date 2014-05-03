@@ -419,34 +419,22 @@ class CodeGen(ast.NodeVisitor):
     def visit_keyword(self, t):
         return [self.load_const(t.arg), self(t.value)]
 
-    def visit_Num(self, t):
-        return self.load_const(t.n)
-
-    def visit_Str(self, t):
-        return self.load_const(t.s)
-
+    def visit_NameConstant(self, t): return self.load_const(t.value)
+    def visit_Num(self, t):          return self.load_const(t.n)
+    def visit_Str(self, t):          return self.load_const(t.s)
     visit_Bytes = visit_Str
-
-    def visit_Attribute(self, t):
-        if   isinstance(t.ctx, ast.Load):  sub_op = op.LOAD_ATTR
-        elif isinstance(t.ctx, ast.Store): sub_op = op.STORE_ATTR
-        else: assert False
-        return [self(t.value), sub_op(self.names[t.attr])]
-
-    def visit_Subscript(self, t):
-        if isinstance(t.slice, ast.Index):
-            if   isinstance(t.ctx, ast.Load):  sub_op = op.BINARY_SUBSCR
-            elif isinstance(t.ctx, ast.Store): sub_op = op.STORE_SUBSCR
-            else: assert False
-            return [self(t.value), self(t.slice.value), sub_op]
-        else:
-            assert False
-
-    def visit_NameConstant(self, t):
-        return self.load_const(t.value)
 
     def load_const(self, constant):
         return op.LOAD_CONST(self.constants[constant, type(constant)])
+
+    def visit_Attribute(self, t):
+        sub_op = self.attr_ops[type(t.ctx)]
+        return [self(t.value), sub_op(self.names[t.attr])]
+    attr_ops = {ast.Load: op.LOAD_ATTR, ast.Store: op.STORE_ATTR}
+
+    def visit_Subscript(self, t):
+        return [self(t.value), self(t.slice.value), self.subscr_ops[type(t.ctx)]]
+    subscr_ops = {ast.Load: op.BINARY_SUBSCR, ast.Store: op.STORE_SUBSCR}
 
     def visit_Name(self, t):
         if   isinstance(t.ctx, ast.Load):  return self.load(t.id)
