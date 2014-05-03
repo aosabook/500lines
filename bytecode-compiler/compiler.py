@@ -10,7 +10,24 @@ def assemble(assembly):
 
     def flatten(assembly, refs, depth, depth_at_label):
         nonlocal max_depth, firstlineno, lnotab, cur_byte, cur_line
-        if isinstance(assembly, tuple):
+        if isinstance(assembly, list):
+            for subassembly in assembly:
+                depth = flatten(subassembly, refs, depth, depth_at_label)
+
+        elif isinstance(assembly, dict):
+            my_refs = []
+            my_addresses = {}
+            my_depth_at_label = {}
+            for label, subassembly in sorted(assembly.items()):
+                my_addresses[label] = len(code)
+                depth = my_depth_at_label.get(label, depth)
+                depth = flatten(subassembly, my_refs, depth, my_depth_at_label)
+            for address, label, fixup in my_refs:
+                target = my_addresses[label] - fixup(address+2)
+                code[address+0] = target % 256
+                code[address+1] = target // 256
+
+        elif isinstance(assembly, tuple):
             my_code, my_linking, my_stack_effect, my_lineno = assembly
 
             if my_lineno is not None:
@@ -38,23 +55,6 @@ def assemble(assembly):
             max_depth = max(max_depth, depth)
 
             code.extend(my_code)
-
-        elif isinstance(assembly, list):
-            for subassembly in assembly:
-                depth = flatten(subassembly, refs, depth, depth_at_label)
-
-        elif isinstance(assembly, dict):
-            my_refs = []
-            my_addresses = {}
-            my_depth_at_label = {}
-            for label, subassembly in sorted(assembly.items()):
-                my_addresses[label] = len(code)
-                depth = my_depth_at_label.get(label, depth)
-                depth = flatten(subassembly, my_refs, depth, my_depth_at_label)
-            for address, label, fixup in my_refs:
-                target = my_addresses[label] - fixup(address+2)
-                code[address+0] = target % 256
-                code[address+1] = target // 256
 
         else:
             raise TypeError("Not an assembly", assembly)
