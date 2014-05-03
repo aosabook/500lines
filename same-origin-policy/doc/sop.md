@@ -1,8 +1,8 @@
 ### Same Origin Policy
 
-Before we can describe the SOP, the first thing we should do is to define what it means for two pages to have the *same* origin. Two URLs are considered to belong to the same origin if and only if they share the same hostname, protocol, and port:
+Before we can state the SOP, the first thing we should do is to define what it means for two pages to have the *same* origin. Two URLs refer to the same origin if and only if they share the same hostname, protocol, and port:
 ```
-pred sameOrigin[u1, u2 : http/URL] {
+pred sameOrigin[u1, u2 : URL] {
   u1.host = u2.host and u1.protocol = u2.protocol and u1.port = u2.port
 }
 ```

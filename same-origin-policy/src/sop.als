@@ -19,13 +19,14 @@ pred sameOriginPolicy {
 	-- same origin policy actually has multiple parts
   domSOP
   xmlhttpreqSOP
-  cookieSop
 }
 
 pred domSOP {
-	-- A script can only access the DOM of a frame with the same origin
-	all c : ReadDOM +WriteDOM | sameOrigin[c.doc.src, c.from.context.src]
-  -- TODO: or they have the same document.domain or they are using post message
+	-- A script can only access the DOM of a document with the same origin or
+	-- the executing context and the target document have the same domain property
+	all c : ReadDOM +WriteDOM | 
+		sameOrigin[c.doc.src, c.from.context.src] or
+		c.doc.domain = c.from.context.domain
 }
 pred xmlhttpreqSOP {
 	-- A script can only make an AJAX call to a server with the same origin if
@@ -33,9 +34,3 @@ pred xmlhttpreqSOP {
 	all x : XMLHttpRequest |
 			sameOrigin[x.url, x.from.context.src] or x in CORSRequest
 }
-
-pred cookieSop {
-  -- TODO: cookie sop
-}
-
-run {} for 3
