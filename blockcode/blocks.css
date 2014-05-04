@@ -1,7 +1,7 @@
 html, body{ height: 100%; padding: 0; border: 0; margin: 0; }
 .menu, .script, .block{ border: 1px inset #021429; border-radius: 7px; }
 h1, h2, h3, h4, h5, h6{ text-align: center; }
-/*h1{ margin: 0em; }*/
+h1{ margin: 0em; }
 .menu-column{ width: 24%; height: 85%; float: left; margin-left: 10px; }
 .menu{ background-color: PeachPuff; overflow-y: auto; }
 .menu.over{ background-color: BurlyWood; }
