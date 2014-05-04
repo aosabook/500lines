@@ -32,12 +32,18 @@ abstract sig HttpRequest extends Call {
   from in Client
   to in Dns.map[url.host]
   all c: setCookies | url.host in c.domains
-  response in to.resources[url.path]
+  response = to.resources[url.path]
 }
 
 /* HTTP Components */
 abstract sig Client extends Endpoint {}
-abstract sig Server extends Endpoint { resources: Path -> Resource }
+abstract sig Server extends Endpoint { resources: Path -> lone Resource }
+
+fact ServerAssumption {
+  -- two servers mapped from the common domain on DNS must provide the same resources
+  all s1, s2 : Server | 
+    (some Dns.map.s1 & Dns.map.s2) implies s1.resources = s2.resources
+}
 
 sig Cookie {
   -- by default all cookies are scoped to the host. The cookie domain and path
@@ -49,25 +55,23 @@ sig Cookie {
 /* Domain Name Server */
 one sig Dns {
   map: Domain -> Server
-}{
-  -- drop this? don't think it's needed
-  all s: Server | some d: Domain | d.map = s
 }
-
 
 /* Commands */
 
 // A simple request
-run {}
+run {} for 3 
 
 // Let's force responses to set cookies
-run { all r: HttpRequest | some r.setCookies }
+run { all r: HttpRequest | some r.setCookies } for 3 
 
 // Can we get a request for a path that's not mapped by the server?
-check { all r: HttpRequest | r.url.path in r.to.resources.Resource }
+check { all r: HttpRequest | r.url.path in r.to.resources.Resource } for 3 
 
 // Can we get the same domain mapping to multiple servers?
-check { all d: Domain | no disj s1, s2: Server | s1 + s2 in Dns.map[d] }
+check { all d: Domain | no disj s1, s2: Server | s1 + s2 in Dns.map[d] } for 3 
 
 // If we do the same request twice, can we get a different response?
-check { no disj r1, r2: HttpRequest | r1.url = r2.url and r1.response not in r2.response}
+check { 
+  all r1, r2: HttpRequest | r1.url = r2.url implies r1.response = r2.response
+} for 3 
