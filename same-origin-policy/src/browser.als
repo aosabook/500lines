@@ -27,7 +27,7 @@ sig BrowserHttpRequest extends HttpRequest {
   from in Browser
   sentCookies in from.cookies.before
   -- every cookie sent must be scoped to the url of the request
-  all c: sentCookies | url.host in c.domains
+  matchingScope[sentCookies, url]
 
   -- browser creates a new document to display the content of the response
   documents.after = documents.before + from -> doc
@@ -37,6 +37,10 @@ sig BrowserHttpRequest extends HttpRequest {
 
   -- new cookies are stored by the browser
   cookies.after = cookies.before + from -> sentCookies
+}
+
+pred matchingScope[cookies: set Cookie, url: Url] {
+  all c: cookies | url.host in c.domains
 }
 
 /* Commands */

@@ -17,6 +17,11 @@ sig Script extends Client { context: Document }
 // HTTP requests sent by a script
 sig XmlHttpRequest extends HttpRequest {}{
   from in Script
+  -- browser that contains this script
+  let browser = (documents.before).(from.context) | 
+    sentCookies in browser.cookies.before and
+    -- every cookie sent must be scoped to the url of the request
+    matchingScope[sentCookies, url]
   noBrowserChange[before, after] and noDocumentChange[before, after]
 }
 
@@ -65,35 +70,3 @@ pred noDocumentChange[before, after: Time] {
 // Can a script set the "document.domain" property with a new_domain that doesn't
 // match the src?
 check { all sd: SetDomain | sd.doc.src.host in sd.newDomain }
-
-run {
-  some ReadDom
-  some XmlHttpRequest
-  all t : Time | #documents.t = 2
-  no cookies
-  no sentCookies
-  no setCookies
-  no response
-  some body
-  ReadDom in XmlHttpRequest.prevs
-  XmlHttpRequest.url = Script.context.src
-  #Resource > 1
-  #Document.src > 1
-  all t : Time - last | one before.t
-} for 3
-
-run {
-	some r : XmlHttpRequest {
-		r.from.context.src.host != r.url.host
-	}
-  all t : Time | #documents.t = 2
-  no content
-   no cookies
-  no sentCookies
-  no setCookies
-  some response
-  no body
-  #Document = 2
-  #Resource > 1
-  all t : Time - last | one before.t
-} for 3 but 2 Time

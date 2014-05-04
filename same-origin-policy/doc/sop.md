@@ -1,4 +1,4 @@
-### Same Origin Policy
+## Same Origin Policy
 
 Before we can state the SOP, the first thing we should do is to define what it means for two pages to have the *same* origin. Two URLs refer to the same origin if and only if they share the same hostname, protocol, and port:
 ```
@@ -6,16 +6,19 @@ pred sameOrigin[u1, u2 : URL] {
   u1.host = u2.host and u1.protocol = u2.protocol and u1.port = u2.port
 }
 ```
-The policy itself has two parts, constraining the ability of a script to (1) make DOM AP calls and (2) send HTTP requests. More specifically, the first part of the policy states that a script can only read and write to a DOM inside a frame that comes from the same origin as the script:
+The SOP itself has two parts, restricting the ability of a script to (1) make DOM AP calls and (2) send HTTP requests. The first part of the policy states that a script can only read from and write to a document that comes from the same origin as the script:
 ```
-pred domSOP {
-  all d : browser/ReadDOM + browser/WriteDOM | sameOrigin[d.frame.location, d.from.context]
-}
+pred domSOP { all c: ReadDOM + WriteDOM | sameOrigin[c.doc.src, c.from.context.src] }
 ```
-The second part of the policy prevents a script from sending an HTTP request (i.e., XMLHTTPRequest) to a server unless the script belongs to the same origin as the destination URL: 
+A scenario such as ["Script Scenario #1"] is not possible under `domSOP`, since `Script` is not allowed to invoke `ReadDOM` on a document from a different origin.
+
+The second part of the policy says that a script cannot send an HTTP request to a server unless its context has the same origin as the target URL---effectively preventing scenarios such as ["Script Scenario #2"].
 ```
-pred xmlhttpreqSOP {
-  all x : browser/XMLHTTPReq | sameOrigin[x.url, x.from.context]
-}
+pred xmlHttpReqSop { all x: XmlHttpRequest | sameOrigin[x.url, x.from.context.src] }
+
 ```
-But why exactly are these restrictions necessary? What would be consequences if today's browsers hadn't enforced to the policy? In the next section, we will see how the Alloy Analyer can be used to answer these types of questions.
+As we can see, the SOP is designed to prevent the two types of vulnerabilities that could arise from actions of a malicious script; without it, the web would be a much more dangerous place than it is today.
+
+It turns out, however, that the SOP can be *too* restrictive. For example, sometimes you *do* want to allow communication between two documents of different origins. By the above definition of an origin, a script from `foo.example.com` would not be able to read the content of `bar.example.com`, or send a HTTP request to `www.example.com`, because these are all considered distinct hosts. 
+
+In order to allow some form of cross-origin communication when necessary, browsers implemented a variety of mechanisms for relaxing the SOP. Some of these are more well-thought-out than others, and some have serious flaws that, when badly used, could negate the security benefits of the SOP. In the following sections, we will describe the most common of these mechanisms, and discuss their potential security pitfalls.

@@ -1,4 +1,4 @@
-### Script
+## Script
 
 Next, we will build on the HTTP and browser models to introduce *client-side scripts*, which represent a piece of code (typically in Javascript) executing inside a browser document (`context`). 
 ```
@@ -57,4 +57,20 @@ sig SetDomain extends BrowserOp { new_domain : set Domain }{
 ```
 Why would you ever want to modify the domain property of a document? It turns out that this is one popular (but rather ad hoc) way of bypassing the SOP and allow cross-domain communication, which we will discuss in a later section.
 
-[Show some cross-domain communications]
+Let's ask the Alloy Analyzer to generate scenarios with scripts in action:
+```
+run { some BrowserOp and some XmlHttpRequest} for 3 
+```
+One of the scenarios that it generates is as follows:
+
+![script-scenario-1](fig-script-1.png)
+
+In the first time step, `Script`, executing inside `Document0` from `Url1`, reads the content of another document from a different origin (`Url0`). Then, it sends the same content, `Resource1`, to `Server` by making an `XmlHtttpRequest` call. Imagine that `Document1` is your banking page, and `Document0` is an online forum injected with a malicious piece of code, `Script`. Clearly, this is not a desirable scenario, since your sensitive banking inforrmation is being relayed to a malicious server!
+
+Another scenario shows `Script` making an `XmlHttpRequest` to a server with a different domain:
+
+![script-scenario-2](fig-script-2.png)
+
+Note that the request includes a cookie, which is scoped to the same domain as the destination server. This is potentially dangerous, because if the cookie is used to represent your identity (e.g., a session cookie), `Script` can effectively pretend to be you and trick the server into responding with your private data!
+
+These two scenarios tell us that extra measures are needed to restrict the behavior of scripts, especially since some of those scripts could be malicious. This is exactly where the SOP comes in.

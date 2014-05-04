@@ -39,8 +39,7 @@ abstract sig HttpRequest extends Call {
 abstract sig Client extends Endpoint {}
 abstract sig Server extends Endpoint { resources: Path -> Resource }
 
--- must this be abstract??
-abstract sig Cookie {
+sig Cookie {
   -- by default all cookies are scoped to the host. The cookie domain and path
   -- field could be used to broaden (thus adding more hosts) or limit the scope
   -- of the cookie.
