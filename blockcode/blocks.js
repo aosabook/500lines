@@ -10,6 +10,8 @@
 			item.appendChild(elem('div', {'class': 'container'}, contents.map(function(block){
 				return createBlock.apply(null, block);
 			})));
+		}else if (typeof contents === 'string'){ // Add units specifier
+			item.appendChild(document.createTextNode(' ' + contents));
 		}
 		return item;		
 	}
@@ -24,11 +26,19 @@
 		return input ? Number(input.value) : null;
 	}
 
+	function blockUnits(block){
+		if (block.lastChild.nodeType === Node.TEXT_NODE){
+			return block.lastChild.textContents.slice(1);
+		}
+	}
+
 	function blockScript(block){
 		var script = [block.dataset.name];
 		script.push(blockValue(block));
 		var contents = blockContents(block);
+		var units = blockUnits(block);
 		if (contents){script.push(contents.map(blockScript));}
+		if (units){script.push(units);}
 		return script.filter(function(notNull){ return notNull !== null; });
 	}
 

@@ -82,10 +82,10 @@
 	clear();
 	drawTurtle();
 
-	Menu.item('Left', left, 5);
-	Menu.item('Right', right, 5);
-	Menu.item('Forward', forward, 10);
-	Menu.item('Back', back, 10);
+	Menu.item('Left', left, 5, 'degrees');
+	Menu.item('Right', right, 5, 'degrees');
+	Menu.item('Forward', forward, 10, 'steps');
+	Menu.item('Back', back, 10, 'steps');
 	Menu.item('Pen up', penUp);
 	Menu.item('Pen down', penDown);
 	Menu.item('Back to center', recenter);
