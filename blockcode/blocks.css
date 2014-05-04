@@ -9,7 +9,8 @@ h1{ margin: 0em; }
 .script{ background-color: LightSteelBlue; height: 94%; overflow-y: auto; }
 .script.over{ background-color: CadetBlue; }
 .canvas-column{ width: 46%; height: 85%; float: right; margin-right: 10px; }
-.canvas{ background-color: white; width: 100%; height: 85%; }
+.canvas-placeholder{ width: 100%; height: 85%; }
+.canvas{ background-color: white; position: absolute; }
 .block{ padding: 5px; margin: 10px; cursor: move; }
 .block.running{ outline: 2px solid red; }
 .block.next{ outline: 2px solid green; }
