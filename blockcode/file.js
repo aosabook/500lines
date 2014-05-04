@@ -3,11 +3,18 @@
 
     var scriptElem = document.querySelector('.script');
 
-    function saveLocal(){ localStorage._blockCode = scriptToJson(); }
+    function saveLocal(){ 
+        var script = scriptToJson(); 
+        if (script){
+            localStorage._blockCode = script;
+        }else{
+            delete localStorage._blockCode;
+        }
+    }
 
     function scriptToJson(){
         var blocks = [].slice.call(document.querySelectorAll('.script > .block'));
-        return JSON.stringify(blocks.map(Block.script));
+        return blocks.length ? JSON.stringify(blocks.map(Block.script)) : null;
     }
 
     function jsonToScript(json){
@@ -18,7 +25,7 @@
         Menu.runSoon();
     }
 
-    function restoreLocal(){ jsonToScript(localStorage._blockCode || '[]'); }
+    function restoreLocal(){ jsonToScript(localStorage._blockCode || JSON.stringify(file.examples.triangle)); }
 
     function clearScript(){
         [].slice.call(document.querySelectorAll('.script > .block')).forEach(function(block){
