@@ -1,6 +1,8 @@
 (function(global){
     'use strict';
 
+    var scriptElem = document.querySelector('.script');
+
     function saveLocal(){ localStorage._blockCode = scriptToJson(); }
 
     function scriptToJson(){
@@ -9,7 +11,6 @@
     }
 
     function jsonToScript(json){
-        var scriptElem = document.querySelector('.script');
         clearScript();
         JSON.parse(json).forEach(function(block){
             scriptElem.appendChild(Block.create.apply(null, block));
@@ -28,7 +29,7 @@
 
     function saveFile(evt){
         var title = prompt("Save file as: ");
-        if (!title){ return };
+        if (!title){ return; }
         var file = new Blob([scriptToJson()], {type: 'application/json'});
         var reader = new FileReader();
         var a = document.createElement('a');
@@ -51,18 +52,30 @@
 
     function loadFile(){
         var input = elem('input', {'type': 'file', 'accept': 'application/json'});
-        if (!input){ return };
+        if (!input){ return; }
         input.addEventListener('change', function(evt){ readFile(input.files[0]); });
         input.click();
     }
 
+    function loadExample(evt){
+        var exampleName = evt.target.value;
+        if (exampleName === ''){ return; }
+        clearScript();
+        file.examples[exampleName].forEach(function(block){
+            scriptElem.appendChild(Block.create.apply(null, block));
+        });
+        Menu.runSoon();
+    }
+
     global.file = {
         saveLocal: saveLocal,
-        restoreLocal: restoreLocal
+        restoreLocal: restoreLocal,
+        examples: {}
     };
 
     document.querySelector('.clear-action').addEventListener('click', clearScript, false);
     document.querySelector('.save-action').addEventListener('click', saveFile, false);
     document.querySelector('.load-action').addEventListener('click', loadFile, false);
+    document.querySelector('.choose-example').addEventListener('change', loadExample, false);
 
 })(window);
