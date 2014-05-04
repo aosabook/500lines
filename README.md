@@ -145,4 +145,12 @@ Contributors
     <td>@astrieanna</td>
     <td>leah.a.hanson@gmail.com</td>
   </tr>
+  <tr>
+    <td>Christian Muise</td>
+    <td>University of Melbourne</td>
+    <td>flow-shop</td>
+    <td>@haz</td>
+    <td>@cjmuise</td>
+    <td>christian.muise@gmail.com</td>
+  </tr>
 </table>
