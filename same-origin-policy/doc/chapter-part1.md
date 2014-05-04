@@ -104,7 +104,7 @@ open call[Endpoint]
 
 It's a polymorphic module, so it's instantiated with `Endpoint`, the set of things calls are from and to.
 
-Following the field declarations in `HttpRequest` is a collection of constraints. Each of these constraints applies to all members of the set of HTTP requests. The constraints say: that each request comes from a client; that each request is sent to one of the servers specified by the URL host under the DNS mapping; that for all cookies returned, the host name in the server's URL must be included in the cookie's domains; and that the response is obtained by looking up, in the server's resource mapping, the path in the URL of the request.
+Following the field declarations in `HttpRequest` is a collection of constraints. Each of these constraints applies to all members of the set of HTTP requests. The constraints say that (1) each request comes from a client, and (2) each request is sent to one of the servers specified by the URL host under the DNS mapping.
 
 One of the prominent features of Alloy is that a model, no matter how small or detailed, can be executed anytime to generate sample system instances. Let's use a `run` command to ask the Alloy Analyzer to execute the HTTP model that we have so far:
 
