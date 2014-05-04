@@ -43,7 +43,7 @@
 			Block.run(children);
 		}
 	}
-	menuItem('Repeat', repeat, 10);
+	menuItem('Repeat', repeat, 10, []);
 
 
 	global.Menu = {
