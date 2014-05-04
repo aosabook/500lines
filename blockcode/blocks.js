@@ -27,8 +27,8 @@
 	}
 
 	function blockUnits(block){
-		if (block.lastChild.nodeType === Node.TEXT_NODE){
-			return block.lastChild.textContents.slice(1);
+		if (block.lastChild.nodeType === Node.TEXT_NODE && block.lastChild.textContent){
+			return block.lastChild.textContent.slice(1);
 		}
 	}
 
