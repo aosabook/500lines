@@ -14,7 +14,7 @@
         JSON.parse(json).forEach(function(block){
             scriptElem.appendChild(Block.create.apply(null, block));
         });
-        menu.runSoon();
+        Menu.runSoon();
     }
 
     function restoreLocal(){ jsonToScript(localStorage._blockCode || '[]'); }
@@ -23,7 +23,7 @@
         [].slice.call(document.querySelectorAll('.script > .block')).forEach(function(block){
             block.parentElement.removeChild(block);
         });
-        menu.runSoon();
+        Menu.runSoon();
     }
 
     function saveFile(evt){

@@ -14,7 +14,7 @@
 		WIDTH = canvas.scrollWidth;
 		HEIGHT = canvas.scrollHeight;
 		if (evt){ 
-			menu.runSoon(); 
+			Menu.runSoon(); 
 		}
 	}
 
@@ -82,15 +82,15 @@
 	clear();
 	drawTurtle();
 
-	menu.item('Left', left, 5);
-	menu.item('Right', right, 5);
-	menu.item('Forward', forward, 10);
-	menu.item('Back', back, 10);
-	menu.item('Pen up', penUp);
-	menu.item('Pen down', penDown);
-	menu.item('Back to center', recenter);
-	menu.item('Hide turtle', hideTurtle);
-	menu.item('Show turtle', showTurtle);
+	Menu.item('Left', left, 5);
+	Menu.item('Right', right, 5);
+	Menu.item('Forward', forward, 10);
+	Menu.item('Back', back, 10);
+	Menu.item('Pen up', penUp);
+	Menu.item('Pen down', penDown);
+	Menu.item('Back to center', recenter);
+	Menu.item('Hide turtle', hideTurtle);
+	Menu.item('Show turtle', showTurtle);
 
 	script.addEventListener('beforeRun', clear, false); // always clear canvas first
 	script.addEventListener('afterRun', drawTurtle, false); // show turtle if visible

@@ -46,7 +46,7 @@
 	menuItem('Repeat', repeat, 10, []);
 
 
-	global.menu = {
+	global.Menu = {
 		runSoon: runSoon,
 		item: menuItem
 	};
