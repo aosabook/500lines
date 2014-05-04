@@ -20,9 +20,9 @@ h1{ margin: 0em; }
 .container{
     margin: 0 -6px 0 20px;
     padding-bottom: 10px;
-/*    border: 1px inset #021429; border-radius: 7px;
+    border: 1px inset #021429; border-radius: 7px;
     border-right: 0;
-*/    background-color: LightSteelBlue;
+    background-color: LightSteelBlue;
     border-radius: 7px 0 0 7px;
 }
 .menu .container{ background-color: PeachPuff; }
