@@ -1,6 +1,8 @@
 (function(){
 	'use strict';
 
+	var PIXEL_RATIO = window.devicePixelRatio || 1;
+	var canvasPlaceholder = document.querySelector('.canvas-placeholder');
 	var canvas = document.querySelector('.canvas');
 	var script = document.querySelector('.script');
 	var ctx = canvas.getContext('2d');
@@ -9,10 +11,14 @@
 	var WIDTH, HEIGHT, position, direction, visible, pen, color;
 
 	function onResize(evt){
-		canvas.setAttribute('width', canvas.scrollWidth);
-		canvas.setAttribute('height', canvas.scrollHeight);
-		WIDTH = canvas.scrollWidth;
-		HEIGHT = canvas.scrollHeight;
+		WIDTH = canvasPlaceholder.getBoundingClientRect().width * PIXEL_RATIO;
+		HEIGHT = canvasPlaceholder.getBoundingClientRect().height * PIXEL_RATIO;
+		canvas.setAttribute('width', WIDTH);
+		canvas.setAttribute('height', HEIGHT);
+		canvas.style.top = canvasPlaceholder.getBoundingClientRect().top + "px";
+		canvas.style.left = canvasPlaceholder.getBoundingClientRect().left + "px";
+		canvas.style.width = (WIDTH / PIXEL_RATIO) + "px"
+		canvas.style.height = (HEIGHT / PIXEL_RATIO) + "px"
 		if (evt){ 
 			Menu.runSoon(); 
 		}
@@ -46,8 +52,8 @@
 	function _moveForward(distance){
 		var start = position;
 		position = {
-			x: cos(direction) * distance + start.x,
-			y: -sin(direction) * distance + start.y
+			x: cos(direction) * distance * PIXEL_RATIO + start.x,
+			y: -sin(direction) * distance * PIXEL_RATIO + start.y
 		};
 		if (pen){
 			ctx.lineStyle = color;
