@@ -5,6 +5,11 @@
 import re
 
 
+class TempliteSyntaxError(ValueError):
+    """Raised when a template has a syntax error."""
+    pass
+
+
 class CodeBuilder(object):
     """Build source code conveniently."""
 
@@ -185,7 +190,7 @@ class Templite(object):
 
     def _syntax_error(self, msg, thing):
         """Raise a syntax error using `msg`, and showing `thing`."""
-        raise SyntaxError("%s: %r" % (msg, thing))
+        raise TempliteSyntaxError("%s: %r" % (msg, thing))
 
     def _variable(self, name, vars_set):
         """Track that `name` is used as a variable.

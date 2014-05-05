@@ -1,6 +1,6 @@
 """Tests for templite."""
 
-from templite import Templite
+from templite import Templite, TempliteSyntaxError
 from unittest import TestCase
 
 # pylint: disable=W0612,E1101
@@ -32,7 +32,7 @@ class TempliteTest(TestCase):
             self.assertEqual(actual, result)
 
     def assertSynErr(self, msg):
-        return self.assertRaisesRegexp(SyntaxError, msg)
+        return self.assertRaisesRegexp(TempliteSyntaxError, msg)
 
     def test_passthrough(self):
         # Strings without variables are passed through unchanged.
