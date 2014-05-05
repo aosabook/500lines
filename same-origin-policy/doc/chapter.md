@@ -300,9 +300,9 @@ The SOP itself has two parts, restricting the ability of a script to (1) make DO
 ```
 pred domSop { all c: ReadDom + WriteDom | sameOrigin[c.doc.src, c.from.context.src] }
 ```
-A scenario such as ["Script Scenario #1"] is not possible under `domSop`, since `Script` is not allowed to invoke `ReadDom` on a document from a different origin.
+An instance such as the first script scenario is not possible under `domSop`, since `Script` is not allowed to invoke `ReadDom` on a document from a different origin.
 
-The second part of the policy says that a script cannot send an HTTP request to a server unless its context has the same origin as the target URL -- effectively preventing scenarios such as ["Script Scenario #2"].
+The second part of the policy says that a script cannot send an HTTP request to a server unless its context has the same origin as the target URL -- effectively preventing instances such as the second script scenario.
 ```
 pred xmlHttpReqSop { all x: XmlHttpRequest | sameOrigin[x.url, x.from.context.src] }
 ```
@@ -311,3 +311,7 @@ As we can see, the SOP is designed to prevent the two types of vulnerabilities t
 It turns out, however, that the SOP can be *too* restrictive. For example, sometimes you *do* want to allow communication between two documents of different origins. By the above definition of an origin, a script from `foo.example.com` would not be able to read the content of `bar.example.com`, or send a HTTP request to `www.example.com`, because these are all considered distinct hosts. 
 
 In order to allow some form of cross-origin communication when necessary, browsers implemented a variety of mechanisms for relaxing the SOP. Some of these are more well-thought-out than others, and some have serious flaws that, when badly used, could negate the security benefits of the SOP. In the following sections, we will describe the most common of these mechanisms, and discuss their potential security pitfalls.
+
+### Mechanisms for Bypassing the SOP
+
+[To be completed]
