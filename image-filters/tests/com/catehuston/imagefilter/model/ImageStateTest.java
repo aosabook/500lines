@@ -17,6 +17,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 import processing.core.PApplet;
 
 import com.catehuston.imagefilter.color.ColorHelper;
+import com.catehuston.imagefilter.model.ImageState.ColorMode;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ImageStateTest {
@@ -32,7 +33,7 @@ public class ImageStateTest {
 	}
 
 	@Test public void testUpdateImageDominantHueHidden() {
-		imageState.set(image, true, false, 5, 10, 15, 10);
+		imageState.set(image, ColorMode.HIDE_DOMINANT_HUE, 5, 10, 15, 10);
 
 		imageState.updateImage(applet, 100, 100);
 		
@@ -42,7 +43,7 @@ public class ImageStateTest {
 	}
 	
 	@Test public void testUpdateDominantHueShowing() {
-		imageState.set(image, false, true, 5, 10, 15, 10);
+		imageState.set(image, ColorMode.SHOW_DOMINANT_HUE, 5, 10, 15, 10);
 
 		imageState.updateImage(applet, 100, 100);
 		
@@ -52,7 +53,7 @@ public class ImageStateTest {
 	}
 	
 	@Test public void testUpdateRGBOnly() {
-		imageState.set(image, false, false, 5, 10, 15, 10);
+		imageState.set(image, ColorMode.COLOR_FILTER, 5, 10, 15, 10);
 
 		imageState.updateImage(applet, 100, 100);
 		
@@ -98,7 +99,7 @@ public class ImageStateTest {
 	}
 	
 	@Test public void testSetupImage() {
-		imageState.set(image, true, true, 5, 10, 15, 10);
+		imageState.set(image, ColorMode.SHOW_DOMINANT_HUE, 5, 10, 15, 10);
 		when(image.getWidth()).thenReturn(20);
 		when(image.getHeight()).thenReturn(8);
 		imageState.setUpImage(applet, 10);
@@ -107,7 +108,7 @@ public class ImageStateTest {
 	}
 	
 	@Test public void testResetImage() {
-		imageState.set(image, true, true, 5, 10, 15, 10);
+		imageState.set(image, ColorMode.SHOW_DOMINANT_HUE, 5, 10, 15, 10);
 		imageState.resetImage(applet, 10);
 		assertState(false, false, 0, 0, 0);
 	}

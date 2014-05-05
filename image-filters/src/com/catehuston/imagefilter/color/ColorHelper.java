@@ -28,15 +28,15 @@ public class ColorHelper {
 		}
 	}
 	
-	public HSBColor hsbColorFromImage(PApplet applet, IFAImage img, int hueRange) {
-		img.loadPixels();
-		int numberOfPixels = img.getPixels().length;
+	public HSBColor getDominantHue(PApplet applet, IFAImage image, int hueRange) {
+		image.loadPixels();
+		int numberOfPixels = image.getPixels().length;
 		int[] hues = new int[hueRange];
 		float[] saturations = new float[hueRange];
 		float[] brightnesses = new float[hueRange];
 
 		for (int i = 0; i < numberOfPixels; i++) {
-			int pixel = img.getPixel(i);
+			int pixel = image.getPixel(i);
 			int hue = Math.round(pixelColorHelper.hue(applet, pixel));
 			float saturation = pixelColorHelper.saturation(applet, pixel);
 			float brightness = pixelColorHelper.brightness(applet, pixel);
@@ -61,33 +61,33 @@ public class ColorHelper {
 		return new HSBColor(hue, s, b);
 	}
 	
-	public void processImageForHue(PApplet applet, IFAImage img, int hueRange,
+	public void processImageForHue(PApplet applet, IFAImage image, int hueRange,
 			int hueTolerance, boolean showHue) {
 		applet.colorMode(PApplet.HSB, (hueRange - 1));
-		img.loadPixels();
-		int numberOfPixels = img.getPixels().length;
-		HSBColor dominantHue = hsbColorFromImage(applet, img, hueRange);
+		image.loadPixels();
+		int numberOfPixels = image.getPixels().length;
+		HSBColor dominantHue = getDominantHue(applet, image, hueRange);
 		// Manipulate photo, grayscale any pixel that isn't close to that hue.
 		float lower = dominantHue.h - hueTolerance;
 		float upper = dominantHue.h + hueTolerance;
 		for (int i = 0; i < numberOfPixels; i++) {
-			int pixel = img.getPixel(i);
+			int pixel = image.getPixel(i);
 			float hue = pixelColorHelper.hue(applet, pixel);
 			if (hueInRange(hue, hueRange, lower, upper) == showHue) {
 				float brightness = pixelColorHelper.brightness(applet, pixel);
-				img.setPixel(i, pixelColorHelper.color(applet, brightness));
+				image.setPixel(i, pixelColorHelper.color(applet, brightness));
 			}
 		}
-		img.updatePixels();
+		image.updatePixels();
 	}
 	
-	public void applyColorFilter(PApplet applet, IFAImage img, int minRed,
+	public void applyColorFilter(PApplet applet, IFAImage image, int minRed,
 			int minGreen, int minBlue, int colorRange) {
 		applet.colorMode(PApplet.RGB, colorRange);
-		img.loadPixels();
-		int numberOfPixels = img.getPixels().length;
+		image.loadPixels();
+		int numberOfPixels = image.getPixels().length;
 		for (int i = 0; i < numberOfPixels; i++) {
-			int pixel = img.getPixel(i);
+			int pixel = image.getPixel(i);
 			int alpha = Math.round(pixelColorHelper.alpha(applet, pixel));
 			int red = Math.round(pixelColorHelper.red(applet, pixel));
 			int green = Math.round(pixelColorHelper.green(applet, pixel));
@@ -97,7 +97,7 @@ public class ColorHelper {
 			green = (green >= minGreen) ? green : 0;
 			blue = (blue >= minBlue) ? blue : 0;
 			
-			img.setPixel(i, pixelColorHelper.color(applet, (float) red, (float) green, (float) blue, (float) alpha));
+			image.setPixel(i, pixelColorHelper.color(applet, (float) red, (float) green, (float) blue, (float) alpha));
 		}
 	}
 }

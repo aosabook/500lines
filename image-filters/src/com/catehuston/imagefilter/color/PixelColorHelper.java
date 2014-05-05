@@ -4,16 +4,16 @@ import processing.core.PApplet;
 
 public class PixelColorHelper {
 	
-	public float alpha(PApplet applet, int px) {
-		return applet.alpha(px);
+	public float alpha(PApplet applet, int pixel) {
+		return applet.alpha(pixel);
 	}
 	
-	public float blue(PApplet applet, int px) {
-		return applet.blue(px);
+	public float blue(PApplet applet, int pixel) {
+		return applet.blue(pixel);
 	}
 	
-	public float brightness(PApplet applet, int px) {
-		return applet.brightness(px);
+	public float brightness(PApplet applet, int pixel) {
+		return applet.brightness(pixel);
 	}
 	
 	public int color(PApplet applet, float greyscale) {
@@ -24,19 +24,19 @@ public class PixelColorHelper {
 		return applet.color(red, green, blue, alpha);
 	}
 	
-	public float green(PApplet applet, int px) {
-		return applet.green(px);
+	public float green(PApplet applet, int pixel) {
+		return applet.green(pixel);
 	}
 	
-	public float hue(PApplet applet, int px) {
-		return applet.hue(px);
+	public float hue(PApplet applet, int pixel) {
+		return applet.hue(pixel);
 	}
 	
-	public float red(PApplet applet, int px) {
-		return applet.red(px);
+	public float red(PApplet applet, int pixel) {
+		return applet.red(pixel);
 	}
 	
-	public float saturation(PApplet applet, int px) {
-		return applet.saturation(px);
+	public float saturation(PApplet applet, int pixel) {
+		return applet.saturation(pixel);
 	}
 }

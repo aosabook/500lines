@@ -6,14 +6,21 @@ import com.catehuston.imagefilter.color.ColorHelper;
 
 public class ImageState {
 	
+	enum ColorMode {
+		COLOR_FILTER,
+		SHOW_DOMINANT_HUE,
+		HIDE_DOMINANT_HUE
+	}
+	
 	ColorHelper colorHelper;
 	IFAImage image;
 	String filepath;
 	
-	public static final int initialHueTolerance = 5;
+	public static final int INITIAL_HUE_TOLERANCE = 5;
 	
-	boolean dominantHueHidden = false;
-	boolean dominantHueShowing = false;
+	ColorMode colorModeState = ColorMode.COLOR_FILTER;
+	//boolean dominantHueHidden = false;
+	//boolean dominantHueShowing = false;
 	int blueFilter = 0;
 	int greenFilter = 0;
 	int hueTolerance = 0;
@@ -22,7 +29,7 @@ public class ImageState {
 	public ImageState(ColorHelper colorHelper) {
 		this.colorHelper = colorHelper;
 		image = new IFAImage();
-		hueTolerance = initialHueTolerance;
+		hueTolerance = INITIAL_HUE_TOLERANCE;
 	}
 	
 	public IFAImage image() {
@@ -46,11 +53,11 @@ public class ImageState {
 	}
 	
 	public boolean dominantHueShowing() {
-		return dominantHueShowing;
+		return colorModeState == ColorMode.SHOW_DOMINANT_HUE;
 	}
 	
 	public boolean dominantHueHidden() {
-		return dominantHueHidden;
+		return colorModeState == ColorMode.HIDE_DOMINANT_HUE;
 	}
 	
 	public void setFilepath(String filepath) {
@@ -62,9 +69,9 @@ public class ImageState {
 	}
 	
 	public void updateImage(PApplet applet, int hueRange, int rgbColorRange) {
-		if (dominantHueShowing) {
+		if (colorModeState == ColorMode.SHOW_DOMINANT_HUE) {
 			colorHelper.processImageForHue(applet, image, hueRange, hueTolerance, true);
-		} else if (dominantHueHidden) {
+		} else if (colorModeState == ColorMode.HIDE_DOMINANT_HUE) {
 			colorHelper.processImageForHue(applet, image, hueRange, hueTolerance, false);
 		}
 		colorHelper.applyColorFilter(applet, image, redFilter, greenFilter,
@@ -75,44 +82,50 @@ public class ImageState {
 	public void processKeyPress(char key, int inc, int rgbColorRange, int hueIncrement, int hueRange) {
 		switch (key) {
 		 case 'r':
-			 redFilter+=inc;
+			 redFilter += inc;
 			 redFilter = Math.min(redFilter, rgbColorRange);
 			 break;
 		 case 'e':
-			 redFilter-=inc;
+			 redFilter -= inc;
 			 redFilter = Math.max(redFilter, 0);
 			 break;
 		 case 'g':
-			 greenFilter+=inc;
+			 greenFilter += inc;
 			 greenFilter = Math.min(greenFilter, rgbColorRange);
 			 break;
 		 case 'f':
-			 greenFilter-=inc;
+			 greenFilter -= inc;
 			 greenFilter = Math.max(greenFilter, 0);
 			 break;
 		 case 'b':
-			 blueFilter+=inc;
+			 blueFilter += inc;
 			 blueFilter = Math.min(blueFilter, rgbColorRange);
 			 break;
 		 case 'v':
-			 blueFilter-=inc;
+			 blueFilter -= inc;
 			 blueFilter = Math.max(blueFilter, 0);
 			 break;
 		 case 'i':
-			 hueTolerance+=hueIncrement;
+			 hueTolerance += hueIncrement;
 			 hueTolerance = Math.min(hueTolerance, hueRange);
 			 break;
 		 case 'u':
-			 hueTolerance-=hueIncrement;
+			 hueTolerance -= hueIncrement;
 			 hueTolerance = Math.max(hueTolerance, 0);
 			 break;
 		 case 'h':
-			 dominantHueHidden = true;
-			 dominantHueShowing = false;
+			 if (colorModeState == ColorMode.HIDE_DOMINANT_HUE) {
+				 colorModeState = ColorMode.COLOR_FILTER;
+			 } else {
+				 colorModeState = ColorMode.HIDE_DOMINANT_HUE;
+			 }
 			 break;
 		 case 's':
-			 dominantHueHidden = false;
-			 dominantHueShowing = true;
+			 if (colorModeState == ColorMode.SHOW_DOMINANT_HUE) {
+				 colorModeState = ColorMode.COLOR_FILTER;
+			 } else {
+				 colorModeState = ColorMode.SHOW_DOMINANT_HUE;
+			 }
 			 break;
 		 }
 	}
@@ -121,14 +134,14 @@ public class ImageState {
 		image.update(applet, filepath);
 		// Fix the size.
 		if (image.getWidth() > imageMax || image.getHeight() > imageMax) {
-			int imgWidth = imageMax;
-			int imgHeight = imageMax;
+			int width = imageMax;
+			int height = imageMax;
 			if (image.getWidth() > image.getHeight()) {
-				imgHeight = (imgHeight *  image.getHeight()) / image.getWidth();
+				height = (height * image.getHeight()) / image.getWidth();
 			} else {
-				imgWidth = (imgWidth * image.getWidth()) / image.getHeight();
+				width = (width * image.getWidth()) / image.getHeight();
 			}
-			image.resize(imgWidth, imgHeight);
+			image.resize(width, height);
 		}
 	}
 	
@@ -136,18 +149,16 @@ public class ImageState {
 		redFilter = 0;
 		greenFilter = 0;
 		blueFilter = 0;
-		hueTolerance = initialHueTolerance;
-		dominantHueShowing = false;
-		dominantHueHidden = false;
+		hueTolerance = INITIAL_HUE_TOLERANCE;
+		colorModeState = ColorMode.COLOR_FILTER;
 		setUpImage(applet, imageMax);
 	}
 	
 	// For testing purposes only.
-	protected void set(IFAImage image, boolean dominantHueHidden, boolean dominantHueShowing,
+	protected void set(IFAImage image, ColorMode colorModeState,
 			int redFilter, int greenFilter, int blueFilter, int hueTolerance) {
 		this.image = image;
-		this.dominantHueHidden = dominantHueHidden;
-		this.dominantHueShowing = dominantHueShowing;
+		this.colorModeState = colorModeState;
 		this.blueFilter = blueFilter;
 		this.greenFilter = greenFilter;
 		this.redFilter = redFilter;

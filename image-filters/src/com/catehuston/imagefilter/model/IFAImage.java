@@ -8,7 +8,7 @@ public class IFAImage {
 	private PImage image;
 	
 	public IFAImage() {
-		image = new PImage();
+		image = new PImage(); // SHOULD NOT USE THIS, change to createImage() as per documentation.
 	}
 	
 	public PImage image() {

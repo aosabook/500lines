@@ -81,7 +81,7 @@ public class ColorHelperTest {
 	}
 
 	@Test public void testHsbColorFromImage() {
-		HSBColor color = colorHelper.hsbColorFromImage(applet, image, 100);
+		HSBColor color = colorHelper.getDominantHue(applet, image, 100);
 		verify(image).loadPixels();
 		
 		// Check results.
