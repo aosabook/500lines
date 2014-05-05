@@ -65,34 +65,33 @@ public class ImageStateTest {
 	
 	@Test public void testKeyPress() {
 		imageState.processKeyPress('r', 5, 100, 2, 200);
-		assertState(false, false, 5, 0, 0);
+		assertState(ColorMode.COLOR_FILTER, 5, 0, 0);
 		
 		imageState.processKeyPress('e', 5, 100, 2, 200);
-		assertState(false, false, 0, 0, 0);
+		assertState(ColorMode.COLOR_FILTER, 0, 0, 0);
 		
 		imageState.processKeyPress('g', 5, 100, 2, 200);
-		assertState(false, false, 0, 5, 0);
+		assertState(ColorMode.COLOR_FILTER, 0, 5, 0);
 		
 		imageState.processKeyPress('f', 5, 100, 2, 200);
-		assertState(false, false, 0, 0, 0);
+		assertState(ColorMode.COLOR_FILTER, 0, 0, 0);
 		
 		imageState.processKeyPress('b', 5, 100, 2, 200);
-		assertState(false, false, 0, 0, 5);
+		assertState(ColorMode.COLOR_FILTER, 0, 0, 5);
 		
 		imageState.processKeyPress('v', 5, 100, 2, 200);
-		assertState(false, false, 0, 0, 0);
+		assertState(ColorMode.COLOR_FILTER, 0, 0, 0);
 		
 		imageState.processKeyPress('h', 5, 100, 2, 200);
-		assertState(true, false, 0, 0, 0);
+		assertState(ColorMode.HIDE_DOMINANT_HUE, 0, 0, 0);
 		
 		imageState.processKeyPress('s', 5, 100, 2, 200);
-		assertState(false, true, 0, 0, 0);
+		assertState(ColorMode.SHOW_DOMINANT_HUE, 0, 0, 0);
 	}
 	
-	private void assertState(boolean dominantHueHidden, boolean dominantHueShowing,
-			int redFilter, int greenFilter, int blueFilter) {
-		assertEquals(dominantHueHidden, imageState.dominantHueHidden());
-		assertEquals(dominantHueShowing, imageState.dominantHueShowing());
+	private void assertState(ColorMode colorMode, int redFilter,
+			int greenFilter, int blueFilter) {
+		assertEquals(colorMode, imageState.getColorMode());
 		assertEquals(redFilter, imageState.redFilter());
 		assertEquals(greenFilter, imageState.greenFilter());
 		assertEquals(blueFilter, imageState.blueFilter());
@@ -110,6 +109,6 @@ public class ImageStateTest {
 	@Test public void testResetImage() {
 		imageState.set(image, ColorMode.SHOW_DOMINANT_HUE, 5, 10, 15, 10);
 		imageState.resetImage(applet, 10);
-		assertState(false, false, 0, 0, 0);
+		assertState(ColorMode.COLOR_FILTER, 0, 0, 0);
 	}
 }

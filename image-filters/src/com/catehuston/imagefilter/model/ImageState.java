@@ -52,12 +52,8 @@ public class ImageState {
 		return hueTolerance;
 	}
 	
-	public boolean dominantHueShowing() {
-		return colorModeState == ColorMode.SHOW_DOMINANT_HUE;
-	}
-	
-	public boolean dominantHueHidden() {
-		return colorModeState == ColorMode.HIDE_DOMINANT_HUE;
+	public ColorMode getColorMode() {
+		return colorModeState;
 	}
 	
 	public void setFilepath(String filepath) {
