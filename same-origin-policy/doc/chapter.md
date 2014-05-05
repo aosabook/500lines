@@ -276,7 +276,7 @@ run { some BrowserOp and some XmlHttpRequest} for 3
 ```
 One of the instances that it generates is as follows:
 
-![script-instance-1](fig-script-1.png)
+![script-instance-1](fig-script-1.png) Script Scenario #1
 
 In the first time step, `Script`, executing inside `Document0` from `Url1`, reads the content of another document from a different origin (`Url0`). Then, it sends the same content, `Resource1`, to `Server` by making an `XmlHtttpRequest` call. Imagine that `Document1` is your banking page, and `Document0` is an online forum injected with a malicious piece of code, `Script`. Clearly, this is not a desirable scenario, since your sensitive banking information is being relayed to a malicious server!
 
