@@ -147,4 +147,20 @@ Contributors
     <td>@nedbat</td>
     <td>ned@nedbatchelder.com</td>
   </tr>
+  <tr>
+    <td>Leah Hanson</td>
+    <td>Google</td>
+    <td>static analysis</td>
+    <td>@astrieanna</td>
+    <td>@astrieanna</td>
+    <td>leah.a.hanson@gmail.com</td>
+  </tr>
+  <tr>
+    <td>Christian Muise</td>
+    <td>University of Melbourne</td>
+    <td>flow-shop</td>
+    <td>@haz</td>
+    <td>@cjmuise</td>
+    <td>christian.muise@gmail.com</td>
+  </tr>
 </table>
