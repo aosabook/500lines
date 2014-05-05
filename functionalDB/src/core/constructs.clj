@@ -42,10 +42,10 @@
   ([id] (Entity.  id {})))
 
 (defn make-attr
-  "creation of an attribute. The name, value and type of an attribute are mandatory arguments, further arguments can be passed as named arguguments.
+  "creation of an attribute. The name, value and type of an attribute are mandatory arguments, further arguments can be passed as named arguments.
    The type of the attribute may be either :string, :number, :boolean or :db/ref . If the type is :db/ref, the value is an id of another entity and indexing of backpointing is maintained.
   The named arguments are as follows:
-  :indexed - a boolean, can be either true or false - marks whether this attribute should be indexed. By defaults attributes are not inexed.
+  :indexed - a boolean, can be either true or false - marks whether this attribute should be indexed. By defaults attributes are not indexed.
   :cardinality - the cardinality of an attribute, can be either:
                      :db/single - which means that this attribute can be a single value at any given time (this is the default cardinality)
                      :db/multiple - which means that this attribute is actually a set of values. In this case updates of this attribute may be one of the following (NOTE that all these operations accept a set as argument):

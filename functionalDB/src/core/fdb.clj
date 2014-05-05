@@ -248,16 +248,9 @@
       (restruct-fn pendings)))
 
 (defn traverse [pendings explored  out-reffing ent-at restruct-fn]
-    (let [_ (println "\n\nexplo" explored)
-          _ (println "all pends " pendings)
-          cleaned-pendings (remove-explored pendings explored restruct-fn)
-          _ (println "cleaned = " cleaned-pendings)
-           item (first cleaned-pendings)
-          _ (println "item ==" item)
-           next-pends (reduce conj (restruct-fn (rest cleaned-pendings)) (out-reffing item))
-
-          ;stam (println "cleaned pends" next-pends)
-          ]
+    (let [cleaned-pendings (remove-explored pendings explored restruct-fn)
+          item (first cleaned-pendings)
+          next-pends (reduce conj (restruct-fn (rest cleaned-pendings)) (out-reffing item))]
       (when item (cons (ent-at item)
                        (lazy-seq (traverse next-pends  (conj explored item)  out-reffing ent-at restruct-fn))))))
 
