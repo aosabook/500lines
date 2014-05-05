@@ -312,6 +312,6 @@ It turns out, however, that the SOP can be *too* restrictive. For example, somet
 
 In order to allow some form of cross-origin communication when necessary, browsers implemented a variety of mechanisms for relaxing the SOP. Some of these are more well-thought-out than others, and some have serious flaws that, when badly used, could negate the security benefits of the SOP. In the following sections, we will describe the most common of these mechanisms, and discuss their potential security pitfalls.
 
-### Mechanisms for Bypassing the SOP
+## Mechanisms for Bypassing the SOP
 
 To be completed.
