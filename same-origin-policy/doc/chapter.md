@@ -314,4 +314,4 @@ In order to allow some form of cross-origin communication when necessary, browse
 
 ### Mechanisms for Bypassing the SOP
 
-[To be completed]
+To be completed.
