@@ -282,11 +282,13 @@ An example with separated data:
 * Ability to pass in either format and the Parser determines it. It's the only class that has to be concerned with it. 
 * ...
 
-## TODO: ROUGH OUTLINE OF REMAINING CHAPTER STARTS BELOW
+### Where to improve
+* Exception handling in parse_raw_data can be more specific (rather than capturing any error that occurs)
 
 ## Pedometer functionality
 
 Our pedometer will measure 3 metrics:
+
 1. Steps taken
 2. Distance traveled
 3. Time traveled
@@ -297,7 +299,7 @@ Let's discuss the infomation we'll need to calculate each of these metrics.
 TODO: above
 
 ### Distance traveled
-A mobile pedometer app would generally be used by one person. The stride length of that person would be a necessary value to determine distance travelled. The pedometer can "ask" the user for info.
+A mobile pedometer app would generally be used by one person. The stride length of that person would be a necessary value to determine distance traveled. The pedometer can ask the user to input their info.
 
 If the user can directly provide their stride length, then we're good to go. If not, and they provide their gender and their height, we can use $0.413 * height$ for a female, and $0.415 * height$ for a male. 
 
@@ -305,15 +307,76 @@ If they only provide their height, we can use $(0.413 + 0.415)/2 * height$, aver
 
 If they only provide their gender, we can use the average of 70 cm for a female, and 78 cm for a male.
 
+Finally, is the user does not wish to provide any information, we can simply take the average of 70 cm and 78 cm and set the stride length to 74 cm.
+
 TODO: Add references for multipliers and averages above.
 
 All of this information is related to the user, so it makes sense to include it in a User class. 
 
-TODO: Code for user.rb and discussion.
+~~~~~~~
+class User
+
+  GENDER      = ['male', 'female']
+  AVERAGES    = {'female' => 70, 'male' => 78}
+  MULTIPLIERS = {'female' => 0.413, 'male' => 0.415}
+
+  attr_reader :gender, :height, :stride
+
+  def initialize(gender = nil, height = nil, stride = nil)
+    @gender = gender.to_s.downcase if GENDER.include? gender.to_s.downcase
+    @height = height.to_f if height.to_f > 0
+    @stride = (stride.to_f > 0) ? stride.to_f : calculate_stride
+  end
+
+private
+
+  def calculate_stride
+    if gender && height
+      MULTIPLIERS[@gender] * height
+    elsif height
+      height * (MULTIPLIERS.values.reduce(:+) / MULTIPLIERS.size)
+    elsif gender
+      AVERAGES[gender]
+    else
+      AVERAGES.values.reduce(:+) / AVERAGES.size
+    end
+  end
+
+end
+~~~~~~~
 
 Things to note:
+
 * Information is optional. The class handles it.
 * Magic numbers are defined at the top.
+* Basic input data formatting in the initalizer allows for a case insensitive gender parameter, prevents a non-numerical height and stride or a height and stride less than 0. Finally, the stride is calculated through the calculate_stride method unless a valid stride is provided.
+* Even when all parameters are provided, the input stride takes precedence. 
+
+### The User class in the wild
+
+The User class is straightforward to use. Below are examples of users created with the least specific to the most specific data:
+
+* Without any parameters
+* A gender parameter
+* A height parameter
+* Gender and height parameters
+* A stride parameter
+* All parameters
+
+~~~~~~~
+> User.new.stride
+=> 74
+> User.new('Female').stride
+=> 70
+> User.new(nil, '167.5').stride
+=> 69.345
+> User.new('male', 191).stride
+=> 79.265
+> User.new(nil, nil, '80').stride
+=> 80.0
+> User.new('female', 1, '72').stride
+=> 72.0
+~~~~~~~
 
 TODO: Introduce User, Device, and Analyzer class at once. Show some working examples through command line of both classes in action. 
 
