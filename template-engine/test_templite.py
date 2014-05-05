@@ -237,6 +237,8 @@ class TempliteTest(TestCase):
             self.try_render("Wat: {{ var%&!@ }}")
         with self.assertSynErr("Not a valid name: 'filter%&!@'"):
             self.try_render("Wat: {{ foo|filter%&!@ }}")
+        with self.assertSynErr("Not a valid name: '@'"):
+            self.try_render("Wat: {% for @ in x %}{% endfor %}")
 
     def test_bogus_tag_syntax(self):
         with self.assertSynErr("Don't understand tag: 'bogus'"):

@@ -71,7 +71,20 @@ class Templite(object):
         {# This will be ignored #}
 
     Construct a Templite with the template text, then use `render` against a
-    dictionary context to create a finished string.
+    dictionary context to create a finished string::
+
+        templite = Templite('''
+            <h1>Hello {{name|upper}}!</h1>
+            {% for topic in topics %}
+                <p>You are interested in {{topic}}.</p>
+            {% endif %}
+            ''',
+            {'upper': str.upper},
+        )
+        text = templite.render({
+            'name': "Ned",
+            'topics': ['Python', 'Geometry', 'Juggling'],
+        })
 
     """
     def __init__(self, text, *contexts):
@@ -116,7 +129,7 @@ class Templite(object):
         for token in tokens:
             if token.startswith('{{'):
                 # An expression to evaluate.
-                buffered.append("s(%s)" % self.expr_code(token[2:-2].strip()))
+                buffered.append("s(%s)" % self._expr_code(token[2:-2].strip()))
             elif token.startswith('{#'):
                 # Comment: ignore it and move on.
                 continue
@@ -127,20 +140,20 @@ class Templite(object):
                 if words[0] == 'if':
                     # An if statement: evaluate the expression to determine if.
                     if len(words) != 2:
-                        self.syntax_error("Don't understand if", token)
+                        self._syntax_error("Don't understand if", token)
                     ops_stack.append('if')
-                    code.add_line("if %s:" % self.expr_code(words[1]))
+                    code.add_line("if %s:" % self._expr_code(words[1]))
                     code.indent()
                 elif words[0] == 'for':
                     # A loop: iterate over expression result.
                     if len(words) != 4 or words[2] != 'in':
-                        self.syntax_error("Don't understand for", token)
+                        self._syntax_error("Don't understand for", token)
                     ops_stack.append('for')
-                    self.loop_vars.add(words[1])
+                    self._variable(words[1], self.loop_vars)
                     code.add_line(
                         "for c_%s in %s:" % (
                             words[1],
-                            self.expr_code(words[3])
+                            self._expr_code(words[3])
                         )
                     )
                     code.indent()
@@ -149,10 +162,10 @@ class Templite(object):
                     end_what = words[0][3:]
                     start_what = ops_stack.pop()
                     if start_what != end_what:
-                        self.syntax_error("Mismatched end tag", end_what)
+                        self._syntax_error("Mismatched end tag", end_what)
                     code.dedent()
                 else:
-                    self.syntax_error("Don't understand tag", words[0])
+                    self._syntax_error("Don't understand tag", words[0])
             else:
                 # Literal content.  If it isn't empty, output it.
                 if token:
@@ -164,40 +177,43 @@ class Templite(object):
             vars_code.add_line("c_%s = ctx[%r]" % (var_name, var_name))
 
         if ops_stack:
-            self.syntax_error("Unmatched action tag", ops_stack[-1])
+            self._syntax_error("Unmatched action tag", ops_stack[-1])
 
         code.add_line("return ''.join(result)")
         code.dedent()
-        self.render_function = code.get_globals()['render']
+        self._render_function = code.get_globals()['render']
 
-    def syntax_error(self, msg, thing):
+    def _syntax_error(self, msg, thing):
         """Raise a syntax error using `msg`, and showing `thing`."""
         raise SyntaxError("%s: %r" % (msg, thing))
 
-    def variable(self, name):
+    def _variable(self, name, vars_set):
         """Track that `name` is used as a variable.
 
-        Raises an exception if `name` is not a valid name.
+        Adds the name to `vars_set`, a set of variable names.
+
+        Raises an syntax error if `name` is not a valid name.
+
         """
         if not re.match(r"[_a-zA-Z][_a-zA-Z0-9]*$", name):
-            self.syntax_error("Not a valid name", name)
-        self.all_vars.add(name)
+            self._syntax_error("Not a valid name", name)
+        vars_set.add(name)
 
-    def expr_code(self, expr):
+    def _expr_code(self, expr):
         """Generate a Python expression for `expr`."""
         if "|" in expr:
             pipes = expr.split("|")
-            code = self.expr_code(pipes[0])
+            code = self._expr_code(pipes[0])
             for func in pipes[1:]:
-                self.variable(func)
+                self._variable(func, self.all_vars)
                 code = "c_%s(%s)" % (func, code)
         elif "." in expr:
             dots = expr.split(".")
-            code = self.expr_code(dots[0])
+            code = self._expr_code(dots[0])
             args = ", ".join(repr(d) for d in dots[1:])
             code = "dot(%s, %s)" % (code, args)
         else:
-            self.variable(expr)
+            self._variable(expr, self.all_vars)
             code = "c_%s" % expr
         return code
 
@@ -211,9 +227,9 @@ class Templite(object):
         ctx = dict(self.context)
         if context:
             ctx.update(context)
-        return self.render_function(ctx, self.do_dots)
+        return self._render_function(ctx, self._do_dots)
 
-    def do_dots(self, value, *dots):
+    def _do_dots(self, value, *dots):
         """Evaluate dotted expressions at runtime."""
         for dot in dots:
             try:
