@@ -384,4 +384,227 @@ Although we only use this class to produce one function, there's nothing here
 that limits it to that use.  This makes the class simpler to implement, and
 easier to understand.
 
-[[much more to come...]]
+
+### The Templite class
+
+The heart of the template engine is the Templite class.  (Get it? It's a
+template, but it's lite!)
+
+The Templite class has a very simple interface.  You construct one with the
+text of the template, then later you can use the `.render` method on it to
+render a particular dictionary of data through the template:
+
+```
+templite = Templite('''
+    <h1>Hello {{name|upper}}!</h1>
+    {% for topic in topics %}
+        <p>You are interested in {{topic}}.</p>
+    {% endif %}
+    ''',
+    {'upper': str.upper},
+)
+text = templite.render({
+    'name': "Ned",
+    'topics': ['Python', 'Geometry', 'Juggling'],
+})
+```
+
+The constructor also accepts a dictionary of values, these are stored in the
+Templite object, and will also be available when the template is later
+rendered.  These are good for defining global functions, for example.
+
+
+All of the work to compile the template into a Python function happens in the
+Templite constructor.  First the contexts are saved away:
+
+<!-- [[[cog include("templite.py", first="def __init__(self, text, ", numblanks=3, dedent=False) ]]] -->
+```
+    def __init__(self, text, *contexts):
+        """Construct a Templite with the given `text`.
+
+        `contexts` are dictionaries of values to use for future renderings.
+        These are good for filters and global values.
+
+        """
+        self.context = {}
+        for context in contexts:
+            self.context.update(context)
+```
+<!-- [[[end]]] -->
+
+Notice we used `*contexts` as the argument, using Python argument packing, so
+that the caller can provide a number of different context dictionaries.
+
+To make our compiled function as fast as possible, we extract context variables
+into Python locals.  We'll get the set of all those names by keeping a set of
+variable names we encounter, but we also need to track the names of variables
+defined in the template, the loop variables:
+
+<!-- [[[cog include("templite.py", first="self.all_vars", numblanks=1, dedent=False) ]]] -->
+```
+        self.all_vars = set()
+        self.loop_vars = set()
+```
+<!-- [[[end]]] -->
+
+Later we'll see how these get used to help contruct the preface of our
+function.
+
+Now we use the CodeBuilder class we wrote earlier to start to build our
+function:
+
+<!-- [[[cog include("templite.py", first="code = CodeBuilder", numblanks=2, dedent=False) ]]] -->
+```
+        code = CodeBuilder()
+
+        code.add_line("def render(ctx, dot):")
+        code.indent()
+        vars_code = code.add_subbuilder()
+        code.add_line("result = []")
+        code.add_line("a = result.append")
+        code.add_line("e = result.extend")
+        code.add_line("s = str")
+```
+<!-- [[[end]]] -->
+
+Here we construct our CodeBuilder object, and start writing lines into it. Our
+Python function will be called `render`, and will take two arguments: `ctx` is
+the data dictionary it should use, and `dot` is a function it can use to
+implement dot attribute access.
+
+We create a sub-builder called `vars_code`.  Later we'll write the variable
+extraction lines into that sub-builder.  This lets us save a place in the 
+function that can be filled in later when we have the information we need.
+
+Then four fixed lines are written, defining a result list, shortcuts for the
+methods to append to or extend that list, and a shortcut for the `str()`
+builtin.  This odd step is done to squeeze just a little bit more performance
+out of our rendering function.  CPython looks up local names a little faster
+than builtin names.
+
+The reason we have both the `append` and the `extend` shortcut is so we can
+use the most effective method, depending on whether we have one line to add to
+our result, or more than one.
+
+Next we define an inner function to help us with buffering output strings:
+
+<!-- [[[cog include("templite.py", first="buffered =", numblanks=1, dedent=False) ]]] -->
+```
+        buffered = []
+        def flush_output():
+            """Force `buffered` to the code builder."""
+            if len(buffered) == 1:
+                code.add_line("a(%s)" % buffered[0])
+            elif len(buffered) > 1:
+                code.add_line("e([%s])" % ", ".join(buffered))
+            del buffered[:]
+```
+<!-- [[[end]]] -->
+
+The `buffered` list are strings that are yet to be written to our function
+source code.  As our template compilation proceeds, we'll append strings to
+`buffered`, and flush them to the function source when we reach control flow
+points, like if statements, or the beginning or ends of loops.
+
+The `flush_output` function is a closure, it refers to `buffered` and `code` 
+implicitly, which simplifies our calls to the function.  If only one string has
+been buffered, then the `a` shortcut is used to append it to the result. If
+more than one is buffered, then all of them are used with the `e` shortcut (for
+extend) to add them to the result.  Then the buffered list is cleared so more
+strings can be buffered.
+
+As we parse control structures, we want to check that they are properly nested.
+The `ops_stack` list is a simple stack of strings:
+
+<!-- [[[cog include("templite.py", first="ops_stack", numblanks=1, dedent=False) ]]] -->
+```
+        ops_stack = []
+```
+<!-- [[[end]]] -->
+
+When we encounter an `{% if .. %}` tag, we'll push `'if'` onto the stack.  When
+we find an `{% endif %}` tag, we can pop the stack and report an error if it
+wasn't `'if'` at the top of the stack.
+
+Now the real parsing begins.  We split the template text into a number of tokens
+using a regular expression:
+
+<!-- [[[cog include("templite.py", first="tokens =", numblanks=1, dedent=False) ]]] -->
+```
+        tokens = re.split(r"(?s)({{.*?}}|{%.*?%}|{#.*?#})", text)
+```
+<!-- [[[end]]] -->
+
+This looks complicated, let's break it down.  The `re.split` function will
+split a string using a regular expression.  If the pattern is parenthesized,
+then the matches will be used to split the string, but will also be returned as
+pieces in the split list.  Our pattern will match our tag syntaxes, but we've
+parenthesized it so that the string will be split at the tags, and the tags will
+also be returned.
+
+The `(?s)` flag in the regex means that dot should match even a newline. Then
+we have our parenthesized group of three alternatives: `{{.*?}}` matches an 
+expression, `{%.*?%}` matches a tag, and `{#.*?#}` matches a comment.  In all
+of these, we use `.*?` to match any number of characters, but the shortest
+sequence that matches.  With `.*`, we'd match the longest, which match from the
+beginning of the first tag to the end of the last tag.
+
+The result of `re.split` is a list of strings.  For example, this template text:
+
+```
+<p>Topics for {{name}}: {% for t in topics %}{{t}}, {% endfor %}</p>
+```
+
+would be split into these pieces:
+
+```
+[
+    '<p>Topics for ',
+    '{{name}}',
+    ': ',
+    '{% for t in topics %}',
+    '',
+    '{{t}}',
+    ', ',
+    '{% endfor %}',
+    '</p>'
+]
+```
+
+The compilation code is a loop over these tokens:
+
+<!-- [[[cog include("templite.py", first="for token", numlines=1, dedent=False) ]]] -->
+```
+        for token in tokens:
+```
+<!-- [[[end]]] -->
+
+We examine each token to see what it is, just looking at the first two
+characters is enough.  The comment syntax is easy: just ignore it and move on
+to the next token:
+
+<!-- [[[cog include("templite.py", first="if token.", numlines=3, dedent=False) ]]] -->
+```
+            if token.startswith('{#'):
+                # Comment: ignore it and move on.
+                continue
+```
+<!-- [[[end]]] -->
+
+For the case of `{{...}}` expressions, we cut off the two braces and the front
+and back, strip off the white space, and pass the entire expression to
+`_expr_code`:
+
+<!-- [[[cog include("templite.py", first="elif token.startswith('{{')", numlines=3, dedent=False) ]]] -->
+```
+            elif token.startswith('{{'):
+                # An expression to evaluate.
+                buffered.append("s(%s)" % self._expr_code(token[2:-2].strip()))
+```
+<!-- [[[end]]] -->
+
+The `_expr_code` method will compile the template expression into Python code.
+We'll see that function later.  The result will be put into our function, with
+the `s` function (shorthand for the `str` builtin).
+
+

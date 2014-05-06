@@ -127,17 +127,18 @@ class Templite(object):
                 code.add_line("e([%s])" % ", ".join(buffered))
             del buffered[:]
 
+        ops_stack = []
+
         # Split the text to form a list of tokens.
         tokens = re.split(r"(?s)({{.*?}}|{%.*?%}|{#.*?#})", text)
 
-        ops_stack = []
         for token in tokens:
-            if token.startswith('{{'):
-                # An expression to evaluate.
-                buffered.append("s(%s)" % self._expr_code(token[2:-2].strip()))
-            elif token.startswith('{#'):
+            if token.startswith('{#'):
                 # Comment: ignore it and move on.
                 continue
+            elif token.startswith('{{'):
+                # An expression to evaluate.
+                buffered.append("s(%s)" % self._expr_code(token[2:-2].strip()))
             elif token.startswith('{%'):
                 # Action tag: split into words and parse further.
                 flush_output()
