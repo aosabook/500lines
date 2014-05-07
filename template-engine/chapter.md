@@ -273,6 +273,9 @@ The logical structures `{{ if ... }}` and `{{ for ... }}` are converted into
 Python conditionals and loops in a relatively straightforward way.
 
 
+<!-- [[[cog from cogutil import include ]]] -->
+<!-- [[[end]]] -->
+
 ## Writing the Engine
 
 Now that we understand what the engine will do, let's walk through the
