@@ -273,9 +273,6 @@ The logical structures `{{ if ... }}` and `{{ for ... }}` are converted into
 Python conditionals and loops in a relatively straightforward way.
 
 
-<!-- [[[cog from cogutil import include ]]] -->
-<!-- [[[end]]] -->
-
 ## Writing the Engine
 
 Now that we understand what the engine will do, let's walk through the
@@ -513,6 +510,10 @@ more than one is buffered, then all of them are used with the `e` shortcut (for
 extend) to add them to the result.  Then the buffered list is cleared so more
 strings can be buffered.
 
+The rest of the compiling code will add lines to the function by appending them
+to `buffered`, and eventually calling `flush_output` to write them to the
+CodeBuilder.
+
 As we parse control structures, we want to check that they are properly nested.
 The `ops_stack` list is a simple stack of strings:
 
@@ -555,7 +556,7 @@ The result of `re.split` is a list of strings.  For example, this template text:
 <p>Topics for {{name}}: {% for t in topics %}{{t}}, {% endfor %}</p>
 ```
 
-would be split into these pieces:
+is split into these pieces:
 
 ```
 [
@@ -579,9 +580,9 @@ The compilation code is a loop over these tokens:
 ```
 <!-- [[[end]]] -->
 
-We examine each token to see what it is, just looking at the first two
-characters is enough.  The comment syntax is easy: just ignore it and move on
-to the next token:
+Each token is examined to see which of the four cases it is.  Just looking at
+the first two characters is enough.  The first case is a comment, it's easy to
+handle: just ignore it and move on to the next token:
 
 <!-- [[[cog include("templite.py", first="if token.", numlines=3, dedent=False) ]]] -->
 ```
@@ -591,7 +592,7 @@ to the next token:
 ```
 <!-- [[[end]]] -->
 
-For the case of `{{...}}` expressions, we cut off the two braces and the front
+For the case of `{{...}}` expressions, we cut off the two braces at the front
 and back, strip off the white space, and pass the entire expression to
 `_expr_code`:
 
@@ -604,7 +605,153 @@ and back, strip off the white space, and pass the entire expression to
 <!-- [[[end]]] -->
 
 The `_expr_code` method will compile the template expression into Python code.
-We'll see that function later.  The result will be put into our function, with
+We'll see that function later.  The result goes into our function, with
 the `s` function (shorthand for the `str` builtin).
 
+The third case is the big one: `{% ... %}` tags.  These are control structures
+that will become Python control structures.  First we have to flush our buffered
+output lines, then we extract a list of words from the tag:
 
+<!-- [[[cog include("templite.py", first="elif token.startswith('{%')", numlines=4, dedent=False) ]]] -->
+```
+            elif token.startswith('{%'):
+                # Action tag: split into words and parse further.
+                flush_output()
+                words = token[2:-2].strip().split()
+```
+<!-- [[[end]]] -->
+
+Now we have three sub-cases, based on the first word in the tag: if, for, or end.
+The if case shows our simple error handling and code generation:
+
+<!-- [[[cog include("templite.py", first="if words[0] == 'if'", numlines=7, dedent=False) ]]] -->
+```
+                if words[0] == 'if':
+                    # An if statement: evaluate the expression to determine if.
+                    if len(words) != 2:
+                        self._syntax_error("Don't understand if", token)
+                    ops_stack.append('if')
+                    code.add_line("if %s:" % self._expr_code(words[1]))
+                    code.indent()
+```
+<!-- [[[end]]] -->
+
+The if tag should have a single expression, so the `words` list should have
+only two elements in it.  If it doesn't, we use the `_syntax_error` helper
+method to raise a syntax error exception.  We push `'if'` onto `ops_stack` so
+that we can check the endif tag.  The expression part of the if tag is compiled
+to a Python expression with `_expr_code`, and is used as the conditional expression
+in a Python if statement.
+
+The second tag type is "for", which will of course be compiled to a Python for
+statement:
+
+<!-- [[[cog include("templite.py", first="elif words[0] == 'for'", numlines=13, dedent=False) ]]] -->
+```
+                elif words[0] == 'for':
+                    # A loop: iterate over expression result.
+                    if len(words) != 4 or words[2] != 'in':
+                        self._syntax_error("Don't understand for", token)
+                    ops_stack.append('for')
+                    self._variable(words[1], self.loop_vars)
+                    code.add_line(
+                        "for c_%s in %s:" % (
+                            words[1],
+                            self._expr_code(words[3])
+                        )
+                    )
+                    code.indent()
+```
+<!-- [[[end]]] -->
+
+We do a simple check of the syntax and push `'for'` onto the stack.  The
+`_variable` method checks the syntax of the variable, and adds it to the set
+we provide.  This is how we collect up the names of all the loop variables
+during the compilation so that we can later create the prolog of the function.
+
+We add one line to our function source, a for statement.  All of our template
+variables are turned into Python variables by prepending `c_` to them so that
+we know they won't collide with other names we're using in our Python function.
+We use `_expr_code` to compile the iteration expression from the template into
+an iteration expression in Python.
+
+The last kind of tag we handle is and end tag, either `{% endif %}` or
+`{% endfor %}`.  The effect on our compiled function source is the same: simply
+unindent to end the if statement or for statement that was started earlier:
+
+<!-- [[[cog include("templite.py", first="elif words[0].startswith('end')", numlines=11, dedent=False) ]]] -->
+```
+                elif words[0].startswith('end'):
+                    # Endsomething.  Pop the ops stack.
+                    if len(words) != 1:
+                        self._syntax_error("Don't understand end", token)
+                    end_what = words[0][3:]
+                    if not ops_stack:
+                        self._syntax_error("Too many ends", token)
+                    start_what = ops_stack.pop()
+                    if start_what != end_what:
+                        self._syntax_error("Mismatched end tag", end_what)
+                    code.dedent()
+```
+<!-- [[[end]]] -->
+
+Notice here that the actual work needed for the end tag is one line: dedent the
+function source.  The rest of this clause is all error checking to make sure
+that the template is properly formed.  This isn't unusual in program
+translation code.
+
+Speaking of error handling, if the tag isn't an if, a for, or an end, then we
+don't know what it is, so raise a syntax error:
+
+<!-- [[[cog include("templite.py", first="else:", numlines=2, dedent=False) ]]] -->
+```
+                else:
+                    self._syntax_error("Don't understand tag", words[0])
+```
+<!-- [[[end]]] -->
+
+We're done with the three different special syntaxes (`{{...}}`, `{#...#}`, and
+`{%...%}`), what's left is literal content.  We'll add the literal string to
+the buffered output, using the `repr` builtin function to produce a Python
+string literal for the token.  There's no point adding an empty string to the
+output, so only add the token if it's non-empty:
+
+<!-- [[[cog include("templite.py", first="else:", after="Don't understand tag", numblanks=1, dedent=False) ]]] -->
+```
+            else:
+                # Literal content.  If it isn't empty, output it.
+                if token:
+                    buffered.append(repr(token))
+```
+<!-- [[[end]]] -->
+
+That completes the loop over all the tokens in the template.  When the loop is
+done, all of the template has been processed.  We have one last check to make:
+if `ops_stack` isn't empty, then we must be missing an end-tag.  Then we flush
+the buffered output to the function source:
+
+<!-- [[[cog include("templite.py", first="if ops_stack:", numblanks=2, dedent=False) ]]] -->
+```
+        if ops_stack:
+            self._syntax_error("Unmatched action tag", ops_stack[-1])
+
+        flush_output()
+```
+<!-- [[[end]]] -->
+
+We had created a sub-builder at the beginning of the function.  Its role was to
+unpack template variables from the context into Python locals.  Now that we've
+processed the entire template, we know the names of all the variables, so we can
+write the lines in this prolog.  The variables used are in the set `self.all_vars`,
+and all the variables defined in the template are in `self.loop_vars`.  We need
+to unpack any name in `all_vars` that isn't in `loop_vars`:
+
+<!-- [[[cog include("templite.py", first="for var_name", numblanks=1, dedent=False) ]]] -->
+```
+        for var_name in self.all_vars - self.loop_vars:
+            vars_code.add_line("c_%s = ctx[%r]" % (var_name, var_name))
+```
+<!-- [[[end]]] -->
+
+Each name becomes a line in the function's prolog unpacking the context variable
+into a suitably-named local variable.
