@@ -5,7 +5,7 @@ import cog
 LAST_LINES = None
 LAST_FILENAME = None
 
-def include(filename, first=None, numlines=None, numblanks=None, dedent=True):
+def include(filename, first=None, after=None, numlines=None, numblanks=None, dedent=True):
     """
     Include text from a file.
     """
@@ -17,7 +17,7 @@ def include(filename, first=None, numlines=None, numblanks=None, dedent=True):
     else:
         lines = LAST_LINES
 
-    including = "".join(selected_lines(lines, first, numlines, numblanks))
+    including = "".join(selected_lines(lines, first, after, numlines, numblanks))
     if dedent:
         including = textwrap.dedent(including)
 
@@ -26,10 +26,14 @@ def include(filename, first=None, numlines=None, numblanks=None, dedent=True):
     cog.outl("```")
 
 
-def selected_lines(lines, first=None, numlines=None, numblanks=None):
+def selected_lines(lines, first=None, after=None, numlines=None, numblanks=None):
+    ready = after is None
     including = False
     for line in lines:
-        if first is not None and first in line:
+        if not ready:
+            if after in line:
+                ready = True
+        if ready and first is not None and first in line:
             including = True
         if including:
             if numblanks is not None and not line.strip():
