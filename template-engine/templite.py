@@ -165,7 +165,11 @@ class Templite(object):
                     code.indent()
                 elif words[0].startswith('end'):
                     # Endsomething.  Pop the ops stack.
+                    if len(words) != 1:
+                        self._syntax_error("Don't understand end", token)
                     end_what = words[0][3:]
+                    if not ops_stack:
+                        self._syntax_error("Too many ends", token)
                     start_what = ops_stack.pop()
                     if start_what != end_what:
                         self._syntax_error("Mismatched end tag", end_what)
@@ -177,13 +181,13 @@ class Templite(object):
                 if token:
                     buffered.append(repr(token))
 
+        if ops_stack:
+            self._syntax_error("Unmatched action tag", ops_stack[-1])
+
         flush_output()
 
         for var_name in self.all_vars - self.loop_vars:
             vars_code.add_line("c_%s = ctx[%r]" % (var_name, var_name))
-
-        if ops_stack:
-            self._syntax_error("Unmatched action tag", ops_stack[-1])
 
         code.add_line("return ''.join(result)")
         code.dedent()

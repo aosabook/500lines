@@ -1,5 +1,6 @@
 """Tests for templite."""
 
+import re
 from templite import Templite, TempliteSyntaxError
 from unittest import TestCase
 
@@ -32,7 +33,8 @@ class TempliteTest(TestCase):
             self.assertEqual(actual, result)
 
     def assertSynErr(self, msg):
-        return self.assertRaisesRegexp(TempliteSyntaxError, msg)
+        pat = "^" + re.escape(msg) + "$"
+        return self.assertRaisesRegexp(TempliteSyntaxError, pat)
 
     def test_passthrough(self):
         # Strings without variables are passed through unchanged.
@@ -250,7 +252,7 @@ class TempliteTest(TestCase):
         with self.assertSynErr("Don't understand if: '{% if this or that %}'"):
             self.try_render("Buh? {% if this or that %}hi!{% endif %}")
 
-    def test_malformed_for_(self):
+    def test_malformed_for(self):
         with self.assertSynErr("Don't understand for: '{% for %}'"):
             self.try_render("Weird: {% for %}loop{% endfor %}")
         with self.assertSynErr("Don't understand for: '{% for x from y %}'"):
@@ -263,3 +265,11 @@ class TempliteTest(TestCase):
             self.try_render("{% if x %}X")
         with self.assertSynErr("Mismatched end tag: 'for'"):
             self.try_render("{% if x %}X{% endfor %}")
+        with self.assertSynErr("Too many ends: '{% endif %}'"):
+            self.try_render("{% if x %}{% endif %}{% endif %}")
+
+    def test_malformed_end(self):
+        with self.assertSynErr("Don't understand end: '{% end if %}'"):
+            self.try_render("{% if x %}X{% end if %}")
+        with self.assertSynErr("Don't understand end: '{% endif now %}'"):
+            self.try_render("{% if x %}X{% endif now %}")
