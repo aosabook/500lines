@@ -414,6 +414,8 @@ Templite object, and will also be available when the template is later
 rendered.  These are good for defining global functions, for example.
 
 
+#### Compiling
+
 All of the work to compile the template into a Python function happens in the
 Templite constructor.  First the contexts are saved away:
 
@@ -758,3 +760,150 @@ to unpack any name in `all_vars` that isn't in `loop_vars`:
 
 Each name becomes a line in the function's prolog unpacking the context variable
 into a suitably-named local variable.
+
+We're almost done compiling the template into a Python function.  Our function
+has been appending strings to `result`, so the last line of the function is
+simply to join them all together and return them:
+
+<!-- [[[cog include("templite.py", first='code.add_line("return', numlines=2, dedent=False) ]]] -->
+```
+        code.add_line("return ''.join(result)")
+        code.dedent()
+```
+<!-- [[[end]]] -->
+
+Finally, we get the function itself from our CodeBuilder object.  This line
+executes the Python code we've been assembling.  The dictionary of globals is
+returned, we grab the `render` value from it, and save it as an attribute in
+our Templite object:
+
+<!-- [[[cog include("templite.py", first="self._render_function =", numlines=1, dedent=False) ]]] -->
+```
+        self._render_function = code.get_globals()['render']
+```
+<!-- [[[end]]] -->
+
+Now `self._render_function` is a callable Python function, we'll use it later
+during the rendering phase.
+
+
+#### Compiling Expressions
+
+We haven't yet seen a significant piece of the compiling process: the `_expr_code`
+method that compiles a template expression into a Python expression.  Our template
+expressions can be as simple as a single name:
+
+```
+{{user_name}}
+```
+
+or can be a complex accretion of attribute access and filters:
+
+```
+{{user.name.localized|upper|escape}}
+```
+
+Our `_expr_code` method will handle of these possibilities.  As with
+expressions in any language, ours are built recursively: a full expression is
+pipe-separated, where the first piece is dot-separated, and so on.  So our
+function naturally takes a recursive form:
+
+<!-- [[[cog include("templite.py", first="def _expr_code", numlines=2, dedent=False) ]]] -->
+```
+    def _expr_code(self, expr):
+        """Generate a Python expression for `expr`."""
+```
+<!-- [[[end]]] -->
+
+The first case to consider is that our expression has pipes in it.  If it does,
+then we split it into a list of pipe-pieces.  The first pipe-piece is passed
+recursively to `_expr_code` to turn it into a Python expression.
+
+<!-- [[[cog include("templite.py", first="if ", after="def _expr_code", numlines=6, dedent=False) ]]] -->
+```
+        if "|" in expr:
+            pipes = expr.split("|")
+            code = self._expr_code(pipes[0])
+            for func in pipes[1:]:
+                self._variable(func, self.all_vars)
+                code = "c_%s(%s)" % (func, code)
+```
+<!-- [[[end]]] -->
+
+Each of the remaining pipe pieces is the name of a function.  The value is
+passed through the function to produce the final value.  Each function name is
+a variable that gets added to `all_vars` so that we can extract it properly in
+the prolog.
+
+If there were no pipes, there might be dots.  If so, split on the dots.  The
+first part is passed recursively to `_expr_code` to turn it into a Python
+expression, then each dot name is handled in turn:
+
+<!-- [[[cog include("templite.py", first="elif ", after="def _expr_code", numlines=5, dedent=False) ]]] -->
+```
+        elif "." in expr:
+            dots = expr.split(".")
+            code = self._expr_code(dots[0])
+            args = ", ".join(repr(d) for d in dots[1:])
+            code = "dot(%s, %s)" % (code, args)
+```
+<!-- [[[end]]] -->
+
+To understand how dots get compiled, remember that `x.y` in the template could
+mean either `x['y']` or `x.y` in Python, depending on which works, and if the
+result is callable, it's called.  This uncertainty means that we have to try
+those possibilities at run time, not compile time.  So we compile `x.y` into
+a function call, `dot(x, 'y')`.  The dot function will try the various access
+methods to and return the value that succeeded.
+
+The dot function is passed into our compiled Python function at run time, we'll
+see how it is implemented in just a bit.
+
+The last clause in the `_expr_code` function handles the case that there was no
+pipe or dot in the input expression.  In that case, it's just a simple name. We
+record it in `all_vars`, and access the variable using its prefixed Python
+name:
+
+<!-- [[[cog include("templite.py", first="else:", after="def _expr_code", numlines=4, dedent=False) ]]] -->
+```
+        else:
+            self._variable(expr, self.all_vars)
+            code = "c_%s" % expr
+        return code
+```
+<!-- [[[end]]] -->
+
+
+#### Helper Functions
+
+During compilation, we used a few helper functions.  The `_syntax_error` method
+simply puts together a nice error message and raises the exception:
+
+<!-- [[[cog include("templite.py", first="def _syntax_error", numblanks=1, dedent=False) ]]] -->
+```
+    def _syntax_error(self, msg, thing):
+        """Raise a syntax error using `msg`, and showing `thing`."""
+        raise TempliteSyntaxError("%s: %r" % (msg, thing))
+```
+<!-- [[[end]]] -->
+
+When we found a variable name, we used the `_variable` method to check that it
+was valid, and to add it to some set of names we're tracking.  The function is
+simple: we use a regex to check that the name is a valid Python identifier,
+then add the name to the set:
+
+<!-- [[[cog include("templite.py", first="def _variable", numblanks=4, dedent=False) ]]] -->
+```
+    def _variable(self, name, vars_set):
+        """Track that `name` is used as a variable.
+
+        Adds the name to `vars_set`, a set of variable names.
+
+        Raises an syntax error if `name` is not a valid name.
+
+        """
+        if not re.match(r"[_a-zA-Z][_a-zA-Z0-9]*$", name):
+            self._syntax_error("Not a valid name", name)
+        vars_set.add(name)
+```
+<!-- [[[end]]] -->
