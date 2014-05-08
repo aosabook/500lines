@@ -110,7 +110,7 @@ class Templite(object):
         # it, and execute it to render the template.
         code = CodeBuilder()
 
-        code.add_line("def render(ctx, dot):")
+        code.add_line("def render_function(ctx, do_dots):")
         code.indent()
         vars_code = code.add_subbuilder()
         code.add_line("result = []")
@@ -191,7 +191,7 @@ class Templite(object):
 
         code.add_line("return ''.join(result)")
         code.dedent()
-        self._render_function = code.get_globals()['render']
+        self._render_function = code.get_globals()['render_function']
 
     def _expr_code(self, expr):
         """Generate a Python expression for `expr`."""
@@ -205,7 +205,7 @@ class Templite(object):
             dots = expr.split(".")
             code = self._expr_code(dots[0])
             args = ", ".join(repr(d) for d in dots[1:])
-            code = "dot(%s, %s)" % (code, args)
+            code = "do_dots(%s, %s)" % (code, args)
         else:
             self._variable(expr, self.all_vars)
             code = "c_%s" % expr
