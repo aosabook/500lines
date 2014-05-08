@@ -193,22 +193,6 @@ class Templite(object):
         code.dedent()
         self._render_function = code.get_globals()['render']
 
-    def _syntax_error(self, msg, thing):
-        """Raise a syntax error using `msg`, and showing `thing`."""
-        raise TempliteSyntaxError("%s: %r" % (msg, thing))
-
-    def _variable(self, name, vars_set):
-        """Track that `name` is used as a variable.
-
-        Adds the name to `vars_set`, a set of variable names.
-
-        Raises an syntax error if `name` is not a valid name.
-
-        """
-        if not re.match(r"[_a-zA-Z][_a-zA-Z0-9]*$", name):
-            self._syntax_error("Not a valid name", name)
-        vars_set.add(name)
-
     def _expr_code(self, expr):
         """Generate a Python expression for `expr`."""
         if "|" in expr:
@@ -226,6 +210,22 @@ class Templite(object):
             self._variable(expr, self.all_vars)
             code = "c_%s" % expr
         return code
+
+    def _syntax_error(self, msg, thing):
+        """Raise a syntax error using `msg`, and showing `thing`."""
+        raise TempliteSyntaxError("%s: %r" % (msg, thing))
+
+    def _variable(self, name, vars_set):
+        """Track that `name` is used as a variable.
+
+        Adds the name to `vars_set`, a set of variable names.
+
+        Raises an syntax error if `name` is not a valid name.
+
+        """
+        if not re.match(r"[_a-zA-Z][_a-zA-Z0-9]*$", name):
+            self._syntax_error("Not a valid name", name)
+        vars_set.add(name)
 
     def render(self, context=None):
         """Render this template by applying it to `context`.
