@@ -1,9 +1,5 @@
 *~
 _site
-
-.project
-functionalDB/node_modules
-
 *.pyc
-
-/bin
+.coverage
+htmlcov
