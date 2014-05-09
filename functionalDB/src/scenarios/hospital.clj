@@ -47,9 +47,16 @@
 (add-machine :1machine1 "M11")
 (add-machine :2machine2 "M222")
 
-(add-test-results-to-patient :pat1  (make-test :t2-pat1  {:test/bp-systolic 170 :test/bp-diastolic 80 :test/machine :2machine2 } {:test/machine :db/ref} ))
-(add-test-results-to-patient :pat2  (make-test :t4-pat2  {:test/bp-systolic 170 :test/bp-diastolic 90 :test/machine :1machine1} {:test/machine :db/ref} ))
-(add-test-results-to-patient :pat2  (make-test :t3-pat2  {:test/bp-systolic 140 :test/bp-diastolic 80 :test/machine :2machine2} {:test/machine :db/ref} ))
+(add-test-results-to-patient :pat1
+                             (make-test :t2-pat1
+                                        {:test/bp-systolic 170 :test/bp-diastolic 80 :test/machine :2machine2 }
+                                        {:test/machine :db/ref} ))
+(add-test-results-to-patient :pat2  (make-test :t4-pat2
+                                               {:test/bp-systolic 170 :test/bp-diastolic 90 :test/machine :1machine1}
+                                               {:test/machine :db/ref} ))
+(add-test-results-to-patient :pat2  (make-test :t3-pat2
+                                               {:test/bp-systolic 140 :test/bp-diastolic 80 :test/machine :2machine2}
+                                               {:test/machine :db/ref} ))
 
 (transact hospital-db (update-datom :pat1 :patient/symptoms #{"cold sweat" "sneeze"} :db/reset-to))
 (transact hospital-db (update-datom :pat1 :patient/tests #{:t2-pat1} :db/remove))
@@ -57,12 +64,17 @@
 
  (defn keep-on-equals [a b](if (= a b) a nil ))
 
-(q @hospital-db {:find [?e ?k] :where [[ ?e :test/bp-systolic (> 200 ?b)] [ ?e :test/bp-diastolic ?k]]} )
+(q @hospital-db {:find [?e ?k]
+                 :where [[ ?e :test/bp-systolic (> 200 ?b)]
+                         [ ?e :test/bp-diastolic ?k]]} )
 
 
- (q @hospital-db {:find [?a ?b] :where [[ _  ?a (> 200 ?b)] ]})
+ (q @hospital-db {:find [?a ?b]
+                  :where [[ _  ?a (> 200 ?b)]]})
 
- (q @hospital-db {:find [?e ?k ] :where [[ ?e :test/bp-systolic (> 180 ?b)][ ?e :test/bp-diastolic ?k] ]})
+ (q @hospital-db {:find [?e ?k ]
+                  :where [[ ?e :test/bp-systolic (> 180 ?b)]
+                          [ ?e :test/bp-diastolic ?k] ]})
 
 
 (evolution-of (M/db-from-conn hospital-db) :pat1 :patient/symptoms)
@@ -72,6 +84,3 @@
 
    (take 7
          (traverse-db  :pat2 @hospital-db :bfs :outgoing))
-
-
-;(entity-at @hospital-db :pat1 9)

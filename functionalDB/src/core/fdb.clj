@@ -11,11 +11,10 @@
   [db ent]
   (let [top-id (:top-id db)
           ent-id (:id ent)
-          inceased-id (inc top-id)
-          [id-to-use next-top] (if (= ent-id :db/no-id-yet)
-                                             [(keyword (str inceased-id)) inceased-id]
-                                             [ent-id top-id])]
-  [id-to-use next-top]))
+          inceased-id (inc top-id)]
+          (if (= ent-id :db/no-id-yet)
+              [(keyword (str inceased-id)) inceased-id]
+              [ent-id top-id])))
 
 (defn entity-at
   "the entity with the given ent-id at the given time (defualts to the latest time)"
@@ -249,16 +248,9 @@
       (restruct-fn pendings)))
 
 (defn traverse [pendings explored  out-reffing ent-at restruct-fn]
-    (let [_ (println "\n\nexplo" explored)
-          _ (println "all pends " pendings)
-          cleaned-pendings (remove-explored pendings explored restruct-fn)
-          _ (println "cleaned = " cleaned-pendings)
-           item (first cleaned-pendings)
-          _ (println "item ==" item)
-           next-pends (reduce conj (restruct-fn (rest cleaned-pendings)) (out-reffing item))
-
-          ;stam (println "cleaned pends" next-pends)
-          ]
+    (let [cleaned-pendings (remove-explored pendings explored restruct-fn)
+          item (first cleaned-pendings)
+          next-pends (reduce conj (restruct-fn (rest cleaned-pendings)) (out-reffing item))]
       (when item (cons (ent-at item)
                        (lazy-seq (traverse next-pends  (conj explored item)  out-reffing ent-at restruct-fn))))))
 
