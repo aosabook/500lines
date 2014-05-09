@@ -362,7 +362,7 @@ CodeBuilder is quite simple, it has:
 ```
 <!-- [[[end]]] -->
 
-* a method to produce the final vaues by executing the code.  This stringifies
+* a method to produce the final values by executing the code.  This stringifies
   the object, executes it in a new globals namespace, and returns the resulting
   values:
 
@@ -673,7 +673,7 @@ statement:
 We do a simple check of the syntax and push `'for'` onto the stack.  The
 `_variable` method checks the syntax of the variable, and adds it to the set
 we provide.  This is how we collect up the names of all the loop variables
-during the compilation so that we can later create the prolog of the function.
+during the compilation so that we can later create the prologue of the function.
 
 We add one line to our function source, a for statement.  All of our template
 variables are turned into Python variables by prepending `c_` to them so that
@@ -701,7 +701,7 @@ unindent to end the if statement or for statement that was started earlier:
 ```
 <!-- [[[end]]] -->
 
-Notice here that the actual work needed for the end tag is one line: dedent the
+Notice here that the actual work needed for the end tag is one line: unindent the
 function source.  The rest of this clause is all error checking to make sure
 that the template is properly formed.  This isn't unusual in program
 translation code.
@@ -718,7 +718,7 @@ don't know what it is, so raise a syntax error:
 
 We're done with the three different special syntaxes (`{{...}}`, `{#...#}`, and
 `{%...%}`), what's left is literal content.  We'll add the literal string to
-the buffered output, using the `repr` builtin function to produce a Python
+the buffered output, using the `repr` built-in function to produce a Python
 string literal for the token.  There's no point adding an empty string to the
 output, so only add the token if it's non-empty:
 
@@ -748,7 +748,7 @@ the buffered output to the function source:
 We had created a sub-builder at the beginning of the function.  Its role was to
 unpack template variables from the context into Python locals.  Now that we've
 processed the entire template, we know the names of all the variables, so we
-can write the lines in this prolog.  The variables used are in the set
+can write the lines in this prologue.  The variables used are in the set
 `self.all_vars`, and all the variables defined in the template are in
 `self.loop_vars`.  We need to unpack any name in `all_vars` that isn't in
 `loop_vars`:
@@ -760,7 +760,7 @@ can write the lines in this prolog.  The variables used are in the set
 ```
 <!-- [[[end]]] -->
 
-Each name becomes a line in the function's prolog unpacking the context
+Each name becomes a line in the function's prologue unpacking the context
 variable into a suitably-named local variable.
 
 We're almost done compiling the template into a Python function.  Our function
@@ -835,7 +835,7 @@ recursively to `_expr_code` to turn it into a Python expression.
 Each of the remaining pipe pieces is the name of a function.  The value is
 passed through the function to produce the final value.  Each function name is
 a variable that gets added to `all_vars` so that we can extract it properly in
-the prolog.
+the prologue.
 
 If there were no pipes, there might be dots.  If so, split on the dots.  The
 first part is passed recursively to `_expr_code` to turn it into a Python
