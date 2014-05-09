@@ -28,7 +28,7 @@ class Commander(Component):
         self.leader.commander_finished(
             self.commander_id, ballot_num, preempted)
         if self.timer:
-            self.cancel_timer(self.timer)
+            self.timer.cancel()
         self.stop()
 
     def do_ACCEPTED(self, commander_id, acceptor, ballot_num):  # p2b

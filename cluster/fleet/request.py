@@ -23,6 +23,6 @@ class Request(Component):
         if client_id != self.client_id:
             return
         self.logger.debug("received output %r" % (output,))
-        self.cancel_timer(self.invoke_timer)
+        self.invoke_timer.cancel()
         self.callback(output)
         self.stop()

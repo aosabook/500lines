@@ -20,6 +20,21 @@ def tuple_to_addr(addr):
     return '%s-%s' % addr
 
 
+class Timer(object):
+
+    def __init__(self, expires, address, callback):
+        self.expires = expires
+        self.address = address
+        self.callback = callback
+        self.cancelled = False
+
+    def __cmp__(self, other):
+        return cmp(self.expires, other.expires)
+
+    def cancel(self):
+        self.cancelled = True
+
+
 class Node(object):
 
     def __init__(self, port):
@@ -36,15 +51,18 @@ class Node(object):
         self.running = True
         while self.running:
             if self.timers:
-                next_timer = self.timers[0][0]
-                if next_timer < time.time():
-                    when, do, callback = heapq.heappop(self.timers)
-                    if do:
-                        callback()
+                next_timer = self.timers[0]
+                if next_timer.expires < time.time():
+                    heapq.heappop(self.timers)
+                    if not next_timer.cancelled:
+                        next_timer.callback()
                     continue
             else:
-                next_timer = 0
-            timeout = max(0.1, next_timer - time.time())
+                next_timer = None
+            if next_timer:
+                timeout = max(0.1, next_timer.expires - time.time())
+            else:
+                timeout = 0.1
             self.sock.settimeout(timeout)
             try:
                 msg, address = self.sock.recvfrom(102400)
@@ -63,12 +81,9 @@ class Node(object):
         self.running = False
 
     def set_timer(self, seconds, callback):
-        timer = [time.time() + seconds, True, callback]
+        timer = Timer(self.now() + seconds, self.address, callback)
         heapq.heappush(self.timers, timer)
         return timer
-
-    def cancel_timer(self, timer):
-        timer[1] = False
 
     def now(self):
         return time.time()

@@ -23,6 +23,6 @@ class Bootstrap(Component):
         self.bootstrapped_cb(state, slot_num, decisions)
 
         if self.timer:
-            self.cancel_timer(self.timer)
+            self.timer.cancel()
 
         self.stop()

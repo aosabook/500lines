@@ -1,3 +1,6 @@
+import heapq
+from fleet.deterministic_network import Timer
+
 class FakeNode(object):
 
     def __init__(self):
@@ -17,24 +20,22 @@ class FakeNode(object):
         self.components.remove(component)
 
     def set_timer(self, seconds, callback):
-        self.timers.append([self._now + seconds, callback, True])
-        return self.timers[-1]
-
-    def cancel_timer(self, timer):
-        timer[2] = False
+        timer = Timer(self._now + seconds, self.address, callback)
+        heapq.heappush(self.timers, timer)
+        return timer
 
     def tick(self, seconds):
         until = self._now + seconds
         self.timers.sort()
-        while self.timers and self.timers[0][0] <= until:
-            when, callback, active = self.timers.pop(0)
-            self._now = when
-            if active:
-                callback()
+        while self.timers and self.timers[0].expires <= until:
+            timer = self.timers.pop(0)
+            self._now = timer.expires
+            if not timer.cancelled:
+                timer.callback()
         self._now = until
 
     def get_times(self):
-        return sorted([t[0] - self._now for t in self.timers if t[2]])
+        return sorted([t.expires - self._now for t in self.timers if not t.cancelled])
 
     def send(self, destinations, action, **kwargs):
         self.sent.append((destinations, action, kwargs))

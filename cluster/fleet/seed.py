@@ -30,5 +30,5 @@ class Seed(Component):
         # stick around for long enough that we don't hear any new JOINs from
         # the newly formed cluster
         if self.exit_timer:
-            self.cancel_timer(self.exit_timer)
+            self.exit_timer.cancel()
         self.exit_timer = self.set_timer(JOIN_RETRANSMIT * 2, self.stop)

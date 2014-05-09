@@ -15,6 +15,14 @@ class TestComp(member.Component):
 
 class NodeTests(unittest.TestCase):
 
+    def setUp(self):
+        self.patch = mock.patch('fleet.network.tuple_to_addr')
+        m = self.patch.start()
+        m.side_effect = lambda addr: '%s-%s' % addr
+
+    def tearDown(self):
+        self.patch.stop()
+
     def test_comm(self):
         """Node can successfully send a message between instances"""
         sender = network.Node(0)
@@ -47,6 +55,6 @@ class NodeTests(unittest.TestCase):
 
         cb = mock.Mock(side_effect=node.kill)
         node.set_timer(0.02, cb)
-        node.cancel_timer(nonex)
+        nonex.cancel()
         node.run()
         self.failUnless(cb.called)

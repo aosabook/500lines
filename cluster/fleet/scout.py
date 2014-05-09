@@ -31,7 +31,7 @@ class Scout(Component):
         self.logger.info(
             "finished - adopted" if adopted else "finished - preempted")
         self.leader.scout_finished(adopted, ballot_num, self.pvals)
-        self.cancel_timer(self.retransmit_timer)
+        self.retransmit_timer.cancel()
         self.stop()
 
     def do_PROMISE(self, scout_id, acceptor, ballot_num, accepted):  # p1b

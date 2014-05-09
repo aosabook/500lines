@@ -26,14 +26,11 @@ class Tests(utils.ComponentTestCase):
         self.assertEqual(self.member.node.components, [])
 
     @mock.patch.object(fake_network.FakeNode, 'set_timer')
-    @mock.patch.object(fake_network.FakeNode, 'cancel_timer')
-    def test_timer(self, cancel_timer, set_timer):
-        """Timer methods call through to the node"""
+    def test_timer(self, set_timer):
+        """Set_timer calls through to the node"""
         comp = MyComp(self.member)
-        comp.set_timer(2, 'cb')
+        t = comp.set_timer(2, 'cb')
         set_timer.assert_called_with(2, 'cb')
-        comp.cancel_timer('tim')
-        cancel_timer.assert_called_with('tim')
 
     def test_events(self):
         """Events are propagated to all components."""

@@ -28,9 +28,6 @@ class Node(object):
     def set_timer(self, seconds, callback):
         return self.network.set_timer(seconds, self.address, callback)
 
-    def cancel_timer(self, timer):
-        self.network.cancel_timer(timer)
-
     def send(self, destinations, action, **kwargs):
         self.logger.debug("sending %s with args %s to %s",
                           action, kwargs, destinations)
@@ -53,6 +50,21 @@ class Node(object):
             fn(**kwargs)
 
 
+class Timer(object):
+
+    def __init__(self, expires, address, callback):
+        self.expires = expires
+        self.address = address
+        self.callback = callback
+        self.cancelled = False
+
+    def __cmp__(self, other):
+        return cmp(self.expires, other.expires)
+
+    def cancel(self):
+        self.cancelled = True
+
+
 class Network(object):
     PROP_DELAY = 0.03
     PROP_JITTER = 0.02
@@ -64,7 +76,6 @@ class Network(object):
         self.pause = pause
         self.timers = []
         self.now = 1000.0
-        self.logger = logging.getLogger('network')
 
     def new_node(self):
         node = Node(self)
@@ -73,38 +84,33 @@ class Network(object):
 
     def run(self):
         while self.timers:
-            next_timer = self.timers[0][0]
-            if next_timer > self.now:
+            next_timer = self.timers[0]
+            if next_timer.expires > self.now:
                 if self.pause:
                     raw_input()
                 else:
                     time.sleep(next_timer - self.now)
-                self.now = next_timer
-            when, do, address, callback = heapq.heappop(self.timers)
-            if do and address in self.nodes:
-                callback()
+                self.now = next_timer.expires
+            heapq.heappop(self.timers)
+            if not next_timer.cancelled and next_timer.address in self.nodes:
+                next_timer.callback()
 
     def stop(self):
         self.timers = []
 
     def set_timer(self, seconds, address, callback):
-        # TODO: return an obj with 'cancel'
-        timer = [self.now + seconds, True, address, callback]
+        timer = Timer(self.now + seconds, address, callback)
         heapq.heappush(self.timers, timer)
         return timer
 
-    def cancel_timer(self, timer):
-        timer[1] = False
-
-    def _receive(self, address, action, kwargs):
-        if address in self.nodes:
-            self.nodes[address].receive(action, kwargs)
-
     def send(self, destinations, action, **kwargs):
+        def _receive(address, action, kwargs):
+            if address in self.nodes:
+                self.nodes[address].receive(action, kwargs)
         for dest in destinations:
             if self.rnd.uniform(0, 1.0) > self.DROP_PROB:
                 delay = self.PROP_DELAY + \
                     self.rnd.uniform(-self.PROP_JITTER, self.PROP_JITTER)
                 # copy the kwargs now, before the sender modifies them
                 self.set_timer(delay, dest, functools.partial(
-                    self._receive, dest, action, copy.deepcopy(kwargs)))
+                    _receive, dest, action, copy.deepcopy(kwargs)))
