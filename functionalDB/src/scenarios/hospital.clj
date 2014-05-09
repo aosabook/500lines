@@ -4,7 +4,7 @@
                 [clojure.set     :as CS :only (union difference )]])
 
 (def db-name "hos12")
-(M/reset-db-conn db-name)
+(M/drop-db-conn db-name)
 
 (def hospital-db (M/get-db-conn db-name))
 
