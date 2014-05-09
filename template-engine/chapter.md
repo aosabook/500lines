@@ -219,7 +219,7 @@ Our engine will compile this template to this Python code (slightly reformatted
 for readability):
 
 ```
-def render(ctx, dot):
+def render_function(ctx, do_dots):
     c_user_name = ctx['user_name']
     c_product_list = ctx['product_list']
     c_format_price = ctx['format_price']
@@ -233,9 +233,9 @@ def render(ctx, dot):
     for c_product in c_product_list:
         e([
             '\n    <li>',
-            s(dot(c_product, 'name')),
+            s(do_dots(c_product, 'name')),
             ':\n        ',
-            s(c_format_price(dot(c_product, 'price'))),
+            s(c_format_price(do_dots(c_product, 'price'))),
             '</li>\n'
         ])
     a('\n</ul>\n')
@@ -243,11 +243,12 @@ def render(ctx, dot):
 ```
 
 This Python code looks unusual, because we've chosen some shortcuts that
-produce slightly faster code.  Each template is converted into a `render`
-function that takes a dictionary of data called the context (abbreviated to
-`ctx`). The body of the function starts by unpacking the data from the context
-into local names, because they are faster for repeated use.  We use locals with
-a `c_` prefix so that we can use other local names without fear of collisions.
+produce slightly faster code.  Each template is converted into a
+`render_function` function that takes a dictionary of data called the context
+(abbreviated to `ctx`). The body of the function starts by unpacking the data
+from the context into local names, because they are faster for repeated use.
+We use locals with a `c_` prefix so that we can use other local names without
+fear of collisions.
 
 The result of the template will be a string, but the fastest way to build a
 string from parts is to create a list of strings, and join them together at the
@@ -264,10 +265,10 @@ or more than one.  Literal text in the template becomes a simple string
 literal.
 
 Expressions in `{{ ... }}` are computed, converted to strings, and added to the
-result.  Dots in the expression are handled by the `dot` function passed into
-our function, because the meaning of the dotted expressions depends on the data
-in the context: it could be attribute access or item access, and it could be a
-callable.
+result.  Dots in the expression are handled by the `do_dots` function passed
+into our function, because the meaning of the dotted expressions depends on the
+data in the context: it could be attribute access or item access, and it could
+be a callable.
 
 The logical structures `{{ if ... }}` and `{{ for ... }}` are converted into
 Python conditionals and loops in a relatively straightforward way.
@@ -459,7 +460,7 @@ function:
 ```
         code = CodeBuilder()
 
-        code.add_line("def render(ctx, dot):")
+        code.add_line("def render_function(ctx, do_dots):")
         code.indent()
         vars_code = code.add_subbuilder()
         code.add_line("result = []")
@@ -470,9 +471,9 @@ function:
 <!-- [[[end]]] -->
 
 Here we construct our CodeBuilder object, and start writing lines into it. Our
-Python function will be called `render`, and will take two arguments: `ctx` is
-the data dictionary it should use, and `dot` is a function it can use to
-implement dot attribute access.
+Python function will be called `render_function`, and will take two arguments:
+`ctx` is the data dictionary it should use, and `do_dots` is a function it can
+use to implement dot attribute access.
 
 We create a sub-builder called `vars_code`.  Later we'll write the variable
 extraction lines into that sub-builder.  This lets us save a place in the 
@@ -545,8 +546,8 @@ This looks complicated, let's break it down.  The `re.split` function will
 split a string using a regular expression.  If the pattern is parenthesized,
 then the matches will be used to split the string, but will also be returned as
 pieces in the split list.  Our pattern will match our tag syntaxes, but we've
-parenthesized it so that the string will be split at the tags, and the tags will
-also be returned.
+parenthesized it so that the string will be split at the tags, and the tags
+will also be returned.
 
 The `(?s)` flag in the regex means that dot should match even a newline. Then
 we have our parenthesized group of three alternatives: `{{.*?}}` matches an 
@@ -614,8 +615,8 @@ We'll see that function later.  The result goes into our function, with
 the `s` function (shorthand for the `str` builtin).
 
 The third case is the big one: `{% ... %}` tags.  These are control structures
-that will become Python control structures.  First we have to flush our buffered
-output lines, then we extract a list of words from the tag:
+that will become Python control structures.  First we have to flush our
+buffered output lines, then we extract a list of words from the tag:
 
 <!-- [[[cog include("templite.py", first="elif token.startswith('{%')", numlines=4, dedent=False) ]]] -->
 ```
@@ -626,8 +627,8 @@ output lines, then we extract a list of words from the tag:
 ```
 <!-- [[[end]]] -->
 
-Now we have three sub-cases, based on the first word in the tag: if, for, or end.
-The if case shows our simple error handling and code generation:
+Now we have three sub-cases, based on the first word in the tag: if, for, or
+end.  The if case shows our simple error handling and code generation:
 
 <!-- [[[cog include("templite.py", first="if words[0] == 'if'", numlines=7, dedent=False) ]]] -->
 ```
@@ -645,8 +646,8 @@ The if tag should have a single expression, so the `words` list should have
 only two elements in it.  If it doesn't, we use the `_syntax_error` helper
 method to raise a syntax error exception.  We push `'if'` onto `ops_stack` so
 that we can check the endif tag.  The expression part of the if tag is compiled
-to a Python expression with `_expr_code`, and is used as the conditional expression
-in a Python if statement.
+to a Python expression with `_expr_code`, and is used as the conditional
+expression in a Python if statement.
 
 The second tag type is "for", which will of course be compiled to a Python for
 statement:
@@ -746,10 +747,11 @@ the buffered output to the function source:
 
 We had created a sub-builder at the beginning of the function.  Its role was to
 unpack template variables from the context into Python locals.  Now that we've
-processed the entire template, we know the names of all the variables, so we can
-write the lines in this prolog.  The variables used are in the set `self.all_vars`,
-and all the variables defined in the template are in `self.loop_vars`.  We need
-to unpack any name in `all_vars` that isn't in `loop_vars`:
+processed the entire template, we know the names of all the variables, so we
+can write the lines in this prolog.  The variables used are in the set
+`self.all_vars`, and all the variables defined in the template are in
+`self.loop_vars`.  We need to unpack any name in `all_vars` that isn't in
+`loop_vars`:
 
 <!-- [[[cog include("templite.py", first="for var_name", numblanks=1, dedent=False) ]]] -->
 ```
@@ -758,8 +760,8 @@ to unpack any name in `all_vars` that isn't in `loop_vars`:
 ```
 <!-- [[[end]]] -->
 
-Each name becomes a line in the function's prolog unpacking the context variable
-into a suitably-named local variable.
+Each name becomes a line in the function's prolog unpacking the context
+variable into a suitably-named local variable.
 
 We're almost done compiling the template into a Python function.  Our function
 has been appending strings to `result`, so the last line of the function is
@@ -774,12 +776,12 @@ simply to join them all together and return them:
 
 Finally, we get the function itself from our CodeBuilder object.  This line
 executes the Python code we've been assembling.  The dictionary of globals is
-returned, we grab the `render` value from it, and save it as an attribute in
-our Templite object:
+returned, we grab the `render_function` value from it, and save it as an
+attribute in our Templite object:
 
 <!-- [[[cog include("templite.py", first="self._render_function =", numlines=1, dedent=False) ]]] -->
 ```
-        self._render_function = code.get_globals()['render']
+        self._render_function = code.get_globals()['render_function']
 ```
 <!-- [[[end]]] -->
 
@@ -789,9 +791,9 @@ during the rendering phase.
 
 #### Compiling Expressions
 
-We haven't yet seen a significant piece of the compiling process: the `_expr_code`
-method that compiles a template expression into a Python expression.  Our template
-expressions can be as simple as a single name:
+We haven't yet seen a significant piece of the compiling process: the
+`_expr_code` method that compiles a template expression into a Python
+expression.  Our template expressions can be as simple as a single name:
 
 ```
 {{user_name}}
@@ -845,19 +847,19 @@ expression, then each dot name is handled in turn:
             dots = expr.split(".")
             code = self._expr_code(dots[0])
             args = ", ".join(repr(d) for d in dots[1:])
-            code = "dot(%s, %s)" % (code, args)
+            code = "do_dots(%s, %s)" % (code, args)
 ```
 <!-- [[[end]]] -->
 
 To understand how dots get compiled, remember that `x.y` in the template could
 mean either `x['y']` or `x.y` in Python, depending on which works, and if the
 result is callable, it's called.  This uncertainty means that we have to try
-those possibilities at run time, not compile time.  So we compile `x.y` into
-a function call, `dot(x, 'y')`.  The dot function will try the various access
-methods to and return the value that succeeded.
+those possibilities at run time, not compile time.  So we compile `x.y.z` into
+a function call, `do_dots(x, 'y', 'z')`.  The dot function will try the
+various access methods to and return the value that succeeded.
 
-The dot function is passed into our compiled Python function at run time, we'll
-see how it is implemented in just a bit.
+The `do_dots` function is passed into our compiled Python function at run time,
+we'll see how it is implemented in just a bit.
 
 The last clause in the `_expr_code` function handles the case that there was no
 pipe or dot in the input expression.  In that case, it's just a simple name. We
@@ -887,10 +889,10 @@ simply puts together a nice error message and raises the exception:
 ```
 <!-- [[[end]]] -->
 
-When we found a variable name, we used the `_variable` method to check that it
-was valid, and to add it to some set of names we're tracking.  The function is
-simple: we use a regex to check that the name is a valid Python identifier,
-then add the name to the set:
+The `_variable` method helped us with validating variable names and adding them
+to the sets of names we collected during compilation.  It's simple: we use a
+regex to check that the name is a valid Python identifier, then add the name to
+the set:
 
 <!-- [[[cog include("templite.py", first="def _variable", numblanks=4, dedent=False) ]]] -->
 ```
@@ -907,3 +909,81 @@ then add the name to the set:
         vars_set.add(name)
 ```
 <!-- [[[end]]] -->
+
+With that, the compilation code is done!
+
+
+#### Rendering
+
+All that's left is to write the rendering code.  Since we've compiled our
+template to a Python function, the rendering code is very simple.  It has to
+get the data context ready, and then call the compiled Python code:
+
+<!-- [[[cog include("templite.py", first="def render", numblanks=3, dedent=False) ]]] -->
+```
+        code.add_line("def render_function(ctx, do_dots):")
+        code.indent()
+        vars_code = code.add_subbuilder()
+        code.add_line("result = []")
+        code.add_line("a = result.append")
+        code.add_line("e = result.extend")
+        code.add_line("s = str")
+
+        buffered = []
+        def flush_output():
+            """Force `buffered` to the code builder."""
+            if len(buffered) == 1:
+                code.add_line("a(%s)" % buffered[0])
+            elif len(buffered) > 1:
+                code.add_line("e([%s])" % ", ".join(buffered))
+            del buffered[:]
+
+        ops_stack = []
+```
+<!-- [[[end]]] -->
+
+Remember that when we constructed the `Templite` object, we started with a data
+context.  Here we copy it, and add in whatever data has been passed in for this
+rendering.  Then we simply call our compiled `render_function`.  The first
+argument is the data context, the second argument is the function that will
+implement the dot semantics.  We use the same implementation every time, our
+own `_do_dots` method, which is the last piece of code to look at:
+
+<!-- [[[cog include("templite.py", first="def _do_dots", numblanks=1, dedent=False) ]]] -->
+```
+    def _do_dots(self, value, *dots):
+        """Evaluate dotted expressions at runtime."""
+        for dot in dots:
+            try:
+                value = getattr(value, dot)
+            except AttributeError:
+                value = value[dot]
+            if callable(value):
+                value = value()
+        return value
+```
+<!-- [[[end]]] -->
+
+During compilation, a template expression like `x.y.z` gets turned into
+`do_dots(x, 'y', 'z')`.  This function loops over the dot-names, and for each
+one tries it as an attribute, and if that fails, tries it as a key.  This is
+what gives our single template syntax the flexibility to act as either `x.y` or
+`x['y']`.  At each step, we also check if the new value is callable, and if it
+is, we call it.  Once we're done with all the dot-names, the value in hand is
+the value we want.
+
+
+## Testing
+
+Provided with the template engine is a suite of tests that cover all of the
+behavior and edge cases.  I'm actually a little bit over my 500-line limit:
+the template engine is 251 lines, and the tests are 275 lines.  This is typical
+of well-tested code: you have more code in your tests than in your product.
+
+
+## Summing up
+
+In 251 lines, we've got a simple yet capable templating engine.  Real template
+engines have many more features, but this code lays out the basic ideas of the
+process: compile the template to a Python function, then execute the function
+to produce the text result.
