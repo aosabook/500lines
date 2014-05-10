@@ -3,6 +3,11 @@ class Trial
 
   attr_reader :file_name, :data, :user_params, :device_params
 
+  def self.all
+    file_names = Dir.glob(File.join('public/uploads', "*"))
+    file_names.map { |file_name| self.new(file_name) }
+  end
+
   def self.find(file_name)
     self.new(file_name)
   end
@@ -16,12 +21,17 @@ class Trial
   end
 
   def user_params
-    @user_params ||= file_name.split('/').last.split('_').first.split('-')
+    @user_params ||= file_components.first.split('-')
   end
 
   def device_params
-    @device_params ||= file_name.split('/').last.split('_').last.split('-')[0...-1]
+    @device_params ||= file_components.last.split('-')[0...-1]
   end
 
+private
+
+  def file_components
+    @file_components ||= file_name.split('/').last.split('_')
+  end
 
 end

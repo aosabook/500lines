@@ -16,23 +16,12 @@ get '/trials' do
     "A #{params[:error]} error has occurred. Please try again."
   end
 
-  @data = []
-  
-  # Want
-  # Trial.all.each do |trial|
-  #   build_with_params(trial)
-  #   @data << {:file_name => trial.file_name, :analyzer => @analyzer}
-  # end
-  # erb :trials
-
-  files_names = Dir.glob(File.join('public/uploads', "*"))
-  files_names.each do |file_name|
-    user_params, device_params = FileHelper.parse_file_name(file_name)
-    build_with_params(File.read(file_name), user_params, device_params)
-
-    @data << {:file_name => file_name, :analyzer => @analyzer}
+  @data = Trial.all.inject([]) do |a, trial|
+    build_with_params(trial.data, trial.user_params, trial.device_params)
+    a << {:file_name => trial.file_name, :analyzer => @analyzer}
+    a
   end
-
+  
   erb :trials
 end
 
