@@ -1,3 +1,4 @@
+# TODO: Rename to DeviceTrial so that the metadata fields make sense?
 class Device
 
   attr_reader :rate, :method, :steps, :trial

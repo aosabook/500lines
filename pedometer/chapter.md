@@ -79,8 +79,8 @@ Looking at our plots, we can start to see a pattern, but we don't have enough, y
 We need to do 3 things to our input data:
 
 1. Parse our text data and extract numerical data.
-2. Isolate movement in the direction of gravity to get a single data series resembling a sine wave.
-3. Filter our data series to smooth out our sine wave.
+2. Isolate movement in the direction of gravity to get a single data series waveform.
+3. Filter our data series to smooth out our waveform.
 
 These 3 tasks are related, and it makes sense to combine them into one class called a **Parser**. 
 
@@ -289,17 +289,14 @@ An example with separated data:
 
 Our pedometer will measure 3 metrics:
 
-1. Steps taken
-2. Distance traveled
-3. Time traveled
+1. Distance traveled
+2. Time traveled
+3. Steps taken
 
-Let's discuss the infomation we'll need to calculate each of these metrics.
-
-### Steps taken
-TODO: above
+Let's discuss the infomation we'll need to calculate each of these metrics. We're intentionally leaving the exciting, step counting part of our program to the end.
 
 ### Distance traveled
-A mobile pedometer app would generally be used by one person. The stride length of that person would be a necessary value to determine distance traveled. The pedometer can ask the user to input their info.
+A mobile pedometer app would generally be used by one person. The stride length of that person would be a necessary value to determine distance traveled, which is simply the steps taken multiplied by the stride length. The pedometer can ask the user to input their info.
 
 If the user can directly provide their stride length, then we're good to go. If not, and they provide their gender and their height, we can use $0.413 * height$ for a female, and $0.415 * height$ for a male. 
 
@@ -378,9 +375,175 @@ The User class is straightforward to use. Below are examples of users created wi
 => 72.0
 ~~~~~~~
 
-TODO: Introduce User, Device, and Analyzer class at once. Show some working examples through command line of both classes in action. 
+### Time Traveled
+
+The time traveled is measured by dividing the number of data samples in our Parser's @parsed_data set by the sampling rate of the device. Since the rate has more to do with the device itself than the user (and the user in fact does not have to be aware of the sampling rate), this looks like a good time to create a Device class. 
+
+~~~~~~~
+class Device
+
+  attr_reader :rate, :method, :steps, :trial
+
+  def initialize(rate = nil, steps = nil, trial = nil, method = nil)
+    @rate   = (rate.to_f.round > 0) ? rate.to_f.round : 100
+    @steps  = steps.to_f.round if steps.to_f.round > 0
+    @trial  = trial
+    @method = method
+  end
+
+end
+~~~~~~~
+
+Our device class is quite simple. Note that all of the attribute readers are set in the initializer based on parameters passed in. All of the other attributes are simply metadata:
+
+* method is used to set the type of walk that is taken (walk with phone in pocket, walk with phone in bag, jog, etc.)
+* steps is used to set the actual steps taken, so that we can record the difference between the actual steps the user took and the ones our program counted.
+* trial is a title for the specific trial (trial 1, 2, 3, etc.)
+
+Things to note:
+
+* Much like our User class, information is optional. The class handles it.
+* Basic input data formatting in the initalizer allows ensures that rate and steps are always numerical values greater than 0.
+* One could argue that metadata doesn't really belong in the Device class. For the sake of keeping our small program simple, we included the metadata in this class because it's more logical here than in the User class, and to avoid too much abstration for too little code. However, as our program grows and we have more metadata and more attributes related to the device, it would be wise to split the Device class apart from the metadata. 
+
+Our Device class is so straightforward to use, we won't bore you with the details of showing it in the wild. 
+
+### Steps taken
+Our Parser's @parsed_data waveform is created by the bounces in the z-direction of a person as they take a step. Each cycle of our waveform represents a single step taken. Therefore, counting steps is a matter of counting the number of peaks or the number of troughs in our Parser's @parsed_data waveform. 
+
+But, how do we count peaks or troughs in code? Let's assume for this discussion that we're deciding to count peaks. 
+
+If we had a perfect waveform, we could simply count the number of times that a point is numerically lower than the point before it. However, while our smoothing algorithm is good, it's not perfect. Example the waveform below. 
+
+TODO: Add waveform graph that shows too many peaks, with 4 major peaks.
+
+We can tell by looking at it that there are 4 peaks, but the circled areas would also be counted as peaks with the algorithm we described above. Unfortunately, even with our smoothing algorithm, we can't depend on a perfect waveform, so we'll have to use a similar method that accomodates an imperfect waveform. 
+
+Examine the waveform below with a line parallel to the x-axis. This line is below all of the peaks, but not so far down the y-axis that it's below any of the troughs. 
+
+TODO: Add graph of waveform with threshold line.
+
+This line can be used as a threshold. If we count each time our waveform crosses the line in the positive y direction, we'll achieve the same result as counting peaks, and therefore counting steps. 
+
+We can count troughs in a similar fashion, by using a threshold that is exactly the negative of our previous threshold. 
+
+If we assume that we're just as likely to accuarately count peaks as we are to count troughs, we'll get the most accurate result by counting both and taking the average of the two to determine our final step count. This will remove some error from certain data sets that have less prominent peaks or troughs. 
+
+Alright, back to some code. So far, we have a Parser class that contains our parsed waveform, and classes that give us the necessary information about a user and a device. What we're missing is a way to analyze the @parsed_data waveform with the information from User and Device, and count steps, measure distance, and measure time. The analysis portion of our program is different from the data manipulation of the Parser, and different from the information collection and aggregation of the User and Device classes. Let's create a new class called Analyzer to perform this data analysis.
+
+~~~~~~~
+require 'mathn'
+require_relative 'parser'
+require_relative 'user'
+require_relative 'device'
+
+class Analyzer
+
+  MAX_STEPS_PER_SECOND = 6.0
+  THRESHOLD = 0.2
+
+  attr_reader :parser, :user, :device, :steps, :distance, :time
+
+  def initialize(parser, user = User.new, device = Device.new)
+    raise "Parser invalid." unless parser.kind_of? Parser
+    raise "User invalid."   unless user.kind_of? User
+    raise "Device invalid." unless device.kind_of? Device
+
+    @parser = parser
+    @user   = user
+    @device = device
+  end
+
+  def measure
+    measure_steps
+    measure_distance
+    measure_time
+  end
+
+private
+
+  # -- Edge Detection -------------------------------------------------------
+
+  def count_edges(positive)
+    count           = 0
+    index_last_step = 0
+    threshold       = positive ? THRESHOLD : -THRESHOLD
+    min_interval    = (@device.rate/MAX_STEPS_PER_SECOND)
+
+    @parser.filtered_data.each_with_index do |data, i|
+      # If the current value >= the threshold, and the previous was < the threshold
+      # AND the interval between now and the last time a step was counted is 
+      # above the minimun threshold, count this as a step
+      if (data >= threshold) && (@parser.filtered_data[i-1] < threshold)
+        next if index_last_step > 0 && (i-index_last_step) < min_interval
+        count += 1
+        index_last_step = i
+      end
+    end
+    count
+  end
+
+  # -- Measurement ----------------------------------------------------------
+
+  def measure_steps
+    positive_edge_count = count_edges(true)
+    negative_edge_count = count_edges(false)
+    
+    @steps = ((positive_edge_count + negative_edge_count)/2).to_f.round
+  end
+
+  def measure_distance
+    @distance = @user.stride * @steps
+  end
+
+  def measure_time
+    @time = @parser.parsed_data.count/@device.rate
+  end
+
+end
+~~~~~~~
+
+Where our Parser class did all of the work of the input data cleaning, our Analyzer class does the work of analyzing the cleaned data.
+
+The first thing we do in our Analyzer class file is pull in the Ruby math library, along with our Parser, Device, and User classes. Then, we define constants to represent the maximum number of steps taken per second (used for error correction which we'll disucss in a moment), and a value for our threshold. For the purposes of this discussion, let's assume we've analyzsed numerous diverse data sets and detemined a value for the threshold that accomodated the largest number of those data sets. 
+
+Our Analyzer's initializer take a mandatory Parser because we necessarily need a data set to work with, and optionally takes a User and a Device. Note that the default values for those parameters is a new instance of each. Remember how those classes both had defualt values and could handle zero input parameters? That functionality comes in handy here. Note that the initializer raises exceptions if classes other than those expected are passed in, since we can't work with incorrect class types. Otherwise, all it does is set the instance variables @parser, @user, @device to the passed in parameters. 
+
+The only other public method in Analyzer is measure, which calls the private methods measure_steps, measure_distance, and measure_time, in that order. Let's look at each:
+
+### measure_steps
+
+Finally! The step counting portion of our step counting app. 
+
+The measure steps method counts the positive edges (the peaks) and the negative edges (the troughs) through the count_edges method, and then simply sets the @steps veriable to the average of the two. The count_edges method takes a boolean parameter to determine whether we're counting peaks or troughs. The method iterates through each point in our parser's @filtered_data attribute to count steps. At the start of the method, we instantiate the following variables:
+
+* count is used to keep track of the step count as we interate through our loop. This is, obviously, initialized to 0.
+* index_last_steps keeps the index of the step before the one we're on when looping through @filtered_data.
+* threshold uses the THRESHOLD constant but toggles between negative/positive depending on whether we're counting peaks or troughs. If we're counting peaks, we want a positive threshold above the x-axis. If we're counting troughs, we want a negative threshold below the x-axis. 
+* min_interval is the minimum number of samples between steps. This is used to prevent counting steps that are impossibly close together. 
+
+Let's take a closer look at the loop. We loop through filtered_data, keeping track of the value of each point in data, and the index in i. If our point value, data, is greater than or at the threshold and our previous point was below, then we've crossed the threshold in the positive y direction. We can count a step here, as long as the last step was not counted too close to this one. We determine this by comparing the difference between our current index and the index of the last step, if it exists, to our min_interval variable. If we're far enough away, we count our step by incrementing count, and set the index_last_step to the current index. The method returns the value in count as the total steps taken. 
+
+There we have it, the step counting portion of our program. 
+
+### measure_distance
+
+The distance is simply measured by miltuplying our user's stride by the number of steps. Since the distance depends on the step count, the measure method calls it after the step count has been calcualted, and keeps the method private so that an outside class can't call in before the measure_steps. 
+
+### measure_time
+
+Time is also a trivial calculation, dividing the total number of samples (the number of points in our parser's filtered_data attribute) by the rate (samples/second). Time then, obviously, is returned in numbers of seconds. 
+
+Things to Note:
+
+* The value for threshold can eventually become dynamic based on the user and the calculated versus actual steps they've taken. A learning algorithm, if you will.
+* We do some error handling in count_edges by ensuring that steps aren't impossibly close together. We can go a step further (pun intended?) by counting the number of false steps, and if we have too many, avoiding counting steps at all until some reasonable number of samples. That'll prevent any steps from being counted when the phone is shaken vigorously for a period of time. 
+* TODO: There should be more here.
 
 ## Adding some friendly
+
+We're through the most labour intensive part of our app. Now, all that's left is to present the data in a format that is pleasing to a user. It makes sense to create a very simple web app that allows a user to input a data set through a file upload (in our two formats!) and output the steps taken, distance traveled, time traveled, and maybe a few plots to display the data. 
+
 * Sinatra layout
 * /trials and a basic table with calculations, pulling from the public directory
 * ...

@@ -69,7 +69,7 @@ private
   end
 
   def measure_time
-    @time = @parser.parsed_data.count/@device.rate
+    @time = @parser.filtered_data.count/@device.rate
   end
 
 end
