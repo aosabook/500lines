@@ -581,3 +581,21 @@ Note that since this trial is the separated format, it is more accurate than the
 
 Let's jump back in and talk about how we create our simple web app. 
 
+TODO: Do I need to add a small MVC and web apps section here?
+
+We're using Sinatra, which, in the tool's own words, is "a DSL for quickly creating web applications in Ruby". We'll create a Gemfile with the following lines:
+
+~~~~~~~
+source 'https://rubygems.org'
+
+gem 'sinatra'
+gem 'thin'
+~~~~~~~
+
+Once we run bundle install, we'll have Sinatra, as well as the Thin web server.
+
+
+
+
+
+
