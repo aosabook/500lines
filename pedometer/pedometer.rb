@@ -11,26 +11,6 @@ Dir['./models/*', './helpers/*'].each {|file| require_relative file }
 
 include FileUtils::Verbose
 
-# TODO
-# - Is file sanitized here? We don't want to be passing around untrusted data, especially not if it's touching the filesystem.
-post '/create' do
-  begin
-    file_upload   = params[:parser][:file_upload][:tempfile]
-    user_params   = params[:user].values
-    device_params = params[:device].values
-    build_with_params(File.read(file_upload), user_params, device_params)
-
-    @file_name = FileHelper.generate_file_name(@parser, @user, @device)
-    cp(file_upload, @file_name)
-
-    set_match_filtered_data
-
-    erb :trial
-  rescue Exception => e
-    redirect '/trials?error=creation'
-  end
-end
-
 get '/trials' do
   @error = if params[:error]
     "A #{params[:error]} error has occurred. Please try again."
@@ -56,6 +36,26 @@ get '/trial/*' do
   set_match_filtered_data
 
   erb :trial
+end
+
+# TODO
+# - Is file sanitized here? We don't want to be passing around untrusted data, especially not if it's touching the filesystem.
+post '/create' do
+  begin
+    file_upload   = params[:parser][:file_upload][:tempfile]
+    user_params   = params[:user].values
+    device_params = params[:device].values
+    build_with_params(File.read(file_upload), user_params, device_params)
+
+    @file_name = FileHelper.generate_file_name(@parser, @user, @device)
+    cp(file_upload, @file_name)
+
+    set_match_filtered_data
+
+    erb :trial
+  rescue Exception => e
+    redirect '/trials?error=creation'
+  end
 end
 
 def build_with_params(data, user_params, device_params)

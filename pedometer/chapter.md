@@ -72,6 +72,8 @@ Let's look at what this data looks like when plotted. Below is a small portion o
 
 TODO: Add 2 plots, one for x,y,z user and one for x,y,z gravity.
 
+TODO: Discuss why the separated format is more accurate than the combined format. 
+
 ### Making Sense of Data
 
 Looking at our plots, we can start to see a pattern, but we don't have enough, yet, to count steps. 
@@ -207,7 +209,7 @@ TODO: Dig into the details of split_accl_combined and split_accl_separated. Spec
 
 The next line splits out the split_accl array into user_accl and grav_accl, which are both arrays of arrays, with user acceleration in the x, y, z directions and gravitational acceleration in the x, y, z directions, respectively. The two lines following split each of user_accl and grav_accl into their x, y, z components:
 
-![](chapter-figures/figure-1.png)
+![](chapter-figures/figure-1.png)\ 
 
 In order to get one data series we can work with, we then create an array of hashes in the format below, and store it in @parsed_data.
 
@@ -221,6 +223,8 @@ First, a very small amount of liner algebra 101.
 
 TODO: Short explanation of why the dot product is used to help us isolate movement in the direction of gravity.
 
+TODO: Add graphs from trial view showing original data and dot product data.
+
 Taking the dot product in our Parser class is straightforward. We add a @dot_product_data instance variable, and a method, dot_product_parsed_data, to set that variable. The dot_product_parsed_data method is called immeditely after parse_raw_data in the initializer, and iterates through our @parsed_data hash, calculates the dot product with map, and sets the result to @dot_product_data. 
 
 ### Step 3: Filtering our data series
@@ -228,6 +232,8 @@ Taking the dot product in our Parser class is straightforward. We add a @dot_pro
 Again, back to the mathematics for some signal processing 101.
 
 TODO: Basics of filtering, Chebyshev filter specifically
+
+TODO: Add graphs from trial view showing dot product data and filtered data.
 
 Following the pattern from steps 1 and 2, we add another instance variable, @filtered_data, to store the filtered data series, and a method, filter_dot_product_data, that we call from the initializer.
 
@@ -515,14 +521,14 @@ The only other public method in Analyzer is measure, which calls the private met
 
 Finally! The step counting portion of our step counting app. 
 
-The measure steps method counts the positive edges (the peaks) and the negative edges (the troughs) through the count_edges method, and then simply sets the @steps veriable to the average of the two. The count_edges method takes a boolean parameter to determine whether we're counting peaks or troughs. The method iterates through each point in our parser's @filtered_data attribute to count steps. At the start of the method, we instantiate the following variables:
+The measure steps method counts the positive edges (the peaks) and the negative edges (the troughs) through the count_edges method, and then simply sets the @steps variable to the average of the two. The count_edges method takes a boolean parameter to determine whether we're counting peaks or troughs. The method iterates through each point in our parser's @filtered_data attribute to count steps. At the start of the method, we instantiate the following variables:
 
 * count is used to keep track of the step count as we interate through our loop. This is, obviously, initialized to 0.
 * index_last_steps keeps the index of the step before the one we're on when looping through @filtered_data.
 * threshold uses the THRESHOLD constant but toggles between negative/positive depending on whether we're counting peaks or troughs. If we're counting peaks, we want a positive threshold above the x-axis. If we're counting troughs, we want a negative threshold below the x-axis. 
 * min_interval is the minimum number of samples between steps. This is used to prevent counting steps that are impossibly close together. 
 
-Let's take a closer look at the loop. We loop through filtered_data, keeping track of the value of each point in data, and the index in i. If our point value, data, is greater than or at the threshold and our previous point was below, then we've crossed the threshold in the positive y direction. We can count a step here, as long as the last step was not counted too close to this one. We determine this by comparing the difference between our current index and the index of the last step, if it exists, to our min_interval variable. If we're far enough away, we count our step by incrementing count, and set the index_last_step to the current index. The method returns the value in count as the total steps taken. 
+Let's take a closer look at the loop. We loop through filtered_data, keeping track of the value of each point in data, and the index in i. If our point value, data, is greater than or at the threshold and our previous point was below, then we're crossing the threshold in the positive y direction. We can count a step here, as long as the last step was not counted too close to this one. We determine this by comparing the difference between our current index and the index of the last step, if it exists, to our min_interval variable. If we're far enough away, we count our step by incrementing count, and set the index_last_step to the current index. The method returns the value in count as the total steps taken. 
 
 There we have it, the step counting portion of our program. 
 
@@ -544,25 +550,34 @@ Things to Note:
 
 We're through the most labour intensive part of our app. Now, all that's left is to present the data in a format that is pleasing to a user. It makes sense to create a very simple web app that allows a user to input a data set through a file upload (in our two formats!) and output the steps taken, distance traveled, time traveled, and maybe a few plots to display the data. 
 
-* Sinatra layout
-* /trials and a basic table with calculations, pulling from the public directory
-* ...
+Let's look at our app from a user's perspective before we dive into the code. 
 
+When a user first enters the app, they see an empty table of trials, and an upload form. The upload form has fields for the user to enter device info and user info.
 
+![](chapter-figures/app-1-1246w-90p.png)\ 
 
-    
+Let's suppose the user uses the upload form to upload a trial walk with a phone in their pocket. 
 
+![](chapter-figures/app-2-1246w-90p.png)\ 
 
+Note that the user has entered everything but their stride. From this same trial, they have two text files of the exact same trial, one in each of our formats. In the screenshot below, they've chosen to upload one of the files. Hitting submit presents them with the following view:
 
+![](chapter-figures/app-3-1246w-90p.png)\ 
 
+Our program has parsed and analyzed the input file, and presented information at the very top for the user. The fields that our program calculated are the format of the file (Measurement), the calculated steps taken (Calculated), the difference between the calculated steps and actual steps taken (Delta), the distance traveled (Distance), and time it took (Time). The graphs shown are the dot product and the filtered data. 
 
+The user can navigate back to the trials using the *Back to Trials* link, and upload the second file.
 
+![](chapter-figures/app-4-1246w-90p.png)\ 
 
+As long as the user enters the same input in all text and dropdown fields, the program knows that this is the same trial, and outputs the following:
 
+![](chapter-figures/app-5-1246w-90p.png)
+![](chapter-figures/app-6-1246w-90p.png)\ 
 
+Note that since this trial is the separated format, it is more accurate than the combined format. This trial detail view now shows an extra plot at the bottom, comparing the filtered combined format with the filtered separated format. 
 
+### Diving back to the code
 
-
-
-
+Let's jump back in and talk about how we create our simple web app. 
 
