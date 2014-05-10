@@ -247,7 +247,7 @@
     (recur (rest pendings) explored restruct-fn)
       (restruct-fn pendings)))
 
-(defn traverse [pendings explored  out-reffing ent-at restruct-fn]
+(defn traverse [pendings explored out-reffing ent-at restruct-fn]
     (let [cleaned-pendings (remove-explored pendings explored restruct-fn)
           item (first cleaned-pendings)
           next-pends (reduce conj (restruct-fn (rest cleaned-pendings)) (out-reffing item))]
