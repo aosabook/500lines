@@ -17,6 +17,14 @@ get '/trials' do
   end
 
   @data = []
+  
+  # Want
+  # Trial.all.each do |trial|
+  #   build_with_params(trial)
+  #   @data << {:file_name => trial.file_name, :analyzer => @analyzer}
+  # end
+  # erb :trials
+
   files_names = Dir.glob(File.join('public/uploads', "*"))
   files_names.each do |file_name|
     user_params, device_params = FileHelper.parse_file_name(file_name)
@@ -29,12 +37,11 @@ get '/trials' do
 end
 
 get '/trial/*' do
-  @file_name = params[:splat].first
-  user_params, device_params = FileHelper.parse_file_name(@file_name)
-  build_with_params(File.read(@file_name), user_params, device_params)
-
+  trial = Trial.find(params[:splat].first)
+  build_with_params(trial.data, trial.user_params, trial.device_params)
+  
   set_match_filtered_data
-
+  
   erb :trial
 end
 
@@ -42,6 +49,17 @@ end
 # - Is file sanitized here? We don't want to be passing around untrusted data, especially not if it's touching the filesystem.
 post '/create' do
   begin
+    # Want
+    # trial = Trial.create(
+    #   params[:parser][:file_upload][:tempfile], 
+    #   params[:user].values,
+    #   params[:device].values
+    # )
+    # trial.save
+    # build_with_params(File.read(file_upload), user_params, device_params)
+    # set_match_filtered_data
+    # erb :trial
+
     file_upload   = params[:parser][:file_upload][:tempfile]
     user_params   = params[:user].values
     device_params = params[:device].values
