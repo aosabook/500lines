@@ -33,7 +33,7 @@ def assemble(assembly):
             if my_lineno is not None:
                 if firstlineno is None:
                     firstlineno = cur_line = my_lineno
-                elif my_lineno > cur_line: # XXX should be != ideally
+                elif my_lineno > cur_line:
                     byte_step = len(code) - cur_byte
                     line_step = my_lineno - cur_line
                     cur_byte, cur_line = len(code), my_lineno
@@ -227,7 +227,7 @@ class CodeGen(ast.NodeVisitor):
     def compile_function(self, t):
         self.set_docstring(t)
         for arg in t.args.args:
-            self.varnames[arg.arg] # argh, naming
+            self.varnames[arg.arg]
         return self.compile(t.body, t.name, len(t.args.args))
 
     def compile(self, t, name, argcount):
