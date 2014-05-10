@@ -39,24 +39,13 @@ end
 post '/create' do
   begin
     # Want
-    # trial = Trial.create(
-    #   params[:parser][:file_upload][:tempfile], 
-    #   params[:user].values,
-    #   params[:device].values
-    # )
-    # build_with_params(File.read(file_upload), user_params, device_params)
-    # set_match_filtered_data
-    # erb :trial
+    @trial = Trial.create(
+      params[:parser][:file_upload][:tempfile], 
+      params[:user].values,
+      params[:device].values
+    )
 
-    file_upload   = params[:parser][:file_upload][:tempfile]
-    user_params   = params[:user].values
-    device_params = params[:device].values
-    build_with_params(File.read(file_upload), user_params, device_params)
-
-    @file_name = FileHelper.generate_file_name(@parser, @user, @device)
-    cp(file_upload, @file_name)
-
-    @trial = Trial.find(@file_name)
+    @analyzer = @trial.analyzer
 
     set_match_filtered_data
 
