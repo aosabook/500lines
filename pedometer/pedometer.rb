@@ -17,8 +17,7 @@ get '/trials' do
   end
 
   @data = Trial.all.inject([]) do |a, trial|
-    build_with_params(trial.data, trial.user_params, trial.device_params)
-    a << {:file_name => trial.file_name, :analyzer => @analyzer}
+    a << {:file_name => trial.file_name, :analyzer => trial.analyzer}
     a
   end
   
@@ -26,9 +25,10 @@ get '/trials' do
 end
 
 get '/trial/*' do
-  trial = Trial.find(params[:splat].first)
-  build_with_params(trial.data, trial.user_params, trial.device_params)
-  
+  @trial = Trial.find(params[:splat].first)
+
+  @analyzer = @trial.analyzer
+
   set_match_filtered_data
   
   erb :trial
@@ -44,7 +44,6 @@ post '/create' do
     #   params[:user].values,
     #   params[:device].values
     # )
-    # trial.save
     # build_with_params(File.read(file_upload), user_params, device_params)
     # set_match_filtered_data
     # erb :trial
@@ -56,6 +55,8 @@ post '/create' do
 
     @file_name = FileHelper.generate_file_name(@parser, @user, @device)
     cp(file_upload, @file_name)
+
+    @trial = Trial.find(@file_name)
 
     set_match_filtered_data
 
@@ -77,12 +78,12 @@ end
 # - Can you add a comment here to explain what's going on? We spent a few minutes looking at it and couldn't figure it out.
 def set_match_filtered_data
   files = Dir.glob(File.join('public/uploads', "*"))
-  files.delete(@file_name)
+  files.delete(@trial.file_name)
 
-  match = if @parser.is_data_combined?
-    files.select { |f| @file_name == f.gsub('-s.', '-c.') }.first
+  match = if @trial.parser.is_data_combined?
+    files.select { |f| @trial.file_name == f.gsub('-s.', '-c.') }.first
   else
-    files.select { |f| @file_name == f.gsub('-c.', '-s.') }.first
+    files.select { |f| @trial.file_name == f.gsub('-c.', '-s.') }.first
   end
 
   @match_filtered_data = if match
