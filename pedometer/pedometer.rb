@@ -27,8 +27,6 @@ end
 get '/trial/*' do
   @trial = Trial.find(params[:splat].first)
 
-  @analyzer = @trial.analyzer
-
   set_match_filtered_data
   
   erb :trial
@@ -45,22 +43,12 @@ post '/create' do
       params[:device].values
     )
 
-    @analyzer = @trial.analyzer
-
     set_match_filtered_data
 
     erb :trial
   rescue Exception => e
     redirect '/trials?error=creation'
   end
-end
-
-def build_with_params(data, user_params, device_params)
-  @parser   = Parser.new(data)
-  @user     = User.new(*user_params)
-  @device   = Device.new(*device_params)
-  @analyzer = Analyzer.new(@parser, @user, @device)
-  @analyzer.measure
 end
 
 # # TODO
