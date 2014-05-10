@@ -1,7 +1,10 @@
+require 'fileutils'
 require_relative 'parser'
 require_relative 'user'
 require_relative 'device'
 require_relative 'analyzer'
+
+include FileUtils::Verbose
 
 class Trial
 
@@ -23,12 +26,20 @@ class Trial
     self.new(file_name)
   end
 
-  def self.create(data, user_params, device_params)
-    p data, user_params, device_params
+  def self.create(input_data, user_params, device_params)
+    parser = Parser.new(File.read(input_data))
+    user   = User.new(*user_params)
+    device = Device.new(*device_params)
 
-    @file_name = FileHelper.generate_file_name(@parser, @user, @device)
-    cp(file_upload, @file_name)
+    file_name = 
+      "public/uploads/#{user.gender}-#{user.height}-#{user.stride}_" +
+      "#{device.rate}-" + 
+      "#{device.steps}-" +
+      "#{device.trial.to_s.gsub(/\s+/, '')}-" + 
+      "#{device.method}-#{parser.format[0]}.txt"
 
+    cp(input_data, file_name)
+    self.new(file_name)
   end
 
   # -- Instance Methods -----------------------------------------------------
@@ -42,11 +53,13 @@ class Trial
   end
 
   def user
-    @user ||= User.new(*file_components.first.split('-'))
+    params = file_components.first.split('-')
+    @user ||= User.new(*params)
   end
 
   def device
-    @device ||= Device.new(*file_components.last.split('-')[0...-1])
+    params = file_components.last.split('-')[0...-1]
+    @device ||= Device.new(*params)
   end
 
   def analyzer

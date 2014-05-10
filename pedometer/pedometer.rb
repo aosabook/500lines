@@ -74,20 +74,20 @@ def build_with_params(data, user_params, device_params)
   @analyzer.measure
 end
 
-# TODO
-# - Can you add a comment here to explain what's going on? We spent a few minutes looking at it and couldn't figure it out.
+# # TODO
+# # - Can you add a comment here to explain what's going on? We spent a few minutes looking at it and couldn't figure it out.
 def set_match_filtered_data
-  files = Dir.glob(File.join('public/uploads', "*"))
-  files.delete(@trial.file_name)
+#   files = Dir.glob(File.join('public/uploads', "*"))
+#   files.delete(@trial.file_name)
 
-  match = if @trial.parser.is_data_combined?
-    files.select { |f| @trial.file_name == f.gsub('-s.', '-c.') }.first
-  else
-    files.select { |f| @trial.file_name == f.gsub('-c.', '-s.') }.first
-  end
+#   match = if @trial.parser.is_data_combined?
+#     files.select { |f| @trial.file_name == f.gsub('-s.', '-c.') }.first
+#   else
+#     files.select { |f| @trial.file_name == f.gsub('-c.', '-s.') }.first
+#   end
 
-  @match_filtered_data = if match
-    parser = Parser.new(File.read(match))
-    parser.filtered_data
-  end
+#   @match_filtered_data = if match
+#     parser = Parser.new(File.read(match))
+#     parser.filtered_data
+#   end
 end
