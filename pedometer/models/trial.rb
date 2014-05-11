@@ -11,6 +11,7 @@ class Trial
   attr_reader :file_name, :parser, :user, :device, :analyzer
   attr_reader :user_params, :device_params
 
+  # TODO: Set user, device, parser, analyzer here? 
   def initialize(file_name)
     @file_name = file_name
   end

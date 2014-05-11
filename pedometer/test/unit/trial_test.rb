@@ -47,4 +47,8 @@ class TrialTest < Test::Unit::TestCase
     assert_equal 9, trial.analyzer.steps
   end
 
+  def test_match_filtered_data
+    
+  end
+
 end
