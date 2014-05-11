@@ -30,8 +30,6 @@ still more important; but the subset must be powerful enough to code
 this compiler itself in; and input programs using any feature not
 supported must provoke a clear error.
 
-(None of these goals are satisfied yet.)
-
 Why these priorities: There are many instructive toy compilers; the
 first four qualities together would make this be more than a
 toy. (Other goals could also work, but these are mine.) Subject to
