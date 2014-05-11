@@ -12,8 +12,25 @@ class Trial
   attr_reader :user_params, :device_params
 
   # TODO: Set user, device, parser, analyzer here? 
-  def initialize(file_name)
-    @file_name = file_name
+  def initialize(file_name = nil, input_data = nil, user_params = nil, device_params = nil)
+    if file_name
+      @file_name = file_name
+    elsif input_data
+      @parser = Parser.new(File.read(input_data))
+      @user   = User.new(*user_params)
+      @device = Device.new(*device_params)
+
+      @file_name = 
+        "public/uploads/" + 
+        "#{user.gender}-#{user.height}-#{user.stride}_" +
+        "#{device.rate}-" + 
+        "#{device.steps}-" +
+        "#{device.trial.to_s.gsub(/\s+/, '')}-" + 
+        "#{device.method}-#{parser.format[0]}.txt"
+    else 
+      # TODO: Blow up and test
+      raise 'TODO: Blow up and tesr'
+    end
   end
 
   # -- Class Methods --------------------------------------------------------
@@ -28,19 +45,9 @@ class Trial
   end
 
   def self.create(input_data, user_params, device_params)
-    parser = Parser.new(File.read(input_data))
-    user   = User.new(*user_params)
-    device = Device.new(*device_params)
-
-    file_name = 
-      "public/uploads/#{user.gender}-#{user.height}-#{user.stride}_" +
-      "#{device.rate}-" + 
-      "#{device.steps}-" +
-      "#{device.trial.to_s.gsub(/\s+/, '')}-" + 
-      "#{device.method}-#{parser.format[0]}.txt"
-
-    cp(input_data, file_name)
-    self.new(file_name)
+    trial = self.new(nil, input_data, user_params, device_params)
+    cp(input_data, trial.file_name)
+    trial
   end
 
   # -- Instance Methods -----------------------------------------------------
@@ -54,13 +61,11 @@ class Trial
   end
 
   def user
-    params = file_components.first.split('-')
-    @user ||= User.new(*params)
+    @user ||= User.new(*file_components.first.split('-'))
   end
 
   def device
-    params = file_components.last.split('-')[0...-1]
-    @device ||= Device.new(*params)
+    @device ||= Device.new(*file_components.last.split('-')[0...-1])
   end
 
   def analyzer
