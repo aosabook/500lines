@@ -113,4 +113,12 @@ Contributors
     <td>@jaaaarel</td>
     <td>taavi.burns@points.com</td>
   </tr>
+  <tr>
+    <td>Cate Huston</td>
+    <td>Google</td>
+    <td>Image Filter app</td>
+    <td>@catehstn</td>
+    <td>@catehstn</td>
+    <td>catehuston@gmail.com</td>
+  </tr>
 </table>
