@@ -9,34 +9,34 @@ perform similarly, choose the smallest count for a smaller network with fewer co
 """
 
 import numpy as np
-from ocr import ocrNeuralNetwork
+from ocr import OCRNeuralNetwork
 from sklearn.cross_validation import train_test_split
 
-def test(dataMatrix, dataLabels, testIndices, nn):
-    avgSum = 0
+def test(data_matrix, data_labels, test_indices, nn):
+    avg_sum = 0
     for j in range(100):
-        correctGuessCount = 0
-        for i in testIndices:
-            test = dataMatrix[i]
+        correct_guess_count = 0
+        for i in test_indices:
+            test = data_matrix[i]
             prediction = nn.predict(test)
-            if dataLabels[i] == prediction:
-                correctGuessCount += 1
+            if data_labels[i] == prediction:
+                correct_guess_count += 1
 
-        avgSum += (correctGuessCount / float(len(testIndices)))
-    return avgSum / float(100)
+        avg_sum += (correct_guess_count / float(len(test_indices)))
+    return avg_sum / float(100)
 
 
 # Load data samples and labels into matrix
-dataMatrix = np.loadtxt(open('data.csv', 'rb'), delimiter = ',').tolist()
-dataLabels = np.loadtxt(open('dataLabels.csv', 'rb')).tolist()
+data_matrix = np.loadtxt(open('data.csv', 'rb'), delimiter = ',').tolist()
+data_labels = np.loadtxt(open('dataLabels.csv', 'rb')).tolist()
 
 # Create training and testing sets.
-trainIndices, testIndices = train_test_split(list(range(5000)))
+train_indices, test_indices = train_test_split(list(range(5000)))
 
 print "PERFORMANCE"
 print "-----------"
 
 # Try various number of hidden nodes and see what performs best
 for i in xrange(5, 50, 5):
-	nn = ocrNeuralNetwork(i, dataMatrix, dataLabels, trainIndices, False)
-	print str(i) + " Hidden Nodes: " + str(test(dataMatrix, dataLabels, testIndices, nn))
+	nn = OCRNeuralNetwork(i, data_matrix, data_labels, train_indices, False)
+	print str(i) + " Hidden Nodes: " + str(test(data_matrix, data_labels, test_indices, nn))

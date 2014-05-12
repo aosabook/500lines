@@ -1,6 +1,6 @@
 import BaseHTTPServer
 import json
-from ocr import ocrNeuralNetwork
+from ocr import OCRNeuralNetwork
 import numpy as np
 
 HOST_NAME = 'localhost'
@@ -8,21 +8,21 @@ PORT_NUMBER = 8000
 HIDDEN_NODE_COUNT = 15
 
 # Load data samples and labels into matrix
-dataMatrix = np.loadtxt(open('data.csv', 'rb'), delimiter = ',')
-dataLabels = np.loadtxt(open('dataLabels.csv', 'rb'))
+data_matrix = np.loadtxt(open('data.csv', 'rb'), delimiter = ',')
+data_labels = np.loadtxt(open('dataLabels.csv', 'rb'))
 
 # Convert from numpy ndarrays to python lists
-dataMatrix = dataMatrix.tolist()
-dataLabels = dataLabels.tolist()
+data_matrix = data_matrix.tolist()
+data_labels = data_labels.tolist()
 
 # If a neural network file does not exist, train it using all 5000 existing data samples.
 # Based on data collected from neuralNetworkDesign.py, 15 is the optimal number
 # for hidden nodes
-nn = ocrNeuralNetwork(HIDDEN_NODE_COUNT, dataMatrix, dataLabels, list(range(5000)));
+nn = OCRNeuralNetwork(HIDDEN_NODE_COUNT, data_matrix, data_labels, list(range(5000)));
 
 class JSONHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_POST(s):
-        responseCode = 200
+        response_code = 200
         response = ""
         varLen = int(s.headers.get('Content-Length'))
         content = s.rfile.read(varLen);
@@ -35,11 +35,11 @@ class JSONHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             try:
                 response = {"type":"test", "result":nn.predict(str(payload['image']))}
             except:
-                responseCode = 500
+                response_code = 500
         else:
-            responseCode = 400
+            response_code = 400
 
-        s.send_response(responseCode)
+        s.send_response(response_code)
         s.send_header("Content-type", "application/json")
         s.send_header("Access-Control-Allow-Origin", "*")
         s.end_headers()

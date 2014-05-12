@@ -11,55 +11,55 @@ import json
 
 """
 This class does some initial training of a neural network for predicting drawn
-digits based on a data set in dataMatrix and dataLabels. It can then be used to
+digits based on a data set in data_matrix and data_labels. It can then be used to
 train the network further by calling train() with any array of data or to predict
 what a drawn digit is by calling predict().
 
 The weights that define the neural network can be saved to a file, NN_FILE_PATH,
 to be reloaded upon initilization.
 """
-class ocrNeuralNetwork:
+class OCRNeuralNetwork:
     LEARNING_RATE = 0.1
     WIDTH_IN_PIXELS = 20
     NN_FILE_PATH = 'nn.json'
 
-    def __init__(self, numHiddenNodes, dataMatrix, dataLabels, trainingIndices, useFile=True):
-        self.sigmoid = np.vectorize(self._sigmoidScalar)
-        self.sigmoidPrime = np.vectorize(self._sigmoidPrimeScalar)
-        self._useFile = useFile
-        self.dataMatrix = dataMatrix
-        self.dataLabels = dataLabels
+    def __init__(self, num_hidden_nodes, data_matrix, data_labels, training_indices, use_file=True):
+        self.sigmoid = np.vectorize(self._sigmoid_scalar)
+        self.sigmoid_prime = np.vectorize(self._sigmoid_prime_scalar)
+        self._use_file = use_file
+        self.data_matrix = data_matrix
+        self.data_labels = data_labels
 
-        if (not os.path.isfile(ocrNeuralNetwork.NN_FILE_PATH) or not useFile):
+        if (not os.path.isfile(OCRNeuralNetwork.NN_FILE_PATH) or not use_file):
             # Step 1: Initialize weights to small numbers
-            self.theta1 = self._randInitializeWeights(400, numHiddenNodes)
-            self.theta2 = self._randInitializeWeights(numHiddenNodes, 10)
-            self.input_layer_bias = self._randInitializeWeights(1, numHiddenNodes)
-            self.hidden_layer_bias = self._randInitializeWeights(1, 10)
+            self.theta1 = self._rand_initialize_weights(400, num_hidden_nodes)
+            self.theta2 = self._rand_initialize_weights(num_hidden_nodes, 10)
+            self.input_layer_bias = self._rand_initialize_weights(1, num_hidden_nodes)
+            self.hidden_layer_bias = self._rand_initialize_weights(1, 10)
 
             # Train using sample data
-            self.train([{"y0":self.dataMatrix[i], "label":int(self.dataLabels[i])} for i in trainingIndices])
+            self.train([{"y0":self.data_matrix[i], "label":int(self.data_labels[i])} for i in training_indices])
             self.save()
         else:
             self._load()
 
-    def _randInitializeWeights(self, sizeIn, sizeOut):
-        return [((x * 0.12) - 0.06) for x in np.random.rand(sizeOut, sizeIn)]
+    def _rand_initialize_weights(self, size_in, size_out):
+        return [((x * 0.12) - 0.06) for x in np.random.rand(size_out, size_in)]
 
     # The sigmoid activation function. Operates on scalars.
-    def _sigmoidScalar(self, z):
+    def _sigmoid_scalar(self, z):
         return 1 / (1 + math.e ** -z)
 
-    def _sigmoidPrimeScalar(self, z):
+    def _sigmoid_prime_scalar(self, z):
         return self.sigmoid(z) * (1 - self.sigmoid(z))
 
     def _draw(self, sample):
-        pixelArray = [sample[j:j+WIDTH_IN_PIXELS] for j in xrange(0, len(sample), WIDTH_IN_PIXELS)]
+        pixelArray = [sample[j:j+self.WIDTH_IN_PIXELS] for j in xrange(0, len(sample), self.WIDTH_IN_PIXELS)]
         plt.imshow(zip(*pixelArray), cmap = cm.Greys_r, interpolation="nearest")
         plt.show()
 
-    def train(self, trainingDataArray):
-        for data in trainingDataArray:
+    def train(self, training_data_array):
+        for data in training_data_array:
             # Step 2: Forward propagation
             y1 = np.dot(np.mat(self.theta1), np.mat(data['y0']).T)
             sum1 =  y1 + np.mat(self.input_layer_bias) # Add the bias
@@ -70,16 +70,16 @@ class ocrNeuralNetwork:
             y2 = self.sigmoid(y2)
 
             # Step 3: Back propagation
-            actualVals = [0] * 10
-            actualVals[data['label']] = 1
-            outputErrors = np.mat(actualVals).T - np.mat(y2)
-            hiddenErrors = np.multiply(np.dot(np.mat(self.theta2).T, outputErrors), self.sigmoidPrime(sum1))
+            actual_vals = [0] * 10
+            actual_vals[data['label']] = 1
+            output_errors = np.mat(actual_vals).T - np.mat(y2)
+            hiddenErrors = np.multiply(np.dot(np.mat(self.theta2).T, output_errors), self.sigmoid_prime(sum1))
 
             # Step 4: Update weights
-            self.theta1 += ocrNeuralNetwork.LEARNING_RATE * np.dot(np.mat(hiddenErrors), np.mat(data['y0']))
-            self.theta2 += ocrNeuralNetwork.LEARNING_RATE * np.dot(np.mat(outputErrors), np.mat(y1).T)
-            self.hidden_layer_bias += ocrNeuralNetwork.LEARNING_RATE * outputErrors
-            self.input_layer_bias += ocrNeuralNetwork.LEARNING_RATE * hiddenErrors
+            self.theta1 += OCRNeuralNetwork.LEARNING_RATE * np.dot(np.mat(hiddenErrors), np.mat(data['y0']))
+            self.theta2 += OCRNeuralNetwork.LEARNING_RATE * np.dot(np.mat(output_errors), np.mat(y1).T)
+            self.hidden_layer_bias += OCRNeuralNetwork.LEARNING_RATE * output_errors
+            self.input_layer_bias += OCRNeuralNetwork.LEARNING_RATE * hiddenErrors
 
     def predict(self, test):
         y1 = np.dot(np.mat(self.theta1), np.mat(test).T)
@@ -94,23 +94,23 @@ class ocrNeuralNetwork:
         return results.index(max(results))
 
     def save(self):
-        if not self._useFile:
+        if not self._use_file:
             return
 
-        jsonNeuralNetwork = {
-            "theta1":[npMat.tolist()[0] for npMat in self.theta1],
-            "theta2":[npMat.tolist()[0] for npMat in self.theta2],
+        json_neural_network = {
+            "theta1":[np_mat.tolist()[0] for np_mat in self.theta1],
+            "theta2":[np_mat.tolist()[0] for np_mat in self.theta2],
             "b1":self.input_layer_bias[0].tolist()[0],
             "b2":self.hidden_layer_bias[0].tolist()[0]
         };
-        with open(ocrNeuralNetwork.NN_FILE_PATH,'w') as nnFile:
-            json.dump(jsonNeuralNetwork, nnFile)
+        with open(OCRNeuralNetwork.NN_FILE_PATH,'w') as nnFile:
+            json.dump(json_neural_network, nnFile)
 
     def _load(self):
-        if not self._useFile:
+        if not self._use_file:
             return
 
-        with open(ocrNeuralNetwork.NN_FILE_PATH) as nnFile:
+        with open(OCRNeuralNetwork.NN_FILE_PATH) as nnFile:
             nn = json.load(nnFile)
         self.theta1 = [np.array(li) for li in nn['theta1']]
         self.theta2 = [np.array(li) for li in nn['theta2']]
