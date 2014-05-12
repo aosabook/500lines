@@ -4,12 +4,11 @@ import time
 import logging
 import heapq
 import random
+import itertools
 
 
 class Node(object):
-    # TODO: consider using itertools.count() instead of iter(xrange(1000)) -
-    # 1000 seems ot be a magic number
-    unique_ids = iter(xrange(1000))
+    unique_ids = itertools.count()
 
     def __init__(self, network):
         self.network = network
