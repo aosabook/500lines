@@ -118,7 +118,9 @@ Contributors
     <td>Google</td>
     <td>Image Filter app</td>
     <td>@catehstn</td>
-    <td>@catehstn</td>
+    <td><ul>
+ +            <li><a href="https://twitter.com/catehstn">@catehstn</a></li>
+ +        </ul></td>
     <td>catehuston@gmail.com</td>
   </tr>
 </table>
