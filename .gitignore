@@ -1,3 +1,5 @@
 *~
 _site
 *.pyc
+.coverage
+htmlcov

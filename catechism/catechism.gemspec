@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ['pair+doc+sarah@ministryofvelocity.com']
   spec.description   = 'An object-oriented testing framework'
   spec.summary       = 'Put your code through an object-oriented trial by fire.'
-  spec.homepage      = 'https://github.com/aosabook/500lines/catechism'
+  spec.homepage      = 'https://github.com/aosabook/500lines/tree/master/catechism'
   spec.license       = 'MIT'
 
   spec.files         = `git ls-files`.split($/)
