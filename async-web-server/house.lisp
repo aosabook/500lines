@@ -1,61 +1,65 @@
-;; house.lisp
+1;; house.lisp
 (in-package :house)
+
+;;;;;;;;;; System tables
+(defparameter *channels* (make-hash-table))
 
 ;;;;;;;;;; Function definitions
 ;;; The basic structure of the server is
-; buffering-listen -> parse -> handle -> channel
+; buffering-listen -> parse -> session-lookup -> handle -> channel
 
 ;;;;; Buffer/listen-related
 (defmethod start ((port integer))
-  (let ((server (socket-listen usocket:*wildcard-host* port :reuse-address t))
+  (let ((server (socket-listen usocket:*wildcard-host* port :reuse-address t :element-type 'octet))
 	(conns (make-hash-table))
         (buffers (make-hash-table)))
     (unwind-protect
 	 (loop (loop for ready in (wait-for-input (cons server (alexandria:hash-table-keys conns)) :ready-only t)
-		  do (if (typep ready 'stream-server-usocket)
-			 (setf (gethash (socket-accept ready) conns) :on)
-			 (let ((buf (gethash ready buffers (make-instance 'buffer))))
-			   (when (eq :eof (buffer! buf ready))
-			     (remhash ready conns)
-			     (remhash ready buffers))
-			   (let ((complete? (complete? buf))
-				 (big? (too-big? buf))
-				 (old? (too-old? buf)))
-			     (when (or complete? big? old?)
-			       (remhash ready conns)
-			       (remhash ready buffers)
-			       (cond (big? 
-				      (error! +413+ ready))
-				     (old? 
-				      (error! +400+ ready))
-				     (t (handler-case
-					    (handle-request ready (parse buf))
-					  ((not simple-error) ()
-					    (error! +400+ ready)))))))))))
+		  do (process-ready ready conns buffers)))
       (loop for c being the hash-keys of conns
 	 do (loop while (socket-close c)))
       (loop while (socket-close server)))))
 
-(defmethod complete? ((buffer buffer)) (found-crlf? buffer))
+(defmethod process-ready ((ready stream-server-usocket) (conns hash-table) (buffers hash-table))
+  (setf (gethash (socket-accept ready :element-type 'octet) conns) :on))
 
-(defmethod too-big? ((buffer buffer))
-  (> (content-size buffer) +max-request-size+))
+(defmethod process-ready ((ready stream-usocket) (conns hash-table) (buffers hash-table))
+  (let ((buf (or (gethash ready buffers)
+		 (setf (gethash ready buffers) (make-instance 'buffer :bi-stream (flex-stream ready))))))
+    (when (eq :eof (buffer! buf))
+      (remhash ready conns)
+      (remhash ready buffers)
+      (ignore-errors (socket-close ready)))
+    (let ((complete? (found-crlf? buf))
+	  (too-big? (> (content-size buf) +max-request-size+))
+	  (too-old? (> (- (get-universal-time) (started buf)) +max-request-age+))
+	  (too-needy? (> (tries buf) +max-buffer-tries+)))
+      (when (or complete? too-big? too-old? too-needy?)
+	(remhash ready conns)
+	(remhash ready buffers)
+	(cond (too-big? (error! +413+ ready))
+	      ((or too-old? too-needy?)
+	       (error! +400+ ready))
+	      (t (handler-case
+		     (handle-request ready (parse buf))
+		   (http-assertion-error () +400+)
+		   ((and (not warning)
+		     (not simple-error)) (e)
+		     (error! +500+ ready e)))))))))
 
-(defmethod too-old? ((buffer buffer))
-  (> (- (get-universal-time) (started buffer)) +max-request-size+))
-
-(defmethod buffer! ((buffer buffer) (sock usocket))
-  (unwind-protect
-       (let ((stream (socket-stream sock))
-	     (partial-crlf (list #\return #\newline #\return)))
-	 (loop for char = (read-char-no-hang stream nil :eof)
-	    do (when (and (eql #\newline char)
-			  (starts-with-subseq partial-crlf (contents buffer)))
-		 (setf (found-crlf? buffer) t))
-	    until (or (null char) (eql :eof char))
-	    do (push char (contents buffer)) do (incf (content-size buffer))
-	    finally (return char)))
-    :eof))
+(defmethod buffer! ((buffer buffer))
+  (handler-case
+      (let ((stream (bi-stream buffer))
+	    (partial-crlf (list #\return #\linefeed #\return)))
+	(incf (tries buffer))
+	(loop for char = (read-char-no-hang stream nil :eof)
+	   do (when (and (eql #\linefeed char)
+			 (starts-with-subseq partial-crlf (contents buffer)))
+		(setf (found-crlf? buffer) t))
+	   until (or (null char) (eql :eof char))
+	   do (push char (contents buffer)) do (incf (content-size buffer))
+	   finally (return char)))
+    (error () :eof)))
 
 ;;;;; Parse-related
 (defmethod parse-params ((params null)) nil)
@@ -76,7 +80,8 @@
 	(loop for header = (pop lines) for (name value) = (split ": " header)
 	   until (null name)
 	   for n = (->keyword name)
-	   do (push (cons n value) (headers req)))
+	   if (eq n :cookie) do (setf (session-token req) value)
+	   else do (push (cons n value) (headers req)))
 	(setf (parameters req)
 	      (append (parse-params (parameters req))
 		      (parse-params (pop lines))))
@@ -87,7 +92,7 @@
 
 ;;;;; Handling requests
 (defmethod handle-request ((sock usocket) (req request))
-  (aif (gethash (resource req) *handlers*)
+  (aif (lookup (resource req) *handlers*)
        (funcall it sock (parameters req))
        (error! +404+ sock)))
 
@@ -97,7 +102,7 @@
   (values))
 
 (defmethod write! ((res response) (sock usocket))
-  (let ((stream (socket-stream sock)))
+  (let ((stream (flex-stream sock)))
     (flet ((write-ln (&rest sequences)
 	     (mapc (lambda (seq) (write-sequence seq stream)) sequences)
 	     (crlf stream)))
@@ -118,25 +123,24 @@
       (values))))
 
 (defmethod write! ((res sse) (sock usocket))
-  (format (socket-stream sock)
-	  "~@[id: ~a~%~]~@[event: ~a~%~]~@[retry: ~a~%~]data: ~a~%~%"
-	  (id res) (event res) (retry res) (data res)))
+  (let ((stream (flex-stream sock)))
+    (format stream "~@[id: ~a~%~]~@[event: ~a~%~]~@[retry: ~a~%~]data: ~a~%~%"
+	    (id res) (event res) (retry res) (data res))))
 
-(defmethod error! ((err response) (sock usocket))
+(defmethod error! ((err response) (sock usocket) &optional instance)
+  (declare (ignorable instance))
   (ignore-errors 
     (write! err sock)
     (socket-close sock)))
 
 ;;;;; Channel-related
-(defparameter *channels* (make-hash-table))
-
 (defmethod subscribe! ((channel symbol) (sock usocket))
-  (push sock (gethash channel *channels*))
+  (push sock (lookup channel *channels*))
   nil)
 
 (defmethod publish! ((channel symbol) (message string))
-  (awhen (gethash channel *channels*)
-    (setf (gethash channel *channels*)
+  (awhen (lookup channel *channels*)
+    (setf (lookup channel *channels*)
 	  (loop with msg = (make-instance 'sse :data message)
 	     for sock in it
 	     when (ignore-errors 

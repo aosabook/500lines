@@ -11,10 +11,18 @@
      (error (make-instance 'http-assertion-error :assertion ',assertion))))
 
 (defclass buffer ()
-  ((contents :accessor contents :initform nil)
+  ((tries :accessor tries :initform 0)
+   (contents :accessor contents :initform nil)
+   (bi-stream :reader bi-stream :initarg :bi-stream)
    (found-crlf? :accessor found-crlf? :initform nil)
    (content-size :accessor content-size :initform 0)
    (started :reader started :initform (get-universal-time))))
+
+(defclass session ()
+  ((started :reader started :initform (get-universal-time))
+   (last-poked :accessor last-poked :initform (get-universal-time))
+   (token :reader token :initarg :token)
+   (session-values :reader session-values :initform (make-hash-table :test 'equal))))
 
 (defclass request ()
   ((resource :accessor resource :initarg :resource)

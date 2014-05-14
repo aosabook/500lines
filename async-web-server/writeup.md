@@ -1,6 +1,94 @@
 ##### Draft
 
-So lets start with the basics.
+Ok, this was going to start off with the basics of threaded vs asynchronous servers, and a quick rundown of why I think the latter are better, but its been brought to my attention that the whole Common Lisp thing might be intimidating to people. I debated both internally and externally on how to actually begin, and decided that the best way might actually be from the end (Just to be clear, yes, this is a toy example. If you'd like to see a non-toy example using the same server, take a look at [cl-notebook](https://github.com/Inaimathi/cl-notebook) or [deal](https://github.com/Inaimathi/deal). And on a related note This writeup also features a stripped-down version of `house`. [The real version](https://github.com/Inaimathi/house) also does some light static file serving and deals with sessions. That's it though.). So to *that* end, here's what I eventually want to be able to do:
+
+    (define-stream-handler (source) (room)
+       (subscribe! (intern room :keyword) sock))
+
+    (define-closing-handler (index) ()
+       <insert some javascript UI here>)
+
+    (define-closing-handler (send-message) (room name message)
+       (publish! (intern room :keyword) (encode-json-to-string `((:name . ,name) (:message . ,message)))))
+
+    (start 4242)
+
+And having done that, I should be able to browse over to `localhost:4242/index` (actual front-end structure left as an exercise for the reader) and see a little chat room using which I could subscribe and post to various message channels. Because I don't hate myself, and I'd like this to actually work, I need to both do some sanitation on inputs and make sure that it needn't be done manually. So really, I want to be able to say something like
+
+    (define-stream-handler (source) ((room :string :max 16))
+       (subscribe! (intern room :keyword) sock))
+
+    (define-closing-handler (index) ()
+       <insert some javascript UI here>)
+
+    (define-closing-handler (send-message) ((room :string :max 16) (name :string :min 1 :max 64) (message :string :min 5 :max 256))
+       (publish! (intern room :keyword) (encode-json-to-string `((:name . ,name) (:message . ,message)))))
+
+    (start 4242)
+
+It's not *quite* strongly typed HTTP parameters, because I'm interested in enforcing more than the type. You can imagine more or less this same thing being done in a mainstream class-based OO language using a class hierarchy. That is, you'd define a `handler` class, then subclass that for each handler you have, giving each `get`, `post`, `parse` and `validate` methods as needed. If you imagine this well enough, you'll also see the small but non-trivial pieces of boilerplate that the approach would get you, both in terms of setting up classes and methods themselves and in terms of doing the parsing/validation of your parameters. The Common Lisp approach is to write a DSL to handle the situation. In this case, it takes the form of a new piece of syntax that lets you declare certain properties of your handlers, and expands into the code you would have written by hand.
+
+Lets step through the expansion for `send-message`, just so you understand what's going on at each step.
+
+    (define-closing-handler (send-message) ((room :string :max 16) (name :string :min 1 :max 64) (message :string :min 5 :max 256))
+       (publish! (intern room :keyword) (encode-json-to-string `((:name . ,name) (:message . ,message)))))
+
+No big deal; that's just what I want to write. Expanding it gets us
+
+    (BIND-HANDLER SEND-MESSAGE
+              (MAKE-CLOSING-HANDLER (:CONTENT-TYPE "text/html")
+                  ((ROOM :STRING :MAX 16) (NAME :STRING :MIN 1 :MAX 64)
+                   (MESSAGE :STRING :MIN 5 :MAX 256))
+                (PUBLISH! (INTERN ROOM :KEYWORD)
+                          (ENCODE-JSON-TO-STRING
+                           `((:NAME ,@NAME) (:MESSAGE ,@MESSAGE))))))
+
+We're binding the result of `make-closing-handler` to the (for now) symbol `send-message`. Expanding `bind-handler` gets us
+
+	(PROGN
+	 (WHEN (GETHASH "/send-message" *HANDLERS*)
+	   (WARN "Redefining handler '/send-message'"))
+	 (SETF (GETHASH "/send-message" *HANDLERS*)
+	         (MAKE-CLOSING-HANDLER (:CONTENT-TYPE "text/html")
+	             ((ROOM :STRING :MAX 16) (NAME :STRING :MIN 1 :MAX 64)
+	              (MESSAGE :STRING :MIN 5 :MAX 256))
+	           (PUBLISH! (INTERN ROOM :KEYWORD)
+	                     (ENCODE-JSON-TO-STRING
+	                      `((:NAME ,@NAME) (:MESSAGE ,@MESSAGE)))))))
+
+Which is to say, we'd like to associate the handler we're making with the uri `/send-message` in the handler table `*HANDLERS*`, and issue a warning if that isn't a fresh association. None of that is particularly interesting. Lets take a look at the expansion of `make-closing-handler` specifically:
+
+	(LAMBDA (SOCK PARAMETERS)
+                (DECLARE (IGNORABLE PARAMETERS))
+                (LET ((ROOM
+                       (AIF (CDR (ASSOC :ROOM PARAMETERS)) (URI-DECODE IT)
+                            (ERROR (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'ROOM)))))
+                  (ASSERT-HTTP (>= 16 (LENGTH ROOM)))
+                  (LET ((NAME
+                         (AIF (CDR (ASSOC :NAME PARAMETERS)) (URI-DECODE IT)
+                              (ERROR
+                               (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'NAME)))))
+                    (ASSERT-HTTP (>= 64 (LENGTH NAME) 1))
+                    (LET ((MESSAGE
+                           (AIF (CDR (ASSOC :MESSAGE PARAMETERS)) (URI-DECODE IT)
+                                (ERROR
+                                 (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'MESSAGE)))))
+                      (ASSERT-HTTP (>= 256 (LENGTH MESSAGE) 5))
+                      (LET ((RES
+                             (MAKE-INSTANCE 'RESPONSE :CONTENT-TYPE "text/html" :BODY
+                                            (PROGN
+                                             (PUBLISH! (INTERN ROOM :KEYWORD)
+                                                       (ENCODE-JSON-TO-STRING
+                                                        `((:NAME ,@NAME)
+                                                          (:MESSAGE ,@MESSAGE))))))))
+                        (WRITE! RES SOCK)
+                        (SOCKET-CLOSE SOCK))))))
+
+This is the big one. It looks mean, but it really amounts to an unrolled loop. You can see that for every parameter, we're grabbing its value in the `parameters` association list, ensuring it exists, `uri-decode`ing it if it does, and asserting the appropriate properties we want to enforce. At any given point, if an assertion is violated, we're done and we return an error (not pictured here, but the error handlers surrounding an HTTP handler call will ensure it). If we get through all of our arguments without running into an error, we're going to evaluate the handler body, write the result out to the requester and close the socket.
+
+There's a couple of other Lisp-specific pieces of functionality I'll point out as we go, but that's the meat of the approach. We'll be taking a look at the code that performs this sequence of transformations later in the chapter, but I wanted you to see the practical payoff right away.
+
+Now that you've seen the basics of macroexpansion, lets start with the basics of asynchronous servers and work our way back through the pattern.
 
 ### The Basics
 
@@ -32,9 +120,9 @@ The server and client open up an HTTP conversation, then perform a handshake and
 
 That's basically it. I mean there used to be things called "Forever Frames" that have been thoroughly replaced by the SSE approach, and a couple of other tricks you could pull with proprietary or esoteric technologies, but they're not materially different from the above.
 
-These approaches are pretty different from each other under the covers, as you can hopefully see now that you understand them, but they have one important point in common. They all depend on long-lived connections. Longpolling depends on the server keeping requests around until new data is available (thus keeping a connection open until new data arrives, or the client gives up in frustration), SSEs keep an open stream between client and server to which data is periodically written, and Websockets basically change the protocol a particular connection is speaking, but leave it open (and bi-directional, which complicates matters slightly; you basically need to chuck websockets back into the main listen/read loop *and keep them there* until they're closed).
+These approaches are pretty different from each other under the covers, as you can hopefully see now that you understand them, but they have one important point in common. They all depend on long-lived connections. Longpolling depends on the server keeping requests around until new data is available (thus keeping a connection open until new data arrives, or the client gives up in frustration), SSEs keep an open stream between client and server to which data is periodically written, and Websockets change the protocol a particular connection is speaking, but leave it open (and bi-directional, which complicates matters slightly; you basically need to chuck websockets back into the main listen/read loop *and keep them there* until they're closed).
 
-The consequence of keeping long-lived connections around is that you're either going to want
+The consequence of keeping long-lived connections around is that you're going to want one of
 
 a) A server that can service many connections with a single thread
 b) A thread-per-request server that passes long-lived connections off to a separate subsystem, which must handle those long lived connections using a minimal number of threads
@@ -50,7 +138,7 @@ We're not concerned with implementing a client, though that's a very interesting
 2. When a connection comes in, read from it until you get a complete HTTP request
 3. Parse the request
 4. Route the parsed request to the appropriate handler
-5. Call that handler to generate a request
+5. Call that handler to generate a response
 6. Send the response out to the requester
 
 That's the base case, of course. If you *also* want to be pushing data at your clients, there's also two special cases in steps `4` and `5`. Instead of fulfilling a standard request, you might have a situation where
@@ -225,7 +313,15 @@ Now that we've got the server written, lets take a look at how we might implemen
 
 Instead, lets do our usual and focus on the server side.
 
-Quick how-to showing how to put together an anonymous chat using the simplified server.
+We'll need all of two handlers (not counting the one that'll serve up the front-end, so three, I guess):
+
+1. The handler that serves up the stream of the specified room
+2. The handler that sends a message to a specified room
+
+
+
+
+- Quick how-to showing how to put together an anonymous chat using the simplified server.
 
 ##### Notes To Self
 
