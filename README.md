@@ -186,5 +186,16 @@ Contributors
     </td>
     <td><a href="https://github.com/haz">haz</a></td>
     <td>christian.muise@gmail.com</td>
+  <tr>
+    <td>Carlos Scheidegger</td>
+    <td>AT&amp;T Research</td>
+    <td>rasterizer</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/cjmuise">@cscheid</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/cscheid">cscheid</a></td>
+    <td>carlos.scheidegger@gmail.com</td>
   </tr>
 </table>
