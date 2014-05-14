@@ -1,0 +1,6 @@
+* Refactoring
+** TODO Vector.union becomes AABox.union
+
+* Comments
+** Describe Ellipse.signed_distance_bound
+** Explain why Points and Vectors should be different (but aren't)
