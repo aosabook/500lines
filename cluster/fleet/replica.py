@@ -1,4 +1,4 @@
-from . import Proposal, CATCHUP_INTERVAL
+from . import Proposal, CATCHUP_INTERVAL, Propose, Catchup, Decision, Invoked, Welcome
 from .member import Component
 
 
@@ -46,7 +46,7 @@ class Replica(Component):
         leader = self.peers[0]
         self.logger.info("proposing %s at slot %d to leader %s" %
                          (proposal, slot, leader))
-        self.send([leader], 'PROPOSE', slot=slot, proposal=proposal)
+        self.send([leader], Propose(slot=slot, proposal=proposal))
 
     # catching up with the rest of the cluster
 
@@ -58,7 +58,7 @@ class Replica(Component):
                               (self.slot_num, self.next_slot - 1))
         for slot in xrange(self.slot_num, self.next_slot):
             # ask peers for information regardless
-            self.send(self.peers, 'CATCHUP', slot=slot, sender=self.address)
+            self.send(self.peers, Catchup(slot=slot, sender=self.address))
             # TODO: Can be replaced with 'if slot in self._proposals and slot not in self._decisions'
             # TODO: if proposal value cannot be None
             if self.proposals.get(slot) and not self.decisions.get(slot):
@@ -74,8 +74,8 @@ class Replica(Component):
         # TODO: Can be replaced with 'if slot in self._decisions' if decision
         # value cannot be None
         if self.decisions.get(slot):
-            self.send([sender], 'DECISION',
-                      slot=slot, proposal=self.decisions[slot])
+            self.send([sender], Decision(
+                      slot=slot, proposal=self.decisions[slot]))
 
     # handling decided proposals
 
@@ -120,15 +120,14 @@ class Replica(Component):
         if proposal.caller is not None:
             # perform a client operation
             self.state, output = self.execute_fn(self.state, proposal.input)
-            self.send([proposal.caller], 'INVOKED',
-                      client_id=proposal.client_id, output=output)
+            self.send([proposal.caller], Invoked(
+                      client_id=proposal.client_id, output=output))
 
     # adding new cluster members
 
     def do_JOIN(self, requester):
         if requester in self.peers:
-            self.send([requester], 'WELCOME',
+            self.send([requester], Welcome(
                       state=self.state,
                       slot_num=self.slot_num,
-                      decisions=self.decisions,
-                      peers=self.peers)
+                      decisions=self.decisions))

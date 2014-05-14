@@ -27,10 +27,10 @@ class Node(object):
     def set_timer(self, seconds, callback):
         return self.network.set_timer(seconds, self.address, callback)
 
-    def send(self, destinations, action, **kwargs):
-        self.logger.debug("sending %s with args %s to %s",
-                          action, kwargs, destinations)
-        self.network.send(destinations, action, **kwargs)
+    def send(self, destinations, message):
+        self.logger.debug("sending %s to %s",
+                          message, destinations)
+        self.network.send(destinations, message)
 
     def register(self, component):
         self.components.append(component)
@@ -38,15 +38,15 @@ class Node(object):
     def unregister(self, component):
         self.components.remove(component)
 
-    def receive(self, action, kwargs):
-        action_handler_name = 'do_%s' % action
+    def receive(self, message):
+        handler_name = 'do_%s' % type(message).__name__.upper()
 
         for comp in self.components[:]:
-            if not hasattr(comp, action_handler_name):
+            if not hasattr(comp, handler_name):
                 continue
-            comp.logger.debug("received %r with args %r", action, kwargs)
-            fn = getattr(comp, action_handler_name)
-            fn(**kwargs)
+            comp.logger.debug("received %s", message)
+            fn = getattr(comp, handler_name)
+            fn(**message._asdict())
 
 
 class Timer(object):
@@ -102,14 +102,12 @@ class Network(object):
         heapq.heappush(self.timers, timer)
         return timer
 
-    def send(self, destinations, action, **kwargs):
-        def _receive(address, action, kwargs):
+    def send(self, destinations, message):
+        def _receive(address, message):
             if address in self.nodes:
-                self.nodes[address].receive(action, kwargs)
+                self.nodes[address].receive(message)
         for dest in destinations:
             if self.rnd.uniform(0, 1.0) > self.DROP_PROB:
                 delay = self.PROP_DELAY + \
                     self.rnd.uniform(-self.PROP_JITTER, self.PROP_JITTER)
-                # copy the kwargs now, before the sender modifies them
-                self.set_timer(delay, dest, functools.partial(
-                    _receive, dest, action, copy.deepcopy(kwargs)))
+                self.set_timer(delay, dest, functools.partial(_receive, dest, message))

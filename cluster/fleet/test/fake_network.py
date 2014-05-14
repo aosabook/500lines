@@ -37,10 +37,10 @@ class FakeNode(object):
     def get_times(self):
         return sorted([t.expires - self._now for t in self.timers if not t.cancelled])
 
-    def send(self, destinations, action, **kwargs):
-        self.sent.append((destinations, action, kwargs))
+    def send(self, destinations, message):
+        self.sent.append((destinations, message))
 
-    def fake_message(self, action, **kwargs):
+    def fake_message(self, message):
         for component in self.components:
-            fn = getattr(component, 'do_%s' % action)
-            fn(**kwargs)
+            fn = getattr(component, 'do_%s' % type(message).__name__.upper())
+            fn(**message._asdict())

@@ -2,6 +2,7 @@ from .. import leader
 from .. import commander
 from .. import scout
 from .. import Ballot, CommanderId, Proposal
+from .. import Propose
 from . import utils
 import mock
 
@@ -56,33 +57,33 @@ class Tests(utils.ComponentTestCase):
 
     def test_propose_inactive(self):
         """A PROPOSE received while inactive spawns a scout"""
-        self.node.fake_message('PROPOSE', slot=10, proposal=PROPOSAL1)
+        self.node.fake_message(Propose(slot=10, proposal=PROPOSAL1))
         self.assertScoutStarted(Ballot(0, UNIQUE_ID))
 
     def test_propose_scouting(self):
         """A PROPOSE received while already scouting is ignored."""
-        self.node.fake_message('PROPOSE', slot=10, proposal=PROPOSAL1)
+        self.node.fake_message(Propose(slot=10, proposal=PROPOSAL1))
         first_scout = self.ldr.scout
-        self.node.fake_message('PROPOSE', slot=10, proposal=PROPOSAL1)
+        self.node.fake_message(Propose(slot=10, proposal=PROPOSAL1))
         self.failUnless(self.ldr.scout is first_scout)
 
     def test_propose_active(self):
         """A PROPOSE received while active spawns a commander."""
         self.activate_leader()
-        self.node.fake_message('PROPOSE', slot=10, proposal=PROPOSAL1)
+        self.node.fake_message(Propose(slot=10, proposal=PROPOSAL1))
         self.assertCommanderStarted(Ballot(0, UNIQUE_ID), 10, PROPOSAL1)
 
     def test_propose_already(self):
         """A PROPOSE for a slot already in use is ignored"""
         self.activate_leader()
         self.fake_proposal(10, PROPOSAL2)
-        self.node.fake_message('PROPOSE', slot=10, proposal=PROPOSAL1)
+        self.node.fake_message(Propose(slot=10, proposal=PROPOSAL1))
         self.assertNoCommander(10)
 
     def test_commander_finished_successful(self):
         """When a commander finishes successfully, nothing more happens"""
         self.activate_leader()
-        self.node.fake_message('PROPOSE', slot=10, proposal=PROPOSAL1)
+        self.node.fake_message(Propose(slot=10, proposal=PROPOSAL1))
         commander_id = CommanderId(self.node.address, 10, PROPOSAL1)
         self.ldr.commander_finished(commander_id, Ballot(0, UNIQUE_ID), False)
         self.assertNoCommander(10)
@@ -92,7 +93,7 @@ class Tests(utils.ComponentTestCase):
         ballot num is incremented, and the leader is inactive, but no scout is
         spawned"""
         self.activate_leader()
-        self.node.fake_message('PROPOSE', slot=10, proposal=PROPOSAL1)
+        self.node.fake_message(Propose(slot=10, proposal=PROPOSAL1))
         commander_id = CommanderId(self.node.address, 10, PROPOSAL1)
         self.ldr.commander_finished(
             commander_id, Ballot(22, OTHER_UNIQUE_ID), True)

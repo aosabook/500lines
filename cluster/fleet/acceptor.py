@@ -1,5 +1,5 @@
 from collections import defaultdict
-from . import Ballot
+from . import Ballot, Promise, Accepted
 from .member import Component
 
 
@@ -14,18 +14,18 @@ class Acceptor(Component):
         if ballot_num > self.ballot_num:
             self.ballot_num = ballot_num
 
-        self.send([scout_id.address], 'PROMISE',  # p1b
+        self.send([scout_id.address], Promise(
                   scout_id=scout_id,
                   acceptor=self.address,
                   ballot_num=self.ballot_num,
-                  accepted=self.accepted)
+                  accepted=self.accepted))
 
     def do_ACCEPT(self, commander_id, ballot_num, slot, proposal):  # p2a
         if ballot_num >= self.ballot_num:
             self.ballot_num = ballot_num
             self.accepted[(ballot_num, slot)] = proposal
 
-        self.send([commander_id.address], 'ACCEPTED',  # p2b
+        self.send([commander_id.address], Accepted(
                   commander_id=commander_id,
                   acceptor=self.address,
-                  ballot_num=self.ballot_num)
+                  ballot_num=self.ballot_num))

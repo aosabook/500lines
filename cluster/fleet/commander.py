@@ -1,4 +1,4 @@
-from . import ACCEPT_RETRANSMIT
+from . import ACCEPT_RETRANSMIT, Accept, Decision
 from .member import Component
 
 
@@ -17,11 +17,11 @@ class Commander(Component):
         self.timer = None
 
     def start(self):
-        self.send(set(self.peers) - self.accepted, 'ACCEPT',  # p2a
+        self.send(set(self.peers) - self.accepted, Accept(
                   commander_id=self.commander_id,
                   ballot_num=self.ballot_num,
                   slot=self.slot,
-                  proposal=self.proposal)
+                  proposal=self.proposal))
         self.timer = self.set_timer(ACCEPT_RETRANSMIT, self.start)
 
     def finished(self, ballot_num, preempted):
@@ -41,9 +41,9 @@ class Commander(Component):
             # make sure that this node hears about the decision, otherwise the
             # slot can get "stuck" if all of the DECISION messages get lost
             self.event('decision', slot=self.slot, proposal=self.proposal)
-            self.send(self.peers, 'DECISION',
+            self.send(self.peers, Decision(
                       slot=self.slot,
-                      proposal=self.proposal)
+                      proposal=self.proposal))
             self.finished(ballot_num, False)
         else:
             self.finished(ballot_num, True)

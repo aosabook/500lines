@@ -1,5 +1,5 @@
 import itertools
-from . import INVOKE_RETRANSMIT
+from . import INVOKE_RETRANSMIT, Invoke
 from member import Component
 
 
@@ -15,8 +15,8 @@ class Request(Component):
         self.callback = callback
 
     def start(self):
-        self.send([self.address], 'INVOKE', caller=self.address,
-                  client_id=self.client_id, input_value=self.n)
+        self.send([self.address], Invoke(caller=self.address,
+                  client_id=self.client_id, input_value=self.n))
         self.invoke_timer = self.set_timer(INVOKE_RETRANSMIT, self.start)
 
     def do_INVOKED(self, client_id, output):

@@ -1,4 +1,4 @@
-from . import JOIN_RETRANSMIT
+from . import JOIN_RETRANSMIT, Welcome
 from .member import Component
 
 
@@ -21,11 +21,10 @@ class Seed(Component):
             return
 
         # cluster is ready - welcome everyone
-        self.send(list(self.seen_peers), 'WELCOME',
+        self.send(list(self.seen_peers), Welcome(
                   state=self.initial_state,
                   slot_num=1,
-                  decisions={},
-                  peers=self.peers)
+                  decisions={}))
 
         # stick around for long enough that we don't hear any new JOINs from
         # the newly formed cluster

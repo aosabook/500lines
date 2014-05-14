@@ -1,5 +1,6 @@
 from .. import network
 from .. import member
+from .. import Join
 import mock
 import unittest
 import threading
@@ -8,7 +9,7 @@ import threading
 class TestComp(member.Component):
     foo_called = False
 
-    def do_FOO(self, x, y):
+    def do_JOIN(self, requester):
         self.foo_called = True
         self.member.node.kill()
 
@@ -31,7 +32,7 @@ class NodeTests(unittest.TestCase):
         comp = TestComp(memb)
         rxthread = threading.Thread(target=receiver.run)
         rxthread.start()
-        sender.send([receiver.address], 'FOO', x=10, y=20)
+        sender.send([receiver.address], Join(requester=10))
         rxthread.join()
         self.failUnless(comp.foo_called)
 

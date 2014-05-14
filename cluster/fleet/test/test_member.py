@@ -1,4 +1,4 @@
-from .. import member
+from .. import member, Join
 from . import utils
 from . import fake_network
 import mock
@@ -43,5 +43,5 @@ class Tests(utils.ComponentTestCase):
     def test_send(self):
         """Message-sending calls through to the node"""
         comp = MyComp(self.member)
-        comp.send(['p1'], 'MESSAGE', arg='val')
-        self.assertMessage(['p1'], 'MESSAGE', arg='val')
+        comp.send(['p1'], Join(requester='test'))
+        self.assertMessage(['p1'], Join(requester='test'))

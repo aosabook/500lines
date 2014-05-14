@@ -1,5 +1,6 @@
 from .. import replica
 from .. import Proposal
+from .. import Invoke, Propose, Catchup, Decision, Join, Welcome
 from . import utils
 import mock
 
@@ -25,9 +26,9 @@ class Tests(utils.ComponentTestCase):
     @mock.patch.object(replica.Replica, 'propose')
     def test_INVOKE_new(self, propose):
         """An INVOKE with a new proposal results in a proposal"""
-        self.node.fake_message(
-            'INVOKE', caller=PROPOSAL2.caller, client_id=PROPOSAL2.client_id,
-            input_value=PROPOSAL2.input)
+        self.node.fake_message(Invoke(
+            caller=PROPOSAL2.caller, client_id=PROPOSAL2.client_id,
+            input_value=PROPOSAL2.input))
         propose.assert_called_with(PROPOSAL2)
 
     @mock.patch.object(replica.Replica, 'propose')
@@ -41,14 +42,14 @@ class Tests(utils.ComponentTestCase):
         proposed to the first peer"""
         self.rep.propose(PROPOSAL2)
         self.assertEqual(self.rep.next_slot, 3)
-        self.assertMessage(['p1'], 'PROPOSE', slot=2, proposal=PROPOSAL2)
+        self.assertMessage(['p1'], Propose(slot=2, proposal=PROPOSAL2))
 
     def test_propose_resend(self):
         """A proposeal with a specified slot is re-transmitted with the same slot"""
         self.rep.next_slot = 3
         self.rep.propose(PROPOSAL2, 2)
         self.assertEqual(self.rep.next_slot, 3)
-        self.assertMessage(['p1'], 'PROPOSE', slot=2, proposal=PROPOSAL2)
+        self.assertMessage(['p1'], Propose(slot=2, proposal=PROPOSAL2))
 
     def test_catchup_noop(self):
         """If slot_num == next_slot, there's no catchup to do"""
@@ -65,9 +66,9 @@ class Tests(utils.ComponentTestCase):
         # slot 3: proposed, decided
         # slot 4: not proposed, decided
         self.rep.catchup()
-        self.assertMessage(['p1', 'p2'], 'CATCHUP', slot=2, sender='F999')
-        self.assertMessage(['p1', 'p2'], 'CATCHUP', slot=3, sender='F999')
-        self.assertMessage(['p1', 'p2'], 'CATCHUP', slot=4, sender='F999')
+        self.assertMessage(['p1', 'p2'], Catchup(slot=2, sender='F999'))
+        self.assertMessage(['p1', 'p2'], Catchup(slot=3, sender='F999'))
+        self.assertMessage(['p1', 'p2'], Catchup(slot=4, sender='F999'))
         self.assertEqual(propose.call_args_list, [
             mock.call(PROPOSAL2, 2),
             # TODO: doesn't make sense
@@ -77,19 +78,19 @@ class Tests(utils.ComponentTestCase):
 
     def test_CATCHUP_decided(self):
         """On CATCHUP for a decided proposal, re-send the DECISION"""
-        self.node.fake_message('CATCHUP', slot=1, sender='p2')
-        self.assertMessage(['p2'], 'DECISION', slot=1, proposal=PROPOSAL1)
+        self.node.fake_message(Catchup(slot=1, sender='p2'))
+        self.assertMessage(['p2'], Decision(slot=1, proposal=PROPOSAL1))
 
     def test_CATCHUP_undecided(self):
         """On CATCHUP for an undecided proposal, do nothing"""
-        self.node.fake_message('CATCHUP', slot=3, sender='p2')
+        self.node.fake_message(Catchup(slot=3, sender='p2'))
         self.assertNoMessages()
 
     @mock.patch.object(replica.Replica, 'commit')
     def test_DECISION_gap(self, commit):
         """On DECISION for a slot we can't commit yet, decisions and next_slot are updated but
         no commit occurs"""
-        self.node.fake_message('DECISION', slot=3, proposal=PROPOSAL3)
+        self.node.fake_message(Decision(slot=3, proposal=PROPOSAL3))
         self.assertEqual(self.rep.next_slot, 4)
         self.assertEqual(self.rep.decisions[3], PROPOSAL3)
         self.assertFalse(commit.called)
@@ -97,7 +98,7 @@ class Tests(utils.ComponentTestCase):
     @mock.patch.object(replica.Replica, 'commit')
     def test_DECISION_commit(self, commit):
         """On DECISION for the next slot, commit it"""
-        self.node.fake_message('DECISION', slot=2, proposal=PROPOSAL2)
+        self.node.fake_message(Decision(slot=2, proposal=PROPOSAL2))
         self.assertEqual(self.rep.next_slot, 3)
         self.assertEqual(self.rep.decisions[2], PROPOSAL2)
         commit.assert_called_once_with(2, PROPOSAL2)
@@ -105,9 +106,9 @@ class Tests(utils.ComponentTestCase):
     @mock.patch.object(replica.Replica, 'commit')
     def test_DECISION_commit_cascade(self, commit):
         """On DECISION that allows multiple commits, they happen in the right order"""
-        self.node.fake_message('DECISION', slot=3, proposal=PROPOSAL3)
+        self.node.fake_message(Decision(slot=3, proposal=PROPOSAL3))
         self.assertFalse(commit.called)
-        self.node.fake_message('DECISION', slot=2, proposal=PROPOSAL2)
+        self.node.fake_message(Decision(slot=2, proposal=PROPOSAL2))
         self.assertEqual(self.rep.next_slot, 4)
         self.assertEqual(self.rep.decisions[2], PROPOSAL2)
         self.assertEqual(self.rep.decisions[3], PROPOSAL3)
@@ -119,7 +120,7 @@ class Tests(utils.ComponentTestCase):
     @mock.patch.object(replica.Replica, 'commit')
     def test_DECISION_repeat(self, commit):
         """On DECISION for a committed slot with a matching proposal, do nothing"""
-        self.node.fake_message('DECISION', slot=1, proposal=PROPOSAL1)
+        self.node.fake_message(Decision(slot=1, proposal=PROPOSAL1))
         self.assertEqual(self.rep.next_slot, 2)
         self.assertFalse(commit.called)
 
@@ -127,10 +128,10 @@ class Tests(utils.ComponentTestCase):
     def test_DECISION_repeat_conflict(self, commit):
         """On DECISION for a committed slot with a *non*-matching proposal, do nothing"""
         self.assertRaises(AssertionError, lambda:
-                          self.node.fake_message('DECISION', slot=1, proposal=PROPOSAL2))
+                          self.node.fake_message(Decision(slot=1, proposal=PROPOSAL2)))
 
     def test_join(self):
         """A JOIN from a cluster member gets a warm WELCOME."""
-        self.node.fake_message('JOIN', requester='p2')
-        self.assertMessage(['p2'], 'WELCOME', state='state', slot_num=2,
-                           decisions={1: PROPOSAL1}, peers=['p1', 'p2'])
+        self.node.fake_message(Join(requester='p2'))
+        self.assertMessage(['p2'], Welcome(state='state', slot_num=2,
+                           decisions={1: PROPOSAL1}))

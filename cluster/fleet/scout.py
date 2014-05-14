@@ -1,5 +1,5 @@
 from collections import defaultdict
-from . import ScoutId, PREPARE_RETRANSMIT
+from . import ScoutId, Prepare, PREPARE_RETRANSMIT
 from .member import Component
 
 
@@ -21,9 +21,9 @@ class Scout(Component):
         self.send_prepare()
 
     def send_prepare(self):
-        self.send(self.peers, 'PREPARE',  # p1a
+        self.send(self.peers, Prepare(
                   scout_id=self.scout_id,
-                  ballot_num=self.ballot_num)
+                  ballot_num=self.ballot_num))
         self.retransmit_timer = self.set_timer(
             PREPARE_RETRANSMIT, self.send_prepare)
 

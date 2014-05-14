@@ -13,10 +13,10 @@ class ComponentTestCase(unittest.TestCase):
         if self.node.sent:
             self.fail("extra messages from node: %r" % (self.node.sent,))
 
-    def assertMessage(self, destinations, action, **kwargs):
+    def assertMessage(self, destinations, message):
         got = self.node.sent.pop(0)
-        self.assertEqual((sorted(got[0]), got[1], got[2]),
-                         (sorted(destinations), action, kwargs))
+        self.assertEqual((sorted(got[0]), got[1]),
+                         (sorted(destinations), message))
 
     def assertNoMessages(self):
         self.assertEqual(self.node.sent, [])

@@ -1,5 +1,6 @@
 from .. import request
 from .. import INVOKE_RETRANSMIT
+from .. import Invoke, Invoked
 from . import utils
 import mock
 
@@ -19,17 +20,14 @@ class Tests(utils.ComponentTestCase):
     def test_function(self):
         """Request should repeatedly send INVOKE until receiving a matching INVOKED"""
         self.req.start()
-        self.assertMessage(['F999'], 'INVOKE', caller='F999',
-                           client_id=CLIENT_ID, input_value=10)
+        self.assertMessage(['F999'], Invoke(caller='F999', client_id=CLIENT_ID, input_value=10))
         self.node.tick(INVOKE_RETRANSMIT)
-        self.assertMessage(['F999'], 'INVOKE', caller='F999',
-                           client_id=CLIENT_ID, input_value=10)
+        self.assertMessage(['F999'], Invoke(caller='F999', client_id=CLIENT_ID, input_value=10))
         # non-matching
-        self.node.fake_message('INVOKED', client_id=333, output=22)
+        self.node.fake_message(Invoked(client_id=333, output=22))
         self.node.tick(INVOKE_RETRANSMIT)
-        self.assertMessage(['F999'], 'INVOKE', caller='F999',
-                           client_id=CLIENT_ID, input_value=10)
+        self.assertMessage(['F999'], Invoke(caller='F999', client_id=CLIENT_ID, input_value=10))
         self.failIf(self.callback.called)
-        self.node.fake_message('INVOKED', client_id=CLIENT_ID, output=20)
+        self.node.fake_message(Invoked(client_id=CLIENT_ID, output=20))
         self.callback.assert_called_with(20)
         self.assertUnregistered()
