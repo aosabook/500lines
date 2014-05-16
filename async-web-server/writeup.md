@@ -278,6 +278,13 @@ With that knowledge in hand, you should be able to see that `arg-exp` is actuall
 
 Oh snap, we just went one level deeper. This is now a *method* that generates new tree structures (coincidentally Lisp code), rather than just a function. And yes, you can do that just fine. The only thing the above tells you is that by default, a `type-expression` is `NIL`. Which is to say, we don't have one. If we encounter a `NIL`, we just use the output of `arg-exp` raw, but that doesn't tell us much about the usual case. For that, lets take a look at how we define http-types.
 
+[[Note to Self: Might consider re-thinking the limitations clause. Perhaps just accept an expression, so that you can just write
+
+`(define-closing-handler (foo) ((bar :string (>= 2 (length bar) 64)))
+   (mumble mumble mumble))`
+
+This would let you generalize the post-parse restrictions, greatly simplify `http-type` definitions (you wouldn't need to do any of this `match` nonsense, or explain it).]]
+
 	(define-http-type (:integer)
 	    :type-expression `(parse-integer ,parameter :junk-allowed t)
 	    :lookup-assertion (match restrictions
