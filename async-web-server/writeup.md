@@ -1,4 +1,4 @@
-##### Draft
+# On Interacting Through HTTP in an Asynchronous Manner in the Medium of Common Lisp
 
 Ok, this was going to start off with the basics of threaded vs asynchronous servers, and a quick rundown of the use cases for each, but its been brought to my attention that the whole Common Lisp thing might be intimidating to people. Given that tidbit, I debated both internally and externally on how to actually begin, and decided that the best way might actually be from the end (Just to be clear, yes, this is a toy example. If you'd like to see a non-toy example using the same server, take a look at [cl-notebook](https://github.com/Inaimathi/cl-notebook) or [deal](https://github.com/Inaimathi/deal). And on a related note This writeup also features a stripped-down version of the `house` server. [The real version](https://github.com/Inaimathi/house) also does some light static file serving and deals with sessions in a currently semi-satisfactory way. That's it though.). So to *that* end, here's what I want to be able to do:
 
@@ -28,7 +28,9 @@ And having done that, I should be able to browse over to `localhost:4242/index` 
 
 It's not *quite* strongly typed HTTP parameters, because I'm interested in enforcing more than the type, but that's a good first approximation. You can imagine more or less this same thing being implemented in a mainstream class-based OO language using a class hierarchy. That is, you'd define a `handler` class, then subclass that for each handler you have, giving each `get`, `post`, `parse` and `validate` methods as needed. If you imagine this well enough, you'll also see the small but non-trivial pieces of boilerplate that the approach would get you, both in terms of setting up classes and methods themselves and in terms of doing the parsing/validation of your parameters. The Common Lisp approach, and I'd argue the right approach, is to write a DSL to handle the situation. In this case, it takes the form of a new piece of syntax that lets you declare certain properties of your handlers, and expands into the code you would have written by hand.
 
-Lets step through the expansion for `send-message`, just so you understand what's going on at each step.
+### Stepping Through Expansions
+
+Lets step through the expansion for `send-message`, just so you understand what's going on at each step. What I'm about to show you is the output of the SLIME macroexpander, which does a one-level expansion on the macro call you give it.
 
     (define-closing-handler (send-message) ((room :string :max 16) (name :string :min 1 :max 64) (message :string :min 5 :max 256))
        (publish! (intern room :keyword) (encode-json-to-string `((:name . ,name) (:message . ,message)))))
@@ -61,7 +63,7 @@ We're binding the result of `make-closing-handler` to the (for now) symbol `send
 	                     (ENCODE-JSON-TO-STRING
 	                      `((:NAME ,@NAME) (:MESSAGE ,@MESSAGE)))))))
 
-Which is to say, we'd like to associate the handler we're making with the uri `/send-message` in the handler table `*HANDLERS*`. We'd additionally like a warning to be issued if that binding already exists, but still re-bind it. None of that is particularly interesting. Lets take a look at the expansion of `make-closing-handler` specifically:
+Which is to say, we'd like to associate the handler we're making with the uri `/send-message` in the handler table `*HANDLERS*`. We'd additionally like a warning to be issued if that binding already exists, but will re-bind it regardless. None of that is particularly interesting. Lets take a look at the expansion of `make-closing-handler` specifically:
 
 	(LAMBDA (SOCK PARAMETERS)
                 (DECLARE (IGNORABLE PARAMETERS))
@@ -89,9 +91,11 @@ Which is to say, we'd like to associate the handler we're making with the uri `/
                         (WRITE! RES SOCK)
                         (SOCKET-CLOSE SOCK))))))
 
-This is the big one. It looks mean, but it really amounts to an unrolled loop. You can see that for every parameter, we're grabbing its value in the `parameters` association list, ensuring it exists, `uri-decode`ing it if it does, and asserting the appropriate properties we want to enforce. At any given point, if an assertion is violated, we're done and we return an error (not pictured here, but the error handlers surrounding an HTTP handler call will ensure it). If we get through all of our arguments without running into an error, we're going to evaluate the handler body, write the result out to the requester and close the socket.
+This is the big one. It looks mean, but it really amounts to an unrolled loop over the arguments. You can see that for every parameter, we're grabbing its value in the `parameters` association list, ensuring it exists, `uri-decode`ing it if it does, and asserting the appropriate properties we want to enforce. At any given point, if an assertion is violated, we're done and we return an error (not pictured here, but the error handlers surrounding an HTTP handler call will ensure it). If we get through all of our arguments without running into an error, we're going to evaluate the handler body, write the result out to the requester and close the socket.
 
-If you're more interested in the server proper, skip the next section or two. The first thing we're going to do is dissect the code that builds the above tower of abstraction for us. Following tradition, we'll start from the end. In this case, the end of `define-handler.lisp`
+### Understanding the Expanders
+
+If you're more interested in the server proper, skip the next section or two. The first thing we're going to do is dissect the code that generates the above expansions. We'll start from the end again. In this case, the end of `define-handler.lisp`
 
 	(defmacro define-closing-handler ((name &key (content-type "text/html")) (&rest args) &body body)
 	  `(bind-handler ,name (make-closing-handler (:content-type ,content-type) ,args ,@body)))
@@ -240,7 +244,7 @@ What `args-by-type-priority` needs to do is give us back the argument list order
 
 is effectively a giant no-op. The only good part about it is that it happens at compile time, so our resulting server *doesn't* need to do this for every request, merely for every handler definition.
 
-[[This is the end of the `args-by-type-priority` section that could be cut]]
+[[This is the end of the `args-by-type-priority` section that could be cut. There's also a few minor notes in an upcoming section about define-http-type]]
 
 `arg-exp` takes an argument symbol and returns that `aif` expression [[Note to editor: Should I elaborate on `aif`? It's a fairly well known Common Lisp construct, but might be unclear to non-Lispers]] we use to check for the presence of a parameter. Just the symbol, not the restrictions.
 
@@ -256,7 +260,11 @@ the evaluation looks like
 	     (ERROR (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'ROOM)))
 	HOUSE> 
 
+### A Short Break
+
 Lets take a short break here, actually. At this point we're two levels deep into tree processing. And what we're doing will only make sense to you if you remember that Lisp code is itself represented as a tree. That's what the parentheses are for; they show you how leaves and branches fit together. If you step back, you'll realize we've got a macro definition, `make-closing-handler`, which calls a function, `arguments`, to generate part of the tree its constructing, which in turn calls some tree-manipulating helper functions, including `arg-exp`, to generate its return value. The tree that these functions have as input *happen* to reprent Lisp code, and because there's no difference between Lisp code and a tree, you have a transparent sytax definition system. The input is a Lisp expression, and the output is a lisp expression that will be evaluated in its place. Possibly the simplest way of conceptualizing this is as a very simple and minimal Common Lisp to Common Lisp compiler.
+
+### An Interlude for Defining Types
 
 With that knowledge in hand, you should be able to see that `arg-exp` is actually doing the job of generating a specific, otherwise repetitive, piece of the code tree that we eventually want to evaluate. In this case, the piece that checks for the presence of the given parameter among the handlers' `parameters`. And that's all you need to understand about it, so lets move on to...
 
@@ -265,6 +273,8 @@ With that knowledge in hand, you should be able to see that `arg-exp` is actuall
 	   "A type-expression will tell the server how to convert a parameter from a string to a particular, necessary type."))
     ...
 	(defmethod type-expression (parameter type &optional restrictions) nil)
+
+[[Note to Editor: Should I have a bit of exposition here about generic functions and how they work?]]
 
 Oh snap, we just went one level deeper. This is now a *method* that generates new tree structures (coincidentally Lisp code), rather than just a function. And yes, you can do that just fine. The only thing the above tells you is that by default, a `type-expression` is `NIL`. Which is to say, we don't have one. If we encounter a `NIL`, we just use the output of `arg-exp` raw, but that doesn't tell us much about the usual case. For that, lets take a look at how we define http-types.
 
@@ -372,7 +382,7 @@ Ironically, after unrolling the above macros and understanding how they fit toge
 
 So, lets go back to the basics of asynchronous servers and work our way through the rest of the pattern.
 
-### The Basics
+### The Basics of Asynchronous Servers
 
 At the 10k-foot-level, an HTTP exchange is one request and one response. A client sends a request, which includes a resource identifier, an HTTP version tag, some headers and some parameters. The receiving server parses that request, figures out what to do about it, and sends a response which includes the same HTTP version tag, a response code, some headers and a request body.
 
@@ -380,7 +390,7 @@ And that's it.
 
 Because this is the total of the basic protocol, many minimal servers take the thread-per-request approach. That is, for each incoming request, spin up a thread to do the work of parse/figure-out-what-to-do-about-it/send-response, then spin it down. The idea is that since each of these connections is very short lived, that won't start up too many threads at once, and it'll let you simplify a lot of the implementation. Specifically, it lets you program as though there were only one connection present at any given time, and it lets you do things like kill orphaned connections just by killing their thread and letting the garbage collector do its job.
 
-There's a couple of things missing in this system though. First, as described, there's no mechanism for a server to send updates to a client without that client specifically requesting them. Second, there's no identity mechanism, which you need in order to confidently assert that a number of requests come from the same client (or, from the client perspective, to make sure you're making a request from the server you think you're talking to). We won't be solving the second problem here; a full sesison implementation would nudge us up to ~560 lines of code, and we've got a hard limit of 500.
+There's a couple of things missing in this system though. First, as described, there's no mechanism for a server to send updates to a client without that client specifically requesting them. Second, there's no identity mechanism, which you need in order to confidently assert that a number of requests come from the same client (or, from the client perspective, to make sure you're making a request from the server you think you're talking to). We won't be solving the second problem here; a full session implementation would nudge us up to ~560 lines of code, and we've got a hard limit of 500.
 
 The second problem is interesting though. It's interesting if you've ever wanted to put together multi-user web-applications for whatever reason. The simplest base-case is the anonymous chat room. Consider the situation where you've got two people entering text into a text-box with the intent that both of them should see each message. When Adrian types in a message, you can send him the updated chat room immediately. But if Beatrice were to type a message, according to the system we've described above, there's no built-in way to update Adrian's view of the world with that new message. What you want to be able to do is to push messages from the server at Adrian without him having to take any deliberate action. 
 
