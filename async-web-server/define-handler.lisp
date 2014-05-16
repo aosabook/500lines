@@ -23,11 +23,11 @@ parameters with a lower priority can refer to parameters of a higher priority.")
     `(let ((,tp ,type))
        (setf (gethash ,tp *http-type-priority*) ,priority)
        ,@(when type-expression
-	       `((defmethod type-expression (parameter (type (eql ,type)) &optional restrictions)
+	       `((defmethod type-expression (parameter (type (eql ,tp)) &optional restrictions)
 		   (declare (ignorable restrictions))
 		   ,type-expression)))
        ,@(when lookup-assertion
-	       `((defmethod lookup-assertion (parameter (type (eql ,type)) &optional restrictions)
+	       `((defmethod lookup-assertion (parameter (type (eql ,tp)) &optional restrictions)
 		   (declare (ignorable restrictions))
 		   ,lookup-assertion))))))
 
