@@ -737,11 +737,47 @@ gem 'sinatra'
 gem 'thin'
 ~~~~~~~
 
-Once we run bundle install, we'll have Sinatra, as well as the Thin web server.
+Once we run bundle install, we'll have Sinatra, as well as the Thin web server.We'll need a controller file for our web app. Let's call is pedometer.rb.
 
-We'll need a controller for our web app. Let's call is pedometer.rb.
+~~~~~~~
+require 'sinatra'
 
+Dir['./models/*', './helpers/*'].each {|file| require_relative file }
 
+include FileUtils::Verbose
+
+get '/trials' do
+  @error = "A #{params[:error]} error has occurred." if params[:error]
+
+  @trials = Trial.all.map do |trial|
+    { file_name: trial.file_name, analyzer: trial.analyzer }
+  end
+
+  erb :trials
+end
+
+get '/trial/*' do
+  @trial = Trial.find(params[:splat].first)
+  @match_filtered_data = Trial.find_matching_filtered_data(@trial)
+  
+  erb :trial
+end
+
+post '/create' do
+  begin
+    @trial = Trial.create(
+      params[:parser][:file_upload][:tempfile], 
+      params[:user].values,
+      params[:device].values
+    )
+    @match_filtered_data = Trial.find_matching_filtered_data(@trial)
+
+    erb :trial
+  rescue Exception => e
+    redirect '/trials?error=creation'
+  end
+end
+~~~~~~~
 
 
 
