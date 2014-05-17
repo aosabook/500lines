@@ -1774,7 +1774,7 @@ window.Spreadsheet = (function($scope) {
       E1: '=A1*C1'
     };
   });
-  $scope.sheet = angular.fromJson(localStorage.getItem('sheet')) || $scope.reset();
+  ($scope.sheet = angular.fromJson(localStorage.getItem('sheet'))) || $scope.reset();
   $scope.errs = {}, $scope.vals = {};
   var worker = new Worker('dist/worker.js');
   worker.onmessage = (function(event) {
