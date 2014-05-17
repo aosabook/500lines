@@ -779,6 +779,84 @@ post '/create' do
 end
 ~~~~~~~
 
+Running ruby pedometer.rb starts the web server, and hitting http://localhost:4567/trials takes us to an index of all of our trials. 
+
+Let's look at each of our routes individually. 
+
+### get '/trials'
+
+The get '/trials' route sets @trials through Trial.all, and @error is set if an :error key is present in the params hash. The trials view is then rendered. Let's take a look at the view, below. 
+
+trial.erb
+
+~~~~~~~
+<link href="/styles.css" rel="stylesheet" type="text/css" />
+<div class="error"><%= @error %></div>
+<html>
+  <%= erb :summary, locals: { trials: @trials, detail_hidden: true } %>
+  <form method="post" action="/create" enctype="multipart/form-data">
+    <h3 class="upload-header">Device Info</h3>
+    <input name="parser[file_upload]" type="file">
+    <input name="device[rate]" type="number" class="params" placeholder="Sampling Rate">
+    <input name="device[steps]" type="number" class="params" placeholder="Actual Step Count">
+    <input name="device[trial]" type="number" class="params" placeholder="Trial Number">
+    <select name="device[method]" class="params">
+      <option value="">(Select a method)</option>
+      <option value="walk">Walking</option>
+      <option value="run">Running</option>
+      <option value="bagwalk">Walking, phone in bag</option>
+      <option value="bagrun">Running, phone in bag</option>
+    </select>
+    <h3 class="upload-header">User Info</h3>
+    <select class="params" name="user[gender]">
+      <option value="">(Select a gender)</option>
+      <option value="female">Female</option>
+      <option value="male">Male</option>
+    </select>
+    <input class="params" type="number" name="user[height]" placeholder="Height (cm)">
+    <input class="params" type="number" name="user[stride]" placeholder="Stride (cm)">
+    <div class="controls"><input type="submit" value="submit"></div>
+  </form>
+</html>
+~~~~~~~
+
+The trials view also renders summary.erb. We'll discuss why it's rendered as a separate view with the next route. 
+
+~~~~~~~
+<table class="summary">
+  <th>User</th>
+  <th>Method</th>
+  <th>Format</th>
+  <th>Trial</th>
+  <th>Actual</th>
+  <th>Calculated</th>
+  <th>Delta</th>
+  <th></th>
+  <% trials.each do |trial| %>
+    <tr>
+      <td><%= trial.analyzer.user.gender %></td>
+      <td><%= trial.analyzer.device.method %></td>
+      <td><%= trial.analyzer.parser.format %></td>
+      <td><%= trial.analyzer.device.trial %></td>
+      <td><%= trial.analyzer.device.steps %></td>
+      <td><%= trial.analyzer.steps %></td>
+      <td><%= trial.analyzer.steps - trial.analyzer.device.steps %></td>
+      <% if detail_hidden %>
+        <td><a href=<%= "trial/" + trial.file_name %>>Detail</a></td>
+      <% else %>
+        <td><%= ViewHelper.format_distance(trial.analyzer.distance) %></td>
+        <td><%= ViewHelper.format_time(trial.analyzer.time) %></td>
+      <% end %>
+    </tr>
+  <% end %>
+</table>
+~~~~~~~
+
+The trials view render an error if one exists, renders summary.erb with all trials to present the table of trial data, and then creates the input form for user and device info. 
+
+### get '/trial/*'
+
+The get '/trial/*' route is called with a file path: http://localhost:4567/trial/public/uploads/female-168.0-70.0_100-100-1-walk-c.txt. 
 
 
 
