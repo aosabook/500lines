@@ -42,7 +42,7 @@
 	       (error! +400+ ready))
 	      (t (handler-case
 		     (handle-request ready (parse buf))
-		   (http-assertion-error () +400+)
+		   (http-assertion-error () (error! +400+ ready))
 		   ((and (not warning)
 		     (not simple-error)) (e)
 		     (error! +500+ ready e)))))))))

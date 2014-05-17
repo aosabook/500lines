@@ -7,51 +7,31 @@
 Types will be parsed from highest to lowest priority;
 parameters with a lower priority can refer to parameters of a higher priority.")
 
-(defgeneric type-expression (parameter type &optional restrictions)
+(defgeneric type-expression (parameter type)
   (:documentation
    "A type-expression will tell the server how to convert a parameter from a string to a particular, necessary type."))
-(defgeneric lookup-assertion (parameter type &optional restrictions)
+(defgeneric type-assertion (parameter type)
   (:documentation
    "A lookup assertion is run on a parameter immediately after conversion. Use it to restrict the space of a particular parameter."))
-(defmethod type-expression (parameter type &optional restrictions) nil)
-(defmethod lookup-assertion (parameter type &optional restrictions) nil)
+(defmethod type-expression (parameter type) nil)
+(defmethod type-assertion (parameter type) nil)
 
 ;;;;; Definition macro
-(defmacro define-http-type ((type &key (priority 0)) &key type-expression lookup-assertion)
+(defmacro define-http-type ((type &key (priority 0)) &key type-expression type-assertion)
   (assert (numberp priority) nil "`priority` should be a number. The highest will be converted first")
   (with-gensyms (tp)
     `(let ((,tp ,type))
        (setf (gethash ,tp *http-type-priority*) ,priority)
        ,@(when type-expression
-	       `((defmethod type-expression (parameter (type (eql ,tp)) &optional restrictions)
-		   (declare (ignorable restrictions))
-		   ,type-expression)))
-       ,@(when lookup-assertion
-	       `((defmethod lookup-assertion (parameter (type (eql ,tp)) &optional restrictions)
-		   (declare (ignorable restrictions))
-		   ,lookup-assertion))))))
+	       `((defmethod type-expression (parameter (type (eql ,tp))) ,type-expression)))
+       ,@(when type-assertion
+	       `((defmethod type-assertion (parameter (type (eql ,tp))) ,type-assertion))))))
 
 ;;;;; Common HTTP types
-(define-http-type (:string)
-    :lookup-assertion (match restrictions
-			((list :min min)
-			 `(>= (length ,parameter) ,min))
-			((list :max max)
-			 `(>= ,max (length ,parameter)))
-			((list :min min :max max)
-			 `(>= ,max (length ,parameter) ,min))
-			(_ nil)))
+(define-http-type (:string))
 
 (define-http-type (:integer)
-    :type-expression `(parse-integer ,parameter :junk-allowed t)
-    :lookup-assertion (match restrictions
-			((list :min min)
-			 `(>= ,parameter ,min))
-			((list :max max)
-			 `(>= ,max ,parameter))
-			((list :min min :max max)
-			 `(>= ,max ,parameter ,min))
-			(_ nil)))
+    :type-expression `(parse-integer ,parameter :junk-allowed t))
 
 (define-http-type (:json)
     :type-expression `(json:decode-json-from-string ,parameter))
@@ -66,7 +46,7 @@ parameters with a lower priority can refer to parameters of a higher priority.")
 
 (define-http-type (:list-of-integer)
     :type-expression `(json:decode-json-from-string ,parameter)
-    :lookup-assertion `(every #'numberp ,parameter))
+    :type-assertion `(every #'numberp ,parameter))
 
 ;;;;;;;;;; Constructing argument lookups
 (defun args-by-type-priority (args &optional (priority-table *http-type-priority*))
@@ -74,7 +54,7 @@ parameters with a lower priority can refer to parameters of a higher priority.")
     (sort cpy #'<= 
 	  :key (lambda (arg)
 		 (if (listp arg)
-		     (gethash (second arg) priority-table)
+		     (gethash (second arg) priority-table 0)
 		     0)))))
 
 (defun arg-exp (arg-sym)
@@ -87,12 +67,12 @@ parameters with a lower priority can refer to parameters of a higher priority.")
      for arg in (args-by-type-priority args)
      do (match arg
 	  ((guard arg-sym (symbolp arg-sym))
-	   (setf res `(let ((,arg-sym ,(arg-exp arg-sym)))
-			,res)))
+	   (setf res `(let ((,arg-sym ,(arg-exp arg-sym))) ,res)))
 	  ((list* arg-sym type restrictions)
 	   (setf res
-		 `(let ((,arg-sym ,(or (type-expression (arg-exp arg-sym) type restrictions) (arg-exp arg-sym))))
-		    ,@(awhen (lookup-assertion arg-sym type restrictions) `((assert-http ,it)))
+		 `(let ((,arg-sym ,(or (type-expression (arg-exp arg-sym) type) (arg-exp arg-sym))))
+		    ,@(awhen (type-assertion arg-sym type) `((assert-http ,it)))
+		    ,@(loop for r in restrictions collect `(assert-http ,r))
 		    ,res))))
      finally (return res)))
 

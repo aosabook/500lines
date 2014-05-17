@@ -114,7 +114,7 @@ test=post
 			    (cl-ppcre:regex-replace "\\r\\n" bdy ""))))
 		  (req (&rest lines)
 		    (with-client-socket (sock stream "localhost" port)
-		      (write! stream lines)
+		      (write! lines stream)
 		      (when (wait-for-input sock :timeout 2 :ready-only t)
 			(parse-res (read-all stream))))))
 	   (destructuring-bind (headers body) (req "GET /test HTTP/1.1")
