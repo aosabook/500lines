@@ -5,11 +5,8 @@ Dir['./models/*', './helpers/*'].each {|file| require_relative file }
 include FileUtils::Verbose
 
 get '/trials' do
+  @trials = Trial.all
   @error = "A #{params[:error]} error has occurred." if params[:error]
-
-  @trials = Trial.all.map do |trial|
-    { file_name: trial.file_name, analyzer: trial.analyzer }
-  end
 
   erb :trials
 end

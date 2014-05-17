@@ -10,10 +10,10 @@
     <th>Calculated</th>
     <th>Delta</th>
     <th></th>
-    <% @trials.each do |h| %>
+    <% @trials.each do |trial| %>
       <tr>
-        <%= erb :summary, locals: { analyzer: h[:analyzer] } %>
-        <td><a href=<%= "trial/" + h[:file_name] %>>Detail</a></td>
+        <%= erb :summary, locals: { analyzer: trial.analyzer } %>
+        <td><a href=<%= "trial/" + trial.file_name %>>Detail</a></td>
       </tr>
     <% end %>
   </table>
