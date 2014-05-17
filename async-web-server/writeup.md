@@ -1,6 +1,6 @@
 # On Interacting Through HTTP in an Asynchronous Manner in the Medium of Common Lisp
 
-Ok, this was going to start off with the basics of threaded vs asynchronous servers, and a quick rundown of the use cases for each, but its been brought to my attention that the whole Common Lisp thing might be intimidating to people. Given that tidbit, I debated both internally and externally on how to actually begin, and decided that the best way might actually be from the end (Just to be clear, yes, this is a toy example. If you'd like to see a non-toy example using the same server, take a look at [cl-notebook](https://github.com/Inaimathi/cl-notebook) or [deal](https://github.com/Inaimathi/deal). And on a related note This writeup also features a stripped-down version of the `house` server. [The real version](https://github.com/Inaimathi/house) also does some light static file serving and deals with sessions in a currently semi-satisfactory way. That's it though.). So to *that* end, here's what I want to be able to do:
+Ok, this was going to start off with the basics of threaded vs asynchronous servers, and a quick rundown of the use cases for each, but its been brought to my attention that the whole Common Lisp thing might be intimidating to people. Given that tidbit, I debated both internally and externally on how to begin, and decided that the best way might be from the end (Just to be clear, yes, this is a toy example. If you'd like to see a non-toy example using the same server, take a look at [cl-notebook](https://github.com/Inaimathi/cl-notebook) or [deal](https://github.com/Inaimathi/deal). And on a related note This writeup also features a stripped-down version of the `house` server. [The real version](https://github.com/Inaimathi/house) also does some light static file serving, deals with sessions in a currently semi-satisfactory way, imposes a priority system on HTTP types, has a few clearly labeled cross-plaform hacks, and (by the time this writeup is done) will also probably be doing more detailed front-end error reporting. That's it though. The main handler definition system as well as the *actual server* is exactly the same.). So to *that* end, here's what I want to be able to do:
 
     (define-stream-handler (source) (room)
        (subscribe! (intern room :keyword) sock))
@@ -15,40 +15,40 @@ Ok, this was going to start off with the basics of threaded vs asynchronous serv
 
 And having done that, I should be able to browse over to `localhost:4242/index` (actual front-end structure left as an exercise for the reader) and see a little chat room using which I could subscribe and post to various message channels. Because I don't hate myself, and I'd like this to actually work in some sort of production environment, I need to both do some sanitation on inputs and make sure that this sanitation needn't be done manually. So really, I want to be able to say something like
 
-    (define-stream-handler (source) ((room :string :max 16))
+    (define-stream-handler (source) ((room :string (>= 16 (length room))))
        (subscribe! (intern room :keyword) sock))
 
     (define-closing-handler (index) ()
        <insert some javascript UI here>)
 
-    (define-closing-handler (send-message) ((room :string :max 16) (name :string :min 1 :max 64) (message :string :min 5 :max 256))
+    (define-closing-handler (send-message) ((room :string (>= 16 (length room))) (name :string (>= 64 (length name) 1)) (message :string (>= 256 (length message) 5)))
        (publish! (intern room :keyword) (encode-json-to-string `((:name . ,name) (:message . ,message)))))
 
     (start 4242)
 
-It's not *quite* strongly typed HTTP parameters, because I'm interested in enforcing more than the type, but that's a good first approximation. You can imagine more or less this same thing being implemented in a mainstream class-based OO language using a class hierarchy. That is, you'd define a `handler` class, then subclass that for each handler you have, giving each `get`, `post`, `parse` and `validate` methods as needed. If you imagine this well enough, you'll also see the small but non-trivial pieces of boilerplate that the approach would get you, both in terms of setting up classes and methods themselves and in terms of doing the parsing/validation of your parameters. The Common Lisp approach, and I'd argue the right approach, is to write a DSL to handle the situation. In this case, it takes the form of a new piece of syntax that lets you declare certain properties of your handlers, and expands into the code you would have written by hand.
+It's not *quite* strongly typed HTTP parameters, because I'm interested in enforcing more than the type, but that's a good first approximation. You can imagine more or less this same thing being implemented in a mainstream class-based OO language using a class hierarchy. That is, you'd define a `handler` class, then subclass that for each handler you have, giving each `get`, `post`, `parse` and `validate` methods as needed. If you imagine this well enough, you'll also see the small but non-trivial pieces of boilerplate that the approach would get you, both in terms of setting up classes and methods themselves and in terms of doing the parsing/validation of your parameters. The Common Lisp approach, and I'd argue the right approach, is to write a DSL to handle the situation. In this case, it takes the form of a new piece of syntax that lets you declare certain properties of your handlers, and expands into the code you would have written by hand. Writing this way, your code ends up amounting to a set of instructions by which a Lisp implementation can unfold your code into the much more verbose and extensive code that you want to run. The benefit here is that you don't have to maintain the intermediate code, as you would if you were using IDE/editor-provided code generation facilities, you have the comparably easy and straight-forward task of maintaining the unfolding specification.
 
 ### Stepping Through Expansions
 
 Lets step through the expansion for `send-message`, just so you understand what's going on at each step. What I'm about to show you is the output of the SLIME macroexpander, which does a one-level expansion on the macro call you give it.
 
-    (define-closing-handler (send-message) ((room :string :max 16) (name :string :min 1 :max 64) (message :string :min 5 :max 256))
+    (define-closing-handler (send-message) ((room :string (>= 16 (length room))) (name :string (>= 64 (length name) 1)) (message :string (>= 256 (length message) 5)))
        (publish! (intern room :keyword) (encode-json-to-string `((:name . ,name) (:message . ,message)))))
 
 No big deal; that's just what I want to write. What I want this to mean is
-
 
 > "Bind the action `(publish! ...)` to the URI `/send-message` in the handlers table. Before you run that action, make sure the client has passed us parameters named `room`, `name` and `message`, ensure that `room` is a string no longer than 16 characters, `name` is a string of between 1 and 64 characters (inclusive) and finally that `message` is a string of between 5 and 256 characters (also inclusive). After you've sent the response back, close the channel.".
 
 Expanding it will get us
 
-    (BIND-HANDLER SEND-MESSAGE
-              (MAKE-CLOSING-HANDLER (:CONTENT-TYPE "text/html")
-                  ((ROOM :STRING :MAX 16) (NAME :STRING :MIN 1 :MAX 64)
-                   (MESSAGE :STRING :MIN 5 :MAX 256))
-                (PUBLISH! (INTERN ROOM :KEYWORD)
-                          (ENCODE-JSON-TO-STRING
-                           `((:NAME ,@NAME) (:MESSAGE ,@MESSAGE))))))
+	(BIND-HANDLER SEND-MESSAGE
+	              (MAKE-CLOSING-HANDLER (:CONTENT-TYPE "text/html")
+	                  ((ROOM :STRING (>= 16 (LENGTH ROOM)))
+	                   (NAME :STRING (>= 64 (LENGTH NAME) 1))
+	                   (MESSAGE :STRING (>= 256 (LENGTH MESSAGE) 5)))
+	                (PUBLISH! (INTERN ROOM :KEYWORD)
+	                          (ENCODE-JSON-TO-STRING
+	                           `((:NAME ,@NAME) (:MESSAGE ,@MESSAGE))))))
 
 We're binding the result of `make-closing-handler` to the (for now) symbol `send-message`. Expanding `bind-handler` gets us
 
@@ -57,45 +57,47 @@ We're binding the result of `make-closing-handler` to the (for now) symbol `send
 	   (WARN "Redefining handler '/send-message'"))
 	 (SETF (GETHASH "/send-message" *HANDLERS*)
 	         (MAKE-CLOSING-HANDLER (:CONTENT-TYPE "text/html")
-	             ((ROOM :STRING :MAX 16) (NAME :STRING :MIN 1 :MAX 64)
-	              (MESSAGE :STRING :MIN 5 :MAX 256))
+	             ((ROOM :STRING (>= 16 (LENGTH ROOM)))
+	              (NAME :STRING (>= 64 (LENGTH NAME) 1))
+	              (MESSAGE :STRING (>= 256 (LENGTH MESSAGE) 5)))
 	           (PUBLISH! (INTERN ROOM :KEYWORD)
 	                     (ENCODE-JSON-TO-STRING
 	                      `((:NAME ,@NAME) (:MESSAGE ,@MESSAGE)))))))
 
 Which is to say, we'd like to associate the handler we're making with the uri `/send-message` in the handler table `*HANDLERS*`. We'd additionally like a warning to be issued if that binding already exists, but will re-bind it regardless. None of that is particularly interesting. Lets take a look at the expansion of `make-closing-handler` specifically:
 
-	(LAMBDA (SOCK PARAMETERS)
-                (DECLARE (IGNORABLE PARAMETERS))
-                (LET ((ROOM
-                       (AIF (CDR (ASSOC :ROOM PARAMETERS)) (URI-DECODE IT)
-                            (ERROR (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'ROOM)))))
-                  (ASSERT-HTTP (>= 16 (LENGTH ROOM)))
-                  (LET ((NAME
-                         (AIF (CDR (ASSOC :NAME PARAMETERS)) (URI-DECODE IT)
-                              (ERROR
-                               (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'NAME)))))
-                    (ASSERT-HTTP (>= 64 (LENGTH NAME) 1))
-                    (LET ((MESSAGE
-                           (AIF (CDR (ASSOC :MESSAGE PARAMETERS)) (URI-DECODE IT)
-                                (ERROR
-                                 (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'MESSAGE)))))
-                      (ASSERT-HTTP (>= 256 (LENGTH MESSAGE) 5))
-                      (LET ((RES
-                             (MAKE-INSTANCE 'RESPONSE :CONTENT-TYPE "text/html" :BODY
-                                            (PROGN
-                                             (PUBLISH! (INTERN ROOM :KEYWORD)
-                                                       (ENCODE-JSON-TO-STRING
-                                                        `((:NAME ,@NAME)
-                                                          (:MESSAGE ,@MESSAGE))))))))
-                        (WRITE! RES SOCK)
-                        (SOCKET-CLOSE SOCK))))))
+	(LAMBDA (SOCK #:COOKIE?1111 SESSION PARAMETERS)
+	           (DECLARE (IGNORABLE SESSION PARAMETERS))
+	           (LET ((ROOM
+	                  (AIF (CDR (ASSOC :ROOM PARAMETERS)) (URI-DECODE IT)
+	                       (ERROR (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'ROOM)))))
+	             (ASSERT-HTTP (>= 16 (LENGTH ROOM)))
+	             (LET ((NAME
+	                    (AIF (CDR (ASSOC :NAME PARAMETERS)) (URI-DECODE IT)
+	                         (ERROR
+	                          (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'NAME)))))
+	               (ASSERT-HTTP (>= 64 (LENGTH NAME) 1))
+	               (LET ((MESSAGE
+	                      (AIF (CDR (ASSOC :MESSAGE PARAMETERS)) (URI-DECODE IT)
+	                           (ERROR
+	                            (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'MESSAGE)))))
+	                 (ASSERT-HTTP (>= 256 (LENGTH MESSAGE) 5))
+	                 (LET ((RES
+	                        (MAKE-INSTANCE 'RESPONSE :CONTENT-TYPE "text/html" :COOKIE
+	                                       (UNLESS #:COOKIE?1111 (TOKEN SESSION)) :BODY
+	                                       (PROGN
+	                                        (PUBLISH! (INTERN ROOM :KEYWORD)
+	                                                  (ENCODE-JSON-TO-STRING
+	                                                   `((:NAME ,@NAME)
+	                                                     (:MESSAGE ,@MESSAGE))))))))
+	                   (WRITE! RES SOCK)
+	                   (SOCKET-CLOSE SOCK))))))
 
-This is the big one. It looks mean, but it really amounts to an unrolled loop over the arguments. You can see that for every parameter, we're grabbing its value in the `parameters` association list, ensuring it exists, `uri-decode`ing it if it does, and asserting the appropriate properties we want to enforce. At any given point, if an assertion is violated, we're done and we return an error (not pictured here, but the error handlers surrounding an HTTP handler call will ensure it). If we get through all of our arguments without running into an error, we're going to evaluate the handler body, write the result out to the requester and close the socket.
+This is the big one. It looks mean, but it really amounts to an unrolled loop over the arguments. You can see that for every parameter, we're grabbing its value in the `parameters` association list, ensuring it exists, `uri-decode`ing it if it does, and asserting the appropriate properties we want to enforce. At any given point, if an assertion is violated, we're done and we return an error (handling said error not pictured here, but the error handlers surrounding an HTTP handler call will ensure that these errors get translated to `HTTP 400` or `500` errors being sent over the wire). If we get through all of our arguments without running into an error, we're going to evaluate the handler body, write the result out to the requester and close the socket.
 
 ### Understanding the Expanders
 
-If you're more interested in the server proper, skip the next section or two. The first thing we're going to do is dissect the code that generates the above expansions. We'll start from the end again. In this case, the end of `define-handler.lisp`
+If you're more interested in the server proper, skip the next few sections. The first thing we're going to do is dissect the code that generates the above expansions. We'll start from the end again. In this case, the end of `define-handler.lisp`
 
 	(defmacro define-closing-handler ((name &key (content-type "text/html")) (&rest args) &body body)
 	  `(bind-handler ,name (make-closing-handler (:content-type ,content-type) ,args ,@body)))
@@ -103,7 +105,7 @@ If you're more interested in the server proper, skip the next section or two. Th
 	(defmacro define-stream-handler ((name) (&rest args) &body body)
 	  `(bind-handler ,name (make-stream-handler ,args ,@body)))
 
-The `define-(*)-handler` macros just straight-forwardly exand into calls to `bind-handler` and `make-\1-handler`. You can see that, because we're using homoiconic code, we can use the backtick and comma operators to basically cut holes in an expression we'd like to evaluate. Calling the resulting macros will slot values into said holes and evaluate the result. We *could* have defined one macro here, with perhaps a an extra key argument in the first cluster that let you specify whether it is meant to close out the connection or not. That would have resulted in one slightly complicated `defmacro` rather than two dead-simple ones, so I decided against it.
+The `define-(*)-handler` macros just straight-forwardly exand into calls to `bind-handler` and `make-\1-handler`. You can see that, because we're using homoiconic code, we can use the backtick and comma operators to basically cut holes in an expression we'd like to evaluate. Calling the resulting macros will slot values into said holes and evaluate the result. We *could* have defined one macro here, with perhaps an extra key argument in the first cluster that let you specify whether it is meant to close out the connection or not. That would have resulted in one slightly complicated `defmacro` rather than two dead-simple ones, so I decided against it, but reserve the right to change my mind later.
 
 Next up, `bind-handler`
 
@@ -142,50 +144,51 @@ So making a closing-handler involves making a `lambda`, which is just what you c
 		  ((list* arg-sym type restrictions)
 		   (setf res
 			 `(let ((,arg-sym ,(or (type-expression (arg-exp arg-sym) type restrictions) (arg-exp arg-sym))))
-			    ,@(awhen (lookup-assertion arg-sym type restrictions) `((assert-http ,it)))
+			    ,@(awhen (type-assertion arg-sym type restrictions) `((assert-http ,it)))
 			    ,res))))
 	     finally (return res)))
 
 Welcome to the hard part. `arguments` takes the handlers' arguments, and generates that tree of parse attempts and assertions you saw in the full macroexpansion of `send-message`. In other words, it takes
 
                                                            the arguments
-                                           ----------------------------------------------------------------------------------------
-    (define-closing-handler (send-message) ((room :string :max 16) (name :string :min 1 :max 64) (message :string :min 5 :max 256))
+                                           ---------------------------------------------------------------------------------------------------------------------------
+    (define-closing-handler (send-message) ((room :string (>= 16 (length room))) (name :string (>= 64 (length name) 1)) (message :string (>= 256 (length message) 5)))
        (publish! (intern room :keyword) (encode-json-to-string `((:name . ,name) (:message . ,message)))))
        --------------------------------------------------------------------------------------------------
 	                                and the body
 
 and wraps `the body` in
 
-		(LAMBDA (SOCK PARAMETERS)
-	                (DECLARE (IGNORABLE PARAMETERS))
-	|                (LET ((ROOM
-	|                       (AIF (CDR (ASSOC :ROOM PARAMETERS)) (URI-DECODE IT)
-	|                            (ERROR (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'ROOM)))))
-	|                  (ASSERT-HTTP (>= 16 (LENGTH ROOM)))
-	|                  (LET ((NAME
-	|                         (AIF (CDR (ASSOC :NAME PARAMETERS)) (URI-DECODE IT)
-	|                              (ERROR
-	|                               (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'NAME)))))
-	|                    (ASSERT-HTTP (>= 64 (LENGTH NAME) 1))
-	|                    (LET ((MESSAGE
-	|                           (AIF (CDR (ASSOC :MESSAGE PARAMETERS)) (URI-DECODE IT)
-	|                                (ERROR
-	|                                 (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'MESSAGE)))))
-	|                      (ASSERT-HTTP (>= 256 (LENGTH MESSAGE) 5))
-	                      (LET ((RES
-	                             (MAKE-INSTANCE 'RESPONSE :CONTENT-TYPE "text/html" :BODY
-	                                            (PROGN
-	                                             (PUBLISH! (INTERN ROOM :KEYWORD)
-	                                                       (ENCODE-JSON-TO-STRING
-	                                                        `((:NAME ,@NAME)
-	                                                          (:MESSAGE ,@MESSAGE))))))))
-	                        (WRITE! RES SOCK)
-	                        (SOCKET-CLOSE SOCK))))))
+	(LAMBDA (SOCK #:COOKIE?1111 SESSION PARAMETERS)
+	           (DECLARE (IGNORABLE SESSION PARAMETERS))
+	|           (LET ((ROOM
+	|                  (AIF (CDR (ASSOC :ROOM PARAMETERS)) (URI-DECODE IT)
+	|                       (ERROR (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'ROOM)))))
+	|             (ASSERT-HTTP (>= 16 (LENGTH ROOM)))
+	|             (LET ((NAME
+	|                    (AIF (CDR (ASSOC :NAME PARAMETERS)) (URI-DECODE IT)
+	|                         (ERROR
+	|                          (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'NAME)))))
+	|               (ASSERT-HTTP (>= 64 (LENGTH NAME) 1))
+	|               (LET ((MESSAGE
+	|                      (AIF (CDR (ASSOC :MESSAGE PARAMETERS)) (URI-DECODE IT)
+	|                           (ERROR
+	|                            (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'MESSAGE)))))
+	|                 (ASSERT-HTTP (>= 256 (LENGTH MESSAGE) 5))
+	                 (LET ((RES
+	                        (MAKE-INSTANCE 'RESPONSE :CONTENT-TYPE "text/html" :COOKIE
+	                                       (UNLESS #:COOKIE?1111 (TOKEN SESSION)) :BODY
+	                                       (PROGN
+	                                        (PUBLISH! (INTERN ROOM :KEYWORD)
+	                                                  (ENCODE-JSON-TO-STRING
+	                                                   `((:NAME ,@NAME)
+	                                                     (:MESSAGE ,@MESSAGE))))))))
+	                   (WRITE! RES SOCK)
+	                   (SOCKET-CLOSE SOCK))))))
 
 that. Here's an evaluation from a REPL:
 
-	HOUSE> (arguments '((room :string :max 16) (name :string :min 1 :max 64) (message :string :min 5 :max 256)) :body-placeholder)
+	HOUSE> (arguments '((room :string (>= 16 (length room))) (name :string (>= 64 (length name) 1)) (message :string (>= 256 (length message) 5))) :body-placeholder)
 	(LET ((ROOM
 	       (AIF (CDR (ASSOC :ROOM PARAMETERS)) (URI-DECODE IT)
 	            (ERROR (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'ROOM)))))
@@ -200,16 +203,16 @@ that. Here's an evaluation from a REPL:
 	                 (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'MESSAGE)))))
 	      (ASSERT-HTTP (>= 256 (LENGTH MESSAGE) 5))
 	      :BODY-PLACEHOLDER)))
-	HOUSE> 
+	HOUSE>
 
 The `match` clause inside `arguments` distinguishes between symbol arguments and list arguments, which lets you have untyped arguments in handlers. For instance, if you knew you could trust your users not to pick gigantic names, you could do this:
 
-    (define-closing-handler (send-message) ((room :string :max 16) name (message :string :min 5 :max 256))
+    (define-closing-handler (send-message) ((room :string (>= 16 (length room))) name (message :string (>= 256 (length message) 5)))
        (publish! (intern room :keyword) (encode-json-to-string `((:name . ,name) (:message . ,message)))))
 
 The appropriate `arguments` call would then just check for the *presence* of a `name` parameter rather than asserting anything about its contents.
 
-	HOUSE> (arguments '((room :string :max 16) name (message :string :min 5 :max 256)) :body-placeholder)
+	HOUSE> (arguments '((room :string (>= 16 (length room))) name (message :string (>= 256 (length message) 5))) :body-placeholder)
 	(LET ((ROOM
 	       (AIF (CDR (ASSOC :ROOM PARAMETERS)) (URI-DECODE IT)
 	            (ERROR (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'ROOM)))))
@@ -225,8 +228,7 @@ The appropriate `arguments` call would then just check for the *presence* of a `
 	      :BODY-PLACEHOLDER)))
 	HOUSE> 
 
-
-You should be able to map the result onto the expression with minimal effort at this point, but the specifics of how it converts a particular type might be eluding you if you haven't read ahead, or read the code yet. So lets dive into that before we move back to the other handler type. Three expressions matter here: `arg-exp`, `type-expression` and `lookup-assertion`. Once you understand those, there will be no magic left. Easy first.
+You should be able to map the result onto the expression with minimal effort at this point, but the specifics of how it converts a particular type might be eluding you if you haven't read ahead, or read the code yet. So lets dive into that before we move back to the other handler type. Three expressions matter here: `arg-exp`, `type-expression` and `type-assertion`. Once you understand those, there will be no magic left. Easy first.
 
 `arg-exp` takes an argument symbol and returns that `aif` expression [[Note to editor: Should I elaborate on `aif`? It's a fairly well known Common Lisp construct, but might be unclear to non-Lispers]] we use to check for the presence of a parameter. Just the symbol, not the restrictions.
 
@@ -248,37 +250,23 @@ Lets take a short break here, actually. At this point we're two levels deep into
 
 ### An Interlude for Defining Types
 
-With that knowledge in hand, you should be able to see that `arg-exp` is actually doing the job of generating a specific, otherwise repetitive, piece of the code tree that we eventually want to evaluate. In this case, the piece that checks for the presence of the given parameter among the handlers' `parameters`. And that's all you need to understand about it, so lets move on to...
+With that knowledge in mind, you should be able to see that `arg-exp` is actually doing the job of generating a specific, otherwise repetitive, piece of the code tree that we eventually want to evaluate. In this case, the piece that checks for the presence of the given parameter among the handlers' `parameters`. And that's all you need to understand about it, so lets move on to...
 
-	(defgeneric type-expression (parameter type &optional restrictions)
+	(defgeneric type-expression (parameter type)
 	  (:documentation
 	   "A type-expression will tell the server how to convert a parameter from a string to a particular, necessary type."))
     ...
-	(defmethod type-expression (parameter type &optional restrictions) nil)
+	(defmethod type-expression (parameter type) nil)
 
 [[Note to Editor: Should I have a bit of exposition here about generic functions and how they work?]]
 
 Oh snap, we just went one level deeper. This is now a *method* that generates new tree structures (coincidentally Lisp code), rather than just a function. And yes, you can do that just fine. The only thing the above tells you is that by default, a `type-expression` is `NIL`. Which is to say, we don't have one. If we encounter a `NIL`, we just use the output of `arg-exp` raw, but that doesn't tell us much about the usual case. For that, lets take a look at how we define http-types.
 
-[[Note to Self: Might consider re-thinking the limitations clause. Perhaps just accept an expression, so that you can just write
-
-`(define-closing-handler (foo) ((bar :string (>= 2 (length bar) 64)))
-   (mumble mumble mumble))`
-
-This would let you generalize the post-parse restrictions, greatly simplify `http-type` definitions (you wouldn't need to do any of this `match` nonsense, or explain it).]]
-
 	(define-http-type (:integer)
 	    :type-expression `(parse-integer ,parameter :junk-allowed t)
-	    :lookup-assertion (match restrictions
-				((list :min min)
-				 `(>= ,parameter ,min))
-				((list :max max)
-				 `(>= ,max ,parameter))
-				((list :min min :max max)
-				 `(>= ,max ,parameter ,min))
-				(_ nil)))
+		:type-assertion `(numberp ,parameter))
 
-So an `:integer` is a thing that we're going to get out of a raw `parameter` by using `(parse-integer parameter :junk-allowed t)`, and we might specify that the result be in a particular range to be valid. Here's the demonstration of the first part (we'll get to `lookup-assertion`s in a moment):
+So an `:integer` is a thing that we're going to get out of a raw `parameter` by using `(parse-integer parameter :junk-allowed t)`, and we want to check whether the result is actually an integer (The Haskellers reading this will probably chuckle at this, but the best way of thinking about most lisp functions is as returning a `Maybe` because many of them signal failure by returning `NIL` rather than whatever they were going to return. `parse-integer` is one of these, so we need to check that its result is *actually* an integer before proceeding (This gives you some fun edge cases in places where `NIL` is part of the set of legitimately possible return values of a particular procedure, such as `gethash`. I'm not going to get into that here, other than mentioning that you typically handle it using the multiple-return-values facility of Common Lisp)). Here's the demonstration of the first part (we'll get to `type-assertion`s in a moment):
 
 	HOUSE> (type-expression 'blah :integer '(:min 4 :max 12))
 	(PARSE-INTEGER BLAH :JUNK-ALLOWED T)
@@ -286,62 +274,53 @@ So an `:integer` is a thing that we're going to get out of a raw `parameter` by 
 
 Now, you might have noticed that I'm using the expression `define-http-type` up there, and you might have come to the conclusion that this isn't a primitive.
 
-	(defmacro define-http-type ((type) &key type-expression lookup-assertion)
+	(defmacro define-http-type ((type) &key type-expression type-assertion)
 	  (with-gensyms (tp)
 	    `(let ((,tp ,type))
 	       ,@(when type-expression
-		       `((defmethod type-expression (parameter (type (eql ,tp)) &optional restrictions)
-			   (declare (ignorable restrictions))
+		       `((defmethod type-expression (parameter (type (eql ,tp)))
 			   ,type-expression)))
-	       ,@(when lookup-assertion
-		       `((defmethod lookup-assertion (parameter (type (eql ,tp)) &optional restrictions)
-			   (declare (ignorable restrictions))
-			   ,lookup-assertion))))))
+	       ,@(when type-assertion
+		       `((defmethod type-assertion (parameter (type (eql ,tp)))
+			   ,type-assertion))))))
 
-and you're right. Incidentally, this is one fugly looking macro, even by my standards, primarily because it aims to have readable output. Which means getting rid of potential `NIL`s by expanding them away using `,@` where possible. Incidentally, this macro *is* one of the exported symbols for `house`; the point is that a `house` user could define their own to simplify parsing more than `:string`, `:integer`, `:keyword`, `:json`, `:list-of-keyword` and `:list-of-integer`. The idea being that if the above `:integer` type converter didn't exist, you could easily define it yourself by specifying a `:type-expression` and `:lookup-assertion`. All the macro does is expand into the appropriate `type-expression` and `lookup-assertion` method definitions for the type you're looking to define. You could, in fact, do this manually if you liked, but that would mean directly interacting with the method definitions, including specifying their arguments explicitly. Adding this extra level of indirection lets me potentially change the representation away from its current form without forcing any users of it to re-write their specifications. This isn't an academic distinction either; I've changed the implementation three times in fairly radical ways over the course of the project and had to make very few edits to applications that depend on `:house` as a direct result of that indirection layer. Lets take a look at the expansion of that integer definition, just to drive the point home.
+and you're right. Incidentally, this is one fugly looking macro, even by my standards, primarily because it aims to have readable output. Which means getting rid of potential `NIL`s by expanding them away using `,@` where possible. Incidentally, this macro *is* one of the exported symbols for `house`; the point is that a `house` user could define their own to simplify parsing more than `:string`, `:integer`, `:keyword`, `:json`, `:list-of-keyword` and `:list-of-integer`. The idea being that if the above `:integer` type converter didn't exist, you could easily define it yourself by specifying a `:type-expression` and `:type-assertion`. All the macro does is expand into the appropriate `type-expression` and `type-assertion` method definitions for the type you're looking to define. You could, in fact, do this manually if you liked, but that would mean directly interacting with the method definitions, including specifying their arguments explicitly. Adding this extra level of indirection lets me potentially change the representation away from its current form without forcing any users of it to re-write their specifications. This isn't an academic consideration either; I've changed the implementation three times in fairly radical ways over the course of the project and had to make very few edits to applications that depend on `:house` as a direct result of that indirection layer. Lets take a look at the expansion of that integer definition, just to drive the point home.
 
-	(LET ((#:TP1175 :INTEGER))
-	  (DEFMETHOD TYPE-EXPRESSION
-	             (PARAMETER (TYPE (EQL :INTEGER)) &OPTIONAL RESTRICTIONS)
-	    (DECLARE (IGNORABLE RESTRICTIONS))
+	(LET ((#:TP1255 :INTEGER))
+	  (DEFMETHOD TYPE-EXPRESSION (PARAMETER (TYPE (EQL :INTEGER)))
 	    `(PARSE-INTEGER ,PARAMETER :JUNK-ALLOWED T))
-	  (DEFMETHOD LOOKUP-ASSERTION
-	             (PARAMETER (TYPE (EQL :INTEGER)) &OPTIONAL RESTRICTIONS)
-	    (DECLARE (IGNORABLE RESTRICTIONS))
-	    (MATCH RESTRICTIONS
-	      ((LIST :MIN MIN) `(>= ,PARAMETER ,MIN))
-	      ((LIST :MAX MAX) `(>= ,MAX ,PARAMETER))
-	      ((LIST :MIN MIN :MAX MAX) `(>= ,MAX ,PARAMETER ,MIN))
-	      (_ NIL))))
+	  (DEFMETHOD TYPE-ASSERTION (PARAMETER (TYPE (EQL :INTEGER)))
+	    `(NUMBERP ,PARAMETER)))
 
-Like I said, it doesn't actually save you much typing, but does prevent you from needing to care that both of these methods have optional `restrictions` parameters. In fact, now that I think about it, `type-expression` doesn't really need it. Guess it's a good thing I have the extra abstraction layer there; I wouldn't be able to change it very easily otherwise.
+Like I said, it doesn't actually save you much typing, but does prevent you from needing to care what the specific parameters of those methods are, or even that they're methods at all.
 
-Anyhow, having gone through all that, the purpose of `lookup-assertion` should be fairly obvious. It's the *other* half of input sanitation, namely ensuring that the result of a parse satisfies other requirements such as being in a particular range. And it takes the form of a complementary `defgeneric`/`defmethod` pair to `type-expression`
+Anyhow, having gone through all that, the purpose of `type-assertion` should be fairly obvious. It's the *other* half of input sanitation, namely ensuring that the result of a parse satisfies other requirements such as being in a particular range. And it takes the form of a complementary `defgeneric`/`defmethod` pair to `type-expression`
 
-	(defgeneric lookup-assertion (parameter type &optional restrictions)
+	(defgeneric type-assertion (parameter type)
 	  (:documentation
 	   "A lookup assertion is run on a parameter immediately after conversion. Use it to restrict the space of a particular parameter."))
 	...
-	(defmethod lookup-assertion (parameter type &optional restrictions) nil)
+	(defmethod type-assertion (parameter type) nil)
 
 and here's what this one outputs
 
-	HOUSE> (lookup-assertion 'blah :integer '(:min 4))
+	HOUSE> (type-assertion 'blah :integer '(:min 4))
 	(>= BLAH 4)
-	HOUSE> (lookup-assertion 'blah :integer '(:max 12))
+	HOUSE> (type-assertion 'blah :integer '(:max 12))
 	(>= 12 BLAH)
-	HOUSE> (lookup-assertion 'blah :integer '(:min 4 :max 12))
+	HOUSE> (type-assertion 'blah :integer '(:min 4 :max 12))
 	(>= 12 BLAH 4)
 	HOUSE> 
 
 That's it. You should now understand exactly why `arguments` works the way it does. Which, just to reiterate, is like this:
 
-	HOUSE> (arguments '((blah :integer :min 4 :max 12)) :body-placeholder)
+	HOUSE> (arguments '((blah :integer (>= 12 blah 4))) :body-placeholder)
 	(LET ((BLAH
 	       (PARSE-INTEGER
 	        (AIF (CDR (ASSOC :BLAH PARAMETERS)) (URI-DECODE IT)
 	             (ERROR (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'BLAH)))
 	        :JUNK-ALLOWED T)))
+	  (ASSERT-HTTP (NUMBERP BLAH))
 	  (ASSERT-HTTP (>= 12 BLAH 4))
 	  :BODY-PLACEHOLDER)
 	HOUSE> 
@@ -364,7 +343,7 @@ That's the entirety of our handler handling in this project.
 -We've got a table of them indexed by URI
 -and we've gone to pretty great lengths to make sure defining new ones is as close to painless as possible at the expense of implementation simplicity
 
-Ironically, after unrolling the above macros and understanding how they fit together, the rest of this is going to be a pretty straight-forward asynchronous server implementation.
+Ironically, after unrolling the above macro tower and understanding how they fit together, the rest of this is going to be a pretty straight-forward asynchronous server implementation.
 
 So, lets go back to the basics of asynchronous servers and work our way through the rest of the pattern.
 
