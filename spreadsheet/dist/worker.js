@@ -1746,8 +1746,8 @@ System.get("traceur-runtime@0.0.41/src/runtime/polyfill-import" + '');
                       $__3; !($__3 = $__2.next()).done; ) {
                     try {
                       throw undefined;
-                    } catch (pre) {
-                      pre = $__3.value;
+                    } catch (prefix) {
+                      prefix = $__3.value;
                       {
                         for (var $__0 = [coord, coord.toLowerCase()][$traceurRuntime.toProperty(Symbol.iterator)](),
                             $__1; !($__1 = $__0.next()).done; ) {
@@ -1756,10 +1756,10 @@ System.get("traceur-runtime@0.0.41/src/runtime/polyfill-import" + '');
                           } catch (cr) {
                             cr = $__1.value;
                             {
-                              if ((Object.getOwnPropertyDescriptor(self, pre + cr) || {}).get) {
+                              if ((Object.getOwnPropertyDescriptor(self, prefix + cr) || {}).get) {
                                 continue;
                               }
-                              Object.defineProperty(self, pre + cr, {get: (function() {
+                              Object.defineProperty(self, prefix + cr, {get: (function() {
                                   if ($traceurRuntime.toProperty(coord) in cache) {
                                     return cache[$traceurRuntime.toProperty(coord)];
                                   }

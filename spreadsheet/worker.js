@@ -6,10 +6,10 @@
   function calc(event) {
     [cache, errs, sheet] = [ {}, {}, event.data ]
     for (const coord in sheet) {
-      for (const pre of [ '', '$' ]) {
+      for (const prefix of [ '', '$' ]) {
         for (const cr of [ coord, coord.toLowerCase() ]) {
-          if (( Object.getOwnPropertyDescriptor( self, pre+cr ) || {} ).get) { continue }
-          Object.defineProperty( self, pre+cr, { get: ()=>{
+          if (( Object.getOwnPropertyDescriptor( self, prefix+cr ) || {} ).get) { continue }
+          Object.defineProperty( self, prefix+cr, { get: ()=>{
             if (coord in cache) { return cache[coord] }
             cache[coord] = NaN
             let val = +sheet[coord]
