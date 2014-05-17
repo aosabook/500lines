@@ -1764,13 +1764,16 @@ window.Spreadsheet = (function($scope) {
     }
     return $__1;
   }());
-  $scope.sheet = angular.fromJson(localStorage.getItem('sheet')) || {
-    A1: 1874,
-    B1: '✕',
-    C1: 2046,
-    D1: '⇒',
-    E1: '=A1*C1'
-  };
+  $scope.reset = (function() {
+    $scope.sheet = {
+      A1: 1874,
+      B1: '✕',
+      C1: 2046,
+      D1: '⇒',
+      E1: '=A1*C1'
+    };
+  });
+  $scope.sheet = angular.fromJson(localStorage.getItem('sheet')) || $scope.reset();
   $scope.errs = {}, $scope.vals = {};
   var worker = new Worker('dist/worker.js');
   worker.onmessage = (function(event) {
@@ -1779,14 +1782,12 @@ window.Spreadsheet = (function($scope) {
       ($__4 = $traceurRuntime.assertObject(event.data), $scope.errs = $__4[0], $scope.vals = $__4[1], $__4);
     }));
   });
-  var cache = '';
-  $scope.calc = (function() {
+  ($scope.calc = (function() {
     var json = angular.toJson($scope.sheet);
-    if (json === cache) {
+    if (json === $scope.cache) {
       return;
     }
-    localStorage.setItem('sheet', (cache = json));
+    localStorage.setItem('sheet', ($scope.cache = json));
     worker.postMessage($scope.sheet);
-  });
-  $scope.calc();
+  }))();
 });

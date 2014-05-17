@@ -1735,59 +1735,70 @@ System.get("traceur-runtime@0.0.41/src/runtime/polyfill-import" + '');
             });
             ;
             calc = function(event) {
-              var $__4;
-              ($__4 = [{}, {}, event.data], cache = $__4[0], errs = $__4[1], sheet = $__4[2], $__4);
+              var $__6;
+              ($__6 = [{}, {}, event.data], cache = $__6[0], errs = $__6[1], sheet = $__6[2], $__6);
               for (var $coord in sheet) {
                 try {
                   throw undefined;
                 } catch (coord) {
                   coord = $coord;
-                  for (var $__2 = ['', '$'][$traceurRuntime.toProperty(Symbol.iterator)](),
+                  for (var $__2 = (function() {
+                    var $__0 = 0,
+                        $__1 = [];
+                    for (var $__4 = ['', '$'][$traceurRuntime.toProperty(Symbol.iterator)](),
+                        $__5; !($__5 = $__4.next()).done; ) {
+                      try {
+                        throw undefined;
+                      } catch (p) {
+                        p = $__5.value;
+                        for (var $__2 = [coord, coord.toLowerCase()][$traceurRuntime.toProperty(Symbol.iterator)](),
+                            $__3; !($__3 = $__2.next()).done; ) {
+                          try {
+                            throw undefined;
+                          } catch (c) {
+                            c = $__3.value;
+                            $traceurRuntime.setProperty($__1, $__0++, p + c);
+                          }
+                        }
+                      }
+                    }
+                    return $__1;
+                  }())[$traceurRuntime.toProperty(Symbol.iterator)](),
                       $__3; !($__3 = $__2.next()).done; ) {
                     try {
                       throw undefined;
-                    } catch (prefix) {
-                      prefix = $__3.value;
+                    } catch (name) {
+                      name = $__3.value;
                       {
-                        for (var $__0 = [coord, coord.toLowerCase()][$traceurRuntime.toProperty(Symbol.iterator)](),
-                            $__1; !($__1 = $__0.next()).done; ) {
-                          try {
-                            throw undefined;
-                          } catch (cr) {
-                            cr = $__1.value;
-                            {
-                              if ((Object.getOwnPropertyDescriptor(self, prefix + cr) || {}).get) {
-                                continue;
-                              }
-                              Object.defineProperty(self, prefix + cr, {get: (function() {
-                                  if ($traceurRuntime.toProperty(coord) in cache) {
-                                    return cache[$traceurRuntime.toProperty(coord)];
-                                  }
-                                  $traceurRuntime.setProperty(cache, coord, NaN);
-                                  var val = +sheet[$traceurRuntime.toProperty(coord)];
-                                  if (sheet[$traceurRuntime.toProperty(coord)] != val.toString()) {
-                                    val = sheet[$traceurRuntime.toProperty(coord)];
-                                  }
-                                  try {
-                                    $traceurRuntime.setProperty(cache, coord, (('=' === val[0]) ? globalEval(val.slice(1)) : val));
-                                  } catch (e) {
-                                    try {
-                                      throw undefined;
-                                    } catch (match) {
-                                      match = /\$?[A-Za-z]+[1-9][0-9]*\b/.exec(e);
-                                      if (match && !($traceurRuntime.toProperty(match[0]) in self)) {
-                                        $traceurRuntime.setProperty(self, match[0], 0);
-                                        delete cache[$traceurRuntime.toProperty(coord)];
-                                        return self[$traceurRuntime.toProperty(coord)];
-                                      }
-                                      $traceurRuntime.setProperty(errs, coord, e.toString());
-                                    }
-                                  }
-                                  return cache[$traceurRuntime.toProperty(coord)];
-                                })});
-                            }
-                          }
+                        if ((Object.getOwnPropertyDescriptor(self, name) || {}).get) {
+                          continue;
                         }
+                        Object.defineProperty(self, name, {get: (function() {
+                            if ($traceurRuntime.toProperty(coord) in cache) {
+                              return cache[$traceurRuntime.toProperty(coord)];
+                            }
+                            $traceurRuntime.setProperty(cache, coord, NaN);
+                            var val = +sheet[$traceurRuntime.toProperty(coord)];
+                            if (sheet[$traceurRuntime.toProperty(coord)] != val.toString()) {
+                              val = sheet[$traceurRuntime.toProperty(coord)];
+                            }
+                            try {
+                              $traceurRuntime.setProperty(cache, coord, (('=' === val[0]) ? globalEval(val.slice(1)) : val));
+                            } catch (e) {
+                              try {
+                                throw undefined;
+                              } catch (match) {
+                                match = /\$?[A-Za-z]+[1-9][0-9]*\b/.exec(e);
+                                if (match && !($traceurRuntime.toProperty(match[0]) in self)) {
+                                  $traceurRuntime.setProperty(self, match[0], 0);
+                                  delete cache[$traceurRuntime.toProperty(coord)];
+                                  return self[$traceurRuntime.toProperty(coord)];
+                                }
+                                $traceurRuntime.setProperty(errs, coord, e.toString());
+                              }
+                            }
+                            return cache[$traceurRuntime.toProperty(coord)];
+                          })});
                       }
                     }
                   }

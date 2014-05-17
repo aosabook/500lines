@@ -11,7 +11,7 @@ test :: dist
 	@node extra/test.js
 
 wc :: dist
-	@wc -l *.js *.html
+	@wc -l *.js *.html *css
 
 clean ::
 	-@rm -rf dist/*
