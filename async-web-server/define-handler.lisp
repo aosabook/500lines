@@ -2,11 +2,6 @@
 
 ;;;;;;;;;; Parameter type parsing.
 ;;;;; Basics
-(defparameter *http-type-priority* (make-hash-table)
-  "Priority table for all parameter types. 
-Types will be parsed from highest to lowest priority;
-parameters with a lower priority can refer to parameters of a higher priority.")
-
 (defgeneric type-expression (parameter type)
   (:documentation
    "A type-expression will tell the server how to convert a parameter from a string to a particular, necessary type."))
@@ -21,7 +16,6 @@ parameters with a lower priority can refer to parameters of a higher priority.")
   (assert (numberp priority) nil "`priority` should be a number. The highest will be converted first")
   (with-gensyms (tp)
     `(let ((,tp ,type))
-       (setf (gethash ,tp *http-type-priority*) ,priority)
        ,@(when type-expression
 	       `((defmethod type-expression (parameter (type (eql ,tp))) ,type-expression)))
        ,@(when type-assertion
@@ -49,14 +43,6 @@ parameters with a lower priority can refer to parameters of a higher priority.")
     :type-assertion `(every #'numberp ,parameter))
 
 ;;;;;;;;;; Constructing argument lookups
-(defun args-by-type-priority (args &optional (priority-table *http-type-priority*))
-  (let ((cpy (copy-list args)))
-    (sort cpy #'<= 
-	  :key (lambda (arg)
-		 (if (listp arg)
-		     (gethash (second arg) priority-table 0)
-		     0)))))
-
 (defun arg-exp (arg-sym)
   `(aif (cdr (assoc ,(->keyword arg-sym) parameters))
 	(uri-decode it)
@@ -64,7 +50,7 @@ parameters with a lower priority can refer to parameters of a higher priority.")
 
 (defun arguments (args body)
   (loop with res = body
-     for arg in (args-by-type-priority args)
+     for arg in args
      do (match arg
 	  ((guard arg-sym (symbolp arg-sym))
 	   (setf res `(let ((,arg-sym ,(arg-exp arg-sym))) ,res)))
