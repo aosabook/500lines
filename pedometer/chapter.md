@@ -546,6 +546,8 @@ Things to Note:
 * We do some error handling in count_edges by ensuring that steps aren't impossibly close together. We can go a step further (pun intended?) by counting the number of false steps, and if we have too many, avoiding counting steps at all until some reasonable number of samples. That'll prevent any steps from being counted when the phone is shaken vigorously for a period of time. 
 * TODO: There should be more here.
 
+TODO: Add some examples here of plots showing a single trial with comibned and separated input data at each stage, and compare the final, parsed results. 
+
 ## Adding some friendly
 
 We're through the most labour intensive part of our app. Now, all that's left is to present the data in a format that is pleasing to a user. It makes sense to create a very simple web app that allows a user to input a data set through a file upload (in our two formats!) and output the steps taken, distance traveled, time traveled, and maybe a few plots to display the data. 
@@ -583,6 +585,115 @@ Let's jump back in and talk about how we create our simple web app.
 
 TODO: Do I need to add a small MVC and web apps section here?
 
+When building a web application, the functionality of the web app and the user experience should, ideally, be mostly locked down before the code is written. Assuming this perfect world, let's look at what the outlined funtionality above implies for us, technically. We'll need two major components that we don't yet have:
+
+1. A way to store data that a user inputs, and load data that a user has previously inputted.
+2. A web application with a basic interface.
+
+Let's examine each of these two requirements.
+
+### 1. Storing and loading data
+
+Looking at the requirements, we see that we need a way to store the data the user inputs as a text file, as well as the user and device data associated to it. All of this data together - the raw text data as well as the input fields - is related to a trial. Let's create a Trial class to keep track of this data, and store and load it. 
+
+~~~~~~~
+require 'fileutils'
+require_relative 'analyzer'
+
+include FileUtils::Verbose
+
+class Trial
+
+  attr_reader :file_name, :parser, :user, :device, :analyzer
+  attr_reader :user_params, :device_params
+
+  def initialize(file_name = nil, input_data = nil, user_params = nil, device_params = nil)
+    if file_name
+      @file_name = file_name
+    elsif input_data
+      @parser = Parser.new(File.read(input_data))
+      @user   = User.new(*user_params)
+      @device = Device.new(*device_params)
+
+      @file_name = "public/uploads/" + 
+                   "#{user.gender}-#{user.height}-#{user.stride}_" +
+                   "#{device.rate}-" + 
+                   "#{device.steps}-" +
+                   "#{device.trial.to_s.gsub(/\s+/, '')}-" + 
+                   "#{device.method}-#{parser.format[0]}.txt"
+    else 
+      raise 'File name or input data must be passed in.'
+    end
+  end
+
+  # -- Class Methods --------------------------------------------------------
+  
+  def self.create(input_data, user_params, device_params)
+    trial = self.new(nil, input_data, user_params, device_params)
+    cp(input_data, trial.file_name)
+    trial
+  end
+
+  def self.find(file_name)
+    self.new(file_name)
+  end
+
+  def self.all
+    file_names = Dir.glob(File.join('public/uploads', "*"))
+    file_names.map { |file_name| self.new(file_name) }
+  end
+
+  def self.find_matching_filtered_data(trial)
+    files = Dir.glob(File.join('public/uploads', "*"))
+    files.delete(trial.file_name)
+
+    match = files.select { |f| trial.file_name == f.gsub('-s.', '-c.') }.first
+    match ||= files.select { |f| trial.file_name == f.gsub('-c.', '-s.') }.first
+
+    match_filtered_data = if match
+      parser = Parser.new(File.read(match))
+      parser.filtered_data
+    end
+    match_filtered_data
+  end
+
+  # -- Instance Methods -----------------------------------------------------
+
+  def parser
+    @parser ||= Parser.new(File.read(file_name))
+  end
+
+  def user
+    @user ||= User.new(*file_components.first.split('-'))
+  end
+
+  def device
+    @device ||= Device.new(*file_components.last.split('-')[0...-1])
+  end
+
+  def analyzer
+    unless @analyzer
+      @analyzer = Analyzer.new(parser, user, device)
+      @analyzer.measure
+    end
+    @analyzer
+  end
+
+private
+
+  def file_components
+    @file_components ||= file_name.split('/').last.split('_')
+  end
+
+end
+~~~~~~~
+
+Since we're dealing with storage and retrieval of data here, our Trial class has more class level methods than our previous classes. This is best seen when we can observe how our Trial class is used. 
+
+### 2. Building a web application
+
+TODO: Do I need a quick web app or MVC explanation here?
+
 We're using Sinatra, which, in the tool's own words, is "a DSL for quickly creating web applications in Ruby". We'll create a Gemfile with the following lines:
 
 ~~~~~~~
@@ -593,6 +704,7 @@ gem 'thin'
 ~~~~~~~
 
 Once we run bundle install, we'll have Sinatra, as well as the Thin web server.
+
 
 
 

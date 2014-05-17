@@ -1,7 +1,4 @@
 require 'fileutils'
-require_relative 'parser'
-require_relative 'user'
-require_relative 'device'
 require_relative 'analyzer'
 
 include FileUtils::Verbose
@@ -19,13 +16,12 @@ class Trial
       @user   = User.new(*user_params)
       @device = Device.new(*device_params)
 
-      @file_name = 
-        "public/uploads/" + 
-        "#{user.gender}-#{user.height}-#{user.stride}_" +
-        "#{device.rate}-" + 
-        "#{device.steps}-" +
-        "#{device.trial.to_s.gsub(/\s+/, '')}-" + 
-        "#{device.method}-#{parser.format[0]}.txt"
+      @file_name = "public/uploads/" + 
+                   "#{user.gender}-#{user.height}-#{user.stride}_" +
+                   "#{device.rate}-" + 
+                   "#{device.steps}-" +
+                   "#{device.trial.to_s.gsub(/\s+/, '')}-" + 
+                   "#{device.method}-#{parser.format[0]}.txt"
     else 
       raise 'File name or input data must be passed in.'
     end
@@ -33,19 +29,19 @@ class Trial
 
   # -- Class Methods --------------------------------------------------------
 
-  def self.all
-    file_names = Dir.glob(File.join('public/uploads', "*"))
-    file_names.map { |file_name| self.new(file_name) }
+  def self.create(input_data, user_params, device_params)
+    trial = self.new(nil, input_data, user_params, device_params)
+    cp(input_data, trial.file_name)
+    trial
   end
 
   def self.find(file_name)
     self.new(file_name)
   end
 
-  def self.create(input_data, user_params, device_params)
-    trial = self.new(nil, input_data, user_params, device_params)
-    cp(input_data, trial.file_name)
-    trial
+  def self.all
+    file_names = Dir.glob(File.join('public/uploads', "*"))
+    file_names.map { |file_name| self.new(file_name) }
   end
 
   # TODO: Make sure to explain this part
