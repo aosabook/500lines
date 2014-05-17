@@ -1,22 +1,7 @@
 <link href="/styles.css" rel="stylesheet" type="text/css" />
 <div class="error"><%= @error %></div>
 <html>
-  <table class="summary">
-    <th>User</th>
-    <th>Method</th>
-    <th>Format</th>
-    <th>Trial</th>
-    <th>Actual</th>
-    <th>Calculated</th>
-    <th>Delta</th>
-    <th></th>
-    <% @trials.each do |trial| %>
-      <tr>
-        <%= erb :summary, locals: { analyzer: trial.analyzer } %>
-        <td><a href=<%= "trial/" + trial.file_name %>>Detail</a></td>
-      </tr>
-    <% end %>
-  </table>
+  <%= erb :summary, locals: { trials: @trials, detail_hidden: true } %>
   <form method="post" action="/create" enctype="multipart/form-data">
     <h3 class="upload-header">Device Info</h3>
     <input name="parser[file_upload]" type="file">

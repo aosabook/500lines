@@ -1,7 +1,28 @@
-<td><%= analyzer.user.gender %></td>
-<td><%= analyzer.device.method %></td>
-<td><%= analyzer.parser.format %></td>
-<td><%= analyzer.device.trial %></td>
-<td><%= analyzer.device.steps %></td>
-<td><%= analyzer.steps %></td>
-<td><%= analyzer.steps - analyzer.device.steps %></td>
+<table class="summary">
+  <th>User</th>
+  <th>Method</th>
+  <th>Format</th>
+  <th>Trial</th>
+  <th>Actual</th>
+  <th>Calculated</th>
+  <th>Delta</th>
+  <th></th>
+  <% trials.each do |trial| %>
+    <tr>
+      <td><%= trial.analyzer.user.gender %></td>
+      <td><%= trial.analyzer.device.method %></td>
+      <td><%= trial.analyzer.parser.format %></td>
+      <td><%= trial.analyzer.device.trial %></td>
+      <td><%= trial.analyzer.device.steps %></td>
+      <td><%= trial.analyzer.steps %></td>
+      <td><%= trial.analyzer.steps - trial.analyzer.device.steps %></td>
+      <% if detail_hidden %>
+        <td><a href=<%= "trial/" + trial.file_name %>>Detail</a></td>
+      <% else %>
+        <td><%= ViewHelper.format_distance(trial.analyzer.distance) %></td>
+        <td><%= ViewHelper.format_time(trial.analyzer.time) %></td>
+      <% end %>
+    </tr>
+  <% end %>
+</table>
+
