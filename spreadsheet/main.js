@@ -1,6 +1,11 @@
 'use strict'
 window.Spreadsheet = ($scope)=>{
-  [ $scope.Cols, $scope.Rows ] = [ 'ABCDEFG', '123456789' ]
+  function* range(cur, end) { while (cur <= end) {
+    yield cur;
+    cur = (isNaN(cur) ? String.fromCodePoint(cur.codePointAt()+1) : cur+1)
+  } }
+  $scope.Cols = [for (col of range('A', 'H')) col]
+  $scope.Rows = [for (row of range(1, 20)) row]
   $scope.sheet = angular.fromJson( localStorage.getItem( 'sheet' ) )
               || { A1: 1874, B1: '✕', C1: 2046, D1: '⇒', E1: '=A1*C1' }
   $scope.errs = {}, $scope.vals = {}
