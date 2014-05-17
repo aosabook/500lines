@@ -1,6 +1,8 @@
 OBJECTS = dist/worker.js dist/main.js
 
-run :: dist
+all :: dist run
+
+run ::
 	@node extra/static-here.js
 
 dist :: $(OBJECTS)
