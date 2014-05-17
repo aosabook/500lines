@@ -627,7 +627,7 @@ class Trial
   end
 
   # -- Class Methods --------------------------------------------------------
-  
+
   def self.create(input_data, user_params, device_params)
     trial = self.new(nil, input_data, user_params, device_params)
     cp(input_data, trial.file_name)
@@ -688,7 +688,41 @@ private
 end
 ~~~~~~~
 
-Since we're dealing with storage and retrieval of data here, our Trial class has more class level methods than our previous classes. This is best seen when we can observe how our Trial class is used. 
+Since we're dealing with storage and retrieval of data here, our Trial class has more class level methods than our previous classes. This is best explained when we can observe how our Trial class is used. 
+
+When using the browser upload field, the browser creates a tempfile for the uploaded file, that our app has access to. To create a Trial, the create method is used, passing in the location of a tempfile, as well as user and device input parameters as arrays. 
+
+~~~~~~~
+> Trial.create('test/data/trial-1.txt', ['female', '168', '71'], ['100', '10', '1','run'])
+cp test/data/trial-1.txt public/uploads/female-168.0-71.0_100-10-1-run-c.txt
+=> #<Trial:0x007fa25b8be8b8>
+~~~~~~~
+
+The create method calls the constructor, passing in nil for the file_name, and the tempfile and user and device parameters. The constructor then creates and sets Parser, User, and Device objects, and generates a filename. Finally, the create method copies the tempfile to the filesystem, using the file_name from the Trial object, and saves it to 'public/uploads/'. The Trial object is returned. 
+
+Now the we have our trial saved to the file system, we need a way to retireve it. We do that with the find class method. 
+
+~~~~~~~
+> trial = Trial.find('public/uploads/female-168.0-70.0_100-100-1-walk-c.txt')
+=> #<Trial:0x007fa25b8dec80>
+~~~~~~~
+
+Like the create method, find calls into the constructor, but passes only the file_name. All the constructor does at that point is set the file_name instance method on the instance of Trial. 
+
+We can now ask for the parser, user, device, or analyzer objects directly from our trial instance. Notice that all of these variables are lazy loaded, to prevent creation and parsing until needed. The user and device instance methods parse the file_name to retirve the necessary parameters to create the objects, and the parser method reads the data from the file itself. 
+
+The all class method simply grabs all of the files in our public/upoads folder, and creates trial objects, returning an array of all trials. 
+
+~~~~~~~
+> Trial.all
+=> [#<Trial:0x007f8a8a03b2b0>, #<Trial:0x007f8a8a03b288>, #<Trial:0x007f8a8a03b238>, #<Trial:0x007f8a8a03b210>, #<Trial:0x007f8a8a03b148>]
+~~~~~~~
+
+Our Trial object has the ability to store and retireve data from and for the user, and can create and return all of the other objects to our program. Let's move on to the web application side of our program to see how Trial will be helpful.
+
+### Things to note
+* As our application grows, we'll likely want to use a database rather than saving everything to the filesystem. When the time comes for that, all we have to do it change the Trial class. This makes our refactoring simple. 
+* In the future, we can also start saving User and Device objects to the database as well. The create, find, and all methods in Trial will then be relevant to User and Device as well. That means we'd likely refactor those out into their own class to deal with just the data storage and retrieval, and each of our User, Device, and Trial classes will inherit from that class. We might eventually add helper query methods to that class, and continue building it up from there. 
 
 ### 2. Building a web application
 
@@ -704,6 +738,10 @@ gem 'thin'
 ~~~~~~~
 
 Once we run bundle install, we'll have Sinatra, as well as the Thin web server.
+
+We'll need a controller for our web app. Let's call is pedometer.rb.
+
+
 
 
 
