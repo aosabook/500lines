@@ -18,7 +18,7 @@ clean ::
 
 dist/% :: %
 	traceur --validate --experimental --out tmp --script $<
-	cat lib/traceur-runtime.js tmp/$< > $@
+	echo "// Generated File - Do Not Edit" | cat - lib/traceur-runtime.js tmp/$< > $@
 	@rm -rf tmp
 
 .PHONY: run dist test clean wc

@@ -1,3 +1,4 @@
+// Generated File - Do Not Edit
 (function(global) {
   'use strict';
   if (global.$traceurRuntime) {
