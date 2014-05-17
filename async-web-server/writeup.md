@@ -134,7 +134,7 @@ So making a closing-handler involves making a `lambda`, which is just what you c
 
 	(defun arguments (args body)
 	  (loop with res = body
-	     for arg in (args-by-type-priority args)
+	     for arg in args
 	     do (match arg
 		  ((guard arg-sym (symbolp arg-sym))
 		   (setf res `(let ((,arg-sym ,(arg-exp arg-sym)))
@@ -226,25 +226,7 @@ The appropriate `arguments` call would then just check for the *presence* of a `
 	HOUSE> 
 
 
-You should be able to map the result onto the expression with minimal effort at this point, but the specifics of how it converts a particular type might be eluding you if you haven't read ahead, or read the code yet. So lets dive into that before we move back to the other handler type. Four expressions matter here: `args-by-type-priority`, `arg-exp`, `type-expression` and `lookup-assertion`. Once you understand those, there will be no magic left. Easy first.
-
-[[Note to editor: I'm thinking the type priority system can be pulled out for the purposes of this writeup. It confuses things slightly, doesn't have a tangible connection to the discussion, and needs extra exposition that we can afford to cut. Thoughts?]]
-
-`args-by-type-priority` takes the arguments and makes sure they happen in a particular order. The reason for this is a particular use case that doesn't get used in this example, but it did happen in the initial application I wrote `house` for. Specifically, there were situations where certain parameters depended on other parameters. For instance, there was a handler that moved a piece on a particular game board. It took as parameters a `game` and a `piece`, and because of their back-end representation, a `piece` needed to be looked up in a particular `game`. Which is to say, you'd have to look up the `game` first, make sure it exists, then look up a `piece` in that `game`. Which means, trivially, you'd have to look up the `game` first.
-
-What `args-by-type-priority` needs to do is give us back the argument list ordered by priority. All of the default types, and all untyped args have a priority of `0`, so in the case we're looking at, their order doesn't matter, which means that this
-
-	(defun args-by-type-priority (args &optional (priority-table *http-type-priority*))
-	  (let ((cpy (copy-list args)))
-	    (sort cpy #'<= 
-		  :key (lambda (arg)
-			 (if (listp arg)
-			     (gethash (second arg) priority-table)
-			     0)))))
-
-is effectively a giant no-op. The only good part about it is that it happens at compile time, so our resulting server *doesn't* need to do this for every request, merely for every handler definition.
-
-[[This is the end of the `args-by-type-priority` section that could be cut. There's also a few minor notes in an upcoming section about define-http-type]]
+You should be able to map the result onto the expression with minimal effort at this point, but the specifics of how it converts a particular type might be eluding you if you haven't read ahead, or read the code yet. So lets dive into that before we move back to the other handler type. Three expressions matter here: `arg-exp`, `type-expression` and `lookup-assertion`. Once you understand those, there will be no magic left. Easy first.
 
 `arg-exp` takes an argument symbol and returns that `aif` expression [[Note to editor: Should I elaborate on `aif`? It's a fairly well known Common Lisp construct, but might be unclear to non-Lispers]] we use to check for the presence of a parameter. Just the symbol, not the restrictions.
 
@@ -304,11 +286,9 @@ So an `:integer` is a thing that we're going to get out of a raw `parameter` by 
 
 Now, you might have noticed that I'm using the expression `define-http-type` up there, and you might have come to the conclusion that this isn't a primitive.
 
-	(defmacro define-http-type ((type &key (priority 0)) &key type-expression lookup-assertion)
-	  (assert (numberp priority) nil "`priority` should be a number. The highest will be converted first")
+	(defmacro define-http-type ((type) &key type-expression lookup-assertion)
 	  (with-gensyms (tp)
 	    `(let ((,tp ,type))
-	       (setf (gethash ,tp *http-type-priority*) ,priority)
 	       ,@(when type-expression
 		       `((defmethod type-expression (parameter (type (eql ,tp)) &optional restrictions)
 			   (declare (ignorable restrictions))
@@ -318,10 +298,9 @@ Now, you might have noticed that I'm using the expression `define-http-type` up 
 			   (declare (ignorable restrictions))
 			   ,lookup-assertion))))))
 
-and you're right. Incidentally, this is one fugly looking macro, even by my standards, primarily because it aims to have readable output. Which means getting rid of potential `NIL`s by expanding them away using `,@` where possible. Incidentally, this macro *is* one of the exported symbols for `house`; the point is that a `house` user could define their own to simplify parsing more than `:string`, `:integer`, `:keyword`, `:json`, `:list-of-keyword` and `:list-of-integer`. The idea being that if the above `:integer` type converter didn't exist, you could easily define it yourself by specifying a `:type-expression` a `:lookup-assertion`, and optionally a `priority`. All the macro does is expand into the appropriate `type-expression` and `lookup-assertion` method definitions for the type you're looking to define and add its priority to the priority table. You could, in fact, do all of this manually if you liked, but that would mean directly interacting with the method definitions, including specifying their arguments explicitly. Adding this extra level of indirection lets me potentially change the representation away from its current form without forcing any users of it to re-write their specifications. Lets take a look at the expansion of that integer definition, just to drive the point home.
+and you're right. Incidentally, this is one fugly looking macro, even by my standards, primarily because it aims to have readable output. Which means getting rid of potential `NIL`s by expanding them away using `,@` where possible. Incidentally, this macro *is* one of the exported symbols for `house`; the point is that a `house` user could define their own to simplify parsing more than `:string`, `:integer`, `:keyword`, `:json`, `:list-of-keyword` and `:list-of-integer`. The idea being that if the above `:integer` type converter didn't exist, you could easily define it yourself by specifying a `:type-expression` and `:lookup-assertion`. All the macro does is expand into the appropriate `type-expression` and `lookup-assertion` method definitions for the type you're looking to define. You could, in fact, do this manually if you liked, but that would mean directly interacting with the method definitions, including specifying their arguments explicitly. Adding this extra level of indirection lets me potentially change the representation away from its current form without forcing any users of it to re-write their specifications. This isn't an academic distinction either; I've changed the implementation three times in fairly radical ways over the course of the project and had to make very few edits to applications that depend on `:house` as a direct result of that indirection layer. Lets take a look at the expansion of that integer definition, just to drive the point home.
 
 	(LET ((#:TP1175 :INTEGER))
-	  (SETF (GETHASH #:TP1175 *HTTP-TYPE-PRIORITY*) 0)
 	  (DEFMETHOD TYPE-EXPRESSION
 	             (PARAMETER (TYPE (EQL :INTEGER)) &OPTIONAL RESTRICTIONS)
 	    (DECLARE (IGNORABLE RESTRICTIONS))

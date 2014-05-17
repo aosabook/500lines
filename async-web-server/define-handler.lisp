@@ -12,8 +12,7 @@
 (defmethod type-assertion (parameter type) nil)
 
 ;;;;; Definition macro
-(defmacro define-http-type ((type &key (priority 0)) &key type-expression type-assertion)
-  (assert (numberp priority) nil "`priority` should be a number. The highest will be converted first")
+(defmacro define-http-type ((type) &key type-expression type-assertion)
   (with-gensyms (tp)
     `(let ((,tp ,type))
        ,@(when type-expression
