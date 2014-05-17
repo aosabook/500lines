@@ -11,7 +11,6 @@ class Trial
   attr_reader :file_name, :parser, :user, :device, :analyzer
   attr_reader :user_params, :device_params
 
-  # TODO: Set user, device, parser, analyzer here? 
   def initialize(file_name = nil, input_data = nil, user_params = nil, device_params = nil)
     if file_name
       @file_name = file_name
@@ -28,8 +27,7 @@ class Trial
         "#{device.trial.to_s.gsub(/\s+/, '')}-" + 
         "#{device.method}-#{parser.format[0]}.txt"
     else 
-      # TODO: Blow up and test
-      raise 'TODO: Blow up and tesr'
+      raise 'File name or input data must be passed in.'
     end
   end
 
@@ -50,14 +48,25 @@ class Trial
     trial
   end
 
-  # -- Instance Methods -----------------------------------------------------
+  # TODO: Make sure to explain this part
+  def self.find_matching_filtered_data(trial)
+    files = Dir.glob(File.join('public/uploads', "*"))
+    files.delete(trial.file_name)
 
-  def data
-    @data ||= File.read(file_name)
+    match = files.select { |f| trial.file_name == f.gsub('-s.', '-c.') }.first
+    match ||= files.select { |f| trial.file_name == f.gsub('-c.', '-s.') }.first
+
+    match_filtered_data = if match
+      parser = Parser.new(File.read(match))
+      parser.filtered_data
+    end
+    match_filtered_data
   end
 
+  # -- Instance Methods -----------------------------------------------------
+
   def parser
-    @parser ||= Parser.new(data)
+    @parser ||= Parser.new(File.read(file_name))
   end
 
   def user

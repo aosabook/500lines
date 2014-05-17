@@ -3,6 +3,12 @@ require_relative '../../models/trial'
 
 class TrialTest < Test::Unit::TestCase
 
+  def test_new_no_params
+    assert_raise_with_message(RuntimeError, 'File name or input data must be passed in.') do
+      Trial.new
+    end
+  end
+
   def test_all
     trials = Trial.all
     assert (trials.count > 0)
@@ -45,6 +51,19 @@ class TrialTest < Test::Unit::TestCase
     assert_equal 'run', trial.device.method
     
     assert_equal 9, trial.analyzer.steps
+  end
+
+  def test_find_matching_filtered_data
+    trial = Trial.find('public/uploads/female-168.0-70.0_100-100-2-walk-c.txt')
+    matching_trial = Trial.find('public/uploads/female-168.0-70.0_100-100-2-walk-s.txt')
+    assert_equal matching_trial.parser.filtered_data, Trial.find_matching_filtered_data(trial)
+
+    trial = Trial.find('public/uploads/female-168.0-70.0_100-100-2-walk-s.txt')
+    matching_trial = Trial.find('public/uploads/female-168.0-70.0_100-100-2-walk-c.txt')
+    assert_equal matching_trial.parser.filtered_data, Trial.find_matching_filtered_data(trial)
+
+    trial = Trial.find('test/data/female-167-70_100-10-1-bagwalk-g.txt')
+    assert_nil Trial.find_matching_filtered_data(trial)
   end
 
 end

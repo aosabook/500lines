@@ -19,8 +19,7 @@ end
 
 get '/trial/*' do
   @trial = Trial.find(params[:splat].first)
-
-  set_match_filtered_data
+  @match_filtered_data = Trial.find_matching_filtered_data(@trial)
   
   erb :trial
 end
@@ -34,29 +33,10 @@ post '/create' do
       params[:user].values,
       params[:device].values
     )
-
-    set_match_filtered_data
+    @match_filtered_data = Trial.find_matching_filtered_data(@trial)
 
     erb :trial
   rescue Exception => e
     redirect '/trials?error=creation'
-  end
-end
-
-# # TODO: MOVE THIS TO TRIAL
-# # - Can you add a comment here to explain what's going on? We spent a few minutes looking at it and couldn't figure it out.
-def set_match_filtered_data
-  files = Dir.glob(File.join('public/uploads', "*"))
-  files.delete(@trial.file_name)
-
-  match = if @trial.parser.is_data_combined?
-    files.select { |f| @trial.file_name == f.gsub('-s.', '-c.') }.first
-  else
-    files.select { |f| @trial.file_name == f.gsub('-c.', '-s.') }.first
-  end
-
-  @match_filtered_data = if match
-    parser = Parser.new(File.read(match))
-    parser.filtered_data
   end
 end
