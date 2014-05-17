@@ -11,8 +11,8 @@ get '/trials' do
   erb :trials
 end
 
-get '/trial/*' do
-  @trial = Trial.find(params[:splat].first)
+get '/trial/*' do |file_name|
+  @trial = Trial.find(file_name)
   @match_filtered_data = Trial.find_matching_filtered_data(@trial)
   
   erb :trial

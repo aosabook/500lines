@@ -1,6 +1,7 @@
 <link href="/styles.css" rel="stylesheet" type="text/css" />
-<div class="error"><%= @error %></div>
+
 <html>
+  <div class="error"><%= @error %></div>
   <%= erb :summary, locals: { trials: @trials, detail_hidden: true } %>
   <form method="post" action="/create" enctype="multipart/form-data">
     <h3 class="upload-header">Device Info</h3>
