@@ -720,6 +720,8 @@ The all class method simply grabs all of the files in our public/upoads folder, 
 
 Our Trial object has the ability to store and retireve data from and for the user, and can create and return all of the other objects to our program. Let's move on to the web application side of our program to see how Trial will be helpful.
 
+TODO: Explain match_filtered_data if we're keeping it. 
+
 ### Things to note
 * As our application grows, we'll likely want to use a database rather than saving everything to the filesystem. When the time comes for that, all we have to do it change the Trial class. This makes our refactoring simple. 
 * In the future, we can also start saving User and Device objects to the database as well. The create, find, and all methods in Trial will then be relevant to User and Device as well. That means we'd likely refactor those out into their own class to deal with just the data storage and retrieval, and each of our User, Device, and Trial classes will inherit from that class. We might eventually add helper query methods to that class, and continue building it up from there. 
@@ -747,17 +749,14 @@ Dir['./models/*', './helpers/*'].each {|file| require_relative file }
 include FileUtils::Verbose
 
 get '/trials' do
+  @trials = Trial.all
   @error = "A #{params[:error]} error has occurred." if params[:error]
-
-  @trials = Trial.all.map do |trial|
-    { file_name: trial.file_name, analyzer: trial.analyzer }
-  end
 
   erb :trials
 end
 
-get '/trial/*' do
-  @trial = Trial.find(params[:splat].first)
+get '/trial/*' do |file_name|
+  @trial = Trial.find(file_name)
   @match_filtered_data = Trial.find_matching_filtered_data(@trial)
   
   erb :trial
@@ -787,12 +786,13 @@ Let's look at each of our routes individually.
 
 The get '/trials' route sets @trials through Trial.all, and @error is set if an :error key is present in the params hash. The trials view is then rendered. Let's take a look at the view, below. 
 
-trial.erb
+trials.erb
 
 ~~~~~~~
 <link href="/styles.css" rel="stylesheet" type="text/css" />
-<div class="error"><%= @error %></div>
+
 <html>
+  <div class="error"><%= @error %></div>
   <%= erb :summary, locals: { trials: @trials, detail_hidden: true } %>
   <form method="post" action="/create" enctype="multipart/form-data">
     <h3 class="upload-header">Device Info</h3>
@@ -818,6 +818,53 @@ trial.erb
     <div class="controls"><input type="submit" value="submit"></div>
   </form>
 </html>
+~~~~~~~
+
+The trials view first pulls in a stylesheet, styles.css. The stylesheet, below, uses basic css for some minimal styling of our views. It's included in both the trials view, and the trial view which we'll see in the next route.
+
+~~~~~~~
+table.summary {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  width: 50%;
+  display: inline;
+  margin: 0% 10%;
+}
+
+tr, th {
+  text-align: left;
+  font-size: 14px;
+  height: 30px;
+}
+
+td { border-top: solid 1px rgb(221, 221, 221); }
+
+form {
+  display: inline-table;
+  width: 20%;
+}
+
+h3.upload-header {
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+input { width: 200px; }
+
+a.nav { 
+  float: right;
+  margin: 20px 150px 0 0;
+}
+
+.error { 
+  text-align: center;
+  color: red;
+}
+
+.graph {
+  min-width: 310px;
+  height: 400px;
+  margin: 0 auto;
+}
 ~~~~~~~
 
 The trials view also renders summary.erb. We'll discuss why it's rendered as a separate view with the next route. 
@@ -856,10 +903,68 @@ The trials view render an error if one exists, renders summary.erb with all tria
 
 ### get '/trial/*'
 
-The get '/trial/*' route is called with a file path: http://localhost:4567/trial/public/uploads/female-168.0-70.0_100-100-1-walk-c.txt. 
+The get '/trial/*' route is called with a file path: http://localhost:4567/trial/public/uploads/female-168.0-70.0_100-100-1-walk-c.txt. It sets @trial through Trial.find, passing in the file_name from the url, as well as @match_filtered_data through Trial.match_filtered_data. It then loads up the trial.erb view. 
 
+~~~~~~~
+<script src="/jquery.min.js"></script>
+<script src="/highcharts.js"></script>
+<link href="/styles.css" rel="stylesheet" type="text/css" />
 
+<html>
+    <a class="nav" href='/trials'>Back to Trials</a>
+    <%= erb :summary, locals: { trials: [@trial], detail_hidden: false } %>
 
+    <div id="container-dot-product"></div>
+    <div id="container-filtered"></div>
 
+    <% if @match_filtered_data %>
+        <% comparison_title = @trial.analyzer.parser.is_data_combined? ? 'Separated' : 'Combined' %>
+        <div id="container-comparison"></div>
+    <% end %>
+</html>
+
+<script>
+  $(function () {
+        $('#container-dot-product').highcharts({
+            title: { text: 'Dot Product Data' },
+            series: [{
+                name: 'Dot Product Data',
+                data: <%= ViewHelper.limit_1000(@trial.analyzer.parser.dot_product_data) %>
+            }]
+        });
+
+        $('#container-filtered').highcharts({
+            title: { text: 'Filtered Data' },
+            series: [{
+                name: 'Filtered Data',
+                data: <%= ViewHelper.limit_1000(@trial.analyzer.parser.filtered_data) %>
+            }]
+        });
+
+        if ($('#container-comparison').length > 0) {
+            $('#container-comparison').highcharts({
+                title: { text: 'Comparison to ' + '<%= comparison_title %>' },
+                series: [{
+                    name: '<%= @trial.analyzer.parser.format.capitalize %>',
+                    data: <%= ViewHelper.limit_1000(@trial.analyzer.parser.filtered_data) %>
+                }, {
+                    name: '<%= comparison_title %>',
+                    data: <%= ViewHelper.limit_1000(@match_filtered_data) %>
+                }]
+            });
+        }
+    });
+</script>
+~~~~~~~
+
+The trial.erb view has both HTML and JavaScript. As our application grows, we would likely split out all JavaScript into separate files. For simplicity, we've kept it all together. 
+
+We're using a tool called Highcharts to generate all of the charts in our view. Highcharts requires jquery and highcharts JavaScript files. Note that the minified versions are included at the top of the view. 
+
+The HTML portion is simple. We create a link to return to /trials, for ease of navigation purposes. Then, render summary.erb once more. Since both summary tables are quite similar, we've chosen to extract the HTML for the summary table into one view and reuse it from both trials and trial. This ensures that the format of the tables remains consistent, and avoids code duplication. In this case, we pass in false for detail_hidden, since we want to see time and distance data, whereas in the trials view, we wanted those fields replaced with a link to this view. Following the summary table, we create containers for the charts. We have an optional container for the comparison chart, which is rendered only if @match_filtered_data is set. 
+
+The JavaScript portion uses the Highcharts API to create the three charts, passing in data from the @trial variable. 
+
+You might have noticed the use of the ViewHelper in summary.erb. The ViewHelper is used again in our JavaScript. Let's take a closer look at it. 
 
 
