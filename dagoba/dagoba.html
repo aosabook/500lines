@@ -2,9 +2,126 @@
 <html>
 <head>
   <title>Dagoba</title>
-  <script type="text/javascript" src="dagoba.js"></script>  
+  <script type="text/javascript" src="dagoba.js"></script> 
+  <style type="text/css">
+    code {
+      display: block;
+      margin-left: 2em;
+    }
+    #tests div {
+      margin: 3px;
+      background-color: honeydew;
+    }
+    #tests div.error {
+      background-color: lavenderblush;
+    }
+    #tests header {
+      margin: 3px;
+      background-color: aliceblue;
+    }
+  </style> 
 </head>
 <body>
-  asdf
+  
+  <div id="tests">
+    
+  </div>
+  
+  
+  <script>
+    // practice makes perfect
+
+    triallist = [
+      { vertices: [ {_id: 1, name: 'foo', type: 'banana'} 
+                  , {_id: 2, name: 'bar', type: 'orange'} 
+                  ]
+      , edges: [ {_in: 1, _out: 2, _label: 'fruitier'} ]
+      , tests: [ { fun: function(G, V, E) { return G.v(1).run() } 
+                 , got: function(G, V, E) { return [ V[1] ] } }
+               , { fun: function(G, V, E) { return G.v(1).out().run() } 
+                 , got: function(G, V, E) { return [ V[2] ] } }
+               , { fun: function(G, V, E) { return G.v(2).in().run() } 
+                 , got: function(G, V, E) { return [ V[1] ] } }
+               ]
+      }
+    ]
+
+    
+    var resultlist = triallist.map(function(trial) {
+      var G = Dagoba.graph()
+      trial.vertices.forEach(G.addVertex.bind(G))
+      trial.edges.forEach(G.addEdge.bind(G))
+      var V = trial.vertices.reduce(function(acc, vertex) {acc[vertex._id] = G.findVertexById(vertex._id); return acc}, {})
+      var E = trial.edges   .reduce(function(acc, edge)   {acc[edge._id]   = G.findEdgeById(edge._id);     return acc}, {})
+      return [trial, trial.tests.map(function(test) {
+        var output, expected
+        if(JSON.stringify(output = test.fun(G, V, E)) == JSON.stringify(expected = test.got(G, V, E)))
+          return [1, test.fun, output]
+          return [0, test.fun, output, expected]
+      })]
+    })
+
+    var testdiv = document.getElementById('tests')
+
+    resultlist.forEach(function(resultbox) {
+      var trial = resultbox[0]
+      var header = document.createElement('header')
+      testdiv.appendChild(header)
+      header.innerHTML = '<p>vertices: <code><pre>' + JSON.stringify(trial.vertices, 0, 2) + '</pre></code></p>'
+                       + '<p>edges: <code><pre>'    + JSON.stringify(trial.edges, 0, 2)    + '</pre></code></p>'
+      
+      resultbox[1].forEach(function(list) {
+        
+        var str  = '<p>test: <code>'     + formatFun(list[1])      + '</code></p>'
+            str += '<p>output: <code>'   + JSON.stringify(list[2]) + '</code></p>'
+        if(!list[0])
+            str += '<p>expected: <code>' + JSON.stringify(list[3]) + '</code></p>'
+
+        var div = document.createElement('div')
+        if(!list[0]) div.classList.add('error')
+        testdiv.appendChild(div).innerHTML = str
+      })
+    })
+
+
+    function formatFun(fun) {
+      return fun.toString().slice(28, -2)
+    }
+
+
+
+    // for fancy setups:
+    // setup: function() {
+    //          var g = Dagoba.graph()
+    //          g.addVertex({_id: 1, name: 'foo', type: 'banana'})
+    //          return g
+    //        }
+
+
+
+
+    // var g = Dagoba.graph()
+    // 
+    // g.addVertex({_id: 1, name: 'foo', type: 'banana'})
+    // g.addVertex({_id: 2, name: 'bar', type: 'orange'})
+    // g.addEdge({_in: 1, _out: 2, _label: 'fruitier'})
+    // 
+    // q = g.v(1).out().run()
+    // 
+    // if(q.result.length != 2 || q.result[0]._id != 1)
+    //   console.log('fail', q)
+    // 
+    // 
+    // g.addVertices([ {_id:1, name:"Fred"}, {_id:2, name:"Bob"}, {_id:3, name:"Tom"}, {_id:4, name:"Dick"}, {_id:5, name:"Harry"} ])
+    // g.addEdges([ {_inV: 1, _outV: 2, _label: "father"}, {_inV: 2, _outV: 3, _label: "father"}, {_inV: 2, _outV: 4, _label: "father"}, {_inV: 2, _outV: 5, _label: "father"} ])
+
+    // g.v(1).out().out('father').name    // TODO: check proxies for this -- can we use them? otherwise...
+    // g.v(1).out().out('father').attr('name')
+    // g.v(1).out().out('father').attr('name').paths()
+    // 
+    
+  </script>
+  
+  
 </body>
 </html>
