@@ -12,12 +12,13 @@ Dagoba.make_fun = function(name) {
 
 Dagoba.query = function(graph) { 
   var query = Object.create(Dagoba.Query) 
-  query.queue = []
+  query.queue = []                  // an array of 
   query.graph = graph
   query.result = null
-  query.pointer = 0
-  query.history = [] // array of arrays, mapping queue position to state stack
-  query.gremlins = [] // gremlins are really just path lists
+//  query.pointer = 0
+//  query.history = []              // array of arrays, mapping queue position to state stack
+  query.gremlins = []               // gremlins are really just path lists
+  query.state = []                  // array of state for each step
   return query
 }
 
@@ -45,10 +46,14 @@ Dagoba.Query.run = function() {
   this.gremlins = foo.gremlins // ugh this is unnecessary 
   this.history[this.pointer] = foo.history[this.pointer] // kinda this too (but kinda not)
   
+  // process the queue
   
+  
+  // cultivate results
   this.result = this.gremlins.filter(function(gremlin) {return gremlin.state == 'alive'})
                              .map(function(gremlin)    {return gremlin.path[gremlin.path.length-1]})
-  return this
+
+  return this.result
 }
 
 Dagoba.Query.name = function() {
@@ -58,14 +63,24 @@ Dagoba.Query.name = function() {
   // return this.result.map(function(vertex) {return vertex.name})  // THINK: maybe this instead
 }
 
-var methods = ['out', 'outV', 'outE', 'in', 'inV', 'inE', 'both', 'bothV', 'bothE', 'filter', 'foo']
+var methods = ['out', 'outV', 'outE', 'in', 'inV', 'inE', 'both', 'bothV', 'bothE', 'filter']
 methods.forEach(function(name) {Dagoba.Query[name] = Dagoba.make_fun(name)})
 
+Dagoba.make_gremlin = function(vertex, state) {
+  return {vertex: vertex, state: state}
+}
+
 Dagoba.Funs = {
-  vertex: function(graph, gremlins, history, args) {
-    return { gremlins: [{ state: 'alive', path: [graph.findVertexById(args[0])] }], history: ['done'] } }
+  vertex: function(graph, args, gremlin, state) {
+    if(state.status == 'done') return false
+    var vertex  = graph.findVertexById(args[0])
+    var gremlin = Dagoba.make_gremlin(vertex)
+    return {stay: [], go: [gremlin], state: {status: 'done'}}
+    // return thread(args[0], graph.findVertexById, Dagoba.make_gremlin, ...)
+    // return { gremlins: [{ state: 'alive', path: [graph.findVertexById(args[0])] }], history: ['done'] } 
+  },
   
-  out: function(graph, gremlins, history, args) {
+  out: function(graph, args, gremlin, state) {
     // oh geez the gremlins need to know where they are
     // so it's not just a path it's a pointer as well 
     // and the last step in the path points to the current graph step thing
@@ -75,10 +90,12 @@ Dagoba.Funs = {
     // so can they do it themselves
     // and we'll interleave their histories?
     
-    gremlins.
+    // gremlins.
     return { gremlins: [{}], history: [] }
   }
 }
+
+
 
 
 Dagoba.Graph = {}
@@ -90,7 +107,7 @@ Dagoba.Graph.v = function(v_id) {
 
 Dagoba.graph = function() { 
   var graph = Object.create( Dagoba.Graph ) 
-  graph.vertices = []
+  graph.vertices = [] // can't stick these on the prototype or they'll be shared
   graph.edges = []
   return graph
 }
@@ -101,6 +118,10 @@ Dagoba.Graph.addVertex = function(vertex) {
   this.vertices.push(vertex)
 }
 
+Dagoba.Graph.addVertices = function(vertices) {
+  vertices.forEach(this.addVertex.bind(this))
+}
+
 Dagoba.Graph.addEdge = function(edge) {
   if(!edge._label) return false
   if(!this.findVertexById(edge._in)) return false
@@ -108,8 +129,16 @@ Dagoba.Graph.addEdge = function(edge) {
   this.edges.push(edge)
 }
 
-Dagoba.Graph.findVertexById = function(vertexId) {
-  return this.vertices.first(function(vertex) {return vertex._id == vertexId})
+Dagoba.Graph.addEdges = function(edges) {
+  edges.forEach(this.addEdge.bind(this))
+}
+
+Dagoba.Graph.findVertexById = function(vertex_id) {
+  return this.vertices.first(function(vertex) {return vertex._id == vertex_id})
+}
+
+Dagoba.Graph.findEdgeById = function(edge_id) {
+  return this.edges.first(function(edge) {return edge._id == edge_id})
 }
 
 Array.prototype.first = function(fun) {
@@ -118,22 +147,3 @@ Array.prototype.first = function(fun) {
       return this[i]
 }
 
-// practice makes perfect
-
-var g = Dagoba.graph()
-
-g.addVertex({_id: 1, name: 'foo', type: 'banana'})
-g.addVertex({_id: 2, name: 'bar', type: 'orange'})
-g.addEdge({_in: 1, _out: 2, _label: 'fruitier'})
-
-q = g.v(1).out().run()
-console.log(q, q.result)
-
-
-// g.addNodes([ {_id:1, name:"Fred"}, {_id:2, name:"Bob"}, {_id:3, name:"Tom"}, {_id:4, name:"Dick"}, {_id:5, name:"Harry"} ])
-// g.addEdges([ {_inV: 1, _outV: 2, _label: "father"}, {_inV: 2, _outV: 3, _label: "father"}, {_inV: 2, _outV: 4, _label: "father"}, {_inV: 2, _outV: 5, _label: "father"} ])
-// 
-// g.v(1).out().out('father').name    // TODO: check proxies for this -- can we use them? otherwise...
-// g.v(1).out().out('father').attr('name')
-// g.v(1).out().out('father').attr('name').paths()
-// 
