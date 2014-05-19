@@ -6,7 +6,7 @@ from numpy import matrix
 from math import pow
 import math
 import random
-import os.path
+import os
 import json
 
 """
