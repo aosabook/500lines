@@ -70,7 +70,7 @@ class OCRNeuralNetwork:
             y2 = self.sigmoid(y2)
 
             # Step 3: Back propagation
-            actual_vals = [0] * 10
+            actual_vals = [0] * 10 # actual_vals is a python list for easy initialization and is later turned into an np matrix (2 lines down).
             actual_vals[data['label']] = 1
             output_errors = np.mat(actual_vals).T - np.mat(y2)
             hiddenErrors = np.multiply(np.dot(np.mat(self.theta2).T, output_errors), self.sigmoid_prime(sum1))
