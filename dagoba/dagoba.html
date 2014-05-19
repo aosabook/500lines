@@ -31,19 +31,115 @@
   <script>
     // practice makes perfect
 
-    triallist = [
-      { vertices: [ {_id: 1, name: 'foo', type: 'banana'} 
+    triallist =
+    [ { vertices: [ {_id: 1, name: 'foo', type: 'banana'} 
                   , {_id: 2, name: 'bar', type: 'orange'} 
                   ]
-      , edges: [ {_in: 1, _out: 2, _label: 'fruitier'} ]
+      , edges: [ { _out: 1, _in: 2, _label: 'fruitier'} ]
       , tests: [ { fun: function(G, V, E) { return G.v(1).run() } 
                  , got: function(G, V, E) { return [ V[1] ] } }
                , { fun: function(G, V, E) { return G.v(1).out().run() } 
                  , got: function(G, V, E) { return [ V[2] ] } }
                , { fun: function(G, V, E) { return G.v(2).in().run() } 
                  , got: function(G, V, E) { return [ V[1] ] } }
+               , { fun: function(G, V, E) { return G.v(2).out().run() } 
+                 , got: function(G, V, E) { return [ ] } }
                ]
       }
+      
+    , { vertices: [ {_id:1, name:"Fred"}
+                  , {_id:2, name:"Bob"}
+                  , {_id:3, name:"Tom"}
+                  , {_id:4, name:"Dick"}
+                  , {_id:5, name:"Harry"} 
+                  , {_id:6, name:"Lucy"} 
+                  ]
+      , edges: [ { _out: 1, _in: 2, _label: "son"}
+               , { _out: 2, _in: 3, _label: "son"}
+               , { _out: 2, _in: 4, _label: "son"}
+               , { _out: 2, _in: 5, _label: "son"} 
+               , { _out: 2, _in: 6, _label: "daughter"} 
+               , { _out: 3, _in: 4, _label: "brother"} 
+               , { _out: 4, _in: 5, _label: "brother"} 
+               , { _out: 5, _in: 3, _label: "brother"} 
+               , { _out: 3, _in: 5, _label: "brother"} 
+               , { _out: 4, _in: 3, _label: "brother"} 
+               , { _out: 5, _in: 4, _label: "brother"} 
+               , { _out: 3, _in: 6, _label: "sister"} 
+               , { _out: 4, _in: 6, _label: "sister"} 
+               , { _out: 5, _in: 6, _label: "sister"} 
+               , { _out: 6, _in: 3, _label: "brother"} 
+               , { _out: 6, _in: 4, _label: "brother"} 
+               , { _out: 6, _in: 5, _label: "brother"} 
+               ]
+      , tests: [ { fun: function(G, V, E) { return G.v(1).out().out().run()           /* all grandkids */ } 
+                 , got: function(G, V, E) { return [ V[6], V[5], V[4], V[3] ] } }
+
+               , { fun: function(G, V, E) { return G.v(1).out().in().out().run()      /* fred is his son's father */ } 
+                 , got: function(G, V, E) { return [ V[2] ] } }
+
+               , { fun: function(G, V, E) { return G.v(1).out().out('daughter').run() /* granddaughter */ } 
+                 , got: function(G, V, E) { return [ V[6] ] } }
+
+               , { fun: function(G, V, E) { return G.v(3).out('sister').run()         /* who is tom's sister? */ } 
+                 , got: function(G, V, E) { return [ V[6] ] } }
+                 
+               , { fun: function(G, V, E) { return G.v(3).out().in('son').in('son').run() /* who is tom's brother's grandfather? */ } 
+                 , got: function(G, V, E) { return [ V[1] ] } } // THINK: should we auto-unique??
+               ]
+      }
+      
+      
+      
+      // from https://github.com/entrendipity/helios.js/blob/master/tests/test.js
+      
+    , { vertices: [ {"_id":1,"name":"marko","age":29,"_type":"vertex", "dow":["mon", "tue"], "dob":"1984-05-05", "active":true, "salary":"$120,000", "device":{"qty":3,"mobile":{"phone":["iphone", "samsung"], "tablet":["galaxy"]}}}
+                  , {"_id":2,"name":"vadas","age":27,"_type":"vertex", "dow":["mon", "wed", "thu"], "dob":"1986-03-12", "active":false, "salary":"$100,000", "device":{"qty":1,"mobile":{"phone":["iphone"]}}}
+                  , {"_id":3,"name":"lop","lang":"java","_type":"vertex"}
+                  , {"_id":4,"name":"josh","age":32,"_type":"vertex", "dow":["fri"], "dob":"1981-09-01T00:00:00.000Z", "active":true, "salary":"$80,000", "device":{"qty":2,"mobile":{"phone":["iphone"], "tablet":["ipad"]}}}
+                  , {"_id":5,"name":"ripple","lang":"java","_type":"vertex"}
+                  , {"_id":6,"name":"peter","age":35,"_type":"vertex", "dow":["mon","fri"], "dob":"1978-12-13", "active":true, "salary":"$70,000", "device":{"qty":2,"mobile":{"phone":["iphone"], "tablet":["ipad"]}}}
+                  ]
+      , edges: [ {"_id":7 ,"_outV":1,"_inV":2,"weight":0.5,"_type":"edge","_label":"knows"}
+               , {"_id":8 ,"_outV":1,"_inV":4,"weight":1.0,"_type":"edge","_label":"knows"}
+               , {"_id":9 ,"_outV":1,"_inV":3,"weight":0.4,"_type":"edge","_label":"created"}
+               , {"_id":10,"_outV":4,"_inV":5,"weight":1.0,"_type":"edge","_label":"created"}
+               , {"_id":11,"_outV":4,"_inV":3,"weight":0.4,"_type":"edge","_label":"created"}
+               , {"_id":12,"_outV":6,"_inV":3,"weight":0.2,"_type":"edge","_label":"created"}
+               ]
+               
+               // it("should return id 1 & 4", function(){
+               //     var result = g.v(1, 4).emit();
+               //     expect(result.length).to.equal(2);
+               //     expect(result).to.have.deep.property('[0].name', 'marko');
+               //     expect(result).to.have.deep.property('[1].name', 'josh');
+               // });
+               // 
+               // it("should return lang=java", function(){
+               //     var result = g.v({'lang':{$eq:'java'}}).emit();
+               //     expect(result.length).to.equal(2);
+               //     expect(result).to.have.deep.property('[0].name', 'lop');
+               //     expect(result).to.have.deep.property('[1].name', 'ripple');
+               // });
+               // 
+               // it("should return empty Array", function(){
+               //     expect(g.v({'lang':{$eq:'something'}}).emit()).to.have.length(0);
+               // });
+               // 
+      , tests: [ { fun: function(G, V, E) { return G.v(1).run()                       /* vertex one */ } 
+                 , got: function(G, V, E) { return [ V[1] ] } }
+               , { fun: function(G, V, E) { return G.v().run()                        /* all vertices */ }
+                 , got: function(G, V, E) { return [ V[1], V[2], V[3], V[4], V[5], V[6] ] } }
+               // , { fun: function(G, V, E) { return G.v().id().run()                   /* all ids */ } 
+               //   , got: function(G, V, E) { return [ 1,2,3,4,5,6 ] } }
+               // , { fun: function(G, V, E) { return G.v(6).outE().label().run()         /* edge label */ } 
+               //   , got: function(G, V, E) { return [ 'created' ] } }
+               // , { fun: function(G, V, E) { return G.v(3).attr('name').run()          /* vertex label */ } 
+               //   , got: function(G, V, E) { return [ 'lop' ] } }
+
+               ]
+      }
+      
     ]
 
     

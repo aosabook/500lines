@@ -17,7 +17,7 @@ Dagoba.query = function(graph) {
   query.result = null
 //  query.pointer = 0
 //  query.history = []              // array of arrays, mapping queue position to state stack
-  query.gremlins = []               // gremlins are really just path lists
+  query.gremlins = []               // array of gremlins for each step
   query.state = []                  // array of state for each step
   return query
 }
@@ -35,23 +35,65 @@ Dagoba.Query.run = function() {
   // - all gremlins are dead (good or bad)
   // - 'done' instead of 'no further results' [are these equivalent? can you get 'done' w/o being done? like g.out.take(10).out.take(5) ?]
   
-  if(!this.queue.length) {
+  //  var item = this.queue[this.pointer]
+  //  var history = this.history[this.pointer] || []
+  // var foo = Dagoba.Funs[item[0]](this.graph, this.gremlins, history, item.slice(1))
+  // this.gremlins = foo.gremlins // ugh this is unnecessary 
+  // this.history[this.pointer] = foo.history[this.pointer] // kinda this too (but kinda not)
+  
+  var graph = this.graph
+  var state = this.state
+  var queue = this.queue
+  var gremlins = this.gremlins
+  
+  if(!queue.length) {
     this.result = []
     return this }
   
-  // bootstrap
-  var item = this.queue[this.pointer]
-  var history = this.history[this.pointer] || []
-  var foo = Dagoba.Funs[item[0]](this.graph, this.gremlins, history, item.slice(1))
-  this.gremlins = foo.gremlins // ugh this is unnecessary 
-  this.history[this.pointer] = foo.history[this.pointer] // kinda this too (but kinda not)
+  function gremlin_boxer(step_index) { return function(gremlin) { return [step_index, gremlin] } }
+  
+  function stepper(step_index, gremlin) {
+    var step = queue[step_index]
+    if(!Dagoba.Funs[step[0]]) return Dagoba.onError('Unrecognized function call: ' + step[0]) || {}
+    return Dagoba.Funs[step[0]](graph, step.slice(1) || {}, gremlin || {}, state[step_index] || {})
+  }
+  
+  function eat_result(step_index, result) {
+    state[step_index] = result.state
+    eat_gremlins(step_index, result)
+  }
+  
+  function eat_gremlins(step_index, result) {
+    gremlins = gremlins.concat((result.stay || []).map(gremlin_boxer(step_index))   || [])
+                       .concat((result.go   || []).map(gremlin_boxer(step_index+1)) || [])
+  }
+  
+  
+  // add final queue item
+  this.add(['collector'])         // the collector just takes gremlins out of circulation
+  
+  // bootstrap the first step
+  // var step  = this.queue[0]
+  // var args  = step.slice(1)
+  // var state = this.state[0]
+  // var gremlin = {}
+  // var first = Dagoba.Funs[step[0]](graph, args, gremlin, state)
+  // eat_gremlins(0, first)
+  
+  eat_gremlins(0, stepper(0, {}))
   
   // process the queue
-  
+  while(gremlins.length) {
+    var gremlinbox = gremlins.pop()
+    var result = stepper(gremlinbox[0], gremlinbox[1])
+    eat_result(gremlinbox[0], result)
+  }
   
   // cultivate results
-  this.result = this.gremlins.filter(function(gremlin) {return gremlin.state == 'alive'})
-                             .map(function(gremlin)    {return gremlin.path[gremlin.path.length-1]})
+  // this.result = this.gremlins.filter(function(gremlin) {return gremlin.state == 'alive'})
+  //                            .map(function(gremlin)    {return gremlin.path[gremlin.path.length-1]})
+  var collection = this.state[this.state.length - 1] || []
+  this.result = collection.map(function(gremlin) {return gremlin.vertex})
 
   return this.result
 }
@@ -63,7 +105,7 @@ Dagoba.Query.name = function() {
   // return this.result.map(function(vertex) {return vertex.name})  // THINK: maybe this instead
 }
 
-var methods = ['out', 'outV', 'outE', 'in', 'inV', 'inE', 'both', 'bothV', 'bothE', 'filter']
+var methods = ['out', 'in', 'attr', 'outV', 'outE', 'inV', 'inE', 'both', 'bothV', 'bothE', 'filter']
 methods.forEach(function(name) {Dagoba.Query[name] = Dagoba.make_fun(name)})
 
 Dagoba.make_gremlin = function(vertex, state) {
@@ -72,8 +114,8 @@ Dagoba.make_gremlin = function(vertex, state) {
 
 Dagoba.Funs = {
   vertex: function(graph, args, gremlin, state) {
-    if(state.status == 'done') return false
-    var vertex  = graph.findVertexById(args[0])
+    if(state.status == 'done') return false     // TODO: no arg -> all vertices
+    var vertex  = graph.findVertexById(args[0]) // TODO: accept array
     var gremlin = Dagoba.make_gremlin(vertex)
     return {stay: [], go: [gremlin], state: {status: 'done'}}
     // return thread(args[0], graph.findVertexById, Dagoba.make_gremlin, ...)
@@ -81,17 +123,31 @@ Dagoba.Funs = {
   },
   
   out: function(graph, args, gremlin, state) {
-    // oh geez the gremlins need to know where they are
-    // so it's not just a path it's a pointer as well 
-    // and the last step in the path points to the current graph step thing
-    // ok so do we need history too or just gremlins do everything everything?
-    // because we know when they're sleeping 
-    // and we know when they're awake
-    // so can they do it themselves
-    // and we'll interleave their histories?
-    
-    // gremlins.
-    return { gremlins: [{}], history: [] }
+    if(!gremlin.state)
+      gremlin.state = graph.findOutEdges(gremlin.vertex).filter(function(edge) {return args[0] ? edge._label == args[0] : true})
+    if(gremlin.state.length == 0)
+      return {} // original gremlin dies here...
+    var vertex = graph.findVertexById(gremlin.state.pop()._in)
+    var clone = Dagoba.make_gremlin(vertex)
+    return {stay: [gremlin], go: [clone]}
+  },
+  
+  'in': function(graph, args, gremlin, state) {
+    if(!gremlin.state)
+      gremlin.state = graph.findInEdges(gremlin.vertex).filter(function(edge) {return args[0] ? edge._label == args[0] : true})
+    if(gremlin.state.length == 0)
+      return {} // original gremlin dies here...
+    var vertex = graph.findVertexById(gremlin.state.pop()._out)
+    var clone = Dagoba.make_gremlin(vertex)
+    return {stay: [gremlin], go: [clone]}
+  },
+  
+  attr: function(graph, args, gremlin, state) {
+    return graph.findVertexById(gremlin.vertex)[args[0]]
+  },
+  
+  collector: function(graph, args, gremlin, state) {
+    return { state: (state.concat ? state : []).concat(gremlin) }
   }
 }
 
@@ -141,9 +197,23 @@ Dagoba.Graph.findEdgeById = function(edge_id) {
   return this.edges.first(function(edge) {return edge._id == edge_id})
 }
 
+Dagoba.Graph.findOutEdges = function(vertex) {
+  return this.edges.filter(function(edge) {return edge._out == vertex._id})
+}
+
+Dagoba.Graph.findInEdges = function(vertex) {
+  return this.edges.filter(function(edge) {return edge._in == vertex._id})
+}
+
+
+
 Array.prototype.first = function(fun) {
   for (var i = 0, len = this.length; i < len; i++)
     if(fun(this[i]))
       return this[i]
 }
 
+Dagoba.onError = function(msg) {
+  console.log(msg)
+  return false
+}
