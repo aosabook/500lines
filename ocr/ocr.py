@@ -76,10 +76,10 @@ class OCRNeuralNetwork:
             hiddenErrors = np.multiply(np.dot(np.mat(self.theta2).T, output_errors), self.sigmoid_prime(sum1))
 
             # Step 4: Update weights
-            self.theta1 += OCRNeuralNetwork.LEARNING_RATE * np.dot(np.mat(hiddenErrors), np.mat(data['y0']))
-            self.theta2 += OCRNeuralNetwork.LEARNING_RATE * np.dot(np.mat(output_errors), np.mat(y1).T)
-            self.hidden_layer_bias += OCRNeuralNetwork.LEARNING_RATE * output_errors
-            self.input_layer_bias += OCRNeuralNetwork.LEARNING_RATE * hiddenErrors
+            self.theta1 += self.LEARNING_RATE * np.dot(np.mat(hiddenErrors), np.mat(data['y0']))
+            self.theta2 += self.LEARNING_RATE * np.dot(np.mat(output_errors), np.mat(y1).T)
+            self.hidden_layer_bias += self.LEARNING_RATE * output_errors
+            self.input_layer_bias += self.LEARNING_RATE * hiddenErrors
 
     def predict(self, test):
         y1 = np.dot(np.mat(self.theta1), np.mat(test).T)
