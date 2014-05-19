@@ -16,7 +16,7 @@ data_matrix = data_matrix.tolist()
 data_labels = data_labels.tolist()
 
 # If a neural network file does not exist, train it using all 5000 existing data samples.
-# Based on data collected from neuralNetworkDesign.py, 15 is the optimal number
+# Based on data collected from neural_network_design.py, 15 is the optimal number
 # for hidden nodes
 nn = OCRNeuralNetwork(HIDDEN_NODE_COUNT, data_matrix, data_labels, list(range(5000)));
 
