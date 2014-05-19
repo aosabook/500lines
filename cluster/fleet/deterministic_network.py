@@ -7,17 +7,25 @@ import random
 import itertools
 
 
+class NetworkLogger(logging.LoggerAdapter):
+
+    def process(self, msg, kwargs):
+        return "T=%.3f %s" % (self.extra['network'].now, msg), kwargs
+
+    def getChild(self, name):
+        return self.__class__(self.logger.getChild(name), {'network': self.extra['network']})
+
+
 class Node(object):
     unique_ids = itertools.count()
 
-    def __init__(self, network):
+    def __init__(self, network, address):
         self.network = network
         self.unique_id = next(self.unique_ids)
-        self.address = 'N%d' % self.unique_id
+        self.address = address or 'N%d' % self.unique_id
         self.components = []
-        self.logger = logging.getLogger(self.address)
+        self.logger = NetworkLogger(logging.getLogger(self.address), {'network': self.network})
         self.logger.info('starting')
-        self.now = self.network.now
 
     def kill(self):
         self.logger.error('node dying')
@@ -69,29 +77,30 @@ class Network(object):
     PROP_JITTER = 0.02
     DROP_PROB = 0.05
 
-    def __init__(self, seed, pause=False):
+    def __init__(self, seed):
         self.nodes = {}
         self.rnd = random.Random(seed)
-        self.pause = pause
         self.timers = []
         self.now = 1000.0
 
-    def new_node(self):
-        node = Node(self)
+    def new_node(self, address=None):
+        node = Node(self, address=address)
         self.nodes[node.address] = node
         return node
 
-    def run(self):
+    def run(self, pause=False, realtime=True):
         while self.timers:
             next_timer = self.timers[0]
             if next_timer.expires > self.now:
-                if self.pause:
+                if pause:
                     raw_input()
-                else:
-                    time.sleep(next_timer - self.now)
+                elif realtime:
+                    time.sleep(next_timer.expires - self.now)
                 self.now = next_timer.expires
             heapq.heappop(self.timers)
-            if not next_timer.cancelled and next_timer.address in self.nodes:
+            if next_timer.cancelled:
+                continue
+            if not next_timer.address or next_timer.address in self.nodes:
                 next_timer.callback()
 
     def stop(self):

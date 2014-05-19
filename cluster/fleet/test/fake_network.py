@@ -1,3 +1,4 @@
+import logging
 import heapq
 from fleet.deterministic_network import Timer
 
@@ -10,6 +11,7 @@ class FakeNode(object):
         self._now = 0.0
         self.timers = []
         self.sent = []
+        self.logger = logging.getLogger('node.%s' % (self.address,))
 
     def register(self, component):
         assert component not in self.components
