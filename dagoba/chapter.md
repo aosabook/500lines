@@ -171,3 +171,74 @@ later: GraphML import/export support, https://github.com/lambdazen/pixy/wiki ,
 
 
 step through debugger, reversible, 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Definitions
+
+
+
+
+
+
+
+
+
+
+
+
+# Querying
+
+So now we've got a database and we'd like to make a query. Ideally, we'd say something like:
+> Starting from vertex 5, follow every even* outgoing edge, then follow every odd* outgoing edge, then come back in on even* edges.
+
+Ok, so how do we do that in js? well, maybe something like this:
+
+Graph.V(5).out(even).out(odd).in(even)
+
+[define even and odd lambdas]
+And we can just pass values along:
+V(5) sends an array containing vertex 5, and out and in both accept and return arrays of vertices. 
+And this works great, until our graph gets large and connected and we write something like:
+G.V(5).out().out().out().take(5)
+and run out of memory before Dave Brubeck gets to play.
+
+So we're going to need LAZINESS. 
+
+How do we get laziness in JS? Well, we're using ES6 features, so generators come to mind. That could look like this.
+
+-- good idea, but: can't go backward, can't orthopt, 
+
+--> query transformer: id() -> attr('_id')
+
+
+--> then we add label matching for easy edge walking
+--> then we add object queries for more complicated stuff
+
+# Updating
+
+concurrency. immutable data structures. update syntax -- no problem, can't update directly anyway. {'foo.baz.smile': 123, 'args.lala.gogo': 333}
+
+
+
+# Performance
+
+
+
