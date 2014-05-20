@@ -35,11 +35,7 @@
   ((content-type :accessor content-type :initform "text/html" :initarg :content-type)
    (charset :accessor charset :initform "utf-8")
    (response-code :accessor response-code :initform "200 OK" :initarg :response-code)
-   (cookie :accessor cookie :initform nil :initarg :cookie)
-   (location :accessor location :initform nil :initarg :location)
-   (cache-control :accessor cache-control :initform nil)
    (keep-alive? :accessor keep-alive? :initform nil :initarg :keep-alive?)
-   (expires :accessor expires :initform nil)
    (body :accessor body :initform nil :initarg :body)))
 
 (defclass sse ()

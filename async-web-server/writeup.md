@@ -380,10 +380,69 @@ After unrolling the above macro tower and understanding how it fits together, th
 
 ### Object Oriented Programming in Common Lisp
 
-[[TODO: Write up the model summary here. If you can, work in the points about generics and multiple dispatch here. If not, you can add some exposition to the previous section when you touch on `define-http-type`]]
+The `:house` model is heavily object basd. We've got six core classes, one of which is a new `error`, one utility macro and some default instances to go through.
+
+Lets start with `response` and `sse`, since we just looked at the places they get generated and used.
+
+	(defclass response ()
+	  ((content-type :accessor content-type :initform "text/html" :initarg :content-type)
+	   (charset :accessor charset :initform "utf-8")
+	   (response-code :accessor response-code :initform "200 OK" :initarg :response-code)
+	   (keep-alive? :accessor keep-alive? :initform nil :initarg :keep-alive?)
+	   (body :accessor body :initform nil :initarg :body)))
+	
+	(defclass sse ()
+	  ((id :reader id :initarg :id :initform nil)
+	   (event :reader event :initarg :event :initform nil)
+	   (retry :reader retry :initarg :retry :initform nil)
+	   (data :reader data :initarg :data)))
+
+If you're joining us from mainstream class/prototype-based languages, you might notice the odd fact that these CLOS (Common Lisp Object System) `class` declarations only involve slots and related getters/setters, or `reader`s/`accessor`s in CL terms. This is because the Lisp object system is based on generic functions. Basically, at a very high level, you need to think "Methods specialize on classe" rather than "classes have methods". That should get you most of the way to understanding.
+
+From a theoretical perspective, the class-oriented approach and the function-oriented approach are both solving the same problem; how do we treat different classes similarly for the purposes of certain operations that they have in common. The most common example is the various number implementations. No, an integer is not the same as a real number is not the same as a complex number, *but*, you can add, multiply, etc. each of those. And it'd be nice if you could just express the idea of addition without having to name separate operations for different types when each of them amounts to the same conceptual procedure. The class-oriented approach says "You have different classes for each of the objects you need to deal with, and they each implement the appropriate methods". See Smalltalk for the prototypical example of this kind of system. The function-oriented approach says "You have a number of generic operations that can deal with multiple types, and when you call one, it dispatches on its arguments to see what concrete implementation it should apply". That's basically what you'll see in action in Common Lisp.
+
+The big difference, as I've already said, is that class-oriented OO systems tend to group all methods related to a class in with that class' data, whereas function-oriented OO systems tend to isolate the data completely and group all implementations of an operation together. In the first system, it's difficult to ask "what classes implement method `foo`?" which is easy in the second, but the second has equivalent problems answering "what are all the methods that specialize on class `bar`?". In a way those questions only make sense for one of the systems, and understanding why that is will give you some insight into where you want one or the other.
+
+Anyway, the `response` and `sse` classes above should be fairly self-explanatory if you know approximately how HTTP works. A `response` needs a `content-type`, a `charset`, a `response-code`, a `keep-alive?` flag, and a `body` to be written properly.
+
+-`content-type` is a mimetype for the thing this handler will be returning, It'll most commonly be `text/html`, which is why that's the default. Other common values include `application/json` and `text/plain`.
+-`charset` is the character encoding the page uses, which'll always be `utf-8` as far as I know.
+-`response-code` is an [HTTP response code](https://en.wikipedia.org/wiki/List_of_HTTP_status_codes). A successful result is `200 OK`. We'll see the common errors covered later.
+-`keep-alive?` is a flag that tells us whether to keep the connection active or not. In the context of `:house`, it's only used on stream handlers.
+-`body` is hopefully self explanatory.
+
+An `sse` needs a comparably minimal `id`, `event`, `retry` and `data` slots, and those map directly onto the corresponding fields of an SSE message as defined in [the specification](http://dev.w3.org/html5/eventsource/#event-stream-interpretation).
+
+Now, because we're in a function-oriented OO system, those slots don't really give you all the information you need. You'll also need to know about the operatios we plan to perform on them.
+
+#### Brief cut-over to the core
+
+The core server file, `house.lisp`, defines a `write!` method for two different class combinations; `response/usocket` and `sse/usocket`. Because the system we're in uses multiple dispatch, we also could have defined `response/stream` and `sse/stream` operations just to generalize the method a bit, but I didn't see a real win with that approach. Lets take a look at the implementations for the two classes we're looking at. `response` first.
+
+	(defmethod write! ((res response) (sock usocket))
+	  (let ((stream (flex-stream sock)))
+	    (flet ((write-ln (&rest sequences)
+		     (mapc (lambda (seq) (write-sequence seq stream)) sequences)
+		     (crlf stream)))
+	      (write-ln "HTTP/1.1 " (response-code res))  
+	      (write-ln "Content-Type: " (content-type res) "; charset=" (charset res))
+	      (write-ln "Cache-Control: no-cache, no-store, must-revalidate")
+	      (when (keep-alive? res) 
+		(write-ln "Connection: keep-alive")
+		(write-ln "Expires: Thu, 01 Jan 1970 00:00:01 GMT"))
+	      (awhen (body res)
+		(write-ln "Content-Length: " (write-to-string (length it)))
+		(crlf stream)
+		(write-ln it))
+	      (values))))
 
 
+[[TODO: write up some commentary on what's going on here]]
 
+	(defmethod write! ((res sse) (sock usocket))
+	  (let ((stream (flex-stream sock)))
+	    (format stream "~@[id: ~a~%~]~@[event: ~a~%~]~@[retry: ~a~%~]data: ~a~%~%"
+		    (id res) (event res) (retry res) (data res))))
 
 ### The Basics of Asynchronous Servers
 
