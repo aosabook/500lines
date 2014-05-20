@@ -100,17 +100,44 @@ to be independent from its location in the scene.
 
 
 ### User Interaction
-How that we're able to render the scene, we want to be able to add new Nodes, and to adjust the Nodes in the scene.
+Now that we're able to render the scene, we want to be able to add new Nodes, and to adjust the Nodes in the scene.
+We encapsulate the user interaction code into its own class: `Interaction`. The `Viewer` class, which drives the scene and the rendering, owns the instance of `Interaction`.
+
+
+#### Callbacks
+The `Interaction` class maintains a very simple callback system in the form of a dictionary, `callbacks`, to call in certain situations.
+The viewer class registers callbacks on the `Interaction` instance by calling `register_callback`.
+```
+def register_callback(self, name, func):
+    self.callbacks[name].append(func)
+```
+When user interface code needs to trigger an event on the scene, the `Interaction` class calls all of the saved callbacks it has:
+
+```
+def trigger(self, name, *args, **kwargs):
+    for func in self.callbacks[name]:
+        func(*args, **kwargs)
+```
+
+This simple callback system provides all of the functionality we need for this project. In a production 3d modeller, however, user interface objects are often created and destroyed dynamically.
+In the case where user interface objects are created and destroyed, we would need a more sophisticated event listening system, where objects can both register and un-register callbacks for events.
 
 #### GLUT
 GLUT is the OpenGL Utility Toolkit. Is is bundled with OpenGL and it provides a simple windowing API and user interface callbacks. The basic functionality it
 offers is sufficient for our purposes in this project. If we wanted a more full featured library for window management and user interaction, we would consider using
-a full featured game engine like PyGame.
+a full featured game engine like PyGame. GLUT allows us to register callbacks for user input using the following functions:
+
+```
+    glutMouseFunc(self.handle_mouse_button)
+    glutMotionFunc(self.handle_mouse_move)
+    glutKeyboardFunc(self.handle_keystroke)
+    glutSpecialFunc(self.handle_keystroke)
+```
 
 #### Moving the Camera
 There are two camera controls available in this project. In this project, we accomplish camera motion by transforming the scene. In other words, the
 camera is at a fixed location and the camera controls actually move the scene instead of moving the camera. The camera is placed at `[0, 0, -15]` and
-faces the origin. In a different implementation, we could change the perspective matrix to effectively move the camera instead of the scene.
+faces the origin. We could alternatively change the perspective matrix to move the camera instead of the scene.
 This design decision has very little impact on the rest of the project. We move the scene instead of the camera because it is the standard practise.
 There are two types of interaction with the scene: rotation and translation.
 
@@ -118,31 +145,93 @@ There are two types of interaction with the scene: rotation and translation.
 We accomplish rotation of the scene by using a Trackball algorithm. The trackball is an intuitive interface for manipulating the scene in 3 dimensions.
 Conceptually, a trackball interface functions as if the scene was inside a transparent globe. Placing a hand on the surface of the globe and pushing it rotates the globe. Similarly, clicking the right mouse button and moving it on the screen rotates the scene.
 You can find out more about the theory of the trackball at the [OpenGL Wiki](http://www.opengl.org/wiki/Object_Mouse_Trackball).
-In this project, we use a trackball implementation provided as part of Glumpy. It's available in Appendix ??? (TODO: this?).
+In this project, we use a trackball implementation provided as part of [Glumpy](https://code.google.com/p/glumpy/source/browse/glumpy/trackball.py). It's available in Appendix ??? (TODO: this?).
+
+We interact with the trackball using the `drag_to` function with the starting and ending x and y as parameters.
+
+```
+self.trackball.drag_to(self.mouse_loc[0], self.mouse_loc[1], -dx, -dy)
+```
+The resulting rotation matrix is retreived as `trackball.matrix` in the viewer when the scene is rendered.
 
 Rotations are traditionally represented in one of two ways. The first is a rotation value around each axis. You could store this as a 3-tuple of floating point numbers.
 The other common representation for rotations is a quaternion. Using quaternions has numerous benefits over per-axis rotation. In particular, they are more numerically stable. Using quaternions avoids some tricky problems like [Gimbal Lock](http://en.wikipedia.org/wiki/Gimbal_lock).
-The unfortunate downside of quaternions is that they are much less intuitive and much harder to understand. If you would like to learn more about quaternions, you can check out [??? TODO]
+The unfortunate downside of quaternions is that they are less intuitive to work with and harder to understand. If you are brave and would like to learn more about quaternions, you can refer to [this explanation](http://3dgep.com/?p=1815).
 
-The trackball implementation avoids Gimbal Lock by using quaternions internally to store the rotation of the scene.
+The trackball implementation avoids Gimbal Lock by using quaternions internally to store the rotation of the scene. Luckily, we do not need to work with quaternions directly, because the matrix member on the trackball
+converts the rotation to a matrix.
 We do not need to concern ourselves with this detail, because the trackball library provides a method to get the matrix representation of a rotation.
-We use this method to set the new rotation on the scene whenever the user interacts with the trackball.
 
 ##### Translation
 Scene translation is much simpler than scene rotation. Scene translations are provided with the mouse wheel and the left mouse button. The left mouse
 button translates the scene in the x and y coordinates. Scrolling the mouse wheel translates the scene in the z coordinate
-(towards or away from the camera).
-The `Interaction` class stores the current state of translation for the scene, which the viewer uses in a `glTranslate` call during rendering.
+(towards or away from the camera). The `Interaction` class stores the current camera location, and modifies it with:
+```
+def translate(self, x, y, z):
+    self.camera_loc[0] += x
+    self.camera_loc[1] += y
+    self.camera_loc[2] += z
+```
+The viewer retrieves the `Interaction` camera location during rendering to use in a `glTranslated` call.
 
 #### Picking
-Several techniques can be used for selecting Nodes in a modeller. One simple technique is to render each nodes in a unique color into a hidden buffer, then query the scene for the color of the pixel under the cursor.
+Several techniques can be used for selecting Nodes in a modeller.
+
+<!--- TODO: Possibly remove this paragraph -->
+One simple technique is to render each nodes in a unique color into a hidden buffer, then query the scene for the color of the pixel under the cursor.
 This technique is very accurate, but there is a high performance cost to pay for it. Rendering the scene requires many round trips of reading and writing to video memory, which is an expensive operation. Therefore, most production
 modellers favour a selection algorithm that leverages the scene data structure.
 
 In this project, we implement a very simple ray-based picking [algorithm](http://www.opengl-tutorial.org/miscellaneous/clicking-on-objects/picking-with-custom-ray-obb-function/). Each node stores an Axis-Aligned Bounding Box which is an approximation of the
 space it occupies. When the user clicks in the window, we use the current projection matrix to generate a ray that represents the mouse click, as if the mouse pointer shoots a ray into the scene.
-To determine which Node was clicked on, we test whether the ray intersects with each Node's Bounding Box. We choose the Node with the intersection closest to the ray origin.
-The Ray-AABB selection approach is very simple to understand and implement. However, it sometimes gives the wrong answer. Think about the Sphere primitive. The Sphere itself only touches
+```
+# viewer.py, line 138
+def get_ray(self, x, y):
+    """ Generate a ray beginning at the near plane, in the direction that the x, y coordinates are facing
+        Consumes: x, y coordinates of mouse on screen
+        Return: start, direction of the ray """
+    self.init_view()
+
+    glMatrixMode(GL_MODELVIEW)
+    glLoadIdentity()
+
+    # get two points on the line.
+    start = numpy.array(gluUnProject(x, y, 0.001))
+    end = numpy.array(gluUnProject(x, y, 0.999))
+
+    # convert those points into a ray
+    direction = end - start
+    direction = direction / norm(direction)
+
+    return (start, direction)
+```
+To determine which Node was clicked on, we traverse the scene to test whether the ray intersects with each Node's Bounding Box. We choose the Node with the intersection closest to the ray origin and store it as the selected node.
+```
+# scene.py, line 30
+def pick(self, start, direction, mat):
+    """ Execute selection.
+        Consume: start, direction describing a Ray
+                 mat              is the inverse of the current modelview matrix for the scene """
+    if self.selected_node is not None:
+        self.selected_node.select(False)
+        self.selected_node = None
+
+    # Keep track of the closest hit.
+    mindist, closest_node = sys.maxint, None
+    for node in self.node_list:
+        hit, distance = node.pick(start, direction, mat)
+        if hit and distance < mindist:
+            mindist, closest_node = distance, node
+
+    # If we hit something, keep track of it.
+    if closest_node is not None:
+        closest_node.select()
+        closest_node.depth = mindist
+        closest_node.selected_loc = start + direction * mindist
+        self.selected_node = closest_node
+```
+
+The Ray-AABB selection approach is very simple to understand and implement. However, the results are wrong in certain situations. For example, in the `Sphere` primitive, the sphere itself only touches
 the AABB in the centre of each of its planes. However if the user clicks on the corner of the Sphere's AABB, the collision will be detected with the Sphere, even if the user intended to click
 past the Sphere onto something behind it.
 
