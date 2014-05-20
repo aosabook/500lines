@@ -89,8 +89,8 @@ var ocrDemo = {
 
     train: function() {
         var digitVal = document.getElementById("digit").value;
-        if (!digitVal) {
-            alert("Please type a digit value in order to train the network");
+        if (!digitVal || this.data.indexOf(1) < 0) {
+            alert("Please type and draw a digit value in order to train the network");
             return;
         }
         this.trainArray.push({"y0": this.data, "label": parseInt(digitVal)});
@@ -111,6 +111,10 @@ var ocrDemo = {
     },
 
     test: function() {
+        if (this.data.indexOf(1) < 0) {
+            alert("Please draw a digit in order to test the network");
+            return;
+        }
         var json = {
             image: this.data,
             predict: true
