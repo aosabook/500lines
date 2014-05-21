@@ -99,11 +99,11 @@ Which is to say, we'd like to associate the handler we're making with the uri `/
 	                   (WRITE! RES SOCK)
 	                   (SOCKET-CLOSE SOCK))))))
 
-This is the big one. It looks mean, but it really amounts to an unrolled loop over the arguments. You can see that for every parameter, we're grabbing its value in the `parameters` association list, ensuring it exists, `uri-decode`ing it if it does, and asserting the appropriate properties we want to enforce. At any given point, if an assertion is violated, we're done and we return an error (handling said error not pictured here, but the error handlers surrounding an HTTP handler call will ensure that these errors get translated to `HTTP 400` or `500` errors being sent over the wire). If we get through all of our arguments without running into an error, we're going to evaluate the handler body, write the result out to the requester and close the socket.
+This is the big one. It looks mean, but it really amounts to an unrolled loop over the arguments. You can see that for every parameter, we're grabbing its value in the `parameters` association list, ensuring it exists, `uri-decode`ing `it` if it does, and asserting the appropriate properties we want to enforce. At any given point, if an assertion is violated, we're done and we return an error (handling said error not pictured here, but the error handlers surrounding an HTTP handler call will ensure that these errors get translated to `HTTP 400` or `500` errors over the wire). If we get through all of our arguments without running into an error, we're going to evaluate the handler body, write the result out to the requester and close the socket.
 
 ### Understanding the Expanders
 
-If you're more interested in the server proper, skip the next few sections. The first thing we're going to do is dissect the code that generates the above expansions. We'll start from the end again. In this case, the end of `define-handler.lisp`
+If you're more interested in the server proper, skip the next few sections. The first thing we're going to do is dissect the code that generates the above expansions, then diving into the internal representation of a bunch of different HTTP-related constructs. We'll start from the end again. In this case, the end of `define-handler.lisp`
 
 	(defmacro define-closing-handler ((name &key (content-type "text/html")) (&rest args) &body body)
 	  `(bind-handler ,name (make-closing-handler (:content-type ,content-type) ,args ,@body)))
@@ -250,11 +250,11 @@ the evaluation looks like
 	     (ERROR (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'ROOM)))
 	HOUSE> 
 
-### A Short Break -- Briefly Meditating on Macros
+#### A Short Break -- Briefly Meditating on Macros
 
 Lets take a short break here. At this point we're two levels deep into tree processing. And what we're doing will only make sense to you if you remember that Lisp code is itself represented as a tree. That's what the parentheses are for; they show you how leaves and branches fit together. If you step back, you'll realize we've got a macro definition, `make-closing-handler`, which calls a function, `arguments`, to generate part of the tree its constructing, which in turn calls some tree-manipulating helper functions, including `arg-exp`, to generate its return value. The tree that these functions have as input *happen* to reprent Lisp code, and because there's no difference between Lisp code and a tree, you have a transparent sytax definition system. The input is a Lisp expression, and the output is a lisp expression that will be evaluated in its place. Possibly the simplest way of conceptualizing this is as a very simple and minimal Common Lisp to Common Lisp compiler.
 
-### Another Short Break -- Briefly Meditating on Anaphoric Macros
+#### Another Short Break -- Briefly Meditating on Anaphoric Macros
 
 A particularly widely used, and particularly simple group of such compilers are called *anaphoric macros*. You've seen `aif` already, and will later see `awhen` later on. Personally, I only tend to use those two with any frequency, but there's a fairly wide variety of them available in the [`anaphora` package](http://www.cliki.net/Anaphora). As far as I know, they were first defined by Paul Graham in an [OnLisp chapter](http://dunsmor.com/lisp/onlisp/onlisp_18.html). The use case he gives is a situation where you want to do some sort of expensive or semi-expensive check, then do something conditionally on the result. In the above context, we're using `aif` to do a check on the result of an `alist` traversal.
 
@@ -286,9 +286,6 @@ With the above macro-related tidbits, you should be able to see that `arg-exp` i
 	   "A type-expression will tell the server how to convert a parameter from a string to a particular, necessary type."))
     ...
 	(defmethod type-expression (parameter type) nil)
-
-[[Note to Editor: Should I have a bit of exposition here about generic functions and how they work?]]
-[[Note to Self: See if you can do this a bit later. Let them digest macroexpansion first, then hop into generics and multiple dispatch when you get to the model]]
 
 This is a *method* that generates new tree structures (coincidentally Lisp code), rather than just a function. And yes, you can do that just fine. The only thing the above tells you is that by default, a `type-expression` is `NIL`. Which is to say, we don't have one. If we encounter a `NIL`, we just use the output of `arg-exp` raw, but that doesn't tell us much about the usual case. To see that, lets take a look at a built-in (to `:house`) `define-http-type` expression.
 
@@ -380,7 +377,7 @@ After unrolling the above macro tower and understanding how it fits together, th
 
 ### Object Oriented Programming in Common Lisp
 
-The `:house` model is heavily object basd. We've got six core classes, one of which is a new `error`, one utility macro and some default instances to go through.
+The `:house` model is heavily object based. We've got six core classes, one of which is a new `error`, one utility macro and some default instances to go through.
 
 Lets start with `response` and `sse`, since we just looked at the places they get generated and used.
 
@@ -397,11 +394,27 @@ Lets start with `response` and `sse`, since we just looked at the places they ge
 	   (retry :reader retry :initarg :retry :initform nil)
 	   (data :reader data :initarg :data)))
 
-If you're joining us from mainstream class/prototype-based languages, you might notice the odd fact that these CLOS (Common Lisp Object System) `class` declarations only involve slots and related getters/setters, or `reader`s/`accessor`s in CL terms. This is because the Lisp object system is based on generic functions. Basically, at a very high level, you need to think "Methods specialize on classe" rather than "classes have methods". That should get you most of the way to understanding.
+If you're joining us from mainstream class/prototype-based languages, you might notice the odd fact that these CLOS (Common Lisp Object System) `class` declarations only involve slots and related getters/setters, or `reader`s/`accessor`s in CL terms. This is because the Lisp object system is based on generic functions. Basically, at a very high level, you need to think "Methods specialize on classes" rather than "classes have methods". That should get you most of the way to understanding.
 
-From a theoretical perspective, the class-oriented approach and the function-oriented approach are both solving the same problem; how do we treat different classes similarly for the purposes of certain operations that they have in common. The most common example is the various number implementations. No, an integer is not the same as a real number is not the same as a complex number, *but*, you can add, multiply, etc. each of those. And it'd be nice if you could just express the idea of addition without having to name separate operations for different types when each of them amounts to the same conceptual procedure. The class-oriented approach says "You have different classes for each of the objects you need to deal with, and they each implement the appropriate methods". See Smalltalk for the prototypical example of this kind of system. The function-oriented approach says "You have a number of generic operations that can deal with multiple types, and when you call one, it dispatches on its arguments to see what concrete implementation it should apply". That's basically what you'll see in action in Common Lisp.
+From a theoretical perspective, the class-oriented approach and the function-oriented approach can be seen as perpendicular approaches to the same problem; how do we treat different classes similarly for the purposes of certain operations that they have in common? The most common concrete example is the various number implementations. No, an integer is not the same as a real number is not the same as a complex number and so forth, *but*, you can add, multiply, divide and so on each of those. And it'd be nice if you could just express the idea of addition without having to name separate operations for different types when each of them amounts to the same conceptual procedure. The class-oriented approach says
 
-The big difference, as I've already said, is that class-oriented OO systems tend to group all methods related to a class in with that class' data, whereas function-oriented OO systems tend to isolate the data completely and group all implementations of an operation together. In the first system, it's difficult to ask "what classes implement method `foo`?" which is easy in the second, but the second has equivalent problems answering "what are all the methods that specialize on class `bar`?". In a way those questions only make sense for one of the systems, and understanding why that is will give you some insight into where you want one or the other.
+> You have different classes for each of the objects you need to deal with, and they each implement the appropriate methods
+
+See Smalltalk for the prototypical example of this kind of system. The function-oriented approach says
+
+> You have a number of generic operations that can deal with multiple types, and when you call one, it dispatches on its arguments to see what concrete implementation it should apply
+
+That's basically what you'll see in action in Common Lisp. You can think about it as a giant table with "Class Name" down the first column and "Operation" across the first row
+
+            | Addition | Subtraction | Multiplication |
+    ----------------------------------------------------------...
+    Integer |          |             |                |
+	-----------------------------------------------------
+	Real    |          |             |                |
+	-----------------------------------------------
+	Complex |          |             |
+
+and each cell representing the implementation of that operation for that type. Class-oriented OO says "Focus on the first column; the class is the important part", function-oriented OO says "focus on the first row; the operation needs to be central". Consequently, CO-OO systems tend to group all methods related to a class in with that class' data, whereas FO-OO systems tend to isolate the data completely and group all implementations of an operation together. In the first system, it's difficult to ask "what classes implement method `foo`?" which is easy in the second, but the second has similar problems answering "what are all the methods that specialize on class `bar`?". In a way those questions don't make sense from within the systems we're asking them, and understanding why that is will give you some insight into where you want one or the other.
 
 Anyway, the `response` and `sse` classes above should be fairly self-explanatory if you know approximately how HTTP works. A `response` needs a `content-type`, a `charset`, a `response-code`, a `keep-alive?` flag, and a `body` to be written properly.
 
@@ -424,18 +437,19 @@ The core server file, `house.lisp`, defines a `write!` method for two different 
 	    (flet ((write-ln (&rest sequences)
 		     (mapc (lambda (seq) (write-sequence seq stream)) sequences)
 		     (crlf stream)))
-	      (write-ln "HTTP/1.1 " (response-code res))  
+	      (write-ln "HTTP/1.1 " (response-code res))
 	      (write-ln "Content-Type: " (content-type res) "; charset=" (charset res))
 	      (write-ln "Cache-Control: no-cache, no-store, must-revalidate")
 	      (when (keep-alive? res) 
-		(write-ln "Connection: keep-alive")
-		(write-ln "Expires: Thu, 01 Jan 1970 00:00:01 GMT"))
+		    (write-ln "Connection: keep-alive")
+		    (write-ln "Expires: Thu, 01 Jan 1970 00:00:01 GMT"))
 	      (awhen (body res)
-		(write-ln "Content-Length: " (write-to-string (length it)))
-		(crlf stream)
-		(write-ln it))
+		    (write-ln "Content-Length: " (write-to-string (length it)))
+		    (crlf stream)
+		    (write-ln it))
 	      (values))))
 
+You can see that this operation takes a `response` and a `usocket` (an implementation of sockets for Common Lisp), grabbing a stream from the `usocket` and writing a bunch of lines to it. We locally define the function `write-ln` which takes some number of sequences, and writes them out to the stream followed by a `crlf`. That's just for readability; we could easily have done manual `write-sequence`/`crlf` calls. This is also the example use of `awhen` I promised you. Without that, we'd need to call `(body res)` twice or make other arrangements. That's not expensive in the performance sense, since it's just a valua lookup in a `response` instance, but when getting around it is as cheap as adding `a` to the beginning of the containing conditional, you may as well.
 
 [[TODO: write up some commentary on what's going on here]]
 
