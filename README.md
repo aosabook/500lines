@@ -186,6 +186,7 @@ Contributors
     </td>
     <td><a href="https://github.com/haz">haz</a></td>
     <td>christian.muise@gmail.com</td>
+  </tr>
   <tr>
     <td>Carlos Scheidegger</td>
     <td>AT&amp;T Research</td>
@@ -197,5 +198,18 @@ Contributors
     </td>
     <td><a href="https://github.com/cscheid">cscheid</a></td>
     <td>carlos.scheidegger@gmail.com</td>
+  </tr>
+  <tr>
+    <td>Marina Samuel</td>
+    <td>Mozilla</td>
+    <td>ocr</td>
+    <td>
+        <ul>
+            <li><a href="http://marinasamuel.com">www.marinasamuel.com</a></li>
+            <li><a href="https://twitter.com/emtwos">@emtwos</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/emtwo">emtwo</a></td>
+    <td>msamuel@mozilla.com</td>
   </tr>
 </table>
