@@ -212,4 +212,17 @@ Contributors
     <td><a href="https://github.com/emtwo">emtwo</a></td>
     <td>msamuel@mozilla.com</td>
   </tr>
+  <tr>
+    <td>Cate Huston</td>
+    <td>Google</td>
+    <td>Image Filter app</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/catehstn">@catehstn</a></li>
+        </ul>
+    </td>
+    <td>catehstn</td>
+    <td><a href="https://github.com/catehstn">catehstn</a></td>
+    <td>catehuston@gmail.com</td>
+  </tr>
 </table>
