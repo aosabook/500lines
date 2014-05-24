@@ -1,5 +1,5 @@
-(ns core.fdb
-  [:use [core storage query constructs]]
+(ns fdb.core
+  [:use [fdb storage query constructs]]
   [:require [clojure.set :as CS :only (union difference intersection)]])
 
 (defn- collify [x] (if (coll? x) x [x]))
@@ -42,7 +42,7 @@
       (= :db/add operation)        (assoc attr :value (CS/union (:value attr)  value))
       (= :db/remove operation)  (assoc attr :value (CS/difference (:value attr) value))))
 
-(defn- add-attr
+(defn add-attr
   "adds an attribute to an entity"
   [ent attr]
   (let [attr-id (keyword (:name attr))]

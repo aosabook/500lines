@@ -1,4 +1,4 @@
-(ns core.storage)
+(ns fdb.storage)
 
 (defn initial-storage [] {})
 

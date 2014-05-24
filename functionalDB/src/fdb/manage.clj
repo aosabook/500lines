@@ -1,6 +1,6 @@
-(ns core.manage
-  "Management of db connections (from the user's perspective), internally creates/ / drops dbs."
-  (:use core.constructs))
+(ns fdb.manage
+  "Management of db connections (from the user's perspective), internally creates / drops dbs."
+  (:use fdb.constructs))
 
 (def ^:private __ALL-DBS__ (atom {}))
 

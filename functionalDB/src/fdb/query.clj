@@ -1,5 +1,5 @@
-(ns core.query
-   [:use [core constructs]
+(ns fdb.query
+   [:use [fdb constructs]
     [clojure.set :as CS :only (intersection)]])
 
 (defn ind-at

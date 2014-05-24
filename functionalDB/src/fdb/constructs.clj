@@ -1,5 +1,5 @@
-(ns core.constructs
-   (:use core.storage))
+(ns fdb.constructs
+   (:use fdb.storage))
 
 (defrecord Database [timestamped top-id curr-time])
 (defrecord Timestamped [storage VAET AVET VEAT EAVT])

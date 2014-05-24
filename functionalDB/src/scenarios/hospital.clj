@@ -1,7 +1,7 @@
 (ns scenarios.hospital
-  (:use [core fdb constructs ] )
-  [:require [core.manage :as M]
-                [clojure.set     :as CS :only (union difference )]])
+  (:use [fdb core constructs ] )
+  [:require [fdb.manage :as M]
+                [clojure.set :as CS :only (union difference )]])
 
 (def db-name "hos12")
 (M/drop-db-conn db-name)
