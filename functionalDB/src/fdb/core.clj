@@ -197,10 +197,9 @@
           (recur rst-tx# res#  (conj  accum-txs#  (vec  frst-tx#)))
           (list* (conj res#  accum-txs#))))))
 
-(defn _what-if
+(defn- _what-if
   "Operates on the db with the given transactions, but without eventually updating it"
-  [ db f  txs]
-  (f db txs))
+  [db f txs] (f db txs))
 
 (defmacro what-if [db & txs]  `(_transact ~db   _what-if  ~@txs))
 
@@ -214,7 +213,7 @@
            ind# (choose-index ~db query#) ; selecting which index to use
            q-res# (query-index ind# query#) ; actually quering, from now on just preparing results
            binded-res# (bind-variables-to-query q-res# ind#) ; building a meta + real results structure
-           needed-vars# (settify  ~(:find query))] ; extracting out the needed to be reported variables
+           needed-vars# (symbol-col-to-set  ~(:find query))] ; extracting out the needed to be reported variables
      (map (partial locate-vars-in-query-res needed-vars# ) binded-res#))) ; picking the needed variables from the query result
 
 (defn evolution-of

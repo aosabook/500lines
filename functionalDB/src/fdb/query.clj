@@ -106,7 +106,7 @@
      (apply (partial map vector)  all-path)))
 
 (defn bind-variables-to-query
-  "A function that receives the query results and restructues them to be an binding structure which resembles in its shape to an entity.
+  "A function that receives the query results and restructues them to be a binding structure which resembles in its shape to an entity.
    The binding structure is a map whose key is a binding pair of a found entity-id, and the value is also a map, where its key is the binding pair of a found
   attribute, and the value is the binding pair of that found attribute's value"
   [q-res index]
@@ -116,8 +116,8 @@
 
 (defn query-index
   "Quering an index based a seq of path predicates. A path predicate is composed of 3 predicates, each one to operate on a different level of the index. Querying an index with
-  a specific path-pred returns a result-path. We then take all the result paths and find within them the items that passed all the path-preds, and eventually return the result path, each contains
-  only the items that passed all the path predicates."
+  a specific path-pred returns a result-path. We then take all the result paths, find within them the last-level-items that are found in all the result-paths, and return the result paths, each contains
+  only the last-level-items that are part of all the result-paths."
    [index path-preds]
    (let [result-paths (filter-index index path-preds) ; the paths (vectors) from the root of the index to the leaves (a leaf of an index is a set) where each path fulfils one predicate path
          relevant-items (items-that-answer-all-conditions (map last result-paths) (count path-preds)) ; the set of elements, each answers all the pred-paths
@@ -137,10 +137,10 @@
    (reduce (partial resultify-bind-pair vars-set) accum-res  av-pair))
 
 (defn locate-vars-in-query-res
-  "this function would look for all the binding found in the query result and return the binding that were requested by the user (captured at the vars-set)"
+  "this function would look for all the bindings found in the query result and return the binding that were requested by the user (captured at the vars-set)"
   [vars-set q-res]
   (let [[e-pair av-map]  q-res
         e-res (resultify-bind-pair vars-set [] e-pair )]
     (reduce (partial resultify-av-pair vars-set) e-res  av-map)))
 
-(defmacro settify [coll] (set (map str coll)))
+(defmacro symbol-col-to-set [coll] (set (map str coll)))
