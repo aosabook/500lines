@@ -15,7 +15,8 @@ class Tests(utils.ComponentTestCase):
         self.assertEqual(self.ac.accepted, accepted)
 
     def test_prepare_new_ballot(self):
-        """On PREPARE with a new ballot, Acceptor returns a PROMISE with the new ballot"""
+        """On PREPARE with a new ballot, Acceptor returns a PROMISE with the new ballot
+        and raises a leader_changed event"""
         proposal = Proposal('cli', 123, 'INC')
         self.ac.accepted = {(Ballot(19, 19), 33): proposal}
         self.ac.ballot_num = Ballot(10, 10)
@@ -33,10 +34,11 @@ class Tests(utils.ComponentTestCase):
                            # including accepted ballots
                            accepted={(Ballot(19, 19), 33): proposal}))
         self.assertState(Ballot(19, 19), {(Ballot(19, 19), 33): proposal})
+        self.assertEvent('leader_changed', new_leader='F999')
 
     def test_prepare_old_ballot(self):
         """On PREPARE with an old ballot, Acceptor returns a PROMISE with the
-        existing (newer) ballot"""
+        existing (newer) ballot and does not return a leader_changed event"""
         self.ac.ballot_num = Ballot(10, 10)
         self.node.fake_message(Prepare(
                                scout_id=ScoutId(
@@ -51,6 +53,7 @@ class Tests(utils.ComponentTestCase):
                            ballot_num=Ballot(10, 10),
                            accepted={}))
         self.assertState(Ballot(10, 10), {})
+        self.assertNoEvents()
 
     def test_accept_new_ballot(self):
         """On ACCEPT with a new ballot, Acceptor returns ACCEPTED with the new ballot number

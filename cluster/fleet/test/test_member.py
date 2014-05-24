@@ -36,7 +36,7 @@ class Tests(utils.ComponentTestCase):
         """Events are propagated to all components."""
         comp1 = MyComp(self.member)
         comp2 = MyComp(self.member)
-        comp1.event('birthday', arg='val')
+        self.fakeEvent('birthday', arg='val')
         self.assertEqual(comp1.birthday, {'arg': 'val'})
         self.assertEqual(comp2.birthday, {'arg': 'val'})
 

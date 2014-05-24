@@ -13,6 +13,8 @@ class Acceptor(Component):
     def do_PREPARE(self, sender, scout_id, ballot_num):  # p1a
         if ballot_num > self.ballot_num:
             self.ballot_num = ballot_num
+            # we've accepted the sender, so it might be the next leader
+            self.event('leader_changed', new_leader=sender)
 
         self.send([scout_id.address], Promise(
                   scout_id=scout_id,

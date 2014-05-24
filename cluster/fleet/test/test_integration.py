@@ -38,34 +38,35 @@ class Tests(unittest.TestCase):
     def test_run(self):
         """A full run of the protocol with four nodes + a seed, and two
         requests, succeeds in agreeing on those requests."""
-        raise unittest.SkipTest
         def add(state, input):
             state += input
             return state, state
         peers = ['N%d' % n for n in range(5)]
         nodes = [self.addNode(p) for p in peers]
         seed = member_replicated.ClusterSeed(nodes.pop(0),
-                                             initial_state=0, 
+                                             initial_state=0,
                                              peers=peers)
         seed.start()
 
+        members = []
         for node in nodes:
             member = member_replicated.ClusterMember(node,
                                                      execute_fn=add,
                                                      peers=peers)
             member.start()
+            members.append(member)
 
         # track events
         # set up some timers for various events
         def request_done(output):
             self.event("request done: %s" % output)
-        def make_request(n):
+        def make_request(n, m):
             self.event("request: %s" % n)
             req = request.Request(member, n, request_done)
             req.start()
         for time, callback in [
-                (1.0, lambda: make_request(5)),
-                (5.0, lambda: make_request(6)),
+                (1.0, lambda: make_request(5, members[1])),
+                (5.0, lambda: make_request(6, members[2])),
                 (10.0, self.network.stop),
             ]:
             self.network.set_timer(time, None, callback)

@@ -16,6 +16,7 @@ class Replica(Component):
         self.next_slot = slot_num
         self.decisions = decisions
         self.peers = peers
+        self.latest_leader = None
 
         # TODO: Can be replaced with 'assert slot_num not in self._decisions'
         # if decision value cannot be None
@@ -39,11 +40,14 @@ class Replica(Component):
     def propose(self, proposal, slot=None):
         """Send (or resend, if slot is specified) a proposal to the leader"""
         if not slot:
-            slot = self.next_slot
-            self.next_slot += 1
+            slot, self.next_slot = self.next_slot, self.next_slot + 1
+        else:
+            # re-proposing, so perhaps the leader is gone?
+            self.latest_leader = None
         self.proposals[slot] = proposal
-        # TODO: find a leader we think is working, when re-proposing
-        leader = self.peers[0]
+        # find a leader we think is working - either the latest we know of, or
+        # ourselves (which may trigger a scout to make us the leader)
+        leader = self.latest_leader or self.address
         self.logger.info("proposing %s at slot %d to leader %s" %
                          (proposal, slot, leader))
         self.send([leader], Propose(slot=slot, proposal=proposal))
@@ -103,7 +107,9 @@ class Replica(Component):
             our_proposal = self.proposals.get(commit_slot)
             if our_proposal is not None and our_proposal != commit_proposal:
                 self.propose(our_proposal)
-    on_decision_event = do_DECISION
+
+    def on_decision_event(self, slot, proposal):
+        self.do_DECISION(sender=self.address, slot=slot, proposal=proposal)
 
     def commit(self, slot, proposal):
         """Actually commit a proposal that is decided and in sequence"""
@@ -122,6 +128,10 @@ class Replica(Component):
             self.state, output = self.execute_fn(self.state, proposal.input)
             self.send([proposal.caller], Invoked(
                       client_id=proposal.client_id, output=output))
+
+    # tracking the leader
+    def on_leader_changed_event(self, new_leader):
+        self.latest_leader = new_leader
 
     # adding new cluster members
 

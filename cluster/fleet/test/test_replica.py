@@ -17,7 +17,7 @@ class Tests(utils.ComponentTestCase):
         self.execute_fn = mock.Mock(
             name='execute_fn', spec=lambda state, input: None)
         self.rep = replica.Replica(self.member, self.execute_fn)
-        self.rep.start('state', 2, {1: PROPOSAL1}, ['p1', 'p2'])
+        self.rep.start('state', 2, {1: PROPOSAL1}, ['p1', 'F999'])
         self.assertNoMessages()
 
     def tearDown(self):
@@ -39,17 +39,17 @@ class Tests(utils.ComponentTestCase):
 
     def test_propose_new(self):
         """A proposeal without a specified slot gets the next slot and is
-        proposed to the first peer"""
+        proposed to self"""
         self.rep.propose(PROPOSAL2)
         self.assertEqual(self.rep.next_slot, 3)
-        self.assertMessage(['p1'], Propose(slot=2, proposal=PROPOSAL2))
+        self.assertMessage(['F999'], Propose(slot=2, proposal=PROPOSAL2))
 
     def test_propose_resend(self):
         """A proposeal with a specified slot is re-transmitted with the same slot"""
         self.rep.next_slot = 3
         self.rep.propose(PROPOSAL2, 2)
         self.assertEqual(self.rep.next_slot, 3)
-        self.assertMessage(['p1'], Propose(slot=2, proposal=PROPOSAL2))
+        self.assertMessage(['F999'], Propose(slot=2, proposal=PROPOSAL2))
 
     def test_catchup_noop(self):
         """If slot_num == next_slot, there's no catchup to do"""
@@ -66,9 +66,9 @@ class Tests(utils.ComponentTestCase):
         # slot 3: proposed, decided
         # slot 4: not proposed, decided
         self.rep.catchup()
-        self.assertMessage(['p1', 'p2'], Catchup(slot=2))
-        self.assertMessage(['p1', 'p2'], Catchup(slot=3))
-        self.assertMessage(['p1', 'p2'], Catchup(slot=4))
+        self.assertMessage(['F999', 'p1'], Catchup(slot=2))
+        self.assertMessage(['F999', 'p1'], Catchup(slot=3))
+        self.assertMessage(['F999', 'p1'], Catchup(slot=4))
         self.assertEqual(propose.call_args_list, [
             mock.call(PROPOSAL2, 2),
             # TODO: doesn't make sense
@@ -132,8 +132,8 @@ class Tests(utils.ComponentTestCase):
 
     def test_join(self):
         """A JOIN from a cluster member gets a warm WELCOME."""
-        self.node.fake_message(Join(), sender='p2')
-        self.assertMessage(['p2'], Welcome(state='state', slot_num=2,
+        self.node.fake_message(Join(), sender='F999')
+        self.assertMessage(['F999'], Welcome(state='state', slot_num=2,
                            decisions={1: PROPOSAL1}))
 
     def test_join_unknown(self):
