@@ -41,6 +41,7 @@ class Leader(Component):
             # note that we don't re-spawn commanders here; if there are undecided
             # proposals, the replicas will re-propose
             self.logger.info("leader becoming active")
+            self.event('leader_change', new_leader=self.address)
             self.active = True
         else:
             self.preempted(ballot_num)
