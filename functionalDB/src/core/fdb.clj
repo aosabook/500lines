@@ -10,15 +10,15 @@
   "returns a pair composed of the id to use for the given entity and the next free running id in the database"
   [db ent]
   (let [top-id (:top-id db)
-          ent-id (:id ent)
-          inceased-id (inc top-id)]
-          (if (= ent-id :db/no-id-yet)
-              [(keyword (str inceased-id)) inceased-id]
-              [ent-id top-id])))
+        ent-id (:id ent)
+        inceased-id (inc top-id)]
+        (if (= ent-id :db/no-id-yet)
+            [(keyword (str inceased-id)) inceased-id]
+            [ent-id top-id])))
 
 (defn entity-at
-  "the entity with the given ent-id at the given time (defualts to the latest time)"
-  ([db ent-id] (entity-at db  (:curr-time db) ent-id))
+  "the entity with the given ent-id at the given time (defaults to the latest time)"
+  ([db ent-id] (entity-at db (:curr-time db) ent-id))
   ([db ts ent-id] (stored-entity (get-in db [:timestamped ts :storage]) ent-id)))
 
 (defn attr-at
@@ -219,7 +219,7 @@
      (map (partial locate-vars-in-query-res needed-vars# ) binded-res#))) ; picking the needed variables from the query result
 
 (defn evolution-of
-  "The sequence of the values of of an entity's attribute, as changed through time"
+  "The sequence of the values of an entity's attribute, as changed through time"
   [db ent-id attr-name]
   (loop [res [] ts (:curr-time db)]
     (if (= -1 ts) (reverse res)

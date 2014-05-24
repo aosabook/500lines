@@ -28,7 +28,7 @@
   []
   (atom (Database. [(Timestamped.
                      (initial-storage) ; storage
-                     (make-index #(vector %3 %2 %1) #(vector %3 %2 %1) #(ref? %) 0) ; VAET - for graph qeries and joins
+                     (make-index #(vector %3 %2 %1) #(vector %3 %2 %1) #(ref? %) 0) ; VAET - for graph queries and joins
                      (make-index #(vector %2 %3 %1) #(vector %3 %1 %2) #(not (not %)) 0) ; AVET - for filtering
                      (make-index #(vector %3 %1 %2) #(vector %2 %3 %1) #(not (not %)) 1) ; VEAT - for filtering
                      (make-index #(vector %1 %2 %3) #(vector %1 %2 %3) #(not (not %)) 2) )] ; EAVT - for filtering
