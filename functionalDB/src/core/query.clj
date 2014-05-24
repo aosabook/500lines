@@ -4,7 +4,7 @@
 
 (defn ind-at
   "inspecting a specific index at a given time, defaults to current. The kind argument mayone of the index name (e.g., AVET)"
-  ([db kind] 
+  ([db kind]
    (ind-at db kind  (:curr-time db)))
   ([db kind ts]
    (kind ((:timestamped db) ts))))
@@ -62,7 +62,7 @@
    a vector in which the first element is the decided index and the second element is a function that knows how to restore an EAV structure from that decided index path structure."
    [db query]
     (let [var-ind (index-of-chaining-variable query)
-            ind-to-use (case var-ind 0 :AVET 1 :VEAT 2 :EAVT)]
+          ind-to-use (case var-ind 0 :AVET 1 :VEAT 2 :EAVT)]
       (ind-at db ind-to-use)))
 
 (defn filter-index
@@ -71,12 +71,12 @@
   [index path-preds]
   (for [ path-pred path-preds
         :let [[lvl1-prd lvl2-prd lvl3-prd] (apply (from-eav index) path-pred)] ; predicates for the first and second level of the index, also keeping the path to later use its meta
-           [k1 l2map] index  ; keys and values of the first level
-           :when (try (lvl1-prd k1) (catch Exception e false))  ; filtering to keep only the keys and the vals of the keys that passed the first level predicate
-           [k2  l3-set] l2map  ; keys and values of the second level
-           :when (try (lvl2-prd k2) (catch Exception e false)) ; filtering to keep only the keys and vals of keys that passed the second level predicate
-           :let [res (set (filter lvl3-prd l3-set))] ]; keep from the set at the third level only the items that passed the predicate on them
-         (with-meta [k1 k2 res] (meta path-pred)))) ; constructed to resemble the EAV structure, while keeping the meta of the query to use it later when extracting variables
+        [k1 l2map] index  ; keys and values of the first level
+        :when (try (lvl1-prd k1) (catch Exception e false))  ; filtering to keep only the keys and the vals of the keys that passed the first level predicate
+        [k2  l3-set] l2map  ; keys and values of the second level
+        :when (try (lvl2-prd k2) (catch Exception e false)) ; filtering to keep only the keys and vals of keys that passed the second level predicate
+        :let [res (set (filter lvl3-prd l3-set))] ]; keep from the set at the third level only the items that passed the predicate on them
+          (with-meta [k1 k2 res] (meta path-pred)))) ; constructed to resemble the EAV structure, while keeping the meta of the query to use it later when extracting variables
 
  (defn items-that-answer-all-conditions
    "takes the sequence of all the items collection, each such collection answered one condition, we test here what are the items that answered all of the conditions
@@ -100,7 +100,7 @@
    returns for a result path a seq of vectors, each vector is a path from the root of the result path to one of its items, each item is followed
    by its variable name as was inserted in the query"
    [index path]
-   (let [seq-path   [ (repeat (first path))  (repeat (second path)) (last path)]
+   (let [seq-path [(repeat (first path)) (repeat (second path)) (last path)]
          meta-path(apply (from-eav index) (map repeat (:db/variable (meta path)))) ; re-ordering the meta to be in the order of the index
          all-path (interleave meta-path seq-path)]
      (apply (partial map vector)  all-path)))
@@ -111,7 +111,7 @@
   attribute, and the value is the binding pair of that found attribute's value"
   [q-res index]
   (let [seq-res-path (mapcat (partial seqify-index-path index)  q-res) ; seq-ing a result to hold the meta
-         res-path (map #(->> %1 (partition 2)(apply (to-eav index))) seq-res-path)] ; making binding pairs
+        res-path (map #(->> %1 (partition 2)(apply (to-eav index))) seq-res-path)] ; making binding pairs
     (reduce #(assoc-in %1  (butlast %2) (last %2)) {} res-path))) ; structuring the pairs into the wanted binding structure
 
 (defn query-index
@@ -140,7 +140,7 @@
   "this function would look for all the binding found in the query result and return the binding that were requested by the user (captured at the vars-set)"
   [vars-set q-res]
   (let [[e-pair av-map]  q-res
-          e-res (resultify-bind-pair vars-set [] e-pair )]
+        e-res (resultify-bind-pair vars-set [] e-pair )]
     (reduce (partial resultify-av-pair vars-set) e-res  av-map)))
 
 (defmacro settify [coll] (set (map str coll)))
