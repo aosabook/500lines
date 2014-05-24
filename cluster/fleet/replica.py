@@ -14,7 +14,7 @@ class Replica(Component):
         self.slot_num = slot_num
         # next slot num for a proposal (may lead slot_num)
         self.next_slot = slot_num
-        self.decisions = decisions
+        self.decisions = decisions.copy()
         self.peers = peers
         self.latest_leader = None
 
