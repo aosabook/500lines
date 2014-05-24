@@ -66,7 +66,7 @@ class Leader(Component):
         self.ballot_num = Ballot(
             (ballot_num or self.ballot_num).n + 1, self.ballot_num.leader)
 
-    def do_PROPOSE(self, slot, proposal):
+    def do_PROPOSE(self, sender, slot, proposal):
         if slot not in self.proposals:
             if self.active:
                 self.proposals[slot] = proposal

@@ -38,7 +38,7 @@ class Node(object):
     def send(self, destinations, message):
         self.logger.debug("sending %s to %s",
                           message, destinations)
-        self.network.send(destinations, message)
+        self.network.send(self.address, destinations, message)
 
     def register(self, component):
         self.components.append(component)
@@ -46,15 +46,15 @@ class Node(object):
     def unregister(self, component):
         self.components.remove(component)
 
-    def receive(self, message):
+    def receive(self, sender, message):
         handler_name = 'do_%s' % type(message).__name__.upper()
 
         for comp in self.components[:]:
             if not hasattr(comp, handler_name):
                 continue
-            comp.logger.debug("received %s", message)
+            comp.logger.debug("received %s from %s", message, sender)
             fn = getattr(comp, handler_name)
-            fn(**message._asdict())
+            fn(sender=sender, **message._asdict())
 
 
 class Timer(object):
@@ -111,10 +111,10 @@ class Network(object):
         heapq.heappush(self.timers, timer)
         return timer
 
-    def send(self, destinations, message):
+    def send(self, sender, destinations, message):
         def _receive(address, message):
             if address in self.nodes:
-                self.nodes[address].receive(message)
+                self.nodes[address].receive(sender, message)
         for dest in destinations:
             if self.rnd.uniform(0, 1.0) > self.DROP_PROB:
                 delay = self.PROP_DELAY + \

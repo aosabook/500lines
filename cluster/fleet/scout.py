@@ -34,7 +34,7 @@ class Scout(Component):
         self.retransmit_timer.cancel()
         self.stop()
 
-    def do_PROMISE(self, scout_id, acceptor, ballot_num, accepted):  # p1b
+    def do_PROMISE(self, sender, scout_id, acceptor, ballot_num, accepted):  # p1b
         if scout_id != self.scout_id:
             return
         if ballot_num == self.ballot_num:

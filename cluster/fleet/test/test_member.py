@@ -43,5 +43,5 @@ class Tests(utils.ComponentTestCase):
     def test_send(self):
         """Message-sending calls through to the node"""
         comp = MyComp(self.member)
-        comp.send(['p1'], Join(requester='test'))
-        self.assertMessage(['p1'], Join(requester='test'))
+        comp.send(['p1'], Join())
+        self.assertMessage(['p1'], Join())

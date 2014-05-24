@@ -16,10 +16,10 @@ class Bootstrap(Component):
 
     def join(self):
         """Try to join the cluster"""
-        self.send([next(self.peers_cycle)], Join(requester=self.address))
+        self.send([next(self.peers_cycle)], Join())
         self.timer = self.set_timer(JOIN_RETRANSMIT, self.join)
 
-    def do_WELCOME(self, state, slot_num, decisions):
+    def do_WELCOME(self, sender, state, slot_num, decisions):
         self.bootstrapped_cb(state, slot_num, decisions)
 
         if self.timer:

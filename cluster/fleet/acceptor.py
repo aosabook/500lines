@@ -10,7 +10,7 @@ class Acceptor(Component):
         self.ballot_num = Ballot(-1, -1)
         self.accepted = defaultdict()  # { (b, s) : p }
 
-    def do_PREPARE(self, scout_id, ballot_num):  # p1a
+    def do_PREPARE(self, sender, scout_id, ballot_num):  # p1a
         if ballot_num > self.ballot_num:
             self.ballot_num = ballot_num
 
@@ -20,7 +20,7 @@ class Acceptor(Component):
                   ballot_num=self.ballot_num,
                   accepted=self.accepted))
 
-    def do_ACCEPT(self, commander_id, ballot_num, slot, proposal):  # p2a
+    def do_ACCEPT(self, sender, commander_id, ballot_num, slot, proposal):  # p2a
         if ballot_num >= self.ballot_num:
             self.ballot_num = ballot_num
             self.accepted[(ballot_num, slot)] = proposal

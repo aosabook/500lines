@@ -65,17 +65,17 @@ class Node(object):
                 timeout = 0.1
             self.sock.settimeout(timeout)
             try:
-                msg, address = self.sock.recvfrom(102400)
+                pkl, _ = self.sock.recvfrom(102400)
             except socket.timeout:
                 continue
-            message = pickle.loads(msg)
-            self.logger.debug("received %s" % message)
+            sender, message = pickle.loads(pkl)
+            self.logger.debug("received %s" % (message,))
             for comp in self.components[:]:
                 try:
                     fn = getattr(comp, 'do_%s' % type(message).__name__.upper())
                 except AttributeError:
                     continue
-                fn(**message._asdict())
+                fn(sender=sender, **message._asdict())
 
     def kill(self):
         self.running = False
@@ -90,7 +90,7 @@ class Node(object):
 
     def send(self, destinations, message):
         self.logger.debug("sending %s %s" % (message, destinations))
-        pkl = pickle.dumps(message)
+        pkl = pickle.dumps((self.address, message))
         for dest in destinations:
             self.sock.sendto(pkl, addr_to_tuple(dest))
 

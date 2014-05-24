@@ -31,7 +31,7 @@ class Commander(Component):
             self.timer.cancel()
         self.stop()
 
-    def do_ACCEPTED(self, commander_id, acceptor, ballot_num):  # p2b
+    def do_ACCEPTED(self, sender, commander_id, acceptor, ballot_num):  # p2b
         if commander_id != self.commander_id:
             return
         if ballot_num == self.ballot_num:

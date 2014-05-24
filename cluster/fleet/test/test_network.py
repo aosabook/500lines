@@ -7,10 +7,10 @@ import threading
 
 
 class TestComp(member.Component):
-    foo_called = False
+    join_called = False
 
-    def do_JOIN(self, requester):
-        self.foo_called = True
+    def do_JOIN(self, sender):
+        self.join_called = True
         self.member.node.kill()
 
 
@@ -32,9 +32,9 @@ class NodeTests(unittest.TestCase):
         comp = TestComp(memb)
         rxthread = threading.Thread(target=receiver.run)
         rxthread.start()
-        sender.send([receiver.address], Join(requester=10))
+        sender.send([receiver.address], Join())
         rxthread.join()
-        self.failUnless(comp.foo_called)
+        self.failUnless(comp.join_called)
 
     def test_timeout(self):
         """Node's timeouts trigger at the appropriate time"""

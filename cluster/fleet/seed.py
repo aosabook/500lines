@@ -15,8 +15,8 @@ class Seed(Component):
         self.seen_peers = set([])
         self.exit_timer = None
 
-    def do_JOIN(self, requester):
-        self.seen_peers.add(requester)
+    def do_JOIN(self, sender):
+        self.seen_peers.add(sender)
         if len(self.seen_peers) <= len(self.peers) / 2:
             return
 

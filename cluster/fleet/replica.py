@@ -25,7 +25,7 @@ class Replica(Component):
 
     # making proposals
 
-    def do_INVOKE(self, caller, client_id, input_value):
+    def do_INVOKE(self, sender, caller, client_id, input_value):
         proposal = Proposal(caller, client_id, input_value)
         if proposal not in self.proposals.viewvalues():
             self.propose(proposal)
@@ -58,7 +58,7 @@ class Replica(Component):
                               (self.slot_num, self.next_slot - 1))
         for slot in xrange(self.slot_num, self.next_slot):
             # ask peers for information regardless
-            self.send(self.peers, Catchup(slot=slot, sender=self.address))
+            self.send(self.peers, Catchup(slot=slot))
             # TODO: Can be replaced with 'if slot in self._proposals and slot not in self._decisions'
             # TODO: if proposal value cannot be None
             if self.proposals.get(slot) and not self.decisions.get(slot):
@@ -69,7 +69,7 @@ class Replica(Component):
                 self.propose(Proposal(None, None, None), slot)
         self.set_timer(CATCHUP_INTERVAL, self.catchup)
 
-    def do_CATCHUP(self, slot, sender):
+    def do_CATCHUP(self, sender, slot):
         # if we have a decision for this proposal, spread the knowledge
         # TODO: Can be replaced with 'if slot in self._decisions' if decision
         # value cannot be None
@@ -79,7 +79,7 @@ class Replica(Component):
 
     # handling decided proposals
 
-    def do_DECISION(self, slot, proposal):
+    def do_DECISION(self, sender, slot, proposal):
         # TODO: Can be replaced with 'if slot in self._decisions' if decision
         # value cannot be None
         if self.decisions.get(slot) is not None:
@@ -125,9 +125,9 @@ class Replica(Component):
 
     # adding new cluster members
 
-    def do_JOIN(self, requester):
-        if requester in self.peers:
-            self.send([requester], Welcome(
+    def do_JOIN(self, sender):
+        if sender in self.peers:
+            self.send([sender], Welcome(
                       state=self.state,
                       slot_num=self.slot_num,
                       decisions=self.decisions))

@@ -19,9 +19,9 @@ class Tests(utils.ComponentTestCase):
         """After start(), the bootstrap sends JOIN to each node in sequence until hearing WELCOME"""
         self.bs.start()
         for recip in 'p1', 'p2', 'p3', 'p1':
-            self.assertMessage([recip], Join(requester=self.node.address))
+            self.assertMessage([recip], Join())
             self.node.tick(JOIN_RETRANSMIT)
-        self.assertMessage(['p2'], Join(requester=self.node.address))
+        self.assertMessage(['p2'], Join())
 
         self.node.fake_message(Welcome(state='st', slot_num='sl', decisions='dec'))
         self.assertEqual(self.cb_args, ('st', 'sl', 'dec'))

@@ -66,9 +66,9 @@ class Tests(utils.ComponentTestCase):
         # slot 3: proposed, decided
         # slot 4: not proposed, decided
         self.rep.catchup()
-        self.assertMessage(['p1', 'p2'], Catchup(slot=2, sender='F999'))
-        self.assertMessage(['p1', 'p2'], Catchup(slot=3, sender='F999'))
-        self.assertMessage(['p1', 'p2'], Catchup(slot=4, sender='F999'))
+        self.assertMessage(['p1', 'p2'], Catchup(slot=2))
+        self.assertMessage(['p1', 'p2'], Catchup(slot=3))
+        self.assertMessage(['p1', 'p2'], Catchup(slot=4))
         self.assertEqual(propose.call_args_list, [
             mock.call(PROPOSAL2, 2),
             # TODO: doesn't make sense
@@ -78,12 +78,12 @@ class Tests(utils.ComponentTestCase):
 
     def test_CATCHUP_decided(self):
         """On CATCHUP for a decided proposal, re-send the DECISION"""
-        self.node.fake_message(Catchup(slot=1, sender='p2'))
-        self.assertMessage(['p2'], Decision(slot=1, proposal=PROPOSAL1))
+        self.node.fake_message(Catchup(slot=1))
+        self.assertMessage(['F999'], Decision(slot=1, proposal=PROPOSAL1))
 
     def test_CATCHUP_undecided(self):
         """On CATCHUP for an undecided proposal, do nothing"""
-        self.node.fake_message(Catchup(slot=3, sender='p2'))
+        self.node.fake_message(Catchup(slot=3))
         self.assertNoMessages()
 
     @mock.patch.object(replica.Replica, 'commit')
@@ -132,6 +132,11 @@ class Tests(utils.ComponentTestCase):
 
     def test_join(self):
         """A JOIN from a cluster member gets a warm WELCOME."""
-        self.node.fake_message(Join(requester='p2'))
+        self.node.fake_message(Join(), sender='p2')
         self.assertMessage(['p2'], Welcome(state='state', slot_num=2,
                            decisions={1: PROPOSAL1}))
+
+    def test_join_unknown(self):
+        """A JOIN from elsewhere gets nothing."""
+        self.node.fake_message(Join(), sender='999')
+        self.assertNoMessages()

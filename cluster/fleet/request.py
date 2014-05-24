@@ -19,7 +19,7 @@ class Request(Component):
                   client_id=self.client_id, input_value=self.n))
         self.invoke_timer = self.set_timer(INVOKE_RETRANSMIT, self.start)
 
-    def do_INVOKED(self, client_id, output):
+    def do_INVOKED(self, sender, client_id, output):
         if client_id != self.client_id:
             return
         self.logger.debug("received output %r" % (output,))
