@@ -18,7 +18,8 @@
   "devDependencies": {},
   "scripts": {
     "start": "node app/server.js",
-    "test": "jshint app/*.js app/public/js/wiki.js; node --debug app/server.js"
+    "prestart": "jshint app/*.js app/public/js/wiki.js",
+    "test": "nodeunit test/system-test.js"
   },
   "author": "Laurie MacDougall Sookraj"
 }

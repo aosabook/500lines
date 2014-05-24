@@ -21,6 +21,12 @@ This is a basic wiki built using node.js with a CouchDB persistence layer, local
 ### Install ###
 * Run npm install to get the required library dependencies in your local workspace.
 
+### Install nodeunit ###
+* Run npm install nodeunit -g
+
+### Run tests ###
+* Run npm test to execute the tests and check that the system is behaving as expected.
+
 ### Run Wiki ###
 * Run the server with npm start.
 * Visit the wiki at [http://localhost:8080/wiki/](http://localhost:8080/wiki/).
