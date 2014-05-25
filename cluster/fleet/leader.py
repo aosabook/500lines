@@ -49,7 +49,7 @@ class Leader(Component):
             # note that we don't re-spawn commanders here; if there are undecided
             # proposals, the replicas will re-propose
             self.logger.info("leader becoming active")
-            self.event('leader_change', new_leader=self.address)
+            self.event('leader_changed', new_leader=self.address)
             self.active = True
         else:
             self.preempted(ballot_num)
@@ -70,7 +70,7 @@ class Leader(Component):
             self.preempted(ballot_num)
 
     def preempted(self, ballot_num):
-        self.logger.info("leader preempted by %s" % (ballot_num.leader,))
+        self.logger.info("leader preempted by %s, but I'm %d" % (ballot_num.leader, self.ballot_num.leader))
         self.active = False
         self.ballot_num = Ballot(
             (ballot_num or self.ballot_num).n + 1, self.ballot_num.leader)
