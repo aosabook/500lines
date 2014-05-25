@@ -61,18 +61,16 @@ class Tests(utils.ComponentTestCase):
         """If next_slot is greater than slot, then send CATCHUPs and (re-)propose"""
         self.rep.next_slot = 5
         self.rep.proposals = {2: PROPOSAL2, 3: PROPOSAL3}
-        self.rep.decisions = {3: PROPOSAL3, 4: PROPOSAL4}
-        # slot 2: proposed, undecided
+        self.rep.decisions = {3: PROPOSAL3, 5: PROPOSAL4}
+        # slot 2: proposed, undecided -> catchup, re-propose
         # slot 3: proposed, decided
-        # slot 4: not proposed, decided
+        # slot 4: not proposed, undecided -> catchup, null proposal
+        # slot 5: not proposed, decided
         self.rep.catchup()
         self.assertMessage(['F999', 'p1'], Catchup(slot=2))
-        self.assertMessage(['F999', 'p1'], Catchup(slot=3))
         self.assertMessage(['F999', 'p1'], Catchup(slot=4))
         self.assertEqual(propose.call_args_list, [
             mock.call(PROPOSAL2, 2),
-            # TODO: doesn't make sense
-            mock.call(Proposal(None, None, None), 3),
             mock.call(Proposal(None, None, None), 4),
         ])
 

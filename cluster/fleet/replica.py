@@ -61,11 +61,13 @@ class Replica(Component):
             self.logger.debug("catching up on %d .. %d" %
                               (self.slot_num, self.next_slot - 1))
         for slot in xrange(self.slot_num, self.next_slot):
+            if slot in self.decisions:
+                continue
             # ask peers for information regardless
             self.send(self.peers, Catchup(slot=slot))
             # TODO: Can be replaced with 'if slot in self._proposals and slot not in self._decisions'
             # TODO: if proposal value cannot be None
-            if self.proposals.get(slot) and not self.decisions.get(slot):
+            if self.proposals.get(slot):
                 # resend a proposal we initiated
                 self.propose(self.proposals[slot], slot)
             else:
