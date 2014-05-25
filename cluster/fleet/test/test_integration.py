@@ -35,14 +35,13 @@ class Tests(unittest.TestCase):
                 return
         self.fail("event %r not found at or around time %f; events: %r" % (name, time, self.events))
 
-    def test_run(self):
-        """A full run of the protocol with four nodes + a seed, and two
-        requests, succeeds in agreeing on those requests."""
+    def setupNetwork(self, count):
         def add(state, input):
             state += input
             return state, state
-        peers = ['N%d' % n for n in range(5)]
+        peers = ['N%d' % n for n in range(count+1)]
         nodes = [self.addNode(p) for p in peers]
+        # TODO: replace seed with a node when it quits
         seed = member_replicated.ClusterSeed(nodes.pop(0),
                                              initial_state=0,
                                              peers=peers)
@@ -55,14 +54,18 @@ class Tests(unittest.TestCase):
                                                      peers=peers)
             member.start()
             members.append(member)
+        return members
 
-        # track events
+    def test_two_requests(self):
+        """A full run of the protocol with four nodes + a seed, and two
+        requests, succeeds in agreeing on those requests."""
+        members = self.setupNetwork(4)
         # set up some timers for various events
         def request_done(output):
             self.event("request done: %s" % output)
         def make_request(n, m):
             self.event("request: %s" % n)
-            req = request.Request(member, n, request_done)
+            req = request.Request(m, n, request_done)
             req.start()
         for time, callback in [
                 (1.0, lambda: make_request(5, members[1])),
@@ -76,3 +79,42 @@ class Tests(unittest.TestCase):
         self.assertEvent(1002.0, 'request done: 5', fuzz=1)
         self.assertEvent(1005.0, 'request: 6')
         self.assertEvent(1005.0, 'request done: 11', fuzz=1)
+
+    def test_parallel_requests(self):
+        """A full run of the protocol with ten parallel requests to different
+        nodes executes each exactly once (regardless of what order they occur
+        or are reported in), within 10 simulated seconds."""
+        N = 10
+        members = self.setupNetwork(4)
+        results = []
+        def request_done(output):
+            results.append(output)
+        for n in range(1, N+1):
+            req = request.Request(members[n % 4], n, results.append)
+            self.network.set_timer(1.0, None, req.start)
+
+        self.network.set_timer(10.0, None, self.network.stop)
+        self.network.run(realtime=False)
+        self.assertEqual((len(results), results and max(results)), (N, N*(N+1)/2),
+                         "got %r" % (results,))
+
+    def test_dead_nodes(self):
+        """A full run of the protocol with a request every second succeeds even
+        when a minority of the nodes fail midway through"""
+        N = 10
+        members = self.setupNetwork(6)  # TODO: really a 7-node cluster, w/ node0=seed
+        results = []
+        def request_done(output):
+            results.append(output)
+        for n in range(1, N+1):
+            req = request.Request(members[n % 3], n, results.append)
+            self.network.set_timer(n+1, None, req.start)
+
+        # kill nodes 3 and 4 at N/2 seconds
+        self.network.set_timer(N/2-1, None, members[3].node.kill)
+        self.network.set_timer(N/2, None, members[4].node.kill)
+
+        self.network.set_timer(N * 3.0, None, self.network.stop)
+        self.network.run(realtime=False)
+        self.assertEqual((len(results), results and max(results)), (N, N*(N+1)/2),
+                         "got %r" % (results,))
