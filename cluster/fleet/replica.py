@@ -1,4 +1,4 @@
-from . import Proposal, CATCHUP_INTERVAL, Propose, Catchup, Decision, Invoked, Welcome
+from . import Proposal, CATCHUP_INTERVAL, LEADER_TIMEOUT, Propose, Catchup, Decision, Invoked, Welcome
 from .member import Component
 
 
@@ -17,6 +17,7 @@ class Replica(Component):
         self.decisions = decisions.copy()
         self.peers = peers
         self.latest_leader = None
+        self.latest_leader_timeout = None
 
         # TODO: Can be replaced with 'assert slot_num not in self._decisions'
         # if decision value cannot be None
@@ -131,6 +132,21 @@ class Replica(Component):
     # tracking the leader
     def on_leader_changed_event(self, new_leader):
         self.latest_leader = new_leader
+        self.leader_alive()
+
+    def do_ACTIVE(self, sender):
+        if sender != self.latest_leader:
+            return
+        self.leader_alive()
+
+    def leader_alive(self):
+        if self.latest_leader_timeout:
+            self.latest_leader_timeout.cancel()
+        def reset_leader():
+            idx = self.peers.index(self.latest_leader)
+            self.latest_leader = self.peers[(idx + 1) % len(self.peers)]
+            self.logger.debug("leader timed out; defaulting to the next one, %s", self.latest_leader)
+        self.latest_leader_timeout = self.set_timer(LEADER_TIMEOUT, reset_leader)
 
     # adding new cluster members
 

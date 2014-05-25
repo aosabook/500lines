@@ -23,7 +23,8 @@ class ClusterMember(Member):
             self.leader = leader_cls(
                 self, unique_id=node.unique_id, peers=peers,
                 commander_cls=commander_cls, scout_cls=scout_cls)
-            # start up the replica, now that its information is ready
+            # start up the replica and leader
+            self.leader.start()
             self.replica.start(state=state, slot_num=slot_num,
                                decisions=decisions, peers=peers)
 

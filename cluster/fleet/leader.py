@@ -1,4 +1,4 @@
-from . import Ballot, CommanderId
+from . import Ballot, CommanderId, LEADER_TIMEOUT, Active
 from .commander import Commander
 from .member import Component
 from .scout import Scout
@@ -16,6 +16,14 @@ class Leader(Component):
         self.scout_cls = scout_cls
         self.scout = None
         self.peers = peers
+
+    def start(self):
+        # reminder others we're active before LEADER_TIMEOUT expires
+        def active():
+            if self.active:
+                self.send(self.peers, Active())
+            self.set_timer(LEADER_TIMEOUT/2.0, active)
+        active()
 
     def spawn_scout(self):
         assert not self.scout

@@ -1,5 +1,6 @@
 from .. import deterministic_network
 from .. import member_replicated
+from .. import leader
 from .. import request
 from nose.tools import eq_
 import unittest
@@ -35,10 +36,11 @@ class Tests(unittest.TestCase):
                 return
         self.fail("event %r not found at or around time %f; events: %r" % (name, time, self.events))
 
-    def setupNetwork(self, count):
+    def setupNetwork(self, count, execute_fn=None):
         def add(state, input):
             state += input
             return state, state
+        execute_fn = execute_fn or add
         peers = ['N%d' % n for n in range(count+1)]
         nodes = [self.addNode(p) for p in peers]
         # TODO: replace seed with a node when it quits
@@ -50,15 +52,14 @@ class Tests(unittest.TestCase):
         members = []
         for node in nodes:
             member = member_replicated.ClusterMember(node,
-                                                     execute_fn=add,
+                                                     execute_fn=execute_fn,
                                                      peers=peers)
             member.start()
             members.append(member)
         return members
 
     def test_two_requests(self):
-        """A full run of the protocol with four nodes + a seed, and two
-        requests, succeeds in agreeing on those requests."""
+        """Full run with non-overlapping requests succeeds."""
         members = self.setupNetwork(4)
         # set up some timers for various events
         def request_done(output):
@@ -81,14 +82,10 @@ class Tests(unittest.TestCase):
         self.assertEvent(1005.0, 'request done: 11', fuzz=1)
 
     def test_parallel_requests(self):
-        """A full run of the protocol with ten parallel requests to different
-        nodes executes each exactly once (regardless of what order they occur
-        or are reported in), within 10 simulated seconds."""
+        """Full run with parallel request succeeds."""
         N = 10
         members = self.setupNetwork(4)
         results = []
-        def request_done(output):
-            results.append(output)
         for n in range(1, N+1):
             req = request.Request(members[n % 4], n, results.append)
             self.network.set_timer(1.0, None, req.start)
@@ -99,13 +96,10 @@ class Tests(unittest.TestCase):
                          "got %r" % (results,))
 
     def test_dead_nodes(self):
-        """A full run of the protocol with a request every second succeeds even
-        when a minority of the nodes fail midway through"""
+        """Full run with requests and some nodes dying midway through succeeds"""
         N = 10
         members = self.setupNetwork(6)  # TODO: really a 7-node cluster, w/ node0=seed
         results = []
-        def request_done(output):
-            results.append(output)
         for n in range(1, N+1):
             req = request.Request(members[n % 3], n, results.append)
             self.network.set_timer(n+1, None, req.start)
@@ -118,3 +112,41 @@ class Tests(unittest.TestCase):
         self.network.run(realtime=False)
         self.assertEqual((len(results), results and max(results)), (N, N*(N+1)/2),
                          "got %r" % (results,))
+
+    def test_dead_leader(self):
+        """Full run with requests and a dying leader succeeds."""
+        N = 10
+        # use a bit-setting function so that we can easily ignore requests made
+        # by the dead node
+        def identity(state, input):
+            return state, input
+        members = self.setupNetwork(6, execute_fn=identity)  # TODO: really a 7-node cluster, w/ node0=seed
+        results = []
+        for n in range(1, N+1):
+            req = request.Request(members[n % 6], n, results.append)
+            self.network.set_timer(n+1, None, req.start)
+
+        def is_leader(m):
+            try:
+                leader_component = [c for c in m.components if isinstance(c, leader.Leader)][0]
+                return leader_component.active
+            except IndexError:
+                return False
+        # kill the leader node at N/2 seconds (it should be stable by then).  Some of the
+        # Request components were attached to this node, so we fake success of those requests
+        # since we don't know what state they're in right now.
+        def kill_leader():
+            active_leaders = [m for m in members if is_leader(m)]
+            if active_leaders:
+                active_leader = active_leaders[0]
+                active_idx = members.index(active_leader)
+                # append the N's that this node was requesting
+                for n in range(1, N+1):
+                    if n % 6 == active_idx:
+                        results.append(n)
+                active_leader.node.kill()
+        self.network.set_timer(N/2, None, kill_leader)
+
+        self.network.set_timer(15, None, self.network.stop)
+        self.network.run(realtime=False)
+        self.assertEqual(set(results), set(xrange(1, N+1)))
