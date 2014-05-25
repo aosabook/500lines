@@ -96,6 +96,11 @@ class Replica(Component):
         self.decisions[slot] = proposal
         self.next_slot = max(self.next_slot, slot + 1)
 
+        # re-propose our proposal if it lost its slot
+        our_proposal = self.proposals.get(slot)
+        if our_proposal is not None and our_proposal != proposal:
+            self.propose(our_proposal)
+
         # execute any pending, decided proposals, eliminating duplicates
         while True:
             commit_proposal = self.decisions.get(self.slot_num)
@@ -104,11 +109,6 @@ class Replica(Component):
             commit_slot, self.slot_num = self.slot_num, self.slot_num + 1
 
             self.commit(commit_slot, commit_proposal)
-
-            # re-propose any of our proposals which have lost in their slot
-            our_proposal = self.proposals.get(commit_slot)
-            if our_proposal is not None and our_proposal != commit_proposal:
-                self.propose(our_proposal)
 
     def on_decision_event(self, slot, proposal):
         self.do_DECISION(sender=self.address, slot=slot, proposal=proposal)
