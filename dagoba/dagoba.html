@@ -18,6 +18,7 @@
     #tests header {
       margin: 3px;
       background-color: aliceblue;
+      font-size:0.1em;
     }
   </style> 
 </head>
@@ -72,16 +73,16 @@
                , { _out: 6, _in: 4, _label: "brother"} 
                , { _out: 6, _in: 5, _label: "brother"} 
                ]
-      , tests: [ { fun: function(G, V, E) { return G.v(1).out().out().run()           /* all grandkids */ } 
+      , tests: [ { fun: function(G, V, E) { return G.v(1).out().out().run()               /* all grandkids */ } 
                  , got: function(G, V, E) { return [ V[6], V[5], V[4], V[3] ] } }
 
-               , { fun: function(G, V, E) { return G.v(1).out().in().out().run()      /* fred is his son's father */ } 
+               , { fun: function(G, V, E) { return G.v(1).out().in().out().run()          /* fred is his son's father */ } 
                  , got: function(G, V, E) { return [ V[2] ] } }
 
-               , { fun: function(G, V, E) { return G.v(1).out().out('daughter').run() /* granddaughter */ } 
+               , { fun: function(G, V, E) { return G.v(1).out().out('daughter').run()     /* granddaughter */ } 
                  , got: function(G, V, E) { return [ V[6] ] } }
 
-               , { fun: function(G, V, E) { return G.v(3).out('sister').run()         /* who is tom's sister? */ } 
+               , { fun: function(G, V, E) { return G.v(3).out('sister').run()             /* who is tom's sister? */ } 
                  , got: function(G, V, E) { return [ V[6] ] } }
                  
                , { fun: function(G, V, E) { return G.v(3).out().in('son').in('son').run() /* who is tom's brother's grandfather? */ } 
@@ -93,43 +94,97 @@
       
       // from https://github.com/entrendipity/helios.js/blob/master/tests/test.js
       
-    , { vertices: [ {"_id":1,"name":"marko","age":29,"_type":"vertex", "dow":["mon", "tue"], "dob":"1984-05-05", "active":true, "salary":"$120,000", "device":{"qty":3,"mobile":{"phone":["iphone", "samsung"], "tablet":["galaxy"]}}}
-                  , {"_id":2,"name":"vadas","age":27,"_type":"vertex", "dow":["mon", "wed", "thu"], "dob":"1986-03-12", "active":false, "salary":"$100,000", "device":{"qty":1,"mobile":{"phone":["iphone"]}}}
-                  , {"_id":3,"name":"lop","lang":"java","_type":"vertex"}
-                  , {"_id":4,"name":"josh","age":32,"_type":"vertex", "dow":["fri"], "dob":"1981-09-01T00:00:00.000Z", "active":true, "salary":"$80,000", "device":{"qty":2,"mobile":{"phone":["iphone"], "tablet":["ipad"]}}}
-                  , {"_id":5,"name":"ripple","lang":"java","_type":"vertex"}
-                  , {"_id":6,"name":"peter","age":35,"_type":"vertex", "dow":["mon","fri"], "dob":"1978-12-13", "active":true, "salary":"$70,000", "device":{"qty":2,"mobile":{"phone":["iphone"], "tablet":["ipad"]}}}
+    , { vertices: [ {"_id":1,"name":"marko","age":29, "dow":["mon", "tue"], "dob":"1984-05-05", "active":true, "salary":"$120,000", "device":{"qty":3,"mobile":{"phone":["iphone", "samsung"], "tablet":["galaxy"]}}}
+                  , {"_id":2,"name":"vadas","age":27, "dow":["mon", "wed", "thu"], "dob":"1986-03-12", "active":false, "salary":"$100,000", "device":{"qty":1,"mobile":{"phone":["iphone"]}}}
+                  , {"_id":3,"name":"lop","lang":"java"}
+                  , {"_id":4,"name":"josh","age":32, "dow":["fri"], "dob":"1981-09-01T00:00:00.000Z", "active":true, "salary":"$80,000", "device":{"qty":2,"mobile":{"phone":["iphone"], "tablet":["ipad"]}}}
+                  , {"_id":5,"name":"ripple","lang":"java"}
+                  , {"_id":6,"name":"peter","age":35, "dow":["mon","fri"], "dob":"1978-12-13", "active":true, "salary":"$70,000", "device":{"qty":2,"mobile":{"phone":["iphone"], "tablet":["ipad"]}}}
                   ]
-      , edges: [ {"_id":7 ,"_outV":1,"_inV":2,"weight":0.5,"_type":"edge","_label":"knows"}
-               , {"_id":8 ,"_outV":1,"_inV":4,"weight":1.0,"_type":"edge","_label":"knows"}
-               , {"_id":9 ,"_outV":1,"_inV":3,"weight":0.4,"_type":"edge","_label":"created"}
-               , {"_id":10,"_outV":4,"_inV":5,"weight":1.0,"_type":"edge","_label":"created"}
-               , {"_id":11,"_outV":4,"_inV":3,"weight":0.4,"_type":"edge","_label":"created"}
-               , {"_id":12,"_outV":6,"_inV":3,"weight":0.2,"_type":"edge","_label":"created"}
+      , edges: [ {"_id":7 ,"_out":1,"_in":2,"weight":0.5,"_label":"knows"}
+               , {"_id":8 ,"_out":1,"_in":4,"weight":1.0,"_label":"knows"}
+               , {"_id":9 ,"_out":1,"_in":3,"weight":0.4,"_label":"created"}
+               , {"_id":10,"_out":4,"_in":5,"weight":1.0,"_label":"created"}
+               , {"_id":11,"_out":4,"_in":3,"weight":0.4,"_label":"created"}
+               , {"_id":12,"_out":6,"_in":3,"weight":0.2,"_label":"created"}
                ]
                
-               // it("should return id 1 & 4", function(){
-               //     var result = g.v(1, 4).emit();
-               //     expect(result.length).to.equal(2);
-               //     expect(result).to.have.deep.property('[0].name', 'marko');
-               //     expect(result).to.have.deep.property('[1].name', 'josh');
-               // });
-               // 
-               // it("should return lang=java", function(){
-               //     var result = g.v({'lang':{$eq:'java'}}).emit();
-               //     expect(result.length).to.equal(2);
-               //     expect(result).to.have.deep.property('[0].name', 'lop');
-               //     expect(result).to.have.deep.property('[1].name', 'ripple');
-               // });
-               // 
-               // it("should return empty Array", function(){
-               //     expect(g.v({'lang':{$eq:'something'}}).emit()).to.have.length(0);
-               // });
-               // 
       , tests: [ { fun: function(G, V, E) { return G.v(1).run()                       /* vertex one */ } 
                  , got: function(G, V, E) { return [ V[1] ] } }
                , { fun: function(G, V, E) { return G.v().run()                        /* all vertices */ }
-                 , got: function(G, V, E) { return [ V[1], V[2], V[3], V[4], V[5], V[6] ] } }
+                 , got: function(G, V, E) { return [ V[6], V[5], V[4], V[3], V[2], V[1] ] } }
+               , { fun: function(G, V, E) { return G.v(1, 4).run()                    /* vertices 1 & 4 */ }
+                 , got: function(G, V, E) { return [ V[4], V[1] ] } }
+               , { fun: function(G, V, E) { return G.v({'lang':'java'}).run()         /* vertices 3 & 5 */ }
+                 , got: function(G, V, E) { return [ V[5], V[3] ] } }
+               , { fun: function(G, V, E) { return G.v({'lang':'asdf'}).run()         /* no matches */ }
+                 , got: function(G, V, E) { return [ ] } }
+                 
+               // edge out
+               
+               , { fun: function(G, V, E) { return G.v().out().run()                  /* all vertices with inbound edges */ }
+                 , got: function(G, V, E) { return [ V[3], V[5], V[4], V[2] ] } }
+               , { fun: function(G, V, E) { return G.v().out('knows').run()           /* all vertices with 'knows' inbound */ }
+                 , got: function(G, V, E) { return [ V[3], V[5], V[4], V[2] ] } }
+               
+               
+                 
+               /*
+
+               it("should filter for 'knows'", function(){
+                   var result = g.v().out('knows').emit();
+                   expect(result.length).to.equal(2);
+                   expect(result).to.have.deep.property('[0].name', 'vadas');
+               });
+
+               it("should filter for 'knows' as array", function(){
+                   var result = g.v().out(['knows']).emit();
+                   expect(result.length).to.equal(2);
+                   expect(result).to.have.deep.property('[0].name', 'vadas');
+               });
+
+               it("should filter for 'knows' & 'created'", function(){
+                   var result = g.v().out('knows', 'created').emit();
+                   expect(result.length).to.equal(6);
+                   expect(result).to.have.deep.property('[0].name', 'lop');
+               });
+
+               it("should filter for 'knows' & 'created' as array", function(){
+                   var result = g.v().out(['knows', 'created']).emit();
+                   expect(result.length).to.equal(6);
+                   expect(result).to.have.deep.property('[0].name', 'lop');
+               });
+
+               it("should get out vertices from id 1", function(){
+                   var result = g.v(1).out().emit();
+                   expect(result.length).to.equal(3);
+                   expect(result).to.have.deep.property('[0].name', 'vadas');
+               });
+
+               it("should return out vertices from id 1 & 4", function(){
+                   var result = g.v(1, 4).out().emit();
+                   expect(result.length).to.equal(5);
+                   expect(result).to.have.deep.property('[0].name', 'vadas');
+                   expect(result).to.have.deep.property('[1].name', 'josh');
+               });
+
+               it("should return out vertices from id 1 & 4 passed in as array", function(){
+                   var result = g.v([1, 4]).out().emit();
+                   expect(result.length).to.equal(5);
+                   expect(result).to.have.deep.property('[0].name', 'vadas');
+                   expect(result).to.have.deep.property('[1].name', 'josh');
+               });
+
+               it("should return out vertices from name=marko", function(){
+                   var result = g.v({'name':{$eq:'marko'}}).out().emit();
+                   expect(result.length).to.equal(3);
+                   expect(result).to.have.deep.property('[0].name', 'vadas');
+               });
+         
+                 */
+                 
+               // wait on attrs they're weird and you can always map over the results
+               // 
                // , { fun: function(G, V, E) { return G.v().id().run()                   /* all ids */ } 
                //   , got: function(G, V, E) { return [ 1,2,3,4,5,6 ] } }
                // , { fun: function(G, V, E) { return G.v(6).outE().label().run()         /* edge label */ } 
@@ -142,16 +197,18 @@
       
     ]
 
+
+    GG = [] // global for console testing
     
     var resultlist = triallist.map(function(trial) {
-      var G = Dagoba.graph()
+      var G = Dagoba.graph() ; GG.push(G)
       trial.vertices.forEach(G.addVertex.bind(G))
       trial.edges.forEach(G.addEdge.bind(G))
       var V = trial.vertices.reduce(function(acc, vertex) {acc[vertex._id] = G.findVertexById(vertex._id); return acc}, {})
       var E = trial.edges   .reduce(function(acc, edge)   {acc[edge._id]   = G.findEdgeById(edge._id);     return acc}, {})
       return [trial, trial.tests.map(function(test) {
         var output, expected
-        if(JSON.stringify(output = test.fun(G, V, E)) == JSON.stringify(expected = test.got(G, V, E)))
+        if(JSON.stringify(output = test.fun(G, V, E)) == JSON.stringify(expected = Dagoba.cleanclone(test.got(G, V, E))[0]))
           return [1, test.fun, output]
           return [0, test.fun, output, expected]
       })]

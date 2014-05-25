@@ -80,7 +80,7 @@ Dagoba.Query.run = function() {
   // var first = Dagoba.Funs[step[0]](graph, args, gremlin, state)
   // eat_gremlins(0, first)
   
-  eat_gremlins(0, stepper(0, {}))
+  eat_gremlins(0, stepper(0))
   
   // process the queue
   while(gremlins.length) {
@@ -95,6 +95,8 @@ Dagoba.Query.run = function() {
   var collection = this.state[this.state.length - 1] || []
   this.result = collection.map(function(gremlin) {return gremlin.vertex})
 
+  this.result = Dagoba.firehooks('postquery', this, this.result)[0]
+
   return this.result
 }
 
@@ -108,16 +110,23 @@ Dagoba.Query.name = function() {
 var methods = ['out', 'in', 'attr', 'outV', 'outE', 'inV', 'inE', 'both', 'bothV', 'bothE', 'filter']
 methods.forEach(function(name) {Dagoba.Query[name] = Dagoba.make_fun(name)})
 
-Dagoba.make_gremlin = function(vertex, state) {
-  return {vertex: vertex, state: state}
-}
-
 Dagoba.Funs = {
   vertex: function(graph, args, gremlin, state) {
-    if(state.status == 'done') return false     // TODO: no arg -> all vertices
-    var vertex  = graph.findVertexById(args[0]) // TODO: accept array
-    var gremlin = Dagoba.make_gremlin(vertex)
-    return {stay: [], go: [gremlin], state: {status: 'done'}}
+    // if(!gremlin) gremlin = Dagoba.make_gremlin()
+    if(!gremlin.state)
+      gremlin.state = graph.findVertices(args)
+    if(gremlin.state.length == 0)
+      return {} // original gremlin dies here...
+    
+    var vert = gremlin.state.pop()
+    var vertex = graph.findVertexById(vert._id)
+    var clone = Dagoba.make_gremlin(vertex)
+    return {stay: [gremlin], go: [clone]}
+  
+    // if(state.status == 'done') return false    
+    // var vertices = args[0] ? graph.findVertexById(args[0]) : graph.vertices
+    // var gremlin = Dagoba.make_gremlin(vertex)
+    // return {stay: [], go: [gremlin], state: {status: 'done'}}
     // return thread(args[0], graph.findVertexById, Dagoba.make_gremlin, ...)
     // return { gremlins: [{ state: 'alive', path: [graph.findVertexById(args[0])] }], history: ['done'] } 
   },
@@ -142,9 +151,9 @@ Dagoba.Funs = {
     return {stay: [gremlin], go: [clone]}
   },
   
-  attr: function(graph, args, gremlin, state) {
-    return graph.findVertexById(gremlin.vertex)[args[0]]
-  },
+  // attr: function(graph, args, gremlin, state) {
+  //   return graph.findVertexById(gremlin.vertex)[args[0]]
+  // },
   
   collector: function(graph, args, gremlin, state) {
     return { state: (state.concat ? state : []).concat(gremlin) }
@@ -153,11 +162,51 @@ Dagoba.Funs = {
 
 
 
+Dagoba.make_gremlin = function(vertex, state) {
+  return {vertex: vertex, state: state}
+}
+
+/*
+
+  Daggr
+  - add template
+  - set heuristic function for determining template based on data
+  - set layout function
+  - set/add/remove data [immutable always for first pass]
+  - render
+  - add effect functions?
+  - add layout/heuristic so they can be referenced by name
+
+*/
+
+
+
+
+Dagoba.hooks = {}
+Dagoba.addhook = function(type, callback) {
+  if(!Dagoba.hooks[type]) Dagoba.hooks[type] = []
+  Dagoba.hooks[type].push(callback)
+}
+
+Dagoba.firehooks = function(type, query) {
+  var args = [].slice.call(arguments, 2)
+  return ((Dagoba.hooks || {})[type] || []).reduce(function(acc, callback) {return callback.apply(query, acc)}, args)
+}
+
+Dagoba.addhook('postquery', Dagoba.uniqueify = function (results) { // THINK: should we inline this and merge&count in the gremlins?
+  return [results.filter(function(item, index, array) {return array.indexOf(item) == index})]
+})
+
+Dagoba.addhook('postquery', Dagoba.cleanclone = function (results) { // THINK: do we always want this?
+  return [results.map(function(item) {return JSON.parse(JSON.stringify(item, function(key, value) {return key[0]=='_' ? undefined : value}))})]
+})
+
+
 
 Dagoba.Graph = {}
-Dagoba.Graph.v = function(v_id) {
+Dagoba.Graph.v = function() {
   var query = Dagoba.query(this)
-  query.add(['vertex', v_id])
+  query.add(['vertex'].concat( [].slice.call(arguments) ))
   return query
 }
 
@@ -192,6 +241,21 @@ Dagoba.Graph.addEdges = function(edges) {
 Dagoba.Graph.findVertexById = function(vertex_id) {
   return this.vertices.first(function(vertex) {return vertex._id == vertex_id})
 }
+
+Dagoba.Graph.findVerticesByIds = function(ids) {
+  return ids.length ? ids.map(this.findVertexById.bind(this)).filter(Boolean) : this.vertices.slice()
+}
+
+Dagoba.Graph.findVertices = function(ids) {
+  return !ids.length || 1+ +ids[0] ? this.findVerticesByIds(ids) : this.searchVertices(ids)
+}
+
+Dagoba.Graph.searchVertices = function(obj) {
+  return this.vertices.filter(
+    function(vertex) {
+      return Object.keys(obj[0]).reduce(
+        function(acc, key) {
+          return acc && obj[0][key] == vertex[key] }, true ) } ) }
 
 Dagoba.Graph.findEdgeById = function(edge_id) {
   return this.edges.first(function(edge) {return edge._id == edge_id})
