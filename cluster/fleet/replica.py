@@ -41,9 +41,6 @@ class Replica(Component):
         """Send (or resend, if slot is specified) a proposal to the leader"""
         if not slot:
             slot, self.next_slot = self.next_slot, self.next_slot + 1
-        else:
-            # re-proposing, so perhaps the leader is gone?
-            self.latest_leader = None
         self.proposals[slot] = proposal
         # find a leader we think is working - either the latest we know of, or
         # ourselves (which may trigger a scout to make us the leader)
@@ -96,7 +93,7 @@ class Replica(Component):
         self.decisions[slot] = proposal
         self.next_slot = max(self.next_slot, slot + 1)
 
-        # re-propose our proposal if it lost its slot
+        # re-propose our proposal in a new slot if it lost its slot
         our_proposal = self.proposals.get(slot)
         if our_proposal is not None and our_proposal != proposal:
             self.propose(our_proposal)
