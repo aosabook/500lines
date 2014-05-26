@@ -225,4 +225,17 @@ Contributors
     <td><a href="https://github.com/catehstn">catehstn</a></td>
     <td>catehuston@gmail.com</td>
   </tr>
+<tr>
+    <td>Yoav Rubin</td>
+    <td>Microsoft</td>
+    <td>In-memory functional database</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/yoavrubin">@yoavrubin</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/yoavrubin">yoavrubin</a></td>
+    <td></td>
+    
+  </tr>
 </table>
