@@ -206,7 +206,7 @@
 (defmacro transact [db & txs]  `(_transact ~db swap! ~@txs))
 
 (defmacro q
-  "querying the database using datalog queries built in a map structure ({:find [variables*] :where [ [e a v]* ]}).
+  "querying the database using datalog queries built in a map structure ({:find [variables*] :where [ [e a v]* ]}). (after the where there are clauses)
   At the moment support only filtering queries, no joins is also assumed."
   [db query]
   `(let [query#  (q-clauses ~(:where query)) ; extracting the query clauses from the query

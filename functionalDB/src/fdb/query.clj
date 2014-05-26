@@ -95,22 +95,21 @@
   [relevant-items path]
     (update-in path [2] CS/intersection relevant-items ))
 
- (defn seqify-index-path
-   "A result-path is a path whose leaves are the items representing the items of the query chaining variable. This function
-   returns for a result path a seq of vectors, each vector is a path from the root of the result path to one of its items, each item is followed
-   by its variable name as was inserted in the query"
-   [index path]
-   (let [seq-path [(repeat (first path)) (repeat (second path)) (last path)]
-         meta-path(apply (from-eav index) (map repeat (:db/variable (meta path)))) ; re-ordering the meta to be in the order of the index
-         all-path (interleave meta-path seq-path)]
-     (apply (partial map vector)  all-path)))
+ (defn combine-path-and-meta
+   "This function returns for a (result) path a seq of vectors, each vector is a path from the root of the result path to one of its items, each item
+   is followed by its variable name as was inserted in the query (which was kept at the metadata of the (result) path."
+   [from-eav-fn path]
+   (let [expanded-path [(repeat (first path)) (repeat (second path)) (last path)] ; there may be several leaves in each path, so repeating the first and second elements
+         meta-of-path(apply from-eav-fn (map repeat (:db/variable (meta path)))) ; re-ordering the path's meta to be in the order of the index
+         combined-data-and-meta-path (interleave meta-of-path expanded-path)]
+     (apply (partial map vector) combined-data-and-meta-path))) ; returning a seq of vectors, each one is a single result with its meta
 
 (defn bind-variables-to-query
-  "A function that receives the query results and restructues them to be a binding structure which resembles in its shape to an entity.
-   The binding structure is a map whose key is a binding pair of a found entity-id, and the value is also a map, where its key is the binding pair of a found
-  attribute, and the value is the binding pair of that found attribute's value"
+  "A function that receives the query results (seq of tripplets) and transforms each of them into a binding structure.
+   A binding structure is a map whose key is a binding pair of an entity-id, and the value is also a map, where its key is a binding pair
+   of an attribute, and the value is a binding pair of that found attribute's value. The symbol name in each binding pair is extracted from the trippet's metadata"
   [q-res index]
-  (let [seq-res-path (mapcat (partial seqify-index-path index)  q-res) ; seq-ing a result to hold the meta
+  (let [seq-res-path (mapcat (partial combine-path-and-meta (from-eav index)) q-res) ; seq-ing a result to hold the meta
         res-path (map #(->> %1 (partition 2)(apply (to-eav index))) seq-res-path)] ; making binding pairs
     (reduce #(assoc-in %1  (butlast %2) (last %2)) {} res-path))) ; structuring the pairs into the wanted binding structure
 
