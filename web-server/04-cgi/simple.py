@@ -2,6 +2,6 @@ from datetime import datetime
 print '''\
 <html>
 <body>
-<p>Generated %s</p>
+<p>Generated {0}</p>
 </body>
-</html>''' % datetime.now()
+</html>'''.format(datetime.now())

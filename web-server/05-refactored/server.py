@@ -13,11 +13,11 @@ class base_case(object):
 
     def handle_file(self, handler, full_path):
         try:
-            with open(full_path, 'r') as input:
-                content = input.read()
+            with open(full_path, 'rb') as reader:
+                content = reader.read()
             handler.send_content(content)
-        except IOError, msg:
-            msg = "'%s' cannot be read: %s" % (full_path, msg)
+        except IOError as msg:
+            msg = "'{0}' cannot be read: {1}".format(full_path, msg)
             handler.handle_error(msg)
 
     def index_path(self, handler):
@@ -38,7 +38,7 @@ class case_no_file(base_case):
         return not os.path.exists(handler.full_path)
 
     def act(self, handler):
-        raise ServerException("'%s' not found" % handler.path)
+        raise ServerException("'{0}' not found".format(handler.path))
 
 #-------------------------------------------------------------------------------
 
@@ -93,7 +93,7 @@ class case_directory_no_index_file(base_case):
         <html>
         <body>
         <ul>
-        %s
+        {0}
         </ul>
         </body>
         </html>
@@ -102,11 +102,11 @@ class case_directory_no_index_file(base_case):
     def list_dir(self, handler, full_path):
         try:
             entries = os.listdir(full_path)
-            bullets = ['<li>%s</li>' % e for e in entries if not e.startswith('.')]
-            page = self.Listing_Page % '\n'.join(bullets)
+            bullets = ['<li>{0}</li>'.format(e) for e in entries if not e.startswith('.')]
+            page = self.Listing_Page.format('\n'.join(bullets))
             handler.send_content(page)
-        except OSError, msg:
-            msg = "'%s' cannot be listed: %s" % (self.path, msg)
+        except OSError as msg:
+            msg = "'{0}' cannot be listed: {1}".format(self.path, msg)
             handler.handle_error(msg)
 
     def test(self, handler):
@@ -125,7 +125,7 @@ class case_always_fail(base_case):
         return True
 
     def act(self, handler):
-        raise ServerException("Unknown object '%s'" % handler.path)
+        raise ServerException("Unknown object '{0}'".format(handler.path))
 
 #-------------------------------------------------------------------------------
 
@@ -146,8 +146,8 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     Error_Page = """\
         <html>
         <body>
-        <h1>Error accessing %(path)s</h1>
-        <p>%(msg)s</p>
+        <h1>Error accessing {path}</h1>
+        <p>{msg}</p>
         </body>
         </html>
         """
@@ -166,13 +166,12 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                     break
 
         # Handle errors.
-        except Exception, msg:
+        except Exception as msg:
             self.handle_error(msg)
 
     # Handle unknown objects.
     def handle_error(self, msg):
-        content = self.Error_Page % {'path' : self.path,
-                                     'msg'  : msg}
+        content = self.Error_Page.format(path=self.path, msg=msg)
         self.send_content(content, 404)
 
     # Send actual content.

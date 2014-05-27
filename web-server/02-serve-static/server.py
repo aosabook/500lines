@@ -18,8 +18,8 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     Error_Page = """\
         <html>
         <body>
-        <h1>Error accessing %(path)s</h1>
-        <p>%(msg)s</p>
+        <h1>Error accessing {path}</h1>
+        <p>{msg}</p>
         </body>
         </html>
         """
@@ -33,7 +33,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
             # It doesn't exist...
             if not os.path.exists(full_path):
-                raise ServerException("'%s' not found" % self.path)
+                raise ServerException("'{0}' not found".format(self.path))
 
             # ...it's a file...
             elif os.path.isfile(full_path):
@@ -41,25 +41,24 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
             # ...it's something we don't handle.
             else:
-                raise ServerException("Unknown object '%s'" % self.path)
+                raise ServerException("Unknown object '{0}'".format(self.path))
 
         # Handle errors.
-        except Exception, msg:
+        except Exception as msg:
             self.handle_error(msg)
 
     def handle_file(self, full_path):
         try:
-            with open(full_path, 'r') as input:
-                content = input.read()
+            with open(full_path, 'rb') as reader:
+                content = reader.read()
             self.send_content(content)
-        except IOError, msg:
-            msg = "'%s' cannot be read: %s" % (self.path, msg)
+        except IOError as msg:
+            msg = "'{0}' cannot be read: {1}".format(self.path, msg)
             self.handle_error(msg)
 
     # Handle unknown objects.
     def handle_error(self, msg):
-        content = self.Error_Page % {'path' : self.path,
-                                     'msg'  : msg}
+        content = self.Error_Page.format(path=self.path, msg=msg)
         self.send_content(content)
 
     # Send actual content.

@@ -15,7 +15,7 @@ class case_no_file(object):
         return not os.path.exists(handler.full_path)
 
     def act(self, handler):
-        raise ServerException("'%s' not found" % handler.path)
+        raise ServerException("'{0}' not found".format(handler.path))
 
 #-------------------------------------------------------------------------------
 
@@ -79,7 +79,7 @@ class case_always_fail(object):
         return True
 
     def act(self, handler):
-        raise ServerException("Unknown object '%s'" % handler.path)
+        raise ServerException("Unknown object '{0}'".format(handler.path))
 
 #-------------------------------------------------------------------------------
 
@@ -100,8 +100,8 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     Error_Page = """\
         <html>
         <body>
-        <h1>Error accessing %(path)s</h1>
-        <p>%(msg)s</p>
+        <h1>Error accessing {path}</h1>
+        <p>{msg}</p>
         </body>
         </html>
         """
@@ -111,7 +111,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         <html>
         <body>
         <ul>
-        %s
+        {0}
         </ul>
         </body>
         </html>
@@ -131,26 +131,26 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                     break
 
         # Handle errors.
-        except Exception, msg:
+        except Exception as msg:
             self.handle_error(msg)
 
     def handle_file(self, full_path):
         try:
-            with open(full_path, 'r') as input:
-                content = input.read()
+            with open(full_path, 'rb') as reader:
+                content = reader.read()
             self.send_content(content)
-        except IOError, msg:
-            msg = "'%s' cannot be read: %s" % (self.path, msg)
+        except IOError as msg:
+            msg = "'{0}' cannot be read: {1}".format(self.path, msg)
             self.handle_error(msg)
 
     def list_dir(self, full_path):
         try:
             entries = os.listdir(full_path)
-            bullets = ['<li>%s</li>' % e for e in entries if not e.startswith('.')]
-            page = self.Listing_Page % '\n'.join(bullets)
+            bullets = ['<li>{0}</li>'.format(e) for e in entries if not e.startswith('.')]
+            page = self.Listing_Page.format('\n'.join(bullets))
             self.send_content(page)
-        except OSError, msg:
-            msg = "'%s' cannot be listed: %s" % (self.path, msg)
+        except OSError as msg:
+            msg = "'{0}' cannot be listed: {1}".format(self.path, msg)
             self.handle_error(msg)
 
     def run_cgi(self, full_path):
@@ -163,8 +163,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     # Handle unknown objects.
     def handle_error(self, msg):
-        content = self.Error_Page % {'path' : self.path,
-                                     'msg'  : msg}
+        content = self.Error_Page.format(path=self.path, msg=msg)
         self.send_content(content, 404)
 
     # Send actual content.
