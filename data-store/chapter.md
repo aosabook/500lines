@@ -4,6 +4,29 @@ DBDB
 Dog Bed Database (it's like a couch, but not as nice).
 
 
+Memory
+------
+
+Maybe it's always been about memory.
+
+I remember the first time I tried to explain a problem to a Professional. Nora
+listened patiently while I explained the problem...and realised the solution.
+My BASIC program was eating into video memory.
+
+Learning how to allocate memory with malloc, to stick it into a struct of
+pointers so I could sort geo locations by latitude then longnitude.
+
+I kind of understood that Erlang didn't have to copy data between processes,
+even though it was "strictly message-passing", because everything was
+immutable.
+
+I'm not sure that really sank in until I read about Clojure's data structures,
+in 2009.
+
+Who'd have thought that learning CouchDB in 2013 would just make me smile and
+nod?
+
+
 Intro to problem
 ----------------
 
