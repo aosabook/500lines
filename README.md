@@ -218,14 +218,14 @@ Contributors
     <td>Image Filter app</td>
     <td>
         <ul>
+            <li><a href="http://www.accidentallyincode.com/">www.accidentallyincode.com/</a></li>
             <li><a href="https://twitter.com/catehstn">@catehstn</a></li>
         </ul>
     </td>
-    <td>catehstn</td>
     <td><a href="https://github.com/catehstn">catehstn</a></td>
     <td>catehuston@gmail.com</td>
   </tr>
-<tr>
+  <tr>
     <td>Yoav Rubin</td>
     <td>Microsoft</td>
     <td>In-memory functional database</td>
