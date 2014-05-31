@@ -248,8 +248,16 @@ implementation of Ray intersection. Intersection with arbitrary objects is much 
 penalty can be offset by using increasingly sophisticated algorithms for collision detection. Often, these will involve partitioning the scene, and only testing for intersection in partitions that are hit by the ray.
 
 #### Transforming Nodes
-A selected node can be moved, resized, or colorized.
+A selected node can be moved, resized, or colorized. For color and scale, the scene passes along the function to the selected `Node`, if it exists. For example:
+```
+# scene.py, line 95
+def rotate_color(self, forwards):
+    """ Rotate the color of the currently selected node """
+    if self.selected_node is None: return
+    self.selected_node.rotate_color(forwards)
 
+```
+For translation, the scene needs to do more of the work.
 ##### Color
 Colorization is accomplished with a very simplistic list of possible colors. The user can cycle through the colors with the arrow keys. The selected
 color is passed to OpenGL with `glColor` when the Node is rendered.
