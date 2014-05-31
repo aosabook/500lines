@@ -18,7 +18,6 @@ class Node(object):
         self.translation = numpy.identity(4)
         self.scalemat = numpy.identity(4)
         self.selected = False
-        self.scale_mult = 1.0
 
     def render(self):
         """ renders the item to the screen """
@@ -35,7 +34,7 @@ class Node(object):
             self.color_index = color.MAX_COLOR
 
     def scale(self, up):
-        s = self.scale_mult * 1.1 if up else 0.9
+        s =  1.1 if up else 0.9
         self.scalemat = numpy.dot(self.scalemat, scaling([s, s, s]))
         self.aabb.scale(s)
 

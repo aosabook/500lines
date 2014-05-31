@@ -175,13 +175,6 @@ def translate(self, x, y, z):
 The viewer retrieves the `Interaction` camera location during rendering to use in a `glTranslated` call.
 
 #### Picking
-Several techniques can be used for selecting Nodes in a modeller.
-
-<!--- TODO: Possibly remove this paragraph -->
-One simple technique is to render each nodes in a unique color into a hidden buffer, then query the scene for the color of the pixel under the cursor.
-This technique is very accurate, but there is a high performance cost to pay for it. Rendering the scene requires many round trips of reading and writing to video memory, which is an expensive operation. Therefore, most production
-modellers favour a selection algorithm that leverages the scene data structure.
-
 In this project, we implement a very simple ray-based picking [algorithm](http://www.opengl-tutorial.org/miscellaneous/clicking-on-objects/picking-with-custom-ray-obb-function/). Each node stores an Axis-Aligned Bounding Box which is an approximation of the
 space it occupies. When the user clicks in the window, we use the current projection matrix to generate a ray that represents the mouse click, as if the mouse pointer shoots a ray into the scene.
 ```
@@ -235,11 +228,10 @@ The Ray-AABB selection approach is very simple to understand and implement. Howe
 the AABB in the centre of each of its planes. However if the user clicks on the corner of the Sphere's AABB, the collision will be detected with the Sphere, even if the user intended to click
 past the Sphere onto something behind it.
 
-To address this limitation, a production modeller will use a more sophisticated selection algorithm. These algorithms are usually based on Ray-Object intersection, but there are many improvements that
+To address this limitation, a production modeller would use a more sophisticated selection algorithm. These algorithms are usually based on Ray-Object intersection, but there are many improvements that
 can be made over the AABB implementation. For example, the picking algorithm could do an exact intersection test with each type of Node. Doing exact intersection means that each type of Node must have its own
-implementation of Ray intersection. Intersection with arbitrary objects is much more complex than AABB intersection, so there is also a performance penalty to be paid for using exact intersection. The performance
-penalty can be assuages by using increasingly sophisticated algorithms for collision detection. Often, these will involve partitioning the scene into Cubes, and only testing for intersection in cubes that the ray
-actually hits.
+implementation of Ray intersection. Intersection with arbitrary objects is much more complex than AABB intersection, so there is also a performance penalty for using exact intersection. The performance
+penalty can be offset by using increasingly sophisticated algorithms for collision detection. Often, these will involve partitioning the scene, and only testing for intersection in partitions that are hit by the ray.
 
 #### Transformating Nodes
 A selected node can be moved, resized, or colorized.
@@ -253,16 +245,50 @@ Each Node stores a current matrix that stores its scale. A matrix that scales by
 
 ![Scale Matrix](scale.png?raw=true)
 
-When the user modifies the scale of a Node, a scaling matrix for the modification is constructed and multiplied into the current scaling matrix for
-the Node.
+The function `scaling` returns such a matrix, given a list represting the `x`, `y`, and `z` scaling factors.
+When the user modifies the scale of a Node, the resulting scaling matrix is multiplied into the current scaling matrix for the Node.
+
+```
+# node.py, line 35
+def scale(self, up):
+    s =  1.1 if up else 0.9
+    self.scalemat = numpy.dot(self.scalemat, scaling([s, s, s]))
+    self.aabb.scale(s)
+```
 
 ##### Translation
 In order to translate a node, we use the same ray calculation from picking. We pass the ray that represents the current mouse location in to the scene's
 `move` function. The new location of the Node should be on the ray.
-In order to determine where on the ray to place the Node, we need to know the Node's distance from the camera. Since the Node's location and distance
-from the camera are available when it's selected, we store that information at selection time so that we can use it here.
-With the distance from the camera, we can place the Node at that distance along the ray. We then calculate the vector difference between the new and old
-locations, and translate the node by that difference.
+In order to determine where on the ray to place the Node, we need to know the Node's distance from the camera. Since we stored the Node's location and distance
+from the camera when it was selected (in the `pick` function), we can use that data here.
+We find the point that is the same distance from the camera along the target ray and we calculate the vector difference between the new and old locations.
+We then translate the `Node` by the resulting vector.
+
+```
+# scene.py, line 52
+def move(self, start, direction, inv_modelview):
+    """ Move the selected node, if there is one.
+        Consume:  start, direction  describes the Ray to move to
+                  mat               is the modelview matrix for the scene """
+    if self.selected_node is None: return
+
+    # Find the current depth and location of the selected node
+    node = self.selected_node
+    depth = node.depth
+    oldloc = node.selected_loc
+
+    # The new location of the node is the same depth along the new ray
+    newloc = (start + direction * depth)
+
+    # transform the translation with the modelview matrix
+    translation = newloc - oldloc
+    pre_tran = numpy.array([translation[0], translation[1], translation[2], 0])
+    translation = inv_modelview.dot(pre_tran)
+
+    # translate the node and track its location
+    node.translate(translation[0], translation[1], translation[2])
+    node.selected_loc = newloc
+```
 
 As with scale, each node stores a matrix which represents its translation. A translation matrix looks like:
 
@@ -271,14 +297,35 @@ As with scale, each node stores a matrix which represents its translation. A tra
 When the node is translated, we construct a new translation matrix for the
 current translation, and multiply it into the Node's translation matrix.
 
+```
+# node.py, line 26
+def translate(self, x, y, z):
+    self.translation = numpy.dot(self.translation, translation([x, y, z]))
+```
+
 #### Placing Nodes
-Node placement uses some of the concepts from picking. In particular, we make use of the ray calculation.
+Node placement uses techniques from both picking and translation. We use the same ray calculation for the current mouse location to determine where to place the node.
 To place a new node, we calculate the generate a ray that represents the mouse cursor in the scene.
 We create a new node which is originally at the origin, and we translate it to a point on the ray, a fixed distance from the camera.
-Placing the new Node at a fixed distance from the camera rather is rather limiting.
 
-Usually, a production graphics environment would provide a more sophisticated placement algorithm, in the form of 'ghosting'. Ghosting is a tentative
-placement of the object, where the user can modify the object's parameters like size and position before finalizing the placement. Ghosting is indicated
-by making the tentative placement render as partially transparent, to differentiate it.
+```
+def place(self, shape, start, direction, inv_modelview):
+    """ Place a new node.
+        Consume:  shape             the shape to add
+                  start, direction  describes the Ray to move to
+                  inv_modelview     is the inverse modelview matrix for the scene """
+    new_node = None
+    if shape == 'sphere': new_node = Sphere()
+    elif shape == 'cube': new_node = Cube()
 
-This project does not implement ghosting.
+    self.add_node(new_node)
+
+    # place the node at the cursor in camera-space
+    translation = (start + direction * self.PLACE_DEPTH)
+
+    # convert the translation to world-space
+    pre_tran = numpy.array([translation[0], translation[1], translation[2], 1])
+    translation = inv_modelview.dot(pre_tran)
+
+    new_node.translate(translation[0], translation[1], translation[2])
+```
