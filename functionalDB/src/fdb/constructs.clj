@@ -50,7 +50,15 @@
   ([db ent-id attr-name]  (:value (attr-at db ent-id attr-name)))
   ([db ent-id attr-name ts] (:value (attr-at db ent-id attr-name ts))))
 
+(defn collify [x] (if (coll? x) x [x]))
 (defn indices[] [:VAET :AVET :VEAT :EAVT])
+
+(defn ind-at
+  "inspecting a specific index at a given time, defaults to current. The kind argument mayone of the index name (e.g., AVET)"
+  ([db kind]
+   (ind-at db kind  (:curr-time db)))
+  ([db kind ts]
+   (kind ((:timestamped db) ts))))
 
 (defn make-entity
   "creates an entity, if id is not supplied, a running id is assigned to the entity"
