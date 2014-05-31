@@ -5,26 +5,26 @@ include a 3D modelling component to their software.
 ## Modeller structure
 
 ### Setting the Scene
-The first architectural challenge we encounter when designind a 3d modeller is the representation of the objects in the scene.
+The first architectural challenge we encounter when designing a 3d modeller is the representation of the objects in the scene.
 We would like to design the scene so that it can store all types of objects that we want to include, and so that it can be easily extended to
 store new types of objects.
 
-We use a base class to represent an object that can be placed in the scene, called a "Node". This base class allows
+We use a base class to represent an object that can be placed in the scene, called a `Node`. This base class allows
 us to reason about the scene abstractly. The scene object doesn't need to know about the details of every type of object it displays,
-it only needs to know that it contains a list of nodes. Each type of node then defines its own behaviour for rendering itself and for any other necessar,
+it only needs to know that it contains a list of nodes. Each type of `Node` defines its own behaviour for rendering itself and for any other necessary
 interactions.
-In this project, the nodes are all primitive shapes. We have a Sphere and a Cube available. More shapes can be added easily by extending the Node class again.
+In this project,`Sphere` and a `Cube` available. More shapes can be added easily by extending the Node class again.
 
 The abstract Node class contains all of the logic common to all nodes. In this project, most of the code is common.
 The Primitive class contains the code to render a primitive. It requires a call list name for rendering. An OpenGL Call List is a series of
 OpenGL calls that are bundled together and named. The calls can be dispatched with `glClassList(LIST_NAME)`.
-Finally, the concrete primitives (Sphere and Cube) define the call list required to render them. They could also specialize any of the other Node behaviour, if necessary.
+Finally, the concrete primitives (`Sphere` and `Cube`) define the call list required to render them. They could also specialize any of the other `Node` behaviour, if necessary.
 
-Using a class structure like this means that the Node class is easily extensible. As an example of the extensibility, consider adding a Node type that combines multiple
-primitived, like a figure for a character. We can easily extend the node class for this situation by creating a new class `class Figure(Node)` which will override some of
-the functionality of the Node manage a list of sub-nodes.
+Using a class structure like this means that the `Node` class is easily extensible. As an example of the extensibility, consider adding a `Node` type that combines multiple
+primitived, like a figure for a character. We can easily extend the `Node` class for this situation by creating a new class `class Figure(Node)` which will override some of
+the functionality of the `Node` manage a list of sub-nodes.
 
-By making the Node class extensible in this way, we are able to add new types of shapes to the scene without changing any of the other code around scene
+By making the `Node` class extensible in this way, we are able to add new types of shapes to the scene without changing any of the other code around scene
 manipulation and rendering.
 
 ### Rendering
@@ -54,7 +54,7 @@ software has moved on to using Modern OpenGL.
 Legacy OpenGL can be considered a State Machine. The API to enable/disable functionality modifies the current state of the OpenGL machine.
 When a polygon render call is made, the current state of the machine is used.
 OpenGL also stores two matrices.  These are called the "ModelView" matrix and the "Projection" matrix.
-The ModelView matrix determines the transformation of the current polyon within the scene. The Projection matrix is used to project that polygon onto the screen.
+The ModelView matrix determines the transformation of the current polygon within the scene. The Projection matrix is used to project that polygon onto the screen.
 The matrices are manipulated with `glMultMatrix`, which multiplies the current matrix by the matrix parameter.
 OpenGL also maintains a stack of matrices. The programmer can choose to push and pop from this stack. This facilitates traversing a scene graph for rendering purposes, as we will discuss later.
 
@@ -74,9 +74,9 @@ or have an explanation here.
 
 
 #### Traversing the Scene
-We leverage the data structure of the scene for rendering. The render function of the scene traverses the list of Nodes in the scene and
-calls the `render` function for each node. We make sure of the aforementioned OpenGL Push and Pop Matrix functions for node rendering.
-For each node, the steps to render the node are:
+We leverage the data structure of the scene for rendering. The render function of the scene traverses the list of `Node` in the scene and
+calls the `render` function for each `Node`. We make sure of the aforementioned OpenGL Push and Pop Matrix functions for `Node` rendering.
+For each `Node`, the steps to render the `Node` are:
 
 ```
 Push the current OpenGL ModelView Matrix onto the stack
@@ -87,15 +87,15 @@ Pop the OpenGL ModelView matrix
 
 The `PushMatrix` and `PopMatrix` functions in OpenGL provide us access to a stack object for saving the status of the matrix.
 This suits us perfectly, as we're traversing a graph of nodes.
-The OpenGL matrix stack is used to store the matrix state of each node when it is rendered.
+The OpenGL matrix stack is used to store the matrix state of each `Node` when it is rendered.
 
 Manipulating the ModelView matrix allows us to have a single render list for each type of primitive. For example, the render list for the Cube primitive draws a cube at the origin with sides of length 1.
 By setting the OpenGL matrix, we can change the size and location the rendered cube.
 
-Again, the Matrix stack functionality of OpenGL allows us to extend the Node class to contain nested nodes. If there are a nested nodes, we simply
+Again, the Matrix stack functionality of OpenGL allows us to extend the `Node` class to contain nested nodes. If there are a nested nodes, we simply
 push onto the stack before we render a nested node.
 
-Thus, using the scene traversal and OpenGL Matrix Stack allows us to implemented the Node class in an extensible way, and allows each Node's render code
+Thus, using the scene traversal and OpenGL Matrix Stack allows us to implemented the `Node` class in an extensible way, and allows each `Node`'s render code
 to be independent from its location in the scene.
 
 
@@ -152,7 +152,7 @@ We interact with the trackball using the `drag_to` function with the starting an
 ```
 self.trackball.drag_to(self.mouse_loc[0], self.mouse_loc[1], -dx, -dy)
 ```
-The resulting rotation matrix is retreived as `trackball.matrix` in the viewer when the scene is rendered.
+The resulting rotation matrix is retrieved as `trackball.matrix` in the viewer when the scene is rendered.
 
 Rotations are traditionally represented in one of two ways. The first is a rotation value around each axis. You could store this as a 3-tuple of floating point numbers.
 The other common representation for rotations is a quaternion. Using quaternions has numerous benefits over per-axis rotation. In particular, they are more numerically stable. Using quaternions avoids some tricky problems like [Gimbal Lock](http://en.wikipedia.org/wiki/Gimbal_lock).
@@ -233,7 +233,7 @@ can be made over the AABB implementation. For example, the picking algorithm cou
 implementation of Ray intersection. Intersection with arbitrary objects is much more complex than AABB intersection, so there is also a performance penalty for using exact intersection. The performance
 penalty can be offset by using increasingly sophisticated algorithms for collision detection. Often, these will involve partitioning the scene, and only testing for intersection in partitions that are hit by the ray.
 
-#### Transformating Nodes
+#### Transforming Nodes
 A selected node can be moved, resized, or colorized.
 
 ##### Color
@@ -245,7 +245,7 @@ Each Node stores a current matrix that stores its scale. A matrix that scales by
 
 ![Scale Matrix](scale.png?raw=true)
 
-The function `scaling` returns such a matrix, given a list represting the `x`, `y`, and `z` scaling factors.
+The function `scaling` returns such a matrix, given a list representing the `x`, `y`, and `z` scaling factors.
 When the user modifies the scale of a Node, the resulting scaling matrix is multiplied into the current scaling matrix for the Node.
 
 ```
