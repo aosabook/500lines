@@ -52,7 +52,7 @@ class Scene(object):
     def move(self, start, direction, inv_modelview):
         """ Move the selected node, if there is one.
             Consume:  start, direction  describes the Ray to move to
-                      mat               is the modelview matrix for the scene """
+                      inv_modelview     is the inverse modelview matrix for the scene """
         if self.selected_node is None: return
 
         # Find the current depth and location of the selected node
@@ -76,7 +76,7 @@ class Scene(object):
         """ Place a new node.
             Consume:  shape             the shape to add
                       start, direction  describes the Ray to move to
-                      mat               is the modelview matrix for the scene """
+                      inv_modelview     is the inverse modelview matrix for the scene """
         new_node = None
         if shape == 'sphere': new_node = Sphere()
         elif shape == 'cube': new_node = Cube()

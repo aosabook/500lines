@@ -1,6 +1,9 @@
 ## Intro
 3D modelling software is widely used as a component of Computer Assisted Design (CAD) software. For example, AutoCAD, Maya, Blender, and others all
-include a 3D modelling component to their software.
+include a 3D modeller as a major component of the tool. At its core, a 3D Modeller allows a user to manipulate objects in a 3 dimensional scene.
+A 3D modeller includes a rendering system to display the scene, an system for handling user input, and a data structure to store the scene itself.
+
+A production 3D modeller would also include functionality to save and load scenes from disk, create animations, do physical simulation, and add many other features.
 
 ## Modeller structure
 
@@ -16,13 +19,11 @@ it only needs to know that they are `Node`s. Each type of `Node` defines its own
 interactions.
 In this project,`Sphere` and a `Cube` available. More shapes can be added easily by extending the Node class again.
 
-The abstract Node class contains all of the logic common to all nodes. In this project, most of the code is common.
-The Primitive class contains the code to render a primitive. It requires a call list name for rendering. An OpenGL Call List is a series of
-OpenGL calls that are bundled together and named. The calls can be dispatched with `glCallList(LIST_NAME)`.
-Finally, the concrete primitives (`Sphere` and `Cube`) define the call list required to render them. They could also specialize any of the other `Node` behaviour, if necessary.
+The abstract Node class contains all of the logic common to all nodes. The sub classes of `Node` override specific functionality if needed. They are also required to
+provide a `render` function.
 
 Using a class structure like this means that the `Node` class is easily extensible. As an example of the extensibility, consider adding a `Node` type that combines multiple
-primitived, like a figure for a character. We can easily extend the `Node` class for this situation by creating a new class `class Figure(Node)` which will override some of
+primitives, like a figure for a character. We can easily extend the `Node` class for this situation by creating a new class `class Figure(Node)` which will override some of
 the functionality of the `Node` manage a list of sub-nodes.
 
 By making the `Node` class extensible in this way, we are able to add new types of shapes to the scene without changing any of the other code around scene
@@ -76,8 +77,19 @@ Most of the setup and interfacing with OpenGL is found in the viewer.py file.
 
 #### Traversing the Scene
 We leverage the data structure of the scene for rendering. The render function of the scene traverses the list of `Node` in the scene and
-calls the `render` function for each `Node`. We make sure of the aforementioned OpenGL Push and Pop Matrix functions for `Node` rendering.
-Here is the render function for a `Primitive`.
+calls the `render` function for each `Node`.
+```
+# scene.py, line 21
+def render(self):
+    """ Render the scene. This function simply calls the render function for each node. """
+    for node in self.node_list:
+        node.render()
+```
+An OpenGL Call List is a series of OpenGL calls that are bundled together and named. The calls can be dispatched with `glCallList(LIST_NAME)`. The rendering function uses `glCallList` after setting up the matrices.
+Each primitive (`Sphere` and `Cube`) defines the call list required to render it.  For example, the render list for the Cube primitive draws a cube at the origin with sides of length 1.
+
+The `PushMatrix` and `PopMatrix` functions in OpenGL provide access to a stack object for saving the status of the matrix.  We use OpenGL matrix stack to store the matrix state of each `Node` when it is rendered.
+Manipulating the ModelView matrix allows us to have a single render list for each type of primitive.  By setting the OpenGL matrix, we can change the size and location the rendered `Primitive`.
 ```
 # node.py, line 63
 def render(self):
@@ -95,18 +107,11 @@ def render(self):
     glPopMatrix()
 
 ```
-
-The `PushMatrix` and `PopMatrix` functions in OpenGL provide us access to a stack object for saving the status of the matrix.  We use OpenGL matrix stack to store the matrix state of each `Node` when it is rendered.
-
-Manipulating the ModelView matrix allows us to have a single render list for each type of primitive. For example, the render list for the Cube primitive draws a cube at the origin with sides of length 1.
-By setting the OpenGL matrix, we can change the size and location the rendered cube.
-
 Again, the Matrix stack functionality of OpenGL allows us to extend the `Node` class to contain nested nodes. If there are a nested nodes, we simply
 push onto the stack before we render a nested node.
 
 Thus, using the scene traversal and OpenGL Matrix Stack allows us to implement the `Node` class in an extensible way, and allows each `Node`'s render code
 to be independent from its location in the scene.
-
 
 ### User Interaction
 Now that we're able to render the scene, we want to be able to add new Nodes, and to adjust the Nodes in the scene.
@@ -338,3 +343,10 @@ def place(self, shape, start, direction, inv_modelview):
 
     new_node.translate(translation[0], translation[1], translation[2])
 ```
+## Further Exploration
+For further insight into real-world 3D modelling software, a few Open Source projects are interesting.
+
+[Blender](http://www.blender.org/) is an Open Source full featured 3D animation suite. It provides a full 3D pipeline for building special effects in video, or for game creation. The modeller is a small part of this
+project, and it is a good example of integrating a modeller into a large software suite.
+
+[OpenSCAD](http://www.openscad.org/) is an Open Source 3D modelling tool. It is not interactive, rather it reads a script file that specifies how to generate the scene. This gives the designer "full control over the modelling process".
