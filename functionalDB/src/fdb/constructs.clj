@@ -34,6 +34,22 @@
                      (make-index #(vector %1 %2 %3) #(vector %1 %2 %3) #(not (not %)) 2) )] ; EAVT - for filtering
                    0 0)))
 
+(defn entity-at
+  "the entity with the given ent-id at the given time (defaults to the latest time)"
+  ([db ent-id] (entity-at db (:curr-time db) ent-id))
+  ([db ts ent-id] (stored-entity (get-in db [:timestamped ts :storage]) ent-id)))
+
+(defn attr-at
+  "The attribute of an entity at a given time (defaults to recent time)"
+  ([db ent-id attr-name] (attr-at db ent-id attr-name (:curr-time db)))
+  ([db ent-id attr-name ts]
+   (get-in (entity-at db ts ent-id) [:attrs attr-name])))
+
+(defn value-of-at
+  "value of a datom at a given time, if no time is provided, we default to the most recent value"
+  ([db ent-id attr-name]  (:value (attr-at db ent-id attr-name)))
+  ([db ent-id attr-name ts] (:value (attr-at db ent-id attr-name ts))))
+
 (defn indices[] [:VAET :AVET :VEAT :EAVT])
 
 (defn make-entity
@@ -56,3 +72,9 @@
       & {:keys [indexed cardinality] :or {indexed false cardinality :db/single}} ]
     {:pre [(contains? #{true false} indexed) (contains? #{:db/single :db/multiple} cardinality)]}
    (with-meta (Attr. name value -1 -1) {:type type :indexed indexed :cardinality cardinality} )))
+
+(defn add-attr
+  "adds an attribute to an entity"
+  [ent attr]
+  (let [attr-id (keyword (:name attr))]
+     (assoc-in ent [:attrs attr-id] attr)))

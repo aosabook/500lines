@@ -2,7 +2,7 @@
   [:use [fdb storage query constructs]]
   [:require [clojure.set :as CS :only (union difference intersection)]])
 
-(defn- collify [x] (if (coll? x) x [x]))
+(defn collify [x] (if (coll? x) x [x]))
 
 (defn- next-ts [db] (inc (:curr-time db)))
 
@@ -16,22 +16,6 @@
             [(keyword (str inceased-id)) inceased-id]
             [ent-id top-id])))
 
-(defn entity-at
-  "the entity with the given ent-id at the given time (defaults to the latest time)"
-  ([db ent-id] (entity-at db (:curr-time db) ent-id))
-  ([db ts ent-id] (stored-entity (get-in db [:timestamped ts :storage]) ent-id)))
-
-(defn attr-at
-  "The attribute of an entity at a given time (defaults to recent time)"
-  ([db ent-id attr-name] (attr-at db ent-id attr-name (:curr-time db)))
-  ([db ent-id attr-name ts]
-   (get-in (entity-at db ts ent-id) [:attrs attr-name])))
-
-(defn value-of-at
-  "value of a datom at a given time, if no time is provided, we default to the most recent value"
-  ([db ent-id attr-name]  (:value (attr-at db ent-id attr-name)))
-  ([db ent-id attr-name ts] (:value (attr-at db ent-id attr-name ts))))
-
 (defn- update-attr-value
   "updating the attribute value based on the kind of the operation, the cardinality defined for this attribute and the given value"
   [attr value operation]
@@ -41,12 +25,6 @@
       (= :db/reset-to operation)  (assoc attr :value value)
       (= :db/add operation)        (assoc attr :value (CS/union (:value attr)  value))
       (= :db/remove operation)  (assoc attr :value (CS/difference (:value attr) value))))
-
-(defn add-attr
-  "adds an attribute to an entity"
-  [ent attr]
-  (let [attr-id (keyword (:name attr))]
-     (assoc-in ent [:attrs attr-id] attr)))
 
 (defn- update-creation-ts
   "updates the timestamp value of all the attributes of an entity to the given timestamp"
