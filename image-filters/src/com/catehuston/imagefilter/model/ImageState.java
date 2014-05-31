@@ -19,8 +19,6 @@ public class ImageState {
 	public static final int INITIAL_HUE_TOLERANCE = 5;
 	
 	ColorMode colorModeState = ColorMode.COLOR_FILTER;
-	//boolean dominantHueHidden = false;
-	//boolean dominantHueShowing = false;
 	int blueFilter = 0;
 	int greenFilter = 0;
 	int hueTolerance = 0;
@@ -65,6 +63,7 @@ public class ImageState {
 	}
 	
 	public void updateImage(PApplet applet, int hueRange, int rgbColorRange) {
+		image.update(applet, filepath);
 		if (colorModeState == ColorMode.SHOW_DOMINANT_HUE) {
 			colorHelper.processImageForHue(applet, image, hueRange, hueTolerance, true);
 		} else if (colorModeState == ColorMode.HIDE_DOMINANT_HUE) {
