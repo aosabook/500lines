@@ -10,7 +10,7 @@ import com.catehuston.imagefilter.model.ImageState;
 
 @SuppressWarnings("serial")
 public class ImageFilterApp extends PApplet {
-	
+
 	static final String INSTRUCTIONS = "R: increase red filter\nE: reduce red filter\n"
 			+ "G: increase green filter\nF: reduce green filter\nB: increase blue filter\n"
 			+ "V: reduce blue filter\nI: increase hue tolerance\nU: reduce hue tolerance\n"
@@ -20,16 +20,17 @@ public class ImageFilterApp extends PApplet {
 	static final int FILTER_HEIGHT = 2;
 	static final int FILTER_INCREMENT = 5;
 	static final int HUE_INCREMENT = 2;
-	static final int HUE_RANGE = 100; 
+	static final int HUE_RANGE = 100;
 	static final int IMAGE_MAX = 640;
 	static final int RGB_COLOR_RANGE = 100;
 	static final int SIDE_BAR_PADDING = 10;
 	static final int SIDE_BAR_WIDTH = RGB_COLOR_RANGE + 2 * SIDE_BAR_PADDING + 50;
-	
+
 	private ImageState imageState;
-	
+
 	boolean redrawImage = true;
 
+	@Override
 	public void setup() {
 		noLoop();
 		imageState = new ImageState(new ColorHelper(new PixelColorHelper()));
@@ -40,14 +41,15 @@ public class ImageFilterApp extends PApplet {
 
 		chooseFile();
 	}
-	
+
+	@Override
 	public void draw() {
 		// Draw image.
 		if (imageState.image().image() != null && redrawImage) {
 			background(0);
 			drawImage();
 		}
-		
+
 		colorMode(RGB, RGB_COLOR_RANGE);
 		fill(0);
 		rect(IMAGE_MAX, 0, SIDE_BAR_WIDTH, IMAGE_MAX);
@@ -75,7 +77,7 @@ public class ImageFilterApp extends PApplet {
 		line(x, y, x + RGB_COLOR_RANGE, y);
 		line(x + imageState.blueFilter(), y - FILTER_HEIGHT,
 				x + imageState.blueFilter(), y + FILTER_HEIGHT);
-		
+
 		// Draw white line.
 		y += 2 * SIDE_BAR_PADDING;
 		stroke(HUE_RANGE);
@@ -89,7 +91,7 @@ public class ImageFilterApp extends PApplet {
 
 		updatePixels();
 	}
-	
+
 	// Callback for selectInput(), has to be public to be found.
 	public void fileSelected(File file) {
 		if (file == null) {
@@ -101,7 +103,7 @@ public class ImageFilterApp extends PApplet {
 			redraw();
 		}
 	}
-	
+
 	private void drawImage() {
 		imageMode(CENTER);
 		imageState.updateImage(this, HUE_RANGE, RGB_COLOR_RANGE);
@@ -109,7 +111,8 @@ public class ImageFilterApp extends PApplet {
 				imageState.image().getHeight());
 		redrawImage = false;
 	}
-	
+
+	@Override
 	public void keyPressed() {
 		switch(key) {
 		case 'c':
@@ -129,7 +132,7 @@ public class ImageFilterApp extends PApplet {
 		imageState.processKeyPress(key, FILTER_INCREMENT, RGB_COLOR_RANGE, HUE_INCREMENT, HUE_RANGE);
 		redraw();
 	}
-	
+
 	private void chooseFile() {
 		// Choose the file.
 		selectInput("Select a file to process:", "fileSelected");
