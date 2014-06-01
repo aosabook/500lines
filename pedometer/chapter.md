@@ -311,9 +311,9 @@ If they only provide their height, we can use $(0.413 + 0.415)/2 * height$, aver
 
 If they only provide their gender, we can use the average of 70 cm for a female, and 78 cm for a male.
 
-Finally, is the user does not wish to provide any information, we can simply take the average of 70 cm and 78 cm and set the stride length to 74 cm.
+Finally, if the user does not wish to provide any information, we can simply take the average of 70 cm and 78 cm and set the stride length to 74 cm.
 
-TODO: Add references for multipliers and averages above.
+TODO: Do I need to add references for multipliers and averages above? Can we just say some basic research turned up these numbers, but we're free to change them if more accurate ones are uncovered?
 
 All of this information is related to the user, so it makes sense to include it in a User class. 
 
@@ -410,17 +410,17 @@ Our device class is quite simple. Note that all of the attribute readers are set
 Things to note:
 
 * Much like our User class, information is optional. The class handles it.
-* Basic input data formatting in the initalizer allows ensures that rate and steps are always numerical values greater than 0.
+* Basic input data formatting in the initalizer ensures that rate and steps are always numerical values greater than 0.
 * One could argue that metadata doesn't really belong in the Device class. For the sake of keeping our small program simple, we included the metadata in this class because it's more logical here than in the User class, and to avoid too much abstration for too little code. However, as our program grows and we have more metadata and more attributes related to the device, it would be wise to split the Device class apart from the metadata. 
 
-Our Device class is so straightforward to use, we won't bore you with the details of showing it in the wild. 
+Our Device class is straightforward to use, so we won't bore you with the details of showing it in the wild. 
 
 ### Steps taken
 Our Parser's @parsed_data waveform is created by the bounces in the z-direction of a person as they take a step. Each cycle of our waveform represents a single step taken. Therefore, counting steps is a matter of counting the number of peaks or the number of troughs in our Parser's @parsed_data waveform. 
 
 But, how do we count peaks or troughs in code? Let's assume for this discussion that we're deciding to count peaks. 
 
-If we had a perfect waveform, we could simply count the number of times that a point is numerically lower than the point before it. However, while our smoothing algorithm is good, it's not perfect. Example the waveform below. 
+If we had a perfect waveform, we could simply count the number of times that a point is numerically lower than the point before it. However, while our smoothing algorithm is good, it's not perfect. Examine the waveform below. 
 
 TODO: Add waveform graph that shows too many peaks, with 4 major peaks.
 
