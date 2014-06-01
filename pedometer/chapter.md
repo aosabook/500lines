@@ -11,7 +11,7 @@ TODO: Intro
 * Batch processing instead of real-time
 	* A pedometer would rarely be written as a batch processing problem analyzed by a web application, but it has been done this way for the purposes of simplification.
 	* The concepts behind our basic pedometer can be extended and directly applied as mobile applications analyzing data in real-time.
-	* Data has been collected from an iPhone in two formats, and is being abalzed by our web application in Ruby.
+	* Data has been collected from an iPhone in two formats, and is being analyzed by our web application in Ruby.
 * Error detection can be enhanced
 	* Currently we're not counting steps that are too close together. 
 	* One enhancement would be to discount any steps if there are too many false steps. 
@@ -24,7 +24,7 @@ TODO: Intro
 * Sinatra web app, using Highcharts to display data.
 * This was chosen to be built as a web app because a web app naturally separates the data processing from the presentation.
 * Sinatra gives us the ability to demosntrate a fully-functional web app accepting input and presenting output very easily, without worrying about the piping. 
-* While this project is not intended to show the separation of concerns present in a well-built web app, using Sinatra allows us to naturally segment those concerns and isolate the data processing from the presentation.
+* Using Sinatra allows us to naturally separate the data process from the presentation.
 * Using Sinatra and Highcharts requires very little additional code and presents our data nicely, so, well, why not have some fancy charts to really satisfy our data craving?
 
 ## The Platform
@@ -218,7 +218,7 @@ $[\lbrace x\colon x1_{u}, y\colon y1_{u}, z\colon z1_{u}, xg\colon x1_{g}, yg\co
 
 The entire purpose of the parse_raw_data method is to take input data in one of two formats, and output data in this more workable format.
 
-### Step 2: Isolating movement in the direction of gravity
+### Step 2: Isolating movement in the direction of gravity (dot_product_parsed_data)
 
 First, a very small amount of liner algebra 101. 
 
@@ -960,7 +960,7 @@ Back to the trials view. The trials view renders an error if one exists, renders
 
 The last and largest portion of the trials view is the layout of the form that allows a user to input data. Note that the form, on submission, posts to the create action, which we'll discuss as our last action. All input fields either have placeholder text to indicate the data needed, or, in the case of select fields, a placeholder field. The fields that require numerical data are of type number so that the browser doesn't allow submission of the form unless proper data is passed in. 
 
-TODO: Discussion around client-side validation as well as server-side validation.
+TODO: Discussion around client-side validation as well as server-side validation. Make note that the trial number is set to numerical data even though the model accepts a string.
 
 ### get '/trial/*'
 
