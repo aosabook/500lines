@@ -54,6 +54,7 @@ The meat and potatoes of our program is in step 3, where we parse the input data
 The sample data we'll be using here is data collected by an iPhone. Let's look at what our input data will look like in each format. 
 
 ### Combined Format
+
 The first, more rudimentary data format we'll accept is in the combined format. Data in the combined format is simply total acceleration in the x, y, z directions, over time. 
 
 $"x1,y1,z1;...xn,yn,zn;"$
@@ -867,7 +868,7 @@ a.nav {
 }
 ~~~~~~~
 
-The trials view also renders summary.erb. We'll discuss why it's rendered as a separate view with the next route. 
+The trials view also renders summary.erb. We place it in its own file, because we reuse it in another view, which we'll see soon.
 
 ~~~~~~~
 <table class="summary">
@@ -899,11 +900,71 @@ The trials view also renders summary.erb. We'll discuss why it's rendered as a s
 </table>
 ~~~~~~~
 
-The trials view render an error if one exists, renders summary.erb with all trials to present the table of trial data, and then creates the input form for user and device info. 
+Note the use of ViewHelper in the summary view. Let's take a closer look at it.
+
+~~~~~~~
+class ViewHelper
+
+  DISTANCE = { cm_per_m: 100, cm_per_km: 100000, m_per_km: 1000 }
+  DECIMAL_PLACES = 2
+
+  # TODO: Can this be cleaner?
+  # - (expr).round(2) is repeated multiple times within this function. It might be a good idea to define an anonymous function to reduce code repetition.
+  def self.format_distance(distance_cm)
+    distance_cm = distance_cm.round(DECIMAL_PLACES)
+    if distance_cm >= DISTANCE[:cm_per_km]
+      "#{(distance_cm/DISTANCE[:cm_per_km]).round(DECIMAL_PLACES)} km"
+    elsif distance_cm >= DISTANCE[:cm_per_m]
+      distance = (distance_cm/DISTANCE[:cm_per_m]).round(DECIMAL_PLACES)
+      (distance == DISTANCE[:m_per_km]) ? "1.0 km" : "#{distance} m"
+    else
+      (distance_cm == DISTANCE[:cm_per_m]) ? "1.0 m" : "#{distance_cm} cm"
+    end
+  end
+
+  def self.format_time(time_sec)
+    Time.at(time_sec.round).utc.strftime("%-H hr, %-M min, %-S sec")
+  end
+
+  def self.limit_1000(series)
+    series.to_a[0..999]
+  end
+
+end
+~~~~~~~
+
+The purpose of the ViewHelper is to present numerical data in a more visually pleasing way, by formatting inputs into output strings that can be used in views. ViewHelper contains three class methods. format_distance takes a distance in cm, converts it to the most reasonable unit of measurement, and outputs a string. Note that all "magic numbers" are defined at the top of the class as class level variables. Let's take a look at three use cases, that show how rounding is handled.
+
+~~~~~~~
+> ViewHelper.format_distance(99.987)
+=> "99.99 cm"
+> ViewHelper.format_distance(99999)
+=> "999.99 m"
+> ViewHelper.format_distance(99999.99)
+=> "1.0 km"
+~~~~~~~
+
+Similarly, the format_time method takes a time in seconds and formats it using Ruby's strftime.
+
+~~~~~~~
+> ViewHelper.format_time(7198.9)
+=> "1 hr, 59 min, 59 sec"
+~~~~~~~
+
+The final method, limit_1000, simply takes a series of data, and returns the first 1000 points. We'll see this used in another view shortly. 
+
+Back to the trials view. The trials view renders an error if one exists, renders summary.erb with all trials to present the table of trial data, and then creates the input form for user and device info. 
+
+### Things to note
+* Here we once again see spearation of concerns. To keep as much logic as possible out of the view, we use a ViewHelper to format the data. The view's responsibility is to present data, not format it, so we split that out into a separate class.
+
+The last and largest portion of the trials view is the layout of the form that allows a user to input data. Note that the form, on submission, posts to the create action, which we'll discuss as our last action. All input fields either have placeholder text to indicate the data needed, or, in the case of select fields, a placeholder field. The fields that require numerical data are of type number so that the browser doesn't allow submission of the form unless proper data is passed in. 
+
+TODO: Discussion around client-side validation as well as server-side validation.
 
 ### get '/trial/*'
 
-The get '/trial/*' route is called with a file path: http://localhost:4567/trial/public/uploads/female-168.0-70.0_100-100-1-walk-c.txt. It sets @trial through Trial.find, passing in the file_name from the url, as well as @match_filtered_data through Trial.match_filtered_data. It then loads up the trial.erb view. 
+The get '/trial/*' route is called with a file path. For example: http://localhost:4567/trial/public/uploads/female-168.0-70.0_100-100-1-walk-c.txt. It sets @trial through Trial.find, passing in the file_name from the url. It also sets @match_filtered_data through Trial.match_filtered_data. It then loads up the trial.erb view. 
 
 ~~~~~~~
 <script src="/jquery.min.js"></script>
@@ -959,12 +1020,25 @@ The get '/trial/*' route is called with a file path: http://localhost:4567/trial
 
 The trial.erb view has both HTML and JavaScript. As our application grows, we would likely split out all JavaScript into separate files. For simplicity, we've kept it all together. 
 
-We're using a tool called Highcharts to generate all of the charts in our view. Highcharts requires jquery and highcharts JavaScript files. Note that the minified versions are included at the top of the view. 
+We're using a tool called Highcharts to generate all of the charts in our view, which requires jQuery and other additional JavaScript files. Note that both are included at the top of the view. 
 
-The HTML portion is simple. We create a link to return to /trials, for ease of navigation purposes. Then, render summary.erb once more. Since both summary tables are quite similar, we've chosen to extract the HTML for the summary table into one view and reuse it from both trials and trial. This ensures that the format of the tables remains consistent, and avoids code duplication. In this case, we pass in false for detail_hidden, since we want to see time and distance data, whereas in the trials view, we wanted those fields replaced with a link to this view. Following the summary table, we create containers for the charts. We have an optional container for the comparison chart, which is rendered only if @match_filtered_data is set. 
+The HTML portion is simple. We create a link to return to /trials, for ease of navigation purposes. Then, we render summary.erb once more. Since both summary tables are quite similar, we've chosen to extract the HTML for the summary table into one view and reuse it from both trials and trial. This ensures that the format of the tables remains consistent, and avoids code duplication. In this case, we pass in false for detail_hidden, since we want to see time and distance data, whereas in the trials view, we wanted those fields replaced with a link to this view. Following the summary table, we create containers for the charts. We have an optional container for the comparison chart, which is rendered only if @match_filtered_data is set. 
 
-The JavaScript portion uses the Highcharts API to create the three charts, passing in data from the @trial variable. 
+The JavaScript portion uses the Highcharts API to create the three charts: dot product data, filtered data, and, optionally, a comparison between the filtered data of the separated and combined data sets. Each chart is limited to 1000 points, to make it easy on our eyes, using the limit_1000 method in ViewHelper that we looked at earlier.
 
-You might have noticed the use of the ViewHelper in summary.erb. The ViewHelper is used again in our JavaScript. Let's take a closer look at it. 
+### post '/create'
+
+Our final action, create, is an HTTP POST called when a user submits the form in the trials view. The action sets a @trial instance variable to a new Trial record, created by passing in values from the params hash. It then sets @match_filtered_data, and renders the trial view. If an error occurs in the creation process, the trials view is rendered, with the an error parameter passed in. 
+
+## Summary
+
+TODO: Wrap it up, and conclusion.
+
+
+
+
+
+
+
 
 
