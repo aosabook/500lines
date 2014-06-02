@@ -33,7 +33,7 @@ sig Resource {}
 The keyword “sig” identifies this as an Alloy signature declaration. This introduces a set of resource objects; think of these, just like the objects of a class with no instance variables, as blobs that have identity but no contents. Resources are named by URLs (*uniform resource locators*):
 
 ```
-sig URL {
+sig Url {
   protocol: Protocol,
   host: Domain,
   port: lone Port,
@@ -59,15 +59,15 @@ The `extends` keyword introduces a subset, so the set `Client` of all clients, f
 
 This is a very simple model of a server: it has a static mapping of paths to resources. In general, the mapping is dynamic, but that won't matter for our analysis.
 
-To map a URL to a server, we'll need to model DNS. So let's introduce a set `DNS` of domain name servers, each with a mapping from domains to servers:
+To map a URL to a server, we'll need to model DNS. So let's introduce a set `Dns` of domain name servers, each with a mapping from domains to servers:
 
 ```
-one sig DNS { 
+one sig Dns {
   map: Domain -> Server
 }
 ```
 
-The keyword `one` means that (for simplicity) we're going to restrict to exactly one domain name server, so that `DNS.map` will be the mapping used everywhere. Again, as with serving resources, this could be dynamic (and in fact there are known security attacks that rely on changing DNS bindings during an interaction) but we're simplifying.
+The keyword `one` means that (for simplicity) we're going to restrict to exactly one domain name server, so that `Dns.map` will be the mapping used everywhere. Again, as with serving resources, this could be dynamic (and in fact there are known security attacks that rely on changing DNS bindings during an interaction) but we're simplifying.
 
 In order to model HTTP requests, we also need the concept of _cookies_, so let's declare them:
 
@@ -83,14 +83,14 @@ Finally, we can put this all together to construct a model of HTTP requests:
 
 ```
 abstract sig HttpRequest extends Call {
-  url: URL,
+  url: Url,
   sentCookies: set Cookie,
   body: lone Resource,
   receivedCookies: set Cookie,
   response: lone Resource,
 }{
   from in Client
-  to in DNS.map[url.host]
+  to in Dns.map[url.host]
 }
 ```
 
@@ -165,7 +165,7 @@ A document has a URL, some content and domain:
 
 ```
 sig Document {
-  src: URL,
+  src: Url,
   content: Resource -> Time,
   domain: Domain -> Time
 }
@@ -287,7 +287,7 @@ These two instances tell us that extra measures are needed to restrict the behav
 
 Before we can state the SOP, the first thing we should do is to define what it means for two pages to have the *same* origin. Two URLs refer to the same origin if and only if they share the same hostname, protocol, and port:
 ```
-pred sameOrigin[u1, u2 : URL] {
+pred sameOrigin[u1, u2 : Url] {
   u1.host = u2.host and u1.protocol = u2.protocol and u1.port = u2.port
 }
 ```
