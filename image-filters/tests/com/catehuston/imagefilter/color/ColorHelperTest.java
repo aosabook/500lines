@@ -20,7 +20,7 @@ import com.catehuston.imagefilter.model.IFAImage;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ColorHelperTest {
-	
+
 	@Mock PApplet applet;
 	@Mock IFAImage image;
 	@Mock PixelColorHelper pixelColorHelper;
@@ -43,14 +43,14 @@ public class ColorHelperTest {
 		setHsbValuesForPixel(3, px4, 50F, 8F, 13F);
 		setHsbValuesForPixel(4, px5, 30F, 9F, 14F);
 	}
-	
+
 	private void setHsbValuesForPixel(int px, int color, float h, float s, float b) {
-		when(image.getPixel(px)).thenReturn(color);	
+		when(image.getPixel(px)).thenReturn(color);
 		when(pixelColorHelper.hue(applet, color)).thenReturn(h);
 		when(pixelColorHelper.saturation(applet, color)).thenReturn(s);
 		when(pixelColorHelper.brightness(applet, color)).thenReturn(b);
 	}
-	
+
 	private void setRgbValuesForPixel(int px, int color, float r, float g, float b, float alpha) {
 		when(image.getPixel(px)).thenReturn(color);
 		when(pixelColorHelper.red(applet, color)).thenReturn(r);
@@ -83,13 +83,13 @@ public class ColorHelperTest {
 	@Test public void testHsbColorFromImage() {
 		HSBColor color = colorHelper.getDominantHue(applet, image, 100);
 		verify(image).loadPixels();
-		
+
 		// Check results.
 		assertEquals(30F, color.h, 0);
 		assertEquals(7F, color.s, 0);
 		assertEquals(12F, color.b, 0);
 	}
-	
+
 	@Test public void testProcessImageNoHue() {
 		when(pixelColorHelper.color(applet, 11F)).thenReturn(11);
 		when(pixelColorHelper.color(applet, 13F)).thenReturn(13);
@@ -99,7 +99,7 @@ public class ColorHelperTest {
 		verify(image).setPixel(1, 11);
 		verify(image).setPixel(3, 13);
 	}
-	
+
 	@Test public void testProcessImageWithHue() {
 		when(pixelColorHelper.color(applet, 10F)).thenReturn(10);
 		when(pixelColorHelper.color(applet, 12F)).thenReturn(12);
@@ -111,14 +111,14 @@ public class ColorHelperTest {
 		verify(image).setPixel(2, 12);
 		verify(image).setPixel(4, 14);
 	}
-	
+
 	@Test public void testApplyColorFilter() {
 		setRgbValuesForPixel(0, px1, 10F, 12F, 14F, 60F);
 		setRgbValuesForPixel(1, px2, 20F, 22F, 24F, 70F);
 		setRgbValuesForPixel(2, px3, 30F, 32F, 34F, 80F);
 		setRgbValuesForPixel(3, px4, 40F, 42F, 44F, 90F);
 		setRgbValuesForPixel(4, px5, 50F, 52F, 54F, 100F);
-		
+
 		when(pixelColorHelper.color(applet, 0F, 0F, 0F, 60F)).thenReturn(5);
 		when(pixelColorHelper.color(applet, 20F, 0F, 0F, 70F)).thenReturn(15);
 		when(pixelColorHelper.color(applet, 30F, 32F, 0F, 80F)).thenReturn(25);
@@ -128,7 +128,7 @@ public class ColorHelperTest {
 		colorHelper.applyColorFilter(applet, image, 15, 25, 35, 100);
 		verify(applet).colorMode(PApplet.RGB, 100);
 		verify(image).loadPixels();
-		
+
 		verify(image).setPixel(0, 5);
 		verify(image).setPixel(1, 15);
 		verify(image).setPixel(2, 25);

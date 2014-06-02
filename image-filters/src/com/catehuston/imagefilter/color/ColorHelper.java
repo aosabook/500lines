@@ -6,13 +6,13 @@ import com.catehuston.imagefilter.model.HSBColor;
 import com.catehuston.imagefilter.model.IFAImage;
 
 public class ColorHelper {
-	
-	private PixelColorHelper pixelColorHelper;
-	
+
+	private final PixelColorHelper pixelColorHelper;
+
 	public ColorHelper(PixelColorHelper pixelColorHelper) {
 		this.pixelColorHelper = pixelColorHelper;
 	}
-	
+
 	public boolean hueInRange(float hue, int hueRange, float lower, float upper) {
 		// Need to compensate for it being circular - can go around.
 		if (lower < 0) {
@@ -27,7 +27,7 @@ public class ColorHelper {
 			return hue < upper || hue > lower;
 		}
 	}
-	
+
 	public HSBColor getDominantHue(PApplet applet, IFAImage image, int hueRange) {
 		image.loadPixels();
 		int numberOfPixels = image.getPixels().length;
@@ -60,7 +60,7 @@ public class ColorHelper {
 		float b = brightnesses[hue] / hueCount;
 		return new HSBColor(hue, s, b);
 	}
-	
+
 	public void processImageForHue(PApplet applet, IFAImage image, int hueRange,
 			int hueTolerance, boolean showHue) {
 		applet.colorMode(PApplet.HSB, (hueRange - 1));
@@ -80,7 +80,7 @@ public class ColorHelper {
 		}
 		image.updatePixels();
 	}
-	
+
 	public void applyColorFilter(PApplet applet, IFAImage image, int minRed,
 			int minGreen, int minBlue, int colorRange) {
 		applet.colorMode(PApplet.RGB, colorRange);
@@ -92,12 +92,12 @@ public class ColorHelper {
 			int red = Math.round(pixelColorHelper.red(applet, pixel));
 			int green = Math.round(pixelColorHelper.green(applet, pixel));
 			int blue = Math.round(pixelColorHelper.blue(applet, pixel));
-			
+
 			red = (red >= minRed) ? red : 0;
 			green = (green >= minGreen) ? green : 0;
 			blue = (blue >= minBlue) ? blue : 0;
-			
-			image.setPixel(i, pixelColorHelper.color(applet, (float) red, (float) green, (float) blue, (float) alpha));
+
+			image.setPixel(i, pixelColorHelper.color(applet, red, green, blue, alpha));
 		}
 	}
 }
