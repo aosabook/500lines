@@ -9,6 +9,7 @@
     <% if @trial.analyzer.parser.format == 'combined' %>
         <div id="container-total"></div>
     <% else %>
+        <div id="container-total-calculated"></div>
         <div id="container-xyz-user"></div>
         <div id="container-xyz-gravity"></div>
     <% end %>
@@ -35,6 +36,22 @@
                 }, {
                     name: 'z',
                     data: <%= @trial.analyzer.parser.data.split(';').map { |i| i.split(',')[2].to_f }[250..350] %>
+                }]
+            });
+        }
+
+        if ($('#container-total-calculated').length > 0) {
+            $('#container-total-calculated').highcharts({
+                title: { text: 'Total Acceleration' },
+                series: [{
+                    name: 'x',
+                    data: <%= @trial.analyzer.parser.parsed_data.map { |h| h[:x] + h[:xg] }[250..350] %>
+                }, {
+                    name: 'y',
+                    data: <%= @trial.analyzer.parser.parsed_data.map { |h| h[:y] + h[:yg] }[250..350] %>
+                }, {
+                    name: 'z',
+                    data: <%= @trial.analyzer.parser.parsed_data.map { |h| h[:z] + h[:zg] }[250..350] %>
                 }]
             });
         }
