@@ -142,8 +142,8 @@ class Expander(ast.NodeTransformer):
 
     def visit_ListComp(self, t):
         t = self.generic_visit(t)
-        body = ast.Expr(ast.Call(ast.Attribute(ast.Name('.result', load), 'append', load),
-                                 [t.elt], [], None, None))
+        result_append = ast.Attribute(ast.Name('.result', load), 'append', load)
+        body = ast.Expr(ast.Call(result_append, [t.elt], [], None, None))
         for loop in reversed(t.generators):
             for test in reversed(loop.ifs):
                 body = ast.If(test, [body], [])
@@ -184,9 +184,10 @@ class Scope(ast.NodeVisitor):
         self.maskvars = self.defs if isinstance(self.t, Function) else set()
         for child in self.children:
             child.analyze(parent_defs | self.maskvars)
-        child_freevars = set([var for child in self.children for var in child.freevars])
-        self.cellvars = tuple(child_freevars & self.maskvars)
-        self.freevars = tuple(parent_defs & ((self.uses | child_freevars) - self.maskvars))
+        child_uses = set([var for child in self.children for var in child.freevars])
+        uses = self.uses | child_uses
+        self.cellvars = tuple(child_uses & self.maskvars)
+        self.freevars = tuple(parent_defs & (uses - self.maskvars))
         self.derefvars = self.cellvars + self.freevars
 
     def access(self, name):
