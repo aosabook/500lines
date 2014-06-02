@@ -135,7 +135,7 @@ Given this `check` command, the analyzer explores every possible behavior of the
 
 ![http-instance-2](fig-http-2.png)
 
-This counterexample again shows an HTTP request being made by a client, but with two different servers (in Alloy, objects of the same type are distinguished with a numeric suffix). Note that while the DNS server maps `Domain` to both `Server0` and `Server1` (in reality, this is a common practice for load balancing), but only `Server0` maps `Path` to a resource object, causing `HttpRequest0` to result in empty response; another error in our model! To fix this, we add an Alloy *fact* to ensure that any two servers mapped to the common host by the DNS provide the same set of resources:
+This counterexample again shows an HTTP request being made by a client, but with two different servers (in Alloy, objects of the same type are distinguished with a numeric suffix). Note that while the DNS server maps `Domain` to both `Server0` and `Server1` (in reality, this is a common practice for load balancing), only `Server0` maps `Path` to a resource object, causing `HttpRequest0` to result in empty response; another error in our model! To fix this, we add an Alloy *fact* to ensure that any two servers mapped to the common host by the DNS provide the same set of resources:
 
 ```
 fact ServerAssumption {
@@ -255,7 +255,7 @@ sig WriteDom extends BrowserOp { new_dom : Resource }{
 ```
 `ReadDom` returns the content the target document, but does not modify it; `WriteDom`, on the other hand, sets the new content of the target document to `new_dom`.
 
-In addition, a script can modify various properties of a document, such as its width, height, domain, and title. For the discussion of the SOP, we are only interested in the domain property, which can be modified by scripts using `SetDomain` function:
+In addition, a script can modify various properties of a document, such as its width, height, domain, and title. For the discussion of the SOP, we are only interested in the domain property, which can be modified by scripts using the `SetDomain` function:
 ```
 sig SetDomain extends BrowserOp { new_domain : set Domain }{
   doc = from.context
