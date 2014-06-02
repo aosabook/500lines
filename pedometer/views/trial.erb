@@ -6,6 +6,12 @@
     <a class="nav" href='/trials'>Back to Trials</a>
     <%= erb :summary, locals: { trials: [@trial], detail_hidden: false } %>
 
+    <% if @trial.analyzer.parser.format == 'combined' %>
+        <div id="container-total"></div>
+    <% else %>
+        <div id="container-xyz-user"></div>
+        <div id="container-xyz-gravity"></div>
+    <% end %>
     <div id="container-dot-product"></div>
     <div id="container-filtered"></div>
 
@@ -17,6 +23,54 @@
 
 <script>
   $(function () {
+        if ($('#container-total').length > 0) {
+            $('#container-total').highcharts({
+                title: { text: 'Total Acceleration' },
+                series: [{
+                    name: 'x',
+                    data: <%= @trial.analyzer.parser.data.split(';').map { |i| i.split(',')[0].to_f }[250..350] %>
+                }, {
+                    name: 'y',
+                    data: <%= @trial.analyzer.parser.data.split(';').map { |i| i.split(',')[1].to_f }[250..350] %>
+                }, {
+                    name: 'z',
+                    data: <%= @trial.analyzer.parser.data.split(';').map { |i| i.split(',')[2].to_f }[250..350] %>
+                }]
+            });
+        }
+
+        if ($('#container-xyz-user').length > 0) {
+            $('#container-xyz-user').highcharts({
+                title: { text: 'User Acceleration' },
+                series: [{
+                    name: 'x',
+                    data: <%= @trial.analyzer.parser.parsed_data.map { |h| h[:x] }[250..350] %>
+                }, {
+                    name: 'y',
+                    data: <%= @trial.analyzer.parser.parsed_data.map { |h| h[:y] }[250..350] %>
+                }, {
+                    name: 'z',
+                    data: <%= @trial.analyzer.parser.parsed_data.map { |h| h[:z] }[250..350] %>
+                }]
+            });
+        }
+
+        if ($('#container-xyz-gravity').length > 0) {
+            $('#container-xyz-gravity').highcharts({
+                title: { text: 'Gravitational Acceleration' },
+                series: [{
+                    name: 'x',
+                    data: <%= @trial.analyzer.parser.parsed_data.map { |h| h[:xg] }[250..350] %>
+                }, {
+                    name: 'y',
+                    data: <%= @trial.analyzer.parser.parsed_data.map { |h| h[:yg] }[250..350] %>
+                }, {
+                    name: 'z',
+                    data: <%= @trial.analyzer.parser.parsed_data.map { |h| h[:zg] }[250..350] %>
+                }]
+            });
+        }
+
         $('#container-dot-product').highcharts({
             title: { text: 'Dot Product Data' },
             series: [{
