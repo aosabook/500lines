@@ -59,9 +59,9 @@ The first, more rudimentary data format we'll accept is in the combined format. 
 
 $"x1,y1,z1;...xn,yn,zn;"$
 
-Let's look at what this data looks like when plotted. Below is a small portion of data, sampled 100 times per second, of a person walking with an iPhone in a bag on their shoulder.
+Let's look at what this data looks like when plotted. Below is a small portion of data, sampled 100 times per second, of a female walking with an iPhone in her pocket.
 
-TODO: Add plot.
+![](chapter-figures/figure-combined-total-acceleration.png)\ 
 
 ### Separated Format
 
@@ -69,9 +69,10 @@ The second data format we'll accept is user acceleration in the x,y,z directions
 
 $"x1_{u},y1_{u},z1_{u}|x1_{g},y1_{g},z1_{g};...xn_{u},yn_{u},zn_{u}|xn_{g},yn_{g},zn_{g};"$
 
-Let's look at what this data looks like when plotted. Below is a small portion of data, sampled 100 times per second, of a person walking with an iPhone in a bag on their shoulder.
+Let's look at what this data looks like when plotted. Below is the separated data format of the exact same walk as the plot above. This time, we have two plots, one for user acceleration, and one for gravitational acceleration.
 
-TODO: Add 2 plots, one for x,y,z user and one for x,y,z gravity.
+![](chapter-figures/figure-separated-user-acceleration.png)
+![](chapter-figures/figure-separated-gravitational-acceleration.png)\ 
 
 TODO: Discuss why the separated format is more accurate than the combined format. 
 
