@@ -76,9 +76,11 @@ Let's look at what this data looks like when plotted. Below is the separated dat
 
 TODO: Discuss why the separated format is more accurate than the combined format. 
 
+TODO: Add a section here on low pass filtering and the Chebyshev filter, and how it applies to splitting out the gravitational acceleration from the user acceleration.
+
 ### Making Sense of Data
 
-Looking at our plots, we can start to see a pattern, but we don't have enough, yet, to count steps. 
+Looking at our plots, we can start to see a pattern. We notice where the flatter parts of the data are, and where the steps likely occur. However, we don't have enough, yet, to count steps. 
 
 We need to do 3 things to our input data:
 
@@ -211,7 +213,7 @@ TODO: Dig into the details of split_accl_combined and split_accl_separated. Spec
 
 The next line splits out the split_accl array into user_accl and grav_accl, which are both arrays of arrays, with user acceleration in the x, y, z directions and gravitational acceleration in the x, y, z directions, respectively. The two lines following split each of user_accl and grav_accl into their x, y, z components:
 
-![](chapter-figures/figure-1.png)\ 
+![](chapter-figures/figure-split_accl.png)\ 
 
 In order to get one data series we can work with, we then create an array of hashes in the format below, and store it in @parsed_data.
 
