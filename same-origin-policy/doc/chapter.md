@@ -86,7 +86,7 @@ abstract sig HttpRequest extends Call {
   url: URL,
   sentCookies: set Cookie,
   body: lone Resource,
-  setCookies: set Cookie,
+  receivedCookies: set Cookie,
   response: lone Resource,
 }{
   from in Client
@@ -94,7 +94,7 @@ abstract sig HttpRequest extends Call {
 }
 ```
 
-We're modeling an HTTP request and response in a single object; the `url`, `sentCookies` and `body` are sent by the client, and the `setCookies` and `response` are sent back by the server. Don't be confused by the two meanings of the word "set" in the declaration of `setCookies`. The field name (following W3C terminology) uses "set" to mean that the cookies that are returned are installed in the browser, "setting" their values; on the right hand side, the word "set" means that any number of cookies (including zero) may be returned.
+We're modeling an HTTP request and response in a single object; the `url`, `sentCookies` and `body` are sent by the client, and the `receivedCookies` and `response` are sent back by the server.
 
 When writing the `HttpRequest` signature, we found that it contained generic features of calls, namely that they are from and to particular things. So we actually wrote a little Alloy module that declares the `Call` signature, and to use it here we need to import it:
 
