@@ -26,12 +26,12 @@ abstract sig HttpRequest extends Call {
   sentCookies: set Cookie,
   body: lone Resource,
   -- response
-  setCookies: set Cookie,
+  receivedCookies: set Cookie,
   response: lone Resource,
 }{
   from in Client
   to in Dns.map[url.host]
-  all c: setCookies | url.host in c.domains
+  all c: receivedCookies | url.host in c.domains
   response = to.resources[url.path]
 }
 

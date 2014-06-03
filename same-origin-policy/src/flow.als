@@ -14,7 +14,7 @@ sig FlowCall in Call {
 }{
   this in HttpRequest implies
     args = this.sentCookies + this.body and
-    returns = this.setCookies + this.response
+    returns = this.receivedCookies + this.response
 
   this in ReadDom implies no args and returns = this.result
   this in WriteDom implies args = this.newDom and no returns

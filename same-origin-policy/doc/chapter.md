@@ -33,7 +33,7 @@ sig Resource {}
 The keyword “sig” identifies this as an Alloy signature declaration. This introduces a set of resource objects; think of these, just like the objects of a class with no instance variables, as blobs that have identity but no contents. Resources are named by URLs (*uniform resource locators*):
 
 ```
-sig URL {
+sig Url {
   protocol: Protocol,
   host: Domain,
   port: lone Port,
@@ -59,15 +59,15 @@ The `extends` keyword introduces a subset, so the set `Client` of all clients, f
 
 This is a very simple model of a server: it has a static mapping of paths to resources. In general, the mapping is dynamic, but that won't matter for our analysis.
 
-To map a URL to a server, we'll need to model DNS. So let's introduce a set `DNS` of domain name servers, each with a mapping from domains to servers:
+To map a URL to a server, we'll need to model DNS. So let's introduce a set `Dns` of domain name servers, each with a mapping from domains to servers:
 
 ```
-one sig DNS { 
+one sig Dns {
   map: Domain -> Server
 }
 ```
 
-The keyword `one` means that (for simplicity) we're going to restrict to exactly one domain name server, so that `DNS.map` will be the mapping used everywhere. Again, as with serving resources, this could be dynamic (and in fact there are known security attacks that rely on changing DNS bindings during an interaction) but we're simplifying.
+The keyword `one` means that (for simplicity) we're going to restrict to exactly one domain name server, so that `Dns.map` will be the mapping used everywhere. Again, as with serving resources, this could be dynamic (and in fact there are known security attacks that rely on changing DNS bindings during an interaction) but we're simplifying.
 
 In order to model HTTP requests, we also need the concept of _cookies_, so let's declare them:
 
@@ -83,18 +83,18 @@ Finally, we can put this all together to construct a model of HTTP requests:
 
 ```
 abstract sig HttpRequest extends Call {
-  url: URL,
+  url: Url,
   sentCookies: set Cookie,
   body: lone Resource,
-  setCookies: set Cookie,
+  receivedCookies: set Cookie,
   response: lone Resource,
 }{
   from in Client
-  to in DNS.map[url.host]
+  to in Dns.map[url.host]
 }
 ```
 
-We're modeling an HTTP request and response in a single object; the `url`, `sentCookies` and `body` are sent by the client, and the `setCookies` and `response` are sent back by the server. Don't be confused by the two meanings of the word "set" in the declaration of `setCookies`. The field name (following W3C terminology) uses "set" to mean that the cookies that are returned are installed in the browser, "setting" their values; on the right hand side, the word "set" means that any number of cookies (including zero) may be returned.
+We're modeling an HTTP request and response in a single object; the `url`, `sentCookies` and `body` are sent by the client, and the `receivedCookies` and `response` are sent back by the server.
 
 When writing the `HttpRequest` signature, we found that it contained generic features of calls, namely that they are from and to particular things. So we actually wrote a little Alloy module that declares the `Call` signature, and to use it here we need to import it:
 
@@ -135,7 +135,7 @@ Given this `check` command, the analyzer explores every possible behavior of the
 
 ![http-instance-2](fig-http-2.png)
 
-This counterexample again shows an HTTP request being made by a client, but with two different servers (in Alloy, objects of the same type are distinguished with a numeric suffix). Note that while the DNS server maps `Domain` to both `Server0` and `Server1` (in reality, this is a common practice for load balancing), but only `Server0` maps `Path` to a resource object, causing `HttpRequest0` to result in empty response; another error in our model! To fix this, we add an Alloy *fact* to ensure that any two servers mapped to the common host by the DNS provide the same set of resources:
+This counterexample again shows an HTTP request being made by a client, but with two different servers (in Alloy, objects of the same type are distinguished with a numeric suffix). Note that while the DNS server maps `Domain` to both `Server0` and `Server1` (in reality, this is a common practice for load balancing), only `Server0` maps `Path` to a resource object, causing `HttpRequest0` to result in empty response; another error in our model! To fix this, we add an Alloy *fact* to ensure that any two servers mapped to the common host by the DNS provide the same set of resources:
 
 ```
 fact ServerAssumption {
@@ -158,19 +158,14 @@ sig Browser extends Client {
 }
 ```
 
-This is our first example of a signature with "dynamic fields". Alloy has no built-in notions of time or behavior, which means that a variety of idioms can be used. In this model, we're using a common idiom in which you introduce a set of times
-
-```
-sig Time {}
-```
-
+This is our first example of a signature with "dynamic fields". Alloy has no built-in notions of time or behavior, which means that a variety of idioms can be used. In this model, we're using a common idiom in which you introduce a set of times `sig Time {}`
 (a signature that is actually declared in the `call` module), and then you attach `Time` as a final column for every time-varying field. Take `cookies` for example. As explained above (when we were talking about the `resources` field of `Server`), `cookies` is a relation with three columns. For a browser `b`, `b.cookies` will be a relation from cookies to time, and `b.cookies.t` will be the cookies held in `b` at time `t`. Likewise, the `documents` field associates a set of documents with each browser at a given time.
 
 A document has a URL, some content and domain:
 
 ```
 sig Document {
-  src: URL,
+  src: Url,
   content: Resource -> Time,
   domain: Domain -> Time
 }
@@ -260,7 +255,7 @@ sig WriteDom extends BrowserOp { new_dom : Resource }{
 ```
 `ReadDom` returns the content the target document, but does not modify it; `WriteDom`, on the other hand, sets the new content of the target document to `new_dom`.
 
-In addition, a script can modify various properties of a document, such as its width, height, domain, and title. For the discussion of the SOP, we are only interested in the domain property, which can be modified by scripts using `SetDomain` function:
+In addition, a script can modify various properties of a document, such as its width, height, domain, and title. For the discussion of the SOP, we are only interested in the domain property, which can be modified by scripts using the `SetDomain` function:
 ```
 sig SetDomain extends BrowserOp { new_domain : set Domain }{
   doc = from.context
@@ -292,7 +287,7 @@ These two instances tell us that extra measures are needed to restrict the behav
 
 Before we can state the SOP, the first thing we should do is to define what it means for two pages to have the *same* origin. Two URLs refer to the same origin if and only if they share the same hostname, protocol, and port:
 ```
-pred sameOrigin[u1, u2 : URL] {
+pred sameOrigin[u1, u2 : Url] {
   u1.host = u2.host and u1.protocol = u2.protocol and u1.port = u2.port
 }
 ```
