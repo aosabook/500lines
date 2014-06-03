@@ -5,9 +5,6 @@
 (defparameter *channels* (make-hash-table))
 
 ;;;;;;;;;; Function definitions
-;;; The basic structure of the server is
-; buffering-listen -> parse -> session-lookup -> handle -> channel
-
 ;;;;; Buffer/listen-related
 (defmethod start ((port integer))
   (let ((server (socket-listen usocket:*wildcard-host* port :reuse-address t :element-type 'octet))
@@ -78,9 +75,7 @@
 	     (parameters (second path-pieces))
 	     (req (make-instance 'request :resource resource :parameters parameters)))
 	(loop for header = (pop lines) for (name value) = (split ": " header)
-	   until (null name)
-	   for n = (->keyword name)
-	   do (push (cons n value) (headers req)))
+	   until (null name) do (push (cons (->keyword name) value) (headers req)))
 	(setf (parameters req)
 	      (append (parse-params (parameters req))
 		      (parse-params (pop lines))))
