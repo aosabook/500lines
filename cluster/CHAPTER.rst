@@ -65,41 +65,66 @@ In principle, each slot is decided in its own instance of Paxos, tagged with the
 In practice, the high cost of each Paxos instance requires some optimizations which blur the lines of this simple principle.
 For example, ballot numbers are global to the protocol, and the first phase (``PREPARE``/``PROMISE``) is performed for all undecided slots at once.
 
+XXX more? Leader election?
+
 The library in this chapter implements a simple form of Multi-Paxos.
 
-Implementing the Protocol
--------------------------
+Software Design
+---------------
 
-Users of this application will depend on its correctness, so it's important to structure the code so that we can see -- and test -- its correspondance to the specification.
+Users of this library will depend on its correctness, so it's important to structure the code so that we can see -- and test -- its correspondance to the specification.
 Complex protocols can exhibit complex failures, too, so we will build debugging support that will allow test runs to be replayed exactly.
 
 Network
 .......
 
-A network protocol needs the ability to send and receive messages and a means of setting timers for re-transmitting messages.
+A network protocol like Paxos needs the ability to send and receive messages and a means of setting timers for re-transmitting messages.
 
 We'll build a simple simulated network providing these capabilities, that also simulates packet loss and message propagation delays.
-The determinism comes from using a random number generator with a fixed seed value.
+This simulator is *deterministic*: unlike a real network, it will behave exactly the same on every run.
+This is invaluable in developing a protocol, as a buggy execution can be easily re-run with additional debugging output or under a debugger.
+In this simulator, the determinism comes from using a fixed seed value for Python's `random` module.
 
-Timers are handled using Python's heap queue functionality, allowing efficient selection of the next event.
+Timers are handled using Python's `heapq` module, allowing efficient selection of the next event.
 Setting a timer involves pushing a Timer object onto the heap.
 Since removing items from a heap is inefficient, cancelled timers are left in place but marked as cancelled.
 
 INCLUDE deterministic_network.Timer
 
-The Timer class simply stores this information, provides a ``__cmp__`` method to sort the heap, and implements a ``cancel`` method.
-
- * The expiration time for the timer,
- * a boolean indicating whether the timer should fire,
- * the address of the node where the timer was set,
- * the function to call when the timer expires.
+The Timer class simply stores some information, provides a ``__cmp__`` method to sort the heap, and implements a ``cancel`` method.
 
 INCLUDE deterministic_network.Network
 
-Setting a timer involves creating a new instance and pushing it into the heap.
-Heaps do not support efficient element removal, so when a timer is cancelled, we just mark it as such.
 Running the simulation, then, just involves popping timers from the heap and executing them if they have not been cancelled and if the node that set the timer still exists.
 
-Message transmission uses the timer functionality to schedule a later delivery of the message at each node.
+Message transmission uses the timer functionality to schedule a later delivery of the message at each node, using a random simulated delay.
+Since nodes may be added and removed from the network, the `_receive` function ignores any messages for nonexistent nodes.
 
-Each "node" in the network 
+Nodes
+.....
+
+Each host in the network is represented as a `Node`:
+
+INCLUDE deterministic_network.Node
+
+Each has a distinct address and a list of components.  
+
+--------
+
+Software Design
+ + Network
+ + Component Model
+ + named tuples but kwargs
+ + separation of concerns
+ + events
+ + tests
+ + logging
+ + library interface
+
+Implementation Challenges
+ + Follow the Leader
+ + Catching Up
+
+Improvements
+ + Consistent memory usage
+ + View changes
