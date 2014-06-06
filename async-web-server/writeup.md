@@ -1,6 +1,6 @@
-# On Interacting Through HTTP in an Asynchronous Manner in the Medium of Common Lisp
+# On Interacting Through HTTP in an Event-Driven Manner in the Medium of Common Lisp
 
-Ok, this was going to start off with the basics of threaded vs asynchronous servers, and a quick rundown of the use cases for each, but its been brought to my attention that the whole Common Lisp thing might be intimidating to people. Given that tidbit, I debated both internally and externally on how to begin, and decided that the best way might be from the end (Just to be clear, yes, this is a toy example. If you'd like to see a non-toy example using the same server, take a look at [cl-notebook](https://github.com/Inaimathi/cl-notebook), [deal](https://github.com/Inaimathi/deal), and possibly [langnostic](https://github.com/Inaimathi/langnostic). And on a related note This write-up also features a stripped-down version of the `house` server. [The real version](https://github.com/Inaimathi/house) also does some light static file serving, deals with sessions properly, imposes a priority system on HTTP types, has a few clearly labeled cross-platform hacks, and (by the time this article is done) will also probably be doing more detailed back-end error reporting. That's it though. The main handler definition system, HTTP types implementation as well as the *actual server* is exactly the same.). So to *that* end, here's what I want to be able to do:
+Ok, this was going to start off with the basics of threaded vs event-driven servers, and a quick rundown of the use cases for each, but its been brought to my attention that the whole Common Lisp thing might be intimidating to people. Given that tidbit, I debated both internally and externally on how to begin, and decided that the best way might be from the end (Just to be clear, yes, this is a toy example. If you'd like to see a non-toy example using the same server, take a look at [cl-notebook](https://github.com/Inaimathi/cl-notebook), [deal](https://github.com/Inaimathi/deal), and possibly [langnostic](https://github.com/Inaimathi/langnostic). And on a related note This write-up also features a stripped-down version of the `house` server. [The real version](https://github.com/Inaimathi/house) also does some light static file serving, deals with sessions properly, imposes a priority system on HTTP types, has a few clearly labeled cross-platform hacks, and (by the time this article is done) will also probably be doing more detailed back-end error reporting. That's it though. The main handler definition system, HTTP types implementation as well as the *actual server* is exactly the same.). So to *that* end, here's what I want to be able to do:
 
     (define-stream-handler (source) (room)
        (subscribe! (intern room :keyword) sock))
@@ -28,6 +28,28 @@ And having done that, I should be able to browse over to `localhost:4242/index` 
 	  (publish! (intern room :keyword) (encode-json-to-string `((:name . ,name) (:message . ,message)))))
 
     (start 4242)
+
+As a side-note, since all those validators all check `length`, we could define a separate function to simplify the input code for us.
+
+    (defun length-between (min thing max)
+	  (>= max (length thing) min))
+
+    ...
+
+    (define-stream-handler (source) ((room :string (length-between 0 room 16))
+       (subscribe! (intern room :keyword) sock))
+
+    ...
+
+	(define-closing-handler (send-message) 
+	    ((room :string (length-between 0 room 16))
+	     (name :string (length-between 1 name 64)
+	     (message :string (length-between 5 message 256)))
+	  (publish! (intern room :keyword) (encode-json-to-string `((:name . ,name) (:message . ,message)))))
+
+    ...
+
+In this particular case, it doesn't gain us much, and since I'm a bit more concerned about the simplicity of *intervening* code rather than *input* code for this exercise, I'll be sticking to the primitives. You'll see what I mean by that "intervening" comment in a moment; if you're not already a Lisper it may get a bit weird.
 
 It's not *quite* strongly typed HTTP parameters, because I'm interested in enforcing more than type, but that's a good first approximation. You can imagine more or less this same thing being implemented in a mainstream class-based OO language using a class hierarchy. That is, you'd define a `handler` class, then subclass that for each handler you have, giving each `get`, `post`, `parse` and `validate` methods as needed. If you imagine this well enough, you'll also see the small but non-trivial pieces of boilerplate that the approach would get you, both in terms of setting up classes and methods themselves and in terms of doing the parsing/validation of your parameters. The Common Lisp approach, and I'd argue the right approach, is to write a DSL to handle the problem. In this case, it takes the form of a new piece of syntax that lets you declare certain properties of your handlers, and expands into the code you would have written by hand. Writing this way, your code ends up amounting to a set of instructions which a Lisp implementation can unfold into the much more verbose and extensive code that you want to run. The benefit here is that you don't have to maintain the intermediate code, as you would if you were using IDE/editor-provided code generation facilities, you have the comparably easy and straight-forward task of maintaining the unfolding instructions.
 
@@ -377,7 +399,7 @@ That's the entirety of the handler subsystem for this project. What we've got is
 -a user-facing DSL for easily creating type and restriction-annotated handlers
 -a user-facing micro-DSL for easily defining new types to annotate handlers with
 
-After unrolling the above macro tower and understanding how it fits together, the rest of this is going to be a pretty straight-forward asynchronous server implementation. Since we just talked about the different things `make-stream-handler` and `make-closing-handler` generate to write to the client sockets' stream, this is a nice segue into the `:house` model.
+After unrolling the above macro tower and understanding how it fits together, the rest of this is going to be a pretty straight-forward event-driven server implementation. Since we just talked about the different things `make-stream-handler` and `make-closing-handler` generate to write to the client sockets' stream, this is a nice segue into the `:house` model.
 
 ### Object Oriented Programming in Common Lisp
 
@@ -556,9 +578,9 @@ These are the relevant `4xx` and `5xx`-class HTTP errors that we'll be sending a
 
 It takes an error response and a socket, writes the response to the socket and closes it (ignoring errors, in case the other end has already disconnected). The `instance` argument here is purely for logging/debugging purposes. We'll get into that later.
 
-### Async Specifics
+### Event-Driven Specifics
 
-That more or less concludes the parts of this system that are HTTP-specific. That is, you'd want them all whether you're writing a thread-per-request, or an asynchronous server, and they would look the same in either case. The pieces I mentioned removing to streamline this implementation of `:house` for didactic purposes all fall into the same category, by the way, they're either pieces intrinsic to HTTP or to multi-platform Common Lisp applications. The only remaining parts of the server we still need to look at are
+That more or less concludes the parts of this system that are HTTP-specific. That is, you'd want them all whether you're writing a thread-per-request, or an event-driven server, and they would look the same in either case. The pieces I mentioned removing to streamline this implementation of `:house` for didactic purposes all fall into the same category, by the way, they're either pieces intrinsic to HTTP or to multi-platform Common Lisp applications. The only remaining parts of the server we still need to look at are
 
 1. The event loop itself
 2. The buffering subsystem
@@ -569,7 +591,7 @@ and
 
 These are going to change, whether mildly or radically, depending on what kind of server you're writing and what specifically you want it to do. So with that in mind, it's about time you understood some of the basic decisions in this space and the basis on which they're made.
 
-### The Basics of Asynchronous Servers
+### The Basics of Event-Driven Servers
 
 At the 10k-foot-level, an HTTP exchange is one request and one response. A client sends a request, which includes a resource identifier, an HTTP version tag, some headers and some parameters. The receiving server parses that request, figures out what to do about it, and sends a response which includes the same HTTP version tag, a response code, some headers and a request body.
 
@@ -607,7 +629,7 @@ a) A server that can service many connections with a single thread
 b) A thread-per-request server that passes long-lived connections off to a separate subsystem, which must handle those long lived connections using a minimal number of threads
 c) A thread-per-request server on top of a platform where threads are cheap enough that you can afford having a few hundred thousand of them around.
 
-For an example of option `c`, have a look at Yaws (the [web server](http://hyber.org/), not the [tropical infection](http://en.wikipedia.org/wiki/Yaws)). `b` strikes me as ridiculous. The reason for using a thread-per-request model is that it mechanically simplifies server implementation, but adding the requirement of a separate long-lived connection subsystem seems like it would result in a net complexity *increase*. So, if we want server pushing in the absence of really, *really*, **really** cheap threads, we're dealing with an asynchronous server. Which means dealing with non-blocking IO (we'll see why that is later on), and potentially dealing with a single thread.
+For an example of option `c`, have a look at Yaws (the [web server](http://hyber.org/), not the [tropical infection](http://en.wikipedia.org/wiki/Yaws)). `b` strikes me as ridiculous. The reason for using a thread-per-request model is that it mechanically simplifies server implementation, but adding the requirement of a separate long-lived connection subsystem seems like it would result in a net complexity *increase*. So, if we want server pushing in the absence of really, *really*, **really** cheap threads, we're dealing with an event-driven server. Which means dealing with non-blocking IO (we'll see why that is later on), and potentially dealing with a single thread.
 
 ### High Level
 
@@ -664,7 +686,7 @@ Instead of being so simple-minded about it, this `publish!` iterates over the su
 
 #### Buffering
 
-Because we're doing asynchronous client handling, we can't just wait on a client connection until we reach connection timeout. If we were writing a thread-per-request server, that approach might make sense because each client would kind of be isolated thanks to the separate thread, but in an async context, if you block on one particular client connection, you block all of them for the duration. That's less than ideal, and it's why I mentioned that we'll have to be using non-blocking IO earlier. If we could block on a connection until a particular timeout, there wouldn't be an issue. However, as it stands we'll want our server to keep moving on to connections that have data ready for reading rather than sticking at the first one in. So what we want is to read all available data from a particular port, check whether what we have so far constitutes a complete request and proceed on that basis. If it *is* complete, then handle it, otherwise buffer the input so far and let it hang around until its turn comes up again. Here's how we do that
+Because we're doing event-driven client handling, we can't just wait on a client connection until we reach connection timeout. If we were writing a thread-per-request server, that approach might make sense because each client would kind of be isolated thanks to the separate thread, but in an event-driven context, if you block on one particular client connection, you block all of them for the duration. That's less than ideal, and it's why I mentioned that we'll have to be using non-blocking IO earlier. If we could block on a connection until a particular timeout, there wouldn't be an issue. However, as it stands we'll want our server to keep moving on to connections that have data ready for reading rather than sticking at the first one in. So what we want is to read all available data from a particular port, check whether what we have so far constitutes a complete request and proceed on that basis. If it *is* complete, then handle it, otherwise buffer the input so far and let it hang around until its turn comes up again. Here's how we do that
 
 	(defmethod buffer! ((buffer buffer))
 	  (handler-case
@@ -796,7 +818,7 @@ The top-level method `start` takes a local `port` and listens on it for all inco
 
 ### All Together Now
 
-That was seriously it. We did the entire thing backwards because that's the path that exposed you to as much Lisp-specific code first and got to the mundane details last, but you now understand exactly how to write an asynchronous server in Common Lisp. Having done all of the above, we can finally achieve our goal.
+That was seriously it. We did the entire thing backwards because that's the path that exposed you to as much Lisp-specific code first and got to the mundane details last, but you now understand exactly how to write an event-driven server in Common Lisp. Having done all of the above, we can finally achieve our goal.
 
     (define-stream-handler (source) ((room :string (>= 16 (length room))))
        (subscribe! (intern room :keyword) sock))
