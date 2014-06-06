@@ -12,11 +12,10 @@ import threading
 Proposal = namedtuple('Proposal', ['caller', 'client_id', 'input'])
 Ballot = namedtuple('Ballot', ['n', 'leader'])
 ScoutId = namedtuple('ScoutId', ['address', 'ballot_num'])
-CommanderId = namedtuple('CommanderId', ['address', 'slot', 'proposal'])
 
 # message types
-Accepted = namedtuple('Accepted', ['commander_id', 'acceptor', 'ballot_num'])
-Accept = namedtuple('Accept', ['commander_id', 'ballot_num', 'slot', 'proposal'])
+Accepted = namedtuple('Accepted', ['slot', 'acceptor', 'ballot_num'])
+Accept = namedtuple('Accept', ['slot', 'ballot_num', 'proposal'])
 Catchup = namedtuple('Catchup', ['slot'])
 Decision = namedtuple('Decision', ['slot', 'proposal'])
 Invoked = namedtuple('Invoked', ['client_id', 'output'])
@@ -314,24 +313,23 @@ class Acceptor(Component):
             ballot_num=self.ballot_num, accepted=self.accepted))
 
     # p2a
-    def do_ACCEPT(self, sender, commander_id, ballot_num, slot, proposal):
+    def do_ACCEPT(self, sender, ballot_num, slot, proposal):
         if ballot_num >= self.ballot_num:
             self.ballot_num = ballot_num
             self.accepted[(ballot_num, slot)] = proposal
 
-        self.node.send([commander_id.address], Accepted(
-            commander_id=commander_id, acceptor=self.node.address, ballot_num=self.ballot_num))
+        self.node.send([sender], Accepted(
+            slot=slot, acceptor=self.node.address, ballot_num=self.ballot_num))
 
 
 class Commander(Component):
 
-    def __init__(self, node, leader, ballot_num, slot, proposal, commander_id, peers):
+    def __init__(self, node, leader, ballot_num, slot, proposal, peers):
         super(Commander, self).__init__(node)
         self.leader = leader
         self.ballot_num = ballot_num
         self.slot = slot
         self.proposal = proposal
-        self.commander_id = commander_id
         self.accepted = set([])
         self.peers = peers
         self.quorum = len(peers) / 2 + 1
@@ -339,19 +337,18 @@ class Commander(Component):
 
     def start(self):
         self.node.send(set(self.peers) - self.accepted, Accept(
-                            commander_id=self.commander_id, ballot_num=self.ballot_num,
-                            slot=self.slot, proposal=self.proposal))
+                            slot=self.slot, ballot_num=self.ballot_num,
+                            proposal=self.proposal))
         self.timer = self.node.set_timer(ACCEPT_RETRANSMIT, self.start)
 
     def finished(self, ballot_num, preempted):
-        self.leader.commander_finished(
-            self.commander_id, ballot_num, preempted)
+        self.leader.commander_finished(self.slot, ballot_num, preempted)
         if self.timer:
             self.timer.cancel()
         self.stop()
 
-    def do_ACCEPTED(self, sender, commander_id, acceptor, ballot_num):  # p2b
-        if commander_id != self.commander_id:
+    def do_ACCEPTED(self, sender, slot, acceptor, ballot_num):  # p2b
+        if slot != self.slot:
             return
         if ballot_num == self.ballot_num:
             self.accepted.add(acceptor)
@@ -466,15 +463,14 @@ class Leader(Component):
 
     def spawn_commander(self, ballot_num, slot):
         proposal = self.proposals[slot]
-        commander_id = CommanderId(self.node.address, slot, proposal)
-        assert commander_id not in self.commanders
+        assert slot not in self.commanders
         cmd = self.commander_cls(self.node,
-                                 self, ballot_num, slot, proposal, commander_id, self.peers)
-        self.commanders[commander_id] = cmd
+                                 self, ballot_num, slot, proposal, self.peers)
+        self.commanders[slot] = cmd
         cmd.start()
 
-    def commander_finished(self, commander_id, ballot_num, preempted):
-        del self.commanders[commander_id]
+    def commander_finished(self, slot, ballot_num, preempted):
+        del self.commanders[slot]
         if preempted:
             self.preempted(ballot_num)
 

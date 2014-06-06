@@ -32,15 +32,13 @@ class Tests(utils.ComponentTestCase):
         self.assertEqual(self.ldr.scout, None)
 
     def assertCommanderStarted(self, ballot_num, slot, proposal):
-        commander_id = CommanderId(self.node.address, slot, proposal)
         Commander.assert_called_with(self.node, self.ldr, ballot_num, slot,
-                                     proposal, commander_id, ['p1', 'p2'])
-        cmd = self.ldr.commanders[commander_id]
+                                     proposal, ['p1', 'p2'])
+        cmd = self.ldr.commanders[slot]
         cmd.start.assert_called_with()
 
     def assertNoCommander(self, slot):
-        for commander_id in self.ldr.commanders:
-            if commander_id.slot == slot:
+        if slot in self.ldr.commanders:
                 self.fail("commander running for slot %d" % slot)
 
     def activate_leader(self):
@@ -80,8 +78,7 @@ class Tests(utils.ComponentTestCase):
         """When a commander finishes successfully, nothing more happens"""
         self.activate_leader()
         self.node.fake_message(Propose(slot=10, proposal=PROPOSAL1))
-        commander_id = CommanderId(self.node.address, 10, PROPOSAL1)
-        self.ldr.commander_finished(commander_id, Ballot(0, UNIQUE_ID), False)
+        self.ldr.commander_finished(10, Ballot(0, UNIQUE_ID), False)
         self.assertNoCommander(10)
 
     def test_commander_finished_preempted(self):
@@ -90,9 +87,7 @@ class Tests(utils.ComponentTestCase):
         spawned"""
         self.activate_leader()
         self.node.fake_message(Propose(slot=10, proposal=PROPOSAL1))
-        commander_id = CommanderId(self.node.address, 10, PROPOSAL1)
-        self.ldr.commander_finished(
-            commander_id, Ballot(22, OTHER_UNIQUE_ID), True)
+        self.ldr.commander_finished(10, Ballot(22, OTHER_UNIQUE_ID), True)
         self.assertNoCommander(10)
         self.assertEqual(self.ldr.ballot_num, Ballot(23, UNIQUE_ID))
         self.assertNoScout()

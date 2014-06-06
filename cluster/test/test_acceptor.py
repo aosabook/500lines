@@ -57,16 +57,14 @@ class Tests(utils.ComponentTestCase):
         """On ACCEPT with a new ballot, Acceptor returns ACCEPTED with the new ballot number
         and records the proposal as accepted"""
         proposal = Proposal('cli', 123, 'INC')
-        cmd_id = CommanderId(address='CMD', slot=33, proposal=proposal)
         self.ac.ballot_num = Ballot(10, 10)
         self.node.fake_message(Accept(
-                               commander_id=cmd_id,
-                               ballot_num=Ballot(19, 19),
                                slot=33,
-                               proposal=proposal))
+                               ballot_num=Ballot(19, 19),
+                               proposal=proposal), sender='CMD')
         self.assertMessage(['CMD'], Accepted(
-                           commander_id=cmd_id,
                            acceptor='F999',
+                           slot=33,
                            # replies with updated ballot_num
                            ballot_num=Ballot(19, 19)))
         # and state records acceptance of proposal
@@ -76,16 +74,14 @@ class Tests(utils.ComponentTestCase):
         """On ACCEPT with an old ballot, Acceptor returns ACCEPTED with the
         already-accepted ballot, and does *not* accept the ballot."""
         proposal = Proposal('cli', 123, 'INC')
-        cmd_id = CommanderId(address='CMD', slot=33, proposal=proposal)
         self.ac.ballot_num = Ballot(10, 10)
         self.node.fake_message(Accept(
-                               commander_id=cmd_id,
-                               ballot_num=Ballot(5, 5),
                                slot=33,
-                               proposal=proposal))
+                               ballot_num=Ballot(5, 5),
+                               proposal=proposal), sender='CMD')
         self.assertMessage(['CMD'], Accepted(
-                           commander_id=cmd_id,
                            acceptor='F999',
+                           slot=33,
                            # replies with newer ballot_num
                            ballot_num=Ballot(10, 10)))
         # and doesn't accept the proposal

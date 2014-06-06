@@ -11,16 +11,13 @@ class Tests(utils.ComponentTestCase):
         self.leader = mock.Mock(name='leader')
         self.slot = 10
         self.proposal = Proposal(caller='cli', client_id=123, input='inc')
-        self.commander_id = CommanderId(
-            address=self.node.address, slot=self.slot, proposal=self.proposal)
         self.ballot_num = Ballot(91, 82)
         self.cmd = Commander(
             self.node, leader=self.leader, ballot_num=self.ballot_num,
             slot=self.slot, proposal=self.proposal,
-            commander_id=self.commander_id, peers=['p1', 'p2', 'p3'])
-        self.accept_message = Accept(
-            commander_id=self.commander_id, ballot_num=self.ballot_num, slot=self.slot,
-            proposal=self.proposal)
+            peers=['p1', 'p2', 'p3'])
+        self.accept_message = Accept(slot=self.slot, ballot_num=self.ballot_num,
+                                     proposal=self.proposal)
 
     def test_retransmit(self):
         """After start(), the commander sends ACCEPT repeatedly to all peers which have not responded"""
@@ -30,30 +27,28 @@ class Tests(utils.ComponentTestCase):
         self.assertMessage(['p1', 'p2', 'p3'], self.accept_message)
 
         self.node.fake_message(
-                Accepted(commander_id=self.commander_id, acceptor='p2', ballot_num=self.ballot_num))
+                Accepted(slot=self.slot, acceptor='p2', ballot_num=self.ballot_num))
         self.network.tick(ACCEPT_RETRANSMIT)
         self.assertMessage(['p1', 'p3'], self.accept_message)
         self.network.tick(ACCEPT_RETRANSMIT)
         self.assertMessage(['p1', 'p3'], self.accept_message)
         self.node.fake_message(
-            Accepted(commander_id=self.commander_id, acceptor='p1', ballot_num=self.ballot_num))
+            Accepted(slot=self.slot, acceptor='p1', ballot_num=self.ballot_num))
 
         # quorum (3/2+1 = 2) reached
         self.assertMessage(['p1', 'p2', 'p3'], Decision(slot=self.slot, proposal=self.proposal))
 
-        self.leader.commander_finished.assert_called_with(
-            self.commander_id, self.ballot_num, False)
+        self.leader.commander_finished.assert_called_with(self.slot, self.ballot_num, False)
         self.assertTimers([])
         self.assertUnregistered()
 
-    def test_wrong_commander_id(self):
+    def test_wrong_slot(self):
         """Commander ignores ACCEPTED messages for other commanders"""
         self.cmd.start()
         self.assertMessage(['p1', 'p2', 'p3'], self.accept_message)
-        other_commander_id = CommanderId(
-            address='OTHER', slot=self.slot, proposal=self.proposal)
+        other_slot = 999
         self.node.fake_message(
-            Accepted(commander_id=other_commander_id, acceptor='p1', ballot_num=self.ballot_num))
+            Accepted(slot=other_slot, acceptor='p1', ballot_num=self.ballot_num))
         self.network.tick(ACCEPT_RETRANSMIT)
         # p1 still in the list
         self.assertMessage(['p1', 'p2', 'p3'], self.accept_message)
@@ -65,9 +60,8 @@ class Tests(utils.ComponentTestCase):
         self.assertMessage(['p1', 'p2', 'p3'], self.accept_message)
         other_ballot_num = Ballot(99, 99)
         self.node.fake_message(
-            Accepted(commander_id=self.commander_id, acceptor='p1', ballot_num=other_ballot_num))
+            Accepted(slot=self.slot, acceptor='p1', ballot_num=other_ballot_num))
 
-        self.leader.commander_finished.assert_called_with(
-            self.commander_id, other_ballot_num, True)
+        self.leader.commander_finished.assert_called_with(self.slot, other_ballot_num, True)
         self.assertTimers([])
         self.assertUnregistered()
