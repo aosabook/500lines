@@ -32,7 +32,7 @@ class FakeNetwork(Network):
         sender.sent.append((destinations, message))
 
     def get_times(self):
-        return sorted([t.expires - self.now for t in self.timers if not t.cancelled])
+        return sorted([t.expires - self.now for t in self.timers if not t.cancelled and t.address in self.nodes])
 
 class FakeNode(Node):
 

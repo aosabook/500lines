@@ -329,19 +329,16 @@ class Commander(Component):
         self.accepted = set([])
         self.peers = peers
         self.quorum = len(peers) / 2 + 1
-        self.timer = None
 
     def start(self):
         self.node.send(set(self.peers) - self.accepted, Accept(
                             slot=self.slot, ballot_num=self.ballot_num,
                             proposal=self.proposal))
-        self.timer = self.node.set_timer(ACCEPT_RETRANSMIT, self.start)
+        self.node.set_timer(ACCEPT_RETRANSMIT, self.start)
 
     def finished(self, ballot_num, preempted):
         self.node.event('commander_finished', slot=self.slot,
                         preempted_by=ballot_num if preempted else None)
-        if self.timer:
-            self.timer.cancel()
         self.stop()
 
     def do_ACCEPTED(self, sender, slot, ballot_num):  # p2b
@@ -493,7 +490,6 @@ class Bootstrap(Component):
         self.execute_fn = execute_fn
         self.peers = peers
         self.peers_cycle = itertools.cycle(peers)
-        self.timer = None
         self.replica_cls = replica_cls
         self.acceptor_cls = acceptor_cls
         self.leader_cls = leader_cls
@@ -506,7 +502,7 @@ class Bootstrap(Component):
     def join(self):
         """Try to join the cluster"""
         self.node.send([next(self.peers_cycle)], Join())
-        self.timer = self.node.set_timer(JOIN_RETRANSMIT, self.join)
+        self.node.set_timer(JOIN_RETRANSMIT, self.join)
 
     def do_WELCOME(self, sender, state, slot_num, decisions):
         self.acceptor_cls(self.node)
@@ -518,10 +514,6 @@ class Bootstrap(Component):
         # TODO: just pass these to the constructor
         replica.start(state=state, slot_num=slot_num,
                       decisions=decisions, peers=self.peers)
-
-        if self.timer:
-            self.timer.cancel()
-
         self.stop()
 
 
