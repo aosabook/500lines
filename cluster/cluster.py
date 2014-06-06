@@ -28,6 +28,7 @@ Welcome = namedtuple('Welcome', ['state', 'slot_num', 'decisions'])
 Decided = namedtuple('Decided', ['slot'])
 Preempted = namedtuple('Preempted', ['slot', 'preempted_by'])
 Adopted = namedtuple('Adopted', ['ballot_num', 'pvals'])
+Accepting =namedtuple('Accepting', ['leader'])
 
 # constants - all of these should really be in terms of RTT's
 JOIN_RETRANSMIT = 0.7
@@ -261,8 +262,13 @@ class Replica(Component):
             self.node.send([proposal.caller], Invoked(client_id=proposal.client_id, output=output))
 
     # tracking the leader
-    def on_leader_changed_event(self, new_leader):
-        self.latest_leader = new_leader
+
+    def do_ADOPTED(self, sender, ballot_num, pvals):
+        self.latest_leader = self.node.address
+        self.leader_alive()
+
+    def do_ACCEPTING(self, sender, leader):
+        self.latest_leader = leader
         self.leader_alive()
 
     def do_ACTIVE(self, sender):
@@ -299,7 +305,7 @@ class Acceptor(Component):
         if ballot_num > self.ballot_num:
             self.ballot_num = ballot_num
             # we've accepted the sender, so it might be the next leader
-            self.node.event('leader_changed', new_leader=sender)
+            self.node.send([self.node.address], Accepting(leader=sender))
 
         self.node.send([sender], Promise(ballot_num=self.ballot_num, accepted=self.accepted))
 
@@ -427,7 +433,6 @@ class Leader(Component):
         # note that we don't re-spawn commanders here; if there are undecided
         # proposals, the replicas will re-propose
         self.logger.info("leader becoming active")
-        self.node.event('leader_changed', new_leader=self.node.address)
         self.active = True
 
     def spawn_commander(self, ballot_num, slot):
