@@ -8,12 +8,11 @@ class Tests(utils.ComponentTestCase):
     def setUp(self):
         super(Tests, self).setUp()
         self.cb_args = None
-        self.leader = mock.Mock(name='leader')
         self.slot = 10
         self.proposal = Proposal(caller='cli', client_id=123, input='inc')
         self.ballot_num = Ballot(91, 82)
         self.cmd = Commander(
-            self.node, leader=self.leader, ballot_num=self.ballot_num,
+            self.node, ballot_num=self.ballot_num,
             slot=self.slot, proposal=self.proposal,
             peers=['p1', 'p2', 'p3'])
         self.accept_message = Accept(slot=self.slot, ballot_num=self.ballot_num,
@@ -37,8 +36,8 @@ class Tests(utils.ComponentTestCase):
 
         # quorum (3/2+1 = 2) reached
         self.assertMessage(['p1', 'p2', 'p3'], Decision(slot=self.slot, proposal=self.proposal))
-
-        self.leader.commander_finished.assert_called_with(self.slot, self.ballot_num, False)
+        self.assertEvent('decision', slot=self.slot, proposal=self.proposal)
+        self.assertEvent('commander_finished', slot=self.slot, preempted_by=None)
         self.assertTimers([])
         self.assertUnregistered()
 
@@ -61,7 +60,6 @@ class Tests(utils.ComponentTestCase):
         other_ballot_num = Ballot(99, 99)
         self.node.fake_message(
             Accepted(slot=self.slot, ballot_num=other_ballot_num), sender='p1')
-
-        self.leader.commander_finished.assert_called_with(self.slot, other_ballot_num, True)
+        self.assertEvent('commander_finished', slot=self.slot, preempted_by=other_ballot_num)
         self.assertTimers([])
         self.assertUnregistered()

@@ -32,8 +32,7 @@ class Tests(utils.ComponentTestCase):
         self.assertEqual(self.ldr.scout, None)
 
     def assertCommanderStarted(self, ballot_num, slot, proposal):
-        Commander.assert_called_with(self.node, self.ldr, ballot_num, slot,
-                                     proposal, ['p1', 'p2'])
+        Commander.assert_called_with(self.node, ballot_num, slot, proposal, ['p1', 'p2'])
         cmd = self.ldr.commanders[slot]
         cmd.start.assert_called_with()
 
@@ -78,7 +77,7 @@ class Tests(utils.ComponentTestCase):
         """When a commander finishes successfully, nothing more happens"""
         self.activate_leader()
         self.node.fake_message(Propose(slot=10, proposal=PROPOSAL1))
-        self.ldr.commander_finished(10, Ballot(0, UNIQUE_ID), False)
+        self.node.fakeEvent('commander_finished', slot=10, preempted_by=None)
         self.assertNoCommander(10)
 
     def test_commander_finished_preempted(self):
@@ -87,7 +86,7 @@ class Tests(utils.ComponentTestCase):
         spawned"""
         self.activate_leader()
         self.node.fake_message(Propose(slot=10, proposal=PROPOSAL1))
-        self.ldr.commander_finished(10, Ballot(22, OTHER_UNIQUE_ID), True)
+        self.node.fakeEvent('commander_finished', slot=10, preempted_by=Ballot(22, OTHER_UNIQUE_ID))
         self.assertNoCommander(10)
         self.assertEqual(self.ldr.ballot_num, Ballot(23, UNIQUE_ID))
         self.assertNoScout()

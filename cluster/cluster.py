@@ -321,9 +321,8 @@ class Acceptor(Component):
 
 class Commander(Component):
 
-    def __init__(self, node, leader, ballot_num, slot, proposal, peers):
+    def __init__(self, node, ballot_num, slot, proposal, peers):
         super(Commander, self).__init__(node)
-        self.leader = leader
         self.ballot_num = ballot_num
         self.slot = slot
         self.proposal = proposal
@@ -339,7 +338,8 @@ class Commander(Component):
         self.timer = self.node.set_timer(ACCEPT_RETRANSMIT, self.start)
 
     def finished(self, ballot_num, preempted):
-        self.leader.commander_finished(self.slot, ballot_num, preempted)
+        self.node.event('commander_finished', slot=self.slot,
+                        preempted_by=ballot_num if preempted else None)
         if self.timer:
             self.timer.cancel()
         self.stop()
@@ -456,21 +456,19 @@ class Leader(Component):
     def spawn_commander(self, ballot_num, slot):
         proposal = self.proposals[slot]
         assert slot not in self.commanders
-        cmd = self.commander_cls(self.node,
-                                 self, ballot_num, slot, proposal, self.peers)
+        cmd = self.commander_cls(self.node, ballot_num, slot, proposal, self.peers)
         self.commanders[slot] = cmd
         cmd.start()
 
-    def commander_finished(self, slot, ballot_num, preempted):
+    def on_commander_finished_event(self, slot, preempted_by):
         del self.commanders[slot]
-        if preempted:
-            self.preempted(ballot_num)
+        if preempted_by:
+            self.preempted(preempted_by)
 
-    def preempted(self, ballot_num):
-        self.logger.info("leader preempted by %s, but I'm %d" %
-                         (ballot_num.leader, self.ballot_num.leader))
+    def preempted(self, preempted_by):
+        self.logger.info("leader preempted by %s", preempted_by.leader)
         self.active = False
-        self.ballot_num = Ballot((ballot_num or self.ballot_num).n + 1, self.ballot_num.leader)
+        self.ballot_num = Ballot((preempted_by or self.ballot_num).n + 1, self.ballot_num.leader)
 
     def do_PROPOSE(self, sender, slot, proposal):
         if slot not in self.proposals:
