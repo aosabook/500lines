@@ -75,9 +75,6 @@ class Node(object):
         self.send = functools.partial(self.network.send, self)
         self.logger.info('starting')
 
-    def send(self, destinations, message):
-        self.network.send(self.address, destinations, message)
-
     def register(self, component):
         self.components.append(component)
 
