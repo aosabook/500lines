@@ -14,8 +14,9 @@ class Tests(utils.ComponentTestCase):
         super(Tests, self).setUp()
         self.execute_fn = mock.Mock(
             name='execute_fn', spec=lambda state, input: None)
-        self.rep = Replica(self.node, self.execute_fn)
-        self.rep.start('state', 2, {1: PROPOSAL1}, ['p1', 'F999'])
+        self.rep = Replica(self.node, self.execute_fn, state='state', slot_num=2,
+                           decisions={1: PROPOSAL1}, peers=['p1', 'F999'])
+        self.rep.start()
         self.assertNoMessages()
 
     def tearDown(self):

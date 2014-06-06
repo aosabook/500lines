@@ -155,21 +155,20 @@ class Network(object):
 
 class Replica(Component):
 
-    def __init__(self, node, execute_fn):
+    def __init__(self, node, execute_fn, state, slot_num, decisions, peers):
         super(Replica, self).__init__(node)
         self.execute_fn = execute_fn
-        self.proposals = {}
-
-    def start(self, state, slot_num, decisions, peers):
         self.state = state
         self.slot_num = slot_num
-        # next slot num for a proposal (may lead slot_num)
-        self.next_slot = slot_num
         self.decisions = decisions.copy()
         self.peers = peers
+        self.proposals = {}
+        # next slot num for a proposal (may lead slot_num)
+        self.next_slot = slot_num
         self.latest_leader = None
         self.latest_leader_timeout = None
 
+    def start(self):
         self.catchup()
 
     # making proposals
@@ -487,13 +486,10 @@ class Bootstrap(Component):
 
     def do_WELCOME(self, sender, state, slot_num, decisions):
         self.acceptor_cls(self.node)
-        replica = self.replica_cls(self.node, execute_fn=self.execute_fn)
-        leader = self.leader_cls(self.node, peers=self.peers, commander_cls=self.commander_cls,
-                                 scout_cls=self.scout_cls)
-        leader.start()
-        # TODO: just pass these to the constructor
-        replica.start(state=state, slot_num=slot_num,
-                      decisions=decisions, peers=self.peers)
+        self.replica_cls(self.node, execute_fn=self.execute_fn, peers=self.peers,
+                         state=state, slot_num=slot_num, decisions=decisions).start()
+        self.leader_cls(self.node, peers=self.peers, commander_cls=self.commander_cls,
+                        scout_cls=self.scout_cls).start()
         self.stop()
 
 
