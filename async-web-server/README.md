@@ -1,11 +1,5 @@
 ## TODO
-- Merge stuff in from the main House
-- Do some writing stuff about
-	- Zoom in on `define-handler` from the DSL perspective (this is a mini-language for strongly typing incoming HTTP parameters)
-	- Show incremental macroexpansions
-	- Consider comparing a notional implementation in a class-based OO language
-	- Same deal with raw-token (if you manage to crowbar )
-- 
+- Change interface for handler definitions, and pertinent part of the writeup (singular `define-handler` with a keyword arg to specify `:close-stream?` or not)
 
 # :house
 ##### Minimal asynchronous Common Lisp web server
