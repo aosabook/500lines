@@ -28,6 +28,9 @@ class FakeNetwork(Network):
                 timer.callback()
         self.now = until
 
+    def send(self, sender, destinations, message):
+        sender.sent.append((destinations, message))
+
     def get_times(self):
         return sorted([t.expires - self.now for t in self.timers if not t.cancelled])
 
@@ -48,9 +51,6 @@ class FakeNode(Node):
     def unregister(self, component):
         assert component in self.components
         super(FakeNode, self).unregister(component)
-
-    def send(self, destinations, message):
-        self.sent.append((destinations, message))
 
     def fake_message(self, message, sender='F999'):
         for component in self.components:

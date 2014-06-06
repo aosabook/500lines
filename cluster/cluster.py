@@ -72,11 +72,10 @@ class Node(object):
         self.logger = NetworkLogger(
             logging.getLogger(self.address), {'network': self.network})
         self.set_timer = functools.partial(self.network.set_timer, self.address)
+        self.send = functools.partial(self.network.send, self)
         self.logger.info('starting')
 
     def send(self, destinations, message):
-        self.logger.debug("sending %s to %s",
-                          message, destinations)
         self.network.send(self.address, destinations, message)
 
     def register(self, component):
@@ -153,9 +152,10 @@ class Network(object):
         return timer
 
     def send(self, sender, destinations, message):
+        sender.logger.debug("sending %s to %s", message, destinations)
         def _receive(address):
             if address in self.nodes:
-                self.nodes[address].receive(sender, message)
+                self.nodes[address].receive(sender.address, message)
         for dest in destinations:
             if self.rnd.uniform(0, 1.0) > self.DROP_PROB:
                 delay = self.PROP_DELAY + \
