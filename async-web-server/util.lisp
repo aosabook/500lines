@@ -2,25 +2,25 @@
 
 (defun debug! (&optional (stream *standard-output*))
   (flet ((dbg (label &rest msg) (format stream ">>>> ~a~%~{~s~%----------~%~}~%" label msg)))
-    (defmethod process-ready :before ((sock stream-usocket) conns buffers)
-	       (dbg "Preparing to buffer..." sock
+    (defmethod process-ready :before ((socket stream-usocket) conns buffers)
+	       (dbg "Preparing to buffer..." socket
 		    "CONNECTIONS: " (alexandria:hash-table-keys conns)
 		    "BUFFERS: " (alexandria:hash-table-keys buffers)))
-    (defmethod handle-request :before (sock req) 
-	       (dbg "Handling request..." sock req (resource req) (headers req) (parameters req)))
-    (defmethod handle-request :after (sock req) 
+    (defmethod handle-request :before (socket req) 
+	       (dbg "Handling request..." socket req (resource req) (headers req) (parameters req)))
+    (defmethod handle-request :after (socket req) 
 	       (dbg "Completed request..."))
     (defmethod buffer! :before (buf)
 	       (dbg "Buffering..." buf (tries buf)))
     (defmethod buffer! :after (buf)
 	       (when (> (tries buf) +max-buffer-tries+)
 		 (dbg "Needy buffer..." buf (tries buf) (coerce (reverse (contents buf)) 'string))))
-    (defmethod write! :before ((res response) sock) 
+    (defmethod write! :before ((res response) socket) 
 	       (dbg "Writing response..."))
-    (defmethod error! :before (res sock &optional instance) 
+    (defmethod error! :before (res socket &optional instance) 
 	       (dbg "Sending error response..."
-		    instance sock res (response-code res)))
-    (defmethod subscribe! :before (chan sock) 
+		    instance socket res (response-code res)))
+    (defmethod subscribe! :before (chan socket) 
 	       (dbg "New subscriber" chan))
     (defmethod publish! :before (chan msg) 
 	       (dbg "Publishing to channel" chan msg))
@@ -47,8 +47,8 @@
 (defmethod (setf lookup) (new-value key (hash hash-table))
   (setf (gethash key hash) new-value))
 
-(defmethod flex-stream ((sock usocket))
-  (flex:make-flexi-stream (socket-stream sock) :external-format :utf-8))
+(defmethod flex-stream ((socket usocket))
+  (flex:make-flexi-stream (socket-stream socket) :external-format :utf-8))
 
 (defmethod uri-decode ((thing null)) nil)
 

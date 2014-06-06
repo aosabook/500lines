@@ -85,18 +85,18 @@
   (parse (coerce (reverse (contents buf)) 'string)))
 
 ;;;;; Handling requests
-(defmethod handle-request ((sock usocket) (req request))
+(defmethod handle-request ((socket usocket) (req request))
   (aif (lookup (resource req) *handlers*)
-       (funcall it sock (parameters req))
-       (error! +404+ sock)))
+       (funcall it socket (parameters req))
+       (error! +404+ socket)))
 
 (defun crlf (&optional (stream *standard-output*))
   (write-char #\return stream)
   (write-char #\linefeed stream)
   (values))
 
-(defmethod write! ((res response) (sock usocket))
-  (let ((stream (flex-stream sock)))
+(defmethod write! ((res response) (socket usocket))
+  (let ((stream (flex-stream socket)))
     (flet ((write-ln (&rest sequences)
 	     (mapc (lambda (seq) (write-sequence seq stream)) sequences)
 	     (crlf stream)))
@@ -112,29 +112,29 @@
 	(write-ln it))
       (values))))
 
-(defmethod write! ((res sse) (sock usocket))
-  (let ((stream (flex-stream sock)))
+(defmethod write! ((res sse) (socket usocket))
+  (let ((stream (flex-stream socket)))
     (format stream "~@[id: ~a~%~]~@[event: ~a~%~]~@[retry: ~a~%~]data: ~a~%~%"
 	    (id res) (event res) (retry res) (data res))))
 
-(defmethod error! ((err response) (sock usocket) &optional instance)
+(defmethod error! ((err response) (socket usocket) &optional instance)
   (declare (ignorable instance))
   (ignore-errors 
-    (write! err sock)
-    (socket-close sock)))
+    (write! err socket)
+    (socket-close socket)))
 
 ;;;;; Channel-related
-(defmethod subscribe! ((channel symbol) (sock usocket))
-  (push sock (lookup channel *channels*))
+(defmethod subscribe! ((channel symbol) (socket usocket))
+  (push socket (lookup channel *channels*))
   nil)
 
 (defmethod publish! ((channel symbol) (message string))
   (awhen (lookup channel *channels*)
     (setf (lookup channel *channels*)
 	  (loop with msg = (make-instance 'sse :data message)
-	     for sock in it
+	     for socket in it
 	     when (ignore-errors 
-		    (write! msg sock)
-		    (force-output (socket-stream sock))
-		    sock)
+		    (write! msg socket)
+		    (force-output (socket-stream socket))
+		    socket)
 	     collect it))))

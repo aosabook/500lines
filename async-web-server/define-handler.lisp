@@ -65,26 +65,26 @@
 ;;;;;;;;;; Defining Handlers
 (defparameter *handlers* (make-hash-table :test 'equal))
 (defmacro make-closing-handler ((&key (content-type "text/html")) (&rest args) &body body)
-  `(lambda (sock parameters)
+  `(lambda (socket parameters)
      (declare (ignorable parameters))
      ,(arguments args
 		 `(let ((res (make-instance 
 			      'response 
 			      :content-type ,content-type 
 			      :body (progn ,@body))))
-		    (write! res sock)
-		    (socket-close sock)))))
+		    (write! res socket)
+		    (socket-close socket)))))
 
 (defmacro make-stream-handler ((&rest args) &body body)
-  `(lambda (sock parameters)
+  `(lambda (socket parameters)
      (declare (ignorable parameters))
      ,(arguments args
 		 `(let ((res (progn ,@body)))
 		    (write! (make-instance 'response
 					   :keep-alive? t :content-type "text/event-stream")
-			    sock)
-		    (write! (make-instance 'sse :data (or res "Listening...")) sock)
-		    (force-output (socket-stream sock))))))
+			    socket)
+		    (write! (make-instance 'sse :data (or res "Listening...")) socket)
+		    (force-output (socket-stream socket))))))
 
 (defmacro bind-handler (name handler)
   (assert (symbolp name) nil "`name` must be a symbol")
