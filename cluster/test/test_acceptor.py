@@ -26,7 +26,6 @@ class Tests(utils.ComponentTestCase):
         self.assertMessage(['SC'], Promise(
                            scout_id=ScoutId(
                                address='SC', ballot_num=Ballot(19, 19)),
-                           acceptor='F999',
                            # replies with updated ballot_num
                            ballot_num=Ballot(19, 19),
                            # including accepted ballots
@@ -46,7 +45,6 @@ class Tests(utils.ComponentTestCase):
         self.assertMessage(['SC'], Promise(
                            scout_id=ScoutId(
                                address='SC', ballot_num=Ballot(5, 10)),
-                           acceptor='F999',
                            # replies with newer ballot_num
                            ballot_num=Ballot(10, 10),
                            accepted={}))
@@ -63,7 +61,6 @@ class Tests(utils.ComponentTestCase):
                                ballot_num=Ballot(19, 19),
                                proposal=proposal), sender='CMD')
         self.assertMessage(['CMD'], Accepted(
-                           acceptor='F999',
                            slot=33,
                            # replies with updated ballot_num
                            ballot_num=Ballot(19, 19)))
@@ -80,7 +77,6 @@ class Tests(utils.ComponentTestCase):
                                ballot_num=Ballot(5, 5),
                                proposal=proposal), sender='CMD')
         self.assertMessage(['CMD'], Accepted(
-                           acceptor='F999',
                            slot=33,
                            # replies with newer ballot_num
                            ballot_num=Ballot(10, 10)))

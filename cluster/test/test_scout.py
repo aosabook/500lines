@@ -54,9 +54,8 @@ class Tests(utils.ComponentTestCase):
             }[acceptor]
             self.node.fake_message(Promise(
                     scout_id=self.sct.scout_id,
-                    acceptor=acceptor,
                     ballot_num=Ballot(10, 10),
-                    accepted=accepted))
+                    accepted=accepted), sender=acceptor)
         finished.assert_called_once_with(True, Ballot(10, 10))
         self.assertEqual(dict(self.sct.pvals), {
             (Ballot(5, 5), 1): PROPOSAL1,
@@ -72,9 +71,8 @@ class Tests(utils.ComponentTestCase):
         for acceptor in 'p1', 'p3':
             self.node.fake_message(Promise(
                     scout_id=wrong_scout_id,
-                    acceptor=acceptor,
                     ballot_num=Ballot(10, 10),
-                    accepted={}))
+                    accepted={}), sender=acceptor)
         self.failIf(finished.called)
 
     @mock.patch.object(Scout, 'finished')
@@ -82,7 +80,6 @@ class Tests(utils.ComponentTestCase):
         """PROMISEs with different ballot_nums mean preemption"""
         self.node.fake_message(Promise(
                     scout_id=self.sct.scout_id,
-                    acceptor='p2',
                     ballot_num=Ballot(99, 99),
-                    accepted={}))
+                    accepted={}), sender='p2')
         finished.assert_called_once_with(False, Ballot(99, 99))

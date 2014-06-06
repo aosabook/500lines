@@ -14,7 +14,7 @@ Ballot = namedtuple('Ballot', ['n', 'leader'])
 ScoutId = namedtuple('ScoutId', ['address', 'ballot_num'])
 
 # message types
-Accepted = namedtuple('Accepted', ['slot', 'acceptor', 'ballot_num'])
+Accepted = namedtuple('Accepted', ['slot', 'ballot_num'])
 Accept = namedtuple('Accept', ['slot', 'ballot_num', 'proposal'])
 Catchup = namedtuple('Catchup', ['slot'])
 Decision = namedtuple('Decision', ['slot', 'proposal'])
@@ -23,7 +23,7 @@ Invoke = namedtuple('Invoke', ['caller', 'client_id', 'input_value'])
 Join = namedtuple('Join', [])
 Active = namedtuple('Active', [])
 Prepare = namedtuple('Prepare', ['scout_id', 'ballot_num'])
-Promise = namedtuple('Promise', ['scout_id', 'acceptor', 'ballot_num', 'accepted'])
+Promise = namedtuple('Promise', ['scout_id', 'ballot_num', 'accepted'])
 Propose = namedtuple('Propose', ['slot', 'proposal'])
 Welcome = namedtuple('Welcome', ['state', 'slot_num', 'decisions'])
 
@@ -309,8 +309,7 @@ class Acceptor(Component):
             self.node.event('leader_changed', new_leader=sender)
 
         self.node.send([scout_id.address], Promise(
-            scout_id=scout_id, acceptor=self.node.address,
-            ballot_num=self.ballot_num, accepted=self.accepted))
+            scout_id=scout_id, ballot_num=self.ballot_num, accepted=self.accepted))
 
     # p2a
     def do_ACCEPT(self, sender, ballot_num, slot, proposal):
@@ -319,7 +318,7 @@ class Acceptor(Component):
             self.accepted[(ballot_num, slot)] = proposal
 
         self.node.send([sender], Accepted(
-            slot=slot, acceptor=self.node.address, ballot_num=self.ballot_num))
+            slot=slot, ballot_num=self.ballot_num))
 
 
 class Commander(Component):
@@ -347,11 +346,11 @@ class Commander(Component):
             self.timer.cancel()
         self.stop()
 
-    def do_ACCEPTED(self, sender, slot, acceptor, ballot_num):  # p2b
+    def do_ACCEPTED(self, sender, slot, ballot_num):  # p2b
         if slot != self.slot:
             return
         if ballot_num == self.ballot_num:
-            self.accepted.add(acceptor)
+            self.accepted.add(sender)
             if len(self.accepted) < self.quorum:
                 return
             # make sure that this node hears about the decision, otherwise the
@@ -394,13 +393,13 @@ class Scout(Component):
         self.stop()
 
     # p1b
-    def do_PROMISE(self, sender, scout_id, acceptor, ballot_num, accepted):
+    def do_PROMISE(self, sender, scout_id, ballot_num, accepted):
         if scout_id != self.scout_id:
             return
         if ballot_num == self.ballot_num:
             self.logger.info("got matching promise; need %d" % self.quorum)
             self.pvals.update(accepted)
-            self.accepted.add(acceptor)
+            self.accepted.add(sender)
             if len(self.accepted) >= self.quorum:
                 # We're adopted; note that this does *not* mean that no other leader is active.
                 # Any such conflicts will be handled by the commanders.

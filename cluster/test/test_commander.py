@@ -27,13 +27,13 @@ class Tests(utils.ComponentTestCase):
         self.assertMessage(['p1', 'p2', 'p3'], self.accept_message)
 
         self.node.fake_message(
-                Accepted(slot=self.slot, acceptor='p2', ballot_num=self.ballot_num))
+                Accepted(slot=self.slot, ballot_num=self.ballot_num), sender='p2')
         self.network.tick(ACCEPT_RETRANSMIT)
         self.assertMessage(['p1', 'p3'], self.accept_message)
         self.network.tick(ACCEPT_RETRANSMIT)
         self.assertMessage(['p1', 'p3'], self.accept_message)
         self.node.fake_message(
-            Accepted(slot=self.slot, acceptor='p1', ballot_num=self.ballot_num))
+            Accepted(slot=self.slot, ballot_num=self.ballot_num), sender='p1')
 
         # quorum (3/2+1 = 2) reached
         self.assertMessage(['p1', 'p2', 'p3'], Decision(slot=self.slot, proposal=self.proposal))
@@ -48,7 +48,7 @@ class Tests(utils.ComponentTestCase):
         self.assertMessage(['p1', 'p2', 'p3'], self.accept_message)
         other_slot = 999
         self.node.fake_message(
-            Accepted(slot=other_slot, acceptor='p1', ballot_num=self.ballot_num))
+            Accepted(slot=other_slot, ballot_num=self.ballot_num), sender='p1')
         self.network.tick(ACCEPT_RETRANSMIT)
         # p1 still in the list
         self.assertMessage(['p1', 'p2', 'p3'], self.accept_message)
@@ -60,7 +60,7 @@ class Tests(utils.ComponentTestCase):
         self.assertMessage(['p1', 'p2', 'p3'], self.accept_message)
         other_ballot_num = Ballot(99, 99)
         self.node.fake_message(
-            Accepted(slot=self.slot, acceptor='p1', ballot_num=other_ballot_num))
+            Accepted(slot=self.slot, ballot_num=other_ballot_num), sender='p1')
 
         self.leader.commander_finished.assert_called_with(self.slot, other_ballot_num, True)
         self.assertTimers([])
