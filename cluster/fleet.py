@@ -62,9 +62,6 @@ class Component(object):
     def send(self, destinations, action, **kwargs):
         self.node.send(destinations, action, **kwargs)
 
-    def set_timer(self, seconds, callback):
-        return self.node.set_timer(seconds, callback)
-
     def stop(self):
         self.node.unregister(self)
 
@@ -252,7 +249,7 @@ class Replica(Component):
             else:
                 # make an empty proposal in case nothing has been decided
                 self.propose(Proposal(None, None, None), slot)
-        self.set_timer(CATCHUP_INTERVAL, self.catchup)
+        self.node.set_timer(CATCHUP_INTERVAL, self.catchup)
 
     def do_CATCHUP(self, sender, slot):
         # if we have a decision for this proposal, spread the knowledge
@@ -329,7 +326,7 @@ class Replica(Component):
             self.latest_leader = self.peers[(idx + 1) % len(self.peers)]
             self.logger.debug(
                 "leader timed out; defaulting to the next one, %s", self.latest_leader)
-        self.latest_leader_timeout = self.set_timer(
+        self.latest_leader_timeout = self.node.set_timer(
             LEADER_TIMEOUT, reset_leader)
 
     # adding new cluster members
@@ -393,7 +390,7 @@ class Commander(Component):
                   ballot_num=self.ballot_num,
                   slot=self.slot,
                   proposal=self.proposal))
-        self.timer = self.set_timer(ACCEPT_RETRANSMIT, self.start)
+        self.timer = self.node.set_timer(ACCEPT_RETRANSMIT, self.start)
 
     def finished(self, ballot_num, preempted):
         self.leader.commander_finished(
@@ -441,7 +438,7 @@ class Scout(Component):
         self.send(self.peers, Prepare(
                   scout_id=self.scout_id,
                   ballot_num=self.ballot_num))
-        self.retransmit_timer = self.set_timer(
+        self.retransmit_timer = self.node.set_timer(
             PREPARE_RETRANSMIT, self.send_prepare)
 
     def finished(self, adopted, ballot_num):
@@ -487,7 +484,7 @@ class Leader(Component):
         def active():
             if self.active:
                 self.send(self.peers, Active())
-            self.set_timer(LEADER_TIMEOUT / 2.0, active)
+            self.node.set_timer(LEADER_TIMEOUT / 2.0, active)
         active()
 
     def spawn_scout(self):
@@ -579,7 +576,7 @@ class Bootstrap(Component):
     def join(self):
         """Try to join the cluster"""
         self.send([next(self.peers_cycle)], Join())
-        self.timer = self.set_timer(JOIN_RETRANSMIT, self.join)
+        self.timer = self.node.set_timer(JOIN_RETRANSMIT, self.join)
 
     def do_WELCOME(self, sender, state, slot_num, decisions):
         self.acceptor_cls(self.node)
@@ -625,7 +622,7 @@ class Seed(Component):
         # the newly formed cluster
         if self.exit_timer:
             self.exit_timer.cancel()
-        self.exit_timer = self.set_timer(JOIN_RETRANSMIT * 2, self.finish)
+        self.exit_timer = self.node.set_timer(JOIN_RETRANSMIT * 2, self.finish)
 
     def finish(self):
         # hand over this node to a bootstrap component
@@ -649,7 +646,7 @@ class Request(Component):
     def start(self):
         self.send([self.address], Invoke(caller=self.address,
                   client_id=self.client_id, input_value=self.n))
-        self.invoke_timer = self.set_timer(INVOKE_RETRANSMIT, self.start)
+        self.invoke_timer = self.node.set_timer(INVOKE_RETRANSMIT, self.start)
 
     def do_INVOKED(self, sender, client_id, output):
         if client_id != self.client_id:
@@ -658,6 +655,7 @@ class Request(Component):
         self.invoke_timer.cancel()
         self.callback(output)
         self.stop()
+
 
 class Member(object):
 
