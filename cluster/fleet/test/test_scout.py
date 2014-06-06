@@ -1,6 +1,4 @@
-from .. import scout
-from .. import Ballot, Proposal, ScoutId, PREPARE_RETRANSMIT
-from .. import Promise, Prepare
+from fleet import *
 from . import utils
 import mock
 
@@ -13,10 +11,10 @@ class Tests(utils.ComponentTestCase):
     def setUp(self):
         super(Tests, self).setUp()
         self.leader = mock.Mock()
-        self.sct = scout.Scout(self.node, self.leader, Ballot(10, 10),
-                               peers=['p1', 'p2', 'p3'])
+        self.sct = Scout(self.node, self.leader, Ballot(10, 10),
+                         peers=['p1', 'p2', 'p3'])
 
-    @mock.patch.object(scout.Scout, 'send_prepare')
+    @mock.patch.object(Scout, 'send_prepare')
     def test_start(self, send_prepare):
         """Start() just calls send_prepare()"""
         self.sct.start()
@@ -45,7 +43,7 @@ class Tests(utils.ComponentTestCase):
         self.assertNoMessages()
         self.assertUnregistered()
 
-    @mock.patch.object(scout.Scout, 'finished')
+    @mock.patch.object(Scout, 'finished')
     def test_PROMISE(self, finished):
         """After a quorum of matching PROMISEs, the scout finishes accepted"""
         for acceptor in 'p1', 'p3':
@@ -67,7 +65,7 @@ class Tests(utils.ComponentTestCase):
             (Ballot(6, 99), 2): PROPOSAL2,
         })
 
-    @mock.patch.object(scout.Scout, 'finished')
+    @mock.patch.object(Scout, 'finished')
     def test_PROMISE_wrong_scout_id(self, finished):
         """PROMISEs with different scout_id's are ignored"""
         wrong_scout_id = ScoutId(address='OTHER', ballot_num=Ballot(99, 99))
@@ -79,7 +77,7 @@ class Tests(utils.ComponentTestCase):
                     accepted={}))
         self.failIf(finished.called)
 
-    @mock.patch.object(scout.Scout, 'finished')
+    @mock.patch.object(Scout, 'finished')
     def test_PROMISE_preempted(self, finished):
         """PROMISEs with different ballot_nums mean preemption"""
         self.node.fake_message(Promise(

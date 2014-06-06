@@ -1,7 +1,6 @@
+from fleet import *
 import logging
 import heapq
-from fleet.network import Timer
-from .. import network
 
 class FakeNetwork(object):
 
@@ -20,7 +19,7 @@ class FakeNetwork(object):
     def run(self):
         self.ran = True
 
-class FakeNode(network.Node):
+class FakeNode(Node):
 
     def __init__(self, network=None):
         network = network or FakeNetwork()

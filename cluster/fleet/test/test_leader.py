@@ -1,8 +1,4 @@
-from .. import leader
-from .. import commander
-from .. import scout
-from .. import Ballot, CommanderId, Proposal
-from .. import Propose
+from fleet import *
 from . import utils
 import mock
 
@@ -12,8 +8,8 @@ PROPOSAL1 = Proposal(caller='cli', client_id=123, input='one')
 PROPOSAL2 = Proposal(caller='cli', client_id=125, input='two')
 PROPOSAL3 = Proposal(caller='cli', client_id=127, input='tre')
 
-Commander = mock.create_autospec(commander.Commander)
-Scout = mock.create_autospec(scout.Scout)
+Commander = mock.create_autospec(Commander)
+Scout = mock.create_autospec(Scout)
 
 
 class Tests(utils.ComponentTestCase):
@@ -22,9 +18,9 @@ class Tests(utils.ComponentTestCase):
         super(Tests, self).setUp()
         Scout.reset_mock()
         Commander.reset_mock()
-        self.ldr = leader.Leader(self.node, UNIQUE_ID, ['p1', 'p2'],
-                                 commander_cls=Commander,
-                                 scout_cls=Scout)
+        self.ldr = Leader(self.node, UNIQUE_ID, ['p1', 'p2'],
+                          commander_cls=Commander,
+                          scout_cls=Scout)
 
     def assertScoutStarted(self, ballot_num):
         Scout.assert_called_with(
@@ -102,7 +98,7 @@ class Tests(utils.ComponentTestCase):
         self.assertNoScout()
         self.assertFalse(self.ldr.active)
 
-    @mock.patch.object(leader.Leader, 'merge_pvals')
+    @mock.patch.object(Leader, 'merge_pvals')
     def test_scout_finished_adopted(self, merge_pvals):
         """When a scout finishes and the leader is adopted, pvals are merged and the
         leader becomes active"""
@@ -112,7 +108,7 @@ class Tests(utils.ComponentTestCase):
         merge_pvals.assert_called_with({'p': 'vals'})
         self.assertTrue(self.ldr.active)
 
-    @mock.patch.object(leader.Leader, 'merge_pvals')
+    @mock.patch.object(Leader, 'merge_pvals')
     def test_scout_finished_preempted(self, merge_pvals):
         """When a scout finishes and the leader is preempted, the leader is inactive
         and its ballot_num is updated."""

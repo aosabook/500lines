@@ -1,6 +1,4 @@
-from .. import replica
-from .. import Proposal
-from .. import Invoke, Propose, Catchup, Decision, Join, Welcome
+from fleet import *
 from . import utils
 import mock
 
@@ -16,14 +14,14 @@ class Tests(utils.ComponentTestCase):
         super(Tests, self).setUp()
         self.execute_fn = mock.Mock(
             name='execute_fn', spec=lambda state, input: None)
-        self.rep = replica.Replica(self.node, self.execute_fn)
+        self.rep = Replica(self.node, self.execute_fn)
         self.rep.start('state', 2, {1: PROPOSAL1}, ['p1', 'F999'])
         self.assertNoMessages()
 
     def tearDown(self):
         self.assertNoMessages()
 
-    @mock.patch.object(replica.Replica, 'propose')
+    @mock.patch.object(Replica, 'propose')
     def test_INVOKE_new(self, propose):
         """An INVOKE with a new proposal results in a proposal"""
         self.node.fake_message(Invoke(
@@ -31,7 +29,7 @@ class Tests(utils.ComponentTestCase):
             input_value=PROPOSAL2.input))
         propose.assert_called_with(PROPOSAL2)
 
-    @mock.patch.object(replica.Replica, 'propose')
+    @mock.patch.object(Replica, 'propose')
     def test_INVOKE_repeat(self, propose):
         """An INVOKE with a proposal that has already been seen is ignored."""
         self.rep.proposals[1] = PROPOSAL1
@@ -56,7 +54,7 @@ class Tests(utils.ComponentTestCase):
         self.rep.catchup()
         self.assertNoMessages()
 
-    @mock.patch.object(replica.Replica, 'propose')
+    @mock.patch.object(Replica, 'propose')
     def test_catchup_missed(self, propose):
         """If next_slot is greater than slot, then send CATCHUPs and (re-)propose"""
         self.rep.next_slot = 5
@@ -84,7 +82,7 @@ class Tests(utils.ComponentTestCase):
         self.node.fake_message(Catchup(slot=3))
         self.assertNoMessages()
 
-    @mock.patch.object(replica.Replica, 'commit')
+    @mock.patch.object(Replica, 'commit')
     def test_DECISION_gap(self, commit):
         """On DECISION for a slot we can't commit yet, decisions and next_slot are updated but
         no commit occurs"""
@@ -93,7 +91,7 @@ class Tests(utils.ComponentTestCase):
         self.assertEqual(self.rep.decisions[3], PROPOSAL3)
         self.assertFalse(commit.called)
 
-    @mock.patch.object(replica.Replica, 'commit')
+    @mock.patch.object(Replica, 'commit')
     def test_DECISION_commit(self, commit):
         """On DECISION for the next slot, commit it"""
         self.node.fake_message(Decision(slot=2, proposal=PROPOSAL2))
@@ -101,7 +99,7 @@ class Tests(utils.ComponentTestCase):
         self.assertEqual(self.rep.decisions[2], PROPOSAL2)
         commit.assert_called_once_with(2, PROPOSAL2)
 
-    @mock.patch.object(replica.Replica, 'commit')
+    @mock.patch.object(Replica, 'commit')
     def test_DECISION_commit_cascade(self, commit):
         """On DECISION that allows multiple commits, they happen in the right order"""
         self.node.fake_message(Decision(slot=3, proposal=PROPOSAL3))
@@ -115,14 +113,14 @@ class Tests(utils.ComponentTestCase):
             mock.call(3, PROPOSAL3),
         ])
 
-    @mock.patch.object(replica.Replica, 'commit')
+    @mock.patch.object(Replica, 'commit')
     def test_DECISION_repeat(self, commit):
         """On DECISION for a committed slot with a matching proposal, do nothing"""
         self.node.fake_message(Decision(slot=1, proposal=PROPOSAL1))
         self.assertEqual(self.rep.next_slot, 2)
         self.assertFalse(commit.called)
 
-    @mock.patch.object(replica.Replica, 'commit')
+    @mock.patch.object(Replica, 'commit')
     def test_DECISION_repeat_conflict(self, commit):
         """On DECISION for a committed slot with a *non*-matching proposal, do nothing"""
         self.assertRaises(AssertionError, lambda:

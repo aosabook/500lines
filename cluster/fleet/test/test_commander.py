@@ -1,6 +1,4 @@
-from .. import commander
-from .. import Accept, Accepted, Decision
-from .. import Ballot, CommanderId, Proposal, ACCEPT_RETRANSMIT
+from fleet import *
 from . import utils
 import mock
 
@@ -16,7 +14,7 @@ class Tests(utils.ComponentTestCase):
         self.commander_id = CommanderId(
             address=self.node.address, slot=self.slot, proposal=self.proposal)
         self.ballot_num = Ballot(91, 82)
-        self.cmd = commander.Commander(
+        self.cmd = Commander(
             self.node, leader=self.leader, ballot_num=self.ballot_num,
             slot=self.slot, proposal=self.proposal,
             commander_id=self.commander_id, peers=['p1', 'p2', 'p3'])

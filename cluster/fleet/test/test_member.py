@@ -1,7 +1,4 @@
-from .. import member
-from .. import network
-from .. import bootstrap
-from .. import seed
+from fleet import *
 from . import fake_network
 import mock
 import unittest
@@ -21,16 +18,16 @@ class FakeRequest(object):
 class Tests(unittest.TestCase):
 
     def setUp(self):
-        self.Node = mock.create_autospec(network.Node)
-        self.Bootstrap = mock.create_autospec(bootstrap.Bootstrap)
-        self.Seed = mock.create_autospec(seed.Seed)
+        self.Node = mock.create_autospec(Node)
+        self.Bootstrap = mock.create_autospec(Bootstrap)
+        self.Seed = mock.create_autospec(Seed)
         self.network = fake_network.FakeNetwork()
         self.state_machine = mock.Mock(name='state_machine')
         self.cls_args = dict(bootstrap_cls=self.Bootstrap, seed_cls=self.Seed)
 
     def test_no_seed(self):
         """With no seed, the Member constructor builds a Bootstrap"""
-        sh = member.Member(self.state_machine, network=self.network,
+        sh = Member(self.state_machine, network=self.network,
                            peers=['p1', 'p2'], **self.cls_args)
         self.failIf(self.Seed.called)
         self.Bootstrap.assert_called_with(
@@ -38,7 +35,7 @@ class Tests(unittest.TestCase):
 
     def test_Member(self):
         """With a seed, the Member constructor builds a Node and a ClusterSeed"""
-        sh = member.Member(self.state_machine, network=self.network,
+        sh = Member(self.state_machine, network=self.network,
                            peers=['p1', 'p2'], seed=44,
                            **self.cls_args)
         self.failIf(self.Bootstrap.called)
@@ -48,7 +45,7 @@ class Tests(unittest.TestCase):
 
     def test_start(self):
         """Member.start starts the component and node in self.thread"""
-        sh = member.Member(self.state_machine, network=self.network,
+        sh = Member(self.state_machine, network=self.network,
                        peers=['p1', 'p2'], **self.cls_args)
         sh.start()
         sh.thread.join()
@@ -57,7 +54,7 @@ class Tests(unittest.TestCase):
 
     def test_invoke(self):
         """Member.invoke makes a new Request, starts it, and waits for its callback to be called."""
-        sh = member.Member(self.state_machine, network=self.network,
+        sh = Member(self.state_machine, network=self.network,
                        peers=['p1', 'p2'], **self.cls_args)
         res = sh.invoke('ROTATE', request_cls=FakeRequest)
         self.assertEqual(sh.current_request, None)

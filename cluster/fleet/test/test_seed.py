@@ -1,7 +1,4 @@
-from .. import seed
-from .. import bootstrap
-from .. import JOIN_RETRANSMIT
-from .. import Join, Welcome
+from fleet import *
 from . import utils
 import mock
 
@@ -10,11 +7,11 @@ class Tests(utils.ComponentTestCase):
 
     def setUp(self):
         super(Tests, self).setUp()
-        self.Bootstrap = mock.Mock(autospec=bootstrap.Bootstrap)
+        self.Bootstrap = mock.Mock(autospec=Bootstrap)
         self.execute_fn = mock.Mock()
-        self.seed = seed.Seed(self.node, initial_state='state',
-                              peers=['p1', 'p2', 'p3'], execute_fn=self.execute_fn,
-                              bootstrap_cls=self.Bootstrap)
+        self.seed = Seed(self.node, initial_state='state',
+                         peers=['p1', 'p2', 'p3'], execute_fn=self.execute_fn,
+                         bootstrap_cls=self.Bootstrap)
 
     def test_JOIN(self):
         """Seed waits for quorum, then sends a WELCOME in response to every JOIN until

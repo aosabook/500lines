@@ -1,12 +1,5 @@
+from fleet import *
 import mock
-from .. import bootstrap
-from .. import replica
-from .. import acceptor
-from .. import leader
-from .. import commander
-from .. import scout
-from .. import JOIN_RETRANSMIT
-from .. import Join, Welcome
 from . import utils
 
 class Tests(utils.ComponentTestCase):
@@ -16,13 +9,13 @@ class Tests(utils.ComponentTestCase):
         self.cb_args = None
         self.execute_fn = mock.Mock()
 
-        self.Replica = mock.Mock(autospec=replica.Replica)
-        self.Acceptor = mock.Mock(autospec=acceptor.Acceptor)
-        self.Leader = mock.Mock(autospec=leader.Leader)
-        self.Commander = mock.Mock(autospec=commander.Commander)
-        self.Scout = mock.Mock(autospec=scout.Scout)
+        self.Replica = mock.Mock(autospec=Replica)
+        self.Acceptor = mock.Mock(autospec=Acceptor)
+        self.Leader = mock.Mock(autospec=Leader)
+        self.Commander = mock.Mock(autospec=Commander)
+        self.Scout = mock.Mock(autospec=Scout)
 
-        self.bs = bootstrap.Bootstrap(
+        self.bs = Bootstrap(
             self.node, ['p1', 'p2', 'p3'], self.execute_fn,
             replica_cls=self.Replica, acceptor_cls=self.Acceptor,
             leader_cls=self.Leader, commander_cls=self.Commander,

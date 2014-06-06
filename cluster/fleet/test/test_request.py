@@ -1,6 +1,4 @@
-from .. import request
-from .. import INVOKE_RETRANSMIT
-from .. import Invoke, Invoked
+from fleet import *
 from . import utils
 import mock
 
@@ -12,9 +10,9 @@ class Tests(utils.ComponentTestCase):
     def setUp(self):
         super(Tests, self).setUp()
         self.callback = mock.Mock(name='callback')
-        with mock.patch.object(request.Request, 'client_ids') as client_ids:
+        with mock.patch.object(Request, 'client_ids') as client_ids:
             client_ids.next.return_value = CLIENT_ID
-            self.req = request.Request(self.node, 10, self.callback)
+            self.req = Request(self.node, 10, self.callback)
         self.assertEqual(self.req.client_id, CLIENT_ID)
 
     def test_function(self):

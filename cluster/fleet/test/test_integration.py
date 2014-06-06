@@ -1,8 +1,4 @@
-from .. import network
-from .. import leader
-from .. import bootstrap
-from .. import seed
-from .. import request
+from fleet import *
 from nose.tools import eq_
 import unittest
 import itertools
@@ -13,7 +9,7 @@ import sys
 class Tests(unittest.TestCase):
 
     def setUp(self):
-        self.network = network.Network(1234)
+        self.network = Network(1234)
         self.addresses = ('node-%d' % d for d in itertools.count())
         self.nodes = []
         self.events = []
@@ -44,10 +40,10 @@ class Tests(unittest.TestCase):
         execute_fn = execute_fn or add
         peers = ['N%d' % n for n in range(count+1)]
         nodes = [self.addNode(p) for p in peers]
-        seed.Seed(nodes[0], initial_state=0, peers=peers, execute_fn=execute_fn)
+        Seed(nodes[0], initial_state=0, peers=peers, execute_fn=execute_fn)
 
         for node in nodes[1:]:
-            bs = bootstrap.Bootstrap(node, execute_fn=execute_fn, peers=peers)
+            bs = Bootstrap(node, execute_fn=execute_fn, peers=peers)
             bs.start()
         return nodes
 
@@ -59,7 +55,7 @@ class Tests(unittest.TestCase):
             self.event("request done: %s" % output)
         def make_request(n, node):
             self.event("request: %s" % n)
-            req = request.Request(node, n, request_done)
+            req = Request(node, n, request_done)
             req.start()
         for time, callback in [
                 (1.0, lambda: make_request(5, nodes[1])),
@@ -80,7 +76,7 @@ class Tests(unittest.TestCase):
         nodes = self.setupNetwork(4)
         results = []
         for n in range(1, N+1):
-            req = request.Request(nodes[n % 4], n, results.append)
+            req = Request(nodes[n % 4], n, results.append)
             self.network.set_timer(1.0, None, req.start)
 
         self.network.set_timer(10.0, None, self.network.stop)
@@ -94,7 +90,7 @@ class Tests(unittest.TestCase):
         nodes = self.setupNetwork(6)  # TODO: really a 7-node cluster, w/ node0=seed
         results = []
         for n in range(1, N+1):
-            req = request.Request(nodes[n % 3], n, results.append)
+            req = Request(nodes[n % 3], n, results.append)
             self.network.set_timer(n+1, None, req.start)
 
         # kill nodes 3 and 4 at N/2 seconds
@@ -117,12 +113,12 @@ class Tests(unittest.TestCase):
         nodes = self.setupNetwork(6, execute_fn=identity)  # TODO: really a 7-node cluster, w/ node0=seed
         results = []
         for n in range(1, N+1):
-            req = request.Request(nodes[n % 6], n, results.append)
+            req = Request(nodes[n % 6], n, results.append)
             self.network.set_timer(n+1, None, req.start)
 
         def is_leader(n):
             try:
-                leader_component = [c for c in n.components if isinstance(c, leader.Leader)][0]
+                leader_component = [c for c in n.components if isinstance(c, Leader)][0]
                 return leader_component.active
             except IndexError:
                 return False

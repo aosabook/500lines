@@ -1,6 +1,4 @@
-from .. import acceptor
-from .. import Ballot, ScoutId, CommanderId, Proposal
-from .. import Prepare, Promise, Accept, Accepted
+from fleet import *
 from . import utils
 
 
@@ -8,7 +6,7 @@ class Tests(utils.ComponentTestCase):
 
     def setUp(self):
         super(Tests, self).setUp()
-        self.ac = acceptor.Acceptor(self.node)
+        self.ac = Acceptor(self.node)
 
     def assertState(self, ballot_num, accepted):
         self.assertEqual(self.ac.ballot_num, ballot_num)

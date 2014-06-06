@@ -1,10 +1,9 @@
-from .. import network
-from .. import Join
+from fleet import *
 import mock
 import unittest
 
 
-class TestComp(network.Component):
+class TestComp(Component):
     join_called = False
 
     def do_JOIN(self, sender):
@@ -17,7 +16,7 @@ class TestComp(network.Component):
 class NodeTests(unittest.TestCase):
 
     def setUp(self):
-        self.network = network.Network(1234)
+        self.network = Network(1234)
 
     def test_comm(self):
         """Node can successfully send a message between instances"""
