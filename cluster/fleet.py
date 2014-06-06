@@ -56,12 +56,6 @@ class Component(object):
         self.address = node.address
         self.logger = node.logger.getChild(type(self).__name__)
 
-    def event(self, message, **kwargs):
-        self.node.event(message, **kwargs)
-
-    def set_timer(self, seconds, callback):
-        return self.node.set_timer(seconds, callback)
-
     def stop(self):
         self.node.unregister(self)
 
@@ -298,7 +292,7 @@ class Replica(Component):
             return  # duplicate
 
         self.logger.info("committing %r at slot %d" % (proposal, slot))
-        self.event('commit', slot=slot, proposal=proposal)
+        self.node.event('commit', slot=slot, proposal=proposal)
 
         if proposal.caller is not None:
             # perform a client operation
@@ -347,7 +341,7 @@ class Acceptor(Component):
         if ballot_num > self.ballot_num:
             self.ballot_num = ballot_num
             # we've accepted the sender, so it might be the next leader
-            self.event('leader_changed', new_leader=sender)
+            self.node.event('leader_changed', new_leader=sender)
 
         self.node.send([scout_id.address], Promise(
             scout_id=scout_id,
@@ -405,7 +399,7 @@ class Commander(Component):
                 return
             # make sure that this node hears about the decision, otherwise the
             # slot can get "stuck" if all of the DECISION messages get lost
-            self.event('decision', slot=self.slot, proposal=self.proposal)
+            self.node.event('decision', slot=self.slot, proposal=self.proposal)
             self.node.send(self.peers, Decision(
                 slot=self.slot,
                 proposal=self.proposal))
@@ -507,7 +501,7 @@ class Leader(Component):
             # note that we don't re-spawn commanders here; if there are undecided
             # proposals, the replicas will re-propose
             self.logger.info("leader becoming active")
-            self.event('leader_changed', new_leader=self.address)
+            self.node.event('leader_changed', new_leader=self.address)
             self.active = True
         else:
             self.preempted(ballot_num)
