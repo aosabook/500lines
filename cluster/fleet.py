@@ -53,7 +53,6 @@ class Component(object):
     def __init__(self, node):
         self.node = node
         self.node.register(self)
-        self.address = node.address
         self.logger = node.logger.getChild(type(self).__name__)
 
     def stop(self):
@@ -217,7 +216,7 @@ class Replica(Component):
         self.proposals[slot] = proposal
         # find a leader we think is working - either the latest we know of, or
         # ourselves (which may trigger a scout to make us the leader)
-        leader = self.latest_leader or self.address
+        leader = self.latest_leader or self.node.address
         self.logger.info("proposing %s at slot %d to leader %s" %
                          (proposal, slot, leader))
         self.node.send([leader], Propose(slot=slot, proposal=proposal))
@@ -280,7 +279,7 @@ class Replica(Component):
             self.commit(commit_slot, commit_proposal)
 
     def on_decision_event(self, slot, proposal):
-        self.do_DECISION(sender=self.address, slot=slot, proposal=proposal)
+        self.do_DECISION(sender=self.node.address, slot=slot, proposal=proposal)
 
     def commit(self, slot, proposal):
         """Actually commit a proposal that is decided and in sequence"""
@@ -345,7 +344,7 @@ class Acceptor(Component):
 
         self.node.send([scout_id.address], Promise(
             scout_id=scout_id,
-            acceptor=self.address,
+            acceptor=self.node.address,
             ballot_num=self.ballot_num,
             accepted=self.accepted))
 
@@ -357,7 +356,7 @@ class Acceptor(Component):
 
         self.node.send([commander_id.address], Accepted(
             commander_id=commander_id,
-            acceptor=self.address,
+            acceptor=self.node.address,
             ballot_num=self.ballot_num))
 
 
@@ -413,7 +412,7 @@ class Scout(Component):
     def __init__(self, node, leader, ballot_num, peers):
         super(Scout, self).__init__(node)
         self.leader = leader
-        self.scout_id = ScoutId(self.address, ballot_num)
+        self.scout_id = ScoutId(self.node.address, ballot_num)
         self.ballot_num = ballot_num
         self.pvals = defaultdict()
         self.accepted = set([])
@@ -501,14 +500,14 @@ class Leader(Component):
             # note that we don't re-spawn commanders here; if there are undecided
             # proposals, the replicas will re-propose
             self.logger.info("leader becoming active")
-            self.node.event('leader_changed', new_leader=self.address)
+            self.node.event('leader_changed', new_leader=self.node.address)
             self.active = True
         else:
             self.preempted(ballot_num)
 
     def spawn_commander(self, ballot_num, slot):
         proposal = self.proposals[slot]
-        commander_id = CommanderId(self.address, slot, proposal)
+        commander_id = CommanderId(self.node.address, slot, proposal)
         if commander_id in self.commanders:
             return
         cmd = self.commander_cls(
@@ -634,8 +633,8 @@ class Request(Component):
         self.callback = callback
 
     def start(self):
-        self.node.send([self.address], Invoke(caller=self.address,
-                                              client_id=self.client_id, input_value=self.n))
+        self.node.send([self.node.address], Invoke(caller=self.node.address,
+                                                   client_id=self.client_id, input_value=self.n))
         self.invoke_timer = self.node.set_timer(INVOKE_RETRANSMIT, self.start)
 
     def do_INVOKED(self, sender, client_id, output):
