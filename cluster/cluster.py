@@ -66,8 +66,7 @@ class Node(object):
         self.unique_id = next(self.unique_ids)
         self.address = address or 'N%d' % self.unique_id
         self.components = []
-        self.logger = NetworkLogger(
-            logging.getLogger(self.address), {'network': self.network})
+        self.logger = NetworkLogger(logging.getLogger(self.address), {'network': self.network})
         self.set_timer = functools.partial(self.network.set_timer, self.address)
         self.send = functools.partial(self.network.send, self)
         self.logger.info('starting')
@@ -181,10 +180,8 @@ class Replica(Component):
             self.propose(proposal)
         else:
             # It's the only drawback of using dict instead of defaultlist
-            slot = next(s for s, p in self.proposals.iteritems()
-                        if p == proposal)
-            self.logger.info(
-                "proposal %s already proposed in slot %d", proposal, slot)
+            slot = next(s for s, p in self.proposals.iteritems() if p == proposal)
+            self.logger.info("proposal %s already proposed in slot %d", proposal, slot)
 
     def propose(self, proposal, slot=None):
         """Send (or resend, if slot is specified) a proposal to the leader"""
@@ -202,8 +199,7 @@ class Replica(Component):
     def catchup(self):
         """Try to catch up on un-decided slots"""
         if self.slot_num != self.next_slot:
-            self.logger.debug("catching up on %d .. %d" %
-                              (self.slot_num, self.next_slot - 1))
+            self.logger.debug("catching up on %d .. %d" % (self.slot_num, self.next_slot - 1))
         for slot in xrange(self.slot_num, self.next_slot):
             if slot in self.decisions:
                 continue
@@ -250,11 +246,9 @@ class Replica(Component):
 
     def commit(self, slot, proposal):
         """Actually commit a proposal that is decided and in sequence"""
-        decided_proposals = [p for s,
-                             p in self.decisions.iteritems() if s < slot]
+        decided_proposals = [p for s, p in self.decisions.iteritems() if s < slot]
         if proposal in decided_proposals:
-            self.logger.info(
-                "not committing duplicate proposal %r at slot %d", proposal, slot)
+            self.logger.info("not committing duplicate proposal %r at slot %d", proposal, slot)
             return  # duplicate
 
         self.logger.info("committing %r at slot %d" % (proposal, slot))
@@ -282,8 +276,7 @@ class Replica(Component):
         def reset_leader():
             idx = self.peers.index(self.latest_leader)
             self.latest_leader = self.peers[(idx + 1) % len(self.peers)]
-            self.logger.debug(
-                "leader timed out; defaulting to the next one, %s", self.latest_leader)
+            self.logger.debug("leader timed out; tring the next one, %s", self.latest_leader)
         self.latest_leader_timeout = self.node.set_timer(LEADER_TIMEOUT, reset_leader)
 
     # adding new cluster members
@@ -332,8 +325,7 @@ class Commander(Component):
 
     def start(self):
         self.node.send(set(self.peers) - self.accepted, Accept(
-                            slot=self.slot, ballot_num=self.ballot_num,
-                            proposal=self.proposal))
+                            slot=self.slot, ballot_num=self.ballot_num, proposal=self.proposal))
         self.node.set_timer(ACCEPT_RETRANSMIT, self.start)
 
     def finished(self, ballot_num, preempted):
@@ -377,8 +369,7 @@ class Scout(Component):
         self.retransmit_timer = self.node.set_timer(PREPARE_RETRANSMIT, self.send_prepare)
 
     def finished(self, adopted, ballot_num):
-        self.logger.info(
-            "finished - adopted" if adopted else "finished - preempted")
+        self.logger.info("finished - adopted" if adopted else "finished - preempted")
         self.node.event('scout_finished', adopted=adopted, ballot_num=ballot_num, pvals=self.pvals)
         self.retransmit_timer.cancel()
         self.stop()
@@ -500,7 +491,6 @@ class Bootstrap(Component):
         self.join()
 
     def join(self):
-        """Try to join the cluster"""
         self.node.send([next(self.peers_cycle)], Join())
         self.node.set_timer(JOIN_RETRANSMIT, self.join)
 
