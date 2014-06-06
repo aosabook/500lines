@@ -32,8 +32,7 @@ class Tests(utils.ComponentTestCase):
         self.node.fake_message(Welcome(state='st', slot_num='sl', decisions={}))
         self.Acceptor.assert_called_with(self.node)
         self.Replica.assert_called_with(self.node, execute_fn=self.execute_fn)
-        self.Leader.assert_called_with(self.node, unique_id=self.node.unique_id,
-                                       peers=['p1', 'p2', 'p3'],
+        self.Leader.assert_called_with(self.node, peers=['p1', 'p2', 'p3'],
                                        commander_cls=self.Commander,
                                        scout_cls=self.Scout)
         self.Replica().start.assert_called()

@@ -67,8 +67,7 @@ class Node(object):
 
     def __init__(self, network, address):
         self.network = network
-        self.unique_id = next(self.unique_ids)
-        self.address = address or 'N%d' % self.unique_id
+        self.address = address or 'N%d' % self.unique_ids.next()
         self.components = []
         self.logger = NetworkLogger(logging.getLogger(self.address), {'network': self.network})
         self.set_timer = functools.partial(self.network.set_timer, self.address)
@@ -386,9 +385,9 @@ class Scout(Component):
 
 class Leader(Component):
 
-    def __init__(self, node, unique_id, peers, commander_cls=Commander, scout_cls=Scout):
+    def __init__(self, node, peers, commander_cls=Commander, scout_cls=Scout):
         super(Leader, self).__init__(node)
-        self.ballot_num = Ballot(0, unique_id)
+        self.ballot_num = Ballot(0, node.address)
         self.active = False
         self.proposals = {}
         self.commander_cls = commander_cls
@@ -489,8 +488,7 @@ class Bootstrap(Component):
     def do_WELCOME(self, sender, state, slot_num, decisions):
         self.acceptor_cls(self.node)
         replica = self.replica_cls(self.node, execute_fn=self.execute_fn)
-        leader = self.leader_cls(self.node, unique_id=self.node.unique_id,
-                                 peers=self.peers, commander_cls=self.commander_cls,
+        leader = self.leader_cls(self.node, peers=self.peers, commander_cls=self.commander_cls,
                                  scout_cls=self.scout_cls)
         leader.start()
         # TODO: just pass these to the constructor
