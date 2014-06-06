@@ -36,7 +36,6 @@ class Tests(utils.ComponentTestCase):
 
         # quorum (3/2+1 = 2) reached
         self.assertMessage(['p1', 'p2', 'p3'], Decision(slot=self.slot, proposal=self.proposal))
-        self.assertEvent('decision', slot=self.slot, proposal=self.proposal)
         self.assertEvent('commander_finished', slot=self.slot, preempted_by=None)
         self.assertTimers([])
         self.assertUnregistered()

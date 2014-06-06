@@ -147,7 +147,10 @@ class Network(object):
     def send(self, sender, destinations, message):
         sender.logger.debug("sending %s to %s", message, destinations)
         for dest in (d for d in destinations if d in self.nodes):
-            if self.rnd.uniform(0, 1.0) > self.DROP_PROB:
+            if dest == sender.address:
+                # reliably deliver local messages with no delay
+                self.set_timer(sender.address, 0, lambda: sender.receive(sender.address, message))
+            elif self.rnd.uniform(0, 1.0) > self.DROP_PROB:
                 delay = self.PROP_DELAY + self.rnd.uniform(-self.PROP_JITTER, self.PROP_JITTER)
                 self.set_timer(dest, delay, functools.partial(self.nodes[dest].receive,
                                                               sender.address, message))
@@ -240,9 +243,6 @@ class Replica(Component):
             commit_slot, self.slot_num = self.slot_num, self.slot_num + 1
 
             self.commit(commit_slot, commit_proposal)
-
-    def on_decision_event(self, slot, proposal):
-        self.do_DECISION(sender=self.node.address, slot=slot, proposal=proposal)
 
     def commit(self, slot, proposal):
         """Actually commit a proposal that is decided and in sequence"""
@@ -340,9 +340,6 @@ class Commander(Component):
             self.accepted.add(sender)
             if len(self.accepted) < self.quorum:
                 return
-            # make sure that this node hears about the decision, otherwise the
-            # slot can get "stuck" if all of the DECISION messages get lost
-            self.node.event('decision', slot=self.slot, proposal=self.proposal)
             self.node.send(self.peers, Decision(slot=self.slot, proposal=self.proposal))
             self.finished(ballot_num, False)
         else:
