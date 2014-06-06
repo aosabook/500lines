@@ -7,7 +7,6 @@ import logging
 import Queue
 import random
 import threading
-import time
 
 # data types
 Proposal = namedtuple('Proposal', ['caller', 'client_id', 'input'])
