@@ -37,6 +37,8 @@ PREPARE_RETRANSMIT = 1.0
 INVOKE_RETRANSMIT = 0.5
 LEADER_TIMEOUT = 1.0
 
+NULL_BALLOT = Ballot(-1, -1)  # sorts before all real ballots
+NOOP_PROPOSAL = Proposal(None, None, None)  # no-op to fill otherwise empty slots
 
 class NetworkLogger(logging.LoggerAdapter):
 
@@ -237,7 +239,7 @@ class Replica(Component):
                 self.propose(self.proposals[slot], slot)
             else:
                 # make an empty proposal in case nothing has been decided
-                self.propose(Proposal(None, None, None), slot)
+                self.propose(NOOP_PROPOSAL, slot)
         self.node.set_timer(CATCHUP_INTERVAL, self.catchup)
 
     def do_CATCHUP(self, sender, slot):
@@ -329,7 +331,7 @@ class Acceptor(Component):
 
     def __init__(self, node):
         super(Acceptor, self).__init__(node)
-        self.ballot_num = Ballot(-1, -1)
+        self.ballot_num = NULL_BALLOT
         self.accepted = defaultdict()  # { (b, s) : p }
 
     def do_PREPARE(self, sender, scout_id, ballot_num):  # p1a
