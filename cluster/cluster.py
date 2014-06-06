@@ -74,11 +74,6 @@ class Node(object):
         self.set_timer = functools.partial(self.network.set_timer, self.address)
         self.logger.info('starting')
 
-    def kill(self):
-        self.logger.error('node dying')
-        if self.address in self.network.nodes:
-            del self.network.nodes[self.address]
-
     def send(self, destinations, message):
         self.logger.debug("sending %s to %s",
                           message, destinations)

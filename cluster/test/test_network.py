@@ -8,7 +8,7 @@ class TestComp(Component):
 
     def do_JOIN(self, sender):
         self.join_called = True
-        self.node.kill()
+        self.kill()
 
 
 # TODO: lots more tests
@@ -18,11 +18,15 @@ class NodeTests(unittest.TestCase):
     def setUp(self):
         self.network = Network(1234)
 
+    def kill(self, node):
+        del self.network.nodes[node.address]
+
     def test_comm(self):
         """Node can successfully send a message between instances"""
         sender = self.network.new_node('S')
         receiver = self.network.new_node('R')
         comp = TestComp(receiver)
+        comp.kill = lambda: self.kill(receiver)
         sender.send([receiver.address], Join())
         self.network.run()
         self.failUnless(comp.join_called)
@@ -31,7 +35,7 @@ class NodeTests(unittest.TestCase):
         """Node's timeouts trigger at the appropriate time"""
         node = self.network.new_node('T')
 
-        cb = mock.Mock(side_effect=node.kill)
+        cb = mock.Mock(side_effect=lambda: self.kill(node))
         node.set_timer(0.01, cb)
         self.network.run()
         self.failUnless(cb.called)
@@ -45,7 +49,7 @@ class NodeTests(unittest.TestCase):
 
         nonex = node.set_timer(0.01, fail)
 
-        cb = mock.Mock(side_effect=node.kill)
+        cb = mock.Mock(side_effect=lambda: self.kill(node))
         node.set_timer(0.02, cb)
         nonex.cancel()
         self.network.run()

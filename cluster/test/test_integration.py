@@ -47,6 +47,10 @@ class Tests(unittest.TestCase):
             bs.start()
         return nodes
 
+    def kill(self, node):
+        node.logger.warning("KILLED BY TESTS")
+        del self.network.nodes[node.address]
+
     def test_two_requests(self):
         """Full run with non-overlapping requests succeeds."""
         nodes = self.setupNetwork(4)
@@ -94,8 +98,8 @@ class Tests(unittest.TestCase):
             self.network.set_timer(None, n+1, req.start)
 
         # kill nodes 3 and 4 at N/2 seconds
-        self.network.set_timer(None, N/2-1, nodes[3].kill)
-        self.network.set_timer(None, N/2, nodes[4].kill)
+        self.network.set_timer(None, N/2-1, lambda: self.kill(nodes[3]))
+        self.network.set_timer(None, N/2, lambda: self.kill(nodes[4]))
 
         self.network.set_timer(None, N * 3.0, self.network.stop)
         self.network.run()
@@ -134,7 +138,7 @@ class Tests(unittest.TestCase):
                 for n in range(1, N+1):
                     if n % 6 == active_idx:
                         results.append(n)
-                active_leader.kill()
+                self.kill(active_leader)
         self.network.set_timer(None, N/2, kill_leader)
 
         self.network.set_timer(None, 15, self.network.stop)
