@@ -23,9 +23,8 @@ class Tests(utils.ComponentTestCase):
                           scout_cls=Scout)
 
     def assertScoutStarted(self, ballot_num):
-        Scout.assert_called_with(
-            self.node, self.ldr, ballot_num, ['p1', 'p2'])
-        scout = Scout(self.node, self.ldr, ballot_num, ['p1', 'p2'])
+        Scout.assert_called_with(self.node, ballot_num, ['p1', 'p2'])
+        scout = Scout(self.node, ballot_num, ['p1', 'p2'])
         scout.start.assert_called_with()
 
     def assertNoScout(self):
@@ -97,7 +96,8 @@ class Tests(utils.ComponentTestCase):
         """When a scout finishes and the leader is adopted, pvals are merged and the
         leader becomes active"""
         self.ldr.spawn_scout()
-        self.ldr.scout_finished(True, Ballot(0, UNIQUE_ID), {'p': 'vals'})
+        self.node.fakeEvent('scout_finished', adopted=True,
+                            ballot_num=Ballot(0, UNIQUE_ID), pvals={'p': 'vals'})
         self.assertNoScout()
         merge_pvals.assert_called_with({'p': 'vals'})
         self.assertTrue(self.ldr.active)
@@ -107,7 +107,8 @@ class Tests(utils.ComponentTestCase):
         """When a scout finishes and the leader is preempted, the leader is inactive
         and its ballot_num is updated."""
         self.ldr.spawn_scout()
-        self.ldr.scout_finished(False, Ballot(22, UNIQUE_ID), {'p': 'vals'})
+        self.node.fakeEvent('scout_finished', adopted=False,
+                            ballot_num=Ballot(22, UNIQUE_ID), pvals={'p': 'vals'})
         self.assertNoScout()
         merge_pvals.assert_not_called()
         self.assertEqual(self.ldr.ballot_num, Ballot(23, UNIQUE_ID))

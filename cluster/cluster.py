@@ -362,9 +362,8 @@ class Commander(Component):
 
 class Scout(Component):
 
-    def __init__(self, node, leader, ballot_num, peers):
+    def __init__(self, node, ballot_num, peers):
         super(Scout, self).__init__(node)
-        self.leader = leader
         self.ballot_num = ballot_num
         self.pvals = defaultdict()
         self.accepted = set([])
@@ -383,7 +382,7 @@ class Scout(Component):
     def finished(self, adopted, ballot_num):
         self.logger.info(
             "finished - adopted" if adopted else "finished - preempted")
-        self.leader.scout_finished(adopted, ballot_num, self.pvals)
+        self.node.event('scout_finished', adopted=adopted, ballot_num=ballot_num, pvals=self.pvals)
         self.retransmit_timer.cancel()
         self.stop()
 
@@ -426,8 +425,7 @@ class Leader(Component):
 
     def spawn_scout(self):
         assert not self.scout
-        sct = self.scout = self.scout_cls(
-            self.node, self, self.ballot_num, self.peers)
+        sct = self.scout = self.scout_cls(self.node, self.ballot_num, self.peers)
         sct.start()
 
     # TODO: rename pvals to something with semantic meaning
@@ -441,7 +439,7 @@ class Leader(Component):
         for slot_id, proposal in last_by_slot.iteritems():
             self.proposals[slot_id] = proposal
 
-    def scout_finished(self, adopted, ballot_num, pvals):
+    def on_scout_finished_event(self, adopted, ballot_num, pvals):
         self.scout = None
         if adopted:
             self.merge_pvals(pvals)

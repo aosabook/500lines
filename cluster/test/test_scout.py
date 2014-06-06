@@ -10,8 +10,7 @@ class Tests(utils.ComponentTestCase):
 
     def setUp(self):
         super(Tests, self).setUp()
-        self.leader = mock.Mock()
-        self.sct = Scout(self.node, self.leader, Ballot(10, 10),
+        self.sct = Scout(self.node, Ballot(10, 10),
                          peers=['p1', 'p2', 'p3'])
 
     @mock.patch.object(Scout, 'send_prepare')
@@ -34,8 +33,8 @@ class Tests(utils.ComponentTestCase):
         self.sct.send_prepare()
         self.assertMessage(['p1', 'p2', 'p3'], Prepare(ballot_num=Ballot(10, 10)))
         self.sct.finished(True, Ballot(20, 20))
-        self.leader.scout_finished.assert_called_once_with(
-            True, Ballot(20, 20), {'pvals': 1})
+        self.assertEvent('scout_finished', adopted=True, ballot_num=Ballot(20, 20),
+                         pvals={'pvals': 1})
         self.network.tick(PREPARE_RETRANSMIT)
         self.assertNoMessages()
         self.assertUnregistered()
