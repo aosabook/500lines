@@ -11,7 +11,6 @@ import threading
 # data types
 Proposal = namedtuple('Proposal', ['caller', 'client_id', 'input'])
 Ballot = namedtuple('Ballot', ['n', 'leader'])
-ScoutId = namedtuple('ScoutId', ['address', 'ballot_num'])
 
 # message types
 Accepted = namedtuple('Accepted', ['slot', 'ballot_num'])
@@ -22,8 +21,8 @@ Invoked = namedtuple('Invoked', ['client_id', 'output'])
 Invoke = namedtuple('Invoke', ['caller', 'client_id', 'input_value'])
 Join = namedtuple('Join', [])
 Active = namedtuple('Active', [])
-Prepare = namedtuple('Prepare', ['scout_id', 'ballot_num'])
-Promise = namedtuple('Promise', ['scout_id', 'ballot_num', 'accepted'])
+Prepare = namedtuple('Prepare', ['ballot_num'])
+Promise = namedtuple('Promise', ['ballot_num', 'accepted'])
 Propose = namedtuple('Propose', ['slot', 'proposal'])
 Welcome = namedtuple('Welcome', ['state', 'slot_num', 'decisions'])
 
@@ -302,14 +301,13 @@ class Acceptor(Component):
         self.ballot_num = NULL_BALLOT
         self.accepted = defaultdict()  # { (b, s) : p }
 
-    def do_PREPARE(self, sender, scout_id, ballot_num):  # p1a
+    def do_PREPARE(self, sender, ballot_num):  # p1a
         if ballot_num > self.ballot_num:
             self.ballot_num = ballot_num
             # we've accepted the sender, so it might be the next leader
             self.node.event('leader_changed', new_leader=sender)
 
-        self.node.send([scout_id.address], Promise(
-            scout_id=scout_id, ballot_num=self.ballot_num, accepted=self.accepted))
+        self.node.send([sender], Promise(ballot_num=self.ballot_num, accepted=self.accepted))
 
     # p2a
     def do_ACCEPT(self, sender, ballot_num, slot, proposal):
@@ -367,7 +365,6 @@ class Scout(Component):
     def __init__(self, node, leader, ballot_num, peers):
         super(Scout, self).__init__(node)
         self.leader = leader
-        self.scout_id = ScoutId(self.node.address, ballot_num)
         self.ballot_num = ballot_num
         self.pvals = defaultdict()
         self.accepted = set([])
@@ -380,9 +377,7 @@ class Scout(Component):
         self.send_prepare()
 
     def send_prepare(self):
-        self.node.send(self.peers, Prepare(
-            scout_id=self.scout_id,
-            ballot_num=self.ballot_num))
+        self.node.send(self.peers, Prepare(ballot_num=self.ballot_num))
         self.retransmit_timer = self.node.set_timer(PREPARE_RETRANSMIT, self.send_prepare)
 
     def finished(self, adopted, ballot_num):
@@ -393,9 +388,7 @@ class Scout(Component):
         self.stop()
 
     # p1b
-    def do_PROMISE(self, sender, scout_id, ballot_num, accepted):
-        if scout_id != self.scout_id:
-            return
+    def do_PROMISE(self, sender, ballot_num, accepted):
         if ballot_num == self.ballot_num:
             self.logger.info("got matching promise; need %d" % self.quorum)
             self.pvals.update(accepted)

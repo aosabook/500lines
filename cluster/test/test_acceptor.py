@@ -19,32 +19,24 @@ class Tests(utils.ComponentTestCase):
         self.ac.accepted = {(Ballot(19, 19), 33): proposal}
         self.ac.ballot_num = Ballot(10, 10)
         self.node.fake_message(Prepare(
-                               scout_id=ScoutId(
-                                   address='SC', ballot_num=Ballot(19, 19)),
                                # newer than the acceptor's ballot_num
-                               ballot_num=Ballot(19, 19)))
+                               ballot_num=Ballot(19, 19)), sender='SC')
         self.assertMessage(['SC'], Promise(
-                           scout_id=ScoutId(
-                               address='SC', ballot_num=Ballot(19, 19)),
                            # replies with updated ballot_num
                            ballot_num=Ballot(19, 19),
                            # including accepted ballots
                            accepted={(Ballot(19, 19), 33): proposal}))
         self.assertState(Ballot(19, 19), {(Ballot(19, 19), 33): proposal})
-        self.assertEvent('leader_changed', new_leader='F999')
+        self.assertEvent('leader_changed', new_leader='SC')
 
     def test_prepare_old_ballot(self):
         """On PREPARE with an old ballot, Acceptor returns a PROMISE with the
         existing (newer) ballot and does not return a leader_changed event"""
         self.ac.ballot_num = Ballot(10, 10)
         self.node.fake_message(Prepare(
-                               scout_id=ScoutId(
-                                   address='SC', ballot_num=Ballot(5, 10)),
                                # older than the acceptor's ballot_num
-                               ballot_num=Ballot(5, 10)))
+                               ballot_num=Ballot(5, 10)), sender='SC')
         self.assertMessage(['SC'], Promise(
-                           scout_id=ScoutId(
-                               address='SC', ballot_num=Ballot(5, 10)),
                            # replies with newer ballot_num
                            ballot_num=Ballot(10, 10),
                            accepted={}))
