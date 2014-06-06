@@ -64,7 +64,7 @@ class Tests(unittest.TestCase):
             ]:
             self.network.set_timer(time, None, callback)
 
-        self.network.run(realtime=False)
+        self.network.run()
         self.assertEvent(1001.0, 'request: 5')
         self.assertEvent(1002.0, 'request done: 5', fuzz=1)
         self.assertEvent(1005.0, 'request: 6')
@@ -80,7 +80,7 @@ class Tests(unittest.TestCase):
             self.network.set_timer(1.0, None, req.start)
 
         self.network.set_timer(10.0, None, self.network.stop)
-        self.network.run(realtime=False)
+        self.network.run()
         self.assertEqual((len(results), results and max(results)), (N, N*(N+1)/2),
                          "got %r" % (results,))
 
@@ -98,7 +98,7 @@ class Tests(unittest.TestCase):
         self.network.set_timer(N/2, None, nodes[4].kill)
 
         self.network.set_timer(N * 3.0, None, self.network.stop)
-        self.network.run(realtime=False)
+        self.network.run()
         print N, N*(N+1)/2
         self.assertEqual((len(results), results and max(results)), (N, N*(N+1)/2),
                          "got %r" % (results,))
@@ -138,5 +138,5 @@ class Tests(unittest.TestCase):
         self.network.set_timer(N/2, None, kill_leader)
 
         self.network.set_timer(15, None, self.network.stop)
-        self.network.run(realtime=False)
+        self.network.run()
         self.assertEqual(set(results), set(xrange(1, N+1)))

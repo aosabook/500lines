@@ -24,7 +24,7 @@ class NodeTests(unittest.TestCase):
         receiver = self.network.new_node('R')
         comp = TestComp(receiver)
         sender.send([receiver.address], Join())
-        self.network.run(realtime=False)
+        self.network.run()
         self.failUnless(comp.join_called)
 
     def test_timeout(self):
@@ -33,7 +33,7 @@ class NodeTests(unittest.TestCase):
 
         cb = mock.Mock(side_effect=node.kill)
         node.set_timer(0.01, cb)
-        self.network.run(realtime=False)
+        self.network.run()
         self.failUnless(cb.called)
 
     def test_cancel_timeout(self):

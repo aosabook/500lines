@@ -138,14 +138,10 @@ class Network(object):
         self.nodes[node.address] = node
         return node
 
-    def run(self, pause=False, realtime=True):
+    def run(self):
         while self.timers:
             next_timer = self.timers[0]
             if next_timer.expires > self.now:
-                if pause:
-                    raw_input()
-                elif realtime:
-                    time.sleep(next_timer.expires - self.now)
                 self.now = next_timer.expires
             heapq.heappop(self.timers)
             if next_timer.cancelled:
@@ -508,8 +504,7 @@ class Leader(Component):
     def spawn_commander(self, ballot_num, slot):
         proposal = self.proposals[slot]
         commander_id = CommanderId(self.node.address, slot, proposal)
-        if commander_id in self.commanders:
-            return
+        assert commander_id not in self.commanders
         cmd = self.commander_cls(
             self.node, self, ballot_num, slot, proposal, commander_id, self.peers)
         self.commanders[commander_id] = cmd
