@@ -174,10 +174,6 @@ class Replica(Component):
         self.latest_leader = None
         self.latest_leader_timeout = None
 
-        # TODO: Can be replaced with 'assert slot_num not in self._decisions'
-        # if decision value cannot be None
-        assert decisions.get(slot_num) is None
-
         self.catchup()
 
     # making proposals
@@ -208,7 +204,6 @@ class Replica(Component):
 
     def catchup(self):
         """Try to catch up on un-decided slots"""
-        # TODO: some way to gossip about `next_slot` with other replicas
         if self.slot_num != self.next_slot:
             self.logger.debug("catching up on %d .. %d" %
                               (self.slot_num, self.next_slot - 1))
@@ -217,9 +212,7 @@ class Replica(Component):
                 continue
             # ask peers for information regardless
             self.node.send(self.peers, Catchup(slot=slot))
-            # TODO: Can be replaced with 'if slot in self._proposals and slot not in self._decisions'
-            # TODO: if proposal value cannot be None
-            if self.proposals.get(slot):
+            if slot in self.proposals:
                 # resend a proposal we initiated
                 self.propose(self.proposals[slot], slot)
             else:
@@ -228,21 +221,15 @@ class Replica(Component):
         self.node.set_timer(CATCHUP_INTERVAL, self.catchup)
 
     def do_CATCHUP(self, sender, slot):
-        # if we have a decision for this proposal, spread the knowledge
-        # TODO: Can be replaced with 'if slot in self._decisions' if decision
-        # value cannot be None
-        if self.decisions.get(slot):
+        if slot in self.decisions:
             self.node.send([sender], Decision(slot=slot, proposal=self.decisions[slot]))
 
     # handling decided proposals
 
     def do_DECISION(self, sender, slot, proposal):
-        # TODO: Can be replaced with 'if slot in self._decisions' if decision
-        # value cannot be None
-        if self.decisions.get(slot) is not None:
+        if slot in self.decisions:
             assert self.decisions[slot] == proposal, \
-                "slot %d already decided: %r!" % (
-                    slot, self.decisions[slot])
+                "slot %d already decided: %r!" % (slot, self.decisions[slot])
             return
         self.decisions[slot] = proposal
         self.next_slot = max(self.next_slot, slot + 1)
