@@ -153,14 +153,11 @@ class Network(object):
 
     def send(self, sender, destinations, message):
         sender.logger.debug("sending %s to %s", message, destinations)
-        def _receive(address):
-            if address in self.nodes:
-                self.nodes[address].receive(sender.address, message)
-        for dest in destinations:
+        for dest in (d for d in destinations if d in self.nodes):
             if self.rnd.uniform(0, 1.0) > self.DROP_PROB:
-                delay = self.PROP_DELAY + \
-                    self.rnd.uniform(-self.PROP_JITTER, self.PROP_JITTER)
-                self.set_timer(dest, delay, functools.partial(_receive, dest))
+                delay = self.PROP_DELAY + self.rnd.uniform(-self.PROP_JITTER, self.PROP_JITTER)
+                self.set_timer(dest, delay, functools.partial(self.nodes[dest].receive,
+                                                              sender.address, message))
 
 
 class Replica(Component):
