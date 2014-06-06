@@ -1,9 +1,6 @@
 from cluster import *
-from nose.tools import eq_
 import unittest
 import itertools
-import logging
-import sys
 
 
 class Tests(unittest.TestCase):

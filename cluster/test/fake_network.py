@@ -1,6 +1,5 @@
 from cluster import *
 import logging
-import heapq
 
 class FakeNetwork(Network):
 
@@ -41,7 +40,6 @@ class FakeNode(Node):
         super(FakeNode, self).__init__(network, 'F999')
         self.unique_id = 999
         self.sent = []
-        self.events = []
         self.logger = logging.getLogger('node.%s' % (self.address,))
 
     def register(self, component):
@@ -56,9 +54,3 @@ class FakeNode(Node):
         for component in self.components:
             fn = getattr(component, 'do_%s' % type(message).__name__.upper())
             fn(sender=sender, **message._asdict())
-
-    def fakeEvent(self, message, **kwargs):
-        super(FakeNode, self).event(message, **kwargs)
-
-    def event(self, message, **kwargs):
-        self.events.append((message, kwargs))

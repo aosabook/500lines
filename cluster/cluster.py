@@ -91,12 +91,6 @@ class Node(object):
             fn = getattr(comp, handler_name)
             fn(sender=sender, **message._asdict())
 
-    def event(self, message, **kwargs):
-        method = 'on_' + message + '_event'
-        for comp in self.components:
-            if hasattr(comp, method):
-                getattr(comp, method)(**kwargs)
-
 
 class Timer(object):
 

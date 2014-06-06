@@ -41,7 +41,6 @@ class Tests(utils.ComponentTestCase):
                            ballot_num=Ballot(10, 10),
                            accepted={}))
         self.assertState(Ballot(10, 10), {})
-        self.assertNoEvents()
 
     def test_accept_new_ballot(self):
         """On ACCEPT with a new ballot, Acceptor returns ACCEPTED with the new ballot number
