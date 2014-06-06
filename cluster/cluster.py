@@ -50,7 +50,6 @@ class NetworkLogger(logging.LoggerAdapter):
         return self.__class__(self.logger.getChild(name),
                               {'network': self.extra['network']})
 
-
 class Component(object):
 
     def __init__(self, node):
@@ -60,7 +59,6 @@ class Component(object):
 
     def stop(self):
         self.node.unregister(self)
-
 
 class Node(object):
     unique_ids = itertools.count()
@@ -90,7 +88,6 @@ class Node(object):
             fn = getattr(comp, handler_name)
             fn(sender=sender, **message._asdict())
 
-
 class Timer(object):
 
     def __init__(self, expires, address, callback):
@@ -104,7 +101,6 @@ class Timer(object):
 
     def cancel(self):
         self.cancelled = True
-
 
 class Network(object):
     PROP_DELAY = 0.03
@@ -151,7 +147,6 @@ class Network(object):
                 delay = self.PROP_DELAY + self.rnd.uniform(-self.PROP_JITTER, self.PROP_JITTER)
                 self.set_timer(dest, delay, functools.partial(self.nodes[dest].receive,
                                                               sender.address, message))
-
 
 class Replica(Component):
 
@@ -285,7 +280,6 @@ class Replica(Component):
             self.node.send([sender], Welcome(
                 state=self.state, slot_num=self.slot_num, decisions=self.decisions))
 
-
 class Acceptor(Component):
 
     def __init__(self, node):
@@ -308,7 +302,6 @@ class Acceptor(Component):
 
         self.node.send([sender], Accepted(
             slot=slot, ballot_num=self.ballot_num))
-
 
 class Commander(Component):
 
@@ -345,7 +338,6 @@ class Commander(Component):
         else:
             self.finished(ballot_num, True)
 
-
 class Scout(Component):
 
     def __init__(self, node, ballot_num, peers):
@@ -380,7 +372,6 @@ class Scout(Component):
             # result in a call to this method
             self.node.send([self.node.address], Preempted(slot=None, preempted_by=ballot_num))
             self.stop()
-
 
 class Leader(Component):
 
@@ -461,7 +452,6 @@ class Leader(Component):
         else:
             self.logger.info("got PROPOSE for a slot already being proposed")
 
-
 class Bootstrap(Component):
 
     def __init__(self, node, peers, execute_fn,
@@ -491,7 +481,6 @@ class Bootstrap(Component):
         self.leader_cls(self.node, peers=self.peers, commander_cls=self.commander_cls,
                         scout_cls=self.scout_cls).start()
         self.stop()
-
 
 class Seed(Component):
 
@@ -525,7 +514,6 @@ class Seed(Component):
         bs.start()
         self.stop()
 
-
 class Request(Component):
 
     client_ids = itertools.count(start=100000)
@@ -549,7 +537,6 @@ class Request(Component):
         self.invoke_timer.cancel()
         self.callback(output)
         self.stop()
-
 
 class Member(object):
 
