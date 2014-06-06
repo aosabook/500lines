@@ -36,7 +36,7 @@ class Tests(utils.ComponentTestCase):
 
         # quorum (3/2+1 = 2) reached
         self.assertMessage(['p1', 'p2', 'p3'], Decision(slot=self.slot, proposal=self.proposal))
-        self.assertEvent('commander_finished', slot=self.slot, preempted_by=None)
+        self.assertMessage(['F999'], Decided(slot=self.slot))
         self.assertTimers([])
         self.assertUnregistered()
 
@@ -59,6 +59,6 @@ class Tests(utils.ComponentTestCase):
         other_ballot_num = Ballot(99, 99)
         self.node.fake_message(
             Accepted(slot=self.slot, ballot_num=other_ballot_num), sender='p1')
-        self.assertEvent('commander_finished', slot=self.slot, preempted_by=other_ballot_num)
+        self.assertMessage(['F999'], Preempted(slot=self.slot, preempted_by=other_ballot_num))
         self.assertTimers([])
         self.assertUnregistered()

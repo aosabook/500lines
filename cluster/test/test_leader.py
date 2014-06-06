@@ -76,7 +76,7 @@ class Tests(utils.ComponentTestCase):
         """When a commander finishes successfully, nothing more happens"""
         self.activate_leader()
         self.node.fake_message(Propose(slot=10, proposal=PROPOSAL1))
-        self.node.fakeEvent('commander_finished', slot=10, preempted_by=None)
+        self.node.fake_message(Decided(slot=10))
         self.assertNoCommander(10)
 
     def test_commander_finished_preempted(self):
@@ -85,7 +85,7 @@ class Tests(utils.ComponentTestCase):
         spawned"""
         self.activate_leader()
         self.node.fake_message(Propose(slot=10, proposal=PROPOSAL1))
-        self.node.fakeEvent('commander_finished', slot=10, preempted_by=Ballot(22, OTHER_UNIQUE_ID))
+        self.node.fake_message(Preempted(slot=10, preempted_by=Ballot(22, OTHER_UNIQUE_ID)))
         self.assertNoCommander(10)
         self.assertEqual(self.ldr.ballot_num, Ballot(23, UNIQUE_ID))
         self.assertNoScout()
@@ -96,8 +96,7 @@ class Tests(utils.ComponentTestCase):
         """When a scout finishes and the leader is adopted, pvals are merged and the
         leader becomes active"""
         self.ldr.spawn_scout()
-        self.node.fakeEvent('scout_finished', adopted=True,
-                            ballot_num=Ballot(0, UNIQUE_ID), pvals={'p': 'vals'})
+        self.node.fake_message(Adopted(ballot_num=Ballot(0, UNIQUE_ID), pvals={'p': 'vals'}))
         self.assertNoScout()
         merge_pvals.assert_called_with({'p': 'vals'})
         self.assertTrue(self.ldr.active)
@@ -107,8 +106,7 @@ class Tests(utils.ComponentTestCase):
         """When a scout finishes and the leader is preempted, the leader is inactive
         and its ballot_num is updated."""
         self.ldr.spawn_scout()
-        self.node.fakeEvent('scout_finished', adopted=False,
-                            ballot_num=Ballot(22, UNIQUE_ID), pvals={'p': 'vals'})
+        self.node.fake_message(Preempted(slot=None, preempted_by=Ballot(22, UNIQUE_ID)))
         self.assertNoScout()
         merge_pvals.assert_not_called()
         self.assertEqual(self.ldr.ballot_num, Ballot(23, UNIQUE_ID))

@@ -25,6 +25,9 @@ Prepare = namedtuple('Prepare', ['ballot_num'])
 Promise = namedtuple('Promise', ['ballot_num', 'accepted'])
 Propose = namedtuple('Propose', ['slot', 'proposal'])
 Welcome = namedtuple('Welcome', ['state', 'slot_num', 'decisions'])
+Decided = namedtuple('Decided', ['slot'])
+Preempted = namedtuple('Preempted', ['slot', 'preempted_by'])
+Adopted = namedtuple('Adopted', ['ballot_num', 'pvals'])
 
 # constants - all of these should really be in terms of RTT's
 JOIN_RETRANSMIT = 0.7
@@ -252,8 +255,6 @@ class Replica(Component):
             return  # duplicate
 
         self.logger.info("committing %r at slot %d" % (proposal, slot))
-        self.node.event('commit', slot=slot, proposal=proposal)
-
         if proposal.caller is not None:
             # perform a client operation
             self.state, output = self.execute_fn(self.state, proposal.input)
@@ -294,7 +295,7 @@ class Acceptor(Component):
         self.ballot_num = NULL_BALLOT
         self.accepted = defaultdict()  # { (b, s) : p }
 
-    def do_PREPARE(self, sender, ballot_num):  # p1a
+    def do_PREPARE(self, sender, ballot_num):
         if ballot_num > self.ballot_num:
             self.ballot_num = ballot_num
             # we've accepted the sender, so it might be the next leader
@@ -302,7 +303,6 @@ class Acceptor(Component):
 
         self.node.send([sender], Promise(ballot_num=self.ballot_num, accepted=self.accepted))
 
-    # p2a
     def do_ACCEPT(self, sender, ballot_num, slot, proposal):
         if ballot_num >= self.ballot_num:
             self.ballot_num = ballot_num
@@ -329,11 +329,13 @@ class Commander(Component):
         self.node.set_timer(ACCEPT_RETRANSMIT, self.start)
 
     def finished(self, ballot_num, preempted):
-        self.node.event('commander_finished', slot=self.slot,
-                        preempted_by=ballot_num if preempted else None)
+        if preempted:
+            self.node.send([self.node.address], Preempted(slot=self.slot, preempted_by=ballot_num))
+        else:
+            self.node.send([self.node.address], Decided(slot=self.slot))
         self.stop()
 
-    def do_ACCEPTED(self, sender, slot, ballot_num):  # p2b
+    def do_ACCEPTED(self, sender, slot, ballot_num):
         if slot != self.slot:
             return
         if ballot_num == self.ballot_num:
@@ -365,13 +367,6 @@ class Scout(Component):
         self.node.send(self.peers, Prepare(ballot_num=self.ballot_num))
         self.retransmit_timer = self.node.set_timer(PREPARE_RETRANSMIT, self.send_prepare)
 
-    def finished(self, adopted, ballot_num):
-        self.logger.info("finished - adopted" if adopted else "finished - preempted")
-        self.node.event('scout_finished', adopted=adopted, ballot_num=ballot_num, pvals=self.pvals)
-        self.retransmit_timer.cancel()
-        self.stop()
-
-    # p1b
     def do_PROMISE(self, sender, ballot_num, accepted):
         if ballot_num == self.ballot_num:
             self.logger.info("got matching promise; need %d" % self.quorum)
@@ -380,11 +375,13 @@ class Scout(Component):
             if len(self.accepted) >= self.quorum:
                 # We're adopted; note that this does *not* mean that no other leader is active.
                 # Any such conflicts will be handled by the commanders.
-                self.finished(True, ballot_num)
+                self.node.send([self.node.address], Adopted(ballot_num=ballot_num, pvals=self.pvals))
+                self.stop()
         else:
             # ballot_num > self.ballot_num; responses to other scouts don't
             # result in a call to this method
-            self.finished(False, ballot_num)
+            self.node.send([self.node.address], Preempted(slot=None, preempted_by=ballot_num))
+            self.stop()
 
 
 class Leader(Component):
@@ -424,17 +421,14 @@ class Leader(Component):
         for slot_id, proposal in last_by_slot.iteritems():
             self.proposals[slot_id] = proposal
 
-    def on_scout_finished_event(self, adopted, ballot_num, pvals):
+    def do_ADOPTED(self, sender, ballot_num, pvals):
         self.scout = None
-        if adopted:
-            self.merge_pvals(pvals)
-            # note that we don't re-spawn commanders here; if there are undecided
-            # proposals, the replicas will re-propose
-            self.logger.info("leader becoming active")
-            self.node.event('leader_changed', new_leader=self.node.address)
-            self.active = True
-        else:
-            self.preempted(ballot_num)
+        self.merge_pvals(pvals)
+        # note that we don't re-spawn commanders here; if there are undecided
+        # proposals, the replicas will re-propose
+        self.logger.info("leader becoming active")
+        self.node.event('leader_changed', new_leader=self.node.address)
+        self.active = True
 
     def spawn_commander(self, ballot_num, slot):
         proposal = self.proposals[slot]
@@ -443,12 +437,14 @@ class Leader(Component):
         self.commanders[slot] = cmd
         cmd.start()
 
-    def on_commander_finished_event(self, slot, preempted_by):
+    def do_DECIDED(self, sender, slot):
         del self.commanders[slot]
-        if preempted_by:
-            self.preempted(preempted_by)
 
-    def preempted(self, preempted_by):
+    def do_PREEMPTED(self, sender, slot, preempted_by):
+        if slot:
+            del self.commanders[slot]
+        else:
+            self.scout = None
         self.logger.info("leader preempted by %s", preempted_by.leader)
         self.active = False
         self.ballot_num = Ballot((preempted_by or self.ballot_num).n + 1, self.ballot_num.leader)
