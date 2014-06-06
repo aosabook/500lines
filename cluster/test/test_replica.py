@@ -1,4 +1,4 @@
-from fleet import *
+from cluster import *
 from . import utils
 import mock
 
