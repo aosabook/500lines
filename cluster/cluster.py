@@ -201,8 +201,7 @@ class Replica(Component):
         # find a leader we think is working - either the latest we know of, or
         # ourselves (which may trigger a scout to make us the leader)
         leader = self.latest_leader or self.node.address
-        self.logger.info("proposing %s at slot %d to leader %s" %
-                         (proposal, slot, leader))
+        self.logger.info("proposing %s at slot %d to leader %s" % (proposal, slot, leader))
         self.node.send([leader], Propose(slot=slot, proposal=proposal))
 
     # catching up with the rest of the cluster
@@ -308,9 +307,7 @@ class Replica(Component):
     def do_JOIN(self, sender):
         if sender in self.peers:
             self.node.send([sender], Welcome(
-                state=self.state,
-                slot_num=self.slot_num,
-                decisions=self.decisions))
+                state=self.state, slot_num=self.slot_num, decisions=self.decisions))
 
 
 class Acceptor(Component):
@@ -327,10 +324,8 @@ class Acceptor(Component):
             self.node.event('leader_changed', new_leader=sender)
 
         self.node.send([scout_id.address], Promise(
-            scout_id=scout_id,
-            acceptor=self.node.address,
-            ballot_num=self.ballot_num,
-            accepted=self.accepted))
+            scout_id=scout_id, acceptor=self.node.address,
+            ballot_num=self.ballot_num, accepted=self.accepted))
 
     # p2a
     def do_ACCEPT(self, sender, commander_id, ballot_num, slot, proposal):
@@ -339,9 +334,7 @@ class Acceptor(Component):
             self.accepted[(ballot_num, slot)] = proposal
 
         self.node.send([commander_id.address], Accepted(
-            commander_id=commander_id,
-            acceptor=self.node.address,
-            ballot_num=self.ballot_num))
+            commander_id=commander_id, acceptor=self.node.address, ballot_num=self.ballot_num))
 
 
 class Commander(Component):
@@ -360,10 +353,8 @@ class Commander(Component):
 
     def start(self):
         self.node.send(set(self.peers) - self.accepted, Accept(
-            commander_id=self.commander_id,
-            ballot_num=self.ballot_num,
-            slot=self.slot,
-            proposal=self.proposal))
+                            commander_id=self.commander_id, ballot_num=self.ballot_num,
+                            slot=self.slot, proposal=self.proposal))
         self.timer = self.node.set_timer(ACCEPT_RETRANSMIT, self.start)
 
     def finished(self, ballot_num, preempted):
@@ -383,9 +374,7 @@ class Commander(Component):
             # make sure that this node hears about the decision, otherwise the
             # slot can get "stuck" if all of the DECISION messages get lost
             self.node.event('decision', slot=self.slot, proposal=self.proposal)
-            self.node.send(self.peers, Decision(
-                slot=self.slot,
-                proposal=self.proposal))
+            self.node.send(self.peers, Decision(slot=self.slot, proposal=self.proposal))
             self.finished(ballot_num, False)
         else:
             self.finished(ballot_num, True)
@@ -493,8 +482,8 @@ class Leader(Component):
         proposal = self.proposals[slot]
         commander_id = CommanderId(self.node.address, slot, proposal)
         assert commander_id not in self.commanders
-        cmd = self.commander_cls(
-            self.node, self, ballot_num, slot, proposal, commander_id, self.peers)
+        cmd = self.commander_cls(self.node,
+                                 self, ballot_num, slot, proposal, commander_id, self.peers)
         self.commanders[commander_id] = cmd
         cmd.start()
 
@@ -507,8 +496,7 @@ class Leader(Component):
         self.logger.info("leader preempted by %s, but I'm %d" %
                          (ballot_num.leader, self.ballot_num.leader))
         self.active = False
-        self.ballot_num = Ballot(
-            (ballot_num or self.ballot_num).n + 1, self.ballot_num.leader)
+        self.ballot_num = Ballot((ballot_num or self.ballot_num).n + 1, self.ballot_num.leader)
 
     def do_PROPOSE(self, sender, slot, proposal):
         if slot not in self.proposals:
@@ -554,8 +542,7 @@ class Bootstrap(Component):
         self.acceptor_cls(self.node)
         replica = self.replica_cls(self.node, execute_fn=self.execute_fn)
         leader = self.leader_cls(self.node, unique_id=self.node.unique_id,
-                                 peers=self.peers,
-                                 commander_cls=self.commander_cls,
+                                 peers=self.peers, commander_cls=self.commander_cls,
                                  scout_cls=self.scout_cls)
         leader.start()
         # TODO: just pass these to the constructor
@@ -586,9 +573,7 @@ class Seed(Component):
 
         # cluster is ready - welcome everyone
         self.node.send(list(self.seen_peers), Welcome(
-            state=self.initial_state,
-            slot_num=1,
-            decisions={}))
+            state=self.initial_state, slot_num=1, decisions={}))
 
         # stick around for long enough that we don't hear any new JOINs from
         # the newly formed cluster
@@ -598,8 +583,7 @@ class Seed(Component):
 
     def finish(self):
         # hand over this node to a bootstrap component
-        bs = self.bootstrap_cls(
-            self.node, peers=self.peers, execute_fn=self.execute_fn)
+        bs = self.bootstrap_cls(self.node, peers=self.peers, execute_fn=self.execute_fn)
         bs.start()
         self.stop()
 
@@ -636,29 +620,23 @@ class Member(object):
         self.network = network
         self.node = network.new_node()
         if seed is not None:
-            self.component = seed_cls(
-                self.node, initial_state=seed, peers=peers, execute_fn=state_machine)
+            self.component = seed_cls(self.node, initial_state=seed, peers=peers,
+                                      execute_fn=state_machine)
         else:
-            self.component = bootstrap_cls(
-                self.node, execute_fn=state_machine, peers=peers)
+            self.component = bootstrap_cls(self.node, execute_fn=state_machine, peers=peers)
         self.current_request = None
 
     def start(self):
-        def run():
-            self.component.start()
-            self.network.run()
-
-        self.thread = threading.Thread(target=run)
-        self.thread.setDaemon(1)
+        self.component.start()
+        self.thread = threading.Thread(target=self.network.run)
         self.thread.start()
 
     def invoke(self, input_value, request_cls=Request):
         assert self.current_request is None
         q = Queue.Queue()
 
-        def done(output):
-            self.current_request = None
-            q.put(output)
-        self.current_request = request_cls(self.node, input_value, done)
+        self.current_request = request_cls(self.node, input_value, q.put)
         self.current_request.start()
-        return q.get()
+        output = q.get()
+        self.current_request = None
+        return output
