@@ -71,15 +71,13 @@ class Node(object):
         self.components = []
         self.logger = NetworkLogger(
             logging.getLogger(self.address), {'network': self.network})
+        self.set_timer = functools.partial(self.network.set_timer, self.address)
         self.logger.info('starting')
 
     def kill(self):
         self.logger.error('node dying')
         if self.address in self.network.nodes:
             del self.network.nodes[self.address]
-
-    def set_timer(self, seconds, callback):
-        return self.network.set_timer(seconds, self.address, callback)
 
     def send(self, destinations, message):
         self.logger.debug("sending %s to %s",
@@ -154,21 +152,20 @@ class Network(object):
     def stop(self):
         self.timers = []
 
-    def set_timer(self, seconds, address, callback):
+    def set_timer(self, address, seconds, callback):
         timer = Timer(self.now + seconds, address, callback)
         heapq.heappush(self.timers, timer)
         return timer
 
     def send(self, sender, destinations, message):
-        def _receive(address, message):
+        def _receive(address):
             if address in self.nodes:
                 self.nodes[address].receive(sender, message)
         for dest in destinations:
             if self.rnd.uniform(0, 1.0) > self.DROP_PROB:
                 delay = self.PROP_DELAY + \
                     self.rnd.uniform(-self.PROP_JITTER, self.PROP_JITTER)
-                self.set_timer(delay, dest,
-                               functools.partial(_receive, dest, message))
+                self.set_timer(dest, delay, functools.partial(_receive, dest))
 
 
 class Replica(Component):

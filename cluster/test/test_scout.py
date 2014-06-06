@@ -26,7 +26,7 @@ class Tests(utils.ComponentTestCase):
         self.assertMessage(['p1', 'p2', 'p3'], Prepare(
                            scout_id=self.sct.scout_id, ballot_num=Ballot(10, 10)))
         self.assertNoMessages()
-        self.node.tick(PREPARE_RETRANSMIT)
+        self.network.tick(PREPARE_RETRANSMIT)
         self.assertMessage(['p1', 'p2', 'p3'], Prepare(
                            scout_id=self.sct.scout_id, ballot_num=Ballot(10, 10)))
 
@@ -39,7 +39,7 @@ class Tests(utils.ComponentTestCase):
         self.sct.finished(True, Ballot(20, 20))
         self.leader.scout_finished.assert_called_once_with(
             True, Ballot(20, 20), {'pvals': 1})
-        self.node.tick(PREPARE_RETRANSMIT)
+        self.network.tick(PREPARE_RETRANSMIT)
         self.assertNoMessages()
         self.assertUnregistered()
 

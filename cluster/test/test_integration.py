@@ -62,7 +62,7 @@ class Tests(unittest.TestCase):
                 (5.0, lambda: make_request(6, nodes[2])),
                 (10.0, self.network.stop),
             ]:
-            self.network.set_timer(time, None, callback)
+            self.network.set_timer(None, time, callback)
 
         self.network.run()
         self.assertEvent(1001.0, 'request: 5')
@@ -77,9 +77,9 @@ class Tests(unittest.TestCase):
         results = []
         for n in range(1, N+1):
             req = Request(nodes[n % 4], n, results.append)
-            self.network.set_timer(1.0, None, req.start)
+            self.network.set_timer(None, 1.0, req.start)
 
-        self.network.set_timer(10.0, None, self.network.stop)
+        self.network.set_timer(None, 10.0, self.network.stop)
         self.network.run()
         self.assertEqual((len(results), results and max(results)), (N, N*(N+1)/2),
                          "got %r" % (results,))
@@ -91,13 +91,13 @@ class Tests(unittest.TestCase):
         results = []
         for n in range(1, N+1):
             req = Request(nodes[n % 3], n, results.append)
-            self.network.set_timer(n+1, None, req.start)
+            self.network.set_timer(None, n+1, req.start)
 
         # kill nodes 3 and 4 at N/2 seconds
-        self.network.set_timer(N/2-1, None, nodes[3].kill)
-        self.network.set_timer(N/2, None, nodes[4].kill)
+        self.network.set_timer(None, N/2-1, nodes[3].kill)
+        self.network.set_timer(None, N/2, nodes[4].kill)
 
-        self.network.set_timer(N * 3.0, None, self.network.stop)
+        self.network.set_timer(None, N * 3.0, self.network.stop)
         self.network.run()
         print N, N*(N+1)/2
         self.assertEqual((len(results), results and max(results)), (N, N*(N+1)/2),
@@ -114,7 +114,7 @@ class Tests(unittest.TestCase):
         results = []
         for n in range(1, N+1):
             req = Request(nodes[n % 6], n, results.append)
-            self.network.set_timer(n+1, None, req.start)
+            self.network.set_timer(None, n+1, req.start)
 
         def is_leader(n):
             try:
@@ -135,8 +135,8 @@ class Tests(unittest.TestCase):
                     if n % 6 == active_idx:
                         results.append(n)
                 active_leader.kill()
-        self.network.set_timer(N/2, None, kill_leader)
+        self.network.set_timer(None, N/2, kill_leader)
 
-        self.network.set_timer(15, None, self.network.stop)
+        self.network.set_timer(None, 15, self.network.stop)
         self.network.run()
         self.assertEqual(set(results), set(xrange(1, N+1)))

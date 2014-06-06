@@ -22,12 +22,12 @@ class Tests(utils.ComponentTestCase):
         self.assertMessage(['p1', 'p3'], Welcome(
                            state='state', slot_num=1, decisions={}))
 
-        self.node.tick(JOIN_RETRANSMIT)
+        self.network.tick(JOIN_RETRANSMIT)
         self.node.fake_message(Join(), sender='p2')
         self.assertMessage(['p1', 'p2', 'p3'], Welcome(
                            state='state', slot_num=1, decisions={}))
 
-        self.node.tick(JOIN_RETRANSMIT * 2)
+        self.network.tick(JOIN_RETRANSMIT * 2)
         self.assertNoMessages()
         self.assertUnregistered()
         self.Bootstrap.assert_called_with(self.node, peers=['p1', 'p2', 'p3'],

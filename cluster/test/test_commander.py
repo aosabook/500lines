@@ -26,14 +26,14 @@ class Tests(utils.ComponentTestCase):
         """After start(), the commander sends ACCEPT repeatedly to all peers which have not responded"""
         self.cmd.start()
         self.assertMessage(['p1', 'p2', 'p3'], self.accept_message)
-        self.node.tick(ACCEPT_RETRANSMIT)
+        self.network.tick(ACCEPT_RETRANSMIT)
         self.assertMessage(['p1', 'p2', 'p3'], self.accept_message)
 
         self.node.fake_message(
                 Accepted(commander_id=self.commander_id, acceptor='p2', ballot_num=self.ballot_num))
-        self.node.tick(ACCEPT_RETRANSMIT)
+        self.network.tick(ACCEPT_RETRANSMIT)
         self.assertMessage(['p1', 'p3'], self.accept_message)
-        self.node.tick(ACCEPT_RETRANSMIT)
+        self.network.tick(ACCEPT_RETRANSMIT)
         self.assertMessage(['p1', 'p3'], self.accept_message)
         self.node.fake_message(
             Accepted(commander_id=self.commander_id, acceptor='p1', ballot_num=self.ballot_num))
@@ -54,7 +54,7 @@ class Tests(utils.ComponentTestCase):
             address='OTHER', slot=self.slot, proposal=self.proposal)
         self.node.fake_message(
             Accepted(commander_id=other_commander_id, acceptor='p1', ballot_num=self.ballot_num))
-        self.node.tick(ACCEPT_RETRANSMIT)
+        self.network.tick(ACCEPT_RETRANSMIT)
         # p1 still in the list
         self.assertMessage(['p1', 'p2', 'p3'], self.accept_message)
 

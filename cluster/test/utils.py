@@ -5,7 +5,8 @@ import unittest
 class ComponentTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.node = fake_network.FakeNode()
+        self.network = fake_network.FakeNetwork()
+        self.node = fake_network.FakeNode(self.network)
 
         self.fakeEvent = self.node.fakeEvent
 
@@ -29,7 +30,7 @@ class ComponentTestCase(unittest.TestCase):
         self.assertEqual(self.node.events, [])
 
     def assertTimers(self, times):
-        self.assertEqual(self.node.get_times(), times)
+        self.assertEqual(self.node.network.get_times(), times)
 
     def assertUnregistered(self):
         self.assertEqual(self.node.components, [])

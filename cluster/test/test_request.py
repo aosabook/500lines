@@ -19,11 +19,11 @@ class Tests(utils.ComponentTestCase):
         """Request should repeatedly send INVOKE until receiving a matching INVOKED"""
         self.req.start()
         self.assertMessage(['F999'], Invoke(caller='F999', client_id=CLIENT_ID, input_value=10))
-        self.node.tick(INVOKE_RETRANSMIT)
+        self.network.tick(INVOKE_RETRANSMIT)
         self.assertMessage(['F999'], Invoke(caller='F999', client_id=CLIENT_ID, input_value=10))
         # non-matching
         self.node.fake_message(Invoked(client_id=333, output=22))
-        self.node.tick(INVOKE_RETRANSMIT)
+        self.network.tick(INVOKE_RETRANSMIT)
         self.assertMessage(['F999'], Invoke(caller='F999', client_id=CLIENT_ID, input_value=10))
         self.failIf(self.callback.called)
         self.node.fake_message(Invoked(client_id=CLIENT_ID, output=20))

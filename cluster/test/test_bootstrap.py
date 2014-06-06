@@ -26,7 +26,7 @@ class Tests(utils.ComponentTestCase):
         self.bs.start()
         for recip in 'p1', 'p2', 'p3', 'p1':
             self.assertMessage([recip], Join())
-            self.node.tick(JOIN_RETRANSMIT)
+            self.network.tick(JOIN_RETRANSMIT)
         self.assertMessage(['p2'], Join())
 
         self.node.fake_message(Welcome(state='st', slot_num='sl', decisions={}))
