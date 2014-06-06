@@ -1,12 +1,12 @@
 from collections import defaultdict
 from . import Ballot, Promise, Accepted
-from .member import Component
+from .network import Component
 
 
 class Acceptor(Component):
 
-    def __init__(self, member):
-        super(Acceptor, self).__init__(member)
+    def __init__(self, node):
+        super(Acceptor, self).__init__(node)
         self.ballot_num = Ballot(-1, -1)
         self.accepted = defaultdict()  # { (b, s) : p }
 

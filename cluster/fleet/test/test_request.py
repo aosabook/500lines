@@ -14,7 +14,7 @@ class Tests(utils.ComponentTestCase):
         self.callback = mock.Mock(name='callback')
         with mock.patch.object(request.Request, 'client_ids') as client_ids:
             client_ids.next.return_value = CLIENT_ID
-            self.req = request.Request(self.member, 10, self.callback)
+            self.req = request.Request(self.node, 10, self.callback)
         self.assertEqual(self.req.client_id, CLIENT_ID)
 
     def test_function(self):

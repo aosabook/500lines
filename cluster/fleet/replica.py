@@ -1,11 +1,11 @@
 from . import Proposal, CATCHUP_INTERVAL, LEADER_TIMEOUT, Propose, Catchup, Decision, Invoked, Welcome
-from .member import Component
+from .network import Component
 
 
 class Replica(Component):
 
-    def __init__(self, member, execute_fn):
-        super(Replica, self).__init__(member)
+    def __init__(self, node, execute_fn):
+        super(Replica, self).__init__(node)
         self.execute_fn = execute_fn
         self.proposals = {}
 

@@ -1,12 +1,12 @@
 from collections import defaultdict
 from . import ScoutId, Prepare, PREPARE_RETRANSMIT
-from .member import Component
+from .network import Component
 
 
 class Scout(Component):
 
-    def __init__(self, member, leader, ballot_num, peers):
-        super(Scout, self).__init__(member)
+    def __init__(self, node, leader, ballot_num, peers):
+        super(Scout, self).__init__(node)
         self.leader = leader
         self.scout_id = ScoutId(self.address, ballot_num)
         self.ballot_num = ballot_num

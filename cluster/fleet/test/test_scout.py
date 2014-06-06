@@ -13,7 +13,7 @@ class Tests(utils.ComponentTestCase):
     def setUp(self):
         super(Tests, self).setUp()
         self.leader = mock.Mock()
-        self.sct = scout.Scout(self.member, self.leader, Ballot(10, 10),
+        self.sct = scout.Scout(self.node, self.leader, Ballot(10, 10),
                                peers=['p1', 'p2', 'p3'])
 
     @mock.patch.object(scout.Scout, 'send_prepare')

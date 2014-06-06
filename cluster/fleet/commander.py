@@ -1,11 +1,11 @@
 from . import ACCEPT_RETRANSMIT, Accept, Decision
-from .member import Component
+from .network import Component
 
 
 class Commander(Component):
 
-    def __init__(self, member, leader, ballot_num, slot, proposal, commander_id, peers):
-        super(Commander, self).__init__(member)
+    def __init__(self, node, leader, ballot_num, slot, proposal, commander_id, peers):
+        super(Commander, self).__init__(node)
         self.leader = leader
         self.ballot_num = ballot_num
         self.slot = slot

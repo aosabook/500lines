@@ -1,13 +1,13 @@
 from . import Ballot, CommanderId, LEADER_TIMEOUT, Active
 from .commander import Commander
-from .member import Component
+from .network import Component
 from .scout import Scout
 
 
 class Leader(Component):
 
-    def __init__(self, member, unique_id, peers, commander_cls=Commander, scout_cls=Scout):
-        super(Leader, self).__init__(member)
+    def __init__(self, node, unique_id, peers, commander_cls=Commander, scout_cls=Scout):
+        super(Leader, self).__init__(node)
         self.ballot_num = Ballot(0, unique_id)
         self.active = False
         self.proposals = {}
@@ -28,7 +28,7 @@ class Leader(Component):
     def spawn_scout(self):
         assert not self.scout
         sct = self.scout = self.scout_cls(
-            self.member, self, self.ballot_num, self.peers)
+            self.node, self, self.ballot_num, self.peers)
         sct.start()
 
     # TODO: rename pvals to something with semantic meaning
@@ -60,7 +60,7 @@ class Leader(Component):
         if commander_id in self.commanders:
             return
         cmd = self.commander_cls(
-            self.member, self, ballot_num, slot, proposal, commander_id, self.peers)
+            self.node, self, ballot_num, slot, proposal, commander_id, self.peers)
         self.commanders[commander_id] = cmd
         cmd.start()
 

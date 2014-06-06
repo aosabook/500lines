@@ -6,10 +6,13 @@ Each tier of a highly-available service will span a "cluster" of multiple machin
 
 Some services cluster naturally, with each operation handled indpendently by a member of the cluster.
 If one member fails, operations are routed to the remaining members.
-Most web services operate in this fashion.
+Many web services operate in this fashion, especially those serving static content which can simply be replicated to many nodes.
 
 Many services require some state to be shared immediately between cluster members.
 For example, XXX
+
+ + distributed log-based filesystem
+ + distributed object store
 
 XXX
 
@@ -89,11 +92,11 @@ Timers are handled using Python's `heapq` module, allowing efficient selection o
 Setting a timer involves pushing a Timer object onto the heap.
 Since removing items from a heap is inefficient, cancelled timers are left in place but marked as cancelled.
 
-INCLUDE deterministic_network.Timer
+INCLUDE network.Timer
 
 The Timer class simply stores some information, provides a ``__cmp__`` method to sort the heap, and implements a ``cancel`` method.
 
-INCLUDE deterministic_network.Network
+INCLUDE network.Network
 
 Running the simulation, then, just involves popping timers from the heap and executing them if they have not been cancelled and if the node that set the timer still exists.
 
@@ -105,26 +108,31 @@ Nodes
 
 Each host in the network is represented as a `Node`:
 
-INCLUDE deterministic_network.Node
+INCLUDE network.Node
 
 Each has a distinct address and a list of components.  
 
 --------
 
-Software Design
- + Network
- + Component Model
- + named tuples but kwargs
- + separation of concerns
- + events
- + tests
- + logging
- + library interface
-
-Implementation Challenges
- + Follow the Leader
- + Catching Up
-
-Improvements
- + Consistent memory usage
- + View changes
++ Clustering with Consensus
++ Consensus by Paxos
+  + Simple Paxos (including a diagram)
+  + Multi-Paxos
+  + Getting Moderately Complex - introduce components based on Renesee(sp?)
+  + Leader Elections
++ Introducing Fleet (mixture of code and design decisions)
+  + Library Purpose
+  + Component Model
+    + Separation of Concerns
+  + Network
+  + Logging
+  + Testing
+    + Write Small Things (Mark Menard)
+    + Dependency Injection
++ Implementation Challenges
+  + Data Aliasing (need for .copy())
+  + Catching Up
+  + Follow the Leader
++ Further Extensions
+  + Consistent memory usage
+  + View changes

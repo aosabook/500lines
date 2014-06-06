@@ -1,47 +1,64 @@
-from .. import member, Join
-from . import utils
+from .. import member
+from .. import network
+from .. import bootstrap
+from .. import seed
 from . import fake_network
 import mock
+import unittest
 
 
-class MyComp(member.Component):
+class FakeRequest(object):
 
-    def on_birthday_event(self, **kwargs):
-        self.birthday = kwargs
+    def __init__(self, node, input_value, callback):
+        self.node = node
+        self.input_value = input_value
+        self.callback = callback
+
+    def start(self):
+        self.callback(('ROTATED', self.node, self.input_value))
 
 
-class Tests(utils.ComponentTestCase):
+class Tests(unittest.TestCase):
 
     def setUp(self):
-        super(Tests, self).setUp()
+        self.Node = mock.create_autospec(network.Node)
+        self.Bootstrap = mock.create_autospec(bootstrap.Bootstrap)
+        self.Seed = mock.create_autospec(seed.Seed)
+        self.network = fake_network.FakeNetwork()
+        self.state_machine = mock.Mock(name='state_machine')
+        self.cls_args = dict(bootstrap_cls=self.Bootstrap, seed_cls=self.Seed)
 
-    def test_registration(self):
-        """A component registers itself with the member on creation and
-        unregisters on stop."""
-        comp = MyComp(self.member)
-        self.assertEqual(self.member.components, [comp])
-        self.assertEqual(self.member.node.components, [comp])
-        comp.stop()
-        self.assertEqual(self.member.components, [])
-        self.assertEqual(self.member.node.components, [])
+    def test_no_seed(self):
+        """With no seed, the Member constructor builds a Bootstrap"""
+        sh = member.Member(self.state_machine, network=self.network,
+                           peers=['p1', 'p2'], **self.cls_args)
+        self.failIf(self.Seed.called)
+        self.Bootstrap.assert_called_with(
+            self.network.node, execute_fn=self.state_machine, peers=['p1', 'p2'])
 
-    @mock.patch.object(fake_network.FakeNode, 'set_timer')
-    def test_timer(self, set_timer):
-        """Set_timer calls through to the node"""
-        comp = MyComp(self.member)
-        t = comp.set_timer(2, 'cb')
-        set_timer.assert_called_with(2, 'cb')
+    def test_Member(self):
+        """With a seed, the Member constructor builds a Node and a ClusterSeed"""
+        sh = member.Member(self.state_machine, network=self.network,
+                           peers=['p1', 'p2'], seed=44,
+                           **self.cls_args)
+        self.failIf(self.Bootstrap.called)
+        self.Seed.assert_called_with(
+            self.network.node, initial_state=44, peers=['p1', 'p2'],
+            execute_fn=self.state_machine)
 
-    def test_events(self):
-        """Events are propagated to all components."""
-        comp1 = MyComp(self.member)
-        comp2 = MyComp(self.member)
-        self.fakeEvent('birthday', arg='val')
-        self.assertEqual(comp1.birthday, {'arg': 'val'})
-        self.assertEqual(comp2.birthday, {'arg': 'val'})
+    def test_start(self):
+        """Member.start starts the component and node in self.thread"""
+        sh = member.Member(self.state_machine, network=self.network,
+                       peers=['p1', 'p2'], **self.cls_args)
+        sh.start()
+        sh.thread.join()
+        sh.component.start.assert_called_once_with()
+        self.failUnless(self.network.ran)
 
-    def test_send(self):
-        """Message-sending calls through to the node"""
-        comp = MyComp(self.member)
-        comp.send(['p1'], Join())
-        self.assertMessage(['p1'], Join())
+    def test_invoke(self):
+        """Member.invoke makes a new Request, starts it, and waits for its callback to be called."""
+        sh = member.Member(self.state_machine, network=self.network,
+                       peers=['p1', 'p2'], **self.cls_args)
+        res = sh.invoke('ROTATE', request_cls=FakeRequest)
+        self.assertEqual(sh.current_request, None)
+        self.assertEqual(res, ('ROTATED', sh.node, 'ROTATE'))

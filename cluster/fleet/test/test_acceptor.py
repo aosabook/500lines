@@ -8,7 +8,7 @@ class Tests(utils.ComponentTestCase):
 
     def setUp(self):
         super(Tests, self).setUp()
-        self.ac = acceptor.Acceptor(self.member)
+        self.ac = acceptor.Acceptor(self.node)
 
     def assertState(self, ballot_num, accepted):
         self.assertEqual(self.ac.ballot_num, ballot_num)

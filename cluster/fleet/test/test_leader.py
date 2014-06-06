@@ -22,14 +22,14 @@ class Tests(utils.ComponentTestCase):
         super(Tests, self).setUp()
         Scout.reset_mock()
         Commander.reset_mock()
-        self.ldr = leader.Leader(self.member, UNIQUE_ID, ['p1', 'p2'],
+        self.ldr = leader.Leader(self.node, UNIQUE_ID, ['p1', 'p2'],
                                  commander_cls=Commander,
                                  scout_cls=Scout)
 
     def assertScoutStarted(self, ballot_num):
         Scout.assert_called_with(
-            self.member, self.ldr, ballot_num, ['p1', 'p2'])
-        scout = Scout(self.member, self.ldr, ballot_num, ['p1', 'p2'])
+            self.node, self.ldr, ballot_num, ['p1', 'p2'])
+        scout = Scout(self.node, self.ldr, ballot_num, ['p1', 'p2'])
         scout.start.assert_called_with()
 
     def assertNoScout(self):
@@ -37,7 +37,7 @@ class Tests(utils.ComponentTestCase):
 
     def assertCommanderStarted(self, ballot_num, slot, proposal):
         commander_id = CommanderId(self.node.address, slot, proposal)
-        Commander.assert_called_with(self.member, self.ldr, ballot_num, slot,
+        Commander.assert_called_with(self.node, self.ldr, ballot_num, slot,
                                      proposal, commander_id, ['p1', 'p2'])
         cmd = self.ldr.commanders[commander_id]
         cmd.start.assert_called_with()

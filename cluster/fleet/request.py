@@ -1,14 +1,14 @@
 import itertools
 from . import INVOKE_RETRANSMIT, Invoke
-from member import Component
+from network import Component
 
 
 class Request(Component):
 
     client_ids = itertools.count(start=100000)
 
-    def __init__(self, member, n, callback):
-        super(Request, self).__init__(member)
+    def __init__(self, node, n, callback):
+        super(Request, self).__init__(node)
         self.client_id = self.client_ids.next()
         self.n = n
         self.output = None

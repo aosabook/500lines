@@ -1,4 +1,5 @@
 from .. import seed
+from .. import bootstrap
 from .. import JOIN_RETRANSMIT
 from .. import Join, Welcome
 from . import utils
@@ -9,8 +10,11 @@ class Tests(utils.ComponentTestCase):
 
     def setUp(self):
         super(Tests, self).setUp()
-        self.leader = mock.Mock()
-        self.seed = seed.Seed(self.member, 'state', ['p1', 'p2', 'p3'])
+        self.Bootstrap = mock.Mock(autospec=bootstrap.Bootstrap)
+        self.execute_fn = mock.Mock()
+        self.seed = seed.Seed(self.node, initial_state='state',
+                              peers=['p1', 'p2', 'p3'], execute_fn=self.execute_fn,
+                              bootstrap_cls=self.Bootstrap)
 
     def test_JOIN(self):
         """Seed waits for quorum, then sends a WELCOME in response to every JOIN until
@@ -27,6 +31,8 @@ class Tests(utils.ComponentTestCase):
                            state='state', slot_num=1, decisions={}))
 
         self.node.tick(JOIN_RETRANSMIT * 2)
-        self.node.fake_message(Join(), sender='p2')
         self.assertNoMessages()
         self.assertUnregistered()
+        self.Bootstrap.assert_called_with(self.node, peers=['p1', 'p2', 'p3'],
+                                          execute_fn=self.execute_fn)
+        self.Bootstrap().start.assert_called()
