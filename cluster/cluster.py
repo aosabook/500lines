@@ -559,7 +559,6 @@ class Member(object):
     def invoke(self, input_value, request_cls=Request):
         assert self.current_request is None
         q = Queue.Queue()
-
         self.current_request = request_cls(self.node, input_value, q.put)
         self.current_request.start()
         output = q.get()
