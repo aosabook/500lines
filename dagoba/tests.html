@@ -24,9 +24,9 @@
 </head>
 <body>
   
-  <div id="tests">
-    
-  </div>
+  <div id="totals"></div>
+  
+  <div id="tests"></div>
   
   
   <script>
@@ -124,42 +124,23 @@
                
                , { fun: function(G, V, E) { return G.v().out().run()                  /* all vertices with inbound edges */ }
                  , got: function(G, V, E) { return [ V[3], V[5], V[4], V[2] ] } }
-               , { fun: function(G, V, E) { return G.v().out('knows').run()           /* all vertices with 'knows' inbound */ }
+               , { fun: function(G, V, E) { return G.v().out('knows').run()           /* vertices with outbound 'knows' */ }
+                 , got: function(G, V, E) { return [ V[4], V[2] ] } }
+               , { fun: function(G, V, E) { return G.v().out(['knows']).run()         /* same, but using array style */ }
+                 , got: function(G, V, E) { return [ V[4], V[2] ] } }
+               , { fun: function(G, V, E) { return G.v().out(['knows', 'created']).run()  /* double the fun */ }
                  , got: function(G, V, E) { return [ V[3], V[5], V[4], V[2] ] } }
+               , { fun: function(G, V, E) { return G.v(1).out().run()                 /* out from vertex 1 */ }
+                 , got: function(G, V, E) { return [ V[3], V[4], V[2] ] } }
+               , { fun: function(G, V, E) { return G.v().out({weight: 1}).run()       /* match with object */ }
+                 , got: function(G, V, E) { return [ V[5], V[4] ] } }
+               , { fun: function(G, V, E) { return G.v().out({weight: 1, '_label':'knows'}).run() /* double the fun */ }
+                 , got: function(G, V, E) { return [ V[4] ] } }
                
                
                  
                /*
-
-               it("should filter for 'knows'", function(){
-                   var result = g.v().out('knows').emit();
-                   expect(result.length).to.equal(2);
-                   expect(result).to.have.deep.property('[0].name', 'vadas');
-               });
-
-               it("should filter for 'knows' as array", function(){
-                   var result = g.v().out(['knows']).emit();
-                   expect(result.length).to.equal(2);
-                   expect(result).to.have.deep.property('[0].name', 'vadas');
-               });
-
-               it("should filter for 'knows' & 'created'", function(){
-                   var result = g.v().out('knows', 'created').emit();
-                   expect(result.length).to.equal(6);
-                   expect(result).to.have.deep.property('[0].name', 'lop');
-               });
-
-               it("should filter for 'knows' & 'created' as array", function(){
-                   var result = g.v().out(['knows', 'created']).emit();
-                   expect(result.length).to.equal(6);
-                   expect(result).to.have.deep.property('[0].name', 'lop');
-               });
-
-               it("should get out vertices from id 1", function(){
-                   var result = g.v(1).out().emit();
-                   expect(result.length).to.equal(3);
-                   expect(result).to.have.deep.property('[0].name', 'vadas');
-               });
+               
 
                it("should return out vertices from id 1 & 4", function(){
                    var result = g.v(1, 4).out().emit();
@@ -181,6 +162,7 @@
                    expect(result).to.have.deep.property('[0].name', 'vadas');
                });
          
+
                  */
                  
                // wait on attrs they're weird and you can always map over the results
@@ -216,6 +198,7 @@
 
     var testdiv = document.getElementById('tests')
 
+    var total = 0, errors = 0;
     resultlist.forEach(function(resultbox) {
       var trial = resultbox[0]
       var header = document.createElement('header')
@@ -233,8 +216,12 @@
         var div = document.createElement('div')
         if(!list[0]) div.classList.add('error')
         testdiv.appendChild(div).innerHTML = str
+        total++; errors+=!list[0]
       })
     })
+    
+    eltotal = document.getElementById('totals')
+    eltotal.innerHTML = '<h4>Total tests: ' + total + ' Errors: ' + errors + '</h4>'
 
 
     function formatFun(fun) {
