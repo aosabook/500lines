@@ -9,22 +9,32 @@ Memory
 
 Maybe it's always been about memory.
 
-I remember the first time I tried to explain a problem to a Professional. Nora
+I remember the first time I had a bug I was really stuck on. When I finished
+typing in my BASIC program and ran it, weird sparkly pixels showed up on the
+screen, and the program aborted early. When I went back to look at the code,
+the last few lines of the program were gone! One of my mom's friends was a
+P.Eng and she knew how to program, so my mom arranged a phone call so I could
+explain the problem and get some feedback. Within a few minutes of talking, I
+had figured out the problem: the program was too big, and had encroached into
+video memory. Clearing the screen truncated the program, and the sparkles were
+artifacts of Applesoft BASIC's method of storing variables.
+
+ tried to explain a problem to a Professional. Nora
 listened patiently while I explained the problem...and realised the solution.
 My BASIC program was eating into video memory.
 
 Learning how to allocate memory with malloc, to stick it into a struct of
-pointers so I could sort geo locations by latitude then longnitude.
+pointers so I could sort geo locations by latitude then longitude.
 
 I kind of understood that Erlang didn't have to copy data between processes,
 even though it was "strictly message-passing", because everything was
 immutable.
 
-I'm not sure that really sank in until I read about Clojure's data structures,
-in 2009.
+I'm not sure that really sank in until I read about Clojure's immutable data
+structures, in 2009.
 
-Who'd have thought that learning CouchDB in 2013 would just make me smile and
-nod?
+Who'd have thought that learning about CouchDB in 2013 would just make me smile
+and nod?
 
 
 Intro to problem
@@ -63,7 +73,7 @@ and CouchDB calls it "compaction".
 Intro to toolchain
 ------------------
 
-The example is written in polyglot Python 2/3.
+The code is written in polyglot Python 2/3.
 
 It is highly recommended to use the ``virtualenv`` tool
 when installing dependencies:
@@ -72,14 +82,14 @@ when installing dependencies:
 500lines/data-store$ virtualenv env
 ...
 500lines/data-store$ source env/bin/activate
-500lines/data-store$ pip install -r requirements.txt
+(env)500lines/data-store$ pip install -r requirements.txt
 ...
 ```
 
 Tests can be run using ``nosetests``:
 
 ```bash
-500lines/data-store$ nosetests
+(env)500lines/data-store$ nosetests
 .....................
 ----------------------------------------------------------------------
 Ran 21 tests in 0.102s
@@ -171,7 +181,9 @@ new nodes are serialised to disk,
 and the disk address of the new root node is written atomically
 (because single-block disk writes are atomic).
 
-[INSERT PIC OF DIRTY NODES BEING WRITTEN TO DISK]
+![Tree nodes on disk before update](nodes_on_disk_1.svg)
+
+![Tree nodes on disk after update](nodes_on_disk_2.svg)
 
 This also means that readers get lock-free access to a consistent view of the tree.
 
