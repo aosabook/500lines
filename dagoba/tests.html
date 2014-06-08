@@ -179,6 +179,7 @@
       
     ]
 
+    var cleanstring = function(key, value) {return (key == '_in' || key == '_out') ? undefined : value}
 
     GG = [] // global for console testing
     
@@ -203,8 +204,8 @@
       var trial = resultbox[0]
       var header = document.createElement('header')
       testdiv.appendChild(header)
-      header.innerHTML = '<p>vertices: <code><pre>' + JSON.stringify(trial.vertices, 0, 2) + '</pre></code></p>'
-                       + '<p>edges: <code><pre>'    + JSON.stringify(trial.edges, 0, 2)    + '</pre></code></p>'
+      header.innerHTML = '<p>vertices: <code><pre>' + JSON.stringify(trial.vertices, cleanstring, 2) + '</pre></code></p>'
+                       + '<p>edges: <code><pre>'    + JSON.stringify(trial.edges, cleanstring, 2)    + '</pre></code></p>'
       
       resultbox[1].forEach(function(list) {
         

@@ -24,6 +24,12 @@
   
   chomper = function(msg, fun, _times) {later(function() {console.log(msg, chomp(fun, _times))})}
   
+  chompquery = function(name, graph, size, iter) {
+    var fun = function() {return graph.v(1).in().in().in().run()}
+    var msg = name + size + 'x' + iter + ', size: ' + fun().length + ', time: '
+    chomper(msg, fun, iter)
+  }
+  
   range = function(num) {return Array.apply(0, Array(num)).map(function(val, key) {return key})}
   
   later = (function() {
@@ -36,6 +42,27 @@
       nexttime()
     }
   })()
+  
+  build_graph = function(size) {
+    var G = Dagoba.graph()
+    
+    var fun = function() {
+      for (var i = 0; i < size; i++)
+        G.addVertex({name: i, age: i, lang: "idris"})
+        // G.addVertex({name: "foo" + i, age: i, lang: "idris"})
+
+      for (var i = 0; i < size; i++) {
+        G.addEdge({ weight: 2*(1+i), _label: "numnum", _out: i
+                  , _in: i < 100 ?   1 + ~~(Math.random()* i)
+                                 : 101 + ~~(Math.random()*(i-100)) })
+      }
+    }
+    
+    var time = chomp(fun, 1)
+    console.log('Built graph of size ' + size + ' in ' + time)
+    
+    return G
+  }
   
   ~function() {
       //// postpone until next tick
@@ -148,59 +175,33 @@
     
   //  New style:
     
-  setImmediate(function() {
-    var G = Dagoba.graph(); 
-
-    range(1000).forEach(function(x) {G.addVertex({name: "foo" + x, age: x, lang: "idris"})})
-    range(1000).forEach(function(x) {G.addEdge({weight: 2*(1+x), _label: "numnum", _out: x, _in: ~~(Math.random()*G.edges.length+1)})})
-  
-    var x = function() {G.v(1).in().in().in().run()}
-  
-    chomper('new style 1000x1000: ' + G.v(1).in().in().in().run().length, x, 1000)
+  later(function() {
+    var size = 1000
+    var iter = 1000
+    var G = build_graph(size)
+    chompquery('new style ', G, size, iter)
     // chomper('new style 1000x200', x, 200)
   })
   
-  setImmediate(function() {
-    var G = Dagoba.graph(); 
-
-    range(10000).forEach(function(x) {G.addVertex({name: "foo" + x, age: x, lang: "idris"})})
-    range(10000).forEach(function(x) {G.addEdge({weight: 2*(1+x), _label: "numnum", _out: x, _in: ~~(Math.random()*G.edges.length+1)})})
-  
-    var x = function() {G.v(1).in().in().in().run()}
-  
-    chomper('new style 10000x100: ' + G.v(1).in().in().in().run().length, x, 100)
-    // chomper('new style 10000x20', x, 20)
+  later(function() {
+    var size = 10000
+    var iter = 100
+    var G = build_graph(size)
+    chompquery('new style ', G, size, iter)
   })
   
-  setImmediate(function() {
-    var G = Dagoba.graph(); 
-
-    range(100000).forEach(function(x) {G.addVertex({name: "foo" + x, age: x, lang: "idris"})})
-    range(100000).forEach(function(x) {G.addEdge({weight: 2*(1+x), _label: "numnum", _out: x, _in: ~~(Math.random()*G.edges.length+1)})})
-  
-    var x = function() {G.v(1).in().in().in().run()}
-  
-    chomper('new style 100000x10: ' + G.v(1).in().in().in().run().length, x, 10)
-    // chomper('new style 100000x20', x, 20)
+  later(function() {
+    var size = 100000
+    var iter = 10
+    var G = build_graph(size)
+    chompquery('new style ', G, size, iter)
   })
   
-  setImmediate(function() {
-    var G = Dagoba.graph(); 
-
-    var special_range = []
-    for (var i = 0; i < 1000000; i++) {
-      special_range.push(i)
-    }
-
-    special_range.forEach(function(x) {G.addVertex({name: "foo" + x, age: x, lang: "idris"})})
-    special_range.forEach(function(x) {
-      G.addEdge({weight: 2*(1+x), _label: "numnum", 
-      _out: x, _in: ~~(Math.random()*G.edges.length+1)})})
-  
-    var x = function() {G.v(1).in().in().in().run()}
-  
-    chomper('new style 1000000x1: ' + G.v(1).in().in().in().run().length, x, 1)
-    // chomper('new style 1000000x2', x, 2)
+  later(function() {
+    var size = 1000000
+    var iter = 1
+    var G = build_graph(size)
+    chompquery('new style ', G, size, iter)
   })
   
   /*
@@ -230,32 +231,82 @@
       new style 100000x2 75 
   
   
+    Still not quite constant, as the queries on larger graphs are pulling in more data.
+      new style 1000x100 1401 perf.html:25
+      new style 1000x200 1894 perf.html:25
+      new style 10000x10 156 perf.html:25
+      new style 10000x20 289 perf.html:25
+      new style 100000x10 233 perf.html:25
+      new style 100000x20 421 perf.html:25
+      new style 1000000x1 40 perf.html:25
+      new style 1000000x2 85 perf.html:25
+      777
+      777
+      new style 1000x100 352 perf.html:25
+      new style 1000x200 1083 perf.html:25
+      new style 10000x10 295 perf.html:25
+      new style 10000x20 607 perf.html:25
+      new style 100000x10 444 perf.html:25
+      new style 100000x20 937 perf.html:25
+      new style 1000000x1 127 perf.html:25
+      new style 1000000x2 184 perf.html:25
   
-new style 1000x100 1401 perf.html:25
-new style 1000x200 1894 perf.html:25
-new style 10000x10 156 perf.html:25
-new style 10000x20 289 perf.html:25
-new style 100000x10 233 perf.html:25
-new style 100000x20 421 perf.html:25
-new style 1000000x1 40 perf.html:25
-new style 1000000x2 85 perf.html:25
-777
-777
-new style 1000x100 352 perf.html:25
-new style 1000x200 1083 perf.html:25
-new style 10000x10 295 perf.html:25
-new style 10000x20 607 perf.html:25
-new style 100000x10 444 perf.html:25
-new style 100000x20 937 perf.html:25
-new style 1000000x1 127 perf.html:25
-new style 1000000x2 184 perf.html:25
+  
+      new style 1000x1000: 120 7070 perf.html:25
+      new style 10000x100: 225 2245 perf.html:25
+      new style 100000x10: 417 784 perf.html:25
+      new style 1000000x1: 841 197 perf.html:25
   
   
-ew style 1000x1000: 120 7070 perf.html:25
-new style 10000x100: 225 2245 perf.html:25
-new style 100000x10: 417 784 perf.html:25
-new style 1000000x1: 841 197 perf.html:25
+    And now we see the true power of graph dbs: query time is constant, regardless of the number of vertices and nodes in the graph.
+      new style 1000x1000, size: 52, time: 3254
+      new style 10000x100, size: 32, time: 178 
+      new style 100000x10, size: 39, time: 25  
+      new style 1000000x1, size: 58, time: 3  
   
+  
+  
+  Building a graph is linear. Querying a graph is constant. What a lovely world we inhabit!
+      
+      Built graph of size 1000 in 6 perf.html:61
+      Built graph of size 10000 in 94 perf.html:61
+      Built graph of size 100000 in 490 perf.html:61
+      Built graph of size 1000000 in 5458 perf.html:61
+      new style 1000x1000, size: 32, time:  1891 perf.html:25
+      new style 10000x100, size: 52, time:  320 perf.html:25
+      new style 100000x10, size: 49, time:  38 perf.html:25
+      new style 1000000x1, size: 52, time:  6 perf.html:25
+      9999
+      9999
+      Built graph of size 1000 in 3 perf.html:61
+      Built graph of size 10000 in 80 perf.html:61
+      Built graph of size 100000 in 471 perf.html:61
+      Built graph of size 1000000 in 5504 perf.html:61
+      new style 1000x1000, size: 50, time:  2962 perf.html:25
+      new style 10000x100, size: 26, time:  169 perf.html:25
+      new style 100000x10, size: 39, time:  39 perf.html:25
+      new style 1000000x1, size: 35, time:  4 perf.html:25
+      8888
+      8888
+      Built graph of size 1000 in 11 perf.html:61
+      Built graph of size 10000 in 91 perf.html:61
+      Built graph of size 100000 in 1056 perf.html:61
+      Built graph of size 1000000 in 6026 perf.html:61
+      new style 1000x1000, size: 53, time:  5551 perf.html:25
+      new style 10000x100, size: 31, time:  212 perf.html:25
+      new style 100000x10, size: 32, time:  23 perf.html:25
+      new style 1000000x1, size: 37, time:  3 
+  
+  
+  
+      Built graph of size 1000 in 4
+      Built graph of size 10000 in 57
+      Built graph of size 100000 in 425
+      Built graph of size 1000000 in 4588
+      new style 1000x1000, size: 15, time:  1006
+      new style 10000x100, size: 13, time:  76 perf.html:25
+      new style 100000x10, size: 15, time:  7 perf.html:25
+      new style 1000000x1, size: 39, time:  6 
   
   */
   
