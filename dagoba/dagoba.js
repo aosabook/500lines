@@ -137,7 +137,7 @@ Dagoba.Funs = {
         //function(edge) {return args[0] ? edge._label == args[0] : true})
     if(gremlin.state.length == 0)
       return {} // original gremlin dies here...
-    var vertex = graph.findVertexById(gremlin.state.pop()._in)
+    var vertex = gremlin.state.pop()._in
     var clone = Dagoba.make_gremlin(vertex)
     return {stay: [gremlin], go: [clone]}
   },
@@ -148,7 +148,7 @@ Dagoba.Funs = {
         //function(edge) {return args[0] ? edge._label == args[0] : true})
     if(gremlin.state.length == 0)
       return {} // original gremlin dies here...
-    var vertex = graph.findVertexById(gremlin.state.pop()._out)
+    var vertex = gremlin.state.pop()._out
     var clone = Dagoba.make_gremlin(vertex)
     return {stay: [gremlin], go: [clone]}
   },
@@ -285,9 +285,11 @@ Dagoba.Graph.findEdgeById = function(edge_id) {
   return this.edges.first(function(edge) {return edge._id == edge_id}) }
 
 Dagoba.Graph.findOutEdges = function(vertex) {
+  return vertex._out;
   return this.edges.filter(function(edge) {return edge._out == vertex._id}) }
 
 Dagoba.Graph.findInEdges = function(vertex) {
+  return vertex._in;
   return this.edges.filter(function(edge) {return edge._in == vertex._id}) }
 
 Dagoba.filterThings = function(arg) {

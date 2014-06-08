@@ -24,6 +24,8 @@
   
   chomper = function(msg, fun, _times) {later(function() {console.log(msg, chomp(fun, _times))})}
   
+  range = function(num) {return Array.apply(0, Array(num)).map(function(val, key) {return key})}
+  
   later = (function() {
     var queue = []
     var nexttime = function() {setImmediate(function() {
@@ -147,40 +149,113 @@
   //  New style:
     
   setImmediate(function() {
-    // old style 10000 nodes and edges
     var G = Dagoba.graph(); 
 
-    var range = Array.apply(0, Array(10000)).map(function(val, key) {return key})
-    range.forEach(function(x) {G.addVertex({name: "foo" + x, age: x, lang: "idris"})})
-    range.forEach(function(x) {G.addEdge({weight: 2*(1+x), _label: "numnum", _out: x, _in: ~~(Math.random()*100)})})
+    range(1000).forEach(function(x) {G.addVertex({name: "foo" + x, age: x, lang: "idris"})})
+    range(1000).forEach(function(x) {G.addEdge({weight: 2*(1+x), _label: "numnum", _out: x, _in: ~~(Math.random()*G.edges.length+1)})})
   
     var x = function() {G.v(1).in().in().in().run()}
   
-    chomper('old style 10000x10', x, 10)
-    chomper('old style 10000x20', x, 20)
+    chomper('new style 1000x1000: ' + G.v(1).in().in().in().run().length, x, 1000)
+    // chomper('new style 1000x200', x, 200)
   })
   
   setImmediate(function() {
-    // old style 100000 nodes and edges
     var G = Dagoba.graph(); 
 
-    var range = Array.apply(0, Array(100000)).map(function(val, key) {return key})
-    range.forEach(function(x) {G.addVertex({name: "foo" + x, age: x, lang: "idris"})})
-    range.forEach(function(x) {G.addEdge({weight: 2*(1+x), _label: "numnum", _out: x, _in: ~~(Math.random()*100)})})
+    range(10000).forEach(function(x) {G.addVertex({name: "foo" + x, age: x, lang: "idris"})})
+    range(10000).forEach(function(x) {G.addEdge({weight: 2*(1+x), _label: "numnum", _out: x, _in: ~~(Math.random()*G.edges.length+1)})})
   
     var x = function() {G.v(1).in().in().in().run()}
   
-    chomper('old style 100000x1', x, 1)
-    chomper('old style 100000x2', x, 2)
+    chomper('new style 10000x100: ' + G.v(1).in().in().in().run().length, x, 100)
+    // chomper('new style 10000x20', x, 20)
+  })
+  
+  setImmediate(function() {
+    var G = Dagoba.graph(); 
+
+    range(100000).forEach(function(x) {G.addVertex({name: "foo" + x, age: x, lang: "idris"})})
+    range(100000).forEach(function(x) {G.addEdge({weight: 2*(1+x), _label: "numnum", _out: x, _in: ~~(Math.random()*G.edges.length+1)})})
+  
+    var x = function() {G.v(1).in().in().in().run()}
+  
+    chomper('new style 100000x10: ' + G.v(1).in().in().in().run().length, x, 10)
+    // chomper('new style 100000x20', x, 20)
+  })
+  
+  setImmediate(function() {
+    var G = Dagoba.graph(); 
+
+    var special_range = []
+    for (var i = 0; i < 1000000; i++) {
+      special_range.push(i)
+    }
+
+    special_range.forEach(function(x) {G.addVertex({name: "foo" + x, age: x, lang: "idris"})})
+    special_range.forEach(function(x) {
+      G.addEdge({weight: 2*(1+x), _label: "numnum", 
+      _out: x, _in: ~~(Math.random()*G.edges.length+1)})})
+  
+    var x = function() {G.v(1).in().in().in().run()}
+  
+    chomper('new style 1000000x1: ' + G.v(1).in().in().in().run().length, x, 1)
+    // chomper('new style 1000000x2', x, 2)
   })
   
   /*
   
     Once we've converted the nodes over, we're halfway there -- down O(n), and quite a bit speedier:
-      old style 10000x10 122
-      old style 10000x20 160
-      old style 100000x1 64 
-      old style 100000x2 183 
+      oldish style 10000x10 122
+      oldish style 10000x20 160
+      oldish style 100000x1 64 
+      oldish style 100000x2 183 
+  
+  
+    Here we're baking in too much to the graph (only the first 100 vertices were getting edges, so the number of edges per vertice increased linearly)
+      new style 1000x100 142
+      new style 1000x200 279
+      new style 10000x10 79 
+      new style 10000x20 228
+      new style 100000x1 29 
+      new style 100000x2 64 
+  
+  
+    We've corrected that problem here. Wait a second, this is nearly constant time!
+      new style 1000x100 715 
+      new style 1000x200 1335
+      new style 10000x10 115
+      new style 10000x20 174
+      new style 100000x1 14 
+      new style 100000x2 75 
+  
+  
+  
+new style 1000x100 1401 perf.html:25
+new style 1000x200 1894 perf.html:25
+new style 10000x10 156 perf.html:25
+new style 10000x20 289 perf.html:25
+new style 100000x10 233 perf.html:25
+new style 100000x20 421 perf.html:25
+new style 1000000x1 40 perf.html:25
+new style 1000000x2 85 perf.html:25
+777
+777
+new style 1000x100 352 perf.html:25
+new style 1000x200 1083 perf.html:25
+new style 10000x10 295 perf.html:25
+new style 10000x20 607 perf.html:25
+new style 100000x10 444 perf.html:25
+new style 100000x20 937 perf.html:25
+new style 1000000x1 127 perf.html:25
+new style 1000000x2 184 perf.html:25
+  
+  
+ew style 1000x1000: 120 7070 perf.html:25
+new style 10000x100: 225 2245 perf.html:25
+new style 100000x10: 417 784 perf.html:25
+new style 1000000x1: 841 197 perf.html:25
+  
   
   */
   
