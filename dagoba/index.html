@@ -1,0 +1,111 @@
+<!doctype html>
+<html>
+<head>
+  <title>Dagoba</title>
+  <script type="text/javascript" src="dagoba.js"></script> 
+  <style type="text/css">
+  </style> 
+</head>
+<body>
+  
+  <form id="queryform">
+    <label for="query">Query:</label>
+    <input type="text" name="query" id="query" value="G.v(1).out().out().run()" size="80">
+    <input type="submit" value="go">
+  </form>
+  
+  <form id="addvertexform">
+    <label for="addvertex">Add vertex:</label>
+    <input type="text" name="addvertex" id="addvertex" value='{"name":"alice", "lang": "idris"}' size="80">
+    <input type="submit" value="go">
+  </form>
+  
+  <form id="addedgeform">
+    <label for="addedge">Add edge:</label>
+    <input type="text" name="addedge" id="addedge" value='{"_out":1,"_in":2,"weight":0.5,"_label":"knows"}' size="80">
+    <input type="submit" value="go">
+  </form>
+  
+  <div><pre id="results"></pre></div>
+  
+  <div id="graph"></div>
+  
+  <script>
+    graph = { vertices: [ { "_id":1, "name":"marko","age":29, "dow":["mon", "tue"], "active":true
+                          , "device":{"qty":3,"mobile":{"phone":["iphone", "samsung"], "tablet":["galaxy"]}}}
+                        , { "_id":2,"name":"vadas","age":27, "dow":["mon", "wed", "thu"], "active":false
+                          , "device":{"qty":1,"mobile":{"phone":["iphone"]}}}
+                        , { "_id":3,"name":"lop","lang":"java"}
+                        , { "_id":4,"name":"josh","age":32, "dow":["fri"], "active":true
+                          , "device":{"qty":2,"mobile":{"phone":["iphone"], "tablet":["ipad"]}}}
+                        , { "_id":5,"name":"ripple","lang":"java"}
+                        , { "_id":6,"name":"peter","age":35, "dow":["mon","fri"], "active":true
+                          , "device":{"qty":2,"mobile":{"phone":["iphone"], "tablet":["ipad"]}}}
+                        ]
+            , edges: [ {"_out":1,"_in":2,"weight":0.5,"_label":"knows"}
+                     , {"_out":1,"_in":4,"weight":1.0,"_label":"knows"}
+                     , {"_out":1,"_in":3,"weight":0.4,"_label":"created"}
+                     , {"_out":4,"_in":5,"weight":1.0,"_label":"created"}
+                     , {"_out":4,"_in":3,"weight":0.4,"_label":"created"}
+                     , {"_out":6,"_in":3,"weight":0.2,"_label":"created"}
+                     ]
+            }
+
+    var G = Dagoba.graph(); 
+    graph.vertices.forEach(G.addVertex.bind(G))
+    graph.edges   .forEach(G.addEdge  .bind(G))
+
+    var elquery = document.getElementById('query')
+    var elgraph = document.getElementById('graph')
+    var eladdedge = document.getElementById('addedge')
+    var elresults = document.getElementById('results')
+    var eladdvertex = document.getElementById('addvertex')
+    var elqueryform = document.getElementById('queryform')
+    var eladdedgeform = document.getElementById('addedgeform')
+    var eladdvertexform = document.getElementById('addvertexform')
+    
+    elqueryform.addEventListener('submit', function(e) {
+      e.preventDefault()
+      var query = elquery.value
+      var result = eval(query) // oh dear
+      elresults.innerHTML = JSON.stringify(result, 0, 2)
+    })
+
+    eladdedgeform.addEventListener('submit', function(e) {
+      e.preventDefault()
+      try {
+        var edge = JSON.parse(eladdedge.value)
+        G.addEdge(edge)
+        updateGraph()
+      } catch(e) {
+        console.dir(e)
+      }
+    })
+
+    eladdvertexform.addEventListener('submit', function(e) {
+      e.preventDefault()
+      try {
+        var vertex = JSON.parse(eladdvertex.value)
+        G.addVertex(vertex)
+        updateGraph()
+      } catch(e) {
+        console.dir(e)
+      }
+    })
+    
+    var updateGraph = function() {
+      var str = "<h3>Vertices</h3>\n"
+              + G.vertices.map(function(vertex) {return '<p>' + JSON.stringify(vertex) + '</p>\n'}).join('')
+              + "<h3>Edges</h3>\n"
+              + G.edges   .map(function(edge)   {return '<p>' + JSON.stringify(edge)   + '</p>\n'}).join('')
+
+      elgraph.innerHTML = str
+    }
+    
+    updateGraph()
+
+  </script>
+  
+  
+</body>
+</html>
