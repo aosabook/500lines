@@ -239,6 +239,7 @@ Dagoba.Graph.addVertex = function(vertex) {
   if(!vertex._id) 
     vertex._id = this.vertices.length+1
   this.vertices.push(vertex)
+  // can take away user's ability to set _id and lose the index cache hash, because building it causes big rebalancing slowdowns and runs the GC hard. (or does it?)
   this.vertexIndex[vertex._id] = vertex
   vertex._out = []; vertex._in = []
 }
@@ -252,7 +253,7 @@ Dagoba.Graph.addEdge = function(edge) {
   edge._in  = this.findVertexById(edge._in)
   edge._out = this.findVertexById(edge._out)
   if(!(edge._in && edge._out)) return false
-  edge._in._out.push(edge)
+  edge._out._out.push(edge)
   edge._in._in.push(edge)
   this.edges.push(edge)
 }
