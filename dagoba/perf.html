@@ -1,0 +1,187 @@
+<!doctype html>
+<html>
+<head>
+  <title>Dagoba</title>
+  <script type="text/javascript" src="dagoba_slow.js"></script> 
+  <script type="text/javascript" src="dagoba.js"></script> 
+</head>
+<body>
+
+<p>
+  Please open the JS console.
+</p>
+
+<script>
+  // helper functions
+  chomp = function(fun, _times) {
+    var start = Date.now()
+      , times = _times || 10000
+    for(var i=0; i < times; i++) {
+      fun()
+    }
+    return Date.now() - start
+  }
+  
+  chomper = function(msg, fun, _times) {later(function() {console.log(msg, chomp(fun, _times))})}
+  
+  later = (function() {
+    var queue = []
+    var nexttime = function() {setImmediate(function() {
+      if(!queue.length) return false; queue.shift()(); nexttime()})}
+    return function(fun) {
+      queue.push(fun)
+      if(queue.length > 1) return false // possible race condition
+      nexttime()
+    }
+  })()
+  
+  ~function() {
+      //// postpone until next tick
+      // inspired by http://dbaron.org/log/20100309-faster-timeouts
+      var later = []
+      var messageName = 12345
+      var gimme_a_tick = true
+
+      function setImmediate(fn) {
+          later.push(fn)
+        
+          if(gimme_a_tick) {
+              gimme_a_tick = false
+              window.postMessage(messageName, "*")
+          }
+        
+          return false
+      }
+
+      function handleMessage(event) {
+          if(event.data != messageName) return false
+
+          event.stopPropagation()
+          gimme_a_tick = true
+
+          var now = later
+          later = []
+
+          for(var i=0, l=now.length; i < l; i++)
+          now[i]()
+      }
+  
+      if(typeof window != 'undefined') {
+          window.addEventListener('message', handleMessage, true)
+          window.setImmediate = setImmediate
+      }
+  }();
+  
+
+  // setImmediate(function() {
+  //   // old style 100 nodes and edges
+  //   var G = DagobaSlow.graph(); 
+  // 
+  //   var range = Array.apply(0, Array(100)).map(function(val, key) {return key})
+  //   range.forEach(function(x) {G.addVertex({name: "foo" + x, age: x, lang: "idris"})})
+  //   range.forEach(function(x) {G.addEdge({weight: 2*(1+x), _label: "numnum", _out: x, _in: ~~(Math.random()*100)})})
+  // 
+  //   var x = function() {G.v(1).in().in().in().run()}
+  // 
+  //   chomper('old style 100x100', x, 100)
+  //   chomper('old style 100x1000', x, 1000)
+  // })
+  // 
+  // 
+  // setImmediate(function() {
+  //   // old style 1000 nodes and edges
+  //   var G = DagobaSlow.graph(); 
+  // 
+  //   var range = Array.apply(0, Array(1000)).map(function(val, key) {return key})
+  //   range.forEach(function(x) {G.addVertex({name: "foo" + x, age: x, lang: "idris"})})
+  //   range.forEach(function(x) {G.addEdge({weight: 2*(1+x), _label: "numnum", _out: x, _in: ~~(Math.random()*100)})})
+  // 
+  //   var x = function() {G.v(1).in().in().in().run()}
+  // 
+  //   chomper('old style 1000x10', x, 10)
+  //   chomper('old style 1000x10', x, 10)
+  //   
+  //   chomper('old style 1000x100', x, 100)
+  //   chomper('old style 1000x100', x, 100)
+  // })
+  // 
+  // setImmediate(function() {
+  //   // old style 10000 nodes and edges
+  //   var G = DagobaSlow.graph(); 
+  // 
+  //   var range = Array.apply(0, Array(10000)).map(function(val, key) {return key})
+  //   range.forEach(function(x) {G.addVertex({name: "foo" + x, age: x, lang: "idris"})})
+  //   range.forEach(function(x) {G.addEdge({weight: 2*(1+x), _label: "numnum", _out: x, _in: ~~(Math.random()*100)})})
+  // 
+  //   var x = function() {G.v(1).in().in().in().run()}
+  // 
+  //   chomper('old style 10000x1', x, 1)
+  //   chomper('old style 10000x2', x, 2)
+  // })
+  // 
+  
+  /*
+    preliminary results:
+  
+      old style 100x100 10   
+      old style 100x1000 104 
+  
+      old style 1000x10 16   
+      old style 1000x10 37   
+      old style 1000x10 22   
+      old style 1000x100 175 
+      old style 1000x100 144 
+  
+      old style 10000x1 112
+      old style 10000x2 218
+    
+    So far results are in line with our projections: our queries cost ~n^2 over n=v+e, though the jump between 100 and 1000
+    is smaller than we expected, likely due to internal optimizations for small arrays. 
+  
+    Clearly, increasing the number of nodes beyond 10,000 is going to lead to intolerable performance. 
+    We're going to need to go faster.
+  
+  */
+  
+    
+  //  New style:
+    
+  setImmediate(function() {
+    // old style 10000 nodes and edges
+    var G = Dagoba.graph(); 
+
+    var range = Array.apply(0, Array(10000)).map(function(val, key) {return key})
+    range.forEach(function(x) {G.addVertex({name: "foo" + x, age: x, lang: "idris"})})
+    range.forEach(function(x) {G.addEdge({weight: 2*(1+x), _label: "numnum", _out: x, _in: ~~(Math.random()*100)})})
+  
+    var x = function() {G.v(1).in().in().in().run()}
+  
+    chomper('old style 10000x10', x, 10)
+    chomper('old style 10000x20', x, 20)
+  })
+  
+  setImmediate(function() {
+    // old style 100000 nodes and edges
+    var G = Dagoba.graph(); 
+
+    var range = Array.apply(0, Array(100000)).map(function(val, key) {return key})
+    range.forEach(function(x) {G.addVertex({name: "foo" + x, age: x, lang: "idris"})})
+    range.forEach(function(x) {G.addEdge({weight: 2*(1+x), _label: "numnum", _out: x, _in: ~~(Math.random()*100)})})
+  
+    var x = function() {G.v(1).in().in().in().run()}
+  
+    chomper('old style 100000x1', x, 1)
+    chomper('old style 100000x2', x, 2)
+  })
+  
+  /*
+  
+    Once we've converted the nodes over, we're halfway there -- down O(n), and quite a bit speedier:
+      old style 10000x10 122
+      old style 10000x20 160
+      old style 100000x1 64 
+      old style 100000x2 183 
+  
+  */
+  
+</script>
