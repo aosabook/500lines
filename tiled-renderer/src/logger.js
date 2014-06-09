@@ -18,12 +18,11 @@ var logger = new function() {
         if (p == null) {
             p = document.createElement('p');
             p.id = id;
+            document.getElementById('log').appendChild(p);
         } else {
-            p.parentNode.removeChild(p);
+            p.removeChild(p.firstChild);
         }
-        p.innerHTML = '';
         p.appendChild(document.createTextNode(msg));
-        document.getElementById('log').appendChild(p);
     };
 
     this.logGLStatus = function(gl, msg) {
