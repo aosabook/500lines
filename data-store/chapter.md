@@ -17,27 +17,26 @@ P.Eng and she knew how to program, so my mom arranged a phone call so I could
 explain the problem and get some feedback. Within a few minutes of talking, I
 had figured out the problem: the program was too big, and had encroached into
 video memory. Clearing the screen truncated the program, and the sparkles were
-artifacts of Applesoft BASIC's method of storing variables.
+artifacts of Applesoft BASIC's characteristic of storing program state in RAM
+just above the end of the program.
 
- tried to explain a problem to a Professional. Nora
-listened patiently while I explained the problem...and realised the solution.
-My BASIC program was eating into video memory.
+I remember learning about pointers and how to allocate memory with malloc, to
+stick records of arbitrary-length strings into a struct so I could sort them
+by latitude and longitude.
 
-Learning how to allocate memory with malloc, to stick it into a struct of
-pointers so I could sort geo locations by latitude then longitude.
+I understood that Erlang didn't have to copy data between processes, even
+though it was "strictly message-passing", because everything was immutable.
 
-I kind of understood that Erlang didn't have to copy data between processes,
-even though it was "strictly message-passing", because everything was
-immutable.
-
-I'm not sure that really sank in until I read about Clojure's immutable data
-structures, in 2009.
+I'm not sure that the utility of immutable data structures really sank in until
+I read about Clojure's in 2009.
 
 Who'd have thought that learning about CouchDB in 2013 would just make me smile
 and nod?
 
+But first&hellip;
 
-Intro to problem
+
+What does it do?
 ----------------
 
 Most projects require a data store of some kind.
@@ -55,7 +54,7 @@ and durability perspectives.
 Simplifications
 ---------------
 
-DBDB tries to show the basic patterns used
+DBDB tries to show some basic patterns you can use
 to create a key/value store
 with atomic, durable updates.
 Consistency is not covered
@@ -66,16 +65,19 @@ and isolation is not guaranteed
 Stale data is not reclaimed in this implementation,
 so repeated updates to the same key
 will eventually consume all disk space.
-Postgres calls this reclamation "vacuuming",
-and CouchDB calls it "compaction".
+Postgres calls this reclamation "vacuuming"
+(which makes old row space available for re-use),,
+and CouchDB calls it "compaction"
+(by rewriting the entire data store into a new file,
+and atomically moving it over the old one).
 
 
-Intro to toolchain
-------------------
+Intro to the toolchain
+----------------------
 
 The code is written in polyglot Python 2/3.
 
-It is highly recommended to use the ``virtualenv`` tool
+It is highly recommended to use ``virtualenv``
 when installing dependencies:
 
 ```bash
@@ -99,8 +101,8 @@ OK
 ```
 
 
-Explore code
-------------
+Exploring the code
+------------------
 
 DBDB separates the concerns of "put this on disk somewhere"
 (how data are laid out in a file)
@@ -162,7 +164,19 @@ each class should have only one reason to change.
 
 ### How it works
 
-DBDB uses immutable data structures in memory
+DBDB's data structures are not strictly immutable internally,
+but they are effectively immutable from the user's perspective.
+Tree nodes are created
+with an associated key and value,
+and left and right children.
+Those associates never change.
+Updating a key:value pair involves creating new nodes
+from the root all the way to the modified node.
+Internally,
+a node's private parts mutate only
+to remember where its data was written (writing a node as part of a commit),
+or to remember the data when it's read from disk (after the node was read from disk).
+ uses immutable data structures in memory
 which map nicely onto an append-only serialisation format.
 When a new value is inserted into the tree,
 all in-memory nodes between the root and the insertion point
@@ -176,7 +190,7 @@ The insertion function returns a new root node,
 and the old one is garbage collected if it's no longer referenced.
 When it's time to commit the changes to disk,
 the tree is walked from the bottom-up
-(postfix traversal),
+("postfix" or "depth-first" traversal),
 new nodes are serialised to disk,
 and the disk address of the new root node is written atomically
 (because single-block disk writes are atomic).
