@@ -1,3 +1,5 @@
+
+
 var config = require('./config.js');
 var express = require('express');
 var whiskers = require('whiskers');
@@ -8,13 +10,13 @@ require("./passport.js")(passport, exports.dbStore);
 
 var app = express();
 app.use('/public', express.static(__dirname + '/public'));
-app.set('views', __dirname + '/views');
-app.engine('.html', whiskers.__express);
 app.use(express.bodyParser());
 app.use(express.cookieParser());
 app.use(express.session({ secret: '500lineswiki' }));
 app.use(passport.initialize());
 app.use(passport.session());
+app.engine('.html', whiskers.__express);
+app.set('views', __dirname + '/views');
 
 require("./wiki_routes.js")(app, exports.dbStore);
 require("./auth_routes.js")(app, exports.dbStore, passport);
@@ -26,3 +28,4 @@ exports.server = app.listen(config.webserverport, function(){
 exports.shutDown = function serverShutdown(callback){
   exports.server.close();
 };
+

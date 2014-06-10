@@ -4,6 +4,61 @@ var marked = require('marked');
 
 module.exports = function (app, store) {
 
+  this.checkAuthenticated = function(request, response, next){
+      if(!request.isAuthenticated()) response.redirect('/unauthorized/');
+      next();
+  };
+
+  this.formatDate = function(date){
+    return date ? dateformat(date, "h:MMTT d-mmm-yyyy") : '';
+  };
+
+  this.formatHtmlString = function(content, callback){
+    try{
+      return callback(null, marked(content, {sanitize: true}));
+    }catch(e){
+      return callback(e, null);
+    }
+  };
+
+  this.formatHtmlDoc = function(doc, callback){
+    if(!doc) doc = {};
+    if(!doc.content) doc.content = '';
+    this.formatHtmlString(doc.content, function(error, formattedContent){
+      if(error) return callback(error);
+      doc.content = formattedContent;
+      if(doc.updatedDate) doc.updatedDate = this.formatDate(doc.updatedDate);
+      return callback(null, doc);
+    });
+  };
+
+  this.handleError = function(response, error){
+    console.error(error);
+    response.render('layout.html', {title: 'Error', error: error, partials: {login: 'login.html', content: 'error.html'}});
+  };
+
+  this.handleAJAXError = function(response, error){
+    console.error(error);
+    response.send(500, error);
+  };
+
+  this.handleConflict = function(request, response, args){
+    store.getWikiContents(args._id, function(error, doc){
+      if(error) this.handleAJAXError(response, error);
+      args.comparecomment = doc.comment;
+      args.username = doc.user;
+      args.comparedate = this.formatDate(doc.updatedDate);
+      args.revision = doc._rev;
+      args.comparecontent = '';
+      var diff = jsdiff.diffLines(args.content, doc.content);
+      diff.forEach(function(part){
+        var style = part.added ? 'added' : part.removed ? 'removed' : 'common';
+        args.comparecontent += '<span class="' + style + '">' + part.value + '</span>';
+      });
+      response.send(409, args);
+    });
+  };
+
   //main page routes
   app.get('/wiki', function(request, response){
     request.session.currentPage = request.path;
@@ -55,59 +110,4 @@ module.exports = function (app, store) {
       response.send({status: 'saved'}); //no errors
     });
   });
-
-  this.handleError = function(response, error){
-    console.error(error);
-    response.render('layout.html', {title: 'Error', error: error, partials: {login: 'login.html', content: 'error.html'}});
-  };
-
-  this.handleAJAXError = function(response, error){
-    console.error(error);
-    response.send(500, error);
-  };
-
-  this.checkAuthenticated = function(request, response, next){
-      if(!request.isAuthenticated()) response.redirect('/unauthorized/');
-      next();
-  };
-
-  this.formatHtmlDoc = function(doc, callback){
-    if(!doc) doc = {};
-    if(!doc.content) doc.content = '';
-    this.formatHtmlString(doc.content, function(error, formattedContent){
-      if(error) return callback(error);
-      doc.content = formattedContent;
-      if(doc.updatedDate) doc.updatedDate = this.formatDate(doc.updatedDate);
-      return callback(null, doc);
-    });
-  };
-
-  this.formatHtmlString = function(content, callback){
-    try{
-      return callback(null, marked(content, {sanitize: true}));
-    }catch(e){
-      return callback(e, null);
-    }
-  };
-
-  this.formatDate = function(date){
-    return date ? dateformat(date, "h:MMTT d-mmm-yyyy") : '';
-  };
-
-  this.handleConflict = function(request, response, args){
-    store.getWikiContents(args._id, function(error, doc){
-      if(error) this.handleAJAXError(response, error);
-      args.comparecomment = doc.comment;
-      args.username = doc.user;
-      args.comparedate = this.formatDate(doc.updatedDate);
-      args.revision = doc._rev;
-      args.comparecontent = '';
-      var diff = jsdiff.diffLines(args.content, doc.content);
-      diff.forEach(function(part){
-        var style = part.added ? 'added' : part.removed ? 'removed' : 'common';
-        args.comparecontent += '<span class="' + style + '">' + part.value + '</span>';
-      });
-      response.send(409, args);
-    });
-  };
 };
