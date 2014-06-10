@@ -1,3 +1,5 @@
+
+
 var config = require('./config.js');
 var express = require('express');
 var whiskers = require('whiskers');
@@ -19,6 +21,11 @@ app.set('views', __dirname + '/views');
 require("./wiki_routes.js")(app, exports.dbStore);
 require("./auth_routes.js")(app, exports.dbStore, passport);
 
-app.listen(config.webserverport, function(){
-  console.log("Server started. Visit http://localhost:" + config.webserverport + "/wiki/ to access the wiki.");
+exports.server = app.listen(config.webserverport, function(){
+    console.log("Server started. Visit http://localhost:" + config.webserverport + "/wiki/ to access the wiki.");
 });
+
+exports.shutDown = function serverShutdown(callback){
+  exports.server.close();
+};
+

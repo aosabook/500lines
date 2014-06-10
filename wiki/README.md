@@ -12,8 +12,6 @@ This is a basic wiki built using node.js with a CouchDB persistence layer, local
 * [CouchDB install docs](http://docs.couchdb.org/en/latest/install/index.html)
 * I'm using current stable v.1.4.0.
 * Start CouchDB.
-* Create a new db called wiki:
-  curl -X PUT http://127.0.0.1:5984/wiki -> {"ok":true}
 
 ### Configure Wiki ###
 * Configure the wiki in app/config.js, specifying your database URL and ports as needed.
@@ -21,8 +19,8 @@ This is a basic wiki built using node.js with a CouchDB persistence layer, local
 ### Install ###
 * Run npm install to get the required library dependencies in your local workspace.
 
-### Install nodeunit ###
-* Run npm install nodeunit -g
+### Init DB ###
+* Once the database is installed and running, and URLs have been configured in app/config.js, run "npm run initdb" to create a new empty database to store the wiki documents.
 
 ### Run tests ###
 * Run npm test to execute the tests and check that the system is behaving as expected.

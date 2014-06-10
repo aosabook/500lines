@@ -15,11 +15,15 @@
     "password-hash": "^1.2.1",
     "jquery": "^2.1.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "jshint": "^2.5.1",
+    "nodeunit": "^0.9.0"
+  },
   "scripts": {
     "start": "node app/server.js",
     "prestart": "jshint app/*.js app/public/js/wiki.js",
-    "test": "nodeunit test/system-test.js"
+    "test": "nodeunit test/system-test.js",
+    "initdb": "node setup/initdb.js"
   },
   "author": "Laurie MacDougall Sookraj"
 }
