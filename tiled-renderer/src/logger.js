@@ -1,11 +1,14 @@
-var logger = new function() {
-    this.log = function(msg) {
+var logger = (function() {
+    'use strict';
+    var instance = {};
+
+    instance.log = function(msg) {
         var p = document.createElement('p');
         p.appendChild(document.createTextNode(msg));
         document.getElementById('log').appendChild(p);
     };
 
-    this.logError = function(msg) {
+    instance.logError = function(msg) {
         var p = document.createElement('p');
         p.appendChild(document.createTextNode(msg));
         p.style.color = 'red';
@@ -13,9 +16,9 @@ var logger = new function() {
         document.getElementById('log').appendChild(p);
     };
 
-    this.logDynamicLine = function(id, msg) {
+    instance.logDynamicLine = function(id, msg) {
         var p = document.getElementById(id);
-        if (p == null) {
+        if (p === null) {
             p = document.createElement('p');
             p.id = id;
             document.getElementById('log').appendChild(p);
@@ -25,11 +28,13 @@ var logger = new function() {
         p.appendChild(document.createTextNode(msg));
     };
 
-    this.logGLStatus = function(gl, msg) {
+    instance.logGLStatus = function(gl, msg) {
         if (gl.getError() != gl.NO_ERROR)
             this.logError('Error in ' + msg);
         else
             this.log('Completed '  + msg);
     };
-};
+
+    return instance;
+})();
 

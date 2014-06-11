@@ -1,3 +1,8 @@
+@font-face {
+    font-family: 'Raleway';
+    src: url(../fonts/Raleway-Regular.ttf)
+}
+
 body {
     font-family: 'Raleway', 'Helvetica', sans-serif;
     font-size: 11pt;

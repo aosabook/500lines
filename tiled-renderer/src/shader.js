@@ -1,3 +1,5 @@
+'use strict';
+
 var ShaderSource = {
     kVertexShaderStr :
         "uniform mat3 u_mvpMatrix; \n" +
@@ -15,7 +17,7 @@ var ShaderSource = {
         "uniform sampler2D s_texture; \n" +
         "void main() { \n" +
         "   gl_FragColor = texture2D(s_texture, v_texCoord); \n" +
-        "} \n",
+        "} \n"
 };
 
 var ShaderHandles = {
