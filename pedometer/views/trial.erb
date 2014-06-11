@@ -16,7 +16,20 @@
     <div id="container-dot-product"></div>
     <div id="container-filtered"></div>
 
-    <% if @match_filtered_data %>
+    <% 
+        files = Dir.glob(File.join('public/uploads', "*"))
+        files.delete(@trial.file_name)
+
+        match = files.select { |f| @trial.file_name == f.gsub('-s.', '-c.') }.first
+        match ||= files.select { |f| @trial.file_name == f.gsub('-c.', '-s.') }.first
+
+        match_filtered_data = if match
+          parser = Parser.new(File.read(match))
+          parser.filtered_data
+        end
+    %>
+
+    <% if match_filtered_data %>
         <% comparison_title = @trial.analyzer.parser.is_data_combined? ? 'Separated' : 'Combined' %>
         <div id="container-comparison"></div>
     <% end %>
@@ -112,7 +125,7 @@
                     data: <%= ViewHelper.limit_1000(@trial.analyzer.parser.filtered_data) %>
                 }, {
                     name: '<%= comparison_title %>',
-                    data: <%= ViewHelper.limit_1000(@match_filtered_data) %>
+                    data: <%= ViewHelper.limit_1000(match_filtered_data) %>
                 }]
             });
         }
