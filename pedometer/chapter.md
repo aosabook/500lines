@@ -90,7 +90,7 @@ OPTION 2:
 
 Every problem has a solution. We'll solve each of these problems in our code. Let's dive into building our web app.
 
-## The Toolchain
+# The Toolchain
 We've decided to build a simple web app to process and analyze our data. A web app naturally separates the data processing from the presentation of the data, and since web apps have been build many times over, we may as well use a framework to do the boring plumbing work for us. The Sinatra framework does just that. In the tool's own words, Sinatra is "a DSL for quickly creating web applications in Ruby". Perfect. 
 
 If I have to sell you on using Ruby, I'll try and do that with a quote from Ruby's creator, Yukihiro Matsumoto:
@@ -103,30 +103,24 @@ Since we're building a web app, we'll obvious need a web server, so we'll use th
 
 The last tool we'll be including is a JavaScript library called Highcharts, used for creating interactive charts. What's the point of interesting data if we can't display it in interesting ways? 
 
-## The Platform
+# The Platform
 
 Before we dive into code, let's talk about what we're building. We want a web app that allows us to:
 
 1. Upload data in the combined or separated format.
-2. Input some basic information about the data set.
-	* Sampling rate
-	* Actual step count
-	* Trial number
-	* Method (walking, running, etc.)
-	* Gender
-	* Height
-	* Stride
-3. Our program parses the data and outputs:
-	* Number of steps taken
-	* Distance traveled
-	* Time duration
-	* Charts representing the data in two different stages of parsing
+2. Input some basic information about the data set (sampling rate, actual step count, gender/height/stride of user, etc.)
+3. Parse and analyze our data, outputting the number of steps taken, distance traveled, and time elapsed, and present charts representing the data in different processing stages.
 
-The meat and potatoes of our program is in step 3, where we parse the input data. 
+The meat and potatoes of our program is in step 3, where we parse and analyze the input data. It makes sense, then, to start with that, and build the web app and interface later, once we have some outputs to work with.
+
+We can break step 3 down into:
+
+* Parsing input data
+* Analyzing the parsed data
 
 ## Parsing Input Data
 
-The sample data we'll be using here is data collected by an iPhone. Let's look at what our input data will look like in each format. 
+Let's look at what our input data will look like in each format. 
 
 ### Combined Format
 
@@ -134,17 +128,17 @@ The first, more rudimentary data format we'll accept is in the combined format. 
 
 $"x1,y1,z1;...xn,yn,zn;"$
 
-Let's look at what this data looks like when plotted. Below is a small portion of data, sampled 100 times per second, of a female walking with an iPhone in her pocket.
+Below is a small portion of data, sampled 100 times per second, of a female walking with an iPhone in her pocket.
 
 ![](chapter-figures/figure-combined-total-acceleration.png)\ 
 
 ### Separated Format
 
-The second data format we'll accept is user acceleration in the x,y,z directions separated from gravitational acceleration in the x,y,z directions, over time:
+The second data format we'll accept is user acceleration in the x, y, z directions separated from gravitational acceleration in the x, y, z directions, over time:
 
 $"x1_{u},y1_{u},z1_{u}|x1_{g},y1_{g},z1_{g};...xn_{u},yn_{u},zn_{u}|xn_{g},yn_{g},zn_{g};"$
 
-Let's look at what this data looks like when plotted. Below is the separated data format of the exact same walk as the plot above. This time, we have two plots, one for user acceleration, and one for gravitational acceleration.
+Below is the separated data format of the exact same walk as the plot above. This time, we have two plots, one for user acceleration, and one for gravitational acceleration.
 
 ![](chapter-figures/figure-separated-user-acceleration.png)
 ![](chapter-figures/figure-separated-gravitational-acceleration.png)\ 
@@ -156,8 +150,8 @@ Looking at our plots, we can start to see a pattern. We notice where the flatter
 We need to do 3 things to our input data:
 
 1. Parse our text data and extract numerical data.
-2. Isolate movement in the direction of gravity to get a single data series waveform.
-3. Filter our data series to smooth out our waveform.
+2. Isolate movement in the direction of gravity.
+3. Filter our data series and smooth out our waveform to make it easier to analyze.
 
 These 3 tasks are related, and it makes sense to combine them into one class called a **Parser**. 
 
@@ -268,13 +262,15 @@ Each method accomplishes one of our three steps above. Let's look at each method
 
 ### Step 1: Parsing text to extract numerical data (parse_raw_data)
 
-The goal of parse_raw_data is to convert string data to a format we can more easily work with, and store it in @parsed_data. We'll have to isolate movement in the direction of gravity in step 2, so we'll need to work with user acceleration and gravitation acceleration separately. Fortunately, our separated data format, as the name implies, already provides us with that. Our combined format, however, does not. The cleanest way for us to handle this is to set @parsed_data to one format that step 2 can work with, regardless of what the input format is. This way, only our parse_raw_data method needs to be concerned with the different formats. 
+The goal of parse_raw_data is to convert string data to a format we can more easily work with, and store it in @parsed_data. 
 
-TODO: Separation of concerns
+At this stage, we have two possible data formats, combined and separated, as string data. We need to parse both into numerical data, and, as we discovered before, we need some extra work on the combined format to split out user acceleration from gravitational acceleration. 
 
-Our separated format, since it already comes, well, separated, will be slightly more accurate than the 
+It's wise for us, while we're parsing our string data to numerical data, to parse all incoming data into one data format that the rest of our program can use. That way, if we ever have to add a third data format (or fourth, or fifth, or, well, you get the idea) we only have to change the parse_raw_data method. 
 
-TODO: Discuss why the separated format is more accurate than the combined format. 
+TODO: Look up GOF pattern here. Talk about separation of concerns? Only this method needs to know about the multiple data formats.
+
+TODO: Discuss why the separated format is more accurate than the combined format?
 
 TODO: Add a section here on low pass filtering and the Chebyshev filter, and how it applies to splitting out the gravitational acceleration from the user acceleration.
 
@@ -1130,12 +1126,3 @@ TODO
   * This is just one of many ways. 
 
 TODO: Wrap it up, and conclusion.
-
-
-
-
-
-
-
-
-
