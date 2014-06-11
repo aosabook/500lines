@@ -51,11 +51,11 @@ This means that in our perfect world acceleration in the y direction actually lo
 
 Uh oh. We can no longer count when the waveform crosses the x-axis. We'll have to separate total acceleration into user acceleration and gravitational acceleration. 
 
-Now, fortunately, all current iPhone and Android devices come with an accelerometer as well as a gyroscope, so they're able to separate gravitational acceleration from user acceleration, since the gyroscope can detect the direction of the phone. TODO: verify, and read documentation.
+All current iPhone and Android devices come with an accelerometer as well as a gyroscope, so they're able to separate gravitational acceleration from user acceleration, since the gyroscope can detect the direction of the phone. TODO: verify, and read documentation.
 
 However, we're creating a robust, flexible program, so we've decided that we want to accept input data from the newest of mobile devices, as well as from pure hardware accelerometers. This means that we'll need to accept input data in two formats: a **separated** format where user acceleration and gravitational acceleration are, well, separated; and a **combined** format which only provides us with total acceleration. 
 
-We'll obviously have to isolate gravitational acceleration from the combined format in our program. In our perfect world, when the phone is held consistently as drawn above: 
+We'll have to isolate gravitational acceleration from the combined format in our program. In our perfect world, when the phone is held consistently as drawn above, total acceleration ($a_{t}$) is the sum of user acceleration ($a_{u}$) and gravitational acceleration ($a_{g}$). Therefore, we can isolate user acceleration fairly easily like so: 
 
 $a_{t} = a_{u} + a_{g}$\
 $a_{t} = a_{u} - 0.98$\
@@ -71,28 +71,44 @@ Yikes. Gravitational acceleration is now split amongst all directions: part of t
 
 Our pefect world just got a little more real, and now we have two problems:
 
-1. Separating total acceleration into gravitational acceleration and user acceleration isn't a simple matter of adding 0.98 to a single direction.
-2. We can no longer ignore the x and z directions and simply take the data from the y direction.
+1. Isolating user acceleration from gravitational acceleration. Separating total acceleration into gravitational acceleration and user acceleration isn't a simple matter of adding 0.98 to a single direction.
+2. Isolating movement in the direction of gravity. We can no longer ignore the x and z directions and simply take the data from the y direction.
 
-Every problem has a solution. Let's look at each problem separately. 
+OPTION 1:
 
-TODO: Problem 1 - describe low-pass filtering 
+Every problem has a solution. Let's look at each problem separately, and out on our mathematician hats. 
 
+### 1. Isolating user acceleration from gravitational acceleration
+
+TODO: Describe low pass filtering
+
+### 2. Isolating movement in the direction of gravity
+
+TODO: Describe dot product
+
+OPTION 2:
+
+Every problem has a solution. We'll solve each of these problems in our code. Let's dive into building our web app.
 
 ## The Toolchain
-* Sinatra web app, using Highcharts to display data.
-* This was chosen to be built as a web app because a web app naturally separates the data processing from the presentation.
-* Sinatra gives us the ability to demosntrate a fully-functional web app accepting input and presenting output very easily, without worrying about the piping. 
-* Using Sinatra allows us to naturally separate the data process from the presentation.
-* Using Sinatra and Highcharts requires very little additional code and presents our data nicely, so, well, why not have some fancy charts to really satisfy our data craving?
+We've decided to build a simple web app to process and analyze our data. A web app naturally separates the data processing from the presentation of the data, and since web apps have been build many times over, we may as well use a framework to do the boring plumbing work for us. The Sinatra framework does just that. In the tool's own words, Sinatra is "a DSL for quickly creating web applications in Ruby". Perfect. 
+
+If I have to sell you on using Ruby, I'll try and do that with a quote from Ruby's creator, Yukihiro Matsumoto:
+
+"I hope to see Ruby help every programmer in the world to be productive, and to enjoy programming, and to be happy. That is the primary purpose of Ruby language."
+
+Ruby will stay out of our way, it's flexible, and concise, and has been used on the web for over 10 years. And, it was *made* to make us happy. What more can we ask for?
+
+Since we're building a web app, we'll obvious need a web server, so we'll use the thin web server. It's simple and certainly fast enough for our purposes. 
+
+The last tool we'll be including is a JavaScript library called Highcharts, used for creating interactive charts. What's the point of interesting data if we can't display it in interesting ways? 
 
 ## The Platform
-TODO: Describe basic flow. 
 
-1. Upload data in one of two formats:
-	* Combined: Data in what we'll call the **combined** format is user acceleration combined with gravitational acceleration. Data in this format is passed in as x, y, z coordinates, each of which shows combined acceleration in that direction at a point in time.
-	* Separated: Data in what we'll call the **separated** format is user acceleration separated from gravitational acceleration. Data in this format is passed in as x, y, z coordinates showing user acceleration is each of the directions, followed by x, y, z coordinates showing gravitational acceleration.
-2. Input the following metadata:
+Before we dive into code, let's talk about what we're building. We want a web app that allows us to:
+
+1. Upload data in the combined or separated format.
+2. Input some basic information about the data set.
 	* Sampling rate
 	* Actual step count
 	* Trial number
