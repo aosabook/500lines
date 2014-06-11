@@ -1,39 +1,114 @@
 # A Basic Pedometer
-TODO: Intro
 
-## Simplifications
-* Ruby instead of native for mobile (Objective-C or Java)
-	* A pedometer is a common app built for mobile devices that have hardware/software built in to measure acceleration and gravity. 
-	* If the mobile device is an iPhone or Android, the pedometer would commonly be written natively for the platform in Objective-C or Java, respectively. 
-	* Java is verbose, and Objective-C is both verbose and difficult on the eyes for a developer not familiar with it.
-	* Additionaly, native mobile APIs are quickly evolving, and code that may be accurate now may not be in several years.
-	* Our basic pedometer is written in Ruby for two reasons: to keep the complexities of the language out of the way and allow us to focus on architecture, and to ensure that code for the specifics of native mobile platforms as they are today is not confused with code for data processing and presentation.
-* Batch processing instead of real-time
-	* A pedometer would rarely be written as a batch processing problem analyzed by a web application, but it has been done this way for the purposes of simplification.
-	* The concepts behind our basic pedometer can be extended and directly applied as mobile applications analyzing data in real-time.
-	* Data has been collected from an iPhone in two formats, and is being analyzed by our web application in Ruby.
-* Error detection can be enhanced
-	* Currently we're not counting steps that are too close together. 
-	* One enhancement would be to discount any steps if there are too many false steps. 
-	* TODO: More error detection suggestions.
-* Many ways to analyze data to count steps
-	* There are many methods present to analyze movement data and count steps. Some are more accurate than others in specific instances, for example, day-to-day tracking vs. step counting during a jog.
-	* This is just one of many ways. 
+TODO: Expand intro
+
+The rise of the mobile device brought with it a trend to collect more and more data on our daily lives. One type of data many people today collect is the number of steps they've taken over a period of time. This data can be used for health tracking, training for sporting events, or, for those of us obsessed with collecting and analyzing data, just for kicks. Steps can be counted using a pedometer, which often uses data from a hardware accelerometer as input.
+
+Our goal for this chapter is to create a web application that takes, as input, data from an accelerometer that a person carries during a walk, and outputs the number of steps taken, along with some additional information like distance and elapsed time. 
+
+## What's an Accelerometer, You Ask?
+
+An accelerometer detects acceleration in the x, y, and z directions, relative to the device. The trial walks we'll examine with our program are all generated from data collected by an iPhone. However, our program can just as easily take data from an Android phone or any other hardware accelerometer. In the case of both iPhone and Android devices, the directions are indicated relative to the phone:
+
+TODO: This diagram is a direct copy from Apple. Problem? 
+(https://developer.apple.com/library/ios/documentation/EventHandling/Conceptual/EventHandlingiPhoneOS/motion_event_basics/motion_event_basics.html)
+![](chapter-figures/figure-iphone-accelerometer.png)\
+
+An accelerometer measures x, y, z acceleration at points in time. Let's call one group of x, y, z coordinates at a point in time a triple. The sampling rate of the accelerometer, which can often be calibrated, determines the number of triples the accelerometer returns per second. For instance, an acceleroemeter with a sampling rate of 100 returns 100 x, y, z triples each second. Each x, y, z triple indicates the acceleration in each of the directions at that point in time. 
+
+## Let's Talk About a Walk
+
+When a person walks, they bounce slightly with each step. This bounce, if you are walking on Earth (or another big ball of mass floating in space) is always in the same direction as gravity. A pedometer can count steps by counting the number of bounces in the direction of gravity.
+
+Let's look at person walking with an iPhone held in the position depicted below.
+
+![](chapter-figures/figure-xyz-normal.png)\
+
+For the sake of simplicity, we'll assume that:
+
+* the phone is only moving in the positive x direction while the y and z directions remain fixed, 
+* the phone remains in the same position throughout the entire walk, 
+* the bounces created by each step are identical
+* the accelerometer is perfectly accurate.
+
+Ah, the joys of a perfect world, that we only ever really experience in texts like these. Don't fret, we'll deal with an imperfect, but real and more exciting world soon.
+
+The phone in the example above is positioned such that the y direction is the one in the direction of gravity. Since we want to count the number of bounces in the direction of gravity, the acceleration in the y direction is all we need to count steps, so we can completely ignore x and z. 
+
+The accelerometer is picking up the person's acceleration in the y direction, which is due to the bounces in their steps. In our perfect world, these bounces form a perfect sine wave. Each cycle in the waveform is exactly one step. We can easily count cycles in code by counting the number of times that our waveform crosses the x-axis in the positive direction. So, when we can completely ignore x and z, acceleration in the y direction should look like the diagram below. Easy, right?
+
+![](chapter-figures/figure-sine-wave.png)\
+
+Wrong. Nothing is ever easy. Where's the fun in that? There's a bit of a kicker here. 
+
+## Even Perfect Worlds Have Fundamental Forces of Nature
+
+Since the accelerometer is measuring acceleration, and, even in our perfect world, gravity exists, there is a constant acceleration in the direction of gravity at $-9.8m/s^2$. The total acceleration, then, is the sum of user acceleration and gravitational acceleration: $a_{t} = a_{u} + a_{g}$.
+
+This means that in our perfect world acceleration in the y direction actually looks like this:
+
+![](chapter-figures/figure-sine-wave-gravity.png)\
+
+Uh oh. We can no longer count when the waveform crosses the x-axis. We'll have to separate total acceleration into user acceleration and gravitational acceleration. 
+
+All current iPhone and Android devices come with an accelerometer as well as a gyroscope, so they're able to separate gravitational acceleration from user acceleration, since the gyroscope can detect the direction of the phone. TODO: verify, and read documentation.
+
+However, we're creating a robust, flexible program, so we've decided that we want to accept input data from the newest of mobile devices, as well as from pure hardware accelerometers. This means that we'll need to accept input data in two formats: a **separated** format where user acceleration and gravitational acceleration are, well, separated; and a **combined** format which only provides us with total acceleration. 
+
+We'll have to isolate gravitational acceleration from the combined format in our program. In our perfect world, when the phone is held consistently as drawn above, total acceleration ($a_{t}$) is the sum of user acceleration ($a_{u}$) and gravitational acceleration ($a_{g}$). Therefore, we can isolate user acceleration fairly easily like so: 
+
+$a_{t} = a_{u} + a_{g}$\
+$a_{t} = a_{u} - 0.98$\
+$a_{u} = a_{t} + 0.98$
+
+This means that we can simply add 0.98 to every single y value, resulting in the first graph we saw. 
+
+What if, however, our silly stick man holds the phone in a more wonky, but still consistent, position?
+
+![](chapter-figures/figure-xyz-wonky.png)\
+
+Yikes. Gravitational acceleration is now split amongst all directions: part of the acceleration added in the x direction, part in the y direction, and part in the z direction. To make matters worse, what if our stick man decides to rotate his phone part way through the walk?
+
+Our pefect world just got a little more real, and now we have two problems:
+
+1. Isolating user acceleration from gravitational acceleration. Separating total acceleration into gravitational acceleration and user acceleration isn't a simple matter of adding 0.98 to a single direction.
+2. Isolating movement in the direction of gravity. We can no longer ignore the x and z directions and simply take the data from the y direction.
+
+OPTION 1:
+
+Every problem has a solution. Let's look at each problem separately, and out on our mathematician hats. 
+
+### 1. Isolating user acceleration from gravitational acceleration
+
+TODO: Describe low pass filtering
+
+### 2. Isolating movement in the direction of gravity
+
+TODO: Describe dot product
+
+OPTION 2:
+
+Every problem has a solution. We'll solve each of these problems in our code. Let's dive into building our web app.
 
 ## The Toolchain
-* Sinatra web app, using Highcharts to display data.
-* This was chosen to be built as a web app because a web app naturally separates the data processing from the presentation.
-* Sinatra gives us the ability to demosntrate a fully-functional web app accepting input and presenting output very easily, without worrying about the piping. 
-* Using Sinatra allows us to naturally separate the data process from the presentation.
-* Using Sinatra and Highcharts requires very little additional code and presents our data nicely, so, well, why not have some fancy charts to really satisfy our data craving?
+We've decided to build a simple web app to process and analyze our data. A web app naturally separates the data processing from the presentation of the data, and since web apps have been build many times over, we may as well use a framework to do the boring plumbing work for us. The Sinatra framework does just that. In the tool's own words, Sinatra is "a DSL for quickly creating web applications in Ruby". Perfect. 
+
+If I have to sell you on using Ruby, I'll try and do that with a quote from Ruby's creator, Yukihiro Matsumoto:
+
+"I hope to see Ruby help every programmer in the world to be productive, and to enjoy programming, and to be happy. That is the primary purpose of Ruby language."
+
+Ruby will stay out of our way, it's flexible, and concise, and has been used on the web for over 10 years. And, it was *made* to make us happy. What more can we ask for?
+
+Since we're building a web app, we'll obvious need a web server, so we'll use the thin web server. It's simple and certainly fast enough for our purposes. 
+
+The last tool we'll be including is a JavaScript library called Highcharts, used for creating interactive charts. What's the point of interesting data if we can't display it in interesting ways? 
 
 ## The Platform
-TODO: Describe basic flow. 
 
-1. Upload data in one of two formats:
-	* Combined: Data in what we'll call the **combined** format is user acceleration combined with gravitational acceleration. Data in this format is passed in as x, y, z coordinates, each of which shows combined acceleration in that direction at a point in time.
-	* Separated: Data in what we'll call the **separated** format is user acceleration separated from gravitational acceleration. Data in this format is passed in as x, y, z coordinates showing user acceleration is each of the directions, followed by x, y, z coordinates showing gravitational acceleration.
-2. Input the following metadata:
+Before we dive into code, let's talk about what we're building. We want a web app that allows us to:
+
+1. Upload data in the combined or separated format.
+2. Input some basic information about the data set.
 	* Sampling rate
 	* Actual step count
 	* Trial number
@@ -74,11 +149,9 @@ Let's look at what this data looks like when plotted. Below is the separated dat
 ![](chapter-figures/figure-separated-user-acceleration.png)
 ![](chapter-figures/figure-separated-gravitational-acceleration.png)\ 
 
-TODO: Discuss why the separated format is more accurate than the combined format. 
-
 ### Making Sense of Data
 
-Looking at our plots, we can start to see a pattern, but we don't have enough, yet, to count steps. 
+Looking at our plots, we can start to see a pattern. We notice where the flatter parts of the data are, and where the steps likely occur. However, we don't have enough, yet, to count steps. 
 
 We need to do 3 things to our input data:
 
@@ -195,7 +268,17 @@ Each method accomplishes one of our three steps above. Let's look at each method
 
 ### Step 1: Parsing text to extract numerical data (parse_raw_data)
 
-The goal of parse_raw_data is to convert string data to a format we can more easily work with, and store it in @parsed_data. The first line splits the string by semicolon into as many arrays as samples taken, and then splits each individual array by the pipe, storing the result in accl.
+The goal of parse_raw_data is to convert string data to a format we can more easily work with, and store it in @parsed_data. We'll have to isolate movement in the direction of gravity in step 2, so we'll need to work with user acceleration and gravitation acceleration separately. Fortunately, our separated data format, as the name implies, already provides us with that. Our combined format, however, does not. The cleanest way for us to handle this is to set @parsed_data to one format that step 2 can work with, regardless of what the input format is. This way, only our parse_raw_data method needs to be concerned with the different formats. 
+
+TODO: Separation of concerns
+
+Our separated format, since it already comes, well, separated, will be slightly more accurate than the 
+
+TODO: Discuss why the separated format is more accurate than the combined format. 
+
+TODO: Add a section here on low pass filtering and the Chebyshev filter, and how it applies to splitting out the gravitational acceleration from the user acceleration.
+
+The first line splits the string by semicolon into as many arrays as samples taken, and then splits each individual array by the pipe, storing the result in accl.
 
 We determine the input format by the first element of accl, which is an array. 
 
@@ -211,7 +294,7 @@ TODO: Dig into the details of split_accl_combined and split_accl_separated. Spec
 
 The next line splits out the split_accl array into user_accl and grav_accl, which are both arrays of arrays, with user acceleration in the x, y, z directions and gravitational acceleration in the x, y, z directions, respectively. The two lines following split each of user_accl and grav_accl into their x, y, z components:
 
-![](chapter-figures/figure-1.png)\ 
+![](chapter-figures/figure-split_accl.png)\ 
 
 In order to get one data series we can work with, we then create an array of hashes in the format below, and store it in @parsed_data.
 
@@ -1032,6 +1115,19 @@ The JavaScript portion uses the Highcharts API to create the three charts: dot p
 Our final action, create, is an HTTP POST called when a user submits the form in the trials view. The action sets a @trial instance variable to a new Trial record, created by passing in values from the params hash. It then sets @match_filtered_data, and renders the trial view. If an error occurs in the creation process, the trials view is rendered, with the an error parameter passed in. 
 
 ## Summary
+
+TODO
+
+## Extensions
+  * The concepts behind our basic pedometer can be extended and directly applied as mobile applications analyzing data in real-time.
+  * Data has been collected from an iPhone in two formats, and is being analyzed by our web application in Ruby.
+* Error detection can be enhanced
+  * Currently we're not counting steps that are too close together. 
+  * One enhancement would be to discount any steps if there are too many false steps. 
+  * TODO: More error detection suggestions.
+* Many ways to analyze data to count steps
+  * There are many methods present to analyze movement data and count steps. Some are more accurate than others in specific instances, for example, day-to-day tracking vs. step counting during a jog.
+  * This is just one of many ways. 
 
 TODO: Wrap it up, and conclusion.
 
