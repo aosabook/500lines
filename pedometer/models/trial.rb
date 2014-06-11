@@ -44,21 +44,6 @@ class Trial
     file_names.map { |file_name| self.new(file_name) }
   end
 
-  # TODO: Make sure to explain this part
-  def self.find_matching_filtered_data(trial)
-    files = Dir.glob(File.join('public/uploads', "*"))
-    files.delete(trial.file_name)
-
-    match = files.select { |f| trial.file_name == f.gsub('-s.', '-c.') }.first
-    match ||= files.select { |f| trial.file_name == f.gsub('-c.', '-s.') }.first
-
-    match_filtered_data = if match
-      parser = Parser.new(File.read(match))
-      parser.filtered_data
-    end
-    match_filtered_data
-  end
-
   # -- Instance Methods -----------------------------------------------------
 
   def parser
