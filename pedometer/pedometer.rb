@@ -13,7 +13,6 @@ end
 
 get '/trial/*' do |file_name|
   @trial = Trial.find(file_name)
-  @match_filtered_data = Trial.find_matching_filtered_data(@trial)
   
   erb :trial
 end
@@ -27,7 +26,6 @@ post '/create' do
       params[:user].values,
       params[:device].values
     )
-    @match_filtered_data = Trial.find_matching_filtered_data(@trial)
 
     erb :trial
   rescue Exception => e

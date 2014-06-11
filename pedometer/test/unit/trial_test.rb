@@ -53,17 +53,4 @@ class TrialTest < Test::Unit::TestCase
     assert_equal [Trial], trials.map { |t| t.class }.uniq
   end
 
-  def test_find_matching_filtered_data
-    trial = Trial.find('public/uploads/female-168.0-70.0_100-100-1-walk-c.txt')
-    matching_trial = Trial.find('public/uploads/female-168.0-70.0_100-100-1-walk-s.txt')
-    assert_equal matching_trial.parser.filtered_data, Trial.find_matching_filtered_data(trial)
-
-    trial = Trial.find('public/uploads/female-168.0-70.0_100-100-1-walk-s.txt')
-    matching_trial = Trial.find('public/uploads/female-168.0-70.0_100-100-1-walk-c.txt')
-    assert_equal matching_trial.parser.filtered_data, Trial.find_matching_filtered_data(trial)
-
-    trial = Trial.find('test/data/female-167-70_100-10-2-bagwalk-g.txt')
-    assert_nil Trial.find_matching_filtered_data(trial)
-  end
-
 end
