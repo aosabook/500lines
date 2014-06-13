@@ -33,7 +33,7 @@ For the sake of simplicity, we'll assume that:
 
 Ah, the joys of a perfect world, that we only ever really experience in texts like these. Don't fret, we'll deal with an imperfect, but real and more exciting world soon.
 
-The phone in the example above is positioned such that the y direction is the one in the direction of gravity. Since we want to count the number of bounces in the direction of gravity, the acceleration in the y direction is all we need to count steps, so we can completely ignore x and z. 
+The phone in the example above is positioned such that the y direction is the one in the direction of gravity. Since we want to count the number of bounces in the direction of gravity, and y is the only direction affected by gravity with the current position, we can completely ignore x and z. 
 
 The accelerometer is picking up the person's acceleration in the y direction, which is due to the bounces in their steps. In our perfect world, these bounces form a perfect sine wave. Each cycle in the waveform is exactly one step. We can easily count cycles in code by counting the number of times that our waveform crosses the x-axis in the positive direction. So, when we can completely ignore x and z, acceleration in the y direction should look like the diagram below. Easy, right?
 
@@ -51,7 +51,7 @@ This means that in our perfect world acceleration in the y direction actually lo
 
 Uh oh. We can no longer count when the waveform crosses the x-axis. We'll have to separate total acceleration into user acceleration and gravitational acceleration. 
 
-All current iPhone and Android devices come with an accelerometer as well as a gyroscope, so they're able to separate gravitational acceleration from user acceleration, since the gyroscope can detect the direction of the phone. TODO: verify, and read documentation.
+All current iPhone and Android devices come with an accelerometer as well as a gyroscope, so they're able to separate gravitational acceleration from user acceleration. TODO: Expand this explanation.
 
 However, we're creating a robust, flexible program, so we've decided that we want to accept input data from the newest of mobile devices, as well as from pure hardware accelerometers. This means that we'll need to accept input data in two formats: a **separated** format where user acceleration and gravitational acceleration are, well, separated; and a **combined** format which only provides us with total acceleration. 
 
@@ -76,7 +76,7 @@ Our pefect world just got a little more real, and now we have two problems:
 
 OPTION 1:
 
-Every problem has a solution. Let's look at each problem separately, and out on our mathematician hats. 
+Every problem has a solution. Let's look at each problem separately, and put on our mathematician hats. 
 
 ### 1. Isolating user acceleration from gravitational acceleration
 
@@ -95,11 +95,11 @@ We've decided to build a simple web app to process and analyze our data. A web a
 
 If I have to sell you on using Ruby, I'll try and do that with a quote from Ruby's creator, Yukihiro Matsumoto:
 
-"I hope to see Ruby help every programmer in the world to be productive, and to enjoy programming, and to be happy. That is the primary purpose of Ruby language."
+"I hope to see Ruby help every programmer in the world to be productive, and to enjoy programming, and to be happy. That is the primary purpose of the Ruby language."
 
 Ruby will stay out of our way, it's flexible, and concise, and has been used on the web for over 10 years. And, it was *made* to make us happy. What more can we ask for?
 
-Since we're building a web app, we'll obvious need a web server, so we'll use the thin web server. It's simple and certainly fast enough for our purposes. 
+Since we're building a web app, we'll need a web server, so we'll use the thin web server. It's simple and certainly fast enough for our purposes. 
 
 The last tool we'll be including is a JavaScript library called Highcharts, used for creating interactive charts. What's the point of interesting data if we can't display it in interesting ways? 
 
@@ -112,11 +112,6 @@ Before we dive into code, let's talk about what we're building. We want a web ap
 3. Parse and analyze our data, outputting the number of steps taken, distance traveled, and time elapsed, and present charts representing the data in different processing stages.
 
 The meat and potatoes of our program is in step 3, where we parse and analyze the input data. It makes sense, then, to start with that, and build the web app and interface later, once we have some outputs to work with.
-
-We can break step 3 down into:
-
-* Parsing input data
-* Analyzing the parsed data
 
 ## Parsing Input Data
 
@@ -266,13 +261,20 @@ The goal of parse_raw_data is to convert string data to a format we can more eas
 
 At this stage, we have two possible data formats, combined and separated, as string data. We need to parse both into numerical data, and, as we discovered before, we need some extra work on the combined format to split out user acceleration from gravitational acceleration. 
 
+TODO: Add a section here on low pass filtering and the Chebyshev filter, and how it applies to splitting out the gravitational acceleration from the user acceleration.
+
+So, how do we split put combined acceleration? Let's put on our mathematician hats, and look at low-pass filters. 
+
+### Low-pass Filter
+A low-pass filter is simply a filter that allows low-frequency signals through, while attenuating signals higher than a set threshold. In our sitation, gravitational acceleration is a 0 Hz signal because it's constant, while user acceleration is not. This means that if we pass our signal through a low-pass filter, we'll be able to remove the gravitational component from the total. There are numerous varieties of low-pass filters, but the one we'll use is called a Chebyshev filter. We've chosen a Chebyshev filter because it has a steep cutoff, which means that it very quickly attenuates frequencies beyond our threshold. 
+TODO: Expand?
+
+### Back to our code
 It's wise for us, while we're parsing our string data to numerical data, to parse all incoming data into one data format that the rest of our program can use. That way, if we ever have to add a third data format (or fourth, or fifth, or, well, you get the idea) we only have to change the parse_raw_data method. 
 
 TODO: Look up GOF pattern here. Talk about separation of concerns? Only this method needs to know about the multiple data formats.
 
 TODO: Discuss why the separated format is more accurate than the combined format?
-
-TODO: Add a section here on low pass filtering and the Chebyshev filter, and how it applies to splitting out the gravitational acceleration from the user acceleration.
 
 The first line splits the string by semicolon into as many arrays as samples taken, and then splits each individual array by the pipe, storing the result in accl.
 
