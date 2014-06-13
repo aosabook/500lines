@@ -150,7 +150,7 @@ We need to do 3 things to our input data:
 
 These 3 tasks are related, and it makes sense to combine them into one class called a **Parser**. 
 
-### The Parser Class
+## The Parser Class
 
 ~~~~~~~
 class Parser
@@ -255,7 +255,7 @@ Let's start with the initialize method. Our parser class takes string data as in
 
 Each method accomplishes one of our three steps above. Let's look at each method individually. 
 
-### Step 1: Parsing text to extract numerical data (parse_raw_data)
+## Step 1: Parsing text to extract numerical data (parse_raw_data)
 
 The goal of parse_raw_data is to convert string data to a format we can more easily work with, and store it in @parsed_data. 
 
@@ -300,17 +300,20 @@ $[\lbrace x\colon x1_{u}, y\colon y1_{u}, z\colon z1_{u}, xg\colon x1_{g}, yg\co
 
 The entire purpose of the parse_raw_data method is to take input data in one of two formats, and output data in this more workable format.
 
-### Step 2: Isolating movement in the direction of gravity (dot_product_parsed_data)
+## Step 2: Isolating movement in the direction of gravity (dot_product_parsed_data)
 
-First, a very small amount of liner algebra 101. 
+When gravity acts on our phone in multiple directions, how do we isolate acceleration in the direction of gravity? First, a very small amount of liner algebra 101. 
 
-TODO: Short explanation of why the dot product is used to help us isolate movement in the direction of gravity.
+### The Dot Product
+
+The dot product takes two signals of equal length and returns a single signal. We have our final format split into user acceleration in the x, y, and z directions and gravitational accelearation in the x, y, and z directions. If we take the dot product of user acceleration and gravitational acceleration, we'll have, in return, the portion of user acceleration in the direction of gravity. 
+TODOL Expand?
 
 TODO: Add graphs from trial view showing original data and dot product data.
 
 Taking the dot product in our Parser class is straightforward. We add a @dot_product_data instance variable, and a method, dot_product_parsed_data, to set that variable. The dot_product_parsed_data method is called immeditely after parse_raw_data in the initializer, and iterates through our @parsed_data hash, calculates the dot product with map, and sets the result to @dot_product_data. 
 
-### Step 3: Filtering our data series
+## Step 3: Filtering our data series
 
 Again, back to the mathematics for some signal processing 101.
 
@@ -658,9 +661,8 @@ The user can navigate back to the trials using the *Back to Trials* link, and up
 As long as the user enters the same input in all text and dropdown fields, the program knows that this is the same trial, and outputs the following:
 
 ![](chapter-figures/app-5-1246w-90p.png)
-![](chapter-figures/app-6-1246w-90p.png)\ 
 
-Note that since this trial is the separated format, it is more accurate than the combined format. This trial detail view now shows an extra plot at the bottom, comparing the filtered combined format with the filtered separated format. 
+Note that since this trial is the separated format, it is more accurate than the combined format.
 
 ### Diving back to the code
 
@@ -726,20 +728,6 @@ class Trial
     file_names.map { |file_name| self.new(file_name) }
   end
 
-  def self.find_matching_filtered_data(trial)
-    files = Dir.glob(File.join('public/uploads', "*"))
-    files.delete(trial.file_name)
-
-    match = files.select { |f| trial.file_name == f.gsub('-s.', '-c.') }.first
-    match ||= files.select { |f| trial.file_name == f.gsub('-c.', '-s.') }.first
-
-    match_filtered_data = if match
-      parser = Parser.new(File.read(match))
-      parser.filtered_data
-    end
-    match_filtered_data
-  end
-
   # -- Instance Methods -----------------------------------------------------
 
   def parser
@@ -803,8 +791,6 @@ The all class method simply grabs all of the files in our public/upoads folder, 
 
 Our Trial object has the ability to store and retireve data from and for the user, and can create and return all of the other objects to our program. Let's move on to the web application side of our program to see how Trial will be helpful.
 
-TODO: Explain match_filtered_data if we're keeping it. 
-
 ### Things to note
 * As our application grows, we'll likely want to use a database rather than saving everything to the filesystem. When the time comes for that, all we have to do it change the Trial class. This makes our refactoring simple. 
 * In the future, we can also start saving User and Device objects to the database as well. The create, find, and all methods in Trial will then be relevant to User and Device as well. That means we'd likely refactor those out into their own class to deal with just the data storage and retrieval, and each of our User, Device, and Trial classes will inherit from that class. We might eventually add helper query methods to that class, and continue building it up from there. 
@@ -840,11 +826,12 @@ end
 
 get '/trial/*' do |file_name|
   @trial = Trial.find(file_name)
-  @match_filtered_data = Trial.find_matching_filtered_data(@trial)
   
   erb :trial
 end
 
+# TODO
+# - Is file sanitized here? We don't want to be passing around untrusted data, especially not if it's touching the filesystem.
 post '/create' do
   begin
     @trial = Trial.create(
@@ -852,7 +839,6 @@ post '/create' do
       params[:user].values,
       params[:device].values
     )
-    @match_filtered_data = Trial.find_matching_filtered_data(@trial)
 
     erb :trial
   rescue Exception => e
@@ -1046,7 +1032,7 @@ TODO: Discussion around client-side validation as well as server-side validation
 
 ### get '/trial/*'
 
-The get '/trial/*' route is called with a file path. For example: http://localhost:4567/trial/public/uploads/female-168.0-70.0_100-100-1-walk-c.txt. It sets @trial through Trial.find, passing in the file_name from the url. It also sets @match_filtered_data through Trial.match_filtered_data. It then loads up the trial.erb view. 
+The get '/trial/*' route is called with a file path. For example: http://localhost:4567/trial/public/uploads/female-168.0-70.0_100-100-1-walk-c.txt. It sets @trial through Trial.find, passing in the file_name from the url. It then loads up the trial.erb view. 
 
 ~~~~~~~
 <script src="/jquery.min.js"></script>
@@ -1059,11 +1045,6 @@ The get '/trial/*' route is called with a file path. For example: http://localho
 
     <div id="container-dot-product"></div>
     <div id="container-filtered"></div>
-
-    <% if @match_filtered_data %>
-        <% comparison_title = @trial.analyzer.parser.is_data_combined? ? 'Separated' : 'Combined' %>
-        <div id="container-comparison"></div>
-    <% end %>
 </html>
 
 <script>
@@ -1083,19 +1064,6 @@ The get '/trial/*' route is called with a file path. For example: http://localho
                 data: <%= ViewHelper.limit_1000(@trial.analyzer.parser.filtered_data) %>
             }]
         });
-
-        if ($('#container-comparison').length > 0) {
-            $('#container-comparison').highcharts({
-                title: { text: 'Comparison to ' + '<%= comparison_title %>' },
-                series: [{
-                    name: '<%= @trial.analyzer.parser.format.capitalize %>',
-                    data: <%= ViewHelper.limit_1000(@trial.analyzer.parser.filtered_data) %>
-                }, {
-                    name: '<%= comparison_title %>',
-                    data: <%= ViewHelper.limit_1000(@match_filtered_data) %>
-                }]
-            });
-        }
     });
 </script>
 ~~~~~~~
@@ -1104,13 +1072,13 @@ The trial.erb view has both HTML and JavaScript. As our application grows, we wo
 
 We're using a tool called Highcharts to generate all of the charts in our view, which requires jQuery and other additional JavaScript files. Note that both are included at the top of the view. 
 
-The HTML portion is simple. We create a link to return to /trials, for ease of navigation purposes. Then, we render summary.erb once more. Since both summary tables are quite similar, we've chosen to extract the HTML for the summary table into one view and reuse it from both trials and trial. This ensures that the format of the tables remains consistent, and avoids code duplication. In this case, we pass in false for detail_hidden, since we want to see time and distance data, whereas in the trials view, we wanted those fields replaced with a link to this view. Following the summary table, we create containers for the charts. We have an optional container for the comparison chart, which is rendered only if @match_filtered_data is set. 
+The HTML portion is simple. We create a link to return to /trials, for ease of navigation purposes. Then, we render summary.erb once more. Since both summary tables are quite similar, we've chosen to extract the HTML for the summary table into one view and reuse it from both trials and trial. This ensures that the format of the tables remains consistent, and avoids code duplication. In this case, we pass in false for detail_hidden, since we want to see time and distance data, whereas in the trials view, we wanted those fields replaced with a link to this view. Following the summary table, we create containers for the charts. 
 
 The JavaScript portion uses the Highcharts API to create the three charts: dot product data, filtered data, and, optionally, a comparison between the filtered data of the separated and combined data sets. Each chart is limited to 1000 points, to make it easy on our eyes, using the limit_1000 method in ViewHelper that we looked at earlier.
 
 ### post '/create'
 
-Our final action, create, is an HTTP POST called when a user submits the form in the trials view. The action sets a @trial instance variable to a new Trial record, created by passing in values from the params hash. It then sets @match_filtered_data, and renders the trial view. If an error occurs in the creation process, the trials view is rendered, with the an error parameter passed in. 
+Our final action, create, is an HTTP POST called when a user submits the form in the trials view. The action sets a @trial instance variable to a new Trial record, created by passing in values from the params hash. It then renders the trial view. If an error occurs in the creation process, the trials view is rendered, with the an error parameter passed in. 
 
 ## Summary
 
