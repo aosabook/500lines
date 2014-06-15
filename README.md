@@ -199,6 +199,7 @@ Contributors
     </td>
     <td><a href="https://github.com/haz">haz</a></td>
     <td>christian.muise@gmail.com</td>
+  </tr>
   <tr>
     <td>Carlos Scheidegger</td>
     <td>AT&amp;T Research</td>
@@ -210,5 +211,44 @@ Contributors
     </td>
     <td><a href="https://github.com/cscheid">cscheid</a></td>
     <td>carlos.scheidegger@gmail.com</td>
+  </tr>
+  <tr>
+    <td>Marina Samuel</td>
+    <td>Mozilla</td>
+    <td>ocr</td>
+    <td>
+        <ul>
+            <li><a href="http://marinasamuel.com">www.marinasamuel.com</a></li>
+            <li><a href="https://twitter.com/emtwos">@emtwos</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/emtwo">emtwo</a></td>
+    <td>msamuel@mozilla.com</td>
+  </tr>
+  <tr>
+    <td>Cate Huston</td>
+    <td>Google</td>
+    <td>Image Filter app</td>
+    <td>
+        <ul>
+            <li><a href="http://www.accidentallyincode.com/">www.accidentallyincode.com/</a></li>
+            <li><a href="https://twitter.com/catehstn">@catehstn</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/catehstn">catehstn</a></td>
+    <td>catehuston@gmail.com</td>
+  </tr>
+  <tr>
+    <td>Yoav Rubin</td>
+    <td>Microsoft</td>
+    <td>In-memory functional database</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/yoavrubin">@yoavrubin</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/yoavrubin">yoavrubin</a></td>
+    <td></td>
+    
   </tr>
 </table>
