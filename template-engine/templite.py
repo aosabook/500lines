@@ -28,11 +28,11 @@ class CodeBuilder(object):
         """
         self.code.extend([" " * self.ident_level, line, "\n"])
 
-    def add_subbuilder(self):
+    def add_section(self):
         """Add a section, a sub-CodeBuilder."""
-        sect = CodeBuilder(self.ident_level)
-        self.code.append(sect)
-        return sect
+        section = CodeBuilder(self.ident_level)
+        self.code.append(section)
+        return section
 
     INDENT_STEP = 4      # PEP8 says so!
 
@@ -45,7 +45,7 @@ class CodeBuilder(object):
         self.ident_level -= self.INDENT_STEP
 
     def get_globals(self):
-        """Compile the code, and return a dict of globals it defines."""
+        """Execute the code, and return a dict of globals it defines."""
         # A check that the caller really finished all the blocks they started.
         assert self.ident_level == 0
         # Get the Python source as a single string.
@@ -110,21 +110,21 @@ class Templite(object):
         # it, and execute it to render the template.
         code = CodeBuilder()
 
-        code.add_line("def render_function(ctx, do_dots):")
+        code.add_line("def render_function(context, do_dots):")
         code.indent()
-        vars_code = code.add_subbuilder()
+        vars_code = code.add_section()
         code.add_line("result = []")
-        code.add_line("a = result.append")
-        code.add_line("e = result.extend")
-        code.add_line("s = str")
+        code.add_line("append_result = result.append")
+        code.add_line("extend_result = result.extend")
+        code.add_line("to_str = str")
 
         buffered = []
         def flush_output():
             """Force `buffered` to the code builder."""
             if len(buffered) == 1:
-                code.add_line("a(%s)" % buffered[0])
+                code.add_line("append_result(%s)" % buffered[0])
             elif len(buffered) > 1:
-                code.add_line("e([%s])" % ", ".join(buffered))
+                code.add_line("extend_result([%s])" % ", ".join(buffered))
             del buffered[:]
 
         ops_stack = []
@@ -138,7 +138,8 @@ class Templite(object):
                 continue
             elif token.startswith('{{'):
                 # An expression to evaluate.
-                buffered.append("s(%s)" % self._expr_code(token[2:-2].strip()))
+                expr = self._expr_code(token[2:-2].strip())
+                buffered.append("to_str(%s)" % expr)
             elif token.startswith('{%'):
                 # Action tag: split into words and parse further.
                 flush_output()
@@ -187,7 +188,7 @@ class Templite(object):
         flush_output()
 
         for var_name in self.all_vars - self.loop_vars:
-            vars_code.add_line("c_%s = ctx[%r]" % (var_name, var_name))
+            vars_code.add_line("c_%s = context[%r]" % (var_name, var_name))
 
         code.add_line("return ''.join(result)")
         code.dedent()
@@ -234,10 +235,10 @@ class Templite(object):
 
         """
         # Make the complete context we'll use.
-        ctx = dict(self.context)
+        render_context = dict(self.context)
         if context:
-            ctx.update(context)
-        return self._render_function(ctx, self._do_dots)
+            render_context.update(context)
+        return self._render_function(render_context, self._do_dots)
 
     def _do_dots(self, value, *dots):
         """Evaluate dotted expressions at runtime."""
