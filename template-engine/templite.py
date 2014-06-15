@@ -15,7 +15,7 @@ class CodeBuilder(object):
 
     def __init__(self, indent=0):
         self.code = []
-        self.ident_level = indent
+        self.indent_level = indent
 
     def __str__(self):
         return "".join(str(c) for c in self.code)
@@ -26,11 +26,11 @@ class CodeBuilder(object):
         Indentation and newline will be added for you, don't provide them.
 
         """
-        self.code.extend([" " * self.ident_level, line, "\n"])
+        self.code.extend([" " * self.indent_level, line, "\n"])
 
     def add_section(self):
         """Add a section, a sub-CodeBuilder."""
-        section = CodeBuilder(self.ident_level)
+        section = CodeBuilder(self.indent_level)
         self.code.append(section)
         return section
 
@@ -38,16 +38,16 @@ class CodeBuilder(object):
 
     def indent(self):
         """Increase the current indent for following lines."""
-        self.ident_level += self.INDENT_STEP
+        self.indent_level += self.INDENT_STEP
 
     def dedent(self):
         """Decrease the current indent for following lines."""
-        self.ident_level -= self.INDENT_STEP
+        self.indent_level -= self.INDENT_STEP
 
     def get_globals(self):
         """Execute the code, and return a dict of globals it defines."""
         # A check that the caller really finished all the blocks they started.
-        assert self.ident_level == 0
+        assert self.indent_level == 0
         # Get the Python source as a single string.
         python_source = str(self)
         # Execute the source, defining globals, and return them.

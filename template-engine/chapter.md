@@ -38,9 +38,10 @@ dynamic pieces embedded in it with special notation.  The job of a template
 engine is to interpret the template, replacing the dynamic pieces with real
 data.  This chapter describes a simple template engine.
 
-The mostly-static style used in templates is the opposite of how most programs work.  With programming
-languages like Python, most of the source file is executable code, and if you
-need literal static text, you embed it in a string literal:
+The mostly-static style used in templates is the opposite of how most
+programming languages work.  For example, with Python, most of
+the source file is executable code, and if you need literal static text, you
+embed it in a string literal:
 
 ```
 def hello():
@@ -369,7 +370,7 @@ class CodeBuilder(object):
 
     def __init__(self, indent=0):
         self.code = []
-        self.ident_level = indent
+        self.indent_level = indent
 ```
 <!-- [[[end]]] -->
 
@@ -386,7 +387,7 @@ CodeBuilder is quite simple, it has:
         Indentation and newline will be added for you, don't provide them.
 
         """
-        self.code.extend([" " * self.ident_level, line, "\n"])
+        self.code.extend([" " * self.indent_level, line, "\n"])
 ```
 <!-- [[[end]]] -->
 
@@ -398,11 +399,11 @@ CodeBuilder is quite simple, it has:
 
     def indent(self):
         """Increase the current indent for following lines."""
-        self.ident_level += self.INDENT_STEP
+        self.indent_level += self.INDENT_STEP
 
     def dedent(self):
         """Decrease the current indent for following lines."""
-        self.ident_level -= self.INDENT_STEP
+        self.indent_level -= self.INDENT_STEP
 ```
 <!-- [[[end]]] -->
 
@@ -415,7 +416,7 @@ CodeBuilder is quite simple, it has:
 ```
     def add_section(self):
         """Add a section, a sub-CodeBuilder."""
-        section = CodeBuilder(self.ident_level)
+        section = CodeBuilder(self.indent_level)
         self.code.append(section)
         return section
 ```
@@ -442,7 +443,7 @@ CodeBuilder is quite simple, it has:
     def get_globals(self):
         """Execute the code, and return a dict of globals it defines."""
         # A check that the caller really finished all the blocks they started.
-        assert self.ident_level == 0
+        assert self.indent_level == 0
         # Get the Python source as a single string.
         python_source = str(self)
         # Execute the source, defining globals, and return them.
