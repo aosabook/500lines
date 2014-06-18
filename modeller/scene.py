@@ -4,28 +4,25 @@ from node import Sphere, Cube
 
 
 class Scene(object):
-    """ Base class for scene nodes.
-        Scene nodes currently only include primitives """
 
     # the default depth from the camera to place an object at
     PLACE_DEPTH = 15.0
 
     def __init__(self):
-        """ Initialize the Scene """
         # The scene keeps a list of nodes that are displayed
         self.node_list = list()
         # Keep track of the currently selected node.
         # Actions may depend on whether or not something is selected
         self.selected_node = None
 
+    def add_node(self, node):
+        """ Add a new node to the scene """
+        self.node_list.append(node)
+
     def render(self):
         """ Render the scene. This function simply calls the render function for each node. """
         for node in self.node_list:
             node.render()
-
-    def add_node(self, node):
-        """ Add a new node to the scene """
-        self.node_list.append(node)
 
     def pick(self, start, direction, mat):
         """ Execute selection.

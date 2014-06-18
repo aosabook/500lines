@@ -1,23 +1,97 @@
+# Storyline:
+* Why do modellers exist? It's so that humans can design real world (or virtual world) objects. ( building, bridges, 3D printing, video games, Film monsters, etc).
+* Humans write software to assist in the designing of these things.
+* What does that software need to do to be helpful?
+* Three things:
+    - It needs to have a way to represent the thing that's being designed. (The scene)
+    - It needs to have a way to display the thing. Now this is a challenge because the object that we're designing exists in 3 dimensions, but we only have
+      2 dimensions to work with on a computer screen. So we need to think about how we perceive 3 dimensional objects with our eyes. How does light interact 
+      with objects in the world, and how do our eyes perceive them.
+    - It also needs a way for the designer to interact with the object. Being able to view something is all well and good, but if you're designing something, you want to be able to
+      add to it, remove from it, move things around, etc.
+* Of course, each domain will have it's own additional important features. An architecture CAD tool may need physics simulations to test weather climate stresses on the building. A 
+  3D printing tool might need to check whether the object is actually printable, an electrical CAD tool might need to simulate the physics of electrons running across copper, and a film 
+  special effects suite might need a way to build photorealistic renderings from the design. All tools need a way to save and load designs from disk so that designers can collaborate, share, 
+  and save their work.
+* But at its core, all of these tools need at least the 3 features we discussed.
+* So, the simplest possible CAD tool is just a 3d modeller that stores a design, displays it to the screen, and allows the designer to interact with it.
+
+* With that in mind, let's see how we can represent a 3D design, display it, and interact with it, in 500 lines of Python.
+  
+
+
 ## Intro
-3D modelling software is widely used as a component of Computer Assisted Design (CAD) software. For example, AutoCAD, Maya, Blender, and others all
-include a 3D modeller as a major component of the tool. At its core, a 3D Modeller allows a user to manipulate objects in a 3 dimensional scene.
-A 3D modeller includes a rendering system to display the scene, an system for handling user input, and a data structure to store the scene itself.
+Humans are constantly creating new things. In modern times, we have written software to assist in the design and creation process. 
+Many designers, engineers and creators make use of Computer Assisted Design (CAD) software.  These tools allow creators to design buildings, bridges, video game art, 
+film monsters, 3D printable objects, and many other things on a computer before building a physical version of the design. 
 
-A production 3D modeller would also include functionality to save and load scenes from disk, create animations, do physical simulation, and add many other features.
+At their core, CAD tools must offer three pieces of functionality. 
+Firstly, they must have a data structure to represent the object that's being designed. For a designer to effectively use a piece of software, the softwarw must understand
+the types of objects being desinged. The software must have a semantic model of the design.
+Secondly, the CAD tool must offer some way to display the design onto the user's screen.  The user is designing a physical object with 3 dimensions, but the computer sceen has only 2 dimensions. 
+The CAD tool must model how we perceive objects, and draw them to the screen in a way that the user can understand all 3 dimensions of the object.
+Thirdly, the CAD tool must offer the designer a way to interact with the object being designed. The designer must be able to add and modify the design in order to produce the desired result.
 
-## Modeller structure
+Each domain specific CAD tool will offer many additional features for the specific requirements of the domain. An architecture CAD tool would offer physics simulations to test weather and climate stresses on the building, 
+a 3D printing tool would have features that check whether the object is actually valid to print, and electrical CAD tool would simulate the physics of electricity running through copper, and a film special effects suite would
+include features to accurate simulation of pyrokinetics with photorealistic renderings of the design. 
+Additionally, all tools would need a way to save and load designs from disk that that designers can collaborate, share, and save their work.
 
-### Setting the Scene
-The first architectural challenge we encounter when designing a 3d modeller is the representation of the objects in the scene.
-We would like to design the scene so that it can store all types of objects that we want to include, and so that it can be easily extended to
-store new types of objects. We use a `Scene` class to store the data for the scene and to handle events that modify the scene or its members.
+However, at their core, call CAD tools must include the three features discussed above: a data structure to represent the design, the ability to display it to the screen, and a method to interact with the design.
 
-#### Scene Nodes
-We use a base class to represent an object that can be placed in the scene, called a `Node`. This base class allows
+With that in mind, let's explore how we can represent a 3D design, display it to the screen, and interact with it, in 500 lines of Python.
+
+<!--- TODO: figure out how to split up code -->
+
+## Representing the Design: The Scene
+The first of the core features of a 3D modeller is a data structure to represent the design in memory. The class that represents this is often called `Design` or `Scene`. 
+In this project, we call it a `Scene`. The `Scene` contains the data that represents the design that the user is working on. The objects contained in the `Scene` are referred to as `Node`s.
+The `Scene` has a list of `Node`.
+
+```
+TODO: Scene init code
+```
+
+### Scene Nodes
+We use the `Node` base class to represent an object that can be placed in the scene. This base class allows
 us to reason about the scene abstractly. The `Scene` class doesn't need to know about the details of the objects it displays,
 it only needs to know that they are `Node`s. Each type of `Node` defines its own behaviour for rendering itself and for any other necessary
 interactions.
+
 In this project,`Sphere` and a `Cube` available. More shapes can be added easily by extending the Node class again.
+
+```
+class Node(object):
+    """ Base class for scene elements """
+    def __init__(self):
+        self.location = [0, 0, 0]
+        self.color_index = random.randint(color.MIN_COLOR, color.MAX_COLOR)
+        self.aabb = AABB([0.0, 0.0, 0.0], [0.5, 0.5, 0.5])
+        self.translation = numpy.identity(4)
+        self.scalemat = numpy.identity(4)
+        self.selected = False
+
+class Primitive(Node):
+    def __init__(self):
+        super(Primitive, self).__init__()
+        self.call_list = None
+
+class Sphere(Primitive):
+    """ Sphere primitive """
+    def __init__(self):
+        super(Sphere, self).__init__()
+        self.call_list = G_OBJ_SPHERE
+
+
+class Cube(Primitive):
+    """ Cube primitive """
+    def __init__(self):
+        super(Cube, self).__init__()
+        self.call_list = G_OBJ_CUBE
+```
+
+The `Node` keeps track of important data about itself: translation matrix, scale matrix, color, location, etc. We will see more about Axis Aligned Bounding Boxes (AABBs) when we discuss
+selection below.
 
 The abstract Node class contains all of the logic common to all nodes. The sub classes of `Node` override specific functionality if needed. They are also required to
 provide a `render` function.
@@ -27,7 +101,7 @@ primitives, like a figure for a character. We can easily extend the `Node` class
 the functionality of the `Node` manage a list of sub-nodes.
 
 By making the `Node` class extensible in this way, we are able to add new types of shapes to the scene without changing any of the other code around scene
-manipulation and rendering.
+manipulation and rendering. Using `Node` concept to abstract away the fact that one `Scene` object may have many children is known as the Composite Design Pattern.
 
 ### Linear algebra (TODO)
 #### Matrix arithmetic (TODO: is this necessary?)
@@ -41,11 +115,13 @@ The purposes of the ModelView and Projection matrices can be understood with som
 TODO: Should we put some linear algebra here? This topic is covered in every OpenGL tutorial, but it will be unfamiliar to many people. I'm not sure if it's best to redirect to another tutorial,
 or have an explanation here.
 
-### Rendering
-Now that we have an abstract representation of the objects in the scene, we would like to draw the scene to the screen.
+## Displaying the Design: Rendering
+Now that we have an abstract representation of the objects in the scene, the second key feature for a 3D modeller is displaying the design to the screen.
+The process of displaying the design to the scene is called rendering. In this project, we use the Open Graphics Library (OpenGL) to communicate with the graphics drivers to 
+render the `Scene`.
 
 <!--- TODO: should this get moved to the end of the chapter? -->
-#### OpenGL
+### OpenGL
 OpenGL is a graphical application programming interface for cross-platform development. It's the standard API for developing graphics applications across platforms.
 OpenGL is two major variants. They are "Legacy OpenGL" and "Modern OpenGL".
 
@@ -65,7 +141,7 @@ In this project, despite the fact that it is deprecated, we use Legacy OpenGL. T
 code size small. It reduces the amount of linear algebra knowledge required, and it simplifies the code we will write. Most production
 software has moved on to using Modern OpenGL.
 
-##### OpenGL's State Machine
+#### OpenGL's State Machine
 Legacy OpenGL is a State Machine. The API to enable/disable functionality modifies the current state of the OpenGL machine.
 When a polygon render call is made, the current state of the machine is used.
 OpenGL also stores two matrices.  These are called the "ModelView" matrix and the "Projection" matrix.
@@ -75,8 +151,9 @@ OpenGL also maintains a stack of matrices. The programmer can choose to push and
 
 Most of the setup and interfacing with OpenGL is found in the viewer.py file.
 
-#### Traversing the Scene
-We leverage the data structure of the scene for rendering. The render function of the scene traverses the list of `Node` in the scene and
+### Traversing the Scene
+With a basic understanding of OpenGL, we examine how to render the `Scene` to the screen. 
+To render the `Scene`, we will leverage its data structure. The render function of the scene traverses the list of `Node` in the scene and
 calls the `render` function for each `Node`.
 ```
 # scene.py, line 21
