@@ -37,20 +37,6 @@ class Viewer(object):
         glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB)
         glutDisplayFunc(self.render)
 
-    def init_interaction(self):
-        """ init user interaction and callbacks """
-        self.interaction = Interaction()
-        self.interaction.register_callback('pick', self.pick)
-        self.interaction.register_callback('move', self.move)
-        self.interaction.register_callback('place', self.place)
-        self.interaction.register_callback('rotate_color', self.rotate_color)
-        self.interaction.register_callback('scale', self.scale)
-
-    def init_scene(self):
-        """ initialize the scene object and initial scene """
-        self.scene = Scene()
-        self.initial_scene()
-
     def init_opengl(self):
         """ initialize the opengl settings to render the scene """
         self.inverseModelView = numpy.identity(4)
@@ -68,6 +54,36 @@ class Viewer(object):
         glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE)
         glEnable(GL_COLOR_MATERIAL)
         glClearColor(1.0, 1.0, 1.0, 0.0)
+
+    def init_scene(self):
+        """ initialize the scene object and initial scene """
+        self.scene = Scene()
+        self.initial_scene()
+
+    def initial_scene(self):
+        cube_node = Cube()
+        cube_node.translate(2, 0, 2)
+        cube_node.color_index = 2
+        self.scene.add_node(cube_node)
+
+        sphere_node = Sphere()
+        sphere_node.translate(-2, 0, 2)
+        sphere_node.color_index = 3
+        self.scene.add_node(sphere_node)
+
+        sphere_node_2 = Sphere()
+        sphere_node_2.translate(-2, 0, -2)
+        sphere_node_2.color_index = 1
+        self.scene.add_node(sphere_node_2)
+
+    def init_interaction(self):
+        """ init user interaction and callbacks """
+        self.interaction = Interaction()
+        self.interaction.register_callback('pick', self.pick)
+        self.interaction.register_callback('move', self.move)
+        self.interaction.register_callback('place', self.place)
+        self.interaction.register_callback('rotate_color', self.rotate_color)
+        self.interaction.register_callback('scale', self.scale)
 
     def main_loop(self):
         glutMainLoop()
@@ -118,22 +134,6 @@ class Viewer(object):
         glViewport(0, 0, xSize, ySize)
         gluPerspective(70, aspect_ratio, 0.1, 1000.0)
         glTranslated(0, 0, -15)
-
-    def initial_scene(self):
-        cube_node = Cube()
-        cube_node.translate(2, 0, 2)
-        cube_node.color_index = 2
-        self.scene.add_node(cube_node)
-
-        sphere_node = Sphere()
-        sphere_node.translate(-2, 0, 2)
-        sphere_node.color_index = 3
-        self.scene.add_node(sphere_node)
-
-        sphere_node_2 = Sphere()
-        sphere_node_2.translate(-2, 0, -2)
-        sphere_node_2.color_index = 1
-        self.scene.add_node(sphere_node_2)
 
     def get_ray(self, x, y):
         """ Generate a ray beginning at the near plane, in the direction that the x, y coordinates are facing

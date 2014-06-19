@@ -153,6 +153,43 @@ Most of the setup and interfacing with OpenGL is found in the viewer.py file.
 
 ### Traversing the Scene
 With a basic understanding of OpenGL, we examine how to render the `Scene` to the screen. 
+
+```
+    def render(self):
+        """ The render pass for the scene """
+        self.init_view()
+
+        # Enable lighting and color
+        glEnable(GL_LIGHTING)
+
+        glClearColor(0.4, 0.4, 0.4, 0.0)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+        # Load the modelview matrix from the current state of the trackball
+        glMatrixMode(GL_MODELVIEW)
+        glPushMatrix()
+        glLoadIdentity()
+        loc = self.interaction.translation
+        glTranslated(-loc[0], -loc[1], -loc[2])
+        glMultMatrixf(self.interaction.trackball.matrix)
+
+        # store the inverse of the current modelview.
+        currentModelView = numpy.array(glGetFloatv(GL_MODELVIEW_MATRIX))
+        self.modelView = numpy.transpose(currentModelView)
+        self.inverseModelView = inv(numpy.transpose(currentModelView))
+
+        # render the scene. This will call the render function for each object in the scene
+        self.scene.render()
+
+        # draw the grid
+        glDisable(GL_LIGHTING)
+        glCallList(G_OBJ_PLANE)
+        glPopMatrix()
+
+        # flush the buffers so that the scene can be drawn
+        glFlush()
+```
+
 To render the `Scene`, we will leverage its data structure. The render function of the scene traverses the list of `Node` in the scene and
 calls the `render` function for each `Node`.
 ```
