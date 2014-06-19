@@ -151,43 +151,77 @@ OpenGL also maintains a stack of matrices. The programmer can choose to push and
 
 Most of the setup and interfacing with OpenGL is found in the viewer.py file.
 
-### Traversing the Scene
-With a basic understanding of OpenGL, we examine how to render the `Scene` to the screen. 
+### Rendering the Scene: Viewer
+With a basic understanding of OpenGL, we examine how to render the `Scene` to the screen. The `Viewer` class created the gui window and handles initializing OpenGL.
 
 ```
-    def render(self):
-        """ The render pass for the scene """
-        self.init_view()
+class Viewer(object):
+    def __init__(self):
+        """ Initialize the viewer. """
+        self.init_interface()
+        self.init_opengl()
+        self.init_scene()
+        self.init_interaction()
+        init_primitives()
 
-        # Enable lighting and color
-        glEnable(GL_LIGHTING)
+    def init_interface(self):
+        """ initialize the window and register the render function """
+        glutInit()
+        glutInitWindowSize(640, 480)
+        glutCreateWindow("3D Modeller")
+        glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB)
+        glutDisplayFunc(self.render)
 
-        glClearColor(0.4, 0.4, 0.4, 0.0)
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+    def init_opengl(self):
+        """ initialize the opengl settings to render the scene """
+        self.inverseModelView = numpy.identity(4)
+        self.modelView = numpy.identity(4)
 
-        # Load the modelview matrix from the current state of the trackball
-        glMatrixMode(GL_MODELVIEW)
-        glPushMatrix()
-        glLoadIdentity()
-        loc = self.interaction.translation
-        glTranslated(-loc[0], -loc[1], -loc[2])
-        glMultMatrixf(self.interaction.trackball.matrix)
+        glEnable(GL_CULL_FACE)
+        glCullFace(GL_BACK)
+        glEnable(GL_DEPTH_TEST)
+        glDepthFunc(GL_LESS)
 
-        # store the inverse of the current modelview.
-        currentModelView = numpy.array(glGetFloatv(GL_MODELVIEW_MATRIX))
-        self.modelView = numpy.transpose(currentModelView)
-        self.inverseModelView = inv(numpy.transpose(currentModelView))
+        glEnable(GL_LIGHT0)
+        glLightfv(GL_LIGHT0, GL_POSITION, GLfloat_4(0, 0, 1, 0))
+        glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, GLfloat_3(0, 0, -1))
 
-        # render the scene. This will call the render function for each object in the scene
-        self.scene.render()
+        glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE)
+        glEnable(GL_COLOR_MATERIAL)
+        glClearColor(1.0, 1.0, 1.0, 0.0)
 
-        # draw the grid
-        glDisable(GL_LIGHTING)
-        glCallList(G_OBJ_PLANE)
-        glPopMatrix()
+    def init_scene(self):
+        """ initialize the scene object and initial scene """
+        self.scene = Scene()
+        self.initial_scene()
 
-        # flush the buffers so that the scene can be drawn
-        glFlush()
+    def initial_scene(self):
+        cube_node = Cube()
+        cube_node.translate(2, 0, 2)
+        cube_node.color_index = 2
+        self.scene.add_node(cube_node)
+
+        sphere_node = Sphere()
+        sphere_node.translate(-2, 0, 2)
+        sphere_node.color_index = 3
+        self.scene.add_node(sphere_node)
+
+        sphere_node_2 = Sphere()
+        sphere_node_2.translate(-2, 0, -2)
+        sphere_node_2.color_index = 1
+        self.scene.add_node(sphere_node_2)
+
+    def init_interaction(self):
+        """ init user interaction and callbacks """
+        self.interaction = Interaction()
+        self.interaction.register_callback('pick', self.pick)
+        self.interaction.register_callback('move', self.move)
+        self.interaction.register_callback('place', self.place)
+        self.interaction.register_callback('rotate_color', self.rotate_color)
+        self.interaction.register_callback('scale', self.scale)
+
+    def main_loop(self):
+        glutMainLoop()
 ```
 
 To render the `Scene`, we will leverage its data structure. The render function of the scene traverses the list of `Node` in the scene and
