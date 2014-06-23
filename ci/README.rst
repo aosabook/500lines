@@ -124,6 +124,11 @@ Error Handling
 If you kill the test_runner.py process, dispatcher.py will figure out that
 the runner is no longer available and will remove it from the pool.
 
+You can also kill the test runner before it runs a test, to simulate a 
+machine going down. If you do so, the dispatcher will realize the 
+runner went down and will wait for a new runner to connect. Upon 
+connection, it will dispatch the unfinished commit to it.
+
 If you kill the dispatcher, the repo observer will figure out it went down
 and will throw an exception. The test runners will also notice, and will
 shut down.
