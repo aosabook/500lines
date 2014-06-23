@@ -101,7 +101,7 @@ may run as many test runners as you like.
 
 Lastly, in another new shell, let's start the repo_observer::
 
-  python repo_observer.py ---dispatcher-server=localhost:8888 <path/to/test_repo_clone_obs>
+  python repo_observer.py --dispatcher-server=localhost:8888 <path/to/test_repo_clone_obs>
 
 Now that everything is set up, let's trigger some tests! To do that, we'll need
 to make a new commit. Go to your master repo and make an arbitrary change::
