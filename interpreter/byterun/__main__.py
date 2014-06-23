@@ -1,6 +1,6 @@
 """A main program for Byterun."""
 
-import logging, sys, imp, os
+import sys, imp
 from pyvm2 import VirtualMachine
 
 def run_python_file(filename):

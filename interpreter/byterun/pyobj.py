@@ -15,6 +15,7 @@ class Frame(object):
         self.f_globals = f_globals
         self.f_locals = f_locals
         self.f_back = f_back
+        self.stack = []
         if f_back:
             self.f_builtins = f_back.f_builtins
         else:
@@ -64,3 +65,15 @@ class Function(object):
             self.func_code, callargs, self.func_globals, self.func_locals
         )
         return self._vm.run_frame(frame)
+
+class Method(object):
+    def __init__(self, obj, _class, func):
+        self.im_self = obj
+        self.im_class = _class
+        self.im_func = func
+
+    def __call__(self, *args, **kwargs):
+        if self.im_self is not None:
+            return self.im_func(self.im_self, *args, **kwargs)
+        else:
+            return self.im_func(*args, **kwargs)

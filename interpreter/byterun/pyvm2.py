@@ -14,32 +14,25 @@ class VirtualMachine(object):
     def __init__(self):
         self.frames = []   # The call stack of frames.
         self.frame = None  # The current frame.
-        self.stack = []    # The data stack.
         self.return_value = None
         self.last_exception = None
 
     def top(self):
-        """Return the value at the top of the stack, with no changes."""
-        return self.stack[-1]
+        return self.frame.stack[-1]
 
     def pop(self):
-        """Pop a value from the stack.
-        Default to the top of the stack, but `i` can be a count from the top
-        instead.
-        """
-        return self.stack.pop(-1)
+        return self.frame.stack.pop()
 
     def push(self, *vals):
-        """Push values onto the value stack."""
-        self.stack.extend(vals)
+        self.frame.stack.extend(vals)
 
     def popn(self, n):
         """Pop a number of values from the value stack.
         A list of `n` values is returned, the deepest value first.
         """
         if n:
-            ret = self.stack[-n:]
-            self.stack[-n:] = []
+            ret = self.frame.stack[-n:]
+            self.frame.stack[-n:] = []
             return ret
         else:
             return []
@@ -49,7 +42,7 @@ class VirtualMachine(object):
         self.frame.f_lasti = jump
 
     def push_block(self, b_type, handler=None):
-        level = len(self.stack)
+        level = len(self.frame.stack)
         self.frame.block_stack.append(Block(b_type, handler, level))
 
     def pop_block(self):
@@ -60,19 +53,13 @@ class VirtualMachine(object):
             offset = 3
         else:
             offset = 0
-        
-        while len(self.stack) > block.level + offset:
+
+        while len(self.frame.stack) > block.level + offset:
             self.pop()
 
         if block.type == 'except-handler':
             traceback, value, exctype = self.popn(3)
-            self.last_exception = exctype, value, traceback    
-
-    def unwind_except_handler(self, block):
-        while len(self.stack) > block.level + 3:
-            self.pop()
-        traceback, value, exctype = self.popn(3)
-        self.last_exception = exctype, value, traceback
+            self.last_exception = exctype, value, traceback
 
     def make_frame(self, code, callargs={}, f_globals=None, f_locals=None):
         if f_globals is not None:
@@ -110,8 +97,8 @@ class VirtualMachine(object):
         # Check some invariants
         if self.frames:
             raise VirtualMachineError("Frames left over!")
-        if self.stack:
-            raise VirtualMachineError("Data left on stack! %r" % self.stack)
+        if self.frame and self.frame.stack:
+            raise VirtualMachineError("Data left on stack! %r" % self.frame.stack)
 
         return val # for testing - will be removed
 
@@ -145,7 +132,7 @@ class VirtualMachine(object):
                     arg = intArg
                 arguments = [arg]
 
-            # When later unwinding the block stack, 
+            # When later unwinding the block stack,
             # we need to keep track of why we are doing it.
             why = None
 
@@ -372,7 +359,7 @@ class VirtualMachine(object):
 
     def byte_LIST_APPEND(self, count):
         val = self.pop()
-        the_list = self.stack[-count] # peek
+        the_list = self.frame.stack[-count] # peek
         the_list.append(val)
 
 
@@ -504,7 +491,7 @@ class VirtualMachine(object):
 
     def byte_RETURN_VALUE(self):
         self.return_value = self.pop()
-        return "return" 
+        return "return"
 
     ## Importing
 
