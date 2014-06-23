@@ -4,7 +4,7 @@ source run_or_fail.sh
 
 # delete previous hash
 if [ -e ".commit_hash" ]; then
-  rm .commit_hash
+  rm -f .commit_hash
 fi
 
 # go to repo and update it to given commit
@@ -14,7 +14,7 @@ run_or_fail "Could not reset git" git reset --hard HEAD
 # get the most recent commit
 COMMIT=`git log -n1`
 if [ $? != 0 ]; then
-  echo "Could call 'git log' on repository"
+  echo "Could not call 'git log' on repository"
   exit 1
 fi
 # get its hash
@@ -26,7 +26,7 @@ run_or_fail "Could not pull from repository" git pull
 # get the most recent commit
 COMMIT=`git log -n1`
 if [ $? != 0 ]; then
-  echo "Could call 'git log' on repository"
+  echo "Could not call 'git log' on repository"
   exit 1
 fi
 # get its hash
