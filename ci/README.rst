@@ -17,6 +17,7 @@ Files
 * helpers.py -- Holds shared code
 * update_repo.sh -- Updates the shared repo and drops a new file with the hash if there's a change
 * test_runner_script.sh -- Updates the test runner's repository to the given commit hash
+* run_or_fail.sh -- Helper method used in update_repo.sh and test_runner_script.sh
 * tests/ -- Holds some demo tests to run
 
 Idea
