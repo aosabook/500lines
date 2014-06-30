@@ -1,10 +1,16 @@
+# A Perfect World
+
+TODO: A physicist, a mathematician, and a software engineer joke...
+
+Many software engineers reflecting on their training will remember having the pleasure of living in a very perfect world. We were taught to solve discrete problems, with defined parameters, in an ideal domain. We only had to deal with small, contained problems, and were often advised to ignore complexities.
+
+Then, we were thrown into the real world, with all of it's complexities and challenges. It's messy, which makes it all the more exciting. When you can solve a real-life problem, with all of it's quirks, you can build software that really helps people, every day. 
+
+Let's take a look at a problem that looks straightforward on the surface, and gets tangled very quickly when the real world, and real people, are thrown into it. 
+
 # A Basic Pedometer
 
-TODO: Expand intro
-
 The rise of the mobile device brought with it a trend to collect more and more data on our daily lives. One type of data many people today collect is the number of steps they've taken over a period of time. This data can be used for health tracking, training for sporting events, or, for those of us obsessed with collecting and analyzing data, just for kicks. Steps can be counted using a pedometer, which often uses data from a hardware accelerometer as input.
-
-Our goal for this chapter is to create a web application that takes, as input, data from an accelerometer that a person carries during a walk, and outputs the number of steps taken, along with some additional information like distance and elapsed time. 
 
 ## What's an Accelerometer, You Ask?
 
@@ -105,6 +111,10 @@ The last tool we'll be including is a JavaScript library called Highcharts, used
 
 # The Platform
 
+TODO: Option 1 
+Our goal for this chapter is to create a web application that takes, as input, data from an accelerometer that a person carries during a walk, and outputs the number of steps taken, along with some additional information like distance and elapsed time. 
+
+OR TODO: Option 2
 Before we dive into code, let's talk about what we're building. We want a web app that allows us to:
 
 1. Upload data in the combined or separated format.
