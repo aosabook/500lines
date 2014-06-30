@@ -14,19 +14,20 @@ The rise of the mobile device brought with it a trend to collect more and more d
 
 ## What's an Accelerometer, You Ask?
 
-An accelerometer detects acceleration in the x, y, and z directions, relative to the device. The trial walks we'll examine with our program are all generated from data collected by an iPhone. However, our program can just as easily take data from an Android phone or any other hardware accelerometer. In the case of both iPhone and Android devices, the directions are indicated relative to the phone:
+An accelerometer is a piece of hardware that measures acceleration in the x, y, and z directions. In today's mobile world, many people carry an accelerometer with them wherever they go, as it's built into almost all smartphones on the market today. The x, y, and z directions are relative to the device the hardware is contained in.
 
 TODO: This diagram is a direct copy from Apple. Problem? 
 (https://developer.apple.com/library/ios/documentation/EventHandling/Conceptual/EventHandlingiPhoneOS/motion_event_basics/motion_event_basics.html)
 ![](chapter-figures/figure-iphone-accelerometer.png)\
 
+TODO: Can I call this a triple? Math terminology, come to my rescue.
 An accelerometer measures x, y, z acceleration at points in time. Let's call one group of x, y, z coordinates at a point in time a triple. The sampling rate of the accelerometer, which can often be calibrated, determines the number of triples the accelerometer returns per second. For instance, an acceleroemeter with a sampling rate of 100 returns 100 x, y, z triples each second. Each x, y, z triple indicates the acceleration in each of the directions at that point in time. 
 
 ## Let's Talk About a Walk
 
 When a person walks, they bounce slightly with each step. This bounce, if you are walking on Earth (or another big ball of mass floating in space) is always in the same direction as gravity. A pedometer can count steps by counting the number of bounces in the direction of gravity.
 
-Let's look at person walking with an iPhone held in the position depicted below.
+Let's look at person walking with smartphone containing an accelerometer held in the position depicted below.
 
 ![](chapter-figures/figure-xyz-normal.png)\
 
@@ -49,27 +50,17 @@ Wrong. Nothing is ever easy. Where's the fun in that? There's a bit of a kicker 
 
 ## Even Perfect Worlds Have Fundamental Forces of Nature
 
-Since the accelerometer is measuring acceleration, and, even in our perfect world, gravity exists, there is a constant acceleration in the direction of gravity at $-9.8m/s^2$. The total acceleration, then, is the sum of user acceleration and gravitational acceleration: $a_{t} = a_{u} + a_{g}$.
-
-This means that in our perfect world acceleration in the y direction actually looks like this:
+Even in our perfect world, gravity exists, so there is a constant acceleration in the direction of gravity at $-9.8m/s^2$. The total acceleration ($a_{t}$) measured by our accelerometer, then, is the sum of user acceleration ($a_{u}$), and gravitational acceleration ($a_{g}$), where user acceleration is the acceleration that the user imparts on the device: $a_{t} = a_{u} + a_{g}$. This means that in our perfect world acceleration in the y direction actually looks like this:
 
 ![](chapter-figures/figure-sine-wave-gravity.png)\
 
-Uh oh. We can no longer count when the waveform crosses the x-axis. We'll have to separate total acceleration into user acceleration and gravitational acceleration. 
-
-All current iPhone and Android devices come with an accelerometer as well as a gyroscope, so they're able to separate gravitational acceleration from user acceleration. TODO: Expand this explanation.
-
-However, we're creating a robust, flexible program, so we've decided that we want to accept input data from the newest of mobile devices, as well as from pure hardware accelerometers. This means that we'll need to accept input data in two formats: a **separated** format where user acceleration and gravitational acceleration are, well, separated; and a **combined** format which only provides us with total acceleration. 
-
-We'll have to isolate gravitational acceleration from the combined format in our program. In our perfect world, when the phone is held consistently as drawn above, total acceleration ($a_{t}$) is the sum of user acceleration ($a_{u}$) and gravitational acceleration ($a_{g}$). Therefore, we can isolate user acceleration fairly easily like so: 
+Uh oh. We can no longer count when the waveform crosses the x-axis. We'll have to isolate user acceleration in order to use our x-axis method of counting steps. In our perfect world, when the phone is held consistently as drawn above, we can isolate user acceleration like so: 
 
 $a_{t} = a_{u} + a_{g}$\
 $a_{t} = a_{u} - 0.98$\
 $a_{u} = a_{t} + 0.98$
 
-This means that we can simply add 0.98 to every single y value, resulting in the first graph we saw. 
-
-What if, however, our silly stick man holds the phone in a more wonky, but still consistent, position?
+This means that we can simply add 0.98 to every single y value, resulting in the first graph we saw. What if, however, our silly stick man holds the phone in a more wonky, but still consistent, position?
 
 ![](chapter-figures/figure-xyz-wonky.png)\
 
@@ -79,6 +70,12 @@ Our pefect world just got a little more real, and now we have two problems:
 
 1. Isolating user acceleration from gravitational acceleration. Separating total acceleration into gravitational acceleration and user acceleration isn't a simple matter of adding 0.98 to a single direction.
 2. Isolating movement in the direction of gravity. We can no longer ignore the x and z directions and simply take the data from the y direction.
+
+TODO: Start: Add this somewhere else...
+All current iPhone and Android devices come with an accelerometer as well as a gyroscope, so they're able to separate gravitational acceleration from user acceleration. TODO: Expand this explanation.
+
+However, we're creating a robust, flexible program, so we've decided that we want to accept input data from the newest of mobile devices, as well as from pure hardware accelerometers. This means that we'll need to accept input data in two formats: a **separated** format where user acceleration and gravitational acceleration are, well, separated; and a **combined** format which only provides us with total acceleration. 
+TODO: End: Add this somewhere else...
 
 OPTION 1:
 
