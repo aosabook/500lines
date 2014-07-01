@@ -17,6 +17,7 @@ Files
 * helpers.py -- Holds shared code
 * update_repo.sh -- Updates the shared repo and drops a new file with the hash if there's a change
 * test_runner_script.sh -- Updates the test runner's repository to the given commit hash
+* run_or_fail.sh -- Helper method used in update_repo.sh and test_runner_script.sh
 * tests/ -- Holds some demo tests to run
 
 Idea
@@ -101,7 +102,7 @@ may run as many test runners as you like.
 
 Lastly, in another new shell, let's start the repo_observer::
 
-  python repo_observer.py ---dispatcher-server=localhost:8888 <path/to/test_repo_clone_obs>
+  python repo_observer.py --dispatcher-server=localhost:8888 <path/to/test_repo_clone_obs>
 
 Now that everything is set up, let's trigger some tests! To do that, we'll need
 to make a new commit. Go to your master repo and make an arbitrary change::
@@ -122,6 +123,11 @@ Error Handling
 
 If you kill the test_runner.py process, dispatcher.py will figure out that
 the runner is no longer available and will remove it from the pool.
+
+You can also kill the test runner before it runs a test, to simulate a 
+machine going down. If you do so, the dispatcher will realize the 
+runner went down and will wait for a new runner to connect. Upon 
+connection, it will dispatch the unfinished commit to it.
 
 If you kill the dispatcher, the repo observer will figure out it went down
 and will throw an exception. The test runners will also notice, and will

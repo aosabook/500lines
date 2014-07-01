@@ -22,10 +22,61 @@ import helpers
 
 
 class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
-    dispatcher_server = None
-    last_communication = None
-    busy = False
-    dead = False
+    dispatcher_server = None # Holds the dispatcher server host/port information
+    last_communication = None # Keeps track of last communication from dispatcher
+    busy = False # Status flag
+    dead = False # Status flag
+
+
+class TestHandler(SocketServer.BaseRequestHandler):
+    """
+    The RequestHandler class for our server.
+    """
+
+    command_re = re.compile(r"""(\w*)(?::(\w*))*""")
+
+    def handle(self):
+        # self.request is the TCP socket connected to the client
+        self.data = self.request.recv(1024).strip()
+        command_groups = self.command_re.match(self.data)
+        command = command_groups.group(1)
+        if not command:
+            self.request.sendall("Invalid command")
+            return
+        if command == "ping":
+            print "pinged"
+            self.server.last_communication = time.time()
+            self.request.sendall("pong")
+        elif command == "runtest":
+            print "got runtest command: am I busy? %s" % self.server.busy
+            if self.server.busy:
+                self.request.sendall("BUSY")
+            else:
+                self.request.sendall("OK")
+                print "running"
+                commit_hash = command_groups.group(2)
+                self.server.busy = True
+                self.run_tests(commit_hash,
+                               self.server.repo_folder)
+                self.server.busy = False
+
+    def run_tests(self, commit_hash, repo_folder):
+        # update repo
+        output = subprocess.check_output(["./test_runner_script.sh %s %s" %
+                                        (repo_folder, commit_hash)], shell=True)
+        print output
+        # run the tests
+        test_folder = os.path.sep.join([repo_folder, "tests"])
+        suite = unittest.TestLoader().discover(test_folder)
+        result_file = open("results", "w")
+        unittest.TextTestRunner(result_file).run(suite)
+        result_file.close()
+        result_file = open("results", "r")
+        # give the dispatcher the results
+        output = result_file.read()
+        helpers.communicate(self.server.dispatcher_server["host"],
+                            int(self.server.dispatcher_server["port"]),
+                            "results:%s:%s" % (commit_hash, output))
 
 
 def serve():
@@ -46,7 +97,6 @@ def serve():
                         help="path to the repository this will observe")
     args = parser.parse_args()
 
-    # Create the server, binding to localhost on port 9999
     runner_host = args.host
     runner_port = None
     tries = 0
@@ -83,9 +133,12 @@ def serve():
         raise Exception("Can't register with dispatcher!")
 
     def dispatcher_checker(server):
+        # Checks if the dispatcher went down. If it is down, we will shut down
+        # if since the dispatcher may not have the same host/port
+        # when it comes back up.
         while not server.dead:
             time.sleep(5)
-            if (time.time() - server.last_communication) > 5:
+            if (time.time() - server.last_communication) > 10:
                 try:
                     response = helpers.communicate(
                                        server.dispatcher_server["host"],
@@ -99,6 +152,7 @@ def serve():
                     print "Can't communicate with dispatcher: %s" % e
                     server.shutdown()
                     return
+
     t = threading.Thread(target=dispatcher_checker, args=(server,))
     try:
         t.start()
@@ -109,60 +163,6 @@ def serve():
         # if any exception occurs, kill the thread
         server.dead = True
         t.join()
-
-
-class TestHandler(SocketServer.BaseRequestHandler):
-    """
-    The RequestHandler class for our server.
-    """
-
-    command_re = re.compile(r"""(\w*)(?::(\w*))*""")
-
-
-    def handle(self):
-        # self.request is the TCP socket connected to the client
-        self.data = self.request.recv(1024).strip()
-        command_groups = self.command_re.match(self.data)
-        command = command_groups.group(1)
-        if not command:
-            self.request.sendall("Invalid command")
-            return
-        if command == "ping":
-            print "pinged"
-            self.server.last_communication = time.time()
-            self.request.sendall("pong")
-        elif command == "runtest":
-            print "got runtest: am I busy? %s" % self.server.busy
-            if self.server.busy:
-                self.request.sendall("BUSY")
-            else:
-                self.request.sendall("OK")
-                print "running"
-                commit_hash = command_groups.group(2)
-                self.server.busy = True
-                self.run_tests(commit_hash,
-                               self.server.repo_folder)
-                self.server.busy = False
-
-    def run_tests(self, commit_hash, repo_folder):
-        # update repo
-        output = subprocess.check_output(["./test_runner_script.sh %s %s" %
-                                        (repo_folder, commit_hash)], shell=True)
-        print output
-        # run the tests
-        test_folder = os.path.sep.join([repo_folder, "tests"])
-        suite = unittest.TestLoader().discover(test_folder)
-        result_file = open("results", "w")
-        unittest.TextTestRunner(result_file).run(suite)
-        result_file.close()
-        result_file = open("results", "r")
-        # give the dispatcher the location of the results
-        # NOTE: typically, we upload results to the result server,
-        # which will be used by a webinterface
-        output = result_file.read()
-        helpers.communicate(self.server.dispatcher_server["host"],
-                            int(self.server.dispatcher_server["port"]),
-                            "results:%s:%s" % (commit_hash, output))
 
 
 if __name__ == "__main__":

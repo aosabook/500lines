@@ -1,34 +1,38 @@
 #!/bin/bash
+
+source run_or_fail.sh
+
+# delete previous hash
 if [ -e ".commit_hash" ]; then
-  rm .commit_hash
+  rm -f .commit_hash
 fi
-pushd $1
-if [ $? != 0 ]; then
-  echo "Repository folder not found!"
-  exit 1
-fi
-git reset --hard HEAD
-if [ $? != 0 ]; then
-  echo "Could not reset git"
-  exit 1
-fi
+
+# go to repo and update it to given commit
+run_or_fail "Repository folder not found!" pushd $1
+run_or_fail "Could not reset git" git reset --hard HEAD
+
+# get the most recent commit
 COMMIT=`git log -n1`
 if [ $? != 0 ]; then
-  echo "Could call 'git log' on repository"
+  echo "Could not call 'git log' on repository"
   exit 1
 fi
+# get its hash
 HASH=`echo $COMMIT | awk '{ print $2 }'`
-git pull
-if [ $? != 0 ]; then
-  echo "Could not pull from repository"
-  exit 1
-fi
+
+# update the repo
+run_or_fail "Could not pull from repository" git pull
+
+# get the most recent commit
 COMMIT=`git log -n1`
 if [ $? != 0 ]; then
-  echo "Could call 'git log' on repository"
+  echo "Could not call 'git log' on repository"
   exit 1
 fi
+# get its hash
 NEWHASH=`echo $COMMIT | awk '{ print $2 }'`
+
+# if the hash changed, then write it to a file
 if [ $NEWHASH != $HASH ]; then
   popd
   echo $NEWHASH > .commit_hash

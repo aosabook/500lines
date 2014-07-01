@@ -1,21 +1,10 @@
 #!/bin/bash
-pushd $1
-if [ $? != 0 ]; then
-  echo "Repository folder not found!"
-  exit 1
-fi
-git clean -d -f -x
-if [ $? != 0 ]; then
-  echo "Could not clean repository"
-  exit 1
-fi
-git pull
-if [ $? != 0 ]; then
-  echo "Could not call git pull"
-  exit 1
-fi
-git reset --hard $2
-if [ $? != 0 ]; then
-  echo "Could not update to given commit hash"
-  exit 1
-fi
+REPO=$1
+COMMIT=$2
+
+source run_or_fail.sh
+
+run_or_fail "Repository folder not found" pushd $REPO
+run_or_fail "Could not clean repository" git clean -d -f -x
+run_or_fail "Could not call git pull" git pull
+run_or_fail "Could not update to given commit hash" git reset --hard $COMMIT
