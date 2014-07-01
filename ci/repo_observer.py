@@ -17,10 +17,6 @@ import time
 import helpers
 
 
-def bail(reason):
-    raise Exception(reason)
-
-
 def poll():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dispatcher-server",
@@ -48,7 +44,7 @@ def poll():
                                                    int(dispatcher_port),
                                                    "status")
                 except socket.error as e:
-                    bail("Could not communicate with dispatcher server: %s" % e)
+                    raise Exception("Could not communicate with dispatcher server: %s" % e)
                 if response == "OK":
                     # Dispatcher is present, let's send it a test
                     commit = ""
@@ -58,16 +54,16 @@ def poll():
                                                    int(dispatcher_port),
                                                    "dispatch:%s" % commit)
                     if response != "OK":
-                        bail("Could not dispatch the test: %s" %
+                        raise Exception("Could not dispatch the test: %s" %
                         response)
                     print "dispatched!"
                 else:
                     # Something wrong happened to the dispatcher
-                    bail("Could not dispatch the test: %s" %
+                    raise Exception("Could not dispatch the test: %s" %
                     response)
             time.sleep(5)
         except subprocess.CalledProcessError as e:
-            bail("Could not update and check repository. Reason: %s" % e.output)
+            raise Exception("Could not update and check repository. Reason: %s" % e.output)
 
 
 if __name__ == "__main__":
