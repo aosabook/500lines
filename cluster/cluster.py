@@ -24,13 +24,13 @@ Active = namedtuple('Active', [])
 Prepare = namedtuple('Prepare', ['ballot_num'])
 Promise = namedtuple('Promise', ['ballot_num', 'accepted'])
 Propose = namedtuple('Propose', ['slot', 'proposal'])
-Welcome = namedtuple('Welcome', ['state', 'slot_num', 'decisions'])
+Welcome = namedtuple('Welcome', ['state', 'slot_num', 'decisions'])  # TODO: slot_num -> slot
 Decided = namedtuple('Decided', ['slot'])
 Preempted = namedtuple('Preempted', ['slot', 'preempted_by'])
 Adopted = namedtuple('Adopted', ['ballot_num', 'pvals'])
-Accepting =namedtuple('Accepting', ['leader'])
+Accepting = namedtuple('Accepting', ['leader'])
 
-# constants - all of these should really be in terms of RTT's
+# constants - all of these should really be in terms of average round-trip time
 JOIN_RETRANSMIT = 0.7
 CATCHUP_INTERVAL = 0.6
 ACCEPT_RETRANSMIT = 1.0
@@ -40,15 +40,6 @@ LEADER_TIMEOUT = 1.0
 
 NULL_BALLOT = Ballot(-1, -1)  # sorts before all real ballots
 NOOP_PROPOSAL = Proposal(None, None, None)  # no-op to fill otherwise empty slots
-
-class NetworkLogger(logging.LoggerAdapter):
-
-    def process(self, msg, kwargs):
-        return "T=%.3f %s" % (self.extra['network'].now, msg), kwargs
-
-    def getChild(self, name):
-        return self.__class__(self.logger.getChild(name),
-                              {'network': self.extra['network']})
 
 class Component(object):
 
@@ -66,11 +57,11 @@ class Node(object):
     def __init__(self, network, address):
         self.network = network
         self.address = address or 'N%d' % self.unique_ids.next()
+        self.logger = SimTimeLogger(logging.getLogger(self.address), {'network': self.network})
+        self.logger.info('starting')
         self.components = []
-        self.logger = NetworkLogger(logging.getLogger(self.address), {'network': self.network})
         self.set_timer = functools.partial(self.network.set_timer, self.address)
         self.send = functools.partial(self.network.send, self)
-        self.logger.info('starting')
 
     def register(self, component):
         self.components.append(component)
@@ -148,6 +139,38 @@ class Network(object):
                 self.set_timer(dest, delay, functools.partial(self.nodes[dest].receive,
                                                               sender.address, message))
 
+class SimTimeLogger(logging.LoggerAdapter):
+
+    def process(self, msg, kwargs):
+        return "T=%.3f %s" % (self.extra['network'].now, msg), kwargs
+
+    def getChild(self, name):
+        return self.__class__(self.logger.getChild(name),
+                              {'network': self.extra['network']})
+
+class Acceptor(Component):
+
+    def __init__(self, node):
+        super(Acceptor, self).__init__(node)
+        self.ballot_num = NULL_BALLOT
+        self.accepted = defaultdict()  # { (b, s) : p }
+
+    def do_PREPARE(self, sender, ballot_num):
+        if ballot_num > self.ballot_num:
+            self.ballot_num = ballot_num
+            # we've accepted the sender, so it might be the next leader
+            self.node.send([self.node.address], Accepting(leader=sender))
+
+        self.node.send([sender], Promise(ballot_num=self.ballot_num, accepted=self.accepted))
+
+    def do_ACCEPT(self, sender, ballot_num, slot, proposal):
+        if ballot_num >= self.ballot_num:
+            self.ballot_num = ballot_num
+            self.accepted[(ballot_num, slot)] = proposal
+
+        self.node.send([sender], Accepted(
+            slot=slot, ballot_num=self.ballot_num))
+
 class Replica(Component):
 
     def __init__(self, node, execute_fn, state, slot_num, decisions, peers):
@@ -176,6 +199,8 @@ class Replica(Component):
             # It's the only drawback of using dict instead of defaultlist
             slot = next(s for s, p in self.proposals.iteritems() if p == proposal)
             self.logger.info("proposal %s already proposed in slot %d", proposal, slot)
+            # TODO: re-propose here, rather than on our own timer (this will avoid
+            # re-transmitting noops, too)
 
     def propose(self, proposal, slot=None):
         """Send (or resend, if slot is specified) a proposal to the leader"""
@@ -207,7 +232,9 @@ class Replica(Component):
                 self.propose(NOOP_PROPOSAL, slot)
         self.node.set_timer(CATCHUP_INTERVAL, self.catchup)
 
+    # TODO: use 'slots' with a set of slots, possibly empty
     def do_CATCHUP(self, sender, slot):
+        # TODO: gossip about next_slot, too
         if slot in self.decisions:
             self.node.send([sender], Decision(slot=slot, proposal=self.decisions[slot]))
 
@@ -224,9 +251,10 @@ class Replica(Component):
         # re-propose our proposal in a new slot if it lost its slot
         our_proposal = self.proposals.get(slot)
         if our_proposal is not None and our_proposal != proposal:
+            # TODO: don't re-transmit a noop
             self.propose(our_proposal)
 
-        # execute any pending, decided proposals, eliminating duplicates
+        # execute any pending, decided proposals
         while True:
             commit_proposal = self.decisions.get(self.slot_num)
             if not commit_proposal:
@@ -279,29 +307,6 @@ class Replica(Component):
         if sender in self.peers:
             self.node.send([sender], Welcome(
                 state=self.state, slot_num=self.slot_num, decisions=self.decisions))
-
-class Acceptor(Component):
-
-    def __init__(self, node):
-        super(Acceptor, self).__init__(node)
-        self.ballot_num = NULL_BALLOT
-        self.accepted = defaultdict()  # { (b, s) : p }
-
-    def do_PREPARE(self, sender, ballot_num):
-        if ballot_num > self.ballot_num:
-            self.ballot_num = ballot_num
-            # we've accepted the sender, so it might be the next leader
-            self.node.send([self.node.address], Accepting(leader=sender))
-
-        self.node.send([sender], Promise(ballot_num=self.ballot_num, accepted=self.accepted))
-
-    def do_ACCEPT(self, sender, ballot_num, slot, proposal):
-        if ballot_num >= self.ballot_num:
-            self.ballot_num = ballot_num
-            self.accepted[(ballot_num, slot)] = proposal
-
-        self.node.send([sender], Accepted(
-            slot=slot, ballot_num=self.ballot_num))
 
 class Commander(Component):
 
