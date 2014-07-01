@@ -6,6 +6,40 @@ A Simple Object Model
 Introduction
 ----------------
 
+Object-oriented programming is one of the major programming paradigms in use
+today, a lot of languages provide some form of object-orientation. While on the
+surface the mechanisms that different object-oriented programming languages
+provide the programmer with are very similar, the details can vary a lot.
+Commonalities of most languages are the presence of objects and some kind of
+inheritance mechanism. But already whether the language supports classes depends
+on the precise language. For example in prototype based languages like Self or
+Javascript the concept of class does not exist and instances instead inherit
+directly from each other.
+
+Understanding the differences between different object models can be
+interesting. It often reveals the family resemblance between different
+languages. It can be useful to quickly understand the model of a new language by
+putting it into the context of the models of other languages and it can give a
+better feeling of the programming language design space.
+
+This chapter explores the implementation of a series of very simple object
+models. It starts out with just having simple instances and classes and the
+possibilities to send messages to instances. This is the "classical"
+object-oriented approach that was started by early OO languages such as
+Simula-67 and Smalltalk. This model is then extend step by step, the first three
+steps exploring different language design choices, the last step to improve the
+efficiency of the object model. The final model is not that of a real language,
+but an idealized, simplified version of that of Python.
+
+The object models presented in this chapter will also be implemented in Python.
+To understand the behavior and the design choice better the chapter will also
+present tests for the object model. The choice of Python as an implementation
+language is quite unrealistic. A "real" VM is typically implemented in a
+low-level language like C/C++ and needs a lot of additional attention to
+engineering detail to make it efficient. However, the simpler implementation
+language makes it easier to focus on actual behaviour differences instead of
+getting bogged down by implementation details.
+
 
 
 Message based model
