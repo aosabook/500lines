@@ -32,6 +32,8 @@ def dispatch_tests(server, commit_hash):
             if response == "OK":
                 print "adding hash %s" % commit_hash
                 server.dispatched_commits[commit_hash] = runner
+                if commit_hash in server.pending_commits:
+                    server.pending_commits.remove(commit_hash)
                 return
         time.sleep(2)
 
