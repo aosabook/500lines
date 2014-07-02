@@ -407,13 +407,14 @@ def multinomial_sample(n, p, rso=None):
     return x
 ```
 
-## Example: Magic item stats
+## Application: Magic items
 
 Let's say we're writing a roleplaying game (RPG), and we want a method
 of generating stats for the magical items that are randomly dropped by
 monsters. We might decide that the maximum bonus we want an item to
-have is +5, and that higher bonuses are less likely than lower
-bonuses:
+confer is +5, and that higher bonuses are less likely than lower
+bonuses. If $B$ is a random variable over the values of the bonus,
+then:
 
 $$
 P(B=\mathrm{+1}) = 0.55\\
@@ -430,11 +431,26 @@ points distributed across different stats (e.g., +2 wisdom and +3
 intelligence) or concentrated within a single stat (e.g., +5
 charisma).
 
+### Sampling the item stats
+
 How would we randomly sample these stats? The easiest way is probably
 *hierarchical* sampling. First, we sample the overall item
 bonus. Then, we sample the way the stats are distributed.
 
-### Sampling the bonus
+```python
+def bonus_sample(rso=None):
+    bonus_p = np.array([0.0, 0.55, 0.25, 0.12, 0.06, 0.02])
+    bonus = np.argwhere(multinomial_sample(1, bonus_p, rso=rso))[0, 0]
+    return bonus
+```
+
+```python
+def stats_sample(rso=None):
+    bonus = bonus_sample(rso=rso)
+    stats_p = np.ones(6) / 6.0
+    stats = multinomial_sample(bonus, stats_p, rso=rso)
+    return stats
+```
 
 
 ## Rejection sampling
