@@ -82,10 +82,26 @@ many types of random variables, such as TODO: list some examples
 
 #### Evaluating the Gaussian PDF
 
+TODO
+
 ```
 def gaussian_pdf(x, mean, variance):
     """Evaluates the PDF of a Gaussian with mean `mean` and
     variance `variance` at location(s) `x`.
+
+    Parameters
+    ----------
+    x: numpy array
+        The locations to be evaluated
+    mean: float
+        The mean parameter of the Gaussian
+    variance: float
+        The variance parameter of the Gaussian
+
+    Returns
+    -------
+    numpy array with the same shape as x
+        The evaluated PDF at locations x
 
     """
     constant = 1.0 / np.sqrt(2 * np.pi * variance)
@@ -96,10 +112,26 @@ def gaussian_pdf(x, mean, variance):
 
 #### Sampling from the Gaussian PDF
 
+TODO
+
 ```
 def gaussian_sample(n, mean, variance):
     """Samples `n` values proportional to a Gaussian PDF
     with mean `mean` and variance `variance`.
+
+    Parameters
+    ----------
+    n: integer or tuple of integers
+        The number of samples to take
+    mean: float
+        The mean parameter of the Gaussian
+    variance: float
+        The variance parameter of the Gaussian
+
+    Returns
+    -------
+    numpy array with shape `n`
+        The sampled values
 
     """
     standard_deviation = np.sqrt(variance)
@@ -201,6 +233,20 @@ def gaussian_logpdf(x, mean, variance):
     """Evaluates the log-PDF of a Gaussian with mean `mean` and
     variance `variance` at location(s) `x`.
 
+    Parameters
+    ----------
+    x: numpy array
+        The locations to be evaluated
+    mean: float
+        The mean parameter of the Gaussian
+    variance: float
+        The variance parameter of the Gaussian
+
+    Returns
+    -------
+    numpy array with the same shape as x
+        The evaluated log-PDF at locations x
+
     """
     log_constant = -0.5 * np.log(2 * np.pi * variance)
     log_exp = -((x - mean) ** 2 / (2 * variance))
@@ -218,6 +264,20 @@ def gaussian_pdf(x, mean, variance):
     """Evaluates the PDF of a Gaussian with mean `mean` and
     variance `variance` at location(s) `x`.
 
+    Parameters
+    ----------
+    x: numpy array
+        The locations to be evaluated
+    mean: float
+        The mean parameter of the Gaussian
+    variance: float
+        The variance parameter of the Gaussian
+
+    Returns
+    -------
+    numpy array with the same shape as x
+        The evaluated PDF at locations x
+
     """
     p = np.exp(gaussian_logpdf(x, mean, variance))
     return p
@@ -225,7 +285,62 @@ def gaussian_pdf(x, mean, variance):
 
 ### Seeding the random number generator
 
-TODO
+Even though we are working with probabilities, we sometimes *don't*
+want our results to be random. For example, TODO: give an example
+
+In order to allow for the generation of "deterministically random"
+numbers, we need to tell our sampling functions *how* to generate the
+random numbers. We can accomplish this through use of a NumPy
+`RandomState` object, which is essentially a random number generator
+object that can be passed around. We can create it like this:
+
+```
+rso = np.random.RandomState(230489)
+```
+
+where the number passed to the `RandomState` constructor is the *seed*
+for the random number generator. As long as we instantiate it with the
+same seed, a `RandomState` object will produce the same "random"
+numbers in the same order, thus ensuring replicability.
+
+So, we can modify our sampling function to optionally take in a
+`RandomState` object. If such an object is passed in, then the
+function will use that object to sample the values; otherwise, it will
+use the usual function from `np.random`:
+
+```
+def gaussian_sample(n, mean, variance, rso=None):
+    """Samples `n` values proportional to a Gaussian PDF
+    with mean `mean` and variance `variance`.
+
+    Parameters
+    ----------
+    n: integer or tuple of integers
+        The number of samples to take
+    mean: float
+        The mean parameter of the Gaussian
+    variance: float
+        The variance parameter of the Gaussian
+    rso: numpy RandomState object (default: None)
+        The random number generator
+
+    Returns
+    -------
+    numpy array with shape `n`
+        The sampled values
+
+    """
+    # get the appropriate function for generating the
+    # random sample
+    if rso:
+        func = rso.norm
+    else:
+        func = np.random.norm
+
+    standard_deviation = np.sqrt(variance)
+    x = func(mean, standard_deviation, n)
+    return x
+```
 
 ## Rejection sampling
 
