@@ -1,5 +1,82 @@
 # Sampling Methods
 
+Note: this chapter assumes some familiarity with statistics and
+probability theory.
+
+Frequently, in computer science and engineering, we run into problems
+that can't be solved using an equation. These problems usually involve
+complex systems, noisy inputs, or both. Here are just a few examples
+of real-world problems that do not have exact, analytic solutions:
+
+1. You have built a computer model of an airplane, and want to
+   determine how well the airplane will hold up under different
+   weather conditions.
+
+2. You want to determine whether chemical runoff from a proposed
+   factory will affect the water supply of nearby residents.
+
+3. You have a robot which captures noisy images from its camera, and
+   want to determine what those images are actually showing.
+
+4. You want to compute how likely you are to win at chess if you take
+   a particular move.
+
+Even though these types of problems cannot be solved exactly, we can
+often achieve an approximate solution to them using techniques known
+as *Monte Carlo sampling* methods. In Monte Carlo methods, the key
+idea is to take many *samples*, which will then allow you to estimate
+the solution.
+
+Consider the airplane example above. Weather is a fairly chaotic
+system, meaning that it is impossible to compute *exactly* whether the
+airplane will survive a particular weather situation. Instead, you
+could simulate the behavior of the airplane under many different
+weather conditions, which would allow you to see under which
+conditions the airplane is most likely to fail.
+
+Or, consider the object recognition example. As a simple case of the
+general object recognition problem, we could suppose that our robot
+needs to determine the orientation of an object (such that it can then
+pick up the object and place it upright). If the robot is dealing with
+three-dimensional objects, then this is an extremely challenging
+problem. As we will see, even in two dimensions, identifying the
+rotation of an image is not all that straightforward.
+
+This chapter will provide an introduction to programming for sampling
+methods, using the example of recovering rotation from an image as a
+case study.
+
+<!-- p(image, rotation | observed) = p(observed | rotated_image) p(rotated_image | rotation, image) p(rotation) p(image) -->
+<!-- p(rotation | observed) = p(observed | rotated_image) p(rotated_image | rotation) p(rotation) -->
+
+
+```
+def sample_rotation():
+    radians = np.random.uniform(0, 2 * np.pi)
+    return radians
+```
+
+```
+def sample_image():
+    image = np.random.randint(0, 2, (10, 10))
+    return image
+```
+
+```
+def sample_rotated_image(image):
+    radians = sample_rotation()
+    rotated_image = rotate(image, radians)
+    return rotated_image
+```
+
+```
+def compare_images(image1, image2):
+    pixel_distance = (image1 - image2) ** 2
+    total_distance = np.sqrt(pixel_distance.sum())
+    return total_distance
+```
+
+
 The idea behind sampling is that we want to draw samples from a
 probability distribution, but we only have the *equation* of the
 distribution's Probability Density Function (PDF), rather than an
