@@ -84,7 +84,7 @@ many types of random variables, such as TODO: list some examples
 
 TODO
 
-```
+```python
 def gaussian_pdf(x, mean, variance):
     """Evaluates the PDF of a Gaussian with mean `mean` and
     variance `variance` at location(s) `x`.
@@ -114,7 +114,7 @@ def gaussian_pdf(x, mean, variance):
 
 TODO
 
-```
+```python
 def gaussian_sample(n, mean, variance):
     """Samples `n` values proportional to a Gaussian PDF
     with mean `mean` and variance `variance`.
@@ -153,7 +153,7 @@ the limits of floating point values for our system. For example, on a
 64-bit machine, we see that the smallest usable positive number (given
 by `tiny`) is:
 
-```
+```python
 >>> import numpy as np
 >>> np.finfo(float).tiny
 2.2250738585072014e-308
@@ -164,7 +164,7 @@ probabilities of this magnitude, or even smaller! Moreover, it is a
 common operation to multiply probabilities, yet if we try to do this
 with very small probabilities, we encounter underflow problems:
 
-```
+```python
 >>> tiny = np.finfo(float).tiny
 >>> tiny * tiny
 0.0
@@ -179,7 +179,7 @@ not an actual number, this means in practice that it ranges from the
 `min` value returned by `finfo` (which is the smallest number that can
 be represented) to zero:
 
-```
+```python
 >>> np.finfo(float).min
 -1.7976931348623157e+308
 ```
@@ -187,7 +187,7 @@ be represented) to zero:
 But, the log of the smallest positive value is much larger than the
 `min` value:
 
-```
+```python
 >>> np.log(tiny)
 -708.39641853226408
 ```
@@ -202,7 +202,7 @@ Second, we can perform multiplication in log-space using addition,
  \log(y)$. Thus, if we do the multiplication above in log-space, we do
  not have to worry (as much) about loss of precision due to underflow:
 
-```
+```python
 >>> np.log(tiny * tiny)
 -inf
 >>> np.log(tiny) + np.log(tiny)
@@ -214,12 +214,11 @@ the number *out* of log-space (for example, to add probabilities,
 rather than multiply them), then we are back to the issue of
 underflow:
 
-```
+```python
 >>> tiny*tiny
 0.0
 >>> np.exp(np.log(tiny) + np.log(tiny))
 0.0
-
 ```
 
 #### Revisiting the Gaussian PDF
@@ -228,7 +227,7 @@ Now with this knowledge of the issues that can come up if we do not
 work in log-space, we can rewrite our Gaussian PDF to be a *log*-PDF
 instead:
 
-```
+```python
 def gaussian_logpdf(x, mean, variance):
     """Evaluates the log-PDF of a Gaussian with mean `mean` and
     variance `variance` at location(s) `x`.
@@ -259,7 +258,7 @@ compute it. However, it is generally better to *first* compute it in
 log-space, and then exponentiate it if we need to take it out of
 log-space:
 
-```
+```python
 def gaussian_pdf(x, mean, variance):
     """Evaluates the PDF of a Gaussian with mean `mean` and
     variance `variance` at location(s) `x`.
@@ -294,7 +293,7 @@ random numbers. We can accomplish this through use of a NumPy
 `RandomState` object, which is essentially a random number generator
 object that can be passed around. We can create it like this:
 
-```
+```python
 rso = np.random.RandomState(230489)
 ```
 
@@ -308,7 +307,7 @@ So, we can modify our sampling function to optionally take in a
 function will use that object to sample the values; otherwise, it will
 use the usual function from `np.random`:
 
-```
+```python
 def gaussian_sample(n, mean, variance, rso=None):
     """Samples `n` values proportional to a Gaussian PDF
     with mean `mean` and variance `variance`.
