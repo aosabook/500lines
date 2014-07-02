@@ -87,13 +87,13 @@ More formally, the multinomial distribution has the following
 equation:
 
 $$
-p(\mathbf{x}; n, \mathbf{p}) = \frac{n!}{x_1!\cdots{}x_k!}p_1^x_1\cdots{}p_k^x_k,
+p(\mathbf{x}; n, \mathbf{p}) = \frac{n!}{x_1!\cdots{}x_k!}p_1^{x_1}\cdots{}p_k^{x_k},
 $$
 
 where $\mathbf{x}=[x_1, \ldots{}, x_k]$ is a vector of length $k$
 specifying the number of times each event happened, $n=\sum_{i=1}^k
 x_i$ is the total number of events, and
-$\mathbf{p}=[p_1, \ldots{}, x_k]$ is a vector specifying the
+$\mathbf{p}=[p_1, \ldots{}, p_k]$ is a vector specifying the
 probability of each event occurring. The variables $n$ and
 $\mathbf{p}$ are the *parameters* of the distribution.
 
