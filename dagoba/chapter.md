@@ -1,25 +1,38 @@
-So we're going to build a graph database. We should probably figure out what that means first. 
+# Let's make a graph database!
 
-A database is a place to put data. You can read from it and you can write to it.
+The dictionary defines "graph database" as a database for graphs. Thanks, dictionary! Let's break that down a little.
+/// So we're going to build a graph database. We should probably figure out what that means first. 
 
-A graph in this sense is a set of vertices and a set of edges. In other words it's a bunch of dots connected by lines. 
+A data base is like a fort for data. You can put data in it and get data back out of it.
 
-So what's the simplest thing we can possibly build that could technically be called a "graph database"? We need a set of vertices and a set of edges. We need a way to write a new vertex or a new edge, and we need a way to read it.
+A graph in this sense is a set of vertices and a set of edges. It's basically a bunch of dots connected by lines. 
 
-So let's draw a shape: [stick man]. We'll number our vertices so we can keep track of them -- remember that graphs have no inherent "shape", so these graphs are all equivalent. 
+So what's the simplest thing we can possibly build that could technically be called a "graph database"? We need a place to put some vertices and edges, and a way to get them back out.
+
+/// So let's draw a shape: [stick man]. We'll number our vertices so we can keep track of them -- remember that graphs have no inherent "shape", so these graphs are all equivalent.
 
 We're in JS, so let's make an array [1] of vertices: 
 
-  var vertices = [1,2,3,4,5,6]
+    [1] ES6 has proper sets, so if you're reading this from the future you can upgrade the datastructure:
+      Set blah set set foo
+
+  [var ]vertices = [1,2,3,4,5,6]
   
 And an array of edges:
   
-  var edges = [ [1,2], [2,3], [3,1], [3,4], [4,5], [4,6] ]
+  [var ]edges = [ [1,2], [2,3], [3,1], [3,4], [4,5], [4,6] ]
 
 Notice that we're modeling edges as a pair of vertices. Also notice that those pairs are ordered, because we're using arrays. That means we're modeling a *directed graph*, where every edge has a start and an end. [lines have arrows] We're doing it this way mostly because it's easier given our datastructure options, but it also adds a little complexity to our mental model because we have to keep track of the direction of edges. [2]
 
-Cool, we have a graph! Now for the database side -- we'll need some way to add new nodes and edges:
---> maybe we don't need this yet...
+    [2] The upside of adding that complexity is that we can ask more interesting questions, like "which vertices point in to vertex 3?" or "which vertex has the most outgoing edges?". Also note that we can model an undirected graph by doubling up our edges array:
+      function undirectMe (edges) 
+        { return edges.reduce(function(acc, edge)
+          { acc.push([ edge[0], edge[1] ])
+            acc.push([ edge[1], edge[0] ]) }, []) }
+
+
+//  Cool, we have a graph! Now for the database side -- we'll need some way to add new nodes and edges:
+//  --> maybe we don't need this yet...
 //  function addNode (node) { vertices.push(node) }
 //  function addEdge (edge) { edges.push(edge) }
 
@@ -65,9 +78,12 @@ Let's run some tests!
 maybe we load in the collatz sequence as a test graph? http://xkcd.com/710/ [it's a tree, less interesting]
 prime factors graph. [it's too connected, perhaps less interesting]
 random graph (add 1-10, then each new node connects to 3 existing nodes selected at random) [just right (goldilocks graph)]
+random graph, show threshold for connectivity (cite proof etc)
 Watts-Strogatz small-world model simulator
 Barabási–Albert model
 Dorogovtsev and Mendes : http://arxiv.org/pdf/1007.4031v1.pdf
+
+----
 
 This is pretty good, but what if we care about more than just numbers? String labels should work fine. What about objects? 
 
@@ -104,6 +120,12 @@ g.v(1).out().out('father').attr('name').paths()
 so each of these g.xxx things is actually just adding elements to a query list, which can be optimized when something calls it and everything happens lazily. how do we do that?
 
 
+function incoming (node) { return edges.reduce(function(edge) {if (edge[1] === node) acc.push(edge[0]) }, [])}
+function outgoing (node) { return edges.reduce(function(edge) {if (edge[0] === node) acc.push(edge[1]) }, [])}
+function neighbors (node) { return incoming(node).concat(outgoing(node)) }
+
+//  I have quite a few more features to add and I want a debugger/visualizer/history thing 
+//  and I want to convert it all to ES6 but this is where it's at right now.
 
 
 make it right:
@@ -134,18 +156,7 @@ http://christopherolah.wordpress.com/2011/04/11/arithmetic-derivative-graph-and-
 
 
 
-[0] We use 'vertex' in our discussion because it sounds better, and 'node' in our code, to prevent pluralization typos from eating our lunch.
-
-[1] ES6 has proper sets, so if you're reading this from the future you can upgrade the datastructure:
-  Set blah set set foo
-
-[2] The upside of adding that complexity is that we can ask more interesting questions, like "which vertices point in to vertex 3?" or "which vertex has the most outgoing edges?". Also note that we can model an undirected graph by doubling up our edges array:
-
-  function undirectMe (edges) 
-    { return edges.reduce(function(acc, edge)
-      { acc.push([ edge[0], edge[1] ])
-        acc.push([ edge[1], edge[0] ]) }, []) }
-  
+-------------------  
   
   
   
@@ -172,6 +183,18 @@ later: GraphML import/export support, https://github.com/lambdazen/pixy/wiki ,
 
 step through debugger, reversible, 
 
+
+updates:
+- mutate in place
+- remove and re-add
+issues: 
+- performance (mutate-in-place is a bit faster -- for large updates this probably matters)
+- remove and re-add still has to connect to all the old pointers by _id: otherwise the old edges fail
+  - also the only (natural) way to add loops and be a full graph
+- normal issues with mutate-in-place apply: shared mutable state plus concurrency -> asplode
+- but if we hand out references to the real nodes other things can mutate them, even if we don't
+
+so: let's mutate-in-place for perf and simplicity, but never hand out refs to prevent mutation issues. it's a little slower because we have to serialize (or at least deep clone) before we hand over the results, but that part happens in a callback that we can cancel if our application doesn't need it.
 
 
 
@@ -238,9 +261,30 @@ concurrency. immutable data structures. update syntax -- no problem, can't updat
 
 
 
+
+============================================================================
+
+
+# Make it work
+
+--> # graph, V&E, hobby like tennis, most of the above
+
+
+# Make it right
+
+So we've got a working graph database. It even works for fancy objects and stuff. So we're done, right? 
+Well, what if we did a query like this:
+> G.v(-23).out([2,3,4]).take('a')
+
+Maybe we should do some error checking. [yep]
+
+What happens if someone grabs some data while someone else updates some data? What if two folks update at the same time? 
+
+
+
 # Make it fast
 
-All production graph databases have a very particular performance characteristic in common: graph traversal queries are constant time with respect to total graph size. In a non-graph database, asking for the list of someone's friends can require time proportional to the number of entries, if it has to look at every entry. The means if a query over ten entries takes a millisecond then a query over ten million entries will take almost two weeks. Your friend list would arrive faster if sent by Pony Express! [N] [Though only in operation for 18 months due to the arrival of the transcontinental telegraph and the outbreak of the American Civil War, the Pony Express is still remembered today for delivering mail coast to coast in just ten days.]
+All production graph databases have a very particular performance characteristic in common: graph traversal queries are constant time with respect to total graph size. [the fancy term for this is "index-free adjacency"] In a non-graph database, asking for the list of someone's friends can require time proportional to the number of entries, if it has to look at every entry. The means if a query over ten entries takes a millisecond then a query over ten million entries will take almost two weeks. Your friend list would arrive faster if sent by Pony Express! [N] [Though only in operation for 18 months due to the arrival of the transcontinental telegraph and the outbreak of the American Civil War, the Pony Express is still remembered today for delivering mail coast to coast in just ten days.]
 
 // do a perf test with the O(n) graph
 
