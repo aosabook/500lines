@@ -69,79 +69,93 @@ Evaluation and sampling are both critical pieces to working with
 probabilities, so when you write code to work with probabilities, you
 need to include functionality for both of these pieces.
 
-As a simple example, let's consider the *Gaussian distribution*. It
-has the following equation:
+#### The multinomial distribution
+
+As a simple example, let's consider the *multinomial
+distribution*. The multinomial distribution is used when you have
+several categories of events, and you want to characterize the
+probability of some combination of events happening.
+
+The classic example used to describe the multinomial distribution is
+the *ball and urn* example. The idea is that you have an urn with
+different colored balls in it (for example, 30% red, 20% blue, and 50%
+green). You pull out a ball, record its color, put it back in the urn,
+and then repeat this multiple times. The multinomial distribution then
+tells you what the probability is of selecting the balls that you did.
+
+More formally, the multinomial distribution has the following
+equation:
 
 $$
-\mathcal{N}(x; \mu, \sigma^2) = \frac{1}{\sqrt{2\pi\sigma^2}}\exp{\frac{-(x-\mu)^2}{2\sigma^2}}
+p(\mathbf{x}; n, \mathbf{p}) = \frac{n!}{x_1!\cdots{}x_k!}p_1^x_1\cdots{}p_k^x_k,
 $$
 
-The Gaussian, also known as the "normal distribution" or "bell curve",
-is one of the most commonly used distributions. They are used to model
-many types of random variables, such as TODO: list some examples
+where $\mathbf{x}=[x_1, \ldots{}, x_k]$ is a vector of length $k$
+specifying the number of times each event happened, $n=\sum_{i=1}^k
+x_i$ is the total number of events, and
+$\mathbf{p}=[p_1, \ldots{}, x_k]$ is a vector specifying the
+probability of each event occurring. The variables $n$ and
+$\mathbf{p}$ are the *parameters* of the distribution.
 
-The Gaussian distribution has two *parameters*: the mean, $\mu$, and
-variance, $\sigma^2$. These parameters specify the location and shape
-of the distribution.
-
-#### Evaluating the Gaussian PDF
+#### Evaluating the multinomial PMF
 
 TODO
 
 ```python
-def gaussian_pdf(x, mean, variance):
-    """Evaluates the PDF of a Gaussian with mean `mean` and
-    variance `variance` at location(s) `x`.
+from scipy.special import gamma
+
+def multinomial_pmf(x, p):
+    """Evaluates the probability mass function (PMF) of a multinomial
+    with event probabilities `p` for a draw `x`.
 
     Parameters
     ----------
-    x: numpy array
-        The locations to be evaluated
-    mean: float
-        The mean parameter (mu) of the Gaussian
-    variance: float
-        The variance parameter (sigma^2) of the Gaussian
+    x: numpy array with shape (k,)
+        The number of occurrences of each event
+    p: numpy array with shape (k,)
+        The event probabilities
 
     Returns
     -------
-    numpy array with the same shape as x
-        The evaluated PDF at locations x
+    The evaluated PMF for draw `x`
 
     """
-    constant = 1.0 / np.sqrt(2 * np.pi * variance)
-    exp = np.exp(-(x - mean) ** 2 / (2 * variance))
-    p = constant * exp
-    return p
+    # get the total number of events
+    n = np.sum(x)
+    # equivalent to n!
+    numerator = gamma(n + 1)
+    # equivalent to x1! * ... * xk!
+    denominator = np.prod(gamma(x + 1))
+    # equivalent to p1^x1 * ... * pk^xk
+    weights = np.prod(p ** x)
+    # put it all together
+    pmf = numerator * weights / denominator
+    return pmf
 ```
 
-#### Sampling from the Gaussian PDF
+#### Sampling from the multinomial PMF
 
 TODO
 
 ```python
-def gaussian_sample(n, mean, variance):
-    """Samples `n` values proportional to a Gaussian PDF
-    with mean `mean` and variance `variance`.
+def multinomial_sample(n, p):
+    """Samples draws of `n` events from a multinomial PMF with event
+    probabilities `p`.
 
     Parameters
     ----------
-    n: integer or tuple of integers
-        The number of samples to take
-    mean: float
-        The mean parameter (mu) of the Gaussian
-    variance: float
-        The variance parameter (sigma^2) of the Gaussian
+    n: integer
+        The number of total events
+    p: numpy array with shape (k,)
+        The event probabilities
 
     Returns
     -------
-    numpy array with shape `n`
-        The sampled values
+    numpy array with shape (k,)
+        The sampled number of occurrences for each event
 
     """
-    # numpy's function takes the standard deviation, rather than
-    # the variance, as a parameter
-    standard_deviation = np.sqrt(variance)
-    x = np.random.norm(mean, standard_deviation, n)
+    x = np.random.multinomial(n, p)
     return x
 ```
 
@@ -174,6 +188,14 @@ with very small probabilities, we encounter underflow problems:
 >>> tiny = np.finfo(float).tiny
 >>> tiny * tiny
 0.0
+```
+
+This can actually be a problem even with the multinomial PMF function
+that we introduced above:
+
+```python
+>>> multinomial_pmf(np.array([1000, 0, 0, 0]), np.array([0.25, 0.25, 0.25, 0.25]))
+nan
 ```
 
 However, taking the log can help alleviate this issue for two reasons.
@@ -227,66 +249,107 @@ underflow:
 0.0
 ```
 
-#### Revisiting the Gaussian PDF
+#### Revisiting the multinomial PMF
 
 Now with this knowledge of the issues that can come up if we do not
-work in log-space, we can rewrite our Gaussian PDF to be a *log*-PDF
+work in log-space, we can rewrite our multinomial PMF to be a *log*-PMF
 instead:
 
 ```python
-def gaussian_logpdf(x, mean, variance):
-    """Evaluates the log-PDF of a Gaussian with mean `mean` and
-    variance `variance` at location(s) `x`.
+from scipy.special import gammaln
+
+def multinomial_logpmf(x, p):
+    """Evaluates the log-probability mass function (log-PMF) of a
+    multinomial with event probabilities `p` for a draw `x`.
 
     Parameters
     ----------
-    x: numpy array
-        The locations to be evaluated
-    mean: float
-        The mean parameter (mu) of the Gaussian
-    variance: float
-        The variance parameter (sigma^2) of the Gaussian
+    x: numpy array with shape (k,)
+        The number of occurrences of each event
+    p: numpy array with shape (k,)
+        The event probabilities
 
     Returns
     -------
-    numpy array with the same shape as x
-        The evaluated log-PDF at locations x
+    The evaluated log-PMF for draw `x`
 
     """
-    log_constant = -0.5 * np.log(2 * np.pi * variance)
-    log_exp = -((x - mean) ** 2 / (2 * variance))
-    logp = log_constant + log_exp
-    return logp
+    # get the total number of events
+    n = np.sum(x)
+    # equivalent to log(n!)
+    numerator = gammaln(n + 1)
+    # equivalent to log(x1! * ... * xk!)
+    denominator = np.sum(gammaln(x + 1))
+    # equivalent to log(p1^x1 * ... * pk^xk)
+    weights = np.sum(np.log(p) * x)
+    log_pmf = numerator - denominator + weights
+    return log_pmf
 ```
 
-If we really do need the PDF, and not the log-PDF, we can still
+If we really do need the PMF, and not the log-PMF, we can still
 compute it. However, it is generally better to *first* compute it in
 log-space, and then exponentiate it if we need to take it out of
 log-space:
 
 ```python
-def gaussian_pdf(x, mean, variance):
-    """Evaluates the PDF of a Gaussian with mean `mean` and
-    variance `variance` at location(s) `x`.
+def multinomial_pmf(x, p):
+    """Evaluates the probability mass function (PMF) of a multinomial
+    with event probabilities `p` for a draw `x`.
 
     Parameters
     ----------
-    x: numpy array
-        The locations to be evaluated
-    mean: float
-        The mean parameter (mu) of the Gaussian
-    variance: float
-        The variance parameter (sigma^2) of the Gaussian
+    x: numpy array with shape (k,)
+        The number of occurrences of each event
+    p: numpy array with shape (k,)
+        The event probabilities
 
     Returns
     -------
-    numpy array with the same shape as x
-        The evaluated PDF at locations x
+    The evaluated PMF for draw `x`
 
     """
-    p = np.exp(gaussian_logpdf(x, mean, variance))
-    return p
+    pmf = np.exp(multinomial_logpmf(x, p))
+    return pmf
 ```
+
+By doing this, we can successfully circumvent (many) underflow
+problems. Recall that we ran into the following issue:
+
+```python
+>>> multinomial_pmf(np.array([1000, 0, 0, 0]), np.array([0.25, 0.25, 0.25, 0.25]))
+nan
+>>> multinomial_pmf(np.array([999, 0, 0, 0]), np.array([0.25, 0.25, 0.25, 0.25]))
+nan
+```
+
+This is bad, because `nan` values can mess up computations later down
+the line (usually resulting in more `nan`s). Moreover, we have no way
+of comparing these probabilities, even though we *should* be able
+to. With the log version of our functions, we get a much more
+reasonable answer:
+
+```python
+>>> multinomial_logpmf(np.array([1000, 0, 0, 0]), np.array([0.25, 0.25, 0.25, 0.25]))
+-1386.2943611198905
+>>> multinomial_logpmf(np.array([999, 0, 0, 0]), np.array([0.25, 0.25, 0.25, 0.25]))
+-1384.9080667587707
+```
+
+These are a very small probabilities, and we still encounter underflow
+here, but at least it's not giving us `nan`!
+
+```python
+>>> multinomial_pmf(np.array([1000, 0, 0, 0]), np.array([0.25, 0.25, 0.25, 0.25]))
+0.0
+>>> multinomial_pmf(np.array([999, 0, 0, 0]), np.array([0.25, 0.25, 0.25, 0.25]))
+0.0
+```
+
+Clearly, doing all our computations in log-space can save a lot of
+headache. We might still be forced to lose that precision if we need
+to go out of log-space, but we at least maintain some information
+about the probabilities -- enough to compmare them, for example --
+that would otherwise be lost.
 
 ### Seeding the random number generator
 
@@ -314,40 +377,65 @@ function will use that object to sample the values; otherwise, it will
 use the usual function from `np.random`:
 
 ```python
-def gaussian_sample(n, mean, variance, rso=None):
-    """Samples `n` values proportional to a Gaussian PDF
-    with mean `mean` and variance `variance`.
+def multinomial_sample(n, p, rso=None):
+    """Samples draws of `n` events from a multinomial PMF with event
+    probabilities `p`.
 
     Parameters
     ----------
-    n: integer or tuple of integers
-        The number of samples to take
-    mean: float
-        The mean parameter (mu) of the Gaussian
-    variance: float
-        The variance parameter (sigma^2) of the Gaussian
+    n: integer
+        The number of total events
+    p: numpy array with shape (k,)
+        The event probabilities
     rso: numpy RandomState object (default: None)
         The random number generator
 
     Returns
     -------
-    numpy array with shape `n`
-        The sampled values
+    numpy array with shape (k,)
+        The sampled number of occurrences for each event
 
     """
     # get the appropriate function for generating the
     # random sample
     if rso:
-        func = rso.norm
+        func = rso.multinomial
     else:
-        func = np.random.norm
+        func = np.random.multinomial
 
-    # numpy's function takes the standard deviation, rather than
-    # the variance, as a parameter
-    standard_deviation = np.sqrt(variance)
-    x = func(mean, standard_deviation, n)
+    x = func(n, p)
     return x
 ```
+
+## Example: Magic item stats
+
+Let's say we're writing a roleplaying game (RPG), and we want a method
+of generating stats for the magical items that are randomly dropped by
+monsters. We might decide that the maximum bonus we want an item to
+have is +5, and that higher bonuses are less likely than lower
+bonuses:
+
+$$
+P(B=\mathrm{+1}) = 0.55\\
+P(B=\mathrm{+2}) = 0.25\\
+P(B=\mathrm{+3}) = 0.12\\
+P(B=\mathrm{+4}) = 0.06\\
+P(B=\mathrm{+5}) = 0.02
+$$
+
+We can also specify that there are six stats (dexterity, constitution,
+strength, intelligence, wisdom, and charisma) that our bonus should be
+distributed between. So, an item with a +5 bonus could have those
+points distributed across different stats (e.g., +2 wisdom and +3
+intelligence) or concentrated within a single stat (e.g., +5
+charisma).
+
+How would we randomly sample these stats? The easiest way is probably
+*hierarchical* sampling. First, we sample the overall item
+bonus. Then, we sample the way the stats are distributed.
+
+### Sampling the bonus
+
 
 ## Rejection sampling
 
