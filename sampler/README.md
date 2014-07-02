@@ -62,8 +62,8 @@ probability density at the value $x$).
 Given the PDF or PMF, we might also want to *sample* a value $x$ in a
 manner proportional to the distribution (such that we are more likely
 to get a sample at places where the probability is higher). In
-mathematical notation, we would write this as $x\sim p$ or $x\sim
-p(x)$, to indicate that $x$ is sampled proportional to $p$.
+mathematical notation, we would write this as $x\sim p$, to indicate
+that $x$ is sampled proportional to $p$.
 
 Evaluation and sampling are both critical pieces to working with
 probabilities, so when you write code to work with probabilities, you
@@ -80,6 +80,10 @@ The Gaussian, also known as the "normal distribution" or "bell curve",
 is one of the most commonly used distributions. They are used to model
 many types of random variables, such as TODO: list some examples
 
+The Gaussian distribution has two *parameters*: the mean, $\mu$, and
+variance, $\sigma^2$. These parameters specify the location and shape
+of the distribution.
+
 #### Evaluating the Gaussian PDF
 
 TODO
@@ -94,9 +98,9 @@ def gaussian_pdf(x, mean, variance):
     x: numpy array
         The locations to be evaluated
     mean: float
-        The mean parameter of the Gaussian
+        The mean parameter (mu) of the Gaussian
     variance: float
-        The variance parameter of the Gaussian
+        The variance parameter (sigma^2) of the Gaussian
 
     Returns
     -------
@@ -124,9 +128,9 @@ def gaussian_sample(n, mean, variance):
     n: integer or tuple of integers
         The number of samples to take
     mean: float
-        The mean parameter of the Gaussian
+        The mean parameter (mu) of the Gaussian
     variance: float
-        The variance parameter of the Gaussian
+        The variance parameter (sigma^2) of the Gaussian
 
     Returns
     -------
@@ -237,9 +241,9 @@ def gaussian_logpdf(x, mean, variance):
     x: numpy array
         The locations to be evaluated
     mean: float
-        The mean parameter of the Gaussian
+        The mean parameter (mu) of the Gaussian
     variance: float
-        The variance parameter of the Gaussian
+        The variance parameter (sigma^2) of the Gaussian
 
     Returns
     -------
@@ -268,9 +272,9 @@ def gaussian_pdf(x, mean, variance):
     x: numpy array
         The locations to be evaluated
     mean: float
-        The mean parameter of the Gaussian
+        The mean parameter (mu) of the Gaussian
     variance: float
-        The variance parameter of the Gaussian
+        The variance parameter (sigma^2) of the Gaussian
 
     Returns
     -------
@@ -317,9 +321,9 @@ def gaussian_sample(n, mean, variance, rso=None):
     n: integer or tuple of integers
         The number of samples to take
     mean: float
-        The mean parameter of the Gaussian
+        The mean parameter (mu) of the Gaussian
     variance: float
-        The variance parameter of the Gaussian
+        The variance parameter (sigma^2) of the Gaussian
     rso: numpy RandomState object (default: None)
         The random number generator
 
