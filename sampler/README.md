@@ -34,98 +34,88 @@ could simulate the behavior of the airplane under many different
 weather conditions, which would allow you to see under which
 conditions the airplane is most likely to fail.
 
-Or, consider the object recognition example. As a simple case of the
-general object recognition problem, we could suppose that our robot
-needs to determine the orientation of an object (such that it can then
-pick up the object and place it upright). If the robot is dealing with
-three-dimensional objects, then this is an extremely challenging
-problem. As we will see, even in two dimensions, identifying the
-rotation of an image is not all that straightforward.
-
 This chapter will provide an introduction to programming for sampling
-methods, using the example of recovering rotation from an image as a
-case study.
-
-<!-- p(image, rotation | observed) = p(observed | rotated_image) p(rotated_image | rotation, image) p(rotation) p(image) -->
-<!-- p(rotation | observed) = p(observed | rotated_image) p(rotated_image | rotation) p(rotation) -->
-
-
-```
-def sample_rotation():
-    radians = np.random.uniform(0, 2 * np.pi)
-    return radians
-```
-
-```
-def sample_image():
-    image = np.random.randint(0, 2, (10, 10))
-    return image
-```
-
-```
-def sample_rotated_image(image):
-    radians = sample_rotation()
-    rotated_image = rotate(image, radians)
-    return rotated_image
-```
-
-```
-def compare_images(image1, image2):
-    pixel_distance = (image1 - image2) ** 2
-    total_distance = np.sqrt(pixel_distance.sum())
-    return total_distance
-```
-
-
-The idea behind sampling is that we want to draw samples from a
-probability distribution, but we only have the *equation* of the
-distribution's Probability Density Function (PDF), rather than an
-algorithm for actually drawing samples.
+methods like the ones you would need to compute solutions to the
+examples above. TODO: more here
 
 ## Rejection sampling
 
-*Rejection sampling* is one of the simplest methods for doing
-this. Rather than directly drawing samples from the *target*
-distribution ($p$), which is the one we ultimately do want samples
-from, we specify a *proposal* distribution ($q$) that we know how to
-sample from. Then, the procedure is as follows:
+More formally, the idea behind sampling is that we want to draw
+samples from a probability distribution, but we can only evaluate the
+probability density (or mass) at a particular point -- we do not
+actually have a method of drawing samples in proportion to that
+distribution.
+
+There are many different types of Monte Carlo sampling methods,
+but we will focus on only one here: rejection sampling.
+
+### Mathematical background
+
+*Rejection sampling* is one of the simplest methods for drawing
+approximate samples from a distribution. Rather than directly drawing
+samples from the *target* distribution ($p$), which is the one we
+ultimately do want samples from, we specify a *proposal* distribution
+($q$) that we know how to sample from. Then, the procedure is as
+follows:
 
 1. Draw a sample from the proposal distribution, $x\sim q$
 2. Choose a point $y$ uniformly at random in the interval $[0, q(x)]$
 3. If $y < p(x)$, then accept $x$ as a sample. Otherwise, reject $x$
    and start over from step 1.
 
-TODO: Give more of an intuition for how this works.
+By repeating this procedure many times, we can get an estimate of what
+the true probability distribution $p(x)$ look like.
 
-There are many other sampling methods that you could choose from, but
-all of them have relatively similar design patterns behind the
-implementation, so we will just be focusing on rejection sampling
-here.
+### Example: measuring the depth of the sea floor
 
-## Generic rejection sampler implementation
+To give a more intuitive example of what all this math means, consider
+the problem of trying to map the depth of the ocean floor. With
+technology like sonar, this isn't so difficult, so let's instead
+imagine that we're 15th century sailors, and the best we have is an
+anchor on the end of a very long rope. For purposes of illustration,
+let's pretend we can't measure the length of the rope, either -- we
+can only know whether it has hit the bottom of the ocean.
 
-The file `sampler.py` contains the basic code for implementing a
-sampler. On initialization, it takes functions to sample from the
-proposal distribution and to compute the log-PDF values for both the
-proposal and target distributions.
+Then, the three steps listed above can be reinterpreted as follows:
 
-TODO: discuss the design decision of having `RejectionSampler` take
-the functions, and then requiring users to instantiate it directly,
-rather than subclassing it and having users write write the functions
-as methods of the subclass.
+1. Pick a random point $x$ on the surface of the ocean.
+2. Drop the anchor into the ocean, and let it go down for a random
+   length between the top of the ocean, and the end of the rope.
+3. If the anchor hits the sea floor, then accept $x$ as a
+   sample. Otherwise, reject $x$ and start over from step 1.
 
-TODO: include discussion about using `import numpy as np` rather than
-`import numpy`.
+By keeping track of the locations in which the anchor touched the
+bottom, we can get a good estimate of where the ocean is very deep
+(few samples), and where it is relatively shallow (many samples).
 
-TODO: include discussion about variable names (descriptive vs math?)
+It makes sense why this works: if the ocean is deep at $x$, then most
+of the time, the anchor won't touch the bottom (it will only if we
+chose a very long length of rope). Thus, we will end up with very few
+samples in places where the ocean is deep. Conversely, if the ocean is
+very shallow at $x$, then most of the time the anchor *will* touch the
+bottom (it won't only if we choose a very short length of rope). So,
+we will end up with a lot of samples in places where the ocean is
+shallow.
+
+TODO: it would be nice to have an illustration of this
+
+## Programming with probabilities
+
+When working with probabilities, there are a few standard
+practices. Following these will make your code cleaner, easier to
+test, and less buggy in general.
+
+### Seeding the random number generator
+
+TODO
 
 ### Working in "log-space"
 
-Why the log-PDF? When working with sampling methods, it is almost
-always a good idea to work in "log-space", meaning that your functions
-should always return log probabilities rather than probabilities. This
-is because probabilities can get very small very quickly, resulting in
-underflow errors.
+When working with sampling methods, it is almost always a good idea to
+work in "log-space", meaning that your functions should always return
+log probabilities rather than probabilities. This is because
+probabilities can get very small very quickly, resulting in underflow
+errors.
 
 To motivate this, consider that probabilities must range between 0 and
 1 (inclusive). NumPy has a useful function, `finfo`, that will tell us
@@ -151,24 +141,40 @@ with very small probabilities, we encounter underflow problems:
 ```
 
 However, taking the log can help alleviate this issue for two reasons.
-First, "log-space" ranges from $-\infty$ to zero; in practice, this
-means it ranges from the `min` value returned by `finfo` to zero. Yet,
-the log of the smallest positive value is much larger than that! So,
-we have greatly expaned our range of representable numbers:
+
+#### Range of possible values
+
+First, "log-space" ranges from $-\infty$ to zero. Since $-\infty$ is
+not an actual number, this means in practice that it ranges from the
+`min` value returned by `finfo` (which is the smallest number that can
+be represented) to zero:
 
 ```
 >>> np.finfo(float).min
 -1.7976931348623157e+308
+```
+
+But, the log of the smallest positive value is much larger than the
+`min` value:
+
+```
 >>> np.log(tiny)
 -708.39641853226408
 ```
 
+So, by working in log-space, we can greatly expand our range of
+representable numbers.
+
+#### Floating-point error
+
 Second, we can perform multiplication in log-space using addition,
  because of the identity that $\log(x\cdot{}y) = \log(x) +
  \log(y)$. Thus, if we do the multiplication above in log-space, we do
- not have to deal with loss of precision due to underflow:
+ not have to worry (as much) about loss of precision due to underflow:
 
 ```
+>>> np.log(tiny * tiny)
+-inf
 >>> np.log(tiny) + np.log(tiny)
 -1416.7928370645282
 ```
@@ -184,6 +190,23 @@ underflow:
 >>> np.exp(np.log(tiny) + np.log(tiny))
 0.0
 ```
+
+## Generic rejection sampler implementation
+
+The file `sampler.py` contains the basic code for implementing a
+sampler. On initialization, it takes functions to sample from the
+proposal distribution and to compute the log-PDF values for both the
+proposal and target distributions.
+
+TODO: discuss the design decision of having `RejectionSampler` take
+the functions, and then requiring users to instantiate it directly,
+rather than subclassing it and having users write write the functions
+as methods of the subclass.
+
+TODO: include discussion about using `import numpy as np` rather than
+`import numpy`.
+
+TODO: include discussion about variable names (descriptive vs math?)
 
 ### Structure of the rejection sampler
 
