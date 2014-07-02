@@ -99,6 +99,20 @@ shallow.
 
 TODO: it would be nice to have an illustration of this
 
+### Why rejection sampling?
+
+If it seems like rejection sampling is an awfully inefficient method
+to estimate anything, you're right: it is! However, it is a useful
+method to learn *first*, because -- despite being so simple -- it
+still follows design patterns that are common to other sampling
+methods.
+
+The other sampling methods which exist are much more powerful, but
+also much more complicated. While we unfortunately don't have time to
+cover them in this chapter, interested readers are encouraged to look
+further into slice sampling, the Metropolis-Hastings algorithm, and
+Gibbs sampling.  TODO: references
+
 ## Programming with probabilities
 
 When working with probabilities, there are a few standard
