@@ -241,9 +241,11 @@ class Replica(Component):
     # handling decided proposals
 
     def do_DECISION(self, sender, slot, proposal):
+        assert not self.decisions.get(self.slot_num, None), \
+                "next slot to commit is already decided"
         if slot in self.decisions:
             assert self.decisions[slot] == proposal, \
-                "slot %d already decided: %r!" % (slot, self.decisions[slot])
+                "slot %d already decided with %r!" % (slot, self.decisions[slot])
             return
         self.decisions[slot] = proposal
         self.next_slot = max(self.next_slot, slot + 1)
@@ -400,6 +402,7 @@ class Leader(Component):
         active()
 
     def spawn_scout(self):
+        # TODO: change to self.scouting (boolean)
         assert not self.scout
         sct = self.scout = self.scout_cls(self.node, self.ballot_num, self.peers)
         sct.start()
@@ -425,6 +428,7 @@ class Leader(Component):
 
     def spawn_commander(self, ballot_num, slot):
         proposal = self.proposals[slot]
+        # TODO: get rid of self.commanders
         assert slot not in self.commanders
         cmd = self.commander_cls(self.node, ballot_num, slot, proposal, self.peers)
         self.commanders[slot] = cmd

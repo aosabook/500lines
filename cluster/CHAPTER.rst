@@ -94,7 +94,7 @@ Leader Elections
 Introducing Cluster
 ===================
 
-The "cluster" library in this chapter implements a simple form of Multi-Paxos.
+The "Cluster" library in this chapter implements a simple form of Multi-Paxos.
 It is designed for providing a consensus service to a larger application.
 The application creates and starts a ``Member`` object on each cluster member, providing an application-specific state machine and a list of peers.
 The application accesses the shared state through the ``invoke`` method, which kicks off a proposal for a state transition.
@@ -155,6 +155,8 @@ The ``CATCHUP`` messages also include the highest known slot, so replicas can le
 
 ``DECISION`` messages represent slots on which the cluster has come to consensus.
 Here, replicas store away the new decision, then run the state machine until it reaches an undecided slot.
+Replicas distinguish *decided* proposals, on which the cluster has agreed, from *committed* proposals, which the local state machine has processed.
+When propsals are decided out of order, the committed proposals may lag behind, waiting for the next slot to be decided.
 
 In some circumstances, it's possible for a slot to have no active proposals and no decision.
 The state machine is required to execute slots one by one, so the cluster much reach a consensus on something to fill the slot.
@@ -259,7 +261,7 @@ When developing a complex system such as this, the bugs quickly transition from 
 Chasing down bugs like this involves working backward from the point where the error became obvious.
 Interactive debuggers are useless here, as they can only step forward in time.
 
-The most important debugging feature in cluster is a *deterministic* simulator.
+The most important debugging feature in Cluster is a *deterministic* simulator.
 Unlike a real network, it will behave exactly the same way on every run, given the same seed for the random number generator.
 This means that we can add additional debugging checks or output to the code and re-run the simulation to see the same failure in more detail.
 
@@ -267,30 +269,101 @@ Of course, much of that detail is in the messages sent and received by the diffe
 That logging includes the component sending or receiving the message, as well as the simulated timestamp, injected via the ``SimTimeLogger`` class.
 
 A resilient protocol such as this one can often run for a long time after some bug has been triggered.
-XXX HERE (assertions)
+For example, during development, a data aliasing error caused all replicas to share the same ``decisions`` dictionary.
+This meant that once a decision was handled on one node, all other nodes saw it as already decided.
+Even with this serious bug, the cluster produced correct results for several transactions before deadlocking.
+
+Assertions are an important tool to catch this sort of error early.
+Assertions should include any invariants from the algorithm design, but when the code doesn't behave as we expect, asserting our expectations is a great way to see where things go astray.
+
+Identifying the right assumptions we make while reading code is a part of the art of debugging.
+In this case, the problem was that the ``DECISION`` for the next slot to commit was being ignored because it was already in ``self.decisions``.
+The underlying assumption being violated was that the next slot to be committed was not yet decided.
+Asserting this at the beginning of ``do_DECISION`` identified the flaw and led quickly to the fix.
+
+Many other assertions were added during development of the protocol, but in the interests of space, only a few remain.
 
 Testing
 -------
 
-Separation of Concerns
-......................
+Sometime in the last 10 years, code without tests finally became as crazy as driving without a seatbelt.
+Code without tests is probably incorrect, and modifying the code is risky without a way to see if its behavior has changed.
 
-* components don't talk to one another
+Testing is most effective when the code is organized for testability.
+There are a few active schools of thought in this area, but the approach we've taken is to divide the code into small, minimally connected units that can be tested in isolation.
+This agrees nicely with the component model, where each component has a specific purpose and can operate in isolation from the others.
+
+Cluster is written to maximize that isolation.
+All communication between components takes place via messages, with the exception of creating new components.
+For the most part, then, components can be tested by sending messages to them and observing their responses.
 
 Dependency Injection
 ....................
 
+We use a technique called "dependency injection" to handle creation of new components.
+Each component which creates other components takes a list of class objects as constructor arguments, defaulting to the actual classes.
+For example, ``Leader``'s constructor looks like
+
+.. code-block::
+
+    def __init__(self, node, peers, commander_cls=Commander, scout_cls=Scout):
+        # ..
+        self.commander_cls = commander_cls
+        self.scout_cls = scout_cls
+
+The ``spawn_scout`` method (and, similarly, ``spawn_commander``) create the new component with
+
+.. code-block::
+
+    sct = self.scout_cls(self.node, self.ballot_num, self.peers)
+
+The magic of this technique is that, in testing, ``Leader`` can be given stub classes and thus tested separately from ``Scout`` and ``Commander``.
+
+Unit Testing
+............
+
+XXX include test_leader.py? parts of it? I wasn't counting that in the 500 lines..
+
+One pitfall of a focus on small units is that it does not test the interfaces between units.
+For example, unit tests for the acceptor component verify the format of the ``accepted`` attribute of the ``PROMISE`` message, and the unit tests for the scout component supply well-formatted values for the attribute.
+Neither test checks that those formats match.
+
+One approach to fixing this issue is to make the interfaces self-enforcing.
+In Cluster, the use of named tuples and keyword arguments avoids any disagreement over messages' attributes.
+Because the only interaction between components is via messages, this covers a substantial part of the interface.
+
+For specific issues such as the format of ``accepted``, both the real and test data can be verified using the same function, in this case ``verifyPromiseAccepted``.
+The tests for the acceptor use this method to verify each returned ``PROMISE``, and the tests for the scout use it to verify every fake ``PROMISE``.
+
+Integration Testing
+...................
+
+The final bulwark against interface problems and design errors is integration testing.
+An integration test assembles multiple units together and tests their combined effect.
+In our case, that means building a network of several nodes, injecting some requests into it, and verifying the results.
+If there are any interface issues not discovered in unit testing, they should cause the integration tests to fail quickly.
+
+Because the protocol is intended to handle node failure gracefully, we test a few failure scenarios as well, including the untimely failure of the active leader.
+
+Integration tests are harder to write than unit tests, because they are less well isolated.
+For Cluster, this is clearest in testing the failed master, as the active leader depends on every detail of the protocol's operation.
+Even with a deterministic network, a change in one message alters the random number generator's state and thus unpredictably changes later events.
+Rather than hard-coding the expected leader, the test code must dig into the internal state of each leader to find one that believes itself to be active.
 
 Implementation Challenges
 =========================
 
-Data Aliasing
--------------
-
-(need for .copy())
-
 Catching Up
 -----------
+
+In "pure" MultiPaxos, nodes which fail to receive messages can be many slots behind the rest of the cluster.
+As long as the state of the distributed state machine is never accessed except via state machine transitions, this design is functional.
+To read from the state, the client requests a state-machine transition that does not actually alter the state, but which returns the desired value.
+This transition is executed cluster-wide, ensuring that it returns the same value everywhere, based on the state at the slot in which it is proposed.
+
+Even in the optimal case, this is slow, requiring several round trips just to read a value.
+If a distributed object store made such a request for every object access, its performance would be dismal.
+But when the node receiving the request is lagging behind, the request delay is much greater as that node must catch up to the rest of the cluster before making a successful proposal.
 
 Follow the Leader
 -----------------

@@ -85,7 +85,7 @@ class Tests(unittest.TestCase):
         self.assertEqual((len(results), results and max(results)), (N, N*(N+1)/2),
                          "got %r" % (results,))
 
-    def test_dead_nodes(self):
+    def test_failed_nodes(self):
         """Full run with requests and some nodes dying midway through succeeds"""
         N = 10
         nodes = self.setupNetwork(6)  # TODO: really a 7-node cluster, w/ node0=seed
@@ -104,11 +104,11 @@ class Tests(unittest.TestCase):
         self.assertEqual((len(results), results and max(results)), (N, N*(N+1)/2),
                          "got %r" % (results,))
 
-    def test_dead_leader(self):
+    def test_failed_leader(self):
         """Full run with requests and a dying leader succeeds."""
         N = 10
         # use a bit-setting function so that we can easily ignore requests made
-        # by the dead node
+        # by the failed node
         def identity(state, input):
             return state, input
         nodes = self.setupNetwork(6, execute_fn=identity)  # TODO: really a 7-node cluster, w/ node0=seed
@@ -117,15 +117,15 @@ class Tests(unittest.TestCase):
             req = Request(nodes[n % 6], n, results.append)
             self.network.set_timer(None, n+1, req.start)
 
+        # kill the leader node at N/2 seconds (it should be stable by then).  Some of the
+        # Request components were attached to this node, so we fake success of those requests
+        # since we don't know what state they're in right now.
         def is_leader(n):
             try:
                 leader_component = [c for c in n.components if isinstance(c, Leader)][0]
                 return leader_component.active
             except IndexError:
                 return False
-        # kill the leader node at N/2 seconds (it should be stable by then).  Some of the
-        # Request components were attached to this node, so we fake success of those requests
-        # since we don't know what state they're in right now.
         def kill_leader():
             active_leader_nodes = [n for n in nodes if is_leader(n)]
             if active_leader_nodes:

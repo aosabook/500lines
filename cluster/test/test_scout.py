@@ -36,6 +36,7 @@ class Tests(utils.ComponentTestCase):
                 'p1': {(Ballot(5, 5), 1): PROPOSAL1, (Ballot(6, 6), 2): PROPOSAL2},
                 'p3': {(Ballot(5, 99), 1): PROPOSAL1, (Ballot(6, 99), 2): PROPOSAL2},
             }[acceptor]
+            self.verifyPromiseAccepted(accepted)
             self.node.fake_message(Promise(ballot_num=Ballot(10, 10),
                                            accepted=accepted), sender=acceptor)
         self.assertMessage(['F999'], Adopted(ballot_num=Ballot(10, 10), pvals={
@@ -50,7 +51,9 @@ class Tests(utils.ComponentTestCase):
         """PROMISEs with different ballot_nums mean preemption"""
         self.sct.send_prepare()
         self.assertMessage(['p1', 'p2', 'p3'], Prepare(ballot_num=Ballot(10, 10)))
+        accepted = {}
+        self.verifyPromiseAccepted(accepted)
         self.node.fake_message(Promise(
                     ballot_num=Ballot(99, 99),
-                    accepted={}), sender='p2')
+                    accepted=accepted), sender='p2')
         self.assertMessage(['F999'], Preempted(slot=None, preempted_by=Ballot(99, 99)))

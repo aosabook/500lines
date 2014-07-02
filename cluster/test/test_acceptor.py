@@ -22,11 +22,13 @@ class Tests(utils.ComponentTestCase):
                                # newer than the acceptor's ballot_num
                                ballot_num=Ballot(19, 19)), sender='SC')
         self.assertMessage(['F999'], Accepting(leader='SC'))
+        accepted = {(Ballot(19, 19), 33): proposal}
+        self.verifyPromiseAccepted(accepted)
         self.assertMessage(['SC'], Promise(
                            # replies with updated ballot_num
                            ballot_num=Ballot(19, 19),
                            # including accepted ballots
-                           accepted={(Ballot(19, 19), 33): proposal}))
+                           accepted=accepted))
         self.assertState(Ballot(19, 19), {(Ballot(19, 19), 33): proposal})
 
     def test_prepare_old_ballot(self):
@@ -36,10 +38,12 @@ class Tests(utils.ComponentTestCase):
         self.node.fake_message(Prepare(
                                # older than the acceptor's ballot_num
                                ballot_num=Ballot(5, 10)), sender='SC')
+        accepted = {}
+        self.verifyPromiseAccepted(accepted)
         self.assertMessage(['SC'], Promise(
                            # replies with newer ballot_num
                            ballot_num=Ballot(10, 10),
-                           accepted={}))
+                           accepted=accepted))
         self.assertState(Ballot(10, 10), {})
 
     def test_accept_new_ballot(self):
