@@ -14,14 +14,15 @@ The rise of the mobile device brought with it a trend to collect more and more d
 
 ## What's an Accelerometer, You Ask?
 
-An accelerometer is a piece of hardware that measures acceleration in the x, y, and z directions. In today's mobile world, many people carry an accelerometer with them wherever they go, as it's built into almost all smartphones on the market today. The x, y, and z directions are relative to the device the hardware is contained in.
+An accelerometer is a piece of hardware that measures acceleration in the x, y, and z directions. In today's mobile world, many people carry an accelerometer with them wherever they go, as it's built into almost all smartphones currently on the market. The x, y, and z directions are relative to the device the hardware is contained in.
 
 TODO: This diagram is a direct copy from Apple. Problem? 
 (https://developer.apple.com/library/ios/documentation/EventHandling/Conceptual/EventHandlingiPhoneOS/motion_event_basics/motion_event_basics.html)
 ![](chapter-figures/figure-iphone-accelerometer.png)\
 
-TODO: Can I call this a triple? Math terminology, come to my rescue.
 An accelerometer measures x, y, z acceleration at points in time. Let's call one group of x, y, z coordinates at a point in time a triple. The sampling rate of the accelerometer, which can often be calibrated, determines the number of triples the accelerometer returns per second. For instance, an acceleroemeter with a sampling rate of 100 returns 100 x, y, z triples each second. Each x, y, z triple indicates the acceleration in each of the directions at that point in time. 
+
+TODO: Can I call this a triple?
 
 ## Let's Talk About a Walk
 
@@ -54,13 +55,15 @@ Even in our perfect world, gravity exists, so there is a constant acceleration i
 
 ![](chapter-figures/figure-sine-wave-gravity.png)\
 
-Uh oh. We can no longer count when the waveform crosses the x-axis. We'll have to isolate user acceleration in order to use our x-axis method of counting steps. In our perfect world, when the phone is held consistently as drawn above, we can isolate user acceleration like so: 
+Uh oh. We can no longer count when the waveform crosses the x-axis. We'll have to isolate user acceleration in order to use our x-axis method of counting steps. We can isolate user acceleration like so: 
 
 $a_{t} = a_{u} + a_{g}$\
 $a_{t} = a_{u} - 0.98$\
 $a_{u} = a_{t} + 0.98$
 
-This means that we can simply add 0.98 to every single y value, resulting in the first graph we saw. What if, however, our silly stick man holds the phone in a more wonky, but still consistent, position?
+This means that we can simply add 0.98 to every single y value, resulting in the first graph we saw, and making our step counting once again a matter of counting the points when the sine wave crosses the x-axis in the positive direction. 
+
+What if, however, our silly stick man holds the phone in a more wonky, but still consistent, position?
 
 ![](chapter-figures/figure-xyz-wonky.png)\
 
@@ -71,27 +74,34 @@ Our pefect world just got a little more real, and now we have two problems:
 1. Isolating user acceleration from gravitational acceleration. Separating total acceleration into gravitational acceleration and user acceleration isn't a simple matter of adding 0.98 to a single direction.
 2. Isolating movement in the direction of gravity. We can no longer ignore the x and z directions and simply take the data from the y direction.
 
+Every problem has a solution. Let's look at each problem separately, and put on our mathematician hats. 
+
+## 1. Isolating user acceleration from gravitational acceleration
+
+When the phone is held in such a way that the gravitational acceleration affects all components, we need to find a way to completely separate user acceleration from gravitational acceleration. We can do that using a tool called a low-pass filter.
+
+### Low-pass Filter
+A filter is a tool used in signal processing to remove an unwanted component from a signal. In our case, we want to remove user acceleration from our total acceleration signal, so that we're left with just  the gravitational component. Once we have that, we can subtract gravitational acceleration from the total acceleration, and we'll be left with user acceleration. In this way, we'll have three sets of data at the end, one for the total acceleration, one for gravitational acceleration on its own, and one for user acceleration on it's own. 
+
+A low-pass filter is a filter that allows low-frequency signals through, while attenuating signals higher than a set threshold. In our sitation, gravitational acceleration is a 0 Hz signal because it's constant, while user acceleration is not. This means that if we pass our signal through a low-pass filter, we'll allow the gravitational component of the signal to pass through, while removing the user acceleration component. There are numerous varieties of low-pass filters, but the one we'll use is called a Chebyshev filter. We've chosen a Chebyshev filter because it has a steep cutoff, which means that it very quickly attenuates frequencies beyond our threshold. 
+TODO: Expand?
+
+## 2. Isolating movement in the direction of gravity
+
+When gravity acts on our phone in multiple directions, how do we isolate acceleration in the direction of gravity, so that we can count bounces? We need to find a way to take just the movement in the direction of gravity from each of the x, y, and z directions. First, a very small amount of liner algebra 101. 
+
+### The Dot Product
+
+The dot product takes two signals of equal length and returns a single signal. We have our final format split into user acceleration in the x, y, and z directions and gravitational accelearation in the x, y, and z directions. If we take the dot product of user acceleration and gravitational acceleration, we'll have, in return, the portion of user acceleration in the direction of gravity. 
+TODOL Expand?
+
+TODO: Add graphs from trial view showing original data and dot product data.
+
 TODO: Start: Add this somewhere else...
 All current iPhone and Android devices come with an accelerometer as well as a gyroscope, so they're able to separate gravitational acceleration from user acceleration. TODO: Expand this explanation.
 
 However, we're creating a robust, flexible program, so we've decided that we want to accept input data from the newest of mobile devices, as well as from pure hardware accelerometers. This means that we'll need to accept input data in two formats: a **separated** format where user acceleration and gravitational acceleration are, well, separated; and a **combined** format which only provides us with total acceleration. 
 TODO: End: Add this somewhere else...
-
-OPTION 1:
-
-Every problem has a solution. Let's look at each problem separately, and put on our mathematician hats. 
-
-### 1. Isolating user acceleration from gravitational acceleration
-
-TODO: Describe low pass filtering
-
-### 2. Isolating movement in the direction of gravity
-
-TODO: Describe dot product
-
-OPTION 2:
-
-Every problem has a solution. We'll solve each of these problems in our code. Let's dive into building our web app.
 
 # The Toolchain
 We've decided to build a simple web app to process and analyze our data. A web app naturally separates the data processing from the presentation of the data, and since web apps have been build many times over, we may as well use a framework to do the boring plumbing work for us. The Sinatra framework does just that. In the tool's own words, Sinatra is "a DSL for quickly creating web applications in Ruby". Perfect. 
@@ -268,13 +278,7 @@ The goal of parse_raw_data is to convert string data to a format we can more eas
 
 At this stage, we have two possible data formats, combined and separated, as string data. We need to parse both into numerical data, and, as we discovered before, we need some extra work on the combined format to split out user acceleration from gravitational acceleration. 
 
-TODO: Add a section here on low pass filtering and the Chebyshev filter, and how it applies to splitting out the gravitational acceleration from the user acceleration.
-
-So, how do we split put combined acceleration? Let's put on our mathematician hats, and look at low-pass filters. 
-
-### Low-pass Filter
-A low-pass filter is simply a filter that allows low-frequency signals through, while attenuating signals higher than a set threshold. In our sitation, gravitational acceleration is a 0 Hz signal because it's constant, while user acceleration is not. This means that if we pass our signal through a low-pass filter, we'll be able to remove the gravitational component from the total. There are numerous varieties of low-pass filters, but the one we'll use is called a Chebyshev filter. We've chosen a Chebyshev filter because it has a steep cutoff, which means that it very quickly attenuates frequencies beyond our threshold. 
-TODO: Expand?
+TODO: Tie in low pass filtering from above, and talk about the Chebyshev filter specifically.
 
 ### Back to our code
 It's wise for us, while we're parsing our string data to numerical data, to parse all incoming data into one data format that the rest of our program can use. That way, if we ever have to add a third data format (or fourth, or fifth, or, well, you get the idea) we only have to change the parse_raw_data method. 
@@ -309,14 +313,7 @@ The entire purpose of the parse_raw_data method is to take input data in one of 
 
 ## Step 2: Isolating movement in the direction of gravity (dot_product_parsed_data)
 
-When gravity acts on our phone in multiple directions, how do we isolate acceleration in the direction of gravity? First, a very small amount of liner algebra 101. 
-
-### The Dot Product
-
-The dot product takes two signals of equal length and returns a single signal. We have our final format split into user acceleration in the x, y, and z directions and gravitational accelearation in the x, y, and z directions. If we take the dot product of user acceleration and gravitational acceleration, we'll have, in return, the portion of user acceleration in the direction of gravity. 
-TODOL Expand?
-
-TODO: Add graphs from trial view showing original data and dot product data.
+TODO: Add graphs from trial view showing original data and dot product data. Does this belong here, or in the explanation above?
 
 Taking the dot product in our Parser class is straightforward. We add a @dot_product_data instance variable, and a method, dot_product_parsed_data, to set that variable. The dot_product_parsed_data method is called immeditely after parse_raw_data in the initializer, and iterates through our @parsed_data hash, calculates the dot product with map, and sets the result to @dot_product_data. 
 
