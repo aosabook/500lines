@@ -55,8 +55,10 @@ but we will focus on only one here: rejection sampling.
 approximate samples from a distribution. Rather than directly drawing
 samples from the *target* distribution ($p$), which is the one we
 ultimately do want samples from, we specify a *proposal* distribution
-($q$) that we know how to sample from. Then, the procedure is as
-follows:
+($q$) that we know how to sample from. The only constraint on $q$ is
+that $q(x)>=p(x)$ for all $x$ (and it is not necessary that $q(x)$ be
+a proper distribution, i.e. it is ok if it does not integrate to
+1). Then, the procedure is as follows:
 
 1. Draw a sample from the proposal distribution, $x\sim q$
 2. Choose a point $y$ uniformly at random in the interval $[0, q(x)]$
