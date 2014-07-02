@@ -113,7 +113,8 @@ The other sampling methods which exist are much more powerful, but
 also much more complicated. While we unfortunately don't have time to
 cover them in this chapter, interested readers are encouraged to look
 further into slice sampling, the Metropolis-Hastings algorithm, and
-Gibbs sampling.  TODO: references
+Gibbs sampling, all of which are popular choices of Monte Carlo
+sampling algorithms. TODO: references
 
 ## Programming with probabilities
 
