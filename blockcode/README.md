@@ -4,13 +4,21 @@ Block Code is an attempt to create a block-based programming tool in under 500 l
 
 Block-based languages have a long history, with some of the prominent ones being Lego Mindstorms, Alice3D, StarLogo, and especially Scratch. There are several tools for block-based programming on the web as well, such as Blockly, AppInventor, Tynker, and [many more](http://en.wikipedia.org/wiki/Visual_programming_language).
 
-This particular code is loosely based on the open-source project [Waterbear](http://waterbearlang.com/), which is not a language but a tool for wrapping existing languages with a block-based syntax. Advantages of such a wrapper include: Eliminating syntax errors, visual display of available components, easier to read/debug (sometimes), blocks are more localizable than programming languages, blocks can be used by pre-literate or pre-typing children.
+This particular code is loosely based on the open-source project [Waterbear](http://waterbearlang.com/), which is not a language but a tool for wrapping existing languages with a block-based syntax. Advantages of such a wrapper include: Eliminating syntax errors, visual display of available components, visual code can sometimes be easier to read/debug, blocks are more localizable than programming languages (you can translate the text on blocks more readily than translating a programming language), blocks can be used by pre-typing children.
+
+The choice of turtle graphics for this language also goes back to the Logo language, which was created specifically for teaching programming to children. Several of the block-based languages above include turtle graphics, and it is a small enough domain to be able to capture in a tightly constrained project such as this. Later we will see how easy it can be to extend or replace the turtle graphics code with code for other types of programming.
 
 ## Stepping through the code
 
 I've tried to follow some conventions and best practices throughout this project. Each JavaScript file is wrapped in a function to avoid leaking variables into the global environment. If it needs to expose variables to other files it will define a single global per file, based on the filename, with the exposed functions in it. This will be near the end of the file, followed by any event handlers set by that file, so you can always glance a the end of a file to see what events it handles.
 
+Aside from `blocks.css` which provides styling (and some help with functionality we'll also explore) and `index.html` to tie everything together, there are six JavaScript files: `blocks.js` defines the block objects and how they work, `drag.js` implements drag-and-drop using HTML5 native drag-and-drop, `file.js` handles loading and saving block scripts (as JSON) as well as loading the examples, `turtle.js` implements our little turtle graphics language and the blocks for it, and `util.js` removes namespaces from some useful browser methods and implements a couple of shortcuts to save us typing (this file has a similar purpose in the project that jQuery has in other projects, but in < 50 lines of code).
+
+The file `menu.js` is a little bit weird: menu in this context is the list of blocks you can choose for your script and this file sets that up and adds a looping block that is generally useful (and thus not part of the turtle language itself) as well as some code for actually running the scripts. So this is kind of an odds-and-ends file, for things that may not have fit anywhere else.
+
 ### blocks.js
+
+Each block consists of a few HTML elements, styled with CSS, with some JavaScript event handlers for drag-and-drop and modifying the input argument. It's all standard web stuff, and this file just helps to create and manage these grouping of elements as single objects. When a type of block is added to the block menu, it is also associated with a JavaScript function to run to implement the language, and so each block in the script has to be able to find its associated function and to call it when the script runs.
 
 #### `createBlock(name, value, contents)`
 
@@ -34,7 +42,9 @@ Handler to run an array of blocks by sending each block the "run" event.
 
 ### drag.js
 
-Defines a bunch of variables at the top of the file. When we're dragging, we'll need to reference these from different stages of the dragging callback dance
+We're using HTML5 drag and drop, which requires some specific JavaScript event handlers to be defined, and those are defined here. For more information on using HTML5 drag and drop, see Eric Bidleman's article here: http://www.html5rocks.com/en/tutorials/dnd/basics/. While it is nice to have built-in support for drag and drop, it does have some oddities when using it, and some pretty major limitations (like not being implemented in any mobile browser at the time of this writing).
+
+We define a bunch of variables at the top of the file. When we're dragging, we'll need to reference these from different stages of the dragging callback dance.
 
 #### `findPosition(evt)`
 
@@ -42,15 +52,14 @@ Find which block we should insert the dragged block before.
 
 #### `drop(evt)`
 
-The `findPosition` function is called on drop vs. drag because of bug in Firefox drag event (no clientX, etc). This should also improve drag performance, but doesn't give opportunity to provide user feedback during drag.
+The `findPosition` function is called on drop vs. drag because of bug in Firefox drag event (no clientX, etc). This should also improve drag performance, but doesn't give opportunity to provide user feedback during drag. Ideally we'd like to highlight potential drop targets while the user is dragging, to show where a block can legally be placed and to provide some feedback that it will be dropped where they expect.
 
-If dragging from script to menu, delete dragTarget.
+Depending on where the drag starts from and ends, it will have different effects:
 
-If dragging from script to script, move dragTarget.
-
-If dragging from menu to script, copy dragTarget.
-
-If dragging from menu to menu, do nothing.
+* If dragging from script to menu, delete dragTarget (remove block from script).
+* If dragging from script to script, move dragTarget (move an existing script block).
+* If dragging from menu to script, copy dragTarget (insert new block in script).
+* If dragging from menu to menu, do nothing.
 
 #### `dragEnd(evt)`
 
