@@ -138,6 +138,8 @@ def gaussian_sample(n, mean, variance):
         The sampled values
 
     """
+    # numpy's function takes the standard deviation, rather than
+    # the variance, as a parameter
     standard_deviation = np.sqrt(variance)
     x = np.random.norm(mean, standard_deviation, n)
     return x
@@ -340,6 +342,8 @@ def gaussian_sample(n, mean, variance, rso=None):
     else:
         func = np.random.norm
 
+    # numpy's function takes the standard deviation, rather than
+    # the variance, as a parameter
     standard_deviation = np.sqrt(variance)
     x = func(mean, standard_deviation, n)
     return x
