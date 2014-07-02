@@ -13,10 +13,12 @@ of real-world problems that do not have exact, analytic solutions:
    weather conditions.
 
 2. You want to determine whether chemical runoff from a proposed
-   factory will affect the water supply of nearby residents.
+   factory will affect the water supply of nearby residents, based on
+   a model of groundwater diffusion.
 
 3. You have a robot which captures noisy images from its camera, and
-   want to determine what those images are actually showing.
+   want to recover the three-dimensional structure of the object that
+   those images depict.
 
 4. You want to compute how likely you are to win at chess if you take
    a particular move.
@@ -31,90 +33,12 @@ Consider the airplane example above. Weather is a fairly chaotic
 system, meaning that it is impossible to compute *exactly* whether the
 airplane will survive a particular weather situation. Instead, you
 could simulate the behavior of the airplane under many different
-weather conditions, which would allow you to see under which
-conditions the airplane is most likely to fail.
+weather conditions, multiple times, which would allow you to see under
+which conditions the airplane is most likely to fail.
 
-This chapter will provide an introduction to programming for sampling
-methods like the ones you would need to compute solutions to the
-examples above. TODO: more here
-
-## Rejection sampling
-
-More formally, the idea behind sampling is that we want to draw
-samples from a probability distribution, but we can only evaluate the
-probability density (or mass) at a particular point -- we do not
-actually have a method of drawing samples in proportion to that
-distribution.
-
-There are many different types of Monte Carlo sampling methods,
-but we will focus on only one here: rejection sampling.
-
-### Mathematical background
-
-*Rejection sampling* is one of the simplest methods for drawing
-approximate samples from a distribution. Rather than directly drawing
-samples from the *target* distribution ($p$), which is the one we
-ultimately do want samples from, we specify a *proposal* distribution
-($q$) that we know how to sample from. The only constraint on $q$ is
-that $q(x)>=p(x)$ for all $x$ (and it is not necessary that $q(x)$ be
-a proper distribution, i.e. it is ok if it does not integrate to
-1). Then, the procedure is as follows:
-
-1. Draw a sample from the proposal distribution, $x\sim q$
-2. Choose a point $y$ uniformly at random in the interval $[0, q(x)]$
-3. If $y < p(x)$, then accept $x$ as a sample. Otherwise, reject $x$
-   and start over from step 1.
-
-By repeating this procedure many times, we can get an estimate of what
-the true probability distribution $p(x)$ look like.
-
-### Example: measuring the depth of the sea floor
-
-To give a more intuitive example of what all this math means, consider
-the problem of trying to map the depth of the ocean floor. With
-technology like sonar, this isn't so difficult, so let's instead
-imagine that we're 15th century sailors, and the best we have is an
-anchor on the end of a very long rope. For purposes of illustration,
-let's pretend we can't measure the length of the rope, either -- we
-can only know whether it has hit the bottom of the ocean.
-
-Then, the three steps listed above can be reinterpreted as follows:
-
-1. Pick a random point $x$ on the surface of the ocean.
-2. Drop the anchor into the ocean, and let it go down for a random
-   length between the top of the ocean, and the end of the rope.
-3. If the anchor hits the sea floor, then accept $x$ as a
-   sample. Otherwise, reject $x$ and start over from step 1.
-
-By keeping track of the locations in which the anchor touched the
-bottom, we can get a good estimate of where the ocean is very deep
-(few samples), and where it is relatively shallow (many samples).
-
-It makes sense why this works: if the ocean is deep at $x$, then most
-of the time, the anchor won't touch the bottom (it will only if we
-chose a very long length of rope). Thus, we will end up with very few
-samples in places where the ocean is deep. Conversely, if the ocean is
-very shallow at $x$, then most of the time the anchor *will* touch the
-bottom (it won't only if we choose a very short length of rope). So,
-we will end up with a lot of samples in places where the ocean is
-shallow.
-
-TODO: it would be nice to have an illustration of this
-
-### Why rejection sampling?
-
-If it seems like rejection sampling is an awfully inefficient method
-to estimate anything, you're right: it is! However, it is a useful
-method to learn *first*, because -- despite being so simple -- it
-still follows design patterns that are common to other sampling
-methods.
-
-The other sampling methods which exist are much more powerful, but
-also much more complicated. While we unfortunately don't have time to
-cover them in this chapter, interested readers are encouraged to look
-further into slice sampling, the Metropolis-Hastings algorithm, and
-Gibbs sampling, all of which are popular choices of Monte Carlo
-sampling algorithms. TODO: references
+This chapter will provide an introduction to programming for
+probabilities, and in particular for sampling methods like the ones
+you would need to compute solutions to the examples above.
 
 ## Programming with probabilities
 
@@ -122,9 +46,66 @@ When working with probabilities, there are a few standard
 practices. Following these will make your code cleaner, easier to
 test, and less buggy in general.
 
-### Seeding the random number generator
+### Probabilities and samples
 
-TODO
+Typically when we talk about probability distributions, we will use
+mathematical notation like $p(x)$ to indicate that $p$ is the
+*probability density function* (PDF) or *probability mass function*
+(PMF) over values $x$ of a random variable.
+
+There are two things that we might want to do with a probability
+distribution. Given a value (or location) $x$, we might want to
+*evaluate* what the probability density (or mass) is at that
+location. In mathematical notation, we would write this as $p(x)$ (the
+probability density at the value $x$).
+
+Given the PDF or PMF, we might also want to *sample* a value $x$ in a
+manner proportional to the distribution (such that we are more likely
+to get a sample at places where the probability is higher). In
+mathematical notation, we would write this as $x\sim p$ or $x\sim
+p(x)$, to indicate that $x$ is sampled proportional to $p$.
+
+Evaluation and sampling are both critical pieces to working with
+probabilities, so when you write code to work with probabilities, you
+need to include functionality for both of these pieces.
+
+As a simple example, let's consider the *Gaussian distribution*. It
+has the following equation:
+
+$$
+\mathcal{N}(x; \mu, \sigma^2) = \frac{1}{\sqrt{2\pi\sigma^2}}\exp{\frac{-(x-\mu)^2}{2\sigma^2}}
+$$
+
+The Gaussian, also known as the "normal distribution" or "bell curve",
+is one of the most commonly used distributions. They are used to model
+many types of random variables, such as TODO: list some examples
+
+#### Evaluating the Gaussian PDF
+
+```
+def gaussian_pdf(x, mean, variance):
+    """Evaluates the PDF of a Gaussian with mean `mean` and
+    variance `variance` at location(s) `x`.
+
+    """
+    constant = 1.0 / np.sqrt(2 * np.pi * variance)
+    exp = np.exp(-(x - mean) ** 2 / (2 * variance))
+    p = constant * exp
+    return p
+```
+
+#### Sampling from the Gaussian PDF
+
+```
+def gaussian_sample(n, mean, variance):
+    """Samples `n` values proportional to a Gaussian PDF
+    with mean `mean` and variance `variance`.
+
+    """
+    standard_deviation = np.sqrt(variance)
+    x = np.random.norm(mean, standard_deviation, n)
+    return x
+```
 
 ### Working in "log-space"
 
@@ -206,7 +187,123 @@ underflow:
 0.0
 >>> np.exp(np.log(tiny) + np.log(tiny))
 0.0
+
 ```
+
+#### Revisiting the Gaussian PDF
+
+Now with this knowledge of the issues that can come up if we do not
+work in log-space, we can rewrite our Gaussian PDF to be a *log*-PDF
+instead:
+
+```
+def gaussian_logpdf(x, mean, variance):
+    """Evaluates the log-PDF of a Gaussian with mean `mean` and
+    variance `variance` at location(s) `x`.
+
+    """
+    log_constant = -0.5 * np.log(2 * np.pi * variance)
+    log_exp = -((x - mean) ** 2 / (2 * variance))
+    logp = log_constant + log_exp
+    return logp
+```
+
+If we really do need the PDF, and not the log-PDF, we can still
+compute it. However, it is generally better to *first* compute it in
+log-space, and then exponentiate it if we need to take it out of
+log-space:
+
+```
+def gaussian_pdf(x, mean, variance):
+    """Evaluates the PDF of a Gaussian with mean `mean` and
+    variance `variance` at location(s) `x`.
+
+    """
+    p = np.exp(gaussian_logpdf(x, mean, variance))
+    return p
+```
+
+### Seeding the random number generator
+
+TODO
+
+## Rejection sampling
+
+More formally, the idea behind sampling is that we want to draw
+samples from a probability distribution, but we can only evaluate the
+probability density (or mass) at a particular point -- we do not
+actually have a method of drawing samples in proportion to that
+distribution.
+
+There are many different types of Monte Carlo sampling methods,
+but we will focus on only one here: rejection sampling.
+
+### Mathematical background
+
+*Rejection sampling* is one of the simplest methods for drawing
+approximate samples from a distribution. Rather than directly drawing
+samples from the *target* distribution ($p$), which is the one we
+ultimately do want samples from, we specify a *proposal* distribution
+($q$) that we know how to sample from. The only constraint on $q$ is
+that $q(x)>=p(x)$ for all $x$ (and it is not necessary that $q(x)$ be
+a proper distribution, i.e. it is ok if it does not integrate to
+1). Then, the procedure is as follows:
+
+1. Draw a sample from the proposal distribution, $x\sim q$
+2. Choose a point $y$ uniformly at random in the interval $[0, q(x)]$
+3. If $y < p(x)$, then accept $x$ as a sample. Otherwise, reject $x$
+   and start over from step 1.
+
+By repeating this procedure many times, we can get an estimate of what
+the true probability distribution $p(x)$ look like.
+
+### Example: measuring the depth of the sea floor
+
+To give a more intuitive example of what all this math means, consider
+the problem of trying to map the depth of the ocean floor. With
+technology like sonar, this isn't so difficult, so let's instead
+imagine that we're 15th century sailors, and the best we have is an
+anchor on the end of a very long rope. For purposes of illustration,
+let's pretend we can't measure the length of the rope, either -- we
+can only know whether it has hit the bottom of the ocean.
+
+Then, the three steps listed above can be reinterpreted as follows:
+
+1. Pick a random point $x$ on the surface of the ocean.
+2. Drop the anchor into the ocean, and let it go down for a random
+   length between the top of the ocean, and the end of the rope.
+3. If the anchor hits the sea floor, then accept $x$ as a
+   sample. Otherwise, reject $x$ and start over from step 1.
+
+By keeping track of the locations in which the anchor touched the
+bottom, we can get a good estimate of where the ocean is very deep
+(few samples), and where it is relatively shallow (many samples).
+
+It makes sense why this works: if the ocean is deep at $x$, then most
+of the time, the anchor won't touch the bottom (it will only if we
+chose a very long length of rope). Thus, we will end up with very few
+samples in places where the ocean is deep. Conversely, if the ocean is
+very shallow at $x$, then most of the time the anchor *will* touch the
+bottom (it won't only if we choose a very short length of rope). So,
+we will end up with a lot of samples in places where the ocean is
+shallow.
+
+TODO: it would be nice to have an illustration of this
+
+### Why rejection sampling?
+
+If it seems like rejection sampling is an awfully inefficient method
+to estimate anything, you're right: it is! However, it is a useful
+method to learn *first*, because -- despite being so simple -- it
+still follows design patterns that are common to other sampling
+methods.
+
+The other sampling methods which exist are much more powerful, but
+also much more complicated. While we unfortunately don't have time to
+cover them in this chapter, interested readers are encouraged to look
+further into slice sampling, the Metropolis-Hastings algorithm, and
+Gibbs sampling, all of which are popular choices of Monte Carlo
+sampling algorithms. TODO: references
 
 ## Generic rejection sampler implementation
 
