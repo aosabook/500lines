@@ -1,4 +1,4 @@
-All the photos included are © 2013 Romain Guy.
+A_Song_of_Ice_and_Fire.jpg is © 2013 Romain Guy.
 
 License:
 CreativeCommons Attribution-NonCommercial-NoDerivs 3.0 Unported (CC BY-NC-ND 3.0)

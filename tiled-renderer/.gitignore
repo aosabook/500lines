@@ -1,0 +1,10 @@
+*.swo
+*.swp
+*.swn
+*~
+*\/tags
+.netrwhist
+*.pyc
+*.properties
+.DS_Store
+project.properties

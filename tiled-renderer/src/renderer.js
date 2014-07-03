@@ -5,11 +5,12 @@ function Rect(x, y, width, height) {
     this.y = y;
     this.width = width;
     this.height = height;
-    this.intersects = function(rect) {
-        return this.x < (rect.x + rect.width) && rect.x < (this.x + this.width) &&
-            this.y < (rect.y + rect.height) && rect.y < (this.y + this.height);
-    };
 }
+
+Rect.prototype.intersects = function(rect) {
+    return this.x < (rect.x + rect.width) && rect.x < (this.x + this.width) &&
+        this.y < (rect.y + rect.height) && rect.y < (this.y + this.height);
+};
 
 function Tile(x, y, width, height, texture) {
     this.rect = new Rect(x, y, width, height);
@@ -18,31 +19,32 @@ function Tile(x, y, width, height, texture) {
 
 function ImageTexture(gl, src, loadCallback) {
     this.gl = gl;
-    this.loadImage = function() {
-        this.image = new Image();
-        var self = this;
-        this.image.onload = function() {
-            self.width = this.width;
-            self.height = this.height;
-            self.createImageTexture(this);
-            loadCallback(self);
-        };
-        this.image.src = src;
-    };
-
-    this.createImageTexture = function(image) {
-        try {
-            this.texture = renderer.createAndSetupTexture();
-            this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, image);
-            logger.logGLStatus(this.gl, 'loading image ' + image.src + '...');
-        } catch (e) { // Notify user of SecurityErrors need to run with --disable-web-security on Chrome
-            renderer.hideCanvas();
-            logger.logError(e);
-            throw e;
-        }
-    };
-    this.loadImage();
+    this.loadImage(src, loadCallback);
 }
+
+ImageTexture.prototype.loadImage = function(src, loadCallback) {
+    this.image = new Image();
+    var self = this;
+    this.image.onload = function() {
+        self.width = this.width;
+        self.height = this.height;
+        self.createImageTexture(this);
+        loadCallback(self);
+    };
+    this.image.src = src;
+};
+
+ImageTexture.prototype.createImageTexture = function(image) {
+    try {
+        this.texture = renderer.createAndSetupTexture();
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, image);
+        logger.logGLStatus(this.gl, 'loading image ' + image.src + '...');
+    } catch (e) { // Notify user of SecurityErrors need to run with --disable-web-security on Chrome
+        renderer.hideCanvas();
+        logger.logError(e);
+        throw e;
+    }
+};
 
 var renderer = (function() {
     var instance = {};
@@ -53,7 +55,6 @@ var renderer = (function() {
         this.gl = this.canvas.getContext('webgl');
         this.viewportRect = new Rect(0, 0, this.canvas.width, this.canvas.height);
         this.gl.clearColor(1.0, 0.0, 0.0, 1.0);
-        this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
         this.gl.enable(this.gl.BLEND);
         this.gl.blendFunc(this.gl.ONE, this.gl.ONE_MINUS_SRC_ALPHA);
         this.initShader();
@@ -66,7 +67,7 @@ var renderer = (function() {
     instance.hideCanvas = function() { this.canvas.style.display = 'none'; };
 
     instance.loadImagesAndDrawScene = function() {
-        this.tileOutline = new ImageTexture(this.gl, 'images/tile_outline.png', function() {});
+        this.tileOutline = new ImageTexture(this.gl, 'images/Tile_Outline.png', function() {});
         this.backingImage = new ImageTexture(this.gl, 'images/A_Song_of_Ice_and_Fire.jpg', function(imageTexture) {
             this.createTiles(imageTexture);
             requestAnimationFrame(this.drawScene.bind(this));
@@ -165,17 +166,17 @@ var renderer = (function() {
         y += height / 2;
 
         if (!this.mvpMatrix)
-            this.mvpMatrix = mat3.create();
+            this.mvpMatrix = new Matrix3();
         else
-            mat3.identity(this.mvpMatrix);
+            this.mvpMatrix.identity();
 
         var scaleX = width / viewportWidth;
         var scaleY = height / viewportHeight;
         var translateX = (2 * x / viewportWidth) - 1; // Map from [0, viewportWidth] to [-1, 1]
         var translateY = (2 * y / viewportHeight) - 1; // Map from [0, viewportHeight] to [-1, 1]
-        mat3.translate(this.mvpMatrix, this.mvpMatrix, vec2.fromValues(translateX, -translateY)); // top left coordinates
-        mat3.scale(this.mvpMatrix, this.mvpMatrix, vec2.fromValues(scaleX, scaleY));
-        this.gl.uniformMatrix3fv(ShaderHandles.u_mvpMatrix, this.gl.FALSE, this.mvpMatrix);
+        this.mvpMatrix.translate(translateX, -translateY); // top left coordinates
+        this.mvpMatrix.scale(scaleX, scaleY);
+        this.gl.uniformMatrix3fv(ShaderHandles.u_mvpMatrix, this.gl.FALSE, this.mvpMatrix.values);
         this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
         this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
     };
@@ -218,15 +219,15 @@ var renderer = (function() {
         this.gl.vertexAttribPointer(ShaderHandles.a_texCoord, 2, this.gl.FLOAT, false, 16, 8);
     };
 
-    instance.setupTextureCropCoordinates = function(x, y, cropWidth, cropHeight, viewportWidth, viewportHeight) {
+    instance.setupTextureCropCoordinates = function(x, y, cropWidth, cropHeight, imageWidth, imageHeight) {
         if (!this.textureCropBuffer)
             this.textureCropBuffer = this.gl.createBuffer();
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.textureCropBuffer);
-        var scaledCropWidth = cropWidth / viewportWidth;
-        var scaledCropHeight = cropHeight / viewportHeight;
-        var offsetX = x / viewportWidth;
-        var offsetY = 1 - y / viewportHeight - scaledCropHeight; // First tile should be top left of the input texture.
+        var scaledCropWidth = cropWidth / imageWidth;
+        var scaledCropHeight = cropHeight / imageHeight;
+        var offsetX = x / imageWidth;
+        var offsetY = 1 - y / imageHeight - scaledCropHeight; // First tile should be top left of the input texture.
         this.gl.bufferData(this.gl.ARRAY_BUFFER,
             new Float32Array([
                 offsetX, offsetY,

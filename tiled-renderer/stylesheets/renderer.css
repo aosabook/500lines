@@ -21,6 +21,7 @@ p {
 }
 
 p.info {
+    margin-top: 16px;
     font-size: 14pt;
 }
 
@@ -29,8 +30,7 @@ img {
 }
 
 #glCanvas {
-    margin-left: 80px;
-    border: 4px solid blue;
+    margin-left: 20px;
     display: inline-block;
     cursor: pointer;
 }
