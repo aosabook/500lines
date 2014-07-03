@@ -1806,6 +1806,7 @@ window.Spreadsheet = (function($scope, $timeout) {
     var promise = $timeout((function() {
       $scope.worker.terminate();
       $scope.init();
+      $scope.calc();
     }), 500);
     $scope.worker.onmessage = (function($__4) {
       var data = $traceurRuntime.assertObject($__4).data;

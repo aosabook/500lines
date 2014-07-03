@@ -40,7 +40,7 @@ window.Spreadsheet = ($scope, $timeout)=>{
       // If the worker has not returned in 0.5 seconds, terminate it
       $scope.worker.terminate();
       // Back up to the previous state and make a new worker
-      $scope.init();
+      $scope.init(); $scope.calc();
     }, 500 );
 
     // When the worker returns, apply its effect on the scope
