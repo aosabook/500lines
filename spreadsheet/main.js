@@ -42,11 +42,15 @@ window.Spreadsheet = ($scope, $timeout)=>{
       // Back up to the previous state and make a new worker
       $scope.init();
     }, 500 );
+
+    // When the worker returns, apply its effect on the scope
     $scope.worker.onmessage = ({data})=>{ $timeout( ()=>{
       [$scope.errs, $scope.vals] = data;
       localStorage.setItem( '', json );
       $timeout.cancel( promise );
     } ) }
+
+    // Post the current sheet content for the worker to process
     $scope.worker.postMessage( $scope.sheet );
   })();
 }
