@@ -1,9 +1,12 @@
 OBJECTS = es5/worker.js es5/main.js
 
-all :: es5 run
+all :: deps es5 wc run
+
+deps ::
+	@npm i
 
 run ::
-	@node extra/static-here.js
+	@node_modules/static-here/bin/static-here
 
 es5 :: $(OBJECTS)
 	-@mkdir -p es5/lib
@@ -13,15 +16,16 @@ es5 :: $(OBJECTS)
 test :: es5
 	@node extra/test.js
 
-wc :: es5
+wc ::
+	@echo -n Lines:
 	@grep -v '//\|^$$' *.js *.html *css | wc -l
 
 clean ::
-	-@rm -rf es5
+	-@rm -rf es5/*
 
 es5/% :: %
-	traceur --source-maps --validate --experimental --out tmp --script $<
-	echo "// Generated File - Do Not Edit" | cat - lib/traceur-runtime.js tmp/$< > $@
+	./node_modules/traceur/traceur --source-maps --validate --experimental --out tmp --script $<
+	echo "// Generated File - Do Not Edit" | cat - ./node_modules/traceur/bin/traceur-runtime.js tmp/$< > $@
 	@rm -rf tmp
 
-.PHONY: run es5 test clean wc
+.PHONY: deps run es5 test clean wc

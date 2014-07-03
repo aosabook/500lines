@@ -1,0 +1,30 @@
+{
+  "name": "spreadsheet",
+  "version": "0.0.1",
+  "main": "index.js",
+  "description": "Web Spreadsheet in 99 lines",
+  "keywords": [ "web", "spreadsheet" ],
+  "author": {
+    "name": "Audrey Tang",
+    "email": "audreyt@audreyt.org",
+    "twitter": "audreyt"
+  },
+  "homepage": "https://github.com/audreyt/500lines",
+  "bugs": {
+    "url": "http://github.com/audreyt/500lines/issues",
+    "email": "audreyt@audreyt.org"
+  },
+  "license": {
+    "type": "Public Domain",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/audreyt/500lines.git"
+  },
+  "dependencies": {
+    "static-here": "*",
+    "traceur": "*",
+    "mocha": "*"
+  }
+}
