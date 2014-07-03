@@ -1,4 +1,4 @@
-window.Spreadsheet = ($scope)=>{
+window.Spreadsheet = ($scope, $timeout)=>{
   function* range(cur, end) { while (cur <= end) {
     yield cur;
     // If it's a number, increase it by one; otherwise move to next letter
@@ -24,15 +24,17 @@ window.Spreadsheet = ($scope)=>{
   $scope.errs = {};
   $scope.vals = {};
 
-  // UP (38) and DOWN (40) keys move focus to the row above (-1) or below (+1).
+  // UP (38) and DOWN/ENTER (40/13) keys move focus to the row above (-1) or below (+1).
   $scope.keydown = ({which, target}, col, row)=>{ switch (which) {
-    case 38: case 40: (document.querySelector( `#${ col }${ which-39+row }` ) || target).focus()
+    case 38: case 40: case 13: $timeout( ()=>{
+      (document.querySelector( `#${ col }${ (which == 38) ? row-1 : row+1 }` ) || target).focus()
+    } )
   } };
 
   // Define the calculation handler, and immediately call it
   ($scope.calc = ()=>{
     const json = angular.toJson( $scope.sheet );
-    const timeout = setTimeout( ()=>{
+    const promise = $timeout( ()=>{
       // If the worker has not returned in 0.5 seconds, terminate it
       $scope.worker.terminate();
       // Back up to the previous state and make a new worker
@@ -41,7 +43,7 @@ window.Spreadsheet = ($scope)=>{
     $scope.worker.onmessage = ({data})=>{ $scope.$apply( ()=>{
       [$scope.errs, $scope.vals] = data;
       localStorage.setItem( '', json );
-      clearTimeout( timeout );
+      $timeout.cancel( promise );
     } ) }
     $scope.worker.postMessage( $scope.sheet );
   })();

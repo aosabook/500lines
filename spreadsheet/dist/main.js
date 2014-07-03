@@ -1711,7 +1711,7 @@ System.register("traceur-runtime@0.0.41/src/runtime/polyfill-import", [], functi
   return {};
 });
 System.get("traceur-runtime@0.0.41/src/runtime/polyfill-import" + '');
-window.Spreadsheet = (function($scope) {
+window.Spreadsheet = (function($scope, $timeout) {
   var $__6 = $traceurRuntime.initGeneratorFunction(range);
   function range(cur, end) {
     return $traceurRuntime.createGeneratorInstance(function($ctx) {
@@ -1793,12 +1793,15 @@ window.Spreadsheet = (function($scope) {
     switch (which) {
       case 38:
       case 40:
-        (document.querySelector(("#" + col + (which - 39 + row))) || target).focus();
+      case 13:
+        $timeout((function() {
+          (document.querySelector(("#" + col + ((which == 38) ? row - 1 : row + 1))) || target).focus();
+        }));
     }
   });
   ($scope.calc = (function() {
     var json = angular.toJson($scope.sheet);
-    var timeout = setTimeout((function() {
+    var promise = $timeout((function() {
       $scope.worker.terminate();
       $scope.$apply((function() {
         $scope.init();
@@ -1810,7 +1813,7 @@ window.Spreadsheet = (function($scope) {
         var $__5;
         ($__5 = $traceurRuntime.assertObject(data), $scope.errs = $__5[0], $scope.vals = $__5[1], $__5);
         localStorage.setItem('', json);
-        clearTimeout(timeout);
+        $timeout.cancel(promise);
       }));
     });
     $scope.worker.postMessage($scope.sheet);

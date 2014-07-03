@@ -17,7 +17,7 @@ clean ::
 	-@rm -rf dist/*
 
 dist/% :: %
-	traceur --validate --experimental --out tmp --script $<
+	traceur --source-maps --validate --experimental --out tmp --script $<
 	echo "// Generated File - Do Not Edit" | cat - lib/traceur-runtime.js tmp/$< > $@
 	@rm -rf tmp
 
