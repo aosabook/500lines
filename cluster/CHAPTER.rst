@@ -443,3 +443,4 @@ References
 * Chandra, Griesemer, and Redstone - "Paxos Made Live - An Engineering Perspective" (regarding snapshots, in particular)
 * Mazieres - "Paxos Made Practical" (view changes, although not of the type described here)
 * Liskov - "From Viewstamped Replication to Byzantine Fault Tolerance" (another, different look at view changes)
+* http://stackoverflow.com/questions/21353312/in-part-time-parliament-why-does-using-the-membership-from-decree-n-3-work-to
