@@ -21,8 +21,7 @@ window.Spreadsheet = ($scope, $timeout)=>{
   })();
 
   // Formula cells may produce errors in .errs; normal cell contents are in .vals
-  $scope.errs = {};
-  $scope.vals = {};
+  [$scope.errs, $scope.vals] = [{}, {}];
 
   // UP (38) and DOWN/ENTER (40/13) keys move focus to the row above (-1) or below (+1).
   $scope.keydown = ({which}, col, row)=>{ switch (which) {
@@ -40,7 +39,9 @@ window.Spreadsheet = ($scope, $timeout)=>{
       // If the worker has not returned in 0.5 seconds, terminate it
       $scope.worker.terminate();
       // Back up to the previous state and make a new worker
-      $scope.init(); $scope.calc();
+      $scope.init();
+      // Redo the calculation using the last-known state
+      $scope.calc();
     }, 500 );
 
     // When the worker returns, apply its effect on the scope

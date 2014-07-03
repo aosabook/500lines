@@ -1712,7 +1712,8 @@ System.register("traceur-runtime@0.0.41/src/runtime/polyfill-import", [], functi
 });
 System.get("traceur-runtime@0.0.41/src/runtime/polyfill-import" + '');
 window.Spreadsheet = (function($scope, $timeout) {
-  var $__6 = $traceurRuntime.initGeneratorFunction(range);
+  var $__7 = $traceurRuntime.initGeneratorFunction(range);
+  var $__4;
   function range(cur, end) {
     return $traceurRuntime.createGeneratorInstance(function($ctx) {
       while (true)
@@ -1734,7 +1735,7 @@ window.Spreadsheet = (function($scope, $timeout) {
           default:
             return $ctx.end();
         }
-    }, $__6, this);
+    }, $__7, this);
   }
   $scope.Cols = (function() {
     var $__0 = 0,
@@ -1784,10 +1785,9 @@ window.Spreadsheet = (function($scope, $timeout) {
     }
     $scope.worker = new Worker('dist/worker.js');
   }))();
-  $scope.errs = {};
-  $scope.vals = {};
-  $scope.keydown = (function($__4, col, row) {
-    var which = $traceurRuntime.assertObject($__4).which;
+  ($__4 = [{}, {}], $scope.errs = $__4[0], $scope.vals = $__4[1], $__4);
+  $scope.keydown = (function($__5, col, row) {
+    var which = $traceurRuntime.assertObject($__5).which;
     switch (which) {
       case 38:
       case 40:
@@ -1808,11 +1808,11 @@ window.Spreadsheet = (function($scope, $timeout) {
       $scope.init();
       $scope.calc();
     }), 500);
-    $scope.worker.onmessage = (function($__4) {
-      var data = $traceurRuntime.assertObject($__4).data;
+    $scope.worker.onmessage = (function($__5) {
+      var data = $traceurRuntime.assertObject($__5).data;
       $timeout((function() {
-        var $__5;
-        ($__5 = $traceurRuntime.assertObject(data), $scope.errs = $__5[0], $scope.vals = $__5[1], $__5);
+        var $__6;
+        ($__6 = $traceurRuntime.assertObject(data), $scope.errs = $__6[0], $scope.vals = $__6[1], $__6);
         localStorage.setItem('', json);
         $timeout.cancel(promise);
       }));
