@@ -1783,7 +1783,7 @@ window.Spreadsheet = (function($scope, $timeout) {
     if (!$scope.sheet) {
       $scope.reset();
     }
-    $scope.worker = new Worker('dist/worker.js');
+    $scope.worker = new Worker('worker.js');
   }))();
   ($__4 = [{}, {}], $scope.errs = $__4[0], $scope.vals = $__4[1], $__4);
   $scope.keydown = (function($__5, col, row) {

@@ -17,7 +17,7 @@ window.Spreadsheet = ($scope, $timeout)=>{
     // Restore the previous .sheet; reset to default if it's the first run
     $scope.sheet = angular.fromJson( localStorage.getItem( '' ) );
     if (!$scope.sheet) { $scope.reset(); }
-    $scope.worker = new Worker( 'dist/worker.js' );
+    $scope.worker = new Worker( 'worker.js' );
   })();
 
   // Formula cells may produce errors in .errs; normal cell contents are in .vals

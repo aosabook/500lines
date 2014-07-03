@@ -1,24 +1,27 @@
-OBJECTS = dist/worker.js dist/main.js
+OBJECTS = es5/worker.js es5/main.js
 
-all :: dist run
+all :: es5 run
 
 run ::
 	@node extra/static-here.js
 
-dist :: $(OBJECTS)
+es5 :: $(OBJECTS)
+	-@mkdir -p es5/lib
+	@cp -Rf index.html styles.css es5/
+	@cp -Rf lib/angular.js es5/lib/
 
-test :: dist
+test :: es5
 	@node extra/test.js
 
-wc :: dist
+wc :: es5
 	@grep -v '//\|^$$' *.js *.html *css | wc -l
 
 clean ::
-	-@rm -rf dist/*
+	-@rm -rf es5
 
-dist/% :: %
+es5/% :: %
 	traceur --source-maps --validate --experimental --out tmp --script $<
 	echo "// Generated File - Do Not Edit" | cat - lib/traceur-runtime.js tmp/$< > $@
 	@rm -rf tmp
 
-.PHONY: run dist test clean wc
+.PHONY: run es5 test clean wc
