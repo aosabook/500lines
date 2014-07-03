@@ -5,8 +5,8 @@ window.Spreadsheet = ($scope)=>{
   } }
   $scope.Cols = [ for (col of range('A', 'H')) col ]
   $scope.Rows = [ for (row of range(1, 20)) row ]
-  $scope.press = ({which, target}, col, row)=>{ switch (which) {
-    case 38: case 40: (document.getElementById(`${ col }${ row + which - 39 }`) || target).focus()
+  $scope.keydown = ({which, target}, col, row)=>{ switch (which) {
+    case 38: case 40: (document.querySelector(`#${ col }${ row + which - 39 }`) || target).focus()
   } }
   $scope.reset = ()=>{ $scope.sheet = { A1: 1874, B1: '✕', C1: 2046, D1: '⇒', E1: '=A1*C1' } }
   ($scope.sheet = angular.fromJson( localStorage.getItem( 'sheet' ) )) || $scope.reset()

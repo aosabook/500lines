@@ -1768,14 +1768,14 @@ window.Spreadsheet = (function($scope) {
     }
     return $__1;
   }());
-  $scope.press = (function($__4, col, row) {
+  $scope.keydown = (function($__4, col, row) {
     var $__5 = $traceurRuntime.assertObject($__4),
         which = $__5.which,
         target = $__5.target;
     switch (which) {
       case 38:
       case 40:
-        (document.getElementById(("" + col + (row + which - 39))) || target).focus();
+        (document.querySelector(("#" + col + (row + which - 39))) || target).focus();
     }
   });
   $scope.reset = (function() {
