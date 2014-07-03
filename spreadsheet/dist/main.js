@@ -1768,16 +1768,6 @@ window.Spreadsheet = (function($scope) {
     }
     return $__1;
   }());
-  $scope.keydown = (function($__4, col, row) {
-    var $__5 = $traceurRuntime.assertObject($__4),
-        which = $__5.which,
-        target = $__5.target;
-    switch (which) {
-      case 38:
-      case 40:
-        (document.querySelector(("#" + col + (row + which - 39))) || target).focus();
-    }
-  });
   $scope.reset = (function() {
     $scope.sheet = {
       A1: 1874,
@@ -1787,22 +1777,42 @@ window.Spreadsheet = (function($scope) {
       E1: '=A1*C1'
     };
   });
-  ($scope.sheet = angular.fromJson(localStorage.getItem('sheet'))) || $scope.reset();
-  $scope.errs = {}, $scope.vals = {};
-  var worker = new Worker('dist/worker.js');
-  worker.onmessage = (function($__4) {
-    var data = $traceurRuntime.assertObject($__4).data;
-    $scope.$apply((function() {
-      var $__5;
-      ($__5 = $traceurRuntime.assertObject(data), $scope.errs = $__5[0], $scope.vals = $__5[1], $__5);
-    }));
+  ($scope.init = (function() {
+    $scope.sheet = angular.fromJson(localStorage.getItem(''));
+    if (!$scope.sheet) {
+      $scope.reset();
+    }
+    $scope.worker = new Worker('dist/worker.js');
+  }))();
+  $scope.errs = {};
+  $scope.vals = {};
+  $scope.keydown = (function($__4, col, row) {
+    var $__5 = $traceurRuntime.assertObject($__4),
+        which = $__5.which,
+        target = $__5.target;
+    switch (which) {
+      case 38:
+      case 40:
+        (document.querySelector(("#" + col + (which - 39 + row))) || target).focus();
+    }
   });
   ($scope.calc = (function() {
     var json = angular.toJson($scope.sheet);
-    if (json === $scope.cache) {
-      return;
-    }
-    localStorage.setItem('sheet', ($scope.cache = json));
-    worker.postMessage($scope.sheet);
+    var timeout = setTimeout((function() {
+      $scope.worker.terminate();
+      $scope.$apply((function() {
+        $scope.init();
+      }));
+    }), 500);
+    $scope.worker.onmessage = (function($__4) {
+      var data = $traceurRuntime.assertObject($__4).data;
+      $scope.$apply((function() {
+        var $__5;
+        ($__5 = $traceurRuntime.assertObject(data), $scope.errs = $__5[0], $scope.vals = $__5[1], $__5);
+        localStorage.setItem('', json);
+        clearTimeout(timeout);
+      }));
+    });
+    $scope.worker.postMessage($scope.sheet);
   }))();
 });

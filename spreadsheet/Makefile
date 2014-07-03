@@ -11,7 +11,7 @@ test :: dist
 	@node extra/test.js
 
 wc :: dist
-	@grep -v '//' *.js *.html *css | wc -l
+	@grep -v '//\|^$$' *.js *.html *css | wc -l
 
 clean ::
 	-@rm -rf dist/*
