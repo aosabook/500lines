@@ -12,7 +12,8 @@ module.exports = function (app, store, passport) {
   };
 
   app.get('/unauthorized', function(request, response){
-    return response.render('layout.html', {handler: 'unauthorized', partials: {login: 'login.html'}});
+    var error = 'You must log in to edit the wiki.  Please log in or create a new account using the login form above.';
+    return response.render('layout.html', {title: 'Unauthorized', error: error, partials: {content: 'error.html'}});
   });
 
   app.post('/login', function(request, response, next){

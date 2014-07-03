@@ -10,16 +10,40 @@
     <body>
         <div class="header">
             <div class="left"><h1 class="title"><a href="/wiki/">Wiki</a></h1></div>
-            <div class="login">{>login}</div>
+            <div class="login" id="login">
+                <div id="loggedInView" style="display:none">
+                    <div>Logged in as: <span id="displayUserName"></span><button id="logoutButton">Log Out</button></div>
+                </div>
+                <div id="loginView" style="display:none">
+                    <form class="form" id="loginForm">
+                        <label>Username:</label><input type="text" name="username" id="username"/>
+                        <label>Password:</label><input type="password" name="password" id="password"/>
+                        <button name="login" value="Log In" id="loginButton">Log In</button>
+                    </form>
+                    <button name="signup" value="Sign Up" id="signupButton" class="form">Sign Up</button>
+                </div>
+            </div>
+            <div id="signupView" style="display:none">
+                <form id="signupForm">
+                    <label>Username:</label><input type="text" name="username" id="newusername"/><br/>
+                    <label>Password:</label><input type="password" name="password" id="newpassword"/><br/>
+                    <label>Email:</label><input type="text" name="email" id="newemail" size="25"/><br/>
+                    <div id="formError" class="error"></div>
+                    <button type="submit" name="signup" value="Sign Up">Sign Up</button>
+                </form>
+            </div>
         </div>
-        <script type="text/javascript">
-            var page = '{page}';
-            $(showLoginView);
-            $({handler});
-        </script>
         <div class="content">
             <div id="error" class="error"></div>
            {>content}
         </div>
+        <script type="text/javascript">
+            var page = '{page}';
+            $('#loginForm').submit(doLogin);
+            $('#signupForm').submit(doSignup);
+            $('#signupButton').click(showSignup);
+            $('#logoutButton').click(doLogout);
+            $(showLoginView);
+        </script>
     </body>
 </html>

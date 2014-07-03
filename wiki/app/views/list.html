@@ -3,7 +3,6 @@
     {for page in pages}
         <a href="/wiki/{page.id}">{page.id}</a><br/>
     {/for}
-    <div id="pages"></div>
     <form action="/wiki/add" method="post" id="addform">
         <p><button type="submit">Add new page</button><input type="text" name="title" value="title"/></p>
     </form>

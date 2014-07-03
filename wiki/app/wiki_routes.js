@@ -34,7 +34,7 @@ module.exports = function (app, store) {
 
   this.handleError = function(response, error){
     console.error(error);
-    response.render('layout.html', {title: 'Error', error: error, partials: {login: 'login.html', content: 'error.html'}});
+    response.render('layout.html', {title: 'Error', error: error, partials: {content: 'error.html'}});
   };
 
   this.handleAJAXError = function(response, error){
@@ -64,7 +64,7 @@ module.exports = function (app, store) {
     request.session.currentPage = request.path;
     store.listWikiPages(function(error, content){
       if(error) this.handleError(response, error);
-      response.render('layout.html', {title: 'Wiki', pages: content, partials: {login: 'login.html', content: 'list.html'}});
+      response.render('layout.html', {title: 'Wiki', pages: content, partials: {content: 'list.html'}});
     });
   });
 
@@ -75,7 +75,7 @@ module.exports = function (app, store) {
       if(error) return this.handleError(response, error);
       this.formatHtmlDoc(doc, function(err, formattedDoc){
         if(err) return this.handleError(response, err);
-        response.render('layout.html', {page: page, title: page, doc: formattedDoc, partials: {login: 'login.html', content: 'view.html'}});
+        response.render('layout.html', {page: page, title: page, doc: formattedDoc, partials: {content: 'view.html'}});
       });
     });
   });
@@ -85,7 +85,7 @@ module.exports = function (app, store) {
     request.session.currentPage = request.path;
     store.getWikiContents(page, function(error, doc){
       if(error) return this.handleError(response, error);
-      response.render('layout.html', {page: page, title: 'Edit '+page, doc: doc, partials: {login: 'login.html', content: 'edit.html'}});
+      response.render('layout.html', {page: page, title: 'Edit '+page, doc: doc, partials: {content: 'edit.html'}});
     });
   });
 
