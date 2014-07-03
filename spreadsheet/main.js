@@ -25,9 +25,11 @@ window.Spreadsheet = ($scope, $timeout)=>{
   $scope.vals = {};
 
   // UP (38) and DOWN/ENTER (40/13) keys move focus to the row above (-1) or below (+1).
-  $scope.keydown = ({which, target}, col, row)=>{ switch (which) {
+  $scope.keydown = ({which}, col, row)=>{ switch (which) {
     case 38: case 40: case 13: $timeout( ()=>{
-      (document.querySelector( `#${ col }${ (which == 38) ? row-1 : row+1 }` ) || target).focus()
+      const direction = (which == 38) ? -1 : +1;
+      const cell = document.querySelector( `#${ col }${ row + direction }` );
+      if (cell) { cell.focus(); }
     } )
   } };
 
@@ -38,9 +40,9 @@ window.Spreadsheet = ($scope, $timeout)=>{
       // If the worker has not returned in 0.5 seconds, terminate it
       $scope.worker.terminate();
       // Back up to the previous state and make a new worker
-      $scope.$apply( ()=>{ $scope.init() } );
+      $scope.init();
     }, 500 );
-    $scope.worker.onmessage = ({data})=>{ $scope.$apply( ()=>{
+    $scope.worker.onmessage = ({data})=>{ $timeout( ()=>{
       [$scope.errs, $scope.vals] = data;
       localStorage.setItem( '', json );
       $timeout.cancel( promise );

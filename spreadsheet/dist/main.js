@@ -1787,15 +1787,17 @@ window.Spreadsheet = (function($scope, $timeout) {
   $scope.errs = {};
   $scope.vals = {};
   $scope.keydown = (function($__4, col, row) {
-    var $__5 = $traceurRuntime.assertObject($__4),
-        which = $__5.which,
-        target = $__5.target;
+    var which = $traceurRuntime.assertObject($__4).which;
     switch (which) {
       case 38:
       case 40:
       case 13:
         $timeout((function() {
-          (document.querySelector(("#" + col + ((which == 38) ? row - 1 : row + 1))) || target).focus();
+          var direction = (which == 38) ? -1 : +1;
+          var cell = document.querySelector(("#" + col + (row + direction)));
+          if (cell) {
+            cell.focus();
+          }
         }));
     }
   });
@@ -1803,13 +1805,11 @@ window.Spreadsheet = (function($scope, $timeout) {
     var json = angular.toJson($scope.sheet);
     var promise = $timeout((function() {
       $scope.worker.terminate();
-      $scope.$apply((function() {
-        $scope.init();
-      }));
+      $scope.init();
     }), 500);
     $scope.worker.onmessage = (function($__4) {
       var data = $traceurRuntime.assertObject($__4).data;
-      $scope.$apply((function() {
+      $timeout((function() {
         var $__5;
         ($__5 = $traceurRuntime.assertObject(data), $scope.errs = $__5[0], $scope.vals = $__5[1], $__5);
         localStorage.setItem('', json);
