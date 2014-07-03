@@ -153,6 +153,10 @@ Most of the setup and interfacing with OpenGL is found in the viewer.py file.
 
 ### Rendering the Scene: Viewer
 With a basic understanding of OpenGL, we examine how to render the `Scene` to the screen. The `Viewer` class created the gui window and handles initializing OpenGL.
+The function `init_interface` creates the window that the modeller will be rendered into and specifices the function to be called when the scene needs to rendered. 
+The `init_opengl` function sets up the OpenGL state needed for the project. It sets
+the matrices, enables backface culling, and registers a light to illuminate the scene, and tells OpenGL that we would like objects to be colored. The `init_scene` function creates the `Scene` objects and places some initial
+nodes to get the user started. Finally, `init_interaction` registers callbacks for user interaction, as we'll discuss later.
 
 ```
 class Viewer(object):
@@ -188,7 +192,7 @@ class Viewer(object):
 
         glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE)
         glEnable(GL_COLOR_MATERIAL)
-        glClearColor(1.0, 1.0, 1.0, 0.0)
+        glClearColor(0.4, 0.4, 0.4, 0.0)
 
     def init_scene(self):
         """ initialize the scene object and initial scene """
@@ -224,9 +228,63 @@ class Viewer(object):
         glutMainLoop()
 ```
 
+The `render` function is called when the `Scene` needs to be drawn to the screen. Drawing to the screen is necessary whenever anything in the scene has changed, or when the perspective has changed. 
+The `render` function handles all of the OpenGL setup that's necessary each time the `Scene` is rendered. It initializes the projection matrix via `init_view` and initializes the modelview matrix with the
+global transformation. It tells the scene to render itself, and then renders the unit grid. Finally, it calls `glFlush` to signal to the GPU driver that we are ready for the buffer to be flushed and displayed to the screen.
+
+```
+    def render(self):
+        """ The render pass for the scene """
+        self.init_view()
+
+        # Enable lighting and color
+        glEnable(GL_LIGHTING)
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+        # Load the modelview matrix from the current state of the trackball
+        glMatrixMode(GL_MODELVIEW)
+        glPushMatrix()
+        glLoadIdentity()
+        loc = self.interaction.translation
+        glTranslated(-loc[0], -loc[1], -loc[2])
+        glMultMatrixf(self.interaction.trackball.matrix)
+
+        # store the inverse of the current modelview.
+        currentModelView = numpy.array(glGetFloatv(GL_MODELVIEW_MATRIX))
+        self.modelView = numpy.transpose(currentModelView)
+        self.inverseModelView = inv(numpy.transpose(currentModelView))
+
+        # render the scene. This will call the render function for each object in the scene
+        self.scene.render()
+
+        # draw the grid
+        glDisable(GL_LIGHTING)
+        glCallList(G_OBJ_PLANE)
+        glPopMatrix()
+
+        # flush the buffers so that the scene can be drawn
+        glFlush()
+
+    def init_view(self):
+        """ initialize the projection matrix """
+        xSize, ySize = glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT)
+        aspect_ratio = float(xSize) / float(ySize)
+
+        # load the projection matrix. Always the same
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
+
+        glViewport(0, 0, xSize, ySize)
+        gluPerspective(70, aspect_ratio, 0.1, 1000.0)
+        glTranslated(0, 0, -15)
+
+```
+
 To render the `Scene`, we will leverage its data structure. The render function of the scene traverses the list of `Node` in the scene and
 calls the `render` function for each `Node`.
 ```
+
 # scene.py, line 21
 def render(self):
     """ Render the scene. This function simply calls the render function for each node. """

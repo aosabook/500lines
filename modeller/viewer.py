@@ -53,7 +53,8 @@ class Viewer(object):
 
         glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE)
         glEnable(GL_COLOR_MATERIAL)
-        glClearColor(1.0, 1.0, 1.0, 0.0)
+        glClearColor(0.4, 0.4, 0.4, 0.0)
+
 
     def init_scene(self):
         """ initialize the scene object and initial scene """
@@ -92,10 +93,7 @@ class Viewer(object):
         """ The render pass for the scene """
         self.init_view()
 
-        # Enable lighting and color
         glEnable(GL_LIGHTING)
-
-        glClearColor(0.4, 0.4, 0.4, 0.0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         # Load the modelview matrix from the current state of the trackball
