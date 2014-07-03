@@ -2,12 +2,39 @@ from cluster import *
 import sys
 
 def key_value_state_machine(state, input_value):
-    print input_value, state
     if input_value[0] == 'get':
         return state, state.get(input_value[1], None)
     elif input_value[0] == 'set':
         state[input_value[1]] = input_value[2]
         return state, input_value[2]
+
+sequences_running = 0
+def do_sequence(network, node, key):
+    global sequences_running
+    sequences_running += 1
+    reqs = [
+        (('get', key), None),
+        (('set', key, 10), 10),
+        (('get', key), 10),
+        (('set', key, 20), 20),
+        (('set', key, 30), 30),
+        (('get', key), 30),
+    ]
+    def request():
+        if not reqs:
+            global sequences_running
+            sequences_running -= 1
+            if not sequences_running:
+                network.stop()
+            return
+        input, exp_output = reqs.pop(0)
+        def req_done(output):
+            assert output == exp_output, "%r != %r" % (output, exp_output)
+            request()
+        Request(node, input, req_done).start()
+
+    network.set_timer(None, 1.0, request)
+
 
 def main():
     logging.basicConfig(
@@ -23,10 +50,8 @@ def main():
         else:
             Bootstrap(node, execute_fn=key_value_state_machine, peers=peers).start()
 
-    def request():
-        print "here"
-    network.set_timer(None, 1.0, request)
-
+    for key in 'abcdefg':
+        do_sequence(network, node, key)
     network.run()
 
 if __name__ == "__main__":
