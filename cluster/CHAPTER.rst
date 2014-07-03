@@ -81,15 +81,15 @@ Getting Moderately Complex
 A surprising amount of additional infrastructure is required to make this model effective:
  * starting the cluster from scratch
  * leader election to avoid deadlock
- * a gossip protocol to bring lagging members up to date
- * XXX more..
+ * a gossip protocol to bring lagging members up to date (XXX may be removed)
 
 XXX - introduce components based on Renesee(sp?)
 
-NOTE: even reads need to be state machine operations
-
 Leader Elections
 ----------------
+
+XXX make the bridge from just optimizing the first phase by getting it out of the way, to "electing a leader" with the first phase.
+I'm still fuzzy on this myself, so I need to re-read some of the relevant papers to see how they describe it.
 
 Introducing Cluster
 ===================
@@ -365,8 +365,13 @@ Even in the optimal case, this is slow, requiring several round trips just to re
 If a distributed object store made such a request for every object access, its performance would be dismal.
 But when the node receiving the request is lagging behind, the request delay is much greater as that node must catch up to the rest of the cluster before making a successful proposal.
 
+XXX I may rip this bit of the code out and move it to a "Further Extensions" section, if I can demonstrate that the implementation is slow but correct without it
+
 Follow the Leader
 -----------------
+
+XXX based on the "Leader Elections" section above, this describes the sensitivity of the implementation to rough agreement on the identity of the current leader.
+Basically, if there's even a little disagreement over the current leader, it triggers a "fight" which nearly deadlocks the implementation.
 
 Further Extensions
 ==================
@@ -374,5 +379,67 @@ Further Extensions
 Consistent memory usage
 -----------------------
 
-View changes
+A cluster-management library provides reliability in the presence of unreliable components.
+It shouldn't add unreliability of its own.
+Unfortunately, Cluster will not run for long without failing due to ever-growing memory use and message size.
+
+In the protocol definition, acceptors and replicas form the "memory" of the protocol, so they need to remember everything.
+These components never know when they will receive a request for an old slot, perhaps from a lagging replica or leader.
+To maintain correctness, then, they keep a list of every decision, ever, since the cluster was started.
+Worse, these decisions are transmitted between replicas in ``WELCOME`` messages, making these messages enormous in a long-lived cluster.
+
+One technique to address this issue is to periodically "checkpoint" each node's state, keeping information some limited number of decisions on-hand.
+Nodes which are so out of date that they have not committed all slots up to the checkpoint must "reset" themselves by leaving and re-joining the cluster.
+
+View Changes
 ------------
+
+Operations engineers need to be able to resize clusters to meet load and availability requirements.
+A simple test project might begin with a minimal cluster of three nodes, where any one can fail without impact.
+When that project goes "live", though, the additional load would require a larger cluster.
+
+Cluster, as written, cannot change the set of peers in a cluster without restarting the entire cluster.
+Ideally, the cluster would be able to maintain a consensus about its membership, just as it does about state machine transitions.
+"The Part-Time Parliament" (citation) has a cryptic paragraph about how this might work:
+
+    The Paxons decided to add and remove members of Parliament by decree.
+    This posed a circularity problem: membership in Parliament was determined by which decrees were passed, but passing a decree required knowing what constituted a majority set, which in turn depended upon who was a member of Parliament.
+    The circularity was broken by letting the membership of Parliament used in passing decree n be specified by the law as of decree n − 3.
+    A president could not try to pass decree 3255 until he knew all decrees through decree 3252.
+
+Translated into the terms used by Cluster, this means that the set of cluster members (the *view*) can be changed by special view-change proposals.
+Every slot has a view: either the view from the previous slot, or the new view decided in that slot.
+
+For the protocol to work correctly, all nodes need to agree on the view used to decide each slot.
+And this is where Lamport's circularity arises: what view is used to decide a view change?
+Not the new view: since it hasn't been decided, not all nodes agree on it.
+Selecting the view from the previous slot makes sense.
+In fact, this means that *all* slots must be decided in the view of the previous slot, as the cluster hasn't decided that a slot is a view change until the slot is decided.
+
+This model works, but serializes the protocol: slots must be decided one by one, even in the presence of slow or failing nodes.
+Slot n can't be decided until the view for slot n-1 is known, which requires deciding that slot.
+
+Lamport's suggested solution is to use the view from 3 slots back instead.
+There's nothing special about the number 3 -- only that it allows a window of slots for parallelization without requiring too many decisions to make a view change.
+
+In early drafts of this implementation (dutifully preserved in the git history!), I implemented support for view changes (using α in place of 3).
+This seemingly simple change introduced a great deal of complexity:
+* tracking the view for each of the last α committed slots and correctly sharing this with new nodes
+* ignoring proposals for which no slot is available
+* detecting failed nodes,
+* properly serializing multiple competing view changes, and
+* communciating view information between the leader and replica.
+
+The result was far too large for this book!
+
+References
+==========
+
+(I'm not sure what the book's citation style is, but these are unambiguous enough for the review)
+
+* Lamport - "The Part-Time Parliament"
+* Lamport - "Paxos Made Simple"
+* Renesse - "Paxos Made Moderately Complex" (the origin of the component names)
+* Chandra, Griesemer, and Redstone - "Paxos Made Live - An Engineering Perspective" (regarding snapshots, in particular)
+* Mazieres - "Paxos Made Practical" (view changes, although not of the type described here)
+* Liskov - "From Viewstamped Replication to Byzantine Fault Tolerance" (another, different look at view changes)

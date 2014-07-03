@@ -153,6 +153,7 @@ class Acceptor(Component):
     def __init__(self, node):
         super(Acceptor, self).__init__(node)
         self.ballot_num = NULL_BALLOT
+        # TODO: this could simply be s : p?
         self.accepted = defaultdict()  # { (b, s) : p }
 
     def do_PREPARE(self, sender, ballot_num):
