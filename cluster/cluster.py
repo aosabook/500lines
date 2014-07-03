@@ -46,9 +46,15 @@ class Component(object):
     def __init__(self, node):
         self.node = node
         self.node.register(self)
+        self.running = True
         self.logger = node.logger.getChild(type(self).__name__)
 
+    def set_timer(self, seconds, callback):
+        return self.node.network.set_timer(self.node.address, seconds,
+                                           lambda: self.running and callback())
+
     def stop(self):
+        self.running = False
         self.node.unregister(self)
 
 class Node(object):
@@ -60,7 +66,6 @@ class Node(object):
         self.logger = SimTimeLogger(logging.getLogger(self.address), {'network': self.network})
         self.logger.info('starting')
         self.components = []
-        self.set_timer = functools.partial(self.network.set_timer, self.address)
         self.send = functools.partial(self.network.send, self)
 
     def register(self, component):
@@ -223,7 +228,7 @@ class Replica(Component):
             if slot not in self.proposals:
                 # make an empty proposal in case nothing has been decided
                 self.propose(NOOP_PROPOSAL, slot)
-        self.node.set_timer(CATCHUP_INTERVAL, self.catchup)
+        self.set_timer(CATCHUP_INTERVAL, self.catchup)
 
     # TODO: use 'slots' with a set of slots, possibly empty
     def do_CATCHUP(self, sender, slot):
@@ -294,7 +299,7 @@ class Replica(Component):
             idx = self.peers.index(self.latest_leader)
             self.latest_leader = self.peers[(idx + 1) % len(self.peers)]
             self.logger.debug("leader timed out; tring the next one, %s", self.latest_leader)
-        self.latest_leader_timeout = self.node.set_timer(LEADER_TIMEOUT, reset_leader)
+        self.latest_leader_timeout = self.set_timer(LEADER_TIMEOUT, reset_leader)
 
     # adding new cluster members
 
@@ -317,7 +322,7 @@ class Commander(Component):
     def start(self):
         self.node.send(set(self.peers) - self.accepted, Accept(
                             slot=self.slot, ballot_num=self.ballot_num, proposal=self.proposal))
-        self.node.set_timer(ACCEPT_RETRANSMIT, self.start)
+        self.set_timer(ACCEPT_RETRANSMIT, self.start)
 
     def finished(self, ballot_num, preempted):
         if preempted:
@@ -355,7 +360,7 @@ class Scout(Component):
 
     def send_prepare(self):
         self.node.send(self.peers, Prepare(ballot_num=self.ballot_num))
-        self.retransmit_timer = self.node.set_timer(PREPARE_RETRANSMIT, self.send_prepare)
+        self.retransmit_timer = self.set_timer(PREPARE_RETRANSMIT, self.send_prepare)
 
     def do_PROMISE(self, sender, ballot_num, accepted):
         if ballot_num == self.ballot_num:
@@ -391,7 +396,7 @@ class Leader(Component):
         def active():
             if self.active:
                 self.node.send(self.peers, Active())
-            self.node.set_timer(LEADER_TIMEOUT / 2.0, active)
+            self.set_timer(LEADER_TIMEOUT / 2.0, active)
         active()
 
     def spawn_scout(self):
@@ -474,7 +479,7 @@ class Bootstrap(Component):
 
     def join(self):
         self.node.send([next(self.peers_cycle)], Join())
-        self.node.set_timer(JOIN_RETRANSMIT, self.join)
+        self.set_timer(JOIN_RETRANSMIT, self.join)
 
     def do_WELCOME(self, sender, state, slot, decisions):
         self.acceptor_cls(self.node)
@@ -508,7 +513,7 @@ class Seed(Component):
         # the newly formed cluster
         if self.exit_timer:
             self.exit_timer.cancel()
-        self.exit_timer = self.node.set_timer(JOIN_RETRANSMIT * 2, self.finish)
+        self.exit_timer = self.set_timer(JOIN_RETRANSMIT * 2, self.finish)
 
     def finish(self):
         # hand over this node to a bootstrap component
@@ -530,7 +535,7 @@ class Request(Component):
     def start(self):
         self.node.send([self.node.address], Invoke(caller=self.node.address,
                                                    client_id=self.client_id, input_value=self.n))
-        self.invoke_timer = self.node.set_timer(INVOKE_RETRANSMIT, self.start)
+        self.invoke_timer = self.set_timer(INVOKE_RETRANSMIT, self.start)
 
     def do_INVOKED(self, sender, client_id, output):
         if client_id != self.client_id:

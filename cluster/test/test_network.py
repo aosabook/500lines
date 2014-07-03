@@ -11,9 +11,7 @@ class TestComp(Component):
         self.kill()
 
 
-# TODO: lots more tests
-
-class NodeTests(unittest.TestCase):
+class NetworkTests(unittest.TestCase):
 
     def setUp(self):
         self.network = Network(1234)
@@ -36,7 +34,7 @@ class NodeTests(unittest.TestCase):
         node = self.network.new_node('T')
 
         cb = mock.Mock(side_effect=lambda: self.kill(node))
-        node.set_timer(0.01, cb)
+        self.network.set_timer(node.address, 0.01, cb)
         self.network.run()
         self.failUnless(cb.called)
 
@@ -47,10 +45,10 @@ class NodeTests(unittest.TestCase):
         def fail():
             raise RuntimeError("nooo")
 
-        nonex = node.set_timer(0.01, fail)
+        nonex = self.network.set_timer(node.address, 0.01, fail)
 
         cb = mock.Mock(side_effect=lambda: self.kill(node))
-        node.set_timer(0.02, cb)
+        self.network.set_timer(node.address, 0.02, cb)
         nonex.cancel()
         self.network.run()
         self.failUnless(cb.called)
