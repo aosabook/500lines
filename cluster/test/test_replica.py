@@ -28,7 +28,7 @@ class Tests(utils.ComponentTestCase):
         self.node.fake_message(Invoke(
             caller=PROPOSAL2.caller, client_id=PROPOSAL2.client_id,
             input_value=PROPOSAL2.input))
-        propose.assert_called_with(PROPOSAL2)
+        propose.assert_called_with(PROPOSAL2, None)
 
     @mock.patch.object(Replica, 'propose')
     def test_INVOKE_repeat(self, propose):
@@ -61,7 +61,7 @@ class Tests(utils.ComponentTestCase):
         self.rep.next_slot = 5
         self.rep.proposals = {2: PROPOSAL2, 3: PROPOSAL3}
         self.rep.decisions = {3: PROPOSAL3, 5: PROPOSAL4}
-        # slot 2: proposed, undecided -> catchup, re-propose
+        # slot 2: proposed, undecided -> catchup
         # slot 3: proposed, decided
         # slot 4: not proposed, undecided -> catchup, null proposal
         # slot 5: not proposed, decided
@@ -69,7 +69,6 @@ class Tests(utils.ComponentTestCase):
         self.assertMessage(['F999', 'p1'], Catchup(slot=2))
         self.assertMessage(['F999', 'p1'], Catchup(slot=4))
         self.assertEqual(propose.call_args_list, [
-            mock.call(PROPOSAL2, 2),
             mock.call(Proposal(None, None, None), 4),
         ])
 

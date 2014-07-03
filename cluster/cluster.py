@@ -193,14 +193,9 @@ class Replica(Component):
 
     def do_INVOKE(self, sender, caller, client_id, input_value):
         proposal = Proposal(caller, client_id, input_value)
-        if proposal not in self.proposals.viewvalues():
-            self.propose(proposal)
-        else:
-            # It's the only drawback of using dict instead of defaultlist
-            slot = next(s for s, p in self.proposals.iteritems() if p == proposal)
-            self.logger.info("proposal %s already proposed in slot %d", proposal, slot)
-            # TODO: re-propose here, rather than on our own timer (this will avoid
-            # re-transmitting noops, too)
+        slot = next((s for s, p in self.proposals.iteritems() if p == proposal), None)
+        # propose, or re-propose if this proposal already has a slot
+        self.propose(proposal, slot)
 
     def propose(self, proposal, slot=None):
         """Send (or resend, if slot is specified) a proposal to the leader"""
@@ -224,10 +219,7 @@ class Replica(Component):
                 continue
             # ask peers for information regardless
             self.node.send(self.peers, Catchup(slot=slot))
-            if slot in self.proposals:
-                # resend a proposal we initiated
-                self.propose(self.proposals[slot], slot)
-            else:
+            if slot not in self.proposals:
                 # make an empty proposal in case nothing has been decided
                 self.propose(NOOP_PROPOSAL, slot)
         self.node.set_timer(CATCHUP_INTERVAL, self.catchup)
