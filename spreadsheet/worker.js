@@ -1,4 +1,3 @@
-'use strict'
 {
   const globalEval = self.execScript || ( (js)=>eval.call( null, js ) )
   self.onmessage = (event)=>{ self.postMessage( calc( event ) ) }

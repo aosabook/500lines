@@ -1711,7 +1711,6 @@ System.register("traceur-runtime@0.0.41/src/runtime/polyfill-import", [], functi
   return {};
 });
 System.get("traceur-runtime@0.0.41/src/runtime/polyfill-import" + '');
-'use strict';
 {
   try {
     throw undefined;
@@ -1728,94 +1727,108 @@ System.get("traceur-runtime@0.0.41/src/runtime/polyfill-import" + '');
           try {
             throw undefined;
           } catch (globalEval) {
-            globalEval = self.execScript || ((function(js) {
-              return eval.call(null, js);
-            }));
-            self.onmessage = (function(event) {
-              self.postMessage(calc(event));
-            });
-            ;
-            calc = function(event) {
-              var $__6;
-              ($__6 = [{}, {}, event.data], cache = $__6[0], errs = $__6[1], sheet = $__6[2], $__6);
-              for (var $coord in sheet) {
-                try {
-                  throw undefined;
-                } catch (coord) {
-                  coord = $coord;
-                  for (var $__2 = (function() {
-                    var $__0 = 0,
-                        $__1 = [];
-                    for (var $__4 = ['', '$'][$traceurRuntime.toProperty(Symbol.iterator)](),
-                        $__5; !($__5 = $__4.next()).done; ) {
-                      try {
-                        throw undefined;
-                      } catch (p) {
-                        p = $__5.value;
-                        for (var $__2 = [coord, coord.toLowerCase()][$traceurRuntime.toProperty(Symbol.iterator)](),
-                            $__3; !($__3 = $__2.next()).done; ) {
+            {
+              globalEval = self.execScript || ((function(js) {
+                return eval.call(null, js);
+              }));
+              self.onmessage = (function(event) {
+                self.postMessage(calc(event));
+              });
+              ;
+              calc = function(event) {
+                var $__6;
+                ($__6 = [{}, {}, event.data], cache = $__6[0], errs = $__6[1], sheet = $__6[2], $__6);
+                for (var $coord in sheet) {
+                  try {
+                    throw undefined;
+                  } catch (coord) {
+                    {
+                      coord = $coord;
+                      for (var $__2 = (function() {
+                        var $__0 = 0,
+                            $__1 = [];
+                        for (var $__4 = ['', '$'][$traceurRuntime.toProperty(Symbol.iterator)](),
+                            $__5; !($__5 = $__4.next()).done; ) {
                           try {
                             throw undefined;
-                          } catch (c) {
-                            c = $__3.value;
-                            $traceurRuntime.setProperty($__1, $__0++, p + c);
+                          } catch (p) {
+                            {
+                              p = $__5.value;
+                              for (var $__2 = [coord, coord.toLowerCase()][$traceurRuntime.toProperty(Symbol.iterator)](),
+                                  $__3; !($__3 = $__2.next()).done; ) {
+                                try {
+                                  throw undefined;
+                                } catch (c) {
+                                  {
+                                    c = $__3.value;
+                                    $traceurRuntime.setProperty($__1, $__0++, p + c);
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                        return $__1;
+                      }())[$traceurRuntime.toProperty(Symbol.iterator)](),
+                          $__3; !($__3 = $__2.next()).done; ) {
+                        try {
+                          throw undefined;
+                        } catch (name) {
+                          {
+                            name = $__3.value;
+                            {
+                              if ((Object.getOwnPropertyDescriptor(self, name) || {}).get) {
+                                continue;
+                              }
+                              Object.defineProperty(self, name, {get: (function() {
+                                  if ($traceurRuntime.toProperty(coord) in cache) {
+                                    return cache[$traceurRuntime.toProperty(coord)];
+                                  }
+                                  $traceurRuntime.setProperty(cache, coord, NaN);
+                                  var val = +sheet[$traceurRuntime.toProperty(coord)];
+                                  if (sheet[$traceurRuntime.toProperty(coord)] != val.toString()) {
+                                    val = sheet[$traceurRuntime.toProperty(coord)];
+                                  }
+                                  try {
+                                    $traceurRuntime.setProperty(cache, coord, (('=' === val[0]) ? globalEval(val.slice(1)) : val));
+                                  } catch (e) {
+                                    try {
+                                      throw undefined;
+                                    } catch (match) {
+                                      {
+                                        match = /\$?[A-Za-z]+[1-9][0-9]*\b/.exec(e);
+                                        if (match && !($traceurRuntime.toProperty(match[0]) in self)) {
+                                          $traceurRuntime.setProperty(self, match[0], 0);
+                                          delete cache[$traceurRuntime.toProperty(coord)];
+                                          return self[$traceurRuntime.toProperty(coord)];
+                                        }
+                                        $traceurRuntime.setProperty(errs, coord, e.toString());
+                                      }
+                                    }
+                                  }
+                                  return cache[$traceurRuntime.toProperty(coord)];
+                                })});
+                            }
                           }
                         }
                       }
                     }
-                    return $__1;
-                  }())[$traceurRuntime.toProperty(Symbol.iterator)](),
-                      $__3; !($__3 = $__2.next()).done; ) {
-                    try {
-                      throw undefined;
-                    } catch (name) {
-                      name = $__3.value;
-                      {
-                        if ((Object.getOwnPropertyDescriptor(self, name) || {}).get) {
-                          continue;
-                        }
-                        Object.defineProperty(self, name, {get: (function() {
-                            if ($traceurRuntime.toProperty(coord) in cache) {
-                              return cache[$traceurRuntime.toProperty(coord)];
-                            }
-                            $traceurRuntime.setProperty(cache, coord, NaN);
-                            var val = +sheet[$traceurRuntime.toProperty(coord)];
-                            if (sheet[$traceurRuntime.toProperty(coord)] != val.toString()) {
-                              val = sheet[$traceurRuntime.toProperty(coord)];
-                            }
-                            try {
-                              $traceurRuntime.setProperty(cache, coord, (('=' === val[0]) ? globalEval(val.slice(1)) : val));
-                            } catch (e) {
-                              try {
-                                throw undefined;
-                              } catch (match) {
-                                match = /\$?[A-Za-z]+[1-9][0-9]*\b/.exec(e);
-                                if (match && !($traceurRuntime.toProperty(match[0]) in self)) {
-                                  $traceurRuntime.setProperty(self, match[0], 0);
-                                  delete cache[$traceurRuntime.toProperty(coord)];
-                                  return self[$traceurRuntime.toProperty(coord)];
-                                }
-                                $traceurRuntime.setProperty(errs, coord, e.toString());
-                              }
-                            }
-                            return cache[$traceurRuntime.toProperty(coord)];
-                          })});
-                      }
+                  }
+                }
+                var vals = {};
+                for (var $coord in sheet) {
+                  try {
+                    throw undefined;
+                  } catch (coord) {
+                    {
+                      coord = $coord;
+                      $traceurRuntime.setProperty(vals, coord, self[$traceurRuntime.toProperty(coord)]);
                     }
                   }
                 }
-              }
-              var vals = {};
-              for (var $coord in sheet) {
-                try {
-                  throw undefined;
-                } catch (coord) {
-                  coord = $coord;
-                  $traceurRuntime.setProperty(vals, coord, self[$traceurRuntime.toProperty(coord)]);
-                }
-              }
-              return [errs, vals];
-            };
+                return [errs, vals];
+              };
+            }
           }
         }
       }

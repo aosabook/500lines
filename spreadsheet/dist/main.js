@@ -1711,9 +1711,8 @@ System.register("traceur-runtime@0.0.41/src/runtime/polyfill-import", [], functi
   return {};
 });
 System.get("traceur-runtime@0.0.41/src/runtime/polyfill-import" + '');
-'use strict';
 window.Spreadsheet = (function($scope) {
-  var $__5 = $traceurRuntime.initGeneratorFunction(range);
+  var $__6 = $traceurRuntime.initGeneratorFunction(range);
   function range(cur, end) {
     return $traceurRuntime.createGeneratorInstance(function($ctx) {
       while (true)
@@ -1735,7 +1734,7 @@ window.Spreadsheet = (function($scope) {
           default:
             return $ctx.end();
         }
-    }, $__5, this);
+    }, $__6, this);
   }
   $scope.Cols = (function() {
     var $__0 = 0,
@@ -1745,8 +1744,10 @@ window.Spreadsheet = (function($scope) {
       try {
         throw undefined;
       } catch (col) {
-        col = $__3.value;
-        $traceurRuntime.setProperty($__1, $__0++, col);
+        {
+          col = $__3.value;
+          $traceurRuntime.setProperty($__1, $__0++, col);
+        }
       }
     }
     return $__1;
@@ -1759,12 +1760,24 @@ window.Spreadsheet = (function($scope) {
       try {
         throw undefined;
       } catch (row) {
-        row = $__3.value;
-        $traceurRuntime.setProperty($__1, $__0++, row);
+        {
+          row = $__3.value;
+          $traceurRuntime.setProperty($__1, $__0++, row);
+        }
       }
     }
     return $__1;
   }());
+  $scope.press = (function($__4, col, row) {
+    var $__5 = $traceurRuntime.assertObject($__4),
+        which = $__5.which,
+        target = $__5.target;
+    switch (which) {
+      case 38:
+      case 40:
+        (document.getElementById(("" + col + (row + which - 39))) || target).focus();
+    }
+  });
   $scope.reset = (function() {
     $scope.sheet = {
       A1: 1874,

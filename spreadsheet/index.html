@@ -4,12 +4,12 @@
   <link href="styles.css" rel="stylesheet">
 </head><body ng-app ng-cloak ng-controller="Spreadsheet">
   <table><tr>
-    <th><button ng-click="reset(); calc()" title="Reset">&#x21BB;</button></th>
+    <th><button ng-click="reset(); calc()" title="Reset">↻</button></th>
     <th ng-repeat="col in Cols">{{ col }}</th>
   </tr><tr ng-repeat="row in Rows">
     <th>{{ row }}</th>
     <td ng-repeat="col in Cols" ng-class="{ formula: ( '=' === sheet[col+row][0] ) }">
-      <input ng-model="sheet[col+row]" ng-change="calc()">
+      <input id="{{ col+row }}" ng-model="sheet[col+row]" ng-change="calc()" ng-keydown="press($event, col, row)">
       <div ng-class="{ error: errs[col+row] }">{{ errs[col+row] || vals[col+row] }}&nbsp;</div>
     </td>
   </tr></table>
