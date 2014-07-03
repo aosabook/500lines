@@ -15,7 +15,7 @@
         if (( Object.getOwnPropertyDescriptor( self, name ) || {} ).get) { continue; }
 
         // Define self['A1'], which is the same thing as the global variable A1
-        Object.defineProperty( self, name, { get: ()=>{
+        Object.defineProperty( self, name, { get() {
           if (coord in cache) { return cache[coord]; }
           cache[coord] = NaN;
 

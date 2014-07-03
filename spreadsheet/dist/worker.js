@@ -1781,7 +1781,7 @@ System.get("traceur-runtime@0.0.41/src/runtime/polyfill-import" + '');
                               if ((Object.getOwnPropertyDescriptor(self, name) || {}).get) {
                                 continue;
                               }
-                              Object.defineProperty(self, name, {get: (function() {
+                              Object.defineProperty(self, name, {get: function() {
                                   if ($traceurRuntime.toProperty(coord) in cache) {
                                     return cache[$traceurRuntime.toProperty(coord)];
                                   }
@@ -1808,7 +1808,7 @@ System.get("traceur-runtime@0.0.41/src/runtime/polyfill-import" + '');
                                     }
                                   }
                                   return cache[$traceurRuntime.toProperty(coord)];
-                                })});
+                                }});
                             }
                           }
                         }
