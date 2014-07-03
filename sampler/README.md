@@ -452,6 +452,28 @@ def stats_sample(rso=None):
     return stats
 ```
 
+```python
+def bonus_logpmf(bonus):
+    bonus_p = np.array([0.0, 0.55, 0.25, 0.12, 0.06, 0.02])
+    return bonus_p[bonus]
+```
+
+```python
+def stats_logpmf(stats):
+    total_bonus = np.sum(stats)
+    logp_bonus = bonus_logpmf(total_bonus)
+
+    stats_p = np.ones(6) / 6.0
+    logp_stats = multinomial_logpdf(stats, stats_p)
+
+    log_pmf = logp_bonus + logp_stats
+    return log_pmf
+```
+
+```python
+def stats_pmf(stats):
+    return np.exp(stats_logpmf(stats))
+```
 
 ## Rejection sampling
 
