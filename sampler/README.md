@@ -69,7 +69,7 @@ Evaluation and sampling are both critical pieces to working with
 probabilities, so when you write code to work with probabilities, you
 need to include functionality for both of these pieces.
 
-#### The multinomial distribution
+### The multinomial distribution
 
 As a simple example, let's consider the *multinomial
 distribution*. The multinomial distribution is used when you have
@@ -138,7 +138,7 @@ def multinomial_pmf(x, p):
 TODO
 
 ```python
-def multinomial_sample(n, p):
+def sample_multinomial(n, p):
     """Samples draws of `n` events from a multinomial PMF with event
     probabilities `p`.
 
@@ -377,7 +377,7 @@ function will use that object to sample the values; otherwise, it will
 use the usual function from `np.random`:
 
 ```python
-def multinomial_sample(n, p, rso=None):
+def sample_multinomial(n, p, rso=None):
     """Samples draws of `n` events from a multinomial PMF with event
     probabilities `p`.
 
@@ -431,31 +431,38 @@ points distributed across different stats (e.g., +2 wisdom and +3
 intelligence) or concentrated within a single stat (e.g., +5
 charisma).
 
-### Sampling the item stats
-
 How would we randomly sample these stats? The easiest way is probably
 *hierarchical* sampling. First, we sample the overall item
 bonus. Then, we sample the way the stats are distributed.
 
+### Sampling and evaluating
+
+As a first attempt, we can write some simple sampling and PMF
+functions, in the same style as the multinomial functions above:
+
+TODO: add docstrings and elaborate
+
 ```python
-def bonus_sample(rso=None):
+def sample_bonus(rso=None):
     bonus_p = np.array([0.0, 0.55, 0.25, 0.12, 0.06, 0.02])
-    bonus = np.argwhere(multinomial_sample(1, bonus_p, rso=rso))[0, 0]
+    bonus = np.argwhere(sample_multinomial(1, bonus_p, rso=rso))[0, 0]
     return bonus
 ```
 
 ```python
-def stats_sample(rso=None):
-    bonus = bonus_sample(rso=rso)
+def sample_stats(rso=None):
+    bonus = sample_bonus(rso=rso)
     stats_p = np.ones(6) / 6.0
-    stats = multinomial_sample(bonus, stats_p, rso=rso)
+    stats = sample_multinomial(bonus, stats_p, rso=rso)
     return stats
 ```
 
 ```python
 def bonus_logpmf(bonus):
     bonus_p = np.array([0.0, 0.55, 0.25, 0.12, 0.06, 0.02])
-    return bonus_p[bonus]
+    if bonus < 0 or bonus >= len(bonus_p)
+        return -np.inf
+    return np.log(bonus_p[bonus])
 ```
 
 ```python
@@ -470,9 +477,26 @@ def stats_logpmf(stats):
     return log_pmf
 ```
 
-```python
-def stats_pmf(stats):
-    return np.exp(stats_logpmf(stats))
+### Putting it together
+
+There is one obvious issue with the way we wrote our functions above:
+the code duplication of defining `stats_p` and `bonus_p` in multiple
+functions. This is actually worse than it even seems initially,
+because by declaring these variables *within* the function, we have to
+recreate them *every time the function is called*. If we wanted to
+take large numbers of samples, or evaluate the probability of many
+samples, this would add a huge amount of overhead.
+
+The best way to get around this issue is to actually make all these
+functions methods of a class.
+
+```
+from sampler import MagicItemSampler
+bonus_probs = np.array([0.0, 0.55, 0.25, 0.12, 0.06, 0.02])
+stats_probs = np.ones(6) / 6.0
+stats_names = ("dexterity", "constitution", "strength", "intelligence", "wisdom", "charisma")
+s = MagicItemSampler(stats_names, bonus_probs, stats_probs)
+s.sample()
 ```
 
 ## Rejection sampling

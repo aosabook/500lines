@@ -31,7 +31,7 @@ def multinomial_pmf_v1(x, p):
     return pmf
 
 
-def multinomial_sample_v1(n, p):
+def sample_multinomial_v1(n, p):
     """Samples draws of `n` events from a multinomial PMF with event
     probabilities `p`.
 
@@ -100,7 +100,7 @@ def multinomial_pmf(x, p):
     return pmf
 
 
-def multinomial_sample(n, p, rso=None):
+def sample_multinomial(n, p, rso=None):
     """Samples draws of `n` events from a multinomial PMF with event
     probabilities `p`.
 
