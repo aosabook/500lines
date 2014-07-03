@@ -1,4 +1,3 @@
-from collections import defaultdict
 from collections import namedtuple
 import functools
 import heapq
@@ -159,7 +158,7 @@ class Acceptor(Component):
         super(Acceptor, self).__init__(node)
         self.ballot_num = NULL_BALLOT
         # TODO: this could simply be s : p?
-        self.accepted = defaultdict()  # { (b, s) : p }
+        self.accepted = {}  # { (b, s) : p }
 
     def do_PREPARE(self, sender, ballot_num):
         if ballot_num > self.ballot_num:
@@ -348,7 +347,7 @@ class Scout(Component):
     def __init__(self, node, ballot_num, peers):
         super(Scout, self).__init__(node)
         self.ballot_num = ballot_num
-        self.pvals = defaultdict()
+        self.pvals = {}
         self.accepted = set([])
         self.peers = peers
         self.quorum = len(peers) / 2 + 1
