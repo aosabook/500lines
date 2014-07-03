@@ -2,8 +2,8 @@
   const globalEval = self.execScript || ( (js)=>eval.call( null, js ) )
   self.onmessage = (event)=>{ self.postMessage( calc( event ) ) }
   let cache, errs, sheet
-  function calc(event) {
-    [cache, errs, sheet] = [ {}, {}, event.data ]
+  function calc({data}) {
+    [cache, errs, sheet] = [ {}, {}, data ]
     for (const coord in sheet) {
       for (const name of [ for (p of [ '', '$' ]) for (c of [ coord, coord.toLowerCase() ]) p+c ]) {
         if (( Object.getOwnPropertyDescriptor( self, name ) || {} ).get) { continue }

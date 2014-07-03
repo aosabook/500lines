@@ -12,7 +12,7 @@ window.Spreadsheet = ($scope)=>{
   ($scope.sheet = angular.fromJson( localStorage.getItem( 'sheet' ) )) || $scope.reset()
   $scope.errs = {}, $scope.vals = {}
   const worker = new Worker( 'dist/worker.js' )
-  worker.onmessage = (event)=>{ $scope.$apply( ()=>{ [$scope.errs, $scope.vals] = event.data } ) }
+  worker.onmessage = ({data})=>{ $scope.$apply( ()=>{ [$scope.errs, $scope.vals] = data } ) }
   ($scope.calc = ()=>{
     const json = angular.toJson( $scope.sheet )
     if (json === $scope.cache) { return }

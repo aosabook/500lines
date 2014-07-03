@@ -1790,10 +1790,11 @@ window.Spreadsheet = (function($scope) {
   ($scope.sheet = angular.fromJson(localStorage.getItem('sheet'))) || $scope.reset();
   $scope.errs = {}, $scope.vals = {};
   var worker = new Worker('dist/worker.js');
-  worker.onmessage = (function(event) {
+  worker.onmessage = (function($__4) {
+    var data = $traceurRuntime.assertObject($__4).data;
     $scope.$apply((function() {
-      var $__4;
-      ($__4 = $traceurRuntime.assertObject(event.data), $scope.errs = $__4[0], $scope.vals = $__4[1], $__4);
+      var $__5;
+      ($__5 = $traceurRuntime.assertObject(data), $scope.errs = $__5[0], $scope.vals = $__5[1], $__5);
     }));
   });
   ($scope.calc = (function() {

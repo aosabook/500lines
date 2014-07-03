@@ -1735,9 +1735,10 @@ System.get("traceur-runtime@0.0.41/src/runtime/polyfill-import" + '');
                 self.postMessage(calc(event));
               });
               ;
-              calc = function(event) {
-                var $__6;
-                ($__6 = [{}, {}, event.data], cache = $__6[0], errs = $__6[1], sheet = $__6[2], $__6);
+              calc = function($__6) {
+                var $__7;
+                var data = $traceurRuntime.assertObject($__6).data;
+                ($__7 = [{}, {}, data], cache = $__7[0], errs = $__7[1], sheet = $__7[2], $__7);
                 for (var $coord in sheet) {
                   try {
                     throw undefined;
