@@ -2102,7 +2102,7 @@ System.register("traceur-runtime@0.0.49/src/runtime/polyfill-import", [], functi
   return {};
 });
 System.get("traceur-runtime@0.0.49/src/runtime/polyfill-import" + '');
-{
+if (this.importScripts) {
   try {
     throw undefined;
   } catch (calc) {

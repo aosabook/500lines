@@ -21,9 +21,6 @@ If you'd like to use Chrome, type `make run` or `node extra/static-here.js` and 
 
 Source code (`main.js` and `worker.js`) are written in ECMAScript 6 (aka _ES.next_, aka _Harmony_), specifically the subset marked with [TC39 Consensus](https://developer.mozilla.org/en-US/docs/Web/JavaScript/ECMAScript_6_support_in_Mozilla) as of February 2014.
 
-For backward compatibility with existing browsers, we use [Traceur](https://github.com/google/traceur-compiler) to compile source files into the `dist/` directory.
+For backward compatibility with ECMAScript 5 browsers, we use [Traceur](https://github.com/google/traceur-compiler) to compile source files into the `es5/` directory.
 
-To build from source, first install [NodeJS](http://www.nodejs.org/) 0.10 or later, and run these commands (only tested on Linux/OSX at the moment):
-
-    sudo npm install -g traceur
-    make dist
+To build from source, first install [NodeJS](http://www.nodejs.org/) 0.10 or later, and run `make` (only tested on Linux/OSX at the moment).

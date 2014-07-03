@@ -1,4 +1,4 @@
-{
+if (this.importScripts) {
   // Fast eval without the "this" object; available as execScript in IE
   const globalEval = self.execScript || ( (js)=>eval.call( null, js ) );
 

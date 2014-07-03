@@ -6,7 +6,7 @@ deps ::
 	@npm i
 
 run ::
-	@node_modules/static-here/bin/static-here
+	@node node_modules/static-here/bin/static-here
 
 es5 :: $(OBJECTS)
 	-@mkdir -p es5/lib
@@ -14,7 +14,7 @@ es5 :: $(OBJECTS)
 	@cp -Rf lib/angular.js es5/lib/
 
 test :: es5
-	@node extra/test.js
+	@node node_modules/mocha/bin/mocha
 
 wc ::
 	@echo -n Lines:
