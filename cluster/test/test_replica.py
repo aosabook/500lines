@@ -14,7 +14,7 @@ class Tests(utils.ComponentTestCase):
         super(Tests, self).setUp()
         self.execute_fn = mock.Mock(
             name='execute_fn', spec=lambda state, input: None)
-        self.rep = Replica(self.node, self.execute_fn, state='state', slot_num=2,
+        self.rep = Replica(self.node, self.execute_fn, state='state', slot=2,
                            decisions={1: PROPOSAL1}, peers=['p1', 'F999'])
         self.rep.start()
         self.assertNoMessages()
@@ -51,7 +51,7 @@ class Tests(utils.ComponentTestCase):
         self.assertMessage(['F999'], Propose(slot=2, proposal=PROPOSAL2))
 
     def test_catchup_noop(self):
-        """If slot_num == next_slot, there's no catchup to do"""
+        """If slot == next_slot, there's no catchup to do"""
         self.rep.catchup()
         self.assertNoMessages()
 
@@ -130,7 +130,7 @@ class Tests(utils.ComponentTestCase):
     def test_join(self):
         """A JOIN from a cluster member gets a warm WELCOME."""
         self.node.fake_message(Join(), sender='F999')
-        self.assertMessage(['F999'], Welcome(state='state', slot_num=2,
+        self.assertMessage(['F999'], Welcome(state='state', slot=2,
                            decisions={1: PROPOSAL1}))
 
     def test_join_unknown(self):

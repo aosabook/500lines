@@ -29,10 +29,10 @@ class Tests(utils.ComponentTestCase):
             self.network.tick(JOIN_RETRANSMIT)
         self.assertMessage(['p2'], Join())
 
-        self.node.fake_message(Welcome(state='st', slot_num='sl', decisions={}))
+        self.node.fake_message(Welcome(state='st', slot='sl', decisions={}))
         self.Acceptor.assert_called_with(self.node)
         self.Replica.assert_called_with(self.node, execute_fn=self.execute_fn, decisions={},
-                                        state='st', slot_num='sl', peers=['p1', 'p2', 'p3'])
+                                        state='st', slot='sl', peers=['p1', 'p2', 'p3'])
         self.Leader.assert_called_with(self.node, peers=['p1', 'p2', 'p3'],
                                        commander_cls=self.Commander,
                                        scout_cls=self.Scout)

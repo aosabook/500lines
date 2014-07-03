@@ -20,12 +20,12 @@ class Tests(utils.ComponentTestCase):
         self.assertNoMessages()  # no quorum
         self.node.fake_message(Join(), sender='p3')
         self.assertMessage(['p1', 'p3'], Welcome(
-                           state='state', slot_num=1, decisions={}))
+                           state='state', slot=1, decisions={}))
 
         self.network.tick(JOIN_RETRANSMIT)
         self.node.fake_message(Join(), sender='p2')
         self.assertMessage(['p1', 'p2', 'p3'], Welcome(
-                           state='state', slot_num=1, decisions={}))
+                           state='state', slot=1, decisions={}))
 
         self.network.tick(JOIN_RETRANSMIT * 2)
         self.assertNoMessages()

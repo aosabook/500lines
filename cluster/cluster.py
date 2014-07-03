@@ -24,7 +24,7 @@ Active = namedtuple('Active', [])
 Prepare = namedtuple('Prepare', ['ballot_num'])
 Promise = namedtuple('Promise', ['ballot_num', 'accepted'])
 Propose = namedtuple('Propose', ['slot', 'proposal'])
-Welcome = namedtuple('Welcome', ['state', 'slot_num', 'decisions'])  # TODO: slot_num -> slot
+Welcome = namedtuple('Welcome', ['state', 'slot', 'decisions'])
 Decided = namedtuple('Decided', ['slot'])
 Preempted = namedtuple('Preempted', ['slot', 'preempted_by'])
 Adopted = namedtuple('Adopted', ['ballot_num', 'pvals'])
@@ -173,16 +173,16 @@ class Acceptor(Component):
 
 class Replica(Component):
 
-    def __init__(self, node, execute_fn, state, slot_num, decisions, peers):
+    def __init__(self, node, execute_fn, state, slot, decisions, peers):
         super(Replica, self).__init__(node)
         self.execute_fn = execute_fn
         self.state = state
-        self.slot_num = slot_num
+        self.slot = slot
         self.decisions = decisions.copy()
         self.peers = peers
         self.proposals = {}
-        # next slot num for a proposal (may lead slot_num)
-        self.next_slot = slot_num
+        # next slot num for a proposal (may lead slot)
+        self.next_slot = slot
         self.latest_leader = None
         self.latest_leader_timeout = None
 
@@ -217,9 +217,9 @@ class Replica(Component):
 
     def catchup(self):
         """Try to catch up on un-decided slots"""
-        if self.slot_num != self.next_slot:
-            self.logger.debug("catching up on %d .. %d" % (self.slot_num, self.next_slot - 1))
-        for slot in xrange(self.slot_num, self.next_slot):
+        if self.slot != self.next_slot:
+            self.logger.debug("catching up on %d .. %d" % (self.slot, self.next_slot - 1))
+        for slot in xrange(self.slot, self.next_slot):
             if slot in self.decisions:
                 continue
             # ask peers for information regardless
@@ -241,7 +241,7 @@ class Replica(Component):
     # handling decided proposals
 
     def do_DECISION(self, sender, slot, proposal):
-        assert not self.decisions.get(self.slot_num, None), \
+        assert not self.decisions.get(self.slot, None), \
                 "next slot to commit is already decided"
         if slot in self.decisions:
             assert self.decisions[slot] == proposal, \
@@ -258,10 +258,10 @@ class Replica(Component):
 
         # execute any pending, decided proposals
         while True:
-            commit_proposal = self.decisions.get(self.slot_num)
+            commit_proposal = self.decisions.get(self.slot)
             if not commit_proposal:
                 break  # not decided yet
-            commit_slot, self.slot_num = self.slot_num, self.slot_num + 1
+            commit_slot, self.slot = self.slot, self.slot + 1
 
             self.commit(commit_slot, commit_proposal)
 
@@ -308,7 +308,7 @@ class Replica(Component):
     def do_JOIN(self, sender):
         if sender in self.peers:
             self.node.send([sender], Welcome(
-                state=self.state, slot_num=self.slot_num, decisions=self.decisions))
+                state=self.state, slot=self.slot, decisions=self.decisions))
 
 class Commander(Component):
 
@@ -483,10 +483,10 @@ class Bootstrap(Component):
         self.node.send([next(self.peers_cycle)], Join())
         self.node.set_timer(JOIN_RETRANSMIT, self.join)
 
-    def do_WELCOME(self, sender, state, slot_num, decisions):
+    def do_WELCOME(self, sender, state, slot, decisions):
         self.acceptor_cls(self.node)
         self.replica_cls(self.node, execute_fn=self.execute_fn, peers=self.peers,
-                         state=state, slot_num=slot_num, decisions=decisions).start()
+                         state=state, slot=slot, decisions=decisions).start()
         self.leader_cls(self.node, peers=self.peers, commander_cls=self.commander_cls,
                         scout_cls=self.scout_cls).start()
         self.stop()
@@ -509,7 +509,7 @@ class Seed(Component):
 
         # cluster is ready - welcome everyone
         self.node.send(list(self.seen_peers), Welcome(
-            state=self.initial_state, slot_num=1, decisions={}))
+            state=self.initial_state, slot=1, decisions={}))
 
         # stick around for long enough that we don't hear any new JOINs from
         # the newly formed cluster
