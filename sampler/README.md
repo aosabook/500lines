@@ -499,6 +499,51 @@ s = MagicItemSampler(stats_names, bonus_probs, stats_probs)
 s.sample()
 ```
 
+
+## Uses of sampling
+
+Ok, now that we've constructed a way to randomly generate magical
+items, we might want to use this to compute answers to some
+questions. For example, let's say that damage in our RPG works by
+rolling some number of D12s (twelve-sided dice). The player gets to
+roll one die by default, and then add dice according to their strength
+bonus. So, for example, if they have a +2 strength bonus, they can
+roll three dice. The damage dealt is then the sum of the dice.
+
+We might want to specify a way to assign hit points to monsters based
+on the current ability level of the player. For example, let's say the
+player has one weapon (but we don't know what the stats bonuses on
+them are), and we want the player to be able to defeat the monster
+within three hits about half the time. How many hit points should the
+monster have?
+
+One way to answer this question is through sampling. We can use the
+following scheme:
+
+1. Randomly pick a magic item.
+2. Based on the item's bonuses, compute the number of dice that will
+   be rolled when attacking.
+3. Based on the number of dice that will be rolled, generate a sample
+   for the damage inflicted over three hits.
+4. Repeat steps 1-3 many times. This will result in an approximation
+   to the distribution over damage.
+5. Compute the expected amount of damage dealt by finding the mean of
+   all the samples.
+
+```
+from sampler import MagicItemSampler
+bonus_probs = np.array([0.0, 0.55, 0.25, 0.12, 0.06, 0.02])
+stats_probs = np.ones(6) / 6.0
+stats_names = ("dexterity", "constitution", "strength", "intelligence", "wisdom", "charisma")
+s = MagicItemSampler(stats_names, bonus_probs, stats_probs)
+item = s.sample()
+dice = 1 + s['strength']
+dice_probs = np.ones(12) / 12.0
+damage = np.sum(np.arange(1, 13, 1) * sample_multinomial(3, dice_probs))
+
+
+
+
 ## Rejection sampling
 
 More formally, the idea behind sampling is that we want to draw
