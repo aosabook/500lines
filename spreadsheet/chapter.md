@@ -323,3 +323,5 @@ td.formula { background: #eef; }
 td div { text-align: right; width: 120px; overflow: hidden; text-overflow: ellipsis; }
 td div.text { text-align: left; }
 td div.error { text-align: center; color: #800; font-size: 90%; border: solid 1px #800 }```
+
+_(to be continued…)_
