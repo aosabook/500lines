@@ -1,5 +1,7 @@
 """
 Test-drive the byte-compiler.
+(You can do it directly with python compiler.py foo.py [arguments...],
+but this way there's some debug scaffolding.)
 """
 
 import ast, dis, sys, types
@@ -23,7 +25,8 @@ def compile_toplevel(module_name, filename, source):
     except ImportError:
         astpp = ast
     report(astpp.dump(t))
-    f = compiler.byte_compile(module_name, filename, t, globals())
+    their_globals = compiler.make_globals(module_name)
+    f = compiler.byte_compile(module_name, filename, t, their_globals)
     diss(f.__code__)
     return f
 

@@ -1,4 +1,4 @@
-import ast, collections, dis, types
+import ast, collections, dis, types, os, sys
 from functools import reduce
 from itertools import chain
 from stack_effect import stack_effect
@@ -483,3 +483,18 @@ def make_table():
 
 def collect(table):
     return tuple(sorted(table, key=table.get))
+
+def compile_file(filename, module_name=None):
+    if module_name is None:
+        module_name = os.path.basename(os.path.splitext(filename)[0])
+    with open(filename) as f: source = f.read()
+    return byte_compile(module_name, filename, ast.parse(source),
+                        make_globals(module_name))
+
+def make_globals(module_name):
+    return dict(__package__=None, __spec__=None, __name__=module_name,
+                __loader__=__loader__, __builtins__=__builtins__, __doc__=None)
+
+if __name__ == '__main__':
+    del sys.argv[0]
+    compile_file(sys.argv[0], '__main__')()
