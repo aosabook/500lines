@@ -142,7 +142,7 @@ _(to be continued…)_
 </body></html>
 ```
 
-### JS: Main Thread
+### JS: Main Controller
 
 ```js
 window.Spreadsheet = ($scope, $timeout)=>{
@@ -226,7 +226,7 @@ window.Spreadsheet = ($scope, $timeout)=>{
 }
 ```
 
-### JS: Worker Thread
+### JS: Background Worker
 
 ```js
 if (this.importScripts) {
