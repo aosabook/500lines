@@ -20,11 +20,12 @@ There are three phases to implementing static analysis:
 
 3. Implementation details
 
-    This covers the actual act of writing the code, the time spent reading the documentation for libraries you use, and figuring out how to get at the information you need to write the analysis.
+    This covers the actual act of writing the code, the time spent reading the documentation for libraries you use, and figuring out how to get at the information you need to write the analysis. This could involve reading in a file of code, parsing it to understand the structure, and then making your specific check on the structure. Parsing code into a representative structure is a complicated business, and gets more complicated as the language grows.
+    In this chapter, we'll be depending on internal datastructures used by the compiler. This means that we don't have to worry about reading files or parsing them, but it does mean we have to work with data structures that are not in our control and that sometimes feel clumsy or ugly. Besdies all the work we'll save by not having to understand the code by ourselves, working with the same datastructures the compiler uses means that our checks will be based on an accurate assesment of the compilers understanding -- which means they'll be accurate to how the code will actually run.
 
 We're going to work through these steps for each of the individual checks implemented in this chapter. Step 1 requires enough understanding of the language we're analyzing to empathize with the kinds of problems it's users face. All the code in this chapter is Julia code, written to analyze Julia code.
 
-## A Brief Introduction to Julia
+# A Very Brief Introduction to Julia
 
 Julia is a young language aimed at technical computing. It was released, at version 0.1 in the Spring of 2012; as of the summer of 2014, it is reaching version 0.3. Julia is a procedural language; it is not object-oriented and while it has functional features (anonymous functions, higher order functions, immutable data), it does encourage a functional style of coding. The feature that most programmers will find novel in Julia is multiple dispatch, which is also central to the design of most of it's APIs.
 
@@ -59,8 +60,115 @@ Now increment has two methods. Julia decides which method to run for a given cal
 * *multiple* because it looks at the types and order of all the arguments. Object-oriented languages use single dispatch because they only consider the first argument (In `x.foo(y)`, the first argument is `x`.)
 * *dispatch* because this a way of matching function calls to method definitions.
 
-We haven't really seen the "multiple" part yet, but if you're curious about Julia you'll have to look that up on your own. We need to move on to a few implementation details.
+We haven't really seen the "multiple" part yet, but if you're curious about Julia you'll have to look that up on your own. We need to move on to our first check.
 
+# Checking the Types of Variables in Loops
+
+A feature of Julia that sets it apart from other high-level languages is its speed. As in most programming languages, writing very fast code in Julia involves an understanding of how the computer works and how Julia works. In Julia, an important part of helping the compiler create fast code for you is writing type-stable code. When the compiler can see that a variable in a section of code will always be the same specific type, it can do more optimizations than if it believes (correctly or not) that there are many possible types for that variable.
+
+For example, let's write a function that takes an `Int` and then increases it by some amount. If the number is small (less than 10), let's increase it by a big number (50), but if it's big, let's only increase it by a little (0.5).
+
+~~~jl
+function increment(x::Int)
+  if x < 10
+    x = x + 50
+  else
+    x = x + 0.5
+  end
+  return x
+end
+~~~
+
+This function looks pretty straight-forward, but the type of `x` is unstable. At the end of this function, `return x` might return an `Int` or it might return a `Float64`. This is because of the `else` clause; if you add an Int, like `22`, to `0.5`, which is a `Float64`, then you'll get a `Float64`, like `22.5`. This means that `5` will become `55` (an `Int`), but `22` will become `22.5` (a `Float64`). If there were more involved code after this function, then it would have to handle both types for `x`, since the compiler expects to need to handle both.
+
+As with most efficiency problems, this issue is more pronounced when it happens during loops. Code inside for-loops and while-loops is run many, many times, so making it fast is more important than speeding up code that is only run a couple of times. Our first check is going to look for variables inside loops that have unstable types. First, let's look at an example of what we want to catch.
+
+We'll be looking at two functions. Each of them sums the numbers 1 to 100, but instead of summing the whole numbers, it divides each one by 2 before summing it. Both functions will get the same answer (`2525.0`); both will return the same type (`Float64`). However, the first function, `unstable`, suffers from type-instability, while the second one, `stable`, does not.
+
+~~~jl
+function unstable()
+  sum = 0
+  for i=1:100
+    sum += i/2
+  end
+  return sum
+end
+~~~
+
+~~~.jl
+function stable()
+  sum = 0.0
+  for i=1:100
+    sum += i/2
+  end
+  return sum
+end
+~~~
+
+The only textual difference between the two functions is in the initialization of `sum`: `sum = 0` vs `sum = 0.0`. In Julia, `0` is an `Int` literal and `0.0` is a `Float64` literal. How big of a difference could this tiny change even make?
+
+Because Julia is Just-In-Time (JIT) compiled, the first run of a function will take longer than subsequent runs (because the first run includes the time it takes to compile it). When we benchmark functions, we have to be sure to run them once (or precompile them) before timing them.
+
+~~~jl
+julia> unstable()
+2525.0
+
+julia> stable()
+2525.0
+
+julia> @time unstable()
+elapsed time: 9.517e-6 seconds (3248 bytes allocated)
+2525.0
+
+julia> @time stable()
+elapsed time: 2.285e-6 seconds (64 bytes allocated)
+2525.0
+~~~
+
+The `@time` macro prints out how long the function took to run and how many bytes were allocated while it was running. The number of bytes allocated increases every time new memory is needed; it does not decrease when the garbage collector vacuums up memory that's no longer being used. This means that the bytes allocated is related to the amount of time we spend allocating memory, but does not imply that we had all of that memory in-use at the same time.
+
+If we wanted to get solid numbers for `stable` vs `unstable` we would need to make the loop much longer or run the functions many times. However, we can already see that `unstable` seems to be slower. More interestingly, we can see a large gap in the number of bytes allocated; `unstable` is allocated around 3kb of memory, where `stable` is using 64 bytes.
+
+Since we can see how simple `unstable` is, we might guess that this allocation is happening in the loop. To test this, we can make the loop longer and see if the allocations increase accordingly. Let's make the loop go from 1 to 10000, which is 100 times more iterations; we'll look for the number of bytes allocated to also increase about 100 times, to around 300kb.
+
+~~~jl
+function unstable()
+  sum = 0
+  for i=1:10000
+    sum += i/2
+  end
+  return sum
+end
+~~~
+
+Since we redefined the function, we'll need to run it to have it compiled before we measure it. We expect to get a different, larger answer from the new function defintion, since it's summing more numbers now.
+
+~~~jl
+julia> unstable()
+2.50025e7
+
+julia>@time unstable()
+elapsed time: 0.000667613 seconds (320048 bytes allocated)
+2.50025e7
+~~~
+
+The new `unstable` allocated about 320kb, which is what we would expect if the allocations are happening in the loop. This difference between `unstable` and `stable` is because `unstable`'s `sum` must be boxed while `stable`'s `sum` can be unboxed. Boxed values consist of a type tag and the actual bits that represent the value; unboxed values only have their actual bits. The type tag is small, so that's not why boxing values allocates a lot more memory. The difference comes from what optimizations the compiler can make. When a variable has a concrete, immutable type, the compiler can unbox it inside the function. If that's not the case, then the variable must be allocated on the heap, and participate in the garbage collector. Immutable types are usually types that represent values, rather than collections of values; most numeric types, including `Int` and `Float64` are immutable, while `Array`s and `Dict`s are mutable. Because immutable types cannot be modified, you must make a new copy every time you change one. For example `4 + 6` must make a new `Int` to hold the result. In constract, the members of a mutable type can be updated in-place.
+
+Because `sum` in `stable` has a concrete type (`Flaot64`), the compiler know that it can store it unboxed locally in the function and mutate it's value; `sum` will not be allocated on the heap and new copies don't have to be made every time we add `i/2`. Because `sum` in `unstable` does not have a concrete type, the compiler allocates it on the heap. Every time we modify sum, we allocated a new value on the heap. All this time spent allocating values on the heap (and retrieving them everytime we want to read the value of `sum`) is expensive.
+
+Using `0` vs `0.0` is an easy mistake to make, especially when you're new to Julia. Automatically checking that variables used in loops are type-stable helps programmers get more insight into what the types of their variables are, in performance-critical sections of their code.
+
+The type of `sum` in `unstable` is `Union(Float64,Int64)`. This is a `UnionType`. A variable of type `Union(Float64,Int64)` can hold values of type `Int64` or `Float64`; a value can only have one type. A `UnionType` can have more than two possible values. The specific thing that we're going to look for is `UnionType`d variables inside loops.
+
+## Implmentation
+
+In order to find those variables, we'll need to find what variables are used inside of loops and we'll need to find the types of those variables. After we have those results, we'll need to decide how to print them in a human-readable way.
+
+* How do we find loops in Exprs
+* How do we find the types of variables
+* How do we print the results
+
+// Saving for first implementation section
 ## Introspection in Julia.
 
 When you or I introspect, we're thinking about how and why we think and feel. When code introspects, it examines the representation or execution properties of code in the same language (possibly it's own code). When code's introspection extends to modifying the examined code, it's called metaprogramming (programs that write or modify programs).
@@ -122,7 +230,7 @@ returns(e::Expr) = filter(x-> typeof(x) == Expr && x.head==:return,body(e))
 returns(code_typed(increment,(Int,))[1]) # => 1-element Array{Any,1}:
                                          # :(return top(box)(Int64,top(add_int)(x::Int64,1))
 ~~~
-
+null
 This `code_typed(increment,(Int,))[1]` stuff is getting rather tedious. Let's write a couple of helper methods so that we can run `code_typed` on a whole function at once.
 
 ~~~jl
@@ -154,3 +262,8 @@ Once we have a `code_typed` that handles `Method`s, handling whole `Function`s i
 ~~~
 
 
+# Looking for Unused Variables
+
+# Checking Functions for Type Statbility
+
+# Tools for Insight into Variable Types
