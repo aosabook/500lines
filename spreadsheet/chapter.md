@@ -43,10 +43,10 @@ Press `ENTER` to set focus to `A2` and change its content to `=Date()`, then pre
 
 ![Formula Error](./images/04-error.png)
 
-This shows that a formula may calculates to a number (`2047` in `E1`), a text (the current time in `A2`, aligned to the left), or an _error_ (red letters in`B2`, aligned to the center).
+This shows that a formula may calculate to a number (`2047` in `E1`), a text (the current time in `A2`, aligned to the left), or an _error_ (red letters in`B2`, aligned to the center).
 
 Next, let’s try entering `=for(;;){}`, the JS code for an infinite loop that never terminates. The spreadsheet will prevent us from entering that code, automatically _undo_ the edit after half a second has passed.
 
 Now reload the page in the browser with `Ctrl-R` or `Cmd-R` to verify that the spreadsheet content is _persistent_, staying the same across browser sessions.
 
-Finally, press the `↻` button on the top-left corner to _reset_ the spreadsheet to its original content.
+Finally, press the `↻` button on the top-left corner to _reset_ the spreadsheet to its original contents.
