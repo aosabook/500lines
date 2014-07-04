@@ -72,7 +72,7 @@ Because our spreadsheet is a web application with no server-side code, we must r
 
 ## Code Walkthrough
 
-Now let’s look at the four source code files, in the same order as the browser loads them:
+Now let’s go through the four source code files, in the same order as the browser loads them:
 
 * **index.html**: 20 lines
 * **main.js**: 36 lines (excluding comments and blank lines)
@@ -163,6 +163,17 @@ window.Spreadsheet = ($scope, $timeout)=>{
 ```
 
 ```js
+  // UP (38) and DOWN/ENTER (40/13) keys move focus to the row above (-1) or below (+1).
+  $scope.keydown = ({which}, col, row)=>{ switch (which) {
+    case 38: case 40: case 13: $timeout( ()=>{
+      const direction = (which == 38) ? -1 : +1;
+      const cell = document.querySelector( `#${ col }${ row + direction }` );
+      if (cell) { cell.focus(); }
+    } )
+  } };
+```
+
+```js
   // Default sheet content, with some data cells and one formula cell.
   $scope.reset = ()=>{ $scope.sheet = { A1: 1874, B1: '+', C1: 2046, D1: '⇒', E1: '=A1+C1' } }
 ```
@@ -179,18 +190,7 @@ window.Spreadsheet = ($scope, $timeout)=>{
 
 ```js
   // Formula cells may produce errors in .errs; normal cell contents are in .vals
-  [$scope.errs, $scope.vals] = [{}, {}];
-```
-
-```js
-  // UP (38) and DOWN/ENTER (40/13) keys move focus to the row above (-1) or below (+1).
-  $scope.keydown = ({which}, col, row)=>{ switch (which) {
-    case 38: case 40: case 13: $timeout( ()=>{
-      const direction = (which == 38) ? -1 : +1;
-      const cell = document.querySelector( `#${ col }${ row + direction }` );
-      if (cell) { cell.focus(); }
-    } )
-  } };
+  [$scope.errs, $scope.vals] = [ {}, {} ];
 ```
 
 ```js
@@ -241,8 +241,9 @@ if (this.importScripts) {
 ```
 
 ```js
-  function calc({data: sheet}) {
-    let cache = {}, errs = {};
+  let sheet, cache, errs, vals;
+  function calc({data}) {
+    [sheet, cache, errs, vals] = [ data, {}, {}, {} ];
 ```
 
 ```js
@@ -292,7 +293,6 @@ if (this.importScripts) {
 
 ```js
     // For each coordinate in the sheet, call the property getter defined above
-    let vals = {};
     for (const coord in sheet) { vals[coord] = self[coord]; }
     return [ errs, vals ];
   }

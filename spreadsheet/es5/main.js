@@ -2160,6 +2160,21 @@ window.Spreadsheet = (function($scope, $timeout) {
     }
     return $__1;
   }());
+  $scope.keydown = (function($__4, col, row) {
+    var which = $traceurRuntime.assertObject($__4).which;
+    switch (which) {
+      case 38:
+      case 40:
+      case 13:
+        $timeout((function() {
+          var direction = (which == 38) ? -1 : +1;
+          var cell = document.querySelector(("#" + col + (row + direction)));
+          if (cell) {
+            cell.focus();
+          }
+        }));
+    }
+  });
   $scope.reset = (function() {
     $scope.sheet = {
       A1: 1874,
@@ -2177,21 +2192,6 @@ window.Spreadsheet = (function($scope, $timeout) {
     $scope.worker = new Worker('worker.js');
   }))();
   ($__4 = [{}, {}], $scope.errs = $__4[0], $scope.vals = $__4[1], $__4);
-  $scope.keydown = (function($__5, col, row) {
-    var which = $traceurRuntime.assertObject($__5).which;
-    switch (which) {
-      case 38:
-      case 40:
-      case 13:
-        $timeout((function() {
-          var direction = (which == 38) ? -1 : +1;
-          var cell = document.querySelector(("#" + col + (row + direction)));
-          if (cell) {
-            cell.focus();
-          }
-        }));
-    }
-  });
   ($scope.calc = (function() {
     var json = angular.toJson($scope.sheet);
     var promise = $timeout((function() {

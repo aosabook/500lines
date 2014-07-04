@@ -9,6 +9,15 @@ window.Spreadsheet = ($scope, $timeout)=>{
   $scope.Cols = [ for (col of range( 'A', 'H' )) col ];
   $scope.Rows = [ for (row of range( 1, 20 )) row ];
 
+  // UP (38) and DOWN/ENTER (40/13) keys move focus to the row above (-1) or below (+1).
+  $scope.keydown = ({which}, col, row)=>{ switch (which) {
+    case 38: case 40: case 13: $timeout( ()=>{
+      const direction = (which == 38) ? -1 : +1;
+      const cell = document.querySelector( `#${ col }${ row + direction }` );
+      if (cell) { cell.focus(); }
+    } )
+  } };
+
   // Default sheet content, with some data cells and one formula cell.
   $scope.reset = ()=>{ $scope.sheet = { A1: 1874, B1: '+', C1: 2046, D1: '⇒', E1: '=A1+C1' } };
 
@@ -21,16 +30,7 @@ window.Spreadsheet = ($scope, $timeout)=>{
   })();
 
   // Formula cells may produce errors in .errs; normal cell contents are in .vals
-  [$scope.errs, $scope.vals] = [{}, {}];
-
-  // UP (38) and DOWN/ENTER (40/13) keys move focus to the row above (-1) or below (+1).
-  $scope.keydown = ({which}, col, row)=>{ switch (which) {
-    case 38: case 40: case 13: $timeout( ()=>{
-      const direction = (which == 38) ? -1 : +1;
-      const cell = document.querySelector( `#${ col }${ row + direction }` );
-      if (cell) { cell.focus(); }
-    } )
-  } };
+  [$scope.errs, $scope.vals] = [ {}, {} ];
 
   // Define the calculation handler, and immediately call it
   ($scope.calc = ()=>{
