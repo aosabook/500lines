@@ -9,6 +9,9 @@ run ::
 	@node node_modules/static-here/bin/static-here
 
 es5 :: $(OBJECTS)
+	-@mkdir -p es5/lib
+	@cp -Rf index.html styles.css es5/
+	@cp -Rf lib/angular.js es5/lib/
 
 test :: es5
 	@node node_modules/mocha/bin/mocha
