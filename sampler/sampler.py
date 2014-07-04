@@ -54,7 +54,22 @@ class MagicItemSampler(object):
         item_stats = dict(zip(self.stats_names, stats))
         return item_stats
 
+    def sample_many(self, num_samples):
+        """Sample multiple magical items.
+
+        Returns
+        -------
+        list of `num_samples` dictionaries
+            In each dictionary, the keys are the names of the stats,
+            and the values are the bonus conferred to the
+            corresponding stat.
+
+        """
+        samples = [self.sample() for i in xrange(num_samples)]
+        return samples
+
     def logpmf(self, item):
+
         """Compute the log probability the given magical item.
 
         Parameters
@@ -181,6 +196,76 @@ class MagicItemSampler(object):
         # Then multiply them together
         log_pmf = logp_bonus + logp_stats
         return log_pmf
+
+
+class DamageSampler(object):
+
+    def __init__(self, num_items, item_sampler,
+                 num_dice_sides=12, num_hits=1, rso=None):
+        """Initialize the damage sampler. This object will sample possible
+        values for the attack damage dealt over `num_hits` hits when
+        the player has `num_items` items, and where attack damage is
+        computed by rolling dice with `num_dice_sides` sides.
+
+        Parameters
+        ----------
+        num_items: int
+            The number of items the player has.
+        item_sampler: MagicItemSampler object
+            A sampler for generating random items.
+        num_dice_sides: int (default: 12)
+            The number of sides on each die.
+        num_hits: int (default: 1)
+            The number of hits across which we want to calculate damage.
+        rso: numpy RandomState object (default: None)
+            The random number generator
+
+        """
+        # This is an array of integers corresponding to the sides of a
+        # single die. The `dice_probs` are equal probabilities for
+        # each of the sides.
+        self.dice_sides = np.arange(1, num_dice_sides + 1)
+        self.dice_probs = np.ones(num_dice_sides) / float(num_dice_sides)
+
+        self.num_hits = num_hits
+        self.num_items = num_items
+        self.item_sampler = item_sampler
+        self.rso = rso
+
+    def sample(self):
+        """Sample the attack damage.
+
+        Returns
+        -------
+        int
+            The sampled damage
+
+        """
+        # First, we need to randomly generate items (the number of
+        # which was passed into the constructor).
+        items = [self.item_sampler.sample() for i in xrange(self.num_items)]
+
+        # Based on the item stats (in particular, strength), compute
+        # the number of dice we get to roll.
+        num_dice = 1 + np.sum([item['strength'] for item in items])
+
+        # Roll the dice and compute the resulting damage.
+        dice_rolls = sample_multinomial(
+            self.num_hits * num_dice, self.dice_probs, rso=self.rso)
+        damage = np.sum(self.dice_sides * dice_rolls)
+        return damage
+
+    def sample_many(self, num_samples):
+        """Take multiple samples of attack damage.
+
+        Returns
+        -------
+        numpy array of length `num_samples`
+            The damage samples
+
+        """
+        samples = np.array([self.sample() for i in xrange(num_samples)])
+        return samples
 
 
 class RejectionSampler(object):

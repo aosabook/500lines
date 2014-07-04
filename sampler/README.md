@@ -488,6 +488,8 @@ have how many bonus points--but it also keeps the option open for
 using just `_sample_stats` if one needs to take many samples and
 efficiency is required.
 
+TODO: talk about `sample_many`
+
 We use a similar design for evaluating the probability of
 items. Again, we expose high-level methods `pmf` and `logpmf` which
 take dictionaries of the form produced by `sample`. These methods rely
@@ -532,22 +534,24 @@ And, if we want, we can evaluate the probability of a sampled item:
 0.091666666666666688
 ```
 
-## Uses of sampling
+## Estimating attack damage
 
-Ok, now that we've constructed a way to randomly generate magical
-items, we might want to use this to compute answers to some
-questions. For example, let's say that damage in our RPG works by
-rolling some number of D12s (twelve-sided dice). The player gets to
-roll one die by default, and then add dice according to their strength
-bonus. So, for example, if they have a +2 strength bonus, they can
-roll three dice. The damage dealt is then the sum of the dice.
+We've seen one example application of sampling: simply generating
+random items that monsters drop. I mentioned earlier that sampling can
+also be used when you want to estimate something from the distribution
+as a whole, and there are certainly cases in which we could use our
+`MagicItemSampler` to do this! For example, let's say that damage in
+our RPG works by rolling some number of D12s (twelve-sided dice). The
+player gets to roll one die by default, and then add dice according to
+their strength bonus. So, for example, if they have a +2 strength
+bonus, they can roll three dice. The damage dealt is then the sum of
+the dice.
 
-We might want to specify a way to assign hit points to monsters based
-on the current ability level of the player. For example, let's say the
-player has one weapon (but we don't know what the stats bonuses on
-them are), and we want the player to be able to defeat the monster
-within three hits about half the time. How many hit points should the
-monster have?
+We might want to know how much damage a player might deal after
+finding some number of weapons (e.g., as a factor in setting the
+difficulty of monsters). Let's say that after collecting two items, we
+want the player to be able to defeat monsters within three hits in
+about 50% of the battles. How many hit points should the monster have?
 
 One way to answer this question is through sampling. We can use the
 following scheme:
@@ -559,22 +563,57 @@ following scheme:
    for the damage inflicted over three hits.
 4. Repeat steps 1-3 many times. This will result in an approximation
    to the distribution over damage.
-5. Compute the expected amount of damage dealt by finding the mean of
-   all the samples.
 
+The class `DamageSampler` (also in `sampler.py`) shows an
+implementation of this scheme. The constructor takes as arguments the
+number of sides the dice have, how many hits we want to compute damage
+over, how many items the player has, an item sampler object (of type
+`MagicItemSampler`) and a random state object. By default, we set
+`num_dice_sides` to `12` because, while it is technically a parameter,
+it is unlikely to change. Similarly, we set `num_hits` to `1` as a
+default because a more likely use case is that we just want to take
+one sample of the damage for a single hit.
+
+We then implement the actual sampling logic in `sample` (note the
+structural similarity to `MagicItemSampler`!). First, we generate a
+set of possible magic items that the player has. Then, we look at the
+strength stat of those items, and from that compute the number of dice
+to roll. Finally, we roll the dice (again relying on our trusty
+multinomial functions) and compute the damage from that.
+
+TODO: talk about `sample_many`
+
+Now we have the machinery to answer our question from earlier: if the
+player has two items, and we want the player to be able to defeat the
+monster within three hits 50% of the time, how many hit points should
+the monster have?
+
+First, we create our sampler object, using the same `item_sampler`
+object that we created earlier:
+
+```python
+>>> from sampler import DamageSampler
+>>> damage_sampler = DamageSampler(2, item_sampler, num_hits=3)
 ```
-from sampler import MagicItemSampler
-bonus_probs = np.array([0.0, 0.55, 0.25, 0.12, 0.06, 0.02])
-stats_probs = np.ones(6) / 6.0
-stats_names = ("dexterity", "constitution", "strength", "intelligence", "wisdom", "charisma")
-s = MagicItemSampler(stats_names, bonus_probs, stats_probs)
-item = s.sample()
-dice = 1 + s['strength']
-dice_probs = np.ones(12) / 12.0
-damage = np.sum(np.arange(1, 13, 1) * sample_multinomial(3, dice_probs))
 
+Now we can draw a bunch of samples, and compute the 50th percentile
+(that is, the damage value that is greater than 50% of the samples):
 
+```python
+>>> samples = damage_sampler.sample_many(100000)
+>>> samples.min()
+3
+>>> samples.max()
+137
+>>> np.percentile(samples, 50)
+27.0
+```
 
+There is a pretty wide range of damage that the player could
+potentially inflict, but it has a long tail: the 50th percentile is at
+27 points, meaning that in half the samples, the player inflicted no
+more than 27 points of damage. Thus, if we wanted to use this criteria
+for setting monster difficulty, we would give them 27 hit points.
 
 ## Rejection sampling
 
