@@ -100,7 +100,7 @@ The next four lines are JS declarations, usually placed within the `head` sectio
 
 The `script src="…"` tags load JS resources from the same path as the HTML page. For example,  if the current URL is `http://audreyt.github.io/500lines/spreadsheet/index.html`, then `lib/angular.js` refers to `http://audreyt.github.io/500lines/spreadsheet/lib/angular.js`.
 
-The `if (!window.Spreadsheet)` conditional tests if `main.js` is loaded correctly; if not, it tells the browser to load the `es5/index.html` page instead. This _redirect-based graceful degradation_ technique ensures that, for pre-2015 browsers with no ES6 support, we can use the translated-to-ES5 versions of JS programs as a fallback.
+The `if (!window.Spreadsheet)` line tests if `main.js` is loaded correctly; if not, it tells the browser to navigate to `es5/index.html` instead. This _redirect-based graceful degradation_ technique ensures that, for pre-2015 browsers with no ES6 support, we can use the translated-to-ES5 versions of JS programs as a fallback.
 
 The next two line loads the CSS resource, closes the `head` section, and begins the `body` section:
 
