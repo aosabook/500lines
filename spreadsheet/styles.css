@@ -8,5 +8,5 @@ td div { width: 120px; overflow: hidden; text-overflow: ellipsis; text-align: ri
 td div.text { text-align: left; }
 td div.error { color: #800; text-align: center; font-size: 90%; border: solid 1px #800 }
 td.formula { background: #eef; }
-th { width: 30px; background: #ddd; }
+th { background: #ddd; }
 td, th { border: 1px solid #ccc; }
