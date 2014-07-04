@@ -74,10 +74,10 @@ Because our spreadsheet is a web application with no server-side code, we must r
 
 Now let’s look at the four source code files, in the same order as the browser loads them:
 
-* **index.html**: 18 lines
+* **index.html**: 20 lines
 * **main.js**: 36 lines (excluding comments and blank lines)
-* **worker.js**: 33 lines (excluding comments and blank lines)
-* **styles.css**: 12 lines
+* **worker.js**: 32 lines (excluding comments and blank lines)
+* **styles.css**: 11 lines
 
 ### HTML
 
@@ -105,13 +105,221 @@ The `if (!window.Spreadsheet)` line tests if `main.js` is loaded correctly; if n
 The next two line loads the CSS resource, closes the `head` section, and begins the `body` section:
 
 ```html
-  <link href=“styles.css” rel=“stylesheet”>
+  <link href="styles.css" rel="stylesheet">
 </head><body ng-app ng-cloak ng-controller="Spreadsheet">
+```
+
+_(to be continued…)_
+
+```html
+  <table><tr>
+    <th><button ng-click="reset(); calc()" title="Reset">↻</button></th>
+```
+
+```html
+    <th ng-repeat="col in Cols">{{ col }}</th>
+  </tr><tr ng-repeat="row in Rows">
+    <th>{{ row }}</th>
+```
+
+```html
+    <td ng-repeat="col in Cols" ng-class="{ formula: ('=' === sheet[col+row][0]) }">
+```
+
+```html
+      <input id="{{ col+row }}" ng-model="sheet[col+row]" ng-change="calc()"
+                                ng-keydown="keydown( $event, col, row )">
+```
+
+```html
+      <div ng-class="{ error: errs[col+row], text: vals[col+row][0] }">
+        {{ errs[col+row] || vals[col+row] }}&nbsp;</div>
+```
+
+```html
+    </td>
+  </tr></table>
+</body></html>
 ```
 
 ### JS: Main Thread
 
+```js
+window.Spreadsheet = ($scope, $timeout)=>{
+```
+
+```js
+  function* range(cur, end) { while (cur <= end) {
+    yield cur;
+    // If it's a number, increase it by one; otherwise move to next letter
+    cur = (isNaN( cur ) ? String.fromCodePoint( cur.codePointAt()+1 ) : cur+1);
+  } }
+```
+
+```js
+  // Begin of $scope properties; start with the column/row labels
+  $scope.Cols = [ for (col of range( 'A', 'H' )) col ];
+  $scope.Rows = [ for (row of range( 1, 20 )) row ];
+```
+
+```js
+  // Default sheet content, with some data cells and one formula cell.
+  $scope.reset = ()=>{ $scope.sheet = { A1: 1874, B1: '+', C1: 2046, D1: '⇒', E1: '=A1+C1' } }
+```
+
+```js
+  // Define the initializer, and immediately call it
+  ($scope.init = ()=>{
+    // Restore the previous .sheet; reset to default if it's the first run
+    $scope.sheet = angular.fromJson( localStorage.getItem( '' ) );
+    if (!$scope.sheet) { $scope.reset(); }
+    $scope.worker = new Worker( 'worker.js' );
+  })();
+```
+
+```js
+  // Formula cells may produce errors in .errs; normal cell contents are in .vals
+  [$scope.errs, $scope.vals] = [{}, {}];
+```
+
+```js
+  // UP (38) and DOWN/ENTER (40/13) keys move focus to the row above (-1) or below (+1).
+  $scope.keydown = ({which}, col, row)=>{ switch (which) {
+    case 38: case 40: case 13: $timeout( ()=>{
+      const direction = (which == 38) ? -1 : +1;
+      const cell = document.querySelector( `#${ col }${ row + direction }` );
+      if (cell) { cell.focus(); }
+    } )
+  } };
+```
+
+```js
+  // Define the calculation handler, and immediately call it
+  ($scope.calc = ()=>{
+    const json = angular.toJson( $scope.sheet );
+```
+
+```js
+    const promise = $timeout( ()=>{
+      // If the worker has not returned in 0.5 seconds, terminate it
+      $scope.worker.terminate();
+      // Back up to the previous state and make a new worker
+      $scope.init();
+      // Redo the calculation using the last-known state
+      $scope.calc();
+    }, 500 );
+```
+
+```js
+    // When the worker returns, apply its effect on the scope
+    $scope.worker.onmessage = ({data})=>{ $timeout( ()=>{
+      [$scope.errs, $scope.vals] = data;
+      localStorage.setItem( '', json );
+      $timeout.cancel( promise );
+    } ) }
+```
+
+```js
+    // Post the current sheet content for the worker to process
+    $scope.worker.postMessage( $scope.sheet );
+  })();
+}
+```
+
 ### JS: Worker Thread
+
+```js
+if (this.importScripts) {
+```
+
+```js
+  // Fast eval without the "this" object; available as execScript in IE
+  const globalEval = self.execScript || ( (js)=>eval.call( null, js ) );
+
+  // Forward the incoming messages to calc(), and post its result back
+  self.onmessage = (event)=>{ self.postMessage( calc( event ) ) };
+```
+
+```js
+  function calc({data: sheet}) {
+    let cache = {}, errs = {};
+```
+
+```js
+    for (const coord in sheet) {
+      // Four variable names pointing to the same coordinate: A1, a1, $A1, $a1
+      for (const name of [ for (p of [ '', '$' ]) for (c of [ coord, coord.toLowerCase() ]) p+c ]) {
+```
+
+```js
+        // Worker is reused across calculations, so only define each variable once
+        if (( Object.getOwnPropertyDescriptor( self, name ) || {} ).get) { continue; }
+
+        // Define self['A1'], which is the same thing as the global variable A1
+        Object.defineProperty( self, name, { get() {
+          if (coord in cache) { return cache[coord]; }
+          cache[coord] = NaN;
+```
+
+```js
+          // Convert numeric-looking strings into numbers so =A1+C1 works when both are numbers
+          let val = +sheet[coord];
+          if (sheet[coord] != val.toString()) { val = sheet[coord]; }
+```
+
+```js
+          // Evaluate formula cells that begin with =
+          try { cache[coord] = ( ('=' === val[0]) ? globalEval( val.slice( 1 ) ) : val ); }
+```
+
+```js
+          catch (e) {
+            const match = /\$?[A-Za-z]+[1-9][0-9]*\b/.exec( e );
+            if (match && !( match[0] in self )) {
+              // The formula refers to a uninitialized cell; set it to 0 and retry
+              self[match[0]] = 0;
+              delete cache[coord];
+              return self[coord];
+            }
+            // Otherwise, stringify the caught exception in the errs object
+            errs[coord] = e.toString();
+          }
+          return cache[coord];
+        } } )
+      }
+    }
+```
+
+```js
+    // For each coordinate in the sheet, call the property getter defined above
+    let vals = {};
+    for (const coord in sheet) { vals[coord] = self[coord]; }
+    return [ errs, vals ];
+  }
+}
+```
 
 ### CSS
 
+```css
+input { position: absolute; border: 0; padding: 0;
+        width: 120px; height: 1.3em; font-size: 100%;
+        color: transparent; background: transparent; }
+```
+
+```css
+input:focus { color: #111; background: #efe; }
+input:focus + div { white-space: nowrap; }
+```
+
+```css
+table { border-collapse: collapse; }
+th { background: #ddd; }
+td, th { border: 1px solid #ccc; }
+```
+
+```css
+td.formula { background: #eef; }
+td div { text-align: right; width: 120px; overflow: hidden; text-overflow: ellipsis; }
+td div.text { text-align: left; }
+td div.error { text-align: center; color: #800; font-size: 90%; border: solid 1px #800 }```

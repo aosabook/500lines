@@ -5,9 +5,9 @@ if (this.importScripts) {
   // Forward the incoming messages to calc(), and post its result back
   self.onmessage = (event)=>{ self.postMessage( calc( event ) ) };
 
-  let cache, errs, sheet;
-  function calc({data}) {
-    [cache, errs, sheet] = [ {}, {}, data ];
+  function calc({data: sheet}) {
+    let cache = {}, errs = {};
+
     for (const coord in sheet) {
       // Four variable names pointing to the same coordinate: A1, a1, $A1, $a1
       for (const name of [ for (p of [ '', '$' ]) for (c of [ coord, coord.toLowerCase() ]) p+c ]) {
@@ -41,8 +41,8 @@ if (this.importScripts) {
       }
     }
 
-    const vals = {};
     // For each coordinate in the sheet, call the property getter defined above
+    let vals = {};
     for (const coord in sheet) { vals[coord] = self[coord]; }
     return [ errs, vals ];
   }
