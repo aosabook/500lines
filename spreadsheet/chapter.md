@@ -45,7 +45,7 @@ Press **ENTER** to set focus to **A2** and change its content to `=Date()`, then
 
 This shows that a formula may calculate to a number (`2047` in **E1**), a text (the current time in **A2**, aligned to the left), or an _error_ (red letters in **B2**, aligned to the center).
 
-Next, let’s try entering `=for(;;){}`, the JS code for an infinite loop that never terminates. The spreadsheet will prevent us from entering that code, automatically _undo_ the edit after half a second has passed.
+Next, let’s try entering `=for(;;){}`, the JS code for an infinite loop that never terminates. The spreadsheet will prevent us, automatically _restoring_ the content of **C2** half a second after an attempted change.
 
 Now reload the page in the browser with **Ctrl-R** or **Cmd-R** to verify that the spreadsheet content is _persistent_, staying the same across browser sessions.
 
