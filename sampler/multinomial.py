@@ -51,7 +51,6 @@ def multinomial_pmf(x, p):
 
 
 def sample_multinomial(n, p, rso=None):
-
     """Samples draws of `n` events from a multinomial distribution with
     event probabilities `p`.
 
