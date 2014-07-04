@@ -87,18 +87,18 @@ The first line of `index.html` declares that it’s written in HTML5 (`<!DOCTYPE
 <!DOCTYPE html><html><head><meta charset="UTF-8">
 ```
 
-Without the `charset` declaration, the browser may display the reset button’s Unicode symbol `↻` as `â†»`, an example of _mojibake_ (garbled text caused by decoding issues).
+Without the `charset` declaration, the browser may display the reset button’s Unicode symbol `↻` as `â†»`, an example of _mojibake_ — garbled text caused by decoding issues.
 
 The next four lines are JS declarations, usually placed within the `head` section:
 
 ```html
-  <script src=“main.js”></script>
-  <script>if (!window.Spreadsheet) { location.href = “es5/index.html” }</script>
-  <script src=“worker.js”></script>
-  <script src=“lib/angular.js”></script>
+  <script src="main.js"></script>
+  <script>if (!window.Spreadsheet) { location.href = "es5/index.html" }</script>
+  <script src="worker.js"></script>
+  <script src="lib/angular.js"></script>
 ```
 
-The `script src=“…”` tags load JS resources from the same path as the HTML page. For example,  if the current URL is `http://audreyt.github.io/500lines/spreadsheet/index.html`, then `lib/angular.js` refers to `http://audreyt.github.io/500lines/spreadsheet/lib/angular.js`.
+The `script src="…"` tags load JS resources from the same path as the HTML page. For example,  if the current URL is `http://audreyt.github.io/500lines/spreadsheet/index.html`, then `lib/angular.js` refers to `http://audreyt.github.io/500lines/spreadsheet/lib/angular.js`.
 
 The `if (!window.Spreadsheet)` conditional tests if `main.js` is loaded correctly; if not, it tells the browser to load the `es5/index.html` page instead. This _redirect-based graceful degradation_ technique ensures that, for pre-2015 browsers with no ES6 support, we can use the translated-to-ES5 versions of JS programs as a fallback.
 
