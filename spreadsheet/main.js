@@ -10,7 +10,7 @@ window.Spreadsheet = ($scope, $timeout)=>{
   $scope.Rows = [ for (row of range( 1, 20 )) row ];
 
   // Default sheet content, with some data cells and one formula cell.
-  $scope.reset = ()=>{ $scope.sheet = { A1: 1874, B1: '✕', C1: 2046, D1: '⇒', E1: '=A1*C1' } };
+  $scope.reset = ()=>{ $scope.sheet = { A1: 1874, B1: '+', C1: 2046, D1: '⇒', E1: '=A1+C1' } };
 
   // Define the initializer, and immediately call it
   ($scope.init = ()=>{

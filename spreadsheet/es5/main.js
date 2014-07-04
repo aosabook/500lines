@@ -2163,10 +2163,10 @@ window.Spreadsheet = (function($scope, $timeout) {
   $scope.reset = (function() {
     $scope.sheet = {
       A1: 1874,
-      B1: '✕',
+      B1: '+',
       C1: 2046,
       D1: '⇒',
-      E1: '=A1*C1'
+      E1: '=A1+C1'
     };
   });
   ($scope.init = (function() {

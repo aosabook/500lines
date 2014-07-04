@@ -16,10 +16,37 @@ How many features can a Web application offer in 99 lines? Let’s see it in act
 
 ## Overview
 
-The [spreadsheet](https://github.com/aosabook/500lines/tree/master/spreadsheet) directory contains our showcase for the latest evolution of the three languages: [HTML5](http://www.w3.org/TR/html5/) for structure, [CSS3](http://www.w3.org/TR/css3-ui/) for presentation, and the JS [ES6 “Harmony”](http://wiki.ecmascript.org/doku.php?id=harmony:specification_drafts) standard for interaction.
+The [spreadsheet](https://github.com/aosabook/500lines/tree/master/spreadsheet) directory contains our showcase for the latest evolution of the three languages: [HTML5](http://www.w3.org/TR/html5/) for structure, [CSS3](http://www.w3.org/TR/css3-ui/) for presentation, and the JS [ES6 “Harmony”](http://wiki.ecmascript.org/doku.php?id=harmony:specification_drafts) standard for interaction. We also use [Web Storage](http://www.whatwg.org/specs/web-apps/current-work/multipage/webstorage.html) for data persistence, and [Web Worker](http://www.whatwg.org/specs/web-apps/current-work/multipage/workers.html) for running JS code in the background. Since 2012, these web standards are supported by Firefox, Chrome, Internet Explorer 10+, as well as mobile browsers on iOS 5+ and Android 4+.
 
-We also use [Web Storage](http://www.whatwg.org/specs/web-apps/current-work/multipage/webstorage.html) for data persistence, and [Web Worker](http://www.whatwg.org/specs/web-apps/current-work/multipage/workers.html) for running JS code in the background. Since 2012, these two web standards are supported by major browsers, such as Firefox, Chrome, Internet Explorer (version 10+), iOS Safari (version 5+) and Android Browser (version 4+).
+Now let’s open http://audreyt.github.io/500lines/spreadsheet/ in a browser:
 
-Now let’s open <http://audreyt.github.io/500lines/spreadsheet/> in a browser:
+![Initial Screen](./images/01-initial.png)
 
-![Initial Screen](http://user-image.logdown.io/user/6443/blog/6432/static_page/8659/Bx8iguS5mmVbkh3cuBiA_%E8%9E%A2%E5%B9%95%E5%BF%AB%E7%85%A7%202014-06-08%20%E4%B8%8B%E5%8D%8812.03.58.png)
+### Basic Concepts
+
+The _spreadsheet_ as shown on the screen is a grid that spans in two dimensions, with _columns_ starting from `A`, and _rows_ starting from `1`. Each _cell_ has a unique _coordinate_ (such as `A1`) and its _content_ (`1874`), which belongs to one of four _types_:
+
+* Text: `+` in `B1` and `⇒` in `D1`, aligned to the left.
+* Number: `1874` in `A1` and `2046` in `C1`, aligned to the right.
+* Formula:  `=A1+C1` in `E1`, which _calculates_ to the _value_ `3920`, displayed with a light blue background.
+* Empty: All cells in row `2` are currently empty.
+
+Click `3920` to set _focus_ on `E1`, revealing its formula in an _input box_:
+
+![Input Box](./images/02-input.png)
+
+Now let’s set focus on `A1` and _change_ its content to `1`, causing `E1` to _recalculate_ its value to `2047`:
+
+![Changed Content](./images/03-changed.png)
+
+Press `ENTER` to set focus to `A2` and change its content to `=Date()`, then press `TAB`, change the content of `B2` to `=alert()`, then press `TAB` again to set focus to `C2`:
+
+![Formula Error](./images/04-error.png)
+
+This shows that a formula may calculates to a number (`2047` in `E1`), a text (the current time in `A2`, aligned to the left), or an _error_ (red letters in`B2`, aligned to the center).
+
+Next, let’s try entering `=for(;;){}`, the JS code for an infinite loop that never terminates. The spreadsheet will prevent us from entering that code, automatically _undo_ the edit after half a second has passed.
+
+Now reload the page in the browser with `Ctrl-R` or `Cmd-R` to verify that the spreadsheet content is _persistent_, staying the same across browser sessions.
+
+Finally, press the `↻` button on the top-left corner to _reset_ the spreadsheet to its original content.
