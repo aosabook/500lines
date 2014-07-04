@@ -24,7 +24,7 @@ Now let’s open http://audreyt.github.io/500lines/spreadsheet/ in a browser:
 
 ### Basic Concepts
 
-The _spreadsheet_ as shown on the screen is a grid that spans in two dimensions, with _columns_ starting from **A**, and _rows_ starting from **1**. Each _cell_ has a unique _coordinate_ (such as **A1**) and its _content_ (`1874`), which belongs to one of four _types_:
+The spreadsheet spans in two dimensions, with _columns_ starting from **A**, and _rows_ starting from **1**. Each _cell_ has a unique _coordinate_ (such as **A1**) and its _content_ (`1874`), which belongs to one of four _types_:
 
 * Text: `+` in **B1** and `⇒` in **D1**, aligned to the left.
 * Number: `1874` in **A1** and `2046` in **C1**, aligned to the right.
