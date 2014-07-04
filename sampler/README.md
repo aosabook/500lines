@@ -3,6 +3,11 @@
 Note: this chapter assumes some familiarity with statistics and
 probability theory.
 
+TODO: include discussion about using `import numpy as np` rather than
+`import numpy`.
+
+TODO: include discussion about variable names (descriptive vs math?)
+
 ## Introduction
 
 Frequently, in computer science and engineering, we run into problems
@@ -579,6 +584,8 @@ strength stat of those items, and from that compute the number of dice
 to roll. Finally, we roll the dice (again relying on our trusty
 multinomial functions) and compute the damage from that.
 
+TODO: include note about why we don't have a PMF function here
+
 Now we have the machinery to answer our question from earlier: if the
 player has two items, and we want the player to be able to defeat the
 monster within three hits 50% of the time, how many hit points should
@@ -613,150 +620,145 @@ potentially inflict, but it has a long tail: the 50th percentile is at
 more than 27 points of damage. Thus, if we wanted to use this criteria
 for setting monster difficulty, we would give them 27 hit points.
 
-## Rejection sampling
+<!-- ## Rejection sampling -->
 
-More formally, the idea behind sampling is that we want to draw
-samples from a probability distribution, but we can only evaluate the
-probability density (or mass) at a particular point -- we do not
-actually have a method of drawing samples in proportion to that
-distribution.
+<!-- More formally, the idea behind sampling is that we want to draw -->
+<!-- samples from a probability distribution, but we can only evaluate the -->
+<!-- probability density (or mass) at a particular point -- we do not -->
+<!-- actually have a method of drawing samples in proportion to that -->
+<!-- distribution. -->
 
-There are many different types of Monte Carlo sampling methods,
-but we will focus on only one here: rejection sampling.
+<!-- There are many different types of Monte Carlo sampling methods, -->
+<!-- but we will focus on only one here: rejection sampling. -->
 
-### Mathematical background
+<!-- ### Mathematical background -->
 
-*Rejection sampling* is one of the simplest methods for drawing
-approximate samples from a distribution. Rather than directly drawing
-samples from the *target* distribution ($p$), which is the one we
-ultimately do want samples from, we specify a *proposal* distribution
-($q$) that we know how to sample from. The only constraint on $q$ is
-that $q(x)>=p(x)$ for all $x$ (and it is not necessary that $q(x)$ be
-a proper distribution, i.e. it is ok if it does not integrate to
-1). Then, the procedure is as follows:
+<!-- *Rejection sampling* is one of the simplest methods for drawing -->
+<!-- approximate samples from a distribution. Rather than directly drawing -->
+<!-- samples from the *target* distribution ($p$), which is the one we -->
+<!-- ultimately do want samples from, we specify a *proposal* distribution -->
+<!-- ($q$) that we know how to sample from. The only constraint on $q$ is -->
+<!-- that $q(x)>=p(x)$ for all $x$ (and it is not necessary that $q(x)$ be -->
+<!-- a proper distribution, i.e. it is ok if it does not integrate to -->
+<!-- 1). Then, the procedure is as follows: -->
 
-1. Draw a sample from the proposal distribution, $x\sim q$
-2. Choose a point $y$ uniformly at random in the interval $[0, q(x)]$
-3. If $y < p(x)$, then accept $x$ as a sample. Otherwise, reject $x$
-   and start over from step 1.
+<!-- 1. Draw a sample from the proposal distribution, $x\sim q$ -->
+<!-- 2. Choose a point $y$ uniformly at random in the interval $[0, q(x)]$ -->
+<!-- 3. If $y < p(x)$, then accept $x$ as a sample. Otherwise, reject $x$ -->
+<!--    and start over from step 1. -->
 
-By repeating this procedure many times, we can get an estimate of what
-the true probability distribution $p(x)$ look like.
+<!-- By repeating this procedure many times, we can get an estimate of what -->
+<!-- the true probability distribution $p(x)$ look like. -->
 
-### Example: measuring the depth of the sea floor
+<!-- ### Example: measuring the depth of the sea floor -->
 
-To give a more intuitive example of what all this math means, consider
-the problem of trying to map the depth of the ocean floor. With
-technology like sonar, this isn't so difficult, so let's instead
-imagine that we're 15th century sailors, and the best we have is an
-anchor on the end of a very long rope. For purposes of illustration,
-let's pretend we can't measure the length of the rope, either -- we
-can only know whether it has hit the bottom of the ocean.
+<!-- To give a more intuitive example of what all this math means, consider -->
+<!-- the problem of trying to map the depth of the ocean floor. With -->
+<!-- technology like sonar, this isn't so difficult, so let's instead -->
+<!-- imagine that we're 15th century sailors, and the best we have is an -->
+<!-- anchor on the end of a very long rope. For purposes of illustration, -->
+<!-- let's pretend we can't measure the length of the rope, either -- we -->
+<!-- can only know whether it has hit the bottom of the ocean. -->
 
-Then, the three steps listed above can be reinterpreted as follows:
+<!-- Then, the three steps listed above can be reinterpreted as follows: -->
 
-1. Pick a random point $x$ on the surface of the ocean.
-2. Drop the anchor into the ocean, and let it go down for a random
-   length between the top of the ocean, and the end of the rope.
-3. If the anchor hits the sea floor, then accept $x$ as a
-   sample. Otherwise, reject $x$ and start over from step 1.
+<!-- 1. Pick a random point $x$ on the surface of the ocean. -->
+<!-- 2. Drop the anchor into the ocean, and let it go down for a random -->
+<!--    length between the top of the ocean, and the end of the rope. -->
+<!-- 3. If the anchor hits the sea floor, then accept $x$ as a -->
+<!--    sample. Otherwise, reject $x$ and start over from step 1. -->
 
-By keeping track of the locations in which the anchor touched the
-bottom, we can get a good estimate of where the ocean is very deep
-(few samples), and where it is relatively shallow (many samples).
+<!-- By keeping track of the locations in which the anchor touched the -->
+<!-- bottom, we can get a good estimate of where the ocean is very deep -->
+<!-- (few samples), and where it is relatively shallow (many samples). -->
 
-It makes sense why this works: if the ocean is deep at $x$, then most
-of the time, the anchor won't touch the bottom (it will only if we
-chose a very long length of rope). Thus, we will end up with very few
-samples in places where the ocean is deep. Conversely, if the ocean is
-very shallow at $x$, then most of the time the anchor *will* touch the
-bottom (it won't only if we choose a very short length of rope). So,
-we will end up with a lot of samples in places where the ocean is
-shallow.
+<!-- It makes sense why this works: if the ocean is deep at $x$, then most -->
+<!-- of the time, the anchor won't touch the bottom (it will only if we -->
+<!-- chose a very long length of rope). Thus, we will end up with very few -->
+<!-- samples in places where the ocean is deep. Conversely, if the ocean is -->
+<!-- very shallow at $x$, then most of the time the anchor *will* touch the -->
+<!-- bottom (it won't only if we choose a very short length of rope). So, -->
+<!-- we will end up with a lot of samples in places where the ocean is -->
+<!-- shallow. -->
 
-TODO: it would be nice to have an illustration of this
+<!-- TODO: it would be nice to have an illustration of this -->
 
-### Why rejection sampling?
+<!-- ### Why rejection sampling? -->
 
-If it seems like rejection sampling is an awfully inefficient method
-to estimate anything, you're right: it is! However, it is a useful
-method to learn *first*, because -- despite being so simple -- it
-still follows design patterns that are common to other sampling
-methods.
+<!-- If it seems like rejection sampling is an awfully inefficient method -->
+<!-- to estimate anything, you're right: it is! However, it is a useful -->
+<!-- method to learn *first*, because -- despite being so simple -- it -->
+<!-- still follows design patterns that are common to other sampling -->
+<!-- methods. -->
 
-The other sampling methods which exist are much more powerful, but
-also much more complicated. While we unfortunately don't have time to
-cover them in this chapter, interested readers are encouraged to look
-further into slice sampling, the Metropolis-Hastings algorithm, and
-Gibbs sampling, all of which are popular choices of Monte Carlo
-sampling algorithms. TODO: references
+<!-- The other sampling methods which exist are much more powerful, but -->
+<!-- also much more complicated. While we unfortunately don't have time to -->
+<!-- cover them in this chapter, interested readers are encouraged to look -->
+<!-- further into slice sampling, the Metropolis-Hastings algorithm, and -->
+<!-- Gibbs sampling, all of which are popular choices of Monte Carlo -->
+<!-- sampling algorithms. TODO: references -->
 
-## Generic rejection sampler implementation
+<!-- ## Generic rejection sampler implementation -->
 
-The file `sampler.py` contains the basic code for implementing a
-sampler. On initialization, it takes functions to sample from the
-proposal distribution and to compute the log-PDF values for both the
-proposal and target distributions.
+<!-- The file `sampler.py` contains the basic code for implementing a -->
+<!-- sampler. On initialization, it takes functions to sample from the -->
+<!-- proposal distribution and to compute the log-PDF values for both the -->
+<!-- proposal and target distributions. -->
 
-TODO: discuss the design decision of having `RejectionSampler` take
-the functions, and then requiring users to instantiate it directly,
-rather than subclassing it and having users write write the functions
-as methods of the subclass.
+<!-- TODO: discuss the design decision of having `RejectionSampler` take -->
+<!-- the functions, and then requiring users to instantiate it directly, -->
+<!-- rather than subclassing it and having users write write the functions -->
+<!-- as methods of the subclass. -->
 
-TODO: include discussion about using `import numpy as np` rather than
-`import numpy`.
+<!-- ### Structure of the rejection sampler -->
 
-TODO: include discussion about variable names (descriptive vs math?)
+<!-- The `RejectionSampler` class uses two methods to draw samples: -->
+<!-- `sample` and `draw`. The first of these, `sample`, is the main outer -->
+<!-- sampling loop: it takes one argument `n`, which is the number of -->
+<!-- desired samples, allocates the storage for these samples, and calls -->
+<!-- `draw` a total of `n` times to collect these samples. The `draw` -->
+<!-- function is the actual sampling logic, following the three steps -->
+<!-- described in the previous section. -->
 
-### Structure of the rejection sampler
+<!-- Note that in `draw`, we need to exponentiate $\log{q(x)}$ in order to -->
+<!-- sample $y~\mathrm{Uniform}(0, q(x))$. To make sure we don't run into -->
+<!-- underflow errors, we first check to make sure $\log{q(x)}$ is not too -->
+<!-- small (as defined by the minimum value that your computer can -->
+<!-- exponentiate). If it is, then we won't be able to sample $y$, so we -->
+<!-- `continue` to try a different value of $x$. -->
 
-The `RejectionSampler` class uses two methods to draw samples:
-`sample` and `draw`. The first of these, `sample`, is the main outer
-sampling loop: it takes one argument `n`, which is the number of
-desired samples, allocates the storage for these samples, and calls
-`draw` a total of `n` times to collect these samples. The `draw`
-function is the actual sampling logic, following the three steps
-described in the previous section.
+<!-- We also include a `plot` method, which will let us visualize the -->
+<!-- proposal distribution, target distrubtion, and the histogram of -->
+<!-- samples. These types of methods are important as an easy way to glance -->
+<!-- at the samples and make sure they actually match the target -->
+<!-- distribution. -->
 
-Note that in `draw`, we need to exponentiate $\log{q(x)}$ in order to
-sample $y~\mathrm{Uniform}(0, q(x))$. To make sure we don't run into
-underflow errors, we first check to make sure $\log{q(x)}$ is not too
-small (as defined by the minimum value that your computer can
-exponentiate). If it is, then we won't be able to sample $y$, so we
-`continue` to try a different value of $x$.
+<!-- ## Example application: sampling from a mixture of Gaussians -->
 
-We also include a `plot` method, which will let us visualize the
-proposal distribution, target distrubtion, and the histogram of
-samples. These types of methods are important as an easy way to glance
-at the samples and make sure they actually match the target
-distribution.
+<!-- The -->
+<!-- [IPython notebook](http://nbviewer.org/github/jhamrick/500lines/blob/sampler/sampler/Sampling%20example.ipynb) -->
+<!-- uses `RejectionSampler` for the specific application of sampling from -->
+<!-- a mixture of Gaussians. A Gaussian distribution is given by the -->
+<!-- following equation: -->
 
-## Example application: sampling from a mixture of Gaussians
+<!-- $$ -->
+<!-- \mathcal{N}(x; \mu, \sigma^2) = \frac{1}{\sqrt{2\pi\sigma^2}}\exp{\frac{-(x-\mu)^2}{2\sigma^2}} -->
+<!-- $$ -->
 
-The
-[IPython notebook](http://nbviewer.org/github/jhamrick/500lines/blob/sampler/sampler/Sampling%20example.ipynb)
-uses `RejectionSampler` for the specific application of sampling from
-a mixture of Gaussians. A Gaussian distribution is given by the
-following equation:
+<!-- where $\mu$ and $\sigma^2$ are the parameters of the Gaussian -->
+<!-- distribution for mean and variance, respectively. A mixture of -->
+<!-- Gaussians is a weighted average of several Gaussians. In our case, we -->
+<!-- are using $p(x)=\frac{1}{3}(\mathcal{N}(x; -2.5, 0.2) + \mathcal{N}(x; -->
+<!-- 2.0, 0.1) + \mathcal{N}(x; 0.2, 0.3))$. -->
 
-$$
-\mathcal{N}(x; \mu, \sigma^2) = \frac{1}{\sqrt{2\pi\sigma^2}}\exp{\frac{-(x-\mu)^2}{2\sigma^2}}
-$$
+<!-- > Note: in practice, sampling from a Gaussian distribution is fairly -->
+<!-- > easy, and most statistics packages come with methods for doing -->
+<!-- > so. We are using a mixture of Gaussians here mostly just for -->
+<!-- > illustration purposes. -->
 
-where $\mu$ and $\sigma^2$ are the parameters of the Gaussian
-distribution for mean and variance, respectively. A mixture of
-Gaussians is a weighted average of several Gaussians. In our case, we
-are using $p(x)=\frac{1}{3}(\mathcal{N}(x; -2.5, 0.2) + \mathcal{N}(x;
-2.0, 0.1) + \mathcal{N}(x; 0.2, 0.3))$.
+<!-- TODO: include multi-dimensional example -->
 
-> Note: in practice, sampling from a Gaussian distribution is fairly
-> easy, and most statistics packages come with methods for doing
-> so. We are using a mixture of Gaussians here mostly just for
-> illustration purposes.
-
-TODO: include multi-dimensional example
-
-TODO: include discussion about where to include visualization code
+<!-- TODO: include discussion about where to include visualization code -->
 
 ## Possible extensions
 
