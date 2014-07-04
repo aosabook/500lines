@@ -54,20 +54,6 @@ class MagicItemSampler(object):
         item_stats = dict(zip(self.stats_names, stats))
         return item_stats
 
-    def sample_many(self, num_samples):
-        """Sample multiple magical items.
-
-        Returns
-        -------
-        list of `num_samples` dictionaries
-            In each dictionary, the keys are the names of the stats,
-            and the values are the bonus conferred to the
-            corresponding stat.
-
-        """
-        samples = [self.sample() for i in xrange(num_samples)]
-        return samples
-
     def logpmf(self, item):
 
         """Compute the log probability the given magical item.
@@ -254,18 +240,6 @@ class DamageSampler(object):
             self.num_hits * num_dice, self.dice_probs, rso=self.rso)
         damage = np.sum(self.dice_sides * dice_rolls)
         return damage
-
-    def sample_many(self, num_samples):
-        """Take multiple samples of attack damage.
-
-        Returns
-        -------
-        numpy array of length `num_samples`
-            The damage samples
-
-        """
-        samples = np.array([self.sample() for i in xrange(num_samples)])
-        return samples
 
 
 class RejectionSampler(object):

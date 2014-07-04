@@ -488,8 +488,6 @@ have how many bonus points--but it also keeps the option open for
 using just `_sample_stats` if one needs to take many samples and
 efficiency is required.
 
-TODO: talk about `sample_many`
-
 We use a similar design for evaluating the probability of
 items. Again, we expose high-level methods `pmf` and `logpmf` which
 take dictionaries of the form produced by `sample`. These methods rely
@@ -581,8 +579,6 @@ strength stat of those items, and from that compute the number of dice
 to roll. Finally, we roll the dice (again relying on our trusty
 multinomial functions) and compute the damage from that.
 
-TODO: talk about `sample_many`
-
 Now we have the machinery to answer our question from earlier: if the
 player has two items, and we want the player to be able to defeat the
 monster within three hits 50% of the time, how many hit points should
@@ -600,7 +596,7 @@ Now we can draw a bunch of samples, and compute the 50th percentile
 (that is, the damage value that is greater than 50% of the samples):
 
 ```python
->>> samples = damage_sampler.sample_many(100000)
+>>> samples = np.array([damage_sampler.sample() for i in xrange(100000)])
 >>> samples.min()
 3
 >>> samples.max()
@@ -608,6 +604,8 @@ Now we can draw a bunch of samples, and compute the 50th percentile
 >>> np.percentile(samples, 50)
 27.0
 ```
+
+TODO: include plot of the histogram
 
 There is a pretty wide range of damage that the player could
 potentially inflict, but it has a long tail: the 50th percentile is at
