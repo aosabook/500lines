@@ -40,6 +40,58 @@ class MagicItemSampler(object):
         self.stats_probs = stats_probs
         self.rso = rso
 
+    def sample(self):
+        """Sample a random magical item.
+
+        Returns
+        -------
+        dictionary
+            The keys are the names of the stats, and the values are
+            the bonus conferred to the corresponding stat.
+
+        """
+        stats = self._sample_stats()
+        item_stats = dict(zip(self.stats_names, stats))
+        return item_stats
+
+    def logpmf(self, item):
+        """Compute the log probability the given magical item.
+
+        Parameters
+        ----------
+        item: dictionary
+            The keys are the names of the stats, and the values are
+            the bonus conferred to the corresponding stat.
+
+        Returns
+        -------
+        float
+            The value corresponding to log(p(item))
+
+        """
+        # First pull out the bonus points for each stat, in the
+        # correct order, then pass that to _stats_logpmf.
+        stats = np.array([item[stat] for stat in self.stats_names])
+        log_pmf = self._stats_logpmf(stats)
+        return log_pmf
+
+    def pmf(self, item):
+        """Compute the probability the given magical item.
+
+        Parameters
+        ----------
+        item: dictionary
+            The keys are the names of the stats, and the values are
+            the bonus conferred to the corresponding stat.
+
+        Returns
+        -------
+        float
+            The value corresponding to p(item)
+
+        """
+        return np.exp(self.logpmf(item))
+
     def _sample_bonus(self):
         """Sample a value of the overall bonus.
 
@@ -129,58 +181,6 @@ class MagicItemSampler(object):
         # Then multiply them together
         log_pmf = logp_bonus + logp_stats
         return log_pmf
-
-    def sample(self):
-        """Sample a random magical item.
-
-        Returns
-        -------
-        dictionary
-            The keys are the names of the stats, and the values are
-            the bonus conferred to the corresponding stat.
-
-        """
-        stats = self._sample_stats()
-        item_stats = dict(zip(self.stats_names, stats))
-        return item_stats
-
-    def logpmf(self, item):
-        """Compute the log probability the given magical item.
-
-        Parameters
-        ----------
-        item: dictionary
-            The keys are the names of the stats, and the values are
-            the bonus conferred to the corresponding stat.
-
-        Returns
-        -------
-        float
-            The value corresponding to log(p(item))
-
-        """
-        # First pull out the bonus points for each stat, in the
-        # correct order, then pass that to _stats_logpmf.
-        stats = np.array([item[stat] for stat in self.stats_names])
-        log_pmf = self._stats_logpmf(stats)
-        return log_pmf
-
-    def pmf(self, item):
-        """Compute the probability the given magical item.
-
-        Parameters
-        ----------
-        item: dictionary
-            The keys are the names of the stats, and the values are
-            the bonus conferred to the corresponding stat.
-
-        Returns
-        -------
-        float
-            The value corresponding to p(item)
-
-        """
-        return np.exp(self.item_logpmf(item))
 
 
 class RejectionSampler(object):
