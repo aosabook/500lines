@@ -126,6 +126,8 @@ bonus is distributed across the stats. Conveniently, the probability
 distributions of the bonus and the way that it is distributed are both
 instances of the *multinomial distribution*.
 
+## The multinomial distribution
+
 The multinomial distribution is used when you have several categories
 of events, and you want to characterize the probability of some
 combination of events happening.  The classic example used to describe
@@ -135,6 +137,9 @@ example, 30% red, 20% blue, and 50% green). You pull out a ball,
 record its color, put it back in the urn, and then repeat this
 multiple times. The multinomial distribution then tells you what the
 probability is of selecting the balls that you did.
+
+Note: the code in this section is also located in the file
+`multinomial.py`.
 
 ### Sampling from a multinomial distribution
 
@@ -249,7 +254,7 @@ compute the PMF.
 Finally, in many cases, your particular use case will dictate that you
 implement the PMF or PDF from the beginning, anyway.
 
-#### The multinomial PMF
+#### The multinomial PMF equation
 
 Formally, the multinomial distribution has the following equation:
 
@@ -447,68 +452,85 @@ inf
 
 ## Sampling magical items, revisited
 
-As a first attempt, we can write some simple sampling and PMF
-functions, in the same style as the multinomial functions above:
+Now that we have written our multinomial functions, we can put them to
+work to actually generate our magical items! To do this, we will
+create a class called `MagicItemSampler`, located in the file
+`sampler.py`.
 
-TODO: add docstrings and elaborate
+The constructor to our `MagicItemSampler` class takes parameters for
+the bonus probabilities, the stats probabilities, and the random
+number generator. Even though we specified above what we wanted the
+bonus probabilities to be, it is generally a good idea to encode
+parameters as arguments that are passed in. This leaves open the
+possibility of sampling items under different distributions (for
+example, maybe the bonus probabilities would change as the player's
+level increases). We encode the *names* of the stats as a class
+variable, `stats_names`, though this could just as easily be another
+parameter to the constructor.
+
+As mentioned previously, there are two steps to sampling a magical
+item: first sampling the overall bonus, and then sampling the
+distribution of the bonus across the stats. As such, we code these
+steps as two methods: `_sample_bonus` and `_sample_stats`. We *could*
+have made these be just a single method--especially since
+`_sample_stats` is the only function that depends on
+`_sample_bonus`--but I have chosen to keep them separate, both because
+it makes the sampling routine easier to understand, and because
+breaking it up into smaller pieces makes the code easier to test.
+
+You'll also notice that these methods are prefixed with an underscore,
+indicating that they're not really meant to be used outside the
+class. Instead, we provide the function `sample`, which does
+essentially the same thing as `_sample_stats`, except that it returns
+a dictionary with the stats names as keys. This provides a clean and
+understandable interface for sampling items--it is obvious which stats
+have how many bonus points--but it also keeps the option open for
+using just `_sample_stats` if one needs to take many samples and
+efficiency is required.
+
+We use a similar design for evaluating the probability of
+items. Again, we expose high-level methods `pmf` and `logpmf` which
+take dictionaries of the form produced by `sample`. These methods rely
+on `_bonus_logpmf`, which computes the probability of the overall
+bonus, and `_stats_logpmf`, which computes the probability of the
+stats (but which takes an array rather than a dictionary).
+
+We can now create our sampler as follows:
 
 ```python
-def sample_bonus(rso=None):
-    bonus_p = np.array([0.0, 0.55, 0.25, 0.12, 0.06, 0.02])
-    bonus = np.argwhere(sample_multinomial(1, bonus_p, rso=rso))[0, 0]
-    return bonus
+>>> import numpy as np
+>>> from sampler import MagicItemSampler
+>>> bonus_probs = np.array([0.0, 0.55, 0.25, 0.12, 0.06, 0.02])
+>>> stats_probs = np.ones(6) / 6.0
+>>> item_sampler = MagicItemSampler(bonus_probs, stats_probs)
 ```
+
+Once created, we can use it to generate a few different items:
 
 ```python
-def sample_stats(rso=None):
-    bonus = sample_bonus(rso=rso)
-    stats_p = np.ones(6) / 6.0
-    stats = sample_multinomial(bonus, stats_p, rso=rso)
-    return stats
+>>> item_sampler.sample()
+{'dexterity': 0, 'strength': 0, 'constitution': 0, 'intelligence': 0,
+'wisdom': 1, 'charisma': 0}
+>>> item_sampler.sample()
+{'dexterity': 0, 'strength': 0, 'constitution': 2, 'intelligence': 1,
+'wisdom': 0, 'charisma': 0}
+>>> item_sampler.sample()
+{'dexterity': 0, 'strength': 0, 'constitution': 1, 'intelligence': 0,
+'wisdom': 0, 'charisma': 0}
 ```
+
+And, if we want, we can evaluate the probability of a sampled item:
 
 ```python
-def bonus_logpmf(bonus):
-    bonus_p = np.array([0.0, 0.55, 0.25, 0.12, 0.06, 0.02])
-    if bonus < 0 or bonus >= len(bonus_p)
-        return -np.inf
-    return np.log(bonus_p[bonus])
+>>> item = item_sampler.sample()
+>>> item
+{'dexterity': 0, 'strength': 0, 'constitution': 0, 'intelligence': 0,
+'wisdom': 1, 'charisma': 0}
+>>> item_sampler.logpmf(item)
+-2.3895964699836751
+>>> item_sampler.pmf(item)
+0.091666666666666688
 ```
-
-```python
-def stats_logpmf(stats):
-    total_bonus = np.sum(stats)
-    logp_bonus = bonus_logpmf(total_bonus)
-
-    stats_p = np.ones(6) / 6.0
-    logp_stats = multinomial_logpdf(stats, stats_p)
-
-    log_pmf = logp_bonus + logp_stats
-    return log_pmf
-```
-
-### Putting it together
-
-There is one obvious issue with the way we wrote our functions above:
-the code duplication of defining `stats_p` and `bonus_p` in multiple
-functions. This is actually worse than it even seems initially,
-because by declaring these variables *within* the function, we have to
-recreate them *every time the function is called*. If we wanted to
-take large numbers of samples, or evaluate the probability of many
-samples, this would add a huge amount of overhead.
-
-The best way to get around this issue is to actually make all these
-functions methods of a class.
-
-```
-from sampler import MagicItemSampler
-bonus_probs = np.array([0.0, 0.55, 0.25, 0.12, 0.06, 0.02])
-stats_probs = np.ones(6) / 6.0
-stats_names = ("dexterity", "constitution", "strength", "intelligence", "wisdom", "charisma")
-s = MagicItemSampler(stats_names, bonus_probs, stats_probs)
-s.sample()
-```
-
 
 ## Uses of sampling
 
