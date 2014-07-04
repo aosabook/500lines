@@ -1,25 +1,204 @@
 import numpy as np
+from multinomial import sample_multinomial, multinomial_logpmf
+
 
 # this is the minimum value we can exponentiate
 MIN = np.log(np.finfo('float64').tiny)
 
 
+class MagicItemSampler(object):
+
+    # these are the names (and order) of the stats that all magical
+    # items will have
+    stats_names = ("dexterity", "constitution", "strength",
+                   "intelligence", "wisdom", "charisma")
+
+    def __init__(self, bonus_probs, stats_probs, rso=None):
+        """Initialize the magic item sampler.
+
+        Parameters
+        ----------
+        bonus_probs: numpy array of length m
+            The probabilities of the overall bonuses. Each index in
+            the array corresponds to the bonus of that amount (e.g.
+            index 0 is +0, index 1 is +1, etc.)
+
+        stats_probs: numpy array of length 6
+            The probabilities of how the overall bonus is distributed
+            among the different stats. `stats_probs[i]` corresponds to
+            the probability of giving a bonus point to the ith stat,
+            i.e. the value at `MagicItemSampler.stats_names[i]`.
+
+        rso: numpy RandomState object (default: None)
+            The random number generator
+
+        """
+        # Store the given parameters, in addition to the log of the
+        # bonus probabilities (which are used by _bonus_logpmf).
+        self.bonus_probs = bonus_probs
+        self.bonus_log_probs = np.log(self.bonus_probs)
+        self.stats_probs = stats_probs
+        self.rso = rso
+
+    def _sample_bonus(self):
+        """Sample a value of the overall bonus.
+
+        Returns
+        -------
+        integer
+            The overall bonus
+
+        """
+        # The bonus is essentially just a sample from a multinomial
+        # distribution with n=1, i.e., only one event occurs.
+        sample = sample_multinomial(1, self.bonus_probs, rso=self.rso)
+
+        # `sample` is an array of zeros and a single one at the
+        # location corresponding to the bonus. We want to convert this
+        # one into the actual value of the bonus.
+        bonus = np.argwhere(sample)[0, 0]
+        return bonus
+
+    def _sample_stats(self):
+        """Sample the overall bonus and how it is distributed across the
+        different stats.
+
+        Returns
+        -------
+        numpy array of length 6
+            The number of bonus points for each stat
+
+        """
+        # First we need to sample the overall bonus.
+        bonus = self._sample_bonus()
+        # Then, we use a different multinomial distribution to sample
+        # how that bonus is distributed. The bonus corresponds to the
+        # number of events.
+        stats = sample_multinomial(bonus, self.stats_probs, rso=self.rso)
+        return stats
+
+    def _bonus_logpmf(self, bonus):
+        """Evaluate the log-PMF for the given bonus.
+
+        Parameters
+        ----------
+        bonus: integer
+            The total bonus.
+
+        Returns
+        -------
+        float
+            The value corresponding to log(p(bonus))
+
+        """
+        # Make sure the value that is passed in is within the
+        # appropriate bounds.
+        if bonus < 0 or bonus >= len(self.bonus_probs):
+            return -np.inf
+
+        # Because the bonus is just a single event, we can just index
+        # into the array of log probabilities, and do not actually
+        # need to call multinomial_logpmf.
+        return self.bonus_log_probs[bonus]
+
+    def _stats_logpmf(self, stats):
+        """Evaluate the log-PMF for the given distribution of bonus points
+        across the different stats.
+
+        Parameters
+        ----------
+        stats: numpy array of length 6
+            The distribution of bonus points across the stats
+
+        Returns
+        -------
+        float
+            The value corresponding to log(p(stats))
+
+        """
+        # There are never any leftover bonus points, so the sum of the
+        # stats gives us the total bonus.
+        total_bonus = np.sum(stats)
+
+        # First calculate the probability of the total bonus
+        logp_bonus = self._bonus_logpmf(total_bonus)
+
+        # Then calculate the probability of the stats
+        logp_stats = multinomial_logpmf(stats, self.stats_probs)
+
+        # Then multiply them together
+        log_pmf = logp_bonus + logp_stats
+        return log_pmf
+
+    def sample(self):
+        """Sample a random magical item.
+
+        Returns
+        -------
+        dictionary
+            The keys are the names of the stats, and the values are
+            the bonus conferred to the corresponding stat.
+
+        """
+        stats = self._sample_stats()
+        item_stats = dict(zip(self.stats_names, stats))
+        return item_stats
+
+    def logpmf(self, item):
+        """Compute the log probability the given magical item.
+
+        Parameters
+        ----------
+        item: dictionary
+            The keys are the names of the stats, and the values are
+            the bonus conferred to the corresponding stat.
+
+        Returns
+        -------
+        float
+            The value corresponding to log(p(item))
+
+        """
+        # First pull out the bonus points for each stat, in the
+        # correct order, then pass that to _stats_logpmf.
+        stats = np.array([item[stat] for stat in self.stats_names])
+        log_pmf = self._stats_logpmf(stats)
+        return log_pmf
+
+    def pmf(self, item):
+        """Compute the probability the given magical item.
+
+        Parameters
+        ----------
+        item: dictionary
+            The keys are the names of the stats, and the values are
+            the bonus conferred to the corresponding stat.
+
+        Returns
+        -------
+        float
+            The value corresponding to p(item)
+
+        """
+        return np.exp(self.item_logpmf(item))
+
+
 class RejectionSampler(object):
 
-    def __init__(self, propose_func, propose_logpdf, target_logpdf):
+    def __init__(self, envelope_func, envelope_logpdf, target_logpdf):
         """Initialize the rejection sampler.
 
         Parameters
         ----------
-        propose_func : function
-            The proposal distribution, q. Calling this function should
+        envelope_func : function
+            The envelope distribution, q. Calling this function should
             return one sample, x, from this distribution.
 
-        propose_logpdf : function
-            The proposal distribution's log probability density
+        envelope_logpdf : function
+            The envelope distribution's log probability density
             function (log-PDF). Calling this function with a sample
-            from `propose_func` should return the log probability
-            density for the proposal distribution at that location,
+            from `envelope_func` should return the log probability
+            density for the envelope distribution at that location,
             i.e. log(q(x)). This MUST be greater than the log-PDF of
             the target distribution, for any given input (i.e., q(x) >
             p(x) for all x)
@@ -27,14 +206,14 @@ class RejectionSampler(object):
         target_logpdf : function
             The target distribution's log probability density function
             (log-PDF). Calling this function with a sample from
-            `propose_func` should return the log probability density
+            `envelope_func` should return the log probability density
             for the target distribution at that location,
             i.e. log(p(x)).
 
         """
 
-        self.propose_func = propose_func
-        self.propose_logpdf = propose_logpdf
+        self.envelope_func = envelope_func
+        self.envelope_logpdf = envelope_logpdf
         self.target_logpdf = target_logpdf
 
         self.samples = None
@@ -48,11 +227,11 @@ class RejectionSampler(object):
 
         while True:
             # 1. Sample a candidate value (x ~ q)
-            candidate_sample = self.propose_func()
+            candidate_sample = self.envelope_func()
 
             # 2. Sample a point uniformly between 0 and the PDF of the
-            # proposal distribution (y ~ Uniform(0, q(x)))
-            upper = self.propose_logpdf(candidate_sample)
+            # envelope distribution (y ~ Uniform(0, q(x)))
+            upper = self.envelope_logpdf(candidate_sample)
             if upper >= MIN:
                 threshold = np.random.uniform(0.0, np.exp(upper))
                 log_threshold = np.log(threshold)
@@ -105,7 +284,7 @@ class RejectionSampler(object):
         return self.samples
 
     def plot(self, axes, x_min, x_max, y_max):
-        """Plot the proposal distribution (q), target distribution (p), and
+        """Plot the envelope distribution (q), target distribution (p), and
         normalized histogram of the samples (x) drawn by
         `self.sample`.
 
@@ -128,7 +307,7 @@ class RejectionSampler(object):
                 "visualization for dimensions great than 1 not supported")
 
         X = np.linspace(x_min, x_max, 1000)
-        Yp = np.exp(np.array([self.propose_logpdf(x) for x in X]))
+        Yp = np.exp(np.array([self.envelope_logpdf(x) for x in X]))
         Yt = np.exp(np.array([self.target_logpdf(x) for x in X]))
 
         # plot the histogram of samples
@@ -140,11 +319,11 @@ class RejectionSampler(object):
             normed=True,
             edgecolor='#999999')
 
-        # plot the proposal distribution PDF
+        # plot the envelope distribution PDF
         axes.plot(
             X, Yp, 'r-',
             linewidth=2,
-            label="proposal")
+            label="envelope")
 
         # plot the target distribution PDF
         axes.plot(
