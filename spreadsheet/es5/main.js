@@ -2102,32 +2102,9 @@ System.register("traceur-runtime@0.0.49/src/runtime/polyfill-import", [], functi
   return {};
 });
 System.get("traceur-runtime@0.0.49/src/runtime/polyfill-import" + '');
-this.Spreadsheet = (function($scope, $timeout) {
+function Spreadsheet($scope, $timeout) {
   var $__7 = $traceurRuntime.initGeneratorFunction(range);
   var $__4;
-  function range(cur, end) {
-    return $traceurRuntime.createGeneratorInstance(function($ctx) {
-      while (true)
-        switch ($ctx.state) {
-          case 0:
-            $ctx.state = (cur <= end) ? 1 : -2;
-            break;
-          case 1:
-            $ctx.state = 2;
-            return cur;
-          case 2:
-            $ctx.maybeThrow();
-            $ctx.state = 4;
-            break;
-          case 4:
-            cur = (isNaN(cur) ? String.fromCodePoint(cur.codePointAt() + 1) : cur + 1);
-            $ctx.state = 0;
-            break;
-          default:
-            return $ctx.end();
-        }
-    }, $__7, this);
-  }
   $scope.Cols = (function() {
     var $__0 = 0,
         $__1 = [];
@@ -2160,6 +2137,29 @@ this.Spreadsheet = (function($scope, $timeout) {
     }
     return $__1;
   }());
+  function range(cur, end) {
+    return $traceurRuntime.createGeneratorInstance(function($ctx) {
+      while (true)
+        switch ($ctx.state) {
+          case 0:
+            $ctx.state = (cur <= end) ? 1 : -2;
+            break;
+          case 1:
+            $ctx.state = 2;
+            return cur;
+          case 2:
+            $ctx.maybeThrow();
+            $ctx.state = 4;
+            break;
+          case 4:
+            cur = (isNaN(cur) ? String.fromCodePoint(cur.codePointAt() + 1) : cur + 1);
+            $ctx.state = 0;
+            break;
+          default:
+            return $ctx.end();
+        }
+    }, $__7, this);
+  }
   $scope.keydown = (function($__4, col, row) {
     var which = $traceurRuntime.assertObject($__4).which;
     switch (which) {
@@ -2201,13 +2201,13 @@ this.Spreadsheet = (function($scope, $timeout) {
     }), 99);
     $scope.worker.onmessage = (function($__5) {
       var data = $traceurRuntime.assertObject($__5).data;
+      $timeout.cancel(promise);
+      localStorage.setItem('', json);
       $timeout((function() {
         var $__6;
         ($__6 = $traceurRuntime.assertObject(data), $scope.errs = $__6[0], $scope.vals = $__6[1], $__6);
-        localStorage.setItem('', json);
-        $timeout.cancel(promise);
       }));
     });
     $scope.worker.postMessage($scope.sheet);
   }))();
-});
+}

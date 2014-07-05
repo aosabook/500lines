@@ -1,12 +1,12 @@
-this.Spreadsheet = ($scope, $timeout)=>{
+function Spreadsheet ($scope, $timeout) {
+  // Begin of $scope properties; start with the column/row labels
+  $scope.Cols = [ for (col of range( 'A', 'H' )) col ];
+  $scope.Rows = [ for (row of range( 1, 20 )) row ];
+
   function* range(cur, end) { while (cur <= end) { yield cur;
     // If it's a number, increase it by one; otherwise move to next letter
     cur = (isNaN( cur ) ? String.fromCodePoint( cur.codePointAt()+1 ) : cur+1);
   } }
-
-  // Begin of $scope properties; start with the column/row labels
-  $scope.Cols = [ for (col of range( 'A', 'H' )) col ];
-  $scope.Rows = [ for (row of range( 1, 20 )) row ];
 
   // UP (38) and DOWN/ENTER (40/13) keys move focus to the row above (-1) or below (+1).
   $scope.keydown = ({which}, col, row)=>{ switch (which) {
@@ -35,7 +35,7 @@ this.Spreadsheet = ($scope, $timeout)=>{
   ($scope.calc = ()=>{
     const json = angular.toJson( $scope.sheet );
     const promise = $timeout( ()=>{
-      // If the worker has not returned in 0.5 seconds, terminate it
+      // If the worker has not returned in 99 milliseconds, terminate it
       $scope.worker.terminate();
       // Back up to the previous state and make a new worker
       $scope.init();
@@ -44,11 +44,11 @@ this.Spreadsheet = ($scope, $timeout)=>{
     }, 99 );
 
     // When the worker returns, apply its effect on the scope
-    $scope.worker.onmessage = ({data})=>{ $timeout( ()=>{
-      [$scope.errs, $scope.vals] = data;
-      localStorage.setItem( '', json );
+    $scope.worker.onmessage = ({data})=>{
       $timeout.cancel( promise );
-    } ) }
+      localStorage.setItem( '', json );
+      $timeout( ()=>{ [$scope.errs, $scope.vals] = data; } );
+    }
 
     // Post the current sheet content for the worker to process
     $scope.worker.postMessage( $scope.sheet );

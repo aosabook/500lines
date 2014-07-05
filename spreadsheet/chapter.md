@@ -45,7 +45,7 @@ Press **ENTER** to set focus to **A2** and change its content to `=Date()`, then
 
 This shows that a formula may calculate to a number (`2047` in **E1**), a text (the current time in **A2**, aligned to the left), or an _error_ (red letters in **B2**, aligned to the center).
 
-Next, let’s try entering `=for(;;){}`, the JS code for an infinite loop that never terminates. The spreadsheet will prevent this by automatically _restoring_ the content of **C2** half a second after an attempted change.
+Next, let’s try entering `=for(;;){}`, the JS code for an infinite loop that never terminates. The spreadsheet will prevent this by automatically _restoring_ the content of **C2** after an attempted change.
 
 Now reload the page in the browser with **Ctrl-R** or **Cmd-R** to verify that the spreadsheet content is _persistent_, staying the same across browser sessions. To _reset_ the spreadsheet to its original contents, press the `↻` button on the top-left corner.
 
@@ -179,21 +179,29 @@ Finally, we close the `ng-repeat` loop in the column level with `</td>`, close t
 
 ### JS: Main Controller
 
+The sole purpose of `main.js` is defining the `Spreadsheet` controller function as required by the `<body>` element, with the JS model `$scope` provided by AngularJS:
+
 ```js
-this.Spreadsheet = ($scope, $timeout)=>{
+function Spreadsheet ($scope, $timeout) {
 ```
+
+The `$` in `$scope` is part of the variable name. Here we also request the [`$timeout`](https://docs.angularjs.org/api/ng/service/$timeout) service function from AngularJS; later on we will use it to prevent infinite-looping formulas.
+
+To put `Cols` and `Rows` into the model, we simply define them as properties of `$scope`:
+
+```js
+  // Begin of $scope properties; start with the column/row labels
+  $scope.Cols = [ for (col of range( 'A', 'H' )) col ];
+  $scope.Rows = [ for (row of range( 1, 20 )) row ];
+```
+
+
 
 ```js
   function* range(cur, end) { while (cur <= end) { yield cur;
     // If it's a number, increase it by one; otherwise move to next letter
     cur = (isNaN( cur ) ? String.fromCodePoint( cur.codePointAt()+1 ) : cur+1);
   } }
-```
-
-```js
-  // Begin of $scope properties; start with the column/row labels
-  $scope.Cols = [ for (col of range( 'A', 'H' )) col ];
-  $scope.Rows = [ for (row of range( 1, 20 )) row ];
 ```
 
 ```js
@@ -235,13 +243,13 @@ this.Spreadsheet = ($scope, $timeout)=>{
 
 ```js
     const promise = $timeout( ()=>{
-      // If the worker has not returned in 0.5 seconds, terminate it
+      // If the worker has not returned in 99 milliseconds, terminate it
       $scope.worker.terminate();
       // Back up to the previous state and make a new worker
       $scope.init();
       // Redo the calculation using the last-known state
       $scope.calc();
-    }, 500 );
+    }, 99 );
 ```
 
 ```js
