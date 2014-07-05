@@ -2102,7 +2102,7 @@ System.register("traceur-runtime@0.0.49/src/runtime/polyfill-import", [], functi
   return {};
 });
 System.get("traceur-runtime@0.0.49/src/runtime/polyfill-import" + '');
-window.Spreadsheet = (function($scope, $timeout) {
+this.Spreadsheet = (function($scope, $timeout) {
   var $__7 = $traceurRuntime.initGeneratorFunction(range);
   var $__4;
   function range(cur, end) {
@@ -2167,7 +2167,7 @@ window.Spreadsheet = (function($scope, $timeout) {
       case 40:
       case 13:
         $timeout((function() {
-          var direction = (which == 38) ? -1 : +1;
+          var direction = (which === 38) ? -1 : +1;
           var cell = document.querySelector(("#" + col + (row + direction)));
           if (cell) {
             cell.focus();

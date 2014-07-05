@@ -16,7 +16,7 @@ How many features can a Web application offer in 99 lines? Let’s see it in act
 
 ## Overview
 
-The [spreadsheet](https://github.com/audreyt/500lines/tree/master/spreadsheet) directory contains our showcase for the latest evolution of the three languages: [HTML5](http://www.w3.org/TR/html5/) for structure, [CSS3](http://www.w3.org/TR/css3-ui/) for presentation, and the JS [ES6 “Harmony”](http://wiki.ecmascript.org/doku.php?id=harmony:specification_drafts) standard for interaction. We also use [Web Storage](http://www.whatwg.org/specs/web-apps/current-work/multipage/webstorage.html) for data persistence, and [Web Worker](http://www.whatwg.org/specs/web-apps/current-work/multipage/workers.html) for running JS code in the background. Since 2012, these web standards are supported by Firefox, Chrome, Internet Explorer 10+, as well as mobile browsers on iOS 5+ and Android 4+.
+The [spreadsheet](https://github.com/audreyt/500lines/tree/master/spreadsheet) directory contains our showcase for late-2014 editions of the three web languages: [HTML5](http://www.w3.org/TR/html5/) for structure, [CSS3](http://www.w3.org/TR/css3-ui/) for presentation, and the JS [ES6 “Harmony”](http://wiki.ecmascript.org/doku.php?id=harmony:specification_drafts) standard for interaction. We also use [Web Storage](http://www.whatwg.org/specs/web-apps/current-work/multipage/webstorage.html) for data persistence, and [Web Worker](http://www.whatwg.org/specs/web-apps/current-work/multipage/workers.html) for running JS code in the background. Since 2012, these web standards are supported by Firefox, Chrome, Internet Explorer 10+, as well as mobile browsers on iOS 5+ and Android 4+.
 
 Now let’s open http://audreyt.github.io/500lines/spreadsheet/ in a browser:
 
@@ -81,7 +81,7 @@ Now let’s go through the four source code files, in the same order as the brow
 
 ### HTML
 
-The first line of `index.html` declares that it’s written in HTML5 (`<!DOCTYPE html>`) with the UTF-8 encoding:
+The first line in `index.html` declares that it’s written in HTML5 (`<!DOCTYPE html>`) with the UTF-8 encoding:
 
 ```html
 <!DOCTYPE html><html><head><meta charset="UTF-8">
@@ -93,48 +93,81 @@ The next four lines are JS declarations, usually placed within the `head` sectio
 
 ```html
   <script src="main.js"></script>
-  <script>if (!window.Spreadsheet) { location.href = "es5/index.html" }</script>
+  <script>if (!this.Spreadsheet) { location.href = "es5/index.html" }</script>
   <script src="worker.js"></script>
   <script src="lib/angular.js"></script>
 ```
 
-The `script src="…"` tags load JS resources from the same path as the HTML page. For example,  if the current URL is `http://audreyt.github.io/500lines/spreadsheet/index.html`, then `lib/angular.js` refers to `http://audreyt.github.io/500lines/spreadsheet/lib/angular.js`.
+The `<script src=“…”>` tags load JS resources from the same path as the HTML page. For example,  if the current URL is `http://audreyt.github.io/500lines/spreadsheet/index.html`, then `lib/angular.js` refers to `http://audreyt.github.io/500lines/spreadsheet/lib/angular.js`.
 
-The `if (!window.Spreadsheet)` line tests if `main.js` is loaded correctly; if not, it tells the browser to navigate to `es5/index.html` instead. This _redirect-based graceful degradation_ technique ensures that, for pre-2015 browsers with no ES6 support, we can use the translated-to-ES5 versions of JS programs as a fallback.
+The `if (!this.Spreadsheet)` line tests if `main.js` is loaded correctly; if not, it tells the browser to navigate to `es5/index.html` instead. This _redirect-based graceful degradation_ technique ensures that, for pre-2015 browsers with no ES6 support, we can use the translated-to-ES5 versions of JS programs as a fallback.
 
-The next two line loads the CSS resource, closes the `head` section, and begins the `body` section:
+The next two line loads the CSS resource, closes the `head` section, and begins the `body` section containing the user-visible part:
 
 ```html
   <link href="styles.css" rel="stylesheet">
 </head><body ng-app ng-cloak ng-controller="Spreadsheet">
 ```
 
-_(to be continued…)_
+The `ng-` attributes above tells the AngularJS library to run the `Spreadsheet` JS function to create a _controller_ of this document, which provides a _model_— a set of names available to _bindings_ on the document _view_. The `ng-cloak` attribute hides the document from display until the bindings are in place.
+
+As a concrete example, when the user clicks the `<button>` defined in the next line, its `ng-click` attribute will trigger and call `reset()` and `calc()`, two named functions provided by the JS model:
 
 ```html
   <table><tr>
     <th><button ng-click="reset(); calc()" title="Reset">↻</button></th>
 ```
 
+The next line uses `ng-repeat` to display the list of column labels on the top row:
+
 ```html
     <th ng-repeat="col in Cols">{{ col }}</th>
+```
+
+For example, if the JS model defines `Cols` as `[“A”,”B”,”C”]`, then there will be three heading cells (`th`) labeled accordingly. The `{{ col }}` notation tells AngularJS to _interpolate_ the expression, filling the contents in each `th` with the current value of `col`.
+
+Similarly, the next two lines goes through values in `Rows` — `[1,2,3]` and so on — creating a row for each one and labeling the leftmost `th` cell with its number:
+
+```html
   </tr><tr ng-repeat="row in Rows">
     <th>{{ row }}</th>
 ```
 
+Because the `<tr ng-repeat>` tag is not yet closed by `</tr>` , the `row` variable is still available for expressions. The next line creates a data cell (`td`) in the current row, and use both `col` and `row` variables in its `ng-class` attribute:
+
 ```html
     <td ng-repeat="col in Cols" ng-class="{ formula: ('=' === sheet[col+row][0]) }">
 ```
+
+A few things are going on here. In HTML, the `class` attribute describes a _set of class names_ that  allow CSS to style them differently. The `ng-class` here evaluates the expression `('=' === sheet[col+row][0])`; if it is true, then the `<td>` gets  `formula` as an additional class, which gives the cell a light-blue background as defined in line 8 of **styles.css** with the `.formula` _class selector_.
+
+The expression above checks if the current cell is a formula by testing if `=` is the initial character (`[0]`) of the string in `sheet[col+row]`, where `sheet` is a JS model object with coordinates (such as `”E1”`) as properties, and cell contents (such as `”=A1+C1”`) as values. Note that because `col` is a string and not a number, the `+` in `col+row` means concatenation instead of addition.
+
+Inside the `<td>`, we give the user an input box to edit the cell content stored in `sheet[col+row]`:
 
 ```html
       <input id="{{ col+row }}" ng-model="sheet[col+row]" ng-change="calc()"
                                 ng-keydown="keydown( $event, col, row )">
 ```
 
+Here the key attribute is `ng-model`, which enables a _two-way binding_ between the JS model and the input box’s editable content. In practice, this means whenever the user makes a change in the input box, the JS model will update `sheet[col+row]` to match the content, and trigger its `calc()` function to update computed values of all formula cells.
+
+The `id` attribute here is interpolated with the coordinate `col+row`. The `id` attribute of a HTML element must be different from the `id` of all other elements in the same document. This ensures the `#A1` _ID selector_ refers to a single element, instead of a set of elements like the class selector `.formula`.  When the user preses **UP**/**DOWN**/**ENTER** keys, the keyboard-navigation logic in `keydown()` will use ID selectors to determine which input box to focus on.
+
+After the input box, we place a `<div>` to display the computed value of the current cell, represented in the JS model by objects `errs` and `vals`:
+
 ```html
       <div ng-class="{ error: errs[col+row], text: vals[col+row][0] }">
-        {{ errs[col+row] || vals[col+row] }}&nbsp;</div>
+        {{ errs[col+row] || vals[col+row] }}</div>
 ```
+
+If an error occurs when computing a formula, the text interpolation uses the error message contained in `errs[col+row]`, and `ng-class` applies the `error` class to the element, allowing CSS to style it differently (with red letters, aligned to the center, etc.).
+
+When there is no error, the `vals[col+row]` on the right side of `||` is interpolated instead. If it’s a non-empty string, the initial character (`[0]`) will evaluate to true, applying the `text` class to the element that left-aligns the text.
+
+Because empty strings and numeric values has no initial character, `ng-class` will not assign them any classes, so CSS can style them with right alignment as the default case.
+
+Finally, we close the `ng-repeat` loop in the column level with `</td>`, close the row-level loop with `</tr>`, and end the HTML document with:
 
 ```html
     </td>
@@ -149,8 +182,7 @@ window.Spreadsheet = ($scope, $timeout)=>{
 ```
 
 ```js
-  function* range(cur, end) { while (cur <= end) {
-    yield cur;
+  function* range(cur, end) { while (cur <= end) { yield cur;
     // If it's a number, increase it by one; otherwise move to next letter
     cur = (isNaN( cur ) ? String.fromCodePoint( cur.codePointAt()+1 ) : cur+1);
   } }
@@ -320,7 +352,8 @@ td, th { border: 1px solid #ccc; }
 
 ```css
 td.formula { background: #eef; }
-td div { text-align: right; width: 120px; overflow: hidden; text-overflow: ellipsis; }
+td div { text-align: right; width: 120px; min-height: 1.2em;
+         overflow: hidden; text-overflow: ellipsis; }
 td div.text { text-align: left; }
 td div.error { text-align: center; color: #800; font-size: 90%; border: solid 1px #800 }
 ```

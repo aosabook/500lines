@@ -6,6 +6,7 @@ table { border-collapse: collapse; }
 th { background: #ddd; }
 td, th { border: 1px solid #ccc; }
 td.formula { background: #eef; }
-td div { text-align: right; width: 120px; overflow: hidden; text-overflow: ellipsis; }
+td div { text-align: right; width: 120px; min-height: 1.2em;
+         overflow: hidden; text-overflow: ellipsis; }
 td div.text { text-align: left; }
 td div.error { text-align: center; color: #800; font-size: 90%; border: solid 1px #800 }

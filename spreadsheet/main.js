@@ -1,6 +1,5 @@
-window.Spreadsheet = ($scope, $timeout)=>{
-  function* range(cur, end) { while (cur <= end) {
-    yield cur;
+this.Spreadsheet = ($scope, $timeout)=>{
+  function* range(cur, end) { while (cur <= end) { yield cur;
     // If it's a number, increase it by one; otherwise move to next letter
     cur = (isNaN( cur ) ? String.fromCodePoint( cur.codePointAt()+1 ) : cur+1);
   } }
@@ -12,7 +11,7 @@ window.Spreadsheet = ($scope, $timeout)=>{
   // UP (38) and DOWN/ENTER (40/13) keys move focus to the row above (-1) or below (+1).
   $scope.keydown = ({which}, col, row)=>{ switch (which) {
     case 38: case 40: case 13: $timeout( ()=>{
-      const direction = (which == 38) ? -1 : +1;
+      const direction = (which === 38) ? -1 : +1;
       const cell = document.querySelector( `#${ col }${ row + direction }` );
       if (cell) { cell.focus(); }
     } )
