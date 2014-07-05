@@ -147,12 +147,12 @@ Inside the `<td>`, we give the user an input box to edit the cell content stored
 
 ```html
       <input id="{{ col+row }}" ng-model="sheet[col+row]" ng-change="calc()"
-             ng-model-options="{ debounce: 100 }" ng-keydown="keydown( $event, col, row )">
+             ng-model-options="{ debounce: 200 }" ng-keydown="keydown( $event, col, row )">
 ```
 
 Here the key attribute is `ng-model`, which enables a _two-way binding_ between the JS model and the input box’s editable content. In practice, this means whenever the user makes a change in the input box, the JS model will update `sheet[col+row]` to match the content, and trigger its `calc()` function to re-calculate values of all formula cells.
 
-To avoid repeated calls to `calc()` when the user presses and hold a key, `ng-model-options` limits the update rate to once every 100 milliseconds.
+To avoid repeated calls to `calc()` when the user presses and hold a key, `ng-model-options` limits the update rate to once every 200 milliseconds.
 
 The `id` attribute here is interpolated with the coordinate `col+row`. The `id` attribute of a HTML element must be different from the `id` of all other elements in the same document. This ensures the `#A1` _ID selector_ refers to a single element, instead of a set of elements like the class selector `.formula`.  When the user preses **UP**/**DOWN**/**ENTER** keys, the keyboard-navigation logic in `keydown()` will use ID selectors to determine which input box to focus on.
 
@@ -187,7 +187,7 @@ function Spreadsheet ($scope, $timeout) {
 
 The `$` in `$scope` is part of the variable name. Here we also request the [`$timeout`](https://docs.angularjs.org/api/ng/service/$timeout) service function from AngularJS; later on we will use it to prevent infinite-looping formulas.
 
-To put `Cols` and `Rows` into the model, we simply define them as properties of `$scope`:
+To put `Cols` and `Rows` into the model, simply define them as properties of `$scope`:
 
 ```js
   // Begin of $scope properties; start with the column/row labels
@@ -195,25 +195,56 @@ To put `Cols` and `Rows` into the model, we simply define them as properties of 
   $scope.Rows = [ for (row of range( 1, 20 )) row ];
 ```
 
+ES6’s [array comprehension](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Array_comprehensions) syntax makes it easy to define arrays from ranges with a start and an end point, with the helper function `range` defined as a [generator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function*):
 
 
 ```js
   function* range(cur, end) { while (cur <= end) { yield cur;
+```
+
+The `function*` above means that `range` returns an [iterator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/The_Iterator_protocol), with a `while` loop that would  [`yield`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/yield) a value at a time. Whenever the `for` loop demands the next value, it will resume execution right after the `yield` line:
+
+```
     // If it's a number, increase it by one; otherwise move to next letter
     cur = (isNaN( cur ) ? String.fromCodePoint( cur.codePointAt()+1 ) : cur+1);
   } }
 ```
 
+To generate the next value, we use `isNaN` to see if `cur` is meant as a letter (NaN stands for “not a number.”) If yes, we get the letter’s [code point value](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/codePointAt), increment it by one, and [convert the codepoint](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/fromCodePoint) back to get its next letter. Otherwise, we simply increase the number by one.
+
+Next up, we define the `keydown()` function that handles keyboard navigation across rows:
+
 ```js
   // UP (38) and DOWN/ENTER (40/13) keys move focus to the row above (-1) or below (+1).
   $scope.keydown = ({which}, col, row)=>{ switch (which) {
+```
+
+The [arrow function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/arrow_functions) receives the arguments `($event, col, row)` from `<input ng-keydown>`, and uses [destructuring assignment](https://developer.mozilla.org/en-US/docs/Web/JavaScript/New_in_JavaScript/1.7#Pulling_fields_from_objects_passed_as_function_parameter) to assign `$event.which` into the `which` parameter, and check if it’s among the three navigational key codes:
+
+```js
     case 38: case 40: case 13: $timeout( ()=>{
+```
+
+If it is, we use `$timeout` to schedule an update to the focused cell after the current `ng-keydown` and `ng-change` handler. Because `$timeout` accepts a function as argument, the `()=>{…}` syntax constructs a function to represent the focus-update logic:
+
+```js
       const direction = (which == 38) ? -1 : +1;
+```
+
+The `const` declarator means `direction` will not change during the function’s execution. The direction to move is either upward (`-1`, from **A2** to **A1**) if the key code is **UP** (38), or downward (`+1`, from **A2** to **A3**) otherwise.
+
+Next up, we retrieve the element using the ID selector syntax, constructing the target element’s `id` attribute from the current `col` and `row`:
+
+```js
       const cell = document.querySelector( `#${ col }${ row + direction }` );
       if (cell) { cell.focus(); }
     } )
   } };
 ```
+
+We put an extra check on the result of `querySelector` because moving upward from **A1** will produce the selector `#A0`, which has no corresponding element, and so will not trigger a focus change — the same goes with pressing **DOWN** at the bottom row.
+
+_FIXME: to be continued…_
 
 ```js
   // Default sheet content, with some data cells and one formula cell.
@@ -254,11 +285,11 @@ To put `Cols` and `Rows` into the model, we simply define them as properties of 
 
 ```js
     // When the worker returns, apply its effect on the scope
-    $scope.worker.onmessage = ({data})=>{ $timeout( ()=>{
-      [$scope.errs, $scope.vals] = data;
-      localStorage.setItem( '', json );
+    $scope.worker.onmessage = ({data})=>{
       $timeout.cancel( promise );
-    } ) }
+      localStorage.setItem( '', json );
+      $timeout( ()=>{ [$scope.errs, $scope.vals] = data; } );
+    }
 ```
 
 ```js
