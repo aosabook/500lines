@@ -1,7 +1,3 @@
-var unauthorized = function(){
-  $('#error').text('You must log in to edit the wiki.  Please log in or create a new account using the login form above.');
-};
-
 var showLoginView = function(){
   $.ajax({
     url: "/getUser", type: "GET", dataType: "json",
