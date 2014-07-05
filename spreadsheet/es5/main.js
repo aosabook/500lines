@@ -2198,7 +2198,7 @@ this.Spreadsheet = (function($scope, $timeout) {
       $scope.worker.terminate();
       $scope.init();
       $scope.calc();
-    }), 500);
+    }), 99);
     $scope.worker.onmessage = (function($__5) {
       var data = $traceurRuntime.assertObject($__5).data;
       $timeout((function() {

@@ -29,7 +29,7 @@ The spreadsheet spans in two dimensions, with _columns_ starting from **A**, and
 * Text: `+` in **B1** and `⇒` in **D1**, aligned to the left.
 * Number: `1874` in **A1** and `2046` in **C1**, aligned to the right.
 * Formula:  `=A1+C1` in **E1**, which _calculates_ to the _value_ `3920`, displayed with a light blue background.
-* Empty: All cells in row `2` are currently empty.
+* Empty: All cells in row **2** are currently empty.
 
 Click `3920` to set _focus_ on **E1**, revealing its formula in an _input box_:
 
@@ -45,7 +45,7 @@ Press **ENTER** to set focus to **A2** and change its content to `=Date()`, then
 
 This shows that a formula may calculate to a number (`2047` in **E1**), a text (the current time in **A2**, aligned to the left), or an _error_ (red letters in **B2**, aligned to the center).
 
-Next, let’s try entering `=for(;;){}`, the JS code for an infinite loop that never terminates. The spreadsheet will prevent us, automatically _restoring_ the content of **C2** half a second after an attempted change.
+Next, let’s try entering `=for(;;){}`, the JS code for an infinite loop that never terminates. The spreadsheet will prevent this by automatically _restoring_ the content of **C2** half a second after an attempted change.
 
 Now reload the page in the browser with **Ctrl-R** or **Cmd-R** to verify that the spreadsheet content is _persistent_, staying the same across browser sessions. To _reset_ the spreadsheet to its original contents, press the `↻` button on the top-left corner.
 
@@ -147,14 +147,16 @@ Inside the `<td>`, we give the user an input box to edit the cell content stored
 
 ```html
       <input id="{{ col+row }}" ng-model="sheet[col+row]" ng-change="calc()"
-                                ng-keydown="keydown( $event, col, row )">
+             ng-model-options="{ debounce: 100 }" ng-keydown="keydown( $event, col, row )">
 ```
 
-Here the key attribute is `ng-model`, which enables a _two-way binding_ between the JS model and the input box’s editable content. In practice, this means whenever the user makes a change in the input box, the JS model will update `sheet[col+row]` to match the content, and trigger its `calc()` function to update computed values of all formula cells.
+Here the key attribute is `ng-model`, which enables a _two-way binding_ between the JS model and the input box’s editable content. In practice, this means whenever the user makes a change in the input box, the JS model will update `sheet[col+row]` to match the content, and trigger its `calc()` function to re-calculate values of all formula cells.
+
+To avoid repeated calls to `calc()` when the user presses and hold a key, `ng-model-options` limits the update rate to once every 100 milliseconds.
 
 The `id` attribute here is interpolated with the coordinate `col+row`. The `id` attribute of a HTML element must be different from the `id` of all other elements in the same document. This ensures the `#A1` _ID selector_ refers to a single element, instead of a set of elements like the class selector `.formula`.  When the user preses **UP**/**DOWN**/**ENTER** keys, the keyboard-navigation logic in `keydown()` will use ID selectors to determine which input box to focus on.
 
-After the input box, we place a `<div>` to display the computed value of the current cell, represented in the JS model by objects `errs` and `vals`:
+After the input box, we place a `<div>` to display the calculated value of the current cell, represented in the JS model by objects `errs` and `vals`:
 
 ```html
       <div ng-class="{ error: errs[col+row], text: vals[col+row][0] }">
@@ -178,7 +180,7 @@ Finally, we close the `ng-repeat` loop in the column level with `</td>`, close t
 ### JS: Main Controller
 
 ```js
-window.Spreadsheet = ($scope, $timeout)=>{
+this.Spreadsheet = ($scope, $timeout)=>{
 ```
 
 ```js

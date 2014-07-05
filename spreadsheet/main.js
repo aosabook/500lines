@@ -41,7 +41,7 @@ this.Spreadsheet = ($scope, $timeout)=>{
       $scope.init();
       // Redo the calculation using the last-known state
       $scope.calc();
-    }, 500 );
+    }, 99 );
 
     // When the worker returns, apply its effect on the scope
     $scope.worker.onmessage = ({data})=>{ $timeout( ()=>{

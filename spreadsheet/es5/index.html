@@ -12,7 +12,7 @@
     <th>{{ row }}</th>
     <td ng-repeat="col in Cols" ng-class="{ formula: ( '=' === sheet[col+row][0] ) }">
       <input id="{{ col+row }}" ng-model="sheet[col+row]" ng-change="calc()"
-                                ng-keydown="keydown( $event, col, row )">
+             ng-model-options="{ debounce: 100 }" ng-keydown="keydown( $event, col, row )">
       <div ng-class="{ error: errs[col+row], text: vals[col+row][0] }">
         {{ errs[col+row] || vals[col+row] }}</div>
     </td>
