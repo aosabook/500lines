@@ -9,9 +9,9 @@
   [db ent]
   (let [top-id (:top-id db)
         ent-id (:id ent)
-        inceased-id (inc top-id)]
+        increased-id (inc top-id)]
         (if (= ent-id :db/no-id-yet)
-            [(keyword (str inceased-id)) inceased-id]
+            [(keyword (str increased-id)) increased-id]
             [ent-id top-id])))
 
 (defn- update-attr-value
@@ -29,18 +29,16 @@
   [ent ts-val]
  (reduce #(assoc-in %1 [:attrs %2 :ts ] ts-val) ent (keys (:attrs ent))))
 
-(defn- add-entry-to-index [index path operation]
-  (if (= operation :db/remove)
-      index
-    (let [update-path (butlast path)
-          update-value (last path)
-          to-be-updated-set (get-in index update-path #{})]
-      (assoc-in index update-path (conj to-be-updated-set update-value) ))))
+(defn- update-entry-in-index [index path operation]
+  (let [update-path (butlast path)
+        update-value (last path)
+        to-be-updated-set (get-in index update-path #{})]
+    (assoc-in index update-path (conj to-be-updated-set update-value) )))
 
 (defn- update-attr-in-index [index ent-id attr-name target-val operation]
   (let [colled-target-val (collify target-val)
-        add-entry-fn (fn [indx vl] (add-entry-to-index indx ((from-eav index) ent-id attr-name vl) operation))]
-    (reduce add-entry-fn index colled-target-val)))
+        update-entry-fn (fn [indx vl] (update-entry-in-index indx ((from-eav index) ent-id attr-name vl) operation))]
+    (reduce update-entry-fn index colled-target-val)))
 
 (defn- add-entity-to-index [ent timestamped ind-name]
   (let [ent-id (:id ent)
@@ -64,7 +62,7 @@
 
 (defn add-entities [db ents-seq] (reduce add-entity db ents-seq))
 
-(defn- update-attr-modification-time  [attr new-ts]  (assoc attr :ts new-ts :prev-ts ( :ts attr)))
+(defn- update-attr-modification-time  [attr new-ts]  (assoc attr :ts new-ts :prev-ts (:ts attr)))
 
 (defn- update-attr [attr new-val new-ts operation]
    {:pre  [(if (single? attr)
@@ -74,12 +72,6 @@
       (update-attr-modification-time new-ts)
       (update-attr-value new-val operation)))
 
-(defn- remove-path-values [old-vals target-val operation]
-  (case operation
-    :db/add [] ; nothing to remove
-    :db/reset-to old-vals ; removing all of the old values
-    :db/remove (collify target-val))) ; removing the values defined by the caller
-
 (defn- remove-entry-from-index [index path]
   (let [path-head (first path)
         path-to-items (butlast path)
@@ -87,8 +79,7 @@
         old-entries-set (get-in index path-to-items)]
     (cond
      (not (contains?  old-entries-set val-to-remove)) index ; the set of items does not contain the item to remove, => nothing to do here
-     (and (= 1 (count old-entries-set) ) (= 1 (count (index path-head)))) (dissoc index path-head) ; a path representing a single EAV - remove it entirely
-     (= (count old-entries-set) 1)  (update-in index [path-head] dissoc (second path)) ; a path that splits at the second item - just remove the unneeded part of it
+     (= 1 (count old-entries-set))  (update-in index [path-head] dissoc (second path)) ; a path that splits at the second item - just remove the unneeded part of it
      :else (update-in index path-to-items disj val-to-remove))))
 
 (defn- remove-entries-from-index [ent-id operation index attr]
@@ -103,11 +94,10 @@
   (if-not ((usage-pred (get-in timestamped [ind-name])) old-attr)
     timestamped
     (let [index (ind-name timestamped)
-          old-vals (:value old-attr)
-          attr-name (:name old-attr)
-          remove-paths  (remove-path-values old-vals target-val operation)
           cleaned-index (remove-entries-from-index  ent-id operation index old-attr)
-          updated-index  (update-attr-in-index cleaned-index ent-id attr-name target-val operation)]
+          updated-index  ( if  (= operation :db/remove)
+                                         cleaned-index
+                                         (update-attr-in-index cleaned-index ent-id  (:name old-attr) target-val operation))]
       (assoc timestamped ind-name updated-index))))
 
 (defn- update-entity [storage e-id new-attr]
@@ -121,8 +111,8 @@
 
 (defn update-datom
   ([db ent-id attr-name new-val]
-   (update-datom db ent-id attr-name  new-val  :db/reset-to ))
-  ([db ent-id attr-name  new-val operation ]
+   (update-datom db ent-id attr-name new-val :db/reset-to ))
+  ([db ent-id attr-name new-val operation]
      (let [update-ts (next-ts db)
            timestamped (last (:timestamped db))
            attr (attr-at db ent-id attr-name)
@@ -148,7 +138,7 @@
   (let [refing-datoms (reffing-datoms-to e-id timestamped)
         remove-fn (fn[d [e a v]] (update-datom db e a v :db/remove))
         clean-db (reduce remove-fn db refing-datoms)]
-    (last (:timestamped db))))
+    (last (:timestamped clean-db))))
 
 (defn remove-entity [db ent-id]
   (let [ent (entity-at db ent-id)
@@ -158,7 +148,7 @@
         new-timestamped (reduce (partial remove-entity-from-index ent) no-ent-timestamped (indices))]
     (assoc db :timestamped (conj  (:timestamped db) new-timestamped))))
 
-(defn transact-on-db [initial-db  txs]
+(defn transact-on-db [initial-db txs]
     (loop [[tx & rst-tx] txs transacted initial-db]
       (if tx
           (recur rst-tx (apply (first tx) transacted (rest tx)))
@@ -170,16 +160,16 @@
   (when txs
     (loop [[frst-tx# & rst-tx#] txs  res#  [op db `transact-on-db]  accum-txs# []]
       (if frst-tx#
-          (recur rst-tx# res#  (conj  accum-txs#  (vec  frst-tx#)))
+          (recur rst-tx# res#  (conj accum-txs# (vec frst-tx#)))
           (list* (conj res#  accum-txs#))))))
 
 (defn- _what-if
   "Operates on the db with the given transactions, but without eventually updating it"
   [db f txs] (f db txs))
 
-(defmacro what-if [db & txs]  `(_transact ~db   _what-if  ~@txs))
+(defmacro what-if [db & txs]  `(_transact ~db _what-if  ~@txs))
 
-(defmacro transact [db & txs]  `(_transact ~db swap! ~@txs))
+(defmacro transact [db-conn & txs]  `(_transact ~db-conn swap! ~@txs))
 
 (defmacro q
   "querying the database using datalog queries built in a map structure ({:find [variables*] :where [ [e a v]* ]}). (after the where there are clauses)
