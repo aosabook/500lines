@@ -93,14 +93,14 @@ The next four lines are JS declarations, usually placed within the `head` sectio
 
 ```html
   <script src="main.js"></script>
-  <script>if (!this.Spreadsheet) { location.href = "es5/index.html" }</script>
+  <script>if (!self.Spreadsheet) { location.href = "es5/index.html" }</script>
   <script src="worker.js"></script>
   <script src="lib/angular.js"></script>
 ```
 
 The `<script src=“…”>` tags load JS resources from the same path as the HTML page. For example,  if the current URL is `http://audreyt.github.io/500lines/spreadsheet/index.html`, then `lib/angular.js` refers to `http://audreyt.github.io/500lines/spreadsheet/lib/angular.js`.
 
-The `if (!this.Spreadsheet)` line tests if `main.js` is loaded correctly; if not, it tells the browser to navigate to `es5/index.html` instead. This _redirect-based graceful degradation_ technique ensures that, for pre-2015 browsers with no ES6 support, we can use the translated-to-ES5 versions of JS programs as a fallback.
+The `if (!self.Spreadsheet)` line tests if `main.js` is loaded correctly; if not, it tells the browser to navigate to `es5/index.html` instead. This _redirect-based graceful degradation_ technique ensures that, for pre-2015 browsers with no ES6 support, we can use the translated-to-ES5 versions of JS programs as a fallback.
 
 The next two line loads the CSS resource, closes the `head` section, and begins the `body` section containing the user-visible part:
 
@@ -225,7 +225,7 @@ The [arrow function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Ref
     case 38: case 40: case 13: $timeout( ()=>{
 ```
 
-If it is, we use `$timeout` to schedule an update to the focused cell after the current `ng-keydown` and `ng-change` handler. Because `$timeout` accepts a function as argument, the `()=>{…}` syntax constructs a function to represent the focus-update logic:
+If it is, we use `$timeout` to schedule an update to the focused cell after the current `ng-keydown` and `ng-change` handler. Because `$timeout` accepts a function as argument, the `()=>{…}` syntax constructs a function to represent the focus-update logic, which starts by checking the direction of movement:
 
 ```js
       const direction = (which == 38) ? -1 : +1;
@@ -242,14 +242,16 @@ Next up, we retrieve the target element using the ID selector syntax (e.g. `”#
   } };
 ```
 
-We put an extra check on the result of `querySelector` because moving upward from **A1** will produce the selector `#A0`, which has no corresponding element, and so will not trigger a focus change — the same goes with pressing **DOWN** at the bottom row.
+We put an extra check on the result of `querySelector` because moving upward from **A1** will produce the selector `#A0`, which has no corresponding element, and so will not trigger a focus change — the same goes for pressing **DOWN** at the bottom row.
 
-_FIXME: to be continued…_
+Now we define the `reset()` function, invoked by the `↻` button, to restore the `sheet` its initial contents:
 
 ```js
   // Default sheet content, with some data cells and one formula cell.
   $scope.reset = ()=>{ $scope.sheet = { A1: 1874, B1: '+', C1: 2046, D1: '⇒', E1: '=A1+C1' } }
 ```
+
+When the browser reloads the page, we would try restoring the `sheet` content from its previous state from the [localStorage](https://developer.mozilla.org/en-US/docs/Web/Guide/API/DOM/Storage#localStorage), or default to the initial content if it’s our first time here:
 
 ```js
   // Define the initializer, and immediately call it
@@ -261,16 +263,28 @@ _FIXME: to be continued…_
   })();
 ```
 
+A few things are worth nothing in the `init()` above:
+
+* We use the `($scope.init = ()=>{…})()` syntax to defines the function and immediately call it.
+* Because localStorage only stores strings, we _parse_ the `sheet` structure from its [JSON](https://developer.mozilla.org/en-US/docs/Glossary/JSON) representation using `angular.fromJson()`.
+* At the last step of `init()`, we create a new [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Worker) thread and assign it to the `worker` scope property. Although is not directly used in the view, but it’s customary to use `$scope` to share objects used across model functions, in this case between `init()` here and `calc()` below.
+
+While `sheet` holds the user-editable cell content, `errs` and `vals` contain the results of calculations — errors and values — that are read-only to the user:
+
 ```js
   // Formula cells may produce errors in .errs; normal cell contents are in .vals
   [$scope.errs, $scope.vals] = [ {}, {} ];
 ```
+
+With these properties in place, we can define the `calc()` function that triggers whenever the user makes a change to `sheet`:
 
 ```js
   // Define the calculation handler, and immediately call it
   ($scope.calc = ()=>{
     const json = angular.toJson( $scope.sheet );
 ```
+
+The first thing it does is snapshot the state of `sheet` into a JSON string, stored in the constant `json`. Next up, we construct a `promise` from [$timeout](https://docs.angularjs.org/api/ng/service/$timeout) that cancels the upcoming computation if it takes more than 99 milliseconds:
 
 ```js
     const promise = $timeout( ()=>{
@@ -283,6 +297,10 @@ _FIXME: to be continued…_
     }, 99 );
 ```
 
+Since we made sure that  `calc()` is called at most once every 200 milliseconds via the `<input ng-model-options>` attribute in HTML, this arrangement leaves 101 milliseconds for `init()` to restore `sheet` to the last known-good state and make a new Worker.
+
+The Worker’s task is to calculate `errs` and `vals` from the contents of`sheet`. Because **main.js** and **worker.js** communicates by message-passing, we need an `onmessage` handler to receive the results once they are ready:
+
 ```js
     // When the worker returns, apply its effect on the scope
     $scope.worker.onmessage = ({data})=>{
@@ -291,6 +309,10 @@ _FIXME: to be continued…_
       $timeout( ()=>{ [$scope.errs, $scope.vals] = data; } );
     }
 ```
+
+If `onmessage` is called,  we know that the `sheet` snapshot in `json` is stable (i.e. containing no infinite-looping formulas), so we cancel the 99-millisecond timeout, write the snapshot to localStorage, and schedule an UI update with a `$timeout` function that updates `errs` and `vals` to the user-visible view.
+
+With the handler in place, we can post the state of `sheet` to the worker, starting its calculation in the background:
 
 ```js
     // Post the current sheet content for the worker to process
@@ -301,28 +323,36 @@ _FIXME: to be continued…_
 
 ### JS: Background Worker
 
-```js
-if (this.importScripts) {
-```
+There are three reasons for using a Web Worker to calculate formulas, instead of using the main JS thread for the task:
+
+* While the worker runs in the background, the user is free to continue interacting with the spreadsheet, without getting blocked by computation in the main thread. 
+* Because we accept any JS expression in a formula, the worker provides a _sandbox_ that prevents formulas from interfering with the page that contains it, such as by popping out an `alert()` dialog box.
+* A formula can refer to any coordinates as variables, which may contain yet another formula that possibly ends in a cyclic reference. To solve this problem, we use the Worker’s _global scope_ self, and define these variables as _getter functions_ on its properties.
+
+With these in mind, let’s take a look at the worker’s code. Because **index.html** pre-loads the worker program with a `<script>` tag, in **worker.js** we first ensure that we’re actually running as a background task:
 
 ```js
-  // Fast eval without the "this" object; available as execScript in IE
-  const globalEval = self.execScript || ( (js)=>eval.call( null, js ) );
-
-  // Forward the incoming messages to calc(), and post its result back
-  self.onmessage = (event)=>{ self.postMessage( calc( event ) ) };
+if (self.importScripts) {
 ```
+
+This check works because the browser defines `importScripts()` only in a Worker thread.
+
+The Worker’s sole purpose is defining its `onmessage` handler that takes `sheet`, calculates `errs` and `vals`, and posts them back to the main JS thread. We begin by re-initializing the three variables when we receive a message:
 
 ```js
-  let sheet, cache, errs, vals;
-  function calc({data}) {
-    [sheet, cache, errs, vals] = [ data, {}, {}, {} ];
+  let sheet, errs, vals;
+  self.onmessage = ({data})=>{
+    [sheet, errs, vals] = [ data, {}, {} ];
 ```
+
+_FIXME: To be continued…_
 
 ```js
     for (const coord in sheet) {
       // Four variable names pointing to the same coordinate: A1, a1, $A1, $a1
-      for (const name of [ for (p of [ '', '$' ]) for (c of [ coord, coord.toLowerCase() ]) p+c ]) {
+      for (const name of [ for (p of [ '', '$' ])
+                             for (c of [ coord, coord.toLowerCase() ])
+                               p+c ]) {
 ```
 
 ```js
@@ -331,8 +361,8 @@ if (this.importScripts) {
 
         // Define self['A1'], which is the same thing as the global variable A1
         Object.defineProperty( self, name, { get() {
-          if (coord in cache) { return cache[coord]; }
-          cache[coord] = NaN;
+          if (coord in vals) { return vals[coord]; }
+          vals[coord] = NaN;
 ```
 
 ```js
@@ -343,7 +373,7 @@ if (this.importScripts) {
 
 ```js
           // Evaluate formula cells that begin with =
-          try { cache[coord] = ( ('=' === val[0]) ? globalEval( val.slice( 1 ) ) : val ); }
+          try { vals[coord] = ( ('=' === val[0]) ? eval( val.slice( 1 ) ) : val ); }
 ```
 
 ```js
@@ -352,13 +382,13 @@ if (this.importScripts) {
             if (match && !( match[0] in self )) {
               // The formula refers to a uninitialized cell; set it to 0 and retry
               self[match[0]] = 0;
-              delete cache[coord];
+              delete vals[coord];
               return self[coord];
             }
             // Otherwise, stringify the caught exception in the errs object
             errs[coord] = e.toString();
           }
-          return cache[coord];
+          return vals[coord];
         } } )
       }
     }
@@ -366,7 +396,7 @@ if (this.importScripts) {
 
 ```js
     // For each coordinate in the sheet, call the property getter defined above
-    for (const coord in sheet) { vals[coord] = self[coord]; }
+    for (const coord in sheet) { self[coord]; }
     return [ errs, vals ];
   }
 }
