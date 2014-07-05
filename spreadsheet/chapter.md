@@ -233,7 +233,7 @@ If it is, we use `$timeout` to schedule an update to the focused cell after the 
 
 The `const` declarator means `direction` will not change during the function’s execution. The direction to move is either upward (`-1`, from **A2** to **A1**) if the key code is **UP** (38), or downward (`+1`, from **A2** to **A3**) otherwise.
 
-Next up, we retrieve the element using the ID selector syntax, constructing the target element’s `id` attribute from the current `col` and `row`:
+Next up, we retrieve the target element using the ID selector syntax (e.g. `”#A3”`), constructed with a [tempate string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/template_strings) written in a pair of back-quotes, concatenating the leading `#`, the current `col` and the target `row + direction`:
 
 ```js
       const cell = document.querySelector( `#${ col }${ row + direction }` );
