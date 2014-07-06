@@ -89,7 +89,7 @@ The first line in `index.html` declares that it’s written in HTML5 (`<!DOCTYPE
 
 Without the `charset` declaration, the browser may display the reset button’s Unicode symbol `↻` as `â†»`, an example of _mojibake_ — garbled text caused by decoding issues.
 
-The next four lines are JS declarations, usually placed within the `head` section:
+The next four lines are JS declarations, placed within the `head` section as usual:
 
 ```html
   <script src="main.js"></script>
@@ -109,7 +109,7 @@ The next two lines load the CSS resource, close the `head` section, and begins t
 </head><body ng-app ng-cloak ng-controller="Spreadsheet">
 ```
 
-The `ng-` attributes above tells the AngularJS library to run the `Spreadsheet` JS function to create a _controller_ of this document, which provides a _model_— a set of names available to _bindings_ on the document _view_. The `ng-cloak` attribute hides the document from display until the bindings are in place.
+The `ng-` attributes above tells the AngularJS library to run the `Spreadsheet` JS function to create a _controller_ of this document, which provides a _model_ — a set of names available to _bindings_ on the document _view_. The `ng-cloak` attribute hides the document from display until the bindings are in place.
 
 As a concrete example, when the user clicks the `<button>` defined in the next line, its `ng-click` attribute will trigger and call `reset()` and `calc()`, two named functions provided by the JS model:
 
@@ -353,7 +353,7 @@ In order to turn coordinates into global variables, we first iterate over each p
     for (const coord in sheet) {
 ```
 
-We  write `const coord` above so that functions defined in the loop can capture the specific value of `coord` in that iteration. This is because `const` and `let` declares _block scoped_ variables. In contrast, `var coord` will make a _function scoped_ variable, and functions defined in each loop iteration will end up sharing the same `coord`.
+We  write `const coord` above so that functions defined in the loop can capture the specific value of `coord` in that iteration. This is because `const` and `let` declares _block scoped_ variables. In contrast, `var coord` would make a _function scoped_ variable, and functions defined in each loop iteration will end up pointing to the same `coord`.
 
 Customarily, formulas variables are case-insensitive and can optionally have a `$` prefix. Because JS variables are case-sensitive but, we use a `for…of` loop to go over the four variable names for the same coordinate:
 
@@ -523,7 +523,7 @@ Here are some ideas, all easily reachable in the remaining space of 401 lines:
 
 This chapter aims to demonstrate new concepts in ES6, so we use the [Traceur compiler](https://github.com/google/traceur-compiler) to translate source code to ES5 to run on pre-2015 browsers.
 
-If you prefer to work directly with the 2010 edition of JS, the [as-javascript-1.8.5](https://audreyt.github.io/500lines/spreadsheet/as-javascript-1.8.5/) directory has **main.js** and **worker.js** written in the style of ES5; their [source code](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-javascript-1.8.5) is line-by-line comparable to the ES6 version with the same line count.
+If you prefer to work directly with the 2010 edition of JS, the [as-javascript-1.8.5](https://audreyt.github.io/500lines/spreadsheet/as-javascript-1.8.5/) directory has **main.js** and **worker.js** written in the style of ES5; the [source code](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-javascript-1.8.5) is line-by-line comparable to the ES6 version with the same line count.
 
 For people preferring a cleaner syntax, the [as-livescript-1.2.0](https://audreyt.github.io/500lines/spreadsheet/as-livescript-1.2.0/) directory uses [LiveScript](http://livescript.net/) instead of ES6 to write **main.ls** and **worker.ls**; the [source code](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-livescript-1.2.0) is 20 lines shorter than the JS version.
 
