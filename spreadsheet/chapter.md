@@ -219,7 +219,7 @@ Next up, we define the `keydown()` function that handles keyboard navigation acr
   $scope.keydown = ({which}, col, row)=>{ switch (which) {
 ```
 
-The [arrow function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/arrow_functions) receives the arguments `($event, col, row)` from `<input ng-keydown>`, and uses [destructuring assignment](https://developer.mozilla.org/en-US/docs/Web/JavaScript/New_in_JavaScript/1.7#Pulling_fields_from_objects_passed_as_function_parameter) to assign `$event.which` into the `which` parameter, and check if it’s among the three navigational key codes:
+The [arrow function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/arrow_functions) receives the arguments `($event, col, row)` from `<input ng-keydown>`, uses [destructuring assignment](https://developer.mozilla.org/en-US/docs/Web/JavaScript/New_in_JavaScript/1.7#Pulling_fields_from_objects_passed_as_function_parameter) to assign `$event.which` into the `which` parameter, and check if it’s among the three navigational key codes:
 
 ```js
     case 38: case 40: case 13: $timeout( ()=>{
@@ -510,4 +510,23 @@ input:focus + div { white-space: nowrap; }
 
 ## Conclusion
 
-WIP
+Since this book is _500 lines or less_, a web spreadsheet in 99 lines is just a minimal example — please feel free to experiment and extend it in any direction you’d like.
+
+### Future Work
+
+Here are some ideas, all implementable in the space of 401 lines:
+
+* A collaborative online editor using [ShareJS](http://sharejs.org/), [AngularFire](http://angularfire.com) or [GoAngular](http://goangular.org/).
+*  Markdown syntax support using [angular-marked](http://ngmodules.org/modules/angular-marked).
+* Interoperate with popular spreadsheet formats, such as CSV and SpreadsheetML via [SheetJS](http://sheetjs.com/)
+*  Import and export support to online spreadsheet services, such as Google Spreadsheet and [EtherCalc](http://ethercalc.net/).
+
+### A Note on JS versions
+
+This chapter aims to demonstrate new concepts in ES6, and we use the [Traceur compiler](https://github.com/google/traceur-compiler) to translate source code to ES5 for pre-2015 browsers.
+
+If you prefer to work directly ES5, the [as-javascript-1.8.5](https://audreyt.github.io/500lines/spreadsheet/as-javascript-1.8.5/) directory has the same JS files written in the style of ES5; the [source code](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-javascript-1.8.5) is line-by-line comparable to the ES6 version with the same line count.
+
+For people preferring a cleaner syntax, the [as-livescript-1.2.0](https://audreyt.github.io/500lines/spreadsheet/as-livescript-1.2.0/) directory uses [LiveScript](http://livescript.net/) instead of ES6; the [source code](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-livescript-1.2.0) is 20 lines shorter than the ES6 version.
+
+If you would like to translate this example to alternate JS languages, send a [pull request](https://github.com/audreyt/500lines/pulls) and I’d love to hear about it!
