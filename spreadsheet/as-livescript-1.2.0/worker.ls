@@ -2,7 +2,7 @@ return unless @importScripts
 
 var sheet, errs, vals
 self.onmessage = ({data}) ->
-  [sheet, errs, vals] = [ data, {}, {} ]
+  [sheet, errs, vals] := [ data, {}, {} ]
 
   for let coord of sheet
     # Four variable names pointing to the same coordinate: A1, a1, $A1, $a1

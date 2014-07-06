@@ -5,7 +5,7 @@
     return;
   }
   self.onmessage = function(arg$){
-    var data, ref$, sheet, errs, vals, i$, coord;
+    var data, ref$, i$, coord;
     data = arg$.data;
     ref$ = [data, {}, {}], sheet = ref$[0], errs = ref$[1], vals = ref$[2];
     for (i$ in sheet) {
