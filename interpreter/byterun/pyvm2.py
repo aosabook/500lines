@@ -89,10 +89,8 @@ class VirtualMachine(object):
 
     # Frame manipulation
     def make_frame(self, code, callargs={}, f_globals=None, f_locals=None):
-        if f_globals is not None:
-            f_globals = f_globals
-            if f_locals is None:
-                f_locals = f_globals
+        if f_globals is not None and f_locals is not None:
+            f_locals = f_globals
         elif self.frames:
             f_globals = self.frame.f_globals
             f_locals = {}
