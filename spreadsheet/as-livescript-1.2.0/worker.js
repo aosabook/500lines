@@ -51,7 +51,7 @@
               vals[coord] = '=' === x[0] ? eval.call(null, x.slice(1)) : x;
             } catch (e$) {
               e = e$;
-              if (that = /\$?[A-Za-z]+[1-9][0-9]*\b/.exec(e) && !(that[0] in self)) {
+              if (that = /\$?[A-Za-z]+[1-9][0-9]*\b/.exec(e) && !((that != null ? that[0] : void 8) in self)) {
                 self[that[0]] = 0;
                 delete vals[coord];
                 return self[coord];

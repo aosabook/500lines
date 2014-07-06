@@ -22,7 +22,7 @@ self.onmessage = ({data}) ->
         # Evaluate formula cells that begin with =
         try vals[coord] = if \= is x.0 then eval.call null, x.slice 1 else x
         catch
-          if e is /\$?[A-Za-z]+[1-9][0-9]*\b/ and that.0 not of self
+          if e is /\$?[A-Za-z]+[1-9][0-9]*\b/ and that?0 not of self
             # The formula refers to a uninitialized cell; set it to 0 and retry
             self[that.0] = 0
             delete vals[coord]
