@@ -2,79 +2,87 @@ import numpy as np
 from scipy.special import gammaln
 
 
-def multinomial_logpmf(x, p):
-    """Evaluates the log-probability mass function (log-PMF) of a
-    multinomial with event probabilities `p` for a draw `x`.
+class MultinomialDistribution(object):
 
-    Parameters
-    ----------
-    x: numpy array with shape (k,)
-        The number of occurrences of each event
-    p: numpy array with shape (k,)
-        The event probabilities
+    def __init__(self, p, rso=None):
+        """Initialize the multinomial random variable.
 
-    Returns
-    -------
-    The evaluated log-PMF for draw `x`
+        Parameters
+        ----------
+        p: numpy array with shape (k,)
+            The event probabilities
+        rso: numpy RandomState object (default: None)
+            The random number generator
 
-    """
-    # get the total number of events
-    n = np.sum(x)
-    # equivalent to log(n!)
-    numerator = gammaln(n + 1)
-    # equivalent to log(x1! * ... * xk!)
-    denominator = np.sum(gammaln(x + 1))
-    # equivalent to log(p1^x1 * ... * pk^xk)
-    weights = np.sum(np.log(p) * x)
-    log_pmf = numerator - denominator + weights
-    return log_pmf
+        """
+        self.p = p
+        self.logp = np.log(self.p)
+        self.rso = rso
 
+        # get the appropriate function for generating the random
+        # samples, depending on whether we're using a RandomState
+        # object or not
+        if self.rso:
+            self._sample_func = self.rso.multinomial
+        else:
+            self._sample_func = np.random.multinomial
 
-def multinomial_pmf(x, p):
-    """Evaluates the probability mass function (PMF) of a multinomial
-    with event probabilities `p` for a draw `x`.
+    def logpmf(self, x):
+        """Evaluates the log-probability mass function (log-PMF) of a
+        multinomial with event probabilities `self.p` for a draw `x`.
 
-    Parameters
-    ----------
-    x: numpy array with shape (k,)
-        The number of occurrences of each event
-    p: numpy array with shape (k,)
-        The event probabilities
+        Parameters
+        ----------
+        x: numpy array with shape (k,)
+            The number of occurrences of each event
 
-    Returns
-    -------
-    The evaluated PMF for draw `x`
+        Returns
+        -------
+        The evaluated log-PMF for draw `x`
 
-    """
-    pmf = np.exp(multinomial_logpmf(x, p))
-    return pmf
+        """
+        # get the total number of events
+        n = np.sum(x)
+        # equivalent to log(n!)
+        numerator = gammaln(n + 1)
+        # equivalent to log(x1! * ... * xk!)
+        denominator = np.sum(gammaln(x + 1))
+        # equivalent to log(p1^x1 * ... * pk^xk)
+        weights = np.sum(self.logp * x)
+        log_pmf = numerator - denominator + weights
+        return log_pmf
 
+    def pmf(self, x):
+        """Evaluates the probability mass function (PMF) of a multinomial
+        with event probabilities `self.p` for a draw `x`.
 
-def sample_multinomial(n, p, rso=None):
-    """Samples draws of `n` events from a multinomial distribution with
-    event probabilities `p`.
+        Parameters
+        ----------
+        x: numpy array with shape (k,)
+            The number of occurrences of each event
 
-    Parameters
-    ----------
-    n: integer
-        The number of total events
-    p: numpy array with shape (k,)
-        The event probabilities
-    rso: numpy RandomState object (default: None)
-        The random number generator
+        Returns
+        -------
+        The evaluated PMF for draw `x`
 
-    Returns
-    -------
-    numpy array with shape (k,)
-        The sampled number of occurrences for each event
+        """
+        pmf = np.exp(self.logpmf(x))
+        return pmf
 
-    """
-    # get the appropriate function for generating the
-    # random sample
-    if rso:
-        func = rso.multinomial
-    else:
-        func = np.random.multinomial
+    def sample(self, n):
+        """Samples draws of `n` events from a multinomial distribution with
+        event probabilities `self.p`.
 
-    x = func(n, p)
-    return x
+        Parameters
+        ----------
+        n: integer
+            The number of total events
+
+        Returns
+        -------
+        numpy array with shape (k,)
+            The sampled number of occurrences for each event
+
+        """
+        x = self._sample_func(n, self.p)
+        return x
