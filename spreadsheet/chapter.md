@@ -373,7 +373,7 @@ _FIXME: To be continued…_
 
 ```js
           // Evaluate formula cells that begin with =
-          try { vals[coord] = ( ('=' === val[0]) ? eval( val.slice( 1 ) ) : val ); }
+          try { vals[coord] = ( ('=' === val[0]) ? eval.call( null, val.slice( 1 ) ) : val ); }
 ```
 
 ```js
