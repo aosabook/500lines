@@ -49,7 +49,6 @@ class MagicItemDistribution(object):
         return item_stats
 
     def logpmf(self, item):
-
         """Compute the log probability the given magical item.
 
         Parameters

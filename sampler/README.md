@@ -723,7 +723,6 @@ take dictionaries of the form produced by `sample`:
 
 ```python
 def logpmf(self, item):
-
     """Compute the log probability the given magical item.
 
     Parameters
@@ -838,14 +837,11 @@ Once created, we can use it to generate a few different items:
 
 ```python
 >>> item_dist.sample()
-{'dexterity': 0, 'strength': 0, 'constitution': 0, 'intelligence': 0,
-'wisdom': 1, 'charisma': 0}
+{'dexterity': 0, 'strength': 0, 'constitution': 0, 'intelligence': 0, 'wisdom': 1, 'charisma': 0}
 >>> item_dist.sample()
-{'dexterity': 0, 'strength': 0, 'constitution': 2, 'intelligence': 1,
-'wisdom': 0, 'charisma': 0}
+{'dexterity': 0, 'strength': 0, 'constitution': 2, 'intelligence': 1, 'wisdom': 0, 'charisma': 0}
 >>> item_dist.sample()
-{'dexterity': 0, 'strength': 0, 'constitution': 1, 'intelligence': 0,
-'wisdom': 0, 'charisma': 0}
+{'dexterity': 0, 'strength': 0, 'constitution': 1, 'intelligence': 0, 'wisdom': 0, 'charisma': 0}
 ```
 
 And, if we want, we can evaluate the probability of a sampled item:
@@ -853,8 +849,7 @@ And, if we want, we can evaluate the probability of a sampled item:
 ```python
 >>> item = item_dist.sample()
 >>> item
-{'dexterity': 0, 'strength': 0, 'constitution': 0, 'intelligence': 0,
-'wisdom': 1, 'charisma': 0}
+{'dexterity': 0, 'strength': 0, 'constitution': 0, 'intelligence': 0, 'wisdom': 1, 'charisma': 0}
 >>> item_dist.logpmf(item)
 -2.3895964699836751
 >>> item_dist.pmf(item)
@@ -1010,12 +1005,32 @@ potentially inflict, but it has a long tail: the 50th percentile is at
 more than 27 points of damage. Thus, if we wanted to use this criteria
 for setting monster difficulty, we would give them 27 hit points.
     
-## Sampling in the general case
+## Summary
 
 In this chapter, we've seen how to write code for generating samples
 from a non-standard probability distribution, and how to compute the
-probabilities for those samples as well. This is great for the
-specific case of generating items and damage in a roleplaying game,
-but what about the more general case? Which of the design decisions
-are applicable to sampling methods in general, and which are specific
-to the particular example in this chapter?
+probabilities for those samples as well. In working through this
+example, we've covered several design decisions that are applicable in
+the general case:
+
+1. Representing probability distributions using a class, and including
+   functions both for sampling and for evaluating the PMF (or PDF).
+2. Computing the PMF (or PDF) in log-space.
+3. Generating samples from a random number generator object to enable
+   reproducible randomness.
+4. Writing functions whose inputs/outputs are clear and understandable
+   (e.g., using dictionaries as the output of
+   `MagicItemDistribution.sample`) while still exposing the less clear
+   but more efficient and purely numeric version of those functions
+   (e.g., `MagicItemDistribution._sample_stats`).
+
+Additionally, we've seen how sampling from a probability distribution
+can be useful both for producing single random values (e.g.,
+generating a single magical item after defeating a monster) and for
+computing information about a distribution that we would otherwise not
+know (e.g., discovering how much damage a player with two items is
+likely to deal). Almost every type of sampling you might encounter
+falls under one of these two categories; the differences only have to
+do with what distributions you are sampling from. The general
+structure of the code--independent of those distributions--remains the
+same.
