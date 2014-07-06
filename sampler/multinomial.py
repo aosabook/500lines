@@ -27,6 +27,11 @@ class MultinomialDistribution(object):
         else:
             self._sample_func = np.random.multinomial
 
+        # check that the probabilities sum to 1 -- if they don't, then
+        # something is wrong
+        if not np.isclose(np.sum(self.p), 1.0):
+            raise ValueError("event probabilities do not sum to 1")
+
     def logpmf(self, x):
         """Evaluates the log-probability mass function (log-PMF) of a
         multinomial with event probabilities `self.p` for a draw `x`.
@@ -43,12 +48,22 @@ class MultinomialDistribution(object):
         """
         # get the total number of events
         n = np.sum(x)
+
         # equivalent to log(n!)
         numerator = gammaln(n + 1)
         # equivalent to log(x1! * ... * xk!)
         denominator = np.sum(gammaln(x + 1))
+
+        # if one of the values of self.p is 0, then the corresponding
+        # value of self.logp will be -inf. If the corresponding value
+        # of x is 0, then multiplying them together will give nan, but
+        # we want it to just be 0.
+        all_weights = self.logp * x
+        all_weights[x == 0] = 0
         # equivalent to log(p1^x1 * ... * pk^xk)
-        weights = np.sum(self.logp * x)
+        weights = np.sum(all_weights)
+
+        # put it all together
         log_pmf = numerator - denominator + weights
         return log_pmf
 
