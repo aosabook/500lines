@@ -70,13 +70,12 @@ As with most applications in computer science, you can make design
 decisions when programming with samples and probabilities that will
 influence the overall cleanliness, coherence, and correctness of your
 code. In this chapter, we will go through a simple example of how to
-sample random items in a computer game, building up to a more generic
-implementation of a commonly used type of sampler called a *rejection
-sampler*. In particular, we will focus on the design decisions which
-are specific to working with probabilities: including functions both
-for sampling and for evaluating probabilities, working in "log-space",
-allowing reproducibility, and separating the process of generating
-samples from the specific application.
+sample random items in a computer game. In particular, we will focus
+on the design decisions which are specific to working with
+probabilities: including functions both for sampling and for
+evaluating probabilities, working in "log-space", allowing
+reproducibility, and separating the process of generating samples from
+the specific application.
 
 #### A brief aside about notation
 
@@ -591,10 +590,44 @@ not an issue, so we don't need to worry about it!
 
 Now that we have written our multinomial functions, we can put them to
 work to actually generate our magical items! To do this, we will
-create a class called `MagicItemSampler`, located in the file
-`sampler.py`.
+create a class called `MagicItemDistribution`, located in the file
+`rpg.py`:
 
-The constructor to our `MagicItemSampler` class takes parameters for
+```python
+class MagicItemDistribution(object):
+
+    # these are the names (and order) of the stats that all magical
+    # items will have
+    stats_names = ("dexterity", "constitution", "strength",
+                   "intelligence", "wisdom", "charisma")
+
+    def __init__(self, bonus_probs, stats_probs, rso=None):
+        """Initialize a magic item distribution parameterized by `bonus_probs`
+        and `stats_probs`.
+
+        Parameters
+        ----------
+        bonus_probs: numpy array of length m
+            The probabilities of the overall bonuses. Each index in
+            the array corresponds to the bonus of that amount (e.g.
+            index 0 is +0, index 1 is +1, etc.)
+
+        stats_probs: numpy array of length 6
+            The probabilities of how the overall bonus is distributed
+            among the different stats. `stats_probs[i]` corresponds to
+            the probability of giving a bonus point to the ith stat,
+            i.e. the value at `MagicItemDistribution.stats_names[i]`.
+
+        rso: numpy RandomState object (default: None)
+            The random number generator
+
+        """
+        # Create the multinomial distributions we'll be using
+        self.bonus_dist = MultinomialDistribution(bonus_probs, rso=rso)
+        self.stats_dist = MultinomialDistribution(stats_probs, rso=rso)
+```
+
+The constructor to our `MagicItemDistribution` class takes parameters for
 the bonus probabilities, the stats probabilities, and the random
 number generator. Even though we specified above what we wanted the
 bonus probabilities to be, it is generally a good idea to encode
@@ -608,8 +641,49 @@ parameter to the constructor.
 As mentioned previously, there are two steps to sampling a magical
 item: first sampling the overall bonus, and then sampling the
 distribution of the bonus across the stats. As such, we code these
-steps as two methods: `_sample_bonus` and `_sample_stats`. We *could*
-have made these be just a single method--especially since
+steps as two methods: `_sample_bonus` and `_sample_stats`:
+
+```python
+def _sample_bonus(self):
+    """Sample a value of the overall bonus.
+
+    Returns
+    -------
+    integer
+        The overall bonus
+
+    """
+    # The bonus is essentially just a sample from a multinomial
+    # distribution with n=1, i.e., only one event occurs.
+    sample = self.bonus_dist.sample(1)
+
+    # `sample` is an array of zeros and a single one at the
+    # location corresponding to the bonus. We want to convert this
+    # one into the actual value of the bonus.
+    bonus = np.argwhere(sample)[0, 0]
+    return bonus
+
+def _sample_stats(self):
+    """Sample the overall bonus and how it is distributed across the
+    different stats.
+
+    Returns
+    -------
+    numpy array of length 6
+        The number of bonus points for each stat
+
+    """
+    # First we need to sample the overall bonus.
+    bonus = self._sample_bonus()
+
+    # Then, we use a different multinomial distribution to sample
+    # how that bonus is distributed. The bonus corresponds to the
+    # number of events.
+    stats = self.stats_dist.sample(bonus)
+    return stats
+```
+
+We *could* have made these be just a single method--especially since
 `_sample_stats` is the only function that depends on
 `_sample_bonus`--but I have chosen to keep them separate, both because
 it makes the sampling routine easier to understand, and because
@@ -617,41 +691,159 @@ breaking it up into smaller pieces makes the code easier to test.
 
 You'll also notice that these methods are prefixed with an underscore,
 indicating that they're not really meant to be used outside the
-class. Instead, we provide the function `sample`, which does
-essentially the same thing as `_sample_stats`, except that it returns
-a dictionary with the stats names as keys. This provides a clean and
-understandable interface for sampling items--it is obvious which stats
-have how many bonus points--but it also keeps the option open for
-using just `_sample_stats` if one needs to take many samples and
-efficiency is required.
+class. Instead, we provide the function `sample`:
+
+```python
+def sample(self):
+    """Sample a random magical item.
+
+    Returns
+    -------
+    dictionary
+        The keys are the names of the stats, and the values are
+        the bonus conferred to the corresponding stat.
+
+    """
+    stats = self._sample_stats()
+    item_stats = dict(zip(self.stats_names, stats))
+    return item_stats
+```
+
+The `sample` function does essentially the same thing as
+`_sample_stats`, except that it returns a dictionary with the stats
+names as keys. This provides a clean and understandable interface for
+sampling items--it is obvious which stats have how many bonus
+points--but it also keeps the option open for using just
+`_sample_stats` if one needs to take many samples and efficiency is
+required.
 
 We use a similar design for evaluating the probability of
 items. Again, we expose high-level methods `pmf` and `logpmf` which
-take dictionaries of the form produced by `sample`. These methods rely
-on `_bonus_logpmf`, which computes the probability of the overall
-bonus, and `_stats_logpmf`, which computes the probability of the
-stats (but which takes an array rather than a dictionary).
+take dictionaries of the form produced by `sample`:
 
-We can now create our sampler as follows:
+```python
+def logpmf(self, item):
+
+    """Compute the log probability the given magical item.
+
+    Parameters
+    ----------
+    item: dictionary
+        The keys are the names of the stats, and the values are
+        the bonus conferred to the corresponding stat.
+
+    Returns
+    -------
+    float
+        The value corresponding to log(p(item))
+
+    """
+    # First pull out the bonus points for each stat, in the
+    # correct order, then pass that to _stats_logpmf.
+    stats = np.array([item[stat] for stat in self.stats_names])
+    log_pmf = self._stats_logpmf(stats)
+    return log_pmf
+
+def pmf(self, item):
+    """Compute the probability the given magical item.
+
+    Parameters
+    ----------
+    item: dictionary
+        The keys are the names of the stats, and the values are
+        the bonus conferred to the corresponding stat.
+
+    Returns
+    -------
+    float
+        The value corresponding to p(item)
+
+    """
+    return np.exp(self.logpmf(item))
+```
+
+These methods rely on `_bonus_logpmf`, which computes the probability
+of the overall bonus, and `_stats_logpmf`, which computes the
+probability of the stats (but which takes an array rather than a
+dictionary):
+
+```python
+def _bonus_logpmf(self, bonus):
+    """Evaluate the log-PMF for the given bonus.
+
+    Parameters
+    ----------
+    bonus: integer
+        The total bonus.
+
+    Returns
+    -------
+    float
+        The value corresponding to log(p(bonus))
+
+    """
+    # Make sure the value that is passed in is within the
+    # appropriate bounds.
+    if bonus < 0 or bonus >= len(self.bonus_dist.p):
+        return -np.inf
+
+    # Convert the scalar bonus value into a vector of event
+    # occurrences
+    x = np.zeros(len(self.bonus_dist.p))
+    x[bonus] = 1
+
+    return self.bonus_dist.logpmf(x)
+
+def _stats_logpmf(self, stats):
+    """Evaluate the log-PMF for the given distribution of bonus points
+    across the different stats.
+
+    Parameters
+    ----------
+    stats: numpy array of length 6
+        The distribution of bonus points across the stats
+
+    Returns
+    -------
+    float
+        The value corresponding to log(p(stats))
+
+    """
+    # There are never any leftover bonus points, so the sum of the
+    # stats gives us the total bonus.
+    total_bonus = np.sum(stats)
+
+    # First calculate the probability of the total bonus
+    logp_bonus = self._bonus_logpmf(total_bonus)
+
+    # Then calculate the probability of the stats
+    logp_stats = self.stats_dist.logpmf(stats)
+
+    # Then multiply them together
+    log_pmf = logp_bonus + logp_stats
+    return log_pmf
+```
+
+We can now create our distrbution as follows:
 
 ```python
 >>> import numpy as np
->>> from sampler import MagicItemSampler
+>>> from rpg import MagicItemDistribution
 >>> bonus_probs = np.array([0.0, 0.55, 0.25, 0.12, 0.06, 0.02])
 >>> stats_probs = np.ones(6) / 6.0
->>> item_sampler = MagicItemSampler(bonus_probs, stats_probs)
+>>> item_dist = MagicItemDistribution(bonus_probs, stats_probs)
 ```
 
 Once created, we can use it to generate a few different items:
 
 ```python
->>> item_sampler.sample()
+>>> item_dist.sample()
 {'dexterity': 0, 'strength': 0, 'constitution': 0, 'intelligence': 0,
 'wisdom': 1, 'charisma': 0}
->>> item_sampler.sample()
+>>> item_dist.sample()
 {'dexterity': 0, 'strength': 0, 'constitution': 2, 'intelligence': 1,
 'wisdom': 0, 'charisma': 0}
->>> item_sampler.sample()
+>>> item_dist.sample()
 {'dexterity': 0, 'strength': 0, 'constitution': 1, 'intelligence': 0,
 'wisdom': 0, 'charisma': 0}
 ```
@@ -659,13 +851,13 @@ Once created, we can use it to generate a few different items:
 And, if we want, we can evaluate the probability of a sampled item:
 
 ```python
->>> item = item_sampler.sample()
+>>> item = item_dist.sample()
 >>> item
 {'dexterity': 0, 'strength': 0, 'constitution': 0, 'intelligence': 0,
 'wisdom': 1, 'charisma': 0}
->>> item_sampler.logpmf(item)
+>>> item_dist.logpmf(item)
 -2.3895964699836751
->>> item_sampler.pmf(item)
+>>> item_dist.pmf(item)
 0.091666666666666688
 ```
 
@@ -675,7 +867,7 @@ We've seen one example application of sampling: simply generating
 random items that monsters drop. I mentioned earlier that sampling can
 also be used when you want to estimate something from the distribution
 as a whole, and there are certainly cases in which we could use our
-`MagicItemSampler` to do this! For example, let's say that damage in
+`MagicItemDistribution` to do this! For example, let's say that damage in
 our RPG works by rolling some number of D12s (twelve-sided dice). The
 player gets to roll one die by default, and then add dice according to
 their strength bonus. So, for example, if they have a +2 strength
@@ -699,22 +891,88 @@ following scheme:
 4. Repeat steps 1-3 many times. This will result in an approximation
    to the distribution over damage.
 
-The class `DamageSampler` (also in `sampler.py`) shows an
-implementation of this scheme. The constructor takes as arguments the
-number of sides the dice have, how many hits we want to compute damage
-over, how many items the player has, an item sampler object (of type
-`MagicItemSampler`) and a random state object. By default, we set
+The class `DamageDistribution` (also in `rpg.py`) shows an
+implementation of this scheme:
+
+```python
+class DamageDistribution(object):
+
+    def __init__(self, num_items, item_dist,
+                 num_dice_sides=12, num_hits=1, rso=None):
+        """Initialize a distribution over attack damage. This object can
+        sample possible values for the attack damage dealt over
+        `num_hits` hits when the player has `num_items` items, and
+        where attack damage is computed by rolling dice with
+        `num_dice_sides` sides.
+
+        Parameters
+        ----------
+        num_items: int
+            The number of items the player has.
+        item_dist: MagicItemDistribution object
+            The distribution over magic items.
+        num_dice_sides: int (default: 12)
+            The number of sides on each die.
+        num_hits: int (default: 1)
+            The number of hits across which we want to calculate damage.
+        rso: numpy RandomState object (default: None)
+            The random number generator
+
+        """
+        # This is an array of integers corresponding to the sides of a
+        # single die.
+        self.dice_sides = np.arange(1, num_dice_sides + 1)
+        # Create a multinomial distribution corresponding to one of
+        # these dice.  Each side has equal probabilities.
+        self.dice_dist = MultinomialDistribution(
+            np.ones(num_dice_sides) / float(num_dice_sides), rso=rso)
+
+        self.num_hits = num_hits
+        self.num_items = num_items
+        self.item_dist = item_dist
+```
+
+The constructor takes as arguments the number of sides the dice have,
+how many hits we want to compute damage over, how many items the
+player has, a distribution over magic items (of type
+`MagicItemDistribution`) and a random state object. By default, we set
 `num_dice_sides` to `12` because, while it is technically a parameter,
 it is unlikely to change. Similarly, we set `num_hits` to `1` as a
 default because a more likely use case is that we just want to take
 one sample of the damage for a single hit.
 
 We then implement the actual sampling logic in `sample` (note the
-structural similarity to `MagicItemSampler`!). First, we generate a
-set of possible magic items that the player has. Then, we look at the
-strength stat of those items, and from that compute the number of dice
-to roll. Finally, we roll the dice (again relying on our trusty
-multinomial functions) and compute the damage from that.
+structural similarity to `MagicItemDistribution`!):
+
+```python
+def sample(self):
+    """Sample the attack damage.
+
+    Returns
+    -------
+    int
+        The sampled damage
+
+    """
+    # First, we need to randomly generate items (the number of
+    # which was passed into the constructor).
+    items = [self.item_dist.sample() for i in xrange(self.num_items)]
+
+    # Based on the item stats (in particular, strength), compute
+    # the number of dice we get to roll.
+    num_dice = 1 + np.sum([item['strength'] for item in items])
+
+    # Roll the dice and compute the resulting damage.
+    dice_rolls = self.dice_dist.sample(self.num_hits * num_dice)
+    damage = np.sum(self.dice_sides * dice_rolls)
+    return damage
+```
+
+First, we generate a set of possible magic items that the player
+has. Then, we look at the strength stat of those items, and from that
+compute the number of dice to roll. Finally, we roll the dice (again
+relying on our trusty multinomial functions) and compute the damage
+from that.
 
 TODO: include note about why we don't have a PMF function here
 
@@ -723,19 +981,19 @@ player has two items, and we want the player to be able to defeat the
 monster within three hits 50% of the time, how many hit points should
 the monster have?
 
-First, we create our sampler object, using the same `item_sampler`
-object that we created earlier:
+First, we create our distribution object, using the same `item_dist`
+that we created earlier:
 
 ```python
->>> from sampler import DamageSampler
->>> damage_sampler = DamageSampler(2, item_sampler, num_hits=3)
+>>> from sampler import DamageDistribution
+>>> damage_dist = DamageDistribution(2, item_dist, num_hits=3)
 ```
 
 Now we can draw a bunch of samples, and compute the 50th percentile
 (that is, the damage value that is greater than 50% of the samples):
 
 ```python
->>> samples = np.array([damage_sampler.sample() for i in xrange(100000)])
+>>> samples = np.array([damage_dist.sample() for i in xrange(100000)])
 >>> samples.min()
 3
 >>> samples.max()
@@ -761,172 +1019,3 @@ specific case of generating items and damage in a roleplaying game,
 but what about the more general case? Which of the design decisions
 are applicable to sampling methods in general, and which are specific
 to the particular example in this chapter?
-
-
-
-
-<!-- ## Rejection sampling -->
-
-<!-- More formally, the idea behind sampling is that we want to draw -->
-<!-- samples from a probability distribution, but we can only evaluate the -->
-<!-- probability density (or mass) at a particular point -- we do not -->
-<!-- actually have a method of drawing samples in proportion to that -->
-<!-- distribution. -->
-
-<!-- There are many different types of Monte Carlo sampling methods, -->
-<!-- but we will focus on only one here: rejection sampling. -->
-
-<!-- ### Mathematical background -->
-
-<!-- *Rejection sampling* is one of the simplest methods for drawing -->
-<!-- approximate samples from a distribution. Rather than directly drawing -->
-<!-- samples from the *target* distribution ($p$), which is the one we -->
-<!-- ultimately do want samples from, we specify a *proposal* distribution -->
-<!-- ($q$) that we know how to sample from. The only constraint on $q$ is -->
-<!-- that $q(x)>=p(x)$ for all $x$ (and it is not necessary that $q(x)$ be -->
-<!-- a proper distribution, i.e. it is ok if it does not integrate to -->
-<!-- 1). Then, the procedure is as follows: -->
-
-<!-- 1. Draw a sample from the proposal distribution, $x\sim q$ -->
-<!-- 2. Choose a point $y$ uniformly at random in the interval $[0, q(x)]$ -->
-<!-- 3. If $y < p(x)$, then accept $x$ as a sample. Otherwise, reject $x$ -->
-<!--    and start over from step 1. -->
-
-<!-- By repeating this procedure many times, we can get an estimate of what -->
-<!-- the true probability distribution $p(x)$ look like. -->
-
-<!-- ### Example: measuring the depth of the sea floor -->
-
-<!-- To give a more intuitive example of what all this math means, consider -->
-<!-- the problem of trying to map the depth of the ocean floor. With -->
-<!-- technology like sonar, this isn't so difficult, so let's instead -->
-<!-- imagine that we're 15th century sailors, and the best we have is an -->
-<!-- anchor on the end of a very long rope. For purposes of illustration, -->
-<!-- let's pretend we can't measure the length of the rope, either -- we -->
-<!-- can only know whether it has hit the bottom of the ocean. -->
-
-<!-- Then, the three steps listed above can be reinterpreted as follows: -->
-
-<!-- 1. Pick a random point $x$ on the surface of the ocean. -->
-<!-- 2. Drop the anchor into the ocean, and let it go down for a random -->
-<!--    length between the top of the ocean, and the end of the rope. -->
-<!-- 3. If the anchor hits the sea floor, then accept $x$ as a -->
-<!--    sample. Otherwise, reject $x$ and start over from step 1. -->
-
-<!-- By keeping track of the locations in which the anchor touched the -->
-<!-- bottom, we can get a good estimate of where the ocean is very deep -->
-<!-- (few samples), and where it is relatively shallow (many samples). -->
-
-<!-- It makes sense why this works: if the ocean is deep at $x$, then most -->
-<!-- of the time, the anchor won't touch the bottom (it will only if we -->
-<!-- chose a very long length of rope). Thus, we will end up with very few -->
-<!-- samples in places where the ocean is deep. Conversely, if the ocean is -->
-<!-- very shallow at $x$, then most of the time the anchor *will* touch the -->
-<!-- bottom (it won't only if we choose a very short length of rope). So, -->
-<!-- we will end up with a lot of samples in places where the ocean is -->
-<!-- shallow. -->
-
-<!-- TODO: it would be nice to have an illustration of this -->
-
-<!-- ### Why rejection sampling? -->
-
-<!-- If it seems like rejection sampling is an awfully inefficient method -->
-<!-- to estimate anything, you're right: it is! However, it is a useful -->
-<!-- method to learn *first*, because -- despite being so simple -- it -->
-<!-- still follows design patterns that are common to other sampling -->
-<!-- methods. -->
-
-<!-- The other sampling methods which exist are much more powerful, but -->
-<!-- also much more complicated. While we unfortunately don't have time to -->
-<!-- cover them in this chapter, interested readers are encouraged to look -->
-<!-- further into slice sampling, the Metropolis-Hastings algorithm, and -->
-<!-- Gibbs sampling, all of which are popular choices of Monte Carlo -->
-<!-- sampling algorithms. TODO: references -->
-
-<!-- ## Generic rejection sampler implementation -->
-
-<!-- The file `sampler.py` contains the basic code for implementing a -->
-<!-- sampler. On initialization, it takes functions to sample from the -->
-<!-- proposal distribution and to compute the log-PDF values for both the -->
-<!-- proposal and target distributions. -->
-
-<!-- TODO: discuss the design decision of having `RejectionSampler` take -->
-<!-- the functions, and then requiring users to instantiate it directly, -->
-<!-- rather than subclassing it and having users write write the functions -->
-<!-- as methods of the subclass. -->
-
-<!-- ### Structure of the rejection sampler -->
-
-<!-- The `RejectionSampler` class uses two methods to draw samples: -->
-<!-- `sample` and `draw`. The first of these, `sample`, is the main outer -->
-<!-- sampling loop: it takes one argument `n`, which is the number of -->
-<!-- desired samples, allocates the storage for these samples, and calls -->
-<!-- `draw` a total of `n` times to collect these samples. The `draw` -->
-<!-- function is the actual sampling logic, following the three steps -->
-<!-- described in the previous section. -->
-
-<!-- Note that in `draw`, we need to exponentiate $\log{q(x)}$ in order to -->
-<!-- sample $y~\mathrm{Uniform}(0, q(x))$. To make sure we don't run into -->
-<!-- underflow errors, we first check to make sure $\log{q(x)}$ is not too -->
-<!-- small (as defined by the minimum value that your computer can -->
-<!-- exponentiate). If it is, then we won't be able to sample $y$, so we -->
-<!-- `continue` to try a different value of $x$. -->
-
-<!-- We also include a `plot` method, which will let us visualize the -->
-<!-- proposal distribution, target distrubtion, and the histogram of -->
-<!-- samples. These types of methods are important as an easy way to glance -->
-<!-- at the samples and make sure they actually match the target -->
-<!-- distribution. -->
-
-<!-- ## Example application: sampling from a mixture of Gaussians -->
-
-<!-- The -->
-<!-- [IPython notebook](http://nbviewer.org/github/jhamrick/500lines/blob/sampler/sampler/Sampling%20example.ipynb) -->
-<!-- uses `RejectionSampler` for the specific application of sampling from -->
-<!-- a mixture of Gaussians. A Gaussian distribution is given by the -->
-<!-- following equation: -->
-
-<!-- $$ -->
-<!-- \mathcal{N}(x; \mu, \sigma^2) = \frac{1}{\sqrt{2\pi\sigma^2}}\exp{\frac{-(x-\mu)^2}{2\sigma^2}} -->
-<!-- $$ -->
-
-<!-- where $\mu$ and $\sigma^2$ are the parameters of the Gaussian -->
-<!-- distribution for mean and variance, respectively. A mixture of -->
-<!-- Gaussians is a weighted average of several Gaussians. In our case, we -->
-<!-- are using $p(x)=\frac{1}{3}(\mathcal{N}(x; -2.5, 0.2) + \mathcal{N}(x; -->
-<!-- 2.0, 0.1) + \mathcal{N}(x; 0.2, 0.3))$. -->
-
-<!-- > Note: in practice, sampling from a Gaussian distribution is fairly -->
-<!-- > easy, and most statistics packages come with methods for doing -->
-<!-- > so. We are using a mixture of Gaussians here mostly just for -->
-<!-- > illustration purposes. -->
-
-<!-- TODO: include multi-dimensional example -->
-
-<!-- TODO: include discussion about where to include visualization code -->
-
-## Possible extensions
-
-There are several ways that the basic sampler described here could be
-extended. Depending on the application, some of these extensions might
-be crucially important.
-
-### Parallelization
-
-The sampling loop could run multiple calls to `draw` in parallel. Some
-samplers (not rejection sampling) depend on samples being drawn
-sequentially, though, so this won't always be applicable.
-
-### Optimization
-
-Function calls in Python have a high overhead. However, based on the
-current implementation, we require *at least* seven Python calls per
-sample (more, if the proposal and target functions themselves make
-Python calls). Even simple target distributions need upwards of
-$n=10000$ samples to attain a decent approximation. Thus, this
-implementation will become too inefficient for even moderately complex
-problems.
-
-One solution is to rewrite the code for `draw` (and possibly even
-`sample`) using an extension language like Cython or numba, or even a
-lower level language like C or FORTRAN.
