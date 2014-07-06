@@ -8,7 +8,7 @@ function Spreadsheet ($scope, $timeout) {
     cur = (isNaN( cur ) ? String.fromCodePoint( cur.codePointAt()+1 ) : cur+1);
   } }
 
-  // UP (38) and DOWN/ENTER (40/13) keys move focus to the row above (-1) or below (+1).
+  // UP(38) and DOWN(40)/ENTER(13) move focus to the row above (-1) and below (+1).
   $scope.keydown = ({which}, col, row)=>{ switch (which) {
     case 38: case 40: case 13: $timeout( ()=>{
       const direction = (which === 38) ? -1 : +1;

@@ -9,20 +9,20 @@ if (self.importScripts) {
                              for (c of [ coord, coord.toLowerCase() ])
                                p+c ]) {
         // Worker is reused across computations, so only define each variable once
-        if (( Object.getOwnPropertyDescriptor( self, name ) || {} ).get) { continue; }
+        if ((Object.getOwnPropertyDescriptor( self, name ) || {}).get) { continue; }
 
         // Define self['A1'], which is the same thing as the global variable A1
         Object.defineProperty( self, name, { get() {
           if (coord in vals) { return vals[coord]; }
           vals[coord] = NaN;
 
-          // Convert numeric-looking strings into numbers so =A1+C1 works when both are numbers
+          // Turn numeric strings into numbers, so =A1+C1 works when both are numbers
           let x = +sheet[coord];
           if (sheet[coord] !== x.toString()) { x = sheet[coord]; }
 
           // Evaluate formula cells that begin with =
-          try { vals[coord] = ( ('=' === x[0]) ? eval.call( null, x.slice( 1 ) ) : x ); }
-          catch (e) {
+          try { vals[coord] = (('=' === x[0]) ? eval.call( null, x.slice( 1 ) ) : x);
+          } catch (e) {
             const match = /\$?[A-Za-z]+[1-9][0-9]*\b/.exec( e );
             if (match && !( match[0] in self )) {
               // The formula refers to a uninitialized cell; set it to 0 and retry

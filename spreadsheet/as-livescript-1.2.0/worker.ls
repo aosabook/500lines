@@ -15,7 +15,7 @@ self.onmessage = ({data}) ->
         return vals[coord] if coord of vals
         vals[coord] = NaN
 
-        # Convert numeric-looking strings into numbers so =A1+C1 works when both are numbers
+        # Turn numeric strings into numbers, so =A1+C1 works when both are numbers
         x = +sheet[coord]
         x = sheet[coord] if sheet[coord] isnt "#x"
 

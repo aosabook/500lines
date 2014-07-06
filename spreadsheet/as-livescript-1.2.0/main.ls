@@ -3,7 +3,7 @@
   $scope.Cols = [ \A to \H ]
   $scope.Rows = [ 1 to 20 ]
 
-  # UP (38) and DOWN/ENTER (40/13) keys move focus to the row above (-1) or below (+1).
+  # UP(38) and DOWN(40)/ENTER(13) move focus to the row above (-1) and below (+1).
   $scope.keydown = ({which}, col, row) ->
     | which in [ 38 40 13 ] => $timeout ->
       const direction = if which is 38 then -1 else +1
