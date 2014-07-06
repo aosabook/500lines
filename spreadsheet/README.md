@@ -11,7 +11,7 @@
 
 ## Local Demo
 
-Simply open `index.html` with Firefox, Safari or IE10+, and enter some content.
+Simply open `index.html` with Firefox, Safari or IE11+, and enter some content.
 
 Values starting with `=` are parsed as formula written in JavaScript, for example `=A1*C1`.
 
