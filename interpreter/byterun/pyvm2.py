@@ -87,50 +87,7 @@ class VirtualMachine(object):
         self.return_value = None
         self.last_exception = None
 
-    def top(self):
-        return self.frame.stack[-1]
-
-    def pop(self):
-        return self.frame.stack.pop()
-
-    def push(self, *vals):
-        self.frame.stack.extend(vals)
-
-    def popn(self, n):
-        """Pop a number of values from the value stack.
-        A list of `n` values is returned, the deepest value first.
-        """
-        if n:
-            ret = self.frame.stack[-n:]
-            self.frame.stack[-n:] = []
-            return ret
-        else:
-            return []
-
-    def jump(self, jump):
-        """Move the bytecode pointer to `jump`, so it will execute next."""
-        self.frame.f_lasti = jump
-
-    def push_block(self, b_type, handler=None):
-        level = len(self.frame.stack)
-        self.frame.block_stack.append(Block(b_type, handler, level))
-
-    def pop_block(self):
-        return self.frame.block_stack.pop()
-
-    def unwind_block(self, block):
-        if block.type == 'except-handler':
-            offset = 3
-        else:
-            offset = 0
-
-        while len(self.frame.stack) > block.level + offset:
-            self.pop()
-
-        if block.type == 'except-handler':
-            traceback, value, exctype = self.popn(3)
-            self.last_exception = exctype, value, traceback
-
+    # Frame manipulation
     def make_frame(self, code, callargs={}, f_globals=None, f_locals=None):
         if f_globals is not None:
             f_globals = f_globals
@@ -161,6 +118,54 @@ class VirtualMachine(object):
         else:
             self.frame = None
 
+    # Data stack manipulation
+    def top(self):
+        return self.frame.stack[-1]
+
+    def pop(self):
+        return self.frame.stack.pop()
+
+    def push(self, *vals):
+        self.frame.stack.extend(vals)
+
+    def popn(self, n):
+        """Pop a number of values from the value stack.
+        A list of `n` values is returned, the deepest value first.
+        """
+        if n:
+            ret = self.frame.stack[-n:]
+            self.frame.stack[-n:] = []
+            return ret
+        else:
+            return []
+
+    # Block stack manipulation
+    def push_block(self, b_type, handler=None):
+        level = len(self.frame.stack)
+        self.frame.block_stack.append(Block(b_type, handler, level))
+
+    def pop_block(self):
+        return self.frame.block_stack.pop()
+
+    def unwind_block(self, block):
+        if block.type == 'except-handler':
+            offset = 3
+        else:
+            offset = 0
+
+        while len(self.frame.stack) > block.level + offset:
+            self.pop()
+
+        if block.type == 'except-handler':
+            traceback, value, exctype = self.popn(3)
+            self.last_exception = exctype, value, traceback
+
+    # Jumping through bytecode
+    def jump(self, jump):
+        """Move the bytecode pointer to `jump`, so it will execute next."""
+        self.frame.f_lasti = jump
+
+    # An entry point
     def run_code(self, code, f_globals=None, f_locals=None):
         frame = self.make_frame(code, f_globals=f_globals, f_locals=f_locals)
         val = self.run_frame(frame)
