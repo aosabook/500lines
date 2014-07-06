@@ -386,15 +386,14 @@ implement the PMF or PDF from the beginning, anyway.
 Formally, the multinomial distribution has the following equation:
 
 $$
-p(\mathbf{x}; n, \mathbf{p}) = \frac{n!}{x_1!\cdots{}x_k!}p_1^{x_1}\cdots{}p_k^{x_k},
+p(\mathbf{x}; \mathbf{p}) = \frac{(\sum_{i=1}^k x_i)!}{x_1!\cdots{}x_k!}p_1^{x_1}\cdots{}p_k^{x_k},
 $$
 
 where $\mathbf{x}=[x_1, \ldots{}, x_k]$ is a vector of length $k$
-specifying the number of times each event happened, $n=\sum_{i=1}^k
-x_i$ is the total number of events, and
+specifying the number of times each event happened, and
 $\mathbf{p}=[p_1, \ldots{}, p_k]$ is a vector specifying the
-probability of each event occurring. As mentioned above, the variables
-$n$ and $\mathbf{p}$ are the *parameters* of the distribution.
+probability of each event occurring. As mentioned above, the event
+probabilities $\mathbf{p}$ are the *parameters* of the distribution.
 
 The factorials in the equation above can actually be expressed using a
 special function, $\Gamma$, called the *gamma function*. When we get
@@ -403,7 +402,7 @@ the gamma function rather than factorial, so we will rewrite the
 equation using $\Gamma$:
 
 $$
-p(\mathbf{x}; n, \mathbf{p}) = \frac{\Gamma(n+1)}{\Gamma(x_1+1)\cdots{}\Gamma(x_k+1)}p_1^{x_1}\cdots{}p_k^{x_k},
+p(\mathbf{x}; n, \mathbf{p}) = \frac{\Gamma((\sum_{i=1}^k x_i)+1)}{\Gamma(x_1+1)\cdots{}\Gamma(x_k+1)}p_1^{x_1}\cdots{}p_k^{x_k},
 $$
 
 #### Working in "log-space"
@@ -561,15 +560,16 @@ To further drive home the point of why working in log-space is so
 important, we can look at an example just with the multinomial:
 
 ```python
->>> multinomial_logpmf(np.array([1000, 0, 0, 0]), np.array([0.25, 0.25, 0.25, 0.25]))
+>>> dist = MultinomialDistribution(np.array([0.25, 0.25, 0.25, 0.25]))
+>>> dist.logpmf(np.array([1000, 0, 0, 0])
 -1386.2943611198905
->>> multinomial_logpmf(np.array([999, 0, 0, 0]), np.array([0.25, 0.25, 0.25, 0.25]))
+>>> dist.logpmf(np.array([999, 0, 0, 0])
 -1384.9080667587707
 ```
 
 In this case, we get *extremely* small probabilities (which, you will
 notice, are much smaller than the `tiny` value we discussed
-above). This is because the denominator in the PMF is huge: 1000
+above). This is because the fraction in the PMF is huge: 1000
 factorial can't even be computed due to overflow. But, the *log* of
 the factorial can be:
 
@@ -580,7 +580,13 @@ inf
 >>> gammaln(1000 + 1)
 5912.1281784881639
 ```
-    
+
+If we had tried to compute just the PMF using the `gamma` function, we
+would have ended up with `gamma(1000 + 1) / gamma(1000 + 1)`, which
+results in a `nan` value (even though we can analytically see that it
+should be 1). But, because we do the computation in log-space, it's
+not an issue, so we don't need to worry about it!
+
 ## Sampling magical items, revisited
 
 Now that we have written our multinomial functions, we can put them to
@@ -745,6 +751,19 @@ potentially inflict, but it has a long tail: the 50th percentile is at
 27 points, meaning that in half the samples, the player inflicted no
 more than 27 points of damage. Thus, if we wanted to use this criteria
 for setting monster difficulty, we would give them 27 hit points.
+    
+## Sampling in the general case
+
+In this chapter, we've seen how to write code for generating samples
+from a non-standard probability distribution, and how to compute the
+probabilities for those samples as well. This is great for the
+specific case of generating items and damage in a roleplaying game,
+but what about the more general case? Which of the design decisions
+are applicable to sampling methods in general, and which are specific
+to the particular example in this chapter?
+
+
+
 
 <!-- ## Rejection sampling -->
 
