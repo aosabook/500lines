@@ -17,11 +17,11 @@ if (self.importScripts) {
           vals[coord] = NaN;
 
           // Convert numeric-looking strings into numbers so =A1+C1 works when both are numbers
-          let val = +sheet[coord];
-          if (sheet[coord] != val.toString()) { val = sheet[coord]; }
+          let x = +sheet[coord];
+          if (sheet[coord] !== x.toString()) { x = sheet[coord]; }
 
           // Evaluate formula cells that begin with =
-          try { vals[coord] = ( ('=' === val[0]) ? eval.call( null, val.slice( 1 ) ) : val ); }
+          try { vals[coord] = ( ('=' === x[0]) ? eval.call( null, x.slice( 1 ) ) : x ); }
           catch (e) {
             const match = /\$?[A-Za-z]+[1-9][0-9]*\b/.exec( e );
             if (match && !( match[0] in self )) {

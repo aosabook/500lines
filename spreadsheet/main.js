@@ -4,7 +4,7 @@ function Spreadsheet ($scope, $timeout) {
   $scope.Rows = [ for (row of range( 1, 20 )) row ];
 
   function* range(cur, end) { while (cur <= end) { yield cur;
-    // If it's a number, increase it by one; otherwise move to next letter
+    // If it’s a number, increase it by one; otherwise move to next letter
     cur = (isNaN( cur ) ? String.fromCodePoint( cur.codePointAt()+1 ) : cur+1);
   } }
 
@@ -22,7 +22,7 @@ function Spreadsheet ($scope, $timeout) {
 
   // Define the initializer, and immediately call it
   ($scope.init = ()=>{
-    // Restore the previous .sheet; reset to default if it's the first run
+    // Restore the previous .sheet; reset to default if it’s the first run
     $scope.sheet = angular.fromJson( localStorage.getItem( '' ) );
     if (!$scope.sheet) { $scope.reset(); }
     $scope.worker = new Worker( 'worker.js' );

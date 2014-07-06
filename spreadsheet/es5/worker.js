@@ -2165,12 +2165,12 @@ if (self.importScripts) {
                                 return vals[$traceurRuntime.toProperty(coord)];
                               }
                               $traceurRuntime.setProperty(vals, coord, NaN);
-                              var val = +sheet[$traceurRuntime.toProperty(coord)];
-                              if (sheet[$traceurRuntime.toProperty(coord)] != val.toString()) {
-                                val = sheet[$traceurRuntime.toProperty(coord)];
+                              var x = +sheet[$traceurRuntime.toProperty(coord)];
+                              if (sheet[$traceurRuntime.toProperty(coord)] !== x.toString()) {
+                                x = sheet[$traceurRuntime.toProperty(coord)];
                               }
                               try {
-                                $traceurRuntime.setProperty(vals, coord, (('=' === val[0]) ? eval.call(null, val.slice(1)) : val));
+                                $traceurRuntime.setProperty(vals, coord, (('=' === x[0]) ? eval.call(null, x.slice(1)) : x));
                               } catch (e) {
                                 try {
                                   throw undefined;

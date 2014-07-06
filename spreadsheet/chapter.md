@@ -98,7 +98,7 @@ The next four lines are JS declarations, usually placed within the `head` sectio
   <script src="lib/angular.js"></script>
 ```
 
-The `<script src=“…”>` tags load JS resources from the same path as the HTML page. For example,  if the current URL is `http://audreyt.github.io/500lines/spreadsheet/index.html`, then `lib/angular.js` refers to `http://audreyt.github.io/500lines/spreadsheet/lib/angular.js`.
+The `<script src="…">` tags load JS resources from the same path as the HTML page. For example,  if the current URL is `http://audreyt.github.io/500lines/spreadsheet/index.html`, then `lib/angular.js` refers to `http://audreyt.github.io/500lines/spreadsheet/lib/angular.js`.
 
 The `if (!self.Spreadsheet)` line tests if `main.js` is loaded correctly; if not, it tells the browser to navigate to `es5/index.html` instead. This _redirect-based graceful degradation_ technique ensures that, for pre-2015 browsers with no ES6 support, we can use the translated-to-ES5 versions of JS programs as a fallback.
 
@@ -124,7 +124,7 @@ The next line uses `ng-repeat` to display the list of column labels on the top r
     <th ng-repeat="col in Cols">{{ col }}</th>
 ```
 
-For example, if the JS model defines `Cols` as `[“A”,”B”,”C”]`, then there will be three heading cells (`th`) labeled accordingly. The `{{ col }}` notation tells AngularJS to _interpolate_ the expression, filling the contents in each `th` with the current value of `col`.
+For example, if the JS model defines `Cols` as `["A","B","C"]`, then there will be three heading cells (`th`) labeled accordingly. The `{{ col }}` notation tells AngularJS to _interpolate_ the expression, filling the contents in each `th` with the current value of `col`.
 
 Similarly, the next two lines goes through values in `Rows` — `[1,2,3]` and so on — creating a row for each one and labeling the leftmost `th` cell with its number:
 
@@ -205,12 +205,12 @@ ES6’s [array comprehension](https://developer.mozilla.org/en-US/docs/Web/JavaS
 The `function*` above means that `range` returns an [iterator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/The_Iterator_protocol), with a `while` loop that would  [`yield`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/yield) a value at a time. Whenever the `for` loop demands the next value, it will resume execution right after the `yield` line:
 
 ```
-    // If it's a number, increase it by one; otherwise move to next letter
+    // If it’s a number, increase it by one; otherwise move to next letter
     cur = (isNaN( cur ) ? String.fromCodePoint( cur.codePointAt()+1 ) : cur+1);
   } }
 ```
 
-To generate the next value, we use `isNaN` to see if `cur` is meant as a letter (NaN stands for “not a number.”) If yes, we get the letter’s [code point value](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/codePointAt), increment it by one, and [convert the codepoint](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/fromCodePoint) back to get its next letter. Otherwise, we simply increase the number by one.
+To generate the next value, we use `isNaN` to see if `cur` is meant as a letter (`NaN` stands for “not a number.”) If yes, we get the letter’s [code point value](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/codePointAt), increment it by one, and [convert the codepoint](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/fromCodePoint) back to get its next letter. Otherwise, we simply increase the number by one.
 
 Next up, we define the `keydown()` function that handles keyboard navigation across rows:
 
@@ -256,7 +256,7 @@ The `init()` function first tries restoring the `sheet` content from its previou
 ```js
   // Define the initializer, and immediately call it
   ($scope.init = ()=>{
-    // Restore the previous .sheet; reset to default if it's the first run
+    // Restore the previous .sheet; reset to default if it’s the first run
     $scope.sheet = angular.fromJson( localStorage.getItem( '' ) );
     if (!$scope.sheet) { $scope.reset(); }
     $scope.worker = new Worker( 'worker.js' );
@@ -347,11 +347,15 @@ The Worker’s sole purpose is defining its `onmessage` handler that takes `shee
     [sheet, errs, vals] = [ data, {}, {} ];
 ```
 
-…FIXME…`for … in`
+In order to turn coordinates into global variables, we first iterate over each properties in `sheet`, using a `for … in` loop:
 
 ```js
     for (const coord in sheet) {
 ```
+
+We  write `const coord` above so that functions defined in the loop can capture the specific value of `coord` in that iteration. This is because `const` and `let` declares _block scoped_ variables. In contrast, `var coord` will make a _function scoped_ variable, and functions defined in each loop iteration will end up sharing the same `coord`.
+
+Customarily, formulas variables are case-insensitive and can optionally have a `$` prefix. Because JS variables are case-sensitive but, we use a `for … of` loop to go over the four variable names for the same coordinate:
 
 ```js
       // Four variable names pointing to the same coordinate: A1, a1, $A1, $a1
@@ -360,44 +364,91 @@ The Worker’s sole purpose is defining its `onmessage` handler that takes `shee
                                p+c ]) {
 ```
 
+Note the _nested array comprehension_ syntax above, with  two `for`  expressions in the array definition.
+
+For each variable name like `A1` and `$a1`, we define its [accessor property](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperty) on `self` that calculates `vals[A1]` whenever they are evaluated in an expression:
+
 ```js
         // Worker is reused across calculations, so only define each variable once
         if (( Object.getOwnPropertyDescriptor( self, name ) || {} ).get) { continue; }
 
         // Define self['A1'], which is the same thing as the global variable A1
         Object.defineProperty( self, name, { get() {
+```
+
+The `{ get() { … } }` syntax above is shorthand for `{ get: ()=>{ … } }`. Because we define only `get` and not `set`, the variables become  _read-only_ and cannot be modified from user-supplied formulas.
+
+The `get` accessor starts by checking if `vals[coord]` is already calculated, and simply returns it if it’s the same:
+
+```js
           if (coord in vals) { return vals[coord]; }
+```
+
+If not, we need to calculate `vals[coord]` from `sheet[coord]`.
+
+First we set it to `NaN`, so self-references like setting **A1*** to `=A1` will end up with `NaN` instead of an infinite loop:
+
+```js
           vals[coord] = NaN;
 ```
 
+Next we test if `sheet[coord]` is a number, by converting it to numeric with prefix `+`, assign the number to `x`, and compare its string representation with the original string. If they differ, then we assign `x` to the original string:
+
 ```js
           // Convert numeric-looking strings into numbers so =A1+C1 works when both are numbers
-          let val = +sheet[coord];
-          if (sheet[coord] != val.toString()) { val = sheet[coord]; }
+          let x = +sheet[coord];
+          if (sheet[coord] !== x.toString()) { x = sheet[coord]; }
 ```
+
+If the initial character of `x` is `=`, then it’s a formula cell. We evaluate the part after `=` with `eval.call()`, using the first argument `null` tells `eval` to run in the _global scope_, hiding the _lexical scope_ variables like `x` and `sheet` from the evaluation:
 
 ```js
           // Evaluate formula cells that begin with =
-          try { vals[coord] = ( ('=' === val[0]) ? eval.call( null, val.slice( 1 ) ) : val ); }
+          try { vals[coord] = ( ('=' === x[0]) ? eval.call( null, x.slice( 1 ) ) : x ); }
 ```
+
+If the evaluation succeeds, the result is stored into `vals[coord]`. For non-formula cells, the value of `vals[coord]` is simply `x`, which may be a numeric or a string.
+
+If `eval` results in an error, the `catch` block tests if it’s because the formula refers to a empty cell not yet defined in `self`:
 
 ```js
           catch (e) {
             const match = /\$?[A-Za-z]+[1-9][0-9]*\b/.exec( e );
             if (match && !( match[0] in self )) {
+```
+
+In that case, we set the missing cell’s default value to `0`, clear `vals[coord]`, and re-run the current computation using `self[coord]`:
+
+```js
               // The formula refers to a uninitialized cell; set it to 0 and retry
               self[match[0]] = 0;
               delete vals[coord];
               return self[coord];
             }
+```
+
+ If the user gives the missing cell a content later on in `sheet[coord]`, then `Object.defineProperty` would take over and override the temporary value.
+
+Other kinds of errors are stored to `errs[coord]`:
+
+```js
             // Otherwise, stringify the caught exception in the errs object
             errs[coord] = e.toString();
           }
+```
+
+In the case of errors, the value of `vals[coord]` will remain `NaN` because the assignment did not complete.
+
+Finally, the `get` accessor returns the calculated value, stored in `vals[coord]`:
+
+```js
           return vals[coord];
         } } )
       }
     }
 ```
+
+With accessors defined for all coordinates, the worker goes through the coordinates again, invoking each accessor by accessing `self[coord]`, then posts the resulting `errs` and `vals` back to the main JS thread:
 
 ```js
     // For each coordinate in the sheet, call the property getter defined above
@@ -409,29 +460,54 @@ The Worker’s sole purpose is defining its `onmessage` handler that takes `shee
 
 ### CSS
 
+The **styles.css** file contains just a few selectors and their presentational styles. First we style the table to merge all cell borders together, leaving no spaces between neighboring cells:
+
+```css
+table { border-collapse: collapse; }
+```
+
+Both the heading and data cells share the same border style, but we can tell them apart by their background colors: Heading cells are light-gray, data cells are white by default, and formula cells get a light-blue background:
+
+```
+th, td { border: 1px solid #ccc; }
+th { background: #ddd; }
+td.formula { background: #eef; }
+```
+
+The displayed width is fixed for each cell’s calculated values. Empty cells receive a minimal height, and long lines are clipped with a trailing ellipsis:
+
+```css
+td div { text-align: right; width: 120px; min-height: 1.2em;
+         overflow: hidden; text-overflow: ellipsis; }
+```
+
+The text alignment and decorations are determined by each value’s type, as reflected by the `text` and `error` class selectors:
+
+```css
+td div.text { text-align: left; }
+td div.error { text-align: center; color: #800; font-size: 90%; border: solid 1px #800 }
+```
+
+As for the user-editable `input` box, we use _absolute positioning_ to overlay it on top of its cell, and make it transparent so the underlying `div` with the cell’s value shows through:
+
 ```css
 input { position: absolute; border: 0; padding: 0;
         width: 120px; height: 1.3em; font-size: 100%;
         color: transparent; background: transparent; }
 ```
 
+When the user sets focus on the input box, it springs into the foreground:
+
 ```css
 input:focus { color: #111; background: #efe; }
+```
+
+Furthermore, the underlying `div` is collapsed into a single line, so it’s completely covered by the focused input box:
+
+```css
 input:focus + div { white-space: nowrap; }
 ```
 
-```css
-table { border-collapse: collapse; }
-th { background: #ddd; }
-td, th { border: 1px solid #ccc; }
-```
+## Conclusion
 
-```css
-td.formula { background: #eef; }
-td div { text-align: right; width: 120px; min-height: 1.2em;
-         overflow: hidden; text-overflow: ellipsis; }
-td div.text { text-align: left; }
-td div.error { text-align: center; color: #800; font-size: 90%; border: solid 1px #800 }
-```
-
-_(to be continued…)_
+WIP
