@@ -21,7 +21,7 @@ if (self.importScripts) {
           if (sheet[coord] != val.toString()) { val = sheet[coord]; }
 
           // Evaluate formula cells that begin with =
-          try { vals[coord] = ( ('=' === val[0]) ? eval( val.slice( 1 ) ) : val ); }
+          try { vals[coord] = ( ('=' === val[0]) ? eval.call( null, val.slice( 1 ) ) : val ); }
           catch (e) {
             const match = /\$?[A-Za-z]+[1-9][0-9]*\b/.exec( e );
             if (match && !( match[0] in self )) {

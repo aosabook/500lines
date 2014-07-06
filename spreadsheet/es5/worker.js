@@ -2170,7 +2170,7 @@ if (self.importScripts) {
                                 val = sheet[$traceurRuntime.toProperty(coord)];
                               }
                               try {
-                                $traceurRuntime.setProperty(vals, coord, (('=' === val[0]) ? eval(val.slice(1)) : val));
+                                $traceurRuntime.setProperty(vals, coord, (('=' === val[0]) ? eval.call(null, val.slice(1)) : val));
                               } catch (e) {
                                 try {
                                   throw undefined;

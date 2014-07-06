@@ -115,7 +115,7 @@ As a concrete example, when the user clicks the `<button>` defined in the next l
 
 ```html
   <table><tr>
-    <th><button ng-click="reset(); calc()" title="Reset">↻</button></th>
+    <th><button type="button" ng-click="reset(); calc()" title="Reset">↻</button></th>
 ```
 
 The next line uses `ng-repeat` to display the list of column labels on the top row:
