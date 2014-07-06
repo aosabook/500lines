@@ -830,18 +830,19 @@ We can now create our distrbution as follows:
 >>> from rpg import MagicItemDistribution
 >>> bonus_probs = np.array([0.0, 0.55, 0.25, 0.12, 0.06, 0.02])
 >>> stats_probs = np.ones(6) / 6.0
->>> item_dist = MagicItemDistribution(bonus_probs, stats_probs)
+>>> rso = np.random.RandomState(234892)
+>>> item_dist = MagicItemDistribution(bonus_probs, stats_probs, rso=rso)
 ```
 
 Once created, we can use it to generate a few different items:
 
 ```python
 >>> item_dist.sample()
-{'dexterity': 0, 'strength': 0, 'constitution': 0, 'intelligence': 0, 'wisdom': 1, 'charisma': 0}
+{'dexterity': 0, 'strength': 0, 'constitution': 0, 'intelligence': 0, 'wisdom': 0, 'charisma': 1}
 >>> item_dist.sample()
-{'dexterity': 0, 'strength': 0, 'constitution': 2, 'intelligence': 1, 'wisdom': 0, 'charisma': 0}
+{'dexterity': 0, 'strength': 0, 'constitution': 1, 'intelligence': 0, 'wisdom': 2, 'charisma': 0}
 >>> item_dist.sample()
-{'dexterity': 0, 'strength': 0, 'constitution': 1, 'intelligence': 0, 'wisdom': 0, 'charisma': 0}
+{'dexterity': 1, 'strength': 0, 'constitution': 1, 'intelligence': 0, 'wisdom': 0, 'charisma': 0}
 ```
 
 And, if we want, we can evaluate the probability of a sampled item:
@@ -849,11 +850,11 @@ And, if we want, we can evaluate the probability of a sampled item:
 ```python
 >>> item = item_dist.sample()
 >>> item
-{'dexterity': 0, 'strength': 0, 'constitution': 0, 'intelligence': 0, 'wisdom': 1, 'charisma': 0}
+{'dexterity': 0, 'strength': 0, 'constitution': 0, 'intelligence': 0, 'wisdom': 2, 'charisma': 0}
 >>> item_dist.logpmf(item)
--2.3895964699836751
+-4.9698132995760007
 >>> item_dist.pmf(item)
-0.091666666666666688
+0.0069444444444444441
 ```
 
 ## Estimating attack damage
@@ -977,11 +978,11 @@ monster within three hits 50% of the time, how many hit points should
 the monster have?
 
 First, we create our distribution object, using the same `item_dist`
-that we created earlier:
+and `rso` that we created earlier:
 
 ```python
->>> from sampler import DamageDistribution
->>> damage_dist = DamageDistribution(2, item_dist, num_hits=3)
+>>> from rpg import DamageDistribution
+>>> damage_dist = DamageDistribution(2, item_dist, num_hits=3, rso=rso)
 ```
 
 Now we can draw a bunch of samples, and compute the 50th percentile
@@ -992,12 +993,12 @@ Now we can draw a bunch of samples, and compute the 50th percentile
 >>> samples.min()
 3
 >>> samples.max()
-137
+154
 >>> np.percentile(samples, 50)
 27.0
 ```
 
-TODO: include plot of the histogram
+![](damage_distribution.png)
 
 There is a pretty wide range of damage that the player could
 potentially inflict, but it has a long tail: the 50th percentile is at
