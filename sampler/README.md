@@ -6,8 +6,6 @@ probability theory.
 TODO: include discussion about using `import numpy as np` rather than
 `import numpy`.
 
-TODO: include discussion about variable names (descriptive vs math?)
-
 ## Introduction
 
 Frequently, in computer science and engineering, we run into problems
@@ -80,24 +78,24 @@ for sampling and for evaluating probabilities, working in "log-space",
 allowing reproducibility, and separating the process of generating
 samples from the specific application.
 
-> A brief aside about notation
->
-> Typically when we talk about probability distributions, we will use
-> mathematical notation like $p(x)$ to indicate that $p$ is the
-> *probability density function* (PDF) or *probability mass function*
-> (PMF) over values $x$ of a random variable.
-> 
-> There are two things that we might want to do with a probability
-> distribution. Given a value (or location) $x$, we might want to
-> *evaluate* what the probability density (or mass) is at that
-> location. In mathematical notation, we would write this as $p(x)$
-> (the probability density at the value $x$).
->
-> Given the PDF or PMF, we might also want to *sample* a value $x$ in
-> a manner proportional to the distribution (such that we are more
-> likely to get a sample at places where the probability is
-> higher). In mathematical notation, we would write this as $x\sim p$,
-> to indicate that $x$ is sampled proportional to $p$.
+#### A brief aside about notation
+
+Typically when we talk about probability distributions, we will use
+mathematical notation like $p(x)$ to indicate that $p$ is the
+*probability density function* (PDF) or *probability mass function*
+(PMF) over values $x$ of a random variable.
+ 
+There are two things that we might want to do with a probability
+distribution. Given a value (or location) $x$, we might want to
+*evaluate* what the probability density (or mass) is at that
+location. In mathematical notation, we would write this as $p(x)$ (the
+probability density at the value $x$).
+
+Given the PDF or PMF, we might also want to *sample* a value $x$ in a
+manner proportional to the distribution (such that we are more likely
+to get a sample at places where the probability is higher). In
+mathematical notation, we would write this as $x\sim p$, to indicate
+that $x$ is sampled proportional to $p$.
 
 ## Sampling magical items
 
@@ -146,17 +144,29 @@ probability is of selecting the balls that you did.
 Note: the code in this section is also located in the file
 `multinomial.py`.
 
-### Sampling from a multinomial distribution
+### The `MultinomialDistribution` class
 
-Taking a sample from a multinomial is actually fairly straightforward,
-because NumPy provides us a function to do so already: the `np.random`
-module includes functions to sample from many different types of
-distributions.
+In general, there are two functions that we might want to do with a
+distribution: we might want to *sample* from that distribution, and we
+might want to *evaluate the probability* of a sample (or samples)
+under that distribution's PMF or PDF. While the actual computations
+needed to perform these two functions are pretty different, they rely
+on a common piece of information: what the *parameters* of the
+distribution is. In the case of the multinomial distribution, the
+parameters are the event probabilities, $p$, which correspond to the
+proportions of the different colored balls in the urn example above.
 
-Before we can take a sample, we need to specify two *parameters*: the
-number of events, $n$ (in the urn example, corresponding to the number
-of balls we draw), and the event probabilities, $p$ (corresponding to
-the proportion of different colored balls).
+TODO: include discussion about variable names (descriptive vs math?)
+
+Because of this shared information, we opt to use a class to represent
+a multinomial distribution. The class takes as parameters the event
+probabilities, $p$, and a variable called `rso`. This variable is a
+`RandomState` object, which is essentially a random number
+generator. 
+
+TODO: talk about checking that parameter values are correct
+
+TODO: talk about precomputing values, like the log probabilities
 
 #### Seeding the random number generator
 
@@ -194,48 +204,15 @@ numbers in the same order, thus ensuring replicability.
 > is easier to find out whether there is nondeterminism coming from
 > somewhere other than your own code.
 
-#### Writing the sampling code
+### Sampling from a multinomial distribution
 
-So, to actually implement a function that samples from the multinomial
+So, to actually implement a method that samples from the multinomial
 distribution, we can use the multinomial sampler from NumPy, and pass
 in a `RandomState` object for reproducibility. I like to make the
 `RandomState` object an optional parameter: it is occasionally
 convenient to not be *forced* to use it, but I do want to have the
 *option* of using it (which, if I were to just use the `np.random`
 function, I would not be able to do).
-
-```python
-import numpy as np
-
-def sample_multinomial(n, p, rso=None):
-    """Samples draws of `n` events from a multinomial distribution with
-    event probabilities `p`.
-
-    Parameters
-    ----------
-    n: integer
-        The number of total events
-    p: numpy array with shape (k,)
-        The event probabilities
-    rso: numpy RandomState object (default: None)
-        The random number generator
-
-    Returns
-    -------
-    numpy array with shape (k,)
-        The sampled number of occurrences for each event
-
-    """
-    # get the appropriate function for generating the
-    # random sample
-    if rso:
-        func = rso.multinomial
-    else:
-        func = np.random.multinomial
-
-    x = func(n, p)
-    return x
-```
 
 ### Evaluating the multinomial PMF
 
@@ -374,62 +351,10 @@ otherwise be lost.
 
 TODO
 
-```python
-from scipy.special import gammaln
-
-def multinomial_logpmf(x, p):
-    """Evaluates the log-probability mass function (log-PMF) of a
-    multinomial with event probabilities `p` for a draw `x`.
-
-    Parameters
-    ----------
-    x: numpy array with shape (k,)
-        The number of occurrences of each event
-    p: numpy array with shape (k,)
-        The event probabilities
-
-    Returns
-    -------
-    The evaluated log-PMF for draw `x`
-
-    """
-    # get the total number of events
-    n = np.sum(x)
-    # equivalent to log(n!)
-    numerator = gammaln(n + 1)
-    # equivalent to log(x1! * ... * xk!)
-    denominator = np.sum(gammaln(x + 1))
-    # equivalent to log(p1^x1 * ... * pk^xk)
-    weights = np.sum(np.log(p) * x)
-    log_pmf = numerator - denominator + weights
-    return log_pmf
-```
-
 If we really do need the PMF, and not the log-PMF, we can still
 compute it. However, it is generally better to *first* compute it in
 log-space, and then exponentiate it if we need to take it out of
-log-space:
-
-```python
-def multinomial_pmf(x, p):
-    """Evaluates the probability mass function (PMF) of a multinomial
-    with event probabilities `p` for a draw `x`.
-
-    Parameters
-    ----------
-    x: numpy array with shape (k,)
-        The number of occurrences of each event
-    p: numpy array with shape (k,)
-        The event probabilities
-
-    Returns
-    -------
-    The evaluated PMF for draw `x`
-
-    """
-    pmf = np.exp(multinomial_logpmf(x, p))
-    return pmf
-```
+log-space.
 
 To further drive home the point of why working in log-space is so
 important, we can look at an example just with the multinomial:
