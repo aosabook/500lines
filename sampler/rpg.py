@@ -30,8 +30,7 @@ class MagicItemDistribution(object):
             The random number generator
 
         """
-        # Store the given parameters, in addition to the log of the
-        # bonus probabilities (which are used by _bonus_logpmf).
+        # Create the multinomial distributions we'll be using
         self.bonus_dist = MultinomialDistribution(bonus_probs, rso=rso)
         self.stats_dist = MultinomialDistribution(stats_probs, rso=rso)
 
@@ -207,16 +206,16 @@ class DamageDistribution(object):
 
         """
         # This is an array of integers corresponding to the sides of a
-        # single die. The `dice_probs` are equal probabilities for
-        # each of the sides.
+        # single die.
         self.dice_sides = np.arange(1, num_dice_sides + 1)
+        # Create a multinomial distribution corresponding to one of
+        # these dice.  Each side has equal probabilities.
         self.dice_dist = MultinomialDistribution(
             np.ones(num_dice_sides) / float(num_dice_sides), rso=rso)
 
         self.num_hits = num_hits
         self.num_items = num_items
         self.item_dist = item_dist
-        self.rso = rso
 
     def sample(self):
         """Sample the attack damage.
