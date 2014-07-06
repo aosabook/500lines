@@ -1,0 +1,186 @@
+A Python interpreter written in Python
+
+In this chapter we will examine a Python interpreter.  Running a Python program involves four steps: lexing, parsing, compiling, and interpreting.  The first three are covered elsewhere in this book.  The final step - interpreting - takes place after the source code of Python has been processed by the first three steps and turned into _code objects_, which are the internal representation of Python code to the Python interpreter.
+
+People often refer to Python as an "interpreted" language, like Ruby or Java, in contrast with a "compiled" language like C or Rust. This terminology isn't as precise as it seems.  Most "interpreted" languages, including Python, do involve a compilation step; it's just that the compilation does relatively less than in a "compiled" language, and the interpreter does relatively more.  The Python compiler has much less information about the behavior of the program it compiles than a C compiler would, as we'll see. You also hear the Python interpreter referred to as the "Python virtual machine."  For today, we'll treat these terms as synonymous.
+
+The Python interpreter we're examining today is written in Python.  This may strike you as odd, but it's no more odd than writing a C compiler in C (like gcc or clang [IS THIS TRUE?]). We could write a Python interpreter in almost any language, with greater or lesser difficulty.
+
+Ok, in to the meat of the thing.  The Python interpreter is a virtual machine, meaning that it's software that emulates a physical computer. This particular virtual machine is a stack machine: it uses a stack instead of registers as it evaluates the code.
+
+The Python VM has a call stack of frames.  A frame is a collection of information and context for a chunk of code (typically a function, but not always).  Information on the frame includes the global and local namespaces, the exception state, a reference to the calling frame, and the last bytecode instruction executed.  Each frame has two stacks associated with it: the data stack, which contains information and a block stack, used for certain kinds of control flow such as exception handling and looping.  The primary work of the Python VM is manipulating these three kinds of stacks.
+
+Let's make this concrete with a little schematic. Suppose we have the following code, and the Python interpreter is currently executing the marked line.  Here's a schematic of the call stack of frames, the block stacks, and the data stacks.
+
+```python main.py
+def foo():
+    x = 1
+    def bar(y):
+        z = y + 2  # <--- (3) ... and the interpreter is here.
+        return z
+    return bar(x)  # <--- (2) ... which is returning a call to bar ...
+foo()              # <--- (1) We're in the middle of a call to foo ...
+```
+
+```
+c   ---------------------------
+a  | bar Frame                 | -> block stack: []
+l  |     (newest)              | -> data stack: [1, 2]
+l   ---------------------------
+   | foo Frame                 | -> block stack: []
+s  |                           | -> data stack: [<Function foo.<locals>.bar at 0x10d389680>, 1]
+t   ---------------------------
+a  | main (module) Frame       | -> block stack: []
+c  |       (oldest)            | -> data stack: [<Function foo at 0x10d3540e0>]
+k   ---------------------------
+```
+
+At this point, the interpreter is in the middle of the nested function call to `bar`. There are three frames on the call stack: one for the module level, one for the function `foo`, and one for `bar`. Once `bar` returns, the frame associated with it is popped off of the call stack. In general, there will be a frame for each module, each function call, and each class definition.  Note that this is one frame per function invocation, not just one frame per function. A recursive function would have one frame on the call stack for each level of recursion.
+
+Each frame has its own data stack and block stack. Keeping separate data and block stacks enables the interpreter to pause and resume frames, as with a generator.
+
+Let's begin writing our interpreter by implementing the Frame object. Note that the frame is a very simple class - just a collection of attributes with no methods. As mentioned above, the attributes include the code object corresponding to the frame, the local and global namespaces, a reference to the previous frame, a data stack, a block stack, and the last instruction executed.
+
+``` python
+class Frame(object):
+    def __init__(self, f_code, f_globals, f_locals, f_back):
+        self.f_code = f_code   # The code object
+        # Namespaces
+        self.f_globals = f_globals
+        self.f_locals = f_locals
+        if f_back:
+            self.f_builtins = f_back.f_builtins
+        else:
+            self.f_builtins = f_locals['__builtins__']
+            if hasattr(self.f_builtins, '__dict__'):
+                self.f_builtins = self.f_builtins.__dict__
+
+        self.f_back = f_back   # Reference to previous frame
+        self.stack = []        # Data stack
+        self.block_stack = []  # Block stack
+
+        self.f_lineno = f_code.co_firstlineno
+        self.f_lasti = 0       # Last executed bytecode instruction
+```
+
+Next we'll begin to write the virtual machine itself.  The virtual machine object tracks the call stack of frames, the current frame, the return value (if any), and the exception state. We'll also write three helper functions for frames: one to create new frames (which is responsible for sorting out the new frame's namespacing) and two to push and pop frames from the frame stack.
+
+``` python
+class VirtualMachineError(Exception):
+    pass
+
+class VirtualMachine(object):
+    def __init__(self):
+        self.frames = []   # The call stack of frames.
+        self.frame = None  # The current frame.
+        self.return_value = None
+        self.last_exception = None
+
+    # Frame manipulation
+    def make_frame(self, code, callargs={}, f_globals=None, f_locals=None):
+        if f_globals is not None:
+            f_globals = f_globals
+            if f_locals is None:
+                f_locals = f_globals
+        elif self.frames:
+            f_globals = self.frame.f_globals
+            f_locals = {}
+        else:
+            f_globals = f_locals = {
+                '__builtins__': __builtins__,
+                '__name__': '__main__',
+                '__doc__': None,
+                '__package__': None,
+            }
+        f_locals.update(callargs)
+        frame = Frame(code, f_globals, f_locals, self.frame)
+        return frame
+
+    def push_frame(self, frame):
+        self.frames.append(frame)
+        self.frame = frame
+
+    def pop_frame(self):
+        self.frames.pop()
+        if self.frames:
+            self.frame = self.frames[-1]
+        else:
+            self.frame = None
+```
+
+After writing helper functions for manipulating the call stack of frames, we'll next write helpers for the two frame-specific stacks, the data stack and the block stack. (We could have implemented these on the frame object instead.)
+
+```
+class VirtualMachine(object):
+    [... snip ...]
+
+    # Data stack manipulation
+    def top(self):
+        return self.frame.stack[-1]
+
+    def pop(self):
+        return self.frame.stack.pop()
+
+    def push(self, *vals):
+        self.frame.stack.extend(vals)
+
+    def popn(self, n):
+        """Pop a number of values from the value stack.
+        A list of `n` values is returned, the deepest value first.
+        """
+        if n:
+            ret = self.frame.stack[-n:]
+            self.frame.stack[-n:] = []
+            return ret
+        else:
+            return []
+
+    # Block stack manipulation
+    def push_block(self, b_type, handler=None):
+        level = len(self.frame.stack)
+        self.frame.block_stack.append(Block(b_type, handler, level))
+
+    def pop_block(self):
+        return self.frame.block_stack.pop()
+
+    def unwind_block(self, block):
+        if block.type == 'except-handler':
+            offset = 3
+        else:
+            offset = 0
+
+        while len(self.frame.stack) > block.level + offset:
+            self.pop()
+
+        if block.type == 'except-handler':
+            traceback, value, exctype = self.popn(3)
+            self.last_exception = exctype, value, traceback
+```
+
+Next, the entry point to the virtual machine. This method takes a compiled code object as an argument. This sets up and runs a frame until it returns somehow, then checks that no data or frames are left over. `run_frame` is the most complex method on the virtual machine, so we'll return to it later on.
+
+``` python
+class VirtualMachine(object):
+    [... snip ...]
+
+    # An entry point
+    def run_code(self, code, f_globals=None, f_locals=None):
+        frame = self.make_frame(code, f_globals=f_globals, f_locals=f_locals)
+        val = self.run_frame(frame)
+        # Check some invariants
+        if self.frames:
+            raise VirtualMachineError("Frames left over!")
+        if self.frame and self.frame.stack:
+            raise VirtualMachineError("Data left on stack! %r" % self.frame.stack)
+```
+
+What does running a frame mean?
+
+[ Here we need a discussion of bytecode and the code object. ]
+
+[ Then the implementation of (most? all?) of the `byte_DO_STUFF` bytes]
+
+[ Then return to `run_frame` and talk about unwinding the block stack. ]
+
+[At some point, talk about the implementation of `Function` and `Method`.]
+
