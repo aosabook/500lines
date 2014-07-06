@@ -512,8 +512,6 @@ input:focus + div { white-space: nowrap; }
 
 Since this book is _500 lines or less_, a web spreadsheet in 99 lines is just a minimal example — please feel free to experiment and extend it in any direction you’d like.
 
-### Future Work
-
 Here are some ideas, all implementable in the space of 401 lines:
 
 * A collaborative online editor using [ShareJS](http://sharejs.org/), [AngularFire](http://angularfire.com) or [GoAngular](http://goangular.org/).
