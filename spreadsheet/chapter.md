@@ -244,14 +244,14 @@ Next up, we retrieve the target element using the ID selector syntax (e.g. `”#
 
 We put an extra check on the result of `querySelector` because moving upward from **A1** will produce the selector `#A0`, which has no corresponding element, and so will not trigger a focus change — the same goes for pressing **DOWN** at the bottom row.
 
-Now we define the `reset()` function, invoked by the `↻` button, to restore the `sheet` its initial contents:
+Next we define the `reset()` function so the `↻` button can restore the `sheet` its initial contents:
 
 ```js
   // Default sheet content, with some data cells and one formula cell.
   $scope.reset = ()=>{ $scope.sheet = { A1: 1874, B1: '+', C1: 2046, D1: '⇒', E1: '=A1+C1' } }
 ```
 
-When the browser reloads the page, we would try restoring the `sheet` content from its previous state from the [localStorage](https://developer.mozilla.org/en-US/docs/Web/Guide/API/DOM/Storage#localStorage), or default to the initial content if it’s our first time here:
+The `init()` function first tries restoring the `sheet` content from its previous state from the [localStorage](https://developer.mozilla.org/en-US/docs/Web/Guide/API/DOM/Storage#localStorage), or default to the initial content if it’s our first time here:
 
 ```js
   // Define the initializer, and immediately call it
@@ -263,7 +263,7 @@ When the browser reloads the page, we would try restoring the `sheet` content fr
   })();
 ```
 
-A few things are worth nothing in the `init()` above:
+A few things are worth nothing in the `init()` function above:
 
 * We use the `($scope.init = ()=>{…})()` syntax to defines the function and immediately call it.
 * Because localStorage only stores strings, we _parse_ the `sheet` structure from its [JSON](https://developer.mozilla.org/en-US/docs/Glossary/JSON) representation using `angular.fromJson()`.
@@ -284,7 +284,9 @@ With these properties in place, we can define the `calc()` function that trigger
     const json = angular.toJson( $scope.sheet );
 ```
 
-The first thing it does is snapshot the state of `sheet` into a JSON string, stored in the constant `json`. Next up, we construct a `promise` from [$timeout](https://docs.angularjs.org/api/ng/service/$timeout) that cancels the upcoming computation if it takes more than 99 milliseconds:
+Here we first snapshot the state of `sheet` into a JSON string, stored in the constant `json`.
+
+Next up, we construct a `promise` from [$timeout](https://docs.angularjs.org/api/ng/service/$timeout) that cancels the upcoming computation if it takes more than 99 milliseconds:
 
 ```js
     const promise = $timeout( ()=>{
@@ -345,10 +347,13 @@ The Worker’s sole purpose is defining its `onmessage` handler that takes `shee
     [sheet, errs, vals] = [ data, {}, {} ];
 ```
 
-_FIXME: To be continued…_
+…FIXME…`for … in`
 
 ```js
     for (const coord in sheet) {
+```
+
+```js
       // Four variable names pointing to the same coordinate: A1, a1, $A1, $a1
       for (const name of [ for (p of [ '', '$' ])
                              for (c of [ coord, coord.toLowerCase() ])
