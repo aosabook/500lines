@@ -131,42 +131,119 @@ instances of the *multinomial distribution*.
 
 ## The multinomial distribution
 
-The multinomial distribution is used when you have several categories
-of events, and you want to characterize the probability of some
-combination of events happening.  The classic example used to describe
-the multinomial distribution is the *ball and urn* example. The idea
-is that you have an urn with different colored balls in it (for
-example, 30% red, 20% blue, and 50% green). You pull out a ball,
-record its color, put it back in the urn, and then repeat this
-multiple times. The multinomial distribution then tells you what the
-probability is of selecting the balls that you did.
+The multinomial distribution is used when you have several possible
+outcomes, and you want to characterize the probability of each of
+those outcomes occurring.  The classic example used to describe the
+multinomial distribution is the *ball and urn* example. The idea is
+that you have an urn with different colored balls in it (for example,
+30% red, 20% blue, and 50% green). You pull out a ball, record its
+color, put it back in the urn, and then repeat this multiple times. In
+this case, an *outcome* corresponds to drawing a ball of a particular
+color, and the probability of each outcome corresponds to the
+proportion of balls of that color (e.g., for the outcome of drawing a
+blue ball, the probability is $p_{blue}=0.20$). The multinomial
+distribution is then used to describe the possible combinations of
+outcomes when multiple balls are drawn (e.g., two green and one blue).
 
 Note: the code in this section is also located in the file
 `multinomial.py`.
 
 ### The `MultinomialDistribution` class
 
-In general, there are two functions that we might want to do with a
-distribution: we might want to *sample* from that distribution, and we
-might want to *evaluate the probability* of a sample (or samples)
-under that distribution's PMF or PDF. While the actual computations
-needed to perform these two functions are pretty different, they rely
-on a common piece of information: what the *parameters* of the
-distribution is. In the case of the multinomial distribution, the
-parameters are the event probabilities, $p$, which correspond to the
-proportions of the different colored balls in the urn example above.
+In general, there are two use cases for a distribution: we might want
+to *sample* from that distribution, and we might want to *evaluate the
+probability* of a sample (or samples) under that distribution's PMF or
+PDF. While the actual computations needed to perform these two
+functions are fairly different, they rely on a common piece of
+information: what the *parameters* of the distribution are. In the
+case of the multinomial distribution, the parameters are the event
+probabilities, $p$ (which correspond to the proportions of the
+different colored balls in the urn example above).
+
+The simplest solution would be to simply create two functions that
+both take the same parameters, but are otherwise independent. However,
+I will usually opt to use a class for representing my
+distributions. There are several advantages to doing so:
+
+1. You only need to pass in the parameters once, when creating the
+   class.
+2. There are additional attributes we might want to know about a
+   distribution: the mean, variance, derivative, etc. Once we have
+   even a handful of functions that operate on a common object, it is
+   even more convenient to use a class rather than passing the same
+   parameters to many different functions.
+3. It is usually a good idea to check that the parameter values are
+   valid (for example, in the case of the multinomial distribution,
+   the vector $p$ of event probabilities should sum to 1). It is much
+   more efficient to do this check once, in the constructor of the
+   class, rather than every time one of the functions is called.
+4. Sometimes computing the PMF or PDF involves computing constant
+   values (given the parameters). With a class, we can pre-compute
+   these constants in the constructor, rather than having to compute
+   them every time the PMF or PDF function is called.
+
+Here is the constructor code for the class:
+
+```python
+class MultinomialDistribution(object):
+
+    def __init__(self, p, rso=None):
+        """Initialize the multinomial random variable.
+
+        Parameters
+        ----------
+        p: numpy array with shape (k,)
+            The event probabilities
+        rso: numpy RandomState object (default: None)
+            The random number generator
+
+        """
+        # Check that the probabilities sum to 1 -- if they don't, then
+        # something is wrong.
+        if not np.isclose(np.sum(p), 1.0):
+            raise ValueError("event probabilities do not sum to 1")
+
+        # Store the parameters that were passed in
+        self.p = p
+        self.rso = rso
+
+        # Precompute log probabilities, for use by the log-PMF.
+        self.logp = np.log(self.p)
+
+        # Get the appropriate function for generating the random
+        # samples, depending on whether we're using a RandomState
+        # object or not.
+        if self.rso:
+            self._sample_func = self.rso.multinomial
+        else:
+            self._sample_func = np.random.multinomial
+```
+
+The class takes as arguments the event probabilities, $p$, and a
+variable called `rso`. First, the constructor checks that the
+parameters are valid (i.e., that `p` sums to 1). It then stores the
+arguments that were passed in, and uses the event probabilities to
+compute the event *log* probabilities (we'll go into why this is
+necessary in a bit). Finally, it determines which function to use for
+sampling according to the value of `rso` (we'll talk about what the
+`rso` object is and why we need to choose different sampling functions
+in the next section).
 
 TODO: include discussion about variable names (descriptive vs math?)
 
-Because of this shared information, we opt to use a class to represent
-a multinomial distribution. The class takes as parameters the event
-probabilities, $p$, and a variable called `rso`. This variable is a
-`RandomState` object, which is essentially a random number
-generator. 
+### Sampling from a multinomial distribution
 
-TODO: talk about checking that parameter values are correct
+Taking a sample from a multinomial distribution is actuall fairly
+straightforward, because NumPy provides us with a function that
+already does it: `np.random.multinomial`.
 
-TODO: talk about precomputing values, like the log probabilities
+> NumPy includes functions to draw samples from many different types
+> of distributions. For a full list, take a look at the
+> [random sampling module](http://docs.scipy.org/doc/numpy/reference/routines.random.html),
+> `np.random`.
+
+Despite the fact that this function already exists, there are a few
+design decisions surrounding it that we can make.
 
 #### Seeding the random number generator
 
@@ -181,7 +258,7 @@ random numbers. We can accomplish this through use of a NumPy
 `RandomState` object, which is essentially a random number generator
 object that can be passed around. It has most of the same functions as
 `np.random`; the difference is that we get to control where the random
-numbers come from.
+numbers come from. We create it as follows:
 
 ```python
 >>> import numpy as np
@@ -191,7 +268,33 @@ numbers come from.
 where the number passed to the `RandomState` constructor is the *seed*
 for the random number generator. As long as we instantiate it with the
 same seed, a `RandomState` object will produce the same "random"
-numbers in the same order, thus ensuring replicability.
+numbers in the same order, thus ensuring replicability:
+
+```python
+>>> rso.rand()
+0.5356709186237074
+>>> rso.rand()
+0.6190581888276206
+>>> rso.rand()
+0.23143573416770336
+>>> rso.seed(230489)
+>>> rso.rand()
+0.5356709186237074
+>>> rso.rand()
+0.6190581888276206
+```
+
+Earlier, we saw that the constructor took an argument called `rso` and
+used it to determine the sampling function. This `rso` variable is a
+`RandomState` object that has already been initialized. I like to make
+the `RandomState` object an optional parameter: it is occasionally
+convenient to not be *forced* to use it, but I do want to have the
+*option* of using it (which, if I were to just use the `np.random`
+function, I would not be able to do).
+
+So, if the `rso` variable is not given, then the constructor defaults
+to using `np.random.multinomial`. Otherwise, it uses the multinomial
+sampler from the `RandomState` object itself.
 
 > Aside: the functions in `np.random` actually do rely on a random
 > number generator that we can control -- NumPy's global random number
@@ -204,15 +307,57 @@ numbers in the same order, thus ensuring replicability.
 > is easier to find out whether there is nondeterminism coming from
 > somewhere other than your own code.
 
-### Sampling from a multinomial distribution
+#### What's a parameter?
 
-So, to actually implement a method that samples from the multinomial
-distribution, we can use the multinomial sampler from NumPy, and pass
-in a `RandomState` object for reproducibility. I like to make the
-`RandomState` object an optional parameter: it is occasionally
-convenient to not be *forced* to use it, but I do want to have the
-*option* of using it (which, if I were to just use the `np.random`
-function, I would not be able to do).
+Once we've decided whether to use `np.random.multinomial` or
+`rso.multinomial`, sampling is just a matter of calling the
+appropriate function. However, there is one other decision that we
+might consider: what counts as a parameter.
+
+Earlier, I said that the outcome probabilities, $p$, were the
+parameters of the multinomial distribution. However, depending on who
+you ask, the number of events, $n$, can *also* be a parameter of the
+multinomial distribution. So, why didn't we include $n$ as an argument
+to the constructor?
+
+This question, while relatively specific to the multinomial
+distribution, actually comes up fairly frequently when dealing with
+probability distributions, and the answer really depends on the use
+case. For a multinomial, can you make the assumption that the number
+of events is always the same? If so, then it might be better to pass
+in $n$ as an argument to the constructor. If not, then requiring $n$
+to be specified at object creation time could be very restrictive, and
+might even require you to create a new distribution object every time
+you need to draw a sample!
+
+I usually don't like to be that restricted by my code, and thus choose
+to have `n` be an argument to the `sample` function, rather than
+having it be an argument to the constructor. An alternate solution
+could be to have `n` be an argument to the constructor, but also
+include methods to allow for the value of `n` to be changed, without
+having to create an entirely new object. For our purposes, though,
+this solution is probably overkill, so we'll stick to just having it
+be an argument to `sample`:
+
+```python
+def sample(self, n):
+    """Samples draws of `n` events from a multinomial distribution with
+    outcome probabilities `self.p`.
+
+    Parameters
+    ----------
+    n: integer
+        The number of total events
+
+    Returns
+    -------
+    numpy array with shape (k,)
+        The sampled number of occurrences for each outcome
+
+    """
+    x = self._sample_func(n, self.p)
+    return x
+```
 
 ### Evaluating the multinomial PMF
 
@@ -351,10 +496,66 @@ otherwise be lost.
 
 TODO
 
+```python
+def logpmf(self, x):
+    """Evaluates the log-probability mass function (log-PMF) of a
+    multinomial with outcome probabilities `self.p` for a draw `x`.
+
+    Parameters
+    ----------
+    x: numpy array with shape (k,)
+        The number of occurrences of each outcome
+
+    Returns
+    -------
+    The evaluated log-PMF for draw `x`
+
+    """
+    # Get the total number of events.
+    n = np.sum(x)
+
+    # equivalent to log(n!)
+    numerator = gammaln(n + 1)
+    # equivalent to log(x1! * ... * xk!)
+    denominator = np.sum(gammaln(x + 1))
+
+    # If one of the values of self.p is 0, then the corresponding
+    # value of self.logp will be -inf. If the corresponding value
+    # of x is 0, then multiplying them together will give nan, but
+    # we want it to just be 0.
+    all_weights = self.logp * x
+    all_weights[x == 0] = 0
+    # equivalent to log(p1^x1 * ... * pk^xk)
+    weights = np.sum(all_weights)
+
+    # Put it all together.
+    log_pmf = numerator - denominator + weights
+    return log_pmf
+```
+
 If we really do need the PMF, and not the log-PMF, we can still
 compute it. However, it is generally better to *first* compute it in
 log-space, and then exponentiate it if we need to take it out of
-log-space.
+log-space:
+
+```python
+def pmf(self, x):
+    """Evaluates the probability mass function (PMF) of a multinomial
+    with outcome probabilities `self.p` for a draw `x`.
+
+    Parameters
+    ----------
+    x: numpy array with shape (k,)
+        The number of occurrences of each outcome
+
+    Returns
+    -------
+    The evaluated PMF for draw `x`
+
+    """
+    pmf = np.exp(self.logpmf(x))
+    return pmf
+```
 
 To further drive home the point of why working in log-space is so
 important, we can look at an example just with the multinomial:
@@ -379,7 +580,7 @@ inf
 >>> gammaln(1000 + 1)
 5912.1281784881639
 ```
-
+    
 ## Sampling magical items, revisited
 
 Now that we have written our multinomial functions, we can put them to
