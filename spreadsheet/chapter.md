@@ -74,7 +74,7 @@ As shown in the screenshot above, if we enable JS in the browser and disable CSS
 
 ## Code Walkthrough
 
-The diagram below shows the link between HTML and JS components:
+The diagram below shows the links between HTML and JS components:
 
 ![Architecture Diagram](./images/00-architecture.png)
 
