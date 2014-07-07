@@ -72,6 +72,10 @@ Because our spreadsheet is a web application with no server-side code, we must r
 
 ## Code Walkthrough
 
+The diagram below shows the link between HTML and JS components:
+
+![Architecture Diagram](./images/00-architecture.png)
+
 Now let’s go through the four source code files, in the same order as the browser loads them:
 
 * **index.html**: 20 lines
