@@ -62,13 +62,15 @@ Before we dive into the 99 lines of code, it’s worthwhile to disable JS in the
 
 When we disable the dynamic interactions (JS), the content structure (HTML) and presentational styles (CSS) remain in effect. If a website is useful with both JS and CSS disabled, we say it adheres to the _progressive enhancement_ principle, making its content accessible to the largest audience possible.
 
-Because our spreadsheet is a web application with no server-side code, we must rely on JS to provide the required logic. However, it does work correctly when CSS is not fully supported, such as with screen readers and text-mode browsers. If we enable JS in the browser, but disable CSS instead, the effects are:
+Because our spreadsheet is a web application with no server-side code, we must rely on JS to provide the required logic. However, it does work correctly when CSS is not fully supported, such as with screen readers and text-mode browsers:
+
+![With CSS Disabled](./images/06-nocss.png)
+
+As shown in the screenshot above, if we enable JS in the browser and disable CSS instead, the effects are:
 
 * All background and foreground colors are gone.
 * The input box and the cell value are both displayed, instead of just one at a time.
 * Otherwise, the application still works the same as the full version.
-
-![With CSS Disabled](./images/06-nocss.png)
 
 ## Code Walkthrough
 
