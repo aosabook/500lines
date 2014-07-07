@@ -178,6 +178,9 @@ distributions. There are several advantages to doing so:
    these constants in the constructor, rather than having to compute
    them every time the PMF or PDF function is called.
 
+TODO: add a note about how this is actually the way scipy's
+distributions work
+
 Here is the constructor code for the class:
 
 ```python
@@ -457,7 +460,7 @@ the gamma function rather than factorial, so we will rewrite the
 equation using $\Gamma$:
 
 $$
-p(\mathbf{x}; n, \mathbf{p}) = \frac{\Gamma((\sum_{i=1}^k x_i)+1)}{\Gamma(x_1+1)\cdots{}\Gamma(x_k+1)}p_1^{x_1}\cdots{}p_k^{x_k},
+p(\mathbf{x}; \mathbf{p}) = \frac{\Gamma((\sum_{i=1}^k x_i)+1)}{\Gamma(x_1+1)\cdots{}\Gamma(x_k+1)}p_1^{x_1}\cdots{}p_k^{x_k},
 $$
 
 #### Working in "log-space"
