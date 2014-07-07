@@ -33,7 +33,7 @@ function calc() {
 
 function Spreadsheet($scope) { init();
 
-  for (var col = 'A'; col <= 'H'; col = String.fromCodePoint( col.codePointAt()+1 )) {
+  for (var col = 'A'; col <= 'H'; col = String.fromCharCode( col.charCodeAt()+1 )) {
     var th = document.createElement( 'th' ); th.textContent = col;
     document.querySelector( 'tr' ).appendChild(th); $scope.Cols.push(col);
   }

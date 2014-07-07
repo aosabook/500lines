@@ -5,7 +5,7 @@ function Spreadsheet ($scope, $timeout) {
   makeRange($scope.Rows, 1, 20);
   function makeRange(array, cur, end) { while (cur <= end) { array.push(cur);
     // If it’s a number, increase it by one; otherwise move to next letter
-    cur = (isNaN( cur ) ? String.fromCodePoint( cur.codePointAt()+1 ) : cur+1);
+    cur = (isNaN( cur ) ? String.fromCharCode( cur.charCodeAt()+1 ) : cur+1);
   } }
 
   // UP(38) and DOWN(40)/ENTER(13) move focus to the row above (-1) and below (+1).
