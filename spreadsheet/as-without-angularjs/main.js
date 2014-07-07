@@ -11,8 +11,7 @@ function init() {
 
 function calc() {
   Object.getOwnPropertyNames($scope.sheet).forEach(function(coord) {
-    var input = document.querySelector( '#' + coord );
-    input.value = $scope.sheet[coord].toString();
+    var input = document.querySelector( '#' + coord ); input.value = '' + $scope.sheet[coord];
     input.parentElement.setAttribute('class', /^=/.exec(input.value[0]) ? 'formula' : '');
   });
 
@@ -38,8 +37,9 @@ function Spreadsheet($scope) { init();
     var th = document.createElement( 'th' ); th.textContent = col;
     document.querySelector( 'tr' ).appendChild(th); $scope.Cols.push(col);
   }
+  for (var row = 1; row <= 20; row++) { $scope.Rows.push(row); }
 
-  for (var row = 1; row <= 20; row++) { (function(row) {
+  $scope.Rows.forEach(function(row) {
     var th = document.createElement( 'th' ); th.innerHTML = row;
     var tr = document.createElement( 'tr' ); tr.appendChild(th);
 
@@ -59,8 +59,8 @@ function Spreadsheet($scope) { init();
       td.appendChild(input); td.appendChild(div);
      });
 
-     document.querySelector( 'table' ).appendChild(tr); })(row);
-  }
+     document.querySelector( 'table' ).appendChild(tr);
+  });
 
   calc();
 }
