@@ -100,16 +100,16 @@ The next four lines are JS declarations, placed within the `head` section as usu
 
 The `<script src="…">` tags load JS resources from the same path as the HTML page. For example,  if the current URL is `http://audreyt.github.io/500lines/spreadsheet/index.html`, then `lib/angular.js` refers to `http://audreyt.github.io/500lines/spreadsheet/lib/angular.js`.
 
-The `if (!self.Spreadsheet)` line tests if `main.js` is loaded correctly; if not, it tells the browser to navigate to `es5/index.html` instead. This _redirect-based graceful degradation_ technique ensures that, for pre-2015 browsers with no ES6 support, we can use the translated-to-ES5 versions of JS programs as a fallback.
+The `if (!self.Spreadsheet)` line tests if `main.js` is loaded correctly; if not, it tells the browser to navigate to `es5/index.html` instead. This _redirect-based graceful degradation_ technique ensures that for pre-2015 browsers with no ES6 support, we can use the translated-to-ES5 versions of JS programs as a fallback.
 
-The next two lines load the CSS resource, close the `head` section, and begins the `body` section containing the user-visible part:
+The next two lines load the CSS resource, close the `head` section, and begin the `body` section containing the user-visible part:
 
 ```html
   <link href="styles.css" rel="stylesheet">
 </head><body ng-app ng-cloak ng-controller="Spreadsheet">
 ```
 
-The `ng-` attributes above tells the AngularJS library to run the `Spreadsheet` JS function to create a _controller_ of this document, which provides a _model_ — a set of names available to _bindings_ on the document _view_. The `ng-cloak` attribute hides the document from display until the bindings are in place.
+The `ng-` attributes above tell the AngularJS library to run the `Spreadsheet` JS function to create a _controller_ of this document, which provides a _model_— a set of names available to _bindings_ on the document _view_. The `ng-cloak` attribute hides the document from display until the bindings are in place.
 
 As a concrete example, when the user clicks the `<button>` defined in the next line, its `ng-click` attribute will trigger and call `reset()` and `calc()`, two named functions provided by the JS model:
 
@@ -126,14 +126,14 @@ The next line uses `ng-repeat` to display the list of column labels on the top r
 
 For example, if the JS model defines `Cols` as `["A","B","C"]`, then there will be three heading cells (`th`) labeled accordingly. The `{{ col }}` notation tells AngularJS to _interpolate_ the expression, filling the contents in each `th` with the current value of `col`.
 
-Similarly, the next two lines goes through values in `Rows` — `[1,2,3]` and so on — creating a row for each one and labeling the leftmost `th` cell with its number:
+Similarly, the next two lines go through values in `Rows` — `[1,2,3]` and so on — creating a row for each one and labeling the leftmost `th` cell with its number:
 
 ```html
   </tr><tr ng-repeat="row in Rows">
     <th>{{ row }}</th>
 ```
 
-Because the `<tr ng-repeat>` tag is not yet closed by `</tr>` , the `row` variable is still available for expressions. The next line creates a data cell (`td`) in the current row, and use both `col` and `row` variables in its `ng-class` attribute:
+Because the `<tr ng-repeat>` tag is not yet closed by `</tr>` , the `row` variable is still available for expressions. The next line creates a data cell (`td`) in the current row and uses both `col` and `row` variables in its `ng-class` attribute:
 
 ```html
     <td ng-repeat="col in Cols" ng-class="{ formula: ('=' === sheet[col+row][0]) }">
@@ -147,14 +147,14 @@ Inside the `<td>`, we give the user an input box to edit the cell content stored
 
 ```html
        <input id="{{ col+row }}" ng-model="sheet[col+row]" ng-change="calc()"
-       ng-model-options="{ debounce: 200 }" ng-keydown="keydown( $event, col, row )">
+        ng-model-options="{ debounce: 200 }" ng-keydown="keydown( $event, col, row )">
 ```
 
-Here the key attribute is `ng-model`, which enables a _two-way binding_ between the JS model and the input box’s editable content. In practice, this means whenever the user makes a change in the input box, the JS model will update `sheet[col+row]` to match the content, and trigger its `calc()` function to re-calculate values of all formula cells.
+Here, the key attribute is `ng-model`, which enables a _two-way binding_ between the JS model and the input box’s editable content. In practice, this means that whenever the user makes a change in the input box, the JS model will update `sheet[col+row]` to match the content, and trigger its `calc()` function to recalculate values of all formula cells.
 
-To avoid repeated calls to `calc()` when the user presses and hold a key, `ng-model-options` limits the update rate to once every 200 milliseconds.
+To avoid repeated calls to `calc()` when the user presses and holds a key, `ng-model-options` limits the update rate to once every 200 milliseconds.
 
-The `id` attribute here is interpolated with the coordinate `col+row`. The `id` attribute of a HTML element must be different from the `id` of all other elements in the same document. This ensures the `#A1` _ID selector_ refers to a single element, instead of a set of elements like the class selector `.formula`.  When the user preses **UP**/**DOWN**/**ENTER** keys, the keyboard-navigation logic in `keydown()` will use ID selectors to determine which input box to focus on.
+The `id` attribute here is interpolated with the coordinate `col+row`. The `id` attribute of a HTML element must be different from the `id` of all other elements in the same document. This ensures that the `#A1` _ID selector_ refers to a single element, instead of a set of elements like the class selector `.formula`.  When the user presses the **UP**/**DOWN**/**ENTER** keys, the keyboard-navigation logic in `keydown()` will use ID selectors to determine which input box to focus on.
 
 After the input box, we place a `<div>` to display the calculated value of the current cell, represented in the JS model by objects `errs` and `vals`:
 
@@ -167,7 +167,7 @@ If an error occurs when computing a formula, the text interpolation uses the err
 
 When there is no error, the `vals[col+row]` on the right side of `||` is interpolated instead. If it’s a non-empty string, the initial character (`[0]`) will evaluate to true, applying the `text` class to the element that left-aligns the text.
 
-Because empty strings and numeric values has no initial character, `ng-class` will not assign them any classes, so CSS can style them with right alignment as the default case.
+Because empty strings and numeric values have no initial character, `ng-class` will not assign them any classes, so CSS can style them with right alignment as the default case.
 
 Finally, we close the `ng-repeat` loop in the column level with `</td>`, close the row-level loop with `</tr>`, and end the HTML document with:
 
@@ -185,7 +185,7 @@ The sole purpose of `main.js` is defining the `Spreadsheet` controller function 
 function Spreadsheet ($scope, $timeout) {
 ```
 
-The `$` in `$scope` is part of the variable name. Here we also request the [`$timeout`](https://docs.angularjs.org/api/ng/service/$timeout) service function from AngularJS; later on we will use it to prevent infinite-looping formulas.
+The `$` in `$scope` is part of the variable name. Here we also request the [`$timeout`](https://docs.angularjs.org/api/ng/service/$timeout) service function from AngularJS; later on, we will use it to prevent infinite-looping formulas.
 
 To put `Cols` and `Rows` into the model, simply define them as properties of `$scope`:
 
@@ -202,7 +202,7 @@ The ES6 [array comprehension](https://developer.mozilla.org/en-US/docs/Web/JavaS
   function* range(cur, end) { while (cur <= end) { yield cur;
 ```
 
-The `function*` above means that `range` returns an [iterator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/The_Iterator_protocol), with a `while` loop that would  [`yield`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/yield) a value at a time. Whenever the `for` loop demands the next value, it will resume execution right after the `yield` line:
+The `function*` above means that `range` returns an [iterator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/The_Iterator_protocol), with a `while` loop that would  [`yield`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/yield) a single value at a time. Whenever the `for` loop demands the next value, it will resume execution right after the `yield` line:
 
 ```
     // If it’s a number, increase it by one; otherwise move to next letter
@@ -210,7 +210,7 @@ The `function*` above means that `range` returns an [iterator](https://developer
   } }
 ```
 
-To generate the next value, we use `isNaN` to see if `cur` is meant as a letter (`NaN` stands for “not a number.”) If yes, we get the letter’s [code point value](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/codePointAt), increment it by one, and [convert the codepoint](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/fromCodePoint) back to get its next letter. Otherwise, we simply increase the number by one.
+To generate the next value, we use `isNaN` to see if `cur` is meant as a letter (`NaN` stands for “not a number.”) If so, we get the letter’s [code point value](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/codePointAt), increment it by one, and [convert the codepoint](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/fromCodePoint) back to get its next letter. Otherwise, we simply increase the number by one.
 
 Next up, we define the `keydown()` function that handles keyboard navigation across rows:
 
@@ -219,7 +219,7 @@ Next up, we define the `keydown()` function that handles keyboard navigation acr
   $scope.keydown = ({which}, col, row)=>{ switch (which) {
 ```
 
-The [arrow function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/arrow_functions) receives the arguments `($event, col, row)` from `<input ng-keydown>`, uses [destructuring assignment](https://developer.mozilla.org/en-US/docs/Web/JavaScript/New_in_JavaScript/1.7#Pulling_fields_from_objects_passed_as_function_parameter) to assign `$event.which` into the `which` parameter, and check if it’s among the three navigational key codes:
+The [arrow function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/arrow_functions) receives the arguments `($event, col, row)` from `<input ng-keydown>`, using [destructuring assignment](https://developer.mozilla.org/en-US/docs/Web/JavaScript/New_in_JavaScript/1.7#Pulling_fields_from_objects_passed_as_function_parameter) to assign `$event.which` into the `which` parameter, and checks if it’s among the three navigational key codes:
 
 ```js
     case 38: case 40: case 13: $timeout( ()=>{
@@ -233,7 +233,7 @@ If it is, we use `$timeout` to schedule an update to the focused cell after the 
 
 The `const` declarator means `direction` will not change during the function’s execution. The direction to move is either upward (`-1`, from **A2** to **A1**) if the key code is **UP** (38), or downward (`+1`, from **A2** to **A3**) otherwise.
 
-Next up, we retrieve the target element using the ID selector syntax (e.g. `”#A3”`), constructed with a [tempate string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/template_strings) written in a pair of back-quotes, concatenating the leading `#`, the current `col` and the target `row + direction`:
+Next up, we retrieve the target element using the ID selector syntax (e.g. `”#A3”`), constructed with a [template string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/template_strings) written in a pair of back-quotes, concatenating the leading `#`, the current `col` and the target `row + direction`:
 
 ```js
       const cell = document.querySelector( `#${ col }${ row + direction }` );
@@ -244,14 +244,14 @@ Next up, we retrieve the target element using the ID selector syntax (e.g. `”#
 
 We put an extra check on the result of `querySelector` because moving upward from **A1** will produce the selector `#A0`, which has no corresponding element, and so will not trigger a focus change — the same goes for pressing **DOWN** at the bottom row.
 
-Next we define the `reset()` function so the `↻` button can restore the `sheet` its initial contents:
+Next, we define the `reset()` function so the `↻` button can restore the `sheet` its initial contents:
 
 ```js
   // Default sheet content, with some data cells and one formula cell.
   $scope.reset = ()=>{ $scope.sheet = { A1: 1874, B1: '+', C1: 2046, D1: '⇒', E1: '=A1+C1' } }
 ```
 
-The `init()` function first tries restoring the `sheet` content from its previous state from the [localStorage](https://developer.mozilla.org/en-US/docs/Web/Guide/API/DOM/Storage#localStorage), or default to the initial content if it’s our first time running the application:
+The `init()` function first tries restoring the `sheet` content from its previous state from the [localStorage](https://developer.mozilla.org/en-US/docs/Web/Guide/API/DOM/Storage#localStorage), or defaults to the initial content if it’s our first time running the application:
 
 ```js
   // Define the initializer, and immediately call it
@@ -265,9 +265,9 @@ The `init()` function first tries restoring the `sheet` content from its previou
 
 A few things are worth nothing in the `init()` function above:
 
-* We use the `($scope.init = ()=>{…})()` syntax to defines the function and immediately call it.
+* We use the `($scope.init = ()=>{…})()` syntax to define the function and immediately call it.
 * Because localStorage only stores strings, we _parse_ the `sheet` structure from its [JSON](https://developer.mozilla.org/en-US/docs/Glossary/JSON) representation using `angular.fromJson()`.
-* At the last step of `init()`, we create a new [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Worker) thread and assign it to the `worker` scope property. Although is not directly used in the view, but it’s customary to use `$scope` to share objects used across model functions, in this case between `init()` here and `calc()` below.
+* At the last step of `init()`, we create a new [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Worker) thread and assign it to the `worker` scope property. Although is not directly used in the view, it’s customary to use `$scope` to share objects used across model functions, in this case between `init()` here and `calc()` below.
 
 While `sheet` holds the user-editable cell content, `errs` and `vals` contain the results of calculations — errors and values — that are read-only to the user:
 
@@ -301,7 +301,7 @@ Next up, we construct a `promise` from [$timeout](https://docs.angularjs.org/api
 
 Since we made sure that  `calc()` is called at most once every 200 milliseconds via the `<input ng-model-options>` attribute in HTML, this arrangement leaves 101 milliseconds for `init()` to restore `sheet` to the last known-good state and make a new Worker.
 
-The Worker’s task is to calculate `errs` and `vals` from the contents of`sheet`. Because **main.js** and **worker.js** communicates by message-passing, we need an `onmessage` handler to receive the results once they are ready:
+The Worker’s task is to calculate `errs` and `vals` from the contents of`sheet`. Because **main.js** and **worker.js** communicate by message-passing, we need an `onmessage` handler to receive the results once they are ready:
 
 ```js
     // When the worker returns, apply its effect on the scope
@@ -328,8 +328,8 @@ With the handler in place, we can post the state of `sheet` to the worker, start
 There are three reasons for using a Web Worker to calculate formulas, instead of using the main JS thread for the task:
 
 * While the worker runs in the background, the user is free to continue interacting with the spreadsheet, without getting blocked by computation in the main thread. 
-* Because we accept any JS expression in a formula, the worker provides a _sandbox_ that prevents formulas from interfering with the page that contains it, such as by popping out an `alert()` dialog.
-* A formula can refer to any coordinates as variables, which may contain yet another formula that possibly ends in a cyclic reference. To solve this problem, we use the Worker’s _global scope_ object `self`, and define these variables as _getter functions_ on `self` that contains the logic to mitigate cyclic references.
+* Because we accept any JS expression in a formula, the worker provides a _sandbox_ that prevents formulas from interfering with the page that contains them, such as by popping out an `alert()` dialog.
+* A formula can refer to any coordinates as variables, which may contain yet another formula that possibly ends in a cyclic reference. To solve this problem, we use the Worker’s _global scope_ object `self`, and define these variables as _getter functions_ on `self` to implement the cycl-prevention logic.
 
 With these in mind, let’s take a look at the worker’s code. Because **index.html** pre-loads the worker program with a `<script>` tag, in **worker.js** we first ensure that we’re actually running as a background task:
 
@@ -347,13 +347,13 @@ The Worker’s sole purpose is defining its `onmessage` handler that takes `shee
     [sheet, errs, vals] = [ data, {}, {} ];
 ```
 
-In order to turn coordinates into global variables, we first iterate over each properties in `sheet`, using a `for…in` loop:
+In order to turn coordinates into global variables, we first iterate over each property in `sheet`, using a `for…in` loop:
 
 ```js
     for (const coord in sheet) {
 ```
 
-We  write `const coord` above so that functions defined in the loop can capture the specific value of `coord` in that iteration. This is because `const` and `let` declares _block scoped_ variables. In contrast, `var coord` would make a _function scoped_ variable, and functions defined in each loop iteration will end up pointing to the same `coord`.
+We  write `const coord` above so that functions defined in the loop can capture the specific value of `coord` in that iteration. This is because `const` and `let` declare _block scoped_ variables. In contrast, `var coord` would make a _function scoped_ variable, and functions defined in each loop iteration would end up pointing to the same `coord`.
 
 Customarily, formulas variables are case-insensitive and can optionally have a `$` prefix. Because JS variables are case-sensitive but, we use a `for…of` loop to go over the four variable names for the same coordinate:
 
@@ -392,7 +392,7 @@ First we set it to `NaN`, so self-references like setting **A1*** to `=A1` will 
           vals[coord] = NaN;
 ```
 
-Next we check if `sheet[coord]` is a number, by converting it to numeric with prefix `+`, assign the number to `x`, and compare its string representation with the original string. If they differ, then we assign `x` to the original string:
+Next we check if `sheet[coord]` is a number by converting it to numeric with prefix `+`, assigning the number to `x`, and comparing its string representation with the original string. If they differ, then we assign `x` to the original string:
 
 ```js
           // Turn numeric strings into numbers, so =A1+C1 works when both are numbers
@@ -409,7 +409,7 @@ If the initial character of `x` is `=`, then it’s a formula cell. We evaluate 
 
 If the evaluation succeeds, the result is stored into `vals[coord]`. For non-formula cells, the value of `vals[coord]` is simply `x`, which may be a numeric or a string.
 
-If `eval` results in an error, the `catch` block tests if it’s because the formula refers to a empty cell not yet defined in `self`:
+If `eval` results in an error, the `catch` block tests if it’s because the formula refers to an empty cell not yet defined in `self`:
 
 ```js
           } catch (e) {
@@ -460,7 +460,7 @@ With accessors defined for all coordinates, the worker goes through the coordina
 
 ### CSS
 
-The **styles.css** file contains just a few selectors and their presentational styles. First we style the table to merge all cell borders together, leaving no spaces between neighboring cells:
+The **styles.css** file contains just a few selectors and their presentational styles. First, we style the table to merge all cell borders together, leaving no spaces between neighboring cells:
 
 ```css
 table { border-collapse: collapse; }
