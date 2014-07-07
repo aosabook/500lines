@@ -78,7 +78,7 @@ The diagram below shows the link between HTML and JS components:
 
 ![Architecture Diagram](./images/00-architecture.png)
 
-Now let’s go through the four source code files, in the same order as the browser loads them:
+In order to make sense of the diagram, let’s go through the four source code files, in the same sequence as the browser loads them:
 
 * **index.html**: 20 lines
 * **main.js**: 36 lines (excluding comments and blank lines)
@@ -147,7 +147,7 @@ Because the `<tr ng-repeat>` tag is not yet closed by `</tr>` , the `row` variab
 
 A few things are going on here. In HTML, the `class` attribute describes a _set of class names_ that  allow CSS to style them differently. The `ng-class` here evaluates the expression `('=' === sheet[col+row][0])`; if it is true, then the `<td>` gets  `formula` as an additional class, which gives the cell a light-blue background as defined in line 8 of **styles.css** with the `.formula` _class selector_.
 
-The expression above checks if the current cell is a formula by testing if `=` is the initial character (`[0]`) of the string in `sheet[col+row]`, where `sheet` is a JS model object with coordinates (such as `”E1”`) as properties, and cell contents (such as `”=A1+C1”`) as values. Note that because `col` is a string and not a number, the `+` in `col+row` means concatenation instead of addition.
+The expression above checks if the current cell is a formula by testing if `=` is the initial character (`[0]`) of the string in `sheet[col+row]`, where `sheet` is a JS model object with coordinates (such as `"E1"`) as properties, and cell contents (such as `"=A1+C1"`) as values. Note that because `col` is a string and not a number, the `+` in `col+row` means concatenation instead of addition.
 
 Inside the `<td>`, we give the user an input box to edit the cell content stored in `sheet[col+row]`:
 
@@ -239,7 +239,7 @@ If it is, we use `$timeout` to schedule an update to the focused cell after the 
 
 The `const` declarator means `direction` will not change during the function’s execution. The direction to move is either upward (`-1`, from **A2** to **A1**) if the key code is **UP** (38), or downward (`+1`, from **A2** to **A3**) otherwise.
 
-Next up, we retrieve the target element using the ID selector syntax (e.g. `”#A3”`), constructed with a [template string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/template_strings) written in a pair of back-quotes, concatenating the leading `#`, the current `col` and the target `row + direction`:
+Next up, we retrieve the target element using the ID selector syntax (e.g. `"#A3"`), constructed with a [template string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/template_strings) written in a pair of back-quotes, concatenating the leading `#`, the current `col` and the target `row + direction`:
 
 ```js
       const cell = document.querySelector( `#${ col }${ row + direction }` );
