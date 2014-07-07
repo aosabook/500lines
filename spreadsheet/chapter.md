@@ -1,6 +1,6 @@
 # [Web Spreadsheet](http://audreyt.github.io/500lines/spreadsheet/) in [99 lines](https://github.com/audreyt/500lines/tree/master/spreadsheet)
 
-This chapter introduces a Web spreadsheet, written in 99 lines of the three languages natively supported by Web browsers: HTML, JS, and CSS.
+This chapter introduces a Web spreadsheet written in 99 lines of the three languages natively supported by Web browsers: HTML, JS, and CSS.
 
 ## Introduction
 
@@ -16,7 +16,7 @@ How many features can a Web application offer in 99 lines? Let’s see it in act
 
 ## Overview
 
-The [spreadsheet](https://github.com/audreyt/500lines/tree/master/spreadsheet) directory contains our showcase for late-2014 editions of the three web languages: [HTML5](http://www.w3.org/TR/html5/) for structure, [CSS3](http://www.w3.org/TR/css3-ui/) for presentation, and the JS [ES6 “Harmony”](http://wiki.ecmascript.org/doku.php?id=harmony:specification_drafts) standard for interaction. It also uses [Web Storage](http://www.whatwg.org/specs/web-apps/current-work/multipage/webstorage.html) for data persistence, and [Web Worker](http://www.whatwg.org/specs/web-apps/current-work/multipage/workers.html) for running JS code in the background. As of this writing, these web standards are supported by Firefox, Chrome, Internet Explorer 11+, as well as mobile browsers on iOS 5+ and Android 4+.
+The [spreadsheet](https://github.com/audreyt/500lines/tree/master/spreadsheet) directory contains our showcase for late-2014 editions of the three web languages: [HTML5](http://www.w3.org/TR/html5/) for structure, [CSS3](http://www.w3.org/TR/css3-ui/) for presentation, and the JS [ES6 “Harmony”](http://wiki.ecmascript.org/doku.php?id=harmony:specification_drafts) standard for interaction. It also uses [Web Storage](http://www.whatwg.org/specs/web-apps/current-work/multipage/webstorage.html) for data persistence and [Web Worker](http://www.whatwg.org/specs/web-apps/current-work/multipage/workers.html) for running JS code in the background. As of this writing, these web standards are supported by Firefox, Chrome, and Internet Explorer 11+, as well as mobile browsers on iOS 5+ and Android 4+.
 
 Now let’s open http://audreyt.github.io/500lines/spreadsheet/ in a browser:
 
@@ -24,7 +24,7 @@ Now let’s open http://audreyt.github.io/500lines/spreadsheet/ in a browser:
 
 ### Basic Concepts
 
-The spreadsheet spans two dimensions, with _columns_ starting from **A**, and _rows_ starting from **1**. Each _cell_ has a unique _coordinate_ (such as **A1**) and its _content_ (`1874`), which belongs to one of four _types_:
+The spreadsheet spans two dimensions, with _columns_ starting from **A**, and _rows_ starting from **1**. Each _cell_ has a unique _coordinate_ (such as **A1**) and _content_ (`1874`), which belongs to one of four _types_:
 
 * Text: `+` in **B1** and `⇒` in **D1**, aligned to the left.
 * Number: `1874` in **A1** and `2046` in **C1**, aligned to the right.
@@ -53,14 +53,14 @@ Now reload the page in the browser with **Ctrl-R** or **Cmd-R** to verify that t
 
 Before we dive into the 99 lines of code, it’s worthwhile to disable JS in the browser, reload the page, and note the differences:
 
-* Instead of a large grid, only a 2x2 table remains on screen with a single content cell.
+* Instead of a large grid, only a 2x2 table remains onscreen, with a single content cell.
 * Row and column labels are replaced by `{{ row }}` and `{{ col }}`.
 * Pressing the `↻` button produces no effect.
-* Press **TAB** or clicking into the first line of content still reveals an editable input box.
+* Pressing **TAB** or clicking into the first line of content still reveals an editable input box.
 
 ![With JavaScript Disabled](./images/05-nojs.png)
 
-When we disable the dynamic interactions (JS), the content structure (HTML) and presentational styles (CSS) remain in effect. If a website is useful with both JS and CSS disabled, we say it adheres to the _progressive enhancement_ principle, making its content accessible to the largest audience possible.
+When we disable the dynamic interactions (JS), the content structure (HTML) and the presentational styles (CSS) remain in effect. If a website is useful with both JS and CSS disabled, we say it adheres to the _progressive enhancement_ principle, making its content accessible to the largest audience possible.
 
 Because our spreadsheet is a web application with no server-side code, we must rely on JS to provide the required logic. However, it does work correctly when CSS is not fully supported, such as with screen readers and text-mode browsers:
 
