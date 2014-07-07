@@ -7,21 +7,23 @@
           (:attrs) (vals) (filter ref?) (mapcat  (comp collify :value)))
     []))
 
-(defn- incoming-refs [db ts ent-id]
-  (let [vaet (ind-at db ts :VAET)]
-    (reduce into (vals (ent-id vaet)))))
+(defn incoming-refs [db ts ent-id]
+  (let [vaet (ind-at db :VAET ts)]
+      (reduce into #{} (vals (vaet ent-id)))))
 
 (defn- remove-explored [pendings explored restruct-fn]
   (if (contains? explored (first pendings))
     (recur (rest pendings) explored restruct-fn)
       (restruct-fn pendings)))
 
-(defn- traverse [pendings explored out-reffing ent-at restruct-fn]
+(defn- traverse [pendings explored exploring-fn ent-at restruct-fn]
     (let [cleaned-pendings (remove-explored pendings explored restruct-fn)
           item (first cleaned-pendings)
-          next-pends (reduce conj (restruct-fn (rest cleaned-pendings)) (out-reffing item))]
-      (when item (cons (ent-at item)
-                       (lazy-seq (traverse next-pends  (conj explored item)  out-reffing ent-at restruct-fn))))))
+          all-next-items  (exploring-fn item)
+          next-pends (reduce conj (restruct-fn (rest cleaned-pendings)) all-next-items)]
+      (when item (cons  (ent-at item)
+                                   (lazy-seq
+                                      (traverse next-pends  (conj explored item) exploring-fn ent-at restruct-fn))))))
 
 (defn traverse-db
   ([start-ent-id db algo direction] (traverse-db start-ent-id db algo direction (:curr-time db)))

@@ -158,7 +158,7 @@
 
 (defmacro  _transact [db op & txs]
   (when txs
-    (loop [[frst-tx# & rst-tx#] txs  res#  [op db `transact-on-db]  accum-txs# []]
+    (loop [[frst-tx# & rst-tx#] txs  res#  [op db `transact-on-db] accum-txs# []]
       (if frst-tx#
           (recur rst-tx# res#  (conj accum-txs# (vec frst-tx#)))
           (list* (conj res#  accum-txs#))))))
