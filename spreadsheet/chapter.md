@@ -398,7 +398,7 @@ First we set it to `NaN`, so self-references like setting **A1*** to `=A1` will 
           vals[coord] = NaN;
 ```
 
-Next we check if `sheet[coord]` is a number by converting it to numeric with prefix `+`, assigning the number to `x`, and comparing its string representation with the original string. If they differ, then we assign `x` to the original string:
+Next we check if `sheet[coord]` is a number by converting it to numeric with prefix `+`, assigning the number to `x`, and comparing its string representation with the original string. If they differ, then we set `x` to the original string:
 
 ```js
           // Turn numeric strings into numbers, so =A1+C1 works when both are numbers
