@@ -33,6 +33,8 @@ If you prefer to work directly with the 2010 edition of JS, the [as-javascript-1
 For people preferring a cleaner syntax, the [as-livescript-1.2.0](https://audreyt.github.io/500lines/spreadsheet/as-livescript-1.2.0/) directory uses [LiveScript](http://livescript.net/) instead of ES6 to write **main.ls** and **worker.ls**; the [source code](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-livescript-1.2.0)
 is 20 lines shorter than the JS version.
 
+For the version without AngularJS version, using only basic ES5 and raw DOM APIs, the [source code](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-without-angularjs) still clocks at 99 lines, albeit with some short statements joined together.
+
 # CC0 1.0 Universal
 
 To the extent possible under law, 唐鳳 has waived all copyright
