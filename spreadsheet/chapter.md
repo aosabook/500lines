@@ -515,9 +515,10 @@ Since this book is _500 lines or less_, a web spreadsheet in 99 lines is just a 
 Here are some ideas, all easily reachable in the remaining space of 401 lines:
 
 * A collaborative online editor using [ShareJS](http://sharejs.org/), [AngularFire](http://angularfire.com) or [GoAngular](http://goangular.org/).
-*  Markdown syntax support using [angular-marked](http://ngmodules.org/modules/angular-marked).
+* Markdown syntax support for text cells, using [angular-marked](http://ngmodules.org/modules/angular-marked).
+* Common formula functions (`SUM`, `TRIM`, etc.) from the [OpenFormula standard](https://en.wikipedia.org/wiki/OpenFormula).
 * Interoperate with popular spreadsheet formats, such as CSV and SpreadsheetML via [SheetJS](http://sheetjs.com/)
-*  Import and export support to online spreadsheet services, such as Google Spreadsheet and [EtherCalc](http://ethercalc.net/).
+* Import and export support to online spreadsheet services, such as Google Spreadsheet and [EtherCalc](http://ethercalc.net/).
 
 ### A Note on JS versions
 
