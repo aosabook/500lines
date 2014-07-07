@@ -1,7 +1,7 @@
 # Web Spreadsheet in 99 Lines
 
     Author: Audrey Tang
-    Languages: JavaScript, HTML, CSS
+    Languages: JS (ES6), HTML5, CSS3
     Dependencies: AngularJS, Web Workers, Traceur Compiler
 
 ## Chapter Text
