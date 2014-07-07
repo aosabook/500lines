@@ -1,6 +1,6 @@
 # [Web Spreadsheet](http://audreyt.github.io/500lines/spreadsheet/) in [99 lines](https://github.com/audreyt/500lines/tree/master/spreadsheet)
 
-In this chapter we introduce a Web spreadsheet, written in 99 lines of HTML, CSS and JS, the three languages natively supported by Web browsers.
+This chapter introduces a Web spreadsheet, written in 99 lines of the three languages natively supported by Web browsers: HTML, JS, and CSS.
 
 ## Introduction
 
