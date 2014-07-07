@@ -238,4 +238,17 @@ Contributors
     <td></td>
     
   </tr>
+  <tr>
+    <td>Jessica Hamrick</td>
+    <td>University of California, Berkeley</td>
+    <td>sampler</td>
+    <td>
+        <ul>
+            <li><a href="http://www.jesshamrick.com">www.jesshamrick.com</a></li>
+            <li><a href="https://twitter.com/jhamrick">@jhamrick</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/jhamrick">jhamrick</a></td>
+    <td>jhamrick@berkeley.edu</td>
+  </tr>
 </table>
