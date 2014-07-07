@@ -406,7 +406,7 @@ Next we check if `sheet[coord]` is a number by converting it to numeric with pre
           if (sheet[coord] !== x.toString()) { x = sheet[coord]; }
 ```
 
-If the initial character of `x` is `=`, then it’s a formula cell. We evaluate the part after `=` with `eval.call()`, using the first argument `null` tells `eval` to run in the _global scope_, hiding the _lexical scope_ variables like `x` and `sheet` from the evaluation:
+If the initial character of `x` is `=`, then it’s a formula cell. We evaluate the part after `=` with `eval.call()`, using the first argument `null` to tell `eval` to run in the _global scope_, hiding the _lexical scope_ variables like `x` and `sheet` from the evaluation:
 
 ```js
           // Evaluate formula cells that begin with =
