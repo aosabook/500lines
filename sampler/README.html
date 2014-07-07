@@ -71,6 +71,7 @@ P(B=\mathrm{+5}) = 0.02
 <li>It is usually a good idea to check that the parameter values are valid (for example, in the case of the multinomial distribution, the vector <span class="math">\(p\)</span> of event probabilities should sum to 1). It is much more efficient to do this check once, in the constructor of the class, rather than every time one of the functions is called.</li>
 <li>Sometimes computing the PMF or PDF involves computing constant values (given the parameters). With a class, we can pre-compute these constants in the constructor, rather than having to compute them every time the PMF or PDF function is called.</li>
 </ol>
+<p>TODO: add a note about how this is actually the way scipy's distributions work</p>
 <p>Here is the constructor code for the class:</p>
 <pre class="sourceCode python"><code class="sourceCode python"><span class="ch">import</span> numpy <span class="ch">as</span> np
 
@@ -180,7 +181,7 @@ p(\mathbf{x}; \mathbf{p}) = \frac{(\sum_{i=1}^k x_i)!}{x_1!\cdots{}x_k!}p_1^{x_1
 <p>where <span class="math">\(\mathbf{x}=[x_1, \ldots{}, x_k]\)</span> is a vector of length <span class="math">\(k\)</span> specifying the number of times each event happened, and <span class="math">\(\mathbf{p}=[p_1, \ldots{}, p_k]\)</span> is a vector specifying the probability of each event occurring. As mentioned above, the event probabilities <span class="math">\(\mathbf{p}\)</span> are the <em>parameters</em> of the distribution.</p>
 <p>The factorials in the equation above can actually be expressed using a special function, <span class="math">\(\Gamma\)</span>, called the <em>gamma function</em>. When we get to writing the code, it will be more convenient and efficient to use the gamma function rather than factorial, so we will rewrite the equation using <span class="math">\(\Gamma\)</span>:</p>
 <p><span class="math">\[
-p(\mathbf{x}; n, \mathbf{p}) = \frac{\Gamma((\sum_{i=1}^k x_i)+1)}{\Gamma(x_1+1)\cdots{}\Gamma(x_k+1)}p_1^{x_1}\cdots{}p_k^{x_k},
+p(\mathbf{x}; \mathbf{p}) = \frac{\Gamma((\sum_{i=1}^k x_i)+1)}{\Gamma(x_1+1)\cdots{}\Gamma(x_k+1)}p_1^{x_1}\cdots{}p_k^{x_k},
 \]</span></p>
 <h4 id="working-in-log-space">Working in &quot;log-space&quot;</h4>
 <p>Before getting into the actual code needed to implement the equation above, I want to emphasize one of the <em>the most important design decisions</em> when writing code with probabilities: working in &quot;log-space&quot;. What this means is that rather than working directly with probabilities <span class="math">\(p(x)\)</span>, we should be working with <em>log</em>-probabilities, <span class="math">\(\log{p(x)}\)</span>. This is because probabilities can get very small very quickly, resulting in underflow errors.</p>
