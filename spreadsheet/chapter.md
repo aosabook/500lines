@@ -413,7 +413,7 @@ If the initial character of `x` is `=`, then it’s a formula cell. We evaluate 
           try { vals[coord] = (('=' === x[0]) ? eval.call( null, x.slice( 1 ) ) : x);
 ```
 
-If the evaluation succeeds, the result is stored into `vals[coord]`. For non-formula cells, the value of `vals[coord]` is simply `x`, which may be a numeric or a string.
+If the evaluation succeeds, the result is stored into `vals[coord]`. For non-formula cells, the value of `vals[coord]` is simply `x`, which may be a number or a string.
 
 If `eval` results in an error, the `catch` block tests if it’s because the formula refers to an empty cell not yet defined in `self`:
 
