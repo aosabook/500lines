@@ -1,13 +1,20 @@
-function reset() { $scope.sheet = { A1: 1874, B1: '+', C1: 2046, D1: '⇒', E1: '=A1+C1' } ;
+function reset() {
+  $scope.sheet = { A1: 1874, B1: '+', C1: 2046, D1: '⇒', E1: '=A1+C1' } ;
   for (var input of document.getElementsByTagName('input')) { input.value = '' }
-  for (var div of document.getElementsByTagName('div')) { div.textContent = '' } }
+  for (var div of document.getElementsByTagName('div')) { div.textContent = '' }
+}
 
-function init() { ($scope.sheet = JSON.parse( localStorage.getItem( '' ) )) || reset();
-  $scope.worker = new Worker( 'worker.js' ); }
+function init() {
+  ($scope.sheet = JSON.parse( localStorage.getItem( '' ) )) || reset();
+  $scope.worker = new Worker( 'worker.js' );
+}
 
-function calc() { Object.getOwnPropertyNames($scope.sheet).forEach(function(coord) {
-  var input = document.querySelector( '#' + coord ); input.value = $scope.sheet[coord].toString();
-  input.parentElement.setAttribute('class', /^=/.exec(input.value[0]) ? 'formula' : ''); });
+function calc() {
+  Object.getOwnPropertyNames($scope.sheet).forEach(function(coord) {
+    var input = document.querySelector( '#' + coord );
+    input.value = $scope.sheet[coord].toString();
+    input.parentElement.setAttribute('class', /^=/.exec(input.value[0]) ? 'formula' : '');
+  });
 
   var json = JSON.stringify( $scope.sheet );
   // If the worker has not returned in 99 milliseconds, terminate it
@@ -22,12 +29,15 @@ function calc() { Object.getOwnPropertyNames($scope.sheet).forEach(function(coor
       div.textContent = errs[coord] || vals[coord]; }); }
 
   // Post the current sheet content for the worker to process
-  $scope.worker.postMessage( $scope.sheet ); }
+  $scope.worker.postMessage( $scope.sheet );
+}
 
 function Spreadsheet($scope) { init();
+
   for (var col = 'A'; col <= 'H'; col = String.fromCodePoint( col.codePointAt()+1 )) {
     var th = document.createElement( 'th' ); th.textContent = col;
-    document.querySelector( 'tr' ).appendChild(th); $scope.Cols.push(col); }
+    document.querySelector( 'tr' ).appendChild(th); $scope.Cols.push(col);
+  }
 
   for (var row = 1; row <= 20; row++) { (function(row) {
     var th = document.createElement( 'th' ); th.innerHTML = row;
@@ -46,6 +56,11 @@ function Spreadsheet($scope) { init();
           (document.querySelector('#'+col+(row+direction)) || event.target).focus(); } });
 
       var div = document.createElement( 'div' ); div.setAttribute('id', '_'+col+row);
-      td.appendChild(input); td.appendChild(div); });
+      td.appendChild(input); td.appendChild(div);
+     });
 
-    document.querySelector( 'table' ).appendChild(tr); })(row); } calc(); }
+     document.querySelector( 'table' ).appendChild(tr); })(row);
+  }
+
+  calc();
+}
