@@ -234,7 +234,7 @@ The [arrow function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Ref
 If it is, we use `$timeout` to schedule an update to the focused cell after the current `ng-keydown` and `ng-change` handler. Because `$timeout` accepts a function as argument, the `()=>{…}` syntax constructs a function to represent the focus-update logic, which starts by checking the direction of movement:
 
 ```js
-      const direction = (which == 38) ? -1 : +1;
+      const direction = (which === 38) ? -1 : +1;
 ```
 
 The `const` declarator means `direction` will not change during the function’s execution. The direction to move is either upward (`-1`, from **A2** to **A1**) if the key code is **UP** (38), or downward (`+1`, from **A2** to **A3**) otherwise.
