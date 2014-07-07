@@ -24,7 +24,7 @@ Now let’s open http://audreyt.github.io/500lines/spreadsheet/ in a browser:
 
 ### Basic Concepts
 
-The spreadsheet spans in two dimensions, with _columns_ starting from **A**, and _rows_ starting from **1**. Each _cell_ has a unique _coordinate_ (such as **A1**) and its _content_ (`1874`), which belongs to one of four _types_:
+The spreadsheet spans two dimensions, with _columns_ starting from **A**, and _rows_ starting from **1**. Each _cell_ has a unique _coordinate_ (such as **A1**) and its _content_ (`1874`), which belongs to one of four _types_:
 
 * Text: `+` in **B1** and `⇒` in **D1**, aligned to the left.
 * Number: `1874` in **A1** and `2046` in **C1**, aligned to the right.
@@ -273,7 +273,7 @@ A few things are worth nothing in the `init()` function above:
 
 * We use the `($scope.init = ()=>{…})()` syntax to define the function and immediately call it.
 * Because localStorage only stores strings, we _parse_ the `sheet` structure from its [JSON](https://developer.mozilla.org/en-US/docs/Glossary/JSON) representation using `angular.fromJson()`.
-* At the last step of `init()`, we create a new [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Worker) thread and assign it to the `worker` scope property. Although is not directly used in the view, it’s customary to use `$scope` to share objects used across model functions, in this case between `init()` here and `calc()` below.
+* At the last step of `init()`, we create a new [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Worker) thread and assign it to the `worker` scope property. Although the worker is not directly used in the view, it’s customary to use `$scope` to share objects used across model functions, in this case between `init()` here and `calc()` below.
 
 While `sheet` holds the user-editable cell content, `errs` and `vals` contain the results of calculations — errors and values — that are read-only to the user:
 
@@ -361,7 +361,7 @@ In order to turn coordinates into global variables, we first iterate over each p
 
 We  write `const coord` above so that functions defined in the loop can capture the specific value of `coord` in that iteration. This is because `const` and `let` declare _block scoped_ variables. In contrast, `var coord` would make a _function scoped_ variable, and functions defined in each loop iteration would end up pointing to the same `coord`.
 
-Customarily, formulas variables are case-insensitive and can optionally have a `$` prefix. Because JS variables are case-sensitive but, we use a `for…of` loop to go over the four variable names for the same coordinate:
+Customarily, formulas variables are case-insensitive and can optionally have a `$` prefix. Because JS variables are case-sensitive, we use a `for…of` loop to go over the four variable names for the same coordinate:
 
 ```js
       // Four variable names pointing to the same coordinate: A1, a1, $A1, $a1
@@ -524,7 +524,7 @@ Here are some ideas, all easily reachable in the remaining space of 401 lines:
 * Markdown syntax support for text cells, using [angular-marked](http://ngmodules.org/modules/angular-marked).
 * Common formula functions (`SUM`, `TRIM`, etc.) from the [OpenFormula standard](https://en.wikipedia.org/wiki/OpenFormula).
 * Interoperate with popular spreadsheet formats, such as CSV and SpreadsheetML via [SheetJS](http://sheetjs.com/)
-* Import and export support to online spreadsheet services, such as Google Spreadsheet and [EtherCalc](http://ethercalc.net/).
+* Import from and export to online spreadsheet services, such as Google Spreadsheet and [EtherCalc](http://ethercalc.net/).
 
 ### A Note on JS versions
 
