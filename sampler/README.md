@@ -3,9 +3,6 @@
 Note: this chapter assumes some familiarity with statistics and
 probability theory.
 
-TODO: include discussion about using `import numpy as np` rather than
-`import numpy`.
-
 ## Introduction
 
 Frequently, in computer science and engineering, we run into problems
@@ -143,6 +140,9 @@ proportion of balls of that color (e.g., for the outcome of drawing a
 blue ball, the probability is $p_{blue}=0.20$). The multinomial
 distribution is then used to describe the possible combinations of
 outcomes when multiple balls are drawn (e.g., two green and one blue).
+
+TODO: include discussion about using `import numpy as np` rather than
+`import numpy`.
 
 Note: the code in this section is also located in the file
 `multinomial.py`.
@@ -492,7 +492,8 @@ otherwise be lost.
 
 #### Writing the PMF code
 
-TODO
+Now that we have seen the importance of working in log-space, we can
+actually write our function to compute the log-PMF:
 
 ```python
 def logpmf(self, x):
@@ -531,8 +532,34 @@ def logpmf(self, x):
     return log_pmf
 ```
 
-If we really do need the PMF, and not the log-PMF, we can still
-compute it. However, it is generally better to *first* compute it in
+For the most part, this is a straightforward implementation of the
+equation above for the multinomial PMF. The `gammaln` function is from
+`scipy.special`, and computes the log-gamma function,
+$\log{\Gamma(x)}$. There is one edge case that we need to tackle,
+which is when one of our probabilities is zero.
+
+When $p_i=0$, then $\log{p_i}=-\infty$. This would be fine, except for
+the following behavior when infinity is multiplied by zero:
+
+```python
+>>> # it's fine to multiply infinity by integers...
+>>> -np.inf * 2.0
+>>> # ...but things break when we try to multiply by zero
+>>> -np.inf * 0.0
+nan
+```
+
+`nan` means "not a number", and it is almost always a pain to deal
+with, because most computations with `nan` result in another
+`nan`. So, if we don't handle the case where $p_i=0$ and $x_i=0$, we
+will end up with a `nan`. That will get summed with other numbers,
+producing another `nan`, which is just not useful. To handle this, we
+check specifically for the case when $x_i=0$, and set the resulting
+$\log(p_i^x_i)$ also to zero.
+
+Let's return for a moment to our discussion of log-space. If we really
+do need the PMF, and not the log-PMF, we can still compute
+it. However, it is generally better to *first* compute it in
 log-space, and then exponentiate it if we need to take it out of
 log-space:
 
