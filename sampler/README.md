@@ -141,9 +141,6 @@ blue ball, the probability is $p_{blue}=0.20$). The multinomial
 distribution is then used to describe the possible combinations of
 outcomes when multiple balls are drawn (e.g., two green and one blue).
 
-TODO: include discussion about using `import numpy as np` rather than
-`import numpy`.
-
 Note: the code in this section is also located in the file
 `multinomial.py`.
 
@@ -184,6 +181,8 @@ distributions. There are several advantages to doing so:
 Here is the constructor code for the class:
 
 ```python
+import numpy as np
+
 class MultinomialDistribution(object):
 
     def __init__(self, p, rso=None):
@@ -226,13 +225,70 @@ compute the event *log* probabilities (we'll go into why this is
 necessary in a bit). Finally, it determines which function to use for
 sampling according to the value of `rso` (we'll talk about what the
 `rso` object is and why we need to choose different sampling functions
-in the next section).
+a bit later as well).
 
-TODO: include discussion about variable names (descriptive vs math?)
+Before we get into the rest of the class, I want to briefly go over
+two points related to the constructor.
+
+#### Descriptive vs. mathematic variable names
+
+Usually, programmers are encouraged to use descriptive variable names:
+for example, it would be considered better practice to use the names
+`independent_variable` and `dependent_variable` rather than `x` and
+`y`. A standard rule of thumb is to never use variable names that are
+only one or two characters.  However, you'll notice that in the
+constructor to our `MultinomialDistribution` class, we use the
+variable name of `p`, which is in violation of typical naming
+conventions.
+
+While I agree that such naming conventions should apply in almost
+every domain, there is one exception: math. The difficulty with coding
+up mathematical equations is that those equations usually have
+variable names which are just a single letter: $x$, $y$, $\alpha$,
+etc. So, if you were translating them directly into code, the easiest
+variable names would be `x`, `y`, and `alpha`. Obviously, these are
+not the most informative variable names (the name `x` does not convey
+much information), but having more descriptive variable names can also
+make it harder to go back and forth between the the code and the
+equation.
+
+I am personally of the opinion that when you are writing code that
+directly implements an equation, then the same variable names should
+be used as those in the equation. This makes it easy to see which
+parts of the code are implementing which pieces of the equation. This,
+of course, can make the code harder to understand in isolation, so it
+is especially important that comments then do a good job of explaining
+what the goal of the various computations are. If the equation is
+listed in paper, then the comments should reference the equation
+number so it can be easily looked up.
+
+#### Importing NumPy
+
+You may have noticed that we imported the `numpy` module as `np`. This
+is standard practice in the world of numerical computing, because
+NumPy provides a huge number of useful functions, many of which might
+be used even in a single file. In the simple examples from this
+chapter, we only use 11 NumPy functions, but in other cases, the
+number can be much higher: it is not uncommon for me to use around 40
+different NumPy function throughout a project!
+
+There are a few options for how to import NumPy. We could use `from
+numpy import *`, but that is generally poor style, because it makes it
+hard to determine where the functions came from. We could import the
+functions individually with `from numpy import array, log, ...`, but
+that gets clumsy fairly quickly. We could just use `import numpy`, but
+this often results in code being much more difficult to read. Both of
+the following examples are hard to read, but the one using `np` rather
+than `numpy` is significantly clearer:
+
+```python
+>>> numpy.sqrt(numpy.sum(numpy.dot(numpy.array(a), numpy.array(b))))
+>>> np.sqrt(np.sum(np.dot(np.array(a), np.array(b))))
+```
 
 ### Sampling from a multinomial distribution
 
-Taking a sample from a multinomial distribution is actuall fairly
+Taking a sample from a multinomial distribution is actually fairly
 straightforward, because NumPy provides us with a function that
 already does it: `np.random.multinomial`.
 
@@ -496,7 +552,7 @@ Now that we have seen the importance of working in log-space, we can
 actually write our function to compute the log-PMF:
 
 ```python
-def logpmf(self, x):
+def log_pmf(self, x):
     """Evaluates the log-probability mass function (log-PMF) of a
     multinomial with outcome probabilities `self.p` for a draw `x`.
 
@@ -514,21 +570,21 @@ def logpmf(self, x):
     n = np.sum(x)
 
     # equivalent to log(n!)
-    numerator = gammaln(n + 1)
+    log_n_factorial = gammaln(n + 1)
     # equivalent to log(x1! * ... * xk!)
-    denominator = np.sum(gammaln(x + 1))
+    sum_log_xi_factorial = np.sum(gammaln(x + 1))
 
     # If one of the values of self.p is 0, then the corresponding
     # value of self.logp will be -inf. If the corresponding value
     # of x is 0, then multiplying them together will give nan, but
     # we want it to just be 0.
-    all_weights = self.logp * x
-    all_weights[x == 0] = 0
+    log_pi_xi = self.logp * x
+    log_pi_xi[x == 0] = 0
     # equivalent to log(p1^x1 * ... * pk^xk)
-    weights = np.sum(all_weights)
+    sum_log_pi_xi = np.sum(log_pi_xi)
 
     # Put it all together.
-    log_pmf = numerator - denominator + weights
+    log_pmf = log_n_factorial - sum_log_xi_factorial + sum_log_pi_xi
     return log_pmf
 ```
 
@@ -578,7 +634,7 @@ def pmf(self, x):
     The evaluated PMF for draw `x`
 
     """
-    pmf = np.exp(self.logpmf(x))
+    pmf = np.exp(self.log_pmf(x))
     return pmf
 ```
 
@@ -587,9 +643,9 @@ important, we can look at an example just with the multinomial:
 
 ```python
 >>> dist = MultinomialDistribution(np.array([0.25, 0.25, 0.25, 0.25]))
->>> dist.logpmf(np.array([1000, 0, 0, 0])
+>>> dist.log_pmf(np.array([1000, 0, 0, 0])
 -1386.2943611198905
->>> dist.logpmf(np.array([999, 0, 0, 0])
+>>> dist.log_pmf(np.array([999, 0, 0, 0])
 -1384.9080667587707
 ```
 
@@ -745,11 +801,11 @@ points--but it also keeps the option open for using just
 required.
 
 We use a similar design for evaluating the probability of
-items. Again, we expose high-level methods `pmf` and `logpmf` which
+items. Again, we expose high-level methods `pmf` and `log_pmf` which
 take dictionaries of the form produced by `sample`:
 
 ```python
-def logpmf(self, item):
+def log_pmf(self, item):
     """Compute the log probability the given magical item.
 
     Parameters
@@ -765,9 +821,9 @@ def logpmf(self, item):
 
     """
     # First pull out the bonus points for each stat, in the
-    # correct order, then pass that to _stats_logpmf.
+    # correct order, then pass that to _stats_log_pmf.
     stats = np.array([item[stat] for stat in self.stats_names])
-    log_pmf = self._stats_logpmf(stats)
+    log_pmf = self._stats_log_pmf(stats)
     return log_pmf
 
 def pmf(self, item):
@@ -785,16 +841,16 @@ def pmf(self, item):
         The value corresponding to p(item)
 
     """
-    return np.exp(self.logpmf(item))
+    return np.exp(self.log_pmf(item))
 ```
 
-These methods rely on `_bonus_logpmf`, which computes the probability
-of the overall bonus, and `_stats_logpmf`, which computes the
+These methods rely on `_bonus_log_pmf`, which computes the probability
+of the overall bonus, and `_stats_log_pmf`, which computes the
 probability of the stats (but which takes an array rather than a
 dictionary):
 
 ```python
-def _bonus_logpmf(self, bonus):
+def _bonus_log_pmf(self, bonus):
     """Evaluate the log-PMF for the given bonus.
 
     Parameters
@@ -818,9 +874,9 @@ def _bonus_logpmf(self, bonus):
     x = np.zeros(len(self.bonus_dist.p))
     x[bonus] = 1
 
-    return self.bonus_dist.logpmf(x)
+    return self.bonus_dist.log_pmf(x)
 
-def _stats_logpmf(self, stats):
+def _stats_log_pmf(self, stats):
     """Evaluate the log-PMF for the given distribution of bonus points
     across the different stats.
 
@@ -840,10 +896,10 @@ def _stats_logpmf(self, stats):
     total_bonus = np.sum(stats)
 
     # First calculate the probability of the total bonus
-    logp_bonus = self._bonus_logpmf(total_bonus)
+    logp_bonus = self._bonus_log_pmf(total_bonus)
 
     # Then calculate the probability of the stats
-    logp_stats = self.stats_dist.logpmf(stats)
+    logp_stats = self.stats_dist.log_pmf(stats)
 
     # Then multiply them together
     log_pmf = logp_bonus + logp_stats
@@ -878,7 +934,7 @@ And, if we want, we can evaluate the probability of a sampled item:
 >>> item = item_dist.sample()
 >>> item
 {'dexterity': 0, 'strength': 0, 'constitution': 0, 'intelligence': 0, 'wisdom': 2, 'charisma': 0}
->>> item_dist.logpmf(item)
+>>> item_dist.log_pmf(item)
 -4.9698132995760007
 >>> item_dist.pmf(item)
 0.0069444444444444441
@@ -913,6 +969,8 @@ following scheme:
    for the damage inflicted over three hits.
 4. Repeat steps 1-3 many times. This will result in an approximation
    to the distribution over damage.
+
+### Implementing a distribution over damage
 
 The class `DamageDistribution` (also in `rpg.py`) shows an
 implementation of this scheme:
@@ -953,6 +1011,28 @@ class DamageDistribution(object):
         self.num_hits = num_hits
         self.num_items = num_items
         self.item_dist = item_dist
+
+    def sample(self):
+        """Sample the attack damage.
+
+        Returns
+        -------
+        int
+            The sampled damage
+
+        """
+        # First, we need to randomly generate items (the number of
+        # which was passed into the constructor).
+        items = [self.item_dist.sample() for i in xrange(self.num_items)]
+
+        # Based on the item stats (in particular, strength), compute
+        # the number of dice we get to roll.
+        num_dice = 1 + np.sum([item['strength'] for item in items])
+
+        # Roll the dice and compute the resulting damage.
+        dice_rolls = self.dice_dist.sample(self.num_hits * num_dice)
+        damage = np.sum(self.dice_sides * dice_rolls)
+        return damage
 ```
 
 The constructor takes as arguments the number of sides the dice have,
@@ -965,39 +1045,33 @@ default because a more likely use case is that we just want to take
 one sample of the damage for a single hit.
 
 We then implement the actual sampling logic in `sample` (note the
-structural similarity to `MagicItemDistribution`!):
+structural similarity to `MagicItemDistribution`!).  First, we
+generate a set of possible magic items that the player has. Then, we
+look at the strength stat of those items, and from that compute the
+number of dice to roll. Finally, we roll the dice (again relying on
+our trusty multinomial functions) and compute the damage from that.
 
-```python
-def sample(self):
-    """Sample the attack damage.
+#### What happened to evaluating probabilities?
 
-    Returns
-    -------
-    int
-        The sampled damage
+You may have noticed that we didn't include a `log_pmf` or `pmf`
+function in our `DamageDistribution`. This is because we actually do
+not know what the what the PMF should be! This would be the equation:
 
-    """
-    # First, we need to randomly generate items (the number of
-    # which was passed into the constructor).
-    items = [self.item_dist.sample() for i in xrange(self.num_items)]
+$$
+\sum_{{item}_1, \ldots{}, {item}_m}p({damage}\ |\ {item}_1,\ldots{},{item}_m)p({item}_1)\cdots{}p({item}_m)
+$$
 
-    # Based on the item stats (in particular, strength), compute
-    # the number of dice we get to roll.
-    num_dice = 1 + np.sum([item['strength'] for item in items])
+What this equation says is that we would need to compute the
+probability of every possible damage amount, given every possible set
+of $m$ items. We actually *could* compute this through brute force,
+but it wouldn't be pretty. This is actually a perfect example of a
+case where we want to use sampling to approximate the solution to a
+problem that we can't compute exactly (or which would be very
+difficult to compute exactly). So, rather than having a method for the
+PMF, we'll show in the next section how we can approximate the
+distribution with many samples.
 
-    # Roll the dice and compute the resulting damage.
-    dice_rolls = self.dice_dist.sample(self.num_hits * num_dice)
-    damage = np.sum(self.dice_sides * dice_rolls)
-    return damage
-```
-
-First, we generate a set of possible magic items that the player
-has. Then, we look at the strength stat of those items, and from that
-compute the number of dice to roll. Finally, we roll the dice (again
-relying on our trusty multinomial functions) and compute the damage
-from that.
-
-TODO: include note about why we don't have a PMF function here
+### Approximating the distribution
 
 Now we have the machinery to answer our question from earlier: if the
 player has two items, and we want the player to be able to defeat the
@@ -1024,6 +1098,9 @@ Now we can draw a bunch of samples, and compute the 50th percentile
 >>> np.percentile(samples, 50)
 27.0
 ```
+
+If we were to plot a histogram of how many samples we got for each
+amount of damage, it would look something like this:
 
 ![](damage_distribution.png)
 

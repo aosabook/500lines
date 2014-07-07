@@ -48,7 +48,7 @@ class MagicItemDistribution(object):
         item_stats = dict(zip(self.stats_names, stats))
         return item_stats
 
-    def logpmf(self, item):
+    def log_pmf(self, item):
         """Compute the log probability the given magical item.
 
         Parameters
@@ -64,9 +64,9 @@ class MagicItemDistribution(object):
 
         """
         # First pull out the bonus points for each stat, in the
-        # correct order, then pass that to _stats_logpmf.
+        # correct order, then pass that to _stats_log_pmf.
         stats = np.array([item[stat] for stat in self.stats_names])
-        log_pmf = self._stats_logpmf(stats)
+        log_pmf = self._stats_log_pmf(stats)
         return log_pmf
 
     def pmf(self, item):
@@ -84,7 +84,7 @@ class MagicItemDistribution(object):
             The value corresponding to p(item)
 
         """
-        return np.exp(self.logpmf(item))
+        return np.exp(self.log_pmf(item))
 
     def _sample_bonus(self):
         """Sample a value of the overall bonus.
@@ -124,7 +124,7 @@ class MagicItemDistribution(object):
         stats = self.stats_dist.sample(bonus)
         return stats
 
-    def _bonus_logpmf(self, bonus):
+    def _bonus_log_pmf(self, bonus):
         """Evaluate the log-PMF for the given bonus.
 
         Parameters
@@ -148,9 +148,9 @@ class MagicItemDistribution(object):
         x = np.zeros(len(self.bonus_dist.p))
         x[bonus] = 1
 
-        return self.bonus_dist.logpmf(x)
+        return self.bonus_dist.log_pmf(x)
 
-    def _stats_logpmf(self, stats):
+    def _stats_log_pmf(self, stats):
         """Evaluate the log-PMF for the given distribution of bonus points
         across the different stats.
 
@@ -170,10 +170,10 @@ class MagicItemDistribution(object):
         total_bonus = np.sum(stats)
 
         # First calculate the probability of the total bonus
-        logp_bonus = self._bonus_logpmf(total_bonus)
+        logp_bonus = self._bonus_log_pmf(total_bonus)
 
         # Then calculate the probability of the stats
-        logp_stats = self.stats_dist.logpmf(stats)
+        logp_stats = self.stats_dist.log_pmf(stats)
 
         # Then multiply them together
         log_pmf = logp_bonus + logp_stats

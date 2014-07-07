@@ -54,7 +54,7 @@ class MultinomialDistribution(object):
         x = self._sample_func(n, self.p)
         return x
 
-    def logpmf(self, x):
+    def log_pmf(self, x):
         """Evaluates the log-probability mass function (log-PMF) of a
         multinomial with outcome probabilities `self.p` for a draw `x`.
 
@@ -72,21 +72,21 @@ class MultinomialDistribution(object):
         n = np.sum(x)
 
         # equivalent to log(n!)
-        numerator = gammaln(n + 1)
+        log_n_factorial = gammaln(n + 1)
         # equivalent to log(x1! * ... * xk!)
-        denominator = np.sum(gammaln(x + 1))
+        sum_log_xi_factorial = np.sum(gammaln(x + 1))
 
         # If one of the values of self.p is 0, then the corresponding
         # value of self.logp will be -inf. If the corresponding value
         # of x is 0, then multiplying them together will give nan, but
         # we want it to just be 0.
-        all_weights = self.logp * x
-        all_weights[x == 0] = 0
+        log_pi_xi = self.logp * x
+        log_pi_xi[x == 0] = 0
         # equivalent to log(p1^x1 * ... * pk^xk)
-        weights = np.sum(all_weights)
+        sum_log_pi_xi = np.sum(log_pi_xi)
 
         # Put it all together.
-        log_pmf = numerator - denominator + weights
+        log_pmf = log_n_factorial - sum_log_xi_factorial + sum_log_pi_xi
         return log_pmf
 
     def pmf(self, x):
@@ -103,5 +103,5 @@ class MultinomialDistribution(object):
         The evaluated PMF for draw `x`
 
         """
-        pmf = np.exp(self.logpmf(x))
+        pmf = np.exp(self.log_pmf(x))
         return pmf
