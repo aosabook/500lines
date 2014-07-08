@@ -84,10 +84,22 @@ When the phone is held in such a way that the gravitational acceleration affects
 A filter is a tool used in signal processing to remove an unwanted component from a signal. Our total acceleration sine wave is considered a signal. In our case, we want to remove user acceleration from our total acceleration signal, so that we're left with just the gravitational component. Once we have that, we can subtract gravitational acceleration from the total acceleration, and we'll be left with user acceleration. In this way, we'll have three sets of data at the end, one for the total acceleration, one for gravitational acceleration on its own, and one for user acceleration on its own. 
 
 A low-pass filter is a filter that allows low-frequency signals through, while attenuating signals higher than a set threshold. In our sitation, gravitational acceleration is a 0 Hz signal because it's constant, while user acceleration is not. This means that if we pass our signal through a low-pass filter, we'll allow the gravitational component of the signal to pass through, while removing the user acceleration component. There are numerous varieties of low-pass filters, but the one we'll use is called a Chebyshev filter. We've chosen a Chebyshev filter because it has a steep cutoff, which means that it very quickly attenuates frequencies beyond our threshold, which is ideal for isolating a 0 Hz signal like gravity. 
-TODO: Expand?
+
+### Implemeting a Low-pass Filter
+Let's have a look at an example of total acceleration, $a_{t}$.
+
+![](chapter-figures/figure-filter-total.png)\ 
+
+To filter out gravitational acceleration, $a_{g}$, we use the low-pass filter formula $a_{gn} = \alpha_{0} * (a_{tn} * \beta_{0} + a_{tn-1} * \beta_{1} + a_{tn-2} * \beta_{2} - a_{gn-1} * \alpha_{1} - a_{gn-2} * \alpha_{2})$. The $\alpha$ and $\beta$ values are set based on the type of filter, in this case, the Chebyshev filter. Notice that the resulting gravitational acceleration is constant, as we expected.
+TODO: Expland the section on calculating alpha and beta?
+
+![](chapter-figures/figure-filter-gravitational.png)\ 
+
+To receive user acceleration, $a_{u}$, we can subtract gravitational acceleration from total acceleration, $a_{u} = a_{t} - a_{g}$.
+
+![](chapter-figures/figure-filter-user.png)\ 
 
 ## 2. Isolating movement in the direction of gravity
-
 When gravity acts on our phone in multiple directions, how do we isolate acceleration in the direction of gravity, so that we can count bounces? We need to find a way to take just the movement in the direction of gravity from each of the x, y, and z directions. First, a very small amount of liner algebra 101. 
 
 ### The Dot Product
