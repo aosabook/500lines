@@ -455,7 +455,7 @@ if (self.importScripts) {
     }
 ```
 
-為每個座標都定義好存取函式之後，背景工作程式再次針對每個座標存取 `self[coord]` 來觸發存取函式，最後將得出的 `errs` 和 `vals` 傳送回主要 JS 線程：
+為每個座標都定義好存取函式之後，背景工作程式再次針對每個座標執行 `self[coord]` 來觸發存取函式，最後將得出的 `errs` 和 `vals` 傳送回主要 JS 線程：
 
 ```js
     // For each coordinate in the sheet, call the property getter defined above
