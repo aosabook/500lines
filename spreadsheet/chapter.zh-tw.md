@@ -1,6 +1,6 @@
 (Also available in [English](https://github.com/audreyt/500lines/blob/master/spreadsheet/chapter.md).)
 
-# 用 [99 行程式](https://github.com/audreyt/500lines/tree/master/spreadsheet)寫出[網頁試算表](http://audreyt.github.io/500lines/spreadsheet/) 
+# 用 [99 行程式](https://github.com/audreyt/500lines/tree/master/spreadsheet)寫出[網頁試算表](http://audreyt.github.io/500lines/spreadsheet/)
 
 本章介紹以 99 行 HTML、CSS 和 JS 程式（瀏覽器原生支援的三種語言）寫成的試算表網頁應用。
 
@@ -20,7 +20,6 @@
 
 在 [spreadsheet](https://github.com/audreyt/500lines/tree/master/spreadsheet) 目錄裡，包含了三種 Web 程式語言在 2014 年末版本的展示範例：描述結構的 [HTML5](http://www.w3.org/TR/html5/)、描述展示風格的 [CSS3](http://www.w3.org/TR/css3-ui/)，以及描述互動功能的 JS [ES6 “Harmony”](http://wiki.ecmascript.org/doku.php?id=harmony:specification_drafts) 。它也用到 [Web Storage](http://www.whatwg.org/specs/web-apps/current-work/multipage/webstorage.html) 來保存資料，以及利用 [Web Worker](http://www.whatwg.org/specs/web-apps/current-work/multipage/workers.html) 在背景運行 JS 程式碼。在撰寫本文時，這些 Web 標準都已獲得 Firefox、Chrome、Internet Explorer 11+，以及手機行動瀏覽器 iOS 5+ 和 Android 4+ 的支援。
 
-
 現在讓我們在瀏覽器中打開 <http://audreyt.github.io/500lines/spreadsheet/>：
 
 ![初始畫面](./images/01-initial.png)
@@ -32,13 +31,13 @@
 * 文字：**B1** 中的 `+` 和 **D1** 中的 `⇒`，向左對齊。
 * 數字：**A1** 中的 `1874` 和 **C1** 中的 `2046`， 向右對齊。
 * 公式：**E1** 中的 `=A1+C1`，經計算（calculation）後得出數值（value）為 `3920`，以淡藍色背景顯示。
-* 空白：橫列 **2** 上的所有儲存格目前都是空白的。
+* 空白：橫列 **2** 上的所有儲存格目前沒有內容。
 
-點擊 `3920` 來移動焦點（focus）到 **E1**，會出現輸入框（input box）來顯示它的公式：
+點擊 `3920` 來移動焦點（focus）到 **E1**，會出現顯示公式的輸入框（input box）：
 
 ![輸入框](./images/02-input.png)
 
-現在把選取焦點移到 **A1** ，將它的內容變更（change）為 `1`，使 **E1** 的數值重新計算（recalculate）成 `2047`：
+現在把選取焦點移到 **A1** ，將內容變更（change）為 `1`，使 **E1** 的數值重新計算（recalculate）成 `2047`：
 
 ![已變更的內容](./images/03-changed.png)
 
@@ -50,7 +49,7 @@
 
 接下來試試輸入 `=for(;;){}`，這是一段 JS 程式碼，會執行永無休止的無窮迴圈。試算表會在嘗試變更時，自動回復（restore） **C2** 的內容，以避免執行這段程式。
 
-現在按 **Ctrl-R** 或 **Cmd-R** 重新載入瀏覽器頁面，確認試算表的內容能夠延續（persistent），在每個瀏覽階段中保持一致。 如果要重置（reset）試算表的原始內容，可按左上角的 `↻` 按鈕。
+現在按 **Ctrl-R** 或 **Cmd-R** 來重新載入瀏覽器頁面，確認試算表的內容能夠延續（persistent），在每個瀏覽階段中保持一致。 如果要重置（reset）試算表的原始內容，可按左上角的 `↻` 按鈕。
 
 ### 漸進增強
 
@@ -65,7 +64,7 @@
 
 當我們停用動態互動功能（JS）時，內容結構（HTML）和展示風格（CSS）依然持續生效。如果網頁文件能夠在 JS 和 CSS 同時停用的情況下，繼續保持可用，就表示它遵守「漸進增強」（progressive enhancement）原則，讓內容能接觸到最廣的使用者群。
 
-由於我們的試算表是應用網頁，並沒有伺服器端的程式碼，所以我們必須依賴 JS 來提供所需要的邏輯。然而，即使 CSS 沒有完全獲得支援，比如說在螢幕閱讀器和文字模式的瀏覽器裡，程式依然能正常運作：
+由於我們的試算表是應用網頁，並沒有伺服器端的程式碼，所以我們必須依賴 JS 來提供所需要的邏輯。然而，即使 CSS 沒有完全獲得支援，比如說在螢幕閱讀器和文字模式的瀏覽器裡，程式依然能正常運作
 
 ![停用 CSS](./images/06-nocss.png)
 
@@ -96,7 +95,7 @@
 <!DOCTYPE html><html><head><meta charset="UTF-8">
 ```
 
-如果沒有聲明 `charset` ，瀏覽器可能會把重置按鈕的萬國碼符號 `↻` 顯示為 `â†»`，也就是亂碼（mojibake）——由解碼問題引起的錯誤情況。
+如果沒有聲明 `charset` ，瀏覽器可能會把重置按鈕的萬國碼符號 `↻` 顯示為 `â†»`，也就是亂碼（mojibake）──由解碼問題引起的錯誤情況。
 
 接下來的四行程式碼是 JS 聲明，依慣例放在 `head` 區塊裡：
 
@@ -107,9 +106,9 @@
   <script src="lib/angular.js"></script>
 ```
 
-標籤 `<script src="…">` 從跟 HTML 頁面相同的路徑載入 JS 資源。舉例來說，如果目前的網址是 `http://audreyt.github.io/500lines/spreadsheet/index.html`，那麼 `lib/angular.js` 會指向 `http://audreyt.github.io/500lines/spreadsheet/lib/angular.js`。
+標籤 `<script src="…">` 在和 HTML 頁面相同的路徑下載入 JS 資源。舉例來說，如果目前的網址是 `http://audreyt.github.io/500lines/spreadsheet/index.html`，那麼 `lib/angular.js` 會指向 `http://audreyt.github.io/500lines/spreadsheet/lib/angular.js`。
 
-`if (!self.Spreadsheet)` 這行程式碼用於測試 `main.js` 是否已經正確載入；如果沒有正確載入，它會將瀏覽器轉至 `es5/index.html`。對於 2015 年以前發行、並且不支援 ES6 的瀏覽器來說，這個「優雅降級」（graceful degradation）的重新導向技巧，確保我們可以用轉譯到 ES5 版本的 JS 程式，來作為備用方案。
+`if (!self.Spreadsheet)` 這行程式碼用於測試 `main.js` 是否已經正確載入；如果沒有正確載入，會將瀏覽器轉至 `es5/index.html`。對於 2015 年以前發行、並且不支援 ES6 的瀏覽器來說，這個「優雅降級」（graceful degradation）的重新導向技巧，確保我們可以用轉譯到 ES5 版本的 JS 程式，來作為備用方案。
 
 接下來的兩行程式碼會載入 CSS 資源，結束 `head` 部分，並開始 `body` 部分，當中包含使用者會看到的內容：
 
@@ -124,7 +123,7 @@
 
 ```html
   <table><tr>
-    <th><button type="button" ng-click="reset(); calc()">↻</button></th>
+    <th><button type="button" ng-click="reset(); calc()" title="Reset">↻</button></th>
 ```
 
 下一行使用 `ng-repeat` ，在置頂列顯示各個直欄的標籤：
@@ -142,27 +141,29 @@
     <th>{{ row }}</th>
 ```
 
-由於使用 `<tr ng-repeat>` 標籤開始的程式碼還沒有被 `</tr>` 結束，表達式可以繼續使用  `row` 變數。下一行程式碼，在當前的橫列上建立一個資料儲存格（`td`），並在其 `ng-class` 屬性中同時使用 `col` 和 `row` 變數：
+由於使用 `<tr ng-repeat>` 標籤開始的程式碼還沒有被 `</tr>` 結束，表達式可以繼續使用 `row` 變數。下一行程式碼，在當前的橫列上建立一個資料儲存格（`td`），並在其 `ng-class` 屬性中同時使用 `col` 和 `row` 變數：
 
 ```html
-    <td ng-repeat="col in Cols" ng-class="{ formula: ('=' === sheet[col+row][0]) }">
+    <td ng-repeat="col in Cols" ng-class="{ formula: ( '=' === sheet[col+row][0] ) }">
 ```
 
-這裡有幾個重點。在 HTML 中，`class` 屬性描述類別名稱的集合（a set of class names），讓 CSS 賦予它們不同的樣式。這裡的 `ng-class` 會運算表達式 `('=' === sheet[col+row][0])`；如果結果為真，那麼 `<td>`會獲得類別 `formula` ，因此儲存格就會添上淡藍色背景，由 **styles.css** 第 8 行中的 `.formula`「類別選擇器」（class selector）所定義。
+這裡有幾個重點。在 HTML 中，`class` 屬性描述類別名稱的集合（a set of class names），讓 CSS 以不同方式各自賦予模式。這裡的 `ng-class` 會運算表達式 `( '=' === sheet[col+row][0] )`；如果結果為真，那麼 `<td>` 會獲得類別 `formula` ，因此儲存格就會添上淡藍色背景，由 **styles.css** 第 4 行中的 `.formula`「
+類別選擇器」（class selector）所定義。
 
-上述表達式用來檢查目前儲存格是否為公式的方法，是透過測試 `=` 是否為 `sheet[col+row]` 字串的初始字符（`[0]`）。此處 `sheet` 是 JS 模型物件，以各個座標（例如 `"E1"`） 作為它的屬性，儲存格內容（例如 `"=A1+C1"`）則是屬性的值。要注意的是，由於 `col` 是字串而非數字，因此 `col+row` 中的 `+` 指的是串聯，而不是加法。
+上述表達式用來檢查目前儲存格是否為公式的方法，是透過測試 `=` 是否為 `sheet[col+row]` 字串的初始字符（`[0]`）。此處 `sheet` 是 JS 模型物件，屬性為各個座標（例如 `"E1"`），儲存格內容（例如 `"=A1+C1"`）則是屬性的值。要注意的是，由於 `col` 是字串而非數字，因此 `col+row` 中的 `+` 指的是串聯，而不是加法。
 
 在 `<td>` 中，我們給使用者一個輸入框，來編輯儲存在 `sheet[col+row]` 中的儲存格內容：
 
 ```html
-       <input id="{{ col+row }}" ng-model="sheet[col+row]" ng-change="calc()"
-        ng-model-options="{ debounce: 200 }" ng-keydown="keydown( $event, col, row )">
+      <input id="{{ col+row }}" ng-model="sheet[col+row]" ng-change="calc()"
+       ng-model-options="{ debounce: 200 }" ng-keydown="keydown( $event, col, row )">
 ```
-這裡的主要屬性是 `ng-model`，它允許 JS 模型和輸入框內可編輯內容之間的「雙向繫結」（two-way binding）：每當使用者在輸入框內作出變更，JS 模型都會自動更新 `sheet[col+row]` 的內容，並觸發 `calc()` 函式來重新計算所有公式儲存格的數值。
+
+這裡的主要屬性是 `ng-model`，它允許 JS 模型和輸入框內可編輯內容之間的「雙向繫結」（two-way binding）：每當使用者在輸入框內做出變更時，JS 模型都會自動更新 `sheet[col+row]` 的內容，並觸發 `calc()` 函式來重新計算所有公式儲存格的數值。
 
 當使用者按住某個鍵不放的時候，為了避免重複執行 `calc()`，`ng-model-options` 會限制更新速率至每 200 毫秒一次。
 
-輸入框的 `id` 屬性與座標相同，由 `col+row` 安插取得。每個 HTML 元素的 `id` 屬性，必須跟文件內所有其他元件的 `id` 不同。這樣確保了 `#A1` 這個「ID 選擇器」（ID selector）只會指向一個元素，而不像類別選擇器 `.formula` 那樣指稱一系列的元素。當使用者按下 **上鍵**/**下鍵**/**輸入鍵** 時，`keydown()` 中的邏輯就會使用 ID 選擇器，來確定該設定焦點在哪個輸入框上。
+輸入框的 `id` 屬性，由 `col+row` 安插取得座標。一個 HTML 元件的 `id` 屬性，必須跟文件內所有其他元件的 `id` 不同。這樣確保了 `#A1` 這個「ID 選擇器」（ID selector）只會指向至一個元素，而不像類別選擇器 `.formula` 那樣指稱一系列的元素。當使用者按下**上鍵**/**下鍵**/**輸入鍵**時，`keydown()` 中的邏輯就會使用 ID 選擇器，來確定該設定焦點在哪個輸入框上。
 
 在輸入框後面，我們放置一個 `<div>` 元素，來顯示當前儲存格的計算結果（以物件 `errs` 和 `vals` 在 JS 模型中表示）：
 
@@ -177,7 +178,7 @@
 
 由於空白字符串和數值沒有初始字符，`ng-class` 不會給它們分配任何類別，所以 CSS 可以利用預設樣式，來讓它們向右對齊。
 
-最後，我們使用 `</td>` 來離開直欄的 `ng-repeat` 迴圈，再使用`</tr>`  離開橫列迴圈，並結束 HTML 文件：
+最後，我們使用 `</td>` 來離開直欄的 `ng-repeat` 迴圈，再使用 `</tr>` 離開橫列迴圈，並結束 HTML 文件：
 
 ```html
     </td>
