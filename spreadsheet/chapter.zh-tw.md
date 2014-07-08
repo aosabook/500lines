@@ -118,7 +118,7 @@
 </head><body ng-app ng-cloak ng-controller="Spreadsheet">
 ```
 
-上述的 `ng-` 屬性指示 AngularJS 程式庫運行`Spreadsheet` 的 JS 函數，為此文件建立控制器（controller）來提供模型（model），也就是一組可以在文件顯示層（view）中進行繫結（binding）的名稱。`ng-cloak` 屬性會先隱藏文件顯示，直到繫結已經就位為止。
+上述的 `ng-` 屬性指示 AngularJS 程式庫運行 `Spreadsheet` 這個 JS 函式，為文件建立控制器（controller）來提供模型（model），也就是一組可以在文件顯示層（view）中進行繫結（binding）的名稱。`ng-cloak` 屬性會先隱藏文件顯示，直到繫結已經就位為止。
 
 舉個具體的例子，當使用者點擊下一行中所定義的 `<button>` ，其 `ng-click` 屬性會觸發並執行 `reset()` 和 `calc()` 這兩個由 JS 模型提供的函式：
 
@@ -158,7 +158,7 @@
        <input id="{{ col+row }}" ng-model="sheet[col+row]" ng-change="calc()"
         ng-model-options="{ debounce: 200 }" ng-keydown="keydown( $event, col, row )">
 ```
-這裡的主要屬性是 `ng-model`，它允許 JS 模型和輸入框內可編輯內容之間的「雙向繫結」（two-way binding）：每當使用者在輸入框內作出變更，JS 模型都會自動更新 `sheet[col+row]` 的內容，並觸發 `calc()` 函數來重新計算所有公式儲存格的數值。
+這裡的主要屬性是 `ng-model`，它允許 JS 模型和輸入框內可編輯內容之間的「雙向繫結」（two-way binding）：每當使用者在輸入框內作出變更，JS 模型都會自動更新 `sheet[col+row]` 的內容，並觸發 `calc()` 函式來重新計算所有公式儲存格的數值。
 
 當使用者按住某個鍵不放的時候，為了避免重複執行 `calc()`，`ng-model-options` 會限制更新速率至每 200 毫秒一次。
 
@@ -226,7 +226,7 @@ function Spreadsheet ($scope, $timeout) {
   $scope.keydown = ({which}, col, row)=>{ switch (which) {
 ```
 
-[箭號函數](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/arrow_functions)從 `<input ng-keydown>` 接收引數 `($event, col, row)` 之後，使用[解構賦值](https://developer.mozilla.org/en-US/docs/Web/JavaScript/New_in_JavaScript/1.7#Pulling_fields_from_objects_passed_as_function_parameter)將 `$event.which` 指派到 `which` 參數裡，並檢查它是否屬於要處理的三種鍵碼之一：
+[箭號函式](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/arrow_functions)從 `<input ng-keydown>` 接收引數 `($event, col, row)` 之後，使用[解構賦值](https://developer.mozilla.org/en-US/docs/Web/JavaScript/New_in_JavaScript/1.7#Pulling_fields_from_objects_passed_as_function_parameter)將 `$event.which` 指派到 `which` 參數裡，並檢查它是否屬於要處理的三種鍵碼之一：
 
 ```js
     case 38: case 40: case 13: $timeout( ()=>{
@@ -251,7 +251,7 @@ function Spreadsheet ($scope, $timeout) {
 
 之所以要檢查 `querySelector` 是否有傳回值，是因為從 **A1** 向上移動時，會產生選擇器 `#A0`：它沒有相應的元件，因此不會觸發焦點變化。在最底端的橫列按**下鍵**時也是一樣。
 
-接著我們定義 `reset()` 函數，讓 `↻` 按鈕可以恢復 `sheet` 的初始內容：
+接著我們定義 `reset()` 函式，讓 `↻` 按鈕可以恢復 `sheet` 的初始內容：
 
 ```js
   // Default sheet content, with some data cells and one formula cell.
@@ -336,7 +336,7 @@ function Spreadsheet ($scope, $timeout) {
 
 * 當工作者在背景執行時，使用者可以繼續操作試算表界面，不會被主線程的運算程序阻礙。
 * 因為公式裡可以出現任何 JS 表達式，工作者為此提供了沙盒（sandbox），來防止公式干擾到主線程的網頁，例如使用 `alert()` 彈出對話框等等。
-* 公式可以用任何座標當作變數，該變數可能包含另一項公式，最終可能導致循環引用。為了解決這個問題，我們利用工作者的全域範圍（global scope）物件 `self`，將各座標變數定義成它取值函數（getter function），以實作防止循環的邏輯。
+* 公式可以用任何座標當作變數，該變數可能包含另一項公式，最終可能導致循環引用。為了解決這個問題，我們利用工作者的全域範圍（global scope）物件 `self`，將各座標變數定義成它的取值函式（getter function），以實作防止循環的邏輯。
 
 有了這些認識後，讓我們來看看工作者的程式碼。由於 **index.html** 使用 `<script>` 標籤預先載入工作者程序，所以 **worker.js** 首先要確認它是否確實作為背景任務運行：
 
@@ -360,7 +360,7 @@ if (self.importScripts) {
     for (const coord in sheet) {
 ```
 
-上述的 `const coord`，可以讓迴圈裡定義的函數包入該次迭代裡 `coord` 的實際數值。這是因為 `const` 和 `let` 宣告的變數屬於區塊範圍（block scope）。如果宣告寫成 `var coord` ，則會屬於函數範圍（function scope），這樣每次迭代時定義的函數最終都會指向同一個 `coord`。
+上述的 `const coord`，可以讓迴圈裡定義的函式包入該次迭代裡 `coord` 的實際數值。這是因為 `const` 和 `let` 宣告的變數屬於區塊範圍（block scope）。如果宣告寫成 `var coord` ，則會屬於函式範圍（function scope），這樣每次迭代時定義的函式最終都會指向同一個 `coord`。
 
 習慣上，公式裡的變數名稱大小寫視為相同，並且可以加上 `$` 前綴。因為 JS 變數有區分大小寫，所以我們用 `for…of` 循環來取得同一個座標的四種變數名稱表示法：
 
