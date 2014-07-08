@@ -185,15 +185,15 @@
 
 ### JS: 主要控制層
 
-The sole purpose of `main.js` is defining the `Spreadsheet` controller function as required by the `<body>` element, with the JS model `$scope` provided by AngularJS:
+`main.js` 的唯一作用，是定義 `<body>` 元件所需的 `Spreadsheet` 控制函式，其中利用 AngularJS 提供的 `$scope` 參數來定義 JS 模型：
 
 ```js
 function Spreadsheet ($scope, $timeout) {
 ```
 
-The `$` in `$scope` is part of the variable name. Here we also request the [`$timeout`](https://docs.angularjs.org/api/ng/service/$timeout) service function from AngularJS; later on, we will use it to prevent infinite-looping formulas.
+`$scope` 中的 `$` 是變數名稱的一部分。我們也向 AngularJS 要求 [`$timeout`](https://docs.angularjs.org/api/ng/service/$timeout) 服務函式；稍後我們會運用它來避免公式進入無限循環。
 
-To put `Cols` and `Rows` into the model, simply define them as properties of `$scope`:
+要把 `Cols` 和 `Rows` 放進模型，直接將它們定義為 `$scope` 的屬性即可：
 
 ```js
   // Begin of $scope properties; start with the column/row labels
@@ -201,8 +201,7 @@ To put `Cols` and `Rows` into the model, simply define them as properties of `$s
   $scope.Rows = [ for (row of range( 1, 20 )) row ];
 ```
 
-The ES6 [array comprehension](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Array_comprehensions) syntax makes it easy to define arrays from ranges with a start and an end point, with the helper function `range` defined as a [generator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function*):
-
+使用 ES6 的[陣列簡約式](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Array_comprehensions)語法，可以很容易將陣列定義為從起點到終點的範圍。這裡用到了 `range` 這個[產生器](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function*) 函式作為輔助：
 
 ```js
   function* range(cur, end) { while (cur <= end) { yield cur;
@@ -210,13 +209,15 @@ The ES6 [array comprehension](https://developer.mozilla.org/en-US/docs/Web/JavaS
 
 The `function*` above means that `range` returns an [iterator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/The_Iterator_protocol), with a `while` loop that would  [`yield`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/yield) a single value at a time. Whenever the `for` loop demands the next value, it will resume execution right after the `yield` line:
 
+上述的 `function*` 語法，會讓 `range` 傳回[迭代器](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/The_Iterator_protocol)，其中的 `while` 迴圈每次 `yield` 一個值。每當 `for` 需要下一個數值時，迴圈就會從上次的 `yield` 後面接續執行：
+
 ```
     // If it’s a number, increase it by one; otherwise move to next letter
     cur = (isNaN( cur ) ? String.fromCodePoint( cur.codePointAt()+1 ) : cur+1);
   } }
 ```
 
-To generate the next value, we use `isNaN` to see if `cur` is meant as a letter (`NaN` stands for “not a number.”) If so, we get the letter’s [code point value](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/codePointAt), increment it by one, and [convert the codepoint](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/fromCodePoint) back to get its next letter. Otherwise, we simply increase the number by one.
+要產生下一個數值時，我們使用 `isNaN` 來查看 `cur` 是否為英文字母（`NaN` 代表「非數字」，not a number）。如果是，我們可以將字母的[碼位值](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/codePointAt)加一，然後將碼位[轉換](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/fromCodePoint) 成下一個字母。如果 `cur` 是數值，那只要加一就可以了：
 
 Next up, we define the `keydown()` function that handles keyboard navigation across rows:
 
