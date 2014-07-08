@@ -64,7 +64,7 @@
 
 當我們停用動態互動功能（JS）時，內容結構（HTML）和展示風格（CSS）依然持續生效。如果網頁文件能夠在 JS 和 CSS 同時停用的情況下，繼續保持可用，就表示它遵守「漸進增強」（progressive enhancement）原則，讓內容能接觸到最廣的使用者群。
 
-由於我們的試算表是應用網頁，並沒有伺服器端的程式碼，所以我們必須依賴 JS 來提供所需要的邏輯。然而，即使 CSS 沒有完全獲得支援，比如說在螢幕閱讀器和文字模式的瀏覽器裡，程式依然能正常運作
+由於我們的試算表是應用網頁，並沒有伺服器端的程式碼，所以我們必須依賴 JS 來提供所需要的邏輯。然而，即使 CSS 沒有完全獲得支援，比如說在螢幕閱讀器和文字模式的瀏覽器裡，程式依然能正常運作。
 
 ![停用 CSS](./images/06-nocss.png)
 
@@ -123,7 +123,7 @@
 
 ```html
   <table><tr>
-    <th><button type="button" ng-click="reset(); calc()" title="Reset">↻</button></th>
+    <th><button type="button" ng-click="reset(); calc()">↻</button></th>
 ```
 
 下一行使用 `ng-repeat` ，在置頂列顯示各個直欄的標籤：

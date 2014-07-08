@@ -6,7 +6,7 @@
   <link href="styles.css" rel="stylesheet">
 </head><body ng-app ng-cloak ng-controller="Spreadsheet">
   <table><tr>
-    <th><button type="button" ng-click="reset(); calc()" title="Reset">↻</button></th>
+    <th><button type="button" ng-click="reset(); calc()">↻</button></th>
     <th ng-repeat="col in Cols">{{ col }}</th>
   </tr><tr ng-repeat="row in Rows">
     <th>{{ row }}</th>
