@@ -1,28 +1,12 @@
-input {
-  border: 0;
-  padding: 0;
-  width: 120px;
-  height: 1.3em;
-  font-size: 100%;
-  position: absolute;
-  color: transparent;
-  background: transparent;
-}
-input:focus {
-  color: #111;
-  background: #efe;
-}
-input:focus + div { white-space: nowrap }
-table { border-collapse: collapse }
-td div {
-  width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-td div.error { color: #600 }
-td.formula { background: #eef }
-th {
-  width: 30px;
-  background: #ddd;
-}
-td, th { border: 1px solid #ccc }
+table { border-collapse: collapse; }
+th, td { border: 1px solid #ccc; }
+th { background: #ddd; }
+td.formula { background: #eef; }
+td div { text-align: right; width: 120px; min-height: 1.2em;
+         overflow: hidden; text-overflow: ellipsis; }
+div.text { text-align: left; }
+div.error { text-align: center; color: #800; font-size: 90%; border: solid 1px #800 }
+input { position: absolute; border: 0; padding: 0; width: 120px; height: 1.3em;
+        font-size: 100%; color: transparent; background: transparent; }
+input:focus { color: #111; background: #efe; }
+input:focus + div { white-space: nowrap; }

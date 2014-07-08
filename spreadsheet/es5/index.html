@@ -1,9 +1,8 @@
 <!DOCTYPE html><html><head><meta charset="UTF-8">
   <script src="main.js"></script>
-  <script>if (!self.Spreadsheet) { location.href = "es5/index.html" }</script>
   <script src="worker.js"></script>
-  <script src="lib/angular.js"></script>
-  <link href="styles.css" rel="stylesheet">
+  <script src="../lib/angular.js"></script>
+  <link href="../styles.css" rel="stylesheet">
 </head><body ng-app ng-cloak ng-controller="Spreadsheet">
   <table><tr>
     <th><button type="button" ng-click="reset(); calc()" title="Reset">↻</button></th>
@@ -12,7 +11,7 @@
     <th>{{ row }}</th>
     <td ng-repeat="col in Cols" ng-class="{ formula: ( '=' === sheet[col+row][0] ) }">
       <input id="{{ col+row }}" ng-model="sheet[col+row]" ng-change="calc()"
-       ng-model-options="{ debounce: 200 }" ng-keydown="keydown( $event, col, row )">
+             ng-model-options="{ debounce: 200 }" ng-keydown="keydown( $event, col, row )">
       <div ng-class="{ error: errs[col+row], text: vals[col+row][0] }">
         {{ errs[col+row] || vals[col+row] }}</div>
     </td>

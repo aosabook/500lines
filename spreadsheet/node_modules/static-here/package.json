@@ -1,0 +1,41 @@
+{
+  "name": "static-here",
+  "version": "0.2.0",
+  "description": "A command-line tool for creating a static file server from the current working directory.",
+  "main": "./index.js",
+  "bin": {
+    "static-here": "./bin/static-here"
+  },
+  "keywords": [
+    "static",
+    "web",
+    "server",
+    "local",
+    "development"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/amasad/static-here.git"
+  },
+  "engine": {
+    "node": ">=0.4.0"
+  },
+  "author": {
+    "name": "Amjad Masad",
+    "email": "amjad.masad@gmail.com",
+    "url": "http://amasad.github.com"
+  },
+  "dependencies": {
+    "mime": "~1.2.11"
+  },
+  "readme": "##static-here\n___________\nCreate a static web server from the current directory.  \n\n### Install\n\n    npm install static-here\n\n### Run\n\n  static-here\n    > Serving files from /badass/javascript/project at http://localhost:8888/\n    \n### Options:\n\n  You can specify the port and hostname but defaults to:\n  \n    static-here coffee 8888 0.0.0.0\n",
+  "readmeFilename": "README.md",
+  "bugs": {
+    "url": "https://github.com/amasad/static-here/issues"
+  },
+  "homepage": "https://github.com/amasad/static-here",
+  "_id": "static-here@0.2.0",
+  "_shasum": "e7def34922e8050c4e94c0a1f13420917b9baacd",
+  "_from": "static-here@*",
+  "_resolved": "https://registry.npmjs.org/static-here/-/static-here-0.2.0.tgz"
+}

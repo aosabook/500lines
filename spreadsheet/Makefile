@@ -1,24 +1,28 @@
-OBJECTS = dist/worker.js dist/main.js
+OBJECTS = es5/worker.js es5/main.js
 
-all :: dist run
+all :: deps es5 wc run
+
+deps ::
+	@npm i
 
 run ::
-	@node extra/static-here.js
+	@node node_modules/static-here/bin/static-here
 
-dist :: $(OBJECTS)
+es5 :: $(OBJECTS)
 
-test :: dist
-	@node extra/test.js
+test :: es5
+	@node node_modules/mocha/bin/mocha
 
-wc :: dist
-	@wc -l *.js *.html *css
+wc ::
+	@echo -n Lines:
+	@grep -v '//\|^$$' *.js *.html *css | wc -l
 
 clean ::
-	-@rm -rf dist/*
+	-@rm -rf es5/*.js
 
-dist/% :: %
-	traceur --validate --experimental --out tmp --script $<
-	echo "// Generated File - Do Not Edit" | cat - lib/traceur-runtime.js tmp/$< > $@
+es5/% :: %
+	./node_modules/traceur/traceur --source-maps --validate --experimental --out tmp --script $<
+	echo "// Generated File - Do Not Edit" | cat - ./node_modules/traceur/bin/traceur-runtime.js tmp/$< > $@
 	@rm -rf tmp
 
-.PHONY: run dist test clean wc
+.PHONY: deps run es5 test clean wc
