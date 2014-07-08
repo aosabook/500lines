@@ -58,7 +58,9 @@
               }
               errs[coord] = e + "";
             }
-            return vals[coord];
+            return typeof vals[coord] === 'number'
+              ? vals[coord]
+              : vals[coord] += '';
           }
         });
       }

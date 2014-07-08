@@ -41,7 +41,7 @@
 
 ![已變更的內容](./images/03-changed.png)
 
-按 **輸入鍵（ENTER）** 以設定焦點至 **A2**，並變更其內容為 `=''+Date()`，然後按 **跳格鍵（TAB）**，變更 **B2** 的內容為 `=alert()`，然後再按 **跳格鍵** 以移動焦點至 `C2`：
+按 **輸入鍵（ENTER）** 以設定焦點至 **A2**，並變更其內容為 `=Date()`，然後按 **跳格鍵（TAB）**，變更 **B2** 的內容為 `=alert()`，然後再按 **跳格鍵** 以移動焦點至 `C2`：
 
 ![公式錯誤](./images/04-error.png)
 
@@ -446,10 +446,10 @@ if (self.importScripts) {
 
 在發生錯誤時，因為賦值操作沒有完成，所以 `vals[coord]` 的數值仍然會是 `NaN`。
 
-最後，`get` 函式傳回計算得出的數值，儲存在 `vals[coord]` 裡：
+最後，`get` 函式傳回 `vals[coord]` 裡計算出的數值，它必須是數字或字串：
 
 ```js
-          return vals[coord];
+          return((typeof vals[coord] === 'number') ? vals[coord] : vals[coord] += '');
         } } )
       }
     }

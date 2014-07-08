@@ -41,7 +41,7 @@ Now let’s set focus on **A1** and _change_ its content to `1`, causing **E1** 
 
 ![Changed Content](./images/03-changed.png)
 
-Press **ENTER** to set focus to **A2** and change its content to `=''+Date()`, then press **TAB**, change the content of **B2** to `=alert()`, then press **TAB** again to set focus to `C2`:
+Press **ENTER** to set focus to **A2** and change its content to `=Date()`, then press **TAB**, change the content of **B2** to `=alert()`, then press **TAB** again to set focus to `C2`:
 
 ![Formula Error](./images/04-error.png)
 
@@ -447,10 +447,10 @@ Other kinds of errors are stored to `errs[coord]`:
 
 In case of errors, the value of `vals[coord]` will remain `NaN` because the assignment did not complete.
 
-Finally, the `get` accessor returns the calculated value, stored in `vals[coord]`:
+Finally, the `get` accessor returns the calculated value stored in `vals[coord]`, which must be a number or a string:
 
 ```js
-          return vals[coord];
+          return((typeof vals[coord] === 'number') ? vals[coord] : vals[coord] += '');
         } } )
       }
     }

@@ -30,7 +30,7 @@ self.onmessage = ({data}) ->
           # Otherwise, stringify the caught exception in the errs object
           errs[coord] = "#e"
 
-        return vals[coord]
+        return if typeof vals[coord] is \number then vals[coord] else vals[coord] += ''
 
   # For each coordinate in the sheet, call the property getter defined above
   for coord of sheet => self[coord]

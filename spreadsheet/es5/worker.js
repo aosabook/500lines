@@ -2161,6 +2161,8 @@ if (self.importScripts) {
                             continue;
                           }
                           Object.defineProperty(self, name, {get: function() {
+                              var $__8,
+                                  $__9;
                               if ($traceurRuntime.toProperty(coord) in vals) {
                                 return vals[$traceurRuntime.toProperty(coord)];
                               }
@@ -2186,7 +2188,7 @@ if (self.importScripts) {
                                   }
                                 }
                               }
-                              return vals[$traceurRuntime.toProperty(coord)];
+                              return ((typeof vals[$traceurRuntime.toProperty(coord)] === 'number') ? vals[$traceurRuntime.toProperty(coord)] : ($__8 = vals[$traceurRuntime.toProperty(coord)], $__9 = $__8 + '', $traceurRuntime.setProperty(vals, coord, $__9), $__9));
                             }});
                         }
                       }
