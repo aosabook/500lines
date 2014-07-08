@@ -175,7 +175,7 @@
 
 由於空白字符串和數值沒有初始字符，`ng-class` 不會給它們分配任何類別，所以 CSS 可以利用預設樣式，來讓它們向右對齊。
 
-最後，我們使用 `</td>` 來結束直欄的 `ng-repeat` 迴圈，再使用`</tr>' 來結束橫列迴圈，並結束 HTML 文件：
+最後，我們使用 `</td>` 來離開直欄的 `ng-repeat` 迴圈，再使用`</tr>`  離開橫列迴圈，並結束 HTML 文件：
 
 ```html
     </td>
@@ -217,22 +217,22 @@ The `function*` above means that `range` returns an [iterator](https://developer
   } }
 ```
 
-要產生下一個數值時，我們使用 `isNaN` 來查看 `cur` 是否為英文字母（`NaN` 代表「非數字」，not a number）。如果是，我們可以將字母的[碼位值](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/codePointAt)加一，然後將碼位[轉換](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/fromCodePoint) 成下一個字母。如果 `cur` 是數值，那只要加一就可以了：
+要產生下一個數值時，我們使用 `isNaN` 來查看 `cur` 是否為英文字母（`NaN` 代表「非數字」，not a number）。如果是，我們可以將字母的[碼位值](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/codePointAt)加一，然後將碼位[轉換](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/fromCodePoint)成下一個字母。如果 `cur` 是數值，那只要加一就可以了：
 
-Next up, we define the `keydown()` function that handles keyboard navigation across rows:
+接著我們定義 `keydown()` 函式，來處理鍵盤往上下列的移動事件：
 
 ```js
   // UP(38) and DOWN(40)/ENTER(13) move focus to the row above (-1) and below (+1).
   $scope.keydown = ({which}, col, row)=>{ switch (which) {
 ```
 
-The [arrow function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/arrow_functions) receives the arguments `($event, col, row)` from `<input ng-keydown>`, using [destructuring assignment](https://developer.mozilla.org/en-US/docs/Web/JavaScript/New_in_JavaScript/1.7#Pulling_fields_from_objects_passed_as_function_parameter) to assign `$event.which` into the `which` parameter, and checks if it’s among the three navigational key codes:
+[箭號函數](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/arrow_functions) 從 `<input ng-keydown>` 接收引數 `($event, col, row)` 之後，使用 [解構賦值](https://developer.mozilla.org/en-US/docs/Web/JavaScript/New_in_JavaScript/1.7#Pulling_fields_from_objects_passed_as_function_parameter) 將 `$event.which` 指派到 `which` 參數裡，並檢查它是否屬於三種按鍵碼之一：
 
 ```js
     case 38: case 40: case 13: $timeout( ()=>{
 ```
 
-If it is, we use `$timeout` to schedule an update to the focused cell after the current `ng-keydown` and `ng-change` handler. Because `$timeout` accepts a function as argument, the `()=>{…}` syntax constructs a function to represent the focus-update logic, which starts by checking the direction of movement:
+如果是的話，就使用 `$timeout` 將「更新儲存格焦點」加入排程，在 `ng-keydown` 和 `ng-change` 事件後接著執行。因為 `$timeout` 的引數必須是函式，我們用 `()=>{…}` 語法將更新焦點的邏輯包進函式裡。首先是檢查移動方向：
 
 ```js
       const direction = (which === 38) ? -1 : +1;
