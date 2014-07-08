@@ -73,7 +73,7 @@
 
 * 所有背景和前景顏色會消失。
 * 輸入框和儲存格的數值會同時顯示，而不只是顯示其中一個。
-* 除此之外，應用程式跟完全版一樣正常運作。
+* 除此之外，網頁應用完全正常運作。
 
 ## 程式碼逐步解說
 
@@ -148,7 +148,7 @@
     <td ng-repeat="col in Cols" ng-class="{ formula: ('=' === sheet[col+row][0]) }">
 ```
 
-這裡有幾個重點。在 HTML 中，`class` 屬性描述類別名稱的集合（a set of class names），讓 CSS 以不同方式賦予它們模式。這裡的 `ng-class` 會運算表達式 `('=' === sheet[col+row][0])`；如果結果為真，那麼 `<td>`會獲得類別 `formula` ，因此儲存格就會添上淡藍色背景，由 **styles.css** 第 8 行中的 `.formula`「類別選擇器」（class selector）所定義。
+這裡有幾個重點。在 HTML 中，`class` 屬性描述類別名稱的集合（a set of class names），讓 CSS 賦予它們不同的樣式。這裡的 `ng-class` 會運算表達式 `('=' === sheet[col+row][0])`；如果結果為真，那麼 `<td>`會獲得類別 `formula` ，因此儲存格就會添上淡藍色背景，由 **styles.css** 第 8 行中的 `.formula`「類別選擇器」（class selector）所定義。
 
 上述表達式用來檢查目前儲存格是否為公式的方法，是透過測試 `=` 是否為 `sheet[col+row]` 字串的初始字符（`[0]`）。此處 `sheet` 是 JS 模型物件，以各個座標（例如 `"E1"`） 作為它的屬性，儲存格內容（例如 `"=A1+C1"`）則是屬性的值。要注意的是，由於 `col` 是字串而非數字，因此 `col+row` 中的 `+` 指的是串聯，而不是加法。
 
@@ -203,13 +203,11 @@ function Spreadsheet ($scope, $timeout) {
   $scope.Rows = [ for (row of range( 1, 20 )) row ];
 ```
 
-使用 ES6 的[陣列簡約式](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Array_comprehensions)語法，可以很容易將陣列定義為從起點到終點的範圍。這裡用到了 `range` 這個[產生器](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function*) 函式作為輔助：
+使用 ES6 的[陣列簡約式](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Array_comprehensions)語法，可以很容易將陣列定義為從起點到終點的範圍。這裡用到了 `range` 這個[產生器](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function*)函式作為輔助：
 
 ```js
   function* range(cur, end) { while (cur <= end) { yield cur;
 ```
-
-The `function*` above means that `range` returns an [iterator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/The_Iterator_protocol), with a `while` loop that would  [`yield`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/yield) a single value at a time. Whenever the `for` loop demands the next value, it will resume execution right after the `yield` line:
 
 上述的 `function*` 語法，會讓 `range` 傳回[迭代器](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/The_Iterator_protocol)，其中的 `while` 迴圈每次 `yield` 一個值。每當 `for` 需要下一個數值時，迴圈就會從上次的 `yield` 後面接續執行：
 
@@ -228,7 +226,7 @@ The `function*` above means that `range` returns an [iterator](https://developer
   $scope.keydown = ({which}, col, row)=>{ switch (which) {
 ```
 
-[箭號函數](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/arrow_functions) 從 `<input ng-keydown>` 接收引數 `($event, col, row)` 之後，使用[解構賦值](https://developer.mozilla.org/en-US/docs/Web/JavaScript/New_in_JavaScript/1.7#Pulling_fields_from_objects_passed_as_function_parameter)將 `$event.which` 指派到 `which` 參數裡，並檢查它是否屬於要處理的三種鍵碼之一：
+[箭號函數](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/arrow_functions)從 `<input ng-keydown>` 接收引數 `($event, col, row)` 之後，使用[解構賦值](https://developer.mozilla.org/en-US/docs/Web/JavaScript/New_in_JavaScript/1.7#Pulling_fields_from_objects_passed_as_function_parameter)將 `$event.which` 指派到 `which` 參數裡，並檢查它是否屬於要處理的三種鍵碼之一：
 
 ```js
     case 38: case 40: case 13: $timeout( ()=>{
@@ -340,7 +338,7 @@ The `function*` above means that `range` returns an [iterator](https://developer
 * 因為公式裡可以出現任何 JS 表達式，工作者為此提供了沙盒（sandbox），來防止公式干擾到主線程的網頁，例如使用 `alert()` 彈出對話框等等。
 * 公式可以用任何座標當作變數，該變數可能包含另一項公式，最終可能導致循環引用。為了解決這個問題，我們利用工作者的全域範圍（global scope）物件 `self`，將各座標變數定義成它取值函數（getter function），以實作防止循環的邏輯。
 
-有了這些認識後，讓我們來看看工作者的程式碼。由於 **index.html** 使用 `<script>` 標籤預先載入工作者程序，所以 ** worker.js** 首先要確定它是否確實作為背景任務運行：
+有了這些認識後，讓我們來看看工作者的程式碼。由於 **index.html** 使用 `<script>` 標籤預先載入工作者程序，所以 **worker.js** 首先要確認它是否確實作為背景任務運行：
 
 ```js
 if (self.importScripts) {
