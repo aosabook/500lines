@@ -240,7 +240,7 @@ The `function*` above means that `range` returns an [iterator](https://developer
 
 此處的 `const` 宣告，指的是 `direction` 的值在函式執行期間不會改變。如果按鍵碼是**上鍵** (38)，表示往上移動（`-1`， 從 **A2** 到 **A1**），否則往下移動（`+1`，從 **A2** 到 **A3**）。
 
-接下來，我們使用以反引號撰寫的[模板字串](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/template_strings) 將開頭的 `#`、當前的直欄 `col` 和目標橫列 `row + direction` 串聯在一起，來構築 ID 選擇器（例如`"#A3”`），以取得目標元素：
+接下來，我們使用以反引號撰寫的[模板字串](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/template_strings)將開頭的 `#`、當前的直欄 `col` 和目標橫列 `row + direction` 串聯在一起，來構築 ID 選擇器（例如`"#A3”`），以取得目標元素：
 
 ```js
       const cell = document.querySelector( `#${ col }${ row + direction }` );
@@ -276,14 +276,14 @@ The `function*` above means that `range` returns an [iterator](https://developer
 * 由於 localStorage 只能存取字串，所以要用 `angular.fromJson()` 將 [JSON](https://developer.mozilla.org/en-US/docs/Glossary/JSON) 解析（parse）為 `sheet` 結構。
 * `init()` 的最後一步，是建立新的 [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Worker) 線程，並將它放進 `worker` 屬性裡。雖然顯示層不會直接用到背景工作器，但我們仍依慣例使用 `$scope` 屬性，來讓多個函式能共用同一個模型裡的物件（此處指的是 `init()` 和下述的 `calc()` ）。
 
-`sheet` 儲存了使用者可編輯的儲存格內容，而 `errs` 和 `vals` 則包含了計算的結果（錯誤和數值），兩者對於使用者來說都屬於唯讀內容：
+`sheet` 儲存了使用者可編輯的儲存格內容，而 `errs` 和 `vals` 則是計算的結果。錯誤和數值兩者，對使用者來說都是唯讀的內容：
 
 ```js
   // Formula cells may produce errors in .errs; normal cell contents are in .vals
   [$scope.errs, $scope.vals] = [ {}, {} ];
 ```
 
-有了這些屬性，就可以定義出每當使用者變更 `sheet` 時，都會觸發的 `calc()` 函式：
+有了這些屬性，就可以定義出每當使用者變更 `sheet` 時，就會觸發的 `calc()` 函式：
 
 ```js
   // Define the calculation handler, and immediately call it
