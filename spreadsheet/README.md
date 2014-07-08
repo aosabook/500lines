@@ -6,7 +6,8 @@
 
 ## Chapter Text
 
-<https://github.com/audreyt/500lines/blob/master/spreadsheet/chapter.md>
+* English: <https://github.com/audreyt/500lines/blob/master/spreadsheet/chapter.md>
+* 中文: <https://github.com/audreyt/500lines/blob/master/spreadsheet/chapter.zh-tw.md>
 
 ## Online Demo
 
