@@ -133,7 +133,7 @@
     <th ng-repeat="col in Cols">{{ col }}</th>
 ```
 
-舉例來說，如果 JS 模型把 `Cols` 定義為 `["A","B","C"]`，那麼將會有三個標題儲存格（`th`）來顯示標筏。內容的 `{{ col }}` 表達式會由 AngularJS 進行安插（interpolation），來在每個 `th` 的內容中填上當前的 `col` 數值。
+舉例來說，如果 JS 模型將 `Cols` 定義為 `["A","B","C"]`，就會有三個標題儲存格（`th`）來顯示標籤。內容的 `{{ col }}` 表達式會由 AngularJS 進行安插（interpolation），來在每個 `th` 的內容中填上當前的 `col` 數值。
 
 同樣地，下面兩行會檢查 `Rows` 的數值（`[1,2,3]` 等等），為每個數值建立橫列，並在最左邊的 `th` 儲存格以編號標註：
 
@@ -150,7 +150,7 @@
 
 這裡有幾個重點。在 HTML 中，`class` 屬性描述類別名稱的集合（a set of class names），讓 CSS 以不同方式賦予它們模式。這裡的 `ng-class` 會運算表達式 `('=' === sheet[col+row][0])`；如果結果為真，那麼 `<td>`會獲得類別 `formula` ，因此儲存格就會添上淡藍色背景，由 **styles.css** 第 8 行中的 `.formula`「類別選擇器」（class selector）所定義。
 
-上述表達式用來檢查目前儲存格是否為公式的方法，是透過測試 `=` 是否為 `sheet[col+row]` 字串的初始字符（`[0]`）。此處 `sheet` 是 JS 模型物件，以各個座標（例如 `"E1"`） 為它的屬性，儲存格內容（例如 `"=A1+C1"`）則是屬性的值。要注意的是，由於 `col` 是字串而非數字，因此 `col+row` 中的 `+` 指的是串聯，而不是加法。
+上述表達式用來檢查目前儲存格是否為公式的方法，是透過測試 `=` 是否為 `sheet[col+row]` 字串的初始字符（`[0]`）。此處 `sheet` 是 JS 模型物件，以各個座標（例如 `"E1"`） 作為它的屬性，儲存格內容（例如 `"=A1+C1"`）則是屬性的值。要注意的是，由於 `col` 是字串而非數字，因此 `col+row` 中的 `+` 指的是串聯，而不是加法。
 
 在 `<td>` 中，我們給使用者一個輸入框，來編輯儲存在 `sheet[col+row]` 中的儲存格內容：
 
@@ -162,7 +162,7 @@
 
 當使用者按住某個鍵不放的時候，為了避免重複執行 `calc()`，`ng-model-options` 會限制更新速率至每 200 毫秒一次。
 
-輸入框的 `id` 屬性，由 `col+row` 安插取得座標。 一個 HTML 元件的 `id` 屬性，必須跟文件內所有其他元件的 `id` 不同。這樣確保了 `#A1` 這個「ID 選擇器」（ID selector）只會指向至一個元素，而不像類別選擇器 `.formula` 那樣指稱一系列的元素。當使用者按下 **上鍵**/**下鍵**/**輸入鍵** 時，`keydown()` 中的邏輯就會使用 ID 選擇器，來確定該設定焦點在哪個輸入框上。
+輸入框的 `id` 屬性與座標相同，由 `col+row` 安插取得。每個 HTML 元素的 `id` 屬性，必須跟文件內所有其他元件的 `id` 不同。這樣確保了 `#A1` 這個「ID 選擇器」（ID selector）只會指向一個元素，而不像類別選擇器 `.formula` 那樣指稱一系列的元素。當使用者按下 **上鍵**/**下鍵**/**輸入鍵** 時，`keydown()` 中的邏輯就會使用 ID 選擇器，來確定該設定焦點在哪個輸入框上。
 
 在輸入框後面，我們放置一個 `<div>` 元素，來顯示當前儲存格的計算結果（以物件 `errs` 和 `vals` 在 JS 模型中表示）：
 
@@ -228,7 +228,7 @@ The `function*` above means that `range` returns an [iterator](https://developer
   $scope.keydown = ({which}, col, row)=>{ switch (which) {
 ```
 
-[箭號函數](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/arrow_functions) 從 `<input ng-keydown>` 接收引數 `($event, col, row)` 之後，使用 [解構賦值](https://developer.mozilla.org/en-US/docs/Web/JavaScript/New_in_JavaScript/1.7#Pulling_fields_from_objects_passed_as_function_parameter) 將 `$event.which` 指派到 `which` 參數裡，並檢查它是否屬於要處理的三種按按鍵碼之一：
+[箭號函數](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/arrow_functions) 從 `<input ng-keydown>` 接收引數 `($event, col, row)` 之後，使用[解構賦值](https://developer.mozilla.org/en-US/docs/Web/JavaScript/New_in_JavaScript/1.7#Pulling_fields_from_objects_passed_as_function_parameter)將 `$event.which` 指派到 `which` 參數裡，並檢查它是否屬於要處理的三種鍵碼之一：
 
 ```js
     case 38: case 40: case 13: $timeout( ()=>{
@@ -242,7 +242,7 @@ The `function*` above means that `range` returns an [iterator](https://developer
 
 此處的 `const` 宣告，指的是 `direction` 的值在函式執行期間不會改變。如果按鍵碼是**上鍵** (38)，表示往上移動（`-1`， 從 **A2** 到 **A1**），否則往下移動（`+1`，從 **A2** 到 **A3**）。
 
-接下來，我們使用以反引號撰寫的[模板字串](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/template_strings)將開頭的 `#`、當前的直欄 `col` 和目標橫列 `row + direction` 串聯在一起，來構築 ID 選擇器（例如`"#A3”`），以取得目標元素：
+接下來，我們使用以反引號撰寫的[模板字串](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/template_strings)將開頭的 `#`、當前的直欄 `col` 和目標橫列 `row + direction` 串聯在一起，構築出 ID 選擇器（例如`"#A3”`），來取得目標元素：
 
 ```js
       const cell = document.querySelector( `#${ col }${ row + direction }` );
@@ -426,7 +426,7 @@ if (self.importScripts) {
             if (match && !( match[0] in self )) {
 ```
 
-在這種情況下，我們把缺失的儲存格之預設值設成 `0`、清除 `vals[coord]`，並使用 `self[coord]` 來重新執行當前運算：
+在這種情況下，我們把缺失的儲存格預設成 `0`、清除 `vals[coord]`，並使用 `self[coord]` 來重新執行當前運算：
 
 ```js
               // The formula refers to a uninitialized cell; set it to 0 and retry
@@ -533,8 +533,8 @@ input:focus + div { white-space: nowrap; }
 
 本章旨在示範 ES6 的新概念，因此使用 [Traceur 編譯器](https://github.com/google/traceur-compiler)將源碼翻譯成 ES5，以在 2015 年之前的瀏覽器上運行。
 
-如果你比較喜歡直接使用 2010 年版的 JS， [as-javascript-1.8.5](https://audreyt.github.io/500lines/spreadsheet/as-javascript-1.8.5/) 目錄下有以 ES5 風格寫成的 **main.js** 和 **worker.js**；它的[源碼](https://github.com/audreyt/500lines/tree/master /spreadsheet/as-javascript-1.8.5) 行數和 ES6 版本相同，可以交互對照。
+如果你比較喜歡直接使用 2010 年版的 JS， [as-javascript-1.8.5](https://audreyt.github.io/500lines/spreadsheet/as-javascript-1.8.5/) 目錄下有以 ES5 風格寫成的 **main.js** 和 **worker.js**；它的[源碼](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-javascript-1.8.5)行數和 ES6 版本相同，可以交互對照。
 
-如果你想要更簡潔的語法，[as-livescript-1.2.0](https://audreyt.github.io/500lines /spreadsheet/as-livescript-1.2.0/) 目錄使用 [LiveScript](http://livescript.net/) 寫成 **main.ls** 和 **worker.ls**；它的[源碼](https://github.com/audreyt/500lines/tree/master /spreadsheet/as-livescript-1.2.0) 比 JS 版本少了 20 行。
+如果你想要更簡潔的語法，[as-livescript-1.2.0](https://audreyt.github.io/500lines/spreadsheet/as-livescript-1.2.0/) 目錄使用 [LiveScript](http://livescript.net/) 寫成 **main.ls** 和 **worker.ls**；它的[源碼](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-livescript-1.2.0)比 JS 版本少了 20 行。
 
 如果你有興趣翻譯這幾段程式到其他 JS 語言，歡迎發送[合併請求](https://github.com/audreyt/500lines/pulls)給我！
