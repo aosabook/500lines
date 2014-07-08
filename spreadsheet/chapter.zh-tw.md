@@ -89,15 +89,15 @@
 
 ### HTML
 
-`index.html` 中的首行程式碼聲明這是使用 HTML5（`<!DOCTYPE html>`） 和 UTF-8 編碼寫成的：
+`index.html` 的第一行，聲明這是使用 HTML5（`<!DOCTYPE html>`） 與 UTF-8 編碼寫成的網頁：
 
 ```html
 <!DOCTYPE html><html><head><meta charset="UTF-8">
 ```
 
-如果沒有聲明 `charset` ，瀏覽器可能會把重置按鈕的萬國碼符號 `↻` 顯示為 `â†»`，也就是亂碼（mojibake）──由解碼問題引起的錯誤情況。
+如果沒有宣告 `charset` ，瀏覽器可能會把重置按鈕的萬國碼符號 `↻` 顯示為 `â†»`，也就是亂碼（mojibake）──由解碼問題引起的錯誤情況。
 
-接下來的四行程式碼是 JS 聲明，依慣例放在 `head` 區塊裡：
+接下來的四行程式碼是 JS 宣告，依慣例放在 `head` 區塊裡：
 
 ```html
   <script src="main.js"></script>
@@ -147,8 +147,7 @@
     <td ng-repeat="col in Cols" ng-class="{ formula: ( '=' === sheet[col+row][0] ) }">
 ```
 
-這裡有幾個重點。在 HTML 中，`class` 屬性描述類別名稱的集合（a set of class names），讓 CSS 以不同方式各自賦予模式。這裡的 `ng-class` 會運算表達式 `( '=' === sheet[col+row][0] )`；如果結果為真，那麼 `<td>` 會獲得類別 `formula` ，因此儲存格就會添上淡藍色背景，由 **styles.css** 第 4 行中的 `.formula`「
-類別選擇器」（class selector）所定義。
+這裡有幾個重點。在 HTML 中，`class` 屬性描述類別名稱的集合（a set of class names），讓 CSS 賦予它們不同的樣式。這裡的 `ng-class` 會運算表達式 `( '=' === sheet[col+row][0] )`；如果結果為真，那麼 `<td>` 會獲得類別 `formula` ，因此儲存格就會添上淡藍色背景，由 **styles.css** 第 4 行中的 `.formula`「類別選擇器」（class selector）所定義。
 
 上述表達式用來檢查目前儲存格是否為公式的方法，是透過測試 `=` 是否為 `sheet[col+row]` 字串的初始字符（`[0]`）。此處 `sheet` 是 JS 模型物件，屬性為各個座標（例如 `"E1"`），儲存格內容（例如 `"=A1+C1"`）則是屬性的值。要注意的是，由於 `col` 是字串而非數字，因此 `col+row` 中的 `+` 指的是串聯，而不是加法。
 
@@ -163,7 +162,7 @@
 
 當使用者按住某個鍵不放的時候，為了避免重複執行 `calc()`，`ng-model-options` 會限制更新速率至每 200 毫秒一次。
 
-輸入框的 `id` 屬性，由 `col+row` 安插取得座標。一個 HTML 元件的 `id` 屬性，必須跟文件內所有其他元件的 `id` 不同。這樣確保了 `#A1` 這個「ID 選擇器」（ID selector）只會指向至一個元素，而不像類別選擇器 `.formula` 那樣指稱一系列的元素。當使用者按下**上鍵**/**下鍵**/**輸入鍵**時，`keydown()` 中的邏輯就會使用 ID 選擇器，來確定該設定焦點在哪個輸入框上。
+輸入框的 `id` 屬性與座標相同，由 `col+row` 安插取得。一個 HTML 元件的 `id` 屬性，必須跟文件內所有其他元件的 `id` 不同。這樣確保了 `#A1` 這個「ID 選擇器」（ID selector）只會指向至一個元素，而不像類別選擇器 `.formula` 那樣指稱一系列的元素。當使用者按下**上鍵**/**下鍵**/**輸入鍵**時，`keydown()` 中的邏輯就會使用 ID 選擇器，來確定該設定焦點在哪個輸入框上。
 
 在輸入框後面，我們放置一個 `<div>` 元素，來顯示當前儲存格的計算結果（以物件 `errs` 和 `vals` 在 JS 模型中表示）：
 
