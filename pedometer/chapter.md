@@ -2,11 +2,11 @@
 
 TODO: A physicist, a mathematician, and a software engineer joke...
 
-Many software engineers reflecting on their training will remember having the pleasure of living in a very perfect world. We were taught to solve discrete problems, with defined parameters, in an ideal domain. We only had to deal with small, contained problems, and were often advised to ignore complexities.
+Many software engineers reflecting on their training will remember having the pleasure of living in a very perfect world. We were taught to solve discrete problems, with defined parameters, in an ideal domain. 
 
 Then, we were thrown into the real world, with all of it's complexities and challenges. It's messy, which makes it all the more exciting. When you can solve a real-life problem, with all of it's quirks, you can build software that really helps people, every day. 
 
-Let's take a look at a problem that looks straightforward on the surface, and gets tangled very quickly when the real world, and real people, are thrown into it. 
+In this chapter, we'll examine a problem that looks straightforward on the surface, and gets tangled very quickly when the real world, and real people, are thrown into it. 
 
 # A Basic Pedometer
 
@@ -34,16 +34,16 @@ Let's look at person walking with smartphone containing an accelerometer held in
 
 For the sake of simplicity, we'll assume that:
 
-* the phone is only moving in the positive x direction while the y and z directions remain fixed, 
-* the phone remains in the same position throughout the entire walk, 
-* the bounces created by each step are identical
+* the stick man is walking in the x direction, with step bounces in the y direction, and no motion in the z direction;
+* the phone remains in the same position throughout the entire walk;
+* the bounces created by each step are identical;
 * the accelerometer is perfectly accurate.
 
 Ah, the joys of a perfect world, that we only ever really experience in texts like these. Don't fret, we'll deal with an imperfect, but real and more exciting world soon.
 
 The phone in the example above is positioned such that the y direction is the one in the direction of gravity. Since we want to count the number of bounces in the direction of gravity, and y is the only direction affected by gravity with the current position, we can completely ignore x and z. 
 
-The accelerometer is picking up the person's acceleration in the y direction, which is due to the bounces in their steps. In our perfect world, these bounces form a perfect sine wave. Each cycle in the waveform is exactly one step. We can easily count cycles in code by counting the number of times that our waveform crosses the x-axis in the positive direction. So, when we can completely ignore x and z, acceleration in the y direction should look like the diagram below. Easy, right?
+The accelerometer is picking up the person's acceleration in the y direction, which is due to the bounces in their steps. In our perfect world, these bounces form a perfect sine wave. Each cycle in the waveform is exactly one step. So, when we can completely ignore x and z, acceleration in the y direction should look like the diagram below, and we can count cycles in code by counting the number of times that our waveform crosses the x-axis in the positive direction. Easy, right?
 
 ![](chapter-figures/figure-sine-wave.png)\
 
@@ -78,12 +78,12 @@ Every problem has a solution. Let's look at each problem separately, and put on 
 
 ## 1. Isolating user acceleration from gravitational acceleration
 
-When the phone is held in such a way that the gravitational acceleration affects all components, we need to find a way to completely separate user acceleration from gravitational acceleration. We can do that using a tool called a low-pass filter.
+When the phone is held in such a way that the gravitational acceleration affects more than one coordinate, we need to find a way to completely separate user acceleration from gravitational acceleration. We can do that using a tool called a low-pass filter.
 
 ### Low-pass Filter
-A filter is a tool used in signal processing to remove an unwanted component from a signal. In our case, we want to remove user acceleration from our total acceleration signal, so that we're left with just  the gravitational component. Once we have that, we can subtract gravitational acceleration from the total acceleration, and we'll be left with user acceleration. In this way, we'll have three sets of data at the end, one for the total acceleration, one for gravitational acceleration on its own, and one for user acceleration on it's own. 
+A filter is a tool used in signal processing to remove an unwanted component from a signal. Our total acceleration sine wave is considered a signal. In our case, we want to remove user acceleration from our total acceleration signal, so that we're left with just the gravitational component. Once we have that, we can subtract gravitational acceleration from the total acceleration, and we'll be left with user acceleration. In this way, we'll have three sets of data at the end, one for the total acceleration, one for gravitational acceleration on its own, and one for user acceleration on its own. 
 
-A low-pass filter is a filter that allows low-frequency signals through, while attenuating signals higher than a set threshold. In our sitation, gravitational acceleration is a 0 Hz signal because it's constant, while user acceleration is not. This means that if we pass our signal through a low-pass filter, we'll allow the gravitational component of the signal to pass through, while removing the user acceleration component. There are numerous varieties of low-pass filters, but the one we'll use is called a Chebyshev filter. We've chosen a Chebyshev filter because it has a steep cutoff, which means that it very quickly attenuates frequencies beyond our threshold. 
+A low-pass filter is a filter that allows low-frequency signals through, while attenuating signals higher than a set threshold. In our sitation, gravitational acceleration is a 0 Hz signal because it's constant, while user acceleration is not. This means that if we pass our signal through a low-pass filter, we'll allow the gravitational component of the signal to pass through, while removing the user acceleration component. There are numerous varieties of low-pass filters, but the one we'll use is called a Chebyshev filter. We've chosen a Chebyshev filter because it has a steep cutoff, which means that it very quickly attenuates frequencies beyond our threshold, which is ideal for isolating a 0 Hz signal like gravity. 
 TODO: Expand?
 
 ## 2. Isolating movement in the direction of gravity
@@ -92,8 +92,13 @@ When gravity acts on our phone in multiple directions, how do we isolate acceler
 
 ### The Dot Product
 
-The dot product takes two signals of equal length and returns a single signal. We have our final format split into user acceleration in the x, y, and z directions and gravitational accelearation in the x, y, and z directions. If we take the dot product of user acceleration and gravitational acceleration, we'll have, in return, the portion of user acceleration in the direction of gravity. 
-TODOL Expand?
+The dot product takes two signals of equal length and returns a single signal. 
+In solving problem one above, we have our total acceleration signal separated into a gravitational acceleration signal and a user acceleration signal. So, what will happen if we take the dot product of user acceleration and gravitational acceleration?
+
+TODO: Add image of summation from wikipedia, and vectors.
+
+So, the dot product of user acceleration and gravitational acceleration results in the portion of user acceleration in the direction of gravity. 
+TODO: Expand?
 
 TODO: Add graphs from trial view showing original data and dot product data.
 
