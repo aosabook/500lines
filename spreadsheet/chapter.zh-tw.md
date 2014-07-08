@@ -8,7 +8,7 @@
 
 在 20 世紀 90 年代，瀏覽器加入了各種展示性標籤到 HTML 詞彙，包括一些聲名狼藉的非標準標籤，例如來自 Netscape Navigator 的 `<blink>…</blink>` 和來自 Internet Explorer 的 `<marquee>…</marquee>` ，都造成了親和力和瀏覽器兼容性的廣泛問題。
 
-為了保持 HTML 的原來目的 —— 描述一個文件的邏輯結構，瀏覽器開發者最終同意支援額外兩種程式語言：CSS 來形容網頁的展示風格，以及 JS 來描述其動態互動功能。
+為了保持 HTML 的原本目的（描述文件的邏輯結構），瀏覽器開發者最後同意額外支援兩種語言：CSS 來形容網頁的展示風格，以及 JS 來描述其動態互動功能。
 
 從那時開始，這三種程式語言經過了 20 年的共同進化，已經變得更加簡潔和強大。如今，跨平台的應用網站（Web applications，例如試算表），已經跟上個世紀的桌面應用程式（如 VisiCalc、Lotus 1-2-3 和 Excel）一樣普及了。
 
@@ -276,7 +276,7 @@ The `function*` above means that `range` returns an [iterator](https://developer
 * 由於 localStorage 只能存取字串，所以要用 `angular.fromJson()` 將 [JSON](https://developer.mozilla.org/en-US/docs/Glossary/JSON) 解析（parse）為 `sheet` 結構。
 * `init()` 的最後一步，是建立新的 [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Worker) 線程，並將它放進 `worker` 屬性裡。雖然顯示層不會直接用到背景工作器，但我們仍依慣例使用 `$scope` 屬性，來讓多個函式能共用同一個模型裡的物件（此處指的是 `init()` 和下述的 `calc()` ）。
 
-`sheet` 儲存了使用者可編輯的儲存格內容，而 `errs` 和 `vals` 則包含了計算的結果——錯誤和數值——兩者對於使用者來說都屬於唯讀內容：
+`sheet` 儲存了使用者可編輯的儲存格內容，而 `errs` 和 `vals` 則包含了計算的結果（錯誤和數值），兩者對於使用者來說都屬於唯讀內容：
 
 ```js
   // Formula cells may produce errors in .errs; normal cell contents are in .vals
@@ -517,7 +517,7 @@ input:focus + div { white-space: nowrap; }
 
 ## 總結
 
-在這本「500 行以下」的合輯裡，這份用 99 行程式寫成的試算表，只是非常簡約的範例——請隨意實驗，將它往任何你想得到的方向擴展。
+在這本「500 行以下」的合輯裡，這份用 99 行程式寫成的試算表，只是非常簡約的範例。讀者不妨隨意實驗，將它往任何想得到的方向擴充。
 
 這裡有一些想法，每項都可以在剩餘的 401 行空間裡完成：
 
@@ -529,10 +529,10 @@ input:focus + div { white-space: nowrap; }
 
 ### 備註: 關於 JS 版本
 
-本章旨在示範 ES6 的新概念，因此使用 [Traceur 編譯器](https://github.com/google/traceur-compiler) 來將源碼翻譯成 ES5，以在 2015 年之前的瀏覽器上運行。
+本章旨在示範 ES6 的新概念，因此使用 [Traceur 編譯器](https://github.com/google/traceur-compiler)將源碼翻譯成 ES5，以在 2015 年之前的瀏覽器上運行。
 
 如果你比較喜歡直接使用 2010 年版的 JS， [as-javascript-1.8.5](https://audreyt.github.io/500lines/spreadsheet/as-javascript-1.8.5/) 目錄下有以 ES5 風格寫成的 **main.js** 和 **worker.js**；它的[源碼](https://github.com/audreyt/500lines/tree/master /spreadsheet/as-javascript-1.8.5) 行數和 ES6 版本相同，可以交互對照。
 
 如果你想要更簡潔的語法，[as-livescript-1.2.0](https://audreyt.github.io/500lines /spreadsheet/as-livescript-1.2.0/) 目錄使用 [LiveScript](http://livescript.net/) 寫成 **main.ls** 和 **worker.ls**；它的[源碼](https://github.com/audreyt/500lines/tree/master /spreadsheet/as-livescript-1.2.0) 比 JS 版本少了 20 行。
 
-如果你有興趣翻譯這幾段程式到其他 JS 語言，歡迎發送[合併請求](https://github.com/audreyt/500lines/pulls) 給我！
+如果你有興趣翻譯這幾段程式到其他 JS 語言，歡迎發送[合併請求](https://github.com/audreyt/500lines/pulls)給我！
