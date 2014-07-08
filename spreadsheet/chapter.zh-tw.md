@@ -1,6 +1,6 @@
-# [Web 試算表](http://audreyt.github.io/500lines/spreadsheet/) 只需 [99 行](https://github.com/audreyt/500lines/tree/master/spreadsheet)
+# 用[99 行程式](https://github.com/audreyt/500lines/tree/master/spreadsheet)寫出[試算表網站](http://audreyt.github.io/500lines/spreadsheet/) 
 
-在本章中，我們將會介紹一個以 99 行 HTML、CSS 和 JS 程式碼（瀏覽器原生支援的三種程式語言）寫成的 Web 試算表。
+本章介紹以 99 行 HTML、CSS 和 JS 程式（瀏覽器原生支援的三種語言）寫成的試算表應用網站。
 
 ## 簡介
 
@@ -25,18 +25,18 @@
 
 ### 基本概念
 
-試算表往兩個方向延伸，「直欄」（columns）由 **A** 開始編號，而「橫列」（rows）則由 **1** 開始。每個「儲存格」（cell）都有各自的「座標」（coordinate）與「內容」（content），例如 **A1** 與 `1874`。內容的「型別」（types）有以下四種：
+試算表往兩個方向延伸，直欄（columns）由 **A** 開始編號，而橫列（rows）則由 **1** 開始。每個儲存格（cell）都有各自的座標（coordinate）與內容（content），例如 **A1** 與 `1874`。內容的型別（types）有以下四種：
 
 * 文字：**B1** 中的 `+` 和 **D1** 中的 `⇒`，向左對齊。
 * 數字：**A1** 中的 `1874` 和 **C1** 中的 `2046`， 向右對齊。
-* 公式：**E1** 中的 `=A1+C1`，經「計算」（calculation）後得出「數值」（value）為 `3920`，以淡藍色背景顯示。
+* 公式：**E1** 中的 `=A1+C1`，經計算（calculation）後得出數值（value）為 `3920`，以淡藍色背景顯示。
 * 空白：橫列 **2** 上的所有儲存格目前都是空白的。
 
-點擊 `3920` 來移動「焦點」（focus）到 **E1**，會出現「輸入框」（input box）來顯示它的公式：
+點擊 `3920` 來移動焦點（focus）到 **E1**，會出現輸入框（input box）來顯示它的公式：
 
 ![輸入框](./images/02-input.png)
 
-現在把選取焦點移到 **A1** ，將它的內容「變更」（change）為 `1`，使 **E1** 的數值「重新計算」（recalculate）為 `2047`：
+現在把選取焦點移到 **A1** ，將它的內容變更（change）為 `1`，使 **E1** 的數值重新計算（recalculate）成 `2047`：
 
 ![已變更的內容](./images/03-changed.png)
 
@@ -44,11 +44,11 @@
 
 ![公式錯誤](./images/04-error.png)
 
-以上展示了公式的計算結果可以是數字（**E1** 中的 `2047`）、文字（**A2** 顯示的目前時間，向左對齊），或者是「錯誤」（error，如 **B2** 中的紅色字母，置中對齊）。
+以上展示了公式的計算結果可以是數字（**E1** 中的 `2047`）、文字（**A2** 顯示的目前時間，向左對齊），或者是錯誤（error，如 **B2** 中的紅色字母，置中對齊）。
 
-接下來試試輸入 `=for(;;){}`，這是一個 JS 程式碼，輸入後會執行一個永無休止的無限循環。試算表將會在你嘗試變更後自動「回復」（restore） **C2** 的內容，以避免執行此循環。
+接下來試試輸入 `=for(;;){}`，這是一個 JS 程式碼，輸入後會執行一個永無休止的無限循環。試算表將會在嘗試變更時自動回復（restore） **C2** 的內容，以避免執行此循環。
 
-現在按 **Ctrl-R** 或 **Cmd-R** 重新載入瀏覽器頁面，確認試算表的內容是「持續的」（persistent），在每個瀏覽階段中保持一致。 如果要「重置」（reset）試算表的原始內容，可按左上角的 `↻` 按鈕。
+現在按 **Ctrl-R** 或 **Cmd-R** 重新載入瀏覽器頁面，確認試算表的內容能夠延續（persistent），在每個瀏覽階段中保持一致。 如果要重置（reset）試算表的原始內容，可按左上角的 `↻` 按鈕。
 
 ### 漸進增強
 
@@ -94,7 +94,7 @@
 <!DOCTYPE html><html><head><meta charset="UTF-8">
 ```
 
-如果沒有聲明 `charset` ，瀏覽器可能會把重置按鈕的萬國碼符號 `↻` 顯示為 `â†»`，也就是「亂碼」（mojibake）——由解碼問題引起的錯誤情況。
+如果沒有聲明 `charset` ，瀏覽器可能會把重置按鈕的萬國碼符號 `↻` 顯示為 `â†»`，也就是亂碼（mojibake）——由解碼問題引起的錯誤情況。
 
 接下來的四行程式碼是 JS 聲明，依慣例放在 `head` 區塊裡：
 
@@ -116,7 +116,7 @@
 </head><body ng-app ng-cloak ng-controller="Spreadsheet">
 ```
 
-上述的 `ng-` 屬性指示 AngularJS 程式庫運行`Spreadsheet` 的 JS 函數，為此文件建立一個「控制層」（controller）來提供「模型層」（model），也就是一組可以在文件「檢視層」（view）中進行「繫結」（binding）的名稱。`ng-cloak` 屬性會先隱藏文件顯示，直到繫結已經就位為止。
+上述的 `ng-` 屬性指示 AngularJS 程式庫運行`Spreadsheet` 的 JS 函數，為此文件建立控制器（controller）來提供模型（model），也就是一組可以在文件顯示層（view）中進行繫結（binding）的名稱。`ng-cloak` 屬性會先隱藏文件顯示，直到繫結已經就位為止。
 
 舉個具體的例子，當使用者點擊下一行中所定義的 `<button>` ，其 `ng-click` 屬性會觸發並執行 `reset()` 和 `calc()` 這兩個由 JS 模型提供的函式：
 
@@ -131,9 +131,9 @@
     <th ng-repeat="col in Cols">{{ col }}</th>
 ```
 
-舉例來說，如果 JS 模型把 `Cols` 定義為 `["A","B","C"]`，那麼將會有三個標題儲存格（`th`）來顯示標筏。`{{ col }}` 標記指示 AngularJS 為表達式進行「安插」（interpolation），來在每個 `th` 的內容中填上當前的 `col` 數值。
+舉例來說，如果 JS 模型把 `Cols` 定義為 `["A","B","C"]`，那麼將會有三個標題儲存格（`th`）來顯示標筏。內容的 `{{ col }}` 表達式會由 AngularJS 進行安插（interpolation），來在每個 `th` 的內容中填上當前的 `col` 數值。
 
-同樣地，下面兩行會檢查 `Rows` 的數值（`[1,2,3]` 等等），為每個數值建立一個橫列，並在最左邊的 `th` 儲存格以編號標註：
+同樣地，下面兩行會檢查 `Rows` 的數值（`[1,2,3]` 等等），為每個數值建立橫列，並在最左邊的 `th` 儲存格以編號標註：
 
 ```html
   </tr><tr ng-repeat="row in Rows">
@@ -146,9 +146,9 @@
     <td ng-repeat="col in Cols" ng-class="{ formula: ('=' === sheet[col+row][0]) }">
 ```
 
-這裡有幾個重點。在 HTML 中，`class` 屬性描述「一系列的類別名稱」（set of class names），讓 CSS 以不同方式賦予它們模式。這裡的 `ng-class` 會運算表達式 `('=' === sheet[col+row][0])`；如果結果為真，那麼 `<td>`會獲得類別 `formula` ，因此儲存格就會添上淡藍色背景，由 **styles.css** 第 8 行中的 `.formula`「類別選取器」（class selector）所定義。
+這裡有幾個重點。在 HTML 中，`class` 屬性描述類別名稱的集合（a set of class names），讓 CSS 以不同方式賦予它們模式。這裡的 `ng-class` 會運算表達式 `('=' === sheet[col+row][0])`；如果結果為真，那麼 `<td>`會獲得類別 `formula` ，因此儲存格就會添上淡藍色背景，由 **styles.css** 第 8 行中的 `.formula`「類別選取器」（class selector）所定義。
 
-上述表達式檢查目前儲存格是否為公式的方式，是透過測試 `=` 是否為 `sheet[col+row]` 字串的初始字符（`[0]`）。此處 `sheet` 是 JS 模型物件，以各個座標（例如 `"E1"`） 為它的屬性，儲存格內容（例如 `"=A1+C1"`）則是屬性的值。要注意的是，由於 `col` 是字串而非數字，因此 `col+row` 中的 `+` 指的是串聯，而不是加法。
+上述表達式用來檢查目前儲存格是否為公式的方法，是透過測試 `=` 是否為 `sheet[col+row]` 字串的初始字符（`[0]`）。此處 `sheet` 是 JS 模型物件，以各個座標（例如 `"E1"`） 為它的屬性，儲存格內容（例如 `"=A1+C1"`）則是屬性的值。要注意的是，由於 `col` 是字串而非數字，因此 `col+row` 中的 `+` 指的是串聯，而不是加法。
 
 在 `<td>` 中，我們給使用者一個輸入框，來編輯儲存在 `sheet[col+row]` 中的儲存格內容：
 
@@ -160,7 +160,7 @@
 
 當使用者按住某個鍵不放的時候，為了避免重複執行 `calc()`，`ng-model-options` 會限制更新速率至每 200 毫秒一次。
 
-輸入框的 `id` 屬性，由 `col+row` 安插取得座標。 一個 HTML 元件的 `id` 屬性，必須跟文件內所有其他元件的 `id` 不同。這樣確保了 `#A1` 這個「ID 選取器」（ID selector）只會指向至一個元素，而不像類別選取器 `.formula` 那樣指稱一系列的元素。當使用者按下 **向上鍵**/**向下鍵**/**輸入鍵** 時，`keydown()` 中的邏輯就會使用 ID 選取器，來確定該設定焦點在哪個輸入框上。
+輸入框的 `id` 屬性，由 `col+row` 安插取得座標。 一個 HTML 元件的 `id` 屬性，必須跟文件內所有其他元件的 `id` 不同。這樣確保了 `#A1` 這個「ID 選取器」（ID selector）只會指向至一個元素，而不像類別選取器 `.formula` 那樣指稱一系列的元素。當使用者按下 **上鍵**/**下鍵**/**輸入鍵** 時，`keydown()` 中的邏輯就會使用 ID 選取器，來確定該設定焦點在哪個輸入框上。
 
 在輸入框後面，我們放置一個 `<div>` 元素，來顯示當前儲存格的計算結果（以物件 `errs` 和 `vals` 在 JS 模型中表示）：
 
@@ -217,7 +217,7 @@ The `function*` above means that `range` returns an [iterator](https://developer
   } }
 ```
 
-要產生下一個數值時，我們使用 `isNaN` 來查看 `cur` 是否為英文字母（`NaN` 代表「非數字」，not a number）。如果是，我們可以將字母的[碼位值](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/codePointAt)加一，然後將碼位[轉換](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/fromCodePoint)成下一個字母。如果 `cur` 是數值，那只要加一就可以了：
+要產生下一個數值時，我們使用 `isNaN` 來查看 `cur` 是否為英文字母（`NaN` 代表「非數字」，not a number）。如果是，我們可以將字母的[碼位值](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/codePointAt)加一，然後將碼位[轉換](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/fromCodePoint)成下一個字母。如果 `cur` 是數字，那只要加一就可以了。
 
 接著我們定義 `keydown()` 函式，來處理鍵盤往上下列的移動事件：
 
@@ -226,21 +226,21 @@ The `function*` above means that `range` returns an [iterator](https://developer
   $scope.keydown = ({which}, col, row)=>{ switch (which) {
 ```
 
-[箭號函數](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/arrow_functions) 從 `<input ng-keydown>` 接收引數 `($event, col, row)` 之後，使用 [解構賦值](https://developer.mozilla.org/en-US/docs/Web/JavaScript/New_in_JavaScript/1.7#Pulling_fields_from_objects_passed_as_function_parameter) 將 `$event.which` 指派到 `which` 參數裡，並檢查它是否屬於三種按鍵碼之一：
+[箭號函數](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/arrow_functions) 從 `<input ng-keydown>` 接收引數 `($event, col, row)` 之後，使用 [解構賦值](https://developer.mozilla.org/en-US/docs/Web/JavaScript/New_in_JavaScript/1.7#Pulling_fields_from_objects_passed_as_function_parameter) 將 `$event.which` 指派到 `which` 參數裡，並檢查它是否屬於要處理的三種按按鍵碼之一：
 
 ```js
     case 38: case 40: case 13: $timeout( ()=>{
 ```
 
-如果是的話，就使用 `$timeout` 將「更新儲存格焦點」加入排程，在 `ng-keydown` 和 `ng-change` 事件後接著執行。因為 `$timeout` 的引數必須是函式，我們用 `()=>{…}` 語法將更新焦點的邏輯包進函式裡。首先是檢查移動方向：
+如果是的話，我們就用 `$timeout` 將「更新儲存格焦點」加入排程，在 `ng-keydown` 和 `ng-change` 事件後接著執行。因為 `$timeout` 的引數必須是函式，我們用 `()=>{…}` 語法將更新焦點的邏輯包進函式裡。首先檢查移動方向：
 
 ```js
       const direction = (which === 38) ? -1 : +1;
 ```
 
-The `const` declarator means `direction` will not change during the function’s execution. The direction to move is either upward (`-1`, from **A2** to **A1**) if the key code is **UP** (38), or downward (`+1`, from **A2** to **A3**) otherwise.
+此處的 `const` 宣告，指的是 `direction` 的值在函式執行期間不會改變。如果按鍵碼是**上鍵** (38)，表示往上移動（`-1`， 從 **A2** 到 **A1**），否則往下移動（`+1`，從 **A2** 到 **A3**）。
 
-Next up, we retrieve the target element using the ID selector syntax (e.g. `"#A3"`), constructed with a [template string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/template_strings) written in a pair of back-quotes, concatenating the leading `#`, the current `col` and the target `row + direction`:
+接下來，我們使用以反引號撰寫的[模板字串](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/template_strings) 將開頭的 `#`、當前的直欄 `col` 和目標橫列 `row + direction` 串聯在一起，來構築 ID 選取器（例如`"#A3”`），以取得目標元素：
 
 ```js
       const cell = document.querySelector( `#${ col }${ row + direction }` );
@@ -249,16 +249,16 @@ Next up, we retrieve the target element using the ID selector syntax (e.g. `"#A3
   } };
 ```
 
-We put an extra check on the result of `querySelector` because moving upward from **A1** will produce the selector `#A0`, which has no corresponding element, and so will not trigger a focus change — the same goes for pressing **DOWN** at the bottom row.
+之所以要檢查 `querySelector` 是否有傳回值，是因為從 **A1** 向上移動時，會產生選取器 `#A0`：它沒有相應的元件，因此不會觸發焦點變化。在最底端的橫列按**下鍵**時也是一樣。
 
-Next, we define the `reset()` function so the `↻` button can restore the `sheet` its initial contents:
+接著我們定義 `reset()` 函數，讓 `↻` 按鈕可以恢復 `sheet` 的初始內容：
 
 ```js
   // Default sheet content, with some data cells and one formula cell.
   $scope.reset = ()=>{ $scope.sheet = { A1: 1874, B1: '+', C1: 2046, D1: '⇒', E1: '=A1+C1' } }
 ```
 
-The `init()` function first tries restoring the `sheet` content from its previous state from the [localStorage](https://developer.mozilla.org/en-US/docs/Web/Guide/API/DOM/Storage#localStorage), or defaults to the initial content if it’s our first time running the application:
+`init()` 函式先試著從 [localStorage](https://developer.mozilla.org/en-US/docs/Web/Guide/API/DOM/Storage#localStorage) 恢復 `sheet` 內容的先前狀態。或如果是首次運行，則預設為初始內容：
 
 ```js
   // Define the initializer, and immediately call it
@@ -270,20 +270,20 @@ The `init()` function first tries restoring the `sheet` content from its previou
   })();
 ```
 
-A few things are worth nothing in the `init()` function above:
+上述的 `init()` 函式裡，有幾件事情值得注意：
 
-* We use the `($scope.init = ()=>{…})()` syntax to define the function and immediately call it.
-* Because localStorage only stores strings, we _parse_ the `sheet` structure from its [JSON](https://developer.mozilla.org/en-US/docs/Glossary/JSON) representation using `angular.fromJson()`.
-* At the last step of `init()`, we create a new [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Worker) thread and assign it to the `worker` scope property. Although the worker is not directly used in the view, it’s customary to use `$scope` to share objects used across model functions, in this case between `init()` here and `calc()` below.
+* 我們使用 `($scope.init = ()=>{…})()` 語法，在函式定義之後立刻執行它。
+* 由於 localStorage 只能存取字串，所以要用 `angular.fromJson()` 將 [JSON](https://developer.mozilla.org/en-US/docs/Glossary/JSON) 解析（parse）為 `sheet` 結構。
+* `init()` 的最後一步，是建立新的 [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Worker) 線程，並將它放進 `worker` 屬性裡。雖然顯示層不會直接用到背景工作器，但我們仍依慣例使用 `$scope` 屬性，來讓多個函式能共用同一個模型裡的物件（此處指的是 `init()` 和下述的 `calc()` ）。
 
-While `sheet` holds the user-editable cell content, `errs` and `vals` contain the results of calculations — errors and values — that are read-only to the user:
+`sheet` 儲存了使用者可編輯的儲存格內容，而 `errs` 和 `vals` 則包含了計算的結果——錯誤和數值——兩者對於使用者來說都屬於唯讀內容：
 
 ```js
   // Formula cells may produce errors in .errs; normal cell contents are in .vals
   [$scope.errs, $scope.vals] = [ {}, {} ];
 ```
 
-With these properties in place, we can define the `calc()` function that triggers whenever the user makes a change to `sheet`:
+有了這些屬性，就可以定義出每當使用者變更 `sheet` 時，都會觸發的 `calc()` 函式：
 
 ```js
   // Define the calculation handler, and immediately call it
@@ -291,9 +291,9 @@ With these properties in place, we can define the `calc()` function that trigger
     const json = angular.toJson( $scope.sheet );
 ```
 
-Here we first snapshot the state of `sheet` into a JSON string, stored in the constant `json`.
+首先是把 `sheet` 的狀態快照成 JSON 字串，儲存在常數 `json` 裡。
 
-Next up, we construct a `promise` from [$timeout](https://docs.angularjs.org/api/ng/service/$timeout) that cancels the upcoming computation if it takes more than 99 milliseconds:
+接著我們用 [$timeout](https://docs.angularjs.org/api/ng/service/$timeout) 建構一個 `promise` ，如果接下來的計算需時超過 99 毫秒，就自動將它取消：
 
 ```js
     const promise = $timeout( ()=>{
@@ -306,9 +306,9 @@ Next up, we construct a `promise` from [$timeout](https://docs.angularjs.org/api
     }, 99 );
 ```
 
-Since we made sure that  `calc()` is called at most once every 200 milliseconds via the `<input ng-model-options>` attribute in HTML, this arrangement leaves 101 milliseconds for `init()` to restore `sheet` to the last known-good state and make a new Worker.
+在 HTML 中的 `<input ng-model-options>` 屬性，確保 `calc` 最多只會每 200 毫秒執行一次，因此這裡預留了 101 毫秒，讓 `init()` 恢復 `sheet` 到上一個已知的良好狀態，並建立新的背景工作器。
 
-The Worker’s task is to calculate `errs` and `vals` from the contents of`sheet`. Because **main.js** and **worker.js** communicate by message-passing, we need an `onmessage` handler to receive the results once they are ready:
+工作器的任務，是從 `sheet` 的內容計算出 `errs` 和 `vals`。由於 **main.js** 和 **worker.js** 是透過訊息傳遞來溝通，所以需要定義一個 `onmessage` 處理程序，來接收計算出的結果：
 
 ```js
     // When the worker returns, apply its effect on the scope
@@ -319,9 +319,9 @@ The Worker’s task is to calculate `errs` and `vals` from the contents of`sheet
     }
 ```
 
-If `onmessage` is called,  we know that the `sheet` snapshot in `json` is stable (i.e. containing no infinite-looping formulas), so we cancel the 99-millisecond timeout, write the snapshot to localStorage, and schedule an UI update with a `$timeout` function that updates `errs` and `vals` to the user-visible view.
+一旦 `onmessage` 開始執行，就表示 `json` 中的 `sheet` 快照是穩定的（也就是說公式裡沒有無限迴圈），因此我們可以取消 99 毫秒的逾時限制，把快照寫進 localStorage 裡，並使用 `$timeout` 函式將界面更新加入排程，把 `errs` 和 `vals` 更新到顯示層、呈現給使用者。
 
-With the handler in place, we can post the state of `sheet` to the worker, starting its calculation in the background:
+定義完處理程序之後，就可以將 `sheet` 的狀態傳送給工作者，在背景開始運算處理：
 
 ```js
     // Post the current sheet content for the worker to process
@@ -330,7 +330,7 @@ With the handler in place, we can post the state of `sheet` to the worker, start
 }
 ```
 
-### JS: Background Worker
+### JS: 背景工作者
 
 There are three reasons for using a Web Worker to calculate formulas, instead of using the main JS thread for the task:
 
@@ -515,7 +515,7 @@ Furthermore, the underlying `div` is collapsed into a single line, so it’s com
 input:focus + div { white-space: nowrap; }
 ```
 
-## Conclusion
+## 總結
 
 Since this book is _500 lines or less_, a web spreadsheet in 99 lines is just a minimal example — please feel free to experiment and extend it in any direction you’d like.
 
@@ -527,7 +527,7 @@ Here are some ideas, all easily reachable in the remaining space of 401 lines:
 * Interoperate with popular spreadsheet formats, such as CSV and SpreadsheetML via [SheetJS](http://sheetjs.com/)
 * Import from and export to online spreadsheet services, such as Google Spreadsheet and [EtherCalc](http://ethercalc.net/).
 
-### A Note on JS versions
+### 備註: 關於 JS 版本
 
 This chapter aims to demonstrate new concepts in ES6, so we use the [Traceur compiler](https://github.com/google/traceur-compiler) to translate source code to ES5 to run on pre-2015 browsers.
 
