@@ -372,7 +372,7 @@ Customarily, formulas variables are case-insensitive and can optionally have a `
 
 Note the _nested array comprehension_ syntax above, with  two `for`  expressions in the array definition.
 
-For each variable name like `A1` and `$a1`, we define its [accessor property](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperty) on `self` that calculates `vals[A1]` whenever they are evaluated in an expression:
+For each variable name like `A1` and `$a1`, we define its [accessor property](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperty) on `self` that calculates `vals["A1"]` whenever they are evaluated in an expression:
 
 ```js
         // Worker is reused across calculations, so only define each variable once
@@ -384,7 +384,7 @@ For each variable name like `A1` and `$a1`, we define its [accessor property](ht
 
 The `{ get() { … } }` syntax above is shorthand for `{ get: ()=>{ … } }`. Because we define only `get` and not `set`, the variables become  _read-only_ and cannot be modified from user-supplied formulas.
 
-The `get` accessor starts by checking if `vals[coord]` is already calculated, and simply returns it if it’s the same:
+The `get` accessor starts by checking `vals[coord]`, and simply returns it if it’s already calculated:
 
 ```js
           if (coord in vals) { return vals[coord]; }

@@ -1,4 +1,4 @@
-# 用[99 行程式](https://github.com/audreyt/500lines/tree/master/spreadsheet)寫出[試算表網站](http://audreyt.github.io/500lines/spreadsheet/) 
+# 用[99 行程式](https://github.com/audreyt/500lines/tree/master/spreadsheet)寫出[網頁試算表](http://audreyt.github.io/500lines/spreadsheet/) 
 
 本章介紹以 99 行 HTML、CSS 和 JS 程式（瀏覽器原生支援的三種語言）寫成的試算表應用網站。
 
@@ -146,7 +146,7 @@
     <td ng-repeat="col in Cols" ng-class="{ formula: ('=' === sheet[col+row][0]) }">
 ```
 
-這裡有幾個重點。在 HTML 中，`class` 屬性描述類別名稱的集合（a set of class names），讓 CSS 以不同方式賦予它們模式。這裡的 `ng-class` 會運算表達式 `('=' === sheet[col+row][0])`；如果結果為真，那麼 `<td>`會獲得類別 `formula` ，因此儲存格就會添上淡藍色背景，由 **styles.css** 第 8 行中的 `.formula`「類別選取器」（class selector）所定義。
+這裡有幾個重點。在 HTML 中，`class` 屬性描述類別名稱的集合（a set of class names），讓 CSS 以不同方式賦予它們模式。這裡的 `ng-class` 會運算表達式 `('=' === sheet[col+row][0])`；如果結果為真，那麼 `<td>`會獲得類別 `formula` ，因此儲存格就會添上淡藍色背景，由 **styles.css** 第 8 行中的 `.formula`「類別選擇器」（class selector）所定義。
 
 上述表達式用來檢查目前儲存格是否為公式的方法，是透過測試 `=` 是否為 `sheet[col+row]` 字串的初始字符（`[0]`）。此處 `sheet` 是 JS 模型物件，以各個座標（例如 `"E1"`） 為它的屬性，儲存格內容（例如 `"=A1+C1"`）則是屬性的值。要注意的是，由於 `col` 是字串而非數字，因此 `col+row` 中的 `+` 指的是串聯，而不是加法。
 
@@ -160,7 +160,7 @@
 
 當使用者按住某個鍵不放的時候，為了避免重複執行 `calc()`，`ng-model-options` 會限制更新速率至每 200 毫秒一次。
 
-輸入框的 `id` 屬性，由 `col+row` 安插取得座標。 一個 HTML 元件的 `id` 屬性，必須跟文件內所有其他元件的 `id` 不同。這樣確保了 `#A1` 這個「ID 選取器」（ID selector）只會指向至一個元素，而不像類別選取器 `.formula` 那樣指稱一系列的元素。當使用者按下 **上鍵**/**下鍵**/**輸入鍵** 時，`keydown()` 中的邏輯就會使用 ID 選取器，來確定該設定焦點在哪個輸入框上。
+輸入框的 `id` 屬性，由 `col+row` 安插取得座標。 一個 HTML 元件的 `id` 屬性，必須跟文件內所有其他元件的 `id` 不同。這樣確保了 `#A1` 這個「ID 選擇器」（ID selector）只會指向至一個元素，而不像類別選擇器 `.formula` 那樣指稱一系列的元素。當使用者按下 **上鍵**/**下鍵**/**輸入鍵** 時，`keydown()` 中的邏輯就會使用 ID 選擇器，來確定該設定焦點在哪個輸入框上。
 
 在輸入框後面，我們放置一個 `<div>` 元素，來顯示當前儲存格的計算結果（以物件 `errs` 和 `vals` 在 JS 模型中表示）：
 
@@ -240,7 +240,7 @@ The `function*` above means that `range` returns an [iterator](https://developer
 
 此處的 `const` 宣告，指的是 `direction` 的值在函式執行期間不會改變。如果按鍵碼是**上鍵** (38)，表示往上移動（`-1`， 從 **A2** 到 **A1**），否則往下移動（`+1`，從 **A2** 到 **A3**）。
 
-接下來，我們使用以反引號撰寫的[模板字串](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/template_strings) 將開頭的 `#`、當前的直欄 `col` 和目標橫列 `row + direction` 串聯在一起，來構築 ID 選取器（例如`"#A3”`），以取得目標元素：
+接下來，我們使用以反引號撰寫的[模板字串](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/template_strings) 將開頭的 `#`、當前的直欄 `col` 和目標橫列 `row + direction` 串聯在一起，來構築 ID 選擇器（例如`"#A3”`），以取得目標元素：
 
 ```js
       const cell = document.querySelector( `#${ col }${ row + direction }` );
@@ -249,7 +249,7 @@ The `function*` above means that `range` returns an [iterator](https://developer
   } };
 ```
 
-之所以要檢查 `querySelector` 是否有傳回值，是因為從 **A1** 向上移動時，會產生選取器 `#A0`：它沒有相應的元件，因此不會觸發焦點變化。在最底端的橫列按**下鍵**時也是一樣。
+之所以要檢查 `querySelector` 是否有傳回值，是因為從 **A1** 向上移動時，會產生選擇器 `#A0`：它沒有相應的元件，因此不會觸發焦點變化。在最底端的橫列按**下鍵**時也是一樣。
 
 接著我們定義 `reset()` 函數，讓 `↻` 按鈕可以恢復 `sheet` 的初始內容：
 
@@ -321,7 +321,7 @@ The `function*` above means that `range` returns an [iterator](https://developer
 
 一旦 `onmessage` 開始執行，就表示 `json` 中的 `sheet` 快照是穩定的（也就是說公式裡沒有無限迴圈），因此我們可以取消 99 毫秒的逾時限制，把快照寫進 localStorage 裡，並使用 `$timeout` 函式將界面更新加入排程，把 `errs` 和 `vals` 更新到顯示層、呈現給使用者。
 
-定義完處理程序之後，就可以將 `sheet` 的狀態傳送給工作者，在背景開始運算處理：
+定義好處理程序之後，就可以將 `sheet` 的狀態傳送給工作者，在背景開始運算：
 
 ```js
     // Post the current sheet content for the worker to process
@@ -330,23 +330,23 @@ The `function*` above means that `range` returns an [iterator](https://developer
 }
 ```
 
-### JS: 背景工作者
+### JS: 背景工作
 
-There are three reasons for using a Web Worker to calculate formulas, instead of using the main JS thread for the task:
+計算公式不在 JS 主要線程中處理，而是使用背景工作，有三個原因：
 
-* While the worker runs in the background, the user is free to continue interacting with the spreadsheet, without getting blocked by computation in the main thread. 
-* Because we accept any JS expression in a formula, the worker provides a _sandbox_ that prevents formulas from interfering with the page that contains them, such as by popping out an `alert()` dialog.
-* A formula can refer to any coordinates as variables, which may contain yet another formula that possibly ends in a cyclic reference. To solve this problem, we use the Worker’s _global scope_ object `self`, and define these variables as _getter functions_ on `self` to implement the cycle-prevention logic.
+* 當工作者在背景執行時，使用者可以繼續操作試算表界面，不會被主線程的運算程序阻礙。
+* 因為公式裡可以出現任何 JS 表達式，工作者為此提供了沙盒（sandbox），來防止公式干擾到主線程的網頁，例如使用 `alert()` 彈出對話框等等。
+* 公式可以用任何座標當作變數，該變數可能包含另一項公式，最終可能導致循環引用。為了解決這個問題，我們利用工作者的全域範圍（global scope）物件 `self`，將各座標變數定義成它取值函數（getter function），以實作防止循環的邏輯。
 
-With these in mind, let’s take a look at the worker’s code. Because **index.html** pre-loads the worker program with a `<script>` tag, in **worker.js** we first ensure that we’re actually running as a background task:
+有了這些認識後，讓我們來看看工作者的程式碼。由於 **index.html** 使用 `<script>` 標籤預先載入工作者程序，所以 ** worker.js** 首先要確定它是否確實作為背景任務運行：
 
 ```js
 if (self.importScripts) {
 ```
 
-This check works because the browser defines `importScripts()` only in a Worker thread.
+這項檢查之所以可行，是因為瀏覽器只會在背景工作線程裡，提供 `importScripts()` 的定義。
 
-The Worker’s sole purpose is defining its `onmessage` handler that takes `sheet`, calculates `errs` and `vals`, and posts them back to the main JS thread. We begin by re-initializing the three variables when we receive a message:
+工作者的唯一目的是定義 `onmessage` 處理程序，來接收 `sheet`、計算出 `errs` 和 `vals`，再將兩者傳送回主要的 JS 線程。當它接收到一則訊息時，首先是重新初始化這三個變數：
 
 ```js
   let sheet, errs, vals;
@@ -354,15 +354,15 @@ The Worker’s sole purpose is defining its `onmessage` handler that takes `shee
     [sheet, errs, vals] = [ data, {}, {} ];
 ```
 
-In order to turn coordinates into global variables, we first iterate over each property in `sheet`, using a `for…in` loop:
+為了將座標轉成全域變數，我們用 `for…in` 迴圈，取出 `sheet` 裡面的每個屬性名稱：
 
 ```js
     for (const coord in sheet) {
 ```
 
-We  write `const coord` above so that functions defined in the loop can capture the specific value of `coord` in that iteration. This is because `const` and `let` declare _block scoped_ variables. In contrast, `var coord` would make a _function scoped_ variable, and functions defined in each loop iteration would end up pointing to the same `coord`.
+上述的 `const coord`，可以讓迴圈裡定義的函數包入該次迭代裡 `coord` 的實際數值。這是因為 `const` 和 `let` 宣告的變數屬於區塊範圍（block scope）。如果宣告寫成 `var coord` ，則會屬於函數範圍（function scope），這樣每次迭代時定義的函數最終都會指向同一個 `coord`。
 
-Customarily, formulas variables are case-insensitive and can optionally have a `$` prefix. Because JS variables are case-sensitive, we use a `for…of` loop to go over the four variable names for the same coordinate:
+習慣上，公式裡的變數名稱大小寫視為相同，並且可以加上 `$` 前綴。因為 JS 變數有區分大小寫，所以我們用 `for…of` 循環來取得同一個座標的四種變數名稱表示法：
 
 ```js
       // Four variable names pointing to the same coordinate: A1, a1, $A1, $a1
@@ -371,9 +371,9 @@ Customarily, formulas variables are case-insensitive and can optionally have a `
                                p+c ]) {
 ```
 
-Note the _nested array comprehension_ syntax above, with  two `for`  expressions in the array definition.
+上述的陣列定義中有兩個 `for` 表達式，這個語法稱為巢狀陣列簡約式（nested array comprehension）。
 
-For each variable name like `A1` and `$a1`, we define its [accessor property](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperty) on `self` that calculates `vals[A1]` whenever they are evaluated in an expression:
+對於每一個變數名稱，例如 `A1` 和 `$a1`，我們在 `self` 上定義其[屬性存取式](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperty)，這樣當算式中提到這些變數時，都會自動計算 `vals["A1"]` 的值：
 
 ```js
         // Worker is reused across calculations, so only define each variable once
@@ -383,23 +383,23 @@ For each variable name like `A1` and `$a1`, we define its [accessor property](ht
         Object.defineProperty( self, name, { get() {
 ```
 
-The `{ get() { … } }` syntax above is shorthand for `{ get: ()=>{ … } }`. Because we define only `get` and not `set`, the variables become  _read-only_ and cannot be modified from user-supplied formulas.
+此處的 `{ get() { … } }` 語法是 `{ get: ()=>{ … } }` 的縮寫。由於我們只定義 `get`，但沒有定義 `set`，這些變數就此成為唯讀，從而免於被使用者鍵入的公式所更改。
 
-The `get` accessor starts by checking if `vals[coord]` is already calculated, and simply returns it if it’s the same:
+`get` 存取函式會先檢查 `vals[coord]`，如果已經計算完畢，則直接將它傳回。
 
 ```js
           if (coord in vals) { return vals[coord]; }
 ```
 
-If not, we need to calculate `vals[coord]` from `sheet[coord]`.
+不然的話，我們就需要從 `sheet[coord]` 計算出 `vals[coord]` 。
 
-First we set it to `NaN`, so self-references like setting **A1*** to `=A1` will end up with `NaN` instead of an infinite loop:
+首先我們將後者設定為 `NaN`，讓自我指涉的公式（例如將 **A1** 設為 `=A1`）計算出 `NaN`，而不是無限循環：
 
 ```js
           vals[coord] = NaN;
 ```
 
-Next we check if `sheet[coord]` is a number by converting it to numeric with prefix `+`, assigning the number to `x`, and comparing its string representation with the original string. If they differ, then we set `x` to the original string:
+然後我們檢查 `sheet[coord]` 是不是數字，方法是先用前綴 `+` 將它轉換成數字、把數字寫進 `x`，再將它的字串表現方式與原先的字串進行比較。如有不同，代表它不是數字，那麼我們再將 `x` 設成原本的字符串：
 
 ```js
           // Turn numeric strings into numbers, so =A1+C1 works when both are numbers
@@ -407,16 +407,16 @@ Next we check if `sheet[coord]` is a number by converting it to numeric with pre
           if (sheet[coord] !== x.toString()) { x = sheet[coord]; }
 ```
 
-If the initial character of `x` is `=`, then it’s a formula cell. We evaluate the part after `=` with `eval.call()`, using the first argument `null` to tell `eval` to run in the _global scope_, hiding the _lexical scope_ variables like `x` and `sheet` from the evaluation:
+如果 `x` 以 `=` 開頭，那它就是公式儲存格。我們使用 `eval.call()` 來運算 `=` 之後的公式部分。第一個引數 `null` 會讓 `eval` 在全域範圍中運行，不讓詞彙範圍（lexical scope）裡的變數（如 `x` 和 `sheet`）影響運算結果：
 
 ```js
           // Evaluate formula cells that begin with =
           try { vals[coord] = (('=' === x[0]) ? eval.call( null, x.slice( 1 ) ) : x);
 ```
 
-If the evaluation succeeds, the result is stored into `vals[coord]`. For non-formula cells, the value of `vals[coord]` is simply `x`, which may be a number or a string.
+如果運算成功，結果會儲存到 `vals[coord]` 裡。對於非公式的儲存格來說，`vals[coord]` 的數值就是 `x`，它可以是數字或字串。
 
-If `eval` results in an error, the `catch` block tests if it’s because the formula refers to an empty cell not yet defined in `self`:
+如果 `eval` 發生錯誤， `catch` 區塊會檢查錯誤原因，看看是否因為公式引用了尚未在 `self` 定義的空白儲存格：
 
 ```js
           } catch (e) {
@@ -424,7 +424,7 @@ If `eval` results in an error, the `catch` block tests if it’s because the for
             if (match && !( match[0] in self )) {
 ```
 
-In that case, we set the missing cell’s default value to `0`, clear `vals[coord]`, and re-run the current computation using `self[coord]`:
+在這種情況下，我們把缺失的儲存格之預設值設成 `0`、清除 `vals[coord]`，並使用 `self[coord]` 來重新執行當前運算：
 
 ```js
               // The formula refers to a uninitialized cell; set it to 0 and retry
@@ -434,9 +434,9 @@ In that case, we set the missing cell’s default value to `0`, clear `vals[coor
             }
 ```
 
- If the user gives the missing cell a content later on in `sheet[coord]`, then `Object.defineProperty` would take over and override the temporary value.
+如果使用者稍後在 `sheet[coord]` 中給出缺失儲存格的內容，那麼 `Object.defineProperty` 會接手，蓋過臨時給的數值。
 
-Other kinds of errors are stored to `errs[coord]`:
+其他類型的錯誤會寫進 `errs[coord]` 裡：
 
 ```js
             // Otherwise, stringify the caught exception in the errs object
@@ -444,9 +444,9 @@ Other kinds of errors are stored to `errs[coord]`:
           }
 ```
 
-In case of errors, the value of `vals[coord]` will remain `NaN` because the assignment did not complete.
+在發生錯誤時，因為賦值操作沒有完成，所以 `vals[coord]` 的數值仍然會是 `NaN`。
 
-Finally, the `get` accessor returns the calculated value, stored in `vals[coord]`:
+最後，`get` 函式傳回計算得出的數值，儲存在 `vals[coord]` 裡：
 
 ```js
           return vals[coord];
@@ -455,7 +455,7 @@ Finally, the `get` accessor returns the calculated value, stored in `vals[coord]
     }
 ```
 
-With accessors defined for all coordinates, the worker goes through the coordinates again, invoking each accessor by accessing `self[coord]`, then posts the resulting `errs` and `vals` back to the main JS thread:
+為每個座標都定義好存取函式之後，背景工作程式再次針對每個座標存取 `self[coord]` 來觸發存取函式，最後將得出的 `errs` 和 `vals` 傳送回主要 JS 線程：
 
 ```js
     // For each coordinate in the sheet, call the property getter defined above
@@ -467,13 +467,13 @@ With accessors defined for all coordinates, the worker goes through the coordina
 
 ### CSS
 
-The **styles.css** file contains just a few selectors and their presentational styles. First, we style the table to merge all cell borders together, leaving no spaces between neighboring cells:
+**styles.css** 檔案只包含少數幾個選擇器的展示樣式。首先我們將表格的所有框線合併在一起，相鄰儲存格之間不留空白：
 
 ```css
 table { border-collapse: collapse; }
 ```
 
-Both the heading and data cells share the same border style, but we can tell them apart by their background colors: Heading cells are light-gray, data cells are white by default, and formula cells get a light-blue background:
+標題格和資料格的框線樣式相同，但標題格的背景是淺灰色，資料格是預設的白色，公式儲存格的背景則是淡藍色的：
 
 ```
 th, td { border: 1px solid #ccc; }
@@ -481,21 +481,21 @@ th { background: #ddd; }
 td.formula { background: #eef; }
 ```
 
-The displayed width is fixed for each cell’s calculated values. Empty cells receive a minimal height, and long lines are clipped with a trailing ellipsis:
+在儲存格裡，計算值顯示的寬度是固定的。我們為空白儲存格設定最小高度，並在過長的行尾用省略號標示：
 
 ```css
 td div { text-align: right; width: 120px; min-height: 1.2em;
          overflow: hidden; text-overflow: ellipsis; }
 ```
 
-The text alignment and decorations are determined by each value’s type, as reflected by the `text` and `error` class selectors:
+文字的對齊方式和樣式由數值的類型決定，也就是 `text` 和 `error` 這兩個類別選取器：
 
 ```css
 div.text { text-align: left; }
 div.error { text-align: center; color: #800; font-size: 90%; border: solid 1px #800 }
 ```
 
-As for the user-editable `input` box, we use _absolute positioning_ to overlay it on top of its cell, and make it transparent so the underlying `div` with the cell’s value shows through:
+至於給使用者編輯的 `input` 輸入框，我們使用絕對定位（absolute position）將它浮在儲存格上，並使其變成透明，讓底下的儲存格數值 `div` 顯示出來：
 
 ```css
 input { position: absolute; border: 0; padding: 0;
@@ -503,13 +503,13 @@ input { position: absolute; border: 0; padding: 0;
         color: transparent; background: transparent; }
 ```
 
-When the user sets focus on the input box, it springs into the foreground:
+當使用者將選取焦點放在某個輸入框上，它就出現在前景：
 
 ```css
 input:focus { color: #111; background: #efe; }
 ```
 
-Furthermore, the underlying `div` is collapsed into a single line, so it’s completely covered by the input box:
+此外，選取輸入框底下的 `div` 會被壓成單行，讓它完全被輸入框覆蓋：
 
 ```css
 input:focus + div { white-space: nowrap; }
@@ -517,22 +517,22 @@ input:focus + div { white-space: nowrap; }
 
 ## 總結
 
-Since this book is _500 lines or less_, a web spreadsheet in 99 lines is just a minimal example — please feel free to experiment and extend it in any direction you’d like.
+在這本「500 行以下」的合輯裡，這份用 99 行程式寫成的試算表，只是非常簡約的範例——請隨意實驗，將它往任何你想得到的方向擴展。
 
-Here are some ideas, all easily reachable in the remaining space of 401 lines:
+這裡有一些想法，每項都可以在剩餘的 401 行空間裡完成：
 
-* A collaborative online editor using [ShareJS](http://sharejs.org/), [AngularFire](http://angularfire.com) or [GoAngular](http://goangular.org/).
-* Markdown syntax support for text cells, using [angular-marked](http://ngmodules.org/modules/angular-marked).
-* Common formula functions (`SUM`, `TRIM`, etc.) from the [OpenFormula standard](https://en.wikipedia.org/wiki/OpenFormula).
-* Interoperate with popular spreadsheet formats, such as CSV and SpreadsheetML via [SheetJS](http://sheetjs.com/)
-* Import from and export to online spreadsheet services, such as Google Spreadsheet and [EtherCalc](http://ethercalc.net/).
+* 用 [ShareJS](http://sharejs.org/)、 [AngularFire](http://angularfire.com) 或 [GoAngular](http://goangular.org/) 做出多人共筆的線上編輯器。
+* 用 [angular-marked](http://ngmodules.org/modules/angular-marked) 為文字格提供 Markdown 語法。
+* 參考 [OpenFormula 標準](https://en.wikipedia.org/wiki/OpenFormula)，實作一些簡單的公式函數（例如 `SUM`、`TRIM` 等）。
+* 透過 [SheetJS](http://sheetjs.com/)  來支援常見的試算表格式（CSV、 SpreadsheetML 等）。
+* 匯入和匯出線上的試算表服務，例如 Google 試算表和 [EtherCalc](http://ethercalc.net/)。
 
 ### 備註: 關於 JS 版本
 
-This chapter aims to demonstrate new concepts in ES6, so we use the [Traceur compiler](https://github.com/google/traceur-compiler) to translate source code to ES5 to run on pre-2015 browsers.
+本章旨在示範 ES6 的新概念，因此使用 [Traceur 編譯器](https://github.com/google/traceur-compiler) 來將源碼翻譯成 ES5，以在 2015 年之前的瀏覽器上運行。
 
-If you prefer to work directly with the 2010 edition of JS, the [as-javascript-1.8.5](https://audreyt.github.io/500lines/spreadsheet/as-javascript-1.8.5/) directory has **main.js** and **worker.js** written in the style of ES5; the [source code](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-javascript-1.8.5) is line-by-line comparable to the ES6 version with the same line count.
+如果你比較喜歡直接使用 2010 年版的 JS， [as-javascript-1.8.5](https://audreyt.github.io/500lines/spreadsheet/as-javascript-1.8.5/) 目錄下有以 ES5 風格寫成的 **main.js** 和 **worker.js**；它的[源碼](https://github.com/audreyt/500lines/tree/master /spreadsheet/as-javascript-1.8.5) 行數和 ES6 版本相同，可以交互對照。
 
-For people preferring a cleaner syntax, the [as-livescript-1.2.0](https://audreyt.github.io/500lines/spreadsheet/as-livescript-1.2.0/) directory uses [LiveScript](http://livescript.net/) instead of ES6 to write **main.ls** and **worker.ls**; the [source code](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-livescript-1.2.0) is 20 lines shorter than the JS version.
+如果你想要更簡潔的語法，[as-livescript-1.2.0](https://audreyt.github.io/500lines /spreadsheet/as-livescript-1.2.0/) 目錄使用 [LiveScript](http://livescript.net/) 寫成 **main.ls** 和 **worker.ls**；它的[源碼](https://github.com/audreyt/500lines/tree/master /spreadsheet/as-livescript-1.2.0) 比 JS 版本少了 20 行。
 
-If you are interested in translating this example to alternate JS languages, send a [pull request](https://github.com/audreyt/500lines/pulls) — I’d love to hear about it!
+如果你有興趣翻譯這幾段程式到其他 JS 語言，歡迎發送[合併請求](https://github.com/audreyt/500lines/pulls) 給我！
