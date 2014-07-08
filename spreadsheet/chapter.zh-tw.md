@@ -1,4 +1,4 @@
-# 用[99 行程式](https://github.com/audreyt/500lines/tree/master/spreadsheet)寫出[網頁試算表](http://audreyt.github.io/500lines/spreadsheet/) 
+# 用 [99 行程式](https://github.com/audreyt/500lines/tree/master/spreadsheet)寫出[網頁試算表](http://audreyt.github.io/500lines/spreadsheet/) 
 
 本章介紹以 99 行 HTML、CSS 和 JS 程式（瀏覽器原生支援的三種語言）寫成的試算表應用網站。
 
