@@ -90,8 +90,8 @@ Let's have a look at an example of total acceleration, $a_{t}$.
 
 ![](chapter-figures/figure-filter-total.png)\ 
 
-To filter out gravitational acceleration, $a_{g}$, we use the low-pass filter formula $a_{gn} = \alpha_{0} * (a_{tn} * \beta_{0} + a_{tn-1} * \beta_{1} + a_{tn-2} * \beta_{2} - a_{gn-1} * \alpha_{1} - a_{gn-2} * \alpha_{2})$. The $\alpha$ and $\beta$ values are set based on the type of filter, in this case, the Chebyshev filter. Notice that the resulting gravitational acceleration is constant, as we expected.
-TODO: Expland the section on calculating alpha and beta?
+To filter out gravitational acceleration, $a_{g}$, we use the low-pass filter formula $a_{gn} = \alpha_{0} * (a_{tn} * \beta_{0} + a_{tn-1} * \beta_{1} + a_{tn-2} * \beta_{2} - a_{gn-1} * \alpha_{1} - a_{gn-2} * \alpha_{2})$. The $\alpha$ and $\beta$ values are set based on the type of filter, in this case, the Chebyshev filter. 
+TODO: Expland the section on calculating alpha and beta? Should I add a plot of the phone in a different direction? In the example below, gravity is near-constant at 0 in the x and z directions, and $-9.8m/s^2$ in the y direction. 
 
 ![](chapter-figures/figure-filter-gravitational.png)\ 
 
