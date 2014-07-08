@@ -1,14 +1,20 @@
-# A Basic Pedometer
+# A Perfect World
 
-TODO: Expand intro
+TODO: A physicist, a mathematician, and a software engineer joke...
+
+Many software engineers reflecting on their training will remember having the pleasure of living in a very perfect world. We were taught to solve discrete problems, with defined parameters, in an ideal domain. 
+
+Then, we were thrown into the real world, with all of it's complexities and challenges. It's messy, which makes it all the more exciting. When you can solve a real-life problem, with all of it's quirks, you can build software that really helps people, every day. 
+
+In this chapter, we'll examine a problem that looks straightforward on the surface, and gets tangled very quickly when the real world, and real people, are thrown into it. 
+
+# A Basic Pedometer
 
 The rise of the mobile device brought with it a trend to collect more and more data on our daily lives. One type of data many people today collect is the number of steps they've taken over a period of time. This data can be used for health tracking, training for sporting events, or, for those of us obsessed with collecting and analyzing data, just for kicks. Steps can be counted using a pedometer, which often uses data from a hardware accelerometer as input.
 
-Our goal for this chapter is to create a web application that takes, as input, data from an accelerometer that a person carries during a walk, and outputs the number of steps taken, along with some additional information like distance and elapsed time. 
-
 ## What's an Accelerometer, You Ask?
 
-An accelerometer detects acceleration in the x, y, and z directions, relative to the device. The trial walks we'll examine with our program are all generated from data collected by an iPhone. However, our program can just as easily take data from an Android phone or any other hardware accelerometer. In the case of both iPhone and Android devices, the directions are indicated relative to the phone:
+An accelerometer is a piece of hardware that measures acceleration in the x, y, and z directions. In today's mobile world, many people carry an accelerometer with them wherever they go, as it's built into almost all smartphones currently on the market. The x, y, and z directions are relative to the device the hardware is contained in.
 
 TODO: This diagram is a direct copy from Apple. Problem? 
 (https://developer.apple.com/library/ios/documentation/EventHandling/Conceptual/EventHandlingiPhoneOS/motion_event_basics/motion_event_basics.html)
@@ -16,26 +22,28 @@ TODO: This diagram is a direct copy from Apple. Problem?
 
 An accelerometer measures x, y, z acceleration at points in time. Let's call one group of x, y, z coordinates at a point in time a triple. The sampling rate of the accelerometer, which can often be calibrated, determines the number of triples the accelerometer returns per second. For instance, an acceleroemeter with a sampling rate of 100 returns 100 x, y, z triples each second. Each x, y, z triple indicates the acceleration in each of the directions at that point in time. 
 
+TODO: Can I call this a triple?
+
 ## Let's Talk About a Walk
 
 When a person walks, they bounce slightly with each step. This bounce, if you are walking on Earth (or another big ball of mass floating in space) is always in the same direction as gravity. A pedometer can count steps by counting the number of bounces in the direction of gravity.
 
-Let's look at person walking with an iPhone held in the position depicted below.
+Let's look at person walking with smartphone containing an accelerometer held in the position depicted below.
 
 ![](chapter-figures/figure-xyz-normal.png)\
 
 For the sake of simplicity, we'll assume that:
 
-* the phone is only moving in the positive x direction while the y and z directions remain fixed, 
-* the phone remains in the same position throughout the entire walk, 
-* the bounces created by each step are identical
+* the stick man is walking in the x direction, with step bounces in the y direction, and no motion in the z direction;
+* the phone remains in the same position throughout the entire walk;
+* the bounces created by each step are identical;
 * the accelerometer is perfectly accurate.
 
 Ah, the joys of a perfect world, that we only ever really experience in texts like these. Don't fret, we'll deal with an imperfect, but real and more exciting world soon.
 
-The phone in the example above is positioned such that the y direction is the one in the direction of gravity. Since we want to count the number of bounces in the direction of gravity, the acceleration in the y direction is all we need to count steps, so we can completely ignore x and z. 
+The phone in the example above is positioned such that the y direction is the one in the direction of gravity. Since we want to count the number of bounces in the direction of gravity, and y is the only direction affected by gravity with the current position, we can completely ignore x and z. 
 
-The accelerometer is picking up the person's acceleration in the y direction, which is due to the bounces in their steps. In our perfect world, these bounces form a perfect sine wave. Each cycle in the waveform is exactly one step. We can easily count cycles in code by counting the number of times that our waveform crosses the x-axis in the positive direction. So, when we can completely ignore x and z, acceleration in the y direction should look like the diagram below. Easy, right?
+The accelerometer is picking up the person's acceleration in the y direction, which is due to the bounces in their steps. In our perfect world, these bounces form a perfect sine wave. Each cycle in the waveform is exactly one step. So, when we can completely ignore x and z, acceleration in the y direction should look like the diagram below, and we can count cycles in code by counting the number of times that our waveform crosses the x-axis in the positive direction. Easy, right?
 
 ![](chapter-figures/figure-sine-wave.png)\
 
@@ -43,25 +51,17 @@ Wrong. Nothing is ever easy. Where's the fun in that? There's a bit of a kicker 
 
 ## Even Perfect Worlds Have Fundamental Forces of Nature
 
-Since the accelerometer is measuring acceleration, and, even in our perfect world, gravity exists, there is a constant acceleration in the direction of gravity at $-9.8m/s^2$. The total acceleration, then, is the sum of user acceleration and gravitational acceleration: $a_{t} = a_{u} + a_{g}$.
-
-This means that in our perfect world acceleration in the y direction actually looks like this:
+Even in our perfect world, gravity exists, so there is a constant acceleration in the direction of gravity at $-9.8m/s^2$. The total acceleration ($a_{t}$) measured by our accelerometer, then, is the sum of user acceleration ($a_{u}$), and gravitational acceleration ($a_{g}$), where user acceleration is the acceleration that the user imparts on the device: $a_{t} = a_{u} + a_{g}$. This means that in our perfect world acceleration in the y direction actually looks like this:
 
 ![](chapter-figures/figure-sine-wave-gravity.png)\
 
-Uh oh. We can no longer count when the waveform crosses the x-axis. We'll have to separate total acceleration into user acceleration and gravitational acceleration. 
-
-All current iPhone and Android devices come with an accelerometer as well as a gyroscope, so they're able to separate gravitational acceleration from user acceleration, since the gyroscope can detect the direction of the phone. TODO: verify, and read documentation.
-
-However, we're creating a robust, flexible program, so we've decided that we want to accept input data from the newest of mobile devices, as well as from pure hardware accelerometers. This means that we'll need to accept input data in two formats: a **separated** format where user acceleration and gravitational acceleration are, well, separated; and a **combined** format which only provides us with total acceleration. 
-
-We'll have to isolate gravitational acceleration from the combined format in our program. In our perfect world, when the phone is held consistently as drawn above, total acceleration ($a_{t}$) is the sum of user acceleration ($a_{u}$) and gravitational acceleration ($a_{g}$). Therefore, we can isolate user acceleration fairly easily like so: 
+Uh oh. We can no longer count when the waveform crosses the x-axis. We'll have to isolate user acceleration in order to use our x-axis method of counting steps. We can isolate user acceleration like so: 
 
 $a_{t} = a_{u} + a_{g}$\
 $a_{t} = a_{u} - 0.98$\
 $a_{u} = a_{t} + 0.98$
 
-This means that we can simply add 0.98 to every single y value, resulting in the first graph we saw. 
+This means that we can simply add 0.98 to every single y value, resulting in the first graph we saw, and making our step counting once again a matter of counting the points when the sine wave crosses the x-axis in the positive direction. 
 
 What if, however, our silly stick man holds the phone in a more wonky, but still consistent, position?
 
@@ -74,37 +74,59 @@ Our pefect world just got a little more real, and now we have two problems:
 1. Isolating user acceleration from gravitational acceleration. Separating total acceleration into gravitational acceleration and user acceleration isn't a simple matter of adding 0.98 to a single direction.
 2. Isolating movement in the direction of gravity. We can no longer ignore the x and z directions and simply take the data from the y direction.
 
-OPTION 1:
+Every problem has a solution. Let's look at each problem separately, and put on our mathematician hats. 
 
-Every problem has a solution. Let's look at each problem separately, and out on our mathematician hats. 
+## 1. Isolating user acceleration from gravitational acceleration
 
-### 1. Isolating user acceleration from gravitational acceleration
+When the phone is held in such a way that the gravitational acceleration affects more than one coordinate, we need to find a way to completely separate user acceleration from gravitational acceleration. We can do that using a tool called a low-pass filter.
 
-TODO: Describe low pass filtering
+### Low-pass Filter
+A filter is a tool used in signal processing to remove an unwanted component from a signal. Our total acceleration sine wave is considered a signal. In our case, we want to remove user acceleration from our total acceleration signal, so that we're left with just the gravitational component. Once we have that, we can subtract gravitational acceleration from the total acceleration, and we'll be left with user acceleration. In this way, we'll have three sets of data at the end, one for the total acceleration, one for gravitational acceleration on its own, and one for user acceleration on its own. 
 
-### 2. Isolating movement in the direction of gravity
+A low-pass filter is a filter that allows low-frequency signals through, while attenuating signals higher than a set threshold. In our sitation, gravitational acceleration is a 0 Hz signal because it's constant, while user acceleration is not. This means that if we pass our signal through a low-pass filter, we'll allow the gravitational component of the signal to pass through, while removing the user acceleration component. There are numerous varieties of low-pass filters, but the one we'll use is called a Chebyshev filter. We've chosen a Chebyshev filter because it has a steep cutoff, which means that it very quickly attenuates frequencies beyond our threshold, which is ideal for isolating a 0 Hz signal like gravity. 
+TODO: Expand?
 
-TODO: Describe dot product
+## 2. Isolating movement in the direction of gravity
 
-OPTION 2:
+When gravity acts on our phone in multiple directions, how do we isolate acceleration in the direction of gravity, so that we can count bounces? We need to find a way to take just the movement in the direction of gravity from each of the x, y, and z directions. First, a very small amount of liner algebra 101. 
 
-Every problem has a solution. We'll solve each of these problems in our code. Let's dive into building our web app.
+### The Dot Product
+
+The dot product takes two signals of equal length and returns a single signal. 
+In solving problem one above, we have our total acceleration signal separated into a gravitational acceleration signal and a user acceleration signal. So, what will happen if we take the dot product of user acceleration and gravitational acceleration?
+
+TODO: Add image of summation from wikipedia, and vectors.
+
+So, the dot product of user acceleration and gravitational acceleration results in the portion of user acceleration in the direction of gravity. 
+TODO: Expand?
+
+TODO: Add graphs from trial view showing original data and dot product data.
+
+TODO: Start: Add this somewhere else...
+All current iPhone and Android devices come with an accelerometer as well as a gyroscope, so they're able to separate gravitational acceleration from user acceleration. TODO: Expand this explanation.
+
+However, we're creating a robust, flexible program, so we've decided that we want to accept input data from the newest of mobile devices, as well as from pure hardware accelerometers. This means that we'll need to accept input data in two formats: a **separated** format where user acceleration and gravitational acceleration are, well, separated; and a **combined** format which only provides us with total acceleration. 
+TODO: End: Add this somewhere else...
 
 # The Toolchain
 We've decided to build a simple web app to process and analyze our data. A web app naturally separates the data processing from the presentation of the data, and since web apps have been build many times over, we may as well use a framework to do the boring plumbing work for us. The Sinatra framework does just that. In the tool's own words, Sinatra is "a DSL for quickly creating web applications in Ruby". Perfect. 
 
 If I have to sell you on using Ruby, I'll try and do that with a quote from Ruby's creator, Yukihiro Matsumoto:
 
-"I hope to see Ruby help every programmer in the world to be productive, and to enjoy programming, and to be happy. That is the primary purpose of Ruby language."
+"I hope to see Ruby help every programmer in the world to be productive, and to enjoy programming, and to be happy. That is the primary purpose of the Ruby language."
 
 Ruby will stay out of our way, it's flexible, and concise, and has been used on the web for over 10 years. And, it was *made* to make us happy. What more can we ask for?
 
-Since we're building a web app, we'll obvious need a web server, so we'll use the thin web server. It's simple and certainly fast enough for our purposes. 
+Since we're building a web app, we'll need a web server, so we'll use the thin web server. It's simple and certainly fast enough for our purposes. 
 
 The last tool we'll be including is a JavaScript library called Highcharts, used for creating interactive charts. What's the point of interesting data if we can't display it in interesting ways? 
 
 # The Platform
 
+TODO: Option 1 
+Our goal for this chapter is to create a web application that takes, as input, data from an accelerometer that a person carries during a walk, and outputs the number of steps taken, along with some additional information like distance and elapsed time. 
+
+OR TODO: Option 2
 Before we dive into code, let's talk about what we're building. We want a web app that allows us to:
 
 1. Upload data in the combined or separated format.
@@ -112,11 +134,6 @@ Before we dive into code, let's talk about what we're building. We want a web ap
 3. Parse and analyze our data, outputting the number of steps taken, distance traveled, and time elapsed, and present charts representing the data in different processing stages.
 
 The meat and potatoes of our program is in step 3, where we parse and analyze the input data. It makes sense, then, to start with that, and build the web app and interface later, once we have some outputs to work with.
-
-We can break step 3 down into:
-
-* Parsing input data
-* Analyzing the parsed data
 
 ## Parsing Input Data
 
@@ -155,7 +172,7 @@ We need to do 3 things to our input data:
 
 These 3 tasks are related, and it makes sense to combine them into one class called a **Parser**. 
 
-### The Parser Class
+## The Parser Class
 
 ~~~~~~~
 class Parser
@@ -260,19 +277,20 @@ Let's start with the initialize method. Our parser class takes string data as in
 
 Each method accomplishes one of our three steps above. Let's look at each method individually. 
 
-### Step 1: Parsing text to extract numerical data (parse_raw_data)
+## Step 1: Parsing text to extract numerical data (parse_raw_data)
 
 The goal of parse_raw_data is to convert string data to a format we can more easily work with, and store it in @parsed_data. 
 
 At this stage, we have two possible data formats, combined and separated, as string data. We need to parse both into numerical data, and, as we discovered before, we need some extra work on the combined format to split out user acceleration from gravitational acceleration. 
 
+TODO: Tie in low pass filtering from above, and talk about the Chebyshev filter specifically.
+
+### Back to our code
 It's wise for us, while we're parsing our string data to numerical data, to parse all incoming data into one data format that the rest of our program can use. That way, if we ever have to add a third data format (or fourth, or fifth, or, well, you get the idea) we only have to change the parse_raw_data method. 
 
 TODO: Look up GOF pattern here. Talk about separation of concerns? Only this method needs to know about the multiple data formats.
 
 TODO: Discuss why the separated format is more accurate than the combined format?
-
-TODO: Add a section here on low pass filtering and the Chebyshev filter, and how it applies to splitting out the gravitational acceleration from the user acceleration.
 
 The first line splits the string by semicolon into as many arrays as samples taken, and then splits each individual array by the pipe, storing the result in accl.
 
@@ -298,17 +316,13 @@ $[\lbrace x\colon x1_{u}, y\colon y1_{u}, z\colon z1_{u}, xg\colon x1_{g}, yg\co
 
 The entire purpose of the parse_raw_data method is to take input data in one of two formats, and output data in this more workable format.
 
-### Step 2: Isolating movement in the direction of gravity (dot_product_parsed_data)
+## Step 2: Isolating movement in the direction of gravity (dot_product_parsed_data)
 
-First, a very small amount of liner algebra 101. 
-
-TODO: Short explanation of why the dot product is used to help us isolate movement in the direction of gravity.
-
-TODO: Add graphs from trial view showing original data and dot product data.
+TODO: Add graphs from trial view showing original data and dot product data. Does this belong here, or in the explanation above?
 
 Taking the dot product in our Parser class is straightforward. We add a @dot_product_data instance variable, and a method, dot_product_parsed_data, to set that variable. The dot_product_parsed_data method is called immeditely after parse_raw_data in the initializer, and iterates through our @parsed_data hash, calculates the dot product with map, and sets the result to @dot_product_data. 
 
-### Step 3: Filtering our data series
+## Step 3: Filtering our data series
 
 Again, back to the mathematics for some signal processing 101.
 
@@ -656,9 +670,8 @@ The user can navigate back to the trials using the *Back to Trials* link, and up
 As long as the user enters the same input in all text and dropdown fields, the program knows that this is the same trial, and outputs the following:
 
 ![](chapter-figures/app-5-1246w-90p.png)
-![](chapter-figures/app-6-1246w-90p.png)\ 
 
-Note that since this trial is the separated format, it is more accurate than the combined format. This trial detail view now shows an extra plot at the bottom, comparing the filtered combined format with the filtered separated format. 
+Note that since this trial is the separated format, it is more accurate than the combined format.
 
 ### Diving back to the code
 
@@ -724,20 +737,6 @@ class Trial
     file_names.map { |file_name| self.new(file_name) }
   end
 
-  def self.find_matching_filtered_data(trial)
-    files = Dir.glob(File.join('public/uploads', "*"))
-    files.delete(trial.file_name)
-
-    match = files.select { |f| trial.file_name == f.gsub('-s.', '-c.') }.first
-    match ||= files.select { |f| trial.file_name == f.gsub('-c.', '-s.') }.first
-
-    match_filtered_data = if match
-      parser = Parser.new(File.read(match))
-      parser.filtered_data
-    end
-    match_filtered_data
-  end
-
   # -- Instance Methods -----------------------------------------------------
 
   def parser
@@ -801,8 +800,6 @@ The all class method simply grabs all of the files in our public/upoads folder, 
 
 Our Trial object has the ability to store and retireve data from and for the user, and can create and return all of the other objects to our program. Let's move on to the web application side of our program to see how Trial will be helpful.
 
-TODO: Explain match_filtered_data if we're keeping it. 
-
 ### Things to note
 * As our application grows, we'll likely want to use a database rather than saving everything to the filesystem. When the time comes for that, all we have to do it change the Trial class. This makes our refactoring simple. 
 * In the future, we can also start saving User and Device objects to the database as well. The create, find, and all methods in Trial will then be relevant to User and Device as well. That means we'd likely refactor those out into their own class to deal with just the data storage and retrieval, and each of our User, Device, and Trial classes will inherit from that class. We might eventually add helper query methods to that class, and continue building it up from there. 
@@ -838,11 +835,12 @@ end
 
 get '/trial/*' do |file_name|
   @trial = Trial.find(file_name)
-  @match_filtered_data = Trial.find_matching_filtered_data(@trial)
   
   erb :trial
 end
 
+# TODO
+# - Is file sanitized here? We don't want to be passing around untrusted data, especially not if it's touching the filesystem.
 post '/create' do
   begin
     @trial = Trial.create(
@@ -850,7 +848,6 @@ post '/create' do
       params[:user].values,
       params[:device].values
     )
-    @match_filtered_data = Trial.find_matching_filtered_data(@trial)
 
     erb :trial
   rescue Exception => e
@@ -1044,7 +1041,7 @@ TODO: Discussion around client-side validation as well as server-side validation
 
 ### get '/trial/*'
 
-The get '/trial/*' route is called with a file path. For example: http://localhost:4567/trial/public/uploads/female-168.0-70.0_100-100-1-walk-c.txt. It sets @trial through Trial.find, passing in the file_name from the url. It also sets @match_filtered_data through Trial.match_filtered_data. It then loads up the trial.erb view. 
+The get '/trial/*' route is called with a file path. For example: http://localhost:4567/trial/public/uploads/female-168.0-70.0_100-100-1-walk-c.txt. It sets @trial through Trial.find, passing in the file_name from the url. It then loads up the trial.erb view. 
 
 ~~~~~~~
 <script src="/jquery.min.js"></script>
@@ -1057,11 +1054,6 @@ The get '/trial/*' route is called with a file path. For example: http://localho
 
     <div id="container-dot-product"></div>
     <div id="container-filtered"></div>
-
-    <% if @match_filtered_data %>
-        <% comparison_title = @trial.analyzer.parser.is_data_combined? ? 'Separated' : 'Combined' %>
-        <div id="container-comparison"></div>
-    <% end %>
 </html>
 
 <script>
@@ -1081,19 +1073,6 @@ The get '/trial/*' route is called with a file path. For example: http://localho
                 data: <%= ViewHelper.limit_1000(@trial.analyzer.parser.filtered_data) %>
             }]
         });
-
-        if ($('#container-comparison').length > 0) {
-            $('#container-comparison').highcharts({
-                title: { text: 'Comparison to ' + '<%= comparison_title %>' },
-                series: [{
-                    name: '<%= @trial.analyzer.parser.format.capitalize %>',
-                    data: <%= ViewHelper.limit_1000(@trial.analyzer.parser.filtered_data) %>
-                }, {
-                    name: '<%= comparison_title %>',
-                    data: <%= ViewHelper.limit_1000(@match_filtered_data) %>
-                }]
-            });
-        }
     });
 </script>
 ~~~~~~~
@@ -1102,13 +1081,13 @@ The trial.erb view has both HTML and JavaScript. As our application grows, we wo
 
 We're using a tool called Highcharts to generate all of the charts in our view, which requires jQuery and other additional JavaScript files. Note that both are included at the top of the view. 
 
-The HTML portion is simple. We create a link to return to /trials, for ease of navigation purposes. Then, we render summary.erb once more. Since both summary tables are quite similar, we've chosen to extract the HTML for the summary table into one view and reuse it from both trials and trial. This ensures that the format of the tables remains consistent, and avoids code duplication. In this case, we pass in false for detail_hidden, since we want to see time and distance data, whereas in the trials view, we wanted those fields replaced with a link to this view. Following the summary table, we create containers for the charts. We have an optional container for the comparison chart, which is rendered only if @match_filtered_data is set. 
+The HTML portion is simple. We create a link to return to /trials, for ease of navigation purposes. Then, we render summary.erb once more. Since both summary tables are quite similar, we've chosen to extract the HTML for the summary table into one view and reuse it from both trials and trial. This ensures that the format of the tables remains consistent, and avoids code duplication. In this case, we pass in false for detail_hidden, since we want to see time and distance data, whereas in the trials view, we wanted those fields replaced with a link to this view. Following the summary table, we create containers for the charts. 
 
 The JavaScript portion uses the Highcharts API to create the three charts: dot product data, filtered data, and, optionally, a comparison between the filtered data of the separated and combined data sets. Each chart is limited to 1000 points, to make it easy on our eyes, using the limit_1000 method in ViewHelper that we looked at earlier.
 
 ### post '/create'
 
-Our final action, create, is an HTTP POST called when a user submits the form in the trials view. The action sets a @trial instance variable to a new Trial record, created by passing in values from the params hash. It then sets @match_filtered_data, and renders the trial view. If an error occurs in the creation process, the trials view is rendered, with the an error parameter passed in. 
+Our final action, create, is an HTTP POST called when a user submits the form in the trials view. The action sets a @trial instance variable to a new Trial record, created by passing in values from the params hash. It then renders the trial view. If an error occurs in the creation process, the trials view is rendered, with the an error parameter passed in. 
 
 ## Summary
 
