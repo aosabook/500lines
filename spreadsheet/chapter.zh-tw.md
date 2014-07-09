@@ -531,7 +531,7 @@ input:focus + div { white-space: nowrap; }
 
 本章旨在示範 ES6 的新概念，因此使用 [Traceur 編譯器](https://github.com/google/traceur-compiler)將源碼翻譯成 ES5，以在 2015 年之前的瀏覽器上運行。
 
-如果你比較喜歡直接使用 2010 年版的 JS， [as-javascript-1.8.5](https://audreyt.github.io/500lines/spreadsheet/as-javascript-1.8.5/) 目錄下有以 ES5 風格寫成的 **main.js** 和 **worker.js**；它的[源碼](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-javascript-1.8.5)行數和 ES6 版本相同，可以交互對照。
+如果你比較喜歡直接使用 2010 年版的 JS，[as-javascript-1.8.5](https://audreyt.github.io/500lines/spreadsheet/as-javascript-1.8.5/) 目錄下有以 ES5 風格寫成的 **main.js** 和 **worker.js**；它的[源碼](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-javascript-1.8.5)行數和 ES6 版本相同，可以交互對照。
 
 如果你想要更簡潔的語法，[as-livescript-1.2.0](https://audreyt.github.io/500lines/spreadsheet/as-livescript-1.2.0/) 目錄使用 [LiveScript](http://livescript.net/) 寫成 **main.ls** 和 **worker.ls**；它的[源碼](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-livescript-1.2.0)比 JS 版本少了 20 行。
 
