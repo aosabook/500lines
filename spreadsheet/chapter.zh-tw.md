@@ -161,7 +161,7 @@ _(Also available in [English](https://github.com/audreyt/500lines/blob/master/sp
 
 當使用者按住某個鍵不放的時候，為了避免重複執行 `calc()`，`ng-model-options` 會限制更新速率至每 200 毫秒一次。
 
-輸入框的 `id` 特性與座標相同，由 `col+row` 安插取得。每個 HTML 元素的 `id` 特性，必須跟文件內所有其他元素的 `id` 不同。這樣確保了 `#A1` 這個「ID 選擇器」（ID selector）只會指向至一個元素，而不像類別選擇器 `.formula` 那樣指稱一系列的元素。當使用者按下**上鍵**/**下鍵**/**輸入鍵**時，`keydown()` 中的邏輯就會使用 ID 選擇器，來確定該設定焦點在哪個輸入框上。
+輸入框的 `id` 特性與座標相同，由 `col+row` 安插取得。每個 HTML 元素的 `id` 特性，必須跟文件內所有其他元素的 `id` 不同。這樣確保了 `#A1` 這個「ID 選擇器」（ID selector）只會指向至一個元素，而不像類別選擇器 `.formula` 那樣指稱一系列的元素。當使用者按下 **上鍵**/**下鍵**/**輸入鍵** 時，`keydown()` 中的邏輯就會使用 ID 選擇器，來確定該設定焦點在哪個輸入框上。
 
 在輸入框後面，我們放置一個 `<div>` 元素，來顯示當前儲存格的計算結果（以物件 `errs` 和 `vals` 在 JS 模型中表示）：
 
@@ -237,9 +237,9 @@ function Spreadsheet ($scope, $timeout) {
       const direction = (which === 38) ? -1 : +1;
 ```
 
-此處的 `const` 宣告，指的是 `direction` 的值在函式執行期間不會改變。如果按鍵碼是**上鍵** (38)，表示往上移動（`-1`， 從 **A2** 到 **A1**），否則往下移動（`+1`，從 **A2** 到 **A3**）。
+此處的 `const` 宣告，指的是 `direction` 的值在函式執行期間不會改變。如果按鍵碼是 **上鍵** (38)，表示往上移動（`-1`， 從 **A2** 到 **A1**），否則往下移動（`+1`，從 **A2** 到 **A3**）。
 
-接下來，我們使用以反引號撰寫的[模板字串](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/template_strings)將開頭的 `#`、當前的直欄 `col` 和目標橫列 `row + direction` 串聯在一起，構築出 ID 選擇器（例如`"#A3”`），來取得目標元素：
+接下來，我們使用以反引號撰寫的[模板字串](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/template_strings)將開頭的 `#`、當前的直欄 `col` 和目標橫列 `row + direction` 串聯在一起，構築出 ID 選擇器（例如`"#A3"`），來取得目標元素：
 
 ```js
       const cell = document.querySelector( `#${ col }${ row + direction }` );
