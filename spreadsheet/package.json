@@ -24,7 +24,6 @@
   },
   "dependencies": {
     "static-here": "*",
-    "traceur": "*",
     "mocha": "*"
   }
 }
