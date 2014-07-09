@@ -43,9 +43,11 @@ Ah, the joys of a perfect world, that we only ever really experience in texts li
 
 The phone in the example above is positioned such that the y direction is the one in the direction of gravity. Since we want to count the number of bounces in the direction of gravity, and y is the only direction affected by gravity with the current position, we can completely ignore x and z. 
 
-The accelerometer is picking up the person's acceleration in the y direction, which is due to the bounces in their steps. In our perfect world, these bounces form a perfect sine wave. Each cycle in the waveform is exactly one step. So, when we can completely ignore x and z, acceleration in the y direction should look like the diagram below, and we can count cycles in code by counting the number of times that our waveform crosses the x-axis in the positive direction. Easy, right?
+The accelerometer is picking up the person's acceleration in the y direction, which is due to the bounces in their steps. In our perfect world, these bounces form a perfect sine wave. Each cycle in the waveform is exactly one step. So, when we can completely ignore x and z, acceleration in the y direction should look like the diagram below. 
 
 ![](chapter-figures/figure-sine-wave.png)\
+
+We can assume that there will be a little bit of noise in the signal, due to smaller bounces not caused by a step, but rather by events like the device shifting up and down slightly. However, since the step bounces are more prominent, we can pick a threshold value above which if a signal passes, we can count a step. This means that we can steps by counting the number of times that our waveform crosses the threshold in the positive direction. Easy, right?
 
 Wrong. Nothing is ever easy. Where's the fun in that? There's a bit of a kicker here. 
 
@@ -55,7 +57,7 @@ Even in our perfect world, gravity exists, so there is a constant acceleration i
 
 ![](chapter-figures/figure-sine-wave-gravity.png)\
 
-Uh oh. We can no longer count when the waveform crosses the x-axis. We'll have to isolate user acceleration in order to use our x-axis method of counting steps. We can isolate user acceleration like so: 
+Uh oh. We can no longer count when the waveform crosses our threshold. We'll have to isolate user acceleration in order to use our threshold method of counting steps. We can isolate user acceleration like so: 
 
 $a_{t} = a_{u} + a_{g}$\
 $a_{t} = a_{u} - 0.98$\
@@ -129,7 +131,11 @@ Using the two mathematical tools from above, a low-pass filter and the dot produ
 
 ![](chapter-figures/figure-dot-product-example-step.png)\ 
 
-We can see how this data is starting to resemble our ideal sine wave. But, only "kinda, sorta" starting to. Let's recap how we got to this stage:
+We can see how this data is starting to resemble our ideal sine wave.
+
+![](chapter-figures/figure-sine-wave.png)\
+
+But, only "kinda, sorta" starting to. Let's recap how we got to this stage:
 
 1. We started with total acceleration, $a_{t}$.
 2. We used a low-pass filter to split $a_{t}$ into gravitational acceleration, $a_{g}$, and user acceleration, $a_{u}$.
@@ -138,10 +144,6 @@ We can see how this data is starting to resemble our ideal sine wave. But, only 
 Now, we need our messy data set to look more like our ideal sine wave, so that we can count steps. 
 
 TODO: Section on using low-pass filter again. 
-
-TODO: Conclusion from two problems.
-In summary, in order to get a single signal from $a_{t}$, 
-
 
 
 TODO: Start: Add this somewhere else...
