@@ -450,7 +450,7 @@ In case of errors, the value of `vals[coord]` will remain `NaN` because the assi
 Finally, the `get` accessor returns the calculated value stored in `vals[coord]`, which must be a number or a string:
 
 ```js
-          return((typeof vals[coord] === 'number') ? vals[coord] : vals[coord] += '');
+          return((typeof vals[coord] === 'number') ? vals[coord] : vals[coord]+='');
         } } )
       }
     }

@@ -449,7 +449,7 @@ if (self.importScripts) {
 最後，`get` 函式傳回 `vals[coord]` 裡計算出的數值，它必須是數字或字串：
 
 ```js
-          return((typeof vals[coord] === 'number') ? vals[coord] : vals[coord] += '');
+          return((typeof vals[coord] === 'number') ? vals[coord] : vals[coord]+='');
         } } )
       }
     }

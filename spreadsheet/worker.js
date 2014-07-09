@@ -33,7 +33,7 @@ if (self.importScripts) {
             // Otherwise, stringify the caught exception in the errs object
             errs[coord] = e.toString();
           }
-          return((typeof vals[coord] === 'number') ? vals[coord] : vals[coord] += '');
+          return((typeof vals[coord] === 'number') ? vals[coord] : vals[coord]+='');
         } } )
       }
     }
