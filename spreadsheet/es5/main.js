@@ -105,7 +105,7 @@ function Spreadsheet($scope, $timeout) {
       }));
     });
     $scope.worker.postMessage($scope.sheet);
-  }), 2046);
+  }), 200);
 }
 
 //# sourceMappingURL=main.map
