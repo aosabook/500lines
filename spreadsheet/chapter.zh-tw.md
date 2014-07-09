@@ -266,12 +266,12 @@ function Spreadsheet ($scope, $timeout) {
     $scope.sheet = angular.fromJson( localStorage.getItem( '' ) );
     if (!$scope.sheet) { $scope.reset(); }
     $scope.worker = new Worker( 'worker.js' );
-  })();
+  }).call();
 ```
 
 上述的 `init()` 函式裡，有幾件事情值得注意：
 
-* 我們使用 `($scope.init = ()=>{…})()` 語法，在函式定義之後立刻執行它。
+* 我們使用 `($scope.init = ()=>{…}).call()` 語法，在函式定義之後立刻執行它。
 * 由於 localStorage 只能存取字串，所以要用 `angular.fromJson()` 將 [JSON](https://developer.mozilla.org/en-US/docs/Glossary/JSON) 解析（parse）為 `sheet` 結構。
 * `init()` 的最後一步，是建立新的 [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Worker) 線程，並將它放進 `worker` 屬性裡。雖然顯示層不會直接用到背景工作器，但我們仍依慣例使用 `$scope` 的屬性，來讓多個函式能共用同一個模型裡的物件（此處指的是 `init()` 和下述的 `calc()` ）。
 
