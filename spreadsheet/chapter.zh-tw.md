@@ -237,7 +237,7 @@ function Spreadsheet ($scope, $timeout) {
       const direction = (which === 38) ? -1 : +1;
 ```
 
-此處的 `const` 宣告，指的是 `direction` 的值在函式執行期間不會改變。如果按鍵碼是 **上鍵** (38)，表示往上移動（`-1`， 從 **A2** 到 **A1**），否則往下移動（`+1`，從 **A2** 到 **A3**）。
+此處的 `const` 宣告，指的是 `direction` 的值在函式執行期間不會改變。如果按鍵碼是 38（**上鍵**），表示往上移動（`-1`， 從 **A2** 到 **A1**），否則往下移動（`+1`，從 **A2** 到 **A3**）。
 
 接下來，我們使用以反引號撰寫的[模板字串](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/template_strings)將開頭的 `#`、當前的直欄 `col` 和目標橫列 `row + direction` 串聯在一起，構築出 ID 選擇器（例如`"#A3"`），來取得目標元素：
 
