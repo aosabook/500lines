@@ -1,4 +1,4 @@
-(Also available in [Traditional Chinese](https://github.com/audreyt/500lines/blob/master/spreadsheet/chapter.zh-tw.md). and [jsFiddle](http://jsfiddle.net/audreyt/LtDyP/).)
+(Also available in [Traditional Chinese](https://github.com/audreyt/500lines/blob/master/spreadsheet/chapter.zh-tw.md). The ES5 version is available as a [jsFiddle](http://jsfiddle.net/audreyt/LtDyP/).)
 
 # [Web Spreadsheet](http://audreyt.github.io/500lines/spreadsheet/) in [99 lines](https://github.com/audreyt/500lines/tree/master/spreadsheet)
 

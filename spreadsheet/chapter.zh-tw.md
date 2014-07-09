@@ -1,4 +1,4 @@
-(Also available in [English](https://github.com/audreyt/500lines/blob/master/spreadsheet/chapter.md) and [jsFiddle](http://jsfiddle.net/audreyt/LtDyP/).)
+(Also available in [English](https://github.com/audreyt/500lines/blob/master/spreadsheet/chapter.md). The ES5 version is available as a [jsFiddle](http://jsfiddle.net/audreyt/LtDyP/).)
 
 # 用 [99 行程式](https://github.com/audreyt/500lines/tree/master/spreadsheet)寫出[網頁試算表](http://audreyt.github.io/500lines/spreadsheet/)
 
