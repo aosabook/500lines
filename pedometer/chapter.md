@@ -133,11 +133,18 @@ We can see how this data is starting to resemble our ideal sine wave. But, only 
 
 1. We started with total acceleration, $a_{t}$.
 2. We used a low-pass filter to split $a_{t}$ into gravitational acceleration, $a_{g}$, and user acceleration, $a_{u}$.
-3. We took the dot product of $a_{u}$ and $a_{g}$ to obtain the user acceleration in the direction of gravity, which left of with our most recent data set. 
+3. We took the dot product of $a_{u}$ and $a_{g}$ to obtain the user acceleration in the direction of gravity, which left us with our most recent data set. 
 
-Now, we need our messy data set to look more like our ideal sine wave, so that we can count steps. 
+Now, we need to make our messy data set smoother, so that it looks more like our ideal sine wave, allowing us to count steps. Our messy data set is very "jumpy". This jumpiness means that there is a high frequency component to the signal. Fortunately, one of the new mathematical tools in our tool set, the low-pass filter, can be used once again to filter out just the low-frequency component, eliminating the "jumpy", high frequency portions of the signal, and smoothing out our data set. 
 
-TODO: Section on using low-pass filter again. 
+Passing our messy signal through a low-pass filter, using the same formula but different alpha and beta values, results in the cleaner signal below:
+TODO: Talk more about determining alpha and beta values.
+
+![](chapter-figures/figure-filtered-smooth.png)\ 
+
+Now, if we once again set a reasonable threshold value such that it sits above the smaller bounces in the signal (which we can attribute to device shifts rather than steps), and below the peaks of the steps, we're in a similar situation as our ideal signal, where we can count steps. Voila!
+
+![](chapter-figures/figure-filtered-smooth-threshold.png)\ 
 
 TODO: Conclusion from two problems.
 In summary, in order to get a single signal from $a_{t}$, 
