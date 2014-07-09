@@ -9,7 +9,8 @@ run ::
 	@node node_modules/static-here/bin/static-here
 
 es5 :: $(OBJECTS)
-	@perl -pi -e 's!importScripts.*\{$$\K! importScripts("../node_modules/traceur/bin/traceur-runtime.js");!' es5/worker.js
+	@perl -lpi -e 's!"sources":\["\K[^"]*/!../!' es5/*.map
+	@perl -lpi -e 's!importScripts.*\{\z\K! importScripts("../node_modules/traceur/bin/traceur-runtime.js");!' es5/worker.js
 
 test :: es5
 	@node node_modules/mocha/bin/mocha
