@@ -319,7 +319,7 @@ function Spreadsheet ($scope, $timeout) {
     }
 ```
 
-一旦 `onmessage` 開始執行，就表示 `json` 中的 `sheet` 快照是穩定的（也就是說公式裡沒有無限迴圈），因此我們可以取消 99 毫秒的逾時限制，把快照寫進 localStorage 裡，並使用 `$timeout` 函式將界面更新加入排程，把 `errs` 和 `vals` 更新到顯示層、呈現給使用者。
+一旦 `onmessage` 開始執行，就表示 `json` 中的 `sheet` 快照是穩定的（也就是說公式裡沒有無限迴圈），因此我們可以取消 99 毫秒的逾時限制、把快照寫進 localStorage 裡，並使用 `$timeout` 函式將界面更新加入排程，將 `errs` 和 `vals` 更新到顯示層呈現給使用者。
 
 定義好處理程序之後，就可以將 `sheet` 的狀態傳送給工作者，在背景開始運算：
 
