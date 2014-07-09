@@ -97,7 +97,7 @@ _(Also available in [English](https://github.com/audreyt/500lines/blob/master/sp
 
 如果沒有宣告 `charset` ，瀏覽器可能會把重置按鈕的萬國碼符號 `↻` 顯示為 `â†»`，也就是亂碼（mojibake）──由解碼問題引起的錯誤情況。
 
-接下來的四行程式碼是 JS 宣告，依慣例放在 `head` 區塊裡：
+接下來的三行是 JS 宣告，依慣例放在 `head` 區塊裡：
 
 ```html
   <script src="main.js"></script>

@@ -97,7 +97,7 @@ The first line in `index.html` declares that it’s written in HTML5 (`<!DOCTYPE
 
 Without the `charset` declaration, the browser may display the reset button’s Unicode symbol `↻` as `â†»`, an example of _mojibake_ — garbled text caused by decoding issues.
 
-The next four lines are JS declarations, placed within the `head` section as usual:
+The next three lines are JS declarations, placed within the `head` section as usual:
 
 ```html
   <script src="main.js"></script>
