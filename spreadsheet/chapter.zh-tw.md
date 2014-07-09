@@ -117,9 +117,9 @@
 </head><body ng-app ng-cloak ng-controller="Spreadsheet">
 ```
 
-上述的 `ng-` 屬性指示 AngularJS 程式庫運行 `Spreadsheet` 這個 JS 函式，為文件建立控制器（controller）來提供模型（model），也就是一組可以在文件顯示層（view）中進行繫結（binding）的名稱。`ng-cloak` 屬性會先隱藏文件顯示，直到繫結已經就位為止。
+上述的 `ng-` 特性指示 AngularJS 程式庫運行 `Spreadsheet` 這個 JS 函式，為文件建立控制器（controller）來提供模型（model），也就是一組可以在文件顯示層（view）中進行繫結（binding）的名稱。`ng-cloak` 特性會先隱藏文件顯示，直到繫結已經就位為止。
 
-舉個具體的例子，當使用者點擊下一行中所定義的 `<button>` ，其 `ng-click` 屬性會觸發並執行 `reset()` 和 `calc()` 這兩個由 JS 模型提供的函式：
+舉個具體的例子，當使用者點擊下一行中所定義的 `<button>` ，其 `ng-click` 特性會觸發並執行 `reset()` 和 `calc()` 這兩個由 JS 模型提供的函式：
 
 ```html
   <table><tr>
@@ -141,13 +141,13 @@
     <th>{{ row }}</th>
 ```
 
-由於使用 `<tr ng-repeat>` 標籤開始的程式碼還沒有被 `</tr>` 結束，表達式可以繼續使用 `row` 變數。下一行程式碼，在當前的橫列上建立一個資料儲存格（`td`），並在其 `ng-class` 屬性中同時使用 `col` 和 `row` 變數：
+由於使用 `<tr ng-repeat>` 標籤開始的程式碼還沒有被 `</tr>` 結束，表達式可以繼續使用 `row` 變數。下一行程式碼，在當前的橫列上建立一個資料儲存格（`td`），並在其 `ng-class` 特性中同時使用 `col` 和 `row` 變數：
 
 ```html
     <td ng-repeat="col in Cols" ng-class="{ formula: ( '=' === sheet[col+row][0] ) }">
 ```
 
-這裡有幾個重點。在 HTML 中，`class` 屬性描述類別名稱的集合（a set of class names），讓 CSS 賦予它們不同的樣式。這裡的 `ng-class` 會運算表達式 `( '=' === sheet[col+row][0] )`；如果結果為真，那麼 `<td>` 會獲得類別 `formula` ，因此儲存格就會添上淡藍色背景，由 **styles.css** 第 4 行中的 `.formula`「類別選擇器」（class selector）所定義。
+這裡有幾個重點。在 HTML 中，`class` 特性描述類別名稱的集合（a set of class names），讓 CSS 賦予它們不同的樣式。這裡的 `ng-class` 會運算表達式 `( '=' === sheet[col+row][0] )`；如果結果為真，那麼 `<td>` 會獲得類別 `formula` ，因此儲存格就會添上淡藍色背景，由 **styles.css** 第 4 行中的 `.formula`「類別選擇器」（class selector）所定義。
 
 上述表達式用來檢查目前儲存格是否為公式的方法，是透過測試 `=` 是否為 `sheet[col+row]` 字串的初始字符（`[0]`）。此處 `sheet` 是 JS 模型物件，屬性為各個座標（例如 `"E1"`），儲存格內容（例如 `"=A1+C1"`）則是屬性的值。要注意的是，由於 `col` 是字串而非數字，因此 `col+row` 中的 `+` 指的是串聯，而不是加法。
 
@@ -158,11 +158,11 @@
        ng-model-options="{ debounce: 200 }" ng-keydown="keydown( $event, col, row )">
 ```
 
-這裡的主要屬性是 `ng-model`，它允許 JS 模型和輸入框內可編輯內容之間的「雙向繫結」（two-way binding）：每當使用者在輸入框內做出變更時，JS 模型都會自動更新 `sheet[col+row]` 的內容，並觸發 `calc()` 函式來重新計算所有公式儲存格的數值。
+這裡的主要特性是 `ng-model`，它允許 JS 模型和輸入框內可編輯內容之間的「雙向繫結」（two-way binding）：每當使用者在輸入框內做出變更時，JS 模型都會自動更新 `sheet[col+row]` 的內容，並觸發 `calc()` 函式來重新計算所有公式儲存格的數值。
 
 當使用者按住某個鍵不放的時候，為了避免重複執行 `calc()`，`ng-model-options` 會限制更新速率至每 200 毫秒一次。
 
-輸入框的 `id` 屬性與座標相同，由 `col+row` 安插取得。每個 HTML 元素的 `id` 屬性，必須跟文件內所有其他元素的 `id` 不同。這樣確保了 `#A1` 這個「ID 選擇器」（ID selector）只會指向至一個元素，而不像類別選擇器 `.formula` 那樣指稱一系列的元素。當使用者按下**上鍵**/**下鍵**/**輸入鍵**時，`keydown()` 中的邏輯就會使用 ID 選擇器，來確定該設定焦點在哪個輸入框上。
+輸入框的 `id` 特性與座標相同，由 `col+row` 安插取得。每個 HTML 元素的 `id` 特性，必須跟文件內所有其他元素的 `id` 不同。這樣確保了 `#A1` 這個「ID 選擇器」（ID selector）只會指向至一個元素，而不像類別選擇器 `.formula` 那樣指稱一系列的元素。當使用者按下**上鍵**/**下鍵**/**輸入鍵**時，`keydown()` 中的邏輯就會使用 ID 選擇器，來確定該設定焦點在哪個輸入框上。
 
 在輸入框後面，我們放置一個 `<div>` 元素，來顯示當前儲存格的計算結果（以物件 `errs` 和 `vals` 在 JS 模型中表示）：
 
@@ -249,7 +249,7 @@ function Spreadsheet ($scope, $timeout) {
   } };
 ```
 
-之所以要檢查 `querySelector` 是否有傳回值，是因為從 **A1** 向上移動時，會產生選擇器 `#A0`：它沒有相應的元素，因此不會觸發焦點變化。在最底端的橫列按**下鍵**時也是一樣。
+之所以要檢查 `querySelector` 是否有傳回值，是因為從 **A1** 向上移動時，會產生選擇器 `#A0`：它沒有相應的元素，因此不會觸發焦點變化。在最底端的橫列按 **下鍵** 時也是一樣。
 
 接著我們定義 `reset()` 函式，讓 `↻` 按鈕可以恢復 `sheet` 的初始內容：
 
@@ -258,7 +258,7 @@ function Spreadsheet ($scope, $timeout) {
   $scope.reset = ()=>{ $scope.sheet = { A1: 1874, B1: '+', C1: 2046, D1: '⇒', E1: '=A1+C1' } }
 ```
 
-`init()` 函式先試著從 [localStorage](https://developer.mozilla.org/en-US/docs/Web/Guide/API/DOM/Storage#localStorage) 恢復 `sheet` 內容的先前狀態。或如果是首次運行，則預設為初始內容：
+`init()` 函式先試著從 [localStorage](https://developer.mozilla.org/en-US/docs/Web/Guide/API/DOM/Storage#localStorage) 恢復 `sheet` 內容的先前狀態。如果是首次運行，則預設為初始內容：
 
 ```js
   // Define the initializer, and immediately call it
@@ -274,9 +274,9 @@ function Spreadsheet ($scope, $timeout) {
 
 * 我們使用 `($scope.init = ()=>{…})()` 語法，在函式定義之後立刻執行它。
 * 由於 localStorage 只能存取字串，所以要用 `angular.fromJson()` 將 [JSON](https://developer.mozilla.org/en-US/docs/Glossary/JSON) 解析（parse）為 `sheet` 結構。
-* `init()` 的最後一步，是建立新的 [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Worker) 線程，並將它放進 `worker` 屬性裡。雖然顯示層不會直接用到背景工作器，但我們仍依慣例使用 `$scope` 屬性，來讓多個函式能共用同一個模型裡的物件（此處指的是 `init()` 和下述的 `calc()` ）。
+* `init()` 的最後一步，是建立新的 [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Worker) 線程，並將它放進 `worker` 屬性裡。雖然顯示層不會直接用到背景工作器，但我們仍依慣例使用 `$scope` 的屬性，來讓多個函式能共用同一個模型裡的物件（此處指的是 `init()` 和下述的 `calc()` ）。
 
-`sheet` 儲存了使用者可編輯的儲存格內容，而 `errs` 和 `vals` 則是計算的結果。錯誤和數值兩者，對使用者來說都是唯讀的內容：
+`sheet` 儲存了使用者可編輯的儲存格內容，而 `errs` 和 `vals` 則是計算的結果。錯誤和數值兩者，對使用者來說都是唯讀的：
 
 ```js
   // Formula cells may produce errors in .errs; normal cell contents are in .vals
@@ -291,7 +291,7 @@ function Spreadsheet ($scope, $timeout) {
     const json = angular.toJson( $scope.sheet );
 ```
 
-首先是把 `sheet` 的狀態快照成 JSON 字串，儲存在常數 `json` 裡。
+首先是把 `sheet` 的狀態快照成 JSON 字串，存進常數 `json` 裡。
 
 接著我們用 [$timeout](https://docs.angularjs.org/api/ng/service/$timeout) 建構一個 `promise` ，如果接下來的計算需時超過 99 毫秒，就自動將它取消：
 
@@ -306,7 +306,7 @@ function Spreadsheet ($scope, $timeout) {
     }, 99 );
 ```
 
-在 HTML 中的 `<input ng-model-options>` 屬性，確保 `calc` 最多只會每 200 毫秒執行一次，因此這裡預留了 101 毫秒，讓 `init()` 恢復 `sheet` 到上一個已知的良好狀態，並建立新的背景工作器。
+在 HTML 中的 `<input ng-model-options>` 特性，確保 `calc` 最多只會每 200 毫秒執行一次，因此這裡預留了 101 毫秒，讓 `init()` 恢復 `sheet` 到上一個已知的良好狀態，並建立新的背景工作器。
 
 工作器的任務，是從 `sheet` 的內容計算出 `errs` 和 `vals`。由於 **main.js** 和 **worker.js** 是透過訊息傳遞來溝通，所以需要定義一個 `onmessage` 處理程序，來接收計算出的結果：
 
