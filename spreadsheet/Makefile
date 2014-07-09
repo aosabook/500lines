@@ -10,8 +10,7 @@ run ::
 
 es5 :: $(OBJECTS)
 	@perl -lpi -e 's!"sources":\["\K[^"]*/!../!' es5/*.map
-	@perl -lpi -e 's!importScripts.*\{\z\K! importScripts("../node_modules/traceur/bin/traceur-runtime.js");!' es5/worker.js
-	@perl -lpi -e 's!  (?=\(.scope.calc)!  \$$timeout! .. s!  }\)\).call\(\);!  }), 200);!' es5/main.js
+	@perl -lpi -e 's~vals;(?! )~vals; importScripts("../node_modules/traceur/bin/traceur-runtime.js");~' es5/worker.js
 
 test :: es5
 	@node node_modules/mocha/bin/mocha

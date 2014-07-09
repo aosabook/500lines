@@ -1,5 +1,3 @@
-return unless @importScripts
-
 var sheet, errs, vals
 self.onmessage = ({data}) ->
   [sheet, errs, vals] := [ data, {}, {} ]

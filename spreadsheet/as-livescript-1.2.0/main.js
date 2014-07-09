@@ -36,7 +36,7 @@
       return $scope.worker = new Worker('worker.js');
     })();
     ref$ = [{}, {}], $scope.errs = ref$[0], $scope.vals = ref$[1];
-    return ($scope.calc = function(){
+    $scope.calc = function(){
       var json, promise;
       json = angular.toJson($scope.sheet);
       promise = $timeout(function(){
@@ -54,6 +54,8 @@
         });
       };
       return $scope.worker.postMessage($scope.sheet);
-    })();
+    };
+    $scope.worker.onmessage = $scope.calc;
+    return $scope.worker.postMessage(null);
   };
 }).call(this);

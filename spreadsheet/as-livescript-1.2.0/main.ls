@@ -23,8 +23,8 @@
   # Formula cells may produce errors in .errs; normal cell contents are in .vals
   [$scope.errs, $scope.vals] = [ {}, {} ]
 
-  # Define the calculation handler, and immediately call it
-  do $scope.calc = ->
+  # Define the calculation handler; not calling it yet
+  $scope.calc = ->
     const json = angular.toJson $scope.sheet
     const promise = $timeout ->
       # If the worker has not returned in 0.5 seconds, terminate it
@@ -43,3 +43,7 @@
 
     # Post the current sheet content for the worker to process
     $scope.worker.postMessage $scope.sheet
+
+  # Start calculation when worker is ready
+  $scope.worker.onmessage = $scope.calc
+  $scope.worker.postMessage null

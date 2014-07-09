@@ -31,8 +31,8 @@ function Spreadsheet ($scope, $timeout) {
   // Formula cells may produce errors in .errs; normal cell contents are in .vals
   [$scope.errs, $scope.vals] = [ {}, {} ];
 
-  // Define the calculation handler, and immediately call it
-  ($scope.calc = ()=>{
+  // Define the calculation handler; not calling it yet
+  $scope.calc = ()=>{
     const json = angular.toJson( $scope.sheet );
     const promise = $timeout( ()=>{
       // If the worker has not returned in 99 milliseconds, terminate it
@@ -52,5 +52,9 @@ function Spreadsheet ($scope, $timeout) {
 
     // Post the current sheet content for the worker to process
     $scope.worker.postMessage( $scope.sheet );
-  }).call();
+  };
+
+  // Start calculation when worker is ready
+  $scope.worker.onmessage = $scope.calc;
+  $scope.worker.postMessage( null );
 }
