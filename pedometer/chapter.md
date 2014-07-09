@@ -105,14 +105,44 @@ When gravity acts on our phone in multiple directions, how do we isolate acceler
 ### The Dot Product
 
 The dot product takes two signals of equal length and returns a single signal. 
-In solving problem one above, we have our total acceleration signal separated into a gravitational acceleration signal and a user acceleration signal. So, what will happen if we take the dot product of user acceleration and gravitational acceleration?
+In solving problem one above, we have three resulting signals: $a_{t}$, $a_{g}$ and $a_{u}$, each of which has an x, y, and z coordinate. Each of these signals is necessarily the same length, since $a_{u}$ and $a_{g}$ are derived from $a_{t}$. 
 
-TODO: Add image of summation from wikipedia, and vectors.
+Let's take a look at what it means to take the dot product of $a_{u}$ and $a_{g}$, $a_{u} \cdot a_{g}$, for the x-coordinate at point $n$, which is equivalent to any point from 0 to the length of the entire signal.
 
-So, the dot product of user acceleration and gravitational acceleration results in the portion of user acceleration in the direction of gravity. 
-TODO: Expand?
+![](chapter-figures/dot-product-explanation.png)\ 
 
-TODO: Add graphs from trial view showing original data and dot product data.
+Taking the dot product in this case means that we'll get the portion of user acceleration in the direction of gravity. Just what we need! 
+
+### Implemeting the Dot Product
+So, in order to get a single signal representing user acceleration in the direction of gravity, we need to take the dot product of $a_{u}$ and $a_{g}$. Let's call this new signal $a_{ug}$:
+
+$a_{ugn} = a_{un} \cdot a_{gn} = x_{un}x_{gn} + y_{un}y_{gn} + z_{un}z_{gn}$
+
+Using the same data as problem one above, the dot product results in the single signal below:
+
+![](chapter-figures/figure-dot-product-example.png)\ 
+
+## Solutions in the Real World
+We saw how quickly our seemingly simple problem turned a little more complex when we threw in the challenges of the real world and real people. However, we're getting a lot closer to counting steps. 
+
+Using the two mathematical tools from above, a low-pass filter and the dot product, we were able to bring our real-world, complex data set a lot closer to our ideal one. We're even able to see pick out where the steps are, once again: 
+
+![](chapter-figures/figure-dot-product-example-step.png)\ 
+
+We can see how this data is starting to resemble our ideal sine wave. But, only "kinda, sorta" starting to. Let's recap how we got to this stage:
+
+1. We started with total acceleration, $a_{t}$.
+2. We used a low-pass filter to split $a_{t}$ into gravitational acceleration, $a_{g}$, and user acceleration, $a_{u}$.
+3. We took the dot product of $a_{u}$ and $a_{g}$ to obtain the user acceleration in the direction of gravity, which left of with our most recent data set. 
+
+Now, we need our messy data set to look more like our ideal sine wave, so that we can count steps. 
+
+TODO: Section on using low-pass filter again. 
+
+TODO: Conclusion from two problems.
+In summary, in order to get a single signal from $a_{t}$, 
+
+
 
 TODO: Start: Add this somewhere else...
 All current iPhone and Android devices come with an accelerometer as well as a gyroscope, so they're able to separate gravitational acceleration from user acceleration. TODO: Expand this explanation.
