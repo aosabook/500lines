@@ -34,7 +34,7 @@ if (self.importScripts) {
             errs[coord] = e.toString();
           }
           return((typeof vals[coord] === 'number') ? vals[coord] : vals[coord]+='');
-        } } )
+        } } );
       }
     }
 

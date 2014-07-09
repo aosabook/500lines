@@ -1,5 +1,5 @@
 var Worker = this.Worker || require('webworker-threads').Worker
-var w = new Worker('es5/worker.js')
+var w = new Worker('as-javascript-1.8.5/worker.js')
 var assert = require("assert")
 describe('Worker', function(){
   it('should support formula', function(done){

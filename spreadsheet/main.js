@@ -14,11 +14,11 @@ function Spreadsheet ($scope, $timeout) {
       const direction = (which === 38) ? -1 : +1;
       const cell = document.querySelector( `#${ col }${ row + direction }` );
       if (cell) { cell.focus(); }
-    } )
+    } );
   } };
 
   // Default sheet content, with some data cells and one formula cell.
-  $scope.reset = ()=>{ $scope.sheet = { A1: 1874, B1: '+', C1: 2046, D1: '⇒', E1: '=A1+C1' } };
+  $scope.reset = ()=>{ $scope.sheet = { A1: 1874, B1: '+', C1: 2046, D1: '⇒', E1: '=A1+C1' }; };
 
   // Define the initializer, and immediately call it
   ($scope.init = ()=>{
@@ -26,7 +26,7 @@ function Spreadsheet ($scope, $timeout) {
     $scope.sheet = angular.fromJson( localStorage.getItem( '' ) );
     if (!$scope.sheet) { $scope.reset(); }
     $scope.worker = new Worker( 'worker.js' );
-  })();
+  }).call();
 
   // Formula cells may produce errors in .errs; normal cell contents are in .vals
   [$scope.errs, $scope.vals] = [ {}, {} ];
@@ -48,9 +48,9 @@ function Spreadsheet ($scope, $timeout) {
       $timeout.cancel( promise );
       localStorage.setItem( '', json );
       $timeout( ()=>{ [$scope.errs, $scope.vals] = data; } );
-    }
+    };
 
     // Post the current sheet content for the worker to process
     $scope.worker.postMessage( $scope.sheet );
-  })();
+  }).call();
 }

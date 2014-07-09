@@ -246,7 +246,7 @@ Next up, we retrieve the target element using the ID selector syntax (e.g. `"#A3
 ```js
       const cell = document.querySelector( `#${ col }${ row + direction }` );
       if (cell) { cell.focus(); }
-    } )
+    } );
   } };
 ```
 
@@ -256,7 +256,7 @@ Next, we define the `reset()` function so the `↻` button can restore the `shee
 
 ```js
   // Default sheet content, with some data cells and one formula cell.
-  $scope.reset = ()=>{ $scope.sheet = { A1: 1874, B1: '+', C1: 2046, D1: '⇒', E1: '=A1+C1' } }
+  $scope.reset = ()=>{ $scope.sheet = { A1: 1874, B1: '+', C1: 2046, D1: '⇒', E1: '=A1+C1' }; }
 ```
 
 The `init()` function first tries restoring the `sheet` content from its previous state from the [localStorage](https://developer.mozilla.org/en-US/docs/Web/Guide/API/DOM/Storage#localStorage), or defaults to the initial content if it’s our first time running the application:
@@ -268,12 +268,12 @@ The `init()` function first tries restoring the `sheet` content from its previou
     $scope.sheet = angular.fromJson( localStorage.getItem( '' ) );
     if (!$scope.sheet) { $scope.reset(); }
     $scope.worker = new Worker( 'worker.js' );
-  })();
+  }).call();
 ```
 
 A few things are worth nothing in the `init()` function above:
 
-* We use the `($scope.init = ()=>{…})()` syntax to define the function and immediately call it.
+* We use the `($scope.init = ()=>{…}).call()` syntax to define the function and immediately call it.
 * Because localStorage only stores strings, we _parse_ the `sheet` structure from its [JSON](https://developer.mozilla.org/en-US/docs/Glossary/JSON) representation using `angular.fromJson()`.
 * At the last step of `init()`, we create a new [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Worker) thread and assign it to the `worker` scope property. Although the worker is not directly used in the view, it’s customary to use `$scope` to share objects used across model functions, in this case between `init()` here and `calc()` below.
 
@@ -317,7 +317,7 @@ The Worker’s task is to calculate `errs` and `vals` from the contents of`sheet
       $timeout.cancel( promise );
       localStorage.setItem( '', json );
       $timeout( ()=>{ [$scope.errs, $scope.vals] = data; } );
-    }
+    };
 ```
 
 If `onmessage` is called,  we know that the `sheet` snapshot in `json` is stable (i.e. containing no infinite-looping formulas), so we cancel the 99-millisecond timeout, write the snapshot to localStorage, and schedule an UI update with a `$timeout` function that updates `errs` and `vals` to the user-visible view.
@@ -327,7 +327,7 @@ With the handler in place, we can post the state of `sheet` to the worker, start
 ```js
     // Post the current sheet content for the worker to process
     $scope.worker.postMessage( $scope.sheet );
-  })();
+  }).call();
 }
 ```
 
