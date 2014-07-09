@@ -11,7 +11,8 @@
 
 ## Online Demo
 
-<http://audreyt.github.io/500lines/spreadsheet/>
+* ES6 (gh-pages): <http://audreyt.github.io/500lines/spreadsheet/>
+* ES5 (jsFiddle): <http://jsfiddle.net/audreyt/LtDyP/>
 
 ## Local Demo
 
