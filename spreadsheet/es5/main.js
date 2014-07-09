@@ -88,7 +88,7 @@ function Spreadsheet($scope, $timeout) {
     $scope.worker = new Worker('worker.js');
   })).call();
   ($__4 = [{}, {}], $scope.errs = $__4[0], $scope.vals = $__4[1], $__4);
-  ($scope.calc = (function() {
+  $timeout($scope.calc = (function() {
     var json = angular.toJson($scope.sheet);
     var promise = $timeout((function() {
       $scope.worker.terminate();
@@ -105,7 +105,7 @@ function Spreadsheet($scope, $timeout) {
       }));
     });
     $scope.worker.postMessage($scope.sheet);
-  })).call();
+  }), 2046);
 }
 
 //# sourceMappingURL=main.map
