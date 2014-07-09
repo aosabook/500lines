@@ -102,7 +102,6 @@ _(Also available in [English](https://github.com/audreyt/500lines/blob/master/sp
 ```html
   <script src="main.js"></script>
   <script>if (!self.Spreadsheet) { location.href = "es5/index.html" }</script>
-  <script src="worker.js"></script>
   <script src="lib/angular.js"></script>
 ```
 
@@ -286,8 +285,8 @@ function Spreadsheet ($scope, $timeout) {
 有了這些屬性，就可以定義出每當使用者變更 `sheet` 時，就會觸發的 `calc()` 函式：
 
 ```js
-  // Define the calculation handler, and immediately call it
-  ($scope.calc = ()=>{
+  // Define the calculation handler; not calling it yet
+  $scope.calc = ()=>{
     const json = angular.toJson( $scope.sheet );
 ```
 
@@ -326,7 +325,11 @@ function Spreadsheet ($scope, $timeout) {
 ```js
     // Post the current sheet content for the worker to process
     $scope.worker.postMessage( $scope.sheet );
-  })();
+  };
+
+  // Start calculation when worker is ready
+  $scope.worker.onmessage = $scope.calc;
+  $scope.worker.postMessage( null );
 }
 ```
 
@@ -338,26 +341,20 @@ function Spreadsheet ($scope, $timeout) {
 * 因為公式裡可以出現任何 JS 表達式，工作者為此提供了沙盒（sandbox），來防止公式干擾到主線程的網頁，例如使用 `alert()` 彈出對話框等等。
 * 公式可以用任何座標當作變數，該變數可能包含另一項公式，最終可能導致循環引用。為了解決這個問題，我們利用工作者的全域範圍（global scope）物件 `self`，將各座標變數定義成它的取值函式（getter function），以實作防止循環的邏輯。
 
-有了這些認識後，讓我們來看看工作者的程式碼。由於 **index.html** 使用 `<script>` 標籤預先載入工作者程序，所以 **worker.js** 首先要確認它是否確實作為背景任務運行：
+有了這些認識後，讓我們來看看工作者的程式碼。
+
+工作者的唯一目的是定義 `onmessage` 處理程序，來接收 `sheet`、計算出 `errs` 和 `vals`，再將兩者傳送回主要的 JS 線程。當它接收到訊息時，首先是重新初始化這三個變數：
 
 ```js
-if (self.importScripts) {
-```
-
-這項檢查之所以可行，是因為瀏覽器只會在背景工作線程裡，提供 `importScripts()` 的定義。
-
-工作者的唯一目的是定義 `onmessage` 處理程序，來接收 `sheet`、計算出 `errs` 和 `vals`，再將兩者傳送回主要的 JS 線程。當它接收到一則訊息時，首先是重新初始化這三個變數：
-
-```js
-  let sheet, errs, vals;
-  self.onmessage = ({data})=>{
-    [sheet, errs, vals] = [ data, {}, {} ];
+let sheet, errs, vals;
+self.onmessage = ({data})=>{
+  [sheet, errs, vals] = [ data, {}, {} ];
 ```
 
 為了將座標轉成全域變數，我們用 `for…in` 迴圈，取出 `sheet` 裡面的每個屬性名稱：
 
 ```js
-    for (const coord in sheet) {
+  for (const coord in sheet) {
 ```
 
 上述的 `const coord`，可以讓迴圈裡定義的函式包入該次迭代裡 `coord` 的實際數值。這是因為 `const` 和 `let` 宣告的變數屬於區塊範圍（block scope）。如果宣告寫成 `var coord` ，則會屬於函式範圍（function scope），這樣每次迭代時定義的函式最終都會指向同一個 `coord`。
@@ -365,10 +362,10 @@ if (self.importScripts) {
 習慣上，公式裡的變數名稱大小寫視為相同，並且可以加上 `$` 前綴。因為 JS 變數有區分大小寫，所以我們用 `for…of` 循環來取得同一個座標的四種變數名稱表示法：
 
 ```js
-      // Four variable names pointing to the same coordinate: A1, a1, $A1, $a1
-      for (const name of [ for (p of [ '', '$' ])
-                             for (c of [ coord, coord.toLowerCase() ])
-                               p+c ]) {
+    // Four variable names pointing to the same coordinate: A1, a1, $A1, $a1
+    for (const name of [ for (p of [ '', '$' ])
+                           for (c of [ coord, coord.toLowerCase() ])
+                             p+c ]) {
 ```
 
 上述的陣列定義中有兩個 `for` 表達式，這個語法稱為巢狀陣列簡約式（nested array comprehension）。
@@ -376,11 +373,11 @@ if (self.importScripts) {
 對於每一個變數名稱，例如 `A1` 和 `$a1`，我們在 `self` 上定義其[屬性存取式](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperty)，這樣當算式中提到這些變數時，都會自動計算 `vals["A1"]` 的值：
 
 ```js
-        // Worker is reused across calculations, so only define each variable once
-        if ((Object.getOwnPropertyDescriptor( self, name ) || {}).get) { continue; }
+      // Worker is reused across calculations, so only define each variable once
+      if ((Object.getOwnPropertyDescriptor( self, name ) || {}).get) { continue; }
 
-        // Define self['A1'], which is the same thing as the global variable A1
-        Object.defineProperty( self, name, { get() {
+      // Define self['A1'], which is the same thing as the global variable A1
+      Object.defineProperty( self, name, { get() {
 ```
 
 此處的 `{ get() { … } }` 語法是 `{ get: ()=>{ … } }` 的縮寫。由於我們只定義 `get`，但沒有定義 `set`，這些變數就此成為唯讀，從而免於被使用者鍵入的公式所更改。
@@ -388,7 +385,7 @@ if (self.importScripts) {
 `get` 存取函式會先檢查 `vals[coord]`，如果已經計算完畢，則直接將它傳回。
 
 ```js
-          if (coord in vals) { return vals[coord]; }
+        if (coord in vals) { return vals[coord]; }
 ```
 
 不然的話，我們就需要從 `sheet[coord]` 計算出 `vals[coord]` 。
@@ -396,22 +393,22 @@ if (self.importScripts) {
 首先我們將後者設定為 `NaN`，讓自我指涉的公式（例如將 **A1** 設為 `=A1`）計算出 `NaN`，而不是無限循環：
 
 ```js
-          vals[coord] = NaN;
+        vals[coord] = NaN;
 ```
 
 然後我們檢查 `sheet[coord]` 是不是數字，方法是先用前綴 `+` 將它轉換成數字、把數字寫進 `x`，再將它的字串表現方式與原先的字串進行比較。如有不同，代表它不是數字，那麼我們再將 `x` 設成原本的字符串：
 
 ```js
-          // Turn numeric strings into numbers, so =A1+C1 works when both are numbers
-          let x = +sheet[coord];
-          if (sheet[coord] !== x.toString()) { x = sheet[coord]; }
+        // Turn numeric strings into numbers, so =A1+C1 works when both are numbers
+        let x = +sheet[coord];
+        if (sheet[coord] !== x.toString()) { x = sheet[coord]; }
 ```
 
 如果 `x` 以 `=` 開頭，那它就是公式儲存格。我們使用 `eval.call()` 來運算 `=` 之後的公式部分。第一個引數 `null` 會讓 `eval` 在全域範圍中運行，不讓詞彙範圍（lexical scope）裡的變數（如 `x` 和 `sheet`）影響運算結果：
 
 ```js
-          // Evaluate formula cells that begin with =
-          try { vals[coord] = (('=' === x[0]) ? eval.call( null, x.slice( 1 ) ) : x);
+        // Evaluate formula cells that begin with =
+        try { vals[coord] = (('=' === x[0]) ? eval.call( null, x.slice( 1 ) ) : x);
 ```
 
 如果運算成功，結果會儲存到 `vals[coord]` 裡。對於非公式的儲存格來說，`vals[coord]` 的數值就是 `x`，它可以是數字或字串。
@@ -419,19 +416,19 @@ if (self.importScripts) {
 如果 `eval` 發生錯誤， `catch` 區塊會檢查錯誤原因，看看是否因為公式引用了尚未在 `self` 定義的空白儲存格：
 
 ```js
-          } catch (e) {
-            const match = /\$?[A-Za-z]+[1-9][0-9]*\b/.exec( e );
-            if (match && !( match[0] in self )) {
+        } catch (e) {
+          const match = /\$?[A-Za-z]+[1-9][0-9]*\b/.exec( e );
+          if (match && !( match[0] in self )) {
 ```
 
 在這種情況下，我們把缺失的儲存格預設成 `0`、清除 `vals[coord]`，並使用 `self[coord]` 來重新執行當前運算：
 
 ```js
-              // The formula refers to a uninitialized cell; set it to 0 and retry
-              self[match[0]] = 0;
-              delete vals[coord];
-              return self[coord];
-            }
+            // The formula refers to a uninitialized cell; set it to 0 and retry
+            self[match[0]] = 0;
+            delete vals[coord];
+            return self[coord];
+          }
 ```
 
 如果使用者稍後在 `sheet[coord]` 中給出缺失儲存格的內容，那麼 `Object.defineProperty` 會接手，蓋過臨時給的數值。
@@ -439,29 +436,30 @@ if (self.importScripts) {
 其他類型的錯誤會寫進 `errs[coord]` 裡：
 
 ```js
-            // Otherwise, stringify the caught exception in the errs object
-            errs[coord] = e.toString();
-          }
+          // Otherwise, stringify the caught exception in the errs object
+          errs[coord] = e.toString();
+        }
 ```
 
 在發生錯誤時，因為賦值操作沒有完成，所以 `vals[coord]` 的數值仍然會是 `NaN`。
 
-最後，`get` 函式傳回 `vals[coord]` 裡計算出的數值，它必須是數字或字串：
+最後，`get` 函式傳回 `vals[coord]` 裡計算出的數值，它必須是數字、布林值或字串：
 
 ```js
-          return((typeof vals[coord] === 'number') ? vals[coord] : vals[coord]+='');
-        } } )
-      }
+        // Turn vals[coord] into a string if it's not a number or boolean
+        switch (typeof vals[coord]) { case 'function': case 'object': vals[coord]+=''; }
+        return vals[coord];
+      } } )
     }
+  }
 ```
 
 為每個座標都定義好存取函式之後，背景工作程式再次針對每個座標執行 `self[coord]` 來觸發存取函式，最後將得出的 `errs` 和 `vals` 傳送回主要 JS 線程：
 
 ```js
-    // For each coordinate in the sheet, call the property getter defined above
-    for (const coord in sheet) { self[coord]; }
-    return [ errs, vals ];
-  }
+  // For each coordinate in the sheet, call the property getter defined above
+  for (const coord in sheet) { self[coord]; }
+  return [ errs, vals ];
 }
 ```
 
