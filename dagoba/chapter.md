@@ -1,4 +1,29 @@
-# Let's make a graph database!
+# Dagoba: a simple in-memory graph database
+
+_An exploration of connectedness through the heuristic of exposition_
+
+A long time ago when the world was still young and data roamed free the first programmers began the long domestication process. They corralled data by forming links between items [N] [the network model (CODASYL), the hierarchical model (IMS), etc], marshaling groups of units into formation through their linking assemblage. 
+
+Later shepherds departed from this tradition, imposing a set of rules on how data would be aggregated. [N] [Codd, etc] Rather than tying disparate data directly together they would cluster by content, decomposing data into bite-sized pieces, clustered in kennels and collared with a name tag. 
+
+For much of recorded history this relational model reigned supreme. Its dominance has recently been challenged by growing set of contending schools, including techniques that harken back to the earliest attempts to domesticate random-access data. In theory any question we wish to ask of data trapped in a relational well can be answered, but in practice the effort of properly framing our request and the amount of time required to receive our answer may both be untenable -- hence our desire to reposition our data.
+
+[maybe reframe that first section -- data was linearly constrained (e.g. sheep in single file) prior to the random access revolution; it was only when it broke free of those bounds that it became necessary to begin herding it.]
+
+
+
+## Make it work
+
+Let's start with a simple question: how many connected components are there in the Lagarias arithmetic derivative of the first N numbers out to k steps? 
+[N] [https://cs.uwaterloo.ca/journals/JIS/VOL6/Ufnarovski/ufnarovski.pdf,
+http://christopherolah.files.wordpress.com/2011/04/arithmetic_derivative_250.png]
+
+--- some exposition ---
+
+How should we go about solving such a thing?
+
+
+### I know, we'll make a graph database!
 
 The dictionary defines "graph database" as a database for graphs. Thanks, dictionary! Let's break that down a little.
 
@@ -82,11 +107,11 @@ Fun! But what if we want to ask about all of Alice's employees? Let's add some e
 
 
 
-# Make it right
+## Make it right
 
 So we've got a working graph database. It even works for fancy objects and stuff. So we're done, right? 
 
-## Laziness
+### Laziness
 
 Suppose we'd like to find a few people who have both tennis and philately as a hobby. We can start from tennis, go out to its hobbyists, out again to their hobbies, back in from philately and then take a few. (change this query)
 
@@ -122,7 +147,7 @@ We can even resume this after coming back in from an asynchronous event, so we c
 
 
 
-## Updates
+### Updates
 
 (maybe lead in from the async stuff above, since that provides the context for concurrency issues.)
 
@@ -148,7 +173,7 @@ If we need to see the world as it exists at a particular moment in time (e.g. 'n
 
 
 
-## Hooks
+### Hooks
 
 Uniqueness of results vs counting # of results -- both are valid use cases. Can we solve with query component for counting plus hook for uniqueness?
 
@@ -167,9 +192,14 @@ Maybe we should handle those errors a little better.
 - tests for components
 - end-to-end tests
 
+### serialization
+
+### persistence
+
+### OO vs FP re GDB wrt Dagoba (extensibility, pipeline management, etc)
 
 
-# Make it fast
+## Make it fast
 
 All production graph databases share a very particular performance characteristic: graph traversal queries are constant time with respect to total graph size. [N] [The fancy term for this is "index-free adjacency".] In a non-graph database, asking for the list of someone's friends can require time proportional to the number of entries, because in the naive case you have to look at every entry. The means if a query over ten entries takes a millisecond then a query over ten million entries will take almost two weeks. Your friend list would arrive faster if sent by Pony Express! [N] [Though only in operation for 18 months due to the arrival of the transcontinental telegraph and the outbreak of the American Civil War, the Pony Express is still remembered today for delivering mail coast to coast in just ten days.]
 
@@ -211,7 +241,7 @@ Because we have a working, well-tested pipeline and because we've created our op
 
 We've created a (very specialized) version of quickcheck [N] in 9 lines of code! Now we just let this run for awhile whenever we add new optimizations and it will tell us when they fail.
 
-# Wrapping up
+## Wrapping up
 
 So what have we learned? Graph databases are great for storing interconnected [Z] data that you plan to query via graph traversals. Adding laziness allows for a fluent interface over queries you could never express in an eager system for performance reasons, and allows you to cross async boundaries. Time makes things complicated, and time from multiple perspectives (i.e. concurrency) makes things very complicated, so whenever we can avoid introducing a temporal dependence (e.g. mutable state, measurable effects, etc) we make reasoning about our system easier. Building in a simple, decoupled and painfully unoptimized style leaves the door open for global optimizations later on, and using a driver loop allows for orthogonal optimizations -- each without introducing the brittleness and complexity into our code that is the hallmark of most optimization techniques. 
 
@@ -349,7 +379,6 @@ so: let's mutate-in-place for perf and simplicity, but never hand out refs to pr
 Definitions
 
 
-# Updating
 
 concurrency. immutable data structures. update syntax -- no problem, can't update directly anyway. {'foo.baz.smile': 123, 'args.lala.gogo': 333}
 
@@ -357,5 +386,4 @@ concurrency. immutable data structures. update syntax -- no problem, can't updat
 
 
 ============================================================================
-
 
