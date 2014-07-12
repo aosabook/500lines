@@ -159,12 +159,12 @@ TODO: Better conclusion.
 
 # Diving Into Code
 
-It's time to translate our solution into code. Our goal for this chapter is to create a web application that counts steps from a set of different walks recorded with mobile devices containing accelerometers. A web app naturally separates the data processing from the presentation of the data, and since web apps have been build many times over, we may as well use a framework to do the boring plumbing work for us. The Sinatra framework does just that. In the tool's own words, Sinatra is "a DSL for quickly creating web applications in Ruby". Perfect. 
+It's time to translate our solution into code. Our goal for this chapter is to create a web application that counts steps from a set of different walks recorded with mobile devices containing accelerometers. 
 
-As software developers, before we dig into code, we have to first undetstand the requirements of the program we're building. We want a web app that allows us to:
+Our web app will:
 
-1. Upload data from a walk.
-2. Input some basic information about the data set (sampling rate, actual step count, gender/height/stride of user, etc.)
+1. Allow a user to upload a text file containing coordinates from a walk.
+2. Provide input fields for the user to enter some basic information about the data set (sampling rate, actual step count, gender/height/stride of user, etc.)
 3. Parse and analyze our data, outputting the number of steps taken, distance traveled, and time elapsed, and present charts representing the data in different processing stages.
 
 The meat and potatoes of our program is in step 3, where we parse and analyze the input data. It makes sense, then, to start with that, and build the web app and interface later, once we have some outputs to work with.
@@ -677,11 +677,11 @@ Things to Note:
 
 TODO: Add some examples here of plots showing a single trial with comibned and separated input data at each stage, and compare the final, parsed results. 
 
-## Adding some friendly
+## Adding Some Friendly
 
-We're through the most labour intensive part of our app. Now, all that's left is to present the data in a format that is pleasing to a user. It makes sense to create a very simple web app that allows a user to input a data set through a file upload (in our two formats!) and output the steps taken, distance traveled, time traveled, and maybe a few plots to display the data. 
+We're through the most labour intensive part of our program. Now, all that's left is to present the data in a format that is pleasing to a user. A web app naturally separates the data processing from the presentation of the data. Let's look at our app from a user's perspective before we dive into the code. 
 
-Let's look at our app from a user's perspective before we dive into the code. 
+### A User Scenario
 
 When a user first enters the app, they see an empty table of trials, and an upload form. The upload form has fields for the user to enter device info and user info.
 
@@ -701,11 +701,19 @@ The user can navigate back to the trials using the *Back to Trials* link, and up
 
 ![](chapter-figures/app-4-1246w-90p.png)\ 
 
-As long as the user enters the same input in all text and dropdown fields, the program knows that this is the same trial, and outputs the following:
+Hitting enter again outputs the following:
 
 ![](chapter-figures/app-5-1246w-90p.png)
 
 Note that since this trial is the separated format, it is more accurate than the combined format.
+
+### The Toolchain
+
+Web apps have been build many times over, so we may as well use a framework to do the boring plumbing work for us. The Sinatra framework does just that. In the tool's own words, Sinatra is "a DSL for quickly creating web applications in Ruby". Perfect. 
+
+Since we're building a web app, we'll need a web server, so we'll use the thin web server. It's simple and certainly fast enough for our purposes. 
+
+The last tool we'll be including is a JavaScript library called Highcharts, used for creating interactive charts. What's the point of interesting data if we can't display it in interesting ways? 
 
 ### Diving back to the code
 
