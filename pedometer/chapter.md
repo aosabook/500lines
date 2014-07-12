@@ -165,17 +165,20 @@ Our web app will:
 
 1. Allow a user to upload a text file containing coordinates from a walk.
 2. Provide input fields for the user to enter some basic information about the data set (sampling rate, actual step count, gender/height/stride of user, etc.)
-3. Parse and analyze our data, outputting the number of steps taken, distance traveled, and time elapsed, and present charts representing the data in different processing stages.
+3. Parse and analyze our data, calculating the number of steps taken, distance traveled, and time elapsed.
+4. Output charts representing the data in different processing stages.
 
-The meat and potatoes of our program is in step 3, where we parse and analyze the input data. It makes sense, then, to start with that, and build the web app and interface later, once we have some outputs to work with.
+The meat and potatoes of our program is in step 3, where we parse and analyze the input data. It makes sense, then, to start with that, and build the web app and interface afterward.
 
 ## Parsing Input Data
 
-Let's look at what our input data will look like in each format. 
+The input data we'll be parsing is coming from mobile devices such as Android phones and iPhones. Most iPhone and Android devices on the market today have accelerometers built in. This means that both device types are able to record total acceleration. Let's call the data format that records total acceleration the *combined format*. Many, but not all, devices can also record user acceleration and gravitational acceleration separately. Let's call this format the *separated format*. A device that has the ability to return data in the separated format necessarily has the ability to return data in the combined format. However, a device that has the abiliy to return data in the combined format may or may not have the ability to record data in the separated format. Input data in the combined format will need to be passed through a low-pass filter to turn it into the separated format. Input data in the separated format will not need to be passed through a low-pass filter.
+
+Let's look at each of these formats individually.
 
 ### Combined Format
 
-The first, more rudimentary data format we'll accept is in the combined format. Data in the combined format is simply total acceleration in the x, y, z directions, over time. 
+Data in the combined format is simply total acceleration in the x, y, z directions, over time. 
 
 $"x1,y1,z1;...xn,yn,zn;"$
 
@@ -196,13 +199,15 @@ Below is the separated data format of the exact same walk as the plot above. Thi
 
 ### Making Sense of Data
 
-Looking at our plots, we can start to see a pattern. We notice where the flatter parts of the data are, and where the steps likely occur. However, we don't have enough, yet, to count steps. 
-
 We need to do 3 things to our input data:
+
+TODO: Modify this based on diagram below:
 
 1. Parse our text data and extract numerical data.
 2. Isolate movement in the direction of gravity.
 3. Filter our data series and smooth out our waveform to make it easier to analyze.
+
+![](chapter-figures/input-data-workflow.png)\
 
 These 3 tasks are related, and it makes sense to combine them into one class called a **Parser**. 
 
