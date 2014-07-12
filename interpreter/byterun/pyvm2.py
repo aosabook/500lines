@@ -146,6 +146,7 @@ class VirtualMachine(object):
         return self.frame.block_stack.pop()
 
     def unwind_block(self, block):
+        """Unwind the values on the data stack corresponding to a given block."""
         if block.type == 'except-handler':
             offset = 3
         else:
@@ -168,12 +169,101 @@ class VirtualMachine(object):
         frame = self.make_frame(code, f_globals=f_globals, f_locals=f_locals)
         val = self.run_frame(frame)
         # Check some invariants
-        if self.frames:
-            raise VirtualMachineError("Frames left over!")
-        if self.frame and self.frame.stack:
-            raise VirtualMachineError("Data left on stack! %r" % self.frame.stack)
+        # if self.frames:
+        #     raise VirtualMachineError("Frames left over!")
+        # if self.frame and self.frame.stack:
+        #     raise VirtualMachineError("Data left on stack! %r" % self.frame.stack)
 
         return val # for testing - will be removed
+
+    def parse_byte_and_args(self):
+        f = self.frame
+        opoffset = f.f_lasti
+        byteCode = f.f_code.co_code[opoffset]
+        f.f_lasti += 1
+        byteName = dis.opname[byteCode]
+        arg = None
+        arguments = []
+        if byteCode >= dis.HAVE_ARGUMENT:
+            arg = f.f_code.co_code[f.f_lasti:f.f_lasti+2]
+            f.f_lasti += 2
+            intArg = arg[0] + (arg[1] << 8)
+            if byteCode in dis.hasconst:   # Look up a constant
+                arg = f.f_code.co_consts[intArg]
+            elif byteCode in dis.hasname:  # Look up a name
+                arg = f.f_code.co_names[intArg]
+            elif byteCode in dis.hasjrel:  # Calculate a relative jump
+                arg = f.f_lasti + intArg
+            elif byteCode in dis.hasjabs:  # Calculate an absolute jump
+                arg = intArg
+            elif byteCode in dis.haslocal: # Look up a local name
+                arg = f.f_code.co_varnames[intArg]
+            else:
+                arg = intArg
+            arguments = [arg]
+
+        return byteName, arguments
+
+    def dispatch(self, byteName, arguments):
+        # When later unwinding the block stack,
+        # we need to keep track of why we are doing it.
+        why = None
+        try:
+            if byteName.startswith('UNARY_'):
+                self.unaryOperator(byteName[6:])
+            elif byteName.startswith('BINARY_'):
+                self.binaryOperator(byteName[7:])
+            else:
+                # main dispatch
+                bytecode_fn = getattr(self, 'byte_%s' % byteName, None)
+                if not bytecode_fn:            # pragma: no cover
+                    raise VirtualMachineError(
+                        "unsupported bytecode type: %s" % byteName
+                    )
+                why = bytecode_fn(*arguments)
+        except:
+            # deal with exceptions encountered while executing the op.
+            self.last_exception = sys.exc_info()[:2] + (None,)
+            why = 'exception'
+
+        return why
+
+    def manage_block_stack(self, why):
+        block = self.frame.block_stack[-1]
+
+        if block.type == 'loop' and why == 'continue':
+            self.jump(self.return_value)
+            why = None
+            return why
+
+        self.pop_block()
+        self.unwind_block(block)
+
+        if block.type == 'loop' and why == 'break':
+            why = None
+            self.jump(block.handler)
+            return why
+
+        if (block.type in ['setup-except', 'finally'] and why == 'exception'):
+            self.push_block('except-handler')
+            exctype, value, tb = self.last_exception
+            self.push(tb, value, exctype)
+            self.push(tb, value, exctype) # yes, twice
+            why = None
+            self.jump(block.handler)
+            return why
+
+        elif block.type == 'finally':
+            if why in ('return', 'continue'):
+                self.push(self.return_value)
+
+            self.push(why)
+
+            why = None
+            self.jump(block.handler)
+            return why
+        return why
+
 
     def run_frame(self, frame):
         """Run a frame until it returns (somehow).
@@ -181,90 +271,13 @@ class VirtualMachine(object):
         """
         self.push_frame(frame)
         while True:
-            opoffset = frame.f_lasti
-            byteCode = frame.f_code.co_code[opoffset]
-            frame.f_lasti += 1
-            byteName = dis.opname[byteCode]
-            arg = None
-            arguments = []
-            if byteCode >= dis.HAVE_ARGUMENT:
-                arg = frame.f_code.co_code[frame.f_lasti:frame.f_lasti+2]
-                frame.f_lasti += 2
-                intArg = arg[0] + (arg[1] << 8)
-                if byteCode in dis.hasconst:
-                    arg = frame.f_code.co_consts[intArg]
-                elif byteCode in dis.hasname:
-                    arg = frame.f_code.co_names[intArg]
-                elif byteCode in dis.hasjrel:
-                    arg = frame.f_lasti + intArg
-                elif byteCode in dis.hasjabs:
-                    arg = intArg
-                elif byteCode in dis.haslocal:
-                    arg = frame.f_code.co_varnames[intArg]
-                else:
-                    arg = intArg
-                arguments = [arg]
+            byteName, arguments = self.parse_byte_and_args()
 
-            # When later unwinding the block stack,
-            # we need to keep track of why we are doing it.
-            why = None
-
-            try:
-                if byteName.startswith('UNARY_'):
-                    self.unaryOperator(byteName[6:])
-                elif byteName.startswith('BINARY_'):
-                    self.binaryOperator(byteName[7:])
-                else:
-                    # main dispatch
-                    bytecode_fn = getattr(self, 'byte_%s' % byteName, None)
-                    if not bytecode_fn:            # pragma: no cover
-                        raise VirtualMachineError(
-                            "unsupported bytecode type: %s" % byteName
-                        )
-                    why = bytecode_fn(*arguments)
-
-            except:
-                # deal with exceptions encountered while executing the op.
-                self.last_exception = sys.exc_info()[:2] + (None,)
-                why = 'exception'
+            why = self.dispatch(byteName, arguments)
 
             # Deal with any block management we need to do
-            if why == 'reraise':
-                why = 'exception'
-
             while why and frame.block_stack:
-
-                block = frame.block_stack[-1]
-                if block.type == 'loop' and why == 'continue':
-                    self.jump(self.return_value)
-                    why = None
-                    break
-
-                self.pop_block()
-                self.unwind_block(block)
-
-                if block.type == 'loop' and why == 'break':
-                    why = None
-                    self.jump(block.handler)
-                    break
-
-                if (block.type in ['setup-except', 'finally'] and why == 'exception'):
-                    self.push_block('except-handler')
-                    exctype, value, tb = self.last_exception
-                    self.push(tb, value, exctype)
-                    self.push(tb, value, exctype) # yes, twice
-                    why = None
-                    self.jump(block.handler)
-
-                elif block.type == 'finally':
-                    if why in ('return', 'continue'):
-                        self.push(self.return_value)
-
-                    self.push(why)
-
-                    why = None
-                    self.jump(block.handler)
-                    break
+                why = self.manage_block_stack(why)
 
             if why:
                 break
@@ -519,10 +532,6 @@ class VirtualMachine(object):
     def do_raise(self, exc, cause):
         if exc is None:         # reraise
             exc_type, val, tb = self.last_exception
-            if exc_type is None:
-                return 'exception'      # error
-            else:
-                return 'reraise'
 
         elif type(exc) == type:  # As in `raise ValueError`
             exc_type = exc
@@ -532,7 +541,7 @@ class VirtualMachine(object):
             exc_type = type(exc)
             val = exc
         else:
-            return 'exception' # error
+            return 'exception' # failure
 
         self.last_exception = exc_type, val, val.__traceback__
         return 'exception'

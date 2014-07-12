@@ -4,13 +4,15 @@ In this chapter we will examine a Python interpreter.  Running a Python program 
 
 People often refer to Python as an "interpreted" language, like Ruby or Java, in contrast with a "compiled" language like C or Rust. This terminology isn't as precise as it seems.  Most "interpreted" languages, including Python, do involve a compilation step; it's just that the compilation does relatively less than in a "compiled" language, and the interpreter does relatively more.  The Python compiler has much less information about the behavior of the program it compiles than a C compiler would, as we'll see. You also hear the Python interpreter referred to as the "Python virtual machine."  For today, we'll treat these terms as synonymous.
 
-The Python interpreter we're examining today is written in Python.  This may strike you as odd, but it's no more odd than writing a C compiler in C (like gcc or clang [IS THIS TRUE?]). We could write a Python interpreter in almost any language, with greater or lesser difficulty.
+The Python interpreter we're examining today is written in Python.  This may strike you as odd, but it's no more odd than writing a C compiler in C (like gcc or clang [IS THIS TRUE?]). We could write a Python interpreter in almost any language, with greater or lesser difficulty. Writing a Python interpreter in Python will be slower than writing it in C or another low-level language. [footnote? You may have heard of PyPy, a prominent Python interpreter written in Python. The structure of PyPy is covered in volume 2 of AOSA, by Benjamin Peterson. Before optimzations, PyPy is four times slower than the CPython interpreter.] One advantage of writing our Python interpreter in Python is that we don't have to also implement an object system - we can seamlessly fall back to the "real" Python's object system.
 
-Ok, in to the meat of the thing.  The Python interpreter is a virtual machine, meaning that it's software that emulates a physical computer. This particular virtual machine is a stack machine: it uses a stack instead of registers as it evaluates the code.
+With that background, let's begin examining the structure of the Python interpreter.  The Python interpreter is a virtual machine, meaning that it's software that emulates a physical computer. This particular virtual machine is a stack machine: it uses a stack instead of registers as it evaluates the code. In our interpreter, we'll implement a stack using a list, and push and pop from the stack by appending and popping from the end of the list.
 
-The Python VM has a call stack of frames.  A frame is a collection of information and context for a chunk of code (typically a function, but not always).  Information on the frame includes the global and local namespaces, the exception state, a reference to the calling frame, and the last bytecode instruction executed.  Each frame has two stacks associated with it: the data stack, which contains information and a block stack, used for certain kinds of control flow such as exception handling and looping.  The primary work of the Python VM is manipulating these three kinds of stacks.
+We can model the virtual machine as a call stack of frames plus a couple of other attributes: the exception state, the current frame, and the return value from the interpreter (if any) to be passed between frames. [passed?]
 
-Let's make this concrete with a little schematic. Suppose we have the following code, and the Python interpreter is currently executing the marked line.  Here's a schematic of the call stack of frames, the block stacks, and the data stacks.
+A frame is a collection of information and context for a chunk of code (typically a function, but not always). Information on the frame includes the the code object for the frame, the global and local namespaces, a reference to the calling frame, and the last bytecode instruction executed.  Each frame has two stacks associated with it: the data stack, which contains [information] and a block stack, used for certain kinds of control flow such as exception handling and looping.  The primary work of the Python VM is manipulating these three kinds of stacks.
+
+Let's make this concrete with a little diagram. Suppose we have the following code, and the Python interpreter is currently executing the marked line.  Here's a schematic of the call stack of frames, the block stacks, and the data stacks.
 
 ```python main.py
 def foo():
@@ -35,11 +37,77 @@ c  |       (oldest)            | -> data stack: [<Function foo at 0x10d3540e0>]
 k   ---------------------------
 ```
 
-At this point, the interpreter is in the middle of the nested function call to `bar`. There are three frames on the call stack: one for the module level, one for the function `foo`, and one for `bar`. Once `bar` returns, the frame associated with it is popped off of the call stack. In general, there will be a frame for each module, each function call, and each class definition.  Note that this is one frame per function invocation, not just one frame per function. A recursive function would have one frame on the call stack for each level of recursion.
+At this point, the interpreter is in the middle of the nested function call to `bar`. There are three frames on the call stack: one for the module level, one for the function `foo`, and one for `bar`. Once `bar` returns, the frame associated with it is popped off of the call stack. In general, there will be a frame for each module, each function call, and each class definition.  Note that this is one frame per function *call*, not just one frame per function. A recursive function would have one frame on the call stack for each level of recursion.
 
 Each frame has its own data stack and block stack. Keeping separate data and block stacks enables the interpreter to pause and resume frames, as with a generator.
 
-Let's begin writing our interpreter by implementing the Frame object. Note that the frame is a very simple class - just a collection of attributes with no methods. As mentioned above, the attributes include the code object corresponding to the frame, the local and global namespaces, a reference to the previous frame, a data stack, a block stack, and the last instruction executed.
+Each frame also has a reference to its corresponding code object. (Each code object maps to at least one frame.) To understand the inner workings of the interpreter, we need to first discuss the code object. The code object is a collection of information about a chunk of code (most often a function) bundled up by the compiler. This information includes the arguments to the function, the variable names that appear in it, and the Python bytecode.  Bytecode is a series of bytes that serve as instructions to the interpreter. Bytecode is an intermediate representation of Python code: it translates the top-level Python code that you write for the Python virtual machine.
+
+In Python, the code object and its bytecode are exposed, so we can examine them in the REPL.  We'll take another simple function, `three`, as an example.
+
+``` python
+>>> def three(arg):
+...     if arg:
+...         return 7
+...     return 10
+...
+>>> three.__code__.co_code
+b'|\x00\x00r\n\x00d\x01\x00Sd\x02\x00S'
+>>> [byte for byte in three.__code__.co_code]
+[124, 0, 0, 114, 10, 0, 100, 1, 0, 83, 100, 2, 0, 83]
+
+```
+
+We can get a friendly, human-readable mapping of these numbers to their instruction names using the `dis` module in the standard library:
+
+``` python
+>>> import dis
+>>> dis.opname[124]
+'LOAD_FAST'
+```
+
+More conveniently, we can use `dis.dis` to get a nicely-formatted disassembly of the bytecode.
+
+``` python
+>>> dis.dis(three)
+  2           0 LOAD_FAST                0 (arg)
+              3 POP_JUMP_IF_FALSE       10
+
+  3           6 LOAD_CONST               1 (7)
+              9 RETURN_VALUE
+
+  4     >>   10 LOAD_CONST               2 (10)
+             13 RETURN_VALUE
+```
+
+Some of the bytecode instructions have arguments. If an instruction has arguments, the arguments appear in the next two bytes. The arguments have different meaning for each instruction. In this example, the arguments to `124` (`LOAD_FAST`) are `0` and `0`. In the case of `LOAD_FAST`, the argument is an index into the list of variable names on the code object. For `POP_JUMP_IF_FALSE`, the argument is the index to jump to in the bytecode.
+
+When the virtual machine runs a frame, it starts with the first byte of the bytecode on its code object. It looks up and performs the corresponding operation, then moves to the next bytecode. The interpreter may land on a given bytecode zero, one, or more times. In the example above, the interpreter will either execute the first pair of `LOAD_CONST` / `RETURN_VALUE` or the second, but never both. (Looking back at the code that generated this bytecode, you can see that either the first return statement or the second will execute, but never both.) A frame returns when it encounters a bytecode that gives up control to the calling frame, like `RETURN_VALUE` or `YIELD_VALUE`, or until an unhandled exception is raised.
+
+In CPython - the reference implementation of Python and the most commonly used version - the lookup of operations corresponding to each instruction is implemented as a giant switch statement. The switch statment has one case for each bytecode and is 1,500 lines long.
+
+
+With that context, we're now ready to write a Python interpreter. We'll begin by creating a virtual machine object to store the call stack and other attributes discussed above. `run_code` is the entry point to the virtual machine. This method takes a compiled code object as an argument. It sets up and runs a frame until it returns somehow, then checks that no data or frames are left over. We'll implement `make_frame` and `run_frame` momentarily.
+
+
+``` python
+class VirtualMachineError(Exception):
+    pass
+
+class VirtualMachine(object):
+    def __init__(self):
+        self.frames = []   # The call stack of frames.
+        self.frame = None  # The current frame.
+        self.return_value = None
+        self.last_exception = None
+
+    # An entry point
+    def run_code(self, code, f_globals=None, f_locals=None):
+        frame = self.make_frame(code, f_globals=f_globals, f_locals=f_locals)
+        val = self.run_frame(frame)
+```
+
+Next we'll write the Frame object. The frame is a very simple class - just a collection of attributes with no methods. As mentioned above, the attributes include the code object (created by the compiler) corresponding to the frame, the local and global namespaces, a reference to the previous frame, a data stack, a block stack, and the last instruction executed.
 
 ``` python
 class Frame(object):
@@ -63,25 +131,15 @@ class Frame(object):
         self.f_lasti = 0       # Last executed bytecode instruction
 ```
 
-Next we'll begin to write the virtual machine itself.  The virtual machine object tracks the call stack of frames, the current frame, the return value (if any), and the exception state. We'll also write three helper functions for frames: one to create new frames (which is responsible for sorting out the new frame's namespacing) and two to push and pop frames from the frame stack.
+Next, we'll add frame manipulation to the virtual machine. There are three helper functions for frames: one to create new frames (which is responsible for sorting out the new frame's namespacing) and one each to push and pop frames from the frame stack.
 
 ``` python
-class VirtualMachineError(Exception):
-    pass
-
 class VirtualMachine(object):
-    def __init__(self):
-        self.frames = []   # The call stack of frames.
-        self.frame = None  # The current frame.
-        self.return_value = None
-        self.last_exception = None
-
+    [... snip ...]
     # Frame manipulation
     def make_frame(self, code, callargs={}, f_globals=None, f_locals=None):
-        if f_globals is not None:
-            f_globals = f_globals
-            if f_locals is None:
-                f_locals = f_globals
+        if f_globals is not None and f_locals is None::
+            f_locals = f_globals
         elif self.frames:
             f_globals = self.frame.f_globals
             f_locals = {}
@@ -108,7 +166,7 @@ class VirtualMachine(object):
             self.frame = None
 ```
 
-After writing helper functions for manipulating the call stack of frames, we'll next write helpers for the two frame-specific stacks, the data stack and the block stack. (We could have implemented these on the frame object instead.)
+Let's add some quick helper methods for the frame's data stack.
 
 ```
 class VirtualMachine(object):
@@ -134,6 +192,15 @@ class VirtualMachine(object):
             return ret
         else:
             return []
+```
+
+Next we'll briefly discuss blocks. A block is used for certain kinds of flow control, specifically exception handling and looping. When managing the block stack on a frame, the interpreter sets a flag that can either be `None` or one of the strings `"continue"`, `"break"`, `"exception"`, or `"return"`. This indicates what kind of manipulation of the block stack and data stack should happen.  For example, if the top of the block stack is a `loop` block and the `why` code is `continue`, the looping block should remain on the stack, but if the `why` code is `break`, it should be popped off. The precise details of block manipulation are rather fiddly, and we won't spend more time on this, but interested readers are encouraged to take a careful look.
+
+```
+Block = collections.namedtuple("Block", "type, handler, level")
+
+class VirtualMachine(object):
+    [... snip ...]
 
     # Block stack manipulation
     def push_block(self, b_type, handler=None):
@@ -144,6 +211,7 @@ class VirtualMachine(object):
         return self.frame.block_stack.pop()
 
     def unwind_block(self, block):
+        """Unwind the values on the data stack corresponding to a given block."""
         if block.type == 'except-handler':
             offset = 3
         else:
@@ -155,32 +223,446 @@ class VirtualMachine(object):
         if block.type == 'except-handler':
             traceback, value, exctype = self.popn(3)
             self.last_exception = exctype, value, traceback
+
+    def manage_block_stack(self, why):
+        frame = self.frame
+        block = frame.block_stack[-1]
+        if block.type == 'loop' and why == 'continue':
+            self.jump(self.return_value)
+            why = None
+            return why
+
+        self.pop_block()
+        self.unwind_block(block)
+
+        if block.type == 'loop' and why == 'break':
+            why = None
+            self.jump(block.handler)
+            return why
+
+        if (block.type in ['setup-except', 'finally'] and why == 'exception'):
+            self.push_block('except-handler')
+            exctype, value, tb = self.last_exception
+            self.push(tb, value, exctype)
+            self.push(tb, value, exctype) # yes, twice
+            why = None
+            self.jump(block.handler)
+            return why
+
+        elif block.type == 'finally':
+            if why in ('return', 'continue'):
+                self.push(self.return_value)
+
+            self.push(why)
+
+            why = None
+            self.jump(block.handler)
+            return why
+        return why
 ```
 
-Next, the entry point to the virtual machine. This method takes a compiled code object as an argument. This sets up and runs a frame until it returns somehow, then checks that no data or frames are left over. `run_frame` is the most complex method on the virtual machine, so we'll return to it later on.
+Before we get to running a frame, we need two more methods. The first takes a bytecode, checks if it has arguments, and parses the arguments if so, and sets the frames' reference to the last instruction executed appropriately.
+
+The second method operates the main dispatch. As mentioned above, in the CPython interpreter the dispatch is done with a giant switch statemnt spanning 1,500 lines.  Since we're writing Python, we can be more compact.  We'll define a method for each byte name, call it `byte_FOO_BAR`, and then use `getattr` to look it up. Note that the dispatch method returns the `why` code to be passed to block management.
 
 ``` python
 class VirtualMachine(object):
     [... snip ...]
 
-    # An entry point
-    def run_code(self, code, f_globals=None, f_locals=None):
-        frame = self.make_frame(code, f_globals=f_globals, f_locals=f_locals)
-        val = self.run_frame(frame)
-        # Check some invariants
-        if self.frames:
-            raise VirtualMachineError("Frames left over!")
-        if self.frame and self.frame.stack:
-            raise VirtualMachineError("Data left on stack! %r" % self.frame.stack)
+    def parse_byte_and_args(self):
+        f = self.frame
+        opoffset = f.f_lasti
+        byteCode = f.f_code.co_code[opoffset]
+        f.f_lasti += 1
+        byteName = dis.opname[byteCode]
+        arg = None
+        arguments = []
+        if byteCode >= dis.HAVE_ARGUMENT:
+            arg = f.f_code.co_code[f.f_lasti:f.f_lasti+2]
+            f.f_lasti += 2
+            intArg = arg[0] + (arg[1] << 8)
+            if byteCode in dis.hasconst:   # Look up a constant
+                arg = f.f_code.co_consts[intArg]
+            elif byteCode in dis.hasname:  # Look up a name
+                arg = f.f_code.co_names[intArg]
+            elif byteCode in dis.hasjrel:  # Calculate a relative jump
+                arg = f.f_lasti + intArg
+            elif byteCode in dis.hasjabs:  # Calculate an absolute jump
+                arg = intArg
+            elif byteCode in dis.haslocal: # Look up a local name
+                arg = f.f_code.co_varnames[intArg]
+            else:
+                arg = intArg
+            arguments = [arg]
+
+        return byteName, arguments
+
+    def dispatch(self, byteName, arguments):
+        # When later unwinding the block stack,
+        # we need to keep track of why we are doing it.
+        why = None
+
+        try:
+            if byteName.startswith('UNARY_'):
+                self.unaryOperator(byteName[6:])
+            elif byteName.startswith('BINARY_'):
+                self.binaryOperator(byteName[7:])
+            else:
+                # main dispatch
+                bytecode_fn = getattr(self, 'byte_%s' % byteName, None)
+                if not bytecode_fn:  # Not all bytecodes are supported in 500 lines
+                    raise VirtualMachineError(
+                        "unsupported bytecode type: %s" % byteName
+                    )
+                why = bytecode_fn(*arguments)
+
+        except:
+            # deal with exceptions encountered while executing the op.
+            self.last_exception = sys.exc_info()[:2] + (None,)
+            why = 'exception'
+
+        return why
 ```
 
-What does running a frame mean?
+``` python
+class VirtualMachine(object):
+    [... snip ...]
 
-[ Here we need a discussion of bytecode and the code object. ]
+    def run_frame(self, frame):
+        """Run a frame until it returns (somehow).
+        Exceptions are raised, the return value is returned.
+        """
+        self.push_frame(frame)
+        while True:
+            byteName, arguments = self.parse_byte_and_args()
 
-[ Then the implementation of (most? all?) of the `byte_DO_STUFF` bytes]
+            why = self.dispatch(byteName, arguments)
 
-[ Then return to `run_frame` and talk about unwinding the block stack. ]
+            # Deal with any block management we need to do
+            while why and frame.block_stack:
+                why = self.manage_block_stack(why)
+
+            if why:
+                break
+
+        self.pop_frame()
+
+        if why == 'exception':
+            exc, val, tb = self.last_exception
+            e = exc(val)
+            e.__traceback__ = tb
+            raise e
+
+        return self.return_value
+```
+
+Now all we need to do is implement the methods we need for the `dispatch` method to work - `byte_LOAD_FAST`, `byte_BINARY_MODULO`, and so on. The methods below implement sixty of the actual [N] bytecodes. This implementation excludes a handful of bytecodes ([LIST THEM HERE]) for brevity.
+
+``` python
+class VirtualMachine(object):
+    [... snip ...]
+
+    ## Stack manipulation
+
+    def byte_LOAD_CONST(self, const):
+        self.push(const)
+
+    def byte_POP_TOP(self):
+        self.pop()
+
+    def byte_DUP_TOP(self):
+        self.push(self.top())
+
+    ## Names
+    def byte_LOAD_NAME(self, name):
+        frame = self.frame
+        if name in frame.f_locals:
+            val = frame.f_locals[name]
+        elif name in frame.f_globals:
+            val = frame.f_globals[name]
+        elif name in frame.f_builtins:
+            val = frame.f_builtins[name]
+        else:
+            raise NameError("name '%s' is not defined" % name)
+        self.push(val)
+
+    def byte_STORE_NAME(self, name):
+        self.frame.f_locals[name] = self.pop()
+
+    def byte_DELETE_NAME(self, name):
+        del self.frame.f_locals[name]
+
+    def byte_LOAD_FAST(self, name):
+        if name in self.frame.f_locals:
+            val = self.frame.f_locals[name]
+        else:
+            raise UnboundLocalError(
+                "local variable '%s' referenced before assignment" % name
+            )
+        self.push(val)
+
+    def byte_STORE_FAST(self, name):
+        self.frame.f_locals[name] = self.pop()
+
+    def byte_LOAD_GLOBAL(self, name):
+        f = self.frame
+        if name in f.f_globals:
+            val = f.f_globals[name]
+        elif name in f.f_builtins:
+            val = f.f_builtins[name]
+        else:
+            raise NameError("global name '%s' is not defined" % name)
+        self.push(val)
+
+    ## Operators
+
+    UNARY_OPERATORS = {
+        'POSITIVE': operator.pos,
+        'NEGATIVE': operator.neg,
+        'NOT':      operator.not_,
+        'INVERT':   operator.invert,
+    }
+
+    def unaryOperator(self, op):
+        x = self.pop()
+        self.push(self.UNARY_OPERATORS[op](x))
+
+    BINARY_OPERATORS = {
+        'POWER':    pow,
+        'MULTIPLY': operator.mul,
+        'FLOOR_DIVIDE': operator.floordiv,
+        'TRUE_DIVIDE':  operator.truediv,
+        'MODULO':   operator.mod,
+        'ADD':      operator.add,
+        'SUBTRACT': operator.sub,
+        'SUBSCR':   operator.getitem,
+        'LSHIFT':   operator.lshift,
+        'RSHIFT':   operator.rshift,
+        'AND':      operator.and_,
+        'XOR':      operator.xor,
+        'OR':       operator.or_,
+    }
+
+    def binaryOperator(self, op):
+        x, y = self.popn(2)
+        self.push(self.BINARY_OPERATORS[op](x, y))
+
+    COMPARE_OPERATORS = [
+        operator.lt,
+        operator.le,
+        operator.eq,
+        operator.ne,
+        operator.gt,
+        operator.ge,
+        lambda x, y: x in y,
+        lambda x, y: x not in y,
+        lambda x, y: x is y,
+        lambda x, y: x is not y,
+        lambda x, y: issubclass(x, Exception) and issubclass(x, y),
+    ]
+
+    def byte_COMPARE_OP(self, opnum):
+        x, y = self.popn(2)
+        self.push(self.COMPARE_OPERATORS[opnum](x, y))
+
+    ## Attributes and indexing
+
+    def byte_LOAD_ATTR(self, attr):
+        obj = self.pop()
+        val = getattr(obj, attr)
+        self.push(val)
+
+    def byte_STORE_ATTR(self, name):
+        val, obj = self.popn(2)
+        setattr(obj, name, val)
+
+    def byte_STORE_SUBSCR(self):
+        val, obj, subscr = self.popn(3)
+        obj[subscr] = val
+
+    ## Building
+
+    def byte_BUILD_TUPLE(self, count):
+        elts = self.popn(count)
+        self.push(tuple(elts))
+
+    def byte_BUILD_LIST(self, count):
+        elts = self.popn(count)
+        self.push(elts)
+
+    def byte_BUILD_MAP(self, size):
+        self.push({})
+
+    def byte_STORE_MAP(self):
+        the_map, val, key = self.popn(3)
+        the_map[key] = val
+        self.push(the_map)
+
+    def byte_UNPACK_SEQUENCE(self, count):
+        seq = self.pop()
+        for x in reversed(seq):
+            self.push(x)
+
+    def byte_BUILD_SLICE(self, count):
+        if count == 2:
+            x, y = self.popn(2)
+            self.push(slice(x, y))
+        elif count == 3:
+            x, y, z = self.popn(3)
+            self.push(slice(x, y, z))
+        else:           # pragma: no cover
+            raise VirtualMachineError("Strange BUILD_SLICE count: %r" % count)
+
+    def byte_LIST_APPEND(self, count):
+        val = self.pop()
+        the_list = self.frame.stack[-count] # peek
+        the_list.append(val)
+
+
+    ## Jumps
+
+    def byte_JUMP_FORWARD(self, jump):
+        self.jump(jump)
+
+    def byte_JUMP_ABSOLUTE(self, jump):
+        self.jump(jump)
+
+    def byte_POP_JUMP_IF_TRUE(self, jump):
+        val = self.pop()
+        if val:
+            self.jump(jump)
+
+    def byte_POP_JUMP_IF_FALSE(self, jump):
+        val = self.pop()
+        if not val:
+            self.jump(jump)
+
+    def byte_JUMP_IF_TRUE_OR_POP(self, jump):
+        val = self.top()
+        if val:
+            self.jump(jump)
+        else:
+            self.pop()
+
+    def byte_JUMP_IF_FALSE_OR_POP(self, jump):
+        val = self.top()
+        if not val:
+            self.jump(jump)
+        else:
+            self.pop()
+
+    ## Blocks
+
+    def byte_SETUP_LOOP(self, dest):
+        self.push_block('loop', dest)
+
+    def byte_GET_ITER(self):
+        self.push(iter(self.pop()))
+
+    def byte_FOR_ITER(self, jump):
+        iterobj = self.top()
+        try:
+            v = next(iterobj)
+            self.push(v)
+        except StopIteration:
+            self.pop()
+            self.jump(jump)
+
+    def byte_BREAK_LOOP(self):
+        return 'break'
+
+    def byte_CONTINUE_LOOP(self, dest):
+        # This is a trick with the return value.
+        # While unrolling blocks, continue and return both have to preserve
+        # state as the finally blocks are executed.  For continue, it's
+        # where to jump to, for return, it's the value to return.  It gets
+        # pushed on the stack for both, so continue puts the jump destination
+        # into return_value.
+        self.return_value = dest
+        return 'continue'
+
+    def byte_SETUP_EXCEPT(self, dest):
+        self.push_block('setup-except', dest)
+
+    def byte_SETUP_FINALLY(self, dest):
+        self.push_block('finally', dest)
+
+    def byte_POP_BLOCK(self):
+        self.pop_block()
+
+    def byte_RAISE_VARARGS(self, argc):
+        cause = exc = None
+        if argc == 2:
+            cause = self.pop()
+            exc = self.pop()
+        elif argc == 1:
+            exc = self.pop()
+        return self.do_raise(exc, cause)
+
+    def do_raise(self, exc, cause):
+        if exc is None:         # reraise
+            exc_type, val, tb = self.last_exception
+
+        elif type(exc) == type:  # As in `raise ValueError`
+            exc_type = exc
+            val = exc()             # Make an instance.
+        elif isinstance(exc, BaseException):
+            # As in `raise ValueError('foo')`
+            exc_type = type(exc)
+            val = exc
+        else:
+            return 'exception' # failure
+
+        self.last_exception = exc_type, val, val.__traceback__
+        return 'exception'
+
+    def byte_POP_EXCEPT(self):
+        block = self.pop_block()
+        if block.type != 'except-handler':
+            raise Exception("popped block is not an except handler")
+        self.unwind_block(block)
+
+    ## Functions
+
+    def byte_MAKE_FUNCTION(self, argc):
+        name = self.pop()
+        code = self.pop()
+        defaults = self.popn(argc)
+        globs = self.frame.f_globals
+        fn = Function(name, code, globs, defaults, None, self)
+        self.push(fn)
+
+    def byte_CALL_FUNCTION(self, arg):
+        lenKw, lenPos = divmod(arg, 256) # KWargs not supported here
+        posargs = self.popn(lenPos)
+
+        func = self.pop()
+        frame = self.frame
+        retval = func(*posargs)
+        self.push(retval)
+
+    def byte_RETURN_VALUE(self):
+        self.return_value = self.pop()
+        return "return"
+
+    ## Importing
+
+    def byte_IMPORT_NAME(self, name):
+        level, fromlist = self.popn(2)
+        frame = self.frame
+        self.push(__import__(name, frame.f_globals, frame.f_locals, fromlist, level))
+
+    def byte_IMPORT_FROM(self, name):
+        mod = self.top()
+        self.push(getattr(mod, name))
+
+    ## And the rest...
+    def byte_LOAD_BUILD_CLASS(self):
+        self.push(__build_class__)
+
+    def byte_STORE_LOCALS(self):
+        self.frame.f_locals = self.pop()
+```
 
 [At some point, talk about the implementation of `Function` and `Method`.]
 
