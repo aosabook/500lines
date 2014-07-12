@@ -20,15 +20,13 @@ TODO: This diagram is a direct copy from Apple. Problem?
 (https://developer.apple.com/library/ios/documentation/EventHandling/Conceptual/EventHandlingiPhoneOS/motion_event_basics/motion_event_basics.html)
 ![](chapter-figures/figure-iphone-accelerometer.png)\
 
-An accelerometer measures x, y, z acceleration at points in time. Let's call one group of x, y, z coordinates at a point in time a triple. The sampling rate of the accelerometer, which can often be calibrated, determines the number of triples the accelerometer returns per second. For instance, an acceleroemeter with a sampling rate of 100 returns 100 x, y, z triples each second. Each x, y, z triple indicates the acceleration in each of the directions at that point in time. 
-
-TODO: Can I call this a triple?
+An accelerometer measures x, y, z acceleration at points in time. The sampling rate of the accelerometer, which can often be calibrated, determines the number of measurements per second. For instance, an acceleroemeter with a sampling rate of 100 returns 100 x, y, z coordinates each second. Each x, y, z coordinate indicates the acceleration in each of the directions at that point in time. The set of all x, y, z coordinate returned by the accelerometer is called a signal.
 
 ## Let's Talk About a Walk
 
 When a person walks, they bounce slightly with each step. This bounce, if you are walking on Earth (or another big ball of mass floating in space) is always in the same direction as gravity. A pedometer can count steps by counting the number of bounces in the direction of gravity.
 
-Let's look at person walking with smartphone containing an accelerometer held in the position depicted below.
+Let's look at a person walking with a smartphone containing an accelerometer held in the position depicted below.
 
 ![](chapter-figures/figure-xyz-normal.png)\
 
@@ -83,7 +81,7 @@ Every problem has a solution. Let's look at each problem separately, and put on 
 When the phone is held in such a way that the gravitational acceleration affects more than one coordinate, we need to find a way to completely separate user acceleration from gravitational acceleration. We can do that using a tool called a low-pass filter.
 
 ### Low-pass Filter
-A filter is a tool used in signal processing to remove an unwanted component from a signal. Our total acceleration sine wave is considered a signal. In our case, we want to remove user acceleration from our total acceleration signal, so that we're left with just the gravitational component. Once we have that, we can subtract gravitational acceleration from the total acceleration, and we'll be left with user acceleration. In this way, we'll have three sets of data at the end, one for the total acceleration, one for gravitational acceleration on its own, and one for user acceleration on its own. 
+A filter is a tool used in signal processing to remove an unwanted component from a signal. In our case, we want to remove user acceleration from our total acceleration signal, so that we're left with just the gravitational component. Once we have that, we can subtract gravitational acceleration from the total acceleration, and we'll be left with user acceleration. In this way, we'll have three sets of data at the end, one for the total acceleration, one for gravitational acceleration on its own, and one for user acceleration on its own. 
 
 A low-pass filter is a filter that allows low-frequency signals through, while attenuating signals higher than a set threshold. In our sitation, gravitational acceleration is a 0 Hz signal because it's constant, while user acceleration is not. This means that if we pass our signal through a low-pass filter, we'll allow the gravitational component of the signal to pass through, while removing the user acceleration component. There are numerous varieties of low-pass filters, but the one we'll use is called a Chebyshev filter. We've chosen a Chebyshev filter because it has a steep cutoff, which means that it very quickly attenuates frequencies beyond our threshold, which is ideal for isolating a 0 Hz signal like gravity. 
 
@@ -156,37 +154,16 @@ Let's recap how we got to this stage:
 4. We used a low-pass filter again to remove the high-frequency component of $a_{ug}$, smoothing it out.
 5. We chose a threshold and were able to count steps by counting the number of times our signal crossed the threshold in the positive direction.
 
-The problem, at first glance, looked straightforward. However, the real world and real people threw a few curve balls our way. We used a few mathematical tools to account for the complexities, and were able to solve a real-world problem. 
+The problem, at first glance, looked straightforward. However, the real world and real people threw a few curve balls our way. We used mathematical tools to account for the complexities, and were able to solve a real-world problem. 
 TODO: Better conclusion.
 
-TODO: Start: Add this somewhere else...
-All current iPhone and Android devices come with an accelerometer as well as a gyroscope, so they're able to separate gravitational acceleration from user acceleration. TODO: Expand this explanation.
+# Diving Into Code
 
-However, we're creating a robust, flexible program, so we've decided that we want to accept input data from the newest of mobile devices, as well as from pure hardware accelerometers. This means that we'll need to accept input data in two formats: a **separated** format where user acceleration and gravitational acceleration are, well, separated; and a **combined** format which only provides us with total acceleration. 
-TODO: End: Add this somewhere else...
+It's time to translate our solution into code. Our goal for this chapter is to create a web application that counts steps from a set of different walks recorded with mobile devices containing accelerometers. A web app naturally separates the data processing from the presentation of the data, and since web apps have been build many times over, we may as well use a framework to do the boring plumbing work for us. The Sinatra framework does just that. In the tool's own words, Sinatra is "a DSL for quickly creating web applications in Ruby". Perfect. 
 
-# The Toolchain
-We've decided to build a simple web app to process and analyze our data. A web app naturally separates the data processing from the presentation of the data, and since web apps have been build many times over, we may as well use a framework to do the boring plumbing work for us. The Sinatra framework does just that. In the tool's own words, Sinatra is "a DSL for quickly creating web applications in Ruby". Perfect. 
+As software developers, before we dig into code, we have to first undetstand the requirements of the program we're building. We want a web app that allows us to:
 
-If I have to sell you on using Ruby, I'll try and do that with a quote from Ruby's creator, Yukihiro Matsumoto:
-
-"I hope to see Ruby help every programmer in the world to be productive, and to enjoy programming, and to be happy. That is the primary purpose of the Ruby language."
-
-Ruby will stay out of our way, it's flexible, and concise, and has been used on the web for over 10 years. And, it was *made* to make us happy. What more can we ask for?
-
-Since we're building a web app, we'll need a web server, so we'll use the thin web server. It's simple and certainly fast enough for our purposes. 
-
-The last tool we'll be including is a JavaScript library called Highcharts, used for creating interactive charts. What's the point of interesting data if we can't display it in interesting ways? 
-
-# The Platform
-
-TODO: Option 1 
-Our goal for this chapter is to create a web application that takes, as input, data from an accelerometer that a person carries during a walk, and outputs the number of steps taken, along with some additional information like distance and elapsed time. 
-
-OR TODO: Option 2
-Before we dive into code, let's talk about what we're building. We want a web app that allows us to:
-
-1. Upload data in the combined or separated format.
+1. Upload data from a walk.
 2. Input some basic information about the data set (sampling rate, actual step count, gender/height/stride of user, etc.)
 3. Parse and analyze our data, outputting the number of steps taken, distance traveled, and time elapsed, and present charts representing the data in different processing stages.
 
