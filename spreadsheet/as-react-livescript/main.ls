@@ -17,12 +17,9 @@ Table = React.createClass do
         onChange: ~> @onChange ...
       } <<< @state for row in @props.Rows ]
   reset: -> @calc SheetDefault
-  componentDidMount: ->
-    console.log 4
-    @calc @state.sheet
+  componentDidMount: -> @calc @state.sheet
   calc: (sheet) ->
     const worker = @props.worker
-    const json = JSON.stringify sheet,, 2
     const timeout = setTimeout ~>
       # If the worker has not returned in 0.5 seconds, terminate it
       worker.terminate!
@@ -32,7 +29,7 @@ Table = React.createClass do
     # When the worker returns, apply its effect on the scope
     worker.onmessage = ({data: [errs, vals]}) ~>
       clearTimeout timeout
-      localStorage.setItem '', json
+      localStorage.setItem '', JSON.stringify sheet
       @setState { sheet, errs, vals }
     worker.postMessage sheet
   onChange: ({ target: {id, value} }) ->

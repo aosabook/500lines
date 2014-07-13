@@ -64,13 +64,11 @@
       return this.calc(SheetDefault);
     },
     componentDidMount: function(){
-      console.log(4);
       return this.calc(this.state.sheet);
     },
     calc: function(sheet){
-      var worker, json, timeout, this$ = this;
+      var worker, timeout, this$ = this;
       worker = this.props.worker;
-      json = JSON.stringify(sheet, void 8, 2);
       timeout = setTimeout(function(){
         worker.terminate();
         return this$.setProps({
@@ -81,7 +79,7 @@
         var ref$, errs, vals;
         ref$ = arg$.data, errs = ref$[0], vals = ref$[1];
         clearTimeout(timeout);
-        localStorage.setItem('', json);
+        localStorage.setItem('', JSON.stringify(sheet));
         return this$.setState({
           sheet: sheet,
           errs: errs,
