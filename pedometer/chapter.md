@@ -211,16 +211,17 @@ The diagram below outlines the basic idea. We'll write a small parser to a stand
 
 Converting multiple input formats into one common format is an example of *separation of concerns*, a commonly-used design principle, which promotes splitting a program into numerous distinct pieces, where every piece has one primary concern. We'll revist this idea several times throughout the chapter. It's a beatiful way to write clean, maintainable code that's easily extensible.
 
-Based on the solution we defined above, we'll need our code to do a few tasks to our input data in order to count steps:
+Based on the solution we defined above, we'll need our code to do 3 tasks to our input data in order to count steps:
 
-1. Parse our text data and extract numerical data. Since our input data is coming in as pure text, we'll clean it up into numerical data first.
-2. Parse our input formats into a standard format. We know we'll need to work with user acceleration and gravitational acceleration separately in order to follow our solution, so our standard format will need to split out the two accelerations. This means that if our data is in the combined format, we'll need to first pass it through a low-pass filter in this part of the code.
-3. Isolate movement in the direction of gravity using the dot product.
-4. Filter our data series and smooth out our waveform using another low-pass filter.
+1. Parse our input formats into a standard format. We know we'll need to work with user acceleration and gravitational acceleration separately in order to follow our solution, so our standard format will need to split out the two accelerations. This means that if our data is in the combined format, we'll need to first pass it through a low-pass filter in this part of the code.
+2. Isolate movement in the direction of gravity using the dot product.
+3. Filter our data series and smooth out our waveform using another low-pass filter.
 
 ![](chapter-figures/input-data-workflow.png)\
 
-These 4 tasks are all related to taking input data, and parsing and processing it to get it to a state where our resulting signal is clean enough for us to count steps. Due to this relationship, it makes sense to combine these tasks into one class. We'll call it a **Parser**. 
+Take note in the diagram above of the standard input format we've chosen. We'll discuss the choice further with our code.
+
+These 3 tasks are all related to taking input data, and parsing and processing it to get it to a state where our resulting signal is clean enough for us to count steps. Due to this relationship, it makes sense to combine these tasks into one class. We'll call it a **Parser**. 
 
 ## The Parser Class
 
