@@ -92,8 +92,7 @@
       var ref$, id, value, sheet;
       ref$ = arg$.target, id = ref$.id, value = ref$.value;
       sheet = import$({}, this.state.sheet);
-      sheet[id] = value;
-      return this.calc(sheet);
+      return this.calc((sheet[id + ""] = value, sheet));
     }
   });
   Row = React.createClass({

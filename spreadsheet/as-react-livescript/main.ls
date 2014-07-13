@@ -32,8 +32,7 @@ Table = React.createClass do
     worker.postMessage sheet
   onChange: ({ target: {id, value} }) ->
     sheet = {} <<< @state.sheet
-    sheet[id] = value
-    @calc sheet
+    @calc(sheet <<< { "#id": value })
 
 Row = React.createClass do
   render: ->
