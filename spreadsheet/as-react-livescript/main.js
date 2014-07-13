@@ -74,7 +74,7 @@
         return this$.setProps({
           worker: new Worker('worker.js')
         });
-      }, 500);
+      }, 99);
       worker.onmessage = function(arg$){
         var ref$, errs, vals;
         ref$ = arg$.data, errs = ref$[0], vals = ref$[1];

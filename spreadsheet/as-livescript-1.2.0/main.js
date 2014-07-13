@@ -43,7 +43,7 @@
         $scope.worker.terminate();
         $scope.init();
         return $scope.calc();
-      }, 500);
+      }, 99);
       $scope.worker.onmessage = function(arg$){
         var data;
         data = arg$.data;
