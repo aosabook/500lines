@@ -170,9 +170,9 @@ Our web app will:
 
 The meat and potatoes of our program is in step 3, where we parse and analyze the input data. It makes sense, then, to start with that, and build the web app and interface afterward.
 
-## Parsing Input Data
+# Parsing Input Data
 
-The input data we'll be parsing is coming from mobile devices such as Android phones and iPhones. Most iPhone and Android devices on the market today have accelerometers built in. This means that both device types are able to record total acceleration. Let's call the data format that records total acceleration the *combined format*. Many, but not all, devices can also record user acceleration and gravitational acceleration separately. Let's call this format the *separated format*. A device that has the ability to return data in the separated format necessarily has the ability to return data in the combined format. However, a device that has the abiliy to return data in the combined format may or may not have the ability to record data in the separated format. Input data in the combined format will need to be passed through a low-pass filter to turn it into the separated format. Input data in the separated format will not need to be passed through a low-pass filter.
+The input data we'll be parsing is coming from mobile devices such as Android phones and iPhones. Most iPhone and Android devices on the market today have accelerometers built in. This means that both device types are able to record total acceleration. Let's call the input data format that records total acceleration the *combined format*. Many, but not all, devices can also record user acceleration and gravitational acceleration separately. Let's call this format the *separated format*. A device that has the ability to return data in the separated format necessarily has the ability to return data in the combined format. However, the inverse is not necessarily true. Some devices on the market today can only record data in the combined format. Input data in the combined format will need to be passed through a low-pass filter to turn it into the separated format. 
 
 Let's look at each of these formats individually.
 
@@ -188,7 +188,7 @@ Below is a small portion of data, sampled 100 times per second, of a female walk
 
 ### Separated Format
 
-The second data format we'll accept is user acceleration in the x, y, z directions separated from gravitational acceleration in the x, y, z directions, over time:
+The separated format returns user acceleration in the x, y, z directions as well as gravitational acceleration in the x, y, z directions, over time:
 
 $"x1_{u},y1_{u},z1_{u}|x1_{g},y1_{g},z1_{g};...xn_{u},yn_{u},zn_{u}|xn_{g},yn_{g},zn_{g};"$
 
@@ -197,19 +197,30 @@ Below is the separated data format of the exact same walk as the plot above. Thi
 ![](chapter-figures/figure-separated-user-acceleration.png)
 ![](chapter-figures/figure-separated-gravitational-acceleration.png)\ 
 
-### Making Sense of Data
+## Making Sense of Our Data
 
-We need to do 3 things to our input data:
+We want our program to handle all mobile devices on the market with accelerometers, regardless of whether or not they are able to record data in both the combined and separated format, or only in the combined format. This means that we'll accept data in both formats. 
 
-TODO: Modify this based on diagram below:
+Dealing with multiple input formats is a common programming problem. If we want our entire program to work with both formats, every single piece of code dealing with input data would need to know how to handle both formats. This can become very messy, very quickly, especially if a third (or a fourth, or a fifth) input format is added in the future. 
 
-1. Parse our text data and extract numerical data.
-2. Isolate movement in the direction of gravity.
-3. Filter our data series and smooth out our waveform to make it easier to analyze.
+The simplest way for us to deal with this is to take our two input formats and determine a third, standard format, to fit them both into, and allow the rest of the program to work with this new standard format. This means that the remaining parts of the program don't need to be concerned with, or even know about, multiple formats. 
+
+The diagram below outlines the basic idea. We'll write a small parser to a standard format that is contained to only one section, that allows us to take our two known input formats and convert them to a single standard output format. In the future, if we ever have to add another input format, the only code we'll have to touch is this small parser. Once the data is in a standard format, the program can have any number of processors that process the data from the standard format. 
+
+![](chapter-figures/input-format-to-standard-format.png)\
+
+Converting multiple input formats into one common format is an example of *separation of concerns*, a commonly-used design principle, which promotes splitting a program into numerous distinct pieces, where every piece has one primary concern. We'll revist this idea several times throughout the chapter. It's a beatiful way to write clean, maintainable code that's easily extensible.
+
+Based on the solution we defined above, we'll need our code to do a few tasks to our input data in order to count steps:
+
+1. Parse our text data and extract numerical data. Since our input data is coming in as pure text, we'll clean it up into numerical data first.
+2. Parse our input formats into a standard format. We know we'll need to work with user acceleration and gravitational acceleration separately in order to follow our solution, so our standard format will need to split out the two accelerations. This means that if our data is in the combined format, we'll need to first pass it through a low-pass filter in this part of the code.
+3. Isolate movement in the direction of gravity using the dot product.
+4. Filter our data series and smooth out our waveform using another low-pass filter.
 
 ![](chapter-figures/input-data-workflow.png)\
 
-These 3 tasks are related, and it makes sense to combine them into one class called a **Parser**. 
+These 4 tasks are all related to taking input data, and parsing and processing it to get it to a state where our resulting signal is clean enough for us to count steps. Due to this relationship, it makes sense to combine these tasks into one class. We'll call it a **Parser**. 
 
 ## The Parser Class
 
