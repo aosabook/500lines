@@ -139,7 +139,7 @@
       var ref$, id, col, txt, err, val, onChange, onKeyDown;
       ref$ = this.props, id = ref$.id, col = ref$.col, txt = ref$.txt, err = ref$.err, val = ref$.val, onChange = ref$.onChange, onKeyDown = ref$.onKeyDown;
       return td({
-        className: /^=/.exec(txt) ? 'formula' : ''
+        className: (txt != null ? txt[0] : void 8) === '=' ? 'formula' : ''
       }, input({
         id: id,
         type: 'text',
