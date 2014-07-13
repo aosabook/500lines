@@ -122,11 +122,11 @@
       }())));
     },
     onKeyDown: function(arg$, col){
-      var target, which, direction, cell;
-      target = arg$.target, which = arg$.which;
+      var target, key, direction, cell;
+      target = arg$.target, key = arg$.key;
       switch (false) {
-      case which !== 38 && which !== 40 && which !== 13:
-        direction = which === 38
+      case key !== 'ArrowUp' && key !== 'ArrowDown' && key !== 'Enter':
+        direction = key === 'ArrowUp'
           ? -1
           : +1;
         cell = document.querySelector("#" + col + (this.props.row + direction));

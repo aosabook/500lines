@@ -43,9 +43,9 @@ Row = React.createClass do
         id = col + row
         onKeyDown = ~> @onKeyDown ...
         Cell { id, col, onChange, onKeyDown, txt: sheet[id], err: errs[id], val: vals[id] }
-  onKeyDown: ({ target, which }, col) ->
-    | which in [ 38 40 13 ] =>
-      const direction = if which is 38 then -1 else +1
+  onKeyDown: ({ target, key }, col) ->
+    | key in <[ ArrowUp ArrowDown Enter ]> =>
+      const direction = if key is \ArrowUp then -1 else +1
       const cell = document.querySelector "##{ col }#{ @props.row + direction }"
       cell?focus!
 
