@@ -100,23 +100,23 @@ Without the `charset` declaration, the browser may display the reset button’s 
 The next three lines are JS declarations, placed within the `head` section as usual:
 
 ```html
-  <script src="main.js"></script>
-  <script>if (!self.Spreadsheet) { location.href = "es5/index.html" }</script>
   <script src="lib/angular.js"></script>
+  <script src="main.js"></script>
+  <script>try{ angular.module('500lines') }catch(e){ location="es5/index.html" }</script>
 ```
 
 The `<script src="…">` tags load JS resources from the same path as the HTML page. For example,  if the current URL is `http://audreyt.github.io/500lines/spreadsheet/index.html`, then `lib/angular.js` refers to `http://audreyt.github.io/500lines/spreadsheet/lib/angular.js`.
 
-The `if (!self.Spreadsheet)` line tests if `main.js` is loaded correctly; if not, it tells the browser to navigate to `es5/index.html` instead. This _redirect-based graceful degradation_ technique ensures that for pre-2015 browsers with no ES6 support, we can use the translated-to-ES5 versions of JS programs as a fallback.
+The `{ angular.module('500lines') }` line tests if `main.js` is loaded correctly; if not, it tells the browser to navigate to `es5/index.html` instead. This _redirect-based graceful degradation_ technique ensures that for pre-2015 browsers with no ES6 support, we can use the translated-to-ES5 versions of JS programs as a fallback.
 
 The next two lines load the CSS resource, close the `head` section, and begin the `body` section containing the user-visible part:
 
 ```html
   <link href="styles.css" rel="stylesheet">
-</head><body ng-app ng-cloak ng-controller="Spreadsheet">
+</head><body ng-app="500lines" ng-controller="Spreadsheet" ng-cloak>
 ```
 
-The `ng-` attributes above tell the AngularJS library to run the `Spreadsheet` JS function to create a _controller_ of this document, which provides a _model_— a set of names available to _bindings_ on the document _view_. The `ng-cloak` attribute hides the document from display until the bindings are in place.
+The `ng-` attributes above tell [AngularJS](http://angularjs.org/) to use the `500lines` module’s `Spreadsheet` _controller_ function, which provides a _model_— a set of names available to _bindings_ on the document _view_. The `ng-cloak` attribute hides the document from display until the bindings are in place.
 
 As a concrete example, when the user clicks the `<button>` defined in the next line, its `ng-click` attribute will trigger and call `reset()` and `calc()`, two named functions provided by the JS model:
 
@@ -186,10 +186,10 @@ Finally, we close the `ng-repeat` loop in the column level with `</td>`, close t
 
 ### JS: Main Controller
 
-The sole purpose of `main.js` is defining the `Spreadsheet` controller function as required by the `<body>` element, with the JS model `$scope` provided by AngularJS:
+The sole purpose of `main.js` is defining the `500lines` module and its `Spreadsheet` controller function as required by the `<body>` element, with the JS model `$scope` provided by AngularJS:
 
 ```js
-function Spreadsheet ($scope, $timeout) {
+angular.module('500lines', []).controller('Spreadsheet', function ($scope, $timeout) {
 ```
 
 The `$` in `$scope` is part of the variable name. Here we also request the [`$timeout`](https://docs.angularjs.org/api/ng/service/$timeout) service function from AngularJS; later on, we will use it to prevent infinite-looping formulas.
@@ -331,7 +331,7 @@ With the handler in place, we can post the state of `sheet` to the worker, start
   // Start calculation when worker is ready
   $scope.worker.onmessage = $scope.calc;
   $scope.worker.postMessage( null );
-}
+});
 ```
 
 ### JS: Background Worker

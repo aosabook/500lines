@@ -1,4 +1,4 @@
-function Spreadsheet($scope, $timeout) {
+angular.module('500lines', []).controller('Spreadsheet', function($scope, $timeout) {
   var $__7 = $traceurRuntime.initGeneratorFunction(range);
   var $__4;
   $scope.Cols = (function() {
@@ -108,6 +108,6 @@ function Spreadsheet($scope, $timeout) {
   });
   $scope.worker.onmessage = $scope.calc;
   $scope.worker.postMessage(null);
-}
+});
 
 //# sourceMappingURL=main.map

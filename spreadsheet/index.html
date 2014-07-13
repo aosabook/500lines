@@ -1,9 +1,9 @@
 <!DOCTYPE html><html><head><meta charset="UTF-8">
-  <script src="main.js"></script>
-  <script>if (!self.Spreadsheet) { location.href = "es5/index.html" }</script>
   <script src="lib/angular.js"></script>
+  <script src="main.js"></script>
+  <script>try{ angular.module('500lines') }catch(e){ location="es5/index.html" }</script>
   <link href="styles.css" rel="stylesheet">
-</head><body ng-app ng-cloak ng-controller="Spreadsheet">
+</head><body ng-app="500lines" ng-controller="Spreadsheet" ng-cloak>
   <table><tr>
     <th><button type="button" ng-click="reset(); calc()">↻</button></th>
     <th ng-repeat="col in Cols">{{ col }}</th>

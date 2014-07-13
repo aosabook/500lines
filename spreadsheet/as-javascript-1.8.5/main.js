@@ -1,4 +1,4 @@
-function Spreadsheet ($scope, $timeout) {
+angular.module('500lines', []).controller('Spreadsheet', function($scope, $timeout) {
   // Begin of $scope properties; start with the column/row labels
   $scope.Cols = [], $scope.Rows = [];
   makeRange($scope.Cols, 'A', 'H');
@@ -57,4 +57,4 @@ function Spreadsheet ($scope, $timeout) {
   // Start calculation when worker is ready
   $scope.worker.onmessage = $scope.calc;
   $scope.worker.postMessage( null );
-}
+});

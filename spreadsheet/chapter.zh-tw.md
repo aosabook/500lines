@@ -100,23 +100,23 @@ _(Also available in [English](https://github.com/audreyt/500lines/blob/master/sp
 接下來的三行是 JS 宣告，依慣例放在 `head` 區塊裡：
 
 ```html
-  <script src="main.js"></script>
-  <script>if (!self.Spreadsheet) { location.href = "es5/index.html" }</script>
   <script src="lib/angular.js"></script>
+  <script src="main.js"></script>
+  <script>try{ angular.module('500lines') }catch(e){ location="es5/index.html" }</script>
 ```
 
 標籤 `<script src="…">` 在和 HTML 頁面相同的路徑下載入 JS 資源。舉例來說，如果目前的網址是 `http://audreyt.github.io/500lines/spreadsheet/index.html`，那麼 `lib/angular.js` 會指向 `http://audreyt.github.io/500lines/spreadsheet/lib/angular.js`。
 
-`if (!self.Spreadsheet)` 這行程式碼用於測試 `main.js` 是否已經正確載入；如果沒有正確載入，會將瀏覽器轉至 `es5/index.html`。對於 2015 年以前發行、並且不支援 ES6 的瀏覽器來說，這個「優雅降級」（graceful degradation）的重新導向技巧，確保我們可以用轉譯到 ES5 版本的 JS 程式，來作為備用方案。
+`try{ angular.module('500lines') }` 這行程式碼用於測試 `main.js` 是否已經正確載入；如果沒有正確載入，會將瀏覽器轉至 `es5/index.html`。對於 2015 年以前發行、並且不支援 ES6 的瀏覽器來說，這個「優雅降級」（graceful degradation）的重新導向技巧，確保我們可以用轉譯到 ES5 版本的 JS 程式，來作為備用方案。
 
 接下來的兩行程式碼會載入 CSS 資源，結束 `head` 部分，並開始 `body` 部分，當中包含使用者會看到的內容：
 
 ```html
   <link href="styles.css" rel="stylesheet">
-</head><body ng-app ng-cloak ng-controller="Spreadsheet">
+</head><body ng-app="500lines" ng-controller="Spreadsheet" ng-cloak>
 ```
 
-上述的 `ng-` 特性指示 AngularJS 程式庫運行 `Spreadsheet` 這個 JS 函式，為文件建立控制器（controller）來提供模型（model），也就是一組可以在文件顯示層（view）中進行繫結（binding）的名稱。`ng-cloak` 特性會先隱藏文件顯示，直到繫結已經就位為止。
+上述的 `ng-` 特性指示 [AngularJS](http://angularjs.org/) 運行 `500lines` 模組中的 `Spreadsheet` 控制器（controller）函式來建立模型（model），也就是一組可以在文件顯示層（view）中進行繫結（binding）的名稱。`ng-cloak` 特性會先隱藏文件顯示，直到繫結已經就位為止。
 
 舉個具體的例子，當使用者點擊下一行中所定義的 `<button>` ，其 `ng-click` 特性會觸發並執行 `reset()` 和 `calc()` 這兩個由 JS 模型提供的函式：
 
@@ -186,10 +186,10 @@ _(Also available in [English](https://github.com/audreyt/500lines/blob/master/sp
 
 ### JS: 主要控制層
 
-`main.js` 的唯一作用，是定義 `<body>` 元素所需的 `Spreadsheet` 控制函式，其中利用 AngularJS 提供的 `$scope` 參數來定義 JS 模型：
+`main.js` 的唯一作用，是定義 `<body>` 元素所需的 `500lines` 模組中的 `Spreadsheet` 控制函式，運用 AngularJS 提供的 `$scope` 參數來定義 JS 模型：
 
 ```js
-function Spreadsheet ($scope, $timeout) {
+angular.module('500lines', []).controller('Spreadsheet', function ($scope, $timeout) {
 ```
 
 `$scope` 中的 `$` 是變數名稱的一部分。我們也向 AngularJS 要求 [`$timeout`](https://docs.angularjs.org/api/ng/service/$timeout) 服務函式；稍後我們會運用它來避免公式進入無限循環。
@@ -330,7 +330,7 @@ function Spreadsheet ($scope, $timeout) {
   // Start calculation when worker is ready
   $scope.worker.onmessage = $scope.calc;
   $scope.worker.postMessage( null );
-}
+});
 ```
 
 ### JS: 背景工作

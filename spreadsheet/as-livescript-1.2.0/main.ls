@@ -1,4 +1,4 @@
-@Spreadsheet = ($scope, $timeout) ->
+angular.module(\500lines []).controller \Spreadsheet ($scope, $timeout) ->
   # Begin of $scope properties; start with the column/row labels
   $scope.Cols = [ \A to \H ]
   $scope.Rows = [ 1 to 20 ]
