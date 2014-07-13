@@ -1,25 +1,3 @@
-# Storyline:
-* Why do modellers exist? It's so that humans can design real world (or virtual world) objects. ( building, bridges, 3D printing, video games, Film monsters, etc).
-* Humans write software to assist in the designing of these things.
-* What does that software need to do to be helpful?
-* Three things:
-    - It needs to have a way to represent the thing that's being designed. (The scene)
-    - It needs to have a way to display the thing. Now this is a challenge because the object that we're designing exists in 3 dimensions, but we only have
-      2 dimensions to work with on a computer screen. So we need to think about how we perceive 3 dimensional objects with our eyes. How does light interact 
-      with objects in the world, and how do our eyes perceive them.
-    - It also needs a way for the designer to interact with the object. Being able to view something is all well and good, but if you're designing something, you want to be able to
-      add to it, remove from it, move things around, etc.
-* Of course, each domain will have it's own additional important features. An architecture CAD tool may need physics simulations to test weather climate stresses on the building. A 
-  3D printing tool might need to check whether the object is actually printable, an electrical CAD tool might need to simulate the physics of electrons running across copper, and a film 
-  special effects suite might need a way to build photorealistic renderings from the design. All tools need a way to save and load designs from disk so that designers can collaborate, share, 
-  and save their work.
-* But at its core, all of these tools need at least the 3 features we discussed.
-* So, the simplest possible CAD tool is just a 3d modeller that stores a design, displays it to the screen, and allows the designer to interact with it.
-
-* With that in mind, let's see how we can represent a 3D design, display it, and interact with it, in 500 lines of Python.
-  
-
-
 ## Intro
 Humans are constantly creating new things. In modern times, we have written software to assist in the design and creation process. 
 Many designers, engineers and creators make use of Computer Assisted Design (CAD) software.  These tools allow creators to design buildings, bridges, video game art, 
@@ -41,16 +19,25 @@ However, at their core, call CAD tools must include the three features discussed
 
 With that in mind, let's explore how we can represent a 3D design, display it to the screen, and interact with it, in 500 lines of Python.
 
-<!--- TODO: figure out how to split up code -->
-
 ## Representing the Design: The Scene
 The first of the core features of a 3D modeller is a data structure to represent the design in memory. The class that represents this is often called `Design` or `Scene`. 
 In this project, we call it a `Scene`. The `Scene` contains the data that represents the design that the user is working on. The objects contained in the `Scene` are referred to as `Node`s.
 The `Scene` has a list of `Node`.
 
-```
-TODO: Scene init code
-```
+`````````````````````````````````````````` {.python .numberLines}
+class Scene(object):
+
+    # the default depth from the camera to place an object at
+    PLACE_DEPTH = 15.0
+
+    def __init__(self):
+        # The scene keeps a list of nodes that are displayed
+        self.node_list = list()
+        # Keep track of the currently selected node.
+        # Actions may depend on whether or not something is selected
+        self.selected_node = None
+
+``````````````````````````````````````````
 
 ### Scene Nodes
 We use the `Node` base class to represent an object that can be placed in the scene. This base class allows
@@ -60,7 +47,8 @@ interactions.
 
 In this project,`Sphere` and a `Cube` available. More shapes can be added easily by extending the Node class again.
 
-```
+
+`````````````````````````````````````````` {.python .numberLines }
 class Node(object):
     """ Base class for scene elements """
     def __init__(self):
@@ -88,7 +76,7 @@ class Cube(Primitive):
     def __init__(self):
         super(Cube, self).__init__()
         self.call_list = G_OBJ_CUBE
-```
+``````````````````````````````````````````
 
 The `Node` keeps track of important data about itself: translation matrix, scale matrix, color, location, etc. We will see more about Axis Aligned Bounding Boxes (AABBs) when we discuss
 selection below.
@@ -121,7 +109,7 @@ The process of displaying the design to the scene is called rendering. In this p
 render the `Scene`.
 
 <!--- TODO: should this get moved to the end of the chapter? -->
-### OpenGL
+### OpenGL: A Brief Interlude
 OpenGL is a graphical application programming interface for cross-platform development. It's the standard API for developing graphics applications across platforms.
 OpenGL is two major variants. They are "Legacy OpenGL" and "Modern OpenGL".
 
@@ -151,6 +139,11 @@ OpenGL also maintains a stack of matrices. The programmer can choose to push and
 
 Most of the setup and interfacing with OpenGL is found in the viewer.py file.
 
+#### GLUT
+GLUT is the OpenGL Utility Toolkit. Is is bundled with OpenGL and it allows us to create operating system windows and and to register user interface callbacks. This basic functionality
+is sufficient for our purposes. If we wanted a more full featured library for window management and user interaction, we would consider using
+a comprehensive game engine like PyGame.
+
 ### Rendering the Scene: Viewer
 With a basic understanding of OpenGL, we examine how to render the `Scene` to the screen. The `Viewer` class created the gui window and handles initializing OpenGL.
 The function `init_interface` creates the window that the modeller will be rendered into and specifices the function to be called when the scene needs to rendered. 
@@ -158,7 +151,7 @@ The `init_opengl` function sets up the OpenGL state needed for the project. It s
 the matrices, enables backface culling, and registers a light to illuminate the scene, and tells OpenGL that we would like objects to be colored. The `init_scene` function creates the `Scene` objects and places some initial
 nodes to get the user started. Finally, `init_interaction` registers callbacks for user interaction, as we'll discuss later.
 
-```
+`````````````````````````````````````````` {.python .numberLines}
 class Viewer(object):
     def __init__(self):
         """ Initialize the viewer. """
@@ -226,13 +219,14 @@ class Viewer(object):
 
     def main_loop(self):
         glutMainLoop()
-```
+``````````````````````````````````````````
 
 The `render` function is called when the `Scene` needs to be drawn to the screen. Drawing to the screen is necessary whenever anything in the scene has changed, or when the perspective has changed. 
 The `render` function handles all of the OpenGL setup that's necessary each time the `Scene` is rendered. It initializes the projection matrix via `init_view` and initializes the modelview matrix with the
 global transformation. It tells the scene to render itself, and then renders the unit grid. Finally, it calls `glFlush` to signal to the GPU driver that we are ready for the buffer to be flushed and displayed to the screen.
 
-```
+`````````````````````````````````````````` {.python .numberLines startFrom="92"}
+    # viewer.py
     def render(self):
         """ The render pass for the scene """
         self.init_view()
@@ -279,25 +273,28 @@ global transformation. It tells the scene to render itself, and then renders the
         gluPerspective(70, aspect_ratio, 0.1, 1000.0)
         glTranslated(0, 0, -15)
 
-```
+``````````````````````````````````````````
 
 To render the `Scene`, we will leverage its data structure. The render function of the scene traverses the list of `Node` in the scene and
 calls the `render` function for each `Node`.
-```
 
-# scene.py, line 21
+`````````````````````````````````````````` {.python .numberLines startFrom="21"}
+# scene.py
 def render(self):
     """ Render the scene. This function simply calls the render function for each node. """
     for node in self.node_list:
         node.render()
-```
+``````````````````````````````````````````
+
 An OpenGL Call List is a series of OpenGL calls that are bundled together and named. The calls can be dispatched with `glCallList(LIST_NAME)`. The rendering function uses `glCallList` after setting up the matrices.
 Each primitive (`Sphere` and `Cube`) defines the call list required to render it.  For example, the render list for the Cube primitive draws a cube at the origin with sides of length 1.
 
 The `PushMatrix` and `PopMatrix` functions in OpenGL provide access to a stack object for saving the status of the matrix.  We use OpenGL matrix stack to store the matrix state of each `Node` when it is rendered.
-Manipulating the ModelView matrix allows us to have a single render list for each type of primitive.  By setting the OpenGL matrix, we can change the size and location the rendered `Primitive`.
-```
-# node.py, line 63
+Manipulating the ModelView matrix allows us to have a single render list for each type of primitive.  By setting the OpenGL matrix, we can change the size and location the rendered `Primitive`. Notice that the 
+`Node` stores its color, location, and scale, and applies the state to the OpenGL state before rendering.
+
+`````````````````````````````````````````` {.python .numberLines startFrom="63"}
+# scene.py
 def render(self):
     glPushMatrix()
     glMultMatrixf(numpy.transpose(self.translation))
@@ -311,54 +308,153 @@ def render(self):
         glMaterialfv(GL_FRONT, GL_EMISSION, [0.0, 0.0, 0.0])
 
     glPopMatrix()
-
-```
-Again, the Matrix stack functionality of OpenGL allows us to extend the `Node` class to contain nested nodes. If there are a nested nodes, we simply
-push onto the stack before we render a nested node.
+``````````````````````````````````````````
 
 Thus, using the scene traversal and OpenGL Matrix Stack allows us to implement the `Node` class in an extensible way, and allows each `Node`'s render code
 to be independent from its location in the scene.
 
 ### User Interaction
-Now that we're able to render the scene, we want to be able to add new Nodes, and to adjust the Nodes in the scene.
-We encapsulate the user interaction code into its own class: `Interaction`. The `Viewer` class, which drives the scene and the rendering, owns the instance of `Interaction`.
+Now that our modeller is capable of storing and displaying the scene, we want the user to be able to interact with `Scene`. We need capabilities to change the viewing perspective of the scene, 
+and to add new Nodes and modify Nodes in the scene.
+In order to facilitate user interaction, we need to build mechanisms to listen to Operating System events such as keypresses and mouse movements, to interpret these events, and apply the intended
+actions to the scene.
+The logic for listening to operating system events and interpreting their meaning is encapsultated in the `Interaction` class. The `Viewer` class, which drives the scene and the rendering, owns the instance of `Interaction`.
+The `Interaction` class registers all of the `glut` callbacks to be notified of system events.
 
+`````````````````````````````````````````` {.python .numberLines}
+# interaction.py,
+class Interaction(object):
+    def __init__(self):
+        """ Handles user interaction """
+        # currently pressed mouse button
+        self.pressed = None
+        # the current location of the camera
+        self.translation = [0, 0, 0, 0]
+        # the trackball to calculate rotation
+        self.trackball = trackball.Trackball(theta = -25, distance=15)
+        # the current mouse location
+        self.mouse_loc = None
+        # Unsophisticated callback mechanism
+        self.callbacks = defaultdict(list)
+        
+        self.register()
 
-#### Callbacks
+    def register(self):
+        """ register callbacks with glut """
+        glutMouseFunc(self.handle_mouse_button)
+        glutMotionFunc(self.handle_mouse_move)
+        glutKeyboardFunc(self.handle_keystroke)
+
+        glutSpecialFunc(self.handle_keystroke)
+        glutPassiveMotionFunc(None)
+
+``````````````````````````````````````````
+
+#### Internal Callbacks
 The `Interaction` class maintains a very simple callback system in the form of a dictionary, `callbacks`, to call in certain situations.
-The viewer class registers callbacks on the `Interaction` instance by calling `register_callback`.
-```
+If you recall, the `init_interaction` function on the `Viewer` class registers callbacks on the `Interaction` instance by calling `register_callback`.
+
+`````````````````````````````````````````` {.python .numberLines startFrom="36"}
+# interaction.py
 def register_callback(self, name, func):
     self.callbacks[name].append(func)
-```
-When user interface code needs to trigger an event on the scene, the `Interaction` class calls all of the saved callbacks it has:
+``````````````````````````````````````````
 
-```
+When user interface code needs to trigger an event on the scene, the `Interaction` class calls all of the saved callbacks it has for that specific event:
+
+`````````````````````````````````````````` {.python .numberLines startFrom="40"}
+# interaction.py
 def trigger(self, name, *args, **kwargs):
     for func in self.callbacks[name]:
         func(*args, **kwargs)
-```
+``````````````````````````````````````````
 
 This simple callback system provides all of the functionality we need for this project. In a production 3d modeller, however, user interface objects are often created and destroyed dynamically.
 In the case where user interface objects are created and destroyed, we would need a more sophisticated event listening system, where objects can both register and un-register callbacks for events.
 
-#### GLUT
-GLUT is the OpenGL Utility Toolkit. Is is bundled with OpenGL and it provides a simple windowing API and user interface callbacks. The basic functionality it
-offers is sufficient for our purposes in this project. If we wanted a more full featured library for window management and user interaction, we would consider using
-a full featured game engine like PyGame. GLUT allows us to register callbacks for user input using the following functions:
 
-```
-    glutMouseFunc(self.handle_mouse_button)
-    glutMotionFunc(self.handle_mouse_move)
-    glutKeyboardFunc(self.handle_keystroke)
-    glutSpecialFunc(self.handle_keystroke)
-```
+#### Operating System Callbacks
+In order to interpret user input as meaningful actions
+on the scene, we need to combine knowledge of the mouse, mouse buttons, and keyboard. Doing so requires storing the current mouse location, the currently pressed mouse button, and the current position and rotation of the
+camera. As you can see, the logic required to interpret user input into meaningful actions is generally complex, and is best encapsulated in a separate class or module, away from the main code path. The `Interaction` class
+exists for exactly this purpose: to hide uninteresting complexity from the rest of the codebase.
+
+`````````````````````````````````````````` {.python .numberLines startFrom="44"}
+    # interaction.py
+    def translate(self, x, y, z):
+        """ translate the camera """
+        self.translation[0] += x
+        self.translation[1] += y
+        self.translation[2] += z
+
+    def handle_mouse_button(self, button, mode, x, y):
+        """ Called when the mouse button is pressed or released """
+        xSize, ySize = glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT)
+        y = ySize - y  # invert the y coordinate because OpenGL is inverted
+        self.mouse_loc = (x, y)
+
+        if mode == GLUT_DOWN:
+            self.pressed = button
+            if button == GLUT_RIGHT_BUTTON:
+                pass
+            elif button == GLUT_LEFT_BUTTON:  # pick
+                self.trigger('pick', x, y)
+            elif button == 3:  # scroll up
+                self.translate(0, 0, -1.0)
+            elif button == 4:  # scroll up
+                self.translate(0, 0, 1.0)
+        else:  # mouse button release
+            self.pressed = None
+        glutPostRedisplay()
+
+    def handle_mouse_move(self, x, screen_y):
+        """ Called when the mouse is moved """
+        xSize, ySize = glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT)
+        y = ySize - screen_y  # invert the y coordinate because OpenGL is inverted
+        if self.pressed is not None:
+            dx = self.mouse_loc[0] - x
+            dy = self.mouse_loc[1] - y
+            if self.pressed == GLUT_RIGHT_BUTTON and self.trackball is not None:
+                # ignore the updated camera loc because we want to always rotate around the origin
+                self.trackball.drag_to(self.mouse_loc[0], self.mouse_loc[1], -dx, -dy)
+            elif self.pressed == GLUT_LEFT_BUTTON:
+                self.trigger('move', x, y)
+            elif self.pressed == GLUT_MIDDLE_BUTTON:
+                self.translate(dx/60.0, dy/60.0, 0)
+            else:
+                pass
+            glutPostRedisplay()
+        self.mouse_loc = (x, y)
+
+    def handle_keystroke(self, key, x, screen_y):
+        """ Called on keyboard input from the user """
+        xSize, ySize = glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT)
+        y = ySize - screen_y
+        if key == 's':
+            self.trigger('place', 'sphere', x, y)
+        elif key == 'c':
+            self.trigger('place', 'cube', x, y)
+        elif key == GLUT_KEY_UP:
+            self.trigger('scale', up=True)
+        elif key == GLUT_KEY_DOWN:
+            self.trigger('scale', up=False)
+        elif key == GLUT_KEY_LEFT:
+            self.trigger('rotate_color', forward=True)
+        elif key == GLUT_KEY_RIGHT:
+            self.trigger('rotate_color', forward=False)
+        glutPostRedisplay()
+``````````````````````````````````````````
+
+
+### Interfacing with the Scene
+With our callback mechanism, we can receive meaningful information about user input events from the `Interaction` class. We are ready to apply these actions to the `Scene`.
 
 #### Moving the Camera
-There are two camera controls available in this project. In this project, we accomplish camera motion by transforming the scene. In other words, the
+In this project, we accomplish camera motion by transforming the scene. In other words, the
 camera is at a fixed location and the camera controls actually move the scene instead of moving the camera. The camera is placed at `[0, 0, -15]` and
 faces the origin. We could alternatively change the perspective matrix to move the camera instead of the scene.
 This design decision has very little impact on the rest of the project. We move the scene instead of the camera because it is the standard practise.
+Revisiting the `render` function in the `Viewer`, we see that the `Interaction` state is used to transform the OpenGL matrix state before rendering the `Scene`.
 There are two types of interaction with the scene: rotation and translation.
 
 ##### Rotation via a Trackball
@@ -369,9 +465,9 @@ In this project, we use a trackball implementation provided as part of [Glumpy](
 
 We interact with the trackball using the `drag_to` function with the starting and ending x and y as parameters.
 
-```
+`````````````````````````````````````````` {.python}
 self.trackball.drag_to(self.mouse_loc[0], self.mouse_loc[1], -dx, -dy)
-```
+``````````````````````````````````````````
 The resulting rotation matrix is retrieved as `trackball.matrix` in the viewer when the scene is rendered.
 
 Rotations are traditionally represented in one of two ways. The first is a rotation value around each axis. You could store this as a 3-tuple of floating point numbers.
@@ -385,20 +481,15 @@ We do not need to concern ourselves with this detail, because the trackball libr
 ##### Translation
 Scene translation is much simpler than scene rotation. Scene translations are provided with the mouse wheel and the left mouse button. The left mouse
 button translates the scene in the x and y coordinates. Scrolling the mouse wheel translates the scene in the z coordinate
-(towards or away from the camera). The `Interaction` class stores the current camera location, and modifies it with:
-```
-def translate(self, x, y, z):
-    self.camera_loc[0] += x
-    self.camera_loc[1] += y
-    self.camera_loc[2] += z
-```
+(towards or away from the camera). The `Interaction` class stores the current camera location and modifies it with the `translate` function.
 The viewer retrieves the `Interaction` camera location during rendering to use in a `glTranslated` call.
 
 #### Picking
 In this project, we implement a very simple ray-based picking [algorithm](http://www.opengl-tutorial.org/miscellaneous/clicking-on-objects/picking-with-custom-ray-obb-function/). Each node stores an Axis-Aligned Bounding Box which is an approximation of the
 space it occupies. When the user clicks in the window, we use the current projection matrix to generate a ray that represents the mouse click, as if the mouse pointer shoots a ray into the scene.
-```
-# viewer.py, line 138
+
+`````````````````````````````````````````` {.python .numberLines startFrom="138"}
+# viewer.py
 def get_ray(self, x, y):
     """ Generate a ray beginning at the near plane, in the direction that the x, y coordinates are facing
         Consumes: x, y coordinates of mouse on screen
@@ -417,10 +508,12 @@ def get_ray(self, x, y):
     direction = direction / norm(direction)
 
     return (start, direction)
-```
+``````````````````````````````````````````
+
 To determine which Node was clicked on, we traverse the scene to test whether the ray intersects with each Node's Bounding Box. We choose the Node with the intersection closest to the ray origin and store it as the selected node.
-```
-# scene.py, line 30
+
+`````````````````````````````````````````` {.python .numberLines startFrom="30"}
+# scene.py
 def pick(self, start, direction, mat):
     """ Execute selection.
         Consume: start, direction describing a Ray
@@ -442,7 +535,7 @@ def pick(self, start, direction, mat):
         closest_node.depth = mindist
         closest_node.selected_loc = start + direction * mindist
         self.selected_node = closest_node
-```
+``````````````````````````````````````````
 
 The Ray-AABB selection approach is very simple to understand and implement. However, the results are wrong in certain situations. For example, in the `Sphere` primitive, the sphere itself only touches
 the AABB in the centre of each of its planes. However if the user clicks on the corner of the Sphere's AABB, the collision will be detected with the Sphere, even if the user intended to click
@@ -454,19 +547,21 @@ implementation of Ray intersection. Intersection with arbitrary objects is much 
 penalty can be offset by using increasingly sophisticated algorithms for collision detection. Often, these will involve partitioning the scene, and only testing for intersection in partitions that are hit by the ray.
 
 #### Transforming Nodes
-A selected node can be moved, resized, or colorized. For color and scale, the scene passes along the function to the selected `Node`, if it exists. For example:
-```
-# scene.py, line 95
+A selected node can be moved, resized, or colorized. When the `Viewer` receives a callback for one of these functions, it calls the appropriate function on the `Scene`, which in turn applies
+the appropriate transformation to the currently selected `Node`.
+
+##### Color
+Colorization is accomplished with a very simplistic list of possible colors. The user can cycle through the colors with the arrow keys. Recall that the selected
+color is passed to OpenGL with `glColor` when the Node is rendered.
+
+`````````````````````````````````````````` {.python .numberLines startFrom="92"}
+# scene.py
 def rotate_color(self, forwards):
     """ Rotate the color of the currently selected node """
     if self.selected_node is None: return
     self.selected_node.rotate_color(forwards)
+``````````````````````````````````````````
 
-```
-For translation, the scene needs to do more of the work.
-##### Color
-Colorization is accomplished with a very simplistic list of possible colors. The user can cycle through the colors with the arrow keys. The selected
-color is passed to OpenGL with `glColor` when the Node is rendered.
 
 ##### Scale
 Each Node stores a current matrix that stores its scale. A matrix that scales by parameters `x`, `y` and `z` in those respective directions is:
@@ -476,13 +571,21 @@ Each Node stores a current matrix that stores its scale. A matrix that scales by
 The function `scaling` returns such a matrix, given a list representing the `x`, `y`, and `z` scaling factors.
 When the user modifies the scale of a Node, the resulting scaling matrix is multiplied into the current scaling matrix for the Node.
 
-```
-# node.py, line 35
+`````````````````````````````````````````` {.python .numberLines startFrom="97" }
+# scene.py
+def scale(self, up):
+    """ Scale the current selection """
+    if self.selected_node is None: return
+    self.selected_node.scale(up)
+
+``````````````````````````````````````````
+`````````````````````````````````````````` {.python .numberLines startFrom="35"}
+# node.py
 def scale(self, up):
     s =  1.1 if up else 0.9
     self.scalemat = numpy.dot(self.scalemat, scaling([s, s, s]))
     self.aabb.scale(s)
-```
+``````````````````````````````````````````
 
 ##### Translation
 In order to translate a node, we use the same ray calculation from picking. We pass the ray that represents the current mouse location in to the scene's
@@ -492,8 +595,8 @@ from the camera when it was selected (in the `pick` function), we can use that d
 We find the point that is the same distance from the camera along the target ray and we calculate the vector difference between the new and old locations.
 We then translate the `Node` by the resulting vector.
 
-```
-# scene.py, line 52
+`````````````````````````````````````````` {.python .numberLines startFrom="52"}
+# scene.py
 def move(self, start, direction, inv_modelview):
     """ Move the selected node, if there is one.
         Consume:  start, direction  describes the Ray to move to
@@ -516,27 +619,28 @@ def move(self, start, direction, inv_modelview):
     # translate the node and track its location
     node.translate(translation[0], translation[1], translation[2])
     node.selected_loc = newloc
-```
+``````````````````````````````````````````
 
 As with scale, each node stores a matrix which represents its translation. A translation matrix looks like:
 
 ![Translation Matrix](translate.png?raw=true)
 
-When the node is translated, we construct a new translation matrix for the
-current translation, and multiply it into the Node's translation matrix.
+When the node is translated, we construct a new translation matrix for the current translation, and multiply it into the Node's translation matrix so that it can be multiplied into
+the OpenGL matrix state when rendering.
 
-```
-# node.py, line 26
+`````````````````````````````````````````` {.python .numberLines startFrom="26"}
+# node.py
 def translate(self, x, y, z):
     self.translation = numpy.dot(self.translation, translation([x, y, z]))
-```
+``````````````````````````````````````````
 
 #### Placing Nodes
 Node placement uses techniques from both picking and translation. We use the same ray calculation for the current mouse location to determine where to place the node.
 To place a new node, we calculate the generate a ray that represents the mouse cursor in the scene.
 We create a new node which is originally at the origin, and we translate it to a point on the ray, a fixed distance from the camera.
 
-```
+`````````````````````````````````````````` {.python .numberLines startFrom="72"}
+# scene.py
 def place(self, shape, start, direction, inv_modelview):
     """ Place a new node.
         Consume:  shape             the shape to add
@@ -556,7 +660,8 @@ def place(self, shape, start, direction, inv_modelview):
     translation = inv_modelview.dot(pre_tran)
 
     new_node.translate(translation[0], translation[1], translation[2])
-```
+``````````````````````````````````````````
+
 ## Further Exploration
 For further insight into real-world 3D modelling software, a few Open Source projects are interesting.
 
