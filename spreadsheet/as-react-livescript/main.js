@@ -30,8 +30,8 @@
     },
     render: function(){
       var col, row, this$ = this;
-      return table(null, thead(null, tr.apply(null, [
-        null, th(null, button({
+      return table({}, thead({}, tr.apply(null, [
+        {}, th({}, button({
           type: 'button',
           onClick: function(){
             return this$.reset();
@@ -41,10 +41,10 @@
         var i$, ref$, len$, results$ = [];
         for (i$ = 0, len$ = (ref$ = this.props.Cols).length; i$ < len$; ++i$) {
           col = ref$[i$];
-          results$.push(th(null, col));
+          results$.push(th({}, col));
         }
         return results$;
-      }.call(this))))), tbody.apply(null, [null].concat((function(){
+      }.call(this))))), tbody.apply(null, [{}].concat((function(){
         var i$, ref$, len$, results$ = [];
         for (i$ = 0, len$ = (ref$ = this.props.Rows).length; i$ < len$; ++i$) {
           row = ref$[i$];
@@ -98,20 +98,22 @@
   });
   Row = React.createClass({
     render: function(){
-      var ref$, Cols, sheet, vals, errs, row, onChange, col, this$ = this;
+      var ref$, Cols, sheet, vals, errs, row, onChange, col, id, onKeyDown, this$ = this;
       ref$ = this.props, Cols = ref$.Cols, sheet = ref$.sheet, vals = ref$.vals, errs = ref$.errs, row = ref$.row, onChange = ref$.onChange;
-      return tr.apply(null, [null, th(void 8, row)].concat((function(){
+      return tr.apply(null, [{}, th({}, row)].concat((function(){
         var i$, ref$, len$, results$ = [];
         for (i$ = 0, len$ = (ref$ = Cols).length; i$ < len$; ++i$) {
           col = ref$[i$];
+          id = col + row;
+          onKeyDown = fn$;
           results$.push(Cell({
-            id: col + row,
+            id: id,
             col: col,
-            txt: sheet[col + row],
-            err: errs[col + row],
-            val: vals[col + row],
             onChange: onChange,
-            onKeyDown: fn$
+            onKeyDown: onKeyDown,
+            txt: sheet[id],
+            err: errs[id],
+            val: vals[id]
           }));
         }
         return results$;

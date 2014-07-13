@@ -6,16 +6,14 @@ SheetInit = (try JSON.parse localStorage.getItem '') || SheetDefault
 Table = React.createClass do
   getDefaultProps: -> { Cols: [\A to \H], Rows: [1 to 20] }
   getInitialState: -> { sheet: SheetInit, vals: {}, errs: {} }
-  render: -> table null,
-    thead null, tr null,
-      th null, button { type: \button onClick: ~> @reset! } \↻
-      ...[ th null, col for col in @props.Cols ]
-    tbody null,
-      ...[ Row {
-        row: row,
-        Cols: @props.Cols,
-        onChange: ~> @onChange ...
-      } <<< @state for row in @props.Rows ]
+  render: -> table {},
+    thead {}, tr {},
+      th {}, button { type: \button onClick: ~> @reset! } \↻
+      ...for col in @props.Cols
+        th {}, col
+    tbody {},
+      ...for row in @props.Rows
+        Row { row: row, Cols: @props.Cols, onChange: ~> @onChange ... } <<< @state
   reset: -> @calc SheetDefault
   componentDidMount: -> @calc @state.sheet
   calc: (sheet) ->
@@ -40,13 +38,12 @@ Table = React.createClass do
 Row = React.createClass do
   render: ->
     { Cols, sheet, vals, errs, row, onChange } = @props
-    tr null,
-      th(, row)
-      ...[ Cell {
-        id: col+row, col: col,
-        txt: sheet[col+row], err: errs[col+row], val: vals[col+row]
-        onChange: onChange, onKeyDown: ~> @onKeyDown(...)
-      } for col in Cols ]
+    tr {},
+      th {}, row
+      ...for col in Cols
+        id = col + row
+        onKeyDown = ~> @onKeyDown ...
+        Cell { id, col, onChange, onKeyDown, txt: sheet[id], err: errs[id], val: vals[id] }
   onKeyDown: ({ target, which }, col) ->
     | which in [ 38 40 13 ] =>
       const direction = if which is 38 then -1 else +1
