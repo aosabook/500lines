@@ -61,7 +61,7 @@ $a_{t} = a_{u} + a_{g}$\
 $a_{t} = a_{u} - 0.98$\
 $a_{u} = a_{t} + 0.98$
 
-This means that we can simply add 0.98 to every single y value, resulting in the first graph we saw, and making our step counting once again a matter of counting the points when the sine wave crosses the x-axis in the positive direction. 
+This means that we can add 0.98 to every single y value, resulting in the first graph we saw, and making our step counting once again a matter of counting the points when the sine wave crosses the x-axis in the positive direction. 
 
 What if, however, our silly stick man holds the phone in a more wonky, but still consistent, position?
 
@@ -178,7 +178,7 @@ Let's look at each of these formats individually.
 
 ### Combined Format
 
-Data in the combined format is simply total acceleration in the x, y, z directions, over time. 
+Data in the combined format is total acceleration in the x, y, z directions, over time. 
 
 $"x1,y1,z1;...xn,yn,zn;"$
 
@@ -441,7 +441,7 @@ Our pedometer will measure 3 metrics:
 Let's discuss the infomation we'll need to calculate each of these metrics. We're intentionally leaving the exciting, step counting part of our program to the end.
 
 ### Distance traveled
-A mobile pedometer app would generally be used by one person. The stride length of that person would be a necessary value to determine distance traveled, which is simply the steps taken multiplied by the stride length. The pedometer can ask the user to input their info.
+A mobile pedometer app would generally be used by one person. The stride length of that person would be a necessary value to determine distance traveled, which is the steps taken multiplied by the stride length. The pedometer can ask the user to input their info.
 
 If the user can directly provide their stride length, then we're good to go. If not, and they provide their gender and their height, we can use $0.413 * height$ for a female, and $0.415 * height$ for a male. 
 
@@ -449,7 +449,7 @@ If they only provide their height, we can use $(0.413 + 0.415)/2 * height$, aver
 
 If they only provide their gender, we can use the average of 70 cm for a female, and 78 cm for a male.
 
-Finally, if the user does not wish to provide any information, we can simply take the average of 70 cm and 78 cm and set the stride length to 74 cm.
+Finally, if the user does not wish to provide any information, we can take the average of 70 cm and 78 cm and set the stride length to 74 cm.
 
 TODO: Do I need to add references for multipliers and averages above? Can we just say some basic research turned up these numbers, but we're free to change them if more accurate ones are uncovered?
 
@@ -496,7 +496,7 @@ Things to note:
 
 ### The User class in the wild
 
-The User class is straightforward to use. Below are examples of users created with the least specific to the most specific data:
+Below are examples of users created with the least specific to the most specific data:
 
 * Without any parameters
 * A gender parameter
@@ -539,7 +539,7 @@ class Device
 end
 ~~~~~~~
 
-Our device class is quite simple. Note that all of the attribute readers are set in the initializer based on parameters passed in. All of the other attributes are simply metadata:
+Our device class is quite short. Note that all of the attribute readers are set in the initializer based on parameters passed in. All of the other attributes are metadata:
 
 * method is used to set the type of walk that is taken (walk with phone in pocket, walk with phone in bag, jog, etc.)
 * steps is used to set the actual steps taken, so that we can record the difference between the actual steps the user took and the ones our program counted.
@@ -554,27 +554,13 @@ Things to note:
 Our Device class is straightforward to use, so we won't bore you with the details of showing it in the wild. 
 
 ### Steps taken
-Our Parser's @parsed_data waveform is created by the bounces in the z-direction of a person as they take a step. Each cycle of our waveform represents a single step taken. Therefore, counting steps is a matter of counting the number of peaks or the number of troughs in our Parser's @parsed_data waveform. 
+We decided that we could count steps by counting the number of peaks in our signal. To do this, we chose to set a threshold value, and count the number of times our signal, now stored in @parsed_data, crosses the threshold in the positive direction. 
 
-But, how do we count peaks or troughs in code? Let's assume for this discussion that we're deciding to count peaks. 
+![](chapter-figures/figure-filtered-smooth-threshold.png)\ 
 
-If we had a perfect waveform, we could simply count the number of times that a point is numerically lower than the point before it. However, while our smoothing algorithm is good, it's not perfect. Examine the waveform below. 
+If we assume that we're just as likely to accuarately count peaks as we are to count troughs, we'll get the most accurate result by counting both and taking the average of the two to determine our final step count. This will remove some error from certain data sets that have less prominent peaks or troughs. We can count troughs in a similar fashion, by using a threshold that is exactly the negative of our previous threshold. 
 
-TODO: Add waveform graph that shows too many peaks, with 4 major peaks.
-
-We can tell by looking at it that there are 4 peaks, but the circled areas would also be counted as peaks with the algorithm we described above. Unfortunately, even with our smoothing algorithm, we can't depend on a perfect waveform, so we'll have to use a similar method that accomodates an imperfect waveform. 
-
-Examine the waveform below with a line parallel to the x-axis. This line is below all of the peaks, but not so far down the y-axis that it's below any of the troughs. 
-
-TODO: Add graph of waveform with threshold line.
-
-This line can be used as a threshold. If we count each time our waveform crosses the line in the positive y direction, we'll achieve the same result as counting peaks, and therefore counting steps. 
-
-We can count troughs in a similar fashion, by using a threshold that is exactly the negative of our previous threshold. 
-
-If we assume that we're just as likely to accuarately count peaks as we are to count troughs, we'll get the most accurate result by counting both and taking the average of the two to determine our final step count. This will remove some error from certain data sets that have less prominent peaks or troughs. 
-
-Alright, back to some code. So far, we have a Parser class that contains our parsed waveform, and classes that give us the necessary information about a user and a device. What we're missing is a way to analyze the @parsed_data waveform with the information from User and Device, and count steps, measure distance, and measure time. The analysis portion of our program is different from the data manipulation of the Parser, and different from the information collection and aggregation of the User and Device classes. Let's create a new class called Analyzer to perform this data analysis.
+Let's implement this threshold strategy in code. So far, we have a Parser class that contains our parsed waveform, and classes that give us the necessary information about a user and a device. What we're missing is a way to analyze the @parsed_data waveform with the information from User and Device, and count steps, measure distance, and measure time. The analysis portion of our program is different from the data manipulation of the Parser, and different from the information collection and aggregation of the User and Device classes. Let's create a new class called Analyzer to perform this data analysis.
 
 ~~~~~~~
 require 'mathn'
@@ -660,7 +646,7 @@ The only other public method in Analyzer is measure, which calls the private met
 
 Finally! The step counting portion of our step counting app. 
 
-The measure steps method counts the positive edges (the peaks) and the negative edges (the troughs) through the count_edges method, and then simply sets the @steps variable to the average of the two. The count_edges method takes a boolean parameter to determine whether we're counting peaks or troughs. The method iterates through each point in our parser's @filtered_data attribute to count steps. At the start of the method, we instantiate the following variables:
+The measure steps method counts the positive edges (the peaks) and the negative edges (the troughs) through the count_edges method, and then sets the @steps variable to the average of the two. The count_edges method takes a boolean parameter to determine whether we're counting peaks or troughs. The method iterates through each point in our parser's @filtered_data attribute to count steps. At the start of the method, we instantiate the following variables:
 
 * count is used to keep track of the step count as we interate through our loop. This is, obviously, initialized to 0.
 * index_last_steps keeps the index of the step before the one we're on when looping through @filtered_data.
@@ -673,11 +659,11 @@ There we have it, the step counting portion of our program.
 
 ### measure_distance
 
-The distance is simply measured by miltuplying our user's stride by the number of steps. Since the distance depends on the step count, the measure method calls it after the step count has been calcualted, and keeps the method private so that an outside class can't call in before the measure_steps. 
+The distance is measured by miltuplying our user's stride by the number of steps. Since the distance depends on the step count, the measure method calls it after the step count has been calcualted, and keeps the method private so that an outside class can't call in before the measure_steps. 
 
 ### measure_time
 
-Time is also a trivial calculation, dividing the total number of samples (the number of points in our parser's filtered_data attribute) by the rate (samples/second). Time then, obviously, is returned in numbers of seconds. 
+Time is calculaed by dividing the total number of samples (the number of points in our parser's filtered_data attribute) by the rate (samples/second). Time, then, is returned in numbers of seconds. 
 
 Things to Note:
 
@@ -717,21 +703,9 @@ Hitting enter again outputs the following:
 
 Note that since this trial is the separated format, it is more accurate than the combined format.
 
-### The Toolchain
+## Diving back to the code
 
-Web apps have been build many times over, so we may as well use a framework to do the boring plumbing work for us. The Sinatra framework does just that. In the tool's own words, Sinatra is "a DSL for quickly creating web applications in Ruby". Perfect. 
-
-Since we're building a web app, we'll need a web server, so we'll use the thin web server. It's simple and certainly fast enough for our purposes. 
-
-The last tool we'll be including is a JavaScript library called Highcharts, used for creating interactive charts. What's the point of interesting data if we can't display it in interesting ways? 
-
-### Diving back to the code
-
-Let's jump back in and talk about how we create our simple web app. 
-
-TODO: Do I need to add a small MVC and web apps section here?
-
-When building a web application, the functionality of the web app and the user experience should, ideally, be mostly locked down before the code is written. Assuming this perfect world, let's look at what the outlined funtionality above implies for us, technically. We'll need two major components that we don't yet have:
+Let's look at what the outlined funtionality above implies for us, technically. We'll need two major components that we don't yet have:
 
 1. A way to store data that a user inputs, and load data that a user has previously inputted.
 2. A web application with a basic interface.
@@ -843,7 +817,7 @@ Like the create method, find calls into the constructor, but passes only the fil
 
 We can now ask for the parser, user, device, or analyzer objects directly from our trial instance. Notice that all of these variables are lazy loaded, to prevent creation and parsing until needed. The user and device instance methods parse the file_name to retirve the necessary parameters to create the objects, and the parser method reads the data from the file itself. 
 
-The all class method simply grabs all of the files in our public/upoads folder, and creates trial objects, returning an array of all trials. 
+The all class method grabs all of the files in our public/upoads folder, and creates trial objects, returning an array of all trials. 
 
 ~~~~~~~
 > Trial.all
@@ -853,14 +827,18 @@ The all class method simply grabs all of the files in our public/upoads folder, 
 Our Trial object has the ability to store and retireve data from and for the user, and can create and return all of the other objects to our program. Let's move on to the web application side of our program to see how Trial will be helpful.
 
 ### Things to note
-* As our application grows, we'll likely want to use a database rather than saving everything to the filesystem. When the time comes for that, all we have to do it change the Trial class. This makes our refactoring simple. 
+* As our application grows, we'll likely want to use a database rather than saving everything to the filesystem. When the time comes for that, all we have to do it change the Trial class. This makes our refactoring simpler. 
 * In the future, we can also start saving User and Device objects to the database as well. The create, find, and all methods in Trial will then be relevant to User and Device as well. That means we'd likely refactor those out into their own class to deal with just the data storage and retrieval, and each of our User, Device, and Trial classes will inherit from that class. We might eventually add helper query methods to that class, and continue building it up from there. 
 
 ### 2. Building a web application
 
-TODO: Do I need a quick web app or MVC explanation here?
+Web apps have been build many times over, so we may as well use a framework to do the boring plumbing work for us. The Sinatra framework does just that. In the tool's own words, Sinatra is "a DSL for quickly creating web applications in Ruby". Perfect. 
 
-We're using Sinatra, which, in the tool's own words, is "a DSL for quickly creating web applications in Ruby". We'll create a Gemfile with the following lines:
+Since we're building a web app, we'll need a web server, so we'll use the thin web server. It's simple and certainly fast enough for our purposes. 
+
+The last tool we'll be including is a JavaScript library called Highcharts, used for creating interactive charts. What's the point of interesting data if we can't display it in interesting ways? 
+
+We'll start by creating a Gemfile with the following lines:
 
 ~~~~~~~
 source 'https://rubygems.org'
@@ -1080,7 +1058,7 @@ Similarly, the format_time method takes a time in seconds and formats it using R
 => "1 hr, 59 min, 59 sec"
 ~~~~~~~
 
-The final method, limit_1000, simply takes a series of data, and returns the first 1000 points. We'll see this used in another view shortly. 
+The final method, limit_1000, takes a series of data, and returns the first 1000 points. We'll see this used in another view shortly. 
 
 Back to the trials view. The trials view renders an error if one exists, renders summary.erb with all trials to present the table of trial data, and then creates the input form for user and device info. 
 
@@ -1133,7 +1111,7 @@ The trial.erb view has both HTML and JavaScript. As our application grows, we wo
 
 We're using a tool called Highcharts to generate all of the charts in our view, which requires jQuery and other additional JavaScript files. Note that both are included at the top of the view. 
 
-The HTML portion is simple. We create a link to return to /trials, for ease of navigation purposes. Then, we render summary.erb once more. Since both summary tables are quite similar, we've chosen to extract the HTML for the summary table into one view and reuse it from both trials and trial. This ensures that the format of the tables remains consistent, and avoids code duplication. In this case, we pass in false for detail_hidden, since we want to see time and distance data, whereas in the trials view, we wanted those fields replaced with a link to this view. Following the summary table, we create containers for the charts. 
+In the HTML portion, we create a link to return to /trials, for ease of navigation purposes. Then, we render summary.erb once more. Since both summary tables are quite similar, we've chosen to extract the HTML for the summary table into one view and reuse it from both trials and trial. This ensures that the format of the tables remains consistent, and avoids code duplication. In this case, we pass in false for detail_hidden, since we want to see time and distance data, whereas in the trials view, we wanted those fields replaced with a link to this view. Following the summary table, we create containers for the charts. 
 
 The JavaScript portion uses the Highcharts API to create the three charts: dot product data, filtered data, and, optionally, a comparison between the filtered data of the separated and combined data sets. Each chart is limited to 1000 points, to make it easy on our eyes, using the limit_1000 method in ViewHelper that we looked at earlier.
 
