@@ -29,14 +29,12 @@
       };
     },
     render: function(){
-      var ref$, Cols, Rows, col, row, this$ = this;
+      var ref$, Cols, Rows, col, row;
       ref$ = this.props, Cols = ref$.Cols, Rows = ref$.Rows;
       return table({}, thead({}, tr.apply(null, [
         {}, th({}, button({
           type: 'button',
-          onClick: function(){
-            return this$.reset();
-          }
+          onClick: bind$(this, 'reset')
         }, '↻'))
       ].concat((function(){
         var i$, ref$, len$, results$ = [];
@@ -160,13 +158,13 @@
     };
     return worker.postMessage(null);
   };
+  function bind$(obj, key, target){
+    return function(){ return (target || obj)[key].apply(obj, arguments) };
+  }
   function import$(obj, src){
     var own = {}.hasOwnProperty;
     for (var key in src) if (own.call(src, key)) obj[key] = src[key];
     return obj;
-  }
-  function bind$(obj, key, target){
-    return function(){ return (target || obj)[key].apply(obj, arguments) };
   }
   function partialize$(f, args, where){
     var context = this;

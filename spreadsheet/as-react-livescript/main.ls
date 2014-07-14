@@ -10,7 +10,7 @@ Table = React.createClass do
     {Cols, Rows} = @props
     table {},
       thead {}, tr {},
-        th {}, button { type: \button onClick: ~> @reset! } \↻
+        th {}, button { type: \button onClick: @~reset } \↻
         ...[ th {}, col for col in Cols ]
       tbody {},
         ...[ Row { Cols, row, @~onChange } <<< @state for row in Rows ]
