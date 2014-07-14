@@ -6,14 +6,14 @@ SheetInit = (try JSON.parse localStorage.getItem '') || SheetDefault
 Table = React.createClass do
   getDefaultProps: -> { Cols: [\A to \H], Rows: [1 to 20] }
   getInitialState: -> { sheet: SheetInit, vals: {}, errs: {} }
-  render: -> table {},
-    thead {}, tr {},
-      th {}, button { type: \button onClick: ~> @reset! } \↻
-      ...for col in @props.Cols
-        th {}, col
-    tbody {},
-      ...for row in @props.Rows
-        Row { row: row, Cols: @props.Cols, onChange: ~> @onChange ... } <<< @state
+  render: ->
+    {Cols, Rows} = @props
+    table {},
+      thead {}, tr {},
+        th {}, button { type: \button onClick: ~> @reset! } \↻
+        ...[ th {}, col for col in Cols ]
+      tbody {},
+        ...[ Row { Cols, row, @~onChange } <<< @state for row in Rows ]
   reset: -> @calc SheetDefault
   componentDidMount: -> @calc @state.sheet
   calc: (sheet) ->
@@ -41,7 +41,7 @@ Row = React.createClass do
       th {}, row
       ...for let col in Cols
         id = col + row
-        onKeyDown = ~> @onKeyDown it, col, row
+        onKeyDown = @~onKeyDown _, col, row
         Cell { id, onChange, onKeyDown, txt: sheet[id], err: errs[id], val: vals[id] }
   onKeyDown: ({target, key}, col, row) ->
     | key in <[ ArrowUp ArrowDown Enter ]> =>
@@ -52,7 +52,7 @@ Row = React.createClass do
 Cell = React.createClass render: ->
   {id, txt, err, val, onChange, onKeyDown} = @props
   td { className: if txt?0 is \= then \formula else '' },
-    input { id, type: \text, value: txt, onChange, onKeyDown },
+    input { id, type: \text, value: txt, onChange, onKeyDown }
     div { className: if err then \error else if val?0 then \text else '' } (err || val)
 
 window.init = ->
