@@ -1,14 +1,17 @@
 (ns fdb.graph
   (:use fdb.constructs))
 
-(defn outgoing-refs [db ts ent-id]
+(defn outgoing-refs [db ts ent-id & ref-names]
+  (let [val-filter-fn (if ref-names #(vals (select-keys ref-names %)) vals)]
   (if-not ent-id []
     (->> (entity-at db ts ent-id)
-          (:attrs) (vals) (filter ref?) (mapcat :value))))
+          (:attrs) (val-filter-fn) (filter ref?) (mapcat :value)))))
 
-(defn incoming-refs [db ts ent-id]
-  (let [vaet (ind-at db :VAET ts)]
-      (reduce into #{} (vals (vaet ent-id)))))
+(defn incoming-refs [db ts ent-id & ref-names]
+  (let [vaet (ind-at db :VAET ts)
+          all-attr-map (vaet ent-id)
+          filtered-map (if ref-names (select-keys ref-names all-attr-map) all-attr-map)]
+      (reduce into #{} (vals filtered-map))))
 
 (defn- remove-explored [pendings explored restruct-fn]
   (restruct-fn (remove #(contains? explored %) pendings)))
