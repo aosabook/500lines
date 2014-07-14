@@ -1,5 +1,6 @@
 (ns fdb.constructs
-   (:use fdb.storage))
+   (:use fdb.storage)
+  (:import [fdb.storage.InMemory]))
 
 (defrecord Database [layers top-id curr-time])
 (defrecord Layer [storage VAET AVET VEAT EAVT])
@@ -26,17 +27,16 @@
   "Create an empty database"
   []
   (atom (Database. [(Layer.
-                     (initial-storage) ; storage
+                     (fdb.storage.InMemory.) ; storage
                      (make-index #(vector %3 %2 %1) #(vector %3 %2 %1) #(ref? %)) ; VAET - for graph queries and joins
                      (make-index #(vector %2 %3 %1) #(vector %3 %1 %2) always) ; AVET - for filtering
                      (make-index #(vector %3 %1 %2) #(vector %2 %3 %1) always) ; VEAT - for filtering
                      (make-index #(vector %1 %2 %3) #(vector %1 %2 %3) always) )] ; EAVT - for filtering
                    0 0)))
-
 (defn entity-at
   "the entity with the given ent-id at the given time (defaults to the latest time)"
   ([db ent-id] (entity-at db (:curr-time db) ent-id))
-  ([db ts ent-id] (stored-entity (get-in db [:layers ts :storage]) ent-id)))
+  ([db ts ent-id] (get-entity (get-in db [:layers ts :storage]) ent-id)))
 
 (defn attr-at
   "The attribute of an entity at a given time (defaults to recent time)"

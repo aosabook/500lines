@@ -55,7 +55,7 @@
 
 (defn add-entity [db ent]
   (let [[fixed-ent next-top-id] (fix-new-entity db ent)
-        new-layer (update-in  (last (:layers db)) [:storage] update-storage fixed-ent)
+        new-layer (update-in  (last (:layers db)) [:storage] write-entity fixed-ent)
         add-fn (partial add-entity-to-index fixed-ent)
         new-layer (reduce add-fn new-layer  (indices))]
     (assoc db :layers  (conj (:layers db) new-layer) :top-id next-top-id)))
@@ -101,13 +101,13 @@
       (assoc layer ind-name updated-index))))
 
 (defn- update-entity [storage e-id new-attr]
-  (assoc-in (stored-entity storage e-id) [:attrs (:name new-attr)] new-attr))
+  (assoc-in (get-entity storage e-id) [:attrs (:name new-attr)] new-attr))
 
 (defn- update-layer
   [layer ent-id old-attr updated-attr new-val operation]
   (let [storage (:storage layer)
         new-layer (reduce (partial update-index  ent-id old-attr new-val operation) layer (indices))]
-    (assoc new-layer :storage (update-storage storage (update-entity storage ent-id updated-attr)))))
+    (assoc new-layer :storage (write-entity storage (update-entity storage ent-id updated-attr)))))
 
 (defn update-datom
   ([db ent-id attr-name new-val]
@@ -144,7 +144,7 @@
   (let [ent (entity-at db ent-id)
         layer (remove-back-refs db ent-id (last (:layers db)))
         retimed-layer (update-in layer [:VAET] dissoc ent-id)
-        no-ent-layer (assoc retimed-layer :storage (remove-entity-from-storage (:storage retimed-layer) ent))
+        no-ent-layer (assoc retimed-layer :storage (drop-entity (:storage retimed-layer) ent))
         new-layer (reduce (partial remove-entity-from-index ent) no-ent-layer (indices))]
     (assoc db :layers (conj  (:layers db) new-layer))))
 
