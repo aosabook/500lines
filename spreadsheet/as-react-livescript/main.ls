@@ -30,29 +30,29 @@ Table = React.createClass do
       localStorage.setItem '', JSON.stringify sheet
       @setState { sheet, errs, vals }
     worker.postMessage sheet
-  onChange: ({ target: {id, value} }) ->
+  onChange: ({target: {id, value}}) ->
     sheet = {} <<< @state.sheet
     @calc(sheet <<< { "#id": value })
 
 Row = React.createClass do
   render: ->
-    { Cols, sheet, vals, errs, row, onChange } = @props
+    {Cols, sheet, vals, errs, row, onChange} = @props
     tr {},
       th {}, row
-      ...for col in Cols
+      ...for let col in Cols
         id = col + row
-        onKeyDown = ~> @onKeyDown ...
-        Cell { id, col, onChange, onKeyDown, txt: sheet[id], err: errs[id], val: vals[id] }
-  onKeyDown: ({ target, key }, col) ->
+        onKeyDown = ~> @onKeyDown it, col, row
+        Cell { id, onChange, onKeyDown, txt: sheet[id], err: errs[id], val: vals[id] }
+  onKeyDown: ({target, key}, col, row) ->
     | key in <[ ArrowUp ArrowDown Enter ]> =>
       const direction = if key is \ArrowUp then -1 else +1
-      const cell = document.querySelector "##{ col }#{ @props.row + direction }"
+      const cell = document.querySelector "##{ col }#{ row + direction }"
       cell?focus!
 
 Cell = React.createClass render: ->
-  { id, col, txt, err, val, onChange, onKeyDown } = @props
+  {id, txt, err, val, onChange, onKeyDown} = @props
   td { className: if txt?0 is \= then \formula else '' },
-    input { id, type: \text, value: txt, onChange, onKeyDown: -> onKeyDown(it, col) },
+    input { id, type: \text, value: txt, onChange, onKeyDown },
     div { className: if err then \error else if val?0 then \text else '' } (err || val)
 
 window.init = ->

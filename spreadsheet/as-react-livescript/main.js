@@ -97,31 +97,32 @@
   });
   Row = React.createClass({
     render: function(){
-      var ref$, Cols, sheet, vals, errs, row, onChange, col, id, onKeyDown, this$ = this;
+      var ref$, Cols, sheet, vals, errs, row, onChange;
       ref$ = this.props, Cols = ref$.Cols, sheet = ref$.sheet, vals = ref$.vals, errs = ref$.errs, row = ref$.row, onChange = ref$.onChange;
       return tr.apply(null, [{}, th({}, row)].concat((function(){
-        var i$, ref$, len$, results$ = [];
-        for (i$ = 0, len$ = (ref$ = Cols).length; i$ < len$; ++i$) {
-          col = ref$[i$];
+        var i$, len$, results$ = [];
+        for (i$ = 0, len$ = Cols.length; i$ < len$; ++i$) {
+          results$.push((fn$.call(this, Cols[i$])));
+        }
+        return results$;
+        function fn$(col){
+          var id, onKeyDown, this$ = this;
           id = col + row;
-          onKeyDown = fn$;
-          results$.push(Cell({
+          onKeyDown = function(it){
+            return this$.onKeyDown(it, col, row);
+          };
+          return Cell({
             id: id,
-            col: col,
             onChange: onChange,
             onKeyDown: onKeyDown,
             txt: sheet[id],
             err: errs[id],
             val: vals[id]
-          }));
+          });
         }
-        return results$;
-        function fn$(){
-          return this$.onKeyDown.apply(this$, arguments);
-        }
-      }())));
+      }.call(this))));
     },
-    onKeyDown: function(arg$, col){
+    onKeyDown: function(arg$, col, row){
       var target, key, direction, cell;
       target = arg$.target, key = arg$.key;
       switch (false) {
@@ -129,15 +130,15 @@
         direction = key === 'ArrowUp'
           ? -1
           : +1;
-        cell = document.querySelector("#" + col + (this.props.row + direction));
+        cell = document.querySelector("#" + col + (row + direction));
         return cell != null ? cell.focus() : void 8;
       }
     }
   });
   Cell = React.createClass({
     render: function(){
-      var ref$, id, col, txt, err, val, onChange, onKeyDown;
-      ref$ = this.props, id = ref$.id, col = ref$.col, txt = ref$.txt, err = ref$.err, val = ref$.val, onChange = ref$.onChange, onKeyDown = ref$.onKeyDown;
+      var ref$, id, txt, err, val, onChange, onKeyDown;
+      ref$ = this.props, id = ref$.id, txt = ref$.txt, err = ref$.err, val = ref$.val, onChange = ref$.onChange, onKeyDown = ref$.onKeyDown;
       return td({
         className: (txt != null ? txt[0] : void 8) === '=' ? 'formula' : ''
       }, input({
@@ -145,9 +146,7 @@
         type: 'text',
         value: txt,
         onChange: onChange,
-        onKeyDown: function(it){
-          return onKeyDown(it, col);
-        }
+        onKeyDown: onKeyDown
       }, div({
         className: err
           ? 'error'
