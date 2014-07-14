@@ -1,8 +1,8 @@
 (ns fdb.constructs
    (:use fdb.storage))
 
-(defrecord Database [timestamped top-id curr-time])
-(defrecord Timestamped [storage VAET AVET VEAT EAVT])
+(defrecord Database [layers top-id curr-time])
+(defrecord Layer [storage VAET AVET VEAT EAVT])
 (defrecord Entity [id attrs])
 (defrecord Attr [name value ts prev-ts])
 
@@ -25,7 +25,7 @@
 (defn make-db
   "Create an empty database"
   []
-  (atom (Database. [(Timestamped.
+  (atom (Database. [(Layer.
                      (initial-storage) ; storage
                      (make-index #(vector %3 %2 %1) #(vector %3 %2 %1) #(ref? %)) ; VAET - for graph queries and joins
                      (make-index #(vector %2 %3 %1) #(vector %3 %1 %2) always) ; AVET - for filtering
@@ -36,7 +36,7 @@
 (defn entity-at
   "the entity with the given ent-id at the given time (defaults to the latest time)"
   ([db ent-id] (entity-at db (:curr-time db) ent-id))
-  ([db ts ent-id] (stored-entity (get-in db [:timestamped ts :storage]) ent-id)))
+  ([db ts ent-id] (stored-entity (get-in db [:layers ts :storage]) ent-id)))
 
 (defn attr-at
   "The attribute of an entity at a given time (defaults to recent time)"
@@ -54,7 +54,7 @@
   ([db kind]
    (ind-at db kind  (:curr-time db)))
   ([db kind ts]
-   (kind ((:timestamped db) ts))))
+   (kind ((:layers db) ts))))
 
 (defn collify [x] (if (coll? x) x [x]))
 (defn indices[] [:VAET :AVET :VEAT :EAVT])

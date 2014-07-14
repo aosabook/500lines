@@ -40,13 +40,13 @@
         update-entry-fn (fn [indx vl] (update-entry-in-index indx ((from-eav index) ent-id attr-name vl) operation))]
     (reduce update-entry-fn index colled-target-val)))
 
-(defn- add-entity-to-index [ent timestamped ind-name]
+(defn- add-entity-to-index [ent layer ind-name]
   (let [ent-id (:id ent)
-        index (ind-name timestamped)
+        index (ind-name layer)
         all-attrs  (vals (:attrs ent))
         relevant-attrs (filter #((usage-pred index) %) all-attrs )
         add-in-index-fn (fn [ind attr] (update-attr-in-index ind ent-id (:name attr) (:value attr) :db/add))]
-       (assoc timestamped ind-name  (reduce add-in-index-fn index relevant-attrs))))
+       (assoc layer ind-name  (reduce add-in-index-fn index relevant-attrs))))
 
 (defn- fix-new-entity [db ent]
       (let [[ent-id next-top-id] (next-id db ent)
@@ -55,10 +55,10 @@
 
 (defn add-entity [db ent]
   (let [[fixed-ent next-top-id] (fix-new-entity db ent)
-        new-timestamped (update-in  (last (:timestamped db)) [:storage] update-storage fixed-ent)
+        new-layer (update-in  (last (:layers db)) [:storage] update-storage fixed-ent)
         add-fn (partial add-entity-to-index fixed-ent)
-        new-timestamped (reduce add-fn new-timestamped  (indices))]
-    (assoc db :timestamped  (conj (:timestamped db) new-timestamped) :top-id next-top-id)))
+        new-layer (reduce add-fn new-layer  (indices))]
+    (assoc db :layers  (conj (:layers db) new-layer) :top-id next-top-id)))
 
 (defn add-entities [db ents-seq] (reduce add-entity db ents-seq))
 
@@ -90,71 +90,71 @@
              paths (map #((from-eav index) ent-id attr-name %) datom-vals)]
        (reduce remove-entry-from-index index paths))))
 
-(defn- update-index [ent-id old-attr target-val operation timestamped ind-name]
-  (if-not ((usage-pred (get-in timestamped [ind-name])) old-attr)
-    timestamped
-    (let [index (ind-name timestamped)
+(defn- update-index [ent-id old-attr target-val operation layer ind-name]
+  (if-not ((usage-pred (get-in layer [ind-name])) old-attr)
+    layer
+    (let [index (ind-name layer)
           cleaned-index (remove-entries-from-index  ent-id operation index old-attr)
           updated-index  ( if  (= operation :db/remove)
                                          cleaned-index
                                          (update-attr-in-index cleaned-index ent-id  (:name old-attr) target-val operation))]
-      (assoc timestamped ind-name updated-index))))
+      (assoc layer ind-name updated-index))))
 
 (defn- update-entity [storage e-id new-attr]
   (assoc-in (stored-entity storage e-id) [:attrs (:name new-attr)] new-attr))
 
-(defn- update-timestamped
-  [timestamped ent-id old-attr updated-attr new-val operation]
-  (let [storage (:storage timestamped)
-        new-timestamped (reduce (partial update-index  ent-id old-attr new-val operation) timestamped (indices))]
-    (assoc new-timestamped :storage (update-storage storage (update-entity storage ent-id updated-attr)))))
+(defn- update-layer
+  [layer ent-id old-attr updated-attr new-val operation]
+  (let [storage (:storage layer)
+        new-layer (reduce (partial update-index  ent-id old-attr new-val operation) layer (indices))]
+    (assoc new-layer :storage (update-storage storage (update-entity storage ent-id updated-attr)))))
 
 (defn update-datom
   ([db ent-id attr-name new-val]
    (update-datom db ent-id attr-name new-val :db/reset-to ))
   ([db ent-id attr-name new-val operation]
      (let [update-ts (next-ts db)
-           timestamped (last (:timestamped db))
+           layer (last (:layers db))
            attr (attr-at db ent-id attr-name)
            updated-attr (update-attr attr new-val update-ts operation)
-           fully-updated-timestamped (update-timestamped timestamped ent-id attr updated-attr new-val operation)]
-       (update-in db [:timestamped] conj fully-updated-timestamped))))
+           fully-updated-layer (update-layer layer ent-id attr updated-attr new-val operation)]
+       (update-in db [:layers] conj fully-updated-layer))))
 
-(defn- remove-entity-from-index [ent timestamped ind-name]
+(defn- remove-entity-from-index [ent layer ind-name]
   (let [ent-id (:id ent)
-        index (ind-name timestamped)
+        index (ind-name layer)
         all-attrs  (vals (:attrs ent))
         relevant-attrs (filter #((usage-pred index) %) all-attrs )
         remove-from-index-fn (partial remove-entries-from-index  ent-id  :db/remove)]
-    (assoc timestamped ind-name (reduce remove-from-index-fn index relevant-attrs))))
+    (assoc layer ind-name (reduce remove-from-index-fn index relevant-attrs))))
 
-(defn- reffing-datoms-to [e-id timestamped]
-  (let [vaet (:VAET timestamped)]
+(defn- reffing-datoms-to [e-id layer]
+  (let [vaet (:VAET layer)]
         (for [[attr-name reffing-set] (e-id vaet)
               reffing reffing-set]
              [reffing attr-name e-id])))
 
-(defn- remove-back-refs [db e-id timestamped]
-  (let [refing-datoms (reffing-datoms-to e-id timestamped)
+(defn- remove-back-refs [db e-id layer]
+  (let [refing-datoms (reffing-datoms-to e-id layer)
         remove-fn (fn[d [e a v]] (update-datom db e a v :db/remove))
         clean-db (reduce remove-fn db refing-datoms)]
-    (last (:timestamped clean-db))))
+    (last (:layers clean-db))))
 
 (defn remove-entity [db ent-id]
   (let [ent (entity-at db ent-id)
-        timestamped (remove-back-refs db ent-id (last (:timestamped db)))
-        retimed-timestamped (update-in timestamped [:VAET] dissoc ent-id)
-        no-ent-timestamped (assoc retimed-timestamped :storage (remove-entity-from-storage (:storage retimed-timestamped) ent))
-        new-timestamped (reduce (partial remove-entity-from-index ent) no-ent-timestamped (indices))]
-    (assoc db :timestamped (conj  (:timestamped db) new-timestamped))))
+        layer (remove-back-refs db ent-id (last (:layers db)))
+        retimed-layer (update-in layer [:VAET] dissoc ent-id)
+        no-ent-layer (assoc retimed-layer :storage (remove-entity-from-storage (:storage retimed-layer) ent))
+        new-layer (reduce (partial remove-entity-from-index ent) no-ent-layer (indices))]
+    (assoc db :layers (conj  (:layers db) new-layer))))
 
 (defn transact-on-db [initial-db txs]
     (loop [[tx & rst-tx] txs transacted initial-db]
       (if tx
           (recur rst-tx (apply (first tx) transacted (rest tx)))
-          (let [initial-timestamped  (:timestamped initial-db)
-                new-timestamped (last (:timestamped transacted))]
-            (assoc initial-db :timestamped (conj  initial-timestamped new-timestamped) :curr-time (next-ts initial-db) :top-id (:top-id transacted))))))
+          (let [initial-layer  (:layers initial-db)
+                new-layer (last (:layers transacted))]
+            (assoc initial-db :layers (conj  initial-layer new-layer) :curr-time (next-ts initial-db) :top-id (:top-id transacted))))))
 
 (defmacro  _transact [db op & txs]
   (when txs
@@ -193,5 +193,5 @@
 (defn db-before
   "How the db was before a given timestamp"
   [db ts]
-  (let [timestamped-before (subvec (:timestamped db) 0 ts )]
-    (assoc db :timestamped timestamped-before :curr-time ts)))
+  (let [layer-before (subvec (:layers db) 0 ts )]
+    (assoc db :layers layer-before :curr-time ts)))
