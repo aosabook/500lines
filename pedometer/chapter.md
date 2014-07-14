@@ -324,40 +324,41 @@ private
 end
 ~~~~~~~
 
+## Low-pass Filtering
+
+Let's start with the last method in our class, chebyshev_filter. This is the method that implements the low-pass filter, and we'll see it used a couple of times in this class. chebyshev_filter first takes an input_data parameter, which is an array of numerical data, or, our signal that we want passed through the filter. The second parameter, coefficients, is a hash with two keys, alpha and beta, each which have an array with three numerical data points as values. Note the constants GRAVITY_COEFF and SMOOTHING_COEFF at the top of the class. These will be the hashes we'll pass into the coefficients parameter. 
+
+The chebyshev_filter method will output a signal (another array of numerical data) which is the result of passing the input_data signal through the low-pass filter with the coefficients passed in. The method itself implements the low-pass filter formula $output_{i} = \alpha_{0} * (input_{i} * \beta_{0} + input_{i-1} * \beta_{1} + input_{i-2} * \beta_{2} - output_{i-1} * \alpha_{1} - output_{i-2} * \alpha_{2})$. We do this by first instantiating an output_data signal array with two 0 values, so that the equation has inital values to work with. Then, we loop through the remaining indeces of the input_data signal, apply the formula at each turn, and append the result to output_data, returning output_data when the loop is complete. 
+
+We've now discussed the implementation of one of our mathematical tools in code. Let's take a look at how the rest of the class works, and how it uses chebyshev_filter. 
+
+## The Inner Workings of the Parser Class
+
 Let's start with the initialize method. Our parser class takes string data as input and stores it in the @data instance variable. It then calls three methods in sequence: parse_raw_data, dot_product_parsed_data, and filter_dot_product_data. 
 
 Each method accomplishes one of our three steps above. Let's look at each method individually. 
 
-## Step 1: Parsing text to extract numerical data (parse_raw_data)
+### Step 1: parse_raw_data
 
-The goal of parse_raw_data is to convert string data to a format we can more easily work with, and store it in @parsed_data. 
+The goal of parse_raw_data is to convert string data in either the combined or separated format to a standard format, and store it in @parsed_data.
 
-At this stage, we have two possible data formats, combined and separated, as string data. We need to parse both into numerical data, and, as we discovered before, we need some extra work on the combined format to split out user acceleration from gravitational acceleration. 
-
-TODO: Tie in low pass filtering from above, and talk about the Chebyshev filter specifically.
-
-### Back to our code
-It's wise for us, while we're parsing our string data to numerical data, to parse all incoming data into one data format that the rest of our program can use. That way, if we ever have to add a third data format (or fourth, or fifth, or, well, you get the idea) we only have to change the parse_raw_data method. 
-
-TODO: Look up GOF pattern here. Talk about separation of concerns? Only this method needs to know about the multiple data formats.
-
-TODO: Discuss why the separated format is more accurate than the combined format?
-
-The first line splits the string by semicolon into as many arrays as samples taken, and then splits each individual array by the pipe, storing the result in accl.
+The first step in the process is to take string data and convert it to numerical data. The first line splits the string by semicolon into as many arrays as samples taken, and then splits each individual array by the pipe, storing the result in accl.
 
 We determine the input format by the first element of accl, which is an array. 
 
 * accl in the combined format: $[["x1,y1,z1"],...["xn,yn,zn"]]$
 * accl in the separated format: $[["x1_{u},y1_{u},z1_{u}", "x1_{g},y1_{g},z1_{g}"],...["xn_{u},yn_{u},zn_{u}", "xn_{g},yn_{g},zn_{g}"]]$
 
-If the array has exactly one element, we know that our input format is combined. Otherwise, our input format is separated. Based on this, we call either split_accl_combined or split_accl_separated. Each of these methods sets the @format instance variable, and generates data in the format below. We store this result in split_accl:
+If the array has exactly one element, we know that our input format is combined. Otherwise, our input format is separated. Based on this, we call either split_accl_combined or split_accl_separated. 
+
+Each of these methods sets the @format instance variable, and then converts the arrays of strings into arrays of numerical data. Finally, these methods generate data in the format below. We store this result in split_accl:
 
 $[[[x1_{u},...xn_{u}], [y1_{u},...yn_{u}], [z1_{u},...zn_{u}]],
 [[x1_{g},...xn_{g}], [y1_{g},...yn_{g}], [z1_{g},...zn_{g}]]$
 
-TODO: Dig into the details of split_accl_combined and split_accl_separated. Specifically, chat about how split_accl_combined low pass filters to grab the gravitational data.
+Note that in our split_accl_combined method, while we're generating data in the format above, we use the chebyshev_filter method for the first time. We pass the total acceleration, with the GRAVITY_COEFF constant through the chebyshev_filter method to isolate gravitational acceleration, grav. Then, in the next line, we subtract the grav from the total acceleration to return to user acceleration.
 
-The next line splits out the split_accl array into user_accl and grav_accl, which are both arrays of arrays, with user acceleration in the x, y, z directions and gravitational acceleration in the x, y, z directions, respectively. The two lines following split each of user_accl and grav_accl into their x, y, z components:
+Back in our parse_raw_data method, we split out the split_accl array into user_accl and grav_accl, which are both arrays of arrays, with user acceleration in the x, y, z directions and gravitational acceleration in the x, y, z directions, respectively. The two lines following split each of user_accl and grav_accl into their x, y, z components:
 
 ![](chapter-figures/figure-split_accl.png)\ 
 
@@ -365,27 +366,19 @@ In order to get one data series we can work with, we then create an array of has
 
 $[\lbrace x\colon x1_{u}, y\colon y1_{u}, z\colon z1_{u}, xg\colon x1_{g}, yg\colon y1_{g}, zg\colon z1_{g} \rbrace,...\lbrace x\colon xn_{u}, y\colon yn_{u}, z\colon zn_{u}, xg\colon xn_{g}, yg\colon yn_{g}, zg\colon zn_{g}\rbrace]$
 
-The entire purpose of the parse_raw_data method is to take input data in one of two formats, and output data in this more workable format.
+Now that we have our data in a standard format stored in @parsed_data, the rest of our program need only be concerned with @parsed_data. It doesn't have to know or care that there ever was more than just that one standard format.
 
-## Step 2: Isolating movement in the direction of gravity (dot_product_parsed_data)
+### Step 2: dot_product_parsed_data
 
-TODO: Add graphs from trial view showing original data and dot product data. Does this belong here, or in the explanation above?
+Taking the dot product in our Parser class is a matter of using the data in our standard format, @parsed_data, and applying the fot product formulat to it. We add a @dot_product_data instance variable, and a method, dot_product_parsed_data, to set that variable. The dot_product_parsed_data method is called immeditely after parse_raw_data in the initializer, and iterates through our @parsed_data hash, calculates the dot product with map, and sets the result to @dot_product_data. 
 
-Taking the dot product in our Parser class is straightforward. We add a @dot_product_data instance variable, and a method, dot_product_parsed_data, to set that variable. The dot_product_parsed_data method is called immeditely after parse_raw_data in the initializer, and iterates through our @parsed_data hash, calculates the dot product with map, and sets the result to @dot_product_data. 
-
-## Step 3: Filtering our data series
-
-Again, back to the mathematics for some signal processing 101.
-
-TODO: Basics of filtering, Chebyshev filter specifically
-
-TODO: Add graphs from trial view showing dot product data and filtered data.
+### Step 3: filter_dot_product_data
 
 Following the pattern from steps 1 and 2, we add another instance variable, @filtered_data, to store the filtered data series, and a method, filter_dot_product_data, that we call from the initializer.
 
-The filter_dot_product_data method initalizes the data series by setting the first two elements to 0, and then iterates through the remaining element indeces in @dot_product_data, applying the Chebyshev filter. 
+The filter_dot_product_data method is the second place our low-pass filtering method, chebyshev_filter, is used. This time, we pass @dot_product_data in as our signal and use SMOOTHING_COEFF, and the result returned is our signal without the high frequence component, which we store in @filtered_data. This final signal, @filtered_data, is the clean signal we can use to count steps. 
 
-### Our Parser class in the wild
+## Our Parser class in the wild
 
 Our Parser now takes string data in the separated format, converts it into a more useable format, isolates movement in the direction of gravity through the dot product operation, and filters the resulting data series to smooth it out. 
 
