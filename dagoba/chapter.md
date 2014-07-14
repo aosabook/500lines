@@ -2,17 +2,28 @@
 
 _An exploration of connectedness through the heuristic of exposition_
 
-A long time ago when the world was still young and data roamed free the first programmers began the long domestication process. They corralled data by forming links between items [N] [the network model (CODASYL), the hierarchical model (IMS), etc], marshaling groups of units into formation through their linking assemblage. 
+A long time ago, when the world was still young, all data walked in happily single file. To ask a question of your data you merely put a fence in the path, and each datum jumped it in turn. Life was easy and programming was a breeze.
 
-Later shepherds departed from this tradition, imposing a set of rules on how data would be aggregated. [N] [Codd, etc] Rather than tying disparate data directly together they would cluster by content, decomposing data into bite-sized pieces, clustered in kennels and collared with a name tag. 
+Then came the random access revolution, and data grazed freely across the hillside. Herding data became a serious concern -- if you can access any piece of data at any time, how do you know which one to pick next? Techniques were developed for corralling the data by forming links between items [N] [the network model (CODASYL), the hierarchical model (IMS), etc], marshaling groups of units into formation through their linking assemblage. Questioning data meant picking a sheep and pulling along everything connected to it. 
 
-For much of recorded history this relational model reigned supreme. Its dominance has recently been challenged by growing set of contending schools, including techniques that harken back to the earliest attempts to domesticate random-access data. In theory any question we wish to ask of data trapped in a relational well can be answered, but in practice the effort of properly framing our request and the amount of time required to receive our answer may both be untenable -- hence our desire to reposition our data.
+Later programmers departed from this tradition, imposing a set of rules on how data would be aggregated. [N] [Codd, etc] Rather than tying disparate data directly together they would cluster by content, decomposing data into bite-sized pieces, clustered in kennels and collared with a name tag. 
 
-[maybe reframe that first section -- data was linearly constrained (e.g. sheep in single file) prior to the random access revolution; it was only when it broke free of those bounds that it became necessary to begin herding it.]
+
+For much of recorded history this relational model reigned supreme. Its dominance has recently been challenged by growing set of contending schools, including techniques that harken back to the earliest attempts to domesticate random-access data. In theory any question we wish to ask of data trapped in a relational well can be answered, but in practice the effort of properly framing our request and the amount of time required to receive our answer may both be untenable: hence our desire to reposition our data.
+
+
+
+The distributed revolution changed everything, again. Data broke free of spacial constraints and roamed from machine to machine. CAP-wielding programmers busted the relational monopoly, opening the door to a new herding techniques -- some of which harkened back to the earliest methods used after data first gained its freedom. We're going to look at one of these, a schema known as a graph database.
+
 
 
 
 ## Make it work
+
+Suppose you've been asked to create a booking system for an airline. 
+
+[Toronto to Timbuktu...]
+
 
 Let's start with a simple question: how many connected components are there in the Lagarias arithmetic derivative of the first N numbers out to k steps? 
 [N] [https://cs.uwaterloo.ca/journals/JIS/VOL6/Ufnarovski/ufnarovski.pdf,
