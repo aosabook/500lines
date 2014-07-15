@@ -30,7 +30,12 @@ The first step in building an Alloy model is to declare some sets of objects. Le
 sig Resource {}
 ```
 
-The keyword “sig” identifies this as an Alloy signature declaration. This introduces a set of resource objects; think of these, just like the objects of a class with no instance variables, as blobs that have identity but no contents. Resources are named by URLs (*uniform resource locators*):
+The keyword “sig” identifies this as an Alloy signature declaration.
+Signatures represent sets and are assigned values in analysis; they
+play a similar role to static variables in programming languages.
+Think of these, just like the objects of a class with no instance variables, as blobs that have identity but no contents.
+This signature, therefore, introduces a set of resource objects.
+Resources are named by URLs (*uniform resource locators*):
 
 ```
 sig Url {
