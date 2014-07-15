@@ -2,13 +2,6 @@
    [:use [fdb constructs]
     [clojure.set :as CS :only (intersection)]])
 
-(defn ind-at
-  "inspecting a specific index at a given time, defaults to current. The kind argument mayone of the index name (e.g., AVET)"
-  ([db kind]
-   (ind-at db kind  (:curr-time db)))
-  ([db kind ts]
-   (kind ((:timestamped db) ts))))
-
 (defn variable?
   "A predicate that accepts a string and checks whether it describes a datalog variable (either starts with ? or it is _)"
   ([x] (variable? x true))

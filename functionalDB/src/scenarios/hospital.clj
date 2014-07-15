@@ -1,5 +1,5 @@
 (ns scenarios.hospital
-  (:use [fdb core constructs ] )
+  (:use [fdb core constructs graph] )
   [:require [fdb.manage :as M]
                 [clojure.set :as CS :only (union difference )]])
 
