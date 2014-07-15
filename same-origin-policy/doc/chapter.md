@@ -239,7 +239,7 @@ pred noDocumentChange[before, after : Time] {
   content.after = content.before and domain.after = domain.before  
 }
 ```
-What kind of actions can a script perform on documents? First, we introduce a generic notion of *browser operations* to represent a set of browser API functions that can be invoked by a script:
+What kind of operations can a script perform on documents? First, we introduce a generic notion of *browser operations* to represent a set of browser API functions that can be invoked by a script:
 ```
 abstract sig BrowserOp extends Call { doc : Document }{
   from in Script and to in Browser
