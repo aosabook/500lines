@@ -251,7 +251,7 @@ Field `doc` refers to the document that will be accessed or manipulated by this 
 
 (* actually, cookies can be associated with a document and modified using a browser API, but we will omit this detail for now.)
 
-A script can read from and write to various parts of a document (often called DOM elements). In a typical browser, there are a large number of API functions for accessing DOM (e.g., Document.getElementById), but enumerating all of them is not important for our purpose, we will simply group those into two types -- `ReadDom` and `WriteDom`:
+A script can read from and write to various parts of a document (often called DOM elements). In a typical browser, there are a large number of API functions for accessing DOM (e.g., `document.getElementById`), but enumerating all of them is not important for our purpose, we will simply group those into two types -- `ReadDom` and `WriteDom`:
 ```
 sig ReadDom extends BrowserOp { result : Resource }{
   result = doc.content.before
