@@ -169,7 +169,6 @@ This is our first example of a signature with "dynamic fields". Alloy has no bui
 Documents are created from a response to an HTTP request. They could also be
 destroyed if, for example, the user closes a tab or the browser but
 we leave this out of the model.
-
 A document has a URL, some content and domain:
 
 ```
