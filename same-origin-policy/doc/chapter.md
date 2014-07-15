@@ -166,6 +166,10 @@ sig Browser extends Client {
 This is our first example of a signature with "dynamic fields". Alloy has no built-in notions of time or behavior, which means that a variety of idioms can be used. In this model, we're using a common idiom in which you introduce a set of times `sig Time {}`
 (a signature that is actually declared in the `call` module), and then you attach `Time` as a final column for every time-varying field. Take `cookies` for example. As explained above (when we were talking about the `resources` field of `Server`), `cookies` is a relation with three columns. For a browser `b`, `b.cookies` will be a relation from cookies to time, and `b.cookies.t` will be the cookies held in `b` at time `t`. Likewise, the `documents` field associates a set of documents with each browser at a given time.
 
+Documents are created from a response to an HTTP request. They could also be
+destroyed if, for example, the user closes a tab or the browser but
+we leave this out of the model.
+
 A document has a URL, some content and domain:
 
 ```
