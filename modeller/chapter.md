@@ -1,18 +1,17 @@
 ## Intro
-Humans are constantly creating new things. In modern times, we have written software to assist in the design and creation process. 
-Many designers, engineers and creators make use of Computer Assisted Design (CAD) software.  These tools allow creators to design buildings, bridges, video game art, 
+Humans are constantly creating new things. In modern times, we write software to assist in the design and creation process. 
+Many designers, engineers and creators use Computer Assisted Design (CAD) software.  These tools allow creators to design buildings, bridges, video game art, 
 film monsters, 3D printable objects, and many other things on a computer before building a physical version of the design. 
 
 At their core, CAD tools must offer three pieces of functionality. 
-Firstly, they must have a data structure to represent the object that's being designed. For a designer to effectively use a piece of software, the softwarw must understand
-the types of objects being desinged. The software must have a semantic model of the design.
-Secondly, the CAD tool must offer some way to display the design onto the user's screen.  The user is designing a physical object with 3 dimensions, but the computer sceen has only 2 dimensions. 
+Firstly, they must have a data structure to represent the object that's being designed. The software must have a semantic model of the design.
+Secondly, the CAD tool must offer some way to display the design onto the user's screen. The user is designing a physical object with 3 dimensions, but the computer sceen has only 2 dimensions. 
 The CAD tool must model how we perceive objects, and draw them to the screen in a way that the user can understand all 3 dimensions of the object.
-Thirdly, the CAD tool must offer the designer a way to interact with the object being designed. The designer must be able to add and modify the design in order to produce the desired result.
+Thirdly, the CAD tool must offer the designer a way to interact with the object being designed. The designer must be able to add to and modify the design in order to produce the desired result.
 
-Each domain specific CAD tool will offer many additional features for the specific requirements of the domain. An architecture CAD tool would offer physics simulations to test weather and climate stresses on the building, 
+Each domain specific CAD tool offers many additional features for the specific requirements of the domain. For example, an architecture CAD tool would offer physics simulations to test weather and climate stresses on the building, 
 a 3D printing tool would have features that check whether the object is actually valid to print, and electrical CAD tool would simulate the physics of electricity running through copper, and a film special effects suite would
-include features to accurate simulation of pyrokinetics with photorealistic renderings of the design. 
+include features to accurately simulate pyrokinetics. 
 Additionally, all tools would need a way to save and load designs from disk that that designers can collaborate, share, and save their work.
 
 However, at their core, call CAD tools must include the three features discussed above: a data structure to represent the design, the ability to display it to the screen, and a method to interact with the design.
