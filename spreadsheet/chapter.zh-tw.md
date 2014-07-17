@@ -533,6 +533,6 @@ input:focus + div { white-space: nowrap; }
 
 如果你想要更簡潔的語法，[as-livescript-1.2.0](https://audreyt.github.io/500lines/spreadsheet/as-livescript-1.2.0/) 目錄使用 [LiveScript](http://livescript.net/) 寫成 **main.ls** 和 **worker.ls**；它的[源碼](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-livescript-1.2.0)比 JS 版本少了 20 行。
 
-同樣採用 LiveScript 語法，[as-react-livescript](https://audreyt.github.io/500lines/spreadsheet/as-react-livescript/) 目錄使用 [ReactJS](https://facebook.github.io/react/) 框架寫成；它的[源碼](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-react-livescript) 比 AngularJS 版本多了 10 行，但運行速度快了許多。
+同樣採用 LiveScript 語法，[as-react-livescript](https://audreyt.github.io/500lines/spreadsheet/as-react-livescript/) 目錄使用 [ReactJS](https://facebook.github.io/react/) 框架寫成；它的[源碼](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-react-livescript)比 AngularJS 版本多了 10 行，但運行速度快了許多。
 
 如果你有興趣翻譯這幾段程式到其他 JS 語言，歡迎發送[合併請求](https://github.com/audreyt/500lines/pulls)給我！
