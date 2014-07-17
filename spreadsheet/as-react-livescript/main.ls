@@ -17,11 +17,11 @@ Table = React.createClass do
   reset: -> @calc SheetDefault
   componentDidMount: -> @calc @state.sheet
   calc: (sheet) ->
-    const worker = @props.worker
+    const worker = @state.worker ||= @props.worker
     const timeout = setTimeout ~>
       # If the worker has not returned in 99 milliseconds, terminate it
       worker.terminate!
-      @setProps { worker: new Worker \worker.js }
+      @setState { worker: new Worker \worker.js }
     , 99ms
 
     # When the worker returns, apply its effect on the scope

@@ -63,11 +63,11 @@
       return this.calc(this.state.sheet);
     },
     calc: function(sheet){
-      var worker, timeout, this$ = this;
-      worker = this.props.worker;
+      var worker, ref$, timeout, this$ = this;
+      worker = (ref$ = this.state).worker || (ref$.worker = this.props.worker);
       timeout = setTimeout(function(){
         worker.terminate();
-        return this$.setProps({
+        return this$.setState({
           worker: new Worker('worker.js')
         });
       }, 99);
