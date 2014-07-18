@@ -31,8 +31,8 @@ sig Resource {}
 ```
 
 The keyword “sig” identifies this as an Alloy signature declaration.
-Signatures represent sets and are assigned values in analysis; they
-play a similar role to static variables in programming languages.
+Signatures represent sets and are assigned values in analysis (they
+play a similar role to static variables in programming languages).
 Think of these, just like the objects of a class with no instance variables, as blobs that have identity but no contents.
 This signature, therefore, introduces a set of resource objects.
 Resources are named by URLs (*uniform resource locators*):
@@ -46,7 +46,7 @@ sig Url {
 }
 sig Protocol, Domain, Port, Path {}
 ```
-Here we have five signature declarations, introducing sets for URLs and each of the basic types of objects they comprise. Within the URL declaration, we have four fields. Fields are like instance variables in a class; if `u` is a URL, for example, then `u.protocol` would represent the protocol of that URL (just like dot in Java). But in fact, as we'll see later, these fields are relations. You can think of each one as if it were a two column database table. Thus `protocol` is a table with a column containing URLs and a column containing Protocols. And the innocuous looking dot operator is in fact a rather general kind of relational join, so that you could also write `protocol.p` for all the URLs with a protocol `p` -- but more on that later.
+Here we have five signature declarations, introducing sets for URLs and each of the basic types of objects they comprise. Within the URL declaration, we have four fields. Fields are like instance variables in a class; if `u` is a URL, for example, then `u.protocol` would represent the protocol of that URL (just like dot in Java). But in fact, as we'll see later, these fields are relations. You can think of each one as if it were a two column database table. Thus `protocol` is a table with a column containing URLs and a column containing protocols. And the innocuous looking dot operator is in fact a rather general kind of relational join, so that you could also write `protocol.p` for all the URLs with a protocol `p` -- but more on that later.
 
 Note that domains and paths, unlike URLs, are treated as if they have no structure -- a simplification. The keyword `lone` (which can be read "less than or equal to one") says that each URL has at most one port. The path is the string that follows the host name in the URL, and which (for a simple static server) corresponds to the file path of the resource; we're assuming that it's always present, but can be an empty path.
 
@@ -64,7 +64,7 @@ The `extends` keyword introduces a subset, so the set `Client` of all clients, f
 
 This is a very simple model of a server: it has a static mapping of paths to resources. In general, the mapping is dynamic, but that won't matter for our analysis.
 
-To map a URL to a server, we'll need to model DNS. So let's introduce a set `Dns` of domain name servers, each with a mapping from domains to servers:
+To map a URL to a server, we introduce a set `Dns` of domain name servers, each with a mapping from domains to servers:
 
 ```alloy
 one sig Dns {
@@ -72,7 +72,7 @@ one sig Dns {
 }
 ```
 
-The keyword `one` means that (for simplicity) we're going to restrict to exactly one domain name server, so that `Dns.map` will be the mapping used everywhere. Again, as with serving resources, this could be dynamic (and in fact there are known security attacks that rely on changing DNS bindings during an interaction) but we're simplifying.
+The keyword `one` in the signature declaration means that (for simplicity) we're going to restrict to exactly one domain name server, so that `Dns.map` will be the mapping used everywhere. Again, as with serving resources, this could be dynamic (and in fact there are known security attacks that rely on changing DNS bindings during an interaction) but we're simplifying.
 
 In order to model HTTP requests, we also need the concept of _cookies_, so let's declare them:
 
@@ -207,25 +207,17 @@ sig BrowserHttpRequest extends HttpRequest {
 ```
 
 This kind of request has one new field, `doc`, which is the document created in the browser from the resource returned by the request. As with `HttpRequest`, the behavior is described as a collection of constraints. Some of these say when the call can happen: for example, that the call has to come from a browser. Some of these constrain the arguments of the call: for example, that the cookies must be scoped appropriately. Some of these constrain the effect, and have a common form that relates the value of a relation after the call to its value before. For example, to understand
-
-```alloy
-documents.after = documents.before + from -> doc
-```
-
+`documents.after = documents.before + from -> doc`
 remember that `documents` is a 3-column relation on browsers, documents and times. The fields `before` and `after` come from the declaration of `Call` (which we haven't seen, but is included in the listing at the end), and represent the times before and after the call. The expression `documents.after` gives the mapping from browsers to documents after the call. So this constraint says that after the call, the mapping is the same, except for a new entry in the table mapping `from` to `doc`.
 
 Some constraints use the `++` operator which does a relational override (i.e, `e1 ++ e2` contains all tuples of `e2`, and additionally, any tuples of `e1` whose first element is not the first element of a tuple in `e2`). For example, the constraint
-
-```alloy
-content.after = content.before ++ doc -> response
-```
-
+`content.after = content.before ++ doc -> response`
 says that after the call, the `content` mapping will be updated to map `doc` to `response` (clobbering any previous mapping of `doc`).
 If we where to use `+`, then the same document could map to multiple resources at the same time; which is hardly what we want.
 
 ## Script
 
-Next, we will build on the HTTP and browser models to introduce *client-side scripts*, which represent a piece of code (typically in Javascript) executing inside a browser document (`context`). 
+Next, we will build on the HTTP and browser models to introduce *client-side scripts*, which represent a piece of code (typically in JavaScript) executing inside a browser document (`context`). 
 ```alloy
 sig Script extends Client { context : Document }
 ```
