@@ -174,7 +174,9 @@ The meat and potatoes of our program is in step 3, where we parse and analyze th
 
 The input data we'll be parsing is coming from mobile devices such as Android phones and iPhones. Most iPhone and Android devices on the market today have accelerometers built in. This means that both device types are able to record total acceleration. Let's call the input data format that records total acceleration the *combined format*. Many, but not all, devices can also record user acceleration and gravitational acceleration separately. Let's call this format the *separated format*. A device that has the ability to return data in the separated format necessarily has the ability to return data in the combined format. However, the inverse is not necessarily true. Some devices on the market today can only record data in the combined format. Input data in the combined format will need to be passed through a low-pass filter to turn it into the separated format. 
 
-Let's look at each of these formats individually.
+We want our program to handle all mobile devices on the market with accelerometers, regardless of whether or not they are able to record data in both the combined and separated format, or only in the combined format. This means that we'll need to accept data in both formats. 
+
+Let's look at each of the formats we'll be accepting individually.
 
 ### Combined Format
 
@@ -199,8 +201,6 @@ Below is the separated data format of the exact same walk as the plot above. Thi
 
 ## Making Sense of Our Data
 
-We want our program to handle all mobile devices on the market with accelerometers, regardless of whether or not they are able to record data in both the combined and separated format, or only in the combined format. This means that we'll accept data in both formats. 
-
 Dealing with multiple input formats is a common programming problem. If we want our entire program to work with both formats, every single piece of code dealing with input data would need to know how to handle both formats. This can become very messy, very quickly, especially if a third (or a fourth, or a fifth) input format is added in the future. 
 
 The simplest way for us to deal with this is to take our two input formats and determine a third, standard format, to fit them both into, and allow the rest of the program to work with this new standard format. This means that the remaining parts of the program don't need to be concerned with, or even know about, multiple formats. 
@@ -209,17 +209,24 @@ The diagram below outlines the basic idea. We'll write a small parser to a stand
 
 ![](chapter-figures/input-format-to-standard-format.png)\
 
-Converting multiple input formats into one common format is an example of *separation of concerns*, a commonly-used design principle, which promotes splitting a program into numerous distinct pieces, where every piece has one primary concern. We'll revist this idea several times throughout the chapter. It's a beatiful way to write clean, maintainable code that's easily extensible.
+Converting multiple input formats into one common format is an example of *separation of concerns*, a commonly-used design principle, which promotes splitting a program into numerous distinct pieces, where every piece has one primary concern. It's a beautiful way to write clean, maintainable code that's easily extensible. We'll revist this idea several times throughout the chapter.
 
 Based on the solution we defined above, we'll need our code to do 3 tasks to our input data in order to count steps:
 
-1. Parse our input formats into a standard format. We know we'll need to work with user acceleration and gravitational acceleration separately in order to follow our solution, so our standard format will need to split out the two accelerations. This means that if our data is in the combined format, we'll need to first pass it through a low-pass filter in this part of the code.
+1. Parse our input formats into a standard format. 
 2. Isolate movement in the direction of gravity using the dot product.
 3. Filter our data series and smooth out our waveform using another low-pass filter.
 
 ![](chapter-figures/input-data-workflow.png)\
 
-Take note in the diagram above of the standard input format we've chosen. We'll discuss the choice further with our code.
+The diagram above shows each of these three steps. We know we'll need to work with user acceleration and gravitational acceleration separately in order to follow our solution, so our standard format output as a result of step 1 will need to split out the two accelerations. This means that if our data is in the combined format, we'll need to first pass it through a low-pass filter in this part of the code before we convert it to the standard format.
+
+Take note of the standard format we've chosen:
+
+$[\lbrace x\colon x1_{u}, y\colon y1_{u}, z\colon z1_{u}, xg\colon x1_{g}, yg\colon y1_{g}, zg\colon z1_{g} \rbrace,...\lbrace x\colon xn_{u}, y\colon yn_{u}, z\colon zn_{u}, xg\colon xn_{g}, yg\colon yn_{g}, zg\colon zn_{g}\rbrace]$
+
+We've decided to define our standard format as an array of hashes, where each element of the array represents acceleration at a point in time. 
+TODO: Explain why we chose this standard format. Refer to the series of data, why we chose hashes, etc.
 
 These 3 tasks are all related to taking input data, and parsing and processing it to get it to a state where our resulting signal is clean enough for us to count steps. Due to this relationship, it makes sense to combine these tasks into one class. We'll call it a **Parser**. 
 
