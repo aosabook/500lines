@@ -6,33 +6,54 @@ At some point, this string (the "source code" of your Python 3 program) is fed t
 
 In this chapter, we will implement the first phase of a Python 3 compiler. This phase is called *lexing*.
 
-What is lexing?
+What is a lexer?
 ---------------
-To a computer, the source code of a Python 3 program is simply a string of characters. A human programmer sees things differently. Consider the following valid Python 3 program.
 
-```python
-42
+To a computer, the source of a Python 3 program is an unstructured string of characters.
+
+To a human, individual characters are a technicality. We see code as *meaningful groups of characters*:
+
+<img src="../images/lexer-1.png" alt="Drawing" style="width: 400px;"/>
+
+Humans prefer this because it abstracts away the mundane details of individual characters and frees us to think about program source as consisting of things like *keywords* and *identifiers*. We are trading the low-level abstraction that is hard to think about and manipulate for a higher level abstraction that is easier to think about and manipulate.
+
+Because this abstraction is so natural, the first step of compilation is usually to transform the raw text of the source code into a sequence of meaningful groups characters, which are formally called **tokens.** A program that "tokenizes" the program source is called a **lexer**, or sometimes a **tokenizer.** More particularly, a lexer:
+
+* Takes the program source as input
+* Consumes every character of the source, and either throws it away, or groups it into a token
+* Outputs all the tokens it finds in the source , or an error if the source can't be broken down into known tokens
+
+As an example, here is the lexed output of the example program in the figure above:
+
+```
+(KEYWORD def)
+(IDENTIFIER "print_cow")
+(PUNCTUATION "(")
+(PUNCTUATION ")")
+(PUNCTUATION ":")
+(IDENTIFIER "print")
+(PUNCTUATION "(")
+(LITERAL "cow")
+(PUNCTUATION ")")
+(NEWLINE)
 ```
 
-A computer sees only two characters. A human sees a number.
-
-Considering a more complicated example:
-
-```python
-cow = make_cow()
-```
-
-A computer sees sixteen normal characters. A human sees an identifier `cow`, some punctuation `=`, another identifier `make_cow`, and finally, the punctuation `(` and `)`.
-
-In other words, there is a mismatch &mdash; where a computer sees the "atoms" of a Python 3 program as individual characters, a human will want to think of the program source as *meaningful groups of characters* &mdash; things like numbers, keywords, and punctuation.
-
-These "meaningful groups of characters" are called *tokens*.
-
-A lexer, in short, is a program that *takes the raw program source as input*, and *attempts to turn it into a stream of tokens*.
-
-This idea of thinking of programs as a stream of tokens rather than a stream of characters is so important to programmers that every major editor allows you to define a color scheme for the source code. Such programs are called *syntax highlighters*, and it makes sense that they are usually implemented using lexers.
+Each token is tagged with its type, like `KEYWORD` or `IDENTIFIER`. We can see that the tokens end up being very much like what we'd imagined before, but with a couple of extra tokens added in, like `PUNCTUATION`.
 
 
-Why lex the program source at all?
-----------------------------------
-One application of lexical analysis is syntax highlighting. 
+How do we lex?
+--------------
+
+
+
+
+
+Parsing Python 3.1
+=====================
+
+
+In the previous chapter, we implemented the first phase of the Python 3 compiler, called a *lexer*. 
+
+A *language* is a set of strings. The Python language is the set of all valid Python programs. English can be thought of as the set of all valid English sentences.
+
+A *grammar* is the set of rules that specifies how to genearte every 
