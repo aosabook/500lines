@@ -31,8 +31,8 @@ sig Resource {}
 ```
 
 The keyword “sig” identifies this as an Alloy signature declaration.
-Signatures represent sets and are assigned values in analysis; they
-play a similar role to static variables in programming languages.
+Signatures represent sets and are assigned values in analysis (they
+play a similar role to static variables in programming languages).
 Think of these, just like the objects of a class with no instance variables, as blobs that have identity but no contents.
 This signature, therefore, introduces a set of resource objects.
 Resources are named by URLs (*uniform resource locators*):
@@ -46,7 +46,7 @@ sig Url {
 }
 sig Protocol, Domain, Port, Path {}
 ```
-Here we have five signature declarations, introducing sets for URLs and each of the basic types of objects they comprise. Within the URL declaration, we have four fields. Fields are like instance variables in a class; if `u` is a URL, for example, then `u.protocol` would represent the protocol of that URL (just like dot in Java). But in fact, as we'll see later, these fields are relations. You can think of each one as if it were a two column database table. Thus `protocol` is a table with a column containing URLs and a column containing Protocols. And the innocuous looking dot operator is in fact a rather general kind of relational join, so that you could also write `protocol.p` for all the URLs with a protocol `p` -- but more on that later.
+Here we have five signature declarations, introducing sets for URLs and each of the basic types of objects they comprise. Within the URL declaration, we have four fields. Fields are like instance variables in a class; if `u` is a URL, for example, then `u.protocol` would represent the protocol of that URL (just like dot in Java). But in fact, as we'll see later, these fields are relations. You can think of each one as if it were a two column database table. Thus `protocol` is a table with a column containing URLs and a column containing protocols. And the innocuous looking dot operator is in fact a rather general kind of relational join, so that you could also write `protocol.p` for all the URLs with a protocol `p` -- but more on that later.
 
 Note that domains and paths, unlike URLs, are treated as if they have no structure -- a simplification. The keyword `lone` (which can be read "less than or equal to one") says that each URL has at most one port. The path is the string that follows the host name in the URL, and which (for a simple static server) corresponds to the file path of the resource; we're assuming that it's always present, but can be an empty path.
 
@@ -64,7 +64,7 @@ The `extends` keyword introduces a subset, so the set `Client` of all clients, f
 
 This is a very simple model of a server: it has a static mapping of paths to resources. In general, the mapping is dynamic, but that won't matter for our analysis.
 
-To map a URL to a server, we'll need to model DNS. So let's introduce a set `Dns` of domain name servers, each with a mapping from domains to servers:
+To map a URL to a server, we introduce a set `Dns` of domain name servers, each with a mapping from domains to servers:
 
 ```alloy
 one sig Dns {
@@ -72,7 +72,7 @@ one sig Dns {
 }
 ```
 
-The keyword `one` means that (for simplicity) we're going to restrict to exactly one domain name server, so that `Dns.map` will be the mapping used everywhere. Again, as with serving resources, this could be dynamic (and in fact there are known security attacks that rely on changing DNS bindings during an interaction) but we're simplifying.
+The keyword `one` in the signature declaration means that (for simplicity) we're going to restrict to exactly one domain name server, so that `Dns.map` will be the mapping used everywhere. Again, as with serving resources, this could be dynamic (and in fact there are known security attacks that rely on changing DNS bindings during an interaction) but we're simplifying.
 
 In order to model HTTP requests, we also need the concept of _cookies_, so let's declare them:
 
@@ -144,7 +144,7 @@ This counterexample again shows an HTTP request being made by a client, but with
 
 ```alloy
 fact ServerAssumption {
-  all s1, s2 : Server | (some Dns.map.s1 & Dns.map.s2) implies s1.resources = s2.resources
+  all s1, s2: Server | (some Dns.map.s1 & Dns.map.s2) implies s1.resources = s2.resources
 }
 ```
 
@@ -169,7 +169,8 @@ This is our first example of a signature with "dynamic fields". Alloy has no bui
 Documents are created from a response to an HTTP request. They could also be
 destroyed if, for example, the user closes a tab or the browser but
 we leave this out of the model.
-A document has a URL, some content and domain:
+A document has a URL (the one from which the document was originated), some
+content (the DOM) and domain:
 
 ```alloy
 sig Document {
@@ -191,43 +192,37 @@ sig BrowserHttpRequest extends HttpRequest {
   from in Browser
   -- the cookies that are sent were in the browser before the request
   sentCookies in from.cookies.before
-  -- every sent cookie is scoped to the url of the request
+  -- every cookie sent must be scoped to the url of the request
   all c: sentCookies | url.host in c.domains
-  -- a new document in the browser from which the request is sent
+
+  -- browser creates a new document to display the content of the response
   documents.after = documents.before + from -> doc
   -- the new document has the response as its contents
   content.after = content.before ++ doc -> response
   -- the new document has the host of the url as its domain
   domain.after = domain.before ++ doc -> url.host
   -- the document's source field is the url of the request
-  doc.src = url	
-  -- the returned cookies are stored by the browser
+  doc.src = url
+
+  -- new cookies are stored by the browser
   cookies.after = cookies.before + from -> sentCookies
 }
 ```
 
 This kind of request has one new field, `doc`, which is the document created in the browser from the resource returned by the request. As with `HttpRequest`, the behavior is described as a collection of constraints. Some of these say when the call can happen: for example, that the call has to come from a browser. Some of these constrain the arguments of the call: for example, that the cookies must be scoped appropriately. Some of these constrain the effect, and have a common form that relates the value of a relation after the call to its value before. For example, to understand
-
-```alloy
-documents.after = documents.before + from -> doc
-```
-
+`documents.after = documents.before + from -> doc`
 remember that `documents` is a 3-column relation on browsers, documents and times. The fields `before` and `after` come from the declaration of `Call` (which we haven't seen, but is included in the listing at the end), and represent the times before and after the call. The expression `documents.after` gives the mapping from browsers to documents after the call. So this constraint says that after the call, the mapping is the same, except for a new entry in the table mapping `from` to `doc`.
 
 Some constraints use the `++` operator which does a relational override (i.e, `e1 ++ e2` contains all tuples of `e2`, and additionally, any tuples of `e1` whose first element is not the first element of a tuple in `e2`). For example, the constraint
-
-```alloy
-content.after = content.before ++ doc -> response
-```
-
+`content.after = content.before ++ doc -> response`
 says that after the call, the `content` mapping will be updated to map `doc` to `response` (clobbering any previous mapping of `doc`).
 If we where to use `+`, then the same document could map to multiple resources at the same time; which is hardly what we want.
 
 ## Script
 
-Next, we will build on the HTTP and browser models to introduce *client-side scripts*, which represent a piece of code (typically in Javascript) executing inside a browser document (`context`). 
+Next, we will build on the HTTP and browser models to introduce *client-side scripts*, which represent a piece of code (typically in JavaScript) executing inside a browser document (`context`). 
 ```alloy
-sig Script extends Client { context : Document }
+sig Script extends Client { context: Document }
 ```
 A script is a dynamic entity that can perform two different types of actions: (1) it can make HTTP requests (i.e., Ajax requests) and (2) perform browser operations to manipulate the content and properties of a document. The flexibility of client-side scripts is one of the main catalysts behind the rapid development of Web 2.0, but it's also the reason why the SOP was created in the first place. Without the policy, scripts would be able to send arbitrary requests to servers, or freely modify the documents inside the browser -- which would be bad news if one or more of the scripts turned out to be malicious! 
 
@@ -240,16 +235,16 @@ sig XmlHttpRequest extends HttpRequest {}{
 ```
 An `XmlHttpRequest` can be used by a script to send/receive resources to/from a server, but unlike `BrowserHttpRequest`, it does not immediately result in creation of a new page or other changes to the browser and its documents. To say that a call does not modify the states of the system, we use predicates `noBrowserChange` and `noDocumentChange`:
 ```alloy
-pred noBrowserChange[before, after : Time] {
+pred noBrowserChange[before, after: Time] {
   documents.after = documents.before and cookies.after = cookies.before  
 }
-pred noDocumentChange[before, after : Time] {
+pred noDocumentChange[before, after: Time] {
   content.after = content.before and domain.after = domain.before  
 }
 ```
 What kind of operations can a script perform on documents? First, we introduce a generic notion of *browser operations* to represent a set of browser API functions that can be invoked by a script:
 ```alloy
-abstract sig BrowserOp extends Call { doc : Document }{
+abstract sig BrowserOp extends Call { doc: Document }{
   from in Script and to in Browser
   doc + from.context in to.documents.before
   noBrowserChange[before, after]
@@ -261,11 +256,11 @@ Field `doc` refers to the document that will be accessed or manipulated by this 
 
 A script can read from and write to various parts of a document (often called DOM elements). In a typical browser, there are a large number of API functions for accessing DOM (e.g., `document.getElementById`), but enumerating all of them is not important for our purpose, we will simply group those into two types -- `ReadDom` and `WriteDom`:
 ```alloy
-sig ReadDom extends BrowserOp { result : Resource }{
+sig ReadDom extends BrowserOp { result: Resource }{
   result = doc.content.before
   noDocumentChange[before, after]
 }
-sig WriteDom extends BrowserOp { new_dom : Resource }{
+sig WriteDom extends BrowserOp { new_dom: Resource }{
   content.after = content.before ++ doc -> new_dom
   domain.after = domain.before
 }
@@ -274,7 +269,7 @@ sig WriteDom extends BrowserOp { new_dom : Resource }{
 
 In addition, a script can modify various properties of a document, such as its width, height, domain, and title. For the discussion of the SOP, we are only interested in the domain property, which can be modified by scripts using the `SetDomain` function:
 ```alloy
-sig SetDomain extends BrowserOp { new_domain : set Domain }{
+sig SetDomain extends BrowserOp { new_domain: set Domain }{
   doc = from.context
   domain.after = domain.before ++ doc -> new_domain
   content.after = content.before
@@ -304,7 +299,7 @@ These two instances tell us that extra measures are needed to restrict the behav
 
 Before we can state the SOP, the first thing we should do is to define what it means for two pages to have the *same* origin. Two URLs refer to the same origin if and only if they share the same hostname, protocol, and port:
 ```alloy
-pred sameOrigin[u1, u2 : Url] {
+pred sameOrigin[u1, u2: Url] {
   u1.host = u2.host and u1.protocol = u2.protocol and u1.port = u2.port
 }
 ```
