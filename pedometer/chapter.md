@@ -353,6 +353,8 @@ TODO: Explain how we choose coefficients. Maybe in the intro section instead?
 
 The `chebyshev_filter` method returns an array of numerical data representing the signal resulting from low-pass filtering the input_data signal using `coefficients`. The method implements the low-pass filter formula $output_{i} = \alpha_{0} * (input_{i} * \beta_{0} + input_{i-1} * \beta_{1} + input_{i-2} * \beta_{2} - output_{i-1} * \alpha_{1} - output_{i-2} * \alpha_{2})$. We do this by first instantiating an output_data signal array with two 0 values, so that the equation has inital values to work with. Then, we loop through the remaining indeces of the input_data signal, apply the formula at each turn, and append the result to output_data, returning output_data when the loop is complete. 
 
+TODO: Should we include the low-pass filter formula in the intro?
+
 We've now discussed the implementation of one of our mathematical tools in code. Let's take a look at how the rest of the class works, and how it uses chebyshev_filter. 
 
 ## The Inner Workings of the Parser Class
