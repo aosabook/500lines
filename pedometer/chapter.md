@@ -199,11 +199,11 @@ Below is the separated data format of the exact same walk as the plot above. Thi
 ![](chapter-figures/figure-separated-user-acceleration.png)
 ![](chapter-figures/figure-separated-gravitational-acceleration.png)\ 
 
-## Making Sense of Our Data
+## I Got Multiple Input Formats But a Standard Ain't One
 
 Dealing with multiple input formats is a common programming problem. If we want our entire program to work with both formats, every single piece of code dealing with input data would need to know how to handle both formats. This can become very messy, very quickly, especially if a third (or a fourth, or a fifth) input format is added in the future. 
 
-The simplest way for us to deal with this is to take our two input formats and determine a third, standard format, to fit them both into, and allow the rest of the program to work with this new standard format. This means that the remaining parts of the program don't need to be concerned with, or even know about, multiple formats. 
+The simplest way for us to deal with this is to take our two input formats and determine a standard format to fit them both into, allowing the rest of the program to work with this new standard format. This means that the remaining parts of the program don't need to be concerned with, or even know about, multiple formats. 
 
 The diagram below outlines the basic idea. We'll write a small parser to a standard format that is contained to only one section, that allows us to take our two known input formats and convert them to a single standard output format. In the future, if we ever have to add another input format, the only code we'll have to touch is this small parser. Once the data is in a standard format, the program can have any number of processors that process the data from the standard format. 
 
@@ -211,24 +211,36 @@ The diagram below outlines the basic idea. We'll write a small parser to a stand
 
 Converting multiple input formats into one common format is an example of *separation of concerns*, a commonly-used design principle, which promotes splitting a program into numerous distinct pieces, where every piece has one primary concern. It's a beautiful way to write clean, maintainable code that's easily extensible. We'll revist this idea several times throughout the chapter.
 
-Based on the solution we defined above, we'll need our code to do 3 tasks to our input data in order to count steps:
+### Applying Our Solution
+
+Based on the solution we defined above, we'll need our code to do three things to our input data in order to count steps:
 
 1. Parse our input formats into a standard format. 
 2. Isolate movement in the direction of gravity using the dot product.
-3. Filter our data series and smooth out our waveform using another low-pass filter.
+3. Smooth out our waveform using a low-pass filter.
+
+The diagram below shows each of these three steps.
 
 ![](chapter-figures/input-data-workflow.png)\
 
-The diagram above shows each of these three steps. We know we'll need to work with user acceleration and gravitational acceleration separately in order to follow our solution, so our standard format output as a result of step 1 will need to split out the two accelerations. This means that if our data is in the combined format, we'll need to first pass it through a low-pass filter in this part of the code before we convert it to the standard format.
+We know we'll need to work with user acceleration and gravitational acceleration separately in order to follow our solution, so our standard format will need to split out the two accelerations. This means that if our data is in the combined format, we'll need to first pass it through a low-pass filter to convert it to the standard format.
 
-Take note of the standard format we've chosen:
+Take note of the standard format:
 
 $[\lbrace x\colon x1_{u}, y\colon y1_{u}, z\colon z1_{u}, xg\colon x1_{g}, yg\colon y1_{g}, zg\colon z1_{g} \rbrace,...\lbrace x\colon xn_{u}, y\colon yn_{u}, z\colon zn_{u}, xg\colon xn_{g}, yg\colon yn_{g}, zg\colon zn_{g}\rbrace]$
 
-We've decided to define our standard format as an array of hashes, where each element of the array represents acceleration at a point in time. 
-TODO: Explain why we chose this standard format. Refer to the series of data, why we chose hashes, etc.
+We've defined our standard format as an array of hashes, where each hash contains acceleration at a point in time. Each hash has 6 keys, each with values of user or gravitational acceleration along one coordinate direction. 
 
-These 3 tasks are all related to taking input data, and parsing and processing it to get it to a state where our resulting signal is clean enough for us to count steps. Due to this relationship, it makes sense to combine these tasks into one class. We'll call it a **Parser**. 
+* *x* is user acceleration in the x direction
+* *y* is user acceleration in the y direction
+* *z* is user acceleration in the z direction
+* *xg* is gavitational acceleration in the x direction
+* *yg* is gavitational acceleration in the y direction
+* *zg* is gavitational acceleration in the z direction
+
+The array allows us to store a data series signal, as each element represents acceleration at a point in time. Defining the array elements as hashes gives us the ability to easily access an acceleration in a direction using one of the keys above. 
+
+These three tasks are all related to taking input data, and parsing and processing it to get it to a state where our resulting signal is clean enough for us to count steps. Due to this relationship, it makes sense to combine these tasks into one class. We'll call it a **Parser**. 
 
 ## The Parser Class
 
@@ -333,9 +345,13 @@ end
 
 ## Low-pass Filtering
 
-Let's start with the last method in our class, chebyshev_filter. This is the method that implements the low-pass filter, and we'll see it used a couple of times in this class. chebyshev_filter first takes an input_data parameter, which is an array of numerical data, or, our signal that we want passed through the filter. The second parameter, coefficients, is a hash with two keys, alpha and beta, each which have an array with three numerical data points as values. Note the constants GRAVITY_COEFF and SMOOTHING_COEFF at the top of the class. These will be the hashes we'll pass into the coefficients parameter. 
+Let's start with the last method in our class, `chebyshev_filter`. This is the method that implements the low-pass filter, and we'll see it used twice in this class: the first time when we low-pass filter the combined input format during the parsing to the standard format, and the second time when we low-pass filter the dot product output to smooth out our waveform. 
 
-The chebyshev_filter method will output a signal (another array of numerical data) which is the result of passing the input_data signal through the low-pass filter with the coefficients passed in. The method itself implements the low-pass filter formula $output_{i} = \alpha_{0} * (input_{i} * \beta_{0} + input_{i-1} * \beta_{1} + input_{i-2} * \beta_{2} - output_{i-1} * \alpha_{1} - output_{i-2} * \alpha_{2})$. We do this by first instantiating an output_data signal array with two 0 values, so that the equation has inital values to work with. Then, we loop through the remaining indeces of the input_data signal, apply the formula at each turn, and append the result to output_data, returning output_data when the loop is complete. 
+`chebyshev_filter` takes two parameters: `input_data` and `coefficients`. `input_data` is an array of numerical data representing the signal that we want passed through the filter. `coefficients` is a hash with two keys, `alpha` and `beta`, each containing an array with three numerical data points as values. Note the constants `GRAVITY_COEFF` and `SMOOTHING_COEFF` at the top of the class. These will be the hashes we'll pass into the `coefficients` parameter.
+
+TODO: Explain how we choose coefficients. Maybe in the intro section instead?
+
+The `chebyshev_filter` method returns an array of numerical data representing the signal resulting from low-pass filtering the input_data signal using `coefficients`. The method implements the low-pass filter formula $output_{i} = \alpha_{0} * (input_{i} * \beta_{0} + input_{i-1} * \beta_{1} + input_{i-2} * \beta_{2} - output_{i-1} * \alpha_{1} - output_{i-2} * \alpha_{2})$. We do this by first instantiating an output_data signal array with two 0 values, so that the equation has inital values to work with. Then, we loop through the remaining indeces of the input_data signal, apply the formula at each turn, and append the result to output_data, returning output_data when the loop is complete. 
 
 We've now discussed the implementation of one of our mathematical tools in code. Let's take a look at how the rest of the class works, and how it uses chebyshev_filter. 
 
@@ -381,7 +397,7 @@ Taking the dot product in our Parser class is a matter of using the data in our 
 
 ### Step 3: filter_dot_product_data
 
-Following the pattern from steps 1 and 2, we add another instance variable, @filtered_data, to store the filtered data series, and a method, filter_dot_product_data, that we call from the initializer.
+Following the pattern from steps one and two, we add another instance variable, @filtered_data, to store the filtered data series, and a method, filter_dot_product_data, that we call from the initializer.
 
 The filter_dot_product_data method is the second place our low-pass filtering method, chebyshev_filter, is used. This time, we pass @dot_product_data in as our signal and use SMOOTHING_COEFF, and the result returned is our signal without the high frequence component, which we store in @filtered_data. This final signal, @filtered_data, is the clean signal we can use to count steps. 
 
@@ -439,7 +455,7 @@ An example with separated data:
 
 ## Pedometer functionality
 
-Our pedometer will measure 3 metrics:
+Our pedometer will measure three metrics:
 
 1. Distance traveled
 2. Time traveled
