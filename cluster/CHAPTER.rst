@@ -33,6 +33,8 @@ This algorithm achieves consensus on a single value which is then fixed for all 
 This might not seem so useful, but we'll see that it forms the basis of more practical, if more complicated, implementations.
 
 Paxos begins with one member of the cluster (called the proposer) deciding to propose a value.
+XXX need an example here
+
 The proposer has a desired value, but may also learn that a different value has already been decided.
 The process is called a "round" and ends with a decision either on the existing value or the proposer's new value.
 
@@ -40,7 +42,7 @@ The process is called a "round" and ends with a decision either on the existing 
 
 The proposer beings by sending a ``PREPARE`` message with a ballot number to the acceptors.
 In practice, all cluster nodes act as acceptors, serving as the cluster's memory.
-The proposer waits to hear from a majority (or more generally, a quorum) of the acceptors.
+The proposer waits to hear from a majority of the acceptors.
 
 The ``PREPARE`` message contains a ballot number, and the protocol requires this to be unique across the cluster and strictly increasing.
 This is easily accomplished by making each ballot number a combination of an increasing integer and a unique ID for the cluster member, such as its IP address.
@@ -70,6 +72,8 @@ Reaching consensus on a single, static value is not particularly useful on its o
 Clustered systems want to agree on a particular state that evolves over time.
 The solution is to create a distributed state machine, where the transitions between states are decided by consensus.
 Each transition is given a "slot number", and each member of the cluster executes transitions in strict order.
+
+XXX define "slot"
 
 In principle, each slot is decided in its own instance of Paxos, tagged with the slot number.
 In practice, the high cost of each Paxos instance requires some optimizations which blur the lines of this simple principle.
@@ -117,7 +121,7 @@ Component Model
 Humans are limited by what we can hold in our active memory.
 We can't reason about the entire Cluster implementation at once -- it's just too much, and too easy to miss details.
 Instead, we break Cluster down into a handful of components, implemented by subclasses of ``Component``.
-Each class is responsible for a different part of the protocol.
+Each class has a different role in the protocol.
 
 The components are glued together by the ``Node`` class, which represents a single node on the network.
 Components are added to and removed from the node as execution proceeds
