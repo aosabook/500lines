@@ -48,12 +48,3 @@ How do we lex?
 
 
 
-Parsing Python 3.1
-=====================
-
-
-In the previous chapter, we implemented the first phase of the Python 3 compiler, called a *lexer*. 
-
-A *language* is a set of strings. The Python language is the set of all valid Python programs. English can be thought of as the set of all valid English sentences.
-
-A *grammar* is the set of rules that specifies how to genearte every 
