@@ -63,7 +63,7 @@ one sig Dns {
 run {} for 3 
 
 // Let's force responses to set cookies
-run { all r: HttpRequest | some r.setCookies } for 3 
+run { all r: HttpRequest | some r.receivedCookies } for 3 
 
 // Can we get a request for a path that's not mapped by the server?
 check { all r: HttpRequest | r.url.path in r.to.resources.Resource } for 3 
@@ -75,3 +75,4 @@ check { all d: Domain | no disj s1, s2: Server | s1 + s2 in Dns.map[d] } for 3
 check { 
   all r1, r2: HttpRequest | r1.url = r2.url implies r1.response = r2.response
 } for 3 
+
