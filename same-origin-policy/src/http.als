@@ -41,7 +41,7 @@ abstract sig Server extends Endpoint { resources: Path -> lone Resource }
 
 fact ServerAssumption {
   -- two servers mapped from the common domain on DNS must provide the same resources
-  all s1, s2 : Server | 
+  all s1, s2: Server | 
     (some Dns.map.s1 & Dns.map.s2) implies s1.resources = s2.resources
 }
 
