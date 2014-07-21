@@ -85,13 +85,20 @@ A filter is a tool used in signal processing to remove an unwanted component fro
 
 A low-pass filter is a filter that allows low-frequency signals through, while attenuating signals higher than a set threshold. In our sitation, gravitational acceleration is a 0 Hz signal because it's constant, while user acceleration is not. This means that if we pass our signal through a low-pass filter, we'll allow the gravitational component of the signal to pass through, while removing the user acceleration component. There are numerous varieties of low-pass filters, but the one we'll use is called a Chebyshev filter. We've chosen a Chebyshev filter because it has a steep cutoff, which means that it very quickly attenuates frequencies beyond our threshold, which is ideal for isolating a 0 Hz signal like gravity. 
 
+A low-pass filter is implemented using the formula $output_{i} = \alpha_{0} * (input_{i} * \beta_{0} + input_{i-1} * \beta_{1} + input_{i-2} * \beta_{2} - output_{i-1} * \alpha_{1} - output_{i-2} * \alpha_{2})$. The $\alpha$ and $\beta$ values are set based on the type of filter and the attenuation we want to achieve.
+
+TODO: Expland the section on calculating alpha and beta?
+
 ### Implemeting a Low-pass Filter
 Let's have a look at an example of total acceleration, $a_{t}$.
 
 ![](chapter-figures/figure-filter-total.png)\ 
 
-To filter out gravitational acceleration, $a_{g}$, we use the low-pass filter formula $a_{gn} = \alpha_{0} * (a_{tn} * \beta_{0} + a_{tn-1} * \beta_{1} + a_{tn-2} * \beta_{2} - a_{gn-1} * \alpha_{1} - a_{gn-2} * \alpha_{2})$. The $\alpha$ and $\beta$ values are set based on the type of filter, in this case, the Chebyshev filter. 
-TODO: Expland the section on calculating alpha and beta? Should I add a plot of the phone in a different direction? In the example below, gravity is near-constant at 0 in the x and z directions, and $-9.8m/s^2$ in the y direction. 
+To filter out gravitational acceleration, $a_{g}$, we apply the low-pass filter formula $a_{gn} = \alpha_{0} * (a_{tn} * \beta_{0} + a_{tn-1} * \beta_{1} + a_{tn-2} * \beta_{2} - a_{gn-1} * \alpha_{1} - a_{gn-2} * \alpha_{2})$. 
+
+In the example below, gravity is near-constant at 0 in the x and z directions, and $-9.8m/s^2$ in the y direction. 
+
+TODO: Should I add a plot of a phone in a different direction?
 
 ![](chapter-figures/figure-filter-gravitational.png)\ 
 
@@ -347,34 +354,47 @@ end
 
 Let's start with the last method in our class, `chebyshev_filter`. This is the method that implements the low-pass filter, and we'll see it used twice in this class: the first time when we low-pass filter the combined input format during the parsing to the standard format, and the second time when we low-pass filter the dot product output to smooth out our waveform. 
 
-`chebyshev_filter` takes two parameters: `input_data` and `coefficients`. `input_data` is an array of numerical data representing the signal that we want passed through the filter. `coefficients` is a hash with two keys, `alpha` and `beta`, each containing an array with three numerical data points as values. Note the constants `GRAVITY_COEFF` and `SMOOTHING_COEFF` at the top of the class. These will be the hashes we'll pass into the `coefficients` parameter.
+`chebyshev_filter` takes two parameters: `input_data` and `coefficients`. `input_data` is an array of numerical data representing the signal that we want passed through the filter. `coefficients` is a hash with two keys, `alpha` and `beta`, each containing an array with three numerical data points as values. Note the constants `GRAVITY_COEFF` and `SMOOTHING_COEFF` at the top of the class. These will be the hashes we'll pass to the `coefficients` parameter.
 
-TODO: Explain how we choose coefficients. Maybe in the intro section instead?
+TODO: Explain how we choose coefficients. Should this go here or in the intro secion?
 
-The `chebyshev_filter` method returns an array of numerical data representing the signal resulting from low-pass filtering the input_data signal using `coefficients`. The method implements the low-pass filter formula $output_{i} = \alpha_{0} * (input_{i} * \beta_{0} + input_{i-1} * \beta_{1} + input_{i-2} * \beta_{2} - output_{i-1} * \alpha_{1} - output_{i-2} * \alpha_{2})$. We do this by first instantiating an output_data signal array with two 0 values, so that the equation has inital values to work with. Then, we loop through the remaining indeces of the input_data signal, apply the formula at each turn, and append the result to output_data, returning output_data when the loop is complete. 
+The `chebyshev_filter` method returns an array of numerical data representing the signal resulting from low-pass filtering the `input_data` signal using `coefficients`, and low-pass filter formula, $output_{i} = \alpha_{0} * (input_{i} * \beta_{0} + input_{i-1} * \beta_{1} + input_{i-2} * \beta_{2} - output_{i-1} * \alpha_{1} - output_{i-2} * \alpha_{2})$. 
 
-TODO: Should we include the low-pass filter formula in the intro?
+We do this by first instantiating an `output_data` signal array with two 0 values, so that the equation has inital values to work with. Then, we loop through the remaining indeces of the `input_data` signal, apply the formula at each turn, and append the result to `output_data`, returning `output_data` when the loop is complete. 
 
-We've now discussed the implementation of one of our mathematical tools in code. Let's take a look at how the rest of the class works, and how it uses chebyshev_filter. 
+The `chebyshev_filter` method is another example of *separation of concerns*. We know we'll need to implement a low-pass filter more than once in our code, so we leave the knowledge of how to do that in one method only. The rest of our code need only know how to call the method and pass in the appropriate `coefficients` for the `input_data` it needs filtered. If there is ever a bug in the filtering code, we only need to fix it in this one place. 
+
+Let's take a look at how the rest of the class works, and how it uses `chebyshev_filter`. 
 
 ## The Inner Workings of the Parser Class
 
-Let's start with the initialize method. Our parser class takes string data as input and stores it in the @data instance variable. It then calls three methods in sequence: parse_raw_data, dot_product_parsed_data, and filter_dot_product_data. 
+Let's start with the `initialize` method. Our parser class takes string data as input and stores it in the `@data` instance variable. It then calls three methods in sequence: `parse_raw_data`, `dot_product_parsed_data`, and `filter_dot_product_data`. 
 
 Each method accomplishes one of our three steps above. Let's look at each method individually. 
 
-### Step 1: parse_raw_data
+### Step 1: Parse our input formats into a standard format (parse_raw_data)
 
-The goal of parse_raw_data is to convert string data in either the combined or separated format to a standard format, and store it in @parsed_data.
+The goal of `parse_raw_data` is to convert string data in either the combined or separated format to a standard format, and store it in `@parsed_data`.
 
-The first step in the process is to take string data and convert it to numerical data. The first line splits the string by semicolon into as many arrays as samples taken, and then splits each individual array by the pipe, storing the result in accl.
+The first step in the process is to take string data and convert it to numerical data. The first line splits the string by semicolon into as many arrays as samples taken, and then splits each individual array by the pipe, storing the result in `accl`.
 
-We determine the input format by the first element of accl, which is an array. 
+This gives us an array of arrays. Note the differences in `accl` between the two formats:
 
-* accl in the combined format: $[["x1,y1,z1"],...["xn,yn,zn"]]$
-* accl in the separated format: $[["x1_{u},y1_{u},z1_{u}", "x1_{g},y1_{g},z1_{g}"],...["xn_{u},yn_{u},zn_{u}", "xn_{g},yn_{g},zn_{g}"]]$
+* `accl` in the combined format contains arrays with exactly **one** string: $[["x1,y1,z1"],...["xn,yn,zn"]]$
+* `accl` in the separated format contains arrays with exactly **two** strings: $[["x1_{u},y1_{u},z1_{u}", "x1_{g},y1_{g},z1_{g}"],...["xn_{u},yn_{u},zn_{u}", "xn_{g},yn_{g},zn_{g}"]]$
 
-If the array has exactly one element, we know that our input format is combined. Otherwise, our input format is separated. Based on this, we call either split_accl_combined or split_accl_separated. 
+The combined format has exactly one element per array, while the separated format has exactly two elements per array. This is because the combined format has a string containing total acceleration, while the separated format has one string for user acceleration and a second for gravitational acceleration. 
+
+We'll need to turn our string data into numerical data for both formats, but we'll also need to pass the combined format through a low-pass filter. Due to this difference, it makes sense to diverge our code for this task to account for the differences in the two formats. This is the only time that we'll diverge, therefore this is the only part of the code that needs to be concerned with multiple formats. 
+
+If the array has exactly one element, we know that our input format is combined. Otherwise, our input format is separated. We'll have to deal with this difference amongst the formats, as well as the fact that we'll have to pass the combined format through a low-pass filter in order to split out user acceleration and gravitational acceleration. 
+
+Our `accl` array in the combined format contains 
+
+
+Based on this, we call either `split_accl_combined` or `split_accl_separated`. We branch off to different methods based on the input format here because not only are the elements in `accl` different formats (one)
+
+
 
 Each of these methods sets the @format instance variable, and then converts the arrays of strings into arrays of numerical data. Finally, these methods generate data in the format below. We store this result in split_accl:
 
