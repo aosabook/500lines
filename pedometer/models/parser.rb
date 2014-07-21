@@ -27,29 +27,6 @@ class Parser
     filter_dot_product_data
   end
 
-  def is_data_combined?
-    @format == FORMAT_COMBINED
-  end
-
-private
-
-  def split_accl_combined(accl)
-    @format = FORMAT_COMBINED
-    
-    split_accl = accl.map(&:flatten).transpose.map do |total_accl|
-      grav = chebyshev_filter(total_accl, GRAVITY_COEFF)
-      user = total_accl.zip(grav).map { |a, b| a - b }
-      [user, grav]
-    end
-    split_accl.transpose
-  end
-
-  def split_accl_separated(accl)
-    @format = FORMAT_SEPARATED
-    
-    [accl.map(&:first).transpose, accl.map(&:last).transpose]
-  end
-
   # TODO:
   # You should be more explicit with your exception catching. It's better to 
   # have specific exceptions that you except to be raised, and have logic to handle those cases.
@@ -64,11 +41,23 @@ private
     # Split acceleration data into the following format:
     # [ [ [x1, x2, ..., xn],    [y1, y2, ..., yn],    [z1, z2, ..., zn] ],
     #   [ [xg1, xg2, ..., xgn], [yg1, yg2, ..., ygn], [zg1, zg2, ..., zgn] ] ]
-    split_accl = if accl.first.count == 1
-      split_accl_combined(accl)
+    @format = if accl.first.count == 1
+      accl = accl.map(&:flatten).transpose.map do |total_accl|
+        grav = chebyshev_filter(total_accl, GRAVITY_COEFF)
+        user = total_accl.zip(grav).map { |a, b| a - b }
+        [user, grav]
+      end
+
+      accl = [[accl.map { |i| i[0] }.map { |j| j[0] }, accl.map { |i| i[1] }.map { |j| j[0] }], 
+              [accl.map { |i| i[0] }.map { |j| j[1] }, accl.map { |i| i[1] }.map { |j| j[1] }], 
+              [accl.map { |i| i[0] }.map { |j| j[2] }, accl.map { |i| i[1] }.map { |j| j[2] }]]
+
+      FORMAT_COMBINED
     else
-      split_accl_separated(accl)
+      FORMAT_SEPARATED
     end
+
+    split_accl = [accl.map(&:first).transpose, accl.map(&:last).transpose]
 
     user_accl, grav_accl   = split_accl
     user_x, user_y, user_z = user_accl

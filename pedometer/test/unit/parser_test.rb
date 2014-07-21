@@ -5,6 +5,14 @@ class ParserTest < Test::Unit::TestCase
 
   # -- Creation Tests -------------------------------------------------------
 
+  def test_foo
+    parser = Parser.new('1,2,3;4,5,6;7,8,9;10,11,12;13,14,15;')
+
+    # parser = Parser.new('0.123,-0.123,5;0.456,-0.789,0.111;-0.212,0.001,1;')
+
+    # parser = Parser.new('0.123,-0.123,5;')
+  end
+
   def test_create_combined_data
     data = '0.123,-0.123,5;0.456,-0.789,0.111;-0.212,0.001,1;'
     parser = Parser.new(data)
