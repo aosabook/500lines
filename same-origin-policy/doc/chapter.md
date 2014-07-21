@@ -363,7 +363,7 @@ The CORS mechanism for bypassing the SOP works by having the browser and server
 communicate through new HTTP headers to determine whether some non-same-origin
 request should be allowed to happen or not.
 
-We model a CORS request as a special kind of Http Request which additionaly
+We model a CORS request as a special kind of HTTP request which additionaly
 contains two extra fields `origin` and `allowedOrigins`:
 
 ```alloy
@@ -399,7 +399,7 @@ pred corsRule {
 
 Basically, when the request origin is in the allowed origins list of the server.
 The `r.origin = url2origin[r.from.context.src]` constraint sets the `origin`
-field to the one corresponding to the source url (the url from where the
+field to the one corresponding to the source URL (the URL from where the
 document that is generating the request originated).
 
 TODO... more here
