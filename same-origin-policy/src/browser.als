@@ -26,22 +26,22 @@ sig BrowserHttpRequest extends HttpRequest {
 }{
   -- the request comes from a browser
   from in Browser
-  -- the cookies that are sent were in the browser before the request
-  sentCookies in from.cookies.before
+  -- the cookies being sent exist in the browser at the time of the request
+  sentCookies in from.cookies.start
   -- every cookie sent must be scoped to the url of the request
   matchingScope[sentCookies, url]
 
   -- browser creates a new document to display the content of the response
-  documents.after = documents.before + from -> doc
+  documents.end = documents.start + from -> doc
   -- the new document has the response as its contents
-  content.after = content.before ++ doc -> response
+  content.end = content.start ++ doc -> response
   -- the new document has the host of the url as its domain
-  domain.after = domain.before ++ doc -> url.host
+  domain.end = domain.start ++ doc -> url.host
   -- the document's source field is the url of the request
   doc.src = url
 
   -- new cookies are stored by the browser
-  cookies.after = cookies.before + from -> sentCookies
+  cookies.end = cookies.start + from -> sentCookies
 }
 
 pred matchingScope[cookies: set Cookie, url: Url] {

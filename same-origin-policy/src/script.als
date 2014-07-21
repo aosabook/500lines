@@ -18,51 +18,51 @@ sig Script extends Client { context: Document }
 sig XmlHttpRequest extends HttpRequest {}{
   from in Script
   -- browser that contains this script
-  let browser = (documents.before).(from.context) | 
-    sentCookies in browser.cookies.before and
+  let browser = (documents.start).(from.context) | 
+    sentCookies in browser.cookies.start and
     -- every cookie sent must be scoped to the url of the request
     matchingScope[sentCookies, url]
-  noBrowserChange[before, after] and noDocumentChange[before, after]
+  noBrowserChange[start, end] and noDocumentChange[start, end]
 }
 
 abstract sig BrowserOp extends Call { doc: Document }{
   from in Script and to in Browser
-  doc + from.context in to.documents.before
+  doc + from.context in to.documents.start
   -- states of browsers remain the same; only documents themselves change
-  noBrowserChange[before, after]
+  noBrowserChange[start, end]
 }
 
 // Reads the content of a document
 // Represents a set of accessor methods such as "document.documentElement"
 sig ReadDom extends BrowserOp { result: Resource }{
   -- return the current content of the target document
-  result = doc.content.before
+  result = doc.content.start
   -- neither content nor domain property of document changes
-  noDocumentChange[before, after]
+  noDocumentChange[start, end]
 }
 
 // Modify the content of a document
 sig WriteDom extends BrowserOp { newDom: Resource }{
   -- the new content of the document is set to input argument
-  content.after = content.before ++ doc -> newDom
+  content.end = content.start ++ doc -> newDom
   -- domain property doesn't change
-  domain.after = domain.before
+  domain.end = domain.start
 }
 
 // Modify the document.domain property
 sig SetDomain extends BrowserOp { newDomain: set Domain }{
   doc = from.context
-  domain.after = domain.before ++ doc -> newDomain
+  domain.end = domain.start ++ doc -> newDomain
   -- no change to the content of the document
-  content.after = content.before
+  content.end = content.start
 }
 
-pred noBrowserChange[before, after: Time] {
-  documents.after = documents.before and cookies.after = cookies.before
+pred noBrowserChange[start, end: Time] {
+  documents.end = documents.start and cookies.end = cookies.start
 }
 
-pred noDocumentChange[before, after: Time] {
-  content.after = content.before and domain.after = domain.before
+pred noDocumentChange[start, end: Time] {
+  content.end = content.start and domain.end = domain.start
 }
 
 /* Commands */

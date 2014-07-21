@@ -29,7 +29,7 @@ Despite above similarities, agile modeling differs from agile programming in one
 
 Because the SOP operates in the context of browsers, servers, the HTTP protocol, and so on, a complete description would be overwhelming. So our model (like all models) abstracts away irrelevant aspects, such as how network packets are structured and routed. But it also simplifies some relevant aspects, which means that the model cannot fully account for all possible security vulnerabilities.
 
-For example, we treat HTTP requests like remote procedure calls, as if they occur at a single point in time, ignoring the fact that responses to requests might come out of order. We also assume that DNS (the domain name service) is static, so we cannot consider attacks in which a DNS binding changes during an interaction. In principle, though, it would be possible to extend our model to cover all these aspects, although it's in the very nature of security analysis that no model (even if it represents the entire codebase) can be guaranteed complete.
+For example, we treat HTTP requests like remote procedure calls, ignoring the fact that responses to requests might come out of order. We also assume that DNS (the domain name service) is static, so we cannot consider attacks in which a DNS binding changes during an interaction. In principle, though, it would be possible to extend our model to cover all these aspects, although it's in the very nature of security analysis that no model (even if it represents the entire codebase) can be guaranteed complete.
 
 ## HTTP Protocol
 
@@ -116,7 +116,7 @@ When writing the `HttpRequest` signature, we found that it contained generic fea
 open call[Endpoint]
 ```
 
-It's a polymorphic module, so it's instantiated with `Endpoint`, the set of things calls are from and to.
+It's a polymorphic module, so it's instantiated with `Endpoint`, the set of things calls are from and to (details about calls can be found in Appendix A).
 
 Following the field declarations in `HttpRequest` is a collection of constraints. Each of these constraints applies to all members of the set of HTTP requests. The constraints say that (1) each request comes from a client, and (2) each request is sent to one of the servers specified by the URL host under the DNS mapping.
 
@@ -201,31 +201,31 @@ sig BrowserHttpRequest extends HttpRequest {
 }{
   -- the request comes from a browser
   from in Browser
-  -- the cookies that are sent were in the browser before the request
-  sentCookies in from.cookies.before
+  -- the cookies being sent exist in the browser at the time of the request
+  sentCookies in from.cookies.start
   -- every cookie sent must be scoped to the url of the request
   all c: sentCookies | url.host in c.domains
 
   -- browser creates a new document to display the content of the response
-  documents.after = documents.before + from -> doc
+  documents.end = documents.start + from -> doc
   -- the new document has the response as its contents
-  content.after = content.before ++ doc -> response
+  content.end = content.start ++ doc -> response
   -- the new document has the host of the url as its domain
-  domain.after = domain.before ++ doc -> url.host
+  domain.end = domain.start ++ doc -> url.host
   -- the document's source field is the url of the request
   doc.src = url
 
   -- new cookies are stored by the browser
-  cookies.after = cookies.before + from -> sentCookies
+  cookies.end = cookies.start + from -> sentCookies
 }
 ```
 
 This kind of request has one new field, `doc`, which is the document created in the browser from the resource returned by the request. As with `HttpRequest`, the behavior is described as a collection of constraints. Some of these say when the call can happen: for example, that the call has to come from a browser. Some of these constrain the arguments of the call: for example, that the cookies must be scoped appropriately. Some of these constrain the effect, and have a common form that relates the value of a relation after the call to its value before. For example, to understand
-`documents.after = documents.before + from -> doc`
-remember that `documents` is a 3-column relation on browsers, documents and times. The fields `before` and `after` come from the declaration of `Call` (which we haven't seen, but is included in the listing at the end), and represent the times before and after the call. The expression `documents.after` gives the mapping from browsers to documents after the call. So this constraint says that after the call, the mapping is the same, except for a new entry in the table mapping `from` to `doc`.
+`documents.end = documents.start + from -> doc`
+remember that `documents` is a 3-column relation on browsers, documents and times. The fields `start` and `end` come from the declaration of `Call` (which we haven't seen, but is included in the listing at the end), and represent the times at the beginning and end of the call. The expression `documents.end` gives the mapping from browsers to documents when the call has ended. So this constraint says that after the call, the mapping is the same, except for a new entry in the table mapping `from` to `doc`.
 
 Some constraints use the `++` operator which does a relational override (i.e, `e1 ++ e2` contains all tuples of `e2`, and additionally, any tuples of `e1` whose first element is not the first element of a tuple in `e2`). For example, the constraint
-`content.after = content.before ++ doc -> response`
+`content.end = content.start ++ doc -> response`
 says that after the call, the `content` mapping will be updated to map `doc` to `response` (clobbering any previous mapping of `doc`).
 If we where to use `+`, then the same document could map to multiple resources at the same time; which is hardly what we want.
 
@@ -241,24 +241,24 @@ A script can communicate to a server by sending an `XmlHttpRequest`:
 ```alloy
 sig XmlHttpRequest extends HttpRequest {}{
   from in Script
-  noBrowserChange[before, after] and noDocumentChange[before, after]
+  noBrowserChange[start, end] and noDocumentChange[start, end]
 }
 ```
 An `XmlHttpRequest` can be used by a script to send/receive resources to/from a server, but unlike `BrowserHttpRequest`, it does not immediately result in creation of a new page or other changes to the browser and its documents. To say that a call does not modify the states of the system, we use predicates `noBrowserChange` and `noDocumentChange`:
 ```alloy
-pred noBrowserChange[before, after: Time] {
-  documents.after = documents.before and cookies.after = cookies.before  
+pred noBrowserChange[start, end: Time] {
+  documents.end = documents.start and cookies.end = cookies.start  
 }
-pred noDocumentChange[before, after: Time] {
-  content.after = content.before and domain.after = domain.before  
+pred noDocumentChange[start, end: Time] {
+  content.end = content.start and domain.end = domain.start  
 }
 ```
 What kind of operations can a script perform on documents? First, we introduce a generic notion of *browser operations* to represent a set of browser API functions that can be invoked by a script:
 ```alloy
 abstract sig BrowserOp extends Call { doc: Document }{
   from in Script and to in Browser
-  doc + from.context in to.documents.before
-  noBrowserChange[before, after]
+  doc + from.context in to.documents.start
+  noBrowserChange[start, end]
 }
 ```
 Field `doc` refers to the document that will be accessed or manipulated by this call. The second constraint in the signature facts says that both `doc` and the document in which the script executes (`from.context`) must be documents that currently exist inside the browser. Finally, a `BrowserOp` may modify the state of a document, but not the set of documents or cookies* that are stored in the browser.
@@ -268,12 +268,12 @@ Field `doc` refers to the document that will be accessed or manipulated by this 
 A script can read from and write to various parts of a document (often called DOM elements). In a typical browser, there are a large number of API functions for accessing DOM (e.g., `document.getElementById`), but enumerating all of them is not important for our purpose, we will simply group those into two types -- `ReadDom` and `WriteDom`:
 ```alloy
 sig ReadDom extends BrowserOp { result: Resource }{
-  result = doc.content.before
-  noDocumentChange[before, after]
+  result = doc.content.start
+  noDocumentChange[start, end]
 }
 sig WriteDom extends BrowserOp { new_dom: Resource }{
-  content.after = content.before ++ doc -> new_dom
-  domain.after = domain.before
+  content.end = content.start ++ doc -> new_dom
+  domain.end = domain.start
 }
 ```
 `ReadDom` returns the content the target document, but does not modify it; `WriteDom`, on the other hand, sets the new content of the target document to `new_dom`.
@@ -282,8 +282,8 @@ In addition, a script can modify various properties of a document, such as its w
 ```alloy
 sig SetDomain extends BrowserOp { new_domain: set Domain }{
   doc = from.context
-  domain.after = domain.before ++ doc -> new_domain
-  content.after = content.before
+  domain.end = domain.start ++ doc -> new_domain
+  content.end = content.start
 }
 ```
 Why would you ever want to modify the domain property of a document? It turns out that this is one popular (but rather ad hoc) way of bypassing the SOP and allow cross-domain communication, which we will discuss in a later section.
@@ -333,3 +333,61 @@ In order to allow some form of cross-origin communication when necessary, browse
 ## Mechanisms for Bypassing the SOP
 
 To be completed.
+
+## Appendix A: Reusable Modules in Alloy 
+
+As mentioned earlier in this chapter, Alloy makes no assumptions about
+the behavior of the system being modeled. The lack of a built-in
+paradigm allows the user to encode a wide range of modeling idioms
+using a small core of the basic language constructs. We could, for
+example, specify a system as a state machine, a data model with
+complex invariants, a distributed event model with a global clock, or
+whatever idiom is most suitable for the problem that you are trying to
+model. Commonly used idioms can be captured as a generic module and
+reused across multiple systems.
+
+In our model of the SOP, we model the system as a set of endpoints
+that communicate to each other by making one or more _calls_. Since
+call is a fairly generic notion, we encapsulate its description in a
+separate Alloy model, to be imported from other modules that rely on
+it -- similar to standard libraries in programming languages:
+
+```alloy 
+module call[T] ```
+
+In the module declaration, `T` represents a type parameter that can be
+instantiated to a concrete type that is provided when the module is
+imported. We will soon see an use of the type parameter.
+
+It is often a common idiom to lay out the system execution over a
+global time frame, so that we can talk about calls as happening before
+or after each other (or at the same time). To represent the notion of
+time, we introduce a new signature:
+ 
+```alloy
+open util/ordering[Time] as ord
+sig Time {}
+```
+
+In Alloy, `util/ordering` is a built-in module that imposes a total
+order on the type parameter, and so by importing `ordering[Time]`, we
+obtain a set of `Time` objects that behave like other totally ordered
+sets (e.g., natural numbers).
+
+Each call occurs between two points in time -- its `start` and `end`
+times, and is associated with a sender (represented by `from`) and a
+receiver (`to`):
+
+```alloy 
+abstract sig Call { start, end: Time, from, to: T } 
+```
+
+Recall that in our discussion of HTTP requests, we imported the module
+`call` by passing `Endpoint` as its type parameter. As a result, the
+parametric type `T` is instantiated to `Endpoint`, and we obtain a set
+of `Call` objects that are associated to a pair of sender and receiver
+endpoints. A module can be imported multiple times; for example, we
+could declare a signature called `UnixProcess`, and instantiate the
+module `call` to obtain a distinct set of `Call` objects that are sent
+from one UNIX process to another.
+
