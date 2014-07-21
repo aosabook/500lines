@@ -334,6 +334,76 @@ In order to allow some form of cross-origin communication when necessary, browse
 
 To be completed.
 
+### Domain property
+
+If two scripts set the `document.domain` property to the same value, then the
+SOP is relaxed and these two scripts can interact with each other (read and
+write each other's DOM). We modify the original `domSop` predicate to capture
+this:
+
+```alloy
+pred domSop {
+  all c: ReadDom + WriteDom | 
+    -- A script can only access the DOM of a document with the same origin or
+    sameOrigin[c.doc.src, c.from.context.src] or
+    -- (relaxation) script's context and the target document have the same
+    -- domain property
+    c.doc.domain = c.from.context.domain
+}
+```
+
+Now we can ask the analyzer to give us an instance where two documents that
+are from different origins manage to communicate between each other:
+
+TODO... more here
+
+### CORS: Cross-Origin Resource Sharing
+
+The CORS mechanism for bypassing the SOP works by having the browser and server
+communicate through new HTTP headers to determine whether some non-same-origin
+request should be allowed to happen or not.
+
+We model a CORS request as a special kind of HTTP request which additionaly
+contains two extra fields `origin` and `allowedOrigins`:
+
+```alloy
+sig CorsRequest in HttpRequest {
+  -- "origin" header
+  origin: Origin,
+  -- "access-control-allow-origin" header
+  allowedOrigins: set Origin
+}{
+  from in Script
+}
+```
+
+These correspond to the "Origin" and "Access-Control-Allow-Origin" header
+fields. `Origin` goes in the *request* header and
+corresponds to the domain that served the page issuing the request and
+`Access-Control-Allow-Origin` goes in the *response* header and indicates what
+origin sites are allowed. 
+
+The predicate `corsRule` capture when a CORS request succeeds:
+
+```alloy
+pred corsRule {
+  -- "origin" header of every CORS req matches the script context
+  all r: CorsRequest |
+    r.origin = url2origin[r.from.context.src] and
+    -- A CORS response is accepted iff it is allowed by the server, as
+    -- indicated in "access-control-allow-origin" header
+    r.origin in r.allowedOrigins
+}
+
+```
+
+Basically, when the request origin is in the allowed origins list of the server.
+The `r.origin = url2origin[r.from.context.src]` constraint sets the `origin`
+field to the one corresponding to the source URL (the URL from where the
+document that is generating the request originated).
+
+TODO... more here
+
 ## Appendix A: Reusable Modules in Alloy 
 
 As mentioned earlier in this chapter, Alloy makes no assumptions about
