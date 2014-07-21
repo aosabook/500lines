@@ -423,7 +423,8 @@ separate Alloy model, to be imported from other modules that rely on
 it -- similar to standard libraries in programming languages:
 
 ```alloy 
-module call[T] ```
+module call[T] 
+```
 
 In the module declaration, `T` represents a type parameter that can be
 instantiated to a concrete type that is provided when the module is
