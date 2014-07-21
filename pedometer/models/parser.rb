@@ -37,7 +37,7 @@ class Parser
     # [[[x1,y1,z1], [xg1,yg1,zg1], ..., [[xn,yn,zn], [xgn,ygn,zgn]]]
     accl = @data.split(';').map { |i| i.split('|') }
                 .map { |i| i.map { |i| i.split(',').map(&:to_f) } }
-
+    count = accl.count
     # Split acceleration data into the following format:
     # [ [ [x1, x2, ..., xn],    [y1, y2, ..., yn],    [z1, z2, ..., zn] ],
     #   [ [xg1, xg2, ..., xgn], [yg1, yg2, ..., ygn], [zg1, zg2, ..., zgn] ] ]
@@ -48,9 +48,14 @@ class Parser
         [user, grav]
       end
 
-      accl = [[accl.map { |i| i[0] }.map { |j| j[0] }, accl.map { |i| i[1] }.map { |j| j[0] }], 
-              [accl.map { |i| i[0] }.map { |j| j[1] }, accl.map { |i| i[1] }.map { |j| j[1] }], 
-              [accl.map { |i| i[0] }.map { |j| j[2] }, accl.map { |i| i[1] }.map { |j| j[2] }]]
+      split_accl = (0..count-1).inject([]) do |a, elem| 
+        coordinate_user = accl.map { |coordinate| coordinate[0] }.map { |dimension| dimension[elem] }
+        coordinate_grav = accl.map { |coordinate| coordinate[1] }.map { |dimension| dimension[elem] }
+
+        a << [coordinate_user, coordinate_grav]
+      end
+
+      accl = split_accl
 
       FORMAT_COMBINED
     else
@@ -64,7 +69,7 @@ class Parser
     grav_x, grav_y, grav_z = grav_accl
     
     @parsed_data = []
-    accl.length.times do |i|
+    count.times do |i|
       @parsed_data << { x: user_x[i], y: user_y[i], z: user_z[i],
                         xg: grav_x[i], yg: grav_y[i], zg: grav_z[i] }
     end

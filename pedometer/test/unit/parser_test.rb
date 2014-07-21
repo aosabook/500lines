@@ -5,13 +5,22 @@ class ParserTest < Test::Unit::TestCase
 
   # -- Creation Tests -------------------------------------------------------
 
-  def test_foo
-    parser = Parser.new('1,2,3;4,5,6;7,8,9;10,11,12;13,14,15;')
+  # def test_foo
+  #   accl = [[[1, 2, 3, 4], [10, 20, 30, 40]], [[5, 6, 7, 8], [50, 60, 70, 80]], [[9, 10, 11, 12], [90, 100, 110, 120]]]
 
-    # parser = Parser.new('0.123,-0.123,5;0.456,-0.789,0.111;-0.212,0.001,1;')
+  #   count = 4
+  #   split_accl = (0..count-1).inject([]) do |a, elem| 
+  #     coordinate_user = accl.map { |coordinate| coordinate[0] }.map { |dimension| dimension[elem] }
+  #     coordinate_grav = accl.map { |coordinate| coordinate[1] }.map { |dimension| dimension[elem] }
 
-    # parser = Parser.new('0.123,-0.123,5;')
-  end
+  #     a << [coordinate_user, coordinate_grav]
+  #   end
+
+  #   p split_accl
+
+  #   parser = Parser.new('0.123,-0.123,5;0.456,-0.789,0.111;-0.212,0.001,1;')
+  #   parser = Parser.new('0.123,-0.123,5;0.456,-0.789,0.111;-0.212,0.001,1;1,2,4;')
+  # end
 
   def test_create_combined_data
     data = '0.123,-0.123,5;0.456,-0.789,0.111;-0.212,0.001,1;'
