@@ -334,7 +334,7 @@ In order to allow some form of cross-origin communication when necessary, browse
 
 To be completed.
 
-### `document.domain` property
+### Domain property
 
 If two scripts set the `document.domain` property to the same value, then the
 SOP is relaxed and these two scripts can interact with each other (read and
