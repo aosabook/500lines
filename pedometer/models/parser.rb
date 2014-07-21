@@ -48,9 +48,10 @@ class Parser
         [user, grav]
       end
 
-      accl = (0..accl.length-1).inject([]) do |a, elem| 
-        coordinate_user = split_accl.map { |coordinate| coordinate[0] }.map { |dimension| dimension[elem] }
-        coordinate_grav = split_accl.map { |coordinate| coordinate[1] }.map { |dimension| dimension[elem] }
+      # TODO: Too crazy. Find shortcut.
+      accl = (0..accl.length-1).inject([]) do |a, i| 
+        coordinate_user = split_accl.map { |coord| coord[0] }.map { |dimension| dimension[i] }
+        coordinate_grav = split_accl.map { |coord| coord[1] }.map { |dimension| dimension[i] }
 
         a << [coordinate_user, coordinate_grav]
       end
