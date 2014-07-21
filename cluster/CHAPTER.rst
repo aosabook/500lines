@@ -1,83 +1,104 @@
 Clustering by Consensus
 ***********************
 
-Running a service or application in production means providing a high level of availability in the face of component failures.
-Each tier of a highly-available service will span a "cluster" of multiple machines, such that if one or more machines fail, the service will continue to operate.
+In this chapter, we'll explore implementation of a network protocol designed to support reliable a distributed computation.
+Network protocols can be difficult to implement correctly, so we'll look at some techniques for minimizing bugs and for catching and fixing the remaining few.
+Building reliable software, too, requires some special development and debugging techniques.
 
-Some services cluster naturally, with each operation handled indpendently by a member of the cluster.
-If one member fails, operations are routed to the remaining members.
-Many web services operate in this fashion, especially those serving static content which can simply be replicated to many nodes.
+The focus is on the protocol implementation, but as a motivating example we'll consider a simple bank account management service.
+In this application, each account has a current balance and is identified with an account number, like a simple key-value store.
+However, operations on those accounts are more complex than for an ordinary key-value store.
+The "transfer" operation operates on two keys at once -- the source and destination accounts -- and must be rejected if the source account's balance is too low.
 
-Some services require some state to be shared immediately between cluster members.
-For example, a distributed object storage engine needs to track which objects are stored on which servers.
-Storing this information on a single server would mean that when the server fails, the cluster fails -- not good.
-But if the information is stored on several servers, it's challenging to keep them in sync.
+If the service is hosted on a single server, this is easy to implement: serialize the transfer method using a lock, and verify the souce account's balance in that method.
+However, a bank cannot rely on a single server for its critical acocunt balances!
+Instead, the service is *distributed* over multiple servers, with each running a separate copy of the code.
+The servers communicate between themselves to maintain the illusion of a single, distributed service.
+This introduces some new failure modes:
 
-Consensus algorithms solve this challenge, providing a mechanism to keep replicated information from diverging, regardless of component failures.
+ * If two servers receive execute different transfer requests from the same account at the same time, the account may be overdrawn.
+ * If two servers update the same account balance at the same time, one might overwrite the changes made by the other.
+ * If communication between some servers fails, each server may determine that the others have failed and continue to process transfers that conflict with the others.
+
+Distributed State Machines
+==========================
+
+Fundamentally, these failures occur when servers use their local state to perform operations, without first ensuring that state matches the state on other servers.
+The technique for avoiding such problems is called a "distributed state machine".
+The idea is that each server executes the same deterministic state machine on the same inputs.
+By the nature of state machines, then, each server will see exactly the same outputs.
+Operations such as "transfer" or "balance-check" provide the inputs to the state machine.
+
+The state machine for this application is simple:
+
+    def execute_operation(state, input):
+        if input.operation == 'transfer':
+            if state.accounts[input.source_account] < input.amount:
+                return state, False
+            state.accounts[input.source_account] -= input.amount
+            state.accounts[input.destination_account] += input.amount
+            return state, True
+        elif input.operation == 'balance-check':
+            return state, state.accounts[input.account]
+
+Note that the "balance-check" operation does not modify the state, but is still implemented as a state transition.
+This guarantees that the returned balance is the latest information in the cluster, and not based on the state on a single server.
+
+So, the distributed state machine technique ensures that the same operations occur on each host.
+But the problem remains of ensuring that every server agrees on the inputs to the state machine.
+This is a problem of *consensus*, and we'll address it with derivative of the Paxos algorithm.
 
 Consensus by Paxos
 ==================
 
-Paxos is one such algorithm, or really family of algorithms.
-It was described by Leslie Lamport in a fanciful 1998 paper entitled "The Part-Time Parliament".
+Paxos was described by Leslie Lamport in a fanciful paper, first submitted in 1990 and eventually published in 1998, entitled "The Part-Time Parliament".
+Lamport's paper has a great deal more detail than we will get into here, and is a fun read.
+The references at the end of the chapter describe some extensions of the algorithm that we have adapted in this implementation.
 
-This description is not meant to be formal, but to provide enough background to understand the code.
-Lamport's paper has a great deal more detail and is a fun read.
-The references at the end of the chapter describe some extensions of the algorithm that have been adapted in this implementation.
+The simplest form of Paxos provides a way for a set of servers to agree on one fact, for all time.
+MultiPaxos builds on this foundation by agreeing on a numbered sequence of facts, one at a time.
+To implement a distributed state machine, we use MultiPaxos to agree on each state-machine input, and execute them in sequence.
 
 Simple Paxos
 ------------
 
-First, let's look at the simplest form of the Paxos algorithm.
-This algorithm achieves consensus on a single value which is then fixed for all time.
-This might not seem so useful, but we'll see that it forms the basis of more practical, if more complicated, implementations.
+So let's start with "Simple Paxos".
+For sake of illustration, let's agree on today's lottery number.
+While there may be another lottery next week, *today's* lottery number, once decided, will never change.
 
-Paxos begins with one member of the cluster (called the proposer) deciding to propose a value.
-XXX need an example here
-
-The proposer has a desired value, but may also learn that a different value has already been decided.
-The process is called a "round" and ends with a decision either on the existing value or the proposer's new value.
-
-# TODO: verify all of this
-
-The proposer beings by sending a ``PREPARE`` message with a ballot number to the acceptors.
-In practice, all cluster nodes act as acceptors, serving as the cluster's memory.
-The proposer waits to hear from a majority of the acceptors.
-
-The ``PREPARE`` message contains a ballot number, and the protocol requires this to be unique across the cluster and strictly increasing.
-This is easily accomplished by making each ballot number a combination of an increasing integer and a unique ID for the cluster member, such as its IP address.
+A round of Paxos begins with one member of the cluster (called the proposer) deciding to propose a value, let's say 7-3-22.
+The proposer selects a "ballot number" *N* greater than any other it has ever sent, and sends a ``PREPARE`` message with a ballot number to the acceptors (all of the other nodes).
+The proposer the waits to hear from a majority of the acceptors.
 
 On receiving to a ``PREPARE`` with a ballot number *N*, each acceptor promises to ignore all proposals with a ballot number less than *N*.
-It sends a ``PROMISE`` message including a highest ballot number *N* it has promised and an accepted value *V*.
-If the acceptor has already made a promise for a larger ballot number, it includes that number in the ``PROMISE``, indicating that the proposer has been pre-empted.
+That is, unless it has already made that promise for a higher ballot number.
+It replies with a ``PROMISE`` message including the value it has already accepted, if any.
 
-When the proposer has heard from a quorum of the acceptors, then it sends an ``ACCEPT`` to the acceptors, including a ballot number and a value.
-If the proposer was not pre-empted, then it sends its own desired value.
-Otherwise, it sends the value from the highest-numbered ``PROMISE`` it received.
-This ensures an important invariant of the algorithm: once a value is decided in a round, all subsequent rounds will decide on the same value.
+When the proposer receives a ``PROMISE`` including an already-accepted value, it must continue with that acceped value, and not its own.
+Continuing the example, however, other value has been accepted, so the acceptors all send back a ``PROMISE`` with no value.
 
-Unless it would violate a promise, each acceptor records the value from the ``PREPARE`` message as accepted.
+When the proposer has heard back from a majority of the acceptors, it sends an ``ACCEPT``, including the ballot number and value to all acceptors.
+Unless it would violate a promise, each acceptor records the value from the ``ACCEPT`` message as accepted.
 It then replies with an ``ACCEPTED`` message containing the accepted ballot number.
+The round is complete and the value decided when the proposer has heard from a majority of acceptors.
+
+If another server proposes a different value, say 11-13-15, with lower ballot number, then the acceptors will ignore the ``PREPARE`` messages.
+If that server uses a higher ballot number than has already been promised, then the acceptors will reply with the already-agreed value, 7-3-22.
+The server will use that value in the second phase, agreeing again on the same value.
 
 The overall effect is two round-trips: one to secure a promise and one to get agreement on the value.
-When multiple proposers make a proposal at the same time, it is common for neither proposal to win.
-Both proposers then re-propose.
+When multiple proposers make a proposal at the same time, it is common for neither proposal to win as each proposal secures a promise to ignore the other before its proposal is accepted.
+In this case, both proposers then re-propose.
 Hopefully one wins, but the deadlock can continue indefinitely if the timing works out just right.
-In a bad -- but not uncommon -- case, it can take dozens of round-trips to reach consensus.
+In bad -- but not uncommon -- cases, it can take dozens of round-trips to reach consensus.
 
 Multi-Paxos
 -----------
 
-Reaching consensus on a single, static value is not particularly useful on its own.
-Clustered systems want to agree on a particular state that evolves over time.
-The solution is to create a distributed state machine, where the transitions between states are decided by consensus.
-Each transition is given a "slot number", and each member of the cluster executes transitions in strict order.
+Multi-Paxos is, in effect, a sequence of simple Paxos instances (slots), each numbered sequentially.
 
-XXX define "slot"
-
-In principle, each slot is decided in its own instance of Paxos, tagged with the slot number.
-In practice, the high cost of each Paxos instance requires some optimizations which blur the lines of this simple principle.
-For example, ballot numbers are global to the protocol, and the first phase (``PREPARE``/``PROMISE``) is performed for all undecided slots at once.
+To avoid the hight cost of two round trips per decision, multi-Paxos treats the ``PREPARE``/``PROMISE`` interaction as authoritative for the current and all future slots.
+Once a proposer has received promises without values from a majority of acceptors, it only executes the second phase (``ACCEPT``/``ACCEPTED``) for subsequent slots, at least until a proposal isn't accepted.
 
 Getting Moderately Complex
 --------------------------
