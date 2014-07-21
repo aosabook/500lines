@@ -47,7 +47,7 @@ private
   def split_accl_separated(accl)
     @format = FORMAT_SEPARATED
     
-    [accl.map {|a| a.first}.transpose, accl.map {|a| a.last}.transpose]
+    [accl.map(&:first).transpose, accl.map(&:last).transpose]
   end
 
   # TODO:
