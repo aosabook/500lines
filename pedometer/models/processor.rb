@@ -68,20 +68,15 @@ class Processor
       FORMAT_SEPARATED
     end
 
-    # Transpose accl to user acceleration: 
-    # [ [x1u, x2u, ..., xnu], [y1u, y2u, ..., ynu], [z1u, z2u, ..., znu] ]
-    # and gravitational acceleration: 
-    # [ [x1g, x2g, ..., xng], [y1g, y2g, ..., yng], [z1g, z2g, ..., zng] ] ]
-    user_accl = accl.map(&:first).transpose
-    grav_accl = accl.map(&:last).transpose
-    
-    user_x, user_y, user_z = user_accl
-    grav_x, grav_y, grav_z = grav_accl
-    
+    # Set @parsed_data to standard format
     @parsed_data = []
-    accl.length.times do |i|
-      @parsed_data << { x: user_x[i], y: user_y[i], z: user_z[i],
-                        xg: grav_x[i], yg: grav_y[i], zg: grav_z[i] }
+    accl.each do |point|
+      unless point.map(&:length) == [3, 3]
+        raise 'Bad Input. Ensure data is properly formatted.'
+      end
+      
+      @parsed_data << { x: point[0][0], y: point[0][1], z: point[0][2],
+                        xg: point[1][0], yg: point[1][1], zg: point[1][2] }
     end
   rescue
     raise 'Bad Input. Ensure data is properly formatted.'
