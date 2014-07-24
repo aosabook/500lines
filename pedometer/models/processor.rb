@@ -27,9 +27,6 @@ class Processor
     filter_dot_product_data
   end
 
-  # TODO:
-  # You should be more explicit with your exception catching. It's better to 
-  # have specific exceptions that you except to be raised, and have logic to handle those cases.
   def parse_raw_data
     # Extract numerical data into the format:
     # [ [ [x1t, y1t, z1t] ], ..., [ [xnt, ynt, znt] ] ]
@@ -37,7 +34,7 @@ class Processor
     # [ [ [x1u, y1u, z1u], [x1g, y1g, z1g] ], ..., 
     #   [ [xnu, ynu, znu], [xng, yng, zng] ] ]
     @parsed_data = @data.split(';').map { |i| i.split('|') }
-                .map { |i| i.map { |i| i.split(',').map(&:to_f) } }
+                   .map { |i| i.map { |i| i.split(',').map(&:to_f) } }
     
     unless @parsed_data.map { |data| data.map(&:length) }.uniq.flatten.uniq == [3]
       raise 'Bad Input. Ensure data is properly formatted.'

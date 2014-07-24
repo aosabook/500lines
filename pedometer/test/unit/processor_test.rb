@@ -32,6 +32,16 @@ class ProcessorTest < Test::Unit::TestCase
     assert_equal [0, 0, -1.7824384769309702], processor.filtered_data
   end
 
+  def test_create_string_values_parses_to_0s
+    data = '1,2,foo;'
+    processor = Processor.new(data)
+    assert_equal [[[1.0, 2.0, 0.0], [0, 0, 0]]], processor.parsed_data
+
+    data = '1,2,foo|4,bar,6;'
+    processor = Processor.new(data)
+    assert_equal [[[1.0, 2.0, 0.0], [4.0, 0.0, 6.0]]], processor.parsed_data
+  end
+
   # -- Creation Failure Tests -----------------------------------------------
 
   def test_create_nil
