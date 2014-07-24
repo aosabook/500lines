@@ -35,8 +35,8 @@ class Processor
     #   [ [xnu, ynu, znu], [xng, yng, zng] ] ]
     @parsed_data = @data.split(';').map { |i| i.split('|') }
                    .map { |i| i.map { |i| i.split(',').map(&:to_f) } }
-    
-    unless @parsed_data.map { |data| data.map(&:length) }.uniq.flatten.uniq == [3]
+
+    unless @parsed_data.map { |data| data.map(&:length).uniq }.uniq == [[3]]
       raise 'Bad Input. Ensure data is properly formatted.'
     end
 

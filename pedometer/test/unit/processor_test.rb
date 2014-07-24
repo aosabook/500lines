@@ -33,11 +33,11 @@ class ProcessorTest < Test::Unit::TestCase
   end
 
   def test_create_string_values_parses_to_0s
-    data = '1,2,foo;'
+    data = "1,2,foo;"
     processor = Processor.new(data)
     assert_equal [[[1.0, 2.0, 0.0], [0, 0, 0]]], processor.parsed_data
 
-    data = '1,2,foo|4,bar,6;'
+    data = "1,2,foo|4,bar,6;"
     processor = Processor.new(data)
     assert_equal [[[1.0, 2.0, 0.0], [4.0, 0.0, 6.0]]], processor.parsed_data
   end
@@ -77,6 +77,23 @@ class ProcessorTest < Test::Unit::TestCase
 
     assert_raise_with_message(RuntimeError, message) do
       Processor.new("0.028,-0.072,5|0.129,-0.945,-5;0,-0.07,0.06|0.123,-0.947;")
+    end
+  end
+
+  def test_create_bad_input_delimiters
+    message = "Bad Input. Ensure data is properly formatted."
+    assert_raise_with_message(RuntimeError, message) do
+      Processor.new("1,2,3:4,5,6:")
+    end
+
+    message = "Bad Input. Ensure data is properly formatted."
+    assert_raise_with_message(RuntimeError, message) do
+      Processor.new("1,2,3;4:5,6;")
+    end
+
+    message = "Bad Input. Ensure data is properly formatted."
+    assert_raise_with_message(RuntimeError, message) do
+      Processor.new("1,2,3!4,5,6;")
     end
   end
 
