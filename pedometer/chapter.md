@@ -270,63 +270,46 @@ class Processor
   attr_reader :data, :format, :parsed_data, :dot_product_data, :filtered_data
 
   def initialize(data)
-    @data = data.to_s
+    @data = data
 
     parse_raw_data
     dot_product_parsed_data
     filter_dot_product_data
   end
 
-  def is_data_combined?
-    @format == FORMAT_COMBINED
-  end
-
-private
-
-  def split_accl_combined(accl)
-    @format = FORMAT_COMBINED
-    
-    accl = accl.flatten.map { |i| i.split(',').map(&:to_f) }
-    split_accl = accl.transpose.map do |total_accl|
-      grav = chebyshev_filter(total_accl, GRAVITY_COEFF)
-      user = total_accl.zip(grav).map { |a, b| a - b }
-      [user, grav]
-    end
-    split_accl.transpose
-  end
-
-  def split_accl_separated(accl)
-    @format = FORMAT_SEPARATED
-    
-    accl = accl.map { |i| i.map { |i| i.split(',').map(&:to_f) } }
-    [accl.map {|a| a.first}.transpose, accl.map {|a| a.last}.transpose]
-  end
-
   def parse_raw_data
-    accl = @data.split(';').map { |i| i.split('|') }
-    
-    split_accl = if accl.first.count == 1
-      split_accl_combined(accl)
-    else
-      split_accl_separated(accl)
+    @parsed_data = @data.to_s.split(';').map { |i| i.split('|') }
+                   .map { |i| i.map { |i| i.split(',').map(&:to_f) } }
+
+    unless @parsed_data.map { |data| data.map(&:length).uniq }.uniq == [[3]]
+      raise 'Bad Input. Ensure data is properly formatted.'
     end
 
-    user_accl, grav_accl   = split_accl
-    user_x, user_y, user_z = user_accl
-    grav_x, grav_y, grav_z = grav_accl
-    
-    @parsed_data = []
-    accl.length.times do |i|
-      @parsed_data << { x: user_x[i], y: user_y[i], z: user_z[i],
-                        xg: grav_x[i], yg: grav_y[i], zg: grav_z[i] }
+    @format = if @parsed_data.first.count == 1
+      filtered_accl = @parsed_data.map(&:flatten).transpose.map do |total_accl|
+        grav = chebyshev_filter(total_accl, GRAVITY_COEFF)
+        user = total_accl.zip(grav).map { |a, b| a - b }
+        [user, grav]
+      end
+
+      @parsed_data = @parsed_data.length.times.map do |i| 
+        coordinate_user = filtered_accl.map(&:first).map { |elem| elem[i] }
+        coordinate_grav = filtered_accl.map(&:last).map { |elem| elem[i] }
+
+        [coordinate_user, coordinate_grav]
+      end
+      
+      FORMAT_COMBINED
+    else
+      FORMAT_SEPARATED
     end
-  rescue
-    raise 'Bad Input. Ensure data is properly formatted.'
   end
 
   def dot_product_parsed_data
     @dot_product_data = @parsed_data.map do |data|
-      data[:x] * data[:xg] + data[:y] * data[:yg] + data[:z] * data[:zg]
+      data[0][0] * data[1][0] + 
+      data[0][1] * data[1][1] + 
+      data[0][2] * data[1][2]
     end
   end
 
