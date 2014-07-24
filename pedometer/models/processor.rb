@@ -56,7 +56,7 @@ class Processor
       # Format filtered acceleration into the following format:
       # [ [ [x1u, y1u, z1u], [x1g, y1g, z1g] ], ..., 
       #   [ [xnu, ynu, znu], [xng, yng, zng] ] ]
-      accl = (0..accl.length-1).map do |i| 
+      accl = accl.length.times.map do |i| 
         coordinate_user = filtered_accl.map(&:first).map { |elem| elem[i] }
         coordinate_grav = filtered_accl.map(&:last).map { |elem| elem[i] }
 
@@ -68,12 +68,13 @@ class Processor
       FORMAT_SEPARATED
     end
 
-    # Format accl into the following format:
-    # [ [ [x1u, x2u, ..., xnu], [y1u, y2u, ..., ynu], [z1u, z2u, ..., znu] ],
-    #   [ [x1g, x2g, ..., xng], [y1g, y2g, ..., yng], [z1g, z2g, ..., zng] ] ] ]
-    split_accl = [accl.map(&:first).transpose, accl.map(&:last).transpose]
-
-    user_accl, grav_accl   = split_accl
+    # Transpose accl to user acceleration: 
+    # [ [x1u, x2u, ..., xnu], [y1u, y2u, ..., ynu], [z1u, z2u, ..., znu] ]
+    # and gravitational acceleration: 
+    # [ [x1g, x2g, ..., xng], [y1g, y2g, ..., yng], [z1g, z2g, ..., zng] ] ]
+    user_accl = accl.map(&:first).transpose
+    grav_accl = accl.map(&:last).transpose
+    
     user_x, user_y, user_z = user_accl
     grav_x, grav_y, grav_z = grav_accl
     
