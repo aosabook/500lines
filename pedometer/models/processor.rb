@@ -36,10 +36,15 @@ class Processor
     # OR
     # [ [ [x1u, y1u, z1u], [x1g, y1g, z1g] ], ..., 
     #   [ [xnu, ynu, znu], [xng, yng, zng] ] ]
-    accl = @data.split(';').map { |i| i.split('|') }
+    @parsed_data = @data.split(';').map { |i| i.split('|') }
                 .map { |i| i.map { |i| i.split(',').map(&:to_f) } }
     
-    @format = if accl.first.count == 1
+    unless @parsed_data.map { |data| data.map(&:length) }.uniq.flatten.uniq == [3]
+      raise 'Bad Input. Ensure data is properly formatted.'
+    end
+
+    if @parsed_data.first.count == 1
+      @format = FORMAT_COMBINED
       # TODO: Try to combine the two loops below. Easier to explain. 
       #       See branch parser-option-2.
 
@@ -47,7 +52,7 @@ class Processor
       # [ [ [x1u, x2u, ..., xnu], [x1g, x2g, ..., xng] ],
       #   [ [y1u, y2u, ..., ynu], [y1g, y2g, ..., yng] ],
       #   [ [z1u, z2u, ..., znu], [z1g, z2g, ..., zng] ], ]
-      filtered_accl = accl.map(&:flatten).transpose.map do |total_accl|
+      filtered_accl = @parsed_data.map(&:flatten).transpose.map do |total_accl|
         grav = chebyshev_filter(total_accl, GRAVITY_COEFF)
         user = total_accl.zip(grav).map { |a, b| a - b }
         [user, grav]
@@ -56,27 +61,14 @@ class Processor
       # Format filtered acceleration into the following format:
       # [ [ [x1u, y1u, z1u], [x1g, y1g, z1g] ], ..., 
       #   [ [xnu, ynu, znu], [xng, yng, zng] ] ]
-      accl = accl.length.times.map do |i| 
+      @parsed_data = @parsed_data.length.times.map do |i| 
         coordinate_user = filtered_accl.map(&:first).map { |elem| elem[i] }
         coordinate_grav = filtered_accl.map(&:last).map { |elem| elem[i] }
 
         [coordinate_user, coordinate_grav]
       end
-
-      FORMAT_COMBINED
     else
-      FORMAT_SEPARATED
-    end
-
-    # Set @parsed_data to standard format
-    @parsed_data = []
-    accl.each do |point|
-      unless point.map(&:length) == [3, 3]
-        raise 'Bad Input. Ensure data is properly formatted.'
-      end
-      
-      @parsed_data << { x: point[0][0], y: point[0][1], z: point[0][2],
-                        xg: point[1][0], yg: point[1][1], zg: point[1][2] }
+      @format = FORMAT_SEPARATED
     end
   rescue
     raise 'Bad Input. Ensure data is properly formatted.'
@@ -84,7 +76,7 @@ class Processor
 
   def dot_product_parsed_data
     @dot_product_data = @parsed_data.map do |data|
-      data[:x] * data[:xg] + data[:y] * data[:yg] + data[:z] * data[:zg]
+      data[0][0] * data[1][0] + data[0][1] * data[1][1] + data[0][2] * data[1][2]
     end
   end
 
