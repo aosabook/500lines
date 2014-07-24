@@ -32,9 +32,10 @@ class Parser
   # have specific exceptions that you except to be raised, and have logic to handle those cases.
   def parse_raw_data
     # Extract numerical data into the format:
-    # [ [ [x1,y1,z1] ], ..., [ [xn,yn,zn] ] ]
+    # [ [ [x1t, y1t, z1t] ], ..., [ [xnt, ynt, znt] ] ]
     # OR
-    # [ [ [x1,y1,z1], [xg1,yg1,zg1] ], ..., [ [xn,yn,zn], [xgn,ygn,zgn] ] ]
+    # [ [ [x1u, y1u, z1u], [x1g, y1g, z1g] ], ..., 
+    #   [ [xnu, ynu, znu], [xng, yng, zng] ] ]
     accl = @data.split(';').map { |i| i.split('|') }
                 .map { |i| i.map { |i| i.split(',').map(&:to_f) } }
     
@@ -52,8 +53,9 @@ class Parser
         [user, grav]
       end
 
-      # Format split acceleration into the following format:
-      # [ [ [x1,y1,z1], [xg1,yg1,zg1] ], ..., [ [xn,yn,zn], [xgn,ygn,zgn] ] ]
+      # Format filtered acceleration into the following format:
+      # [ [ [x1u, y1u, z1u], [x1g, y1g, z1g] ], ..., 
+      #   [ [xnu, ynu, znu], [xng, yng, zng] ] ]
       accl = (0..accl.length-1).map do |i| 
         coordinate_user = filtered_accl.map(&:first).map { |elem| elem[i] }
         coordinate_grav = filtered_accl.map(&:last).map { |elem| elem[i] }
