@@ -43,10 +43,9 @@ class Processor
       raise 'Bad Input. Ensure data is properly formatted.'
     end
 
-    if @parsed_data.first.count == 1
-      @format = FORMAT_COMBINED
-      # TODO: Try to combine the two loops below. Easier to explain. 
-      #       See branch parser-option-2.
+    @format = if @parsed_data.first.count == 1
+      # TODO: Try to combine the two loops below. Will make chapter 
+      #       explanation easier. See branch parser-option-2.
 
       # Low-pass filter combined acceleration into the following format:
       # [ [ [x1u, x2u, ..., xnu], [x1g, x2g, ..., xng] ],
@@ -67,11 +66,11 @@ class Processor
 
         [coordinate_user, coordinate_grav]
       end
+      
+      FORMAT_COMBINED
     else
-      @format = FORMAT_SEPARATED
+      FORMAT_SEPARATED
     end
-  rescue
-    raise 'Bad Input. Ensure data is properly formatted.'
   end
 
   def dot_product_parsed_data
