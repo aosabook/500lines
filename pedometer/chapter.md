@@ -172,10 +172,10 @@ Our web app will:
 
 1. Allow a user to upload a text file containing coordinates from a walk.
 2. Provide input fields for the user to enter some basic information about the data set (sampling rate, actual step count, gender/height/stride of user, etc.)
-3. Parse and analyze our data, calculating the number of steps taken, distance traveled, and time elapsed.
+3. Parse, process, and analyze our data, calculating the number of steps taken, distance traveled, and time elapsed.
 4. Output charts representing the data in different processing stages.
 
-The meat and potatoes of our program is in step 3, where we parse and analyze the input data. It makes sense, then, to start with that, and build the web app and interface afterward.
+The meat and potatoes of our program is in step 3, where we parse, process, and analyze the input data. It makes sense, then, to start with that, and build the web app and interface afterward.
 
 # Parsing Input Data
 
@@ -247,12 +247,12 @@ We've defined our standard format as an array of hashes, where each hash contain
 
 The array allows us to store a data series signal, as each element represents acceleration at a point in time. Defining the array elements as hashes gives us the ability to easily access an acceleration in a direction using one of the keys above. 
 
-These three tasks are all related to taking input data, and parsing and processing it to get it to a state where our resulting signal is clean enough for us to count steps. Due to this relationship, it makes sense to combine these tasks into one class. We'll call it a **Parser**. 
+These three tasks are all related to taking input data, and parsing and processing it to get it to a state where our resulting signal is clean enough for us to count steps. Due to this relationship, it makes sense to combine these tasks into one class. We'll call it a **Processor**. 
 
-## The Parser Class
+## The Processor Class
 
 ~~~~~~~
-class Parser
+class Processor
 
   GRAVITY_COEFF = {
     alpha: [1, -1.979133761292768, 0.979521463540373],
@@ -366,9 +366,9 @@ The `chebyshev_filter` method is another example of *separation of concerns*. We
 
 Let's take a look at how the rest of the class works, and how it uses `chebyshev_filter`. 
 
-## The Inner Workings of the Parser Class
+## The Inner Workings of the Processor Class
 
-Let's start with the `initialize` method. Our parser class takes string data as input and stores it in the `@data` instance variable. It then calls three methods in sequence: `parse_raw_data`, `dot_product_parsed_data`, and `filter_dot_product_data`. 
+Let's start with the `initialize` method. Our processor class takes string data as input and stores it in the `@data` instance variable. It then calls three methods in sequence: `parse_raw_data`, `dot_product_parsed_data`, and `filter_dot_product_data`. 
 
 Each method accomplishes one of our three steps above. Let's look at each method individually. 
 
@@ -415,7 +415,7 @@ Now that we have our data in a standard format stored in @parsed_data, the rest 
 
 ### Step 2: dot_product_parsed_data
 
-Taking the dot product in our Parser class is a matter of using the data in our standard format, @parsed_data, and applying the fot product formulat to it. We add a @dot_product_data instance variable, and a method, dot_product_parsed_data, to set that variable. The dot_product_parsed_data method is called immeditely after parse_raw_data in the initializer, and iterates through our @parsed_data hash, calculates the dot product with map, and sets the result to @dot_product_data. 
+Taking the dot product in our Processor class is a matter of using the data in our standard format, @parsed_data, and applying the fot product formulat to it. We add a @dot_product_data instance variable, and a method, dot_product_parsed_data, to set that variable. The dot_product_parsed_data method is called immeditely after parse_raw_data in the initializer, and iterates through our @parsed_data hash, calculates the dot product with map, and sets the result to @dot_product_data. 
 
 ### Step 3: filter_dot_product_data
 
@@ -423,19 +423,19 @@ Following the pattern from steps one and two, we add another instance variable, 
 
 The filter_dot_product_data method is the second place our low-pass filtering method, chebyshev_filter, is used. This time, we pass @dot_product_data in as our signal and use SMOOTHING_COEFF, and the result returned is our signal without the high frequence component, which we store in @filtered_data. This final signal, @filtered_data, is the clean signal we can use to count steps. 
 
-## Our Parser class in the wild
+## Our Processor class in the wild
 
-Our Parser now takes string data in the separated format, converts it into a more useable format, isolates movement in the direction of gravity through the dot product operation, and filters the resulting data series to smooth it out. 
+Our Processor now takes string data in the separated format, converts it into a more useable format, isolates movement in the direction of gravity through the dot product operation, and filters the resulting data series to smooth it out. 
 
-Our parser class is useable on its own as is. An example with combined data:
+Our processor class is useable on its own as is. An example with combined data:
 
 ~~~~~~~
 > data = '0.123,-0.123,5;0.456,-0.789,0.111;-0.212,0.001,1;'
-> parser = Parser.new(data)
+> processor = Processor.new(data)
 
-> parser.format
+> processor.format
 => 'combined'
-> parser.parsed_data
+> processor.parsed_data
 => [{:x=>0.123, :y=>-0.123, :z=>5.0, :xg=>0, :yg=>0, :zg=>0},
     {:x=>0.456, :y=>-0.789, :z=>0.111, :xg=>0, :yg=>0, :zg=>0},
     {:x=>-0.2120710948533322,
@@ -444,9 +444,9 @@ Our parser class is useable on its own as is. An example with combined data:
    	 :xg=>7.109485333219216e-05,
      :yg=>-0.00014685449655495343,
      :zg=>0.0005374874573911294}]
-> parser.dot_product_data
+> processor.dot_product_data
 => [0.0, 0.0, 0.0005219529804999682]
-> parser.filtered_data
+> processor.filtered_data
 => [0, 0, 4.9828746074755684e-05]
 ~~~~~~~
 
@@ -454,22 +454,22 @@ An example with separated data:
 
 ~~~~~~~
 > data = '0.028,-0.072,5|0.129,-0.945,-5;0,-0.07,0.06|0.123,-0.947,5;0.2,-1,2|0.1,-0.9,3;'
-> parser = Parser.new(data)
+> processor = Processor.new(data)
 
-> parser.format
+> processor.format
 => 'separated'
-> parser.parsed_data
+> processor.parsed_data
 => [{:x=>0.028, :y=>-0.072, :z=>5, :xg=>0.129, :yg=>-0.945, :zg=>-5}, 
 	{:x=>0, :y=>-0.07, :z =>0.06, :xg=>0.123, :yg=>-0.947, :zg=>5},
 	{:x=>0.2, :y=>-1.0, :z=>2.0, :xg=>0.1, :yg=>-0.9, :zg=>3.0}]
-> parser.dot_product_data
+> processor.dot_product_data
 => [-24.928348, 0.36629, 6.92]
-> parser.filtered_data
+> processor.filtered_data
 => [0, 0, -1.7824384769309702]
 ~~~~~~~
 
 ### Things to note
-* Ability to pass in either format and the Parser determines it. It's the only class that has to be concerned with it. 
+* Ability to pass in either format and the Processor determines it. It's the only class that has to be concerned with it. 
 * ...
 
 ### Where to improve
@@ -567,7 +567,7 @@ Below are examples of users created with the least specific to the most specific
 
 ### Time Traveled
 
-The time traveled is measured by dividing the number of data samples in our Parser's @parsed_data set by the sampling rate of the device. Since the rate has more to do with the device itself than the user (and the user in fact does not have to be aware of the sampling rate), this looks like a good time to create a Device class. 
+The time traveled is measured by dividing the number of data samples in our Processor's @parsed_data set by the sampling rate of the device. Since the rate has more to do with the device itself than the user (and the user in fact does not have to be aware of the sampling rate), this looks like a good time to create a Device class. 
 
 ~~~~~~~
 class Device
@@ -605,11 +605,11 @@ We decided that we could count steps by counting the number of peaks in our sign
 
 If we assume that we're just as likely to accuarately count peaks as we are to count troughs, we'll get the most accurate result by counting both and taking the average of the two to determine our final step count. This will remove some error from certain data sets that have less prominent peaks or troughs. We can count troughs in a similar fashion, by using a threshold that is exactly the negative of our previous threshold. 
 
-Let's implement this threshold strategy in code. So far, we have a Parser class that contains our parsed waveform, and classes that give us the necessary information about a user and a device. What we're missing is a way to analyze the @parsed_data waveform with the information from User and Device, and count steps, measure distance, and measure time. The analysis portion of our program is different from the data manipulation of the Parser, and different from the information collection and aggregation of the User and Device classes. Let's create a new class called Analyzer to perform this data analysis.
+Let's implement this threshold strategy in code. So far, we have a Processor class that contains our processed, smooth waveform, and classes that give us the necessary information about a user and a device. What we're missing is a way to analyze the @parsed_data waveform with the information from User and Device, and count steps, measure distance, and measure time. The analysis portion of our program is different from the data manipulation of the Processor, and different from the information collection and aggregation of the User and Device classes. Let's create a new class called Analyzer to perform this data analysis.
 
 ~~~~~~~
 require 'mathn'
-require_relative 'parser'
+require_relative 'processor'
 require_relative 'user'
 require_relative 'device'
 
@@ -618,14 +618,14 @@ class Analyzer
   MAX_STEPS_PER_SECOND = 6.0
   THRESHOLD = 0.2
 
-  attr_reader :parser, :user, :device, :steps, :distance, :time
+  attr_reader :processor, :user, :device, :steps, :distance, :time
 
-  def initialize(parser, user = User.new, device = Device.new)
-    raise "Parser invalid." unless parser.kind_of? Parser
+  def initialize(processor, user = User.new, device = Device.new)
+    raise "Processor invalid." unless processor.kind_of? Processor
     raise "User invalid."   unless user.kind_of? User
     raise "Device invalid." unless device.kind_of? Device
 
-    @parser = parser
+    @processor = processor
     @user   = user
     @device = device
   end
@@ -646,11 +646,11 @@ private
     threshold       = positive ? THRESHOLD : -THRESHOLD
     min_interval    = (@device.rate/MAX_STEPS_PER_SECOND)
 
-    @parser.filtered_data.each_with_index do |data, i|
+    @processor.filtered_data.each_with_index do |data, i|
       # If the current value >= the threshold, and the previous was < the threshold
       # AND the interval between now and the last time a step was counted is 
       # above the minimun threshold, count this as a step
-      if (data >= threshold) && (@parser.filtered_data[i-1] < threshold)
+      if (data >= threshold) && (@processor.filtered_data[i-1] < threshold)
         next if index_last_step > 0 && (i-index_last_step) < min_interval
         count += 1
         index_last_step = i
@@ -673,17 +673,17 @@ private
   end
 
   def measure_time
-    @time = @parser.parsed_data.count/@device.rate
+    @time = @processor.parsed_data.count/@device.rate
   end
 
 end
 ~~~~~~~
 
-Where our Parser class did all of the work of the input data cleaning, our Analyzer class does the work of analyzing the cleaned data.
+Where our Processor class did all of the work of the input data cleaning, our Analyzer class does the work of analyzing the cleaned data.
 
-The first thing we do in our Analyzer class file is pull in the Ruby math library, along with our Parser, Device, and User classes. Then, we define constants to represent the maximum number of steps taken per second (used for error correction which we'll disucss in a moment), and a value for our threshold. For the purposes of this discussion, let's assume we've analyzsed numerous diverse data sets and detemined a value for the threshold that accomodated the largest number of those data sets. 
+The first thing we do in our Analyzer class file is pull in the Ruby math library, along with our Processor, Device, and User classes. Then, we define constants to represent the maximum number of steps taken per second (used for error correction which we'll disucss in a moment), and a value for our threshold. For the purposes of this discussion, let's assume we've analyzsed numerous diverse data sets and detemined a value for the threshold that accomodated the largest number of those data sets. 
 
-Our Analyzer's initializer take a mandatory Parser because we necessarily need a data set to work with, and optionally takes a User and a Device. Note that the default values for those parameters is a new instance of each. Remember how those classes both had defualt values and could handle zero input parameters? That functionality comes in handy here. Note that the initializer raises exceptions if classes other than those expected are passed in, since we can't work with incorrect class types. Otherwise, all it does is set the instance variables @parser, @user, @device to the passed in parameters. 
+Our Analyzer's initializer take a mandatory Processor because we necessarily need a data set to work with, and optionally takes a User and a Device. Note that the default values for those parameters is a new instance of each. Remember how those classes both had defualt values and could handle zero input parameters? That functionality comes in handy here. Note that the initializer raises exceptions if classes other than those expected are passed in, since we can't work with incorrect class types. Otherwise, all it does is set the instance variables @processor, @user, @device to the passed in parameters. 
 
 The only other public method in Analyzer is measure, which calls the private methods measure_steps, measure_distance, and measure_time, in that order. Let's look at each:
 
@@ -691,7 +691,7 @@ The only other public method in Analyzer is measure, which calls the private met
 
 Finally! The step counting portion of our step counting app. 
 
-The measure steps method counts the positive edges (the peaks) and the negative edges (the troughs) through the count_edges method, and then sets the @steps variable to the average of the two. The count_edges method takes a boolean parameter to determine whether we're counting peaks or troughs. The method iterates through each point in our parser's @filtered_data attribute to count steps. At the start of the method, we instantiate the following variables:
+The measure steps method counts the positive edges (the peaks) and the negative edges (the troughs) through the count_edges method, and then sets the @steps variable to the average of the two. The count_edges method takes a boolean parameter to determine whether we're counting peaks or troughs. The method iterates through each point in our processor's @filtered_data attribute to count steps. At the start of the method, we instantiate the following variables:
 
 * count is used to keep track of the step count as we interate through our loop. This is, obviously, initialized to 0.
 * index_last_steps keeps the index of the step before the one we're on when looping through @filtered_data.
@@ -708,7 +708,7 @@ The distance is measured by miltuplying our user's stride by the number of steps
 
 ### measure_time
 
-Time is calculaed by dividing the total number of samples (the number of points in our parser's filtered_data attribute) by the rate (samples/second). Time, then, is returned in numbers of seconds. 
+Time is calculaed by dividing the total number of samples (the number of points in our processor's filtered_data attribute) by the rate (samples/second). Time, then, is returned in numbers of seconds. 
 
 Things to Note:
 
@@ -736,7 +736,7 @@ Note that the user has entered everything but their stride. From this same trial
 
 ![](chapter-figures/app-3-1246w-90p.png)\ 
 
-Our program has parsed and analyzed the input file, and presented information at the very top for the user. The fields that our program calculated are the format of the file (Measurement), the calculated steps taken (Calculated), the difference between the calculated steps and actual steps taken (Delta), the distance traveled (Distance), and time it took (Time). The graphs shown are the dot product and the filtered data. 
+Our program has parsed, processed, and analyzed the input file, and presented information at the very top for the user. The fields that our program calculated are the format of the file (Measurement), the calculated steps taken (Calculated), the difference between the calculated steps and actual steps taken (Delta), the distance traveled (Distance), and time it took (Time). The graphs shown are the dot product and the filtered data. 
 
 The user can navigate back to the trials using the *Back to Trials* link, and upload the second file.
 
@@ -769,14 +769,14 @@ include FileUtils::Verbose
 
 class Trial
 
-  attr_reader :file_name, :parser, :user, :device, :analyzer
+  attr_reader :file_name, :processor, :user, :device, :analyzer
   attr_reader :user_params, :device_params
 
   def initialize(file_name = nil, input_data = nil, user_params = nil, device_params = nil)
     if file_name
       @file_name = file_name
     elsif input_data
-      @parser = Parser.new(File.read(input_data))
+      @processor = Processor.new(File.read(input_data))
       @user   = User.new(*user_params)
       @device = Device.new(*device_params)
 
@@ -785,7 +785,7 @@ class Trial
                    "#{device.rate}-" + 
                    "#{device.steps}-" +
                    "#{device.trial.to_s.gsub(/\s+/, '')}-" + 
-                   "#{device.method}-#{parser.format[0]}.txt"
+                   "#{device.method}-#{processor.format[0]}.txt"
     else 
       raise 'File name or input data must be passed in.'
     end
@@ -810,8 +810,8 @@ class Trial
 
   # -- Instance Methods -----------------------------------------------------
 
-  def parser
-    @parser ||= Parser.new(File.read(file_name))
+  def processor
+    @processor ||= Processor.new(File.read(file_name))
   end
 
   def user
@@ -824,7 +824,7 @@ class Trial
 
   def analyzer
     unless @analyzer
-      @analyzer = Analyzer.new(parser, user, device)
+      @analyzer = Analyzer.new(processor, user, device)
       @analyzer.measure
     end
     @analyzer
@@ -849,7 +849,7 @@ cp test/data/trial-1.txt public/uploads/female-168.0-71.0_100-10-1-run-c.txt
 => #<Trial:0x007fa25b8be8b8>
 ~~~~~~~
 
-The create method calls the constructor, passing in nil for the file_name, and the tempfile and user and device parameters. The constructor then creates and sets Parser, User, and Device objects, and generates a filename. Finally, the create method copies the tempfile to the filesystem, using the file_name from the Trial object, and saves it to 'public/uploads/'. The Trial object is returned. 
+The create method calls the constructor, passing in nil for the file_name, and the tempfile and user and device parameters. The constructor then creates and sets Processor, User, and Device objects, and generates a filename. Finally, the create method copies the tempfile to the filesystem, using the file_name from the Trial object, and saves it to 'public/uploads/'. The Trial object is returned. 
 
 Now the we have our trial saved to the file system, we need a way to retireve it. We do that with the find class method. 
 
@@ -860,7 +860,7 @@ Now the we have our trial saved to the file system, we need a way to retireve it
 
 Like the create method, find calls into the constructor, but passes only the file_name. All the constructor does at that point is set the file_name instance method on the instance of Trial. 
 
-We can now ask for the parser, user, device, or analyzer objects directly from our trial instance. Notice that all of these variables are lazy loaded, to prevent creation and parsing until needed. The user and device instance methods parse the file_name to retirve the necessary parameters to create the objects, and the parser method reads the data from the file itself. 
+We can now ask for the processor, user, device, or analyzer objects directly from our trial instance. Notice that all of these variables are lazy loaded, to prevent creation and parsing until needed. The user and device instance methods parse the file_name to retirve the necessary parameters to create the objects, and the processor method reads the data from the file itself. 
 
 The all class method grabs all of the files in our public/upoads folder, and creates trial objects, returning an array of all trials. 
 
@@ -919,7 +919,7 @@ end
 post '/create' do
   begin
     @trial = Trial.create(
-      params[:parser][:file_upload][:tempfile], 
+      params[:processor][:file_upload][:tempfile], 
       params[:user].values,
       params[:device].values
     )
@@ -949,7 +949,7 @@ trials.erb
   <%= erb :summary, locals: { trials: @trials, detail_hidden: true } %>
   <form method="post" action="/create" enctype="multipart/form-data">
     <h3 class="upload-header">Device Info</h3>
-    <input name="parser[file_upload]" type="file">
+    <input name="processor[file_upload]" type="file">
     <input name="device[rate]" type="number" class="params" placeholder="Sampling Rate">
     <input name="device[steps]" type="number" class="params" placeholder="Actual Step Count">
     <input name="device[trial]" type="number" class="params" placeholder="Trial Number">
@@ -1036,7 +1036,7 @@ The trials view also renders summary.erb. We place it in its own file, because w
     <tr>
       <td><%= trial.analyzer.user.gender %></td>
       <td><%= trial.analyzer.device.method %></td>
-      <td><%= trial.analyzer.parser.format %></td>
+      <td><%= trial.analyzer.processor.format %></td>
       <td><%= trial.analyzer.device.trial %></td>
       <td><%= trial.analyzer.device.steps %></td>
       <td><%= trial.analyzer.steps %></td>
@@ -1137,7 +1137,7 @@ The get '/trial/*' route is called with a file path. For example: http://localho
             title: { text: 'Dot Product Data' },
             series: [{
                 name: 'Dot Product Data',
-                data: <%= ViewHelper.limit_1000(@trial.analyzer.parser.dot_product_data) %>
+                data: <%= ViewHelper.limit_1000(@trial.analyzer.processor.dot_product_data) %>
             }]
         });
 
@@ -1145,7 +1145,7 @@ The get '/trial/*' route is called with a file path. For example: http://localho
             title: { text: 'Filtered Data' },
             series: [{
                 name: 'Filtered Data',
-                data: <%= ViewHelper.limit_1000(@trial.analyzer.parser.filtered_data) %>
+                data: <%= ViewHelper.limit_1000(@trial.analyzer.processor.filtered_data) %>
             }]
         });
     });

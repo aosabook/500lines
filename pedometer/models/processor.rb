@@ -1,4 +1,4 @@
-class Parser
+class Processor
 
   GRAVITY_COEFF = {
     alpha: [1, -1.979133761292768, 0.979521463540373],

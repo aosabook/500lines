@@ -5,7 +5,7 @@
   <%= erb :summary, locals: { trials: @trials, detail_hidden: true } %>
   <form method="post" action="/create" enctype="multipart/form-data">
     <h3 class="upload-header">Device Info</h3>
-    <input name="parser[file_upload]" type="file">
+    <input name="processor[file_upload]" type="file">
     <input name="device[rate]" type="number" class="params" placeholder="Sampling Rate">
     <input name="device[steps]" type="number" class="params" placeholder="Actual Step Count">
     <input name="device[trial]" type="number" class="params" placeholder="Trial Number">

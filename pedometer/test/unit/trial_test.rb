@@ -16,7 +16,7 @@ class TrialTest < Test::Unit::TestCase
       ['100', '100', '1','walk']
     )
     
-    assert_equal File.read('test/data/trial-1.txt'), trial.parser.data
+    assert_equal File.read('test/data/trial-1.txt'), trial.processor.data
 
     assert_equal 'female', trial.user.gender
     assert_equal 168, trial.user.height
@@ -33,7 +33,7 @@ class TrialTest < Test::Unit::TestCase
   def test_find
     trial = Trial.find('public/uploads/female-168.0-70.0_100-100-1-walk-c.txt')
     
-    assert_equal File.read('public/uploads/female-168.0-70.0_100-100-1-walk-c.txt'), trial.parser.data
+    assert_equal File.read('public/uploads/female-168.0-70.0_100-100-1-walk-c.txt'), trial.processor.data
 
     assert_equal 'female', trial.user.gender
     assert_equal 168, trial.user.height
