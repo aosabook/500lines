@@ -75,7 +75,9 @@ class Processor
 
   def dot_product_parsed_data
     @dot_product_data = @parsed_data.map do |data|
-      data[0][0] * data[1][0] + data[0][1] * data[1][1] + data[0][2] * data[1][2]
+      data[0][0] * data[1][0] + 
+      data[0][1] * data[1][1] + 
+      data[0][2] * data[1][2]
     end
   end
 
