@@ -20,7 +20,7 @@ class Processor
   # Should the methods be moved out of the initializer? Or, renamed to:
   # set_parsed_data, set_dot_product_data, set_filtered_data?
   def initialize(data)
-    @data = data.to_s
+    @data = data
 
     parse_raw_data
     dot_product_parsed_data
@@ -33,7 +33,7 @@ class Processor
     # OR
     # [ [ [x1u, y1u, z1u], [x1g, y1g, z1g] ], ..., 
     #   [ [xnu, ynu, znu], [xng, yng, zng] ] ]
-    @parsed_data = @data.split(';').map { |i| i.split('|') }
+    @parsed_data = @data.to_s.split(';').map { |i| i.split('|') }
                    .map { |i| i.map { |i| i.split(',').map(&:to_f) } }
 
     unless @parsed_data.map { |data| data.map(&:length).uniq }.uniq == [[3]]
