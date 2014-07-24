@@ -22,7 +22,7 @@ end
 post '/create' do
   begin
     @trial = Trial.create(
-      params[:parser][:file_upload][:tempfile], 
+      params[:processor][:file_upload][:tempfile], 
       params[:user].values,
       params[:device].values
     )

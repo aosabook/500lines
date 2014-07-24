@@ -3,20 +3,20 @@ require_relative '../../models/analyzer'
 
 class AnalyzerTest < Test::Unit::TestCase
 
-  PARSER_MESSAGE = 'Parser invalid.'
+  PROCESSOR_MESSAGE = 'Processor invalid.'
   USER_MESSAGE   = 'User invalid.'
   DEVICE_MESSAGE = 'Device invalid.'
 
   # -- Creation Tests -------------------------------------------------------
 
   def test_create_combined_data
-    parser = Parser.new('0.123,-0.123,5;')
+    processor = Processor.new('0.123,-0.123,5;')
     user   = User.new
     device = Device.new
     
-    analyzer = Analyzer.new(parser, user, device)
+    analyzer = Analyzer.new(processor, user, device)
     
-    assert_equal parser, analyzer.parser
+    assert_equal processor, analyzer.processor
     assert_equal user,   analyzer.user
     assert_equal device, analyzer.device
 
@@ -26,13 +26,13 @@ class AnalyzerTest < Test::Unit::TestCase
   end
 
   def test_create_separated_data
-    parser = Parser.new('0.028,-0.072,5|0.129,-0.945,-5;')
+    processor = Processor.new('0.028,-0.072,5|0.129,-0.945,-5;')
     user   = User.new
     device = Device.new
 
-    analyzer = Analyzer.new(parser, user, device)
+    analyzer = Analyzer.new(processor, user, device)
     
-    assert_equal parser, analyzer.parser
+    assert_equal processor, analyzer.processor
     assert_equal user,   analyzer.user
     assert_equal device, analyzer.device
 
@@ -41,52 +41,52 @@ class AnalyzerTest < Test::Unit::TestCase
     assert_nil analyzer.time
   end
 
-  def test_create_no_parser
-    assert_raise_with_message(RuntimeError, PARSER_MESSAGE) do
+  def test_create_no_processor
+    assert_raise_with_message(RuntimeError, PROCESSOR_MESSAGE) do
       Analyzer.new(nil)
     end
   end
 
   def test_create_no_user_no_device
-    parser = Parser.new('0.123,-0.123,5;')
-    analyzer = Analyzer.new(parser)
+    processor = Processor.new('0.123,-0.123,5;')
+    analyzer = Analyzer.new(processor)
     assert analyzer.user.kind_of? User
     assert analyzer.device.kind_of? Device
   end
 
-  def test_create_bad_parser
-    assert_raise_with_message(RuntimeError, PARSER_MESSAGE) do
-      Analyzer.new('bad parser')
+  def test_create_bad_processor
+    assert_raise_with_message(RuntimeError, PROCESSOR_MESSAGE) do
+      Analyzer.new('bad processor')
     end
   end
 
   def test_create_bad_user
     assert_raise_with_message(RuntimeError, USER_MESSAGE) do
-      parser = Parser.new('0.123,-0.123,5;')
-      analyzer = Analyzer.new(parser, 'bad user')
+      processor = Processor.new('0.123,-0.123,5;')
+      analyzer = Analyzer.new(processor, 'bad user')
     end
   end
 
   def test_create_bad_device
     assert_raise_with_message(RuntimeError, DEVICE_MESSAGE) do
-      parser = Parser.new('0.123,-0.123,5;')
-      analyzer = Analyzer.new(parser, User.new, 'bad device')
+      processor = Processor.new('0.123,-0.123,5;')
+      analyzer = Analyzer.new(processor, User.new, 'bad device')
     end
   end
 
   # -- Edge Detection Tests -------------------------------------------------
 
   def test_count_edges
-    parser = Parser.new(File.read('test/data/female-167-70_100-10-1-walk-g.txt'))
-    analyzer = Analyzer.new(parser)
+    processor = Processor.new(File.read('test/data/female-167-70_100-10-1-walk-g.txt'))
+    analyzer = Analyzer.new(processor)
     
     assert_equal 9, analyzer.send(:count_edges, true)
     assert_equal 7, analyzer.send(:count_edges, false)
   end
 
   def test_count_edges_false_step
-    parser = Parser.new(File.read('test/data/female-167-70_100-0-1-walk-g.txt'))
-    analyzer = Analyzer.new(parser)
+    processor = Processor.new(File.read('test/data/female-167-70_100-0-1-walk-g.txt'))
+    analyzer = Analyzer.new(processor)
     
     assert_equal 1, analyzer.send(:count_edges, true)
     assert_equal 1, analyzer.send(:count_edges, false)
@@ -96,8 +96,8 @@ class AnalyzerTest < Test::Unit::TestCase
 
   def test_measure
     user = User.new(nil, nil, 100)
-    parser = Parser.new(File.read('test/data/female-167-70_100-10-1-walk-g.txt'))
-    analyzer = Analyzer.new(parser, user)
+    processor = Processor.new(File.read('test/data/female-167-70_100-10-1-walk-g.txt'))
+    analyzer = Analyzer.new(processor, user)
     analyzer.measure
 
     assert_equal 8,          analyzer.steps

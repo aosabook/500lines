@@ -5,14 +5,14 @@ include FileUtils::Verbose
 
 class Trial
 
-  attr_reader :file_name, :parser, :user, :device, :analyzer
+  attr_reader :file_name, :processor, :user, :device, :analyzer
   attr_reader :user_params, :device_params
 
   def initialize(file_name = nil, input_data = nil, user_params = nil, device_params = nil)
     if file_name
       @file_name = file_name
     elsif input_data
-      @parser = Parser.new(File.read(input_data))
+      @processor = Processor.new(File.read(input_data))
       @user   = User.new(*user_params)
       @device = Device.new(*device_params)
 
@@ -21,7 +21,7 @@ class Trial
                    "#{device.rate}-" + 
                    "#{device.steps}-" +
                    "#{device.trial.to_s.gsub(/\s+/, '')}-" + 
-                   "#{device.method}-#{parser.format[0]}.txt"
+                   "#{device.method}-#{processor.format[0]}.txt"
     else 
       raise 'File name or input data must be passed in.'
     end
@@ -46,8 +46,8 @@ class Trial
 
   # -- Instance Methods -----------------------------------------------------
 
-  def parser
-    @parser ||= Parser.new(File.read(file_name))
+  def processor
+    @processor ||= Processor.new(File.read(file_name))
   end
 
   def user
@@ -60,7 +60,7 @@ class Trial
 
   def analyzer
     unless @analyzer
-      @analyzer = Analyzer.new(parser, user, device)
+      @analyzer = Analyzer.new(processor, user, device)
       @analyzer.measure
     end
     @analyzer
