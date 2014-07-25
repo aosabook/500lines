@@ -814,7 +814,7 @@ Ok, last piece.
 		         do (loop while (socket-close c)))
 	       (loop while (socket-close server)))))
 
-The top-level method `start` takes a local `port` and listens on it for all incoming connections. It sets up the connection and buffer tables, and then loops forever, waiting for ready signals from all its connections, including the initial listener. If something happens, it dispatches the event using the `process-ready` method we saw above. If any error propagates *this* high up the handler chain, it either means the user has issued an interrupt, or something seriously weird has exploded. In that case, the top level just cleans up after itself and calls it a day.
+The top-level method `start` takes a local `port` and listens on it for all incoming connections. It sets up the connection and buffer tables, and then loops forever, waiting for ready signals from all its connections, including the initial listener. If something happens, it dispatches the event using the `process-ready` method we saw above. If any error propagates *this* high up the handler chain, it either means the user has issued an interrupt, or something seriously weird has exploded. In either case, the top level just cleans up after itself and calls it a day.
 
 ### All Together Now
 
@@ -870,7 +870,7 @@ I mentioned we'd get to the debug component, and figured I'd go over it in the e
 		       (dbg "Publishing to channel" chan msg))
 	    nil))
 
-The feature is `:before`/`:after` hooks. And I guess the built-in language feature that `defmethod` isn't some special piece of syntax that can only be run at the top level, but I sort of take that for granted these days. Defining a `:before` hook ona particular method lets you specify a bit of code that'll be executed before every call to that method. `:after` is similar, except the stuff you specify happens after the main method is called. You can specialize these `:before`/`:after` hooks as arbitrarily as the main methods, and only the relevant one will actually run. One possible use for this is the above.
+The feature is `:before`/`:after` hooks. And I guess the built-in language feature of a `defmethod` that can be run somewhere other than the top-level, but I sort of take that for granted these days. Defining a `:before` hook on a particular method lets you specify a bit of code that'll be executed before every call to that method. `:after` is similar, except the stuff you specify happens after the main method is called. You can specialize these `:before`/`:after` hooks as arbitrarily as the main methods, and only the relevant one will actually run. One possible use for this is the above.
 
 As I mentioned, most of the `:house` server is written using `defmethod`, which means I have plenty of places to hook up debugging/logging statements so I can see what's going on. Clustering all such print statements inside of the `debug!` procedures means that the rest of my code gets to stay unchanged when I need to add a `printf` somewhere, and it means that the `printf`s don't get run unless I specifically ask for them by calling `(debug!)` at some point in my session. 
 
