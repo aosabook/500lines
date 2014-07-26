@@ -1,5 +1,105 @@
 # On Interacting Through HTTP in an Event-Driven Manner in the Medium of Common Lisp
 
+Backstory first here. So at some point last year, I got it into my head to put together a quick little [game prototyping tool](https://github.com/Inaimathi/deal). Like, physical card and board games. The use case was doing some light game dev with a friend of mine from university who had moved across the country, so it had to be something that bridged the spatial gap _as well as_ letting us think about mechanics and physical aspects.
+
+Now, the problem with this goal is that it involves keeping long-lived connections between clients, because in a game, I want to see an opponents move as soon as it happens rather than only when I move. This wouldn't be a problem if not for the fact that [`hunchentoot`](insert link here), the most popular Common Lisp web-server, works on a thread-per-request model. And, in the absence of [really](racket-lang) REALLY [cheap](erlang language) threads, that's a bad mix. Because every long-lived connection is going to spawn its own accompanying long-lived thread. Granted, it might have worked kind of buggily for the kind of small group we wanted, but I try hard not to half-ass interesting problems. I could have switched languages, but what I chose to do was write a Common Lisp server that could service many connections on a single thread.
+
+In other words, this started out as the yak-shaving project from hell, and I'm about to regale you with the resulting tale.
+
+## Server Core
+
+At its' very core, every event-driven server has to look something like
+
+	(defmethod start ((port integer))
+	  (let ((server (socket-listen usocket:*wildcard-host* port :reuse-address t :element-type 'octet))
+		    (conns (make-hash-table)))
+	    (unwind-protect
+		    (loop (loop for ready in (wait-for-input (cons server (alexandria:hash-table-keys conns)) :ready-only t)
+			            do (process-ready ready conns)))
+	     (loop for c being the hash-keys of conns
+		     do (loop while (socket-close c)))
+	     (loop while (socket-close server)))))
+
+A server socket that listens for incoming connections, some structure in which to store connections/buffers, an infinite loop waiting for new handshakes or incoming data, and finally some cleanup clauses to make sure we don't leave dangling locks on resources if we're killed by an interrupt or something. The specifics are going to be revealed in our `process-ready` function. Or rather, as it happens, method.
+
+	(defmethod process-ready ((ready stream-server-usocket) (conns hash-table))
+	  (setf (gethash (socket-accept ready :element-type 'octet) conns) nil))
+
+This is the Common Lisp multiple dispatch system at work. We're `def`ining a `method` of two arguments, `ready` and `conns`, the first of which will be a `stream-server-socket` and the second will be a `hash-table`. This is what it looks like when we get a new connection coming into the socket we're listening on; the `stream-server-socket` we defined back in `start` signals that it's `ready`, and gets picked up by our central event loop. All we do at this stage is `socket-accept` the incoming connection, and insert it into the connection table. As you saw above, we're waiting on input from all the keys of this table, which means this newly accepted socket will eventually have some data for us. _When_ it does, we'll pick it up as a `ready` socket in our main loop and call `process-ready` on it.
+
+	(defmethod process-ready ((ready stream-usocket) (conns hash-table))
+	  (let ((buf (or (gethash ready conns)
+			         (setf (gethash ready conns) (make-instance 'buffer :bi-stream (flex-stream ready))))))
+	    (if (eq :eof (buffer! buf))
+	      (ignore-errors
+		     (remhash ready conns)
+			 (socket-close ready))
+	      (let ((complete? (found-crlf? buf))
+		        (too-big? (> (content-size buf) +max-request-size+))
+		        (too-old? (> (- (get-universal-time) (started buf)) +max-request-age+))
+		        (too-needy? (> (tries buf) +max-buffer-tries+)))
+	        (when (or complete? too-big? too-old? too-needy?)
+		       (remhash ready conns)
+		       (cond (too-big? (error! +413+ ready))
+		             ((or too-old? too-needy?)
+		              (error! +400+ ready))
+		             (t (handler-case
+		     	           (handle-request ready (parse buf))
+		     	         (http-assertion-error () (error! +400+ ready))
+		     	         ((and (not warning)
+		     	               (not simple-error)) (e)
+		     	          (error! +500+ ready e))))))))))
+
+Which, as you may have suspected, does something different. This is the method that will run when we call `process-ready` with an argument of class `stream-usocket` rather than `stream-server-usocket`. The high level view of what we do here is
+
+1. Get the buffer associated with this socket (creating it if it doesn't exist yet)
+2. Reading output into that buffer, which happens in the call to `buffer!`
+3. If reading output got us an `:eof`, it means that the other side has closed this socket so we just discard it
+4. Otherwise, we check if the buffer is one of `complete?`, `too-big?`, `too-old?` or `too-needy?`. If it's any of them, we remove it from the connections table and send out the appropriate HTTP response.
+
+Now, firstly, you'll have to take my word for it that most of these things happen correctly until we get to their implementations later. But more importantly, it might not be entirely apparent why we're going through this rigmarole. Because we're trying to serve up content with a single thread, we can't afford to block on any particular connection. Because if we _did_, we'd block the entire server. As a result, we have to do work to make sure that we never block on an incoming stream _and_ that if a particular stream is dragging its feet, we can move on to the next one without throwing out our work so far. That means a system of buffers to keep track of intermediate results, and a buffering process that breaks off to let the next ready socket go, rather than blocking on input. Here's ours:
+
+	(defmethod buffer! ((buffer buffer))
+	  (handler-case
+	      (let ((stream (bi-stream buffer))
+		        (partial-crlf (list #\return #\linefeed #\return)))
+		    (incf (tries buffer))
+		    (loop for char = (read-char-no-hang stream nil :eof)
+		          do (when (and (eql #\linefeed char)
+				                (starts-with-subseq partial-crlf (contents buffer)))
+			           (setf (found-crlf? buffer) t))
+		          until (or (null char) (eql :eof char))
+		          do (push char (contents buffer)) do (incf (content-size buffer))
+		          finally (return char)))
+	    (error () :eof)))
+
+;; TODO: `read-char-no-hang` can safely error here, since `handler-case` is going to pick it up and return `:eof` anyhow.
+
+When you call `buffer!` on a `buffer`, it increments the `tries` count, then loops to read characters from the input stream. If it reaches the end of available input, or an `:eof`, it returns the last character it read. It also keeps track of whether its seen a `crlf` go by during the reading (this just helps decide whether a request is complete later). It also returns `:eof` if it encounters any kind of read error during this process.
+
+The procedure `read-char-no-hang` is essential here; that's the thing that allows us to read without blocking, or "`hang`ing", when there are no further chars to read on the incoming stream. Instead of waiting on further input like plain `read-char`, `read-char-no-hang` just returns `nil` immediately. We've also passed two additional arguments that mean it'll return `:eof` rather than erroring at the end-of-file marker. That should explain why we were just throwing away buffers and sockets that came back with an `:eof` result.
+
+The next interesting part of `process-ready` comes after the edge-case handling of old/big/needy requests. It's wrapped in another layer of error handling because we might still crap out in different ways here. In particular, if the request is old/big/needy or if an `http-assertion-error` is raised, we want to send a `400` response; the client provided us with some bad or slow data. However, if any other error happens here, it's because someone made a mistake defining a handler, which should be treated as a `500` error; something went wrong on the server side as a result of a potentially legitimate request.
+
+Lets follow that trail for a while:
+
+	(defmethod handle-request ((socket usocket) (req request))
+	  (aif (lookup (resource req) *handlers*)
+	       (funcall it socket (parameters req))
+	       (error! +404+ socket)))
+
+In `handle-request`, we do the tiny and obvious job of looking up the requested resource in the `*handlers*` table. If we find one, we `funcall` `it`, passing along the client `socket` as well as the parsed request parameters. If there's no matching handler in the `*handlers*` table, we instead send along a `404` error.
+
+
+;; TODO
+
+;; commentary on parsing, writing and subscribing/publishing before moving on to what all of it has to do with handlers.
+
+
+
+
+##### v1 (here because there's probably still some salvageable material)
+
 Ok, this was going to start off with the basics of threaded vs event-driven servers, and a quick rundown of the use cases for each, but its been brought to my attention that the whole Common Lisp thing might be intimidating to people. Given that tidbit, I debated both internally and externally on how to begin, and decided that the best way might be from the end (Just to be clear, yes, this is a toy example. If you'd like to see a non-toy example using the same server, take a look at [cl-notebook](https://github.com/Inaimathi/cl-notebook), [deal](https://github.com/Inaimathi/deal), and possibly [langnostic](https://github.com/Inaimathi/langnostic). And on a related note This write-up also features a stripped-down version of the `house` server. [The real version](https://github.com/Inaimathi/house) also does some light static file serving, deals with sessions properly, imposes a priority system on HTTP types, has a few clearly labeled cross-platform hacks, and (by the time this article is done) will also probably be doing more detailed back-end error reporting. That's it though. The main handler definition system, HTTP types implementation as well as the *actual server* is exactly the same.). So to *that* end, here's what I want to be able to do:
 
     (define-stream-handler (source) (room)
