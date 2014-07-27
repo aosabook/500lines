@@ -33,8 +33,8 @@ def poll():
             # call the bash script that will update the repo and check
             # for changes. If there's a change, it will drop a .commit_hash file
             # with the latest commit in the current working directory
-            subprocess.check_output(["./update_repo.sh %s" % args.repo],
-                                    shell=True)
+            subprocess.check_output(["./update_repo.sh", args.repo])
+                                    
             if os.path.isfile(".commit_hash"):
                 # great, we have a change! let's execute the tests
                 # First, check the status of the dispatcher server to see

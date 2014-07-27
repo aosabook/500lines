@@ -62,8 +62,8 @@ class TestHandler(SocketServer.BaseRequestHandler):
 
     def run_tests(self, commit_hash, repo_folder):
         # update repo
-        output = subprocess.check_output(["./test_runner_script.sh %s %s" %
-                                        (repo_folder, commit_hash)], shell=True)
+        output = subprocess.check_output(["./test_runner_script.sh",
+                                        repo_folder, commit_hash])
         print output
         # run the tests
         test_folder = os.path.sep.join([repo_folder, "tests"])
