@@ -76,7 +76,7 @@ class TestHandler(SocketServer.BaseRequestHandler):
         output = result_file.read()
         helpers.communicate(self.server.dispatcher_server["host"],
                             int(self.server.dispatcher_server["port"]),
-                            "results:%s:%s" % (commit_hash, output))
+                            "results:%s:%s:%s" % (commit_hash, len(output), output))
 
 
 def serve():
