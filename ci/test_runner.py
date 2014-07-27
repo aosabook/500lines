@@ -83,13 +83,14 @@ class TestHandler(SocketServer.BaseRequestHandler):
 
 
 def serve():
+    range_start = 8900
     parser = argparse.ArgumentParser()
     parser.add_argument("--host",
                         help="runner's host, by default it uses localhost",
                         default="localhost",
                         action="store")
     parser.add_argument("--port",
-                        help="runner's port, by default it uses values >=8900",
+                        help="runner's port, by default it uses values >=%s" % range_start,
                         action="store")
     parser.add_argument("--dispatcher-server",
                         help="dispatcher host:port, by default it uses " \
@@ -104,7 +105,7 @@ def serve():
     runner_port = None
     tries = 0
     if not args.port:
-        runner_port = 8900
+        runner_port = range_start
         while tries < 100:
             try:
                 server = ThreadingTCPServer((runner_host, runner_port),
@@ -112,12 +113,15 @@ def serve():
                 print server
                 print runner_port
                 break
-            except errno.EADDRINUSE:
-                tries += 1
-                runner_port = runner_port + tries
-                continue
+            except socket.error as e:
+                if e.errno == errno.EADDRINUSE:
+                    tries += 1
+                    runner_port = runner_port + tries
+                    continue
+                else:
+                    raise e
         else:
-            raise Exception("Could not bind to ports in range 8900-9000")
+            raise Exception("Could not bind to ports in range %s-%s" % (range_start, range_start+tries))
     else:
         runner_port = int(args.port)
         server = ThreadingTCPServer((runner_host, runner_port), TestHandler)
