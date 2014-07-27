@@ -34,36 +34,36 @@ def poll():
             # for changes. If there's a change, it will drop a .commit_hash file
             # with the latest commit in the current working directory
             subprocess.check_output(["./update_repo.sh", args.repo])
-                                    
-            if os.path.isfile(".commit_hash"):
-                # great, we have a change! let's execute the tests
-                # First, check the status of the dispatcher server to see
-                # if we can send the tests
-                try:
-                    response = helpers.communicate(dispatcher_host,
-                                                   int(dispatcher_port),
-                                                   "status")
-                except socket.error as e:
-                    raise Exception("Could not communicate with dispatcher server: %s" % e)
-                if response == "OK":
-                    # Dispatcher is present, let's send it a test
-                    commit = ""
-                    with open(".commit_hash", "r") as f:
-                        commit = f.readline()
-                    response = helpers.communicate(dispatcher_host,
-                                                   int(dispatcher_port),
-                                                   "dispatch:%s" % commit)
-                    if response != "OK":
-                        raise Exception("Could not dispatch the test: %s" %
-                        response)
-                    print "dispatched!"
-                else:
-                    # Something wrong happened to the dispatcher
-                    raise Exception("Could not dispatch the test: %s" %
-                    response)
-            time.sleep(5)
         except subprocess.CalledProcessError as e:
             raise Exception("Could not update and check repository. Reason: %s" % e.output)
+
+        if os.path.isfile(".commit_hash"):
+            # great, we have a change! let's execute the tests
+            # First, check the status of the dispatcher server to see
+            # if we can send the tests
+            try:
+                response = helpers.communicate(dispatcher_host,
+                                               int(dispatcher_port),
+                                               "status")
+            except socket.error as e:
+                raise Exception("Could not communicate with dispatcher server: %s" % e)
+            if response == "OK":
+                # Dispatcher is present, let's send it a test
+                commit = ""
+                with open(".commit_hash", "r") as f:
+                    commit = f.readline()
+                response = helpers.communicate(dispatcher_host,
+                                               int(dispatcher_port),
+                                               "dispatch:%s" % commit)
+                if response != "OK":
+                    raise Exception("Could not dispatch the test: %s" %
+                    response)
+                print "dispatched!"
+            else:
+                # Something wrong happened to the dispatcher
+                raise Exception("Could not dispatch the test: %s" %
+                response)
+        time.sleep(5)
 
 
 if __name__ == "__main__":
