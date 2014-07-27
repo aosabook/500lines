@@ -9,6 +9,7 @@ results to the dispatcher. It will then wait for further instruction from the
 dispatcher.
 """
 import argparse
+import errno
 import os
 import re
 import socket
@@ -59,6 +60,8 @@ class TestHandler(SocketServer.BaseRequestHandler):
                 self.run_tests(commit_hash,
                                self.server.repo_folder)
                 self.server.busy = False
+        else:
+            self.request.sendall("Invalid command")
 
     def run_tests(self, commit_hash, repo_folder):
         # update repo
@@ -66,7 +69,7 @@ class TestHandler(SocketServer.BaseRequestHandler):
                                         repo_folder, commit_hash])
         print output
         # run the tests
-        test_folder = os.path.sep.join([repo_folder, "tests"])
+        test_folder = os.path.join(repo_folder, "tests")
         suite = unittest.TestLoader().discover(test_folder)
         result_file = open("results", "w")
         unittest.TextTestRunner(result_file).run(suite)
@@ -109,13 +112,10 @@ def serve():
                 print server
                 print runner_port
                 break
-            except socket.error as e:
-                if e.errno == 48:
-                    tries += 1
-                    runner_port = runner_port + tries
-                    continue
-                else:
-                    raise e
+            except errno.EADDRINUSE:
+                tries += 1
+                runner_port = runner_port + tries
+                continue
         else:
             raise Exception("Could not bind to ports in range 8900-9000")
     else:
