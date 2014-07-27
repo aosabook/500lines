@@ -3,9 +3,7 @@
 source run_or_fail.sh
 
 # delete previous hash
-if [ -e ".commit_hash" ]; then
-  rm -f .commit_hash
-fi
+rm -f .commit_hash
 
 # go to repo and update it to given commit
 run_or_fail "Repository folder not found!" pushd $1
