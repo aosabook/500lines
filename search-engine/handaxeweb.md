@@ -616,6 +616,11 @@ and double-compile checks.
 
     # in build_handaxeweb:
     #!/bin/sh
+    if ! [ -x /usr/bin/lua ] ; then
+       echo "You need Lua installed at /usr/bin/lua to build Handaxeweb" >&2
+       exit 1
+    fi
+
     set -ve
     ./handaxeweb.lua handaxeweb.lua 0 < handaxeweb.md > handaxeweb2.lua
 
