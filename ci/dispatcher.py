@@ -52,11 +52,12 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
     and handle their requests and test results
     """
 
-    command_re = re.compile(r"""(\w*)([:]*(.*))""")
+    command_re = re.compile(r"(\w+)(:.+)*")
+    BUF_SIZE = 1024
 
     def handle(self):
         # self.request is the TCP socket connected to the client
-        self.data = self.request.recv(1024).strip()
+        self.data = self.request.recv(self.BUF_SIZE).strip()
         command_groups = self.command_re.match(self.data)
         if not command_groups:
             self.request.sendall("Invalid command")
@@ -67,7 +68,7 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
             self.request.sendall("OK")
         elif command == "dispatch":
             print "going to dispatch"
-            commit_hash = command_groups.group(3)
+            commit_hash = command_groups.group(2)[1:]
             if not self.server.runners:
                 self.request.sendall("No runners are registered")
             else:
@@ -84,16 +85,21 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
             self.request.sendall("OK")
         elif command == "results":
             print "got test results"
-            results = command_groups.group(2)
-            commit_hash = re.findall(r":(\w*):.*", results)[0]
+            results = command_groups.group(2)[1:]
+            results = results.split(":")
+            commit_hash = results[0]
+            length_msg = int(results[1])
+            # 3 is the number of ":" in the sent command
+            remaining_buffer = self.BUF_SIZE - (len(command) + len(commit_hash) + len(results[1]) + 3)
+            if length_msg > remaining_buffer:
+                self.data += self.request.recv(length_msg - remaining_buffer).strip()
             del self.server.dispatched_commits[commit_hash]
             if not os.path.exists("test_results"):
                 os.makedirs("test_results")
             with open("test_results/%s" % commit_hash, "w") as f:
-                data = self.data.split(":")[1:]
+                data = self.data.split(":")[3:]
                 data = "\n".join(data)
                 f.write(data)
-                f.close()
             self.request.sendall("OK")
         else:
             self.request.sendall("Invalid command")

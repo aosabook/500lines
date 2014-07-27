@@ -9,6 +9,7 @@ results to the dispatcher. It will then wait for further instruction from the
 dispatcher.
 """
 import argparse
+import errno
 import os
 import re
 import socket
@@ -33,7 +34,7 @@ class TestHandler(SocketServer.BaseRequestHandler):
     The RequestHandler class for our server.
     """
 
-    command_re = re.compile(r"""(\w*)(?::(\w*))*""")
+    command_re = re.compile(r"(\w+)(:.+)*")
 
     def handle(self):
         # self.request is the TCP socket connected to the client
@@ -54,19 +55,21 @@ class TestHandler(SocketServer.BaseRequestHandler):
             else:
                 self.request.sendall("OK")
                 print "running"
-                commit_hash = command_groups.group(2)
+                commit_hash = command_groups.group(2)[1:]
                 self.server.busy = True
                 self.run_tests(commit_hash,
                                self.server.repo_folder)
                 self.server.busy = False
+        else:
+            self.request.sendall("Invalid command")
 
     def run_tests(self, commit_hash, repo_folder):
         # update repo
-        output = subprocess.check_output(["./test_runner_script.sh %s %s" %
-                                        (repo_folder, commit_hash)], shell=True)
+        output = subprocess.check_output(["./test_runner_script.sh",
+                                        repo_folder, commit_hash])
         print output
         # run the tests
-        test_folder = os.path.sep.join([repo_folder, "tests"])
+        test_folder = os.path.join(repo_folder, "tests")
         suite = unittest.TestLoader().discover(test_folder)
         result_file = open("results", "w")
         unittest.TextTestRunner(result_file).run(suite)
@@ -76,17 +79,18 @@ class TestHandler(SocketServer.BaseRequestHandler):
         output = result_file.read()
         helpers.communicate(self.server.dispatcher_server["host"],
                             int(self.server.dispatcher_server["port"]),
-                            "results:%s:%s" % (commit_hash, output))
+                            "results:%s:%s:%s" % (commit_hash, len(output), output))
 
 
 def serve():
+    range_start = 8900
     parser = argparse.ArgumentParser()
     parser.add_argument("--host",
                         help="runner's host, by default it uses localhost",
                         default="localhost",
                         action="store")
     parser.add_argument("--port",
-                        help="runner's port, by default it uses values >=8900",
+                        help="runner's port, by default it uses values >=%s" % range_start,
                         action="store")
     parser.add_argument("--dispatcher-server",
                         help="dispatcher host:port, by default it uses " \
@@ -101,7 +105,7 @@ def serve():
     runner_port = None
     tries = 0
     if not args.port:
-        runner_port = 8900
+        runner_port = range_start
         while tries < 100:
             try:
                 server = ThreadingTCPServer((runner_host, runner_port),
@@ -110,14 +114,14 @@ def serve():
                 print runner_port
                 break
             except socket.error as e:
-                if e.errno == 48:
+                if e.errno == errno.EADDRINUSE:
                     tries += 1
                     runner_port = runner_port + tries
                     continue
                 else:
                     raise e
         else:
-            raise Exception("Could not bind to ports in range 8900-9000")
+            raise Exception("Could not bind to ports in range %s-%s" % (range_start, range_start+tries))
     else:
         runner_port = int(args.port)
         server = ThreadingTCPServer((runner_host, runner_port), TestHandler)
