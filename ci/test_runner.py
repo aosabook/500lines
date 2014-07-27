@@ -33,7 +33,7 @@ class TestHandler(SocketServer.BaseRequestHandler):
     The RequestHandler class for our server.
     """
 
-    command_re = re.compile(r"""(\w*)(?::(\w*))*""")
+    command_re = re.compile(r"(\w+)(:.+)*")
 
     def handle(self):
         # self.request is the TCP socket connected to the client
@@ -54,7 +54,7 @@ class TestHandler(SocketServer.BaseRequestHandler):
             else:
                 self.request.sendall("OK")
                 print "running"
-                commit_hash = command_groups.group(2)
+                commit_hash = command_groups.group(2)[1:]
                 self.server.busy = True
                 self.run_tests(commit_hash,
                                self.server.repo_folder)

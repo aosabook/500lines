@@ -52,7 +52,7 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
     and handle their requests and test results
     """
 
-    command_re = re.compile(r"""(\w*)([:]*(.*))""")
+    command_re = re.compile(r"(\w+)(:.+)*")
 
     def handle(self):
         # self.request is the TCP socket connected to the client
@@ -67,7 +67,7 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
             self.request.sendall("OK")
         elif command == "dispatch":
             print "going to dispatch"
-            commit_hash = command_groups.group(3)
+            commit_hash = command_groups.group(2)[1:]
             if not self.server.runners:
                 self.request.sendall("No runners are registered")
             else:
@@ -85,6 +85,7 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
         elif command == "results":
             print "got test results"
             results = command_groups.group(2)
+            import pdb;pdb.set_trace()
             commit_hash = re.findall(r":(\w*):.*", results)[0]
             del self.server.dispatched_commits[commit_hash]
             if not os.path.exists("test_results"):
