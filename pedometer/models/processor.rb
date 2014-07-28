@@ -36,6 +36,8 @@ class Processor
     @parsed_data = @data.to_s.split(';').map { |i| i.split('|') }
                    .map { |i| i.map { |i| i.split(',').map(&:to_f) } }
 
+    p @parsed_data
+
     unless @parsed_data.map { |data| data.map(&:length).uniq }.uniq == [[3]]
       raise 'Bad Input. Ensure data is properly formatted.'
     end

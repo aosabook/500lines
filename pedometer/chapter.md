@@ -145,7 +145,8 @@ But, only "kinda, sorta" starting to.
 We need to make our messy data set smoother, so that it looks more like our ideal sine wave, allowing us to count steps. Our messy data set is very "jumpy". This jumpiness means that there is a high frequency component to the signal. Fortunately, a low-pass filter can be used once again to filter out just the low-frequency component, eliminating the "jumpy", high frequency portions of the signal, and smoothing out our data set. 
 
 Passing our messy signal through a low-pass filter, using the same formula but different alpha and beta values, results in the cleaner signal below:
-TODO: Talk more about determining alpha and beta values.
+
+TODO: Talk more about determining alpha and beta coefficients.
 
 ![](chapter-figures/figure-filtered-smooth.png)\ 
 
@@ -234,20 +235,15 @@ We know we'll need to work with user acceleration and gravitational acceleration
 
 Take note of the standard format:
 
-$[\lbrace x\colon x1_{u}, y\colon y1_{u}, z\colon z1_{u}, xg\colon x1_{g}, yg\colon y1_{g}, zg\colon z1_{g} \rbrace,...\lbrace x\colon xn_{u}, y\colon yn_{u}, z\colon zn_{u}, xg\colon xn_{g}, yg\colon yn_{g}, zg\colon zn_{g}\rbrace]$
+![](chapter-figures/standard-format.png)\
 
-We've defined our standard format as an array of hashes, where each hash contains acceleration at a point in time. Each hash has 6 keys, each with values of user or gravitational acceleration along one coordinate direction. 
+Our standard format allows us to store a data series signal, as each element represents acceleration at a point in time. We've defined it as an array of arrays of arrays. Let's peel back that onion. 
 
-* *x* is user acceleration in the x direction
-* *y* is user acceleration in the y direction
-* *z* is user acceleration in the z direction
-* *xg* is gavitational acceleration in the x direction
-* *yg* is gavitational acceleration in the y direction
-* *zg* is gavitational acceleration in the z direction
+* The first array is just a wrapper to hold the all of the data.
+* The second set of arrays contains one array per data sample taken. If our sampling rate is 100 and we sample data for 10 seconds, we'll have 1000 arrays in this second set. 
+* The third set of arrays is the pair of arrays enclosed within the second set. They both contain acceleration data in the x, y, and z directions; the first representing user acceleration and the second gravitational acceleration.
 
-The array allows us to store a data series signal, as each element represents acceleration at a point in time. Defining the array elements as hashes gives us the ability to easily access an acceleration in a direction using one of the keys above. 
-
-These three tasks are all related to taking input data, and parsing and processing it to get it to a state where our resulting signal is clean enough for us to count steps. Due to this relationship, it makes sense to combine these tasks into one class. We'll call it a **Processor**. 
+These three tasks - parse, dot product, and filter - are all related to taking input data, and parsing and processing it to get it to a state where our resulting signal is clean enough for us to count steps. Due to this relationship, it makes sense to combine these tasks into one class. We'll call it a **Processor**. 
 
 ## The Processor Class
 
@@ -333,19 +329,19 @@ class Processor
 end
 ~~~~~~~
 
-## Low-pass Filtering
+### Low-pass Filtering
 
 Let's start with the last method in our class, `chebyshev_filter`. This is the method that implements the low-pass filter, and we'll see it used twice in this class: the first time when we low-pass filter the combined input format during the parsing to the standard format, and the second time when we low-pass filter the dot product output to smooth out our waveform. 
 
 `chebyshev_filter` takes two parameters: `input_data` and `coefficients`. `input_data` is an array of numerical data representing the signal that we want passed through the filter. `coefficients` is a hash with two keys, `alpha` and `beta`, each containing an array with three numerical data points as values. Note the constants `GRAVITY_COEFF` and `SMOOTHING_COEFF` at the top of the class. These will be the hashes we'll pass to the `coefficients` parameter.
 
-TODO: Explain how we choose coefficients. Should this go here or in the intro secion?
+TODO: Talk about choosing these specific coefficients?
 
 The `chebyshev_filter` method returns an array of numerical data representing the signal resulting from low-pass filtering the `input_data` signal using `coefficients`, and low-pass filter formula, $output_{i} = \alpha_{0} * (input_{i} * \beta_{0} + input_{i-1} * \beta_{1} + input_{i-2} * \beta_{2} - output_{i-1} * \alpha_{1} - output_{i-2} * \alpha_{2})$. 
 
 We do this by first instantiating an `output_data` signal array with two 0 values, so that the equation has inital values to work with. Then, we loop through the remaining indeces of the `input_data` signal, apply the formula at each turn, and append the result to `output_data`, returning `output_data` when the loop is complete. 
 
-The `chebyshev_filter` method is another example of *separation of concerns*. We know we'll need to implement a low-pass filter more than once in our code, so we leave the knowledge of how to do that in one method only. The rest of our code need only know how to call the method and pass in the appropriate `coefficients` for the `input_data` it needs filtered. If there is ever a bug in the filtering code, we only need to fix it in this one place. 
+The `chebyshev_filter` method is another example of *separation of concerns*. We know we'll need to implement a low-pass filter more than once in our code, so we leave the knowledge of how to do that in one method only. The rest of our code need only know how to call the method and pass in the appropriate `coefficients` for the `input_data` it needs filtered. If there is ever a bug in the filtering code, we only need to fix it in the `chebyshev_filter` method.
 
 Let's take a look at how the rest of the class works, and how it uses `chebyshev_filter`. 
 
@@ -357,58 +353,51 @@ Each method accomplishes one of our three steps above. Let's look at each method
 
 ### Step 1: Parse our input formats into a standard format (parse_raw_data)
 
-The goal of `parse_raw_data` is to convert string data in either the combined or separated format to a standard format, and store it in `@parsed_data`.
+The goal of `parse_raw_data` is to convert string data in either the combined or separated format to numerical data, and store it in `@parsed_data` in our new standard format.
 
-The first step in the process is to take string data and convert it to numerical data. The first line splits the string by semicolon into as many arrays as samples taken, and then splits each individual array by the pipe, storing the result in `accl`.
+The first step in the process is to take string data and convert it to numerical data. The first operation sets `@parsed_data` after performing three tasks in sequence:
 
-This gives us an array of arrays. Note the differences in `accl` between the two formats:
+* splitting the string by semicolon into as many arrays as samples taken, 
+* splitting each individual array by the pipe into another array, and
+* splitting the resulting array string elements by the comma and converting them to floats.
 
-* `accl` in the combined format contains arrays with exactly **one** string: $[["x1,y1,z1"],...["xn,yn,zn"]]$
-* `accl` in the separated format contains arrays with exactly **two** strings: $[["x1_{u},y1_{u},z1_{u}", "x1_{g},y1_{g},z1_{g}"],...["xn_{u},yn_{u},zn_{u}", "xn_{g},yn_{g},zn_{g}"]]$
+This gives us an array of arrays of arrays. Sound familiar? Note the differences in `@parsed_data` between the two formats:
 
-The combined format has exactly one element per array, while the separated format has exactly two elements per array. This is because the combined format has a string containing total acceleration, while the separated format has one string for user acceleration and a second for gravitational acceleration. 
+* `@parsed_data` in the combined format contains arrays with exactly **one** array: $[[[x1t, y1t, z1t]],...[[xnt, ynt,znt]]$
+* `@parsed_data` in the separated format contains arrays with exactly **two** arrays: $[[[x1_{u},y1_{u},z1_{u}], [x1_{g},y1_{g},z1_{g}]],...[[xn_{u},yn_{u},zn_{u}], [xn_{g},yn_{g},zn_{g}]]]$
 
-We'll need to turn our string data into numerical data for both formats, but we'll also need to pass the combined format through a low-pass filter. Due to this difference, it makes sense to diverge our code for this task to account for the differences in the two formats. This is the only time that we'll diverge, therefore this is the only part of the code that needs to be concerned with multiple formats. 
+We see here that the separated format is already in our desired standard format after this operation. Amazing. 
 
-If the array has exactly one element, we know that our input format is combined. Otherwise, our input format is separated. We'll have to deal with this difference amongst the formats, as well as the fact that we'll have to pass the combined format through a low-pass filter in order to split out user acceleration and gravitational acceleration. 
+To get the combined format into the standard format, we'll need to low-pass filter it to split the acceleration into user and gravitational first, and ensure it ends up in the same standard format afterward. 
 
-Our `accl` array in the combined format contains 
+We'llo do this low-pass filtering in the `parse_raw_data` method, so that it's the only one concerned with the two format, as per our separation of concerns pattern. In order to do that, we use the difference in `@parsed_data` at this stage to determine whether the format is combined or separated in the `if` statement in the next portion of the code. If it's combined (or, equivalently, has exactly one array where the separated format would have two), then we proceed with:
 
+* passing the data through the `chebyshev_filter` method to low-pass filter it and split out the accelerations, and
+* formatting the data into the standard format. 
 
-Based on this, we call either `split_accl_combined` or `split_accl_separated`. We branch off to different methods based on the input format here because not only are the elements in `accl` different formats (one)
+At the end of the `if` statement, we're left with the `@parsed_data` variable holding data in the standard format, regardless of whether we started off with combined or separated data. 
 
+The last thing the `if` statement does is set the `@format` variable to either `FORMAT_COMBINED` or `FORMAT_SEPARATED`, both of which are constants that indicate the type of format the original data was passed in as. These are used predominantly for display purposes in the web app. Otherwise, the remainder of the program is no longer concerned with these two format. 
 
+Great. Let's move on.
 
-Each of these methods sets the @format instance variable, and then converts the arrays of strings into arrays of numerical data. Finally, these methods generate data in the format below. We store this result in split_accl:
-
-$[[[x1_{u},...xn_{u}], [y1_{u},...yn_{u}], [z1_{u},...zn_{u}]],
-[[x1_{g},...xn_{g}], [y1_{g},...yn_{g}], [z1_{g},...zn_{g}]]$
-
-Note that in our split_accl_combined method, while we're generating data in the format above, we use the chebyshev_filter method for the first time. We pass the total acceleration, with the GRAVITY_COEFF constant through the chebyshev_filter method to isolate gravitational acceleration, grav. Then, in the next line, we subtract the grav from the total acceleration to return to user acceleration.
-
-Back in our parse_raw_data method, we split out the split_accl array into user_accl and grav_accl, which are both arrays of arrays, with user acceleration in the x, y, z directions and gravitational acceleration in the x, y, z directions, respectively. The two lines following split each of user_accl and grav_accl into their x, y, z components:
-
-![](chapter-figures/figure-split_accl.png)\ 
-
-In order to get one data series we can work with, we then create an array of hashes in the format below, and store it in @parsed_data.
-
-$[\lbrace x\colon x1_{u}, y\colon y1_{u}, z\colon z1_{u}, xg\colon x1_{g}, yg\colon y1_{g}, zg\colon z1_{g} \rbrace,...\lbrace x\colon xn_{u}, y\colon yn_{u}, z\colon zn_{u}, xg\colon xn_{g}, yg\colon yn_{g}, zg\colon zn_{g}\rbrace]$
-
-Now that we have our data in a standard format stored in @parsed_data, the rest of our program need only be concerned with @parsed_data. It doesn't have to know or care that there ever was more than just that one standard format.
+TODO: Would be awesome to remove this formatting so that we can talk about separation of concerns without this added complexity.
 
 ### Step 2: dot_product_parsed_data
 
-Taking the dot product in our Processor class is a matter of using the data in our standard format, @parsed_data, and applying the fot product formulat to it. We add a @dot_product_data instance variable, and a method, dot_product_parsed_data, to set that variable. The dot_product_parsed_data method is called immeditely after parse_raw_data in the initializer, and iterates through our @parsed_data hash, calculates the dot product with map, and sets the result to @dot_product_data. 
+Taking the dot product in our Processor class is a matter of using the data in our standard format, `@parsed_data`, and applying the fot product formulat to it. We add a `@dot_product_data` instance variable, and a method, `dot_product_parsed_data`, to set that variable. The `dot_product_parsed_data` method is called immeditely after `parse_raw_data` in the initializer, and iterates through our `@parsed_data` hash, calculates the dot product with map, and sets the result to `@dot_product_data`. 
 
 ### Step 3: filter_dot_product_data
 
-Following the pattern from steps one and two, we add another instance variable, @filtered_data, to store the filtered data series, and a method, filter_dot_product_data, that we call from the initializer.
+Following the pattern from steps one and two, we add another instance variable, `@filtered_data`, to store the filtered data series, and a method, filter_dot_product_data, that we call from the initializer.
 
 The filter_dot_product_data method is the second place our low-pass filtering method, chebyshev_filter, is used. This time, we pass @dot_product_data in as our signal and use SMOOTHING_COEFF, and the result returned is our signal without the high frequence component, which we store in @filtered_data. This final signal, @filtered_data, is the clean signal we can use to count steps. 
 
+TODO: Drive the point of separation of concerns home here. Each of these methods does **exactly one thing**. Or, too much?
+
 ## Our Processor class in the wild
 
-Our Processor now takes string data in the separated format, converts it into a more useable format, isolates movement in the direction of gravity through the dot product operation, and filters the resulting data series to smooth it out. 
+Our Processor now takes string data in both the separated and combined formats, converts it into a more useable format, isolates movement in the direction of gravity through the dot product operation, and filters the resulting data series to smooth it out. 
 
 Our processor class is useable on its own as is. An example with combined data:
 
@@ -451,12 +440,10 @@ An example with separated data:
 => [0, 0, -1.7824384769309702]
 ~~~~~~~
 
-### Things to note
-* Ability to pass in either format and the Processor determines it. It's the only class that has to be concerned with it. 
-* ...
-
 ### Where to improve
-* Exception handling in parse_raw_data can be more specific (rather than capturing any error that occurs)
+* Exception handling in parse_raw_data can be enhanced
+
+TODO: Is the section above needed?
 
 ## Pedometer functionality
 
@@ -480,6 +467,9 @@ If they only provide their gender, we can use the average of 70 cm for a female,
 Finally, if the user does not wish to provide any information, we can take the average of 70 cm and 78 cm and set the stride length to 74 cm.
 
 TODO: Do I need to add references for multipliers and averages above? Can we just say some basic research turned up these numbers, but we're free to change them if more accurate ones are uncovered?
+
+TODO: Start again HERE!
+TODO: A common programming problem is handling optional information. Talk about how we handle it here. Maybe draw another graph of how we handle it?
 
 All of this information is related to the user, so it makes sense to include it in a User class. 
 
