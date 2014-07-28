@@ -20,19 +20,19 @@
   "Create a predicate for each element in the datalog clause"
   [clause-item]
   (cond
-   (variable? (str clause-item)) #(= % %) ; simple one, was something like ?a
-   (not (coll? clause-item)) `#(= % ~(identity clause-item)) ; simple value given, was something like :likes
-   (= 2 (count clause-item)) `#(~(first clause-item) %) ; was something like (pos? ?a)
-   (variable? (str (second clause-item))) `#(~(first clause-item) % ~(last clause-item)) ; was something like (> ?a 42)
-   (variable? (str (last clause-item))) `#(~(first clause-item) ~(second clause-item) %))) ; was something like (>  42 ?a)
+   (variable? (str clause-item)) #(= % %) ; simple one, e.g.,  ?a
+   (not (coll? clause-item)) `#(= % ~clause-item) ; simple value given, e.g.,  :likes
+   (= 2 (count clause-item)) `#(~(first clause-item) %) ; an unary predicate, e.g.,  (pos? ?a)
+   (variable? (str (second clause-item))) `#(~(first clause-item) % ~(last clause-item)) ;a binary predicate, the variable is the first argument, e.g.,  (> ?a 42)
+   (variable? (str (last clause-item))) `#(~(first clause-item) ~(second clause-item) %))) ; a binary predicate, the variable is the second argument, e.g.,  (> ?a 42)
 
 (defmacro  q-clause
-  "Build from a datalog clause (a vector with three elements describing EAV) a vector of predicates that would operate on
-    an index, and set for that vector's metadata to be the names of the variables that the user assiged for each item in the clause"
+  "Builds a query-clause from a datalog clause (a vector with three elements describing EAV). A vector of predicates that would operate on
+    an index, and set for that vector's metadata to be the names of the variables that the user assigned for each item in the clause"
   [clause]
-  (loop [[frst-itm# & rst-itm#] clause exprs# [] metas# [] ]
-    (if  frst-itm#
-         (recur rst-itm# (conj exprs# `(clause-item-expr ~ frst-itm#)) (conj metas#`(clause-item-meta ~ frst-itm#)))
+  (loop [[itm# & rst-itm#] clause exprs# [] metas# [] ]
+    (if  itm#
+         (recur rst-itm# (conj exprs# `(clause-item-expr ~ itm#)) (conj metas#`(clause-item-meta ~ itm#)))
          (with-meta exprs# {:db/variable metas#}))))
 
  (defmacro q-clauses
@@ -41,22 +41,6 @@
     (loop [[frst# & rst#] clauses preds-vecs# []  ]
       (if-not frst#  preds-vecs#
         (recur rst# `(conj ~preds-vecs# (q-clause ~frst#))) )))
-
- (defn index-of-chaining-variable
-  "A chaining variable is the variable that is found on all of the query clauses"
-  [query-clauses]
-  (let [metas-seq  (map #(:db/variable (meta %)) query-clauses)
-        collapse-seqs (fn [s1 s2] (map #(when (= %1 %2) %1) s1 s2))
-        collapsed (reduce collapse-seqs metas-seq)]
-    (first (keep-indexed #(when (variable? %2 false) %1)  collapsed))))
-
-  (defn choose-index
-   "Upon receiving a database and query clauses, this function responsible to deduce on which index in the db it is best to perfom the query clauses, and then return
-   a vector in which the first element is the decided index and the second element is a function that knows how to restore an EAV structure from that decided index path structure."
-   [db query]
-    (let [var-ind (index-of-chaining-variable query)
-          ind-to-use (case var-ind 0 :AVET 1 :VEAT 2 :EAVT)]
-      (ind-at db ind-to-use)))
 
 (defn filter-index
   "Function that accepts an index and a path-predicate (which is a tripet of predicates to apply on paths in an index). For each path predicates it creates a result path (a triplet
@@ -116,6 +100,29 @@
          cleaned-paths (map (partial mask-path-leaf-with-items relevant-items) result-paths)] ; the paths, now their leaves are filtered to have only the items that fulfilled the predicates
      (filter #(not-empty (last %)) cleaned-paths))) ; of these, we'll build a subset-path of the index that contains the paths to the leaves (sets), and these leaves contain only the valid items
 
+(defn single-index-query-plan
+  "A query plan that is based on quering a single index"
+  [query indx db]
+     (let [q-res (query-index (ind-at db indx) query)
+            binded-res (bind-variables-to-query q-res indx)]
+          binded-res ))
+
+ (defn index-of-joining-variable
+  "A joining variable is the variable that is found on all of the query clauses"
+  [query-clauses]
+  (let [metas-seq  (map #(:db/variable (meta %)) query-clauses)
+        collapse-seqs (fn [s1 s2] (map #(when (= %1 %2) %1) s1 s2))
+        collapsed (reduce collapse-seqs metas-seq)]
+    (first (keep-indexed #(when (variable? %2 false) %1)  collapsed))))
+
+  (defn build-query-plan
+   "Upon receiving a database and query clauses, this function responsible to deduce on which index in the db it is best to perfom the query clauses, and then return
+   a vector in which the first element is the decided index and the second element is a function that knows how to restore an EAV structure from that decided index path structure."
+   [query]
+    (let [var-ind (index-of-joining-variable query)
+          ind-to-use (case var-ind 0 :AVET 1 :VEAT 2 :EAVT)]
+      (partial single-index-query-plan query ind-to-use)))
+
 (defn resultify-bind-pair
   "A bind pair is composed of two elements - the variable name and its value. Resultifying means to check whether the variable is suppose to be part of the
   result, and if it does, adds it to the accumulated result"
@@ -134,5 +141,10 @@
   (let [[e-pair av-map]  q-res
         e-res (resultify-bind-pair vars-set [] e-pair )]
     (reduce (partial resultify-av-pair vars-set) e-res  av-map)))
+
+(defn unify
+  "Unifying the binded query results with variables to report"
+  [binded-res-col needed-vars]
+  (map (partial locate-vars-in-query-res needed-vars) binded-res-col))
 
 (defmacro symbol-col-to-set [coll] (set (map str coll)))

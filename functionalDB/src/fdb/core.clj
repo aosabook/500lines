@@ -168,19 +168,17 @@
   [db f txs] (f db txs))
 
 (defmacro what-if [db & txs]  `(_transact ~db _what-if  ~@txs))
-
 (defmacro transact [db-conn & txs]  `(_transact ~db-conn swap! ~@txs))
 
 (defmacro q
   "querying the database using datalog queries built in a map structure ({:find [variables*] :where [ [e a v]* ]}). (after the where there are clauses)
   At the moment support only filtering queries, no joins is also assumed."
   [db query]
-  `(let [query#  (q-clauses ~(:where query)) ; extracting the query clauses from the query
-           ind# (choose-index ~db query#) ; selecting which index to use
-           q-res# (query-index ind# query#) ; actually quering, from now on just preparing results
-           binded-res# (bind-variables-to-query q-res# ind#) ; building a meta + real results structure
-           needed-vars# (symbol-col-to-set  ~(:find query))] ; extracting out the needed to be reported variables
-     (map (partial locate-vars-in-query-res needed-vars# ) binded-res#))) ; picking the needed variables from the query result
+  `(let [query-clauses#  (q-clauses ~(:where query)) ; transforming the clauses of the query to an internal representation structure called query-clauses
+           needed-vars# (symbol-col-to-set  ~(:find query))  ; extracting from the query the variables that needs to be reported out
+           query-plan# (build-query-plan query-clauses#) ; extracting a query plan based on the query-clauses
+           query-internal-res# (query-plan# ~db)] ;executing the plan on the database
+     (unify query-internal-res# needed-vars#))); unifying the query result with the needed variables to report out what the user asked for
 
 (defn evolution-of
   "The sequence of the values of an entity's attribute, as changed through time"
