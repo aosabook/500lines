@@ -387,9 +387,9 @@ The last thing the `if` statement does, for each branch, is set the `@format` va
 
 TODO: Would be awesome to remove the format property so that we can talk about separation of concerns without this added complexity.
 
-At the end of the `if` statement, we're left with the `@parsed_data` variable holding data in the standard format, regardless of whether we started off with combined or separated data. 
+At the end of the `if` statement, we're left with the `@parsed_data` variable holding data in the standard format, regardless of whether we started off with combined or separated data. If we ever want to add another format, all we have to do is change the code in `parse_raw_data` to convert additional formats to the standard format. As we add more and more input formats, we might deicde that a cleaner solution would be to split out the `parse_raw_data` code into a `Parser` class to deal with these formats. For now, however, two formats are a small nunber to work with, so it's simpler to leave this code as a single method in our `Processor` class.
 
-Great. Let's move on.
+Great. We can now move on without worrying about our two formats again, and with the peace of mind that the changes required if we choose to add a third or fourth or hundredth format will be isolated to just the `parse_raw_data` code. What a relief!
 
 ### Step 2: Isolate movement in the direction of gravity using the dot product (dot_product_parsed_data)
 
