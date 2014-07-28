@@ -337,19 +337,17 @@ Let's start with the last method in our class, `chebyshev_filter`. This is the m
 
 TODO: Talk about choosing these specific coefficients?
 
-The `chebyshev_filter` method returns an array of numerical data representing the signal resulting from low-pass filtering the `input_data` signal using `coefficients`, and low-pass filter formula, $output_{i} = \alpha_{0} * (input_{i} * \beta_{0} + input_{i-1} * \beta_{1} + input_{i-2} * \beta_{2} - output_{i-1} * \alpha_{1} - output_{i-2} * \alpha_{2})$. 
+The `chebyshev_filter` method returns an array of numerical data representing the signal resulting from low-pass filtering the `input_data` signal using `coefficients` and the low-pass filter formula, $output_{i} = \alpha_{0} * (input_{i} * \beta_{0} + input_{i-1} * \beta_{1} + input_{i-2} * \beta_{2} - output_{i-1} * \alpha_{1} - output_{i-2} * \alpha_{2})$. 
 
-We do this by first instantiating an `output_data` signal array with two 0 values, so that the equation has inital values to work with. Then, we loop through the remaining indeces of the `input_data` signal, apply the formula at each turn, and append the result to `output_data`, returning `output_data` when the loop is complete. 
+We implement the low-pass filter in code by first instantiating an `output_data` array with zeros at index 0 and 1, so that the equation has inital values to work with. Then, we loop through the remaining indeces of the `input_data` signal, apply the formula at each turn, and append the result to `output_data`, returning `output_data` when the loop is complete. 
 
-The `chebyshev_filter` method is another example of *separation of concerns*. We know we'll need to implement a low-pass filter more than once in our code, so we leave the knowledge of how to do that in one method only. The rest of our code need only know how to call the method and pass in the appropriate `coefficients` for the `input_data` it needs filtered. If there is ever a bug in the filtering code, we only need to fix it in the `chebyshev_filter` method.
-
-Let's take a look at how the rest of the class works, and how it uses `chebyshev_filter`. 
+The `chebyshev_filter` method is another example of *separation of concerns*. Since we know we'll need to implement a low-pass filter more than once in our code, we leave the knowledge of how to do that in one method only. The rest of our code need only know how to call the method and pass in the appropriate `coefficients` for the `input_data` it needs filtered. If there is ever a bug in the filtering code, we only need to fix it in the `chebyshev_filter` method.
 
 ## The Inner Workings of the Processor Class
 
-Let's start with the `initialize` method. Our processor class takes string data as input and stores it in the `@data` instance variable. It then calls three methods in sequence: `parse_raw_data`, `dot_product_parsed_data`, and `filter_dot_product_data`. 
+Let's take a look at how the rest of the class works, and how it uses `chebyshev_filter`, starting with the `initialize` method. Our processor class takes string data as input and stores it in the `@data` instance variable. It then calls three methods in sequence: `parse_raw_data`, `dot_product_parsed_data`, and `filter_dot_product_data`. 
 
-Each method accomplishes one of our three steps above. Let's look at each method individually. 
+Each method accomplishes one of our three steps. Let's look at each method individually. 
 
 ### Step 1: Parse our input formats into a standard format (parse_raw_data)
 
@@ -363,31 +361,41 @@ The first step in the process is to take string data and convert it to numerical
 
 This gives us an array of arrays of arrays. Sound familiar? Note the differences in `@parsed_data` between the two formats:
 
-* `@parsed_data` in the combined format contains arrays with exactly **one** array: $[[[x1t, y1t, z1t]],...[[xnt, ynt,znt]]$
+* `@parsed_data` in the combined format contains arrays with exactly **one** array: $[[[x1t, y1t, z1t]], ..., [[xnt, ynt,znt]]$
 * `@parsed_data` in the separated format contains arrays with exactly **two** arrays: $[[[x1_{u},y1_{u},z1_{u}], [x1_{g},y1_{g},z1_{g}]],...[[xn_{u},yn_{u},zn_{u}], [xn_{g},yn_{g},zn_{g}]]]$
 
 We see here that the separated format is already in our desired standard format after this operation. Amazing. 
 
-To get the combined format into the standard format, we'll need to low-pass filter it to split the acceleration into user and gravitational first, and ensure it ends up in the same standard format afterward. 
-
-We'llo do this low-pass filtering in the `parse_raw_data` method, so that it's the only one concerned with the two format, as per our separation of concerns pattern. In order to do that, we use the difference in `@parsed_data` at this stage to determine whether the format is combined or separated in the `if` statement in the next portion of the code. If it's combined (or, equivalently, has exactly one array where the separated format would have two), then we proceed with:
+To get the combined format into the standard format, we'll need to low-pass filter it to split the acceleration into user and gravitational first, and ensure it ends up in the same standard format afterward. We'll do this in the `parse_raw_data` method, so that it's the only one concerned with the two formats, as per our separation of concerns pattern. In order to do that, we use the difference in `@parsed_data` at this stage to determine whether the format is combined or separated in the `if` statement in the next portion of the code. If it's combined (or, equivalently, has exactly one array where the separated format would have two), then we proceed with:
 
 * passing the data through the `chebyshev_filter` method to low-pass filter it and split out the accelerations, and
 * formatting the data into the standard format. 
 
-At the end of the `if` statement, we're left with the `@parsed_data` variable holding data in the standard format, regardless of whether we started off with combined or separated data. 
+We accomplish each of these steps with a loop. The first loop uses our array after calling `flatten` on each element, followed by `transpose` on the result, so that it can work with x, y, and z total accelerations individually. The array after `flatten` and `transpose` and before looping is structured as follows:
 
-The last thing the `if` statement does is set the `@format` variable to either `FORMAT_COMBINED` or `FORMAT_SEPARATED`, both of which are constants that indicate the type of format the original data was passed in as. These are used predominantly for display purposes in the web app. Otherwise, the remainder of the program is no longer concerned with these two format. 
+$[[[x1t, ..., xnt]], [[y1t, ..., ynt]], [[z1t, ..., znt]]]$
+
+Then, we use `map` to loop through each of the three coordinates. In the first line of the loop, we call `chebyshev_filter` with `GRAVITY_COEFF` to split out gravitational acceleration, storing the resulting array in `grav`. In the second line, we use `zip` to isolate user acceleration by subtracting gravitational acceleration from the total acceleration, storing the resulting array in `user`. In the last line, we return an array with `user` and `grav` as the two elements. 
+
+This loop runs exactly three times, ones for each coordinate, and stores the final result in `filtered_accl`:
+
+$[[[x1u, x2u, ..., xnu], [x1g, x2g, ..., xng]], [[y1u, y2u, ..., ynu], [y1g, y2g, ..., yng]], [[z1u, z2u, ..., znu], [z1g, z2g, ..., zng]]]$
+
+We're almost there. We've split total acceleration into user and gravitational. All that's left is to format `filtered_accl` to our standard format. We do this in the second loop by resetting `@parsed_data`. We loop as many times as there are elements in `@parsed_data` using `map`. For each index (and point in time), the first line in the loop stores an array with the x, y, and z user acceleration at that point in time in `coordinate_user`, while the second line stores the equivalent values for gravitational acceleration in `coordinate_grav`. The last line returns an array with `coordinate_user` and `coordinate_grav` as the elements. After this second loop, `@parsed_data` is in our standard format. 
+
+The last thing the `if` statement does, for each branch, is set the `@format` variable to either `FORMAT_COMBINED` or `FORMAT_SEPARATED`, both of which are constants that indicate the type of format the original data was passed in as. These are used predominantly for display purposes in the web app. Otherwise, the remainder of the program is no longer concerned with these two formats. 
+
+TODO: Would be awesome to remove the format property so that we can talk about separation of concerns without this added complexity.
+
+At the end of the `if` statement, we're left with the `@parsed_data` variable holding data in the standard format, regardless of whether we started off with combined or separated data. 
 
 Great. Let's move on.
 
-TODO: Would be awesome to remove this formatting so that we can talk about separation of concerns without this added complexity.
-
-### Step 2: dot_product_parsed_data
+### Step 2: Isolate movement in the direction of gravity using the dot product (dot_product_parsed_data)
 
 Taking the dot product in our Processor class is a matter of using the data in our standard format, `@parsed_data`, and applying the fot product formulat to it. We add a `@dot_product_data` instance variable, and a method, `dot_product_parsed_data`, to set that variable. The `dot_product_parsed_data` method is called immeditely after `parse_raw_data` in the initializer, and iterates through our `@parsed_data` hash, calculates the dot product with map, and sets the result to `@dot_product_data`. 
 
-### Step 3: filter_dot_product_data
+### Step 3: Smooth out our waveform using a low-pass filter (filter_dot_product_data)
 
 Following the pattern from steps one and two, we add another instance variable, `@filtered_data`, to store the filtered data series, and a method, filter_dot_product_data, that we call from the initializer.
 

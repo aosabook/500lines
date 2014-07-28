@@ -36,8 +36,6 @@ class Processor
     @parsed_data = @data.to_s.split(';').map { |i| i.split('|') }
                    .map { |i| i.map { |i| i.split(',').map(&:to_f) } }
 
-    p @parsed_data
-
     unless @parsed_data.map { |data| data.map(&:length).uniq }.uniq == [[3]]
       raise 'Bad Input. Ensure data is properly formatted.'
     end
@@ -49,7 +47,7 @@ class Processor
       # Low-pass filter combined acceleration into the following format:
       # [ [ [x1u, x2u, ..., xnu], [x1g, x2g, ..., xng] ],
       #   [ [y1u, y2u, ..., ynu], [y1g, y2g, ..., yng] ],
-      #   [ [z1u, z2u, ..., znu], [z1g, z2g, ..., zng] ], ]
+      #   [ [z1u, z2u, ..., znu], [z1g, z2g, ..., zng] ] ]
       filtered_accl = @parsed_data.map(&:flatten).transpose.map do |total_accl|
         grav = chebyshev_filter(total_accl, GRAVITY_COEFF)
         user = total_accl.zip(grav).map { |a, b| a - b }
@@ -59,10 +57,9 @@ class Processor
       # Format filtered acceleration into the following format:
       # [ [ [x1u, y1u, z1u], [x1g, y1g, z1g] ], ..., 
       #   [ [xnu, ynu, znu], [xng, yng, zng] ] ]
-      @parsed_data = @parsed_data.length.times.map do |i| 
+      @parsed_data = @parsed_data.length.times.map do |i|
         coordinate_user = filtered_accl.map(&:first).map { |elem| elem[i] }
         coordinate_grav = filtered_accl.map(&:last).map { |elem| elem[i] }
-
         [coordinate_user, coordinate_grav]
       end
       
@@ -88,11 +85,11 @@ class Processor
     output_data = [0,0]
     (2..input_data.length-1).each do |i|
       output_data << coefficients[:alpha][0] * 
-                      (input_data[i]    * coefficients[:beta][0] +
-                       input_data[i-1]  * coefficients[:beta][1] +
-                       input_data[i-2]  * coefficients[:beta][2] -
-                       output_data[i-1] * coefficients[:alpha][1] -
-                       output_data[i-2] * coefficients[:alpha][2])
+                     (input_data[i]   * coefficients[:beta][0] +
+                     input_data[i-1]  * coefficients[:beta][1] +
+                     input_data[i-2]  * coefficients[:beta][2] -
+                     output_data[i-1] * coefficients[:alpha][1] -
+                     output_data[i-2] * coefficients[:alpha][2])
     end
     output_data
   end
