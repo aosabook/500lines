@@ -4,7 +4,7 @@ run_or_fail() {
   shift 1
   "$@"
   if [ $? != 0 ]; then
-    echo $explanation
+    echo $explanation 1>&2
     exit 1
   fi
 }
