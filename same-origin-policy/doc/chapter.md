@@ -412,28 +412,28 @@ paradigm allows the user to encode a wide range of modeling idioms
 using a small core of the basic language constructs. We could, for
 example, specify a system as a state machine, a data model with
 complex invariants, a distributed event model with a global clock, or
-whatever idiom is most suitable for the problem that you are trying to
-model. Commonly used idioms can be captured as a generic module and
-reused across multiple systems.
+whatever idiom is most suitable for the problem at hand. Commonly used
+idioms can be captured as a generic module and reused across multiple
+systems.
 
 In our model of the SOP, we model the system as a set of endpoints
 that communicate to each other by making one or more _calls_. Since
 call is a fairly generic notion, we encapsulate its description in a
-separate Alloy model, to be imported from other modules that rely on
+separate Alloy module, to be imported from other modules that rely on
 it -- similar to standard libraries in programming languages:
 
 ```alloy 
 module call[T] 
 ```
 
-In the module declaration, `T` represents a type parameter that can be
+In this module declaration, `T` represents a type parameter that can be
 instantiated to a concrete type that is provided when the module is
-imported. We will soon see an use of the type parameter.
+imported. We will soon see how this type parameter is used.
 
-It is often a common idiom to lay out the system execution over a
-global time frame, so that we can talk about calls as happening before
-or after each other (or at the same time). To represent the notion of
-time, we introduce a new signature:
+It is often convenient to describe the system execution as taking
+place over a global time frame, so that we can talk about calls as
+occurring before or after each other (or at the same time). To
+represent the notion of time, we introduce a new signature called `Time`:
  
 ```alloy
 open util/ordering[Time] as ord
