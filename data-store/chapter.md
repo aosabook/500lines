@@ -17,23 +17,33 @@ P.Eng and she knew how to program, so my mom arranged a phone call so I could
 explain the problem and get some feedback. Within a few minutes of talking, I
 had figured out the problem: the program was too big, and had encroached into
 video memory. Clearing the screen truncated the program, and the sparkles were
-artifacts of Applesoft BASIC's characteristic of storing program state in RAM
-just above the end of the program.
+artifacts of Applesoft BASIC's behaviour of storing program state in RAM
+just beyond the end of the program.
+
+I learned to care about memory allocation.
 
 I remember learning about pointers and how to allocate memory with malloc, to
 stick records of arbitrary-length strings into a struct so I could sort them
 by latitude and longitude.
 
+I learned about how data strutures are laid out in memory.
+
 I understood that Erlang didn't have to copy data between processes, even
 though it was "strictly message-passing", because everything was immutable.
-
 I'm not sure that the utility of immutable data structures really sank in until
 I read about Clojure's in 2009.
-
 Who'd have thought that learning about CouchDB in 2013 would just make me smile
 and nod?
 
-But first&hellip;
+I learned some neat stuff that other people were doing.
+
+Then I agreed to write a book chapter, and in trying to write a binary tree
+algorithm that mutated the tree in place, I got frustrated with how complicated
+things were getting.
+
+I learned that it's easier to reason about things that don't change.
+
+So starts the story. ``:)``
 
 
 What does it do?
