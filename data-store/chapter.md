@@ -76,7 +76,7 @@ Stale data is not reclaimed in this implementation,
 so repeated updates to the same key
 will eventually consume all disk space.
 Postgres calls this reclamation "vacuuming"
-(which makes old row space available for re-use),,
+(which makes old row space available for re-use),
 and CouchDB calls it "compaction"
 (by rewriting the entire data store into a new file,
 and atomically moving it over the old one).
@@ -87,7 +87,7 @@ Intro to the toolchain
 
 The code is written in polyglot Python 2/3.
 
-It is highly recommended to use ``virtualenv``
+I recommended using ``virtualenv``
 when installing dependencies:
 
 ```bash
@@ -137,7 +137,8 @@ from the contents of the key/value store
     for using DBDB inside a Python program.
 
 * ``tree.py`` defines
-    an abstract interface to a data store.
+    the logical layer.
+    It's an abstract interface to a key/value store.
 
     - ``Tree`` is not tree-specific,
         and defers to a concrete sub-class to implement updates.
@@ -145,26 +146,36 @@ from the contents of the key/value store
 
     - ``ValueRef`` is a Python object that refers to
         a binary blob stored in the database.
+        The indirection lets us avoid loading
+        the entire data store into memory at once.
 
 * ``binary_tree.py`` defines
     a concrete binary tree algorithm
-    underneath the tree interface
-    using the storage abstraction.
+    underneath the tree interface.
 
     - ``BinaryTree`` provides a concrete implementation
         of a binary tree, with methods for
         getting, inserting, and deleting key/value pairs.
+        ``BinaryTree`` represents an immutable tree;
+        updates are performed by returning a new tree
+        which shares common structure with the old one.
 
     - ``BinaryNode`` implements a node in the binary tree.
 
-    - ``BinaryNodeRef`` knows how to serialize and deserialize
+    - ``BinaryNodeRef`` is a specialised ``ValueRef``
+        which knows how to serialize and deserialize
         a ``BinaryNode``.
 
-* ``storage.py`` defines ``Storage`` class
-    providing persistent, append-only record storage.
-    Well, append-only except for an atomic "commit" operation
-    used to atomically point to a new "root" record.
-    A record is a variable-length string of bytes.
+* ``storage.py`` defines
+    physical layer.
+    The ``Storage`` class
+    provides persistent, append-only record storage.
+    The only exception to the append-only policy
+    is the atomic "commit" operation
+    which updates the first few bytes of the file to point
+    at a new "root" record.
+    This is atomic for all block devices.
+    A record is a length-delimited series of bytes.
 
 These modules grew from attempting
 to give each class a single responsibility.
