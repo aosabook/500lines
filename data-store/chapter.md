@@ -180,17 +180,13 @@ Tree nodes are created
 with an associated key and value,
 and left and right children.
 Those associates never change.
-Updating a key:value pair involves creating new nodes
-from the root all the way to the modified node.
+Updating a key/value pair involves creating new nodes
+from the inserted/modified/deleted node
+all the way back up to the new root.
 Internally,
 a node's private parts mutate only
 to remember where its data was written (writing a node as part of a commit),
 or to remember the data when it's read from disk (after the node was read from disk).
- uses immutable data structures in memory
-which map nicely onto an append-only serialisation format.
-When a new value is inserted into the tree,
-all in-memory nodes between the root and the insertion point
-are replaced.
 
 ![Immutable tree](immutable.svg)
 
