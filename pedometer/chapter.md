@@ -393,13 +393,13 @@ Great. We can now move on without worrying about our two formats again, and with
 
 ### Step 2: Isolate movement in the direction of gravity using the dot product (dot_product_parsed_data)
 
-Taking the dot product in our Processor class is a matter of using the data in our standard format, `@parsed_data`, and applying the fot product formulat to it. We add a `@dot_product_data` instance variable, and a method, `dot_product_parsed_data`, to set that variable. The `dot_product_parsed_data` method is called immeditely after `parse_raw_data` in the initializer, and iterates through our `@parsed_data` hash, calculates the dot product with map, and sets the result to `@dot_product_data`. 
+Taking the dot product in our `Processor` class is a matter of using the data in our standard format, `@parsed_data`, and applying the dot product formula to it. We add a `@dot_product_data` instance variable, and a method, `dot_product_parsed_data`, to set that variable. The `dot_product_parsed_data` method is called immeditely after `parse_raw_data` in the initializer. It iterates through our standard format, `@parsed_data`, using `map`, calculating the dot product for each index and setting the final result to `@dot_product_data`. 
 
 ### Step 3: Smooth out our waveform using a low-pass filter (filter_dot_product_data)
 
-Following the pattern from steps one and two, we add another instance variable, `@filtered_data`, to store the filtered data series, and a method, filter_dot_product_data, that we call from the initializer.
+Following the pattern from steps one and two, we add another instance variable, `@filtered_data`, to store the filtered data series, and a method, `filter_dot_product_data`, that we call from the initializer.
 
-The filter_dot_product_data method is the second place our low-pass filtering method, chebyshev_filter, is used. This time, we pass @dot_product_data in as our signal and use SMOOTHING_COEFF, and the result returned is our signal without the high frequence component, which we store in @filtered_data. This final signal, @filtered_data, is the clean signal we can use to count steps. 
+The `filter_dot_product_data` method is the second place our low-pass filtering method, `chebyshev_filter`, is used. This time, we pass `@dot_product_data` in as our signal, and `SMOOTHING_COEFF` as the coefficients constant, and the result returned is our signal without the high frequency component, which we store in `@filtered_data`. This final signal, `@filtered_data`, is the clean signal we can use to count steps. 
 
 TODO: Drive the point of separation of concerns home here. Each of these methods does **exactly one thing**. Or, too much?
 
@@ -476,10 +476,7 @@ Finally, if the user does not wish to provide any information, we can take the a
 
 TODO: Do I need to add references for multipliers and averages above? Can we just say some basic research turned up these numbers, but we're free to change them if more accurate ones are uncovered?
 
-TODO: Start again HERE!
-TODO: A common programming problem is handling optional information. Talk about how we handle it here. Maybe draw another graph of how we handle it?
-
-All of this information is related to the user, so it makes sense to include it in a User class. 
+All of this information is related to the user, so it makes sense to create a `User` class. 
 
 ~~~~~~~
 class User
@@ -512,6 +509,15 @@ private
 
 end
 ~~~~~~~
+
+Handling optional information is a common programming problem. Our `User` class will handle the optional information about the user. Looking at our initializer, we notice that we're accepting `gender`, `height`, and `stride` all as optional parameters. We then set instance variables of the same names after small manipulations to each of our input parameters. 
+
+* We set `@gender` as the stringified, downcased version of the passed in `gender` parameter, as long as it's included in the `GENDER` constant. If it's not, our `@gender` instance variable will be `nil`.
+* `@height` is set to the `height` parameter converted to a float, as long as it's greater than 0. If not, then `@height` will also be `nil`.
+* If `stride` converted to a float is greater than 0, then we set that value to `@stride`. If not, we call 
+
+TODO: Start HERE! Discuss optional parameters. Maybe add a diagram? Next step is to disucss the calculate_stride method.
+
 
 Things to note:
 
