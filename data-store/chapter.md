@@ -51,35 +51,51 @@ What does it do?
 
 Most projects require a data store of some kind.
 You really shouldn't write your own;
-there are many edge-cases that will bite you in the end.
+there are many edge-cases that will bite you in the end,
+even if you're just writing JSON to disk:
+
+* What happens if your filesystem runs out of space?
+* What happens if your laptop battery dies while saving?
+
 However,
 it's incredibly useful to understand
-how they work.
-This will inform your use of it
+how data stores work.
+It will inform your use
 from a performance
 as well as crash recovery
 and durability perspectives.
+
+DBDB is a (too) simple example
+of how save key/value data
+in an atomic and durable way,
+as well as how a persistence layer can be structured
+in code.
 
 
 Simplifications
 ---------------
 
-DBDB tries to show some basic patterns you can use
-to create a key/value store
-with atomic, durable updates.
-Consistency is not covered
+DBDB is not <http://en.wikipedia.org/wiki/ACID_(database)>[ACID].
+While updates are atomic and durable,
+consistency is not covered
 (there are no constraints on the data stored)
 and isolation is not guaranteed
 (since dirty reads will not cause an abort on commit).
+Application code can of course impose its own consistency guarantees,
+but proper isolation requires a transaction manager
+(which could probably be its own 500 lines).
 
 Stale data is not reclaimed in this implementation,
-so repeated updates to the same key
+so repeated updates
+(even to the same key)
 will eventually consume all disk space.
 Postgres calls this reclamation "vacuuming"
 (which makes old row space available for re-use),
 and CouchDB calls it "compaction"
 (by rewriting the entire data store into a new file,
 and atomically moving it over the old one).
+DBDB can easily be enhanced to add a compaction feature,
+but it is left as an exercise for the reader.
 
 
 Intro to the toolchain
