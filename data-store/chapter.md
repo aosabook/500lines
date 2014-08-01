@@ -131,9 +131,9 @@ Exploring the code
 ------------------
 
 DBDB separates the concerns of "put this on disk somewhere"
-(how data are laid out in a file)
+(how data are laid out in a file; the physical layer)
 from the logical structure of the data
-(a binary tree in this example)
+(a binary tree in this example; the logical layer)
 from the contents of the key/value store
 (the association of key "a" to value "foo").
 
