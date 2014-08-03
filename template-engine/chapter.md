@@ -1,5 +1,13 @@
-# A Templating Engine
+# A Template Engine
 
+Most programs contain a lot of logic, and a little bit of literal textual data.
+Programming languages are designed to be good for this sort of programming.
+But some programming tasks involve only a little bit of logic, and a great deal
+of textual data.  For these tasks, we'd like to have a tool better suited to
+the text-heavy problem.  Template engines are such a tool.  In this chapter,
+we build a simple template engine.
+
+The most common example of one of these text-heavy tasks is in web applications.
 An important phase in any web application is generating HTML to be served to
 the browser. Very few HTML pages are completely static, they
 involve at least a small amount of dynamic data, such as the user's name.
@@ -14,29 +22,81 @@ static text is actually HTML markup that is authored by another member of the
 team, the front-end designer, who wants to be able to work with it in familiar
 ways.
 
-One simple way to make the HTML would be to have large string constants in our
+For purposes of illustration, let's imagine we want to produce this toy HTML:
+
+```
+<p>Welcome, Charlie!</p>
+<p>Products:</p>
+<ul>
+    <li>Apple: $1.00</li>
+    <li>Fig: $1.50</li>
+    <li>Pomegranite: $3.25</li>
+</ul>
+```
+
+Here, the user's name will be dynamic, as will the names and prices of
+the products.  Even the number of products isn't fixed: at another moment, there
+could be five products to display or only one.  
+
+One simple way to make this HTML would be to have string constants in our
 code, and join them together to produce the page.  Dynamic data would be
 inserted with string substitution of some sort.  Some of our dynamic data is
-repetitive, for example, lists of products, so we can't predict ahead of time
-how many items will be included.  This means we'll have chunks that repeat, so
+repetitive, like our lists of products.  This means we'll have chunks that repeat, so
 those would have to be handled separately and combined with the rest of the
 page.
 
-If we built our page this way, we'd have a mess on our hands.  The HTML would
-be in multiple string constants embedded in our application code.  The logic
-of how to loop over the dynamic data and combine it into the page would be
-intermixed with other application logic.  Our front-end designer would need to
-be able to edit our Python code in order to make HTML changes.  It quickly becomes
-unworkable.
+Producing our toy page this way would look like this:
+
+```
+PAGE_HTML = """
+<p>Welcome, {name}!</p>
+<p>Products:</p>
+<ul>
+{products}
+</ul>
+"""
+
+PRODUCT_HTML = "<li>{prodname}: {price}</li>\n"
+
+def make_page(username, products):
+    product_html = ""
+    for prodname, price in products:
+        product_html += PRODUCT_HTML.format(prodname=prodname, price=format_price(price))
+    html = PAGE_HTML.format(name=username, products=product_html)
+    return html
+```
+
+This works, but we have a mess on our hands.  The HTML is in multiple string
+constants embedded in our application code.  The logic of the page is hard to
+see because the static text is broken into separate pieces, and the details of
+how data is formatted is lost in the Python code.  In order to modify the HTML
+page, our front-end designer would need to be able to edit Python code to make
+HTML changes.  Imagine what the code would look like if the page were ten (or
+one hundred!) times more complicated; it quickly becomes unworkable.
 
 
-## Templating
+## Templates
 
-The preferred way to produce HTML pages is templating.  The HTML page is
+The better way to produce HTML pages is with templates.  The HTML page is
 authored as a template, meaning that the file is mostly static HTML, with
-dynamic pieces embedded in it with special notation.  The job of a template
-engine is to interpret the template, replacing the dynamic pieces with real
-data.  This chapter describes a simple template engine.
+dynamic pieces embedded in it with special notation.  Our toy page above could
+look like this as a template:
+
+```
+<p>Welcome, {{user_name}}!</p>
+<p>Products:</p>
+<ul>
+{% for product in product_list %}
+    <li>{{ product.name }}:
+        {{ product.price|format_price }}</li>
+{% endfor %}
+</ul>
+```
+
+Here the focus is on the HTML text, with logic embedded in the HTML.  Contrast
+this document-centric approach with our logic-centric code above.
+Our earlier program was mostly Python code, with HTML embedded in
+the Python logic.  Here our program is mostly static HTML markup.
 
 The mostly-static style used in templates is the opposite of how most
 programming languages work.  For example, with Python, most of
@@ -58,60 +118,85 @@ pieces embedded in the instructions.  The static pieces are indicated by the
 double-quote notation.
 
 A template language flips this around: the template file is mostly static
-literal text, with special notation to indicate the executable dynamic parts:
+literal text, with special notation to indicate the executable dynamic parts.
 
 ```
-<html>
-<body>
 <p>Welcome, {{user_name}}!</p>
 ```
 
-Here the text is meant to appear literally in the resulting HTML page, but the
-{{ notation indicates a switch into dynamic mode, where the user_name variable
+Here the text is meant to appear literally in the resulting HTML page, until the
+`{{` notation indicates a switch into dynamic mode, where the `user_name` variable
 will be substituted into the output.
 
 String formatting functions such as Python's `"foo = {foo}!".format(foo=17)`
-are examples of mini-languages used to create strings from a literal and data
+are examples of mini-languages used to create text from a string literal and the data
 to be inserted.  Templates extend this idea to include logic constructs like
 conditionals and loops, but are really just a difference of degree.
 
 These files are called templates because they are used to produce many
 different pages with similar structure but differing details.
 
-To use HTML templates in our programs, we need a templating engine: a function
-that will take a template and data to plug into the template, and will produce
-a complete string of HTML.  This chapter describes a simple implementation of
-a templating engine.
+To use HTML templates in our programs, we need a template engine: a function
+that takes a static *template* describing the structure and static content of
+the page, and a dynamic *context* that provides the dynamic data to plug into
+the template.  The template engine combines the template and the context to
+produce a complete string of HTML.  The job of a template engine is to
+interpret the template, replacing the dynamic pieces with real data.  This
+chapter describes the implementation of a simple template engine.
 
-By the way, there's often nothing particular about HTML in a templating engine,
+By the way, there's often nothing particular about HTML in a template engine,
 it could be used to produce any textual result.  For example, they are also
 used to produce plain-text email messages.  But usually they are used for
 HTML, and occasionally have HTML-specific features, such as escaping, which
 makes it possible to insert values into the HTML without worrying about which
 characters are special in HTML.
 
+Templates are also not always the best choice for producing large chunks of text,
+even if they do follow a common pattern.  Very data-heavy outputs might just be
+easier to do the logic-centric way rather than a document-centric template way.
+
 
 ## Supported Syntax
 
-Template engines vary in the syntax they support.  We'll implement a subset of
-the Django syntax.  Since we are implementing our engine in Python, some Python
-concepts will appear in our syntax.  
+Template engines vary in the syntax they support.  Our template syntax is based
+on Django, a popular web framework.  Since we are implementing our engine in
+Python, some Python concepts will appear in our syntax. We've already seen some
+of this syntax in our toy example at the top of the chapter, but this is a quick
+summary of all of the syntax we'll implement.
 
-Data is inserted using double curly braces:
+Data from the context is inserted using double curly braces:
 
 ```
 <p>Welcome, {{user_name}}!</p>
 ```
 
-The data available to the template is provided in a context when the template
+The data available to the template is provided in the context when the template
 is rendered, more on that later.
 
-Templating engines usually provide access to elements within data using a
-simplified and relaxed syntax: you can use a dot to access object attributes,
-or container elements, and if the resulting value is callable, it's
-automatically called.  This is different than Python code, where you'd need to
-use different syntax for those operations, and results in cleaner template
-syntax:
+Template engines usually provide access to elements within data using a
+simplified and relaxed syntax. In Python, these expressions all have different
+effects:
+
+```
+list[index]
+dict["key"]
+obj.attr
+obj.method()
+```
+
+In our template syntax, all of these operations are expressed with a dot:
+
+```
+list.index
+dict.key
+obj.attr
+obj.method
+```
+
+The dot will access object attributes, or container elements, and if the
+resulting value is callable, it's automatically called.  This is different than
+the Python code, where you need to use different syntax for those operations.
+This results in simpler template syntax:
 
 ```
 <p>The price is: {{product.price}}, with a {{product.discount}}% discount.</p>
@@ -158,82 +243,63 @@ brace-hashes:
 {# This is the best template ever! #}
 ```
 
-## What's Left Out
-
-Full-featured template engines provide more features, of course.  To keep this
-code small, we're leaving out interesting ideas like:
-
-* Template inheritance and inclusion
-* Custom tags
-* Automatic escaping
-* Arguments to filters
-* Complex logic like elif and for/else
-* Loops with more than one loop variable
-* Whitespace control
-
-Even so, our simple template engine is useful.  In fact, it is the template
-engine used in coverage.py to produce its HTML reports.
-
 
 ## Implementation Approaches
 
 In broad strokes, the template engine will have two main phases:
 
 * Parse the template
-* Execute the template to assemble the string result, which involves:
+* Render the template to assemble the text result, which involves:
   - Manage the dynamic context, the source of the data
   - Execute the logic elements
   - Implement dot access and filter execution
 
 A key decision in the implementation is what will be passed from the parsing
-phase to the execution phase.  What does parsing produce that can be executed?
+phase to the rendering phase.  What does parsing produce that can be rendered?
 There are two main options here.  We'll call them interpretation and
 compilation, using the terms loosely from other language implementations.
 
 In an interpretation model, parsing produces a data structure representing the
-structure of the template. The execution phase walks that data structure,
-assembling the result string based on the instructions it found.  For a real-world
+structure of the template. The rendering phase walks that data structure,
+assembling the result text based on the instructions it found.  For a real-world
 example, the Django template engine uses this approach.
 
 In a compilation model, parsing produces some form of executable code.  The
-execution phase executes that code, producing the result.  Jinja2 and Mako both
-use the compilation approach.
+rendering phase executes that code, producing the result.  Jinja2 and Mako are
+two examples of template engines that use the compilation approach.
 
-Our implementation of the engine uses compilation.  We compile the
-template into Python code.  When run, the Python code assembles the result.
-If you are interested in seeing an implementation of the interpretation model,
-an earlier version of this same code used interpretation, and is in the history
-of the coverage.py repository on Bitbucket.  
+Our implementation of the engine uses compilation: we compile the template
+into Python code.  When run, the Python code assembles the result.  
 
-For coverage.py's use case, there are only a few templates, and they are used
-over and over to produce many files from the same template.  Overall, the
-program ran faster if the templates were compiled to Python code, because even
-though the compilation process was a bit more complicated, it only had to run
-once, while the execution of the compiled code ran many times, and was faster
-than interpreting a data structure many times.
+The template engine described here was originally written as part of
+coverage.py, to produce HTML reports.  In coverage.py, there are only a few
+templates, and they are used over and over to produce many files from the same
+template.  Overall, the program ran faster if the templates were compiled to
+Python code, because even though the compilation process was a bit more
+complicated, it only had to run once, while the execution of the compiled code
+ran many times, and was faster than interpreting a data structure many times.
 
 It seems more complicated to compile the template to Python, and it is a little
 bit more complicated, but it's not as bad as you might think. And besides, it's
 fun.  Any developer can tell you, it's more fun to write a program to write a
 program than it is to write a program!
 
-Because of the focus on coverage.py's speed, this template engine uses some
-micro-optimizations.  These are unusual techniques in the code that look odd at
-first, but are used to gain tiny improvements in speed.  They are only justified
-for code that is executed repeatedly, and is shown to be a performance bottleneck.
-Developers will disagree on how much micro-optimization is justified, and some
-beginners will overdo it.  The micro-optimizations here were added after timing
-experiments showed that they improved the speed, if only a little bit.
+This is a small example of a general technique called code generation, which
+underlies programming language compilers, as well as many other powerful and
+flexible tools.  Code generation can get very complex, but is a useful
+technique to have in your toolbox.
 
-These micro-optimizations can be instructive, as they make use of some exotic
-aspects of Python, but don't over-use them in your own code.
+Another application of templates might prefer the interpreted approach, if
+templates will be used only a few times each.  Then the effort to compile to
+Python won't pay off in the long run, and a simpler interpretation process
+might perform better overall.
 
 
 ## Compiling to Python
 
 Before we get to the code of the template engine, let's look at what it
 produces.  The parsing phase will convert a template into a Python function.
-Here is a small template:
+Here is our small template again:
 
 ```
 <p>Welcome, {{user_name}}!</p>
@@ -246,8 +312,9 @@ Here is a small template:
 </ul>
 ```
 
-Our engine will compile this template to this Python code (slightly reformatted
-for readability):
+Our engine will compile this template to Python code.  The resulting Python
+code looks unusual, because we've chosen some shortcuts that produce slightly
+faster code.  Here is the Python (slightly reformatted for readability):
 
 ```
 def render_function(context, do_dots):
@@ -277,13 +344,11 @@ def render_function(context, do_dots):
     return ''.join(result)
 ```
 
-This Python code looks unusual, because we've chosen some shortcuts that
-produce slightly faster code.  Each template is converted into a
-`render_function` function that takes a dictionary of data called the context.
-The body of the function starts by unpacking the data
-from the context into local names, because they are faster for repeated use.
-We use locals with a `c_` prefix so that we can use other local names without
-fear of collisions.
+Each template is converted into a `render_function` function that takes a
+dictionary of data called the context.  The body of the function starts by
+unpacking the data from the context into local names, because they are faster
+for repeated use.  We use locals with a `c_` prefix so that we can use other
+local names without fear of collisions.
 
 The result of the template will be a string, but the fastest way to build a
 string from parts is to create a list of strings, and join them together at the
@@ -313,15 +378,25 @@ append_result("hello")
 In the template engine code, we've split it out this way so that we only do the
 first step once, no matter how many times we do the second step.  This saves us
 a small amount of time, because we avoid the time to look up the append attribute.
-This is an example of a micro-optimization, which is only worth it if the code
-in question will be executed many many times, as the core of our templates will
-be.
 
-The shortcut for `str` is also a micro-optimization: looking up the value of a
+This is an example of a micro-optimization: an unusual coding technique that is
+used to gain tiny improvements in speed.  They can be less readable, or more
+confusing, so they are only justified for code that is shown to be a
+performance bottleneck.  Developers will disagree on how much
+micro-optimization is justified, and some beginners will overdo it.  The
+optimizations here were added after timing experiments showed that they
+improved the speed, if only a little bit.  Micro-optimizations can be
+instructive, as they make use of some exotic aspects of Python, but don't
+over-use them in your own code.
+
+The shortcut for `str` is also a micro-optimization. Python looks up the values
+of names in a number of nested scopes: local to the current function, then in
+the module-level globals, then in the builtins. Looking up the value of a
 local variable is faster than looking up the value of a global variable.  We're
 used to thinking of `str` as being a builtin that is always available, which it
-is, but we still have to look up the name `str` each time it is used.  Putting
-it in a local saves us another small slice of time.
+is, but we still have to look up the name `str` each time it is used, which
+means examining those other scopes.  Putting it in a local saves us another
+small slice of time.
 
 With those preliminaries out of the way, we're ready for the Python lines
 created from our particular template. Strings will be added to the result list
@@ -348,17 +423,66 @@ Python conditionals and loops in a relatively straightforward way.
 <!-- [[[cog from cogutil import include ]]] -->
 <!-- [[[end]]] -->
 
+
 ## Writing the Engine
 
 Now that we understand what the engine will do, let's walk through the
 implementation.
 
+
+### The Templite class
+
+The heart of the template engine is the Templite class.  (Get it? It's a
+template, but it's lite!)
+
+The Templite class has a small interface.  You construct one with the
+text of the template, then later you can use the `.render` method on it to
+render a particular context, the dictionary of data, through the template:
+
+```
+templite = Templite('''
+    <h1>Hello {{name|upper}}!</h1>
+    {% for topic in topics %}
+        <p>You are interested in {{topic}}.</p>
+    {% endif %}
+    ''',
+    {'upper': str.upper},
+)
+text = templite.render({
+    'name': "Ned",
+    'topics': ['Python', 'Geometry', 'Juggling'],
+})
+```
+
+We pass the text of the template when the object is created so that we can
+do the compile step just once, and later call render many times to reuse the
+compiled results.
+
+The constructor also accepts a dictionary of values, these are stored in the
+Templite object, and will also be available when the template is later
+rendered.  These are good for defining global functions, for example.
+
+Before we discuss the implementation of Templite, we have a helper to define
+first: CodeBuilder.
+
+
 ### CodeBuilder
 
 The bulk of the work in our engine is parsing the template and producing the
-necessary Python code.  To help with that, we have the `CodeBuilder` class,
-which handles the bookkeeping for us as we add lines of code, manage
-indentation, and finally get a dict of global values from the compiled Python.
+necessary Python code.  To help with producing the Python, we have the
+`CodeBuilder` class, which handles the bookkeeping for us as we construct the
+the Python code.  It adds lines of code, manages indentation, and
+finally gets a dict of global values from the compiled Python.
+
+One CodeBuilder object is responsible for a complete chunk of Python code. As
+used by our template engine, the chunk of Python is always a single complete
+function definition, but the CodeBuilder class makes no assumption that it will
+only be one function.  This keeps the CodeBuilder code more general, and less
+coupled to the rest of the template engine code.
+
+As we'll see, we also use nested CodeBuilders to make it possible to put code
+at the beginning of the function even though we don't know what it will be
+until we are nearly done.
 
 A CodeBuilder object keeps a list of strings that will together be the final
 Python code.  The only other state it needs is the current indentation level:
@@ -374,7 +498,7 @@ class CodeBuilder(object):
 ```
 <!-- [[[end]]] -->
 
-CodeBuilder is quite simple, it has:
+CodeBuilder doesn't do much, it has:
 
 * a method to add a new line of code, which automatically indents the text to
   the current indentation level, and supplies a newline:
@@ -407,7 +531,7 @@ CodeBuilder is quite simple, it has:
 ```
 <!-- [[[end]]] -->
 
-* a method to add a section, which is a piece of code managed by another CodeBuilder object.  
+* a method to add a section, which is a piece of code managed by another CodeBuilder object.
   This lets us keep a reference to a place in
   the code, and add text to it later.  The self.code list is mostly a list of
   strings, but will also hold references to these sections:
@@ -435,7 +559,7 @@ CodeBuilder is quite simple, it has:
 <!-- [[[end]]] -->
 
 * a method to produce the final values by executing the code.  This stringifies
-  the object, executes it in a new globals namespace, and returns the resulting
+  the object, executes it to get its definitions, and returns the resulting
   values:
 
 <!-- [[[cog include("templite.py", first="def get_globals", numblanks=1, dedent=False) ]]] -->
@@ -469,37 +593,16 @@ Even as we're actually using it, to define a single function, having `get_global
 return the dictionary keeps the code more modular because it doesn't need to
 know the name of the function we've defined.  Whatever function name we define
 in our Python source, we can retrieve that name from the dict returned by
-`get_globals`.  When we get into the heart of the template engine itself, we'll
-see how CodeBuilder gets used.
+`get_globals`.  
+
+Now we can get into the implementation of the Templite class itself, and see
+how CodeBuilder gets used.
 
 
-### The Templite class
+### The Templite class implementation
 
-The heart of the template engine is the Templite class.  (Get it? It's a
-template, but it's lite!)
-
-The Templite class has a very simple interface.  You construct one with the
-text of the template, then later you can use the `.render` method on it to
-render a particular context, the dictionary of data, through the template:
-
-```
-templite = Templite('''
-    <h1>Hello {{name|upper}}!</h1>
-    {% for topic in topics %}
-        <p>You are interested in {{topic}}.</p>
-    {% endif %}
-    ''',
-    {'upper': str.upper},
-)
-text = templite.render({
-    'name': "Ned",
-    'topics': ['Python', 'Geometry', 'Juggling'],
-})
-```
-
-The constructor also accepts a dictionary of values, these are stored in the
-Templite object, and will also be available when the template is later
-rendered.  These are good for defining global functions, for example.
+Most of our code is in the Templite class.  As we've discussed, it has two
+phases: compilation and rendering.  
 
 
 #### Compiling
@@ -522,8 +625,21 @@ Templite constructor.  First the contexts are saved away:
 ```
 <!-- [[[end]]] -->
 
-Notice we used `*contexts` as the argument, using Python argument packing, so
-that the caller can provide a number of different context dictionaries.
+Notice we used `*contexts` as the argument, using Python argument unpacking, so
+that the caller can provide a number of different context dictionaries.  This
+means that any of these calls are valid:
+
+```
+t = Templite(template_text)
+t = Templite(template_text, context1)
+t = Templite(template_text, context1, context2)
+```
+
+The context arguments (if any) are supplied to the constructor as a tuple of
+contexts.  We can then iterate over the contexts tuple, dealing with each of
+them in turn.  We simply create one combined dictionary called self.context
+which has the contents of all of the supplied contexts.  If duplicate names are
+provided in the contexts, the last one wins.
 
 To make our compiled function as fast as possible, we extract context variables
 into Python locals.  We'll get the set of all those names by keeping a set of
@@ -566,6 +682,11 @@ The context here is a combination of the data context passed to the Templite
 constructor, and the data context passed to the render function.  It's the complete
 set of data available to the template.
 
+Notice that CodeBuilder is very simple: it doesn't "know" about function
+definitions, just lines of code.  This keeps CodeBuilder simple, both in its
+implementation, and in its use.  We can read our generated code here without
+having to mentally interpolate too many specialized CodeBuilder methods.
+
 We create a section called `vars_code`.  Later we'll write the variable
 extraction lines into that section.  This lets us save a place in the 
 function that can be filled in later when we have the information we need.
@@ -595,30 +716,33 @@ Next we define an inner function to help us with buffering output strings:
 ```
 <!-- [[[end]]] -->
 
+As we create chunks of output that need to go into our compiled function, we need
+to turn them into function calls that append to our result.  We'd like to
+combine repeated append calls into one extend call.  This is another micro-optimization.
+To make this possible, we buffer the chunks.  
+
 The `buffered` list are strings that are yet to be written to our function
 source code.  As our template compilation proceeds, we'll append strings to
 `buffered`, and flush them to the function source when we reach control flow
 points, like if statements, or the beginning or ends of loops.
 
-The reason for buffering the strings like this is to be able to combine repeated
-append calls into an extend call.  With out buffering, every string we wanted
-in the output would be written as `append_result(...)`.  This could produce a
-number of append operations in a row.  It's another micro-optimization to combine
-that sequence of appends into a single extend call.
+The `flush_output` function is a closure, which is a fancy word for a function
+that refers to variables outside of itself. Here `flush_output` refers to
+`buffered` and `code`. This simplifies our calls to the function:  we don't
+have to tell `flush_output` what buffer to flush, or where to flush it to, it
+knows all that implicitly.
 
-The `flush_output` function is a closure, it refers to `buffered` and `code` 
-implicitly, which simplifies our calls to the function.  If only one string has
-been buffered, then the `append_result` shortcut is used to append it to the result. If
-more than one is buffered, then all of them are used with the `extend_result` shortcut (for
-extend) to add them to the result.  Then the buffered list is cleared so more
-strings can be buffered.
+If only one string has been buffered, then the `append_result` shortcut is used
+to append it to the result. If more than one is buffered, then all of them are
+used with the `extend_result` shortcut (for extend) to add them to the result.
+Then the buffered list is cleared so more strings can be buffered.
 
 The rest of the compiling code will add lines to the function by appending them
 to `buffered`, and eventually calling `flush_output` to write them to the
 CodeBuilder.
 
 As we parse control structures, we want to check that they are properly nested.
-The `ops_stack` list is a simple stack of strings:
+The `ops_stack` list is a stack of strings:
 
 <!-- [[[cog include("templite.py", first="ops_stack", numblanks=1, dedent=False) ]]] -->
 ```
@@ -630,8 +754,12 @@ When we encounter an `{% if .. %}` tag, we'll push `'if'` onto the stack.  When
 we find an `{% endif %}` tag, we can pop the stack and report an error if it
 wasn't `'if'` at the top of the stack.
 
-Now the real parsing begins.  We split the template text into a number of tokens
-using a regular expression:
+Now the real parsing begins.  We split the template text into a number of
+tokens using a regular expression, sometimes called a regex.  Regexes can be
+daunting: they are a very compact notation for complex pattern matching.  They
+are also very efficient, since the complexity of matching the pattern is
+implemented in C in the regular expression engine, rather than in your own
+Python code.  Here's our regex:
 
 <!-- [[[cog include("templite.py", first="tokens =", numblanks=1, dedent=False) ]]] -->
 ```
@@ -640,18 +768,17 @@ using a regular expression:
 <!-- [[[end]]] -->
 
 This looks complicated, let's break it down.  The `re.split` function will
-split a string using a regular expression.  If the pattern is parenthesized,
-then the matches will be used to split the string, but will also be returned as
+split a string using a regex.  Our pattern is parenthesized,
+so the matches will be used to split the string, and will also be returned as
 pieces in the split list.  Our pattern will match our tag syntaxes, but we've
 parenthesized it so that the string will be split at the tags, and the tags
 will also be returned.
 
-The `(?s)` flag in the regex means that dot should match even a newline. Then
+The `(?s)` flag in the regex means that a dot should match even a newline. Then
 we have our parenthesized group of three alternatives: `{{.*?}}` matches an 
 expression, `{%.*?%}` matches a tag, and `{#.*?#}` matches a comment.  In all
 of these, we use `.*?` to match any number of characters, but the shortest
-sequence that matches.  With `.*`, we'd match the longest, which match from the
-beginning of the first tag to the end of the last tag.
+sequence that matches.  
 
 The result of `re.split` is a list of strings.  For example, this template text:
 
@@ -659,7 +786,7 @@ The result of `re.split` is a list of strings.  For example, this template text:
 <p>Topics for {{name}}: {% for t in topics %}{{t}}, {% endfor %}</p>
 ```
 
-is split into these pieces:
+would be split into these pieces:
 
 ```
 [
@@ -767,7 +894,7 @@ statement:
 ```
 <!-- [[[end]]] -->
 
-We do a simple check of the syntax and push `'for'` onto the stack.  The
+We do a check of the syntax and push `'for'` onto the stack.  The
 `_variable` method checks the syntax of the variable, and adds it to the set
 we provide.  This is how we collect up the names of all the loop variables
 during the compilation so that we can later create the prologue of the function.
@@ -960,7 +1087,7 @@ The `do_dots` function is passed into our compiled Python function at run time,
 we'll see how it is implemented in just a bit.
 
 The last clause in the `_expr_code` function handles the case that there was no
-pipe or dot in the input expression.  In that case, it's just a simple name. We
+pipe or dot in the input expression.  In that case, it's just a name. We
 record it in `all_vars`, and access the variable using its prefixed Python
 name:
 
@@ -988,7 +1115,7 @@ simply puts together a nice error message and raises the exception:
 <!-- [[[end]]] -->
 
 The `_variable` method helped us with validating variable names and adding them
-to the sets of names we collected during compilation.  It's simple: we use a
+to the sets of names we collected during compilation.  We use a
 regex to check that the name is a valid Python identifier, then add the name to
 the set:
 
@@ -1014,8 +1141,8 @@ With that, the compilation code is done!
 #### Rendering
 
 All that's left is to write the rendering code.  Since we've compiled our
-template to a Python function, the rendering code is very simple.  It has to
-get the data context ready, and then call the compiled Python code:
+template to a Python function, the rendering code doesn't have much to do.  It
+has to get the data context ready, and then call the compiled Python code:
 
 <!-- [[[cog include("templite.py", first="def render(", numblanks=3, dedent=False) ]]] -->
 ```
@@ -1034,9 +1161,18 @@ get the data context ready, and then call the compiled Python code:
 <!-- [[[end]]] -->
 
 Remember that when we constructed the `Templite` object, we started with a data
-context.  Here we copy it, and add in whatever data has been passed in for this
-rendering.  This is how we build one unified data context from the contexts
-provided when the template was constructed, with the data provided now at render time.
+context.  Here we copy it, and merge in whatever data has been passed in for
+this rendering.  The copying is so that successive rendering calls won't see
+each others' data, and the merging is so that we have a single dictionary to
+use for data lookups.  This is how we build one unified data context from the
+contexts provided when the template was constructed, with the data provided now
+at render time.
+
+Notice that the data passed to `render` could overwrite data passed to the 
+Templite constructor.  That tends not to happen, because the context passed to
+the constructor has global-ish kinds of things like filter definitions and
+constants, and the context passed to `render` has specific data for that one
+rendering.
 
 Then we simply call our compiled `render_function`.  The first
 argument is the complete data context, the second argument is the function that will
@@ -1066,6 +1202,12 @@ what gives our single template syntax the flexibility to act as either `x.y` or
 is, we call it.  Once we're done with all the dot-names, the value in hand is
 the value we want.
 
+Note that we pass in a function to use for evaluating dot expressions, but we
+always pass in the same one.  We could have made that code part of the compiled
+template, but it's the same eight lines for every template, and those eight lines are
+part of the definition of how templates work, not part of the details of a
+particular template.  It feels cleaner to implement it like this.
+
 
 ## Testing
 
@@ -1075,9 +1217,26 @@ the template engine is 251 lines, and the tests are 275 lines.  This is typical
 of well-tested code: you have more code in your tests than in your product.
 
 
+## What's Left Out
+
+Full-featured template engines provide more features than we've implemented
+here.  To keep this code small, we're leaving out interesting ideas like:
+
+* Template inheritance and inclusion
+* Custom tags
+* Automatic escaping
+* Arguments to filters
+* Complex logic like elif and for/else
+* Loops with more than one loop variable
+* Whitespace control
+
+Even so, our simple template engine is useful.  In fact, it is the template
+engine used in coverage.py to produce its HTML reports.
+
+
 ## Summing up
 
-In 251 lines, we've got a simple yet capable templating engine.  Real template
+In 251 lines, we've got a simple yet capable template engine.  Real template
 engines have many more features, but this code lays out the basic ideas of the
 process: compile the template to a Python function, then execute the function
 to produce the text result.
