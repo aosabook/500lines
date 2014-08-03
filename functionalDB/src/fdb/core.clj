@@ -174,11 +174,11 @@
   "querying the database using datalog queries built in a map structure ({:find [variables*] :where [ [e a v]* ]}). (after the where there are clauses)
   At the moment support only filtering queries, no joins is also assumed."
   [db query]
-  `(let [query-clauses#  (q-clauses ~(:where query)) ; transforming the clauses of the query to an internal representation structure called query-clauses
-           needed-vars# (symbol-col-to-set  ~(:find query))  ; extracting from the query the variables that needs to be reported out
-           query-plan# (build-query-plan query-clauses#) ; extracting a query plan based on the query-clauses
+  `(let [pred-clauses#  (q-clauses-to-pred-clauses ~(:where query)) ; transforming the clauses of the query to an internal representation structure called query-clauses
+           needed-vars# (symbol-col-to-set  ~(:find query))  ; extracting from the query the variables that needs to be reported out as a set
+           query-plan# (build-query-plan pred-clauses#) ; extracting a query plan based on the query-clauses
            query-internal-res# (query-plan# ~db)] ;executing the plan on the database
-     (unify query-internal-res# needed-vars#))); unifying the query result with the needed variables to report out what the user asked for
+     (unify query-internal-res# needed-vars#)));unifying the query result with the needed variables to report out what the user asked for
 
 (defn evolution-of
   "The sequence of the values of an entity's attribute, as changed through time"
@@ -187,9 +187,3 @@
     (if (= -1 ts) (reverse res)
         (let [attr (attr-at db ent-id attr-name ts)]
           (recur (conj res {(:ts attr) (:value attr)})  (:prev-ts attr))))))
-
-(defn db-before
-  "How the db was before a given timestamp"
-  [db ts]
-  (let [layer-before (subvec (:layers db) 0 ts )]
-    (assoc db :layers layer-before :curr-time ts)))
