@@ -88,10 +88,10 @@ public class ColorHelper {
 		int numberOfPixels = image.getPixels().length;
 		for (int i = 0; i < numberOfPixels; i++) {
 			int pixel = image.getPixel(i);
-			int alpha = Math.round(pixelColorHelper.alpha(applet, pixel));
-			int red = Math.round(pixelColorHelper.red(applet, pixel));
-			int green = Math.round(pixelColorHelper.green(applet, pixel));
-			int blue = Math.round(pixelColorHelper.blue(applet, pixel));
+			float alpha = pixelColorHelper.alpha(applet, pixel);
+			float red = pixelColorHelper.red(applet, pixel);
+			float green = pixelColorHelper.green(applet, pixel);
+			float blue = pixelColorHelper.blue(applet, pixel);
 
 			red = (red >= minRed) ? red : 0;
 			green = (green >= minGreen) ? green : 0;

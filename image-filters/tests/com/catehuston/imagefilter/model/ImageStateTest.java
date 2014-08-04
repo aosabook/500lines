@@ -36,7 +36,7 @@ public class ImageStateTest {
 		imageState.setFilepath("filepath");
 		imageState.set(image, ColorMode.HIDE_DOMINANT_HUE, 5, 10, 15, 10);
 
-		imageState.updateImage(applet, 100, 100);
+		imageState.updateImage(applet, 100, 100, 500);
 
 		verify(image).update(applet, "filepath");
 		verify(colorHelper).processImageForHue(applet, image, 100, 10, false);
@@ -48,7 +48,7 @@ public class ImageStateTest {
 		imageState.setFilepath("filepath");
 		imageState.set(image, ColorMode.SHOW_DOMINANT_HUE, 5, 10, 15, 10);
 
-		imageState.updateImage(applet, 100, 100);
+		imageState.updateImage(applet, 100, 100, 500);
 
 		verify(image).update(applet, "filepath");
 		verify(colorHelper).processImageForHue(applet, image, 100, 10, true);
@@ -60,7 +60,7 @@ public class ImageStateTest {
 		imageState.setFilepath("filepath");
 		imageState.set(image, ColorMode.COLOR_FILTER, 5, 10, 15, 10);
 
-		imageState.updateImage(applet, 100, 100);
+		imageState.updateImage(applet, 100, 100, 500);
 
 		verify(image).update(applet, "filepath");
 		verify(colorHelper, never()).processImageForHue(any(PApplet.class), any(IFAImage.class),
