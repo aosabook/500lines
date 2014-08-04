@@ -357,6 +357,44 @@ are from different origins manage to communicate between each other:
 
 TODO... more here
 
+Several properties of this mechanism make it less suitable for cross-origin
+communication than other (more modern) alternatives (post message and CORS).
+First, the mechanism is not general enough. While it is possible to use it to
+enable two subdomains like `foo.example.com` and `bar.example.com` to
+communicate between each other (by having both set `document.domain` to
+`example.com`), it's not possible to use it so that `foo.example.com` can
+communicate with a page that lives in a completely different domain like
+`aosabook.org`. This is because scripts can set the domain property of a document to
+only one that is a right-hand, fully-qualified fragment of its current hostname
+(i.e., `foo.example.com` can set it to `example.com` but not to
+ `aosabook.org`*). Of course, this rule makes sense, if otherwise, a malicious
+site could set the domain property to your bank domain, load your bank
+account in a iframe and read the DOM of your bank page (which could be a bad
+thing if you are logged in -- or if you are tricked into logging in)!**
+
+(* Wondering if it's possible to set it to just `.com`? `foo.example.com` would be
+ a subdomain of `.com` after all, but browsers are smart enough to know that
+ `.com` is a top-level domain and won't allow the operation.)
+(** Assuming the bank page doesn't
+detect that is being embedded in an iframe and prevent it using some
+JavaScript or using the `X-FRAME-OPTIONS` header (which is intentioally designed
+to allow pages to decided whether it should be possible to embeed them or not).
+It could still work though if you have your bank page opened in a separate tab
+or window.)
+
+
+Second, using the domain property mechanism might put your entire site at risk.
+When you set the domain property of both `foo.example.com` and `bar.example.com`
+to `example.com` you are not only allowing these two pages to communicate
+between each other but you are also allowing any other page, say
+`qux.example.com` to read/write the DOM of both `foo.example.com` and
+`bar.example.com` (since it is possible for it to set the domain property to
+`example.com`). It might seem like a small detail, but if `qux.example.com`
+has a XSS vulnerability, then an attacker would be able to read these
+other pages which in a situation in which the domain mechanism is not used,
+it wouldn't.
+
+
 ### JSON with Padding (JSONP)
 
 Before the introduction of CORS (which we will discuss shortly), JSONP was perhaps the most popular technique for bypassing the SOP restriction on XMLHttpRequest, and still remains widely used today. JSONP takes advantage of the fact that script inclusion tags in HTML (i.e., `<script>`) are exempt from the SOP; that is, you can include a script from _any_ URL, and the browser readily executes it in the current document:
