@@ -20,7 +20,7 @@ Prerequisites
 Running the App
 =============
 * This app uses Sinatra. Start the web server by running **ruby pedometer.rb** from the **pedometer** directory. 
-* Navigate to **localhost:4567/trials**. 
-* You'll see two example trials. Both of these trials are from the same walk, but the first parses data in format 1 above (combined acceleration), and the second parses data in format 2 (user acceleration and gravitational acceleration). 
+* Navigate to **localhost:4567/uploads**. 
+* You'll see a few example uploads. Both of these uploads are from the same walk, but the first parses data in format 1 above (combined acceleration), and the second parses data in format 2 (user acceleration and gravitational acceleration). 
 * The form on the right allows you to upload a data set, parse it, and save it to the file system. 
 * Clicking on the **Detail** link shows more information, as well as the first 1000 points in the data series produced at the two main stages of the step count calculation. 

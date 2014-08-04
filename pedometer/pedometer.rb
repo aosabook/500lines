@@ -4,31 +4,31 @@ Dir['./models/*', './helpers/*'].each {|file| require_relative file }
 
 include FileUtils::Verbose
 
-get '/trials' do
-  @trials = Trial.all
+get '/uploads' do
+  @uploads = Upload.all
   @error = "A #{params[:error]} error has occurred." if params[:error]
 
-  erb :trials
+  erb :uploads
 end
 
-get '/trial/*' do |file_name|
-  @trial = Trial.find(file_name)
+get '/upload/*' do |file_path|
+  @upload = Upload.find(file_path)
   
-  erb :trial
+  erb :upload
 end
 
 # TODO
 # - Is file sanitized here? We don't want to be passing around untrusted data, especially not if it's touching the filesystem.
 post '/create' do
   begin
-    @trial = Trial.create(
+    @upload = Upload.create(
       params[:processor][:file_upload][:tempfile], 
       params[:user].values,
-      params[:device].values
+      params[:trial].values
     )
 
-    erb :trial
+    erb :upload
   rescue Exception => e
-    redirect '/trials?error=creation'
+    redirect '/uploads?error=creation'
   end
 end

@@ -3,8 +3,8 @@
 <link href="/styles.css" rel="stylesheet" type="text/css" />
 
 <html>
-    <a class="nav" href='/trials'>Back to Trials</a>
-    <%= erb :summary, locals: { trials: [@trial], detail_hidden: false } %>
+    <a class="nav" href='/uploads'>Back to Uploads</a>
+    <%= erb :summary, locals: { uploads: [@upload], detail_hidden: false } %>
 
     <div id="container-dot-product"></div>
     <div id="container-filtered"></div>
@@ -16,7 +16,7 @@
             title: { text: 'Dot Product Data' },
             series: [{
                 name: 'Dot Product Data',
-                data: <%= ViewHelper.limit_1000(@trial.analyzer.processor.dot_product_data) %>
+                data: <%= ViewHelper.limit_1000(@upload.analyzer.processor.dot_product_data) %>
             }]
         });
 
@@ -24,7 +24,7 @@
             title: { text: 'Filtered Data' },
             series: [{
                 name: 'Filtered Data',
-                data: <%= ViewHelper.limit_1000(@trial.analyzer.processor.filtered_data) %>
+                data: <%= ViewHelper.limit_1000(@upload.analyzer.processor.filtered_data) %>
             }]
         });
     });

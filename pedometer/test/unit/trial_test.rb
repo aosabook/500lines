@@ -3,54 +3,44 @@ require_relative '../../models/trial'
 
 class TrialTest < Test::Unit::TestCase
 
-  def test_new_no_params
-    assert_raise_with_message(RuntimeError, 'File name or input data must be passed in.') do
-      Trial.new
-    end
-  end
-
   def test_create
-    trial = Trial.create(
-      'test/data/trial-1.txt',
-      ['female', '168', '70'],
-      ['100', '100', '1','walk']
-    )
-    
-    assert_equal File.read('test/data/trial-1.txt'), trial.processor.data
-
-    assert_equal 'female', trial.user.gender
-    assert_equal 168, trial.user.height
-    assert_equal 70, trial.user.stride
-
-    assert_equal 100, trial.device.rate
-    assert_equal 100, trial.device.steps
-    assert_equal '1', trial.device.trial
-    assert_equal 'walk', trial.device.method
-    
-    assert_equal 101, trial.analyzer.steps
+    trial = Trial.new('test trial 1', 5, '10', 'walk')
+    assert_equal 5,              trial.rate
+    assert_equal 'walk',         trial.method
+    assert_equal 10,             trial.steps
+    assert_equal 'test trial 1', trial.name
   end
 
-  def test_find
-    trial = Trial.find('public/uploads/female-168.0-70.0_100-100-1-walk-c.txt')
-    
-    assert_equal File.read('public/uploads/female-168.0-70.0_100-100-1-walk-c.txt'), trial.processor.data
-
-    assert_equal 'female', trial.user.gender
-    assert_equal 168, trial.user.height
-    assert_equal 70, trial.user.stride
-
-    assert_equal 100, trial.device.rate
-    assert_equal 100, trial.device.steps
-    assert_equal '1', trial.device.trial
-    assert_equal 'walk', trial.device.method
-    
-    assert_equal 101, trial.analyzer.steps
+  def test_create_empty
+    trial = Trial.new
+    assert_equal 100, trial.rate
+    assert_nil trial.method
+    assert_nil trial.steps
+    assert_nil trial.name
   end
 
-  def test_all
-    trials = Trial.all
-    assert (trials.count > 0)
-    assert_equal [Trial], trials.map { |t| t.class }.uniq
+  def test_create_with_rate
+    assert_equal 100, Trial.new(nil).rate
+    assert_equal 100, Trial.new(nil, nil).rate
+    assert_equal 100, Trial.new(nil, 'bad rate').rate
+    assert_equal 100, Trial.new(nil, 0).rate
+    assert_equal 100, Trial.new(nil, -1).rate
+    
+    assert_equal 2, Trial.new(nil, '2').rate
+    assert_equal 2, Trial.new(nil, 2).rate
+    assert_equal 2, Trial.new(nil, 2.0).rate
+    assert_equal 2, Trial.new(nil, 1.7).rate
+    assert_equal 1, Trial.new(nil, 1.2).rate
+  end
+
+  def test_create_with_steps
+    assert_nil Trial.new(nil, nil, 0).steps
+    assert_nil Trial.new(nil, nil, -1).steps
+    assert_nil Trial.new(nil, nil, '0').steps
+    assert_nil Trial.new(nil, nil, '-1').steps
+
+    assert_equal 10, Trial.new(nil, nil, 10).steps
+    assert_equal 1,  Trial.new(nil, nil, 0.5).steps
   end
 
 end
