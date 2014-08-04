@@ -9,7 +9,6 @@ open browser
 open script
 open cors
 
-
 // True iff the two URLs match in terms of host, protocol, and port
 pred sameOrigin[u1, u2: Url] {
   u1.host = u2.host and u1.protocol = u2.protocol and u1.port = u2.port

@@ -10,7 +10,7 @@ open http
 open script
 open origin
 
-sig CorsRequest in http/HttpRequest {
+sig CorsRequest in script/XmlHttpRequest {
   -- "origin" header
   origin: Origin,
   -- "access-control-allow-origin" header

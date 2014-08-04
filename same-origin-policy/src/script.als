@@ -6,7 +6,6 @@ module script
 
 open browser
 
-
 // A script can issue requests through the XmlHttpRequest object
 // In reality though, these requests are issued by the browser on behalf
 // of the script but that's fine.

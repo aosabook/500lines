@@ -357,6 +357,47 @@ are from different origins manage to communicate between each other:
 
 TODO... more here
 
+### JSON with Padding (JSONP)
+
+Before the introduction of CORS (which we will discuss shortly), JSONP was perhaps the most popular technique for bypassing the SOP restriction on XMLHttpRequest, and still remains widely used today. JSONP takes advantage of the fact that script inclusion tags in HTML (i.e., `<script>`) are exempt from the SOP; that is, you can include a script from _any_ URL, and the browser readily executes it in the current document:
+
+```html
+<script src="http://www.example.com/myscript.js"></script>
+```
+
+A script tag can be used to obtain code, but how do we use it to receive arbitrary _data_ (e.g., a JSON object) from a different domain? The problem is that the browser expects the content of `src` to be a piece of Javascript code, and so simply having it point at a data source results in a syntax error. 
+
+One workround is to wrap the desired data inside a piece of string that the browser recognizes as valid Javascript code; this string is sometimes called _padding_ (thus, giving rise to the name JSON with "Padding"). This padding could be any arbitrary Javascript code, but conventionally, it is the name of a callback function (already defined in the current document) that is to be executed on the response data:
+
+```html
+<script src="http://www.example.com/mydata?jsonp=processData"></script>
+```
+
+The server on `www.example.com` recognizes it as a JSONP request, and wraps the requested data inside the `jsonp` parameter:
+
+```html
+processData(mydata)
+```
+
+which is a valid Javascript statement, and is executed by the browser in the current document.
+
+TODO...
+
+### PostMessage
+
+PostMessage is a new feature in HTML5 that allows scripts from two documents (of possibly different origins) to send data to each other. It is a more disciplined alternative to the method of setting `domain` property, which is prone to mistakes, as we've already seen. However, PostMessage isn't without its own security risks unless used carefully.
+
+PostMessage is a browser API function that takes two arguments: (1) the data to be sent (`message`), and (2) the URL of the document receiving the message (`targetOrigin`):
+
+```alloy
+sig PostMessage extends BrowserOp {
+  message: Resource,
+  targetOrigin: Url
+}
+```
+
+TODO...
+
 ### CORS: Cross-Origin Resource Sharing
 
 The CORS mechanism for bypassing the SOP works by having the browser and server
