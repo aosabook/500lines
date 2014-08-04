@@ -57,7 +57,9 @@ sig SetDomain extends BrowserOp { newDomain: set Domain }{
 }
 
 // Handlers for browser script events
-abstract sig EventHandler extends Call {} {
+abstract sig EventHandler extends Call {
+  causedBy: Call
+}{
   from in Browser and to in Script
   noDocumentChange[start, end]
   noBrowserChange[start, end]
