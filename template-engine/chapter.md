@@ -4,7 +4,7 @@ Most programs contain a lot of logic, and a little bit of literal textual data.
 Programming languages are designed to be good for this sort of programming.
 But some programming tasks involve only a little bit of logic, and a great deal
 of textual data.  For these tasks, we'd like to have a tool better suited to
-the text-heavy problem.  Template engines are such a tool.  In this chapter,
+these text-heavy problems.  A template engines is such a tool.  In this chapter,
 we build a simple template engine.
 
 The most common example of one of these text-heavy tasks is in web applications.
@@ -36,18 +36,19 @@ For purposes of illustration, let's imagine we want to produce this toy HTML:
 
 Here, the user's name will be dynamic, as will the names and prices of
 the products.  Even the number of products isn't fixed: at another moment, there
-could be five products to display or only one.
+could be more or fewer products to display.
 
-One simple way to make this HTML would be to have string constants in our
-code, and join them together to produce the page.  Dynamic data would be
-inserted with string substitution of some sort.  Some of our dynamic data is
-repetitive, like our lists of products.  This means we'll have chunks that repeat, so
-those would have to be handled separately and combined with the rest of the
+One simple way to make this HTML would be to have string constants in our code,
+and join them together to produce the page.  Dynamic data would be inserted
+with string substitution of some sort.  Some of our dynamic data is repetitive,
+like our lists of products.  This means we'll have chunks of HTML that repeat,
+so those would have to be handled separately and combined with the rest of the
 page.
 
-Producing our toy page this way would look like this:
+Producing our toy page in this way might look like this:
 
 ```
+# The main HTML for the whole page.
 PAGE_HTML = """
 <p>Welcome, {name}!</p>
 <p>Products:</p>
@@ -56,6 +57,7 @@ PAGE_HTML = """
 </ul>
 """
 
+# The HTML for each product displayed.
 PRODUCT_HTML = "<li>{prodname}: {price}</li>\n"
 
 def make_page(username, products):
@@ -68,11 +70,11 @@ def make_page(username, products):
 
 This works, but we have a mess on our hands.  The HTML is in multiple string
 constants embedded in our application code.  The logic of the page is hard to
-see because the static text is broken into separate pieces, and the details of
+see because the static text is broken into separate pieces. The details of
 how data is formatted is lost in the Python code.  In order to modify the HTML
 page, our front-end designer would need to be able to edit Python code to make
 HTML changes.  Imagine what the code would look like if the page were ten (or
-one hundred!) times more complicated; it quickly becomes unworkable.
+one hundred!) times more complicated; it would quickly become unworkable.
 
 
 ## Templates
@@ -177,7 +179,6 @@ simplified and relaxed syntax. In Python, these expressions all have different
 effects:
 
 ```
-list[index]
 dict["key"]
 obj.attr
 obj.method()
@@ -186,13 +187,12 @@ obj.method()
 In our template syntax, all of these operations are expressed with a dot:
 
 ```
-list.index
 dict.key
 obj.attr
 obj.method
 ```
 
-The dot will access object attributes, list elements, or dictionary values, and
+The dot will access object attributes or dictionary values, and
 if the resulting value is callable, it's automatically called.  This is
 different than the Python code, where you need to use different syntax for
 those operations.  This results in simpler template syntax:
@@ -204,7 +204,7 @@ those operations.  This results in simpler template syntax:
 Dots can be used multiple times on a single value to navigate down an attribute
 or element chain.
 
-You can also use helper functions, called filters, to modify values.  Filters
+You can use helper functions, called filters, to modify values.  Filters
 are invoked with a pipe character:
 
 ```
@@ -233,7 +233,8 @@ Looping lets us include collections of data in our pages:
 </ul>
 ```
 
-Conditionals and loops can be nested to build more complex pages.
+As with other programming languages, conditionals and loops can be nested to
+build complex logical structures.
 
 Lastly, so that we can document our templates, comments appear between
 brace-hashes:
@@ -260,12 +261,12 @@ compilation, using the terms loosely from other language implementations.
 
 In an interpretation model, parsing produces a data structure representing the
 structure of the template. The rendering phase walks that data structure,
-assembling the result text based on the instructions it found.  For a real-world
-example, the Django template engine uses this approach.
+assembling the result text based on the instructions it finds.  For a
+real-world example, the Django template engine uses this approach.
 
-In a compilation model, parsing produces some form of executable code.  The
-rendering phase executes that code, producing the result.  Jinja2 and Mako are
-two examples of template engines that use the compilation approach.
+In a compilation model, parsing produces some form of directly executable code.
+The rendering phase executes that code, producing the result.  Jinja2 and Mako
+are two examples of template engines that use the compilation approach.
 
 Our implementation of the engine uses compilation: we compile the template
 into Python code.  When run, the Python code assembles the result.
@@ -278,15 +279,15 @@ Python code, because even though the compilation process was a bit more
 complicated, it only had to run once, while the execution of the compiled code
 ran many times, and was faster than interpreting a data structure many times.
 
-It seems more complicated to compile the template to Python, and it is a little
-bit more complicated, but it's not as bad as you might think. And besides, it's
-fun.  Any developer can tell you, it's more fun to write a program to write a
-program than it is to write a program!
+It's a bit more complicated to compile the template to Python, but it's not as
+bad as you might think. And besides, as any developer can tell you,
+it's more fun to write a program to write a program than it is to write a
+program!
 
-This is a small example of a general technique called code generation, which
-underlies programming language compilers, as well as many other powerful and
-flexible tools.  Code generation can get very complex, but is a useful
-technique to have in your toolbox.
+Our template compiler is a small example of a general technique called code
+generation.  Code generation underlies many powerful and flexible tools,
+including programming language compilers.  Code generation can get
+complex, but is a useful technique to have in your toolbox.
 
 Another application of templates might prefer the interpreted approach, if
 templates will be used only a few times each.  Then the effort to compile to
@@ -296,7 +297,7 @@ might perform better overall.
 
 ## Compiling to Python
 
-Before we get to the code of the template engine, let's look at what it
+Before we get to the code of the template engine, let's look at the code it
 produces.  The parsing phase will convert a template into a Python function.
 Here is our small template again:
 
@@ -346,24 +347,24 @@ def render_function(context, do_dots):
 Each template is converted into a `render_function` function that takes a
 dictionary of data called the context.  The body of the function starts by
 unpacking the data from the context into local names, because they are faster
-for repeated use.  We use locals with a `c_` prefix so that we can use other
-local names without fear of collisions.
+for repeated use.  All the context data goes into locals with a `c_` prefix so
+that we can use other local names without fear of collisions.
 
-The result of the template will be a string, but the fastest way to build a
+The result of the template will be a string. The fastest way to build a
 string from parts is to create a list of strings, and join them together at the
 end.  `result` will be the list of strings.  Because we're going to add strings
 to this list, we capture its `append` and `extend` methods in the local names
 `result_append` and `result_extend`.  The last local we create is a `to_str`
 shorthand for the `str` built-in.
 
-These shortcuts probably look unusual, let's look at them more closely.  In
-Python, a method call on an object like `result.append("hello")` is executed in two
-steps.  First, the append attribute is fetched from the result object: `result.append`.
-Then the value fetched is invoked as a function, passing it the argument `"hello"`.
-Although we're all used to seeing those steps performed together, they really
-are separate, and if you save the result of the first step, you can perform
-the second step on the saved value.  So these two Python snippets do the same
-thing:
+These kinds of shortcuts are unusual, let's look at them more closely.  In
+Python, a method call on an object like `result.append("hello")` is executed in
+two steps.  First, the append attribute is fetched from the result object:
+`result.append`.  Then the value fetched is invoked as a function, passing it
+the argument `"hello"`.  Although we're used to seeing those steps performed
+together, they really are separate. If you save the result of the first step,
+you can perform the second step on the saved value.  So these two Python
+snippets do the same thing:
 
 ```
 # The way we're used to seeing it:
@@ -378,36 +379,31 @@ In the template engine code, we've split it out this way so that we only do the
 first step once, no matter how many times we do the second step.  This saves us
 a small amount of time, because we avoid the time to look up the append attribute.
 
-This is an example of a micro-optimization: an unusual coding technique that is
-used to gain tiny improvements in speed.  They can be less readable, or more
-confusing, so they are only justified for code that is shown to be a
-performance bottleneck.  Developers will disagree on how much
-micro-optimization is justified, and some beginners will overdo it.  The
-optimizations here were added after timing experiments showed that they
-improved the speed, if only a little bit.  Micro-optimizations can be
-instructive, as they make use of some exotic aspects of Python, but don't
-over-use them in your own code.
+This is an example of a micro-optimization: an unusual coding technique that
+gains us tiny improvements in speed.  They can be less readable, or more
+confusing, so they are only justified for code that is a proven performance
+bottleneck.  Developers disagree on how much micro-optimization is justified,
+and some beginners overdo it.  The optimizations here were added only after
+timing experiments showed that they improved the speed, even if only a little
+bit.  Micro-optimizations can be instructive, as they make use of some exotic
+aspects of Python, but don't over-use them in your own code.
 
-The shortcut for `str` is also a micro-optimization. Python looks up the values
-of names in a number of nested scopes: local to the current function, then in
-the module-level globals, then in the builtins. Looking up the value of a
-local variable is faster than looking up the value of a global variable.  We're
-used to thinking of `str` as being a builtin that is always available, which it
-is, but we still have to look up the name `str` each time it is used, which
-means examining those other scopes.  Putting it in a local saves us another
-small slice of time.
+The shortcut for `str` is also a micro-optimization. Names in Python can be
+local to a function, global to a module, or built-in to Python.  Looking up a
+local name is faster than looking up a global or a built-in.  We're used to the
+fact that `str` is a builtin that is always available, but Python still has to
+look up the name `str` each time it is used.  Putting it in a local saves us
+another small slice of time because locals are faster than builtins.
 
-With those preliminaries out of the way, we're ready for the Python lines
-created from our particular template. Strings will be added to the result list
-using the `append_result` or `extend_result` shorthands, depending on whether we have one string to add
-or more than one.  Literal text in the template becomes a simple string
-literal.
+Once those shortcuts are defined, we're ready for the Python lines created from
+our particular template. Strings will be added to the result list using the
+`append_result` or `extend_result` shorthands, depending on whether we have one
+string to add or more than one.  Literal text in the template becomes a simple
+string literal.
 
 Having both append and extend is extra complexity, but remember we're aiming
 for the fastest execution of the template, and using extend for one item means
-making a new list of one item so that we can pass it to extend.  This is the
-danger of micro-optimization: we can add extra complexity to our code, and is
-it worth it?
+making a new list of one item so that we can pass it to extend.
 
 Expressions in `{{ ... }}` are computed, converted to strings, and added to the
 result.  Dots in the expression are handled by the `do_dots` function passed
@@ -417,8 +413,8 @@ be a callable.
 
 The logical structures `{% if ... %}` and `{% for ... %}` are converted into
 Python conditionals and loops.  The expression in the `{% if/for ... %}` tag
-will become the expression in the if or for statement, and the contents up until
-the `{% end... %}` tag will become the body of the statement.
+will become the expression in the `if` or `for` statement, and the contents up
+until the `{% end... %}` tag will become the body of the statement.
 
 
 <!-- [[[cog from cogutil import include ]]] -->
@@ -437,10 +433,11 @@ The heart of the template engine is the Templite class.  (Get it? It's a
 template, but it's lite!)
 
 The Templite class has a small interface.  You construct one with the
-text of the template, then later you can use the `.render` method on it to
+text of the template, then later you can use the `render` method on it to
 render a particular context, the dictionary of data, through the template:
 
 ```
+# Make a Templite object.
 templite = Templite('''
     <h1>Hello {{name|upper}}!</h1>
     {% for topic in topics %}
@@ -449,6 +446,8 @@ templite = Templite('''
     ''',
     {'upper': str.upper},
 )
+
+# Later, use it to render some data.
 text = templite.render({
     'name': "Ned",
     'topics': ['Python', 'Geometry', 'Juggling'],
@@ -456,13 +455,13 @@ text = templite.render({
 ```
 
 We pass the text of the template when the object is created so that we can
-do the compile step just once, and later call render many times to reuse the
+do the compile step just once, and later call `render` many times to reuse the
 compiled results.
 
-The constructor also accepts a dictionary of values. These are stored in the
-Templite object, and will be available when the template is later rendered.
-These are good for defining functions or constants we want to be available
-everywhere, like our `upper` function in the previous example.
+The constructor also accepts a dictionary of values, an initial context. These
+are stored in the Templite object, and will be available when the template is
+later rendered.  These are good for defining functions or constants we want to
+be available everywhere, like our `upper` function in the previous example.
 
 Before we discuss the implementation of Templite, we have a helper to define
 first: CodeBuilder.
@@ -474,11 +473,11 @@ The bulk of the work in our engine is parsing the template and producing the
 necessary Python code.  To help with producing the Python, we have the
 `CodeBuilder` class, which handles the bookkeeping for us as we construct the
 the Python code.  It adds lines of code, manages indentation, and
-finally gets a dict of global values from the compiled Python.
+finally gives us values from the compiled Python.
 
 One CodeBuilder object is responsible for a complete chunk of Python code. As
 used by our template engine, the chunk of Python is always a single complete
-function definition, but the CodeBuilder class makes no assumption that it will
+function definition. But the CodeBuilder class makes no assumption that it will
 only be one function.  This keeps the CodeBuilder code more general, and less
 coupled to the rest of the template engine code.
 
@@ -533,10 +532,10 @@ CodeBuilder doesn't do much, it has:
 ```
 <!-- [[[end]]] -->
 
-* a method to add a section, which is a piece of code managed by another CodeBuilder object.
-  This lets us keep a reference to a place in
-  the code, and add text to it later.  The self.code list is mostly a list of
-  strings, but will also hold references to these sections:
+* a method to add a section, which is a piece of code managed by another
+  CodeBuilder object.  This lets us keep a reference to a place in the code,
+  and add text to it later.  The self.code list is mostly a list of strings,
+  but will also hold references to these sections:
 
 <!-- [[[cog include("templite.py", first="def add_section", numblanks=1, dedent=False) ]]] -->
 ```
@@ -587,6 +586,7 @@ example, if we do this:
 ```
 python_source = """\
 SEVENTEEN = 17
+
 def three():
     return 3
 """
@@ -597,7 +597,7 @@ exec(python_source, global_namespace)
 then `global_namespace['SEVENTEEN']` is 17, and `global_namespace['three']` is
 an actual function named three.
 
-Although we only use this class to produce one function, there's nothing here
+Although we only use CodeBuilder to produce one function, there's nothing here
 that limits it to that use.  This makes the class simpler to implement, and
 easier to understand.
 
@@ -605,7 +605,7 @@ CodeBuilder lets us create a chunk of Python source code, and has no specific
 knowledge about our template engine at all.  We could use it in such a way that
 three different functions were defined in the Python, and then `get_globals`
 would return a dict of three values, the three functions.  As it happens, our
-template engine only need to define one function.  But it's better software
+template engine only needs to define one function.  But it's better software
 design to keep that implementation detail in the template engine code, and out
 of our CodeBuilder class.
 
