@@ -11,6 +11,7 @@ class ProcessorTest < Test::Unit::TestCase
     
     assert_equal data, processor.data
     assert_equal Processor::FORMAT_COMBINED, processor.format
+    
     assert_equal [ [[0.123, -0.123, 5.0],   [0, 0, 0]],
                    [[0.456, -0.789, 0.111], [0, 0, 0]],
                    [[-0.2120710948533322, 0.0011468544965549535, 0.9994625125426089], 

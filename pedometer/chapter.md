@@ -171,8 +171,8 @@ It's time to translate our solution into code. Our goal for this chapter is to c
 
 Our web app will:
 
-1. Allow a user to upload a text file containing coordinates from a walk.
-2. Provide input fields for the user to enter some basic information about the data set (sampling rate, actual step count, gender/height/stride of user, etc.)
+1. Allow a user to upload a text file containing coordinate data from a walk.
+2. Provide input fields for the user to enter some basic information about the data set such as the sampling rate, actual step count, gender, height, and stride.
 3. Parse, process, and analyze our data, calculating the number of steps taken, distance traveled, and time elapsed.
 4. Output charts representing the data in different processing stages.
 
@@ -190,7 +190,7 @@ Let's look at each of the formats we'll be accepting individually.
 
 Data in the combined format is total acceleration in the x, y, z directions, over time. 
 
-$"x1,y1,z1;...xn,yn,zn;"$
+$"x1,y1,z1; ... xn,yn,zn;"$
 
 Below is a small portion of data, sampled 100 times per second, of a female walking with an iPhone in her pocket.
 
@@ -200,7 +200,7 @@ Below is a small portion of data, sampled 100 times per second, of a female walk
 
 The separated format returns user acceleration in the x, y, z directions as well as gravitational acceleration in the x, y, z directions, over time:
 
-$"x1_{u},y1_{u},z1_{u}|x1_{g},y1_{g},z1_{g};...xn_{u},yn_{u},zn_{u}|xn_{g},yn_{g},zn_{g};"$
+$"x1_{u},y1_{u},z1_{u}|x1_{g},y1_{g},z1_{g}; ... xn_{u},yn_{u},zn_{u}|xn_{g},yn_{g},zn_{g};"$
 
 Below is the separated data format of the exact same walk as the plot above. This time, we have two plots, one for user acceleration, and one for gravitational acceleration.
 
@@ -209,11 +209,11 @@ Below is the separated data format of the exact same walk as the plot above. Thi
 
 ## I Got Multiple Input Formats But a Standard Ain't One
 
-Dealing with multiple input formats is a common programming problem. If we want our entire program to work with both formats, every single piece of code dealing with input data would need to know how to handle both formats. This can become very messy, very quickly, especially if a third (or a fourth, or a fifth) input format is added in the future. 
+Dealing with multiple input formats is a common programming problem. If we want our entire program to work with both formats, every single piece of code dealing with input data would need to know how to handle both formats. This can become very messy, very quickly, especially if a third (or a fourth, or a fifth, or a hundredth) input format is added in the future. 
 
-The simplest way for us to deal with this is to take our two input formats and determine a standard format to fit them both into, allowing the rest of the program to work with this new standard format. This means that the remaining parts of the program don't need to be concerned with, or even know about, multiple formats. 
+The simplest way for us to deal with this is to take our two input formats and determine a standard format to fit them both into as soon as possible, allowing the rest of the program to work with this new standard format. This means that the remaining parts of the program don't need to be concerned with, or even know about, multiple formats. 
 
-The diagram below outlines the basic idea. We'll write a small parser to a standard format that is contained to only one section, that allows us to take our two known input formats and convert them to a single standard output format. In the future, if we ever have to add another input format, the only code we'll have to touch is this small parser. Once the data is in a standard format, the program can have any number of processors that process the data from the standard format. 
+The diagram below outlines the basic idea. We'll write a small parser to a standard format that is contained in only one section of code, that allows us to take our two known input formats and convert them to a single standard output format. In the future, if we ever have to add another input format, the only code we'll have to touch is this small parser. Once the data is in a standard format, the program can have any number of processors that process the data from the standard format, without ever being concerned about the original format that the data was in. 
 
 ![](chapter-figures/input-format-to-standard-format.png)\
 
@@ -231,7 +231,7 @@ The diagram below shows each of these three steps.
 
 ![](chapter-figures/input-data-workflow.png)\
 
-We know we'll need to work with user acceleration and gravitational acceleration separately in order to follow our solution, so our standard format will need to split out the two accelerations. This means that if our data is in the combined format, we'll need to first pass it through a low-pass filter to convert it to the standard format.
+We know we'll need to work with user acceleration and gravitational acceleration separately in order to follow our solution, so our standard format will need to split out the two accelerations. This means that if our data is in the combined format, we'll need to first pass it through a low-pass filter in step 1 to convert it to the standard format.
 
 Take note of the standard format:
 
@@ -240,7 +240,7 @@ Take note of the standard format:
 Our standard format allows us to store a data series signal, as each element represents acceleration at a point in time. We've defined it as an array of arrays of arrays. Let's peel back that onion. 
 
 * The first array is just a wrapper to hold the all of the data.
-* The second set of arrays contains one array per data sample taken. If our sampling rate is 100 and we sample data for 10 seconds, we'll have 1000 arrays in this second set. 
+* The second set of arrays contains one array per data sample taken. If our sampling rate is 100 and we sample data for 10 seconds, we'll have $10 * 100$, or 1000, arrays in this second set. 
 * The third set of arrays is the pair of arrays enclosed within the second set. They both contain acceleration data in the x, y, and z directions; the first representing user acceleration and the second gravitational acceleration.
 
 These three tasks - parse, dot product, and filter - are all related to taking input data, and parsing and processing it to get it to a state where our resulting signal is clean enough for us to count steps. Due to this relationship, it makes sense to combine these tasks into one class. We'll call it a **Processor**. 
@@ -288,10 +288,9 @@ class Processor
         [user, grav]
       end
 
-      @parsed_data = @parsed_data.length.times.map do |i| 
+      @parsed_data = @parsed_data.length.times.map do |i|
         coordinate_user = filtered_accl.map(&:first).map { |elem| elem[i] }
         coordinate_grav = filtered_accl.map(&:last).map { |elem| elem[i] }
-
         [coordinate_user, coordinate_grav]
       end
       
@@ -317,11 +316,11 @@ class Processor
     output_data = [0,0]
     (2..input_data.length-1).each do |i|
       output_data << coefficients[:alpha][0] * 
-                      (input_data[i]    * coefficients[:beta][0] +
-                       input_data[i-1]  * coefficients[:beta][1] +
-                       input_data[i-2]  * coefficients[:beta][2] -
-                       output_data[i-1] * coefficients[:alpha][1] -
-                       output_data[i-2] * coefficients[:alpha][2])
+                     (input_data[i]   * coefficients[:beta][0] +
+                     input_data[i-1]  * coefficients[:beta][1] +
+                     input_data[i-2]  * coefficients[:beta][2] -
+                     output_data[i-1] * coefficients[:alpha][1] -
+                     output_data[i-2] * coefficients[:alpha][2])
     end
     output_data
   end
@@ -337,7 +336,7 @@ Let's start with the last method in our class, `chebyshev_filter`. This is the m
 
 TODO: Talk about choosing these specific coefficients?
 
-The `chebyshev_filter` method returns an array of numerical data representing the signal resulting from low-pass filtering the `input_data` signal using `coefficients` and the low-pass filter formula, $output_{i} = \alpha_{0} * (input_{i} * \beta_{0} + input_{i-1} * \beta_{1} + input_{i-2} * \beta_{2} - output_{i-1} * \alpha_{1} - output_{i-2} * \alpha_{2})$. 
+The `chebyshev_filter` method returns an array of numerical data representing the signal resulting from low-pass filtering the `input_data` signal using the low-pass filter formula, $output_{i} = \alpha_{0} * (input_{i} * \beta_{0} + input_{i-1} * \beta_{1} + input_{i-2} * \beta_{2} - output_{i-1} * \alpha_{1} - output_{i-2} * \alpha_{2})$, and the values in `coefficients` as the alpha and beta values. 
 
 We implement the low-pass filter in code by first instantiating an `output_data` array with zeros at index 0 and 1, so that the equation has inital values to work with. Then, we loop through the remaining indeces of the `input_data` signal, apply the formula at each turn, and append the result to `output_data`, returning `output_data` when the loop is complete. 
 
@@ -356,32 +355,34 @@ The goal of `parse_raw_data` is to convert string data in either the combined or
 The first step in the process is to take string data and convert it to numerical data. The first operation sets `@parsed_data` after performing three tasks in sequence:
 
 * splitting the string by semicolon into as many arrays as samples taken, 
-* splitting each individual array by the pipe into another array, and
+* splitting each individual array by the pipe into another array, and,
 * splitting the resulting array string elements by the comma and converting them to floats.
 
 This gives us an array of arrays of arrays. Sound familiar? Note the differences in `@parsed_data` between the two formats:
 
-* `@parsed_data` in the combined format contains arrays with exactly **one** array: $[[[x1t, y1t, z1t]], ..., [[xnt, ynt,znt]]$
-* `@parsed_data` in the separated format contains arrays with exactly **two** arrays: $[[[x1_{u},y1_{u},z1_{u}], [x1_{g},y1_{g},z1_{g}]],...[[xn_{u},yn_{u},zn_{u}], [xn_{g},yn_{g},zn_{g}]]]$
+* `@parsed_data` in the *combined format* contains arrays with exactly **one** array: $[[[x1t, y1t, z1t]], ... [[xnt, ynt,znt]]$
+* `@parsed_data` in the *separated format* contains arrays with exactly **two** arrays: $[[[x1_{u},y1_{u},z1_{u}], [x1_{g},y1_{g},z1_{g}]], ... [[xn_{u},yn_{u},zn_{u}], [xn_{g},yn_{g},zn_{g}]]]$
 
 We see here that the separated format is already in our desired standard format after this operation. Amazing. 
 
 To get the combined format into the standard format, we'll need to low-pass filter it to split the acceleration into user and gravitational first, and ensure it ends up in the same standard format afterward. We'll do this in the `parse_raw_data` method, so that it's the only one concerned with the two formats, as per our separation of concerns pattern. In order to do that, we use the difference in `@parsed_data` at this stage to determine whether the format is combined or separated in the `if` statement in the next portion of the code. If it's combined (or, equivalently, has exactly one array where the separated format would have two), then we proceed with:
 
-* passing the data through the `chebyshev_filter` method to low-pass filter it and split out the accelerations, and
+* passing the data through the `chebyshev_filter` method to low-pass filter it and split out the accelerations, and,
 * formatting the data into the standard format. 
 
 We accomplish each of these steps with a loop. The first loop uses our array after calling `flatten` on each element, followed by `transpose` on the result, so that it can work with x, y, and z total accelerations individually. The array after `flatten` and `transpose` and before looping is structured as follows:
 
-$[[[x1t, ..., xnt]], [[y1t, ..., ynt]], [[z1t, ..., znt]]]$
+$[[[x1t, ... xnt]], [[y1t, ... ynt]], [[z1t, ... znt]]]$
 
-Then, we use `map` to loop through each of the three coordinates. In the first line of the loop, we call `chebyshev_filter` with `GRAVITY_COEFF` to split out gravitational acceleration, storing the resulting array in `grav`. In the second line, we use `zip` to isolate user acceleration by subtracting gravitational acceleration from the total acceleration, storing the resulting array in `user`. In the last line, we return an array with `user` and `grav` as the two elements. 
+Then, we use `map` to loop through each of the three coordinate arrays. In the first line of the loop, we call `chebyshev_filter` with `GRAVITY_COEFF` to split out gravitational acceleration, storing the resulting array in `grav`. In the second line, we isolate user acceleration by using `zip` to subtract gravitational acceleration from total acceleration, storing the resulting array in `user`. In the last line, we return an array with `user` and `grav` as the two elements. 
 
 This loop runs exactly three times, ones for each coordinate, and stores the final result in `filtered_accl`:
 
 $[[[x1u, x2u, ..., xnu], [x1g, x2g, ..., xng]], [[y1u, y2u, ..., ynu], [y1g, y2g, ..., yng]], [[z1u, z2u, ..., znu], [z1g, z2g, ..., zng]]]$
 
-We're almost there. We've split total acceleration into user and gravitational. All that's left is to format `filtered_accl` to our standard format. We do this in the second loop by resetting `@parsed_data`. We loop as many times as there are elements in `@parsed_data` using `map`. For each index (and point in time), the first line in the loop stores an array with the x, y, and z user acceleration at that point in time in `coordinate_user`, while the second line stores the equivalent values for gravitational acceleration in `coordinate_grav`. The last line returns an array with `coordinate_user` and `coordinate_grav` as the elements. After this second loop, `@parsed_data` is in our standard format. 
+We're almost there. We've split total acceleration into user and gravitational. All that's left is to format `filtered_accl` to our standard format. We do this in the second loop. 
+
+The second loop resets `@parsed_data` to the standard format. We use `map` to loop once for each index in `@parsed_data`, which represents a data sample at a point in time. The first line in the loop stores an array with the x, y, and z user acceleration at that point in time in `coordinate_user` by grabbing the coordinate values using `map` once again. The second line stores the equivalent values for gravitational acceleration in `coordinate_grav`. The last line returns an array with `coordinate_user` and `coordinate_grav` as the elements. 
 
 The last thing the `if` statement does, for each branch, is set the `@format` variable to either `FORMAT_COMBINED` or `FORMAT_SEPARATED`, both of which are constants that indicate the type of format the original data was passed in as. These are used predominantly for display purposes in the web app. Otherwise, the remainder of the program is no longer concerned with these two formats. 
 
@@ -399,7 +400,7 @@ Taking the dot product in our `Processor` class is a matter of using the data in
 
 Following the pattern from steps one and two, we add another instance variable, `@filtered_data`, to store the filtered data series, and a method, `filter_dot_product_data`, that we call from the initializer.
 
-The `filter_dot_product_data` method is the second place our low-pass filtering method, `chebyshev_filter`, is used. This time, we pass `@dot_product_data` in as our signal, and `SMOOTHING_COEFF` as the coefficients constant, and the result returned is our signal without the high frequency component, which we store in `@filtered_data`. This final signal, `@filtered_data`, is the clean signal we can use to count steps. 
+The `filter_dot_product_data` method is the second place our low-pass filtering method, `chebyshev_filter`, is used. This time, we pass `@dot_product_data` in as our signal, and `SMOOTHING_COEFF` as the `coefficients` constant. The result returned is our signal without the high frequency component, which we store in `@filtered_data`. This final signal, `@filtered_data`, is the clean signal we can use to count steps. 
 
 TODO: Drive the point of separation of concerns home here. Each of these methods does **exactly one thing**. Or, too much?
 
@@ -416,14 +417,14 @@ Our processor class is useable on its own as is. An example with combined data:
 > processor.format
 => 'combined'
 > processor.parsed_data
-=> [{:x=>0.123, :y=>-0.123, :z=>5.0, :xg=>0, :yg=>0, :zg=>0},
-    {:x=>0.456, :y=>-0.789, :z=>0.111, :xg=>0, :yg=>0, :zg=>0},
-    {:x=>-0.2120710948533322,
-   	 :y=>0.0011468544965549535,
-   	 :z=>0.9994625125426089,
-   	 :xg=>7.109485333219216e-05,
-     :yg=>-0.00014685449655495343,
-     :zg=>0.0005374874573911294}]
+=> [
+    [[0.123, -0.123, 5.0], [0, 0, 0]], 
+    [[0.456, -0.789, 0.111], [0, 0, 0]], 
+    [
+     [-0.2120710948533322, 0.0011468544965549535, 0.9994625125426089], 
+     [7.109485333219216e-05, -0.00014685449655495343, 0.0005374874573911294]
+    ]
+   ]
 > processor.dot_product_data
 => [0.0, 0.0, 0.0005219529804999682]
 > processor.filtered_data
@@ -439,9 +440,11 @@ An example with separated data:
 > processor.format
 => 'separated'
 > processor.parsed_data
-=> [{:x=>0.028, :y=>-0.072, :z=>5, :xg=>0.129, :yg=>-0.945, :zg=>-5}, 
-	{:x=>0, :y=>-0.07, :z =>0.06, :xg=>0.123, :yg=>-0.947, :zg=>5},
-	{:x=>0.2, :y=>-1.0, :z=>2.0, :xg=>0.1, :yg=>-0.9, :zg=>3.0}]
+=> [
+    [[0.028, -0.072, 5.0], [0.129, -0.945, -5.0]], 
+    [[0.0, -0.07, 0.06], [0.123, -0.947, 5.0]], 
+    [[0.2, -1.0, 2.0], [0.1, -0.9, 3.0]]
+   ]
 > processor.dot_product_data
 => [-24.928348, 0.36629, 6.92]
 > processor.filtered_data
@@ -464,7 +467,7 @@ Our pedometer will measure three metrics:
 Let's discuss the infomation we'll need to calculate each of these metrics. We're intentionally leaving the exciting, step counting part of our program to the end.
 
 ### Distance traveled
-A mobile pedometer app would generally be used by one person. The stride length of that person would be a necessary value to determine distance traveled, which is the steps taken multiplied by the stride length. The pedometer can ask the user to input their info.
+A mobile pedometer app is generally be used by one person. The stride length of that person is necessary to determine distance traveled, which is calculated by multiplying the steps taken by the stride length. The pedometer can ask the user to input their info.
 
 If the user can directly provide their stride length, then we're good to go. If not, and they provide their gender and their height, we can use $0.413 * height$ for a female, and $0.415 * height$ for a male. 
 
@@ -510,21 +513,30 @@ private
 end
 ~~~~~~~
 
-Handling optional information is a common programming problem. Our `User` class will handle the optional information about the user. Looking at our initializer, we notice that we're accepting `gender`, `height`, and `stride` all as optional parameters. We then set instance variables of the same names after small manipulations to each of our input parameters. 
+Looking at our initializer, we notice that we're accepting `gender`, `height`, and `stride` all as optional parameters. We then set instance variables of the same names, after some data formatting in the initalizer to allow for a case insensitive gender parameter to be passed in, and prevent a height and stride that is non-numerical or less than 0.
 
 * We set `@gender` as the stringified, downcased version of the passed in `gender` parameter, as long as it's included in the `GENDER` constant. If it's not, our `@gender` instance variable will be `nil`.
 * `@height` is set to the `height` parameter converted to a float, as long as it's greater than 0. If not, then `@height` will also be `nil`.
-* If `stride` converted to a float is greater than 0, then we set that value to `@stride`. If not, we call 
+* If `stride` converted to a float is greater than 0, then we set that value to `@stride`. If not, we call `calculate_stride`.
 
-TODO: Start HERE! Discuss optional parameters. Maybe add a diagram? Next step is to disucss the calculate_stride method.
+Handling optional information is a common programming problem. The diagram below captures how we calcualte stride using the optional parameters:
 
+![](chapter-figures/optional-parameters.png)\
 
-Things to note:
+At the top of our class, we define the following constants:
 
-* Information is optional. The class handles it.
-* Magic numbers are defined at the top.
-* Basic input data formatting in the initalizer allows for a case insensitive gender parameter, prevents a non-numerical height and stride or a height and stride less than 0. Finally, the stride is calculated through the calculate_stride method unless a valid stride is provided.
-* Even when all parameters are provided, the input stride takes precedence. 
+* The `GENDER` array stores gender values.
+* The `MULTIPLIERS` hash stores the values for a male and female that we can multiply height by to calcuate stride.
+* The `AVERAGES` hash stores the average stride values for a male and female.
+
+If a stride is provided, we're all set. Even when all optional parameters are provided, the input stride takes precedence. If not, our `calculate_stride` method will determine the most accurate stride length it can for the user, using the optional information provided. This is done in an `if` statement. 
+
+* If we have a valid gender and height, we can use `MULTIPLIERS` to calculate stride. The most accurate way to calcuate stride beyond it being provided directly is to use a person's height and a multiplier based on gender.
+* If we don't have both gender and height, but we do have a valid height, we can multiply it by the average of the two multipliers. A person's height is a better predictor of stride than their gender is.
+* If all we have is a gender, we can use the average stride length from `AVERAGES`. 
+* Finally, if we don't have anything, we can take the average of the two values in `AVERAGES` and use that as our stride. 
+
+Note that the further down the chain we get, the less accurate our stride length becomes. In any case, our `User` class does determines the stride length as best as it can.
 
 ### The User class in the wild
 
@@ -554,12 +566,14 @@ Below are examples of users created with the least specific to the most specific
 
 ### Time Traveled
 
-The time traveled is measured by dividing the number of data samples in our Processor's @parsed_data set by the sampling rate of the device. Since the rate has more to do with the device itself than the user (and the user in fact does not have to be aware of the sampling rate), this looks like a good time to create a Device class. 
+The time traveled is measured by dividing the number of data samples in our `Processor`'s `@parsed_data` set by the sampling rate of the device. Since the rate has more to do with the device itself than the user (and the user in fact does not have to be aware of the sampling rate), this is a good time to create a `Device` class. 
+
+TODO: Start HERE!
 
 ~~~~~~~
 class Device
 
-  attr_reader :rate, :method, :steps, :trial
+  attr_reader :rate, :steps, :trial, :method
 
   def initialize(rate = nil, steps = nil, trial = nil, method = nil)
     @rate   = (rate.to_f.round > 0) ? rate.to_f.round : 100
@@ -571,7 +585,7 @@ class Device
 end
 ~~~~~~~
 
-Our device class is quite short. Note that all of the attribute readers are set in the initializer based on parameters passed in. All of the other attributes are metadata:
+Our `Device` class is quite short. Note that all of the attribute readers are set in the initializer based on parameters passed in:
 
 * method is used to set the type of walk that is taken (walk with phone in pocket, walk with phone in bag, jog, etc.)
 * steps is used to set the actual steps taken, so that we can record the difference between the actual steps the user took and the ones our program counted.

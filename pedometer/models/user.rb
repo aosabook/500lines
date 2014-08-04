@@ -1,9 +1,9 @@
 class User
 
   GENDER      = ['male', 'female']
-  AVERAGES    = {'female' => 70, 'male' => 78}
   MULTIPLIERS = {'female' => 0.413, 'male' => 0.415}
-
+  AVERAGES    = {'female' => 70,    'male' => 78}
+  
   attr_reader :gender, :height, :stride
 
   def initialize(gender = nil, height = nil, stride = nil)

@@ -1,7 +1,6 @@
-# TODO: Rename to DeviceTrial so that the metadata fields make sense?
 class Device
 
-  attr_reader :rate, :method, :steps, :trial
+  attr_reader :rate, :steps, :trial, :method
 
   def initialize(rate = nil, steps = nil, trial = nil, method = nil)
     @rate   = (rate.to_f.round > 0) ? rate.to_f.round : 100

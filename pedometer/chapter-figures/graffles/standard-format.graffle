@@ -46,7 +46,7 @@
 	<key>Creator</key>
 	<string>Dessy Daskalov</string>
 	<key>DisplayScale</key>
-	<string>1 0/72 in = 1 0/72 in</string>
+	<string>1 0/72 in = 1.0000 in</string>
 	<key>GraphDocumentVersion</key>
 	<integer>8</integer>
 	<key>GraphicsList</key>
@@ -526,7 +526,7 @@ at time 0}</string>
 		</dict>
 		<dict>
 			<key>Bounds</key>
-			<string>{{262, 228.3275146484375}, {532, 22}}</string>
+			<string>{{264.5, 228.3275146484375}, {527, 22}}</string>
 			<key>Class</key>
 			<string>ShapedGraphic</string>
 			<key>FitText</key>
@@ -577,7 +577,7 @@ at time 0}</string>
 \fs24 g
 \fs36 , z1
 \fs24 g
-\fs36 ]], ..., [[xn
+\fs36 ]], ... [[xn
 \fs24 u
 \fs36 , yn
 \fs24 u
@@ -644,7 +644,7 @@ at time 0}</string>
 	<key>MasterSheets</key>
 	<array/>
 	<key>ModificationDate</key>
-	<string>2014-07-24 21:51:45 +0000</string>
+	<string>2014-08-02 15:19:16 +0000</string>
 	<key>Modifier</key>
 	<string>Dessy Daskalov</string>
 	<key>NotesVisible</key>
@@ -739,7 +739,7 @@ at time 0}</string>
 		<key>SidebarWidth</key>
 		<integer>120</integer>
 		<key>VisibleRegion</key>
-		<string>{{198, 0}, {698, 635}}</string>
+		<string>{{197, 0}, {698, 635}}</string>
 		<key>Zoom</key>
 		<real>1</real>
 		<key>ZoomValues</key>

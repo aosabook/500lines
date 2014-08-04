@@ -360,7 +360,7 @@
 		</dict>
 		<dict>
 			<key>Bounds</key>
-			<string>{{227.56414794921875, 393.66375732421875}, {532, 22}}</string>
+			<string>{{230.06414794921875, 393.66375732421875}, {527, 22}}</string>
 			<key>Class</key>
 			<string>ShapedGraphic</string>
 			<key>FitText</key>
@@ -411,7 +411,7 @@
 \fs24 g
 \fs36 , z1
 \fs24 g
-\fs36 ]], ..., [[xn
+\fs36 ]], ... [[xn
 \fs24 u
 \fs36 , yn
 \fs24 u
@@ -761,20 +761,20 @@
 \fs24 t
 \fs36 ,z1
 \fs24 t
-\fs36 ; ...xn
+\fs36 ; ... xn
 \fs24 t
 \fs36 ,yn
 \fs24 t
 \fs36 ,zn
 \fs24 t
-\fs36 "}</string>
+\fs36 ;"}</string>
 				<key>VerticalPad</key>
 				<integer>0</integer>
 			</dict>
 		</dict>
 		<dict>
 			<key>Bounds</key>
-			<string>{{106.25, 211.98273468017578}, {408.5, 22}}</string>
+			<string>{{106.25, 211.98273468017578}, {421.75, 22}}</string>
 			<key>Class</key>
 			<string>ShapedGraphic</string>
 			<key>FitText</key>
@@ -825,7 +825,7 @@
 \fs24 g
 \fs36 ,z1
 \fs24 g
-\fs36 ; ...xn
+\fs36 ; ... xn
 \fs24 u
 \fs36 ,yn
 \fs24 u
@@ -837,7 +837,7 @@
 \fs24 g
 \fs36 ,zn
 \fs24 g
-\fs36 "}</string>
+\fs36 ;}</string>
 				<key>VerticalPad</key>
 				<integer>0</integer>
 			</dict>
@@ -900,7 +900,7 @@
 	<key>MasterSheets</key>
 	<array/>
 	<key>ModificationDate</key>
-	<string>2014-07-24 21:33:53 +0000</string>
+	<string>2014-08-02 15:15:07 +0000</string>
 	<key>Modifier</key>
 	<string>Dessy Daskalov</string>
 	<key>NotesVisible</key>
@@ -984,14 +984,9 @@
 		<key>CurrentSheet</key>
 		<integer>0</integer>
 		<key>ExpandedCanvases</key>
-		<array>
-			<dict>
-				<key>name</key>
-				<string>Canvas 1</string>
-			</dict>
-		</array>
+		<array/>
 		<key>Frame</key>
-		<string>{{0, 4}, {1280, 774}}</string>
+		<string>{{0, 80}, {1280, 698}}</string>
 		<key>ListView</key>
 		<true/>
 		<key>OutlineWidth</key>
@@ -1005,7 +1000,7 @@
 		<key>SidebarWidth</key>
 		<integer>120</integer>
 		<key>VisibleRegion</key>
-		<string>{{-33, 0}, {1145, 635}}</string>
+		<string>{{-33, 88}, {1145, 559}}</string>
 		<key>Zoom</key>
 		<real>1</real>
 		<key>ZoomValues</key>
