@@ -11,19 +11,26 @@ open sop
 
 // Browser API function for cross-document messaging
 // used to send a message from one script to another
-sig PostMessage extends Call {
+sig PostMessage extends BrowserOp {
   message: Resource,
-  targetOrigin: Origin
+  targetOrigin: Origin,
+  causes : ReceiveMessage		-- causes browser to invoke ReceiveMessage event handler
 }{
-  from + to in Script
-  -- srcOrigin = origin[to.context.src] 
+  -- "ReceiveMessage" event is sent to the script with the correct context
+  targetOrigin = origin[causes.@to.context.src]
+  message = causes.@message
+  -- the origin of the sender script is provided as "srcOrigin" param 
+  causes.srcOrigin = origin[from.context.src]
 }
 
-pred postMessageRule {
-  -- the receiving frame of a PostMessage must belong to the same origin as
-  -- targetOrigin (according to the spec messages that don't satisfy this rule
-  -- are discarded)
-  all m: PostMessage | origin[m.to.context.src] = m.targetOrigin
+sig ReceiveMessage extends EventHandler {
+  message: Resource,
+  srcOrigin: Origin,
 }
 
-run { some PostMessage }
+fact PostMessageFact {
+  -- there is exactly one PostMessage call for every ReceiveMessage
+  causes in PostMessage one -> one ReceiveMessage
+}
+
+run { some m: PostMessage | m.targetOrigin != m.causes.srcOrigin }

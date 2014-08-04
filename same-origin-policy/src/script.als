@@ -11,7 +11,7 @@ open browser
 // of the script but that's fine.
 sig Script extends Client { context: Document }
 
-/* Calls initiated by scripts*/
+/* Calls initiated by a script */
 
 // HTTP requests sent by a script
 sig XmlHttpRequest extends HttpRequest {}{
@@ -54,6 +54,13 @@ sig SetDomain extends BrowserOp { newDomain: set Domain }{
   domain.end = domain.start ++ doc -> newDomain
   -- no change to the content of the document
   content.end = content.start
+}
+
+// Handlers for browser script events
+abstract sig EventHandler extends Call {} {
+  from in Browser and to in Script
+  noDocumentChange[start, end]
+  noBrowserChange[start, end]
 }
 
 pred noBrowserChange[start, end: Time] {

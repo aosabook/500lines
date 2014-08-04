@@ -392,7 +392,7 @@ PostMessage is a browser API function that takes two arguments: (1) the data to 
 ```alloy
 sig PostMessage extends BrowserOp {
   message: Resource,
-  targetOrigin: Url
+  targetOrigin: Origin
 }
 ```
 
