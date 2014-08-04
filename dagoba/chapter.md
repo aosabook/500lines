@@ -20,7 +20,7 @@ Graph databases are useful for elegantly solving all kinds of interesting proble
 
 Well, the dictionary defines "graph database" as a database for graphs. Thanks, dictionary! Let's break that down a little.
 
-A data base is like a fort for data. You can put data in and get data back out.
+A data base is like a fort for data. You can put data in it and get data back out of it.
 
 A graph in this sense is a set of vertices and a set of edges. It's basically a bunch of dots connected by lines. 
 
@@ -34,119 +34,52 @@ But how do we extend that to grandparents? We need to do a subquery, or use some
 
 What would we like to write? Something both concise and flexible; something that models our query in a natural way and extends to other queries like it. second_cousins_once_removed('Thor') is concise, but it doesn't give us any flexibility. The SQL above is flexible, but lacks concision.
 
-Something like Thor.parents.parents.children.children [except actual second cousins] would work well. The primitives give us flexibility to ask many similar questions, but the query is also very concise and natural. There are some issues to work out with this syntax -- it actually gives us too many results, rather than answering our question directly -- but let's skip that for now and use this as a goal to aim for with our queries.  
+Something like Thor.parents.parents.children.children [except actual second cousins] would work well. The primitives give us flexibility to ask many similar questions, but the query is also very concise and natural. There are issues with this syntax -- it actually gives us too many results, rather than answering our question directly -- but for now we'll aim to achieve this level of flexibility and concision and handle the details later. 
 
+What's the simplest thing we can build that gives us this kind of interface? We could make a list of entities, and a list of edges, just like the relational schema, and then build some helper functions. It might look something like this:
 
-
-
-
-
-Here's some requirements:
-- find parents, grandparents, ggp, etc
-- same for kids
-- find all ancestors
-- find closest common ancestor
-- blha blah this isn't quite right we should start with just a simple question but how do we lead in to it? we could say something ... 
-
-
-Let's build a database that's specialized for genealogies. 
-
-
-anyway later we'll include stepparents, but w/ parents ALWAYS older than children (DAG). then open it up for general graph stuff after.
-
-
-
-
-How should we go about solving such a thing?
-
-
-### I know, we'll make a graph database!
-
-The dictionary defines "graph database" as a database for graphs. Thanks, dictionary! Let's break that down a little.
-
-A data base is like a fort for data. You can put data in it and get data back out of it.
-
-A graph in this sense is a set of vertices and a set of edges. It's basically a bunch of dots connected by lines. 
-
-So what's the simplest thing we can possibly build that could technically be called a "graph database"? We need a place to put some vertices and edges, and a way to get them back out.
-
-We're in JS, so let's make an array of vertices: 
-
-  vertices = [1,2,3,4,5,6]
+///  vertices = ['Thor', 'Freya', 'Odin', 'Loki']
+  V = [1,2,3,4,5,6]
+  E = [ [1,2], [2,3], [3,1], [3,4], [4,5], [4,6] ]
   
-And an array of edges:
-  
-  edges = [ [1,2], [2,3], [3,1], [3,4], [4,5], [4,6] ]
+  parents  = function(x) { return E.reduce( function(acc, e) { return (e[1] === x) ? acc.concat(e[0]) : acc }, [] )}
+  children = function(x) { return E.reduce( function(acc, e) { return (e[0] === x) ? acc.concat(e[1]) : acc }, [] )}
 
-Notice that we're modeling edges as a pair of vertices. Also notice that those pairs are ordered, because we're using arrays. That means we're modeling a *directed graph*, where every edge has a starting vertex and an ending vertex. [lines have arrows.] Doing it this way adds some complexity to our model because we have to keep track of the direction of edges, but it also allows us to ask more interesting questions, like "which vertices point in to vertex 3?" or "which vertex has the most outgoing edges?". If needed we can model an undirected graph by doubling up our edges array:
+Now we can say something like children(children(parents(parents('Thor')))) [except actual second cousins]. It reads backwards and has a lot of silly parens, but otherwise is pretty close to what we wanted. Take a minute to look at the code. Can you see any ways to improve it?
 
-  function undirectMe (edges) 
-    { return edges.reduce( function(acc, edge)
-      { acc.push([ edge[1], edge[0] ]) }, edges.slice() )}
+Well, we're treating the edges as a global variable, which means we can only ever have one database at a time using these helper functions. That's pretty limiting. 
 
-Now we need some way to get information back out. What kinds of questions do we want to ask? We can ask about who our neighbors are:
+We're also not using the vertices at all. What does that tell us? It implies that everything we need is in the edges array, which in this case is true: the vertex values are scalars, so they exist independently in the edges array. If we want to answer questions like "How many of Freya's descendants were Valkyries?" we'll need to add more information to the vertices, which means making them compound values, which means the edges array should reference them by pointer instead of copying the value.
 
-  function into (node) 
-    { return edges.reduce( function(acc, edge) 
-      { return (edge[1] === node) ? acc.concat(edge[0]) : acc }, [] )}
-  function out (node) 
-    { return edges.reduce( function(acc, edge) 
-      { return (edge[0] === node) ? acc.concat(edge[1]) : acc }, [] )}
-  function neighbors (node) { return into(node).concat(out(node)) }
+The same holds true for our edges: they contain an 'in' vertex and an 'out' vertex [footnote], but no elegant way to incorporate additional information. We'll need that to answer questions like "How many stepparents did Loki have?" or "How many children did Aweren have while married to Odin?"
 
-simpler:
-  function matchAndConcat (node, side) 
-    { return function (acc, edge) 
-      { return (edge[side] === node) ? acc.concat( edge[1-side] ) : acc }}
+You don't have to squint very hard to tell that our the code for our two selectors looks very similar, which suggests there's a deeper abstraction from which those spring [diff eq]. 
 
-  function out  (node) { return edges.reduce( matchAndConcat(node, 0) )}
-  function into (node) { return edges.reduce( matchAndConcat(node, 1) )}
-
-second neighbors:
-
-  neighbors(4).map(neighbors).reduce(function(acc, nodes) {return acc.concat(nodes)}, [])
-
-wouldn't that be nicer if we could just say 
-
-  neighbors(neighbors(4))
-  
-sure, we can do that. just make everything take nodes instead of node
-
-what if we want to filter the nodes we visit?
-
-  function filter (nodes, fun) { return nodes.filter(fun) }
-
-This is pretty good, but what if we care about more than just numbers? String labels should work fine. What about objects? 
-
-  alice, bob, charlie, delta
-  var nodes = [ alice, bob, charlie, delta ]
-  var edges = [ [alice, bob], [bob, charlie], [charlie, delta], [charlie, alice], [bob, delta] ]
-
-  neighbors... path... 
-
-Hey, still works!
-
-This is great, but what if we could use the vertex attributes in our query?
-
-  ask about friends of charlie with blah blahs
-  
-Fun! But what if we want to ask about all of Alice's employees? Let's add some edge attributes.
-
-  edge -> {_inV: A_id, _outV: B_id, _label: "employed", _id: 123, foo: "bar"}
-  
-[and of course a way to filter on edges / nodes...]
+Do you see any other issues?
 
 
+////
+  [footnote]
+  Notice that we're modeling edges as a pair of vertices. Also notice that those pairs are ordered, because we're using arrays. That means we're modeling a *directed graph*, where every edge has a starting vertex and an ending vertex. [lines have arrows.] Doing it this way adds some complexity to our model because we have to keep track of the direction of edges, but it also allows us to ask more interesting questions, like "which vertices point in to vertex 3?" or "which vertex has the most outgoing edges?". [footnote2]
 
-/// So let's draw a shape: [stick man]. We'll number our vertices so we can keep track of them -- remember that graphs have no inherent "shape", so these graphs are all equivalent.
-
+  [footnote2]
+  If needed we can model an undirected graph by doubling up our edges, but it can be cumbersome to simulate a directed graph from an undirected one. So the directed graph model is more versatile in this context.
+    function undirectMe (edges) 
+      { return edges.reduce( function(acc, edge)
+        { acc.push([ edge[1], edge[0] ]) }, edges.slice() )}
+/////
 
 
 
 
 ## Make it right
 
-So we've got a working graph database. It even works for fancy objects and stuff. So we're done, right? 
+So we've clearly got some work to do. Let's start with an issue we didn't highlight above: 
+
+
+---> transit as an option for json serialization over the wire; is localhost really atomic/secure? if not build it ourselves (at cost of storage/2); storing in localhost is crowded, often not the best option (filesystem?)
+
+
 
 ### Laziness
 
@@ -185,6 +118,10 @@ We can even resume this after coming back in from an asynchronous event, so we c
 // example
 
 
+
+
+
+/// anyway later we'll include stepparents, but w/ parents ALWAYS older than children (DAG). then open it up for general graph stuff after.
 
 
 /// (this is old, and may get skipped entirely)
