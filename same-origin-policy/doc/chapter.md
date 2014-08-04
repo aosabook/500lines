@@ -367,15 +367,16 @@ communicate with a page that lives in a completely different domain like
 `aosabook.org`. This is because scripts can set the domain property of a document to
 only one that is a right-hand, fully-qualified fragment of its current hostname
 (i.e., `foo.example.com` can set it to `example.com` but not to
- `aosabook.org`*). Of course, this rule makes sense, if otherwise, a malicious
+ `aosabook.org` \*). Of course, this rule makes sense, if otherwise, a malicious
 site could set the domain property to your bank domain, load your bank
 account in a iframe and read the DOM of your bank page (which could be a bad
-thing if you are logged in -- or if you are tricked into logging in)!**
+thing if you are logged in -- or if you are tricked into logging in)!\*\*
 
-(* Wondering if it's possible to set it to just `.com`? `foo.example.com` would be
+(\* Wondering if it's possible to set it to just `.com`? `foo.example.com` would be
  a subdomain of `.com` after all, but browsers are smart enough to know that
  `.com` is a top-level domain and won't allow the operation.)
-(** Assuming the bank page doesn't
+
+(\*\* Assuming the bank page doesn't
 detect that is being embedded in an iframe and prevent it using some
 JavaScript or using the `X-FRAME-OPTIONS` header (which is intentioally designed
 to allow pages to decided whether it should be possible to embeed them or not).
