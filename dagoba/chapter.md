@@ -6,14 +6,11 @@ A long time ago, when the world was still young, all data walked in happily sing
 
 Then came the random access revolution, and data grazed freely across the hillside. Herding data became a serious concern -- if you can access any piece of data at any time, how do you know which one to pick next? Techniques were developed for corralling the data by forming links between items [N] [the network model (CODASYL), the hierarchical model (IMS), etc], marshaling groups of units into formation through their linking assemblage. Questioning data meant picking a sheep and pulling along everything connected to it. 
 
-Later programmers departed from this tradition, imposing a set of rules on how data would be aggregated. [N] [Codd, etc] Rather than tying disparate data directly together they would cluster by content, decomposing data into bite-sized pieces, clustered in kennels and collared with a name tag. 
+Later programmers departed from this tradition, imposing a set of rules on how data would be aggregated. [N] [Codd, etc] Rather than tying disparate data directly together they would cluster by content, decomposing data into bite-sized pieces, clustered in kennels and collared with a name tag. Questions were declaratively posited, resulting in accumulating pieces of partially decomposed data (a state the relationalists refer to as "normal") into a frankencollection returned to the programmers.
 
+For much of recorded history this relational model reigned supreme. Its dominance remained unchallenged through two major language wars and countless minor skirmishes. It offered everything you could ask for in a model, for the small price of performance, clumsiness and lack of scalability. For eons that was a price everyone was willing to pay. Then the internet happened.
 
-For much of recorded history this relational model reigned supreme. Its dominance has recently been challenged by growing set of contending schools, including techniques that harken back to the earliest attempts to domesticate random-access data. In theory any question we wish to ask of data trapped in a relational well can be answered, but in practice the effort of properly framing our request and the amount of time required to receive our answer may both be untenable: hence our desire to reposition our data.
-
-
-
-The distributed revolution changed everything, again. Data broke free of spacial constraints and roamed from machine to machine. CAP-wielding programmers busted the relational monopoly, opening the door to a new herding techniques -- some of which harkened back to the earliest methods used after data first gained its freedom. We're going to look at one of these, a schema known as a graph database.
+The distributed revolution changed everything, again. Data broke free of spacial constraints and roamed from machine to machine. CAP-wielding theorists busted the relational monopoly, opening the door to a new herding techniques -- some of which harkened back to the earliest attempts to domesticate random-access data. We're going to look at one of these, a style known as the graph database.
 
 
 
@@ -132,6 +129,9 @@ And this works great, until our graph gets large and we run out of memory before
 
 Now in some languages that would be trivial, but JavaScript is an eager language, so we're going to have to do a little work. First of all, our query segments can't just return data any more. Instead we're going to need to process each segment on demand. That means we'll need some way of driving this process forward. Here's how we'll do that.
 
+---> also: don't blow your stack on large queries (so we can't use straight recursion, need to use a different approach. lots of other benefits to this, like history and reversibility etc)
+
+
 // introduce the driver loop
 
 Now we'll need to modify our query components to work within this new system. This is moderately straightforward:
@@ -139,6 +139,13 @@ Now we'll need to modify our query components to work within this new system. Th
 // new query components
 
 Cool, now we can query without blowing our memory limits and wasting a bunch of cycles on unneeded computation. As a side benefit, we can build a new query component that allows us to progressively take more elements until we get all that we need:
+
+
+// state
+
+notice that we're keeping all the component state up at the driver loop level. this allows us to keep track of all the state in one place so we can easily read it and clear it, and it means we can keep the components as "pure" functions that take some inputs and give some output, so the driver loop doesn't need to instantiate them or indeed know anything about them. it's tidier too, because everything we need for re-running the query is contained in pc, program and state.
+
+So why the scare quotes around pure? Because we're mutating the state argument inside the function. We usually try to avoid mutation to curb spooky action at a distance, but in this case we're taking advantage of JS's mutable variables. This state variable is only changed within the component itself, so if we're careful to respect this within any state-peeking features we add later then hopefully we can avoid having this bite us. The advantages are that we can simplify our return value and cut down on garbage created in the components.
 
 // new pipe thing
 
