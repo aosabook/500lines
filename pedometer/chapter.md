@@ -467,19 +467,9 @@ Our pedometer will measure three metrics:
 Let's discuss the infomation we'll need to calculate each of these metrics. We're intentionally leaving the exciting, step counting part of our program to the end.
 
 ### Distance traveled
-A mobile pedometer app is generally be used by one person. The stride length of that person is necessary to determine distance traveled, which is calculated by multiplying the steps taken by the stride length. The pedometer can ask the user to input their info.
+A mobile pedometer app is generally be used by one person. Total distance travelled during a walk is calcualte by multiplying the steps taken by the person's stride length. If the stride length is provided, we can use it directly. If it's unknown, we can allow other optional information to be provided for the user, such as gender and height. We can do the best we can with what's provided to calculate the stride and, ultimately, the distance travelled. 
 
-If the user can directly provide their stride length, then we're good to go. If not, and they provide their gender and their height, we can use $0.413 * height$ for a female, and $0.415 * height$ for a male. 
-
-If they only provide their height, we can use $(0.413 + 0.415)/2 * height$, averaging the two multipliers. 
-
-If they only provide their gender, we can use the average of 70 cm for a female, and 78 cm for a male.
-
-Finally, if the user does not wish to provide any information, we can take the average of 70 cm and 78 cm and set the stride length to 74 cm.
-
-TODO: Do I need to add references for multipliers and averages above? Can we just say some basic research turned up these numbers, but we're free to change them if more accurate ones are uncovered?
-
-All of this information is related to the user, so it makes sense to create a `User` class. 
+Information like stride length, gender, and height is related to the user, so it makes sense to create a `User` class. 
 
 ~~~~~~~
 class User
@@ -513,15 +503,15 @@ private
 end
 ~~~~~~~
 
-Looking at our initializer, we notice that we're accepting `gender`, `height`, and `stride` all as optional parameters. We then set instance variables of the same names, after some data formatting in the initalizer to allow for a case insensitive gender parameter to be passed in, and prevent a height and stride that is non-numerical or less than 0.
+Looking at our initializer, we notice that we're accepting `gender`, `height`, and `stride` all as optional parameters. Handling optional information is a common programming problem. The diagram below captures how we calcualte stride using the optional parameters:
+
+![](chapter-figures/optional-parameters.png)\
+
+Our initializer accepts the optional parameters, and sets instance variables of the same names, after some data formatting in the initalizer to allow for a case insensitive gender parameter to be passed in, and prevent a height and stride that is non-numerical or less than 0.
 
 * We set `@gender` as the stringified, downcased version of the passed in `gender` parameter, as long as it's included in the `GENDER` constant. If it's not, our `@gender` instance variable will be `nil`.
 * `@height` is set to the `height` parameter converted to a float, as long as it's greater than 0. If not, then `@height` will also be `nil`.
 * If `stride` converted to a float is greater than 0, then we set that value to `@stride`. If not, we call `calculate_stride`.
-
-Handling optional information is a common programming problem. The diagram below captures how we calcualte stride using the optional parameters:
-
-![](chapter-figures/optional-parameters.png)\
 
 At the top of our class, we define the following constants:
 
@@ -529,12 +519,14 @@ At the top of our class, we define the following constants:
 * The `MULTIPLIERS` hash stores the values for a male and female that we can multiply height by to calcuate stride.
 * The `AVERAGES` hash stores the average stride values for a male and female.
 
-If a stride is provided, we're all set. Even when all optional parameters are provided, the input stride takes precedence. If not, our `calculate_stride` method will determine the most accurate stride length it can for the user, using the optional information provided. This is done in an `if` statement. 
+If a stride is provided, we're all set. Even when all optional parameters are provided, the input stride takes precedence. If not, our `calculate_stride` method will determine the most accurate stride length it can for the user, using the optional information provided. This is done with an `if` statement. 
 
-* If we have a valid gender and height, we can use `MULTIPLIERS` to calculate stride. The most accurate way to calcuate stride beyond it being provided directly is to use a person's height and a multiplier based on gender.
-* If we don't have both gender and height, but we do have a valid height, we can multiply it by the average of the two multipliers. A person's height is a better predictor of stride than their gender is.
-* If all we have is a gender, we can use the average stride length from `AVERAGES`. 
+* The most accurate way to calcuate stride beyond it being provided directly is to use a person's height and a multiplier based on gender. If we have a valid gender and height, we can calcualte stride by multiplying the height by the value in `MULTIPLIERS` which corresponds to the gender provided. We use a multiplier of 0.413 for a female, and 0.415 for a male. 
+* A person's height is a better predictor of stride than their gender is. Therefore, if we don't have both gender and height, but we do have a valid height, we can multiply the height by the average of the two values in `MULTIPLIERS`. 
+* If all we have is a gender, we can use the average stride length from `AVERAGES`, which gives us 70 cm for a female, and 78 cm for a male.
 * Finally, if we don't have anything, we can take the average of the two values in `AVERAGES` and use that as our stride. 
+
+TODO: Do I need to add references for multipliers and averages above? Can we just say some basic research turned up these numbers, but we're free to change them if more accurate ones are uncovered?
 
 Note that the further down the chain we get, the less accurate our stride length becomes. In any case, our `User` class does determines the stride length as best as it can.
 
@@ -566,7 +558,7 @@ Below are examples of users created with the least specific to the most specific
 
 ### Time Traveled
 
-The time traveled is measured by dividing the number of data samples in our `Processor`'s `@parsed_data` set by the sampling rate of the device. Since the rate has more to do with the device itself than the user (and the user in fact does not have to be aware of the sampling rate), this is a good time to create a `Device` class. 
+The time traveled is measured by dividing the number of data samples in our `Processor`'s `@parsed_data` set by the sampling rate of the device. Since the rate has more to do with the device itself than the user, and the `User` class in fact does not have to be aware of the sampling rate, this is a good time to create a `Device` class.
 
 TODO: Start HERE!
 
@@ -585,11 +577,13 @@ class Device
 end
 ~~~~~~~
 
-Our `Device` class is quite short. Note that all of the attribute readers are set in the initializer based on parameters passed in:
+Our `Device` class is quite short. Note that all of the attribute readers are set in the initializer based on optional parameters passed in:
 
-* method is used to set the type of walk that is taken (walk with phone in pocket, walk with phone in bag, jog, etc.)
-* steps is used to set the actual steps taken, so that we can record the difference between the actual steps the user took and the ones our program counted.
-* trial is a title for the specific trial (trial 1, 2, 3, etc.)
+TODO: Remove `method` from code?
+
+* `method` is used to set the type of walk that is taken. Types of walks include walking with the device in a pocket, walking with the device in a bag, jogging with the device in a pocket, jogging with the device in a bag, etc.
+* `steps` is used to set the actual steps taken, so that we can record the difference between the actual steps the user took and the ones our program counted.
+* `trial` is a title for the specific trial (trial 1, 2, 3, etc.)
 
 Things to note:
 
