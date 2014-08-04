@@ -711,7 +711,7 @@ Things to Note:
 * We do some error handling in count_edges by ensuring that steps aren't impossibly close together. We can go a step further (pun intended?) by counting the number of false steps, and if we have too many, avoiding counting steps at all until some reasonable number of samples. That'll prevent any steps from being counted when the phone is shaken vigorously for a period of time. 
 * TODO: There should be more here.
 
-TODO: Add some examples here of plots showing a single trial with comibned and separated input data at each stage, and compare the final, parsed results. 
+TODO: Add some examples here of plots showing a single upload with comibned and separated input data at each stage, and compare the final, parsed results. 
 
 ## Adding Some Friendly
 
@@ -719,21 +719,21 @@ We're through the most labour intensive part of our program. Now, all that's lef
 
 ### A User Scenario
 
-When a user first enters the app, they see an empty table of trials, and an upload form. The upload form has fields for the user to enter device info and user info.
+When a user first enters the app, they see an empty table of uploads, and an upload form. The upload form has fields for the user to enter device info and user info.
 
 ![](chapter-figures/app-1-1246w-90p.png)\ 
 
-Let's suppose the user uses the upload form to upload a trial walk with a phone in their pocket. 
+Let's suppose the user uses the upload form to submit data of a walk with a phone in their pocket. 
 
 ![](chapter-figures/app-2-1246w-90p.png)\ 
 
-Note that the user has entered everything but their stride. From this same trial, they have two text files of the exact same trial, one in each of our formats. In the screenshot below, they've chosen to upload one of the files. Hitting submit presents them with the following view:
+Note that the user has entered everything but their stride. From this same upload, they have two text files of the exact same walk, one in each of our formats. In the screenshot below, they've chosen to upload one of the files. Hitting submit presents them with the following view:
 
 ![](chapter-figures/app-3-1246w-90p.png)\ 
 
 Our program has parsed, processed, and analyzed the input file, and presented information at the very top for the user. The fields that our program calculated are the format of the file (Measurement), the calculated steps taken (Calculated), the difference between the calculated steps and actual steps taken (Delta), the distance traveled (Distance), and time it took (Time). The graphs shown are the dot product and the filtered data. 
 
-The user can navigate back to the trials using the *Back to Trials* link, and upload the second file.
+The user can navigate back to the uploads using the *Back to Uploads* link, and upload the second file.
 
 ![](chapter-figures/app-4-1246w-90p.png)\ 
 
@@ -741,7 +741,7 @@ Hitting enter again outputs the following:
 
 ![](chapter-figures/app-5-1246w-90p.png)
 
-Note that since this trial is the separated format, it is more accurate than the combined format.
+Note that since this data is the separated format, it is more accurate than the combined format.
 
 ## Diving back to the code
 
@@ -754,7 +754,7 @@ Let's examine each of these two requirements.
 
 ### 1. Storing and loading data
 
-Looking at the requirements, we see that we need a way to store the data the user inputs as a text file, as well as the user and device data associated to it. All of this data together - the raw text data as well as the input fields - is related to a trial. Let's create a Trial class to keep track of this data, and store and load it. 
+Looking at the requirements, we see that we need a way to store the data the user inputs as a text file, as well as the user and device data associated to it. All of this data together - the raw text data as well as the input fields - is related to an upload. Let's create an `Upload` class to keep track of this data, and store and load it. 
 
 ~~~~~~~
 require 'fileutils'
@@ -762,7 +762,7 @@ require_relative 'analyzer'
 
 include FileUtils::Verbose
 
-class Trial
+class Upload
 
   attr_reader :file_name, :processor, :user, :device, :analyzer
   attr_reader :user_params, :device_params
@@ -789,9 +789,9 @@ class Trial
   # -- Class Methods --------------------------------------------------------
 
   def self.create(input_data, user_params, device_params)
-    trial = self.new(nil, input_data, user_params, device_params)
-    cp(input_data, trial.file_name)
-    trial
+    upload = self.new(nil, input_data, user_params, device_params)
+    cp(input_data, upload.file_name)
+    upload
   end
 
   def self.find(file_name)
@@ -834,41 +834,41 @@ private
 end
 ~~~~~~~
 
-Since we're dealing with storage and retrieval of data here, our Trial class has more class level methods than our previous classes. This is best explained when we can observe how our Trial class is used. 
+Since we're dealing with storage and retrieval of data here, our `Upload` class has more class level methods than our previous classes. This is best explained when we can observe how our `Upload` class is used. 
 
-When using the browser upload field, the browser creates a tempfile for the uploaded file, that our app has access to. To create a Trial, the create method is used, passing in the location of a tempfile, as well as user and device input parameters as arrays. 
-
-~~~~~~~
-> Trial.create('test/data/trial-1.txt', ['female', '168', '71'], ['100', '10', '1','run'])
-cp test/data/trial-1.txt public/uploads/female-168.0-71.0_100-10-1-run-c.txt
-=> #<Trial:0x007fa25b8be8b8>
-~~~~~~~
-
-The create method calls the constructor, passing in nil for the file_name, and the tempfile and user and device parameters. The constructor then creates and sets Processor, User, and Device objects, and generates a filename. Finally, the create method copies the tempfile to the filesystem, using the file_name from the Trial object, and saves it to 'public/uploads/'. The Trial object is returned. 
-
-Now the we have our trial saved to the file system, we need a way to retireve it. We do that with the find class method. 
+When using the browser upload field, the browser creates a tempfile for the uploaded file, that our app has access to. To create an `Upload`, the create method is used, passing in the location of a tempfile, as well as user and device input parameters as arrays. 
 
 ~~~~~~~
-> trial = Trial.find('public/uploads/female-168.0-70.0_100-100-1-walk-c.txt')
-=> #<Trial:0x007fa25b8dec80>
+> Upload.create('test/data/upload-1.txt', ['female', '168', '71'], ['100', '10', '1','run'])
+cp test/data/upload-1.txt public/uploads/female-168.0-71.0_100-10-1-run-c.txt
+=> #<Upload:0x007fa25b8be8b8>
 ~~~~~~~
 
-Like the create method, find calls into the constructor, but passes only the file_name. All the constructor does at that point is set the file_name instance method on the instance of Trial. 
+The create method calls the constructor, passing in nil for the file_name, and the tempfile and user and device parameters. The constructor then creates and sets Processor, User, and Device objects, and generates a filename. Finally, the create method copies the tempfile to the filesystem, using the file_name from the `Upload` object, and saves it to `public/uploads/`. The `Upload` object is returned. 
 
-We can now ask for the processor, user, device, or analyzer objects directly from our trial instance. Notice that all of these variables are lazy loaded, to prevent creation and parsing until needed. The user and device instance methods parse the file_name to retirve the necessary parameters to create the objects, and the processor method reads the data from the file itself. 
-
-The all class method grabs all of the files in our public/upoads folder, and creates trial objects, returning an array of all trials. 
+Now the we have our data saved to the file system, we need a way to retireve it. We do that with the find class method. 
 
 ~~~~~~~
-> Trial.all
-=> [#<Trial:0x007f8a8a03b2b0>, #<Trial:0x007f8a8a03b288>, #<Trial:0x007f8a8a03b238>, #<Trial:0x007f8a8a03b210>, #<Trial:0x007f8a8a03b148>]
+> upload = Upload.find('public/uploads/female-168.0-70.0_100-100-1-walk-c.txt')
+=> #<Upload:0x007fa25b8dec80>
 ~~~~~~~
 
-Our Trial object has the ability to store and retireve data from and for the user, and can create and return all of the other objects to our program. Let's move on to the web application side of our program to see how Trial will be helpful.
+Like the create method, find calls into the constructor, but passes only the file_name. All the constructor does at that point is set the file_name instance method on the instance of `Upload`. 
+
+We can now ask for the `processor`, `user`, ``device``, or analyzer objects directly from our `upload` instance. Notice that all of these variables are lazy loaded, to prevent creation and parsing until needed. The `user` and `device` instance methods parse the `file_name` to retrieve the necessary parameters to create the objects, and the processor method reads the data from the file itself. 
+
+The all class method grabs all of the files in our public/upoads folder, and creates upload objects, returning an array of all uploads. 
+
+~~~~~~~
+> Upload.all
+=> [#<Upload:0x007f8a8a03b2b0>, #<Upload:0x007f8a8a03b288>, #<Upload:0x007f8a8a03b238>, #<Upload:0x007f8a8a03b210>, #<Upload:0x007f8a8a03b148>]
+~~~~~~~
+
+Our `Upload` object has the ability to store and retireve data from and for the user, and can create and return all of the other objects to our program. Let's move on to the web application side of our program to see how `Upload` will be helpful.
 
 ### Things to note
-* As our application grows, we'll likely want to use a database rather than saving everything to the filesystem. When the time comes for that, all we have to do it change the Trial class. This makes our refactoring simpler. 
-* In the future, we can also start saving User and Device objects to the database as well. The create, find, and all methods in Trial will then be relevant to User and Device as well. That means we'd likely refactor those out into their own class to deal with just the data storage and retrieval, and each of our User, Device, and Trial classes will inherit from that class. We might eventually add helper query methods to that class, and continue building it up from there. 
+* As our application grows, we'll likely want to use a database rather than saving everything to the filesystem. When the time comes for that, all we have to do it change the `Upload` class. This makes our refactoring simpler. 
+* In the future, we can also start saving User and Device objects to the database as well. The create, find, and all methods in `Upload` will then be relevant to User and Device as well. That means we'd likely refactor those out into their own class to deal with just the data storage and retrieval, and each of our User, Device, and `Upload` classes will inherit from that class. We might eventually add helper query methods to that class, and continue building it up from there. 
 
 ### 2. Building a web application
 
@@ -896,52 +896,53 @@ Dir['./models/*', './helpers/*'].each {|file| require_relative file }
 
 include FileUtils::Verbose
 
-get '/trials' do
-  @trials = Trial.all
+get '/uploads' do
+  @uploads = Upload.all
   @error = "A #{params[:error]} error has occurred." if params[:error]
 
-  erb :trials
+  erb :uploads
 end
 
-get '/trial/*' do |file_name|
-  @trial = Trial.find(file_name)
+get '/upload/*' do |file_name|
+  @upload = Upload.find(file_name)
   
-  erb :trial
+  erb :upload
 end
 
 # TODO
 # - Is file sanitized here? We don't want to be passing around untrusted data, especially not if it's touching the filesystem.
 post '/create' do
   begin
-    @trial = Trial.create(
+    @upload = Upload.create(
       params[:processor][:file_upload][:tempfile], 
       params[:user].values,
       params[:device].values
     )
 
-    erb :trial
+    erb :upload
   rescue Exception => e
-    redirect '/trials?error=creation'
+    redirect '/uploads?error=creation'
   end
 end
+
 ~~~~~~~
 
-Running ruby pedometer.rb starts the web server, and hitting http://localhost:4567/trials takes us to an index of all of our trials. 
+Running ruby pedometer.rb starts the web server, and hitting http://localhost:4567/uploads takes us to an index of all of our uploads. 
 
 Let's look at each of our routes individually. 
 
-### get '/trials'
+### get '/uploads'
 
-The get '/trials' route sets @trials through Trial.all, and @error is set if an :error key is present in the params hash. The trials view is then rendered. Let's take a look at the view, below. 
+The get '/uploads' route sets `@uploads` through `Upload.all`, and `@error` is set if an `:error` key is present in the params hash. The uploads view is then rendered. Let's take a look at the view, below. 
 
-trials.erb
+uploads.erb
 
 ~~~~~~~
 <link href="/styles.css" rel="stylesheet" type="text/css" />
 
 <html>
   <div class="error"><%= @error %></div>
-  <%= erb :summary, locals: { trials: @trials, detail_hidden: true } %>
+  <%= erb :summary, locals: { uploads: @uploads, detail_hidden: true } %>
   <form method="post" action="/create" enctype="multipart/form-data">
     <h3 class="upload-header">Device Info</h3>
     <input name="processor[file_upload]" type="file">
@@ -968,7 +969,7 @@ trials.erb
 </html>
 ~~~~~~~
 
-The trials view first pulls in a stylesheet, styles.css. The stylesheet, below, uses basic css for some minimal styling of our views. It's included in both the trials view, and the trial view which we'll see in the next route.
+The uploads view first pulls in a stylesheet, styles.css. The stylesheet, below, uses basic css for some minimal styling of our views. It's included in both the uploads view, and the upload view which we'll see in the next route.
 
 ~~~~~~~
 table.summary {
@@ -1015,7 +1016,7 @@ a.nav {
 }
 ~~~~~~~
 
-The trials view also renders summary.erb. We place it in its own file, because we reuse it in another view, which we'll see soon.
+The uploads view also renders summary.erb. We place it in its own file, because we reuse it in another view, which we'll see soon.
 
 ~~~~~~~
 <table class="summary">
@@ -1027,27 +1028,32 @@ The trials view also renders summary.erb. We place it in its own file, because w
   <th>Calculated</th>
   <th>Delta</th>
   <th></th>
-  <% trials.each do |trial| %>
+  <% uploads.each do |upload| %>
+    <% analyzer = upload.analyzer %>
     <tr>
-      <td><%= trial.analyzer.user.gender %></td>
-      <td><%= trial.analyzer.device.method %></td>
-      <td><%= trial.analyzer.processor.format %></td>
-      <td><%= trial.analyzer.device.trial %></td>
-      <td><%= trial.analyzer.device.steps %></td>
-      <td><%= trial.analyzer.steps %></td>
-      <td><%= trial.analyzer.steps - trial.analyzer.device.steps %></td>
+      <td><%= analyzer.user.gender %></td>
+      <td><%= analyzer.device.method %></td>
+      <td><%= analyzer.processor.format %></td>
+      <td><%= analyzer.device.trial %></td>
+      <td><%= analyzer.device.steps %></td>
+      <td><%= analyzer.steps %></td>
+      <td>
+        <%= 
+          analyzer.device.steps ? (analyzer.steps - analyzer.device.steps) : '-' 
+        %>
+      </td>
       <% if detail_hidden %>
-        <td><a href=<%= "trial/" + trial.file_name %>>Detail</a></td>
+        <td><a href=<%= "upload/" + upload.file_name %>>Detail</a></td>
       <% else %>
-        <td><%= ViewHelper.format_distance(trial.analyzer.distance) %></td>
-        <td><%= ViewHelper.format_time(trial.analyzer.time) %></td>
+        <td><%= ViewHelper.format_distance(analyzer.distance) %></td>
+        <td><%= ViewHelper.format_time(analyzer.time) %></td>
       <% end %>
     </tr>
   <% end %>
 </table>
 ~~~~~~~
 
-Note the use of ViewHelper in the summary view. Let's take a closer look at it.
+Note the use of `ViewHelper` in the `summary` view. Let's take a closer look at it.
 
 ~~~~~~~
 class ViewHelper
@@ -1100,18 +1106,18 @@ Similarly, the format_time method takes a time in seconds and formats it using R
 
 The final method, limit_1000, takes a series of data, and returns the first 1000 points. We'll see this used in another view shortly. 
 
-Back to the trials view. The trials view renders an error if one exists, renders summary.erb with all trials to present the table of trial data, and then creates the input form for user and device info. 
+Back to the `uploads` view. The `uploads` view renders an error if one exists, renders summary.erb with all uploads to present the table of upload data, and then creates the input form for user and device info. 
 
 ### Things to note
 * Here we once again see spearation of concerns. To keep as much logic as possible out of the view, we use a ViewHelper to format the data. The view's responsibility is to present data, not format it, so we split that out into a separate class.
 
-The last and largest portion of the trials view is the layout of the form that allows a user to input data. Note that the form, on submission, posts to the create action, which we'll discuss as our last action. All input fields either have placeholder text to indicate the data needed, or, in the case of select fields, a placeholder field. The fields that require numerical data are of type number so that the browser doesn't allow submission of the form unless proper data is passed in. 
+The last and largest portion of the uploads view is the layout of the form that allows a user to input data. Note that the form, on submission, posts to the create action, which we'll discuss as our last action. All input fields either have placeholder text to indicate the data needed, or, in the case of select fields, a placeholder field. The fields that require numerical data are of type number so that the browser doesn't allow submission of the form unless proper data is passed in. 
 
 TODO: Discussion around client-side validation as well as server-side validation. Make note that the trial number is set to numerical data even though the model accepts a string.
 
-### get '/trial/*'
+### get '/upload/*'
 
-The get '/trial/*' route is called with a file path. For example: http://localhost:4567/trial/public/uploads/female-168.0-70.0_100-100-1-walk-c.txt. It sets @trial through Trial.find, passing in the file_name from the url. It then loads up the trial.erb view. 
+The get '/upload/*' route is called with a file path. For example: http://localhost:4567/upload/public/uploads/female-168.0-70.0_100-100-1-walk-c.txt. It sets `@upload` through `Upload.find`, passing in the `file_name` from the url. It then loads up the `upload.erb` view. 
 
 ~~~~~~~
 <script src="/jquery.min.js"></script>
@@ -1119,8 +1125,8 @@ The get '/trial/*' route is called with a file path. For example: http://localho
 <link href="/styles.css" rel="stylesheet" type="text/css" />
 
 <html>
-    <a class="nav" href='/trials'>Back to Trials</a>
-    <%= erb :summary, locals: { trials: [@trial], detail_hidden: false } %>
+    <a class="nav" href='/uploads'>Back to Uploads</a>
+    <%= erb :summary, locals: { uploads: [@upload], detail_hidden: false } %>
 
     <div id="container-dot-product"></div>
     <div id="container-filtered"></div>
@@ -1132,7 +1138,7 @@ The get '/trial/*' route is called with a file path. For example: http://localho
             title: { text: 'Dot Product Data' },
             series: [{
                 name: 'Dot Product Data',
-                data: <%= ViewHelper.limit_1000(@trial.analyzer.processor.dot_product_data) %>
+                data: <%= ViewHelper.limit_1000(@upload.analyzer.processor.dot_product_data) %>
             }]
         });
 
@@ -1140,24 +1146,24 @@ The get '/trial/*' route is called with a file path. For example: http://localho
             title: { text: 'Filtered Data' },
             series: [{
                 name: 'Filtered Data',
-                data: <%= ViewHelper.limit_1000(@trial.analyzer.processor.filtered_data) %>
+                data: <%= ViewHelper.limit_1000(@upload.analyzer.processor.filtered_data) %>
             }]
         });
     });
 </script>
 ~~~~~~~
 
-The trial.erb view has both HTML and JavaScript. As our application grows, we would likely split out all JavaScript into separate files. For simplicity, we've kept it all together. 
+The `upload.erb` view has both HTML and JavaScript. As our application grows, we would likely split out all JavaScript into separate files. For simplicity, we've kept it all together. 
 
 We're using a tool called Highcharts to generate all of the charts in our view, which requires jQuery and other additional JavaScript files. Note that both are included at the top of the view. 
 
-In the HTML portion, we create a link to return to /trials, for ease of navigation purposes. Then, we render summary.erb once more. Since both summary tables are quite similar, we've chosen to extract the HTML for the summary table into one view and reuse it from both trials and trial. This ensures that the format of the tables remains consistent, and avoids code duplication. In this case, we pass in false for detail_hidden, since we want to see time and distance data, whereas in the trials view, we wanted those fields replaced with a link to this view. Following the summary table, we create containers for the charts. 
+In the HTML portion, we create a link to return to `/uploads`, for ease of navigation purposes. Then, we render summary.erb once more. Since both summary tables are quite similar, we've chosen to extract the HTML for the summary table into one view and reuse it from both `uploads` and `upload`. This ensures that the format of the tables remains consistent, and avoids code duplication. In this case, we pass in false for detail_hidden, since we want to see time and distance data, whereas in the uploads view, we wanted those fields replaced with a link to this view. Following the summary table, we create containers for the charts. 
 
 The JavaScript portion uses the Highcharts API to create the three charts: dot product data, filtered data, and, optionally, a comparison between the filtered data of the separated and combined data sets. Each chart is limited to 1000 points, to make it easy on our eyes, using the limit_1000 method in ViewHelper that we looked at earlier.
 
 ### post '/create'
 
-Our final action, create, is an HTTP POST called when a user submits the form in the trials view. The action sets a @trial instance variable to a new Trial record, created by passing in values from the params hash. It then renders the trial view. If an error occurs in the creation process, the trials view is rendered, with the an error parameter passed in. 
+Our final action, create, is an HTTP POST called when a user submits the form in the `uploads` view. The action sets a @upload instance variable to a new `Upload` record, created by passing in values from the params hash. It then renders the `upload` view. If an error occurs in the creation process, the uploads view is rendered, with the an error parameter passed in. 
 
 ## Summary
 

@@ -3,7 +3,7 @@ require_relative 'analyzer'
 
 include FileUtils::Verbose
 
-class Trial
+class Upload
 
   attr_reader :file_name, :processor, :user, :device, :analyzer
   attr_reader :user_params, :device_params
@@ -30,9 +30,9 @@ class Trial
   # -- Class Methods --------------------------------------------------------
 
   def self.create(input_data, user_params, device_params)
-    trial = self.new(nil, input_data, user_params, device_params)
-    cp(input_data, trial.file_name)
-    trial
+    upload = self.new(nil, input_data, user_params, device_params)
+    cp(input_data, upload.file_name)
+    upload
   end
 
   def self.find(file_name)

@@ -9,14 +9,14 @@ class PedometerTest < Test::Unit::TestCase
     Sinatra::Application
   end
 
-  def test_trials
-    get '/trials'
+  def test_uploads
+    get '/uploads'
 
     assert_equal 200, last_response.status
   end
 
-  def test_trial
-    get '/trial/test/data/female-167-70_100-10-1-bagwalk-a.txt'
+  def test_upload
+    get '/upload/test/data/female-167-70_100-10-1-bagwalk-a.txt'
     
     assert_equal 200, last_response.status
   end
