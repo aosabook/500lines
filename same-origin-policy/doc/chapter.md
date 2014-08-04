@@ -149,7 +149,7 @@ Given this `check` command, the analyzer explores every possible behavior of the
 
 ![http-instance-2](fig-http-2.png)
 
-This counterexample again shows an HTTP request being made by a client, but with two different servers (in Alloy, objects of the same type are distinguished with a numeric suffix). Note that while the DNS server maps `Domain` to both `Server0` and `Server1` (in reality, this is a common practice for load balancing), only `Server0` maps `Path` to a resource object, causing `HttpRequest0` to result in empty response; another error in our model! To fix this, we add an Alloy *fact* to ensure that any two servers mapped to the common host by the DNS provide the same set of resources:
+This counterexample again shows an HTTP request being made by a client, but with two different servers (in Alloy, objects of the same type are distinguished with a numeric suffix). Note that while the DNS server maps `Domain` to both `Server0` and `Server1` (in reality, this is a common practice for load balancing), only `Server0` maps `Path` to a resource object, causing `HttpRequest0` to result in empty response: another error in our model! To fix this, we add an Alloy *fact* to ensure that any two servers mapped to the common host by the DNS provide the same set of resources:
 
 ```alloy
 fact ServerAssumption {
