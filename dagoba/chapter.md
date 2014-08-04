@@ -1,4 +1,4 @@
-# Dagoba: a simple in-memory graph database
+# Dagoba: an in-memory graph database
 
 _An exploration of connectedness through the heuristic of exposition_
 
@@ -6,27 +6,56 @@ A long time ago, when the world was still young, all data walked in happily sing
 
 Then came the random access revolution, and data grazed freely across the hillside. Herding data became a serious concern -- if you can access any piece of data at any time, how do you know which one to pick next? Techniques were developed for corralling the data by forming links between items [N] [the network model (CODASYL), the hierarchical model (IMS), etc], marshaling groups of units into formation through their linking assemblage. Questioning data meant picking a sheep and pulling along everything connected to it. 
 
-Later programmers departed from this tradition, imposing a set of rules on how data would be aggregated. [N] [Codd, etc] Rather than tying disparate data directly together they would cluster by content, decomposing data into bite-sized pieces, clustered in kennels and collared with a name tag. Questions were declaratively posited, resulting in accumulating pieces of partially decomposed data (a state the relationalists refer to as "normal") into a frankencollection returned to the programmers.
+Later programmers departed from this tradition, imposing a set of rules on how data would be aggregated. [N] [Codd, etc] Rather than tying disparate data directly together they would cluster by content, decomposing data into bite-sized pieces, clustered in kennels and collared with a name tag. Questions were declaratively posited, resulting in accumulating pieces of partially decomposed data (a state the relationalists refer to as "normal") into a frankencollection returned to the programmer.
 
-For much of recorded history this relational model reigned supreme. Its dominance remained unchallenged through two major language wars and countless minor skirmishes. It offered everything you could ask for in a model, for the small price of performance, clumsiness and lack of scalability. For eons that was a price everyone was willing to pay. Then the internet happened.
+For much of recorded history this relational model reigned supreme. Its dominance remained unchallenged through two major language wars and countless skirmishes. It offered everything you could ask for in a model, for the small price of inefficiency, clumsiness and lack of scalability. For eons that was a price programmers were willing to pay. Then the internet happened.
 
-The distributed revolution changed everything, again. Data broke free of spacial constraints and roamed from machine to machine. CAP-wielding theorists busted the relational monopoly, opening the door to a new herding techniques -- some of which harkened back to the earliest attempts to domesticate random-access data. We're going to look at one of these, a style known as the graph database.
-
-
+The distributed revolution changed everything, again. Data broke free of spacial constraints and roamed from machine to machine. CAP-wielding theorists busted the relational monopoly, opening the door to a plethora of new herding techniques -- some of which harken back to the earliest attempts to domesticate random-access data. We're going to look at one of these, a style known as the graph database.
 
 
-## Make it work
 
-Suppose you've been asked to create a booking system for an airline. 
+## What's all this now?
 
-[Toronto to Timbuktu...]
+Graph databases are useful for elegantly solving all kinds of interesting problems. So what's a graph database?
+
+Well, the dictionary defines "graph database" as a database for graphs. Thanks, dictionary! Let's break that down a little.
+
+A data base is like a fort for data. You can put data in and get data back out.
+
+A graph in this sense is a set of vertices and a set of edges. It's basically a bunch of dots connected by lines. 
+
+What kind of problems can we solve? Suppose that you are one of those who have discovered the unbridled joy of tracking ancestral trees: parents, children, all that kind of thing. You'd like to develop a system that allows you to make natural and elegant queries like "Who are Thor's second cousins once removed?" or "How many of Freya's descendants were Valkyries?".
+
+A reasonable schema for this data structure would be to have a table of entities and a table of relationships. A query for Thor's parents might look like:
+
+SELECT e.* FROM entities as e, relationships as r WHERE r.out = "Thor" AND r.type = "parent" AND r.in = e.id
+
+But how do we extend that to grandparents? We need to do a subquery, or use some other type of vendor-specific extension to SQL. And by the time we get to second cousins once removed we're going to have ALOTTA SQL.
+
+What would we like to write? Something both concise and flexible; something that models our query in a natural way and extends to other queries like it. second_cousins_once_removed('Thor') is concise, but it doesn't give us any flexibility. The SQL above is flexible, but lacks concision.
+
+Something like Thor.parents.parents.children.children [except actual second cousins] would work well. The primitives give us flexibility to ask many similar questions, but the query is also very concise and natural. There are some issues to work out with this syntax -- it actually gives us too many results, rather than answering our question directly -- but let's skip that for now and use this as a goal to aim for with our queries.  
 
 
-Let's start with a simple question: how many connected components are there in the Lagarias arithmetic derivative of the first N numbers out to k steps? 
-[N] [https://cs.uwaterloo.ca/journals/JIS/VOL6/Ufnarovski/ufnarovski.pdf,
-http://christopherolah.files.wordpress.com/2011/04/arithmetic_derivative_250.png]
 
---- some exposition ---
+
+
+
+Here's some requirements:
+- find parents, grandparents, ggp, etc
+- same for kids
+- find all ancestors
+- find closest common ancestor
+- blha blah this isn't quite right we should start with just a simple question but how do we lead in to it? we could say something ... 
+
+
+Let's build a database that's specialized for genealogies. 
+
+
+anyway later we'll include stepparents, but w/ parents ALWAYS older than children (DAG). then open it up for general graph stuff after.
+
+
+
 
 How should we go about solving such a thing?
 
@@ -120,6 +149,8 @@ Fun! But what if we want to ask about all of Alice's employees? Let's add some e
 So we've got a working graph database. It even works for fancy objects and stuff. So we're done, right? 
 
 ### Laziness
+
+[Suppose you've got a hobby, like tennis or philately. I've got a hobby: re-building genealogy. Can we find anyone who likes both our hobbies? ]
 
 Suppose we'd like to find a few people who have both tennis and philately as a hobby. We can start from tennis, go out to its hobbyists, out again to their hobbies, back in from philately and then take a few. (change this query)
 
@@ -290,6 +321,13 @@ What follows is detritus in need of cleaning.
 
 ======================================================================================================
 
+
+
+---  Suppose you've been asked to create a booking system for an airline. [Toronto to Timbuktu...]
+---  
+---  Let's start with a simple question: how many connected components are there in the Lagarias arithmetic derivative of the first N numbers out to k steps? 
+---  [N] [https://cs.uwaterloo.ca/journals/JIS/VOL6/Ufnarovski/ufnarovski.pdf,
+---  http://christopherolah.files.wordpress.com/2011/04/arithmetic_derivative_250.png]
 
 
 
