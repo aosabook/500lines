@@ -10,7 +10,7 @@ sig Origin {
   port: lone Port
 }
 
-fun url2origin[u: Url] : Origin {
+fun origin[u: Url] : Origin {
   {o: Origin | o.host = u.host and o.protocol = u.protocol and o.port = u.port }
 }
 
