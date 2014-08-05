@@ -16,16 +16,18 @@ pred sameOriginPolicy {
 }
 
 pred domSop {
-  all c: ReadDom+ WriteDom | 
+  all c: ReadDom + WriteDom | 
     -- A script can only access the DOM of a document with the same origin or
     origin[c.doc.src] = origin[c.from.context.src] or
-    -- (relaxation) script's context and the target document have the same domain property
+    -- (relaxation) script's context and the target document have the same
+    -- domain property
     c.doc.domain = c.from.context.domain
 }
 
 pred xmlHttpReqSop {
-  -- A script can only make an AJAX call to a server with the same origin if
-  -- it's not a CORS request (relaxation).
   all x: XmlHttpRequest |
-    origin[x.url] = origin[x.from.context.src] or x in CorsRequest
+    -- A script can only make an AJAX call to a server with the same origin or
+    origin[x.url] = origin[x.from.context.src] or
+    -- (relaxation) it's a CORS request
+    x in CorsRequest
 }

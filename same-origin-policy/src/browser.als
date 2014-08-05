@@ -15,7 +15,7 @@ sig Document {
 }
 
 sig Browser extends Client {
-  documents: Document -> Time,  -- documents that browser displays over time
+  documents: Document -> Time,  -- documents that the browser displays over time
   cookies: Cookie -> Time,  -- cookies stored by the browser over time
 }
 
