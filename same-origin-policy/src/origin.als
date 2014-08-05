@@ -19,4 +19,8 @@ fun origin[u: Url] : Origin {
   {o: Origin | o.host = u.host and o.protocol = u.protocol and o.port = u.port }
 }
 
+fun origin[u: Url, h: Domain] : Origin {
+  {o: Origin | o.host = h and o.protocol = u.protocol and o.port = u.port }
+}
+
 run {}

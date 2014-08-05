@@ -9,7 +9,18 @@ open call[Endpoint]
 abstract sig Resource {}
 abstract sig Endpoint {}
 
-sig Protocol, Domain, Port, Path {}
+sig Protocol, Port, Path {}
+sig Domain { subsumes: set Domain }
+
+fact subsumesRule {
+  all disj d, d1, d2: Domain |
+    -- reflexive
+    d in d.subsumes and
+    -- assymetric
+    (d1 in d.subsumes => d not in d1.subsumes) and
+    -- transitive    
+    (d1 in d.subsumes and d2 in d1.subsumes => d2 in d.subsumes)
+}
 
 sig Url {
   protocol: Protocol,

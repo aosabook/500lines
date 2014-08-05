@@ -48,13 +48,6 @@ sig WriteDom extends BrowserOp { newDom: Resource }{
   domain.end = domain.start
 }
 
-// Modify the document.domain property
-sig SetDomain extends BrowserOp { newDomain: set Domain }{
-  doc = from.context
-  domain.end = domain.start ++ doc -> newDomain
-  -- no change to the content of the document
-  content.end = content.start
-}
 
 // Handlers for browser script events
 abstract sig EventHandler extends Call {
@@ -72,9 +65,3 @@ pred noBrowserChange[start, end: Time] {
 pred noDocumentChange[start, end: Time] {
   content.end = content.start and domain.end = domain.start
 }
-
-/* Commands */
-
-// Can a script set the "document.domain" property with a new_domain that doesn't
-// match the src?
-check { all sd: SetDomain | sd.doc.src.host in sd.newDomain }
