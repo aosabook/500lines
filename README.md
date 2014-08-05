@@ -164,6 +164,19 @@ Contributors
     <td>&nbsp;</td>
   </tr>
   <tr>
+    <td>Ned Batchelder</td>
+    <td>edX</td>
+    <td>templating engine</td>
+    <td>
+        <ul>
+            <li><a href="http://nedbatchelder.com">nedbatchelder.com</a></li>
+            <li><a href="https://twitter.com/nedbat">@nedbat</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/nedbat">nedbat</a></td>
+    <td>ned@nedbatchelder.com</td>
+  </tr>
+  <tr>
     <td>Leah Hanson</td>
     <td>Google</td>
     <td>static analysis</td>
