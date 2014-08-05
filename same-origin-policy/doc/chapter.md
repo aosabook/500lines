@@ -308,21 +308,33 @@ These two instances tell us that extra measures are needed to restrict the behav
 
 ## Same Origin Policy
 
-Before we can state the SOP, the first thing we should do is to define what it means for two pages to have the *same* origin. Two URLs refer to the same origin if and only if they share the same hostname, protocol, and port:
+Before we can state the SOP, the first thing we should do is to introduce the
+notion of an origin, which is composed of a protocol, host and optional port:
+
 ```alloy
-pred sameOrigin[u1, u2: Url] {
-  u1.host = u2.host and u1.protocol = u2.protocol and u1.port = u2.port
+sig Origin {
+  protocol: Protocol,
+  host: Domain,
+  port: lone Port
+}
+```
+
+So two URLs have the same origin if they share the same protocol, host and port:
+
+```alloy
+fun origin[u: Url] : Origin {
+    {o: Origin | o.host = u.host and o.protocol = u.protocol and o.port = u.port }
 }
 ```
 The SOP itself has two parts, restricting the ability of a script to (1) make DOM API calls and (2) send HTTP requests. The first part of the policy states that a script can only read from and write to a document that comes from the same origin as the script:
 ```alloy
-pred domSop { all c: ReadDom + WriteDom | sameOrigin[c.doc.src, c.from.context.src] }
+pred domSop { all c: ReadDom + WriteDom | origin[c.doc.src] = origin[c.from.context.src] }
 ```
 An instance such as the first script scenario is not possible under `domSop`, since `Script` is not allowed to invoke `ReadDom` on a document from a different origin.
 
 The second part of the policy says that a script cannot send an HTTP request to a server unless its context has the same origin as the target URL -- effectively preventing instances such as the second script scenario.
 ```alloy
-pred xmlHttpReqSop { all x: XmlHttpRequest | sameOrigin[x.url, x.from.context.src] }
+pred xmlHttpReqSop { all x: XmlHttpRequest | origin[x.url] = origin[x.from.context.src] }
 ```
 As we can see, the SOP is designed to prevent the two types of vulnerabilities that could arise from actions of a malicious script; without it, the web would be a much more dangerous place than it is today.
 
