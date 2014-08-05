@@ -1,6 +1,6 @@
 # Dagoba: an in-memory graph database
 
-_An exploration of connectedness through the heuristic of exposition_
+_An exploration of connectedness through the lens of genetic and familial lineage_
 
 A long time ago, when the world was still young, all data walked in happily single file. To ask a question of your data you merely put a fence in the path, and each datum jumped it in turn. Life was easy and programming was a breeze.
 
