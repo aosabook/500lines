@@ -369,7 +369,8 @@ only one that is a right-hand, fully-qualified fragment of its current hostname
 (i.e., `foo.example.com` can set it to `example.com` but not to
  `aosabook.org` \*). Of course, this rule makes sense, if otherwise, a malicious
 site could set the domain property to your bank domain, load your bank
-account in a iframe and read the DOM of your bank page (which could be a bad
+account in a iframe and (assuming the bank page has set its domain property)
+read the DOM of your bank page (which could be a bad
 thing if you are logged in -- or if you are tricked into logging in)!\*\*
 
 (\* Wondering if it's possible to set it to just `.com`? `foo.example.com` would be
@@ -378,7 +379,7 @@ thing if you are logged in -- or if you are tricked into logging in)!\*\*
 
 (\*\* Assuming the bank page doesn't
 detect that is being embedded in an iframe and prevent it using some
-JavaScript or using the `X-FRAME-OPTIONS` header (which is intentioally designed
+JavaScript or using the `X-FRAME-OPTIONS` header (which is intentionlly designed
 to allow pages to decided whether it should be possible to embeed them or not).
 It could still work though if you have your bank page opened in a separate tab
 or window.)
