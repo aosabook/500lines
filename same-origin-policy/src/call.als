@@ -12,7 +12,7 @@ abstract sig Call {
   from, to: T
 }
 
-// Returns the set of the calls that occured prior to "c"
+// Returns the set of calls that occured prior to "c"
 fun prevs[c: Call] : set Call {
   { c': Call | c'.start in c.start.prevs }
 }
@@ -20,7 +20,7 @@ fun prevs[c: Call] : set Call {
 fact {
   -- some call occurs between consecutive time steps
   all t: Time - ord/last | some c: Call | c.start = t and c.end = t.next
-  -- every call time takes exactly one time step
+  -- every call takes exactly one time step
   all c: Call | c.end = (c.start).next
 }
 
