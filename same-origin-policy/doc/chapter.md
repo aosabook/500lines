@@ -330,9 +330,11 @@ It turns out, however, that the SOP can be *too* restrictive. For example, somet
 
 In order to allow some form of cross-origin communication when necessary, browsers implemented a variety of mechanisms for relaxing the SOP. Some of these are more well-thought-out than others, and some have serious flaws that, when badly used, could negate the security benefits of the SOP. In the following sections, we will describe the most common of these mechanisms, and discuss their potential security pitfalls.
 
-## Mechanisms for Bypassing the SOP
+## Techniques for Bypassing the SOP
 
-To be completed.
+In this section, we will discuss four techniques that have been devised and frequently used by web developers to bypass the restrictions imposed by the SOP: (1) "document.domain" property, (2) JSONP, (3) PostMessage, and (4) CORS. While these are useful tools, if not used carefully, the security problems that the SOP was designed to prevent in the first place can creep back into the picture. This demonstrates the tension between functionality and security.
+
+Each of these four techniques is surprisingly complex, and to be described in full detail, could merit its own chapter. So here, we will give you a brief flavor of how they work, potential security problems that they introduce, and how to prevent these problems.
 
 ### Domain property
 
@@ -381,11 +383,32 @@ processData(mydata)
 
 which is a valid Javascript statement, and is executed by the browser in the current document.
 
-TODO...
+In our model, 
+
+```alloy
+sig CallbackID {}
+
+// Request sent as a result of <script> tag
+sig JsonpRequest in browser/BrowserHttpRequest {
+  padding: CallbackID
+}
+```
+
+```alloy
+sig JsonpCallback extends script/EventHandler {
+  cb: CallbackID,
+  payload: lone Resource
+}{
+  causedBy in JsonpRequest
+  cb = causedBy.@padding
+  -- the result of the JSONP request is passed on as an argument to the callback
+  payload in causedBy.response
+}
+```
 
 ### PostMessage
 
-PostMessage is a new feature in HTML5 that allows scripts from two documents (of possibly different origins) to send data to each other. It is a more disciplined alternative to the method of setting `domain` property, which is prone to mistakes, as we've already seen. However, PostMessage isn't without its own security risks unless used carefully.
+PostMessage is a new feature in HTML5 that allows scripts from two documents (of possibly different origins) to communicate to each other. It is a more disciplined alternative to the method of setting `domain` property, which is prone to mistakes, as we've already seen. However, PostMessage isn't without its own security risks, unless used carefully.
 
 PostMessage is a browser API function that takes two arguments: (1) the data to be sent (`message`), and (2) the URL of the document receiving the message (`targetOrigin`):
 
@@ -396,7 +419,25 @@ sig PostMessage extends BrowserOp {
 }
 ```
 
-TODO...
+To receive a message from another document, the receiving document must register an event handler that is invoked by the browser as a consequence of a `PostMessage`:
+
+```alloy
+sig ReceiveMessage extends EventHandler {
+  data: Resource,
+  srcOrigin: Origin
+}{
+  causedBy in PostMessage
+  -- "ReceiveMessage" event is sent to the script with the correct context
+  origin[to.context.src] = causedBy.targetOrigin
+  -- messages match
+  data = causedBy.@message
+  -- the origin of the sender script is provided as "srcOrigin" param 
+  srcOrigin = origin[causedBy.@from.context.src]
+}
+```
+
+The browser passes two parameters to `ReceiveMessage`: a piece of resource (`data`) that corresponds to the message being sent, and the origin of the sender document (`srcOrigin`). The signature fact contains four constraints to ensure that each `ReceiveMessage` is well-formed with respect to its corresponding `PostMessage`. 
+
 
 ### CORS: Cross-Origin Resource Sharing
 

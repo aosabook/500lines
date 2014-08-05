@@ -11,12 +11,12 @@ open sop
 
 // Browser API function for cross-document messaging
 // used to send a message from one script to another
-sig PostMessage extends script/BrowserOp {
+sig PostMessage extends BrowserOp {
   message: Resource,
   targetOrigin: Origin
 }
 
-sig ReceiveMessage extends script/EventHandler {
+sig ReceiveMessage extends EventHandler {
   data: Resource,
   srcOrigin: Origin
 }{
