@@ -68,7 +68,7 @@
       e.preventDefault()
       var query = elquery.value
       var result = eval(query) // oh dear
-      elresults.innerHTML = JSON.stringify(result, 0, 2)
+      elresults.innerHTML = JSON.stringify(result, Dagoba.cleanvertex, 2)
     })
 
     eladdedgeform.addEventListener('submit', function(e) {
@@ -95,14 +95,47 @@
     
     var updateGraph = function() {
       var str = "<h3>Vertices</h3>\n"
-              + G.vertices.map(function(vertex) {return '<p>' + JSON.stringify(vertex) + '</p>\n'}).join('')
+              + G.vertices.map(function(vertex) {return "<p>" 
+                                                        + JSON.stringify(vertex, Dagoba.cleanvertex) 
+                                                        + "</p>\n"}).join('') 
               + "<h3>Edges</h3>\n"
-              + G.edges   .map(function(edge)   {return '<p>' + JSON.stringify(edge)   + '</p>\n'}).join('')
+              + G.edges   .map(function(edge)   {return "<p>" 
+                                                        + JSON.stringify(edge, Dagoba.cleanedge)     
+                                                        + "</p>\n"}).join('')
 
       elgraph.innerHTML = str
     }
     
     updateGraph()
+
+
+    /*
+
+      Daggr
+      - add template
+      - set heuristic function for determining template based on data
+      - set layout function
+      - set/add/remove data [immutable always for first pass]
+      - render
+      - add effect functions?
+      - add layout/heuristic so they can be referenced by name
+
+    */
+    
+    /*
+
+    ok. realistically, we can
+    - add edge refs internally and run perf tests [keep old style too]
+    - display graph walking for small graphs
+    - display graph walking for large graphs [only show local context to current step]
+    - rewrite in ES6
+    - history: back, loop, path count, etc
+    - smarter path count (merge gremlins)
+    - orthopto
+
+    */
+
+    
 
   </script>
   
