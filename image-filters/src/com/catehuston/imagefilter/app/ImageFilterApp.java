@@ -106,7 +106,7 @@ public class ImageFilterApp extends PApplet {
 
 	private void drawImage() {
 		imageMode(CENTER);
-		imageState.updateImage(this, HUE_RANGE, RGB_COLOR_RANGE);
+		imageState.updateImage(this, HUE_RANGE, RGB_COLOR_RANGE, IMAGE_MAX);
 		image(imageState.image().image(), IMAGE_MAX/2, IMAGE_MAX/2, imageState.image().getWidth(),
 				imageState.image().getHeight());
 		redrawImage = false;

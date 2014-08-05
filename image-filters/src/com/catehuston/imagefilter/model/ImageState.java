@@ -62,8 +62,8 @@ public class ImageState {
 		return filepath;
 	}
 
-	public void updateImage(PApplet applet, int hueRange, int rgbColorRange) {
-		image.update(applet, filepath);
+	public void updateImage(PApplet applet, int hueRange, int rgbColorRange, int imageMax) {
+		setUpImage(applet, imageMax);
 		if (colorModeState == ColorMode.SHOW_DOMINANT_HUE) {
 			colorHelper.processImageForHue(applet, image, hueRange, hueTolerance, true);
 		} else if (colorModeState == ColorMode.HIDE_DOMINANT_HUE) {
