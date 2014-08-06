@@ -350,19 +350,86 @@ Each of these four techniques is surprisingly complex, and to be described in fu
 
 ### Domain property
 
-If two scripts set the `document.domain` property to the same value, then the
-SOP is relaxed and these two scripts can interact with each other (read and
-write each other's DOM). We modify the original `domSop` predicate to capture
-this:
+The general idea behind the domain property relaxation of the SOP, is to
+give two pages of a same site the chance of communicating between each other by
+setting the `document.domain` property to the same value. So, for example,
+a script in `foo.example.com` could read/write the DOM of `example.com` if both
+scripts set the `document.domain` property to `example.com` (assuming both
+source URLs have also the same protocol and port). 
+
+We model the operation of setting the `document.domain` property by adding
+a `SetDomain` browser operation:
+
+```alloy
+// Modify the document.domain property
+sig SetDomain extends BrowserOp { newDomain: Domain }{
+  doc = from.context
+  domain.end = domain.start ++ doc -> newDomain
+  -- no change to the content of the document
+  content.end = content.start
+}
+```
+
+The `newDomain` field represents the value to which the property should be set
+to. There's a caveat though, scripts can only set the domain property to only
+one that is a right-hand, fully-qualified fragment of its hostname.
+(i.e., `foo.example.com` can set it to `example.com` but not to
+ `aosabook.org`). \*
+
+(\* Wondering if it's possible to set it to just `.com`? `foo.example.com` would
+ be a subdomain of `.com` after all, but browsers know that
+ `.com` is a top-level domain and won't allow the operation.)
+
+ We add a `fact` to capture this rule:
+
+```alloy
+// Scripts can only set the domain property to only one that is a right-hand,
+// fully-qualified fragment of its hostname
+fact setDomainRule {
+  all d: Document | d.src.host in (d.domain.Time).subsumes
+}
+```
+
+If it weren't for this rule, any site could set the `document.domain` property
+to any value, which means that, for example, a malicious
+site could set the domain property to your bank domain, load your bank
+account in a iframe and (assuming the bank page has set its domain property)
+read the DOM of your bank page!\*\*
+
+
+(\*\* Assuming the bank page doesn't
+detect that is being embedded in an iframe and prevent it using some
+JavaScript or using the `X-FRAME-OPTIONS` header (which is intentionally designed
+to allow pages to decided whether it should be possible to embeed them or not).
+It could still work though if you have your bank page opened in a separate tab
+or window.)
+
+Now we modify our original definition of the SOP for DOM accesses to reflect
+the domain property relaxation. If two scripts set the `document.domain`
+property to the same value, and they
+have the same protocol and port, then these two scripts
+can interact with each other (read and write each other's DOM), but they won't
+be allowed if only one of the scripts sets the property while the other doesn't,
+even if they match.\*
+
+(\* Wondering why is it that (some) browsers make this distinction between
+the property being explicitly set or not, even though they could have the same
+value in both cases? Bad things could happen if it werent for this, for example,
+a site could be subject to XSS from its subdomains (`foo.example.com` could
+set the `document.domain` property to `example.com` and write its DOM))
 
 ```alloy
 pred domSop {
   all c: ReadDom + WriteDom | 
     -- A script can only access the DOM of a document with the same origin or
-    sameOrigin[c.doc.src, c.from.context.src] or
-    -- (relaxation) script's context and the target document have the same
-    -- domain property
-    c.doc.domain = c.from.context.domain
+    origin[c.doc.src] = origin[c.from.context.src] or
+    -- (relaxation) the domain property of both the script's context and the
+    -- target document has been set and
+    (c.doc + c.from.context in (c.prevs <: SetDomain).doc and
+    -- they have the same origin (using the domain property as the host and not
+    -- the src host)
+    origin[c.doc.src, c.doc.domain.(c.start)] =
+    origin[c.from.context.src, c.from.context.domain.(c.start)])
 }
 ```
 
@@ -374,30 +441,8 @@ TODO... more here
 Several properties of this mechanism make it less suitable for cross-origin
 communication than other (more modern) alternatives (post message and CORS).
 First, the mechanism is not general enough. While it is possible to use it to
-enable two subdomains like `foo.example.com` and `bar.example.com` to
-communicate between each other (by having both set `document.domain` to
-`example.com`), it's not possible to use it so that `foo.example.com` can
-communicate with a page that lives in a completely different domain like
-`aosabook.org`. This is because scripts can set the domain property of a document to
-only one that is a right-hand, fully-qualified fragment of its current hostname
-(i.e., `foo.example.com` can set it to `example.com` but not to
- `aosabook.org` \*). Of course, this rule makes sense, if otherwise, a malicious
-site could set the domain property to your bank domain, load your bank
-account in a iframe and (assuming the bank page has set its domain property)
-read the DOM of your bank page (which could be a bad
-thing if you are logged in -- or if you are tricked into logging in)!\*\*
-
-(\* Wondering if it's possible to set it to just `.com`? `foo.example.com` would be
- a subdomain of `.com` after all, but browsers are smart enough to know that
- `.com` is a top-level domain and won't allow the operation.)
-
-(\*\* Assuming the bank page doesn't
-detect that is being embedded in an iframe and prevent it using some
-JavaScript or using the `X-FRAME-OPTIONS` header (which is intentionlly designed
-to allow pages to decided whether it should be possible to embeed them or not).
-It could still work though if you have your bank page opened in a separate tab
-or window.)
-
+enable some kinds of cross-origin communication, this is only limited to those
+situations in which all ends have the same basedomain.
 
 Second, using the domain property mechanism might put your entire site at risk.
 When you set the domain property of both `foo.example.com` and `bar.example.com`
@@ -407,7 +452,7 @@ between each other but you are also allowing any other page, say
 `bar.example.com` (since it is possible for it to set the domain property to
 `example.com`). It might seem like a small detail, but if `qux.example.com`
 has a XSS vulnerability, then an attacker would be able to read these
-other pages which in a situation in which the domain mechanism is not used,
+other pages while in a situation in which the domain mechanism is not used,
 it wouldn't.
 
 
