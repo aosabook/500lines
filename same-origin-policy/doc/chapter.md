@@ -344,7 +344,7 @@ Each of these four techniques is surprisingly complex, and to be described in fu
 ### Domain property
 
 The general idea behind the domain property relaxation of the SOP, is to
-give two pages of a same site the chance of communicating between each other by
+give two pages of a same site the chance to communicate between each other by
 setting the `document.domain` property to the same value. So, for example,
 a script in `foo.example.com` could read/write the DOM of `example.com` if both
 scripts set the `document.domain` property to `example.com` (assuming both
