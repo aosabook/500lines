@@ -473,16 +473,21 @@ processData(mydata)
 
 which is a valid Javascript statement, and is executed by the browser in the current document.
 
-In our model, 
+In our approach, JSONP is modeled as a type of HTTP requests that include the identifier of a callback function as the `padding` parameter. In return, the server returns a response that includes the requested `payload` wrapped inside the name of the callback function (`cb`).
 
 ```alloy
-sig CallbackID {}
-
+sig CallbackID {}  // identifier of a callback function
 // Request sent as a result of <script> tag
 sig JsonpRequest in browser/BrowserHttpRequest {
   padding: CallbackID
 }
+sig JsonpResponse in Resource {
+  cb : CallbackID,
+  payload : Resource
+}
 ```
+
+When the browser receives the response, it executes the callback function 
 
 ```alloy
 sig JsonpCallback extends script/EventHandler {
@@ -490,11 +495,14 @@ sig JsonpCallback extends script/EventHandler {
   payload: lone Resource
 }{
   causedBy in JsonpRequest
-  cb = causedBy.@padding
-  -- the result of the JSONP request is passed on as an argument to the callback
-  payload in causedBy.response
+  let resp = causedBy.response | 
+    cb = resp.@cb and
+    -- result of JSONP request is passed on as an argument to the callback
+    payload = resp.@payload
 }
 ```
+
+Note that the callback function executed is the same as the one that's included in the response (`cb = resp.@cb`), but _not_ necessarily the same as the padding. In other words, for the JSONP communication to work, the server should properly construct a response that includes the original padding as the callback function (i.e., ensure that `JsonRequest.padding = JsonpResponse.cb`). 
 
 ### PostMessage
 
