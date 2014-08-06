@@ -21,8 +21,8 @@ pred domSop {
     -- A script can only access the DOM of a document with the same origin or
     origin[c.doc.src] = origin[c.from.context.src] or
     -- (relaxation) the domain property of both the script's context and the
-    -- target document has either been set or unset in both and
-    (#((c.prevs <: SetDomain).doc & (c.doc + c.from.context)) != 1 and
+    -- target document has been set and
+    (c.doc + c.from.context in (c.prevs <: SetDomain).doc and
     -- they have the same origin (using the domain property as the host and not
     -- the src host)
     origin[c.doc.src, c.doc.domain.(c.start)] =
