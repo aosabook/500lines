@@ -278,15 +278,8 @@ sig WriteDom extends BrowserOp { new_dom: Resource }{
 ```
 `ReadDom` returns the content the target document, but does not modify it; `WriteDom`, on the other hand, sets the new content of the target document to `new_dom`.
 
-In addition, a script can modify various properties of a document, such as its width, height, domain, and title. For the discussion of the SOP, we are only interested in the domain property, which can be modified by scripts using the `SetDomain` function:
-```alloy
-sig SetDomain extends BrowserOp { new_domain: set Domain }{
-  doc = from.context
-  domain.end = domain.start ++ doc -> new_domain
-  content.end = content.start
-}
-```
-Why would you ever want to modify the domain property of a document? It turns out that this is one popular (but rather ad hoc) way of bypassing the SOP and allow cross-domain communication, which we will discuss in a later section.
+In addition, a script can modify various properties of a document, such as its width, height, domain, and title. For the discussion of the SOP, we are only interested in the domain property, which
+we will discuss in a later section.
 
 Let's ask the Alloy Analyzer to generate instances with scripts in action:
 ```alloy
