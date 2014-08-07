@@ -544,11 +544,11 @@ The CORS mechanism for bypassing the SOP works by having the browser and server
 communicate through new HTTP headers to determine whether some non-same-origin
 request should be allowed to happen or not.
 
-We model a CORS request as a special kind of HTTP request which additionaly
+We model a CORS request as a special kind of `XmlHttpRequest` which additionaly
 contains two extra fields `origin` and `allowedOrigins`:
 
 ```alloy
-sig CorsRequest in HttpRequest {
+sig CorsRequest in XmlHttpRequest {
   -- "origin" header
   origin: Origin,
   -- "access-control-allow-origin" header
@@ -568,20 +568,16 @@ The predicate `corsRule` capture when a CORS request succeeds:
 
 ```alloy
 pred corsRule {
-  -- "origin" header of every CORS req matches the script context
   all r: CorsRequest |
-    r.origin = url2origin[r.from.context.src] and
-    -- A CORS response is accepted iff it is allowed by the server, as
-    -- indicated in "access-control-allow-origin" header
+    -- "origin" header of every CORS request matches the script context and
+    r.origin = origin[r.from.context.src] and
+    -- a CORS request is accepted iff it is allowed by the server, as indicated
+    -- in "access-control-allow-origin" header
     r.origin in r.allowedOrigins
 }
-
 ```
 
 Basically, when the request origin is in the allowed origins list of the server.
-The `r.origin = url2origin[r.from.context.src]` constraint sets the `origin`
-field to the one corresponding to the source URL (the URL from where the
-document that is generating the request originated).
 
 TODO... more here
 
