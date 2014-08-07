@@ -2,6 +2,12 @@
 
 from collections import namedtuple
 from enum import Enum
+import json
+
+PAPER_WIDTH = 842
+PAPER_HEIGHT = 595
+MARGIN = 72
+FONT_SIZE = 20
 
 INFINITY = 10000000
 RHO = 1.3
@@ -26,14 +32,14 @@ class Type(Enum):
 
 def convert(text):
 	"""Convert text into blocks: boxes, glues (spaces) and penalties (hyphens, dashes, final break)."""
-	character_width = {' ': 6, '0': 10, '1': 9, '2': 10, '3': 10, '4': 10, '5': 10, '6': 10, '7': 10, '8': 10, '9': 10, '!': 5, '"': 6, '#': 10, '$': 10, '%': 16, '&': 12, '\'': 3, '(': 6, ')': 6, '*': 7, '+': 11, ',': 5, '-': 6, '.': 5, '/': 5, ':': 5, ';': 5, '<': 11, '=': 11, '>': 11, '?': 10, '@': 18, 'A': 12, 'B': 12, 'C': 13, 'D': 13, 'E': 12, 'F': 11, 'G': 14, 'H': 13, 'I': 5, 'J': 9, 'K': 12, 'L': 10, 'M': 15, 'N': 13, 'O': 14, 'P': 12, 'Q': 14, 'R': 13, 'S': 12, 'T': 11, 'U': 13, 'V': 12, 'W': 17, 'X': 12, 'Y': 12, 'Z': 11, '[': 5, '\\': 5, ']': 5, '^': 9, '_': 10, '`': 6, 'a': 10, 'b': 10, 'c': 9, 'd': 10, 'e': 10, 'f': 5, 'g': 10, 'h': 10, 'i': 4, 'j': 4, 'k': 9, 'l': 4, 'm': 15, 'n': 10, 'o': 10, 'p': 10, 'q': 10, 'r': 6, 's': 9, 't': 5, 'u': 10, 'v': 9, 'w': 13, 'x': 9, 'y': 9, 'z': 9, '{': 6, '|': 5, '}': 6, '~': 11}
+	character_width = json.load(open('character_width.json'))
 	Item = namedtuple('Item', ['character', 'type', 'width', 'stretch', 'shrink', 'penalty', 'flag'])
-	items = [Item(character='\t', type=Type.box, width=18, stretch=0, shrink=0, penalty=0, flag=False)]
+	items = [Item(character='\t', type=Type.box, width=4 * character_width[' '], stretch=0, shrink=0, penalty=0, flag=False)]
 	for character in text:
 		if character == '·':
-			items.append(Item(character='-', type=Type.penalty, width=6, stretch=0, shrink=0, penalty=50, flag=True))
+			items.append(Item(character='-', type=Type.penalty, width=character_width['-'], stretch=0, shrink=0, penalty=50, flag=True))
 		elif character == ' ':
-			items.append(Item(character=' ', type=Type.glue, width=character_width[character], stretch=3, shrink=2, penalty=0, flag=False))
+			items.append(Item(character=' ', type=Type.glue, width=character_width[character], stretch=300, shrink=200, penalty=0, flag=False))
 		else:
 			items.append(Item(character=character, type=Type.box, width=character_width[character], stretch=0, shrink=0, penalty=0, flag=False))
 		if character == '-':
@@ -42,13 +48,12 @@ def convert(text):
 	items.append(Item(character='\n', type=Type.penalty, width=0, stretch=0, shrink=0, penalty=-INFINITY, flag=True))
 	return items
 
-def compute_breakpoints(text):
+def compute_breakpoints(text, line_length):
 	"""Compute the best possible breakpoints.
 
 	Basically, it's computing the shortest path in a DAG while constructing it."""
-	first_active_node = Node(position=0, line=0, fitness=1, total_width=0, total_stretch=0, total_shrink=0, total_demerits=0, previous=None, link=None)
+	first_active_node = Node(position=-1, line=0, fitness=1, total_width=0, total_stretch=0, total_shrink=0, total_demerits=0, previous=None, link=None)
 	first_passive_node = None
-	line_length = [421] * 20
 	rank = 0
 	current_line = None
 	best_node_of_class = [None] * 4
@@ -57,11 +62,9 @@ def compute_breakpoints(text):
 	current_width = current_stretch = current_shrink = 0
 	items = convert(text)
 	for pos, item in enumerate(items):
-		if item.type is Type.box or item.type is Type.glue:
+		if item.type is Type.box:
 			current_width += item.width
-			current_stretch += item.stretch
-			current_shrink += item.shrink
-		if is_legal_breakpoint(item, items[pos - 1]):
+		if is_legal_breakpoint(item, items[pos - 1] if pos > 0 else None):
 			current_node = first_active_node
 			prev_node = None
 			while current_node:
@@ -89,6 +92,10 @@ def compute_breakpoints(text):
 					first_active_node, prev_node = insert_new_active_nodes(current_node, pos, current_width, current_stretch, current_shrink, best_node_of_class, least_demerit_of_class, least_demerit, items, first_active_node, prev_node)
 			if not first_active_node:
 				print('ZOMG')
+		if item.type is Type.glue:
+			current_width += item.width
+			current_stretch += item.stretch
+			current_shrink += item.shrink
 	with open('knuth.dot', 'w') as f: # Just for visualization
 		f.write('digraph G {\n')
 		for node in graph:
@@ -101,7 +108,7 @@ def compute_breakpoints(text):
 	return determine_breakpoint_sequence(best_node), items, ratios
 
 def is_legal_breakpoint(cur, prec):
-	return (cur.type is Type.glue and prec.type is Type.box) or (cur.type is Type.penalty and cur.penalty != INFINITY)
+	return (cur.type is Type.glue and prec and prec.type is Type.box) or (cur.type is Type.penalty and cur.penalty != INFINITY)
 
 def adjustment_ratio(current_node, item, current_width, current_stretch, current_shrink, line_length):
 	"""Compute the ratio of stretchability/shrinkability so far.
@@ -225,7 +232,7 @@ def determine_breakpoint_sequence(best_node):
 
 def substring(begin, end, items):
 	"""Get the subtext between two breakpoints."""
-	return ''.join([item.character for item in items[begin:end] if item.type is not Type.penalty or item.character == '\t'])
+	return ''.join([item.character for item in items[begin + 1:end] if item.type is not Type.penalty or item.character == '\t'])
 
 def word_before(breakpoint, items):
 	"""Get the word before a breakpoint."""
@@ -241,11 +248,34 @@ def main():
 
 	text = "In olden times when wish·ing still helped one, there lived a king whose daugh·ters were all beau·ti·ful; and the young·est was so beau·ti·ful that the sun it·self, which has seen so much, was aston·ished when·ever it shone in her face. Close by the king's castle lay a great dark for·est, and un·der an old lime-tree in the for·est was a well, and when the day was very warm, the king's child went out into the for·est and sat down by the side of the cool foun·tain; and when she was bored she took a golden ball, and threw it up on high and caught it; and this ball was her favor·ite play·thing."
 
-	breakpoints, items, ratios = compute_breakpoints(text)
-	breakpoints = [0] + breakpoints
+	line_length = [float(PAPER_WIDTH - 2 * MARGIN) * 1000 / FONT_SIZE] * 20
+	# line_length = [i * float(PAPER_WIDTH - 2 * MARGIN) * 1000 / FONT_SIZE / 9 for i in range(1, 16)]
+	breakpoints, items, ratios = compute_breakpoints(text, line_length)
+	breakpoints = [-1] + breakpoints
 	print('Breakpoints:', breakpoints)
 	for i in range(len(breakpoints) - 1):
 		print(substring(breakpoints[i], breakpoints[i + 1], items), ratios[(breakpoints[i], breakpoints[i + 1])])
+	with open('output.ps', 'w') as f:
+		f.write('%!PS\n')
+		f.write('<< /PageSize [{} {}] /ImagingBBox null >> setpagedevice\n'.format(PAPER_WIDTH, PAPER_HEIGHT))
+		f.write('/Verdana\n')
+		# f.write('{} {} moveto {} {} lineto stroke\n'.format(MARGIN, MARGIN, MARGIN, PAPER_HEIGHT - MARGIN)) # Help lines
+		# f.write('{} {} moveto {} {} lineto stroke\n'.format(PAPER_WIDTH - MARGIN, MARGIN, PAPER_WIDTH - MARGIN, PAPER_HEIGHT - MARGIN))
+		f.write('{} selectfont\n'.format(FONT_SIZE))
+		x, y = 0, PAPER_HEIGHT - MARGIN - 15
+		for line in range(len(breakpoints) - 1):
+			ratio = ratios[(breakpoints[line], breakpoints[line + 1])]
+			for i in range(breakpoints[line] + 1 if line > 0 else 0, breakpoints[line + 1]):
+				if items[i].type == Type.penalty:
+					continue
+				if items[i].character != ' ':
+					f.write('{} {} moveto ({}) show\n'.format(MARGIN + x * FONT_SIZE / 1000, y, items[i].character))
+				if ratio > 0:
+					x += items[i].width + ratio * items[i].stretch
+				else:
+					x += items[i].width + ratio * items[i].shrink
+			y -= 36
+			x = 0
 
 if __name__ == '__main__':
 	main()
