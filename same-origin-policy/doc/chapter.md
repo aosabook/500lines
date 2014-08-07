@@ -302,7 +302,7 @@ These two instances tell us that extra measures are needed to restrict the behav
 ## Same Origin Policy
 
 Before we can state the SOP, the first thing we should do is to introduce the
-notion of an origin, which is composed of a protocol, host and optional port:
+notion of an origin, which is composed of a protocol, host, and optional port:
 
 ```alloy
 sig Origin {
@@ -312,11 +312,12 @@ sig Origin {
 }
 ```
 
-So two URLs have the same origin if they share the same protocol, host and port:
+So two URLs have the same origin if they share the same protocol, host, and
+port:
 
 ```alloy
 fun origin[u: Url] : Origin {
-    {o: Origin | o.host = u.host and o.protocol = u.protocol and o.port = u.port }
+    {o: Origin | o.protocol = u.protocol and o.host = u.host and o.port = u.port }
 }
 ```
 The SOP itself has two parts, restricting the ability of a script to (1) make DOM API calls and (2) send HTTP requests. The first part of the policy states that a script can only read from and write to a document that comes from the same origin as the script:
@@ -407,7 +408,7 @@ even if they match.\*
 
 (\* Wondering why is it that (some) browsers make this distinction between
 the property being explicitly set or not, even though they could have the same
-value in both cases? Bad things could happen if it werent for this, for example,
+value in both cases? Bad things could happen if it weren't for this, for example,
 a site could be subject to XSS from its subdomains (`foo.example.com` could
 set the `document.domain` property to `example.com` and write its DOM))
 
@@ -435,7 +436,7 @@ Several properties of this mechanism make it less suitable for cross-origin
 communication than other (more modern) alternatives (post message and CORS).
 First, the mechanism is not general enough. While it is possible to use it to
 enable some kinds of cross-origin communication, this is only limited to those
-situations in which all ends have the same basedomain.
+situations in which all ends have the same base domain.
 
 Second, using the domain property mechanism might put your entire site at risk.
 When you set the domain property of both `foo.example.com` and `bar.example.com`
@@ -444,9 +445,9 @@ between each other but you are also allowing any other page, say
 `qux.example.com` to read/write the DOM of both `foo.example.com` and
 `bar.example.com` (since it is possible for it to set the domain property to
 `example.com`). It might seem like a small detail, but if `qux.example.com`
-has a XSS vulnerability, then an attacker would be able to read these
-other pages while in a situation in which the domain mechanism is not used,
-it wouldn't.
+has a XSS vulnerability, then an attacker would be able to read/write the DOM
+of these other pages while in a situation in which the domain mechanism is not
+used, it wouldn't.
 
 
 ### JSON with Padding (JSONP)
