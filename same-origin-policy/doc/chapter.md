@@ -388,10 +388,10 @@ If it weren't for this rule, any site could set the `document.domain` property
 to any value, which means that, for example, a malicious
 site could set the domain property to your bank domain, load your bank
 account in a iframe and (assuming the bank page has set its domain property)
-read the DOM of your bank page!\*\*
+read the DOM of your bank page!\*
 
 
-(\*\* Assuming the bank page doesn't
+(\* Assuming the bank page doesn't
 detect that is being embedded in an iframe and prevent it using some
 JavaScript or using the `X-FRAME-OPTIONS` header (which is intentionally designed
 to allow pages to decided whether it should be possible to embed them or not).
