@@ -364,9 +364,9 @@ sig SetDomain extends BrowserOp { newDomain: Domain }{
 }
 ```
 
-The `newDomain` field represents the value to which the property should be set
-to. There's a caveat though, scripts can only set the domain property to only
-one that is a right-hand, fully-qualified fragment of its hostname.
+The `newDomain` field represents the value to which the property should be set.
+There's a caveat though, scripts can only set the domain property to only
+one that is a right-hand, fully qualified fragment of its hostname.
 (i.e., `foo.example.com` can set it to `example.com` but not to
  `aosabook.org`). \*
 
@@ -374,7 +374,7 @@ one that is a right-hand, fully-qualified fragment of its hostname.
  be a subdomain of `.com` after all, but browsers know that
  `.com` is a top-level domain and won't allow the operation.)
 
- We add a `fact` to capture this rule:
+We add a `fact` to capture this rule:
 
 ```alloy
 // Scripts can only set the domain property to only one that is a right-hand,
@@ -394,7 +394,7 @@ read the DOM of your bank page!\*\*
 (\*\* Assuming the bank page doesn't
 detect that is being embedded in an iframe and prevent it using some
 JavaScript or using the `X-FRAME-OPTIONS` header (which is intentionally designed
-to allow pages to decided whether it should be possible to embeed them or not).
+to allow pages to decided whether it should be possible to embed them or not).
 It could still work though if you have your bank page opened in a separate tab
 or window.)
 
