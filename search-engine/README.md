@@ -275,11 +275,10 @@ and writes its contents
 to a file of tuples:
 
     # in the body of index.py:
-    def write_tuples(context_manager, tuples):
-        with context_manager as outfile:
-            for item in tuples:
-                line = ' '.join(urllib.quote(str(field)) for field in item)
-                outfile.write(line + "\n")
+    def write_tuples(outfile, tuples):
+        for item in tuples:
+            line = ' '.join(urllib.quote(str(field)) for field in item)
+            outfile.write(line + "\n")
 
 <!--
 
@@ -321,10 +320,9 @@ to ensure they can’t contain spaces.
 Reading the tuples is even simpler,
 using a generator function:
 
-    def read_tuples(context_manager):
-        with context_manager as infile:
-            for line in infile:
-                yield tuple(urllib.unquote(field) for field in line.split())
+    def read_tuples(infile):
+        for line in infile:
+            yield tuple(urllib.unquote(field) for field in line.split())
 <!--
 
 XXX more introductory Python material; omit?
@@ -558,9 +556,9 @@ at which point we can add it to a list to be reindexed.
     # in the body of index.py:
     # XXX maybe these functions don't need to exist?
     def read_metadata(index_path):
-        tuples = read_tuples(path['documents'].open())
-        return dict((pathname, (int(mtime), int(size)))
-                    for pathname, size, mtime in tuples)
+        with path['documents'].open() as metadata_file:
+            return dict((pathname, (int(mtime), int(size)))
+                        for pathname, size, mtime in read_tuples(metadata_file))
 
     # XXX we probably want files_unchanged
     def file_unchanged(metadatas, path):
@@ -644,13 +642,13 @@ that might contain postings for the term:
 
     def segment_term_doc_ids(segment, needle_term):
         for chunk_name in segment_term_chunks(segment, needle_term):
-            tuples = read_tuples(segment[chunk_name].open_gzipped())
-            for haystack_term, doc_id in tuples:
-                if haystack_term == needle_term:
-                    yield doc_id
-                if haystack_term > needle_term: # Once we reach an 
-                    tuples.close()              # alphabetically later term,
-                    break                       # we're done.
+            with segment[chunk_name].open_gzipped() as chunk_file:
+                for haystack_term, doc_id in read_tuples(chunk_file):
+                    if haystack_term == needle_term:
+                        yield doc_id
+                    # Once we reach an alphabetically later term, we're done:
+                    if haystack_term > needle_term:
+                        break
 
 Here `[]` invokes `Path.__getitem__`,
 and `open_gzipped` invokes decompression of the chunk.
@@ -681,13 +679,16 @@ so we’re always yielding the previous chunk.
 The contents of `skip_file_entries` is quite simple:
 
     def skip_file_entries(segment_path):
-        return read_tuples(segment_path['skip'].open())
+        with segment_path['skip'].open() as skip_file:
+            return list(read_tuples(skip_file))
 
 This invokes the same `read_tuples` function
 as `segment_term_doc_ids`.
 
 XXX the paragraph below needs to be split into a part that pertains to
 read_tuples and a part that pertains to its faulty caller.
+
+XXX update all this text for the new code with its `list()`.
 
 By using the `with` statement,
 the file is guaranteed to be closed
@@ -811,8 +812,9 @@ In outline, that is:
 
         # XXX hmm, these should match the doc_ids in the index
         corpus_paths = list(find_documents(corpus_path))
-        write_tuples(index_path['documents'].open('w'),
-                     ((path.name,) + get_metadata(path) for path in corpus_paths))
+        with index_path['documents'].open('w') as outfile:
+            write_tuples(outfile, ((path.name,) + get_metadata(path)
+                                   for path in corpus_paths))
 
         postings = tokenize_documents(corpus_paths)
         for filter_function in postings_filters:
@@ -966,11 +968,13 @@ So what does `write_new_segment` do?
         chunks = blocked(postings, chunk_size)
         skip_file_contents = (write_chunk(path, '%s.gz' % ii, chunk)
                               for ii, chunk in enumerate(chunks))
-        write_tuples(path['skip'].open('w'), itertools.chain(*skip_file_contents))
+        with path['skip'].open('w') as skip_file:
+            write_tuples(skip_file, itertools.chain(*skip_file_contents))
 
     # Yields one skip file entry, or, in the edge case of an empty chunk, none.
     def write_chunk(path, filename, chunk):
-        write_tuples(path[filename].open_gzipped('w'), chunk)
+        with path[filename].open_gzipped('w') as chunk_file:
+            write_tuples(chunk_file, chunk)
         if chunk:
             yield chunk[0][0], filename
 
@@ -1113,8 +1117,9 @@ is `read_segment`:
     def read_segment(path):
         for _, chunk in skip_file_entries(path):
             # XXX refactor chunk reading?  We open_gzipped in three places now.
-            for item in read_tuples(path[chunk].open_gzipped()):
-                yield item
+            with path[chunk].open_gzipped() as chunk_file:
+                for item in read_tuples(chunk_file):
+                    yield item
 
 We use the skip file entries
 to make sure we are reading the chunks in the correct order.
@@ -1213,10 +1218,21 @@ and therefore with Emacs:
                     for ii, line in enumerate(text, start=1):
                         if any(term in line for term in terms):
                             sys.stdout.write("%s:%s:%s" % (path.name, ii, line))
-            except KeyboardInterrupt:
-                return
-            except:                 # The file might e.g. no longer exist.
+            except Exception:          # The file might e.g. no longer exist.
                 traceback.print_exc()
+
+Here, `except Exception:` rather than the older `except:`
+avoids catching possible `KeyboardInterrupt` exceptions,
+raised if the user aborts with control-C or its equivalent on other platforms,
+which don't inherit from `Exception` in Python
+in order to make it easy to avoid accidentally catching them.
+Also, in Python, the `exit` builtin function
+works by raising a `SystemExit` exception;
+this has the benefit of running cleanup `finally:` clauses,
+but also means that a stray `except:`
+can accidentally prevent the program from exiting.
+This program doesn't use `exit`,
+but `except Exception:` also avoids catching `SystemExit`.
 
 Then, the `main` function provides an additional interface
 kind of compatible with `grep -rl`,
@@ -1426,5 +1442,6 @@ Acknowledgments
 ---------------
 
 Many thanks to Dave Long, Darius Bacon, Alastair Porter, Daniel
-Lawson, and Javier Candeira
+Lawson, Javier Candeira,
+Amber Yust, Andrew Kuchling, and Dustin J. Mitchell
 for their help and inspiration on this chapter.

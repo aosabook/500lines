@@ -1,13 +1,13 @@
 * Unapplied reviewer-derived to-do items:
-    * Thank reviewers: Amber Yust, Andrew Kuchling, and Dustin J. Mitchell
+    * Thank reviewers: Amber Yust, Andrew Kuchling, and Dustin J. Mitchell (done)
     * clean up `read_metadata` and `file_unchanged`
     * make `write_tuples` and `read_tuples` clearer; at least rename
       `context_manager` (to `input_stream` and `output_stream`?),
       explain the exception-safety issues in the text, and maybe move
-      the context-management stuff up the stack
+      the context-management stuff up the stack.  (Done in code, needs text)
     * Explain the reason for wanting to use relative paths in the
       index in the text.
-    * `except Exception`
+    * `except Exception` (Done)
     * Explain that `line` is newline-terminated in `grep`
     * Explain layout of `class Path` and improve it a bit
     * Explain why `seg_merged` won't collide.
@@ -15,6 +15,9 @@
     * Explain "skip" isn't really a skip list.  <https://github.com/aosabook/500lines/pull/33#discussion_r15325968>
 
 * Remove incomplete things about merging and incremental updating.  ☹
+* Make it, by default, not recurse into `.git` or `.chispa`
+* Make default index directory `.chispa`, and search for `.chispa` when
+  querying
 
 * Consistently use "doc_id" for document IDs (even though they happen
   to be pathnames)
