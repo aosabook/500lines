@@ -1,3 +1,21 @@
+* Unapplied reviewer-derived to-do items:
+    * Thank reviewers: Amber Yust, Andrew Kuchling, and Dustin J. Mitchell
+    * clean up `read_metadata` and `file_unchanged`
+    * make `write_tuples` and `read_tuples` clearer; at least rename
+      `context_manager` (to `input_stream` and `output_stream`?),
+      explain the exception-safety issues in the text, and maybe move
+      the context-management stuff up the stack
+    * Explain the reason for wanting to use relative paths in the
+      index in the text.
+    * `except Exception`
+    * Explain that `line` is newline-terminated in `grep`
+    * Explain layout of `class Path` and improve it a bit
+    * Explain why `seg_merged` won't collide.
+    * Change `, none` to `, zero skip file entries`
+    * Explain "skip" isn't really a skip list.  <https://github.com/aosabook/500lines/pull/33#discussion_r15325968>
+
+* Remove incomplete things about merging and incremental updating.  ☹
+
 * Consistently use "doc_id" for document IDs (even though they happen
   to be pathnames)
 * Be consistent about "segment", "chunk", and "index".  And "posting".
@@ -39,3 +57,4 @@
 * What to do with things like PDF files and .gz files?  There's now a
   super simple HTML tokenizer.
 * Maybe canonicalize posting terms to NFC?
+* Handle relative pathnames properly.
