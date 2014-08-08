@@ -1,62 +1,73 @@
 <?xml version="1.0"?>
 <alloy>
 
-<view nodetheme="Martha" edgetheme="Martha">
+<view>
 
-<projection> <type name="browser/http/call/Time"/> </projection>
+<projection> <type name="http/call/Time"/> </projection>
 
 <defaultnode/>
 
 <defaultedge/>
 
 <node>
-   <type name="BrowserOp"/>
    <type name="Int"/>
-   <type name="ReadDOM"/>
-   <type name="Script"/>
-   <type name="SetDomain"/>
    <type name="String"/>
+   <type name="Univ"/>
    <type name="univ"/>
-   <type name="WriteDOM"/>
-   <type name="XMLHttpRequest"/>
    <type name="browser/Browser"/>
    <type name="browser/BrowserHttpRequest"/>
    <type name="browser/Document"/>
+   <type name="http/Client"/>
+   <type name="http/Cookie"/>
+   <type name="http/Dns"/>
+   <type name="http/Domain"/>
+   <type name="http/Endpoint"/>
+   <type name="http/HttpRequest"/>
+   <type name="http/Path"/>
+   <type name="http/Port"/>
+   <type name="http/Protocol"/>
+   <type name="http/Resource"/>
+   <type name="http/Server"/>
+   <type name="origin/Origin"/>
+   <type name="script/BrowserOp"/>
+   <type name="script/EventHandler"/>
+   <type name="script/Script"/>
+   <type name="script/WriteDom"/>
+   <type name="script/XmlHttpRequest"/>
    <type name="seq/Int"/>
-   <type name="browser/http/Client"/>
-   <type name="browser/http/Cookie"/>
-   <type name="browser/http/DNS"/>
-   <type name="browser/http/Domain"/>
-   <type name="browser/http/HttpRequest"/>
-   <type name="browser/http/Path"/>
-   <type name="browser/http/Port"/>
-   <type name="browser/http/Protocol"/>
-   <type name="browser/http/Resource"/>
-   <type name="browser/http/Server"/>
-   <type name="browser/http/URL"/>
-   <type name="browser/http/call/Time"/>
-   <type name="browser/http/call/ord/Ord"/>
-   <set name="after" type="browser/http/call/Call"/>
-   <set name="First" type="browser/http/call/ord/Ord"/>
-   <set name="Next" type="browser/http/call/ord/Ord"/>
+   <type name="setDomain/SetDomain"/>
+   <type name="http/call/Time"/>
+   <type name="http/call/ord/Ord"/>
+   <set name="$c" type="script/ReadDom"/>
+   <set name="$c" type="script/WriteDom"/>
+   <set name="end" type="http/call/Call"/>
+   <set name="First" type="http/call/ord/Ord"/>
+   <set name="Next" type="http/call/ord/Ord"/>
+   <set name="start" type="http/call/Call"/>
+   <set name="cors/CorsRequest" type="script/XmlHttpRequest"/>
 </node>
 
-<node shape="House" color="Gray">
-   <type name="browser/http/Endpoint"/>
+<node shape="Egg" color="Black">
+   <type name="http/Url"/>
 </node>
 
-<node showlabel="no">
-   <set name="$c" type="browser/http/call/Call"/>
-   <set name="$sd" type="SetDomain"/>
+<node shape="Parallelogram" color="Green">
+   <type name="script/ReadDom"/>
+   <type name="http/call/Call"/>
 </node>
 
-<node visible="no" shape="Ellipse" color="Green">
-   <type name="browser/http/call/Call"/>
-</node>
-
-<node visible="yes" showlabel="no">
-   <set name="before" type="browser/http/call/Call"/>
-</node>
+<edge visible="no" attribute="yes">
+   <relation name="content"> <type name="browser/Document"/> <type name="http/Resource"/> </relation>
+   <relation name="domain"> <type name="browser/Document"/> <type name="http/Domain"/> </relation>
+   <relation name="host"> <type name="http/Url"/> <type name="http/Domain"/> </relation>
+   <relation name="host"> <type name="origin/Origin"/> <type name="http/Domain"/> </relation>
+   <relation name="path"> <type name="http/Url"/> <type name="http/Path"/> </relation>
+   <relation name="port"> <type name="http/Url"/> <type name="http/Port"/> </relation>
+   <relation name="port"> <type name="origin/Origin"/> <type name="http/Port"/> </relation>
+   <relation name="protocol"> <type name="http/Url"/> <type name="http/Protocol"/> </relation>
+   <relation name="protocol"> <type name="origin/Origin"/> <type name="http/Protocol"/> </relation>
+   <relation name="src"> <type name="browser/Document"/> <type name="http/Url"/> </relation>
+</edge>
 
 </view>
 

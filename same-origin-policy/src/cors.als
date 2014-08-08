@@ -21,7 +21,7 @@ sig CorsRequest in script/XmlHttpRequest {
 
 -- in some cases requests are pre-flighted, but we leave this out of the model
 
-pred corsRule {
+fact corsRule {
   all r: CorsRequest |
     -- "origin" header of every CORS request matches the script context and
     r.origin = origin[r.from.context.src] and

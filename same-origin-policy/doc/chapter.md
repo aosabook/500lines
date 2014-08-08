@@ -387,16 +387,8 @@ fact setDomainRule {
 If it weren't for this rule, any site could set the `document.domain` property
 to any value, which means that, for example, a malicious
 site could set the domain property to your bank domain, load your bank
-account in a iframe and (assuming the bank page has set its domain property)
-read the DOM of your bank page!\*
-
-
-(\* Assuming the bank page doesn't
-detect that is being embedded in an iframe and prevent it using some
-JavaScript or using the `X-FRAME-OPTIONS` header (which is intentionally designed
-to allow pages to decided whether it should be possible to embed them or not).
-It could still work though if you have your bank page opened in a separate tab
-or window.)
+account in a iframe, and (assuming the bank page has set its domain property)
+read the DOM of your bank page!
 
 Now we modify our original definition of the SOP for DOM accesses to reflect
 the domain property relaxation. If two scripts set the `document.domain`
@@ -410,7 +402,8 @@ even if they match.\*
 the property being explicitly set or not, even though they could have the same
 value in both cases? Bad things could happen if it weren't for this, for example,
 a site could be subject to XSS from its subdomains (`foo.example.com` could
-set the `document.domain` property to `example.com` and write its DOM))
+set the `document.domain` property to `example.com` and write its DOM, even
+if `example.com` never set the property))
 
 ```alloy
 pred domSop {
