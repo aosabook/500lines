@@ -572,7 +572,19 @@ pred corsRule {
 
 Basically, when the request origin is in the allowed origins list of the server.
 
-TODO... more here
+The most common mistake developers do with CORS, is to use the wildcard value
+`*` as the list of allowed origins. This allows any site to make a request to
+the page and read the response. (In our model, using the wilcard value is
+equivalent to having all origins of the generated instance in the
+`allowedOrigins` set.) Depending on what the page is serving this might or might
+not be a security problem, but you should always limit the list of allowed
+origins to those that are strictly necessary.
+
+Another common mistake is putting too much trust on the `origin` header. You
+might be wondering why did we even model that header, if the `corsRule` says
+that it is always set to match the script context. But what if a CORS request
+is instead crafted by a malicious user which intentionally sets the `origin`
+header to something else? We'll talk more about potential attacks later.
 
 ## Appendix A: Reusable Modules in Alloy 
 
