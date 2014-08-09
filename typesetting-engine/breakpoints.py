@@ -11,13 +11,13 @@ MARGIN = 72
 FONT_SIZE = 20
 
 INFINITY = 10000000
-RHO = 1.3
-ALPHA = 3000
-GAMMA = 1000
+MAX_RATIO = 1.3
+PENALTY_ALPHA = 3000
+PENALTY_GAMMA = 1000
 ADJUSTMENT = 0
 
 
-class Node:
+class Breakpoint:
     """A node, referring to a suitable position for a breakpoint."""
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
@@ -79,9 +79,10 @@ def compute_breakpoints(text, line_length):
 
     Basically, it's computing the shortest path in a DAG while
     constructing it."""
-    first_active_node = Node(position=-1, line=0, fitness=1, total_width=0,
-                             total_stretch=0, total_shrink=0, total_demerits=0,
-                             previous=None, link=None)
+    first_active_node = Breakpoint(position=-1, line=0, fitness=1,
+                                   total_width=0, total_stretch=0,
+                                   total_shrink=0, total_demerits=0,
+                                   previous=None, link=None)
     first_passive_node = None
     rank = 0
     current_line = None
@@ -106,7 +107,7 @@ def compute_breakpoints(text, line_length):
                     r, current_line = adjustment_ratio(
                         current_node, item, current_width, current_stretch,
                         current_shrink, line_length)
-                    if abs(r) < RHO:
+                    if abs(r) < MAX_RATIO:
                         ratios[(current_node.position, pos)] = r
                     if r < -1 or is_forced_break(item):
                         (first_active_node, first_passive_node, current_node,
@@ -115,7 +116,7 @@ def compute_breakpoints(text, line_length):
                             current_node, prev_node, next_node)
                     else:
                         prev_node = current_node
-                    if -1 <= r <= RHO:
+                    if -1 <= r <= MAX_RATIO:
                         d, c = demerits_fitness_class(current_node, item, r,
                                                       items)
                         if d < INFINITY:
@@ -163,7 +164,7 @@ def adjustment_ratio(current_node, item, current_width, current_stretch,
                      current_shrink, line_length):
     """Compute the ratio of stretchability/shrinkability so far.
 
-    Hopefully it is between -1 and RHO."""
+    Hopefully it is between -1 and MAX_RATIO."""
     width = current_width - current_node.total_width
     if item.type is Type.penalty:
         width += item.width
@@ -190,14 +191,15 @@ def demerits_fitness_class(current_node, item, r, items):
     fitness class.
 
     An abrupt change of fitness class from one line to another is
-    penalized by GAMMA."""
+    penalized by PENALTY_GAMMA."""
     if item.penalty >= 0:
         d = (1 + 100 * abs(r) ** 3 + item.penalty) ** 2
     elif item.penalty != -INFINITY:
         d = (1 + 100 * abs(r) ** 3) ** 2 - item.penalty ** 2
     else:
         d = (1 + 100 * abs(r) ** 3) ** 2
-    d += ALPHA * item.flag * items[current_node.position].flag  # TODO
+    if item.flag and items[current_node.position].flag:
+        d += PENALTY_ALPHA
     if r < -0.5:
         c = 0
     elif r <= 0.5:
@@ -207,7 +209,7 @@ def demerits_fitness_class(current_node, item, r, items):
     else:
         c = 3
     if abs(c - current_node.fitness) > 1:
-        d += GAMMA
+        d += PENALTY_GAMMA
     d += current_node.total_demerits
     return d, c
 
@@ -220,8 +222,8 @@ def insert_new_active_nodes(current_node, pos, current_width, current_stretch,
     total_width, total_stretch, total_shrink = compute_values_after(
         pos, current_width, current_stretch, current_shrink, items)
     for c in range(4):
-        if least_demerit_of_class[c] <= least_demerit + GAMMA:
-            new_node = Node(
+        if least_demerit_of_class[c] <= least_demerit + PENALTY_GAMMA:
+            new_node = Breakpoint(
                 position=pos,
                 line=best_node_of_class[c].line + 1 if best_node_of_class[c]
                 else 1,
