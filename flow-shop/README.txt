@@ -6,7 +6,7 @@ Requirements: Python
  -{ Flow Shop Scheduling }-
 
 The flow shop scheduling problem is a well-studied optimization
-problem in which we must determine the procesing time for various
+problem in which we must determine the processing time for various
 tasks on a set of machines. In particular, every flow shop problem
 consists of n machines and m jobs. Each job is made up of exactly
 n tasks, and we can assume that the ith task of a job must use
