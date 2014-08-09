@@ -492,7 +492,7 @@ When the browser receives the response, it executes the callback function
 ```alloy
 sig JsonpCallback extends script/EventHandler {
   cb: CallbackID,
-  payload: lone Resource
+  payload: Resource
 }{
   causedBy in JsonpRequest
   let resp = causedBy.response | 
