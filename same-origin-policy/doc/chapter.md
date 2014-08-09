@@ -302,7 +302,7 @@ These two instances tell us that extra measures are needed to restrict the behav
 ## Same Origin Policy
 
 Before we can state the SOP, the first thing we should do is to introduce the
-notion of an origin, which is composed of a protocol, host and optional port:
+notion of an origin, which is composed of a protocol, host, and optional port:
 
 ```alloy
 sig Origin {
@@ -312,11 +312,12 @@ sig Origin {
 }
 ```
 
-So two URLs have the same origin if they share the same protocol, host and port:
+So two URLs have the same origin if they share the same protocol, host, and
+port:
 
 ```alloy
 fun origin[u: Url] : Origin {
-    {o: Origin | o.host = u.host and o.protocol = u.protocol and o.port = u.port }
+    {o: Origin | o.protocol = u.protocol and o.host = u.host and o.port = u.port }
 }
 ```
 The SOP itself has two parts, restricting the ability of a script to (1) make DOM API calls and (2) send HTTP requests. The first part of the policy states that a script can only read from and write to a document that comes from the same origin as the script:
@@ -363,9 +364,9 @@ sig SetDomain extends BrowserOp { newDomain: Domain }{
 }
 ```
 
-The `newDomain` field represents the value to which the property should be set
-to. There's a caveat though, scripts can only set the domain property to only
-one that is a right-hand, fully-qualified fragment of its hostname.
+The `newDomain` field represents the value to which the property should be set.
+There's a caveat though, scripts can only set the domain property to only
+one that is a right-hand, fully qualified fragment of its hostname.
 (i.e., `foo.example.com` can set it to `example.com` but not to
  `aosabook.org`). \*
 
@@ -373,7 +374,7 @@ one that is a right-hand, fully-qualified fragment of its hostname.
  be a subdomain of `.com` after all, but browsers know that
  `.com` is a top-level domain and won't allow the operation.)
 
- We add a `fact` to capture this rule:
+We add a `fact` to capture this rule:
 
 ```alloy
 // Scripts can only set the domain property to only one that is a right-hand,
@@ -386,16 +387,8 @@ fact setDomainRule {
 If it weren't for this rule, any site could set the `document.domain` property
 to any value, which means that, for example, a malicious
 site could set the domain property to your bank domain, load your bank
-account in a iframe and (assuming the bank page has set its domain property)
-read the DOM of your bank page!\*\*
-
-
-(\*\* Assuming the bank page doesn't
-detect that is being embedded in an iframe and prevent it using some
-JavaScript or using the `X-FRAME-OPTIONS` header (which is intentionally designed
-to allow pages to decided whether it should be possible to embeed them or not).
-It could still work though if you have your bank page opened in a separate tab
-or window.)
+account in a iframe, and (assuming the bank page has set its domain property)
+read the DOM of your bank page!
 
 Now we modify our original definition of the SOP for DOM accesses to reflect
 the domain property relaxation. If two scripts set the `document.domain`
@@ -407,9 +400,10 @@ even if they match.\*
 
 (\* Wondering why is it that (some) browsers make this distinction between
 the property being explicitly set or not, even though they could have the same
-value in both cases? Bad things could happen if it werent for this, for example,
+value in both cases? Bad things could happen if it weren't for this, for example,
 a site could be subject to XSS from its subdomains (`foo.example.com` could
-set the `document.domain` property to `example.com` and write its DOM))
+set the `document.domain` property to `example.com` and write its DOM, even
+if `example.com` never set the property))
 
 ```alloy
 pred domSop {
@@ -435,7 +429,7 @@ Several properties of this mechanism make it less suitable for cross-origin
 communication than other (more modern) alternatives (post message and CORS).
 First, the mechanism is not general enough. While it is possible to use it to
 enable some kinds of cross-origin communication, this is only limited to those
-situations in which all ends have the same basedomain.
+situations in which all ends have the same base domain.
 
 Second, using the domain property mechanism might put your entire site at risk.
 When you set the domain property of both `foo.example.com` and `bar.example.com`
@@ -444,9 +438,9 @@ between each other but you are also allowing any other page, say
 `qux.example.com` to read/write the DOM of both `foo.example.com` and
 `bar.example.com` (since it is possible for it to set the domain property to
 `example.com`). It might seem like a small detail, but if `qux.example.com`
-has a XSS vulnerability, then an attacker would be able to read these
-other pages while in a situation in which the domain mechanism is not used,
-it wouldn't.
+has a XSS vulnerability, then an attacker would be able to read/write the DOM
+of these other pages while in a situation in which the domain mechanism is not
+used, it wouldn't.
 
 
 ### JSON with Padding (JSONP)
@@ -543,11 +537,11 @@ The CORS mechanism for bypassing the SOP works by having the browser and server
 communicate through new HTTP headers to determine whether some non-same-origin
 request should be allowed to happen or not.
 
-We model a CORS request as a special kind of HTTP request which additionaly
+We model a CORS request as a special kind of `XmlHttpRequest` which additionaly
 contains two extra fields `origin` and `allowedOrigins`:
 
 ```alloy
-sig CorsRequest in HttpRequest {
+sig CorsRequest in XmlHttpRequest {
   -- "origin" header
   origin: Origin,
   -- "access-control-allow-origin" header
@@ -567,22 +561,30 @@ The predicate `corsRule` capture when a CORS request succeeds:
 
 ```alloy
 pred corsRule {
-  -- "origin" header of every CORS req matches the script context
   all r: CorsRequest |
-    r.origin = url2origin[r.from.context.src] and
-    -- A CORS response is accepted iff it is allowed by the server, as
-    -- indicated in "access-control-allow-origin" header
+    -- "origin" header of every CORS request matches the script context and
+    r.origin = origin[r.from.context.src] and
+    -- a CORS request is accepted iff it is allowed by the server, as indicated
+    -- in "access-control-allow-origin" header
     r.origin in r.allowedOrigins
 }
-
 ```
 
 Basically, when the request origin is in the allowed origins list of the server.
-The `r.origin = url2origin[r.from.context.src]` constraint sets the `origin`
-field to the one corresponding to the source URL (the URL from where the
-document that is generating the request originated).
 
-TODO... more here
+The most common mistake developers do with CORS, is to use the wildcard value
+`*` as the list of allowed origins. This allows any site to make a request to
+the page and read the response. (In our model, using the wilcard value is
+equivalent to having all origins of the generated instance in the
+`allowedOrigins` set.) Depending on what the page is serving this might or might
+not be a security problem, but you should always limit the list of allowed
+origins to those that are strictly necessary.
+
+Another common mistake is putting too much trust on the `origin` header. You
+might be wondering why did we even model that header, if the `corsRule` says
+that it is always set to match the script context. But what if a CORS request
+is instead crafted by a malicious user which intentionally sets the `origin`
+header to something else? We'll talk more about potential attacks later.
 
 ## Appendix A: Reusable Modules in Alloy 
 

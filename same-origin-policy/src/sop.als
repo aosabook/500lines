@@ -4,13 +4,14 @@
   */
 module sop
 
-open http
 open browser
+open cors
+open http
+open origin
 open script
 open setDomain
-open cors
 
-pred sameOriginPolicy {
+fact sameOriginPolicy {
   -- same origin policy actually has multiple parts
   domSop
   xmlHttpReqSop
@@ -41,4 +42,4 @@ pred xmlHttpReqSop {
 /* Commands */
 
 // Can a script read or write the DOM of a document with another origin?
-check { no c: ReadDom + WriteDom | origin[c.doc.src] != origin[c.from.context.src] }
+run { some c: ReadDom + WriteDom | origin[c.doc.src] != origin[c.from.context.src] }

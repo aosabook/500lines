@@ -21,12 +21,12 @@ sig CorsRequest in script/XmlHttpRequest {
 
 -- in some cases requests are pre-flighted, but we leave this out of the model
 
-pred corsRule {
-  -- "origin" header of every CORS req matches the script context
+fact corsRule {
   all r: CorsRequest |
+    -- "origin" header of every CORS request matches the script context and
     r.origin = origin[r.from.context.src] and
-    -- A CORS response is accepted iff it is allowed by the server, as
-   -- indicated in "access-control-allow-origin" header
+    -- a CORS request is accepted iff it is allowed by the server, as indicated
+    -- in "access-control-allow-origin" header
     r.origin in r.allowedOrigins
 }
 

@@ -26,7 +26,7 @@ fact setDomainRule {
 
 // Can a script set the "document.domain" property with a new_domain that
 // doesn't match the host of the src?
-check { all sd: SetDomain | sd.doc.src.host = sd.newDomain }
+run { some sd: SetDomain | sd.doc.src.host != sd.newDomain }
 
 
 // Can a script set the "document.domain" property with a new_domain that
