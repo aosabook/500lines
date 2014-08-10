@@ -338,7 +338,9 @@ In order to allow some form of cross-origin communication when necessary, browse
 
 ## Techniques for Bypassing the SOP
 
-In this section, we will discuss four techniques that have been devised and frequently used by web developers to bypass the restrictions imposed by the SOP: (1) "document.domain" property, (2) JSONP, (3) PostMessage, and (4) CORS. While these are useful tools, if not used carefully, the security problems that the SOP was designed to prevent in the first place can creep back into the picture. This demonstrates the tension between functionality and security.
+The SOP is a classic example of the tension between functionality and security; we want to make sure our sites are secure, but the mechanism for ensuring security sometimes can get in the way of getting the sites to work properly. Indeed, when the SOP was initially introduced, developers ran into trouble building sites that had legitimate use of cross-domain communication (e.g., mashups)!
+
+In this section, we will discuss four techniques that have been devised and frequently used by web developers to bypass the restrictions imposed by the SOP: (1) "document.domain" property, (2) JSONP, (3) PostMessage, and (4) CORS. These are useful tools, but when they are without caution, the security problems that the SOP was designed to prevent in the first place can creep back into the picture! 
 
 Each of these four techniques is surprisingly complex, and to be described in full detail, could merit its own chapter. So here, we will give you a brief flavor of how they work, potential security problems that they introduce, and how to prevent these problems.
 
@@ -453,7 +455,7 @@ Before the introduction of CORS (which we will discuss shortly), JSONP was perha
 
 A script tag can be used to obtain code, but how do we use it to receive arbitrary _data_ (e.g., a JSON object) from a different domain? The problem is that the browser expects the content of `src` to be a piece of Javascript code, and so simply having it point at a data source results in a syntax error. 
 
-One workround is to wrap the desired data inside a piece of string that the browser recognizes as valid Javascript code; this string is sometimes called _padding_ (thus, giving rise to the name JSON with "Padding"). This padding could be any arbitrary Javascript code, but conventionally, it is the name of a callback function (already defined in the current document) that is to be executed on the response data:
+One workaround is to wrap the desired data inside a piece of string that the browser recognizes as valid Javascript code; this string is sometimes called _padding_ (thus, giving rise to the name JSON with "Padding"). This padding could be any arbitrary Javascript code, but conventionally, it is the name of a callback function (already defined in the current document) that is to be executed on the response data:
 
 ```html
 <script src="http://www.example.com/mydata?jsonp=processData"></script>
@@ -496,7 +498,9 @@ sig JsonpCallback extends script/EventHandler {
 }
 ```
 
-Note that the callback function executed is the same as the one that's included in the response (`cb = resp.@cb`), but _not_ necessarily the same as the padding. In other words, for the JSONP communication to work, the server should properly construct a response that includes the original padding as the callback function (i.e., ensure that `JsonRequest.padding = JsonpResponse.cb`). 
+Note that the callback function executed is the same as the one that's included in the response (`cb = resp.@cb`), but _not_ necessarily the same as the padding. In other words, for the JSONP communication to work, the server is responsible for properly constructing a response that includes the original padding as the callback function (i.e., ensure that `JsonRequest.padding = JsonpResponse.cb`). This also means that the server can choose to include any other callback (or in principle, any piece of Javascript) that is completely different from the requested padding.
+
+This last point has an important security implication; if the server is misbehaving or compromised, it can inject a piece of malicious code into the original site, essentially carrying out an XSS attack. Thus, before using JSONP, you must make sure that the server can be completely trusted.
 
 ### PostMessage
 
@@ -530,6 +534,7 @@ sig ReceiveMessage extends EventHandler {
 
 The browser passes two parameters to `ReceiveMessage`: a piece of resource (`data`) that corresponds to the message being sent, and the origin of the sender document (`srcOrigin`). The signature fact contains four constraints to ensure that each `ReceiveMessage` is well-formed with respect to its corresponding `PostMessage`. 
 
+By default, the `PostMessage` mechanism does not restrict who is allowed to send PostMessage; in other words, any document `A` can send a message to document `B` as long as the latter has registered a `ReceiveMessage` handler. It is the responsibility of document `B` to _additionally_ check the `srcOrigin` parameter to ensure that the message is coming from a trustworthy document. Unfortunately, in practice, many sites omit this check, enabling another document `C` to inject potentially malicious content into document `B` as part of a `PostMessage` (cite PostMessage study). For example, if document `B` uses the content of a message as part of Javascript that it executes, this could be exploited to carry out an XSS attack.
 
 ### CORS: Cross-Origin Resource Sharing
 
@@ -537,7 +542,7 @@ The CORS mechanism for bypassing the SOP works by having the browser and server
 communicate through new HTTP headers to determine whether some non-same-origin
 request should be allowed to happen or not.
 
-We model a CORS request as a special kind of `XmlHttpRequest` which additionaly
+We model a CORS request as a special kind of `XmlHttpRequest` which additionally
 contains two extra fields `origin` and `allowedOrigins`:
 
 ```alloy
@@ -574,7 +579,7 @@ Basically, when the request origin is in the allowed origins list of the server.
 
 The most common mistake developers do with CORS, is to use the wildcard value
 `*` as the list of allowed origins. This allows any site to make a request to
-the page and read the response. (In our model, using the wilcard value is
+the page and read the response. (In our model, using the wildcard value is
 equivalent to having all origins of the generated instance in the
 `allowedOrigins` set.) Depending on what the page is serving this might or might
 not be a security problem, but you should always limit the list of allowed
