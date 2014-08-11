@@ -192,7 +192,7 @@ Let's take another look at these functions. What would it take to parametrize th
 
 [list of params]
 
-This actually seems kind fo painful to parametrize fully. Let's take a step back and try a different tack instead. What if we make some helper functions that allow us to treat any single function this way? [downsides] [sequence of ops -- transformers]
+This actually seems kind of painful to parametrize fully. Let's take a step back and try a different tack instead. What if we make some helper functions that allow us to treat any single function this way? [downsides] [sequence of ops -- transformers]
 
 So ultimately we can take any component (verb) and n-ize it (adverb) and any sequence of verbs (out-out-in) and 'all' them (or any other adverb, even n-ize) 
 
@@ -224,6 +224,14 @@ because nize creates a new verb phrase wrapper like [[in,out], [in,out]] and the
 actually since adverbs are always 'end' nodes, we really just need start nodes. and they don't actually need labels because the start always correlates with the closest unbound adverb. (like matched parens, with implicit matching at the beginning of the query for unmatched adverbs)
 
 G.v(1).s().in().out().nize(2).all()
+
+
+And then we can use orthopt to push .out().out().out() -> .outN(3) for efficiency (if it's actually more efficient)
+and likewise for .out().all().out().all() -> .outAllN(3)
+so we get to eat our cake and have it fast too.
+
+
+
 
 
 
