@@ -9,6 +9,8 @@ run ::
 	@node node_modules/static-here/bin/static-here
 
 es5 :: $(OBJECTS)
+	@perl -lpi -e 's!"sources":\["\K[^"]*/!../!' es5/*.map
+	@perl -lpi -e 's~vals;(?! )~vals; importScripts("../node_modules/traceur/bin/traceur-runtime.js");~' es5/worker.js
 
 test :: es5
 	@node node_modules/mocha/bin/mocha
@@ -18,11 +20,9 @@ wc ::
 	@grep -v '//\|^$$' *.js *.html *css | wc -l
 
 clean ::
-	-@rm -rf es5/*.js
+	-@rm -rf es5/*.js es5/*.map
 
 es5/% :: %
-	./node_modules/traceur/traceur --source-maps --validate --experimental --out tmp --script $<
-	echo "// Generated File - Do Not Edit" | cat - ./node_modules/traceur/bin/traceur-runtime.js tmp/$< > $@
-	@rm -rf tmp
+	-@traceur --source-maps --validate --block-binding true --out es5 --script $<
 
 .PHONY: deps run es5 test clean wc

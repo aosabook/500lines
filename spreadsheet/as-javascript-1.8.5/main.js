@@ -1,4 +1,4 @@
-function Spreadsheet ($scope, $timeout) {
+angular.module('500lines', []).controller('Spreadsheet', function($scope, $timeout) {
   // Begin of $scope properties; start with the column/row labels
   $scope.Cols = [], $scope.Rows = [];
   makeRange($scope.Cols, 'A', 'H');
@@ -14,11 +14,11 @@ function Spreadsheet ($scope, $timeout) {
       var direction = (event.which === 38) ? -1 : +1;
       var cell = document.querySelector( '#' + col + (row + direction) );
       if (cell) { cell.focus(); }
-    } )
+    } );
   } };
 
   // Default sheet content, with some data cells and one formula cell.
-  $scope.reset = function() { $scope.sheet = { A1: 1874, B1: '+', C1: 2046, D1: '⇒', E1: '=A1+C1' } };
+  $scope.reset = function() { $scope.sheet = { A1: 1874, B1: '+', C1: 2046, D1: '⇒', E1: '=A1+C1' }; };
 
   // Define the initializer, and immediately call it
   ($scope.init = function() {
@@ -26,13 +26,13 @@ function Spreadsheet ($scope, $timeout) {
     $scope.sheet = angular.fromJson( localStorage.getItem( '' ) );
     if (!$scope.sheet) { $scope.reset(); }
     $scope.worker = new Worker( 'worker.js' );
-  })();
+  }).call();
 
   // Formula cells may produce errors in .errs; normal cell contents are in .vals
   $scope.errs = {}, $scope.vals = {};
 
-  // Define the calculation handler, and immediately call it
-  ($scope.calc = function() {
+  // Define the calculation handler; not calling it yet
+  $scope.calc = function() {
     var json = angular.toJson( $scope.sheet );
     var promise = $timeout( function() {
       // If the worker has not returned in 99 milliseconds, terminate it
@@ -48,9 +48,13 @@ function Spreadsheet ($scope, $timeout) {
       $timeout.cancel( promise );
       localStorage.setItem( '', json );
       $timeout( function() { $scope.errs = message.data[0], $scope.vals = message.data[1]; } );
-    }
+    };
 
     // Post the current sheet content for the worker to process
     $scope.worker.postMessage( $scope.sheet );
-  })();
-}
+  };
+
+  // Start calculation when worker is ready
+  $scope.worker.onmessage = $scope.calc;
+  $scope.worker.postMessage( null );
+});

@@ -20,7 +20,8 @@ function calc() {
   var promise = setTimeout( function() { $scope.worker.terminate(); init(); calc(); }, 99 );
 
   // When the worker returns, apply its effect on the scope
-  $scope.worker.onmessage = function(message) { var errs = message.data[0], vals = message.data[1];
+  $scope.worker.onmessage = function(message) {
+    var errs = message.data[0], vals = message.data[1];
     clearTimeout( promise ); localStorage.setItem( '', json );
     Object.getOwnPropertyNames(vals).forEach(function(coord) {
       var div = document.querySelector( '#_' + coord );
@@ -62,5 +63,7 @@ function Spreadsheet($scope) { init();
      document.querySelector( 'table' ).appendChild(tr);
   });
 
-  calc();
+  // Start calculation when worker is ready
+  $scope.worker.onmessage = calc;
+  $scope.worker.postMessage( null );
 }

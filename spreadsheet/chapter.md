@@ -1,3 +1,5 @@
+_(Also available in [Traditional Chinese](https://github.com/audreyt/500lines/blob/master/spreadsheet/chapter.zh-tw.md). The ES5 version is available as a [jsFiddle](http://jsfiddle.net/audreyt/LtDyP/).)_
+
 # [Web Spreadsheet](http://audreyt.github.io/500lines/spreadsheet/) in [99 lines](https://github.com/audreyt/500lines/tree/master/spreadsheet)
 
 This chapter introduces a Web spreadsheet written in 99 lines of the three languages natively supported by Web browsers: HTML, JS, and CSS.
@@ -62,7 +64,7 @@ Before we dive into the 99 lines of code, it’s worthwhile to disable JS in the
 
 When we disable the dynamic interactions (JS), the content structure (HTML) and the presentational styles (CSS) remain in effect. If a website is useful with both JS and CSS disabled, we say it adheres to the _progressive enhancement_ principle, making its content accessible to the largest audience possible.
 
-Because our spreadsheet is a web application with no server-side code, we must rely on JS to provide the required logic. However, it does work correctly when CSS is not fully supported, such as with screen readers and text-mode browsers:
+Because our spreadsheet is a web application with no server-side code, we must rely on JS to provide the required logic. However, it does work correctly when CSS is not fully supported, such as with screen readers and text-mode browsers.
 
 ![With CSS Disabled](./images/06-nocss.png)
 
@@ -95,27 +97,26 @@ The first line in `index.html` declares that it’s written in HTML5 (`<!DOCTYPE
 
 Without the `charset` declaration, the browser may display the reset button’s Unicode symbol `↻` as `â†»`, an example of _mojibake_ — garbled text caused by decoding issues.
 
-The next four lines are JS declarations, placed within the `head` section as usual:
+The next three lines are JS declarations, placed within the `head` section as usual:
 
 ```html
-  <script src="main.js"></script>
-  <script>if (!self.Spreadsheet) { location.href = "es5/index.html" }</script>
-  <script src="worker.js"></script>
   <script src="lib/angular.js"></script>
+  <script src="main.js"></script>
+  <script>try{ angular.module('500lines') }catch(e){ location="es5/index.html" }</script>
 ```
 
 The `<script src="…">` tags load JS resources from the same path as the HTML page. For example,  if the current URL is `http://audreyt.github.io/500lines/spreadsheet/index.html`, then `lib/angular.js` refers to `http://audreyt.github.io/500lines/spreadsheet/lib/angular.js`.
 
-The `if (!self.Spreadsheet)` line tests if `main.js` is loaded correctly; if not, it tells the browser to navigate to `es5/index.html` instead. This _redirect-based graceful degradation_ technique ensures that for pre-2015 browsers with no ES6 support, we can use the translated-to-ES5 versions of JS programs as a fallback.
+The `try{ angular.module('500lines') }` line tests if `main.js` is loaded correctly; if not, it tells the browser to navigate to `es5/index.html` instead. This _redirect-based graceful degradation_ technique ensures that for pre-2015 browsers with no ES6 support, we can use the translated-to-ES5 versions of JS programs as a fallback.
 
 The next two lines load the CSS resource, close the `head` section, and begin the `body` section containing the user-visible part:
 
 ```html
   <link href="styles.css" rel="stylesheet">
-</head><body ng-app ng-cloak ng-controller="Spreadsheet">
+</head><body ng-app="500lines" ng-controller="Spreadsheet" ng-cloak>
 ```
 
-The `ng-` attributes above tell the AngularJS library to run the `Spreadsheet` JS function to create a _controller_ of this document, which provides a _model_— a set of names available to _bindings_ on the document _view_. The `ng-cloak` attribute hides the document from display until the bindings are in place.
+The `ng-` attributes above tell [AngularJS](http://angularjs.org/) to use the `500lines` module’s `Spreadsheet` _controller_ function, which provides a _model_— a set of names available to _bindings_ on the document _view_. The `ng-cloak` attribute hides the document from display until the bindings are in place.
 
 As a concrete example, when the user clicks the `<button>` defined in the next line, its `ng-click` attribute will trigger and call `reset()` and `calc()`, two named functions provided by the JS model:
 
@@ -185,10 +186,10 @@ Finally, we close the `ng-repeat` loop in the column level with `</td>`, close t
 
 ### JS: Main Controller
 
-The sole purpose of `main.js` is defining the `Spreadsheet` controller function as required by the `<body>` element, with the JS model `$scope` provided by AngularJS:
+The sole purpose of `main.js` is defining the `500lines` module and its `Spreadsheet` controller function as required by the `<body>` element, with the JS model `$scope` provided by AngularJS:
 
 ```js
-function Spreadsheet ($scope, $timeout) {
+angular.module('500lines', []).controller('Spreadsheet', function ($scope, $timeout) {
 ```
 
 The `$` in `$scope` is part of the variable name. Here we also request the [`$timeout`](https://docs.angularjs.org/api/ng/service/$timeout) service function from AngularJS; later on, we will use it to prevent infinite-looping formulas.
@@ -237,14 +238,14 @@ If it is, we use `$timeout` to schedule an update to the focused cell after the 
       const direction = (which === 38) ? -1 : +1;
 ```
 
-The `const` declarator means `direction` will not change during the function’s execution. The direction to move is either upward (`-1`, from **A2** to **A1**) if the key code is **UP** (38), or downward (`+1`, from **A2** to **A3**) otherwise.
+The `const` declarator means `direction` will not change during the function’s execution. The direction to move is either upward (`-1`, from **A2** to **A1**) if the key code is 38 (**UP**), or downward (`+1`, from **A2** to **A3**) otherwise.
 
 Next up, we retrieve the target element using the ID selector syntax (e.g. `"#A3"`), constructed with a [template string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/template_strings) written in a pair of back-quotes, concatenating the leading `#`, the current `col` and the target `row + direction`:
 
 ```js
       const cell = document.querySelector( `#${ col }${ row + direction }` );
       if (cell) { cell.focus(); }
-    } )
+    } );
   } };
 ```
 
@@ -254,7 +255,7 @@ Next, we define the `reset()` function so the `↻` button can restore the `shee
 
 ```js
   // Default sheet content, with some data cells and one formula cell.
-  $scope.reset = ()=>{ $scope.sheet = { A1: 1874, B1: '+', C1: 2046, D1: '⇒', E1: '=A1+C1' } }
+  $scope.reset = ()=>{ $scope.sheet = { A1: 1874, B1: '+', C1: 2046, D1: '⇒', E1: '=A1+C1' }; }
 ```
 
 The `init()` function first tries restoring the `sheet` content from its previous state from the [localStorage](https://developer.mozilla.org/en-US/docs/Web/Guide/API/DOM/Storage#localStorage), or defaults to the initial content if it’s our first time running the application:
@@ -266,12 +267,12 @@ The `init()` function first tries restoring the `sheet` content from its previou
     $scope.sheet = angular.fromJson( localStorage.getItem( '' ) );
     if (!$scope.sheet) { $scope.reset(); }
     $scope.worker = new Worker( 'worker.js' );
-  })();
+  }).call();
 ```
 
 A few things are worth nothing in the `init()` function above:
 
-* We use the `($scope.init = ()=>{…})()` syntax to define the function and immediately call it.
+* We use the `($scope.init = ()=>{…}).call()` syntax to define the function and immediately call it.
 * Because localStorage only stores strings, we _parse_ the `sheet` structure from its [JSON](https://developer.mozilla.org/en-US/docs/Glossary/JSON) representation using `angular.fromJson()`.
 * At the last step of `init()`, we create a new [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Worker) thread and assign it to the `worker` scope property. Although the worker is not directly used in the view, it’s customary to use `$scope` to share objects used across model functions, in this case between `init()` here and `calc()` below.
 
@@ -285,8 +286,8 @@ While `sheet` holds the user-editable cell content, `errs` and `vals` contain th
 With these properties in place, we can define the `calc()` function that triggers whenever the user makes a change to `sheet`:
 
 ```js
-  // Define the calculation handler, and immediately call it
-  ($scope.calc = ()=>{
+  // Define the calculation handler; not calling it yet
+  $scope.calc = ()=>{
     const json = angular.toJson( $scope.sheet );
 ```
 
@@ -315,7 +316,7 @@ The Worker’s task is to calculate `errs` and `vals` from the contents of`sheet
       $timeout.cancel( promise );
       localStorage.setItem( '', json );
       $timeout( ()=>{ [$scope.errs, $scope.vals] = data; } );
-    }
+    };
 ```
 
 If `onmessage` is called,  we know that the `sheet` snapshot in `json` is stable (i.e. containing no infinite-looping formulas), so we cancel the 99-millisecond timeout, write the snapshot to localStorage, and schedule an UI update with a `$timeout` function that updates `errs` and `vals` to the user-visible view.
@@ -325,8 +326,12 @@ With the handler in place, we can post the state of `sheet` to the worker, start
 ```js
     // Post the current sheet content for the worker to process
     $scope.worker.postMessage( $scope.sheet );
-  })();
-}
+  };
+
+  // Start calculation when worker is ready
+  $scope.worker.onmessage = $scope.calc;
+  $scope.worker.postMessage( null );
+});
 ```
 
 ### JS: Background Worker
@@ -337,80 +342,74 @@ There are three reasons for using a Web Worker to calculate formulas, instead of
 * Because we accept any JS expression in a formula, the worker provides a _sandbox_ that prevents formulas from interfering with the page that contains them, such as by popping out an `alert()` dialog.
 * A formula can refer to any coordinates as variables, which may contain yet another formula that possibly ends in a cyclic reference. To solve this problem, we use the Worker’s _global scope_ object `self`, and define these variables as _getter functions_ on `self` to implement the cycle-prevention logic.
 
-With these in mind, let’s take a look at the worker’s code. Because **index.html** pre-loads the worker program with a `<script>` tag, in **worker.js** we first ensure that we’re actually running as a background task:
-
-```js
-if (self.importScripts) {
-```
-
-This check works because the browser defines `importScripts()` only in a Worker thread.
+With these in mind, let’s take a look at the worker’s code.
 
 The Worker’s sole purpose is defining its `onmessage` handler that takes `sheet`, calculates `errs` and `vals`, and posts them back to the main JS thread. We begin by re-initializing the three variables when we receive a message:
 
 ```js
-  let sheet, errs, vals;
-  self.onmessage = ({data})=>{
-    [sheet, errs, vals] = [ data, {}, {} ];
+let sheet, errs, vals;
+self.onmessage = ({data})=>{
+  [sheet, errs, vals] = [ data, {}, {} ];
 ```
 
 In order to turn coordinates into global variables, we first iterate over each property in `sheet`, using a `for…in` loop:
 
 ```js
-    for (const coord in sheet) {
+  for (const coord in sheet) {
 ```
 
-We  write `const coord` above so that functions defined in the loop can capture the specific value of `coord` in that iteration. This is because `const` and `let` declare _block scoped_ variables. In contrast, `var coord` would make a _function scoped_ variable, and functions defined in each loop iteration would end up pointing to the same `coord`.
+We write `const coord` above so that functions defined in the loop can capture the specific value of `coord` in that iteration. This is because `const` and `let` declare _block scoped_ variables. In contrast, `var coord` would make a _function scoped_ variable, and functions defined in each loop iteration would end up pointing to the same `coord`.
 
 Customarily, formulas variables are case-insensitive and can optionally have a `$` prefix. Because JS variables are case-sensitive, we use a `for…of` loop to go over the four variable names for the same coordinate:
 
 ```js
-      // Four variable names pointing to the same coordinate: A1, a1, $A1, $a1
-      for (const name of [ for (p of [ '', '$' ])
-                             for (c of [ coord, coord.toLowerCase() ])
-                               p+c ]) {
+    // Four variable names pointing to the same coordinate: A1, a1, $A1, $a1
+    for (const name of [ for (p of [ '', '$' ])
+                           for (c of [ coord, coord.toLowerCase() ])
+                             p+c ]) {
 ```
 
 Note the _nested array comprehension_ syntax above, with  two `for`  expressions in the array definition.
 
-For each variable name like `A1` and `$a1`, we define its [accessor property](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperty) on `self` that calculates `vals[A1]` whenever they are evaluated in an expression:
+For each variable name like `A1` and `$a1`, we define its [accessor property](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperty) on `self` that calculates `vals["A1"]` whenever they are evaluated in an expression:
 
 ```js
-        // Worker is reused across calculations, so only define each variable once
-        if ((Object.getOwnPropertyDescriptor( self, name ) || {}).get) { continue; }
+      // Worker is reused across calculations, so only define each variable once
+      if ((Object.getOwnPropertyDescriptor( self, name ) || {}).get) { continue; }
 
-        // Define self['A1'], which is the same thing as the global variable A1
-        Object.defineProperty( self, name, { get() {
+      // Define self['A1'], which is the same thing as the global variable A1
+      Object.defineProperty( self, name, { get() {
 ```
 
 The `{ get() { … } }` syntax above is shorthand for `{ get: ()=>{ … } }`. Because we define only `get` and not `set`, the variables become  _read-only_ and cannot be modified from user-supplied formulas.
 
-The `get` accessor starts by checking if `vals[coord]` is already calculated, and simply returns it if it’s the same:
+The `get` accessor starts by checking `vals[coord]`, and simply returns it if it’s already calculated:
 
 ```js
-          if (coord in vals) { return vals[coord]; }
+        if (coord in vals) { return vals[coord]; }
 ```
 
 If not, we need to calculate `vals[coord]` from `sheet[coord]`.
 
-First we set it to `NaN`, so self-references like setting **A1*** to `=A1` will end up with `NaN` instead of an infinite loop:
+First we set it to `NaN`, so self-references like setting **A1** to `=A1` will end up with `NaN` instead of an infinite loop:
 
 ```js
-          vals[coord] = NaN;
+        vals[coord] = NaN;
 ```
 
 Next we check if `sheet[coord]` is a number by converting it to numeric with prefix `+`, assigning the number to `x`, and comparing its string representation with the original string. If they differ, then we set `x` to the original string:
 
 ```js
-          // Turn numeric strings into numbers, so =A1+C1 works when both are numbers
-          let x = +sheet[coord];
-          if (sheet[coord] !== x.toString()) { x = sheet[coord]; }
+        // Turn numeric strings into numbers, so =A1+C1 works when both are numbers
+        let x = +sheet[coord];
+        if (sheet[coord] !== x.toString()) { x = sheet[coord]; }
 ```
 
 If the initial character of `x` is `=`, then it’s a formula cell. We evaluate the part after `=` with `eval.call()`, using the first argument `null` to tell `eval` to run in the _global scope_, hiding the _lexical scope_ variables like `x` and `sheet` from the evaluation:
 
 ```js
-          // Evaluate formula cells that begin with =
-          try { vals[coord] = (('=' === x[0]) ? eval.call( null, x.slice( 1 ) ) : x);
+        // Evaluate formula cells that begin with =
+        try { vals[coord] = (('=' === x[0]) ? eval.call( null, x.slice( 1 ) ) : x);
 ```
 
 If the evaluation succeeds, the result is stored into `vals[coord]`. For non-formula cells, the value of `vals[coord]` is simply `x`, which may be a number or a string.
@@ -418,19 +417,19 @@ If the evaluation succeeds, the result is stored into `vals[coord]`. For non-for
 If `eval` results in an error, the `catch` block tests if it’s because the formula refers to an empty cell not yet defined in `self`:
 
 ```js
-          } catch (e) {
-            const match = /\$?[A-Za-z]+[1-9][0-9]*\b/.exec( e );
-            if (match && !( match[0] in self )) {
+        } catch (e) {
+          const match = /\$?[A-Za-z]+[1-9][0-9]*\b/.exec( e );
+          if (match && !( match[0] in self )) {
 ```
 
 In that case, we set the missing cell’s default value to `0`, clear `vals[coord]`, and re-run the current computation using `self[coord]`:
 
 ```js
-              // The formula refers to a uninitialized cell; set it to 0 and retry
-              self[match[0]] = 0;
-              delete vals[coord];
-              return self[coord];
-            }
+            // The formula refers to a uninitialized cell; set it to 0 and retry
+            self[match[0]] = 0;
+            delete vals[coord];
+            return self[coord];
+          }
 ```
 
  If the user gives the missing cell a content later on in `sheet[coord]`, then `Object.defineProperty` would take over and override the temporary value.
@@ -438,29 +437,30 @@ In that case, we set the missing cell’s default value to `0`, clear `vals[coor
 Other kinds of errors are stored to `errs[coord]`:
 
 ```js
-            // Otherwise, stringify the caught exception in the errs object
-            errs[coord] = e.toString();
-          }
+          // Otherwise, stringify the caught exception in the errs object
+          errs[coord] = e.toString();
+        }
 ```
 
 In case of errors, the value of `vals[coord]` will remain `NaN` because the assignment did not complete.
 
-Finally, the `get` accessor returns the calculated value, stored in `vals[coord]`:
+Finally, the `get` accessor returns the calculated value stored in `vals[coord]`, which must be a number, a boolean value, or a string:
 
 ```js
-          return vals[coord];
-        } } )
-      }
+        // Turn vals[coord] into a string if it's not a number or boolean
+        switch (typeof vals[coord]) { case 'function': case 'object': vals[coord]+=''; }
+        return vals[coord];
+      } } )
     }
+  }
 ```
 
 With accessors defined for all coordinates, the worker goes through the coordinates again, invoking each accessor by accessing `self[coord]`, then posts the resulting `errs` and `vals` back to the main JS thread:
 
 ```js
-    // For each coordinate in the sheet, call the property getter defined above
-    for (const coord in sheet) { self[coord]; }
-    return [ errs, vals ];
-  }
+  // For each coordinate in the sheet, call the property getter defined above
+  for (const coord in sheet) { self[coord]; }
+  return [ errs, vals ];
 }
 ```
 
@@ -533,5 +533,7 @@ This chapter aims to demonstrate new concepts in ES6, so we use the [Traceur com
 If you prefer to work directly with the 2010 edition of JS, the [as-javascript-1.8.5](https://audreyt.github.io/500lines/spreadsheet/as-javascript-1.8.5/) directory has **main.js** and **worker.js** written in the style of ES5; the [source code](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-javascript-1.8.5) is line-by-line comparable to the ES6 version with the same line count.
 
 For people preferring a cleaner syntax, the [as-livescript-1.2.0](https://audreyt.github.io/500lines/spreadsheet/as-livescript-1.2.0/) directory uses [LiveScript](http://livescript.net/) instead of ES6 to write **main.ls** and **worker.ls**; the [source code](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-livescript-1.2.0) is 20 lines shorter than the JS version.
+
+Building on the LiveScript language, the [as-react-livescript](https://audreyt.github.io/500lines/spreadsheet/as-react-livescript/) directory uses the [ReactJS](https://facebook.github.io/react/) framework; the [source code](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-react-livescript) is 10 lines more than the AngularJS equivalent, but runs considerably faster.
 
 If you are interested in translating this example to alternate JS languages, send a [pull request](https://github.com/audreyt/500lines/pulls) — I’d love to hear about it!
