@@ -77,9 +77,6 @@ Do you see any other issues?
 So we've clearly got some work to do. Let's start with an issue we didn't highlight above: 
 
 
----> transit as an option for json serialization over the wire; is localhost really atomic/secure? if not build it ourselves (at cost of storage/2); storing in localhost is crowded, often not the best option (filesystem?)
-
-
 
 ### Laziness
 
@@ -158,6 +155,78 @@ If we need to see the world as it exists at a particular moment in time (e.g. 'n
 /// Even doing this doesn't free us from other concurrency concerns, though: if multiple write come in from different places, what happens? Last write wins? Or do we require a reference to the previous object (Clojure's atoms), otherwise fail / retry (retry case could be like STM). Do we lock nodes that are undergoing a transaction? What is a transaction in this context anyway? [do once/queue/later help here?]
 
 
+Generational queries -- add a 'gen' param to everything, and only query things with a gen lower than the query's gen. [what about updates and deletes?]
+
+topological ordering (necessary for scoring, because of the dependencies): 
+G.v().noOut('parent').as('x').outAllFull('parent').merge('x').take(1)
+// outAllFull -> outAll -> outAllN() -> outAllN(0) -> outAllN(0, 'parent')
+--> or bind/spread
+--> cache: G.v().noOut('parent'): test each new V... (oh, but also each changed V? if you add an edge it might change *everything*)
+G.X.noOut('parent') <-- X contains 'static' methods
+G.v(1).p(G.X.out().in(), G.Y.all, G.Y.times(5)) 
+G.v(1).inN(5) --> G.v(1).p(G.X.in(), G.Y.times(5))
+so we can bind query segments and manipulate them
+can we do this with js instead? er, like, what does G.Y.times(5) return? f(query-segments)? is it just a transformer?
+because that's pretty interesting. orthopt -> transformers (also debug, rollback, etc) -> transformers as query abstractors
+
+diff between G.Y.all().times(5) and [G.Y.all(), G.Y.times(5)]
+
+G.v().outDegree(5, 'parent')
+
+
+/////////
+
+out -> outN -> outNAll
+
+Cross your eyes and squint a little and the similarities are obvious. It's good policy in general to take a cross-eyed squinty first pass of new code. You might end up with a nickname like ol' cross-eyed McSquintyPants, but no one will question your deduplication prowess. 
+
+Spotting this similarity leaves us at a bit of a dilemma, however. [on the horns of]. There's a tension at play between wanting to not repeat ourselves and our desire to maintaining the [isolation] of one-fun-per-component. 
+
+Unfortunately there's no hard and fast rule for this situation -- it really comes down to good judgement. If the internals are likely to mutate away from each other, leave them separate. If the maintaining the one-fun-per-component [invariant] is structurally useful, leave it. If you find yourself endlessly repeating the same chunk of boilerplate with small, easily-parametrizable variations, consolidate it -- but in the absence of such strong indicators you'll need to follow your nose.
+
+Another approach we could take is leaving the individual functions, but pull 'component' out of their bodies and squish 'em together. This seems like pure win, but there are tradeoffs here as well. We're introducing a layer of abstraction, which always ups the complexity cost. We're moving the guts of the component elsewhere, forcing us to hunt to find its meaning. 
+
+Developing abstraction barriers that minimize overall code complexity is a subtle art, but one well worth mastering. 
+
+Let's take another look at these functions. What would it take to parametrize them?
+
+[list of params]
+
+This actually seems kind fo painful to parametrize fully. Let's take a step back and try a different tack instead. What if we make some helper functions that allow us to treat any single function this way? [downsides] [sequence of ops -- transformers]
+
+So ultimately we can take any component (verb) and n-ize it (adverb) and any sequence of verbs (out-out-in) and 'all' them (or any other adverb, even n-ize) 
+
+g.v(1).in().out().in().out().in().out()
+g.v(1).st().in().out().et().nize(3)
+g.v(1).st('a').in().out().et('a').nize(3)
+
+g.v(1)
+  .start()
+    .start('a')
+      .in()
+      .out()
+    .end('a')  <-- done three times
+    .nize(3)
+               <-- .all() inserted here, because st--et+adverb is a single verb clause
+    .out()     
+               <-- and inserted here, after the next verb clause
+  .end()
+  .all()
+
+so G.v(1).start().in().out().end().all().nize(2) becomes
+   G.v(1).in().all() .out().all() .in().all() .out().all() 
+because the all() adverb cracks open the start-end wrapper and injects all() inside it, then nize doubles the verb phrase
+
+but G.v(1).start().in().out().end().nize(2).all() becomes
+    G.v(1).in().out().all() .in().out().all() 
+because nize creates a new verb phrase wrapper like [[in,out], [in,out]] and the all is injected at the outermost level.
+
+actually since adverbs are always 'end' nodes, we really just need start nodes. and they don't actually need labels because the start always correlates with the closest unbound adverb. (like matched parens, with implicit matching at the beginning of the query for unmatched adverbs)
+
+G.v(1).s().in().out().nize(2).all()
+
+
+
 
 ### Hooks
 
@@ -180,7 +249,18 @@ Maybe we should handle those errors a little better.
 
 ### serialization
 
+---> transit as an option for json serialization over the wire; 
+
+
+
 ### persistence
+
+Persistence is usually one of the trickier parts of a database: disks are horridly slow, but relatively safe. Basthing writes, making them atomic, journaling -- these are all difficult things to get right. 
+
+Fortunately, we're building an IN-MEMORY database, so we don't have to worry about any of that! We may, though, occasionally want to save a copy of the db locally for fast restart on page load. We can use our serialize / deserlizer together with localStorage to do just that. 
+
+// is localhost really atomic/secure? if not build it ourselves (at cost of storage/2); storing in localhost is crowded, often not the best option (filewriter?)
+
 
 ### OO vs FP re GDB wrt Dagoba (extensibility, pipeline management, etc)
 
