@@ -145,11 +145,25 @@
                , { fun: function(G, V, E) { return G.v(1).outAllN('', 3).property('name').run()  /* 3 tiers of ancestor from vertex 1  */ }
                  , got: function(G, V, E) { return ["lop","josh","vadas","ripple"] } }
                
+               // resumable queries
+               
+               , { fun: function(G, V, E) { Q = G.v(1).out().property('name').take(1); return Q.run() /* run once  */ }
+                 , got: function(G, V, E) { return ["lop"] } }
+               , { fun: function(G, V, E) { return Q.run()                                            /* run again */ }
+                 , got: function(G, V, E) { return ["josh"] } }
+               , { fun: function(G, V, E) { return Q.run()                                            /* run amok  */ }
+                 , got: function(G, V, E) { return ["vadas"] } }
+               , { fun: function(G, V, E) { return Q.run()                                            /* run out   */ }
+                 , got: function(G, V, E) { return [] } }
+
+               // serialization + deserialization
+               
+               , { fun: function(G, V, E) { newG = Dagoba.fromString(G.toString()); return newG.v(1).out().run() }
+                 , got: function(G, V, E) { return G.v(1).out().run() } }
                
                  
                /*
                
-
                it("should return out vertices from id 1 & 4", function(){
                    var result = g.v(1, 4).out().emit();
                    expect(result.length).to.equal(5);
@@ -238,7 +252,7 @@
 
 
     function formatFun(fun) {
-      return fun.toString().slice(28, -2)
+      return fun.toString().slice(20, -2).replace(/^ return/, '')
     }
 
 

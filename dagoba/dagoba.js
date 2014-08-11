@@ -355,6 +355,14 @@ Dagoba.firehooks = function(type, query) {
 }
 
 
+// hi! 
+// -- serialization
+// - move graph to the top
+// - use 'new' constructors (ick)
+// - simplify adding new methods (and using old ones, re: name)
+// - tune gremlins (collisions, history, etc)
+// - you are great!
+
 
 Dagoba.Graph = {}
 Dagoba.Graph.v = function() {
@@ -383,10 +391,6 @@ Dagoba.Graph.addVertex = function(vertex) {
   vertex._out = []; vertex._in = []
 }
 
-Dagoba.Graph.addVertices = function(vertices) {
-  vertices.forEach(this.addVertex.bind(this))
-}
-
 Dagoba.Graph.addEdge = function(edge) {
   if(!edge._label) return false
   edge._in  = this.findVertexById(edge._in)
@@ -397,22 +401,21 @@ Dagoba.Graph.addEdge = function(edge) {
   this.edges.push(edge)
 }
 
+Dagoba.Graph.addVertices = function(vertices) {
+  vertices.forEach(this.addVertex.bind(this)) }
+
 Dagoba.Graph.addEdges = function(edges) {
-  edges.forEach(this.addEdge.bind(this))
-}
+  edges.forEach(this.addEdge.bind(this)) }
 
 Dagoba.Graph.findVertexById = function(vertex_id) {
-  return this.vertexIndex[vertex_id]
-  // return this.vertices.find(function(vertex) {return vertex._id == vertex_id})
-}
+  return this.vertexIndex[vertex_id] }
+  // return this.vertices.find(function(vertex) {return vertex._id == vertex_id}) }
 
 Dagoba.Graph.findVerticesByIds = function(ids) {
-  return ids.length ? ids.map(this.findVertexById.bind(this)).filter(Boolean) : this.vertices.slice()
-}
+  return ids.length ? ids.map(this.findVertexById.bind(this)).filter(Boolean) : this.vertices.slice() }
 
 Dagoba.Graph.findVertices = function(ids) {
-  return !ids.length || typeof ids[0] != 'object' ? this.findVerticesByIds(ids) : this.searchVertices(ids)
-}
+  return !ids.length || typeof ids[0] != 'object' ? this.findVerticesByIds(ids) : this.searchVertices(ids) }
 
 Dagoba.Graph.searchVertices = function(obj) {
   return this.vertices.filter(
@@ -425,17 +428,26 @@ Dagoba.Graph.findEdgeById = function(edge_id) {
   return Dagoba.find(this.edges, function(edge) {return edge._id == edge_id} ) }
 
 Dagoba.Graph.findOutEdges = function(vertex) {
-  return vertex._out;
-  return this.edges.filter(function(edge) {return edge._out == vertex._id} ) }
+  return vertex._out; }
+  // return this.edges.filter(function(edge) {return edge._out == vertex._id} ) }
 
 Dagoba.Graph.findInEdges = function(vertex) {
-  return vertex._in;
-  return this.edges.filter(function(edge) {return edge._in == vertex._id} ) }
+  return vertex._in; }
+  // return this.edges.filter(function(edge) {return edge._in == vertex._id} ) }
+
+
+Dagoba.Graph.toString = function() {
+  return '{"V":'+JSON.stringify(this.vertices, Dagoba.cleanvertex)+', "E":'+JSON.stringify(this.edges, Dagoba.cleanedge)+'}' }
+
+Dagoba.fromString = function(str) {
+  var obj = JSON.parse(str); return Dagoba.graph(obj.V, obj.E) }
+
 
 Dagoba.filterThings = function(arg) {
   return function(thing) {
-    return !arg ? true : arg+''===arg ? thing._label == arg
-                : Array.isArray(arg)  ? !!~arg.indexOf(thing._label) : Dagoba.objFilter(thing, arg) } }
+    return !arg ? true
+         : arg+'' === arg ? thing._label == arg                                                  // check the label
+         : Array.isArray(arg) ? !!~arg.indexOf(thing._label) : Dagoba.objFilter(thing, arg) } }  // or a list of labels
 
 Dagoba.objFilter = function(thing, obj) {
   for(var key in obj)
