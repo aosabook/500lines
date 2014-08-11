@@ -9,6 +9,7 @@ PAPER_WIDTH = 842
 PAPER_HEIGHT = 595
 MARGIN = 72
 FONT_SIZE = 20
+FONT_FACE = 'Verdana'
 
 INFINITY = 10000000
 MAX_RATIO = 1.3
@@ -42,287 +43,327 @@ class Type(Enum):
     penalty = 3  # Hyphens, dashes, final break
 
 
-def convert(text):
-    """Convert text into blocks: boxes, glues (spaces) and penalties
-    (hyphens, dashes, final break)."""
-    character_width = json.load(open('character_width.json'))
-    Item = namedtuple('Item', ['character', 'type', 'width', 'stretch',
-                               'shrink', 'penalty', 'flag'])
-    items = [Item(character='\t', type=Type.box,
-                  width=4 * character_width[' '], stretch=0, shrink=0,
-                  penalty=0, flag=False)]
-    for character in text:
-        if character == '·':
-            items.append(Item(character='-', type=Type.penalty,
+class Typesetting:
+    def __init__(self, text, line_length):
+        # Main attributes
+        self.line_length = line_length
+        self.blocks = self.convert_to_blocks(text)
+        self.breakpoints = None
+        # Metrics
+        self.current_line = None
+        self.current_width = 0
+        self.current_stretch = 0
+        self.current_shrink = 0
+        # Pointers
+        self.first_active_node = Breakpoint(position=-1, line=0, fitness=1,
+                                            total_width=0, total_stretch=0,
+                                            total_shrink=0, total_demerits=0,
+                                            previous=None, link=None)
+        self.first_passive_node = None
+        self.prev_node = None
+        self.next_node = None
+        # Candidates
+        self.best_node_of_class = [None] * 4
+        self.least_demerit_of_class = None
+        self.least_demerit = None
+        # Saves for visualization
+        self.ratios = {}
+        self.graph = {}
+
+    def convert_to_blocks(self, text, indent=True):
+        """Convert text into blocks: boxes, glues (spaces) and penalties
+        (hyphens, dashes, final break)."""
+        character_width = json.load(open('character_width.json'))
+        Block = namedtuple('Block', ['character', 'type', 'width', 'stretch',
+                                     'shrink', 'penalty', 'flag', 'position'])
+        blocks = [Block(character='\t', type=Type.box,
+                        width=4 * character_width[' '], stretch=0, shrink=0,
+                        penalty=0, flag=False, position=0)] if indent else []
+        position = 1 if indent else 0
+        for character in text:
+            if character == '·':  # Possible hyphen
+                block = Block(character='-', type=Type.penalty,
                               width=character_width['-'], stretch=0, shrink=0,
-                              penalty=50, flag=True))
-        elif character == ' ':
-            items.append(Item(character=' ', type=Type.glue,
+                              penalty=50, flag=True, position=position)
+            elif character == ' ':
+                block = Block(character=' ', type=Type.glue,
                               width=character_width[character], stretch=300,
-                              shrink=200, penalty=0, flag=False))
-        else:
-            items.append(Item(character=character, type=Type.box,
-                              width=character_width[character], stretch=0,
-                              shrink=0, penalty=0, flag=False))
-        if character == '-':
-            items.append(Item(character='-', type=Type.penalty, width=0,
-                              stretch=2, shrink=3, penalty=50, flag=True))
-    items.append(Item(character='', type=Type.glue, width=0, stretch=INFINITY,
-                      shrink=0, penalty=0, flag=False))
-    items.append(Item(character='\n', type=Type.penalty, width=0, stretch=0,
-                      shrink=0, penalty=-INFINITY, flag=True))
-    return items
-
-
-def compute_breakpoints(text, line_length):
-    """Compute the best possible breakpoints.
-
-    Basically, it's computing the shortest path in a DAG while
-    constructing it."""
-    first_active_node = Breakpoint(position=-1, line=0, fitness=1,
-                                   total_width=0, total_stretch=0,
-                                   total_shrink=0, total_demerits=0,
-                                   previous=None, link=None)
-    first_passive_node = None
-    rank = 0
-    current_line = None
-    best_node_of_class = [None] * 4
-    ratios = {}
-    graph = {}
-    current_width = current_stretch = current_shrink = 0
-    items = convert(text)
-    for pos, item in enumerate(items):
-        if item.type is Type.box:
-            current_width += item.width
-        if is_legal_breakpoint(item, items[pos - 1] if pos > 0 else None):
-            current_node = first_active_node
-            prev_node = None
-            while current_node:
-                least_demerit_of_class = [INFINITY] * 4
-                least_demerit = min(least_demerit_of_class)
-                while current_node and (not current_line or
-                                        current_node.line < current_line or
-                                        current_line >= rank):
-                    next_node = current_node.link
-                    r, current_line = adjustment_ratio(
-                        current_node, item, current_width, current_stretch,
-                        current_shrink, line_length)
-                    if abs(r) < MAX_RATIO:
-                        ratios[(current_node.position, pos)] = r
-                    if r < -1 or is_forced_break(item):
-                        (first_active_node, first_passive_node, current_node,
-                         prev_node) = deactivate_current_node(
-                            first_active_node, first_passive_node,
-                            current_node, prev_node, next_node)
-                    else:
-                        prev_node = current_node
-                    if -1 <= r <= MAX_RATIO:
-                        d, c = demerits_fitness_class(current_node, item, r,
-                                                      items)
-                        if d < INFINITY:
-                            graph.setdefault("{} {} {}".format(
-                                current_node.fitness,
-                                word_before(current_node.position, items),
-                                current_node.position), []).append(
-                                    (round(d), "{} {} {}".format(
-                                        c, word_before(pos, items), pos)))
-                        if d < least_demerit_of_class[c]:
-                            least_demerit_of_class[c] = d
-                            best_node_of_class[c] = current_node
-                        least_demerit = min(least_demerit_of_class)
-                    current_node = next_node
-                if least_demerit < INFINITY:
-                    first_active_node, prev_node = insert_new_active_nodes(
-                        current_node, pos, current_width, current_stretch,
-                        current_shrink, best_node_of_class,
-                        least_demerit_of_class, least_demerit, items,
-                        first_active_node, prev_node)
-            if not first_active_node:
-                print('ZOMG')
-        if item.type is Type.glue:
-            current_width += item.width
-            current_stretch += item.stretch
-            current_shrink += item.shrink
-    with open('knuth.dot', 'w') as f:  # Just for visualization
-        f.write('digraph G {\n')
-        for node in graph:
-            for w, child in graph[node]:
-                f.write('"{}" -> "{}" [label=" {}"];\n'.format(node, child, w))
-        f.write('}')
-    best_node = choose_best_node(first_active_node)
-    if ADJUSTMENT != 0:
-        best_node = choose_appropriate_node(best_node, first_active_node)
-    return determine_breakpoint_sequence(best_node), items, ratios
-
-
-def is_legal_breakpoint(cur, prec):
-    return ((cur.type is Type.glue and prec and prec.type is Type.box) or
-            (cur.type is Type.penalty and cur.penalty != INFINITY))
-
-
-def adjustment_ratio(current_node, item, current_width, current_stretch,
-                     current_shrink, line_length):
-    """Compute the ratio of stretchability/shrinkability so far.
-
-    Hopefully it is between -1 and MAX_RATIO."""
-    width = current_width - current_node.total_width
-    if item.type is Type.penalty:
-        width += item.width
-    current_line = current_node.line + 1
-    if width < line_length[current_line]:
-        stretch = current_stretch - current_node.total_stretch
-        ratio = ((line_length[current_line] - width) / stretch if stretch > 0
-                 else INFINITY)
-    elif width > line_length[current_line]:
-        shrink = current_shrink - current_node.total_shrink
-        ratio = ((line_length[current_line] - width) / shrink if shrink > 0
-                 else INFINITY)
-    else:
-        ratio = 0
-    return ratio, current_line
-
-
-def is_forced_break(item):
-    return item.type is Type.penalty and item.penalty == -INFINITY
-
-
-def demerits_fitness_class(current_node, item, r, items):
-    """Determine the demerit value of the current line, along with its
-    fitness class.
-
-    An abrupt change of fitness class from one line to another is
-    penalized by PENALTY_GAMMA."""
-    if item.penalty >= 0:
-        d = (1 + 100 * abs(r) ** 3 + item.penalty) ** 2
-    elif item.penalty != -INFINITY:
-        d = (1 + 100 * abs(r) ** 3) ** 2 - item.penalty ** 2
-    else:
-        d = (1 + 100 * abs(r) ** 3) ** 2
-    if item.flag and items[current_node.position].flag:
-        d += PENALTY_ALPHA
-    if r < -0.5:
-        c = 0
-    elif r <= 0.5:
-        c = 1
-    elif r <= 1:
-        c = 2
-    else:
-        c = 3
-    if abs(c - current_node.fitness) > 1:
-        d += PENALTY_GAMMA
-    d += current_node.total_demerits
-    return d, c
-
-
-def insert_new_active_nodes(current_node, pos, current_width, current_stretch,
-                            current_shrink, best_node_of_class,
-                            least_demerit_of_class, least_demerit, items,
-                            first_active_node, prev_node):
-    """Insert new nodes to active list if suitable."""
-    total_width, total_stretch, total_shrink = compute_values_after(
-        pos, current_width, current_stretch, current_shrink, items)
-    for c in range(4):
-        if least_demerit_of_class[c] <= least_demerit + PENALTY_GAMMA:
-            new_node = Breakpoint(
-                position=pos,
-                line=best_node_of_class[c].line + 1 if best_node_of_class[c]
-                else 1,
-                fitness=c, total_width=total_width,
-                total_stretch=total_stretch, total_shrink=total_shrink,
-                total_demerits=least_demerit_of_class[c],
-                previous=best_node_of_class[c], link=current_node)
-            if not prev_node:
-                first_active_node = new_node
+                              shrink=200, penalty=0, flag=False,
+                              position=position)
             else:
-                prev_node.link = new_node
-            prev_node = new_node
-    return first_active_node, prev_node
+                block = Block(character=character, type=Type.box,
+                              width=character_width[character], stretch=0,
+                              shrink=0, penalty=0, flag=False,
+                              position=position)
+            blocks.append(block)
+            position += 1
+            if character == '-':
+                blocks.append(Block(character='-', type=Type.penalty, width=0,
+                                    stretch=2, shrink=3, penalty=50, flag=True,
+                                    position=position))
+                position += 1
+        blocks.append(Block(character='', type=Type.glue, width=0,
+                            stretch=INFINITY, shrink=0, penalty=0, flag=False,
+                            position=position))
+        blocks.append(Block(character='\n', type=Type.penalty, width=0,
+                            stretch=0, shrink=0, penalty=-INFINITY, flag=True,
+                            position=position + 1))
+        return blocks
 
+    def compute_breakpoints(self):
+        """Compute the best possible breakpoints.
 
-def compute_values_after(pos, current_width, current_stretch, current_shrink,
-                         items):
-    """Compute width, stretch, shrink until the next box (neither
-    whitespace, nor dash, nor hyphen)."""
-    total_width, total_stretch, total_shrink = (current_width, current_stretch,
-                                                current_shrink)
-    i = pos
-    while i < len(items) and items[i].type is not Type.box:
-        if items[i].type is Type.glue:
-            total_width += items[i].width
-            total_stretch += items[i].stretch
-            total_shrink += items[i].shrink
-        elif items[i].penalty == -INFINITY and i > pos:
-            break
-        i += 1
-    return total_width, total_stretch, total_shrink
+        Basically, it's computing the shortest path in a DAG while
+        constructing it."""
+        rank = 0
+        for block in self.blocks:
+            if block.type is Type.box:
+                self.current_width += block.width
+            if self.is_legal_breakpoint(block):
+                last_breakpoint = self.first_active_node
+                self.prev_node = None
+                while last_breakpoint:
+                    self.least_demerit_of_class = [INFINITY] * 4
+                    self.least_demerit = min(self.least_demerit_of_class)
+                    while last_breakpoint and (
+                            not self.current_line or
+                            last_breakpoint.line < self.current_line or
+                            self.current_line >= rank):  # TODO why
+                        self.next_node = last_breakpoint.link
+                        r = self.adjustment_ratio(last_breakpoint, block)
+                        if r < -1 or self.is_forced_break(block):
+                            last_breakpoint = self.deactivate(last_breakpoint)
+                        else:
+                            self.prev_node = last_breakpoint
+                        if -1 <= r <= MAX_RATIO:
+                            self.update_best_breakpoints(last_breakpoint,
+                                                         block, r)
+                        last_breakpoint = self.next_node
+                    if self.least_demerit < INFINITY:
+                        self.insert_new_active_nodes(last_breakpoint,
+                                                     block.position)
+                if not self.first_active_node:
+                    print('ZOMG')
+            if block.type is Type.glue:
+                self.current_width += block.width
+                self.current_stretch += block.stretch
+                self.current_shrink += block.shrink
+        self.make_visualization()
+        best_node = self.choose_best_node()
+        if ADJUSTMENT != 0:
+            best_node = self.choose_appropriate_node(best_node)
+        return self.determine_breakpoint_sequence(best_node)
 
+    def update_best_breakpoints(self, last_breakpoint, block, r):
+        """
+        Modifies: least_demerit_of_class, least_demerit
+        """
+        d, c = self.demerits_fitness_class(last_breakpoint, block, r)
+        self.backup_for_visualization(last_breakpoint, block, r, d, c)
+        if d < self.least_demerit_of_class[c]:
+            self.least_demerit_of_class[c] = d
+            self.best_node_of_class[c] = last_breakpoint
+            self.least_demerit = min(self.least_demerit_of_class)
 
-def deactivate_current_node(first_active_node, first_passive_node,
-                            current_node, prev_node, next_node):
-    """Move current node from active list to passive list."""
-    if not prev_node:
-        first_active_node = next_node
-    else:
-        prev_node.link = next_node
-    current_node.link = first_passive_node
-    first_passive_node = current_node
-    return first_active_node, first_passive_node, current_node, prev_node
+    def backup_for_visualization(self, last_breakpoint, block, r, d, c):
+        """Needs: last_breakpoint, blocks"""
+        if d < INFINITY:
+            self.ratios[(last_breakpoint.position, block.position)] = r
+            self.graph.setdefault("{} {} {}".format(
+                last_breakpoint.fitness,
+                self.word_before(last_breakpoint.position),
+                last_breakpoint.position), []).append(
+                    (round(d), "{} {} {}".format(
+                        c, self.word_before(block.position), block.position)))
 
+    def make_visualization(self):
+        with open('knuth.dot', 'w') as f:  # Just for visualization
+            f.write('digraph G {\n')
+            for node in self.graph:
+                for w, child in self.graph[node]:
+                    f.write('"{}" -> "{}" [label=" {}"];\n'.format(
+                        node, child, w))
+            f.write('}')
 
-def choose_best_node(first_active_node):
-    """Choose the node with the fewest total demerits."""
-    best_node = first_active_node
-    d = first_active_node.total_demerits
-    node = first_active_node.link
-    while node:
-        if node.total_demerits < d:
-            d = node.total_demerits
-            best_node = node
-        node = node.link
-    return best_node
+    def is_legal_breakpoint(self, block):
+        return ((block.type is Type.glue and block.position > 0 and
+                 self.blocks[block.position - 1].type is Type.box) or
+                (block.type is Type.penalty and block.penalty != INFINITY))
 
+    def adjustment_ratio(self, last_breakpoint, block):
+        """Compute the ratio of stretchability/shrinkability for the
+        current line in order to justify the text.
+        Needs: last_breakpoint, block, current_width, current_stretch,
+               current_shrink, line_length
+        Modifies: current_line
 
-def choose_appropriate_node(best_node, first_active_node):
-    """Choose another node if adjustment is required."""
-    line = best_node.line
-    node = first_active_node
-    s = 0
-    while True:
-        delta = node.line - line
-        if ADJUSTMENT <= delta < s or s < delta <= ADJUSTMENT:
-            s = delta
-            d = node.total_demerits
-            best_node = node
-        elif delta == s and node.total_demerits < d:
-            d = node.total_demerits
-            best_node = node
-        node = node.link
-    return best_node
+        Hopefully it is between -1 and MAX_RATIO.
+        Else, it won't be aesthetically pleasant."""
+        width = self.current_width - last_breakpoint.total_width
+        if block.type is Type.penalty:
+            width += block.width
+        self.current_line = last_breakpoint.line + 1
+        current_line_length = self.line_length[self.current_line]
+        if width < current_line_length:
+            stretch = self.current_stretch - last_breakpoint.total_stretch
+            if not stretch:
+                return float('inf')
+            return (current_line_length - width) / stretch
+        elif width > current_line_length:
+            shrink = self.current_shrink - last_breakpoint.total_shrink
+            if not shrink:
+                return float('inf')
+            return (current_line_length - width) / shrink
+        else:
+            return 0
 
+    def is_forced_break(self, block):
+        return block.type is Type.penalty and block.penalty == -INFINITY
 
-def determine_breakpoint_sequence(best_node):
-    """Determine the best breakpoint sequence."""
-    line = best_node.line
-    seq = []
-    for j in range(line):
-        seq.append(best_node.position)
-        best_node = best_node.previous
-    return seq[::-1]
+    def demerits_fitness_class(self, last_breakpoint, block, r):
+        """Determine the demerit value of the current line, along with
+        its fitness class.
+        Needs: last_breakpoint, block, r, blocks
+        Modifies: None
 
+        An abrupt change of fitness class from one line to another is
+        penalized by PENALTY_GAMMA."""
+        if block.penalty >= 0:
+            d = (1 + 100 * abs(r) ** 3 + block.penalty) ** 2
+        elif block.penalty != -INFINITY:
+            d = (1 + 100 * abs(r) ** 3) ** 2 - block.penalty ** 2
+        else:
+            d = (1 + 100 * abs(r) ** 3) ** 2
+        if block.flag and self.blocks[last_breakpoint.position].flag:
+            d += PENALTY_ALPHA
+        if r < -0.5:
+            c = 0
+        elif r <= 0.5:
+            c = 1
+        elif r <= 1:
+            c = 2
+        else:
+            c = 3
+        if abs(c - last_breakpoint.fitness) > 1:
+            d += PENALTY_GAMMA
+        d += last_breakpoint.total_demerits
+        return d, c
 
-def substring(begin, end, items):
-    """Get the subtext between two breakpoints."""
-    return ''.join([item.character for item in items[begin + 1:end]
-                    if item.type is not Type.penalty
-                    or item.character == '\t'])
+    def insert_new_active_nodes(self, last_breakpoint, pos):
+        """Insert new nodes to active list if suitable.
+        Needs: last_breakpoint, pos, current_width, current_stretch,
+               current_shrink, best_node_of_class,
+               least_demerit_of_class, least_demerit, blocks,
+               first_active_node, prev_node
+        Modifies: first_active_node, prev_node"""
+        total_width, total_stretch, total_shrink = self.get_values_after(pos)
+        for c in range(4):
+            if (self.least_demerit_of_class[c] <=
+                    self.least_demerit + PENALTY_GAMMA):
+                new_node = Breakpoint(
+                    position=pos,
+                    line=self.best_node_of_class[c].line + 1 if
+                    self.best_node_of_class[c] else 1,
+                    # TODO Is this really necessary?
+                    fitness=c, total_width=total_width,
+                    total_stretch=total_stretch, total_shrink=total_shrink,
+                    total_demerits=self.least_demerit_of_class[c],
+                    previous=self.best_node_of_class[c], link=last_breakpoint)
+                if not self.prev_node:  # TODO Why?
+                    self.first_active_node = new_node
+                else:
+                    self.prev_node.link = new_node
+                self.prev_node = new_node
 
+    def get_values_after(self, pos):
+        """Compute width, stretch, shrink until the next box (neither
+        whitespace, nor dash, nor hyphen).
+        Needs: pos, current_width, current_stretch, current_shrink
+        Modifies: None"""
+        total_width = self.current_width
+        total_stretch = self.current_stretch
+        total_shrink = self.current_shrink
+        i = pos
+        while i < len(self.blocks) and self.blocks[i].type is not Type.box:
+            if self.blocks[i].type is Type.glue:
+                total_width += self.blocks[i].width
+                total_stretch += self.blocks[i].stretch
+                total_shrink += self.blocks[i].shrink
+            elif self.blocks[i].penalty == -INFINITY and i > pos:
+                break
+            i += 1
+        return total_width, total_stretch, total_shrink
 
-def word_before(breakpoint, items):
-    """Get the word before a breakpoint."""
-    i = breakpoint - 1
-    while items[i].type is not Type.glue:
-        i -= 1
-    return substring(i, breakpoint, items)
+    def deactivate(self, last_breakpoint):
+        """Move last breakpoint from active list to passive list.
+        Needs: first_active_node, first_passive_node, last_breakpoint,
+               prev_node, next_node
+        Modifies: first_active_node, first_passive_node,
+                  last_breakpoint, prev_node"""
+        if not self.prev_node:
+            self.first_active_node = self.next_node
+        else:
+            self.prev_node.link = self.next_node
+        last_breakpoint.link = self.first_passive_node
+        self.first_passive_node = last_breakpoint
+        return last_breakpoint
+
+    def choose_best_node(self):
+        """Choose the node with the fewest total demerits.
+        Needs: first_active_node
+        Modifies: None"""
+        best_node = self.first_active_node
+        d = self.first_active_node.total_demerits
+        node = self.first_active_node.link
+        while node:
+            if node.total_demerits < d:
+                d = node.total_demerits
+                best_node = node
+            node = node.link
+        return best_node
+
+    def choose_appropriate_node(self, best_node):
+        """Choose another node if adjustment is required.
+        Needs: first_active_node
+        Modifies: None"""
+        line = best_node.line
+        node = self.first_active_node
+        s = 0
+        while node:
+            delta = node.line - line
+            if ADJUSTMENT <= delta < s or s < delta <= ADJUSTMENT:
+                s = delta
+                d = node.total_demerits
+                best_node = node
+            elif delta == s and node.total_demerits < d:
+                d = node.total_demerits
+                best_node = node
+            node = node.link
+        return best_node
+
+    def determine_breakpoint_sequence(self, best_node):
+        """Determine the best breakpoint sequence."""
+        line = best_node.line
+        seq = []
+        for j in range(line):
+            seq.append(best_node.position)
+            best_node = best_node.previous
+        return seq[::-1]
+
+    def substring(self, begin, end):
+        """Get the subtext between two breakpoints.
+        Needs: blocks"""
+        return ''.join([block.character for block in self.blocks[begin + 1:end]
+                        if block.type is not Type.penalty
+                        or block.character == '\t'])
+
+    def word_before(self, pos):
+        """Get the word before a breakpoint.
+        Needs: blocks"""
+        i = pos - 1
+        while self.blocks[i].type is not Type.glue:
+            i -= 1
+        return self.substring(i, pos)
 
 
 def main():
@@ -343,17 +384,18 @@ def main():
             "ball was her favor·ite play·thing.")
 
     line_length = [float(PAPER_WIDTH - 2 * MARGIN) * 1000 / FONT_SIZE] * 20
-    breakpoints, items, ratios = compute_breakpoints(text, line_length)
+    tex = Typesetting(text, line_length)
+    breakpoints = tex.compute_breakpoints()
     breakpoints = [-1] + breakpoints
     print('Breakpoints:', breakpoints)
     for i in range(len(breakpoints) - 1):
-        print(substring(breakpoints[i], breakpoints[i + 1], items),
-              ratios[(breakpoints[i], breakpoints[i + 1])])
+        print(tex.substring(breakpoints[i], breakpoints[i + 1]),
+              tex.ratios[(breakpoints[i], breakpoints[i + 1])])
     with open('output.ps', 'w') as f:
         f.write('%!PS\n')
         f.write('<< /PageSize [{} {}] /ImagingBBox null '
                 '>> setpagedevice\n'.format(PAPER_WIDTH, PAPER_HEIGHT))
-        f.write('/Verdana\n')
+        f.write('/{}\n'.format(FONT_FACE))
         # f.write('{} {} moveto {} {} lineto stroke\n'.format(
         #    MARGIN, MARGIN, MARGIN, PAPER_HEIGHT - MARGIN)) # Help lines
         # f.write('{} {} moveto {} {} lineto stroke\n'.format(
@@ -362,18 +404,19 @@ def main():
         f.write('{} selectfont\n'.format(FONT_SIZE))
         x, y = 0, PAPER_HEIGHT - MARGIN - 15
         for line in range(len(breakpoints) - 1):
-            ratio = ratios[(breakpoints[line], breakpoints[line + 1])]
+            ratio = tex.ratios[(breakpoints[line], breakpoints[line + 1])]
             for i in range(breakpoints[line] + 1 if line > 0 else 0,
                            breakpoints[line + 1]):
-                if items[i].type == Type.penalty:
+                if tex.blocks[i].type == Type.penalty:
                     continue
-                if items[i].character != ' ':
+                if tex.blocks[i].character != ' ':
                     f.write('{} {} moveto ({}) show\n'.format(
-                        MARGIN + x * FONT_SIZE / 1000, y, items[i].character))
+                        MARGIN + x * FONT_SIZE / 1000, y,
+                        tex.blocks[i].character))
                 if ratio > 0:
-                    x += items[i].width + ratio * items[i].stretch
+                    x += tex.blocks[i].width + ratio * tex.blocks[i].stretch
                 else:
-                    x += items[i].width + ratio * items[i].shrink
+                    x += tex.blocks[i].width + ratio * tex.blocks[i].shrink
             y -= 36
             x = 0
 
