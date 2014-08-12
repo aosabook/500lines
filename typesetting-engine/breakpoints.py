@@ -4,38 +4,28 @@ paragraphs into lines, used in TeX."""
 from collections import namedtuple
 from enum import Enum
 import json
+import sys
 
-PAPER_WIDTH = 842
-PAPER_HEIGHT = 595
+PAGE_WIDTH = 842
+PAGE_HEIGHT = 595
+HEADER_HEIGHT = 100
 LINE_HEIGHT = 36
 MARGIN = 72
 FONT_SIZE = 20
+HEADER_FONT_SIZE = 42
 FONT_FACE = 'Verdana'
 
 INFINITY = 10000000
-MAX_RATIO = 1.3
+MAX_RATIO = 1
 PENALTY_ALPHA = 3000
 PENALTY_GAMMA = 1000
 ADJUSTMENT = 0
 
 
 class Breakpoint:
-    """A node, referring to a suitable position for a breakpoint."""
+    """A suitable position for a breakpoint."""
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
-
-    def __str__(self):
-        if self:
-            return ('<pos: {}, line: {}, c: {}, tw: {}, tst: {}, tsh: {}, '
-                    'td: {}, prev: {}, link: {}>').format(
-                        self.position,
-                        self.line, self.fitness, self.total_width,
-                        self.total_stretch, self.total_shrink,
-                        self.total_demerits,
-                        self.previous.position if self.previous else None,
-                        self.link.position if self.link else None)
-        else:
-            return None
 
 
 class Type(Enum):
@@ -82,11 +72,16 @@ class Typesetting:
         character_width = json.load(open('character_width.json'))
         Block = namedtuple('Block', ['character', 'type', 'width', 'stretch',
                                      'shrink', 'penalty', 'flag', 'position'])
-        blocks = [Block(character='\t', type=Type.box,
-                        width=4 * character_width[' '], stretch=0, shrink=0,
-                        penalty=0, flag=False, position=0)] if indent else []
+        indent_block = Block(character=' ', type=Type.box,
+                             width=4 * character_width[' '], stretch=0,
+                             shrink=0, penalty=0, flag=False, position=0)
+        blocks = [indent_block] if indent else []
         position = 1 if indent else 0
+        last_character = None
         for character in text:
+            if character == '\n':
+                last_character = '\n'
+                continue
             if character == '·':  # Possible hyphen
                 block = Block(character='-', type=Type.penalty,
                               width=character_width['-'], stretch=0, shrink=0,
@@ -97,6 +92,21 @@ class Typesetting:
                               shrink=200, penalty=0, flag=False,
                               position=position)
             else:
+                if character == '-' and (last_character == '\n' or
+                                         last_character is None):
+                    blocks.append(Block(
+                        character='', type=Type.glue, width=0,
+                        stretch=INFINITY, shrink=0, penalty=0, flag=False,
+                        position=position))
+                    blocks.append(Block(
+                        character='\n', type=Type.penalty, width=0, stretch=0,
+                        shrink=0, penalty=-INFINITY, flag=True,
+                        position=position + 1))
+                    blocks.append(Block(
+                        character=' ', type=Type.box,
+                        width=8 * character_width[' '], stretch=0, shrink=0,
+                        penalty=0, flag=False, position=position + 2))
+                    position += 3
                 block = Block(character=character, type=Type.box,
                               width=character_width[character], stretch=0,
                               shrink=0, penalty=0, flag=False,
@@ -108,6 +118,7 @@ class Typesetting:
                                     stretch=2, shrink=3, penalty=50, flag=True,
                                     position=position))
                 position += 1
+            last_character = character
         blocks.append(Block(character='', type=Type.glue, width=0,
                             stretch=INFINITY, shrink=0, penalty=0, flag=False,
                             position=position))
@@ -129,7 +140,7 @@ class Typesetting:
                 last_breakpoint = self.first_active_node
                 self.prev_node = None
                 while last_breakpoint:
-                    self.least_demerit_of_class = [INFINITY] * 4
+                    self.least_demerit_of_class = [float('inf')] * 4
                     self.least_demerit = min(self.least_demerit_of_class)
                     while last_breakpoint and (
                             not self.current_line or
@@ -145,7 +156,7 @@ class Typesetting:
                             self.update_best_breakpoints(last_breakpoint,
                                                          block, r)
                         last_breakpoint = self.next_node
-                    if self.least_demerit < INFINITY:
+                    if self.least_demerit < float('inf'):
                         self.insert_new_active_nodes(last_breakpoint,
                                                      block.position)
                 if not self.first_active_node:
@@ -159,7 +170,7 @@ class Typesetting:
         best_node = self.choose_best_node()
         if ADJUSTMENT != 0:
             best_node = self.choose_appropriate_node(best_node)
-        self.breakpoints = self.determine_breakpoint_sequence(best_node)
+        self.breakpoints = [-1] + self.determine_breakpoint_sequence(best_node)
 
     def update_best_breakpoints(self, last_breakpoint, block, r):
         """Modifies: least_demerit_of_class, least_demerit"""
@@ -172,13 +183,12 @@ class Typesetting:
 
     def backup_for_visualization(self, last_breakpoint, block, r, d, c):
         """Needs: last_breakpoint, blocks"""
-        if d < INFINITY:
-            self.graph.setdefault("{} {} {}".format(
-                last_breakpoint.fitness,
+        if d < float('inf'):
+            self.graph.setdefault("{} {}".format(
                 self.word_before(last_breakpoint.position),
                 last_breakpoint.position), []).append(
-                    (round(d), "{} {} {}".format(
-                        c, self.word_before(block.position), block.position)))
+                    (round(d), "{} {}".format(
+                        self.word_before(block.position), block.position)))
 
     def make_visualization(self):
         with open('knuth.dot', 'w') as f:  # Just for visualization
@@ -208,7 +218,9 @@ class Typesetting:
         if block.type is Type.penalty:
             width += block.width
         self.current_line = last_breakpoint.line + 1
-        current_line_length = self.line_length[self.current_line]
+        current_line_length = (self.line_length[self.current_line]
+                               if self.current_line < len(self.line_length)
+                               else self.line_length[-1])
         if width < current_line_length:
             stretch = self.current_stretch - last_breakpoint.total_stretch
             if not stretch:
@@ -242,27 +254,14 @@ class Typesetting:
             d = (1 + 100 * abs(r) ** 3) ** 2
         if block.flag and self.blocks[last_breakpoint.position].flag:
             d += PENALTY_ALPHA
-        if r < -0.5:
-            c = 0
-        elif r <= 0.5:
-            c = 1
-        elif r <= 1:
-            c = 2
-        else:
-            c = 3
+        c = [r < -0.5, r <= 0.5, r <= 1, True].index(True)  # Fitness class
         if abs(c - last_breakpoint.fitness) > 1:
             d += PENALTY_GAMMA
         d += last_breakpoint.total_demerits
         return d, c
 
     def insert_new_active_nodes(self, last_breakpoint, pos):
-        """Insert new nodes to active list if suitable.
-
-        Needs: last_breakpoint, pos, current_width, current_stretch,
-               current_shrink, best_node_of_class,
-               least_demerit_of_class, least_demerit, blocks,
-               first_active_node, prev_node
-        Modifies: first_active_node, prev_node"""
+        """Insert new nodes to active list if suitable."""
         total_width, total_stretch, total_shrink = self.get_values_after(pos)
         for c in range(4):
             if (self.least_demerit_of_class[c] <=
@@ -384,7 +383,7 @@ class Typesetting:
                 self.next_node = last_breakpoint.link
                 r = self.adjustment_ratio(last_breakpoint, block)
                 ratios.append(r)
-                self.least_demerit_of_class = [INFINITY] * 4
+                self.least_demerit_of_class = [float('inf')] * 4
                 self.least_demerit = min(self.least_demerit_of_class)
                 self.update_best_breakpoints(last_breakpoint, block, r)
                 last_breakpoint = self.next_node
@@ -399,74 +398,100 @@ class Typesetting:
 
 
 class Rendering:
-    def __init__(self, blocks, breakpoints, ratios):
+    """A rendering engine.
+
+    It paints the blocks in the PostScript file, according to the
+    shrink/stretch ratios."""
+    def __init__(self):
         self.f = None
-        self.blocks = blocks
-        self.breakpoints = breakpoints
-        self.ratios = ratios
 
     def __enter__(self):
         self.f = open('output.ps', 'w')
         self.f.write('%!PS\n')
         self.f.write('<< /PageSize [{} {}] /ImagingBBox null '
-                     '>> setpagedevice\n'.format(PAPER_WIDTH, PAPER_HEIGHT))
+                     '>> setpagedevice\n'.format(PAGE_WIDTH, PAGE_HEIGHT))
         self.f.write('/{}\n'.format(FONT_FACE))
-        # f.write('{} {} moveto {} {} lineto stroke\n'.format(
-        #    MARGIN, MARGIN, MARGIN, PAPER_HEIGHT - MARGIN)) # Help lines
-        # f.write('{} {} moveto {} {} lineto stroke\n'.format(
-        #    PAPER_WIDTH - MARGIN, MARGIN, PAPER_WIDTH - MARGIN,
-        #        PAPER_HEIGHT - MARGIN))
         self.f.write('{} selectfont\n'.format(FONT_SIZE))
+        self.f.write('/xcur { currentpoint pop } def\n')
+        self.f.write('/center { '
+                     'dup '
+                     '/str exch def '
+                     '/sw str stringwidth pop def ' +
+                     '/xpos {} sw sub 2 div xcur sub def '.format(PAGE_WIDTH) +
+                     'xpos 0 rmoveto '
+                     '} def\n')
+        self.f.write('/header { ' +
+                     '/ypos {} {} sub def '.format(PAGE_HEIGHT,
+                                                   HEADER_HEIGHT) +
+                     '0 0 0 setrgbcolor '
+                     '0 setlinewidth '
+                     'newpath ' +
+                     '0 {} moveto '.format(PAGE_HEIGHT) +
+                     '{} {} lineto '.format(PAGE_WIDTH, PAGE_HEIGHT) +
+                     '{} ypos lineto '.format(PAGE_WIDTH) +
+                     '0 ypos lineto '
+                     'closepath fill stroke ' +
+                     '{} {} moveto '.format(MARGIN,
+                                            PAGE_HEIGHT - (HEADER_HEIGHT +
+                                                           HEADER_FONT_SIZE)
+                                            / 2 + 8) +
+                     '/{} {} selectfont '.format(FONT_FACE, HEADER_FONT_SIZE) +
+                     '0.5 0.5 0.9 setrgbcolor '
+                     'center show ' +
+                     '{} ypos moveto '.format(MARGIN) +
+                     '0 0 0 setrgbcolor ' +
+                     '/{} {} selectfont '.format(FONT_FACE, FONT_SIZE) +
+                     '} def\n')
         return self
 
     def __exit__(self, type, value, traceback):
         self.f.close()
 
-    def paint(self):
-        x, y = 0, PAPER_HEIGHT - MARGIN - 15
-        for line, ratio in zip(range(len(self.breakpoints) - 1), self.ratios):
-            for i in range(self.breakpoints[line] + 1,
-                           self.breakpoints[line + 1]):
-                if self.blocks[i].type == Type.penalty:
+    def add_header(self, title):
+        self.f.write('({}) header\n'.format(title))
+
+    def paint(self, blocks, breakpoints, ratios):
+        x, y = 0, PAGE_HEIGHT - HEADER_HEIGHT - MARGIN
+        for line, ratio in zip(range(len(breakpoints) - 1), ratios):
+            for i in range(breakpoints[line] + 1,
+                           breakpoints[line + 1]):
+                if blocks[i].type == Type.penalty:
                     continue
-                if self.blocks[i].character != ' ':
+                if blocks[i].character != ' ':
                     self.f.write('{} {} moveto ({}) show\n'.format(
                         MARGIN + x * FONT_SIZE / 1000, y,
-                        self.blocks[i].character))
+                        blocks[i].character))
                 if ratio > 0:
-                    x += self.blocks[i].width + ratio * self.blocks[i].stretch
+                    x += blocks[i].width + ratio * blocks[i].stretch
                 else:
-                    x += self.blocks[i].width + ratio * self.blocks[i].shrink
+                    x += blocks[i].width + ratio * blocks[i].shrink
             y -= LINE_HEIGHT
             x = 0
+        self.f.write('showpage\n')
 
 
 def main():
     """Main program."""
+    slides = []
+    text = ''
+    for line in sys.stdin:
+        if line and line[0] == '#':  # New slide
+            if text:
+                slides.append((title, text.strip()))
+                text = ''
+            title = line[2:-1]
+        else:
+            text += line
+    slides.append((title, text.strip()))
 
-    text = ("In olden times when wish·ing still helped one, there lived "
-            "a king whose daugh·ters were all beau·ti·ful; and the "
-            "young·est was so beau·ti·ful that the sun it·self, which "
-            "has seen so much, was aston·ished when·ever it shone in "
-            "her face. Close by the king's castle lay a great dark "
-            "for·est, and un·der an old lime-tree in the for·est was a "
-            "well, and when the day was very warm, the king's child "
-            "went out into the for·est and sat down by the side of the "
-            "cool foun·tain; and when she was bored she took a golden "
-            "ball, and threw it up on high and caught it; and this "
-            "ball was her favor·ite play·thing.")
-
-    line_length = [float(PAPER_WIDTH - 2 * MARGIN) * 1000 / FONT_SIZE] * 20
-    tex = Typesetting(text, line_length, [-1, 66, 142, 214, 289,
-                                          362, 433, 500, 572, 599])
-    tex.compute_breakpoints()
-    tex.compute_metrics()
-    with Rendering(tex.blocks, tex.breakpoints, tex.ratios) as postscript:
-        postscript.paint()
-    print('Breakpoints:', tex.breakpoints)
-    for i in range(len(tex.breakpoints) - 1):
-        print(tex.substring(tex.breakpoints[i], tex.breakpoints[i + 1]),
-              tex.ratios[i])
+    line_length = [float(PAGE_WIDTH - 2 * MARGIN) * 1000 / FONT_SIZE]
+    with Rendering() as postscript:
+        for title, text in slides:
+            postscript.add_header(title)
+            tex = Typesetting(text, line_length)
+            tex.compute_breakpoints()
+            tex.compute_metrics()
+            postscript.paint(tex.blocks, tex.breakpoints, tex.ratios)
 
 if __name__ == '__main__':
     main()
