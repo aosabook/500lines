@@ -407,11 +407,92 @@ attributes stored freely in dictionaries
 Attribute based model
 ----------------------
 
-- Big difference between Python and Ruby
-- Primitive operation is reading an attribute, not sending a method 
-- need a way to "bind" a method to an object
-- binding is just done with a closure for now
-- rest does not change much
+Now that we have the simplest version of our object model we can now think of
+ways to change it. The first change that this section will introduce is the
+distinction between a message-based model and an attribute-based model. This is
+one of the core differences between Smalltalk, Ruby, Javascript on the one hand
+and Python, Lua on the other hand. The message-based model has the sending of
+messages as the primitive operation of program execution. The attribute-based
+model splits up the sending of a message into two parts, looking up an attribute
+and then calling the result. This difference can be shown in the following test:
+
+````python
+def test_bound_method():
+    # Python code
+    class A(object):
+        def f(self, a):
+            return self.x + a + 1
+    obj = A()
+    obj.x = 2
+    m = obj.f
+    assert m(4) == 7
+
+    class B(A):
+        pass
+    obj = B()
+    obj.x = 1
+    m = obj.f
+    assert m(10) == 12 # works on subclass too
+
+    # Object model code
+    def f(self, a):
+        return self.read_attr("x") + a + 1
+    A = Class("A", OBJECT, {"f": f}, TYPE)
+    obj = Instance(A)
+    obj.write_attr("x", 2)
+    m = obj.read_attr("f")
+    assert m(4) == 7
+
+    B = Class("B", A, {}, TYPE)
+    obj = Instance(B)
+    obj.write_attr("x", 1)
+    m = obj.read_attr("f")
+    assert m(10) == 12
+````
+
+While the set up of the classes is the same as the corresponding test for
+message sends, the way that the methods are called is different. First, the
+attribute with the name of the method is looked up on the object. The result of
+that lookup operation is a *bound method*, an object that encapsulates both the
+object as well as the function found in the class. Then that bound method is
+called with a call operation.
+
+To implement this behaviour, we need to change the ``Base.read_attr``
+implementation. If the attribute is not found in the dictionary, it is looked
+for in the class. If it is found in the class, and the attribute is a callable,
+it needs to be turned into a bound method. To emulate a bound method we simply
+use a closure. In addition to changing ``Base.read_attr`` we can also change
+``Base.send`` to use the new approach to message sending to make sure the
+previous tests still pass.
+
+````python
+class Base(object):
+    ...
+    def read_attr(self, fieldname):
+        """ read field 'fieldname' out of the object """
+        result = self._read_dict(fieldname)
+        if result is not MISSING:
+            return result
+        result = self.cls._read_from_class(fieldname)
+        if callable(result):
+            return _make_boundmethod(result, self)
+        if result is MISSING:
+            raise AttributeError(fieldname)
+        return result
+
+    def send(self, methname, *args):
+        """ send message 'methname' with arguments 'args' to object """
+        meth = self.read_attr(methname)
+        return meth(*args)
+
+def _make_boundmethod(meth, self):
+    def bound(*args):
+        return meth(self, *args)
+    return bound
+
+````
+
+The rest of the code does not need to be changed at all.
 
 
 Meta-object protocol
