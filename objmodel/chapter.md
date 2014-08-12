@@ -48,7 +48,7 @@ Message based model
 The object model we will start out with is a majorly simplified version of that
 of Smalltalk. It will have classes and instances of them, the ability to read
 and write attributes into objects, the ability to send messages to objects and
-the ability for classes to be subclasses of other classes.
+the ability for a class to be a subclass of another classes.
 
 The interface to these features is represented by a shared base class ``Base``
 that defines a number of methods:
@@ -151,6 +151,8 @@ their behaviour (in theory that behaviour could also be part of ``Base``, but in
 a later section it will become important that this is not the case):
 
 ````python
+MISSING = object()
+
 class BaseWithDict(Base):
     def __init__(self, cls, fields):
         Base.__init__(self, cls)
@@ -237,6 +239,8 @@ def test_read_write_field_class():
     assert A.read_attr("a") == 5
 ````
 
+Isinstance checking
+++++++++++++++++++++++
 
 So far the fact that objects have classes is not really made use of. So the next
 test we are writing implements the ``isinstance`` machinery. The test for that
@@ -293,10 +297,102 @@ class Class(BaseWithDict):
 With that code the test passes.
 
 
+Message sending
+++++++++++++++++++++
 
+The remaining missing feature for this first version of the object model is the
+ability to send messages to objects.
 
+XXX polymorphism
 
+````python
+def test_send_simple():
+    # Python code
+    class A(object):
+        def f(self):
+            return self.x + 1
+    obj = A()
+    obj.x = 1
+    assert obj.f() == 2
 
+    class B(A):
+        pass
+    obj = B()
+    obj.x = 1
+    assert obj.f() == 2 # works on subclass too
+
+    # Object model code
+    def f(self):
+        return self.read_attr("x") + 1
+    A = Class("A", OBJECT, {"f": f}, TYPE)
+    obj = Instance(A)
+    obj.write_attr("x", 1)
+    assert obj.send("f") == 2
+
+    B = Class("B", A, {}, TYPE)
+    obj = Instance(B)
+    obj.write_attr("x", 2)
+    assert obj.send("f") == 3
+````
+
+To find the correct implementation of a method that is sent to an object we walk
+the method resolution order of the class of the object. The first method that is
+found in the dictionary of one of the classes in the method resolution order is
+then called. The code for that looks as follows:
+
+````python
+class Class(BaseWithDict):
+    ...
+
+    def _read_from_class(self, methname):
+        for cls in self.mro():
+            if methname in cls._fields:
+                return cls._fields[methname]
+        return MISSING
+
+````
+
+Together with the code for ``send`` in the ``Base`` implementation, this passes
+the test.
+
+To make sure that methods with arguments work as well, and that overriding of
+methods is implemented correctly, we can use the following slightly more complex
+test:
+
+````python
+def test_send_subclassing_and_arguments():
+    # Python code
+    class A(object):
+        def g(self, arg):
+            return self.x + arg
+    obj = A()
+    obj.x = 1
+    assert obj.g(4) == 5
+
+    class B(A):
+        def g(self, arg):
+            return self.x + arg * 2
+    obj = B()
+    obj.x = 4
+    assert obj.g(4) == 12
+
+    # Object model code
+    def g_A(self, arg):
+        return self.read_attr("x") + arg
+    A = Class("A", OBJECT, {"g": g_A}, TYPE)
+    obj = Instance(A)
+    obj.write_attr("x", 1)
+    assert obj.send("g", 4) == 5
+
+    def g_B(self, arg):
+        return self.read_attr("x") + arg * 2
+    B = Class("B", A, {"g": g_B}, TYPE)
+    obj = Instance(B)
+    obj.write_attr("x", 4)
+    assert obj.send("g", 4) == 12
+````
+
+XXX
 send messages to objects
 single inheritance, walk up inheritance chain to find method that implements message
 
