@@ -515,14 +515,161 @@ Meta-object protocol
 Instance optimization
 ----------------------
 
-- Small optimization: maps
-- no behavior difference
-- In chapter only memory size optimization
-- In practice also huge speed optimization
-- Observation: many instances share dictionary layout, thus very inefficient
-- Better: explicitly share layout 
-- Core technique in all high-performance dynamic language implementations such
-  as Self, V8, PyPy
+While the first three variants of the object model were concerned with
+behavioural variation, in this last section we will look at an optimization
+without any behavioural impact. This optimization is called *maps* and was
+pioneered by the VM for the Self programming language (citation:
+C. Chambers, D. Ungar, and E. Lee, “An efficient implementation of SELF a
+dynamically-typed object-oriented language based on prototypes,” in OOPSLA,
+1989, vol. 24.). It is still one of the most important object model
+optimizations. It's used in PyPy and all all modern Javascript VMs, such as V8
+(where the optimization is called *hidden classes*).
+
+The optimization starts from the following observation. In the object model as
+implemented so far all instances use a full dictionary to store their
+attributes. A dictionary is implemented using a hash map, which takes a lot of
+memory. In addition, the dictionaries of instances of the same class typically
+have the same keys as well. For example, given a class ``Point``, the keys of
+all its instances' dictionaries are likely ``"x"`` and ``"y"``.
+
+The maps optimization exploits this fact. It effectively splits up the
+dictionary of every instance into two parts. A part storing the keys (the map)
+that can be shared between all instances with the same set of keys. The instance
+then only stores a reference to the shared map and the values of the attributes
+in a list (which is a lot more compact in memory). The map stores a mapping from
+attribute names to indexes into that list.
+
+A simple white-box test that inspects the implementation details of ``Instance``
+of that behaviour could look like this:
+
+````python
+def test_maps():
+    # white box test inspecting the implementation
+    Point = Class("Point", OBJECT, {}, TYPE)
+    p1 = Instance(Point)
+    p1.write_attr("x", 1)
+    p1.write_attr("y", 2)
+    assert p1.storage == [1, 2]
+    assert p1.map.attrs == {"x": 0, "y": 1}
+
+    p2 = Instance(Point)
+    p2.write_attr("x", 5)
+    p2.write_attr("y", 6)
+    assert p1.map is p2.map
+    assert p2.storage == [5, 6]
+
+    p1.write_attr("x", -1)
+    p1.write_attr("y", -2)
+    assert p1.map is p2.map
+    assert p1.storage == [-1, -2]
+
+    p3 = Instance(Point)
+    p3.write_attr("x", 100)
+    p3.write_attr("z", -343)
+    assert p3.map is not p1.map
+    assert p3.map.attrs == {"x": 0, "z": 1}
+````
+
+The ``attrs`` attribute of the map of ``p1`` describes the layout of the
+instance as having two attributes ``"x"`` and ``"y"`` which are stored at
+position 0 and 1 of the ``storage`` of ``p1``. Making a second instance ``p2``
+and adding the same attributes in the same order to it will make it end up with
+the same map. If on the other hand a different attribute is added, the map can
+of course not be shared.
+
+The ``Map`` class looks as follows:
+
+````python
+class Map(object):
+    def __init__(self, attrs):
+        self.attrs = attrs
+        self.next_maps = {}
+
+    def get_index(self, fieldname):
+        return self.attrs.get(fieldname, -1)
+
+    def next_map(self, fieldname):
+        assert fieldname not in self.attrs
+        if fieldname in self.next_maps:
+            return self.next_maps[fieldname]
+        attrs = self.attrs.copy()
+        attrs[fieldname] = len(attrs)
+        result = self.next_maps[fieldname] = Map(attrs)
+        return result
+
+EMPTY_MAP = Map({})
+````
+
+Maps have two methods, ``get_index`` and ``next_map``. The former is used to
+find the index of an attribute name in the objects storage. The latter is used
+when a new attribute is added to an object. In that case the object needs to use
+a different map, which ``next_map`` computes. The method uses the ``next_maps``
+dictionary to cache already created maps. That way, objects that have the same
+layout also end up using the same ``Map`` object.
+
+XXX diagram of map transitions?
+
+The changed ``Instance`` implementation that uses maps looks like this:
+
+````python
+class Instance(Base):
+    """Instance of a user-defined class. """
+
+    def __init__(self, cls):
+        assert isinstance(cls, Class)
+        Base.__init__(self, cls)
+        self.map = EMPTY_MAP
+        self.storage = []
+
+    def _read_dict(self, fieldname):
+        index = self.map.get_index(fieldname)
+        if index == -1:
+            return MISSING
+        return self.storage[index]
+
+    def _write_dict(self, fieldname, value):
+        index = self.map.get_index(fieldname)
+        if index != -1:
+            self.storage[index] = value
+        else:
+            new_map = self.map.next_map(fieldname)
+            self.storage.append(value)
+            self.map = new_map
+````
+
+The class now inherits from ``Base`` directly, because instances don't use a
+dictionary any more to store their attributes. Therefore it now needs to
+implement the ``_read_dict`` and ``_write_dict`` methods.
+
+When creating a new instance it starts out with using the ``EMPTY_MAP``, which
+has no attributes, and an empty storage. To implement ``_read_dict``, the
+instance's map is asked for the index of the attribute name. Then the
+corresponding entry of the storage list is returned.
+
+Writing a dictionary has two cases. On the one hand the value of an existing
+attribute can be changed. This is done by simply changing the storage at the
+corresponding index. If the attribute does not exist yet, a *map transition* is
+needed using the ``next_map`` method. The value of the new attribute is appended
+to the storage list.
+
+
+What does this optimization achieve? It optimizes the memory use of the common
+case where many instances that have the same layout exist. It is not a universal
+optimization: Code that creates instances with wildly different sets of
+attributes will have a larger memory footprint than just using dictionaries.
+
+This is a common approach for optimizing dynamic languages. It is often not
+possible to find optimizations that are faster or use less memory in *all*
+cases. To still speed up programs in practice, optimizations are chosen that
+should apply to a large majority of programs in practice, while potentially
+making the behaviour worse for programs that use extremely dynamic features.
+
+Another interesting aspect of maps is that while in this chapter they are only
+used as a memory optimization, in actual VMs that use a JIT compiler they also
+improve the performance of the program. To achieve that, the JIT will specialize
+the user functions at runtime according to the maps that the involved objects
+use. Then it can compile attribute lookups to a lookup in the objects' storage
+at a fixed offset, getting rid of all dictionary lookups completely.
 
 
 Potential Extensions
