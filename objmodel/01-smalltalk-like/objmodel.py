@@ -20,7 +20,7 @@ class Base(object):
         return self.cls.issubclass(cls)
 
     def send(self, methname, *args):
-        """ send message 'methname' with arguments `args` to object """
+        """ send message 'methname' with arguments 'args' to object """
         meth = self.cls._read_from_class(methname)
         return meth(self, *args)
 
