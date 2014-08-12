@@ -7,6 +7,7 @@ import json
 
 PAPER_WIDTH = 842
 PAPER_HEIGHT = 595
+LINE_HEIGHT = 36
 MARGIN = 72
 FONT_SIZE = 20
 FONT_FACE = 'Verdana'
@@ -44,16 +45,22 @@ class Type(Enum):
 
 
 class Typesetting:
-    def __init__(self, text, line_length):
+    """A typesetting engine.
+
+    It takes text and figures out where to break in order to justify the
+    text at best. With low shrink/stretch ratio comes great readability."""
+    def __init__(self, text, line_length, breakpoints=None):
         # Main attributes
         self.line_length = line_length
         self.blocks = self.convert_to_blocks(text)
-        self.breakpoints = None
+        self.breakpoints = breakpoints
         # Metrics
         self.current_line = None
         self.current_width = 0
         self.current_stretch = 0
         self.current_shrink = 0
+        self.ratios = []
+        self.demerits = None
         # Pointers
         self.first_active_node = Breakpoint(position=-1, line=0, fitness=1,
                                             total_width=0, total_stretch=0,
@@ -67,7 +74,6 @@ class Typesetting:
         self.least_demerit_of_class = None
         self.least_demerit = None
         # Saves for visualization
-        self.ratios = {}
         self.graph = {}
 
     def convert_to_blocks(self, text, indent=True):
@@ -143,7 +149,8 @@ class Typesetting:
                         self.insert_new_active_nodes(last_breakpoint,
                                                      block.position)
                 if not self.first_active_node:
-                    print('ZOMG')
+                    raise Exception(
+                        'Your contraints are too harsh. Please relax.')
             if block.type is Type.glue:
                 self.current_width += block.width
                 self.current_stretch += block.stretch
@@ -152,12 +159,10 @@ class Typesetting:
         best_node = self.choose_best_node()
         if ADJUSTMENT != 0:
             best_node = self.choose_appropriate_node(best_node)
-        return self.determine_breakpoint_sequence(best_node)
+        self.breakpoints = self.determine_breakpoint_sequence(best_node)
 
     def update_best_breakpoints(self, last_breakpoint, block, r):
-        """
-        Modifies: least_demerit_of_class, least_demerit
-        """
+        """Modifies: least_demerit_of_class, least_demerit"""
         d, c = self.demerits_fitness_class(last_breakpoint, block, r)
         self.backup_for_visualization(last_breakpoint, block, r, d, c)
         if d < self.least_demerit_of_class[c]:
@@ -168,7 +173,6 @@ class Typesetting:
     def backup_for_visualization(self, last_breakpoint, block, r, d, c):
         """Needs: last_breakpoint, blocks"""
         if d < INFINITY:
-            self.ratios[(last_breakpoint.position, block.position)] = r
             self.graph.setdefault("{} {} {}".format(
                 last_breakpoint.fitness,
                 self.word_before(last_breakpoint.position),
@@ -193,6 +197,7 @@ class Typesetting:
     def adjustment_ratio(self, last_breakpoint, block):
         """Compute the ratio of stretchability/shrinkability for the
         current line in order to justify the text.
+
         Needs: last_breakpoint, block, current_width, current_stretch,
                current_shrink, line_length
         Modifies: current_line
@@ -223,6 +228,7 @@ class Typesetting:
     def demerits_fitness_class(self, last_breakpoint, block, r):
         """Determine the demerit value of the current line, along with
         its fitness class.
+
         Needs: last_breakpoint, block, r, blocks
         Modifies: None
 
@@ -251,6 +257,7 @@ class Typesetting:
 
     def insert_new_active_nodes(self, last_breakpoint, pos):
         """Insert new nodes to active list if suitable.
+
         Needs: last_breakpoint, pos, current_width, current_stretch,
                current_shrink, best_node_of_class,
                least_demerit_of_class, least_demerit, blocks,
@@ -365,11 +372,77 @@ class Typesetting:
             i -= 1
         return self.substring(i, pos)
 
+    def compute_metrics(self):
+        index = 1
+        ratios = []
+        for block in self.blocks:
+            if block.type is Type.box:
+                self.current_width += block.width
+            if block.position == self.breakpoints[index]:
+                last_breakpoint = self.first_active_node
+                self.prev_node = None
+                self.next_node = last_breakpoint.link
+                r = self.adjustment_ratio(last_breakpoint, block)
+                ratios.append(r)
+                self.least_demerit_of_class = [INFINITY] * 4
+                self.least_demerit = min(self.least_demerit_of_class)
+                self.update_best_breakpoints(last_breakpoint, block, r)
+                last_breakpoint = self.next_node
+                self.insert_new_active_nodes(last_breakpoint, block.position)
+                index += 1
+            if block.type is Type.glue:
+                self.current_width += block.width
+                self.current_stretch += block.stretch
+                self.current_shrink += block.shrink
+        self.ratios = ratios
+        self.demerits = self.first_active_node.total_demerits
+
+
+class Rendering:
+    def __init__(self, blocks, breakpoints, ratios):
+        self.f = None
+        self.blocks = blocks
+        self.breakpoints = breakpoints
+        self.ratios = ratios
+
+    def __enter__(self):
+        self.f = open('output.ps', 'w')
+        self.f.write('%!PS\n')
+        self.f.write('<< /PageSize [{} {}] /ImagingBBox null '
+                     '>> setpagedevice\n'.format(PAPER_WIDTH, PAPER_HEIGHT))
+        self.f.write('/{}\n'.format(FONT_FACE))
+        # f.write('{} {} moveto {} {} lineto stroke\n'.format(
+        #    MARGIN, MARGIN, MARGIN, PAPER_HEIGHT - MARGIN)) # Help lines
+        # f.write('{} {} moveto {} {} lineto stroke\n'.format(
+        #    PAPER_WIDTH - MARGIN, MARGIN, PAPER_WIDTH - MARGIN,
+        #        PAPER_HEIGHT - MARGIN))
+        self.f.write('{} selectfont\n'.format(FONT_SIZE))
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.f.close()
+
+    def paint(self):
+        x, y = 0, PAPER_HEIGHT - MARGIN - 15
+        for line, ratio in zip(range(len(self.breakpoints) - 1), self.ratios):
+            for i in range(self.breakpoints[line] + 1,
+                           self.breakpoints[line + 1]):
+                if self.blocks[i].type == Type.penalty:
+                    continue
+                if self.blocks[i].character != ' ':
+                    self.f.write('{} {} moveto ({}) show\n'.format(
+                        MARGIN + x * FONT_SIZE / 1000, y,
+                        self.blocks[i].character))
+                if ratio > 0:
+                    x += self.blocks[i].width + ratio * self.blocks[i].stretch
+                else:
+                    x += self.blocks[i].width + ratio * self.blocks[i].shrink
+            y -= LINE_HEIGHT
+            x = 0
+
 
 def main():
-    """Main program.
-
-    """
+    """Main program."""
 
     text = ("In olden times when wish·ing still helped one, there lived "
             "a king whose daugh·ters were all beau·ti·ful; and the "
@@ -384,41 +457,16 @@ def main():
             "ball was her favor·ite play·thing.")
 
     line_length = [float(PAPER_WIDTH - 2 * MARGIN) * 1000 / FONT_SIZE] * 20
-    tex = Typesetting(text, line_length)
-    breakpoints = tex.compute_breakpoints()
-    breakpoints = [-1] + breakpoints
-    print('Breakpoints:', breakpoints)
-    for i in range(len(breakpoints) - 1):
-        print(tex.substring(breakpoints[i], breakpoints[i + 1]),
-              tex.ratios[(breakpoints[i], breakpoints[i + 1])])
-    with open('output.ps', 'w') as f:
-        f.write('%!PS\n')
-        f.write('<< /PageSize [{} {}] /ImagingBBox null '
-                '>> setpagedevice\n'.format(PAPER_WIDTH, PAPER_HEIGHT))
-        f.write('/{}\n'.format(FONT_FACE))
-        # f.write('{} {} moveto {} {} lineto stroke\n'.format(
-        #    MARGIN, MARGIN, MARGIN, PAPER_HEIGHT - MARGIN)) # Help lines
-        # f.write('{} {} moveto {} {} lineto stroke\n'.format(
-        #    PAPER_WIDTH - MARGIN, MARGIN, PAPER_WIDTH - MARGIN,
-        #        PAPER_HEIGHT - MARGIN))
-        f.write('{} selectfont\n'.format(FONT_SIZE))
-        x, y = 0, PAPER_HEIGHT - MARGIN - 15
-        for line in range(len(breakpoints) - 1):
-            ratio = tex.ratios[(breakpoints[line], breakpoints[line + 1])]
-            for i in range(breakpoints[line] + 1 if line > 0 else 0,
-                           breakpoints[line + 1]):
-                if tex.blocks[i].type == Type.penalty:
-                    continue
-                if tex.blocks[i].character != ' ':
-                    f.write('{} {} moveto ({}) show\n'.format(
-                        MARGIN + x * FONT_SIZE / 1000, y,
-                        tex.blocks[i].character))
-                if ratio > 0:
-                    x += tex.blocks[i].width + ratio * tex.blocks[i].stretch
-                else:
-                    x += tex.blocks[i].width + ratio * tex.blocks[i].shrink
-            y -= 36
-            x = 0
+    tex = Typesetting(text, line_length, [-1, 66, 142, 214, 289,
+                                          362, 433, 500, 572, 599])
+    tex.compute_breakpoints()
+    tex.compute_metrics()
+    with Rendering(tex.blocks, tex.breakpoints, tex.ratios) as postscript:
+        postscript.paint()
+    print('Breakpoints:', tex.breakpoints)
+    for i in range(len(tex.breakpoints) - 1):
+        print(tex.substring(tex.breakpoints[i], tex.breakpoints[i + 1]),
+              tex.ratios[i])
 
 if __name__ == '__main__':
     main()
