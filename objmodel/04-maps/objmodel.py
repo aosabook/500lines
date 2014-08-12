@@ -79,7 +79,7 @@ class BaseWithDict(Base):
         self._fields[fieldname] = value
 
 
-class Instance(BaseWithDict):
+class Instance(Base):
     """Instance of a user-defined class. """
 
     def __init__(self, cls):
