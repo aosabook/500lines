@@ -157,15 +157,15 @@ class Viewer(object):
         start, direction = self.get_ray(x, y)
         self.scene.pick(start, direction, self.modelView)
 
-    def move(self, x, y):
-        """ Execute a move command on the scene. """
-        start, direction = self.get_ray(x, y)
-        self.scene.move(start, direction, self.inverseModelView)
-
     def place(self, shape, x, y):
         """ Execute a placement of a new primitive into the scene. """
         start, direction = self.get_ray(x, y)
         self.scene.place(shape, start, direction, self.inverseModelView)
+
+    def move(self, x, y):
+        """ Execute a move command on the scene. """
+        start, direction = self.get_ray(x, y)
+        self.scene.move(start, direction, self.inverseModelView)
 
     def rotate_color(self, forward):
         """ Rotate the color of the selected Node. Boolean 'forward' indicates direction of rotation. """

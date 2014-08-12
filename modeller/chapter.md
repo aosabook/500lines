@@ -1,5 +1,5 @@
 ## Intro
-Humans are constantly creating new things. In modern times, we write software to assist in the design and creation process. 
+Humans are innately creative. We continuously designand build novel, useful, and interesting things. In modern times, we write software to assist in the design and creation process. 
 Many designers, engineers and creators use Computer Assisted Design (CAD) software.  These tools allow creators to design buildings, bridges, video game art, 
 film monsters, 3D printable objects, and many other things on a computer before building a physical version of the design. 
 
@@ -19,8 +19,8 @@ However, at their core, call CAD tools must include the three features discussed
 With that in mind, let's explore how we can represent a 3D design, display it to the screen, and interact with it, in 500 lines of Python.
 
 ## Representing the Design: The Scene
-The first of the core features of a 3D modeller is a data structure to represent the design in memory. The class that represents this is often called `Design` or `Scene`. 
-In this project, we call it a `Scene`. The `Scene` contains the data that represents the design that the user is working on. The objects contained in the `Scene` are referred to as `Node`s.
+The first of the core features of a 3D modeller is a data structure to represent the design in memory.  In this project, we call it the `Scene`.
+The `Scene` contains the data that represents the design that the user is working on. The objects contained in the `Scene` are referred to as `Node`s.
 The `Scene` has a list of `Node`.
 
 `````````````````````````````````````````` {.python .numberLines}
@@ -35,6 +35,10 @@ class Scene(object):
         # Keep track of the currently selected node.
         # Actions may depend on whether or not something is selected
         self.selected_node = None
+
+    def add_node(self, node):
+        """ Add a new node to the scene """
+        self.node_list.append(node)
 
 ``````````````````````````````````````````
 
@@ -85,9 +89,9 @@ provide a `render` function.
 
 Using a class structure like this means that the `Node` class is easily extensible. As an example of the extensibility, consider adding a `Node` type that combines multiple
 primitives, like a figure for a character. We can easily extend the `Node` class for this situation by creating a new class `class Figure(Node)` which will override some of
-the functionality of the `Node` manage a list of sub-nodes.
+the functionality of the `Node` to manage a list of sub-nodes.
 
-By making the `Node` class extensible in this way, we are able to add new types of shapes to the scene without changing any of the other code around scene
+By making the `Node` class extensible in this way, we are able to add new types of shapes to the scene without changing any of the other code for scene
 manipulation and rendering. Using `Node` concept to abstract away the fact that one `Scene` object may have many children is known as the Composite Design Pattern.
 
 ### Linear algebra (TODO)
@@ -104,7 +108,7 @@ or have an explanation here.
 
 ## Displaying the Design: Rendering
 Now that we have an abstract representation of the objects in the scene, the second key feature for a 3D modeller is displaying the design to the screen.
-The process of displaying the design to the scene is called rendering. In this project, we use the Open Graphics Library (OpenGL) to communicate with the graphics drivers to 
+The process of displaying the design to the screen is called rendering. In this project, we use the Open Graphics Library (OpenGL) to communicate with the graphics drivers to 
 render the `Scene`.
 
 <!--- TODO: should this get moved to the end of the chapter? -->
@@ -293,7 +297,7 @@ Manipulating the ModelView matrix allows us to have a single render list for eac
 `Node` stores its color, location, and scale, and applies the state to the OpenGL state before rendering.
 
 `````````````````````````````````````````` {.python .numberLines startFrom="63"}
-# scene.py
+# node.py
 def render(self):
     glPushMatrix()
     glMultMatrixf(numpy.transpose(self.translation))
@@ -487,7 +491,7 @@ The viewer retrieves the `Interaction` camera location during rendering to use i
 In this project, we implement a very simple ray-based picking [algorithm](http://www.opengl-tutorial.org/miscellaneous/clicking-on-objects/picking-with-custom-ray-obb-function/). Each node stores an Axis-Aligned Bounding Box which is an approximation of the
 space it occupies. When the user clicks in the window, we use the current projection matrix to generate a ray that represents the mouse click, as if the mouse pointer shoots a ray into the scene.
 
-`````````````````````````````````````````` {.python .numberLines startFrom="138"}
+`````````````````````````````````````````` {.python .numberLines startFrom="136"}
 # viewer.py
 def get_ray(self, x, y):
     """ Generate a ray beginning at the near plane, in the direction that the x, y coordinates are facing
@@ -507,9 +511,14 @@ def get_ray(self, x, y):
     direction = direction / norm(direction)
 
     return (start, direction)
+
+def pick(self, x, y):
+    """ Execute pick of an object. Selects an object in the scene. """
+    start, direction = self.get_ray(x, y)
+    self.scene.pick(start, direction, self.modelView)
 ``````````````````````````````````````````
 
-To determine which Node was clicked on, we traverse the scene to test whether the ray intersects with each Node's Bounding Box. We choose the Node with the intersection closest to the ray origin and store it as the selected node.
+To determine which Node was clicked on, we traverse the scene to test whether the ray hits any `Node`s. We choose the Node with the intersection closest to the ray origin and store it as the selected node.
 
 `````````````````````````````````````````` {.python .numberLines startFrom="30"}
 # scene.py
@@ -535,6 +544,29 @@ def pick(self, start, direction, mat):
         closest_node.selected_loc = start + direction * mindist
         self.selected_node = closest_node
 ``````````````````````````````````````````
+Within the Node class, the `pick` function tests whether the ray intersects with the Axis Aligned Bounding Box of the `Node`. If a node is selected, the `select` function toggles the selected state of the node.
+
+`````````````````````````````````````````` {.python .numberLines startFrom="40"}
+# node.py
+def pick(self, start, direction, mat):
+    """ Return whether or not the ray hits the object
+       Consume:  start, direction    the ray to check
+                 mat                 the modelview matrix to transform the ray by """
+
+    # transform the modelview matrix by the current translation
+    newmat = numpy.dot(mat, self.translation)
+    results = self.aabb.ray_hit(start, direction, newmat)
+    return results
+
+def select(self, select=None):
+   """ Toggles or sets selected state """
+   if select is not None:
+       self.selected = select
+   else:
+       self.selected = not self.selected
+
+``````````````````````````````````````````
+
 
 The Ray-AABB selection approach is very simple to understand and implement. However, the results are wrong in certain situations. For example, in the `Sphere` primitive, the sphere itself only touches
 the AABB in the centre of each of its planes. However if the user clicks on the corner of the Sphere's AABB, the collision will be detected with the Sphere, even if the user intended to click
@@ -549,9 +581,25 @@ penalty can be offset by using increasingly sophisticated algorithms for collisi
 A selected node can be moved, resized, or colorized. When the `Viewer` receives a callback for one of these functions, it calls the appropriate function on the `Scene`, which in turn applies
 the appropriate transformation to the currently selected `Node`.
 
+`````````````````````````````````````````` {.python .numberLines startFrom="165"}
+# viewer.py
+def move(self, x, y):
+    """ Execute a move command on the scene. """
+    start, direction = self.get_ray(x, y)
+    self.scene.move(start, direction, self.inverseModelView)
+
+def rotate_color(self, forward):
+    """ Rotate the color of the selected Node. Boolean 'forward' indicates direction of rotation. """
+    self.scene.rotate_color(forward)
+
+def scale(self, up):
+    """ Scale the selected Node. Boolean up indicates scaling larger."""
+    self.scene.scale(up)
+``````````````````````````````````````````
+
+
 ##### Color
-Colorization is accomplished with a very simplistic list of possible colors. The user can cycle through the colors with the arrow keys. Recall that the selected
-color is passed to OpenGL with `glColor` when the Node is rendered.
+Colorization is accomplished with a very simplistic list of possible colors. The user can cycle through the colors with the arrow keys. The scene dispatches the color selection to the selected node.
 
 `````````````````````````````````````````` {.python .numberLines startFrom="92"}
 # scene.py
@@ -560,16 +608,20 @@ def rotate_color(self, forwards):
     if self.selected_node is None: return
     self.selected_node.rotate_color(forwards)
 ``````````````````````````````````````````
+Recall that each node stores its current color. The `rotate_color` function simply modifies the current color of the node. The color is passed to OpenGL with `glColor` when the Node is rendered. 
 
+`````````````````````````````````````````` {.python .numberLines startFrom="28"}
+# node.py
+def rotate_color(self, forwards):
+    self.color_index += 1 if forwards else -1
+    if self.color_index > color.MAX_COLOR:
+        self.color_index = color.MIN_COLOR
+    if self.color_index < color.MIN_COLOR:
+        self.color_index = color.MAX_COLOR
+``````````````````````````````````````````
 
 ##### Scale
-Each Node stores a current matrix that stores its scale. A matrix that scales by parameters `x`, `y` and `z` in those respective directions is:
-
-![Scale Matrix](scale.png?raw=true)
-
-The function `scaling` returns such a matrix, given a list representing the `x`, `y`, and `z` scaling factors.
-When the user modifies the scale of a Node, the resulting scaling matrix is multiplied into the current scaling matrix for the Node.
-
+As with color, the scene dispatches any scaling modifications to the selected node, if there is one.
 `````````````````````````````````````````` {.python .numberLines startFrom="97" }
 # scene.py
 def scale(self, up):
@@ -578,6 +630,13 @@ def scale(self, up):
     self.selected_node.scale(up)
 
 ``````````````````````````````````````````
+Each Node stores a current matrix that stores its scale. A matrix that scales by parameters `x`, `y` and `z` in those respective directions is:
+
+![Scale Matrix](scale.png?raw=true)
+
+The function `scaling` returns such a matrix, given a list representing the `x`, `y`, and `z` scaling factors.
+
+When the user modifies the scale of a Node, the resulting scaling matrix is multiplied into the current scaling matrix for the Node.
 `````````````````````````````````````````` {.python .numberLines startFrom="35"}
 # node.py
 def scale(self, up):
@@ -636,8 +695,14 @@ def translate(self, x, y, z):
 #### Placing Nodes
 Node placement uses techniques from both picking and translation. We use the same ray calculation for the current mouse location to determine where to place the node.
 To place a new node, we calculate the generate a ray that represents the mouse cursor in the scene.
+`````````````````````````````````````````` {.python .numberLines startFrom="160"}
+# viewer.py
+def place(self, shape, x, y):
+    """ Execute a placement of a new primitive into the scene. """
+    start, direction = self.get_ray(x, y)
+    self.scene.place(shape, start, direction, self.inverseModelView)
+``````````````````````````````````````````
 We create a new node which is originally at the origin, and we translate it to a point on the ray, a fixed distance from the camera.
-
 `````````````````````````````````````````` {.python .numberLines startFrom="72"}
 # scene.py
 def place(self, shape, start, direction, inv_modelview):
