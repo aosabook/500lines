@@ -279,16 +279,32 @@ All production graph databases share a very particular performance characteristi
 
 // do a perf test with the O(n) graph
 
+Dagoba.Graph.findOutEdges = function(vertex) { return this.edges.filter(function(edge) {return edge._out == vertex._id} ) }
+
+Dagoba.Graph.findInEdges = function(vertex) { return this.edges.filter(function(edge) {return edge._in == vertex._id} ) }
+
+
 To alleviate this dismal performance most databases index over oft-queried fields, which turns an O(n) search into an O(log n) search. This gives considerably better search time performance, but at the cost of some write performance and a lot of space -- indices can easily double the size of a database. Much of the modern DBA's role lies in carefully balancing these time/space tradeoffs and tediously tending to the index garden, weeding out unneeded indices and adding new ones when necessary. [replace this]
 
 // add an index
 // do a perf test with an indexed graph
+
+Dagoba.Graph.findOutEdges = function(vertex) { return this.outEdgeIndex[vertex._id] }
+
+Dagoba.Graph.findInEdges = function(vertex) { return this.inEdgeIndex[vertex._id] }
+
+
 
 Graph databases sidestep this issue by making direct connections between vertices and edges, so graph traversals are just pointer jumps: no need to read through everything, no need for indices. Now finding your friends has the same price regardless of total number of people in the graph, with no additional space cost or write time cost. One downside to this approach is that the pointers work best when the whole graph is in memory on the same machine. Sharding a graph across multiple machines is still an active area of research. [N] [point to a couple graph theory papers on NP-completeness of optimal splitting, but also some practical takes on this that mostly work ok]
 
 // add pointers
 // perf test
 // wow such perform
+
+Dagoba.Graph.findOutEdges = function(vertex) { return vertex._out; }
+
+Dagoba.Graph.findInEdges = function(vertex) { return vertex._in; }
+
 
 ### Orthogonal Optimization
 
