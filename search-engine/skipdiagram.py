@@ -31,7 +31,9 @@ def main():
         fill_structure(Btree())
 
     builder.end("svg")
-    ElementTree(builder.close()).write(sys.stdout, encoding='utf-8')
+    ElementTree(builder.close()).write(sys.stdout,
+                                       encoding='utf-8',
+                                       xml_declaration=True)
     sys.stdout.write("\n")
 
 def fill_structure(sl):
