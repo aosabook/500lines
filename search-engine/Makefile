@@ -1,4 +1,4 @@
-all: handaxeweb.lua build_handaxeweb index.py
+all: handaxeweb.lua build_handaxeweb index.py skiplist.svg skipfiles.svg
 
 # The dependencies of these two targets are a little bit bogus,
 # because actually handaxeweb.lua has a circular dependency on itself
@@ -20,3 +20,9 @@ build_handaxeweb: handaxeweb.md
 
 index.py: README.md handaxeweb.lua
 	./handaxeweb.lua $@ < $< > $@
+
+skiplist.svg: skipdiagram.py
+	./$< skiplist > $@
+
+skipfiles.svg: skipdiagram.py
+	./$< skipfiles > $@
