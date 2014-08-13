@@ -474,16 +474,19 @@ class Base(object):
         if result is not MISSING:
             return result
         result = self.cls._read_from_class(fieldname)
-        if callable(result):
+        if _is_bindable(result):
             return _make_boundmethod(result, self)
-        if result is MISSING:
-            raise AttributeError(fieldname)
-        return result
+        if result is not MISSING:
+            return result
+        raise AttributeError(fieldname)
 
     def send(self, methname, *args):
         """ send message 'methname' with arguments 'args' to object """
         meth = self.read_attr(methname)
         return meth(*args)
+
+def _is_bindable(meth):
+    return callable(meth)
 
 def _make_boundmethod(meth, self):
     def bound(*args):
