@@ -187,8 +187,8 @@ def test_getattr():
     obj.celsius = 40
     assert obj.fahrenheit == 104
 
-    obj.fahrenheit = 86
-    assert obj.celsius == 30 # test __setattr__
+    obj.fahrenheit = 86 # test __setattr__
+    assert obj.celsius == 30
     assert obj.fahrenheit == 86
 
     # Object model code
