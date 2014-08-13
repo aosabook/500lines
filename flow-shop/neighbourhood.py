@@ -66,10 +66,10 @@ def neighbours_idle(data, perm, size=4):
     for i in range(len(data)):
         finish_time = sol[-1][i] + data[perm[i]][-1]
         idle_time = (finish_time - sol[0][i]) - sum([time for time in data[perm[i]]])
-        results.append((idle_time, perm[i]))
+        results.append((idle_time, i))
 
     # Take the <size> most idle jobs
-    subset = [job for (idle, job) in list(reversed(results))[:size]]
+    subset = [job_ind for (idle, job_ind) in reversed(sorted(results))][:size]
 
     # Enumerate the permutations of the idle jobs
     for ordering in permutations(subset):
