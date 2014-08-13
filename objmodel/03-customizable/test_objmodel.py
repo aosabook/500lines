@@ -183,12 +183,12 @@ def test_getattr():
                 object.__setattr__(self, name, value)
     obj = A()
     obj.celsius = 30
-    assert obj.fahrenheit == 86
+    assert obj.fahrenheit == 86 # test __getattr__
     obj.celsius = 40
     assert obj.fahrenheit == 104
 
     obj.fahrenheit = 86
-    assert obj.celsius == 30
+    assert obj.celsius == 30 # test __setattr__
     assert obj.fahrenheit == 86
 
     # Object model code
@@ -206,10 +206,10 @@ def test_getattr():
     A = Class("A", OBJECT, {"__getattr__": __getattr__, "__setattr__": __setattr__}, TYPE)
     obj = Instance(A)
     obj.write_attr("celsius", 30)
-    assert obj.read_attr("fahrenheit") == 86
+    assert obj.read_attr("fahrenheit") == 86 # test __getattr__
     obj.write_attr("celsius", 40)
     assert obj.read_attr("fahrenheit") == 104
-    obj.write_attr("fahrenheit", 86)
+    obj.write_attr("fahrenheit", 86) # test __setattr__
     assert obj.read_attr("celsius") == 30
     assert obj.read_attr("fahrenheit") == 86
 
