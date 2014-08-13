@@ -498,20 +498,147 @@ def _make_boundmethod(meth, self):
 The rest of the code does not need to be changed at all.
 
 
-Meta-object protocol
+Meta-object protocols
 ----------------------
 
-- common approach in more dynamic languages
-- pioneered in Lisp, Smalltalk, but common in most modern dynamically typed
-  languages (Python, Ruby, Javascript, Lua, ...)
-- Primitive operations overridable by user code
-- hooks to modify how exactly the object machinery does things
-- Often use normal inheritance of the meta-hooks to get the base behavior (ie
-  OBJECT has a __setattr__ with the default behavior)
+In addition to "normal" methods that are called directly by the program, many
+dynamic languages support *special methods*. These are methods that aren't meant
+to be called directly but will be called by the object system. In Python those
+special methods usually have names that start and end with two underscores, e.g.
+``__init__``. Special methods can be used to override primitive operations and
+provide custom behaviour for them instead. Thus they are hooks that tell the
+object model machinery how exactly to do certain things. Python's object model
+has dozens of special methods. XXX find the list
+
+Historically meta-object protocols have been introduced by Smalltalk but even
+more strongly by the object systems for Common Lisp, such as CLOS, which is also
+where the name was coined (XXX footnote: The Art of the Meta-Object Protocol).
+
+In this chapter we will add three such meta-hooks to our object model. They are
+used to fine-tune what exactly happens when reading and writing attributes. The
+special methods we will add first are ``__getattr__`` and ``__setattr__``, which
+follow closely the behaviour of Python's namesakes.
 
 
-- concretely: override what reading and writing an attribute means (__getattr__
-  and __setatttr__)
+Customizing Reading and Writing and Attribute
+++++++++++++++++++++++++++++++++++++++++++++++
+
+The method ``__getattr__`` is called by the object model when the attribute that
+is being looked up currently is not found by normal means, i.e. neither on the
+instance nor on the class. It gets the name of the attribute being looked up as
+an argument. An equivalent of the ``__getattr__`` special method was part of
+early Smalltalk systems under the name ``doesNotUnderstand:`` (footnote: A.
+Goldberg, Smalltalk-80: The Language and its Implementation. Addison-Wesley,
+1983, page 61.)
+
+The case of ``__setattr__`` is a bit different. Since setting an attribute
+always creates it, ``__setattr__`` is always called when setting an attribute.
+To make sure that a ``__setattr__`` method always exists, the ``OBJECT`` class
+has a definition of ``__setattr__``. This base implementation simply does what
+setting an attribute did so far, which is write the attribute into the object's
+dictionary. This also makes it possible for a user-defined ``__setattr__`` to
+call the base ``OBJECT.__setattr__`` in some cases.
+
+A test for these two special methods is the following:
+
+````python
+def test_getattr():
+    # Python code
+    class A(object):
+        def __getattr__(self, name):
+            if name == "fahrenheit":
+                return self.celsius * 9. / 5. + 32
+            raise AttributeError(name)
+
+        def __setattr__(self, name, value):
+            if name == "fahrenheit":
+                self.celsius = (value - 32) * 5. / 9.
+            else:
+                # call the base implementation
+                object.__setattr__(self, name, value)
+    obj = A()
+    obj.celsius = 30
+    assert obj.fahrenheit == 86 # test __getattr__
+    obj.celsius = 40
+    assert obj.fahrenheit == 104
+
+    obj.fahrenheit = 86
+    assert obj.celsius == 30 # test __setattr__
+    assert obj.fahrenheit == 86
+
+    # Object model code
+    def __getattr__(self, name):
+        if name == "fahrenheit":
+            return self.read_attr("celsius") * 9. / 5. + 32
+        raise AttributeError(name)
+    def __setattr__(self, name, value):
+        if name == "fahrenheit":
+            self.write_attr("celsius", (value - 32) * 5. / 9.)
+        else:
+            # call the base implementation
+            OBJECT.read_attr("__setattr__")(self, name, value)
+
+    A = Class("A", OBJECT, {"__getattr__": __getattr__, "__setattr__": __setattr__}, TYPE)
+    obj = Instance(A)
+    obj.write_attr("celsius", 30)
+    assert obj.read_attr("fahrenheit") == 86 # test __getattr__
+    obj.write_attr("celsius", 40)
+    assert obj.read_attr("fahrenheit") == 104
+    obj.write_attr("fahrenheit", 86) # test __setattr__
+    assert obj.read_attr("celsius") == 30
+    assert obj.read_attr("fahrenheit") == 86
+````
+
+To pass these tests, the ``Base.read_attr`` and ``Base.write_attr`` methods
+needs to be changed as follows:
+
+```` python
+class Base(object):
+    ...
+
+    def read_attr(self, fieldname):
+        """ read field 'fieldname' out of the object """
+        result = self._read_dict(fieldname)
+        if result is not MISSING:
+            return result
+        result = self.cls._read_from_class(fieldname)
+        if _is_bindable(result):
+            return _make_boundmethod(result, self)
+        if result is not MISSING:
+            return result
+        meth = self.cls._read_from_class("__getattr__")
+        if meth is not MISSING:
+            return meth(self, fieldname)
+        raise AttributeError(fieldname)
+
+    def write_attr(self, fieldname, value):
+        """ write field 'fieldname' into the object """
+        meth = self.cls._read_from_class("__setattr__")
+        return meth(self, fieldname, value)
+````
+
+Reading an attribute is changed to call the ``__getattr__`` method with the
+fieldname as an argument instead of raising an error, if the method exists. Note
+that ``__getattr__`` (and indeed all special methods in Python) is looked up on
+the class only, instead of recursively calling
+``self.read_attr('__getattr__')``. The reason for that is that the latter would
+lead to an infinite recursion of ``read_attr`` if ``__getattr__`` is not defined
+on the object.
+
+Writing an attribute is fully deferred to the ``__setattr__`` method. To make
+this work, ``OBJECT`` needs to have a ``__setattr__`` method that calls the
+default behaviour, as follows:
+
+````python
+def OBJECT__setattr__(self, fieldname, value):
+    self._write_dict(fieldname, value)
+OBJECT = Class("object", None, {"__setattr__": OBJECT__setattr__}, None)
+````
+
+The behaviour of ``OBJECT__setattr__`` is like the previous behaviour of
+``write_attr``. With these modifications, the new test passes.
+
+
 - override what binding a "method" means with __get__
 
 
@@ -678,7 +805,7 @@ at a fixed offset, getting rid of all dictionary lookups completely.
 Potential Extensions
 ----------------------
 
-- support for constructors and __new__
+- support for constructors, __getattribute__, __set__
 - Distinction between implementation code and user code
 - More meta methods
 - Multiple inheritance (easy!)
