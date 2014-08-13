@@ -1,24 +1,5 @@
 MISSING = object()
 
-class Map(object):
-    def __init__(self, attrs):
-        self.attrs = attrs
-        self.next_maps = {}
-
-    def get_index(self, fieldname):
-        return self.attrs.get(fieldname, -1)
-
-    def next_map(self, fieldname):
-        assert fieldname not in self.attrs
-        if fieldname in self.next_maps:
-            return self.next_maps[fieldname]
-        attrs = self.attrs.copy()
-        attrs[fieldname] = len(attrs)
-        result = self.next_maps[fieldname] = Map(attrs)
-        return result
-
-EMPTY_MAP = Map({})
-
 class Base(object):
     """ The base class that all of the object model classes inherit from. """
 
@@ -86,6 +67,25 @@ class BaseWithDict(Base):
     def _write_dict(self, fieldname, value):
         self._fields[fieldname] = value
 
+
+class Map(object):
+    def __init__(self, attrs):
+        self.attrs = attrs
+        self.next_maps = {}
+
+    def get_index(self, fieldname):
+        return self.attrs.get(fieldname, -1)
+
+    def next_map(self, fieldname):
+        assert fieldname not in self.attrs
+        if fieldname in self.next_maps:
+            return self.next_maps[fieldname]
+        attrs = self.attrs.copy()
+        attrs[fieldname] = len(attrs)
+        result = self.next_maps[fieldname] = Map(attrs)
+        return result
+
+EMPTY_MAP = Map({})
 
 class Instance(Base):
     """Instance of a user-defined class. """
