@@ -70,11 +70,7 @@ class Btree:
                 px, py = prev
                 arrow(px, py, cx, y)
 
-            builder.start('text', dict(x=str(cx),
-                                       y=str(y + height - padding - yoff),
-                                       style="font-size: 12px; %s text-anchor: middle" % font))
-            builder.data(str(key))
-            builder.end('text')
+            label(cx, y + height - padding - yoff, key)
 
             prev = cx, y + height - yoff
             self.x[i] += width
@@ -106,14 +102,18 @@ class Skiplist:
                 self.pending.append(None)
             self.pending[i] = cx, cy
 
-        builder.start('text', dict(x=str(cx),
-                                   y=str(y_base - padding),
-                                   style="font-size: 12px; %s text-anchor: middle" % font))
-        builder.data(str(key))
-        builder.end('text')
+        label(cx, y_base - padding, key)
 
         margin = 5
         self.x += width + margin
+
+def label(x, y, text):
+    builder.start('text',
+                  dict(x=str(x),
+                       y=str(y),
+                       style="font-size: 12px; %s text-anchor: middle" % font))
+    builder.data(str(text))
+    builder.end('text')
 
 def title(s):
     builder.start("text", dict(style="font-size: 40px; text-anchor: middle; %s" % font, x=str(width/2), y="40"))
