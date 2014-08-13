@@ -27,7 +27,7 @@ for d in dirs[1:]:
         fulln = os.path.join(d, fn)
         with file(fulln) as f:
             lines = f.readlines()
-        diffsize = len(list(difflib.unified_diff(prevlines, lines)))
+        diffsize = len(list(difflib.unified_diff(prevlines, lines, n=1)))
         print diffsize, fn
         #print "".join(difflib.unified_diff(prevlines, lines))
         prev[fn] = lines
