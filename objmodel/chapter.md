@@ -194,7 +194,15 @@ another class, its metaclass.
 
 Now our first test above almost passes. The only missing bit is the definition
 of the base classes ``TYPE`` and ``OBJECT``, which are both instances of
-``Class``. XXX describe that stuff
+``Class``. For these we will make a major departure from the Smalltalk model,
+which is fairly complex. Instead we will use the model of ObjVlisp, which is
+also the one that Python adopted (footnote: P. Cointe, “Metaclasses are first
+class: The ObjVlisp Model,” SIGPLAN Not, vol. 22, no. 12, pp. 156–162, 1987.)
+
+In that model ``OBJECT`` and ``TYPE`` are intertwined. ``OBJECT`` is the base
+class of all classes, meaning it has no base class and TYPE inherits from it.
+``TYPE`` is the class of almost all classes. Thus both ``TYPE`` and ``OBJECT``
+are instances of ``TYPE``.
 
 ````python
 # set up the base hierarchy like in Python (the ObjVLisp model)
@@ -208,13 +216,7 @@ TYPE.cls = TYPE
 OBJECT.cls = TYPE
 ````
 
-XXX
-base class of application level type hierarchy: OBJECT (an instance of Class on
-the implementation level)
-base classes OBJECT and TYPE are intertwined
-class of most classes: TYPE
-TYPE inherits from OBJECT
-
+XXX diagram?
 
 Now the first test passes. A second test that is easy to write and immediately
 passes is the following. It checks that reading and writing attributes works on
