@@ -49,7 +49,7 @@ def _is_bindable(meth):
     return hasattr(meth, "__get__")
 
 def _make_boundmethod(meth, self):
-    return meth.__get__(self, self)
+    return meth.__get__(self, None)
 
 
 def OBJECT__setattr__(self, fieldname, value):

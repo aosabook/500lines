@@ -639,7 +639,77 @@ The behaviour of ``OBJECT__setattr__`` is like the previous behaviour of
 ``write_attr``. With these modifications, the new test passes.
 
 
-- override what binding a "method" means with __get__
+Descriptor Protocol
++++++++++++++++++++++
+
+The test in the previous subsection to provide automatic conversion temperature
+scales worked, but was slightly annoying to write, as the attribute name needed
+to be checked explicitly in the ``__getattr__`` and ``__setattr__`` methods. To
+get around that slight clumsiness, the *descriptor protocol* was introduced in
+Python.
+
+While ``__getattr__`` and ``__setattr__`` are called on the object the attribute
+is being read from, the descriptor protocol calls a special method on the
+*result* of getting an attribute from an object. It can be seen as the
+generalization of binding a method to an object – and indeed, binding a method to
+an object is done using the descriptor protocol.
+
+In this subsection we will introduce a subset of the descriptor protocol, namely
+only the binding of objects. This is done using the special method ``__get__``,
+and is best explained with an example as a test:
+
+````python
+def test_get():
+    # Python code
+    class FahrenheitGetter(object):
+        def __get__(self, inst, cls):
+            return inst.celsius * 9. / 5. + 32
+
+    class A(object):
+        fahrenheit = FahrenheitGetter()
+    obj = A()
+    obj.celsius = 30
+    assert obj.fahrenheit == 86
+
+    # Object model code
+    class FahrenheitGetter(object):
+        def __get__(self, inst, cls):
+            return inst.read_attr("celsius") * 9. / 5. + 32
+
+    A = Class("A", OBJECT, {"fahrenheit": FahrenheitGetter()}, TYPE)
+    obj = Instance(A)
+    obj.write_attr("celsius", 30)
+    assert obj.read_attr("fahrenheit") == 86
+````
+
+The ``__get__`` method is called on the ``FahrenheitGetter`` instance after that
+has been looked up in the class of ``obj``. The arguments to ``__get__`` are the
+instance where the lookup was done. (footnote: In Python the second argument is
+the class where the attribute was found, though we will ignore this part here.)
+
+Implementing this behaviour is easy. We simply need to change ``_is_bindable``
+and ``_make_boundmethod``:
+
+````python
+def _is_bindable(meth):
+    return hasattr(meth, "__get__")
+
+def _make_boundmethod(meth, self):
+    return meth.__get__(self, None)
+````
+
+This makes the test pass. It also keeps the previous tests about bound methods
+passing, as Python's functions have a ``__get__`` method that return a bound
+method object.
+
+In practice, the descriptor protocol is quite a lot more complex. It also
+supports ``__set__`` to override what setting an attribute means on a
+per-attribute basis. Also, the current implementation is fudging things. Note
+that ``_make_boundmethod`` calls the method ``__get__`` on the implementation
+level, instead of using ``meth.read_attr("__get__")``. This is necessary since
+our object model borrows functions and thus methods from Python, instead of
+having a representation for them where they use the object model. A more serious
+object model would have to solve this problem.
 
 
 Instance optimization
