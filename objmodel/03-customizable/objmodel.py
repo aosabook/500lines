@@ -13,14 +13,14 @@ class Base(object):
         if result is not MISSING:
             return result
         result = self.cls._read_from_class(fieldname)
-        if hasattr(result, "__get__"):
-            return _make_boundmethod(result, self, self)
+        if _is_bindable(result):
+            return _make_boundmethod(result, self)
         if result is not MISSING:
             return result
         meth = self.cls._read_from_class("__getattr__")
-        if meth is MISSING:
-            raise AttributeError(fieldname)
-        return meth(self, fieldname)
+        if meth is not MISSING:
+            return meth(self, fieldname)
+        raise AttributeError(fieldname)
 
     def write_attr(self, fieldname, value):
         """ write field 'fieldname' into the object """
@@ -43,6 +43,13 @@ class Base(object):
     def _write_dict(self, fieldname, value):
         """ write a field 'fieldname' into the object's dict """
         raise AttributeError
+
+def _is_bindable(meth):
+    return hasattr(meth, "__get__")
+
+def _make_boundmethod(meth, self):
+    return meth.__get__(self, self)
+
 
 def OBJECT__setattr__(self, fieldname, value):
     self._write_dict(fieldname, value)
@@ -67,9 +74,6 @@ class Instance(BaseWithDict):
         assert isinstance(cls, Class)
         BaseWithDict.__init__(self, cls, {})
 
-
-def _make_boundmethod(meth, cls, self):
-    return meth.__get__(self, cls)
 
 class Class(BaseWithDict):
     """ A User-defined class. """
