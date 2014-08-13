@@ -44,7 +44,7 @@ class Base(object):
         """ write a field 'fieldname' into the object's dict """
         raise AttributeError
 
-def __setattr__OBJECT(self, fieldname, value):
+def OBJECT__setattr__(self, fieldname, value):
     self._write_dict(fieldname, value)
 
 
@@ -99,7 +99,7 @@ class Class(BaseWithDict):
 
 # set up the base hierarchy like in Python (the ObjVLisp model)
 # the ultimate base class is OBJECT
-OBJECT = Class("object", None, {"__setattr__": __setattr__OBJECT}, None)
+OBJECT = Class("object", None, {"__setattr__": OBJECT__setattr__}, None)
 # TYPE is a subclass of OBJECT
 TYPE = Class("type", OBJECT, {}, None)
 # TYPE is an instance of itself
