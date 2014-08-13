@@ -24,43 +24,31 @@ def main():
                          dict(me=sys.argv[0]))
         return
     elif sys.argv[1] == 'skiplist':
-        draw_skip_list()
+        title("Skip list")
+        fill_structure(Skiplist())
     else:
-        draw_btree()
+        title(u"Skip ﬁles")
+        fill_structure(Btree())
 
     builder.end("svg")
     ElementTree(builder.close()).write(sys.stdout, encoding='utf-8')
     sys.stdout.write("\n")
 
-def draw_skip_list():
-    title("Skip list")
-    x = 20
-    x = skipnode(x, 3, 3)
-    x = skipnode(x, 1, 5)
-    x = skipnode(x, 2, 6)
-    x = skipnode(x, 1, 10)
-    x = skipnode(x, 1, 11)
-    x = skipnode(x, 2, 15)
-    x = skipnode(x, 3, 16)
-    x = skipnode(x, 1, 22)
-    x = skipnode(x, 2, 25)
-    x = skipnode(x, 1, 25)
-
-def draw_btree():
-    title(u"Skip ﬁles")
-    bt.depth(3)
-    bt.key(3, 3)
-    bt.key(1, 5)
-    bt.key(2, 6)
-    bt.key(1, 10)
-    bt.key(1, 11)
-    bt.key(2, 15)
-    bt.key(3, 16)
-    bt.key(1, 22)
-    bt.key(2, 25)
-    bt.key(1, 25)
+def fill_structure(sl):
+    sl.depth(3)
+    sl.key(3, 3)
+    sl.key(1, 5)
+    sl.key(2, 6)
+    sl.key(1, 10)
+    sl.key(1, 11)
+    sl.key(2, 15)
+    sl.key(3, 16)
+    sl.key(1, 22)
+    sl.key(2, 25)
+    sl.key(1, 25)
 
 class Btree:
+    "Draw a B+-tree."
     y_top = 50
     def depth(self, depth):
         self._depth = depth
@@ -91,44 +79,46 @@ class Btree:
             prev = cx, y + height - yoff
             self.x[i] += width
 
-bt = Btree()
+class Skiplist:
+    "Draw a skip list."
+    def __init__(self):
+        self.pending = []
+        self.x = 20
 
-pending = []
+    def depth(self, depth):
+        pass
 
-def skipnode(x_start, node_height, key):
-    height = width = 20
-    y_base = 130
-    padding = 3
-    for i in range(node_height + 1):
-        box(x_start, y_base - i * height, x_start + width, y_base - (i+1) * height,
-            {'stroke': 'white', 'fill': '#ccc'})
-        cx = x_start + width/2
-        cy = y_base - (i+0.5) * height
+    def key(self, node_height, key):
+        height = width = 20
+        y_base = 130
+        padding = 3
+        for i in range(node_height + 1):
+            box(self.x, y_base - i * height,
+                self.x + width, y_base - (i+1) * height,
+                {'stroke': 'white', 'fill': '#ccc'})
+            cx = self.x + width/2
+            cy = y_base - (i+0.5) * height
 
-        if i > 0 and i < len(pending):
-            ocx, ocy = pending[i]
-            rarrow(ocx, ocy, x_start)
-        else:
-            pending.append(None)
-        pending[i] = cx, cy
+            if i > 0 and i < len(self.pending):
+                ocx, ocy = self.pending[i]
+                arrow(ocx, ocy, self.x, ocy)
+            elif i == len(self.pending):
+                self.pending.append(None)
+            self.pending[i] = cx, cy
 
-    builder.start('text', dict(x=str(cx),
-                               y=str(y_base - padding),
-                               style="font-size: 12px; %s text-anchor: middle" % font))
-    builder.data(str(key))
-    builder.end('text')
+        builder.start('text', dict(x=str(cx),
+                                   y=str(y_base - padding),
+                                   style="font-size: 12px; %s text-anchor: middle" % font))
+        builder.data(str(key))
+        builder.end('text')
 
-    margin = 5
-    return x_start + width + margin
+        margin = 5
+        self.x += width + margin
 
 def title(s):
     builder.start("text", dict(style="font-size: 40px; text-anchor: middle; %s" % font, x=str(width/2), y="40"))
     builder.data(s)
     builder.end("text")
-
-def rarrow(x0, y, x1):
-    #path(['M', x0, y, 'L', x1, y, 'm', -3.5, -2, 'l', 3.5, 2, 'l', -3.5, 2])
-    arrow(x0, y, x1, y)
 
 def arrow(x0, y0, x1, y1):
     direction = normalize(displacement((x0, y0), (x1, y1)))
