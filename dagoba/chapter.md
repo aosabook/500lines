@@ -345,7 +345,7 @@ That last point can't be overstated: keep it simple. Eschew optimization in favo
 
 
 
-[Z] Not *too* interconnected, though: if most things are connected to most other things you'll have an edge explosion and may have to find a different way to store those connections.
+[Z] Not *too* interconnected, though -- you'd like the number of edges to grow in direct proportion to the number of vertices. In other words the average number of edges a vertex has shouldn't vary with the size of the graph. Most systems we'd consider putting in a graph database already have this property: if we add 100,000 Nigerian films to our movie database that doesn't increase the degree of the Kevin Bacon vertex.
 
 
 
@@ -363,6 +363,32 @@ What follows is detritus in need of cleaning.
 ======================================================================================================
 
 
+
+  
+  /* 
+      new idea: 
+      - start with last component (collector)
+      - it provides a 'pull' request as its return value
+      - driver loop goes to previous component:
+        - it might 'push' results
+        - it might make a 'pull' request
+        - it might be 'done'
+  
+      a query with a take(1) at the end provides one result at a time: you can keep calling it to get more results
+      - this requires the take component to update itself on re-query: does it only provide 'done' once? 
+        - once anything is 'done' everything above it is probably done also, so there's no backtracking?
+        - it'd be better to toggle this on re-query: downstream components might be funky.
+        - track it in the query? a list of 'done' components: don't even ask them.
+      
+      intersection/backtracking/etc... gremlin memory: it's not the vertex that arrives at the end, it's the gremlin.
+      if we want history/state/replay then add that as a query stack modifier (inject between each queue item)
+      likewise with gremlin collision (merging): query-inject it into the queue after collision-capable components
+      
+      (really query-injectors and query-transformers are the same: they're all just transformers. 
+       can be run ad hoc, or added to the default queue-transformer list. [ordering? probably priority numbers... but proper dependencies / pre-pendencies (has to run before) would be better (a before/after list might be easy (but break cycles))])
+  */
+  
+  
 
 ---  Suppose you've been asked to create a booking system for an airline. [Toronto to Timbuktu...]
 ---  
