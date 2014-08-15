@@ -38,7 +38,7 @@ Something like Thor.parents.parents.parents.children.children.children strikes a
 
 What's the simplest thing we can build that gives us this kind of interface? We could make a list of entities, and a list of edges, just like the relational schema, and then build some helper functions. It might look something like this:
 
-'''javascript
+```javascript
 ///  hi, this needs work!
 ///  vertices = ['Thor', 'Freya', 'Odin', 'Loki']
   V = [1,2,3,4,5,6]
@@ -46,7 +46,7 @@ What's the simplest thing we can build that gives us this kind of interface? We 
   
   parents  = function(x) { return E.reduce( function(acc, e) { return (e[1] === x) ? acc.concat(e[0]) : acc }, [] )}
   children = function(x) { return E.reduce( function(acc, e) { return (e[0] === x) ? acc.concat(e[1]) : acc }, [] )}
-'''
+```
 
 Now we can say something like children(children(children(parents(parents(parents('Thor')))))). It reads backwards and has a lot of silly parens, but otherwise is pretty close to what we wanted. Take a minute to look at the code. Can you see any ways to improve it?
 
