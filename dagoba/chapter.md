@@ -16,7 +16,7 @@ The distributed revolution changed everything, again. Data broke free of spacial
 
 ## What's all this now?
 
-Graph databases are useful for elegantly solving all kinds of interesting problems. So what's a graph database?
+Graph databases allow us to elegantly solve all kinds of interesting problems. So what's a graph database?
 
 Well, the dictionary defines "graph database" as a database for graphs. Thanks, dictionary! Let's break that down a little.
 
@@ -24,7 +24,7 @@ A data base is like a fort for data. You can put data in it and get data back ou
 
 A graph in this sense is a set of vertices and a set of edges. It's basically a bunch of dots connected by lines. 
 
-What kind of problems can we solve? Suppose that you are one of those who have discovered the unbridled joy of tracking ancestral trees: parents, children, all that kind of thing. You'd like to develop a system that allows you to make natural and elegant queries like "Who are Thor's second cousins once removed?" or "How many of Freya's descendants were Valkyries?".
+What kinds of problems can we solve? Suppose that you are one of those who have discovered the unbridled joy of tracking ancestral trees: parents, children, all that kind of thing. You'd like to develop a system that allows you to make natural and elegant queries like "Who is Thor's second cousin once removed?" or "How many of Freya's descendants are Valkyries?".
 
 A reasonable schema for this data structure would be to have a table of entities and a table of relationships. A query for Thor's parents might look like:
 
@@ -34,24 +34,27 @@ But how do we extend that to grandparents? We need to do a subquery, or use some
 
 What would we like to write? Something both concise and flexible; something that models our query in a natural way and extends to other queries like it. second_cousins_once_removed('Thor') is concise, but it doesn't give us any flexibility. The SQL above is flexible, but lacks concision.
 
-Something like Thor.parents.parents.children.children [except actual second cousins] would work well. The primitives give us flexibility to ask many similar questions, but the query is also very concise and natural. There are issues with this syntax -- it actually gives us too many results, rather than answering our question directly -- but for now we'll aim to achieve this level of flexibility and concision and handle the details later. 
+Something like Thor.parents.parents.parents.children.children.children strikes a reasonably good balance. The primitives give us flexibility to ask many similar questions, but the query is also very concise and natural. This particular phrasing gives us too many results, as it includes first cousins and siblings, but we're going for gestalt here.
 
 What's the simplest thing we can build that gives us this kind of interface? We could make a list of entities, and a list of edges, just like the relational schema, and then build some helper functions. It might look something like this:
 
+'''javascript
+///  hi, this needs work!
 ///  vertices = ['Thor', 'Freya', 'Odin', 'Loki']
   V = [1,2,3,4,5,6]
   E = [ [1,2], [2,3], [3,1], [3,4], [4,5], [4,6] ]
   
   parents  = function(x) { return E.reduce( function(acc, e) { return (e[1] === x) ? acc.concat(e[0]) : acc }, [] )}
   children = function(x) { return E.reduce( function(acc, e) { return (e[0] === x) ? acc.concat(e[1]) : acc }, [] )}
+'''
 
-Now we can say something like children(children(parents(parents('Thor')))) [except actual second cousins]. It reads backwards and has a lot of silly parens, but otherwise is pretty close to what we wanted. Take a minute to look at the code. Can you see any ways to improve it?
+Now we can say something like children(children(children(parents(parents(parents('Thor')))))). It reads backwards and has a lot of silly parens, but otherwise is pretty close to what we wanted. Take a minute to look at the code. Can you see any ways to improve it?
 
 Well, we're treating the edges as a global variable, which means we can only ever have one database at a time using these helper functions. That's pretty limiting. 
 
 We're also not using the vertices at all. What does that tell us? It implies that everything we need is in the edges array, which in this case is true: the vertex values are scalars, so they exist independently in the edges array. If we want to answer questions like "How many of Freya's descendants were Valkyries?" we'll need to add more information to the vertices, which means making them compound values, which means the edges array should reference them by pointer instead of copying the value.
 
-The same holds true for our edges: they contain an 'in' vertex and an 'out' vertex [footnote], but no elegant way to incorporate additional information. We'll need that to answer questions like "How many stepparents did Loki have?" or "How many children did Aweren have while married to Odin?"
+The same holds true for our edges: they contain an 'in' vertex and an 'out' vertex [footnote1], but no elegant way to incorporate additional information. We'll need that to answer questions like "How many stepparents did Loki have?" or "How many children Odin have before Thor was born?"
 
 You don't have to squint very hard to tell that our the code for our two selectors looks very similar, which suggests there's a deeper abstraction from which those spring [diff eq]. 
 
@@ -59,7 +62,7 @@ Do you see any other issues?
 
 
 ////
-  [footnote]
+  [footnote1]
   Notice that we're modeling edges as a pair of vertices. Also notice that those pairs are ordered, because we're using arrays. That means we're modeling a *directed graph*, where every edge has a starting vertex and an ending vertex. [lines have arrows.] Doing it this way adds some complexity to our model because we have to keep track of the direction of edges, but it also allows us to ask more interesting questions, like "which vertices point in to vertex 3?" or "which vertex has the most outgoing edges?". [footnote2]
 
   [footnote2]
@@ -346,6 +349,18 @@ That last point can't be overstated: keep it simple. Eschew optimization in favo
 
 
 [Z] Not *too* interconnected, though -- you'd like the number of edges to grow in direct proportion to the number of vertices. In other words the average number of edges a vertex has shouldn't vary with the size of the graph. Most systems we'd consider putting in a graph database already have this property: if we add 100,000 Nigerian films to our movie database that doesn't increase the degree of the Kevin Bacon vertex.
+
+
+
+
+Adverbs: 
+we need to get collect gremlins from 'all' steps without having them modified by interleaving traversal steps.
+so we need a way to get the gremlin from the current 'all' step up to the last 'all' step. 
+we could teleport it there, but 
+- can we only teleport forward in time? backwards makes loops, which really cranks up the complexity of our queries
+- marking the teleportation endpoint and the individual steps that can send to it causes a lot of cross-step connections, which reduces our compositional / transformational abilities
+so instead we could wrap the gremlin in a bubble and float it downstream until it hits an allbuster that's wired to pop it. do they pop anything? anything from the same type of step? or is it labeled? you could miss one then, which is weird. 
+and the gremlin actually does have to pass through everything eventually, triggering it as it goes -- so you really need two gremlins, a bubble one and a non-bubbled one after it. the 'all' could do that, though, by cloning it. how do you bubble? how do you pop? how do you bypass bubbles?
 
 
 
