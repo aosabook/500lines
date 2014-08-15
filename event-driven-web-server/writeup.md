@@ -2,9 +2,45 @@
 
 Backstory first here. So at some point last year, I got it into my head to put together a quick little [game prototyping tool](https://github.com/Inaimathi/deal). Like, physical card and board games. The use case was doing some light game dev with a friend of mine from university who had moved across the country, so it had to be something that bridged the spatial gap _as well as_ letting us think about mechanics and physical aspects.
 
-Now, the problem with this goal is that it involves keeping long-lived connections between clients, because in a game, I want to see an opponents move as soon as it happens rather than only when I move. This wouldn't be a problem if not for the fact that [`hunchentoot`](insert link here), the most popular Common Lisp web-server, works on a thread-per-request model. And, in the absence of [really](racket-lang) REALLY [cheap](erlang language) threads, that's a bad mix. Because every long-lived connection is going to spawn its own accompanying long-lived thread. Granted, it might have worked kind of buggily for the kind of small group we wanted, but I try hard not to half-ass interesting problems. I could have switched languages, but what I chose to do was write a Common Lisp server that could service many connections on a single thread.
+Now, the problem with this goal is that it involves keeping long-lived connections between the clients and server, because while playing a game I (usually) want to see an opponents move as soon as it happens rather than only when I move. This wouldn't be a problem if not for the fact that [`hunchentoot`](insert link here), the most popular Common Lisp web-server, works on a thread-per-request model. Actually, before we get into the specifics, lets back up for a second.
 
-In other words, this started out as the yak-shaving project from hell, and I'm about to regale you with the resulting tale.
+### The Basics of Event-Driven Servers
+
+At the 10k-foot-level, an HTTP exchange is one request and one response. A client sends a request, which includes a resource identifier, an HTTP version tag, some headers and some parameters. The receiving server parses that request, figures out what to do about it, and sends a response which includes the same HTTP version tag, a response code, some headers and a request body.
+
+And that's it.
+
+Because this is the total of the basic protocol, many minimal servers take the thread-per-request approach. That is, for each incoming request, spin up a thread to do the work of parse/figure-out-what-to-do-about-it/send-response, and spin it down when it's done. The idea is that since each of these connections is very short lived, that won't start up too many threads at once, and it'll let you simplify a lot of the implementation. Specifically, it lets you program as though there were only one connection present at any given time, and it lets you do things like kill orphaned connections just by killing the corresponding thread and letting the garbage collector do its job.
+
+There's a couple of things missing in this description though. First, as described, there's no mechanism for a server to send updates to a client without that client specifically requesting them. Second, there's no identity mechanism, which you need in order to confidently assert that a number of requests come from the same client (or, from the client perspective, to make sure you're making a request from the server you think you're talking to). We won't be solving the second problem in the space of this write-up; a full session implementation would nudge us up to ~560 lines of code, and we've got a hard limit of 500. If you'd like to take a look, feel free peek at the full implementation of `:house` [at its github](https://github.com/Inaimathi/house).
+
+The first problem is interesting though. It's interesting if you've ever wanted to put together multi-user web-applications for whatever reason, and as I noted in the opener, that's exactly what I'm doing. In my case, we've got two or more people all interacting with the same virtual tabletop. And we want each player to know about any other players moves as soon as they happen, rather than only getting notifications when their own move is made. This means we can't naively rely on the request/response structure I outlined earlier; we need the server to push messages down to clients. Here are our options for doing that in `HTTP`-land:
+
+##### Comet/Longpoll
+
+Build the client such that it automatically sends the server a new request as soon as it receives a response. Instead of fulfilling that request right away, the server then sits on it until there's new information to send, like say, a new message from Beatrice. The end result is that Adrian gets new updates as soon as they happen, rather than just when he takes action. It's a bit of a semantic distinction though, since the client *is* taking action on his behalf on every update.
+
+##### SSE
+
+The client opens up a connection and keeps it open. The server will periodically write new data to the connection without closing it, and the client will interpret incoming new messages as they arrive rather than waiting for the response connection to terminate. This way is a bit more efficient than the Comet/Longpoll approach because each message doesn't have to incur the overhead of a fresh set of HTTP headers.
+
+##### Websockets
+
+The server and client open up an HTTP conversation, then perform a handshake and protocol escalation. The end result is that they're still communicating over TCP/IP, but they're not using HTTP to do it at all. The advantage this has over SSEs is that you can customize your protocol, so it's possible to be more efficient.
+
+That's basically it. I mean there used to be things called "Forever Frames" that have been thoroughly replaced by the SSE approach, and a couple of other tricks you could pull with proprietary or esoteric technologies, but they're not materially different from the above.
+
+These approaches are pretty different from each other under the covers, as you can hopefully see now that you understand them in the abstract, but they have one important point in common. They all depend on long-lived connections. Longpolling depends on the server keeping requests around until new data is available (thus keeping a connection open until new data arrives, or the client gives up in frustration), SSEs keep an open stream between client and server to which data is periodically written, and Websockets change the protocol a particular connection is speaking, but leave it open (and bi-directional, which complicates matters slightly; you basically need to chuck websockets back into the main listen/read loop *and keep them there* until they're closed).
+
+The consequence of keeping long-lived connections around is that you're going to want one of
+
+a) A server that can service many connections with a single thread
+b) A thread-per-request server that passes long-lived connections off to a separate subsystem, which must handle those long lived connections using a minimal number of threads
+c) A thread-per-request server on top of a platform where threads are cheap enough that you can afford having a few hundred thousand of them around.
+
+I maintain that Option b) is ridiculous. The main reason you want a thread-per-request model is to simplify implementation, but having to implement a threaded core _as well as_ a separate event-driven system just for server pushing would almost by definition be more complicated than using either model in isolation. In the absence of [really](racket-lang) REALLY [cheap](erlang language) threads, the simplest solution is resorting to Option a). I could have switched languages, or maybe hacked some just-good-enough support into Hunchentoot. What I chose to do was write a Common Lisp server that could service many connections on a single thread.
+
+In other words, `:house` started out as the yak-shaving project from hell, and I'm about to regale you with the resulting tale.
 
 ## Server Core
 
@@ -20,10 +56,24 @@ At its' very core, every event-driven server has to look something like
 		     do (loop while (socket-close c)))
 	     (loop while (socket-close server)))))
 
-A server socket that listens for incoming connections, some structure in which to store connections/buffers, an infinite loop waiting for new handshakes or incoming data, and finally some cleanup clauses to make sure we don't leave dangling locks on resources if we're killed by an interrupt or something. The specifics are going to be revealed in our `process-ready` function. Or rather, as it happens, method.
+That's the core event loop that drives the rest. Its relevant characteristics are
+
+- A server socket that listens for incoming connections,
+- some structure in which to store connections/buffers
+- an infinite loop waiting for new handshakes or incoming data
+- and finally some cleanup clauses to make sure it doesn't leave dangling locks on resources if it's killed by an interrupt or something.
+
+The specifics are going to be revealed in our `process-ready` function. Or rather, as it happens, method.
 
 	(defmethod process-ready ((ready stream-server-usocket) (conns hash-table))
 	  (setf (gethash (socket-accept ready :element-type 'octet) conns) nil))
+
+Quick aside on the anatomy of a Common Lisp method, we'll get into the underlying structures a bit later on. What you're looking at is the filled in version of
+
+    (defmethod <name> ((<arg-name> <arg-type>)...)
+	  <body>)
+
+It looks _almost_ like a `defun` clause, except that each of the mandatory arguments have an extra symbol packed along with them that specify what types they're expected to be. Or rather, which types this particular method will be called for. 
 
 This is the Common Lisp multiple dispatch system at work. We're `def`ining a `method` of two arguments, `ready` and `conns`, the first of which will be a `stream-server-socket` and the second will be a `hash-table`. This is what it looks like when we get a new connection coming into the socket we're listening on; the `stream-server-socket` we defined back in `start` signals that it's `ready`, and gets picked up by our central event loop. All we do at this stage is `socket-accept` the incoming connection, and insert it into the connection table. As you saw above, we're waiting on input from all the keys of this table, which means this newly accepted socket will eventually have some data for us. _When_ it does, we'll pick it up as a `ready` socket in our main loop and call `process-ready` on it.
 
@@ -88,12 +138,53 @@ Lets follow that trail for a while:
 	       (funcall it socket (parameters req))
 	       (error! +404+ socket)))
 
-In `handle-request`, we do the tiny and obvious job of looking up the requested resource in the `*handlers*` table. If we find one, we `funcall` `it`, passing along the client `socket` as well as the parsed request parameters. If there's no matching handler in the `*handlers*` table, we instead send along a `404` error.
+In `handle-request`, we do the tiny and obvious job of looking up the requested resource in the `*handlers*` table. If we find one, we `funcall` `it`, passing along the client `socket` as well as the parsed request parameters. If there's no matching handler in the `*handlers*` table, we instead send along a `404` error. Following that `lookup` down into the `*handlers*` table is going to drop us down the `macro` rabbit hole though, so lets quickly take a look at the parsing, writing and the key `subscribe`/`publish` system before moving on. Not that this'll be easy-going, mind you, the alternate path takes us straight through CLOS, into the heart of what makes Common Lisp objects different from the current mainstream.
+
+Here's how we parse requests
+
+	(defmethod parse ((str string))
+	  (let ((lines (split "\\r?\\n" str)))
+	    (destructuring-bind (req-type path http-version) (split " " (pop lines))
+	      (declare (ignore req-type))
+		  (assert-http (string= http-version "HTTP/1.1"))
+	      (let* ((path-pieces (split "\\?" path))
+		         (resource (first path-pieces))
+		         (parameters (second path-pieces))
+		         (req (make-instance 'request :resource resource)))
+		    (loop for header = (pop lines) for (name value) = (split ": " header)
+		          until (null name) do (push (cons (->keyword name) value) (headers req)))
+		    (setf (parameters req)
+		          (append (parse-params parameters)
+			              (parse-params (pop lines))))
+		    req))))
+
+	(defmethod parse ((buf buffer))
+	  (parse (coerce (reverse (contents buf)) 'string)))
+
+	(defmethod parse-params ((params null)) nil)
+	(defmethod parse-params ((params string))
+	  (loop for pair in (split "&" params)
+	        for (name val) = (split "=" pair)
+	        collect (cons (->keyword name) (or val ""))))
+
+The top two methods handle parsing buffers or strings, while the bottom two handle parsing HTTP parameters. There are two places where we might expect something with the shape of ampersand-separated k/v pairs, so it seemed like a good idea to pull out the procedure that handles them. The `parse` method specializing on `buffer` just pulls out the `buffer`s contents, and recursively calls `parse` on its reversed, stringified `contents`. In the `parse` method specializing on `string`, we actually take apart the incoming content into usable pieces. The process is
+
+1. split on `"\\r?\\n"`
+2. split the first line of that on `" "` to get the request type (`POST`, `GET`, etc)/URI path/http-version
+3. assert that we're dealing with an `HTTP/1.1` request
+4. split the URI path on `"?"`, which gives us plain resource separate from any potential `GET` parameters
+5. make a new `request` instance with the resource in place
+6. populate that `request` instance with each split header line
+7. set that `request`s parameters to the result of parsing our `GET` and `POST` parameters
+
 
 
 ;; TODO
 
-;; commentary on parsing, writing and subscribing/publishing before moving on to what all of it has to do with handlers.
+;; commentary on parsing (including the request object, and a brief discussion of CLOS)
+;; quick commentary on writing and
+;; explanation of subscribing/publishing subsystems, and why they're key for the eventual goal of an asynchronous server.
+;; Move on to the define-handlers macro system
 
 
 
@@ -691,43 +782,10 @@ and
 
 These are going to change, whether mildly or radically, depending on what kind of server you're writing and what specifically you want it to do. So with that in mind, it's about time you understood some of the basic decisions in this space and the basis on which they're made.
 
-### The Basics of Event-Driven Servers
 
-At the 10k-foot-level, an HTTP exchange is one request and one response. A client sends a request, which includes a resource identifier, an HTTP version tag, some headers and some parameters. The receiving server parses that request, figures out what to do about it, and sends a response which includes the same HTTP version tag, a response code, some headers and a request body.
+[[snip async server basics]]
 
-And that's it.
 
-Because this is the total of the basic protocol, many minimal servers take the thread-per-request approach. That is, for each incoming request, spin up a thread to do the work of parse/figure-out-what-to-do-about-it/send-response, and spin it down when it's done. The idea is that since each of these connections is very short lived, that won't start up too many threads at once, and it'll let you simplify a lot of the implementation. Specifically, it lets you program as though there were only one connection present at any given time, and it lets you do things like kill orphaned connections just by killing the corresponding thread and letting the garbage collector do its job.
-
-There's a couple of things missing in this description though. First, as described, there's no mechanism for a server to send updates to a client without that client specifically requesting them. Second, there's no identity mechanism, which you need in order to confidently assert that a number of requests come from the same client (or, from the client perspective, to make sure you're making a request from the server you think you're talking to). We won't be solving the second problem in the space of this write-up; a full session implementation would nudge us up to ~560 lines of code, and we've got a hard limit of 500. If you'd like to take a look, feel free peek at the full implementation of `:house` [here](https://github.com/Inaimathi/house). The `session.lisp` file should have what you're after, though a couple of changes you need to make are also part of `handle-request` and the `define-handler` subsystem.
-
-The first problem is interesting though. It's interesting if you've ever wanted to put together multi-user web-applications for whatever reason. The simplest base-case is the anonymous chat room. Consider the situation where you've got two people entering text into a text-box with the intent that both of them should see each message. When Adrian types in a message, you can send him the updated chat room immediately. But if Beatrice were to type a message, according to the system we've described above, there's no built-in way to update Adrian's view of the world with that new message until he makes another request. What you want to be able to do is to push messages from the server at Adrian without him having to take any deliberate action. 
-
-#### Server Push
-
-Here are our options:
-
-##### Comet/Longpoll
-
-Build the client such that it automatically sends the server a new request as soon as it receives a response. Instead of fulfilling that request right away, the server then sits on it until there's new information to send, like say, a new message from Beatrice. The end result is that Adrian gets new updates as soon as they happen, rather than just when he takes action. It's a bit of a semantic distinction though, since the client *is* taking action on his behalf on every update.
-
-##### SSE
-
-The client opens up a connection and keeps it open. The server will periodically write new data to the connection without closing it, and the client will interpret incoming new messages as they arrive rather than waiting for the response connection to terminate. This way is a bit more efficient than the Comet/Longpoll approach because each message doesn't have to incur the overhead of a fresh set of HTTP headers.
-
-##### Websockets
-
-The server and client open up an HTTP conversation, then perform a handshake and protocol escalation. The end result is that they're still communicating over TCP/IP, but they're not using HTTP to do it at all. The advantage this has over SSEs is that you can customize your protocol, so it's possible to be more efficient.
-
-That's basically it. I mean there used to be things called "Forever Frames" that have been thoroughly replaced by the SSE approach, and a couple of other tricks you could pull with proprietary or esoteric technologies, but they're not materially different from the above.
-
-These approaches are pretty different from each other under the covers, as you can hopefully see now that you understand them in the abstract, but they have one important point in common. They all depend on long-lived connections. Longpolling depends on the server keeping requests around until new data is available (thus keeping a connection open until new data arrives, or the client gives up in frustration), SSEs keep an open stream between client and server to which data is periodically written, and Websockets change the protocol a particular connection is speaking, but leave it open (and bi-directional, which complicates matters slightly; you basically need to chuck websockets back into the main listen/read loop *and keep them there* until they're closed).
-
-The consequence of keeping long-lived connections around is that you're going to want one of
-
-a) A server that can service many connections with a single thread
-b) A thread-per-request server that passes long-lived connections off to a separate subsystem, which must handle those long lived connections using a minimal number of threads
-c) A thread-per-request server on top of a platform where threads are cheap enough that you can afford having a few hundred thousand of them around.
 
 For an example of option `c`, have a look at Yaws (the [web server](http://hyber.org/), not the [tropical infection](http://en.wikipedia.org/wiki/Yaws)). `b` strikes me as ridiculous. The reason for using a thread-per-request model is that it mechanically simplifies server implementation, but adding the requirement of a separate long-lived connection subsystem seems like it would result in a net complexity *increase*. So, if we want server pushing in the absence of really, *really*, **really** cheap threads, we're dealing with an event-driven server. Which means dealing with non-blocking IO (we'll see why that is later on), and potentially dealing with a single thread.
 
