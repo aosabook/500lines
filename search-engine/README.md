@@ -121,9 +121,11 @@ On an electromechanical hard disk,
 this could take more than half a second,
 and it will have to be repeated for each search term.
 
-A somewhat simpler,
-although less optimal,
-approach
+<img style="float: right" src="skipfiles.svg" />
+
+A somewhat simpler
+approach,
+although it requires more comparisons,
 is to break the file up into chunks
 with a compact “skip file”
 which tells you what each chunk contains.
@@ -133,6 +135,42 @@ Then you typically only need to consult
 the skip file
 and a single chunk
 to find all the postings for a term.
+You have to examine potentially a larger number of keys,
+but disks are fast at transferring large numbers of sequential records
+into RAM.
+
+<img style="float: right; clear: right" src="skiplist.svg" />
+
+This structure with chunks indexed by a "skip file" is analogous to a skip list;
+the source code of the popular search engine Lucene
+even calls it a "skip list".
+It's analogous in the sense that the pointers in a skip list,
+like a skip file,
+allow a searching procedure to skip over most of the keys
+that a purely sequential traversal would have to examine.
+The difference is that the two data structures are sliced along different axes
+so that
+the skip file can be accessed entirely sequentially,
+while the skip pointers
+at a given level in a skip list
+are scattered across many skip-list nodes,
+rather than sequential in memory.
+Skip files are more like a B-tree.
+
+The diagram here shows multilevel skip lists and skip files,
+as used by current Lucene,
+while this engine uses only a single level of skip file;
+it doesn't have a skip file for its skip file.
+Also, this diagram
+uses a very small
+chunk size,
+averaging only about two items.
+This is reasonable for an in-memory skip list,
+but not for a skip file,
+where our main goal is to minimize *random* accesses
+rather than the total number of keys compared.
+
+XXX should these paragraphs be reordered?
 
 Industrial-strength search engines
 identify terms by integer indices into a term dictionary
@@ -623,16 +661,25 @@ in the directory:
             self.name = name
         __getitem__  = lambda self, child: Path(os.path.join(self.name, str(child)))
         __contains__ = lambda self, child: os.path.exists(self[child].name)
+
         __iter__     = lambda self: (self[child] for child in os.listdir(self.name))
-        open         = lambda self, *args: open(self.name, *args)
+
+        open         = lambda self, *args:          open(self.name, *args)
         open_gzipped = lambda self, *args: gzip.GzipFile(self.name, *args)
-        basename     = lambda self: os.path.basename(self.name)
+
+        basename     = lambda self:     os.path.basename(self.name)
         parent       = lambda self: Path(os.path.dirname(self.name))
-        abspath      = lambda self: os.path.abspath(self.name)
+        abspath      = lambda self:      os.path.abspath(self.name)
 
 Most manipulation of filesystem paths
 in this engine
 is done with this class.
+I laid out its code a tabular structure,
+using lambdas rather than the normal `def`,
+to show the parallelism between the different methods in each group,
+clarify that none of the methods other than `__init__` contains
+assignment statements or other side effects,
+and avoid making it look more complicated than it really is.
 
 Anyway, to find the document IDs
 from a given segment
@@ -971,7 +1018,8 @@ So what does `write_new_segment` do?
         with path['skip'].open('w') as skip_file:
             write_tuples(skip_file, itertools.chain(*skip_file_contents))
 
-    # Yields one skip file entry, or, in the edge case of an empty chunk, none.
+    # Yields one skip file entry, or, in the edge case of an empty chunk,
+    # zero skip file entries.
     def write_chunk(path, filename, chunk):
         with path[filename].open_gzipped('w') as chunk_file:
             write_tuples(chunk_file, chunk)
@@ -1111,6 +1159,12 @@ have not yet been read from disk.
 
 Finally, we delete the now-obsolete input segments.
 
+Because this engine doesn't yet support incremental updates,
+there will only ever be a single merge,
+(XXX is this really true?)
+and so "choosing an unused name for the new output segment"
+is very simple: we just use the constant `"seg_merged"`.
+
 The only new function here
 is `read_segment`:
 
@@ -1233,6 +1287,13 @@ but also means that a stray `except:`
 can accidentally prevent the program from exiting.
 This program doesn't use `exit`,
 but `except Exception:` also avoids catching `SystemExit`.
+
+In Python, iterating over a file
+gives you the lines of the file,
+including the terminating newlines, if any.
+So the `line` variable in the above normally includes a terminating newline.
+XXX but what if it doesn't because the last line of the file is unterminated?
+and there's another file? BUG
 
 Then, the `main` function provides an additional interface
 kind of compatible with `grep -rl`,
