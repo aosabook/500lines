@@ -28,13 +28,15 @@ What kinds of problems can we solve? Suppose that you are one of those who have 
 
 A reasonable schema for this data structure would be to have a table of entities and a table of relationships. A query for Thor's parents might look like:
 
+```
 SELECT e.* FROM entities as e, relationships as r WHERE r.out = "Thor" AND r.type = "parent" AND r.in = e.id
+```
 
 But how do we extend that to grandparents? We need to do a subquery, or use some other type of vendor-specific extension to SQL. And by the time we get to second cousins once removed we're going to have ALOTTA SQL.
 
-What would we like to write? Something both concise and flexible; something that models our query in a natural way and extends to other queries like it. second_cousins_once_removed('Thor') is concise, but it doesn't give us any flexibility. The SQL above is flexible, but lacks concision.
+What would we like to write? Something both concise and flexible; something that models our query in a natural way and extends to other queries like it. ```second_cousins_once_removed('Thor')``` is concise, but it doesn't give us any flexibility. The SQL above is flexible, but lacks concision.
 
-Something like Thor.parents.parents.parents.children.children.children strikes a reasonably good balance. The primitives give us flexibility to ask many similar questions, but the query is also very concise and natural. This particular phrasing gives us too many results, as it includes first cousins and siblings, but we're going for gestalt here.
+Something like ```Thor.parents.parents.parents.children.children.children``` strikes a reasonably good balance. The primitives give us flexibility to ask many similar questions, but the query is also very concise and natural. This particular phrasing gives us too many results, as it includes first cousins and siblings, but we're going for gestalt here.
 
 What's the simplest thing we can build that gives us this kind of interface? We could make a list of entities, and a list of edges, just like the relational schema, and then build some helper functions. It might look something like this:
 
