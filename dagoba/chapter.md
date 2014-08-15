@@ -50,29 +50,93 @@ What's the simplest thing we can build that gives us this kind of interface? We 
   children = function(x) { return E.reduce( function(acc, e) { return (e[0] === x) ? acc.concat(e[1]) : acc }, [] )}
 ```
 
-Now we can say something like children(children(children(parents(parents(parents('Thor')))))). It reads backwards and has a lot of silly parens, but otherwise is pretty close to what we wanted. Take a minute to look at the code. Can you see any ways to improve it?
+Now we can say something like ```children(children(children(parents(parents(parents('Thor'))))))```. It reads backwards and has a lot of silly parens, but otherwise is pretty close to what we wanted. Take a minute to look at the code. Can you see any ways to improve it?
 
 Well, we're treating the edges as a global variable, which means we can only ever have one database at a time using these helper functions. That's pretty limiting. 
 
 We're also not using the vertices at all. What does that tell us? It implies that everything we need is in the edges array, which in this case is true: the vertex values are scalars, so they exist independently in the edges array. If we want to answer questions like "How many of Freya's descendants were Valkyries?" we'll need to add more information to the vertices, which means making them compound values, which means the edges array should reference them by pointer instead of copying the value.
 
-The same holds true for our edges: they contain an 'in' vertex and an 'out' vertex [footnote1], but no elegant way to incorporate additional information. We'll need that to answer questions like "How many stepparents did Loki have?" or "How many children Odin have before Thor was born?"
+The same holds true for our edges: they contain an 'in' vertex and an 'out' vertex [footnote1], but no elegant way to incorporate additional information. We'll need that to answer questions like "How many stepparents did Loki have?" or "How many children did Odin have before Thor was born?"
 
 You don't have to squint very hard to tell that our the code for our two selectors looks very similar, which suggests there's a deeper abstraction from which those spring [diff eq]. 
 
 Do you see any other issues?
 
 
-////
-  [footnote1]
+
+[footnote1]
   Notice that we're modeling edges as a pair of vertices. Also notice that those pairs are ordered, because we're using arrays. That means we're modeling a *directed graph*, where every edge has a starting vertex and an ending vertex. [lines have arrows.] Doing it this way adds some complexity to our model because we have to keep track of the direction of edges, but it also allows us to ask more interesting questions, like "which vertices point in to vertex 3?" or "which vertex has the most outgoing edges?". [footnote2]
 
-  [footnote2]
+[footnote2]
   If needed we can model an undirected graph by doubling up our edges, but it can be cumbersome to simulate a directed graph from an undirected one. So the directed graph model is more versatile in this context.
+```
     function undirectMe (edges) 
       { return edges.reduce( function(acc, edge)
         { acc.push([ edge[1], edge[0] ]) }, edges.slice() )}
-/////
+```
+
+
+### Solve some problems
+
+Let's solve a few of the problems we've discovered. Having our vertices and edges be global constructs limits us to one graph at a time, but we'd like to have more. To solve this we'll need some structure. Let's start with a namespace.
+
+```javascript
+Dagoba   = {}                                                     // the namespace
+```
+
+We're also going to want some graph things. We can build these using a classic OOP pattern, but JavaScript offers us prototypal inheritance, which means we can build up a prototype object -- we'll call it Dagoba.G -- and then instantiate copies of that using a factory function. An advantage of this approach is that we can return different types of objects from the factory, instead of binding the creation process to a single class constructor. So we get some extra flexibility for free.
+
+```javascript
+Dagoba.G = {}                                                     // the prototype
+
+Dagoba.graph = function(V, E) {                                   // the factory
+  var graph = Object.create( Dagoba.G )
+  graph.vertices = []                                             // fresh copies so they're not shared
+  graph.edges = []
+  graph.vertexIndex = {}
+  if(V && Array.isArray(V)) graph.addVertices(V)                  // arrays only: singular V and E don't fly
+  if(E && Array.isArray(E)) graph.addEdges(E)
+  return graph
+}
+```
+
+We're calling addVertices and addEdges. Let's define those now.
+
+```javascript
+Dagoba.G.addVertices = function(vertices) { vertices.forEach(this.addVertex.bind(this)) }
+Dagoba.G.addEdges    = function(edges)    { edges   .forEach(this.addEdge  .bind(this)) }
+```
+
+Okay, that was too easy. Those are just convenience methods for calling addVertex and addEdge in a list context.
+
+```javascript
+Dagoba.G.addVertex = function(vertex) {
+  if(!vertex._id) 
+    vertex._id = this.vertices.length+1                           // auto-incrementing id
+  this.vertices.push(vertex)
+  this.vertexIndex[vertex._id] = vertex                           // a fancy index thing
+  vertex._out = []; vertex._in = []                               // empty arrays of edges
+}
+```
+
+So that's pretty simple too. We actually only need the first three lines for now -- the rest is just optimizations that we'll talk about later.
+
+```javascript
+Dagoba.G.addEdge = function(edge) {
+  if(!edge._label) return false                                   // labels are mandatory
+  edge._in  = this.findVertexById(edge._in)
+  edge._out = this.findVertexById(edge._out)
+  if(!(edge._in && edge._out)) return false                       // something is missing
+  edge._out._out.push(edge)
+  edge._in._in.push(edge)                                         // the edge's vertex's edges
+  this.edges.push(edge)
+}
+```
+
+Mostly more optimizations -- the last line is where all the action is. Take the edge, add it to our graph's list of edges: easy peasy lemon squeezy.
+
+### Vertices are fine but how do we ask questions?
+
 
 
 
@@ -89,7 +153,9 @@ So we've clearly got some work to do. Let's start with an issue we didn't highli
 
 Suppose we'd like to find a few people who have both tennis and philately as a hobby. We can start from tennis, go out to its hobbyists, out again to their hobbies, back in from philately and then take a few. (change this query)
 
+```
 G.v('tennis').in().as('person').outV('philately').in().matches('person').take(5)
+```
 
 And this works great, until our graph gets large and we run out of memory before Dave Brubeck gets to play. The problem is that we're completing each query segment before passing the data along to the next one, so we end up with an immense amount of data. If there were a way for later segments to pull data from earlier segments instead of having it pushed in to them, that would solve this problem. In other words, we need lazy evaluation. 
 
@@ -102,10 +168,248 @@ Now in some languages that would be trivial, but JavaScript is an eager language
 
 Now we'll need to modify our query components to work within this new system. This is moderately straightforward:
 
+```javascript
+Dagoba.Q = {}                                                     // prototype
+
+Dagoba.query = function(graph) {                                  // factory (only called by a graph's query initializers)
+  var query = Object.create( Dagoba.Q )
+  
+  query.   graph = graph                                          // the graph itself
+  query.   state = []                                             // state for each step
+  query. program = []                                             // list of steps to take  
+  query.gremlins = []                                             // gremlins for each step
+  
+  return query
+}
+
+Dagoba.Q.run = function() {                                       // the magic lives here
+  
+  var graph = this.graph                                          // these are closed over in the helpers
+  var state = this.state                                          // so we give them a spot in the frame
+  var program  = this.program
+  var gremlins = this.gremlins
+
+  var max = program.length-1                                      // work backwards
+  var pc = max                                                    // program counter
+  var done = -1                                                   // behindwhich things have finished
+  var results = []                                                // results for this run
+  var maybe_gremlin = false                                       // a mythical beast
+
+  if(!program.length) return []                                   // don't bother
+  
+  
+  // driver loop
+  while(done < max) {
+    maybe_gremlin = try_step(pc, maybe_gremlin)                   // maybe_gremlin is a gremlin or (string | false)
+    
+    if(maybe_gremlin == 'pull') {
+      maybe_gremlin = false
+      if(pc-1 > done) {
+        pc--
+        continue
+      } else {
+        done = pc
+      }
+    }
+    
+    if(maybe_gremlin == 'done') {
+      done = pc
+      maybe_gremlin = false
+    }
+    
+    pc++
+    
+    if(pc > max) {                                                // a gremlin is popping out of the pipeline. catch it!
+      if(maybe_gremlin)
+        results.push(maybe_gremlin)
+      maybe_gremlin = false
+      pc--
+    }
+  }
+
+  // TODO: deal with gremlin paths / history and gremlin "collisions"
+  
+  results = results.map(function(gremlin) {                       // make this a query component (or posthook)
+    return gremlin.result ? gremlin.result : gremlin.vertex } )
+
+  results = Dagoba.firehooks('postquery', this, results)[0] 
+  
+  return results
+  
+  // NAMED HELPERS
+  
+  function try_step(pc, maybe_gremlin) {
+    var step = program[pc]
+    var my_state = (state[pc] = state[pc] || {})
+    if(!Dagoba.QFuns[step[0]]) return Dagoba.onError('Unrecognized function call: ' + step[0]) || maybe_gremlin || 'pull'
+    return Dagoba.QFuns[step[0]](graph, step.slice(1) || {}, maybe_gremlin, my_state)
+  }
+    
+  function gremlin_boxer(step_index) { return function(gremlin) { return [step_index, gremlin] } }
+  
+  function stepper(step_index, gremlin) {
+    var step = program[step_index]
+    if(!Dagoba.QFuns[step[0]]) return Dagoba.onError('Unrecognized function call: ' + step[0]) || {}
+    return Dagoba.QFuns[step[0]](graph, step.slice(1) || {}, gremlin || {}, state[step_index] || {})
+  }
+  
+  function eat_gremlins(gremlins, step_index, result) {
+    return gremlins.concat( (result.stay || []).map(gremlin_boxer(step_index))   )
+                   .concat( (result.go   || []).map(gremlin_boxer(step_index+1)) ) }
+  
+  function setbang_gremlins(step_index, result) {gremlins = eat_gremlins(gremlins, step_index, result)}
+}
+```
+
 // new query components
 
 Cool, now we can query without blowing our memory limits and wasting a bunch of cycles on unneeded computation. As a side benefit, we can build a new query component that allows us to progressively take more elements until we get all that we need:
 
+```javascript
+Dagoba.Q.add = function(list) {                                  // add a new traversal to the query
+  this.program.push(list)
+  return this
+}
+
+Dagoba.addQFun = function(name, fun) {                            // add a new traversal type
+  Dagoba.QFuns[name] = fun
+  Dagoba.Q[name] = function() { return this.add([name].concat([].slice.apply(arguments))) } 
+  // TODO: accept string fun and allow extra params, for building quick aliases like
+  //       Dagoba.addQFun('children', 'out') <-- if all out edges are kids
+  //       Dagoba.addQFun('nthGGP', 'inN', 'parent')
+  // var methods = ['out', 'in', 'take', 'property', 'outAllN', 'inAllN', 'unique', 'filter', 'outV', 'outE', 'inV', 'inE', 'both', 'bothV', 'bothE']
+}
+
+
+Dagoba.QFuns = {}                                                 // all traversal types
+
+Dagoba.addQFun('vertex', function(graph, args, gremlin, state) {
+  if(!state.vertices) state.vertices = graph.findVertices(args)
+  if(!state.vertices.length) return 'done'
+  var vertex = state.vertices.pop() 
+  return Dagoba.make_gremlin(vertex)
+})
+  
+Dagoba.addQFun('out', function(graph, args, gremlin, state) {
+  if(!gremlin && (!state.edges || !state.edges.length)) return 'pull'
+  if(!state.edges || !state.edges.length) 
+    state.edges = graph.findOutEdges(gremlin.vertex).filter(Dagoba.filterThings(args[0]))
+  if(!state.edges.length) return 'pull'
+  var vertex = state.edges.pop()._in // what?
+  var clone = Dagoba.make_gremlin(vertex) // we lose history here: use clone_gremlin(gremlin).goto(vertex) instead
+  return clone
+})
+
+Dagoba.addQFun('outAllN', function(graph, args, gremlin, state) {
+  var filter = args[0]
+  var limit = args[1]-1
+  
+  if(!state.edgeList) { // initialize
+    if(!gremlin) return 'pull'
+    state.edgeList = []
+    state.current = 0
+    state.edgeList[0] = graph.findOutEdges(gremlin.vertex).filter(Dagoba.filterThings(filter))
+  }
+  
+  if(!state.edgeList[state.current].length) { // finished this round
+    if(state.current >= limit || !state.edgeList[state.current+1]   // totally done, or the next round has no items
+                              || !state.edgeList[state.current+1].length) {
+      state.edgeList = false
+      return 'pull'
+    }
+    state.current++ // go to next round
+    state.edgeList[state.current+1] = [] 
+  }
+  
+  var vertex = state.edgeList[state.current].pop()._in
+  
+  if(state.current < limit) { // add all our matching edges to the next level
+    if(!state.edgeList[state.current+1]) state.edgeList[state.current+1] = []
+    state.edgeList[state.current+1] = state.edgeList[state.current+1].concat(
+      graph.findOutEdges(vertex).filter(Dagoba.filterThings(filter))
+    )
+  }
+  
+  var clone = Dagoba.make_gremlin(vertex) // we lose history here: use clone_gremlin(gremlin).goto(vertex) instead
+  return clone
+})
+  
+Dagoba.addQFun('inAllN', function(graph, args, gremlin, state) {
+  var filter = args[0]
+  var limit = args[1]-1
+  
+  if(!state.edgeList) {                                           // initialize
+    if(!gremlin) return 'pull'
+    state.edgeList = []
+    state.current = 0
+    state.edgeList[0] = graph.findInEdges(gremlin.vertex).filter(Dagoba.filterThings(filter))
+  }
+  
+  if(!state.edgeList[state.current].length) {                     // finished this round
+    if(state.current >= limit || !state.edgeList[state.current+1] // totally done, or the next round has no items
+                              || !state.edgeList[state.current+1].length) {
+      state.edgeList = false
+      return 'pull'
+    }
+    state.current++                                               // go to next round
+    state.edgeList[state.current+1] = [] 
+  }
+  
+  var vertex = state.edgeList[state.current].pop()._out
+  
+  if(state.current < limit) {                                     // add all our matching edges to the next level
+    if(!state.edgeList[state.current+1]) state.edgeList[state.current+1] = []
+    state.edgeList[state.current+1] = state.edgeList[state.current+1].concat(
+      graph.findInEdges(vertex).filter(Dagoba.filterThings(filter))
+    )
+  }
+  
+  var clone = Dagoba.make_gremlin(vertex) // we lose history here: use clone_gremlin(gremlin).goto(vertex) instead
+  return clone
+})
+  
+Dagoba.addQFun('in', function(graph, args, gremlin, state) {
+  if(!gremlin && (!state.edges || !state.edges.length)) return 'pull'
+  if(!state.edges || !state.edges.length) 
+    state.edges = graph.findInEdges(gremlin.vertex).filter(Dagoba.filterThings(args[0]))
+  if(!state.edges.length) return 'pull'
+  var vertex = state.edges.pop()._out // what? // also, abstract this...
+  var clone = Dagoba.make_gremlin(vertex) // we lose history here: use clone_gremlin(gremlin).goto(vertex) instead
+  return clone
+})
+  
+Dagoba.addQFun('property', function(graph, args, gremlin, state) {
+  if(!gremlin) return 'pull'
+  gremlin.result = gremlin.vertex[args[0]]
+  return gremlin
+})
+  
+Dagoba.addQFun('unique', function(graph, args, gremlin, state) {
+  if(!gremlin) return 'pull'
+  if(state[gremlin.vertex._id]) return 'pull'                     // we've seen this gremlin, so get another instead
+  state[gremlin.vertex._id] = true
+  return gremlin
+})
+  
+Dagoba.addQFun('filter', function(graph, args, gremlin, state) {
+  if(!gremlin) return 'pull'
+  if(typeof args[0] != 'function') return Dagoba.onError('Filter arg is not a function: ' + args[0]) || gremlin
+  if(!args[0](gremlin.vertex)) return 'pull'                      // gremlin fails filter function 
+  // THINK: would we ever want to filter by other parts of the gremlin?
+  return gremlin
+})
+  
+Dagoba.addQFun('take', function(graph, args, gremlin, state) {
+  state.taken = state.taken ? state.taken : 0
+  if(state.taken == args[0]) {
+    state.taken = 0
+    return 'done'
+  }
+  if(!gremlin) return 'pull'
+  state.taken++ // FIXME: mutating! ugh!
+  return gremlin
+})
+```
 
 // state
 
@@ -119,20 +423,28 @@ We can even resume this after coming back in from an asynchronous event, so we c
 
 // example
 
+```javascript
+Q = G.v(1).out().property('name').take(1)
 
+Q.run() // ["lop"]
+Q.run() // ["josh"]
+Q.run() // ["vadas"]
+
+Q.run() // []
+```
 
 
 
 /// anyway later we'll include stepparents, but w/ parents ALWAYS older than children (DAG). then open it up for general graph stuff after.
 
-
+```
 /// (this is old, and may get skipped entirely)
 /// How do we get laziness in JS? Well, we're using ES6 features, so generators come to mind. That could look like this: []
 /// -- good idea, but: can't go backward, can't orthopt, 
 /// --> query transformer: id() -> attr('_id')
 /// --> then we add label matching for easy edge walking
 /// --> then we add object queries for more complicated stuff
-
+```
 
 
 ### Updates
@@ -150,7 +462,7 @@ The change we just made means we will always traverse every edge a particular ve
 
 If we need to see the world as it exists at a particular moment in time (e.g. 'now', where now is the moment our query begins) we can change our driver loop and the update handlers to add versioning to the data, and pass a pointer to that particular version into the query system. Doing this also opens the door to true transactions, and automated rollback/retries in an STM-like fashion. 
 
-
+```
 /// What happens if someone grabs some data while someone else updates some data? What if two folks update at the same time? 
 /// - immutable data (crypto sig of hash of data a la puffs)
 ///   - weak map for bonus data
@@ -158,10 +470,11 @@ If we need to see the world as it exists at a particular moment in time (e.g. 'n
 
 /// If we want to treat the data we receive as immutable we have a couple choices: JSON/clone or hand out references to graph data but clone on change (update-on-write). The later requires we trust our users not to mess with our data, or maybe we can "Freeze" it to keep them from changing it. In ES6 we can use Proxy Objects for this [maybe]. 
 /// Even doing this doesn't free us from other concurrency concerns, though: if multiple write come in from different places, what happens? Last write wins? Or do we require a reference to the previous object (Clojure's atoms), otherwise fail / retry (retry case could be like STM). Do we lock nodes that are undergoing a transaction? What is a transaction in this context anyway? [do once/queue/later help here?]
-
+```
 
 Generational queries -- add a 'gen' param to everything, and only query things with a gen lower than the query's gen. [what about updates and deletes?]
 
+```
 topological ordering (necessary for scoring, because of the dependencies): 
 G.v().noOut('parent').as('x').outAllFull('parent').merge('x').take(1)
 // outAllFull -> outAll -> outAllN() -> outAllN(0) -> outAllN(0, 'parent')
@@ -177,7 +490,7 @@ because that's pretty interesting. orthopt -> transformers (also debug, rollback
 diff between G.Y.all().times(5) and [G.Y.all(), G.Y.times(5)]
 
 G.v().outDegree(5, 'parent')
-
+```
 
 /////////
 
@@ -201,6 +514,7 @@ This actually seems kind of painful to parametrize fully. Let's take a step back
 
 So ultimately we can take any component (verb) and n-ize it (adverb) and any sequence of verbs (out-out-in) and 'all' them (or any other adverb, even n-ize) 
 
+```
 g.v(1).in().out().in().out().in().out()
 g.v(1).st().in().out().et().nize(3)
 g.v(1).st('a').in().out().et('a').nize(3)
@@ -230,11 +544,10 @@ actually since adverbs are always 'end' nodes, we really just need start nodes. 
 
 G.v(1).s().in().out().nize(2).all()
 
-
 And then we can use orthopt to push .out().out().out() -> .outN(3) for efficiency (if it's actually more efficient)
 and likewise for .out().all().out().all() -> .outAllN(3)
 so we get to eat our cake and have it fast too.
-
+```
 
 
 
@@ -251,7 +564,9 @@ Uniqueness of results vs counting # of results -- both are valid use cases. Can 
 ### error handling
 
 What if we did a query like this:
+```
 > G.v(-23).out([2,3,4]).take('a').foo()
+```
 
 Maybe we should handle those errors a little better.
 
@@ -283,21 +598,19 @@ Fortunately, we're building an IN-MEMORY database, so we don't have to worry abo
 All production graph databases share a very particular performance characteristic: graph traversal queries are constant time with respect to total graph size. [N] [The fancy term for this is "index-free adjacency".] In a non-graph database, asking for the list of someone's friends can require time proportional to the number of entries, because in the naive case you have to look at every entry. The means if a query over ten entries takes a millisecond then a query over ten million entries will take almost two weeks. Your friend list would arrive faster if sent by Pony Express! [N] [Though only in operation for 18 months due to the arrival of the transcontinental telegraph and the outbreak of the American Civil War, the Pony Express is still remembered today for delivering mail coast to coast in just ten days.]
 
 // do a perf test with the O(n) graph
-
+```
 Dagoba.Graph.findOutEdges = function(vertex) { return this.edges.filter(function(edge) {return edge._out == vertex._id} ) }
-
 Dagoba.Graph.findInEdges = function(vertex) { return this.edges.filter(function(edge) {return edge._in == vertex._id} ) }
-
+```
 
 To alleviate this dismal performance most databases index over oft-queried fields, which turns an O(n) search into an O(log n) search. This gives considerably better search time performance, but at the cost of some write performance and a lot of space -- indices can easily double the size of a database. Much of the modern DBA's role lies in carefully balancing these time/space tradeoffs and tediously tending to the index garden, weeding out unneeded indices and adding new ones when necessary. [replace this]
 
 // add an index
 // do a perf test with an indexed graph
-
+```
 Dagoba.Graph.findOutEdges = function(vertex) { return this.outEdgeIndex[vertex._id] }
-
 Dagoba.Graph.findInEdges = function(vertex) { return this.inEdgeIndex[vertex._id] }
-
+```
 
 
 Graph databases sidestep this issue by making direct connections between vertices and edges, so graph traversals are just pointer jumps: no need to read through everything, no need for indices. Now finding your friends has the same price regardless of total number of people in the graph, with no additional space cost or write time cost. One downside to this approach is that the pointers work best when the whole graph is in memory on the same machine. Sharding a graph across multiple machines is still an active area of research. [N] [point to a couple graph theory papers on NP-completeness of optimal splitting, but also some practical takes on this that mostly work ok]
@@ -305,11 +618,10 @@ Graph databases sidestep this issue by making direct connections between vertice
 // add pointers
 // perf test
 // wow such perform
-
+```
 Dagoba.Graph.findOutEdges = function(vertex) { return vertex._out; }
-
 Dagoba.Graph.findInEdges = function(vertex) { return vertex._in; }
-
+```
 
 ### Orthogonal Optimization
 
