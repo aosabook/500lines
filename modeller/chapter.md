@@ -1,11 +1,11 @@
 ## Intro
-Humans are innately creative. We continuously designand build novel, useful, and interesting things. In modern times, we write software to assist in the design and creation process. 
-Many designers, engineers and creators use Computer Assisted Design (CAD) software.  These tools allow creators to design buildings, bridges, video game art, 
+Humans are innately creative. We continuously design and build novel, useful, and interesting things. In modern times, we write software to assist in the design and creation process. 
+Computer Assisted Design (CAD) software allows creators to design buildings, bridges, video game art, 
 film monsters, 3D printable objects, and many other things on a computer before building a physical version of the design. 
 
 At their core, CAD tools must offer three pieces of functionality. 
 Firstly, they must have a data structure to represent the object that's being designed. The software must have a semantic model of the design.
-Secondly, the CAD tool must offer some way to display the design onto the user's screen. The user is designing a physical object with 3 dimensions, but the computer sceen has only 2 dimensions. 
+Secondly, the CAD tool must offer some way to display the design onto the user's screen. The user is designing a physical object with 3 dimensions, but the computer screen has only 2 dimensions. 
 The CAD tool must model how we perceive objects, and draw them to the screen in a way that the user can understand all 3 dimensions of the object.
 Thirdly, the CAD tool must offer the designer a way to interact with the object being designed. The designer must be able to add to and modify the design in order to produce the desired result.
 
@@ -18,8 +18,10 @@ However, at their core, call CAD tools must include the three features discussed
 
 With that in mind, let's explore how we can represent a 3D design, display it to the screen, and interact with it, in 500 lines of Python.
 
+TODO: Maybe draw a connection with the Model View Controller design pattern??
+
 ## Representing the Design: The Scene
-The first of the core features of a 3D modeller is a data structure to represent the design in memory.  In this project, we call it the `Scene`.
+The first core feature of a 3D modeller is a data structure to represent the design in memory.  In this project, we call it the `Scene`.
 The `Scene` contains the data that represents the design that the user is working on. The objects contained in the `Scene` are referred to as `Node`s.
 The `Scene` has a list of `Node`.
 
@@ -43,10 +45,11 @@ class Scene(object):
 ``````````````````````````````````````````
 
 ### Scene Nodes
-We use the `Node` base class to represent an object that can be placed in the scene. This base class allows
-us to reason about the scene abstractly. The `Scene` class doesn't need to know about the details of the objects it displays,
-it only needs to know that they are `Node`s. Each type of `Node` defines its own behaviour for rendering itself and for any other necessary
-interactions.
+Conceptually, a `Node` is anything that can be placed in the scene.  
+In the object oriented world, we write `Node` as an abstract base class. Any classes that represent object to be placed in the `Scene` will inherit from `Node`. 
+This base class allows us to reason about the scene abstractly. 
+The rest of the code base doesn't need to know about the details of the objects it displays, it only needs to know that they are `Node`s. 
+Each type of `Node` defines its own behaviour for rendering itself and for any other necessary interactions.
 
 In this project,`Sphere` and a `Cube` available. More shapes can be added easily by extending the Node class again.
 
@@ -55,7 +58,6 @@ In this project,`Sphere` and a `Cube` available. More shapes can be added easily
 class Node(object):
     """ Base class for scene elements """
     def __init__(self):
-        self.location = [0, 0, 0]
         self.color_index = random.randint(color.MIN_COLOR, color.MAX_COLOR)
         self.aabb = AABB([0.0, 0.0, 0.0], [0.5, 0.5, 0.5])
         self.translation = numpy.identity(4)
@@ -81,7 +83,7 @@ class Cube(Primitive):
         self.call_list = G_OBJ_CUBE
 ``````````````````````````````````````````
 
-The `Node` keeps track of important data about itself: translation matrix, scale matrix, color, location, etc. We will see more about Axis Aligned Bounding Boxes (AABBs) when we discuss
+The `Node` keeps track of important data about itself: translation matrix, scale matrix, color, etc. We will see more about Axis Aligned Bounding Boxes (AABBs) when we discuss
 selection below.
 
 The abstract Node class contains all of the logic common to all nodes. The sub classes of `Node` override specific functionality if needed. They are also required to

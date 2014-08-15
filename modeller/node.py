@@ -12,7 +12,6 @@ import color
 class Node(object):
     """ Base class for scene elements """
     def __init__(self):
-        self.location = [0, 0, 0]
         self.color_index = random.randint(color.MIN_COLOR, color.MAX_COLOR)
         self.aabb = AABB([0.0, 0.0, 0.0], [0.5, 0.5, 0.5])
         self.translation = numpy.identity(4)
