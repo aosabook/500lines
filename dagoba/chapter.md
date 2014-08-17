@@ -32,7 +32,7 @@ A reasonable schema for this data structure would be to have a table of entities
 SELECT e.* FROM entities as e, relationships as r WHERE r.out = "Thor" AND r.type = "parent" AND r.in = e.id
 ```
 
-But how do we extend that to grandparents? We need to do a subquery, or use some other type of vendor-specific extension to SQL. And by the time we get to second cousins once removed we're going to have ALOTTA SQL.
+But how do we extend that to grandparents? We need to do a subquery, or use some other type of vendor-specific extension to SQL. And by the time we get to second cousins once removed we're going to have ALOTTA SQL. [I don't like ALOTTA.]
 
 What would we like to write? Something both concise and flexible; something that models our query in a natural way and extends to other queries like it. ```second_cousins_once_removed('Thor')``` is concise, but it doesn't give us any flexibility. The SQL above is flexible, but lacks concision.
 
@@ -50,7 +50,7 @@ What's the simplest thing we can build that gives us this kind of interface? We 
   children = function(x) { return E.reduce( function(acc, e) { return (e[0] === x) ? acc.concat(e[1]) : acc }, [] )}
 ```
 
-Now we can say something like ```children(children(children(parents(parents(parents('Thor'))))))```. It reads backwards and has a lot of silly parens, but otherwise is pretty close to what we wanted. Take a minute to look at the code. Can you see any ways to improve it?
+Now we can say something like ```children(children(children(parents(parents(parents('Thor'))))))```. It reads backwards and has a lot of silly parens [does eveyone know "parens"?  it took me a moment to parse], but is otherwise pretty close to what we wanted. Take a minute to look at the code. Can you see any ways to improve it?
 
 Well, we're treating the edges as a global variable, which means we can only ever have one database at a time using these helper functions. That's pretty limiting. 
 
@@ -58,17 +58,17 @@ We're also not using the vertices at all. What does that tell us? It implies tha
 
 The same holds true for our edges: they contain an 'in' vertex and an 'out' vertex [footnote1], but no elegant way to incorporate additional information. We'll need that to answer questions like "How many stepparents did Loki have?" or "How many children did Odin have before Thor was born?"
 
-You don't have to squint very hard to tell that our the code for our two selectors looks very similar, which suggests there's a deeper abstraction from which those spring [diff eq]. 
+You don't have to squint very hard to tell that the code for our two selectors looks very similar, which suggests there's a deeper abstraction from which those spring [diff eq]. 
 
 Do you see any other issues?
 
 
 
 [footnote1]
-  Notice that we're modeling edges as a pair of vertices. Also notice that those pairs are ordered, because we're using arrays. That means we're modeling a *directed graph*, where every edge has a starting vertex and an ending vertex. [lines have arrows.] Doing it this way adds some complexity to our model because we have to keep track of the direction of edges, but it also allows us to ask more interesting questions, like "which vertices point in to vertex 3?" or "which vertex has the most outgoing edges?". [footnote2]
+  Notice that we're modeling edges as a pair of vertices. Also notice that those pairs are ordered, because we're using arrays. That means we're modeling a *directed graph*, where every edge has a starting vertex and an ending vertex. [lines have arrows.] Doing it this way adds some complexity to our model because we have to keep track of the direction of edges, but it also allows us to ask more interesting questions, like "which vertices point in to vertex 3?" or "which vertex has the most outgoing edges?". [footnote2] [footnote in a footnote? Can you get away with that if you're not David Foster Wallace?]
 
 [footnote2]
-  If needed we can model an undirected graph by doubling up our edges, but it can be cumbersome to simulate a directed graph from an undirected one. So the directed graph model is more versatile in this context.
+  If needed we can model an undirected graph by doubling up our edges, but it can be cumbersome to simulate a directed graph from an undirected one. So the directed graph model is more versatile in this context.  [I'm usually good at following the code, at least a bit.  I don't see how the code below relates to this footnote.]
 ```
     function undirectMe (edges) 
       { return edges.reduce( function(acc, edge)
@@ -119,7 +119,7 @@ Dagoba.G.addVertex = function(vertex) {
 }
 ```
 
-So that's pretty simple too. We actually only need the first three lines for now -- the rest is just optimizations that we'll talk about later.
+So that's pretty simple too. We actually only need the first three lines for now -- the rest are just optimizations that we'll talk about later.
 
 ```javascript
 Dagoba.G.addEdge = function(edge) {
@@ -128,7 +128,7 @@ Dagoba.G.addEdge = function(edge) {
   edge._out = this.findVertexById(edge._out)
   if(!(edge._in && edge._out)) return false                       // something is missing
   edge._out._out.push(edge)
-  edge._in._in.push(edge)                                         // the edge's vertex's edges
+  edge._in._in.push(edge)                                         // the edge's vertex's edges [I find myself wondering if you mean "edge's vertices' edges", but can't follow the code well enough...]
   this.edges.push(edge)
 }
 ```
@@ -157,7 +157,7 @@ Suppose we'd like to find a few people who have both tennis and philately as a h
 G.v('tennis').in().as('person').outV('philately').in().matches('person').take(5)
 ```
 
-And this works great, until our graph gets large and we run out of memory before Dave Brubeck gets to play. The problem is that we're completing each query segment before passing the data along to the next one, so we end up with an immense amount of data. If there were a way for later segments to pull data from earlier segments instead of having it pushed in to them, that would solve this problem. In other words, we need lazy evaluation. 
+And this works great, until our graph gets large and we run out of memory before Dave Brubeck gets to play [huh?  Is this the sign things are devolving?]. The problem is that we're completing each query segment before passing the data along to the next one, so we end up with an immense amount of data. If there were a way for later segments to pull data from earlier segments instead of having it pushed in to them, that would solve this problem. In other words, we need lazy evaluation. 
 
 Now in some languages that would be trivial, but JavaScript is an eager language, so we're going to have to do a little work. First of all, our query segments can't just return data any more. Instead we're going to need to process each segment on demand. That means we'll need some way of driving this process forward. Here's how we'll do that.
 
@@ -166,7 +166,7 @@ Now in some languages that would be trivial, but JavaScript is an eager language
 
 // introduce the driver loop
 
-Now we'll need to modify our query components to work within this new system. This is moderately straightforward:
+We'll need to modify our query components to work within this new system. This is moderately straightforward:
 
 ```javascript
 Dagoba.Q = {}                                                     // prototype
@@ -191,7 +191,7 @@ Dagoba.Q.run = function() {                                       // the magic l
 
   var max = program.length-1                                      // work backwards
   var pc = max                                                    // program counter
-  var done = -1                                                   // behindwhich things have finished
+  var done = -1                                                   // behind which things have finished
   var results = []                                                // results for this run
   var maybe_gremlin = false                                       // a mythical beast
 
@@ -413,9 +413,9 @@ Dagoba.addQFun('take', function(graph, args, gremlin, state) {
 
 // state
 
-notice that we're keeping all the component state up at the driver loop level. this allows us to keep track of all the state in one place so we can easily read it and clear it, and it means we can keep the components as "pure" functions that take some inputs and give some output, so the driver loop doesn't need to instantiate them or indeed know anything about them. it's tidier too, because everything we need for re-running the query is contained in pc, program and state.
+Notice that we're keeping all the component state up at the driver loop level. This allows us to keep track of all the state in one place so we can easily read it and clear it.  And it means we can keep the components as "pure" functions that take some inputs and give some output, so the driver loop doesn't need to instantiate them or indeed know anything about them. It's tidier too, because everything we need for re-running the query is contained in pc, program and state.
 
-So why the scare quotes around pure? Because we're mutating the state argument inside the function. We usually try to avoid mutation to curb spooky action at a distance, but in this case we're taking advantage of JS's mutable variables. This state variable is only changed within the component itself, so if we're careful to respect this within any state-peeking features we add later then hopefully we can avoid having this bite us. The advantages are that we can simplify our return value and cut down on garbage created in the components.
+So why the scare quotes around pure? Because we're mutating the state argument inside the function. We usually try to avoid mutation to curb spooky action at a distance, but in this case we're taking advantage of JS's mutable variables. This state variable is only changed within the component itself, so if we're careful to respect this within any state-peeking features we add later, then hopefully we can avoid having this bite us. The advantages are that we can simplify our return value and cut down on garbage created in the components.
 
 // new pipe thing
 
@@ -451,14 +451,14 @@ Q.run() // []
 
 (maybe lead in from the async stuff above, since that provides the context for concurrency issues.)
 
-There's a problem with our 'out' query component: if someone deletes an edge we've visited while we're in the middle of a query we'll skip a different edge, because our counter is off. We could lock the vertices in our query, but one of the strengths of this approach is driving the iteration through the query space from code, so our query object might be long-lived. Even though we're in a single-threaded event loop, our queries can span multiple asynchronous re-entries, which means concurrency concerns like this are a very real problem. 
+There's a problem with our 'out' query component: if someone deletes an edge we've visited while we're in the middle of a query, we'll skip a different edge because our counter is off. We could lock the vertices in our query, but one of the strengths of this approach is driving the iteration through the query space from code, so our query object might be long-lived. Even though we're in a single-threaded event loop, our queries can span multiple asynchronous re-entries, which means concurrency concerns like this are a very real problem. 
 So instead we'll slice and pop the edge list each time we reach a new vertex. This burns some extra CPU and pushes more work onto the GC, so we'll stick a note here so we know what to do if this shows up as a hotspot during our profiling.
 
 // new 'out' query component (and friends)
 
 One concern with doing our queries this new way is that we're still not seeing a completely consistent chronology. Skipping random edges, like we did before, leaves us with an entirely inconsistent view of the universe, where things that have always existed may appear to be gone. This is generally undesirable, though many modern systems for storing very large amounts of data have exactly this property. [N] [google, facebook, kayak, etc -- often queries over heavily sharded datasets or multiple apis with pagination or timeouts have this property]
 
-The change we just made means we will always traverse every edge a particular vertex had _at the moment we visited it_. That means as we begin traversing edges we may see new vertices at different points in the graph chronology, and may even see the same vertex at different points in the chronology at different points in our query. Depending on the relationships we're storing this may provide a view of the universe that seemingly defies the laws of physics, even though no laws have actually been broken. 
+The change we just made means we will always traverse every edge a particular vertex had _at the moment we visited it_. That means that as we begin traversing edges, we may see new vertices at different points in the graph chronology, and may even see the same vertex at different points in the chronology at different points in our query. Depending on the relationships we're storing, this may provide a view of the universe that seemingly defies the laws of physics, even though no laws have actually been broken. 
 
 If we need to see the world as it exists at a particular moment in time (e.g. 'now', where now is the moment our query begins) we can change our driver loop and the update handlers to add versioning to the data, and pass a pointer to that particular version into the query system. Doing this also opens the door to true transactions, and automated rollback/retries in an STM-like fashion. 
 
@@ -468,8 +468,8 @@ If we need to see the world as it exists at a particular moment in time (e.g. 'n
 ///   - weak map for bonus data
 ///   - immutable lib, query over time
 
-/// If we want to treat the data we receive as immutable we have a couple choices: JSON/clone or hand out references to graph data but clone on change (update-on-write). The later requires we trust our users not to mess with our data, or maybe we can "Freeze" it to keep them from changing it. In ES6 we can use Proxy Objects for this [maybe]. 
-/// Even doing this doesn't free us from other concurrency concerns, though: if multiple write come in from different places, what happens? Last write wins? Or do we require a reference to the previous object (Clojure's atoms), otherwise fail / retry (retry case could be like STM). Do we lock nodes that are undergoing a transaction? What is a transaction in this context anyway? [do once/queue/later help here?]
+/// If we want to treat the data we receive as immutable we have a couple of choices: JSON/clone or hand out references to graph data but clone on change (update-on-write). The latter requires we trust our users not to mess with our data, or maybe we can "Freeze" it to keep them from changing it. In ES6 we can use Proxy Objects for this [maybe]. 
+/// Even doing this doesn't free us from other concurrency concerns, though: if multiple write[s?] come in from different places, what happens? Last write wins? Or do we require a reference to the previous object (Clojure's atoms), otherwise fail / retry (retry case could be like STM)? Do we lock nodes that are undergoing a transaction? What is a transaction in this context anyway? [do once/queue/later help here?]
 ```
 
 Generational queries -- add a 'gen' param to everything, and only query things with a gen lower than the query's gen. [what about updates and deletes?]
@@ -498,9 +498,9 @@ out -> outN -> outNAll
 
 Cross your eyes and squint a little and the similarities are obvious. It's good policy in general to take a cross-eyed squinty first pass of new code. You might end up with a nickname like ol' cross-eyed McSquintyPants, but no one will question your deduplication prowess. 
 
-Spotting this similarity leaves us at a bit of a dilemma, however. [on the horns of]. There's a tension at play between wanting to not repeat ourselves and our desire to maintaining the [isolation] of one-fun-per-component. 
+Spotting this similarity leaves us at a bit of a dilemma, however. [on the horns of]. There's a tension at play between wanting to not repeat ourselves and our desire to maintain the [isolation] of one-fun-per-component. 
 
-Unfortunately there's no hard and fast rule for this situation -- it really comes down to good judgement. If the internals are likely to mutate away from each other, leave them separate. If the maintaining the one-fun-per-component [invariant] is structurally useful, leave it. If you find yourself endlessly repeating the same chunk of boilerplate with small, easily-parametrizable variations, consolidate it -- but in the absence of such strong indicators you'll need to follow your nose.
+Unfortunately there's no hard and fast rule for this situation -- it really comes down to good judgement. If the internals are likely to mutate away from each other, leave them separate. If maintaining the one-fun-per-component [invariant] is structurally useful, leave it. If you find yourself endlessly repeating the same chunk of boilerplate with small, easily-parametrizable variations, consolidate it -- but in the absence of such strong indicators you'll need to follow your nose.
 
 Another approach we could take is leaving the individual functions, but pull 'component' out of their bodies and squish 'em together. This seems like pure win, but there are tradeoffs here as well. We're introducing a layer of abstraction, which always ups the complexity cost. We're moving the guts of the component elsewhere, forcing us to hunt to find its meaning. 
 
@@ -552,7 +552,7 @@ so we get to eat our cake and have it fast too.
 
 
 
-
+[this is how far I've made it so far!]
 
 ### Hooks
 
