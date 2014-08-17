@@ -94,8 +94,8 @@ Dagoba.graph = function(V, E) {                                   // the factory
   graph.vertices = []                                             // fresh copies so they're not shared
   graph.edges = []
   graph.vertexIndex = {}
-  if(V && Array.isArray(V)) graph.addVertices(V)                  // arrays only: singular V and E don't fly
-  if(E && Array.isArray(E)) graph.addEdges(E)
+  if(V && Array.isArray(V)) graph.addVertices(V)                  // arrays only, because you wouldn't
+  if(E && Array.isArray(E)) graph.addEdges(E)                     // call this with singular V and E
   return graph
 }
 ```

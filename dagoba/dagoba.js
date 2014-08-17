@@ -27,7 +27,7 @@
 */
 
 
-Dagoba = {}
+Dagoba = {}                                                       // the namespace
 
 Dagoba.G = {}                                                     // the prototype
 
@@ -36,8 +36,8 @@ Dagoba.graph = function(V, E) {                                   // the factory
   graph.vertices = []                                             // fresh copies so they're not shared
   graph.edges = []
   graph.vertexIndex = {}
-  if(V && Array.isArray(V)) graph.addVertices(V)                  // arrays only: singular V and E don't fly
-  if(E && Array.isArray(E)) graph.addEdges(E)
+  if(V && Array.isArray(V)) graph.addVertices(V)                  // arrays only, because you wouldn't
+  if(E && Array.isArray(E)) graph.addEdges(E)                     // call this with singular V and E
   return graph
 }
 
@@ -107,10 +107,10 @@ Dagoba.fromString = function(str) {                               // another gra
 
 
 
-Dagoba.Query = {}                                                 // prototype
+Dagoba.Q = {}                                                     // prototype
 
 Dagoba.query = function(graph) {                                  // factory (only called by a graph's query initializers)
-  var query = Object.create(Dagoba.Query)
+  var query = Object.create( Dagoba.Q )
   
   query.   graph = graph                                          // the graph itself
   query.   state = []                                             // state for each step
@@ -120,7 +120,7 @@ Dagoba.query = function(graph) {                                  // factory (on
   return query
 }
 
-Dagoba.Query.run = function() {                                   // the magic lives here
+Dagoba.Q.run = function() {                                       // the magic lives here
   
   var graph = this.graph                                          // these are closed over in the helpers
   var state = this.state                                          // so we give them a spot in the frame
@@ -199,14 +199,14 @@ Dagoba.Query.run = function() {                                   // the magic l
 }
 
 
-Dagoba.Query.add = function(list) {                               // add a new traversal to the query
+Dagoba.Q.add = function(list) {                                  // add a new traversal to the query
   this.program.push(list)
   return this
 }
 
 Dagoba.addQFun = function(name, fun) {                            // add a new traversal type
   Dagoba.QFuns[name] = fun
-  Dagoba.Query[name] = function() { return this.add([name].concat([].slice.apply(arguments))) } 
+  Dagoba.Q[name] = function() { return this.add([name].concat([].slice.apply(arguments))) } 
   // TODO: accept string fun and allow extra params, for building quick aliases like
   //       Dagoba.addQFun('children', 'out') <-- if all out edges are kids
   //       Dagoba.addQFun('nthGGP', 'inN', 'parent')
