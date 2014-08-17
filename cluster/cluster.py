@@ -397,7 +397,7 @@ class Leader(Component):
         self.commander_cls = commander_cls
         self.commanders = {}
         self.scout_cls = scout_cls
-        self.scout = None
+        self.scouting = False
         self.peers = peers
 
     def start(self):
@@ -409,13 +409,12 @@ class Leader(Component):
         active()
 
     def spawn_scout(self):
-        # TODO: change to self.scouting (boolean)
-        assert not self.scout
-        sct = self.scout = self.scout_cls(self.node, self.ballot_num, self.peers)
-        sct.start()
+        assert not self.scouting
+        self.scouting = True
+        self.scout_cls(self.node, self.ballot_num, self.peers).start()
 
     def do_ADOPTED(self, sender, ballot_num, accepted_proposals):
-        self.scout = None
+        self.scouting = False
         self.proposals.update(accepted_proposals)
         # note that we don't re-spawn commanders here; if there are undecided
         # proposals, the replicas will re-propose
@@ -437,7 +436,7 @@ class Leader(Component):
         if slot:
             del self.commanders[slot]
         else:
-            self.scout = None
+            self.scouting = False
         self.logger.info("leader preempted by %s", preempted_by.leader)
         self.active = False
         self.ballot_num = Ballot((preempted_by or self.ballot_num).n + 1, self.ballot_num.leader)
@@ -449,7 +448,7 @@ class Leader(Component):
                 self.logger.info("spawning commander for slot %d" % (slot,))
                 self.spawn_commander(self.ballot_num, slot)
             else:
-                if not self.scout:
+                if not self.scouting:
                     self.logger.info("got PROPOSE when not active - scouting")
                     self.spawn_scout()
                 else:

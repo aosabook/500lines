@@ -21,12 +21,12 @@ class Tests(utils.ComponentTestCase):
                           scout_cls=Scout)
 
     def assertScoutStarted(self, ballot_num):
-        Scout.assert_called_with(self.node, ballot_num, ['p1', 'p2'])
+        Scout.assert_called_once_with(self.node, ballot_num, ['p1', 'p2'])
         scout = Scout(self.node, ballot_num, ['p1', 'p2'])
-        scout.start.assert_called_with()
+        scout.start.assert_called_once_with()
 
     def assertNoScout(self):
-        self.assertEqual(self.ldr.scout, None)
+        self.assertFalse(self.ldr.scouting)
 
     def assertCommanderStarted(self, ballot_num, slot, proposal):
         Commander.assert_called_with(self.node, ballot_num, slot, proposal, ['p1', 'p2'])
@@ -53,9 +53,8 @@ class Tests(utils.ComponentTestCase):
     def test_propose_scouting(self):
         """A PROPOSE received while already scouting is ignored."""
         self.node.fake_message(Propose(slot=10, proposal=PROPOSAL1))
-        first_scout = self.ldr.scout
         self.node.fake_message(Propose(slot=10, proposal=PROPOSAL1))
-        self.failUnless(self.ldr.scout is first_scout)
+        self.assertScoutStarted(Ballot(0, 'F999'))
 
     def test_propose_active(self):
         """A PROPOSE received while active spawns a commander."""
