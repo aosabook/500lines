@@ -89,46 +89,25 @@ class Tests(utils.ComponentTestCase):
         self.assertNoScout()
         self.assertFalse(self.ldr.active)
 
-    @mock.patch.object(Leader, 'merge_pvals')
-    def test_scout_finished_adopted(self, merge_pvals):
-        """When a scout finishes and the leader is adopted, pvals are merged and the
-        leader becomes active"""
+    def test_scout_finished_adopted(self):
+        """When a scout finishes and the leader is adopted, accepted proposals
+        are merged and the leader becomes active"""
         self.ldr.spawn_scout()
-        self.node.fake_message(Adopted(ballot_num=Ballot(0, 'F999'), pvals={'p': 'vals'}))
+        self.ldr.proposals[9] = PROPOSAL2
+        self.node.fake_message(Adopted(ballot_num=Ballot(0, 'F999'),
+            accepted_proposals={10: PROPOSAL3}))
         self.assertNoScout()
-        merge_pvals.assert_called_with({'p': 'vals'})
         self.assertTrue(self.ldr.active)
+        self.assertEqual(self.ldr.proposals, {
+            9: PROPOSAL2,
+            10: PROPOSAL3,
+        })
 
-    @mock.patch.object(Leader, 'merge_pvals')
-    def test_scout_finished_preempted(self, merge_pvals):
+    def test_scout_finished_preempted(self):
         """When a scout finishes and the leader is preempted, the leader is inactive
         and its ballot_num is updated."""
         self.ldr.spawn_scout()
         self.node.fake_message(Preempted(slot=None, preempted_by=Ballot(22, 'F999')))
         self.assertNoScout()
-        merge_pvals.assert_not_called()
         self.assertEqual(self.ldr.ballot_num, Ballot(23, 'F999'))
         self.assertFalse(self.ldr.active)
-
-    def test_merge_pvals_empty(self):
-        """Merging no pvals has no effect"""
-        self.ldr.merge_pvals({})
-        self.assertEqual(self.ldr.proposals, {})
-
-    def test_merge_pvals_no_overlaps(self):
-        """Merging pvals with no slot overlaps simply creates a new dictionary."""
-        self.ldr.merge_pvals({
-            (Ballot(10, 10), 10): PROPOSAL1,
-            (Ballot(10, 10), 11): PROPOSAL2,
-        })
-        self.assertEqual(self.ldr.proposals, {10: PROPOSAL1, 11: PROPOSAL2})
-
-    def test_merge_pvals_highest_ballot_wins(self):
-        """Merging pvals where the slot numbers overlap chooses the one with
-        the highest ballot num"""
-        self.ldr.merge_pvals({
-            (Ballot(10, 10), 10): PROPOSAL1,
-            (Ballot(99, 99), 10): PROPOSAL3,
-            (Ballot(99, 10), 10): PROPOSAL2,
-        })
-        self.assertEqual(self.ldr.proposals, {10: PROPOSAL3})

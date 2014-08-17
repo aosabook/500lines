@@ -21,12 +21,12 @@ Invoke = namedtuple('Invoke', ['caller', 'client_id', 'input_value'])
 Join = namedtuple('Join', [])
 Active = namedtuple('Active', [])
 Prepare = namedtuple('Prepare', ['ballot_num'])
-Promise = namedtuple('Promise', ['ballot_num', 'accepted'])
+Promise = namedtuple('Promise', ['ballot_num', 'accepted_proposals'])
 Propose = namedtuple('Propose', ['slot', 'proposal'])
 Welcome = namedtuple('Welcome', ['state', 'slot', 'decisions'])
 Decided = namedtuple('Decided', ['slot'])
 Preempted = namedtuple('Preempted', ['slot', 'preempted_by'])
-Adopted = namedtuple('Adopted', ['ballot_num', 'pvals'])
+Adopted = namedtuple('Adopted', ['ballot_num', 'accepted_proposals'])
 Accepting = namedtuple('Accepting', ['leader'])
 
 # constants - all of these should really be in terms of average round-trip time
@@ -157,21 +157,22 @@ class Acceptor(Component):
     def __init__(self, node):
         super(Acceptor, self).__init__(node)
         self.ballot_num = NULL_BALLOT
-        # TODO: this could simply be s : p?
-        self.accepted = {}  # { (b, s) : p }
+        self.accepted_proposals = {}  # {slot: (ballot_num, proposal)}
 
     def do_PREPARE(self, sender, ballot_num):
         if ballot_num > self.ballot_num:
             self.ballot_num = ballot_num
-            # we've accepted the sender, so it might be the next leader
+            # we've heard from a scout, so it might be the next leader
             self.node.send([self.node.address], Accepting(leader=sender))
 
-        self.node.send([sender], Promise(ballot_num=self.ballot_num, accepted=self.accepted))
+        self.node.send([sender], Promise(ballot_num=self.ballot_num, accepted_proposals=self.accepted_proposals))
 
     def do_ACCEPT(self, sender, ballot_num, slot, proposal):
         if ballot_num >= self.ballot_num:
             self.ballot_num = ballot_num
-            self.accepted[(ballot_num, slot)] = proposal
+            acc = self.accepted_proposals
+            if slot not in acc or acc[slot][0] < ballot_num:
+                acc[slot] = (ballot_num, proposal)
 
         self.node.send([sender], Accepted(
             slot=slot, ballot_num=self.ballot_num))
@@ -277,7 +278,7 @@ class Replica(Component):
 
     # tracking the leader
 
-    def do_ADOPTED(self, sender, ballot_num, pvals):
+    def do_ADOPTED(self, sender, ballot_num, accepted_proposals):
         self.latest_leader = self.node.address
         self.leader_alive()
 
@@ -314,12 +315,12 @@ class Commander(Component):
         self.ballot_num = ballot_num
         self.slot = slot
         self.proposal = proposal
-        self.accepted = set([])
+        self.acceptors = set([])
         self.peers = peers
         self.quorum = len(peers) / 2 + 1
 
     def start(self):
-        self.node.send(set(self.peers) - self.accepted, Accept(
+        self.node.send(set(self.peers) - self.acceptors, Accept(
                             slot=self.slot, ballot_num=self.ballot_num, proposal=self.proposal))
         self.set_timer(ACCEPT_RETRANSMIT, self.start)
 
@@ -334,8 +335,8 @@ class Commander(Component):
         if slot != self.slot:
             return
         if ballot_num == self.ballot_num:
-            self.accepted.add(sender)
-            if len(self.accepted) < self.quorum:
+            self.acceptors.add(sender)
+            if len(self.acceptors) < self.quorum:
                 return
             self.node.send(self.peers, Decision(slot=self.slot, proposal=self.proposal))
             self.finished(ballot_num, False)
@@ -347,8 +348,8 @@ class Scout(Component):
     def __init__(self, node, ballot_num, peers):
         super(Scout, self).__init__(node)
         self.ballot_num = ballot_num
-        self.pvals = {}
-        self.accepted = set([])
+        self.accepted_proposals = {}
+        self.acceptors = set([])
         self.peers = peers
         self.quorum = len(peers) / 2 + 1
         self.retransmit_timer = None
@@ -361,15 +362,25 @@ class Scout(Component):
         self.node.send(self.peers, Prepare(ballot_num=self.ballot_num))
         self.retransmit_timer = self.set_timer(PREPARE_RETRANSMIT, self.send_prepare)
 
-    def do_PROMISE(self, sender, ballot_num, accepted):
+    def update_accepted(self, accepted_proposals):
+        acc = self.accepted_proposals
+        for slot, (ballot_num, proposal) in accepted_proposals.iteritems():
+            if slot not in acc or acc[slot][0] < ballot_num:
+                acc[slot] = (ballot_num, proposal)
+
+    def do_PROMISE(self, sender, ballot_num, accepted_proposals):
         if ballot_num == self.ballot_num:
             self.logger.info("got matching promise; need %d" % self.quorum)
-            self.pvals.update(accepted)
-            self.accepted.add(sender)
-            if len(self.accepted) >= self.quorum:
+            self.update_accepted(accepted_proposals)
+            self.acceptors.add(sender)
+            if len(self.acceptors) >= self.quorum:
+                # strip the ballot numbers from self.accepted_proposals, now that it
+                # represents a majority
+                accepted_proposals = dict((s, p) for s, (b, p) in self.accepted_proposals.iteritems())
                 # We're adopted; note that this does *not* mean that no other leader is active.
                 # Any such conflicts will be handled by the commanders.
-                self.node.send([self.node.address], Adopted(ballot_num=ballot_num, pvals=self.pvals))
+                self.node.send([self.node.address],
+                               Adopted(ballot_num=ballot_num, accepted_proposals=self.accepted_proposals))
                 self.stop()
         else:
             # ballot_num > self.ballot_num; responses to other scouts don't
@@ -404,20 +415,9 @@ class Leader(Component):
         sct = self.scout = self.scout_cls(self.node, self.ballot_num, self.peers)
         sct.start()
 
-    # TODO: rename pvals to something with semantic meaning
-    def merge_pvals(self, pvals):
-        # pvals is a defaultdict of proposal by (ballot num, slot); we need
-        # the proposal with highest ballot number for each slot.  In this
-        # comprehension, proposals with lower ballot numbers will be
-        # overwritten by proposals with higher ballot numbers. It is
-        # guaranteed since we sorting pvals items in ascending order.
-        last_by_slot = {s: p for (b, s), p in sorted(pvals.items())}
-        for slot_id, proposal in last_by_slot.iteritems():
-            self.proposals[slot_id] = proposal
-
-    def do_ADOPTED(self, sender, ballot_num, pvals):
+    def do_ADOPTED(self, sender, ballot_num, accepted_proposals):
         self.scout = None
-        self.merge_pvals(pvals)
+        self.proposals.update(accepted_proposals)
         # note that we don't re-spawn commanders here; if there are undecided
         # proposals, the replicas will re-propose
         self.logger.info("leader becoming active")
