@@ -35,7 +35,7 @@ class Tests(unittest.TestCase):
             state += input
             return state, state
         execute_fn = execute_fn or add
-        peers = ['N%d' % n for n in range(count+1)]
+        peers = ['N%d' % n for n in range(count)]
         nodes = [self.addNode(p) for p in peers]
         Seed(nodes[0], initial_state=0, peers=peers, execute_fn=execute_fn)
 
@@ -50,7 +50,7 @@ class Tests(unittest.TestCase):
 
     def test_two_requests(self):
         """Full run with non-overlapping requests succeeds."""
-        nodes = self.setupNetwork(4)
+        nodes = self.setupNetwork(5)
         # set up some timers for various events
         def request_done(output):
             self.event("request done: %s" % output)
@@ -74,7 +74,7 @@ class Tests(unittest.TestCase):
     def test_parallel_requests(self):
         """Full run with parallel request succeeds."""
         N = 10
-        nodes = self.setupNetwork(4)
+        nodes = self.setupNetwork(5)
         results = []
         for n in range(1, N+1):
             req = Request(nodes[n % 4], n, results.append)
@@ -88,7 +88,7 @@ class Tests(unittest.TestCase):
     def test_failed_nodes(self):
         """Full run with requests and some nodes dying midway through succeeds"""
         N = 10
-        nodes = self.setupNetwork(6)  # TODO: really a 7-node cluster, w/ node0=seed
+        nodes = self.setupNetwork(7)
         results = []
         for n in range(1, N+1):
             req = Request(nodes[n % 3], n, results.append)
@@ -100,7 +100,6 @@ class Tests(unittest.TestCase):
 
         self.network.set_timer(None, N * 3.0, self.network.stop)
         self.network.run()
-        print N, N*(N+1)/2
         self.assertEqual((len(results), results and max(results)), (N, N*(N+1)/2),
                          "got %r" % (results,))
 
@@ -111,7 +110,7 @@ class Tests(unittest.TestCase):
         # by the failed node
         def identity(state, input):
             return state, input
-        nodes = self.setupNetwork(6, execute_fn=identity)  # TODO: really a 7-node cluster, w/ node0=seed
+        nodes = self.setupNetwork(7, execute_fn=identity)
         results = []
         for n in range(1, N+1):
             req = Request(nodes[n % 6], n, results.append)
