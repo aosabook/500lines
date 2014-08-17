@@ -248,10 +248,9 @@ class Replica(Component):
         self.decisions[slot] = proposal
         self.next_slot = max(self.next_slot, slot + 1)
 
-        # re-propose our proposal in a new slot if it lost its slot
+        # re-propose our proposal in a new slot if it lost its slot and wasn't a no-op
         our_proposal = self.proposals.get(slot)
-        if our_proposal is not None and our_proposal != proposal:
-            # TODO: don't re-transmit a noop
+        if our_proposal is not None and our_proposal != proposal and our_proposal.caller:
             self.propose(our_proposal)
 
         # execute any pending, decided proposals
