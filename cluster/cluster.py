@@ -395,7 +395,6 @@ class Leader(Component):
         self.active = False
         self.proposals = {}
         self.commander_cls = commander_cls
-        self.commanders = {}
         self.scout_cls = scout_cls
         self.scouting = False
         self.peers = peers
@@ -423,19 +422,10 @@ class Leader(Component):
 
     def spawn_commander(self, ballot_num, slot):
         proposal = self.proposals[slot]
-        # TODO: get rid of self.commanders
-        assert slot not in self.commanders
-        cmd = self.commander_cls(self.node, ballot_num, slot, proposal, self.peers)
-        self.commanders[slot] = cmd
-        cmd.start()
-
-    def do_DECIDED(self, sender, slot):
-        del self.commanders[slot]
+        self.commander_cls(self.node, ballot_num, slot, proposal, self.peers).start()
 
     def do_PREEMPTED(self, sender, slot, preempted_by):
-        if slot:
-            del self.commanders[slot]
-        else:
+        if not slot:  # from the scout
             self.scouting = False
         self.logger.info("leader preempted by %s", preempted_by.leader)
         self.active = False

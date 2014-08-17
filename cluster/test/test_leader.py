@@ -29,13 +29,9 @@ class Tests(utils.ComponentTestCase):
         self.assertFalse(self.ldr.scouting)
 
     def assertCommanderStarted(self, ballot_num, slot, proposal):
-        Commander.assert_called_with(self.node, ballot_num, slot, proposal, ['p1', 'p2'])
-        cmd = self.ldr.commanders[slot]
+        Commander.assert_called_once_with(self.node, ballot_num, slot, proposal, ['p1', 'p2'])
+        cmd = Commander(self.node, ballot_num, slot, proposal, ['p1', 'p2'])
         cmd.start.assert_called_with()
-
-    def assertNoCommander(self, slot):
-        if slot in self.ldr.commanders:
-                self.fail("commander running for slot %d" % slot)
 
     def activate_leader(self):
         self.ldr.active = True
@@ -67,23 +63,14 @@ class Tests(utils.ComponentTestCase):
         self.activate_leader()
         self.fake_proposal(10, PROPOSAL2)
         self.node.fake_message(Propose(slot=10, proposal=PROPOSAL1))
-        self.assertNoCommander(10)
-
-    def test_commander_finished_successful(self):
-        """When a commander finishes successfully, nothing more happens"""
-        self.activate_leader()
-        self.node.fake_message(Propose(slot=10, proposal=PROPOSAL1))
-        self.node.fake_message(Decided(slot=10))
-        self.assertNoCommander(10)
+        self.assertEqual(Commander.mock_calls, [])
 
     def test_commander_finished_preempted(self):
-        """When a commander is preempted, the commander is removed, the
-        ballot num is incremented, and the leader is inactive, but no scout is
-        spawned"""
+        """When a commander is preempted, the ballot num is incremented, and
+        the leader is inactive, but no scout is spawned"""
         self.activate_leader()
         self.node.fake_message(Propose(slot=10, proposal=PROPOSAL1))
         self.node.fake_message(Preempted(slot=10, preempted_by=Ballot(22, 'XXXX')))
-        self.assertNoCommander(10)
         self.assertEqual(self.ldr.ballot_num, Ballot(23, 'F999'))
         self.assertNoScout()
         self.assertFalse(self.ldr.active)
