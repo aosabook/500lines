@@ -349,9 +349,7 @@ class Interaction(object):
         glutMouseFunc(self.handle_mouse_button)
         glutMotionFunc(self.handle_mouse_move)
         glutKeyboardFunc(self.handle_keystroke)
-
         glutSpecialFunc(self.handle_keystroke)
-        glutPassiveMotionFunc(None)
 
 ``````````````````````````````````````````
 
