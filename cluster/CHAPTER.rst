@@ -15,13 +15,16 @@ But if the information is stored on several servers, it's challenging to keep th
 
 Consensus algorithms solve this challenge, providing a mechanism to keep replicated information from diverging, regardless of component failures.
 
+In this chapter, we'll look at a practical implementation of a consensus algorithm that might form the core of a larger clustered application such as a distributed object store.
+Along the way, we'll see some of the challenges of translating an algorithm from the pages of a research paper to useful software and some techniques for dealing with those challenges.
+
 Consensus by Paxos
 ==================
 
-Paxos is one such algorithm, or really family of algorithms.
-It was described by Leslie Lamport in a fanciful 1998 paper entitled "The Part-Time Parliament".
+The consensus algorithm we'll use is called Paxos.
+It was described by Leslie Lamport in a fanciful 1998 paper entitled "The Part-Time Parliament", and the name comes from the mythical greek island this part-time parliament governed.
 
-This description is not meant to be formal, but to provide enough background to understand the code.
+The description that follows is not meant to be formal, but to provide enough background to understand the code.
 Lamport's paper has a great deal more detail and is a fun read.
 The references at the end of the chapter describe some extensions of the algorithm that have been adapted in this implementation.
 
@@ -33,34 +36,35 @@ This algorithm achieves consensus on a single value which is then fixed for all 
 This might not seem so useful, but we'll see that it forms the basis of more practical, if more complicated, implementations.
 
 Paxos begins with one member of the cluster (called the proposer) deciding to propose a value.
-The proposer has a desired value, but may also learn that a different value has already been decided.
-The process is called a "round" and ends with a decision either on the existing value or the proposer's new value.
-
-# TODO: verify all of this
+The proposer has a desired value, but may also learn that it is late to the game and a different value has already been decided.
+The proposal process is called a "round" and ends with a decision either on the existing value or the proposer's new value.
 
 The proposer beings by sending a ``PREPARE`` message with a ballot number to the acceptors.
 In practice, all cluster nodes act as acceptors, serving as the cluster's memory.
-The proposer waits to hear from a majority (or more generally, a quorum) of the acceptors.
+The proposer waits to hear from a majority of the acceptors.
 
 The ``PREPARE`` message contains a ballot number, and the protocol requires this to be unique across the cluster and strictly increasing.
-This is easily accomplished by making each ballot number a combination of an increasing integer and a unique ID for the cluster member, such as its IP address.
+This is easier than it sounds: make each ballot number a combination of an increasing integer and a unique ID for the cluster member, such as its IP address.
 
 On receiving to a ``PREPARE`` with a ballot number *N*, each acceptor promises to ignore all proposals with a ballot number less than *N*.
-It sends a ``PROMISE`` message including a highest ballot number *N* it has promised and an accepted value *V*.
+It replies with a ``PROMISE`` message including a highest ballot number it has promised and an already-accepted value *V*.
 If the acceptor has already made a promise for a larger ballot number, it includes that number in the ``PROMISE``, indicating that the proposer has been pre-empted.
 
-When the proposer has heard from a quorum of the acceptors, then it sends an ``ACCEPT`` to the acceptors, including a ballot number and a value.
+When the proposer has heard from a majority of the acceptors, it sends an ``ACCEPT`` to all of the acceptors, including a ballot number and a value.
 If the proposer was not pre-empted, then it sends its own desired value.
 Otherwise, it sends the value from the highest-numbered ``PROMISE`` it received.
 This ensures an important invariant of the algorithm: once a value is decided in a round, all subsequent rounds will decide on the same value.
 
 Unless it would violate a promise, each acceptor records the value from the ``PREPARE`` message as accepted.
+It does so even if it has already accepted a different value with a smaller ballot number.
 It then replies with an ``ACCEPTED`` message containing the accepted ballot number.
 
+When the proposer has received an ``ACCEPTED`` message from a majority of acceptors, then the proposal is decided.
+
 The overall effect is two round-trips: one to secure a promise and one to get agreement on the value.
+
 When multiple proposers make a proposal at the same time, it is common for neither proposal to win.
-Both proposers then re-propose.
-Hopefully one wins, but the deadlock can continue indefinitely if the timing works out just right.
+Both proposers then re-propose, and hopefully one wins, but the deadlock can continue indefinitely if the timing works out just right.
 In a bad -- but not uncommon -- case, it can take dozens of round-trips to reach consensus.
 
 Multi-Paxos
@@ -68,22 +72,38 @@ Multi-Paxos
 
 Reaching consensus on a single, static value is not particularly useful on its own.
 Clustered systems want to agree on a particular state that evolves over time.
-The solution is to create a distributed state machine, where the transitions between states are decided by consensus.
-Each transition is given a "slot number", and each member of the cluster executes transitions in strict order.
+In the case of a distributed object store, that state may be the stored key/value mapping itself.
 
-In principle, each slot is decided in its own instance of Paxos, tagged with the slot number.
-In practice, the high cost of each Paxos instance requires some optimizations which blur the lines of this simple principle.
-For example, ballot numbers are global to the protocol, and the first phase (``PREPARE``/``PROMISE``) is performed for all undecided slots at once.
+The usual solution is to create a distributed state machine, where the transitions between states are decided by consensus.
+Each node in the cluster initializes the state machine with the same state, and applies the state transitions as they are decided.
+Assuming they are determiistic, all of the state machines will then have the same state.
+
+Each transition is given a "slot number", and each member of the cluster executes transitions in strict numeric order.
+In principle, each slot is decided in its own instance of simple Paxos, tagged with the slot number.
+A node that wants to change the cluster's state proposes a state machine transition, waits for a decision, and then broadcasts the decided transition to all nodes.
 
 Getting Moderately Complex
 --------------------------
 
-A surprising amount of additional infrastructure is required to make this model effective:
- * starting the cluster from scratch
- * leader election to avoid deadlock
- * a gossip protocol to bring lagging members up to date (XXX may be removed)
+But practice is not nearly so simple as principle.
 
-XXX - introduce components based on Renesee(sp?)
+# XXX compare this list with what gets discussed later in the chapter, and don't leave too many loose threads
+
+The high cost of each Paxos instance requires some optimizations.
+For example, ballot numbers are global to the protocol, and the first phase (``PREPARE``/``PROMISE``) is performed for all undecided slots at once.
+
+Although simple Paxos guarantees that the cluster will not reach conflicting decisions, it cannot guarantee that any decision will be made.
+Fixing this requires carefully orchestrated re-transmissions: enough to eventually make progress, but not so many that the cluster buries itself in a packet storm.
+
+While Paxos describes how to *make* decisions, it does not address informing all cluster nodes of those decisions.
+A simple broadcast of a ``DECISION`` message can take care of this for the normal case, but if the message is lost, a node can remain permanently ignorant of the decision.
+This leaves that node unable to apply later transitions to its copy of the distributed state machine.
+So we need some mechanism for sharing information about decided proposals.
+
+Our use of a distributed state machine presents another interesting challenge: start-up.
+When a new node starts, it needs to catch up on the existing state of the cluster.
+Although it can do so by catching up on decisions for all slots since the first, in a mature cluster this may involve millions of slots.
+Furthermore, we need some way to initialize a new cluster.
 
 Leader Elections
 ----------------
@@ -116,8 +136,9 @@ Component Model
 
 Humans are limited by what we can hold in our active memory.
 We can't reason about the entire Cluster implementation at once -- it's just too much, and too easy to miss details.
-Instead, we break Cluster down into a handful of components, implemented by subclasses of ``Component``.
+Instead, we break Cluster down into a handful of components, implemented as subclasses of ``Component``.
 Each class is responsible for a different part of the protocol.
+The division of the components is based on that given in Renesse (XXX - citation).
 
 The components are glued together by the ``Node`` class, which represents a single node on the network.
 Components are added to and removed from the node as execution proceeds
