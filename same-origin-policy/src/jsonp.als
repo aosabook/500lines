@@ -15,11 +15,12 @@ sig CallbackID {}  // identifier of a callback function
 // Request sent as a result of <script> tag
 sig JsonpRequest in browser/BrowserHttpRequest {
   padding: CallbackID
+}{
+  response in JsonpResponse
 }
 
 sig JsonpResponse in Resource {
   cb : CallbackID,
-  payload : Resource
 }
 
 // Callback function called when the JSONP request completes
@@ -31,7 +32,7 @@ sig JsonpCallback extends script/EventHandler {
   let resp = causedBy.response | 
     cb = resp.@cb and
     -- result of JSONP request is passed on as an argument to the callback
-    payload = resp.@payload
+    payload = resp
 }
 
 run { some cb: JsonpCallback | some cb.payload }

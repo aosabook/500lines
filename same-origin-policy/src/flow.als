@@ -5,41 +5,56 @@
   */
 module flow
 
-open script
+open setDomain
+open postMessage
+open jsonp
 
 sig Data in Resource + Cookie {}
 
 sig FlowCall in Call {
   args, returns: set Data,  -- arguments and return data of this call
 }{
+  -- Two general constrains about dataflow calls
+  -- (1) Any arguments must be accessible to the sender
+  args in from.accesses.start
+  -- (2) Any data returned from this call must be accessible to the receiver
+  returns in to.accesses.start
+
+  -- Constraints about particular operations
   this in HttpRequest implies
     args = this.sentCookies + this.body and
     returns = this.receivedCookies + this.response
 
+  -- BrowserOp
   this in ReadDom implies no args and returns = this.result
   this in WriteDom implies args = this.newDom and no returns
   this in SetDomain implies no args + returns
+  this in PostMessage implies args = this.message and no returns
+
+  -- EventHandler
+  this in JsonpCallback implies args = this.payload and no returns
+  this in ReceiveMessage implies args = this.data and no returns
 }
 
 sig FlowModule in Endpoint {
-  -- set of data that this component iniitally owns
-  owns: set Data
+  -- Set of data that this component iniitally owns
+  accesses: Data -> Time
+}{
+  all d : Data, t : Time - last |
+	 -- This endpoint can only access a piece of data "d" at time "t" only when
+    d -> t in accesses implies
+      -- (1) It already had access in the previous time step, or
+      d -> t.prev in accesses or
+      -- There is a some call "c" that ended at "t" such that
+      some c : Call & end.t |
+        -- (2) The endpoint receives "c" that carries "d" as one of its arguments or
+        c.to = this and d in c.args or
+        -- (3) The endpoint sends "c" that returns d" 
+        c.from = this and d in c.returns 
 }
 
-// Returns the data elements the given component c can access
-fun accesses[ep: Endpoint] : set Data {
-  -- "ep" can only access a data "d" iff
-  -- (1) it owns "d" or
-  -- (2) if "ep" receives a message that carries "d" or
-  -- (3) if "ep" sends a message that returns "d"
-  ep.owns + (to.ep).args + (from.ep).returns
-}
-
-// A payload in a message must be owned by the sender or received by the sender
-// as part of a previous message
-fact FlowConstraint {
-  all ep: Endpoint, c: from.ep |
-    c.args in ep.owns + (c.prevs & to.ep).args + (c.prevs & from.ep).returns
+fun initData[m : FlowModule] : set Data {
+  m.accesses.first
 }
 
 run {

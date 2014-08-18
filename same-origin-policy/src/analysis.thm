@@ -1,0 +1,123 @@
+<?xml version="1.0"?>
+<alloy>
+
+<view nodetheme="Martha" edgetheme="Martha">
+
+<projection> <type name="sop/http/call/Time"/> </projection>
+
+<defaultnode/>
+
+<defaultedge/>
+
+<node>
+   <type name="Int"/>
+   <type name="String"/>
+   <type name="univ"/>
+   <type name="seq/Int"/>
+   <type name="flow/jsonp/CallbackID"/>
+   <type name="flow/jsonp/JsonpCallback"/>
+   <type name="flow/postMessage/PostMessage"/>
+   <type name="flow/postMessage/ReceiveMessage"/>
+   <type name="flow/setDomain/SetDomain"/>
+   <type name="sop/browser/Browser"/>
+   <type name="sop/browser/BrowserHttpRequest"/>
+   <type name="sop/browser/Document"/>
+   <type name="sop/http/Client"/>
+   <type name="sop/http/HttpRequest"/>
+   <type name="sop/http/Path"/>
+   <type name="sop/http/Port"/>
+   <type name="sop/http/Server"/>
+   <type name="sop/http/Url"/>
+   <type name="sop/script/BrowserOp"/>
+   <type name="sop/script/EventHandler"/>
+   <type name="sop/script/ReadDom"/>
+   <type name="sop/script/Script"/>
+   <type name="sop/script/WriteDom"/>
+   <type name="sop/script/XmlHttpRequest"/>
+   <type name="sop/http/call/Time"/>
+   <type name="sop/http/call/ord/Ord"/>
+   <set name="this/MaliciousData" type="sop/http/Cookie"/>
+   <set name="this/MaliciousData" type="sop/http/Resource"/>
+   <set name="this/MaliciousModule" type="sop/http/Endpoint"/>
+   <set name="this/PrivateData" type="sop/http/Cookie"/>
+   <set name="this/PrivateData" type="sop/http/Resource"/>
+   <set name="this/TrustedModule" type="sop/http/Endpoint"/>
+   <set name="$Confidentiality_t" type="sop/http/call/Time"/>
+   <set name="end" type="sop/http/call/Call"/>
+   <set name="First" type="sop/http/call/ord/Ord"/>
+   <set name="Next" type="sop/http/call/ord/Ord"/>
+   <set name="start" type="sop/http/call/Call"/>
+   <set name="flow/Data" type="sop/http/Cookie"/>
+   <set name="flow/Data" type="sop/http/Resource"/>
+   <set name="flow/FlowCall" type="sop/http/call/Call"/>
+   <set name="flow/FlowModule" type="sop/http/Endpoint"/>
+   <set name="flow/jsonp/JsonpRequest" type="sop/browser/BrowserHttpRequest"/>
+   <set name="flow/jsonp/JsonpResponse" type="sop/http/Resource"/>
+   <set name="sop/cors/CorsRequest" type="sop/script/XmlHttpRequest"/>
+</node>
+
+<node color="Green">
+   <type name="sop/http/Endpoint"/>
+</node>
+
+<node hideunconnected="yes">
+   <type name="sop/http/Domain"/>
+   <type name="sop/http/Protocol"/>
+   <type name="sop/origin/Origin"/>
+</node>
+
+<node hideunconnected="yes" color="Yellow">
+   <type name="sop/http/Cookie"/>
+</node>
+
+<node shape="Box" color="Yellow">
+   <type name="sop/http/Resource"/>
+</node>
+
+<node showlabel="no">
+   <set name="$Confidentiality_c" type="sop/http/call/Call"/>
+   <set name="$Confidentiality_m" type="sop/http/Endpoint"/>
+</node>
+
+<node visible="no">
+   <type name="sop/http/Dns"/>
+</node>
+
+<node visible="no" shape="Ellipse" color="Gray">
+   <type name="sop/http/call/Call"/>
+</node>
+
+<node visible="yes">
+   <set name="$currentCall" type="sop/http/call/Call"/>
+</node>
+
+<edge visible="no">
+   <relation name="accesses"> <type name="sop/http/Endpoint"/> <type name="sop/http/Cookie"/> </relation>
+   <relation name="accesses"> <type name="sop/http/Endpoint"/> <type name="sop/http/Resource"/> </relation>
+   <relation name="args"> <type name="sop/http/call/Call"/> <type name="sop/http/Resource"/> </relation>
+   <relation name="returns"> <type name="sop/http/call/Call"/> <type name="sop/http/Cookie"/> </relation>
+</edge>
+
+<edge visible="no" attribute="no">
+   <relation name="args"> <type name="sop/http/call/Call"/> <type name="sop/http/Cookie"/> </relation>
+   <relation name="returns"> <type name="sop/http/call/Call"/> <type name="sop/http/Resource"/> </relation>
+</edge>
+
+<edge visible="no" attribute="yes">
+   <relation name="domain"> <type name="sop/browser/Document"/> <type name="sop/http/Domain"/> </relation>
+   <relation name="domains"> <type name="sop/http/Cookie"/> <type name="sop/http/Domain"/> </relation>
+   <relation name="host"> <type name="sop/http/Url"/> <type name="sop/http/Domain"/> </relation>
+   <relation name="host"> <type name="sop/origin/Origin"/> <type name="sop/http/Domain"/> </relation>
+   <relation name="port"> <type name="sop/http/Url"/> <type name="sop/http/Port"/> </relation>
+   <relation name="port"> <type name="sop/origin/Origin"/> <type name="sop/http/Port"/> </relation>
+   <relation name="protocol"> <type name="sop/http/Url"/> <type name="sop/http/Protocol"/> </relation>
+   <relation name="protocol"> <type name="sop/origin/Origin"/> <type name="sop/http/Protocol"/> </relation>
+   <relation name="receivedCookies"> <type name="sop/http/HttpRequest"/> <type name="sop/http/Cookie"/> </relation>
+   <relation name="sentCookies"> <type name="sop/http/HttpRequest"/> <type name="sop/http/Cookie"/> </relation>
+   <relation name="subsumes"> <type name="sop/http/Domain"/> <type name="sop/http/Domain"/> </relation>
+   <relation name="url"> <type name="sop/http/HttpRequest"/> <type name="sop/http/Url"/> </relation>
+</edge>
+
+</view>
+
+</alloy>
