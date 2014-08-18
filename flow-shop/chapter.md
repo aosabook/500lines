@@ -1,7 +1,9 @@
 # A Flow Shop Scheduler
-*Flow shop scheduling* is one of the most challenging and well-studied problems in operations research. In this chapter we consider the implementation of a flow shop scheduling solver that uses a technique called *local search*. The solver attempts to heuristically improve an existing solution for a given amount of time using a variety of strategies. The implementation is written in Python, and has no external requirements. By leveraging some of Python's lesser known functionality, the solver is able to dynamically change its search strategy during the the solving process based on what strategies work well.
+*Flow shop scheduling* is one of the most challenging and well-studied problems in operations research. Like many challenging optimization problems, finding the best solution just is not possible for problems of a practical size. In this chapter we consider the implementation of a flow shop scheduling solver that uses a technique called *local search*; a technique that allows us to find a solution that is "pretty good" when finding the best solution just isn't possible. The solver will continue to try and find new solutions to the problem for a given amount of time, and finishes by returning the best solution found.
 
-First we provide some background material on the flow shop scheduling problem and local search techniques. We then look in detail at the general solver code and the various heuristics / neighbourhood selection strategies that we consider. Next we consider the dynamic strategy selection that the solver uses to tie everything together. Finally, we conclude with a summary of the project and some lessons learned through the implementation process.
+The idea behind local search is to improve heuristically an existing solution by considering similar solutions that may be a little better. The solver uses a variety of strategies to (1) try and find similar solutions, and (2) choose one that is promising to explore next. The implementation is written in Python, and has no external requirements. By leveraging some of Python's lesser-known functionality, the solver dynamically changes its search strategy during the the solving process based on what strategies work well.
+
+First, we provide some background material on the flow shop scheduling problem and local search techniques. We then look in detail at the general solver code and the various heuristics / neighbourhood selection strategies that we use. Next we consider the dynamic strategy selection that the solver uses to tie everything together. Finally, we conclude with a summary of the project and some lessons learned through the implementation process.
 
 
 ## Background
@@ -20,15 +22,24 @@ Because the order of tasks within a job is predetermined, a solution to the flow
 
 Due to the simple form of the problem, any permutation of jobs is a valid solution, and the optimal solution will correspond to *some* permutation. Thus, we search for improved solutions by changing the permutation of jobs and measuring the corresponding makespan. In what follows, we refer to a permutation of the jobs interchangeably as a *candidate*.
 
+Let's consider a simple example with two jobs and two machines. The first job has tasks **t-1-1** and **t-1-2**, which take 1 and 2 minutes to complete respectively. The second job has tasks **t-2-1** and **t-2-2**, which take 2 and 1 minutes to complete respectively. Recall that **t-1-1** must come before **t-1-2** and **t-2-1** must come before **t-2-2**. Because there are two jobs, we have just two permutations to consider. If we order job 2 before job 1, the makespan then is equal to 5:
+
+![Flow Shop Example 1](http://i.imgur.com/SZgPPPK.png)
+
+On the other hand, if we order job 1 before job 2, the makespan then is only 4:
+
+![Flow Shop Example 2](http://i.imgur.com/31RnW8Q.png)
+
+Notice that there is no budge room to push any of the tasks earlier. A guiding principle for finding a good permutation, is to try and minimize the time in which any machine is left without a task to process.
 
 ### Local Search
-Local search is a strategy for solving optimization problems. Intuitively, it refers to movement from one solution that seems "pretty good" to another solution that looks even better. Because any permutation of jobs is a valid solution, we can view any mechanism that shuffles the jobs around as a local search procedure (this is in fact what we do below).
+Local search is a strategy that solves optimization problems when the optimal solution is too hard to compute. Intuitively, it moves from one solution that seems "pretty good", to another solution that looks even better. Rather than considering every possible solution as a candidate to focus on next, we define what is known as a *neighbourhood*: the set of solutions considered to be similar to the current solution. Because any permutation of jobs is a valid solution, we can view any mechanism that shuffles the jobs around as a local search procedure (this is in fact what we do below).
 
 To use local search formally, we must answer a few questions:
 
 1. What solution should we start with?
 2. Given a solution, what are the neighbouring solutions that we should consider?
-3. Given the set of candidate neighbours, which one should we consider next?
+3. Given the set of candidate neighbours, which one should we consider moving to next?
 
 The following three sections address these questions in turn.
 
@@ -57,7 +68,7 @@ MAX_LNS_NEIGHBOURHOODS = 1000 # Maximum number of neighbours to explore in LNS
 
 There are two settings that should be explained further: (1) the TIME_INCREMENT setting will be used as part of the dynamic strategy selection and (2) the MAX_LNS_NEIGBOURHOODS setting will be used as part of the neighbourhood selection strategy. Both are described in more detail below.
 
-These settings could be exposed to the user as command line parameters, but at this stage we instead focus on providing the input data as parameters to the program. The following code is used as the \_\_main\_\_ method for the solver file, and calls the appropriate functions based on the number of parameters input to the program:
+These settings could be exposed to the user as command line parameters, but at this stage we instead focus on providing the input data as parameters to the program. The input problem is assumed to be in a standard format for flow shop scheduling -- a problem from the Taillard benchmark set. The following code is used as the \_\_main\_\_ method for the solver file, and calls the appropriate functions based on the number of parameters input to the program:
 
 ````python
 if __name__ == '__main__':
@@ -74,7 +85,7 @@ if __name__ == '__main__':
     print_solution(data, perm)
 ````
 
-The input can be any one of the Taillard problem files (a standard in flow shop scheduling), and we describe the parsing shortly. The files can be found at the following URL:
+We describe the parsing of Taillard problem files shorty, and the files themselves can be found at the following URL:
 * http://mistic.heig-vd.ch/taillard/problemes.dir/ordonnancement.dir/ordonnancement.html
 
 The solve method expects the ```data``` variable to be a list containing the activity durations for each job -- one list of integers for each job will be in ```data```. The ```solve``` method starts by initializing a global set of strategies (to be described below). The key aspect to consider here, is that we use ```strat_*``` variables to maintain statistics on each of the strategies. This aids in selecting the strategy dynamically during the solving process.
@@ -157,6 +168,14 @@ Below we describe how the strategy is picked, but for now it is sufficient to kn
         res = makespan(data, perm)
 ```
 
+The code for computing the makespan is quite simple -- we can compute it from a permutation by evaluating when the final job completes:
+
+```python
+def makespan(data, perm):
+    """Computes the makespan of the provided solution"""
+    return compile_solution(data, perm)[-1][-1] + data[perm[-1]][-1]
+```
+
 To help select a strategy, we keep statistics on (1) how much the strategy has improved the solution, (2) how much time the strategy has spent computing information, and (3) how many times the strategy was used. We also update the variables for the best permutation if we stumble upon a better solution:
 
 ```python
@@ -184,7 +203,6 @@ At regular intervals, the statistics for strategy use are updated. We removed th
 
     return (best_perm, best_make)
 ````
-
 
 
 ### Parsing Problems
@@ -241,6 +259,9 @@ Finally, we parse the data directly -- converting each of the tasks processing t
 
 
 ### Compiling Solutions
+A solution to the flow-shop scheduling problem consists of a precise timing for each of the tasks in every job. Because we represent a solution implicitly with a permutation of the jobs, we introduce the ```compile_solution``` function to convert a permutation to precise timings. As input, the function takes in the data for the problem (giving us the duration of every task) and a permutation of jobs.
+
+The function begins by initializing the data structure used to store the starting time for each task, and then including the tasks from the first job in the permutation.
 
 ```python
 def compile_solution(data, perm):
@@ -258,7 +279,11 @@ def compile_solution(data, perm):
         # Start the next task in the job when the previous finishes
         machine_times[mach].append(machine_times[mach-1][0] +
                                    data[perm[0]][mach-1])
+```
 
+We then proceed to add all of the tasks for the remaining jobs. The first task in a job will always start as soon as the first task in the previous job completes. For the remaining tasks, we schedule the job as early as possible -- the maximum between the completion of the previous task in the same job versus the completion of the previous task on the same machine.
+
+```python
     # Assign the remaining jobs
     for i in range(1, len(perm)):
 
@@ -271,12 +296,22 @@ def compile_solution(data, perm):
         #  completes the task for the previous job.
         for mach in range(1, num_machines):
             machine_times[mach].append(max(machine_times[mach-1][i] + data[perm[i]][mach-1],
-                                        machine_times[mach][i-1] + data[perm[i-1]][mach]))
+                                           machine_times[mach][i-1] + data[perm[i-1]][mach]))
 
     return machine_times
 ```
 
 ### Printing Solutions
+When the solving process is complete, the program outputs information about the solution in a compact form. Rather than providing the precise timing of every task for every job, we output the following pieces of information:
+
+1. The permutation of jobs that yielded the best makespan
+2. The computed makespan of the permutation
+3. The start time, finish time, and idle time for every machine
+4. The start time, finish time, and idle time for every job
+
+The start time for a job or machine corresponds to the start of the first task in the job or on the machine. Similarly, the finish time for a job or machine corresponds to the end of the final task in the job or on the machine. The idle time is the amount of slack in between tasks for a particular job or machine. Ideally we would like to reduce the amount of idle time, as it means the overall process will be reduced as well.
+
+The code to compile the solution (i.e., to compute the start times for every task) has already been discussed, and outputting the permutation and makespan are trivial:
 
 ```python
 def print_solution(data, perm):
@@ -287,7 +322,11 @@ def print_solution(data, perm):
     print "\nPermutation: %s\n" % str([i+1 for i in perm])
 
     print "Makespan: %d\n" % makespan(data, perm)
+```
 
+Next, we use the string formatting functionality in Python to print the table of start / end / idle times for each of the machines and jobs. Note that it can be difficult to properly compute the idle time for the jobs and machines.
+
+```python
     row_format ="{:>15}" * 4
     print row_format.format('Machine', 'Start Time', 'Finish Time', 'Idle Time')
     for mach in range(len(data[0])):
@@ -312,6 +351,10 @@ def print_solution(data, perm):
 
 ## Neighbourhoods
 
+The idea behind local search is to move from one solution *locally* to other solutions nearby. We refer to the *neighbourhood* of a given solution as the other solutions that are local to it. In this section, we detail four potential neighbourhoods, each of increasing complexity.
+
+The first neighbourhood produces a given number of random permutations. This neighbourhood does not even consider the solution that we begin with, and so the term neighbourhood stretches the truth somewhat. However, including some randomness in the search is good practice, as it promotes exploration of the search space.
+ 
 ````python
 def neighbours_random(data, perm, num = 1):
     # Returns <num> random job permutations, including the current one
@@ -323,6 +366,8 @@ def neighbours_random(data, perm, num = 1):
     return candidates
 ````
 
+For the next neighbourhood, we consider swapping any two jobs in the permutation. By using the ```combinations``` function from the ```itertools``` package, we can easily iterate through every pair of indices and create a new permutation that corresponds to swapping the jobs located at each index. In a sense, this neighbourhood creates permutations that are very similar to the one permutation we began with.
+
 ````python
 def neighbours_swap(data, perm):
     # Returns the permutations corresponding to swapping every pair of jobs
@@ -333,6 +378,8 @@ def neighbours_swap(data, perm):
         candidates.append(candidate)
     return candidates
 ````
+
+The next neighbourhood we consider uses information specific to the problem at hand. Given a size to restrict the number of jobs that we take into account, we find the jobs with the most idle time and consider swapping them in every way possible. The first step in the process is to compute the idle time for every job in the permutation:
 
 ````python
 def neighbours_idle(data, perm, size=4):
@@ -346,11 +393,19 @@ def neighbours_idle(data, perm, size=4):
     for i in range(len(data)):
         finish_time = sol[-1][i] + data[perm[i]][-1]
         idle_time = (finish_time - sol[0][i]) - sum([time for time in data[perm[i]]])
-        results.append((idle_time, perm[i]))
+        results.append((idle_time, i))
+```
 
+Next, we compute the list of ```size``` jobs that have the most idle time.
+
+```python
     # Take the <size> most idle jobs
-    subset = [job for (idle, job) in list(reversed(results))[:size]]
+    subset = [job_ind for (idle, job_ind) in reversed(sorted(results))][:size]
+```
 
+Finally, we construct the neighbourhood by considering every permutation of the most idle jobs that we have identified. To obtain the permutations, we make use of the ```permutations``` function from the ```itertools``` package.
+
+```python
     # Enumerate the permutations of the idle jobs
     for ordering in permutations(subset):
         candidate = perm[:]
@@ -361,6 +416,8 @@ def neighbours_idle(data, perm, size=4):
     return candidates
 ````
 
+The final neighbourhood that we consider is commonly referred to as *Large Neighbourhood Search* (LNS). Intuitively, LNS works by considering small subsets of the current permutation in isolation -- locating the best permutation of the subset of jobs gives us a single candidate for the LNS neighbourhood. By repeating this process for several (or all) subsets of a particular size, we can increase the number of candidates in the neighbourhood. We limit the number that are considered through the ```MAX_LNS_NEIGHBOURHOODS``` parameter, as the number of neighbours can grow quite quickly. The first step in the LNS computation is to compute the random list of job sets that we will consider swapping using the ```combinations``` function of the ```itertools``` package:
+
 ````python
 def neighbours_LNS(data, perm, size = 2):
     # Returns the Large Neighbourhood Search neighbours
@@ -369,7 +426,11 @@ def neighbours_LNS(data, perm, size = 2):
     # Bound the number of neighbourhoods in case there are too many jobs
     neighbourhoods = list(combinations(range(len(perm)), size))
     random.shuffle(neighbourhoods)
+```
 
+Next, we iterate through each of the subsets and for each one we find the best permutation of jobs in that subset. Already we have seen similar code above for iterating through all permutations of the most idle jobs. The key difference here is that we record only a single best permutation for the subset, as the larger neighbourhood is constructed by choosing one permutation for each subset of the considered jobs.
+
+```python
     for subset in neighbourhoods[:flow.MAX_LNS_NEIGHBOURHOODS]:
 
         # Keep track of the best candidate for each neighbourhood
@@ -392,11 +453,14 @@ def neighbours_LNS(data, perm, size = 2):
     return candidates
 ````
 
+If we were to set the ```size``` parameter to be equal to the number of jobs, then every permutation would be considered and the best one selected. In practice, however, we need to limit the size of the subset to around 3 or 4.
+
+
 ## Heuristics
 
 A heuristic returns a single candidate permutation from a set of provided candidates. The heuristic is also given access to the problem data in order to evaluate which candidate might be preferred.
 
-The first heuristic we consider is **heur_random**. This heuristic randomly selects a candidate from the list of candidates without evaluating which one might be preferred:
+The first heuristic that we consider is **heur_random**. This heuristic randomly selects a candidate from the list without evaluating which one might be preferred:
 
 ````python
 def heur_random(data, candidates):
@@ -413,7 +477,7 @@ def heur_hillclimbing(data, candidates):
     return sorted(scores)[0][1]
 ````
 
-The final heuristic, **heur_random_hillclimbing**, combines both the random and hillclimbing heuristics above. When performing local search, you may not want to always choose a random candidate, or even the best one. The **heur_random_hillclimbing** heuristic returns a "pretty good" solution by choosing the best candidate with probability 0.5, then the second best with probability 0.25, and so on. The while-loop essentially flips a coin at every iteration to see if it should continue increasing the index (with a limit on the size of the list). The final index chosen corresponds to the candidate that the heuristic selects.
+The final heuristic, **heur_random_hillclimbing**, combines both the random and hillclimbing heuristics above. When performing local search, you may not always want to choose a random candidate, or even the best one. The **heur_random_hillclimbing** heuristic returns a "pretty good" solution by choosing the best candidate with probability 0.5, then the second best with probability 0.25, and so on. The while-loop essentially flips a coin at every iteration to see if it should continue increasing the index (with a limit on the size of the list). The final index chosen corresponds to the candidate that the heuristic selects.
 
 ````python
 def heur_random_hillclimbing(data, candidates):
@@ -426,6 +490,74 @@ def heur_random_hillclimbing(data, candidates):
 ````
 
 ## Dynamic Strategy Selection
+At the heart of the local search for a good permutation, we use a particular heuristic and neighbourhood function to jump from one solution to another. How do we choose one set of options over another? Frequently in practice, it pays off to *switch* strategies during the search. The dynamic strategy selection that we use will switch between the combinations of heuristic and neighbourhood functions to try and shift dynamically to those strategies that work best. For us, a *strategy* is a particular configuration of heuristic and neighbourhood functions (including the parameters that they use).
+
+To begin, our code constructs the range of strategies that we want to consider during solving. In the strategy initialization, we use the ```partial``` function from the ```functools``` package to partially assign the parameters for each of the neighbourhoods. Additionally we construct a list of the heuristic functions, and finally we use the product operator to add every combination of neighbourhood and heuristic function as a new strategy.
+
+```python
+################
+## Strategies ##
+#################################################
+## A strategy is a particular configuration
+##  of neighbourhood generator (to compute
+##  the next set of candidates) and heuristic
+##  computation (to select the best candidate).
+##
+
+STRATEGIES = []
+
+# Using a namedtuple is a little cleaner than using dictionaries.
+#  E.g., strategy['name'] versus strategy.name
+Strategy = namedtuple('Strategy', ['name', 'neighbourhood', 'heuristic'])
+
+def initialize_strategies():
+
+    global STRATEGIES
+
+    # Define the neighbourhoods (and parameters) that we would like to use
+    NEIGHBOURHOODS = [
+        ('Random Permutation', partial(neigh.neighbours_random, num=100)),
+        ('Swapped Pairs', neigh.neighbours_swap),
+        ('Large Neighbourhood Search (2)', partial(neigh.neighbours_LNS, size=2)),
+        ('Large Neighbourhood Search (3)', partial(neigh.neighbours_LNS, size=3)),
+        ('Idle Neighbourhood (3)', partial(neigh.neighbours_idle, size=3)),
+        ('Idle Neighbourhood (4)', partial(neigh.neighbours_idle, size=4)),
+        ('Idle Neighbourhood (5)', partial(neigh.neighbours_idle, size=5))
+    ]
+
+    # Define the heuristics that we would like to use
+    HEURISTICS = [
+        ('Hill Climbing', heur.heur_hillclimbing),
+        ('Random Selection', heur.heur_random),
+        ('Biased Random Selection', heur.heur_random_hillclimbing)
+    ]
+
+    # Combine every neighbourhood and heuristic strategy
+    for (n, h) in product(NEIGHBOURHOODS, HEURISTICS):
+        STRATEGIES.append(Strategy("%s / %s" % (n[0], h[0]), n[1], h[1]))
+```
+
+Once the strategies are defined, we do not necessarily want to stick with a single option during search. Instead, we select randomly any one of the strategies, but *weight the selection* based on how well the strategy has performed. We describe the weighting below, but for the ```pick_strategy``` function, we need only a list of strategies and a corresponding list of relative weights (any number will do). To select a random strategy with the given weights, we pick a number uniformly between 0 and the sum of all weights. Subsequently, we find the lowest index **i** such that the sum of all of the weights for indices smaller than **i** is greater than the random number that we have chosen. This technique, sometimes referred to as *roulette wheel selection*, will randomly pick a strategy for us and give a greater chance to those strategies with higher weight.
+
+```python
+def pick_strategy(strategies, weights):
+    # Picks a random strategy based on its weight: roulette wheel selection
+    #  Rather than selecting a strategy entirely at random, we bias the
+    #  random selection towards strategies that have worked well in the
+    #  past (according to the weight value).
+    total = sum([weights[strategy] for strategy in strategies])
+    pick = random.uniform(0, total)
+    count = weights[strategies[0]]
+
+    i = 0
+    while pick > count:
+        count += weights[strategies[i+1]]
+        i += 1
+
+    return strategies[i]
+```
+
+What remains is to describe how the weights are augmented during the search for a solution. This occurs in the main while-loop of the solver at regularly timed intervals (defined with the ```TIME_INCREMENT``` variable):
 
 ```python
 
@@ -434,26 +566,40 @@ def heur_random_hillclimbing(data, candidates):
         #  proven more effective recently.
         if time.time() > time_last_switch + TIME_INCREMENT:
 
+            time_last_switch = time.time()
+```
+
+Recall that ```strat_improvements``` stores the sum of all improvements that a strategy has made while ```strat_time_spent``` stores the time that the strategy has been given during the last interval. We normalize the improvements made by the total time spent for each strategy to get a metric of how well each strategy has performed in the last interval. Because a strategy may not have had a chance to run at all, we choose a small amount of time as a default value.
+
+```python
             # Normalize the improvements made by the time it takes to make them
             results = sorted([(float(strat_improvements[s]) / max(0.001, strat_time_spent[s]), s)
                               for s in STRATEGIES])
+```
 
+Now that we have a ranking of how well each strategy has performed, we add **k** to the weight of the best strategy (assuming we had **k** strategies), **k**-1 to the next best strategy, etc. Each strategy will have its weight increased, and the worst strategy in the list will see an increase of only 1.
+
+```python
+            # Boost the weight for the successful strategies
+            for i in range(len(STRATEGIES)):
+                strat_weights[results[i][1]] += len(STRATEGIES) - i
+```
+
+As an extra measure, we bump up artificially all of the strategies that were not used. This is done so that we do not forget about a strategy entirely. While one strategy may appear to perform badly in the beginning, later in the search it can prove quite useful.
+
+```python
+                # Additionally boost the unused strategies to avoid starvation
+                if 0 == results[i][0]:
+                    strat_weights[results[i][1]] += len(STRATEGIES)
+```
+
+Finally, we output some information about the strategy ranking (if the ```DEBUG_SWITCH``` flag is set), and additionally we reset the ```strat_improvements``` and ```strat_time_spent``` variables for the next interval.
+
+```python
             if DEBUG_SWITCH:
                 print "\nComputing another switch..."
                 print "Best performer: %s (%d)" % (results[0][1].name, results[0][0])
                 print "Worst performer: %s (%d)" % (results[-1][1].name, results[-1][0])
-
-            # Boost the weight for the successful strategies
-            for i in range(len(STRATEGIES)):
-                strat_weights[results[i][1]] += len(STRATEGIES) - i
-
-                # Additionally boost the unused strategies to avoid starvation
-                if 0 == results[i][0]:
-                    strat_weights[results[i][1]] += len(STRATEGIES)
-
-            time_last_switch = time.time()
-
-            if DEBUG_SWITCH:
                 print results
                 print sorted([strat_weights[STRATEGIES[i]] for i in range(len(STRATEGIES))])
 
@@ -462,4 +608,6 @@ def heur_random_hillclimbing(data, candidates):
 ```
 
 ## Discussion
+In this chapter we have seen what can be accomplished with a relatively small amount of code in order to solve the complex optimization problem of flow shop scheduling. By leveraging the ```collections```, ```functools```, and ```itertools``` python packages, we pieced together a wide variety of solving strategies. Rather than using any one strategy, we saw also how a strategy can be chosen dynamically to shift during the solving process.
 
+The overall approach that our flow shop scheduling solver adopts, is that of local search. Finding the optimal solution for larger problems may be infeasible, and with local search we can instead move from one solution to another, while aiming to find an effective solution. The general intuition behind local search can be applied to a wide range of problems. We focused on (1) generating a neighbourhood of related solutions to a problem from one candidate solution, and (2) establishing ways to evaluate and compare solutions. With these two components in hand, we can use the local search paradigm to find a valuable solution when the best option simply is too difficult to compute.
