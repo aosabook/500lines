@@ -16,7 +16,7 @@
             title: { text: 'Dot Product Data' },
             series: [{
                 name: 'Dot Product Data',
-                data: <%= ViewHelper.limit_1000(@upload.analyzer.processor.dot_product_data) %>
+                data: <%= limit_1000(@upload.analyzer.processor.dot_product_data) %>
             }]
         });
 
@@ -24,7 +24,7 @@
             title: { text: 'Filtered Data' },
             series: [{
                 name: 'Filtered Data',
-                data: <%= ViewHelper.limit_1000(@upload.analyzer.processor.filtered_data) %>
+                data: <%= limit_1000(@upload.analyzer.processor.filtered_data) %>
             }]
         });
     });

@@ -24,8 +24,8 @@
       <% if detail_hidden %>
         <td><a href=<%= "upload/" + upload.file_path %>>Detail</a></td>
       <% else %>
-        <td><%= ViewHelper.format_distance(analyzer.distance) %></td>
-        <td><%= ViewHelper.format_time(analyzer.time) %></td>
+        <td><%= format_distance(analyzer.distance) %></td>
+        <td><%= format_time(analyzer.time) %></td>
       <% end %>
     </tr>
   <% end %>

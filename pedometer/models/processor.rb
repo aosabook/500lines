@@ -16,9 +16,6 @@ class Processor
 
   attr_reader :data, :format, :parsed_data, :dot_product_data, :filtered_data
 
-  # TODO: 
-  # Should the methods be moved out of the initializer? Or, renamed to:
-  # set_parsed_data, set_dot_product_data, set_filtered_data?
   def initialize(data)
     @data = data
 

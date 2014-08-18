@@ -2,7 +2,7 @@ require 'sinatra'
 
 Dir['./models/*', './helpers/*'].each {|file| require_relative file }
 
-include FileUtils::Verbose
+include ViewHelper
 
 get '/uploads' do
   @uploads = Upload.all
