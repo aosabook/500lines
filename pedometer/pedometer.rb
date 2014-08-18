@@ -11,8 +11,8 @@ get '/uploads' do
   erb :uploads
 end
 
-get '/upload/*' do |file_name|
-  @upload = Upload.find(file_name)
+get '/upload/*' do |file_path|
+  @upload = Upload.find(file_path)
   
   erb :upload
 end
@@ -24,7 +24,7 @@ post '/create' do
     @upload = Upload.create(
       params[:processor][:file_upload][:tempfile], 
       params[:user].values,
-      params[:device].values
+      params[:trial].values
     )
 
     erb :upload

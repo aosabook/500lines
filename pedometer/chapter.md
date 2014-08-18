@@ -467,7 +467,7 @@ Our pedometer will measure three metrics:
 Let's discuss the infomation we'll need to calculate each of these metrics. We're intentionally leaving the exciting, step counting part of our program to the end.
 
 ### Distance traveled
-A mobile pedometer app is generally be used by one person. Total distance travelled during a walk is calcualte by multiplying the steps taken by the person's stride length. If the stride length is provided, we can use it directly. If it's unknown, we can allow other optional information to be provided for the user, such as gender and height. We can do the best we can with what's provided to calculate the stride and, ultimately, the distance travelled. 
+A mobile pedometer app is generally be used by one person. Total distance travelled during a walk is calculated by multiplying the steps taken by the person's stride length. If the stride length is provided, we can use it directly. If it's unknown, we can allow other optional information to be provided for the user, such as gender and height. We can do the best we can with what's provided to calculate the stride and, ultimately, the distance travelled. 
 
 Information like stride length, gender, and height is related to the user, so it makes sense to create a `User` class. 
 
@@ -509,14 +509,14 @@ Looking at our initializer, we notice that we're accepting `gender`, `height`, a
 
 Our initializer accepts the optional parameters, and sets instance variables of the same names, after some data formatting in the initalizer to allow for a case insensitive gender parameter to be passed in, and prevent a height and stride that is non-numerical or less than 0.
 
-* We set `@gender` as the stringified, downcased version of the passed in `gender` parameter, as long as it's included in the `GENDER` constant. If it's not, our `@gender` instance variable will be `nil`.
+* We set `@gender` to the stringified, downcased version of the passed in `gender` parameter, as long as it's included in the `GENDER` constant. If it's not, our `@gender` instance variable will be `nil`.
 * `@height` is set to the `height` parameter converted to a float, as long as it's greater than 0. If not, then `@height` will also be `nil`.
 * If `stride` converted to a float is greater than 0, then we set that value to `@stride`. If not, we call `calculate_stride`.
 
 At the top of our class, we define the following constants:
 
 * The `GENDER` array stores gender values.
-* The `MULTIPLIERS` hash stores the values for a male and female that we can multiply height by to calcuate stride.
+* The `MULTIPLIERS` hash stores the multiplier values for a male and female that we can multiply height by to calcuate stride.
 * The `AVERAGES` hash stores the average stride values for a male and female.
 
 If a stride is provided, we're all set. Even when all optional parameters are provided, the input stride takes precedence. If not, our `calculate_stride` method will determine the most accurate stride length it can for the user, using the optional information provided. This is done with an `if` statement. 
@@ -558,71 +558,65 @@ Below are examples of users created with the least specific to the most specific
 
 ### Time Traveled
 
-The time traveled is measured by dividing the number of data samples in our `Processor`'s `@parsed_data` set by the sampling rate of the device. Since the rate has more to do with the device itself than the user, and the `User` class in fact does not have to be aware of the sampling rate, this is a good time to create a `Device` class.
-
-TODO: Start HERE!
+The time traveled is measured by dividing the number of data samples in our `Processor`'s `@parsed_data` set by the sampling rate of the device. Since the rate has more to do with the trial walk itself than the user, and the `User` class in fact does not have to be aware of the sampling rate, this is a good time to create a `Trial` class.
 
 ~~~~~~~
-class Device
+class Trial
 
-  attr_reader :rate, :steps, :trial, :method
+  attr_reader :name, :rate, :steps, :method
 
-  def initialize(rate = nil, steps = nil, trial = nil, method = nil)
+  def initialize(name = nil, rate = nil, steps = nil, method = nil)
+    @name   = name
     @rate   = (rate.to_f.round > 0) ? rate.to_f.round : 100
     @steps  = steps.to_f.round if steps.to_f.round > 0
-    @trial  = trial
     @method = method
   end
 
 end
 ~~~~~~~
 
-Our `Device` class is quite short. Note that all of the attribute readers are set in the initializer based on optional parameters passed in:
+Our `Trial` class is quite short. Note that all of the attribute readers are set in the initializer based on optional parameters passed in:
 
 TODO: Remove `method` from code?
 
+* `name` is a name for the specific trial, to help differentiate between the different trials.
 * `method` is used to set the type of walk that is taken. Types of walks include walking with the device in a pocket, walking with the device in a bag, jogging with the device in a pocket, jogging with the device in a bag, etc.
 * `steps` is used to set the actual steps taken, so that we can record the difference between the actual steps the user took and the ones our program counted.
-* `trial` is a title for the specific trial (trial 1, 2, 3, etc.)
 
-Things to note:
+Much like our `User` class, information is optional. We're given the opportunity to input details of the trial, if we have it, for more accurate end results. If we don't have it, however, our program makes assumptions and is still able to produce results, albeit with a higher margin of error. Another similarity to our `User` class is the basic input data formatting in the initalizer. This ensures that `@rate` and `@steps` are always numerical values greater than 0. 
 
-* Much like our User class, information is optional. The class handles it.
-* Basic input data formatting in the initalizer ensures that rate and steps are always numerical values greater than 0.
-* One could argue that metadata doesn't really belong in the Device class. For the sake of keeping our small program simple, we included the metadata in this class because it's more logical here than in the User class, and to avoid too much abstration for too little code. However, as our program grows and we have more metadata and more attributes related to the device, it would be wise to split the Device class apart from the metadata. 
-
-Our Device class is straightforward to use, so we won't bore you with the details of showing it in the wild. 
+Our `Trial` class is straightforward to use, so we won't bore you with the details of showing it in the wild. 
 
 ### Steps taken
-We decided that we could count steps by counting the number of peaks in our signal. To do this, we chose to set a threshold value, and count the number of times our signal, now stored in @parsed_data, crosses the threshold in the positive direction. 
+We decided that we could count steps by counting the number of peaks in our signal. To do this, we chose to set a threshold value, and count the number of times our signal, now stored in `@parsed_data`, crosses the threshold in the positive direction. 
 
 ![](chapter-figures/figure-filtered-smooth-threshold.png)\ 
 
-If we assume that we're just as likely to accuarately count peaks as we are to count troughs, we'll get the most accurate result by counting both and taking the average of the two to determine our final step count. This will remove some error from certain data sets that have less prominent peaks or troughs. We can count troughs in a similar fashion, by using a threshold that is exactly the negative of our previous threshold. 
+If we assume that we're just as likely to accuarately count peaks as we are to count troughs, we'll get the most accurate result by counting both and taking the average of the two to determine our final step count. This will remove some error from certain data sets that have less prominent peaks than troughs, or vice versa. We can count troughs in a similar fashion to peaks, by using a threshold that is exactly the negative of our threshold for a peak. 
 
-Let's implement this threshold strategy in code. So far, we have a Processor class that contains our processed, smooth waveform, and classes that give us the necessary information about a user and a device. What we're missing is a way to analyze the @parsed_data waveform with the information from User and Device, and count steps, measure distance, and measure time. The analysis portion of our program is different from the data manipulation of the Processor, and different from the information collection and aggregation of the User and Device classes. Let's create a new class called Analyzer to perform this data analysis.
+Let's implement this threshold strategy in code. So far, we have a `Processor` class that contains our processed, smooth signal representing the walk, `@filtered_data`, as well as classes that give us the necessary information about the user and the trial. What we're missing is a way to analyze the `@filtered_data` signal with the information from `User` and `Trial`, and count steps, measure distance, and measure time. The analysis portion of our program is different from the data manipulation of the `Processor`, and different from the information collection and aggregation of the `User` and `Trial` classes. Let's create a new class called `Analyzer` to perform this data analysis.
 
 ~~~~~~~
 require 'mathn'
 require_relative 'processor'
 require_relative 'user'
-require_relative 'device'
+require_relative 'trial'
 
 class Analyzer
 
-  MAX_STEPS_PER_SECOND = 6.0
   THRESHOLD = 0.2
+  MAX_STEPS_PER_SECOND = 6.0
 
-  attr_reader :processor, :user, :device, :steps, :distance, :time
+  attr_reader :processor, :user, :trial, :steps, :distance, :time
 
-  def initialize(processor, user = User.new, device = Device.new)
+  def initialize(processor, user = User.new, trial = Trial.new)
     raise "Processor invalid." unless processor.kind_of? Processor
-    raise "User invalid."   unless user.kind_of? User
-    raise "Device invalid." unless device.kind_of? Device
+    raise "User invalid."      unless user.kind_of? User
+    raise "Trial invalid."     unless trial.kind_of? Trial
 
     @processor = processor
-    @user   = user
-    @device = device
+    @user      = user
+    @trial     = trial
   end
 
   def measure
@@ -635,16 +629,13 @@ private
 
   # -- Edge Detection -------------------------------------------------------
 
-  def count_edges(positive)
+  def count_threshold_cross(positive)
     count           = 0
     index_last_step = 0
     threshold       = positive ? THRESHOLD : -THRESHOLD
-    min_interval    = (@device.rate/MAX_STEPS_PER_SECOND)
+    min_interval    = (@trial.rate/MAX_STEPS_PER_SECOND)
 
     @processor.filtered_data.each_with_index do |data, i|
-      # If the current value >= the threshold, and the previous was < the threshold
-      # AND the interval between now and the last time a step was counted is 
-      # above the minimun threshold, count this as a step
       if (data >= threshold) && (@processor.filtered_data[i-1] < threshold)
         next if index_last_step > 0 && (i-index_last_step) < min_interval
         count += 1
@@ -657,10 +648,10 @@ private
   # -- Measurement ----------------------------------------------------------
 
   def measure_steps
-    positive_edge_count = count_edges(true)
-    negative_edge_count = count_edges(false)
+    peak_count = count_threshold_cross(true)
+    trough_count = count_threshold_cross(false)
     
-    @steps = ((positive_edge_count + negative_edge_count)/2).to_f.round
+    @steps = ((peak_count + trough_count)/2).to_f.round
   end
 
   def measure_distance
@@ -668,58 +659,58 @@ private
   end
 
   def measure_time
-    @time = @processor.parsed_data.count/@device.rate
+    @time = @processor.filtered_data.count/@trial.rate
   end
 
 end
 ~~~~~~~
 
-Where our Processor class did all of the work of the input data cleaning, our Analyzer class does the work of analyzing the cleaned data.
+Where our `Processor` class did all of the work of the input data formatting and processing, our `Analyzer` class does the work of analyzing the processed data.
 
-The first thing we do in our Analyzer class file is pull in the Ruby math library, along with our Processor, Device, and User classes. Then, we define constants to represent the maximum number of steps taken per second (used for error correction which we'll disucss in a moment), and a value for our threshold. For the purposes of this discussion, let's assume we've analyzsed numerous diverse data sets and detemined a value for the threshold that accomodated the largest number of those data sets. 
+The first thing we do in our `Analyzer` class file is pull in the Ruby math library, along with our `Processor`, `Trial`, and `User` classes. Then, we define two constants. 
 
-Our Analyzer's initializer take a mandatory Processor because we necessarily need a data set to work with, and optionally takes a User and a Device. Note that the default values for those parameters is a new instance of each. Remember how those classes both had defualt values and could handle zero input parameters? That functionality comes in handy here. Note that the initializer raises exceptions if classes other than those expected are passed in, since we can't work with incorrect class types. Otherwise, all it does is set the instance variables @processor, @user, @device to the passed in parameters. 
+`THRESHOLD` is the threshold value where a step is counted if the signal crosses it. For the purposes of this discussion, let's assume we've analyzsed numerous diverse data sets and detemined a value for the threshold that accomodated the largest number of those data sets. The value for threshold can eventually become dynamic and vary with different users, based on the calculated versus actual steps they've taken. A learning algorithm, if you will.
 
-The only other public method in Analyzer is measure, which calls the private methods measure_steps, measure_distance, and measure_time, in that order. Let's look at each:
+`MAX_STEPS_PER_SECOND` is the maximum number of steps that a person can reasonably take per second if they are walking or running. If we notice more steps taken per second, we determine that the person is not walking or running, and the device motion is for a different reson. When this occurs, we don't count those steps.
+
+Our `Analyzer`'s initializer take a mandatory `Processor` instance because we necessarily need a data set to work with because, well, otherwise we have nothing to analyze. The initalizer also optionally takes a `User` and `Trial` instance. Note that the default values for the `user` and `trial` parameters is a new instance of each. Remember how those classes both had defualt values and could handle zero input parameters? That functionality comes in handy here. The initializer raises exceptions if classes other than those expected are passed in, since we can't work with incorrect class types. Following that, it sets the instance variables `@processor`, `@user`, and `@trial` to the passed in parameters. 
+
+Aside from the initializer, the only other public method in `Analyzer` is `measure`, which calls the private methods `measure_steps`, `measure_distance`, and `measure_time`, in that order. Let's take a look at each.
 
 ### measure_steps
 
 Finally! The step counting portion of our step counting app. 
 
-The measure steps method counts the positive edges (the peaks) and the negative edges (the troughs) through the count_edges method, and then sets the @steps variable to the average of the two. The count_edges method takes a boolean parameter to determine whether we're counting peaks or troughs. The method iterates through each point in our processor's @filtered_data attribute to count steps. At the start of the method, we instantiate the following variables:
+`measure_steps` counts peaks and troughs through the `count_threshold_cross` method, and then sets the `@steps` variable to the average of the two. The `count_threshold_cross` method takes a boolean parameter to determine whether we're counting peaks or troughs. At the start of the method, we instantiate the following variables:
 
-* count is used to keep track of the step count as we interate through our loop. This is, obviously, initialized to 0.
-* index_last_steps keeps the index of the step before the one we're on when looping through @filtered_data.
-* threshold uses the THRESHOLD constant but toggles between negative/positive depending on whether we're counting peaks or troughs. If we're counting peaks, we want a positive threshold above the x-axis. If we're counting troughs, we want a negative threshold below the x-axis. 
-* min_interval is the minimum number of samples between steps. This is used to prevent counting steps that are impossibly close together. 
+* `count` is used to keep track of the number of peaks or troughs, which are each equivalent to a step, as we interate through our loop. We initalize `count` to 0.
+* `index_last_step` holds the index of the last step we counted as we loop through `@filtered_data`. We initialize `index_last_step` to 0.
+* `threshold` uses the `THRESHOLD` constant but toggles between a negative and positive value depending on whether we're counting peaks or troughs. If we're counting peaks, we use `THRESHOLD` as it is, and if we're counting troughs, we use `-THRESHOLD`.
+* `min_interval` is the minimum number of samples between steps. This is used to prevent counting steps that are impossibly close together. We calculate `min_interval` by dividing our trial's sampling rate by the maximum number of steps we're allowing per second. 
 
-Let's take a closer look at the loop. We loop through filtered_data, keeping track of the value of each point in data, and the index in i. If our point value, data, is greater than or at the threshold and our previous point was below, then we're crossing the threshold in the positive y direction. We can count a step here, as long as the last step was not counted too close to this one. We determine this by comparing the difference between our current index and the index of the last step, if it exists, to our min_interval variable. If we're far enough away, we count our step by incrementing count, and set the index_last_step to the current index. The method returns the value in count as the total steps taken. 
+The method iterates through each point in `@processor.filtered_data` to count steps. Let's take a closer look at the loop. We loop through `@processor.filtered_data`, keeping track of the value of each point in `data`, and the index in `i`. If our point value, `data`, is greater than or at the threshold and our previous point was below, then we're crossing the threshold. We can count a step here, as long as the last step was not counted too close to this one. We determine this by calculating the delta between `i`, and `index_last_step`, if `index_last_step` is greater than 0. If this delta is less than `min_interval`, then our previous step was impossibly close to this one, so we move to the next iteration of the loop without counting this step. If, however, our last step was far enough away, we count our step by incrementing count, and set the `index_last_step` to the current index, `i`. The method returns the value in `count` as the total steps taken. 
+
+We do some error handling in `count_threshold_cross` by ensuring that steps aren't impossibly close together. We can go a step further (pun intended?) by counting the number of false steps, and if we have too many, avoid counting steps at all until some reasonable number of samples. That'll prevent any steps from being counted when the phone is shaken vigorously for a period of time. 
 
 There we have it, the step counting portion of our program. 
 
 ### measure_distance
 
-The distance is measured by miltuplying our user's stride by the number of steps. Since the distance depends on the step count, the measure method calls it after the step count has been calcualted, and keeps the method private so that an outside class can't call in before the measure_steps. 
+The distance is measured by multiplying our user's stride by the number of steps. Since the distance depends on the step count, `measure_distance` is called after `measure_steps`. All methods called by `measure` are kept private so that an outside class can't call them out of order.
 
 ### measure_time
 
-Time is calculaed by dividing the total number of samples (the number of points in our processor's filtered_data attribute) by the rate (samples/second). Time, then, is returned in numbers of seconds. 
+Time is calculated by dividing the total number of samples in `@processor.filtered_data` by the sampling rate. It follows, then, that time is calculated in numbers of seconds. 
 
-Things to Note:
-
-* The value for threshold can eventually become dynamic based on the user and the calculated versus actual steps they've taken. A learning algorithm, if you will.
-* We do some error handling in count_edges by ensuring that steps aren't impossibly close together. We can go a step further (pun intended?) by counting the number of false steps, and if we have too many, avoiding counting steps at all until some reasonable number of samples. That'll prevent any steps from being counted when the phone is shaken vigorously for a period of time. 
-* TODO: There should be more here.
-
-TODO: Add some examples here of plots showing a single upload with comibned and separated input data at each stage, and compare the final, parsed results. 
-
-## Adding Some Friendly
+# Adding Some Friendly
 
 We're through the most labour intensive part of our program. Now, all that's left is to present the data in a format that is pleasing to a user. A web app naturally separates the data processing from the presentation of the data. Let's look at our app from a user's perspective before we dive into the code. 
 
-### A User Scenario
+## A User Scenario
 
-When a user first enters the app, they see an empty table of uploads, and an upload form. The upload form has fields for the user to enter device info and user info.
+When a user first enters the app, they see an empty table of uploads, and an upload form. The upload form has fields for the user to enter trial info and user info.
+
+TODO: Replace all of these screenshots now that the naming has changed. 
 
 ![](chapter-figures/app-1-1246w-90p.png)\ 
 
@@ -731,7 +722,15 @@ Note that the user has entered everything but their stride. From this same uploa
 
 ![](chapter-figures/app-3-1246w-90p.png)\ 
 
-Our program has parsed, processed, and analyzed the input file, and presented information at the very top for the user. The fields that our program calculated are the format of the file (Measurement), the calculated steps taken (Calculated), the difference between the calculated steps and actual steps taken (Delta), the distance traveled (Distance), and time it took (Time). The graphs shown are the dot product and the filtered data. 
+Our program has parsed, processed, and analyzed the input file, and presented information at the very top for the user. Our programs outputs several pieces of information.
+
+* **Measurement**: the format of the input file, which can be either combined or separated.
+* **Calculated**: the number of steps taken as calculated by our step counting algorithm.
+* **Delta**: the difference between the calculated steps and actual steps taken, if actual steps taken is provided.
+* **Distance**: the distance traveled.
+* **Time**: the time duration of the walk.
+* **Dot Product Data**: a graph of the first 1000 points of the signal after the dot product has been computed.
+* **Filtered Data**: a graph of the first 1000 points of the signal after it has been low pass filtered.
 
 The user can navigate back to the uploads using the *Back to Uploads* link, and upload the second file.
 
@@ -741,20 +740,18 @@ Hitting enter again outputs the following:
 
 ![](chapter-figures/app-5-1246w-90p.png)
 
-Note that since this data is the separated format, it is more accurate than the combined format.
-
-## Diving back to the code
+Note that since this data is the separated format, it is more accurate than the combined format. The actual number of steps taken in the walk was 300. The calculated steps with the separated format was 301, whereas with the combined format it was 289. 
 
 Let's look at what the outlined funtionality above implies for us, technically. We'll need two major components that we don't yet have:
 
-1. A way to store data that a user inputs, and load data that a user has previously inputted.
+1. A way to store data that a user inputs, and retrieve data that has been stored.
 2. A web application with a basic interface.
 
 Let's examine each of these two requirements.
 
-### 1. Storing and loading data
+## 1. Storing and retrieving data
 
-Looking at the requirements, we see that we need a way to store the data the user inputs as a text file, as well as the user and device data associated to it. All of this data together - the raw text data as well as the input fields - is related to an upload. Let's create an `Upload` class to keep track of this data, and store and load it. 
+Looking at the requirements, we see that we need a way to store the text file containing the data samples, as well as the user and trial inputs associated with it. All of these pieces in combination - the raw text data as well as the input fields - is related to an upload. Let's create an `Upload` class to keep track of this data, and store and load it. 
 
 ~~~~~~~
 require 'fileutils'
@@ -764,23 +761,25 @@ include FileUtils::Verbose
 
 class Upload
 
-  attr_reader :file_name, :processor, :user, :device, :analyzer
-  attr_reader :user_params, :device_params
+  UPLOAD_DIRECTORY = 'public/uploads/'
 
-  def initialize(file_name = nil, input_data = nil, user_params = nil, device_params = nil)
-    if file_name
-      @file_name = file_name
+  attr_reader :file_path, :processor, :user, :trial, :analyzer
+  attr_reader :user_params, :trial_params
+
+  def initialize(file_path = nil, input_data = nil, user_params = nil, trial_params = nil)
+    if file_path
+      @file_path = file_path
     elsif input_data
       @processor = Processor.new(File.read(input_data))
-      @user   = User.new(*user_params)
-      @device = Device.new(*device_params)
+      @user      = User.new(*user_params)
+      @trial     = Trial.new(*trial_params)
 
-      @file_name = "public/uploads/" + 
+      @file_path = UPLOAD_DIRECTORY + 
                    "#{user.gender}-#{user.height}-#{user.stride}_" +
-                   "#{device.rate}-" + 
-                   "#{device.steps}-" +
-                   "#{device.trial.to_s.gsub(/\s+/, '')}-" + 
-                   "#{device.method}-#{processor.format[0]}.txt"
+                   "#{trial.name.to_s.gsub(/\s+/, '')}-" + 
+                   "#{trial.rate}-" + 
+                   "#{trial.steps}-" +
+                   "#{trial.method}-#{processor.format[0]}.txt"
     else 
       raise 'File name or input data must be passed in.'
     end
@@ -788,38 +787,38 @@ class Upload
 
   # -- Class Methods --------------------------------------------------------
 
-  def self.create(input_data, user_params, device_params)
-    upload = self.new(nil, input_data, user_params, device_params)
-    cp(input_data, upload.file_name)
+  def self.create(input_data, user_params, trial_params)
+    upload = self.new(nil, input_data, user_params, trial_params)
+    cp(input_data, upload.file_path)
     upload
   end
 
-  def self.find(file_name)
-    self.new(file_name)
+  def self.find(file_path)
+    self.new(file_path)
   end
 
   def self.all
-    file_names = Dir.glob(File.join('public/uploads', "*"))
-    file_names.map { |file_name| self.new(file_name) }
+    file_paths = Dir.glob(File.join(UPLOAD_DIRECTORY, "*"))
+    file_paths.map { |file_path| self.new(file_path) }
   end
 
   # -- Instance Methods -----------------------------------------------------
 
   def processor
-    @processor ||= Processor.new(File.read(file_name))
+    @processor ||= Processor.new(File.read(file_path))
   end
 
   def user
     @user ||= User.new(*file_components.first.split('-'))
   end
 
-  def device
-    @device ||= Device.new(*file_components.last.split('-')[0...-1])
+  def trial
+    @trial ||= Trial.new(*file_components.last.split('-')[0...-1])
   end
 
   def analyzer
     unless @analyzer
-      @analyzer = Analyzer.new(processor, user, device)
+      @analyzer = Analyzer.new(processor, user, trial)
       @analyzer.measure
     end
     @analyzer
@@ -828,53 +827,61 @@ class Upload
 private
 
   def file_components
-    @file_components ||= file_name.split('/').last.split('_')
+    @file_components ||= file_path.split('/').last.split('_')
   end
 
 end
 ~~~~~~~
 
-Since we're dealing with storage and retrieval of data here, our `Upload` class has more class level methods than our previous classes. This is best explained when we can observe how our `Upload` class is used. 
+Our `Upload` class has three class-level methods used to store data to, and retrieve data from, the filesystem. 
 
-When using the browser upload field, the browser creates a tempfile for the uploaded file, that our app has access to. To create an `Upload`, the create method is used, passing in the location of a tempfile, as well as user and device input parameters as arrays. 
+### Storing Data
+
+The `create` method stores a file that a user uploads using the browser upload field. The details of the user and trial information passed in through the browser input fields and dropdown boxes are stored in the filename. When using the browser upload field, the browser creates a tempfile that our app has access to. The first parameter passed in to `create`, `input_data`, is the location of the tempfile. The next two parameters, `user_params` and `trial_params`, are arrays of the values for a user and a trial, respectively.
 
 ~~~~~~~
-> Upload.create('test/data/upload-1.txt', ['female', '168', '71'], ['100', '10', '1','run'])
-cp test/data/upload-1.txt public/uploads/female-168.0-71.0_100-10-1-run-c.txt
+> Upload.create('test/data/upload-1.txt', ['female', '168', '71'], ['1', 100', '10', 'run'])
+cp test/data/upload-1.txt public/uploads/female-168.0-71.0_1-100-10-run-c.txt
 => #<Upload:0x007fa25b8be8b8>
 ~~~~~~~
 
-The create method calls the constructor, passing in nil for the file_name, and the tempfile and user and device parameters. The constructor then creates and sets Processor, User, and Device objects, and generates a filename. Finally, the create method copies the tempfile to the filesystem, using the file_name from the `Upload` object, and saves it to `public/uploads/`. The `Upload` object is returned. 
+The `create` method calls the initializer to create a new instance of `Upload`, passing in `nil` for the `file_path` parameter, and passing forward the remainign three parameters, `input_data`, `user_params`, and `trial_params`, unchanged. The initializer then creates and sets `Processor`, `User`, and `Trial` objects, and generates a filename using the attributes from these objects. Finally, the `create` method copies the tempfile to the filesystem under `public/uploads`, using the `file_path` from the `Upload` object. The `Upload` instance is returned. 
 
-Now the we have our data saved to the file system, we need a way to retireve it. We do that with the find class method. 
+### Retrieving Data
+
+Now the we have our data saved to the filesystem, we need a way to retrieve it. We do that with the `find` and `all` class methods. 
+
+Like the `create` method, `find` returns an instance of `Upload`. It calls into the initializer, passing in the `file_path`. All the initializer does if it's passed a `file_path` is set the `@file_path` instance variable. 
 
 ~~~~~~~
-> upload = Upload.find('public/uploads/female-168.0-70.0_100-100-1-walk-c.txt')
+> upload = Upload.find('public/uploads/female-168.0-70.0_1-100-100-walk-c.txt')
 => #<Upload:0x007fa25b8dec80>
 ~~~~~~~
 
-Like the create method, find calls into the constructor, but passes only the file_name. All the constructor does at that point is set the file_name instance method on the instance of `Upload`. 
-
-We can now ask for the `processor`, `user`, ``device``, or analyzer objects directly from our `upload` instance. Notice that all of these variables are lazy loaded, to prevent creation and parsing until needed. The `user` and `device` instance methods parse the `file_name` to retrieve the necessary parameters to create the objects, and the processor method reads the data from the file itself. 
-
-The all class method grabs all of the files in our public/upoads folder, and creates upload objects, returning an array of all uploads. 
+The `all` class method grabs all of the files in our `public/uploads` folder, and returns an array of `Upload` objects.
 
 ~~~~~~~
 > Upload.all
 => [#<Upload:0x007f8a8a03b2b0>, #<Upload:0x007f8a8a03b288>, #<Upload:0x007f8a8a03b238>, #<Upload:0x007f8a8a03b210>, #<Upload:0x007f8a8a03b148>]
 ~~~~~~~
 
-Our `Upload` object has the ability to store and retireve data from and for the user, and can create and return all of the other objects to our program. Let's move on to the web application side of our program to see how `Upload` will be helpful.
+### Working with an instance of Upload
 
-### Things to note
-* As our application grows, we'll likely want to use a database rather than saving everything to the filesystem. When the time comes for that, all we have to do it change the `Upload` class. This makes our refactoring simpler. 
-* In the future, we can also start saving User and Device objects to the database as well. The create, find, and all methods in `Upload` will then be relevant to User and Device as well. That means we'd likely refactor those out into their own class to deal with just the data storage and retrieval, and each of our User, Device, and `Upload` classes will inherit from that class. We might eventually add helper query methods to that class, and continue building it up from there. 
+Our `Upload` class contains instance methods to access the `Processor`, `User`, `Trial`, or `Analyzer` objects directly. Notice that all of these variables are lazy loaded, to prevent creation and parsing until needed. The `user` and `trial` instance methods use the `file_name` method to parse the file path to isolate the file name, and retrieve the necessary parameters from the file name to create `User` and `Trial` objects. The `processor` method reads the data from the file itself. Finally, the `analyzer` method uses `processor`, `user`, and `trial` to instantiate an `Analyzer` object and call `measure` on it, before returning the instance.
 
-### 2. Building a web application
+### Separation of concerns in Upload
 
-Web apps have been build many times over, so we may as well use a framework to do the boring plumbing work for us. The Sinatra framework does just that. In the tool's own words, Sinatra is "a DSL for quickly creating web applications in Ruby". Perfect. 
+Once again, we've been wise separate concerns in our program. All code related to storage and retrieval is contained in the `Upload` class. As our application grows, we'll likely want to use a database rather than saving everything to the filesystem. When the time comes for that, all we have to do it change the `Upload` class. This makes our refactoring simple and clean. 
 
-Since we're building a web app, we'll need a web server, so we'll use the thin web server. It's simple and certainly fast enough for our purposes. 
+In the future, we can also start saving User and Trial objects to the database as well. The `create`, `find`, and `all` methods in `Upload` will then be relevant to User and Trial as well. That means we'd likely refactor those out into their own class to deal with data storage and retrieval in general, and each of our `User`, `Trial`, and `Upload` classes would inherit from that class. We might eventually add helper query methods to that class, and continue building it up from there. 
+
+Let's move on to the web application side of our program to see how `Upload` will be helpful.
+
+## 2. Building a web application
+
+Web apps have been built many times over, so we may as well use a framework to do the boring plumbing work for us. The Sinatra framework does just that. In the tool's own words, Sinatra is "a DSL for quickly creating web applications in Ruby". Perfect. 
+
+Since we're building a web app, we'll need a web server. We'll use the Thin web server, which is simple and certainly fast enough for our purposes. 
 
 The last tool we'll be including is a JavaScript library called Highcharts, used for creating interactive charts. What's the point of interesting data if we can't display it in interesting ways? 
 
@@ -887,7 +894,7 @@ gem 'sinatra'
 gem 'thin'
 ~~~~~~~
 
-Once we run bundle install, we'll have Sinatra, as well as the Thin web server.We'll need a controller file for our web app. Let's call is pedometer.rb.
+Once we run bundle install, we'll have Sinatra, as well as the Thin web server.We'll need a controller file for our web app. Let's call it `pedometer.rb`.
 
 ~~~~~~~
 require 'sinatra'
@@ -903,8 +910,8 @@ get '/uploads' do
   erb :uploads
 end
 
-get '/upload/*' do |file_name|
-  @upload = Upload.find(file_name)
+get '/upload/*' do |file_path|
+  @upload = Upload.find(file_path)
   
   erb :upload
 end
@@ -916,7 +923,7 @@ post '/create' do
     @upload = Upload.create(
       params[:processor][:file_upload][:tempfile], 
       params[:user].values,
-      params[:device].values
+      params[:trial].values
     )
 
     erb :upload
@@ -927,15 +934,13 @@ end
 
 ~~~~~~~
 
-Running ruby pedometer.rb starts the web server, and hitting http://localhost:4567/uploads takes us to an index of all of our uploads. 
+Running `ruby pedometer.rb` from our app's directory starts the web server, and hitting `http://localhost:4567/uploads` takes us to an index of all of our uploads. 
 
 Let's look at each of our routes individually. 
 
 ### get '/uploads'
 
-The get '/uploads' route sets `@uploads` through `Upload.all`, and `@error` is set if an `:error` key is present in the params hash. The uploads view is then rendered. Let's take a look at the view, below. 
-
-uploads.erb
+The `get '/uploads'` route sets `@uploads` through `Upload.all`, and `@error` is set if an `:error` key is present in the params hash. The `uploads` view is then rendered. Let's take a look at the `uploads.erb` view, below. 
 
 ~~~~~~~
 <link href="/styles.css" rel="stylesheet" type="text/css" />
@@ -944,12 +949,12 @@ uploads.erb
   <div class="error"><%= @error %></div>
   <%= erb :summary, locals: { uploads: @uploads, detail_hidden: true } %>
   <form method="post" action="/create" enctype="multipart/form-data">
-    <h3 class="upload-header">Device Info</h3>
+    <h3 class="upload-header">Trial Info</h3>
     <input name="processor[file_upload]" type="file">
-    <input name="device[rate]" type="number" class="params" placeholder="Sampling Rate">
-    <input name="device[steps]" type="number" class="params" placeholder="Actual Step Count">
-    <input name="device[trial]" type="number" class="params" placeholder="Trial Number">
-    <select name="device[method]" class="params">
+    <input name="trial[name]" class="params" placeholder="Name">
+    <input name="trial[rate]" type="number" class="params" placeholder="Sampling Rate">
+    <input name="trial[steps]" type="number" class="params" placeholder="Actual Step Count">
+    <select name="trial[method]" class="params">
       <option value="">(Select a method)</option>
       <option value="walk">Walking</option>
       <option value="run">Running</option>
@@ -969,7 +974,7 @@ uploads.erb
 </html>
 ~~~~~~~
 
-The uploads view first pulls in a stylesheet, styles.css. The stylesheet, below, uses basic css for some minimal styling of our views. It's included in both the uploads view, and the upload view which we'll see in the next route.
+The `uploads` view first pulls in a stylesheet file, `styles.css`. The stylesheet, below, uses basic css for some minimal styling of our views. It's included in both the `uploads` view, and the `upload` view which we'll see in the next route.
 
 ~~~~~~~
 table.summary {
@@ -1016,34 +1021,34 @@ a.nav {
 }
 ~~~~~~~
 
-The uploads view also renders summary.erb. We place it in its own file, because we reuse it in another view, which we'll see soon.
+The `uploads` view also renders `summary.erb`. We place it in its own file, because we reuse it again in the `upload` view.
 
 ~~~~~~~
 <table class="summary">
-  <th>User</th>
+  <th>Name</th>
   <th>Method</th>
   <th>Format</th>
-  <th>Trial</th>
   <th>Actual</th>
   <th>Calculated</th>
   <th>Delta</th>
+  <th>User</th>
   <th></th>
   <% uploads.each do |upload| %>
     <% analyzer = upload.analyzer %>
     <tr>
-      <td><%= analyzer.user.gender %></td>
-      <td><%= analyzer.device.method %></td>
+      <td><%= analyzer.trial.name %></td>
+      <td><%= analyzer.trial.method %></td>
       <td><%= analyzer.processor.format %></td>
-      <td><%= analyzer.device.trial %></td>
-      <td><%= analyzer.device.steps %></td>
+      <td><%= analyzer.trial.steps %></td>
       <td><%= analyzer.steps %></td>
       <td>
         <%= 
-          analyzer.device.steps ? (analyzer.steps - analyzer.device.steps) : '-' 
+          analyzer.trial.steps ? (analyzer.steps - analyzer.trial.steps) : '-' 
         %>
       </td>
+      <td><%= analyzer.user.gender %></td>
       <% if detail_hidden %>
-        <td><a href=<%= "upload/" + upload.file_name %>>Detail</a></td>
+        <td><a href=<%= "upload/" + upload.file_path %>>Detail</a></td>
       <% else %>
         <td><%= ViewHelper.format_distance(analyzer.distance) %></td>
         <td><%= ViewHelper.format_time(analyzer.time) %></td>
@@ -1086,7 +1091,7 @@ class ViewHelper
 end
 ~~~~~~~
 
-The purpose of the ViewHelper is to present numerical data in a more visually pleasing way, by formatting inputs into output strings that can be used in views. ViewHelper contains three class methods. format_distance takes a distance in cm, converts it to the most reasonable unit of measurement, and outputs a string. Note that all "magic numbers" are defined at the top of the class as class level variables. Let's take a look at three use cases, that show how rounding is handled.
+The purpose of `ViewHelper` is to present numerical data in a more visually pleasing way, by formatting inputs into output strings that can be used in views. `ViewHelper` contains three class methods. `format_distance` takes a distance in cm, converts it to the most reasonable unit of measurement, and outputs a string. Note that all "magic numbers" are defined at the top of the class as class-level variables. Let's take a look at three use cases, that show how rounding is handled.
 
 ~~~~~~~
 > ViewHelper.format_distance(99.987)
@@ -1097,27 +1102,24 @@ The purpose of the ViewHelper is to present numerical data in a more visually pl
 => "1.0 km"
 ~~~~~~~
 
-Similarly, the format_time method takes a time in seconds and formats it using Ruby's strftime.
+Similarly, the `format_time` method takes a time in seconds and formats it using Ruby's `strftime`.
 
 ~~~~~~~
 > ViewHelper.format_time(7198.9)
 => "1 hr, 59 min, 59 sec"
 ~~~~~~~
 
-The final method, limit_1000, takes a series of data, and returns the first 1000 points. We'll see this used in another view shortly. 
+The final method, `limit_1000`, takes a series of data, and returns the first 1000 points. We'll see this used in the `upload` view shortly. 
 
-Back to the `uploads` view. The `uploads` view renders an error if one exists, renders summary.erb with all uploads to present the table of upload data, and then creates the input form for user and device info. 
+Back to the `uploads` view. The `uploads` view renders an error if one exists, renders `summary.erb` with all uploads to present the table of upload data, and then creates the input form for user and trial info. 
 
-### Things to note
-* Here we once again see spearation of concerns. To keep as much logic as possible out of the view, we use a ViewHelper to format the data. The view's responsibility is to present data, not format it, so we split that out into a separate class.
+Here we once again see spearation of concerns. To keep as much logic as possible out of the view, we use `ViewHelper` to format the data. The view's responsibility is to present data, not format it, so we split that out into a separate class.
 
-The last and largest portion of the uploads view is the layout of the form that allows a user to input data. Note that the form, on submission, posts to the create action, which we'll discuss as our last action. All input fields either have placeholder text to indicate the data needed, or, in the case of select fields, a placeholder field. The fields that require numerical data are of type number so that the browser doesn't allow submission of the form unless proper data is passed in. 
-
-TODO: Discussion around client-side validation as well as server-side validation. Make note that the trial number is set to numerical data even though the model accepts a string.
+The last and largest portion of the `uploads` view is the layout of the form that allows a user to input data. Note that the form, on submission, posts to the `create` action, which we'll discuss as our last action. All input fields either have placeholder text to indicate the data needed, or, in the case of select fields, a placeholder field. The fields that require numerical data are of type `number` so that the browser doesn't allow submission of the form unless proper data is passed in. 
 
 ### get '/upload/*'
 
-The get '/upload/*' route is called with a file path. For example: http://localhost:4567/upload/public/uploads/female-168.0-70.0_100-100-1-walk-c.txt. It sets `@upload` through `Upload.find`, passing in the `file_name` from the url. It then loads up the `upload.erb` view. 
+The `get '/upload/*'` route is called with a file path. For example: `http://localhost:4567/upload/public/uploads/female-168.0-70.0_100-100-1-walk-c.txt`. It sets `@upload` through `Upload.find`, passing in the `file_path` from the url. It then loads up the `upload.erb` view. 
 
 ~~~~~~~
 <script src="/jquery.min.js"></script>

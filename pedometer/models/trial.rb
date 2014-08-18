@@ -1,11 +1,11 @@
-class Device
+class Trial
 
-  attr_reader :rate, :steps, :trial, :method
+  attr_reader :name, :rate, :steps, :method
 
-  def initialize(rate = nil, steps = nil, trial = nil, method = nil)
+  def initialize(name = nil, rate = nil, steps = nil, method = nil)
+    @name   = name
     @rate   = (rate.to_f.round > 0) ? rate.to_f.round : 100
     @steps  = steps.to_f.round if steps.to_f.round > 0
-    @trial  = trial
     @method = method
   end
 

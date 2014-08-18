@@ -13,7 +13,7 @@ class UploadTest < Test::Unit::TestCase
     upload = Upload.create(
       'test/data/upload-1.txt',
       ['female', '168', '70'],
-      ['100', '100', '1','walk']
+      ['1', '100', '100','walk']
     )
     
     assert_equal File.read('test/data/upload-1.txt'), upload.processor.data
@@ -22,27 +22,27 @@ class UploadTest < Test::Unit::TestCase
     assert_equal 168, upload.user.height
     assert_equal 70, upload.user.stride
 
-    assert_equal 100, upload.device.rate
-    assert_equal 100, upload.device.steps
-    assert_equal '1', upload.device.trial
-    assert_equal 'walk', upload.device.method
+    assert_equal 100, upload.trial.rate
+    assert_equal 100, upload.trial.steps
+    assert_equal '1', upload.trial.name
+    assert_equal 'walk', upload.trial.method
     
     assert_equal 101, upload.analyzer.steps
   end
 
   def test_find
-    upload = Upload.find('public/uploads/female-168.0-70.0_100-100-1-walk-c.txt')
+    upload = Upload.find('public/uploads/female-168.0-70.0_1-100-100-walk-c.txt')
     
-    assert_equal File.read('public/uploads/female-168.0-70.0_100-100-1-walk-c.txt'), upload.processor.data
+    assert_equal File.read('public/uploads/female-168.0-70.0_1-100-100-walk-c.txt'), upload.processor.data
 
     assert_equal 'female', upload.user.gender
     assert_equal 168, upload.user.height
     assert_equal 70, upload.user.stride
 
-    assert_equal 100, upload.device.rate
-    assert_equal 100, upload.device.steps
-    assert_equal '1', upload.device.trial
-    assert_equal 'walk', upload.device.method
+    assert_equal 100, upload.trial.rate
+    assert_equal 100, upload.trial.steps
+    assert_equal '1', upload.trial.name
+    assert_equal 'walk', upload.trial.method
     
     assert_equal 101, upload.analyzer.steps
   end
