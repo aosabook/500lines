@@ -1,0 +1,4 @@
+portalocker==0.4
+
+# For testing
+nose==1.3.0

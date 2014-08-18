@@ -1,0 +1,18 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <script src="../lib/angular.js"></script>
+  <script src="main.js"></script>
+  <link href="../styles.css" rel="stylesheet">
+</head><body ng-app="500lines" ng-controller="Spreadsheet" ng-cloak>
+  <table><tr>
+    <th><button type="button" ng-click="reset(); calc()">↻</button></th>
+    <th ng-repeat="col in Cols">{{ col }}</th>
+  </tr><tr ng-repeat="row in Rows">
+    <th>{{ row }}</th>
+    <td ng-repeat="col in Cols" ng-class="{ formula: ( '=' === sheet[col+row][0] ) }">
+      <input id="{{ col+row }}" ng-model="sheet[col+row]" ng-change="calc()"
+       ng-model-options="{ debounce: 200 }" ng-keydown="keydown( $event, col, row )">
+      <div ng-class="{ error: errs[col+row], text: vals[col+row][0] }">
+        {{ errs[col+row] || vals[col+row] }}</div>
+    </td>
+  </tr></table>
+</body></html>
