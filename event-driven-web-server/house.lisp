@@ -1,4 +1,4 @@
-1;; house.lisp
+;; house.lisp
 (in-package :house)
 
 ;;;;;;;;;; System tables

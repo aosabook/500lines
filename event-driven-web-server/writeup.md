@@ -38,7 +38,7 @@ a) A server that can service many connections with a single thread
 b) A thread-per-request server that passes long-lived connections off to a separate subsystem, which must handle those long lived connections using a minimal number of threads
 c) A thread-per-request server on top of a platform where threads are cheap enough that you can afford having a few hundred thousand of them around.
 
-I maintain that Option b) is ridiculous. The main reason you want a thread-per-request model is to simplify implementation, but having to implement a threaded core _as well as_ a separate event-driven system just for server pushing would almost by definition be more complicated than using either model in isolation. In the absence of [really](racket-lang) REALLY [cheap](erlang language) threads, the simplest solution is resorting to Option a). I could have switched languages, or maybe hacked some just-good-enough support into Hunchentoot. What I chose to do was write a Common Lisp server that could service many connections on a single thread.
+I maintain that Option b) is ridiculous. The main reason you want a thread-per-request model is to simplify implementation, but having to implement a threaded core _as well as_ a separate event-driven system just for server pushing would almost by definition be more complicated than using either model in isolation. In the absence of [really](http://racket-lang.org/) REALLY [cheap](http://www.erlang.org/) threads, the simplest solution is resorting to Option a). I could have switched languages, or maybe hacked some just-good-enough support into Hunchentoot. What I chose to do was write a Common Lisp server that could service many connections on a single thread.
 
 In other words, `:house` started out as the yak-shaving project from hell, and I'm about to regale you with the resulting tale.
 
@@ -68,14 +68,12 @@ The specifics are going to be revealed in our `process-ready` function. Or rathe
 	(defmethod process-ready ((ready stream-server-usocket) (conns hash-table))
 	  (setf (gethash (socket-accept ready :element-type 'octet) conns) nil))
 
-Quick aside on the anatomy of a Common Lisp method, we'll get into the underlying structures a bit later on. What you're looking at is the filled in version of
+What you're looking at above is the filled in version of
 
     (defmethod <name> ((<arg-name> <arg-type>)...)
 	  <body>)
 
-It looks _almost_ like a `defun` clause, except that each of the mandatory arguments have an extra symbol packed along with them that specify what types they're expected to be. Or rather, which types this particular method will be called for. 
-
-This is the Common Lisp multiple dispatch system at work. We're `def`ining a `method` of two arguments, `ready` and `conns`, the first of which will be a `stream-server-socket` and the second will be a `hash-table`. This is what it looks like when we get a new connection coming into the socket we're listening on; the `stream-server-socket` we defined back in `start` signals that it's `ready`, and gets picked up by our central event loop. All we do at this stage is `socket-accept` the incoming connection, and insert it into the connection table. As you saw above, we're waiting on input from all the keys of this table, which means this newly accepted socket will eventually have some data for us. _When_ it does, we'll pick it up as a `ready` socket in our main loop and call `process-ready` on it.
+It looks _almost_ like a `defun`, except that each of the mandatory arguments have an extra symbol packed along with them that specify what types they're expected to be. Or rather, which types this particular method will be called for. This is the Common Lisp multiple dispatch system at work. We're `def`ining a `method` of two arguments, `ready` and `conns`, the first of which will be a `stream-server-socket` and the second will be a `hash-table`. This is what it looks like when we get a new connection coming into the socket we're listening on; the `stream-server-socket` we defined back in `start` signals that it's `ready`, and gets picked up by our central event loop. All we do at this stage is `socket-accept` the incoming connection, and insert it into the connection table. As you saw above, we're waiting on input from all the keys of this table, which means this newly accepted socket will eventually have some data for us. _When_ it does, we'll pick it up as a `ready` socket in our main loop and call `process-ready` on it.
 
 	(defmethod process-ready ((ready stream-usocket) (conns hash-table))
 	  (let ((buf (or (gethash ready conns)
@@ -107,7 +105,7 @@ Which, as you may have suspected, does something different. This is the method t
 3. If reading output got us an `:eof`, it means that the other side has closed this socket so we just discard it
 4. Otherwise, we check if the buffer is one of `complete?`, `too-big?`, `too-old?` or `too-needy?`. If it's any of them, we remove it from the connections table and send out the appropriate HTTP response.
 
-Now, firstly, you'll have to take my word for it that most of these things happen correctly until we get to their implementations later. But more importantly, it might not be entirely apparent why we're going through this rigmarole. Because we're trying to serve up content with a single thread, we can't afford to block on any particular connection. Because if we _did_, we'd block the entire server. As a result, we have to do work to make sure that we never block on an incoming stream _and_ that if a particular stream is dragging its feet, we can move on to the next one without throwing out our work so far. That means a system of buffers to keep track of intermediate results, and a buffering process that breaks off to let the next ready socket go, rather than blocking on input. Here's ours:
+Now, firstly, you'll have to take my word for it that most of these things happen correctly until we get to their implementations later. But more importantly, it might not be entirely apparent why we're going through this rigmarole. Because we're trying to serve up content with a single thread, we can't afford to block on any particular connection. Because if we _did_, we'd block the entire server, rather than just a single connection. As a result, we have to do work to make sure that we never block on an incoming stream _and_ that if a particular stream is dragging its feet, we can move on to the next one without throwing out our work so far. That means a system of buffers to keep track of intermediate results, and a buffering process that stops if it runs out of available input before getting to a complete request. Here's ours:
 
 	(defmethod buffer! ((buffer buffer))
 	  (handler-case
@@ -123,11 +121,9 @@ Now, firstly, you'll have to take my word for it that most of these things happe
 		          finally (return char)))
 	    (error () :eof)))
 
-;; TODO: `read-char-no-hang` can safely error here, since `handler-case` is going to pick it up and return `:eof` anyhow.
-
 When you call `buffer!` on a `buffer`, it increments the `tries` count, then loops to read characters from the input stream. If it reaches the end of available input, or an `:eof`, it returns the last character it read. It also keeps track of whether its seen a `crlf` go by during the reading (this just helps decide whether a request is complete later). It also returns `:eof` if it encounters any kind of read error during this process.
 
-The procedure `read-char-no-hang` is essential here; that's the thing that allows us to read without blocking, or "`hang`ing", when there are no further chars to read on the incoming stream. Instead of waiting on further input like plain `read-char`, `read-char-no-hang` just returns `nil` immediately. We've also passed two additional arguments that mean it'll return `:eof` rather than erroring at the end-of-file marker. That should explain why we were just throwing away buffers and sockets that came back with an `:eof` result.
+The procedure `read-char-no-hang` is essential here; that's the thing that allows us to read without blocking, or "`hang`ing", when there are no further chars to read on the incoming stream. Instead of waiting on further input like plain `read-char`, `read-char-no-hang` just returns `nil` immediately. We've also passed two additional arguments that mean it'll return `:eof` rather than erroring at the end-of-file marker. That should explain why we were just throwing away buffers and sockets that came back with an `:eof` result; it's because an `:eof` here means that the client socket has closed its stream, so there's no reason to send a reply back.
 
 The next interesting part of `process-ready` comes after the edge-case handling of old/big/needy requests. It's wrapped in another layer of error handling because we might still crap out in different ways here. In particular, if the request is old/big/needy or if an `http-assertion-error` is raised, we want to send a `400` response; the client provided us with some bad or slow data. However, if any other error happens here, it's because someone made a mistake defining a handler, which should be treated as a `500` error; something went wrong on the server side as a result of a potentially legitimate request.
 
@@ -138,7 +134,7 @@ Lets follow that trail for a while:
 	       (funcall it socket (parameters req))
 	       (error! +404+ socket)))
 
-In `handle-request`, we do the tiny and obvious job of looking up the requested resource in the `*handlers*` table. If we find one, we `funcall` `it`, passing along the client `socket` as well as the parsed request parameters. If there's no matching handler in the `*handlers*` table, we instead send along a `404` error. Following that `lookup` down into the `*handlers*` table is going to drop us down the `macro` rabbit hole though, so lets quickly take a look at the parsing, writing and the key `subscribe`/`publish` system before moving on. Not that this'll be easy-going, mind you, the alternate path takes us straight through CLOS, into the heart of what makes Common Lisp objects different from the current mainstream.
+In `handle-request`, we do the tiny and obvious job of looking up the requested resource in the `*handlers*` table. If we find one, we `funcall` `it`, passing along the client `socket` as well as the parsed request parameters. If there's no matching handler in the `*handlers*` table, we instead send along a `404` error. Following that `lookup` down into the `*handlers*` table is going to drop us down the `macro` rabbit hole though, so lets quickly take a look at the parsing, writing and the key `subscribe`/`publish` system before moving on. If you're looking to learn about that specifically, and are hardcore enough to jump straight in, skip ahead to the `define-handler` section. Not that the long way will be easy-going, mind you, the alternate path takes us straight through CLOS, into the heart of what makes Common Lisp objects different from the current mainstream.
 
 Here's how we parse requests
 
@@ -177,13 +173,116 @@ The top two methods handle parsing buffers or strings, while the bottom two hand
 6. populate that `request` instance with each split header line
 7. set that `request`s parameters to the result of parsing our `GET` and `POST` parameters
 
+The `request` object from Step five looks like this:
+
+	(defclass request ()
+	  ((resource :accessor resource :initarg :resource)
+	   (headers :accessor headers :initarg :headers :initform nil)
+	   (parameters :accessor parameters :initarg :parameters :initform nil)))
+
+and if you're just joining us from mainstream OO languages, you might notice the odd fact that these CLOS (Common Lisp Object System) `class` declarations only involve slots and related getters/setters, or `reader`s/`accessor`s in CL terms. This is because the Lisp object system is based on generic functions.
+
+### A Brief Detour through CLOS
+
+Basically, at a very high level, you need to think "Methods specialize on classes" rather than "classes have methods". That should get you most of the way to understanding.
+
+From a theoretical perspective, the class-focused approach and the function-focused approach can be seen as perpendicular approaches to the same problem. Namely
+
+> How do we treat different classes similarly for the purposes of certain operations that they have in common?
+
+The most common concrete example is the various number implementations. No, an integer is not the same as a real number is not the same as a complex number and so forth, *but*, you can add, multiply, divide and so on each of those. And it'd be nice if you could just express the idea of addition without having to name separate operations for different types when each of them amounts to the same conceptual procedure. The class-focused approach says
+
+> You have different classes you need to deal with. Each such class implements the appropriate methods you want supported.
+
+See [Smalltalk](http://pharo.org/) for the prototypical example of this kind of system. The function-focused approach says
+
+> You have a number of generic operations that can deal with multiple types. When you call one, it dispatches on its arguments to see what concrete implementation it should apply.
+
+That's basically what you'll see in action in Common Lisp. You can think about it as a giant table with "Class Name" down the first column and "Operation" across the first row
+
+            | Addition | Subtraction | Multiplication |
+    ----------------------------------------------------------...
+    Integer |          |             |                |
+	-----------------------------------------------------
+	Real    |          |             |                |
+	-----------------------------------------------
+	Complex |          |             |
+
+and each cell representing the implementation of that operation for that type. Class-focused OO says "Focus on the first column; the class is the important part", function-focused OO says "focus on the first row; the operation needs to be central". Consequently, CF-OO systems tend to group all methods related to a class in with that class' data, whereas FF-OO systems tend to isolate the data completely and group all implementations of an operation together. In the first system, it's difficult to ask "what classes implement method `foo`?" which is easy in the second, but the second has similar problems answering "what are all the methods that specialize on class `bar`?". In a way those questions don't make sense from within the systems we're asking them, and understanding why that is will give you some insight into where you want one or the other.
+
+Bringing this back around to our `request`s, the class we defined earlier has three slots
+
+- `resource`, which is the URI the client wants, less `GET` parameters and absolute host
+- `headers`, which is the set of HTTP headers we parsed out of the incoming TCP stream
+- `parameters`, which is the parsed list of all `GET` and `POST` parameters sent by the client
+
+The only place this particular `class` gets specialized on is in `handle-request`, which you saw earlier. Now, before we take a look at how we get handlers into our `*handlers*` table, lets skip ahead a bit and see something that every handler is going to have to do; writing a response.
+
+	(defmethod write! ((res response) (sock usocket))
+	  (let ((stream (flex-stream sock)))
+	    (flet ((write-ln (&rest sequences)
+		     (mapc (lambda (seq) (write-sequence seq stream)) sequences)
+		     (crlf stream)))
+	      (write-ln "HTTP/1.1 " (response-code res))
+	      (write-ln "Content-Type: " (content-type res) "; charset=" (charset res))
+	      (write-ln "Cache-Control: no-cache, no-store, must-revalidate")
+	      (when (keep-alive? res) 
+		    (write-ln "Connection: keep-alive")
+		    (write-ln "Expires: Thu, 01 Jan 1970 00:00:01 GMT"))
+	      (awhen (body res)
+		    (write-ln "Content-Length: " (write-to-string (length it)))
+		    (crlf stream)
+		    (write-ln it))
+	      (values))))
+
+You can see that this operation takes a `response` and a `usocket`, grabbing a stream from the `usocket` and writing a bunch of lines to it. We locally define the function `write-ln` which takes some number of sequences, and writes them out to the stream followed by a `crlf`. That's just for readability; we could easily have done manual `write-sequence`/`crlf` calls. A `response` is another class, like `request`.
+
+	(defclass response ()
+	  ((content-type :accessor content-type :initform "text/html" :initarg :content-type)
+	   (charset :accessor charset :initform "utf-8")
+	   (response-code :accessor response-code :initform "200 OK" :initarg :response-code)
+	   (keep-alive? :accessor keep-alive? :initform nil :initarg :keep-alive?)
+	   (body :accessor body :initform nil :initarg :body)))
+
+Which contains all the information we needed to write out a TCP response for our client back in `write!`. Now, because we want to be able to send updates to clients between requests, we want to specialize `write!` on another class
+
+	(defmethod write! ((res sse) (sock usocket))
+	  (let ((stream (flex-stream sock)))
+	    (format stream "~@[id: ~a~%~]~@[event: ~a~%~]~@[retry: ~a~%~]data: ~a~%~%"
+		    (id res) (event res) (retry res) (data res))))
+
+which will need to hold all the information we need to send an incremental update to our clients using [SSE messages](http://www.w3.org/TR/eventsource/)
+
+	(defclass sse ()
+	  ((id :reader id :initarg :id :initform nil)
+	   (event :reader event :initarg :event :initform nil)
+	   (retry :reader retry :initarg :retry :initform nil)
+	   (data :reader data :initarg :data)))
+
+Writing an `SSE` out is conceptually similar to, but mechanically different from writing out a `response`. It's much simpler, because an `SSE` only has four slots, one of which is mandatory. Also, the SSE message standard doesn't specify `CRLF` line-endings, so we can get away with a single `format` call instead of the fairly involved process of `write!`ing a full HTTP request. The `~@[...~]` blocks are conditional directives. Which is to say, if `(id res)` is non-nil, we'll output `id: <the id here> `, and ditto for `event` and `retry`. `data`, the payload of our incremental update, is the only slot that's always present.
+
+While we're on the subject of sending `SSE` updates, we also need a way to keep track of who to send them to. This is because the purpose of such updates in our case is to notify watchers of the actions of other players. The simplest way of doing this is keeping track of channels, to which we'll subscribe `socket`s as necessary.
+
+	(defparameter *channels* (make-hash-table))
+
+	(defmethod subscribe! ((channel symbol) (sock usocket))
+	  (push sock (gethash channel *channels*))
+	  nil)
+
+We can then `publish!` notifications to said channels as soon as they become available.
+
+
+	(defmethod publish! ((channel symbol) (message string))
+	  (awhen (gethash channel *channels*)
+	    (loop with msg = (make-instance 'sse :data message)
+	       for sock in it (progn (write! msg sock)
+				     (force-output (socket-stream sock))))))
+
+Now that we know about the event-loop core, the parsing step, the writing step, and the idea behind subscribing/publishing notifications, it's time to pull it all together. What we'll want for handlers is a DSL. And we'll write it using Common Lisp's `macro` facilities.
 
 
 ;; TODO
 
-;; commentary on parsing (including the request object, and a brief discussion of CLOS)
-;; quick commentary on writing and
-;; explanation of subscribing/publishing subsystems, and why they're key for the eventual goal of an asynchronous server.
 ;; Move on to the define-handlers macro system
 
 
@@ -598,44 +697,15 @@ The `:house` model is heavily object based. We've got six core classes, one of w
 
 Lets start with `response` and `sse`, since we just looked at the places they get generated and used.
 
-	(defclass response ()
-	  ((content-type :accessor content-type :initform "text/html" :initarg :content-type)
-	   (charset :accessor charset :initform "utf-8")
-	   (response-code :accessor response-code :initform "200 OK" :initarg :response-code)
-	   (keep-alive? :accessor keep-alive? :initform nil :initarg :keep-alive?)
-	   (body :accessor body :initform nil :initarg :body)))
+
+
+
 	
-	(defclass sse ()
-	  ((id :reader id :initarg :id :initform nil)
-	   (event :reader event :initarg :event :initform nil)
-	   (retry :reader retry :initarg :retry :initform nil)
-	   (data :reader data :initarg :data)))
 
-If you're joining us from mainstream class/prototype-based languages, you might notice the odd fact that these CLOS (Common Lisp Object System) `class` declarations only involve slots and related getters/setters, or `reader`s/`accessor`s in CL terms. This is because the Lisp object system is based on generic functions. Basically, at a very high level, you need to think "Methods specialize on classes" rather than "classes have methods". That should get you most of the way to understanding.
 
-From a theoretical perspective, the class-focused approach and the function-focused approach can be seen as perpendicular approaches to the same problem. Namely
 
-> How do we treat different classes similarly for the purposes of certain operations that they have in common?
 
-The most common concrete example is the various number implementations. No, an integer is not the same as a real number is not the same as a complex number and so forth, *but*, you can add, multiply, divide and so on each of those. And it'd be nice if you could just express the idea of addition without having to name separate operations for different types when each of them amounts to the same conceptual procedure. The class-focused approach says
 
-> You have different classes you need to deal with. Each such class implements the appropriate methods you want supported.
-
-See [Smalltalk](TODO: link to Pharo here) for the prototypical example of this kind of system. The function-focused approach says
-
-> You have a number of generic operations that can deal with multiple types. When you call one, it dispatches on its arguments to see what concrete implementation it should apply.
-
-That's basically what you'll see in action in Common Lisp. You can think about it as a giant table with "Class Name" down the first column and "Operation" across the first row
-
-            | Addition | Subtraction | Multiplication |
-    ----------------------------------------------------------...
-    Integer |          |             |                |
-	-----------------------------------------------------
-	Real    |          |             |                |
-	-----------------------------------------------
-	Complex |          |             |
-
-and each cell representing the implementation of that operation for that type. Class-focused OO says "Focus on the first column; the class is the important part", function-focused OO says "focus on the first row; the operation needs to be central". Consequently, CF-OO systems tend to group all methods related to a class in with that class' data, whereas FF-OO systems tend to isolate the data completely and group all implementations of an operation together. In the first system, it's difficult to ask "what classes implement method `foo`?" which is easy in the second, but the second has similar problems answering "what are all the methods that specialize on class `bar`?". In a way those questions don't make sense from within the systems we're asking them, and understanding why that is will give you some insight into where you want one or the other.
 
 Anyway, the `response` and `sse` classes above should be fairly self-explanatory if you know approximately how HTTP works. A `response` needs a `content-type`, a `charset`, a `response-code`, a `keep-alive?` flag, and a `body` to be written properly.
 
@@ -649,35 +719,11 @@ An `sse` needs a comparably minimal `id`, `event`, `retry` and `data` slots, and
 
 Now, because we're in a function-focused OO system, those slots don't really give you all the information you need. You'll also need to know about the operations we plan to perform on them.
 
-#### Brief cut-over to the core
 
-The core server file, `house.lisp`, defines a `write!` method for two different class combinations; `response/usocket` and `sse/usocket`. Because the system we're in uses multiple dispatch, we also could have defined `response/stream` and `sse/stream` operations just to generalize the method a bit, but I didn't see a real win with that approach. Lets take a look at the implementations for the two classes we're looking at. `response` first.
 
-	(defmethod write! ((res response) (sock usocket))
-	  (let ((stream (flex-stream sock)))
-	    (flet ((write-ln (&rest sequences)
-		     (mapc (lambda (seq) (write-sequence seq stream)) sequences)
-		     (crlf stream)))
-	      (write-ln "HTTP/1.1 " (response-code res))
-	      (write-ln "Content-Type: " (content-type res) "; charset=" (charset res))
-	      (write-ln "Cache-Control: no-cache, no-store, must-revalidate")
-	      (when (keep-alive? res) 
-		    (write-ln "Connection: keep-alive")
-		    (write-ln "Expires: Thu, 01 Jan 1970 00:00:01 GMT"))
-	      (awhen (body res)
-		    (write-ln "Content-Length: " (write-to-string (length it)))
-		    (crlf stream)
-		    (write-ln it))
-	      (values))))
 
-You can see that this operation takes a `response` and a `usocket` (an implementation of sockets for Common Lisp), grabbing a stream from the `usocket` and writing a bunch of lines to it. We locally define the function `write-ln` which takes some number of sequences, and writes them out to the stream followed by a `crlf`. That's just for readability; we could easily have done manual `write-sequence`/`crlf` calls. This is also the example use of `awhen` I promised you. Without that, we'd need to call `(body res)` twice or make other arrangements. That's not expensive in the performance sense, since it's just a value lookup in a `response` instance, but when getting around it is as cheap as adding `a` to the beginning of the containing conditional, you may as well.
 
-	(defmethod write! ((res sse) (sock usocket))
-	  (let ((stream (flex-stream sock)))
-	    (format stream "~@[id: ~a~%~]~@[event: ~a~%~]~@[retry: ~a~%~]data: ~a~%~%"
-		    (id res) (event res) (retry res) (data res))))
 
-Writing an `SSE` out is conceptually similar to, but mechanically different from writing out a `response`. It's much simpler, because an `SSE` only has four slots, one of which is mandatory, and the SSE message standard doesn't specify `CRLF` line-endings, so we can get away with a single `format` call. The `~@[...~]` blocks are conditional directives. Which is to say, if `(id res)` is non-nil, we'll output `id: <the id here> `, and ditto for `event` and `retry`. `data`, the payload of our incremental update, is the only slot that's always present.
 
 ### Back to the Model...
 
