@@ -63,52 +63,74 @@ Simple Paxos
 ------------
 
 So let's start with "Simple Paxos".
-For sake of illustration, let's agree on today's lottery number.
-While there may be another lottery next week, *today's* lottery number, once decided, will never change.
+For sake of illustration, we'll agree on today's lottery number.
+While there may be another lottery drawing next week, *today's* lottery number, once decided, will never change.
 
 A round of Paxos begins with one member of the cluster (called the proposer) deciding to propose a value, let's say 7-3-22.
 The proposer selects a "ballot number" *N* greater than any other it has ever sent, and sends a ``PREPARE`` message with a ballot number to the acceptors (all of the other nodes).
-The proposer the waits to hear from a majority of the acceptors.
+The proposer then waits to hear from a majority of the acceptors.
+
+The ``PREPARE`` message contains a ballot number, and the protocol requires this to be unique across the cluster and strictly increasing.
+This is easier than it sounds: make each ballot number a combination of an increasing integer and a unique ID for the cluster member, such as its IP address.
 
 On receiving to a ``PREPARE`` with a ballot number *N*, each acceptor promises to ignore all proposals with a ballot number less than *N*.
-That is, unless it has already made that promise for a higher ballot number.
-It replies with a ``PROMISE`` message including the value it has already accepted, if any.
+It replies with a ``PROMISE`` message including a highest ballot number it has promised and an already-accepted value *V*.
+If the acceptor has already made a promise for a larger ballot number, it includes that number in the ``PROMISE``, indicating that the proposer has been pre-empted.
 
-When the proposer receives a ``PROMISE`` including an already-accepted value, it must continue with that acceped value, and not its own.
-Continuing the example, however, other value has been accepted, so the acceptors all send back a ``PROMISE`` with no value.
-
-When the proposer has heard back from a majority of the acceptors, it sends an ``ACCEPT``, including the ballot number and value to all acceptors.
+When the proposer has heard back from a majority of the acceptors, it sends an ``ACCEPT`` message, including the ballot number and value to all acceptors.
+If the proposer did not receive any existing value from any acceptor, then it sends its own desired value.
+Otherwise, it sends the value with the highest ballot number.
 Unless it would violate a promise, each acceptor records the value from the ``ACCEPT`` message as accepted.
-It then replies with an ``ACCEPTED`` message containing the accepted ballot number.
-The round is complete and the value decided when the proposer has heard from a majority of acceptors.
+
+In this example, no other value has been accepted, so the acceptors all send back a ``PROMISE`` with no value, and the proposer sends an ``ACCEPT`` containing 7-3-22.
+
+Each acceptor replies with an ``ACCEPTED`` message containing the accepted ballot number.
+The round is complete and the value decided when the proposer has heard its ballot number from a majority of acceptors.
+
+The overall effect is two round-trips: one to secure a promise and one to get agreement on the value.
 
 If another server proposes a different value, say 11-13-15, with lower ballot number, then the acceptors will ignore the ``PREPARE`` messages.
 If that server uses a higher ballot number than has already been promised, then the acceptors will reply with the already-agreed value, 7-3-22.
 The server will use that value in the second phase, agreeing again on the same value.
 
-The overall effect is two round-trips: one to secure a promise and one to get agreement on the value.
-When multiple proposers make a proposal at the same time, it is common for neither proposal to win as each proposal secures a promise to ignore the other before its proposal is accepted.
-In this case, both proposers then re-propose.
-Hopefully one wins, but the deadlock can continue indefinitely if the timing works out just right.
-In bad -- but not uncommon -- cases, it can take dozens of round-trips to reach consensus.
+When multiple proposers make a proposal at the same time, it is common for neither proposal to win.
+Both proposers then re-propose, and hopefully one wins, but the deadlock can continue indefinitely if the timing works out just right.
+In a bad -- but not uncommon -- case, it can take dozens of round-trips to reach consensus.
 
 Multi-Paxos
 -----------
 
-Multi-Paxos is, in effect, a sequence of simple Paxos instances (slots), each numbered sequentially.
+Reaching consensus on a single, static value is not particularly useful on its own.
+Clustered systems want to agree on a particular state that evolves over time.
+In the case of the bank account service, the state is the collection of account balances.
+We use Paxos to agree on each operation, treated as a state machine transition.
 
-To avoid the hight cost of two round trips per decision, multi-Paxos treats the ``PREPARE``/``PROMISE`` interaction as authoritative for the current and all future slots.
-Once a proposer has received promises without values from a majority of acceptors, it only executes the second phase (``ACCEPT``/``ACCEPTED``) for subsequent slots, at least until a proposal isn't accepted.
+Multi-Paxos is, in effect, a sequence of simple Paxos instances (slots), each numbered sequentially.
+Each state transition is given a "slot number", and each member of the cluster executes transitions in strict numeric order.
+A node that wants to change the cluster's state (to process a withdrawal, for example) proposes a state machine transition, waits for a decision, and then broadcasts the decided transition to all nodes.
 
 Getting Moderately Complex
 --------------------------
 
-A surprising amount of additional infrastructure is required to make this model effective:
- * starting the cluster from scratch
- * leader election to avoid deadlock
- * a gossip protocol to bring lagging members up to date (XXX may be removed)
+But practice is not nearly so simple as principle.
 
-XXX - introduce components based on Renesee(sp?)
+# XXX compare this list with what gets discussed later in the chapter, and don't leave too many loose threads
+
+To avoid the hight cost of two round trips per decision, multi-Paxos treats the ``PREPARE``/``PROMISE`` interaction as authoritative for the current and all future slots.
+Once a proposer has received promises without values from a majority of acceptors, it only executes the second phase (``ACCEPT``/``ACCEPTED``) for subsequent slots, at least until a proposal isn't accepted.
+
+Although simple Paxos guarantees that the cluster will not reach conflicting decisions, it cannot guarantee that any decision will be made.
+Fixing this requires carefully orchestrated re-transmissions: enough to eventually make progress, but not so many that the cluster buries itself in a packet storm.
+
+While Paxos describes how to *make* decisions, it does not address informing all cluster nodes of those decisions.
+A simple broadcast of a ``DECISION`` message can take care of this for the normal case, but if the message is lost, a node can remain permanently ignorant of the decision.
+This leaves that node unable to apply later transitions to its copy of the distributed state machine.
+So we need some mechanism for sharing information about decided proposals.
+
+Our use of a distributed state machine presents another interesting challenge: start-up.
+When a new node starts, it needs to catch up on the existing state of the cluster.
+Although it can do so by catching up on decisions for all slots since the first, in a mature cluster this may involve millions of slots.
+Furthermore, we need some way to initialize a new cluster.
 
 Leader Elections
 ----------------
@@ -141,8 +163,9 @@ Component Model
 
 Humans are limited by what we can hold in our active memory.
 We can't reason about the entire Cluster implementation at once -- it's just too much, and too easy to miss details.
-Instead, we break Cluster down into a handful of components, implemented by subclasses of ``Component``.
-Each class has a different role in the protocol.
+Instead, we break Cluster down into a handful of components, implemented as subclasses of ``Component``.
+Each class is responsible for a different part of the protocol.
+The division of the components is based on that given in Renesse (XXX - citation).
 
 The components are glued together by the ``Node`` class, which represents a single node on the network.
 Components are added to and removed from the node as execution proceeds

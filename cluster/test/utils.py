@@ -27,13 +27,13 @@ class ComponentTestCase(unittest.TestCase):
     def assertUnregistered(self):
         self.assertEqual(self.node.components, [])
 
-    def verifyPromiseAccepted(self, accepted):
-        """Verify that the ``accepted`` field of a promise is formatted
-        as a dictionary mapping Ballots to Proposals."""
-        self.assertIsInstance(accepted, dict)
-        for k, v in accepted.iteritems():
-            self.assertIsInstance(k, tuple)
-            self.assertEqual(len(k), 2)
-            self.assertIsInstance(k[0], Ballot)
-            self.assertIsInstance(k[1], int)
-            self.assertIsInstance(v, Proposal)
+    def verifyAcceptedProposals(self, accepted_proposals):
+        """Verify that the ``accepted_proposals`` field of a promise is formatted
+        as a dictionary mapping slots to (ballot, proposal) tuples."""
+        self.assertIsInstance(accepted_proposals, dict)
+        for k, v in accepted_proposals.iteritems():
+            self.assertIsInstance(k, int)
+            self.assertIsInstance(v, tuple)
+            self.assertEqual(len(v), 2)
+            self.assertIsInstance(v[0], Ballot)
+            self.assertIsInstance(v[1], Proposal)

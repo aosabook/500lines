@@ -66,21 +66,15 @@ class Tests(utils.ComponentTestCase):
         # slot 4: not proposed, undecided -> catchup, null proposal
         # slot 5: not proposed, decided
         self.rep.catchup()
-        self.assertMessage(['F999', 'p1'], Catchup(slot=2))
-        self.assertMessage(['F999', 'p1'], Catchup(slot=4))
+        self.assertMessage(['F999', 'p1'], Catchup(slots=[2, 4]))
         self.assertEqual(propose.call_args_list, [
             mock.call(Proposal(None, None, None), 4),
         ])
 
-    def test_CATCHUP_decided(self):
-        """On CATCHUP for a decided proposal, re-send the DECISION"""
-        self.node.fake_message(Catchup(slot=1))
+    def test_CATCHUP_response(self):
+        """On CATCHUP, for all decided proposals, re-send the DECISION"""
+        self.node.fake_message(Catchup(slots=[1, 2, 3]))
         self.assertMessage(['F999'], Decision(slot=1, proposal=PROPOSAL1))
-
-    def test_CATCHUP_undecided(self):
-        """On CATCHUP for an undecided proposal, do nothing"""
-        self.node.fake_message(Catchup(slot=3))
-        self.assertNoMessages()
 
     @mock.patch.object(Replica, 'commit')
     def test_DECISION_gap(self, commit):
