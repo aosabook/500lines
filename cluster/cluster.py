@@ -14,7 +14,7 @@ Ballot = namedtuple('Ballot', ['n', 'leader'])
 # message types
 Accepted = namedtuple('Accepted', ['slot', 'ballot_num'])
 Accept = namedtuple('Accept', ['slot', 'ballot_num', 'proposal'])
-Catchup = namedtuple('Catchup', ['slot'])
+Catchup = namedtuple('Catchup', ['slots'])
 Decision = namedtuple('Decision', ['slot', 'proposal'])
 Invoked = namedtuple('Invoked', ['client_id', 'output'])
 Invoke = namedtuple('Invoke', ['caller', 'client_id', 'input_value'])
@@ -220,20 +220,15 @@ class Replica(Component):
         """Try to catch up on un-decided slots"""
         if self.slot != self.next_slot:
             self.logger.debug("catching up on %d .. %d" % (self.slot, self.next_slot - 1))
-        for slot in xrange(self.slot, self.next_slot):
-            if slot in self.decisions:
-                continue
-            # ask peers for information regardless
-            self.node.send(self.peers, Catchup(slot=slot))
-            if slot not in self.proposals:
-                # make an empty proposal in case nothing has been decided
+        slots = set(xrange(self.slot, self.next_slot)) - set(self.decisions)
+        if slots:
+            self.node.send(self.peers, Catchup(slots=list(slots)))
+            for slot in slots - set(self.proposals):
                 self.propose(NOOP_PROPOSAL, slot)
         self.set_timer(CATCHUP_INTERVAL, self.catchup)
 
-    # TODO: use 'slots' with a set of slots, possibly empty
-    def do_CATCHUP(self, sender, slot):
-        # TODO: gossip about next_slot, too
-        if slot in self.decisions:
+    def do_CATCHUP(self, sender, slots):
+        for slot in set(slots) & set(self.decisions):
             self.node.send([sender], Decision(slot=slot, proposal=self.decisions[slot]))
 
     # handling decided proposals
