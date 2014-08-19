@@ -5,9 +5,12 @@
   */
 module flow
 
-open setDomain
-open postMessage
+open http
 open jsonp
+open postMessage
+open setDomain
+open script
+
 
 sig Data in Resource + Cookie {}
 
@@ -37,23 +40,23 @@ sig FlowCall in Call {
 }
 
 sig FlowModule in Endpoint {
-  -- Set of data that this component iniitally owns
+  -- Set of data that this component initally owns
   accesses: Data -> Time
 }{
-  all d : Data, t : Time - last |
+  all d: Data, t: Time - last |
 	 -- This endpoint can only access a piece of data "d" at time "t" only when
     d -> t in accesses implies
       -- (1) It already had access in the previous time step, or
       d -> t.prev in accesses or
-      -- There is a some call "c" that ended at "t" such that
-      some c : Call & end.t |
-        -- (2) The endpoint receives "c" that carries "d" as one of its arguments or
+      -- there is some call "c" that ended at "t" such that
+      some c: Call & end.t |
+        -- (2) the endpoint receives "c" that carries "d" as one of its arguments or
         c.to = this and d in c.args or
-        -- (3) The endpoint sends "c" that returns d" 
+        -- (3) the endpoint sends "c" that returns d" 
         c.from = this and d in c.returns 
 }
 
-fun initData[m : FlowModule] : set Data {
+fun initData[m: FlowModule] : set Data {
   m.accesses.first
 }
 
