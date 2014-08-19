@@ -4,7 +4,7 @@ Backstory first here. So at some point last year, I got it into my head to put t
 
 Now, the problem with this goal is that it involves keeping long-lived connections between the clients and server, because while playing a game I (usually) want to see an opponents move as soon as it happens rather than only when I move. This wouldn't be a problem if not for the fact that [`hunchentoot`](insert link here), the most popular Common Lisp web-server, works on a thread-per-request model. Actually, before we get into the specifics, lets back up for a second.
 
-### The Basics of Event-Driven Servers
+## The Basics of Event-Driven Servers
 
 At the 10k-foot-level, an HTTP exchange is one request and one response. A client sends a request, which includes a resource identifier, an HTTP version tag, some headers and some parameters. The receiving server parses that request, figures out what to do about it, and sends a response which includes the same HTTP version tag, a response code, some headers and a request body.
 
@@ -137,7 +137,7 @@ The `buffer` class looks like
 
 It's just a series of storage slots to track buffering state from the incoming socket; nothing interesting whatsoever, unless you're new to Common Lisp. If you _are_ just joining us from mainstream OO languages, you might notice the odd fact that these CLOS (Common Lisp Object System) `class` declarations only involve slots and related getters/setters, or `reader`s/`accessor`s in CL terms, and initial-value-related options (`:initform` specifies a default value, while `:initarg` specifies a hook for the caller of `make-instance` to provide a default value). This is because the Lisp object system is based on generic functions.
 
-### A Brief Detour through CLOS
+## A Brief Detour through CLOS
 
 Basically, at a very high level, you need to think "Methods specialize on classes" rather than "classes have methods". That should get you most of the way to understanding.
 
@@ -171,7 +171,7 @@ Bringing this back around to our `request`s, the class we defined earlier has th
 - `headers`, which is the set of HTTP headers we parsed out of the incoming TCP stream
 - `parameters`, which is the parsed list of all `GET` and `POST` parameters sent by the client
 
-### End of Detour in 4. 3. 2. 
+## End of Detour in 4. 3. 2. 
 
 The next interesting part of `process-ready` comes after the edge-case handling of old/big/needy requests. It's wrapped in another layer of error handling because we might still crap out in different ways here. In particular, if the request is old/big/needy or if an `http-assertion-error` is raised, we want to send a `400` response; the client provided us with some bad or slow data. However, if any other error happens here, it's because someone made a mistake defining a handler, which should be treated as a `500` error; something went wrong on the server side as a result of a potentially legitimate request.
 
@@ -304,7 +304,7 @@ We can then `publish!` notifications to said channels as soon as they become ava
 
 The `publish!` method will be called with a channel symbol and a message whenever we have something new to publish to a particular channel. It looks up all the listeners of that channel, iterates over each of them trying to write the update out, and collects each socket that is successfully written to (sockets that _weren't_ successfully written to are no longer listening, so we don't have to care). Now that we know about the event-loop core, the parsing step, the writing step, and the idea behind subscribing/publishing notifications, it's time to pull it all together.
 
-### Defining Handlers
+## Defining Handlers
 
 We'll want to be able to write things like
 
@@ -413,7 +413,7 @@ Which is to say, we'd like to associate the handler we're making with the URI `/
 
 This is the big one. It looks mean, but it really amounts to an unrolled loop over the arguments. You can see that for every parameter, we're grabbing its value in the `parameters` association list, ensuring it exists, `uri-decode`ing `it` if it does, and asserting the appropriate properties we want to enforce. At any given point, if an assertion is violated, we're done and we return an error (handling said error not pictured here, but the error handlers surrounding an HTTP handler call will ensure that these errors get translated to `HTTP 400` or `500` errors over the wire). If we get through all of our arguments without running into an error, we're going to evaluate the handler body, write the result out to the requester and close the socket.
 
-### Understanding the Expanders
+## Understanding the Expanders
 
 The top-level form we'll want to write is defined as
 
@@ -561,11 +561,11 @@ the evaluation looks like
 	     (ERROR (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'ROOM)))
 	HOUSE> 
 
-#### A Short Break -- Briefly Meditating on Macros
+## A Short Break -- Briefly Meditating on Macros
 
 Lets take a short break here. At this point we're two levels deep into tree processing. And what we're doing will only make sense to you if you remember that Lisp code is itself represented as a tree. That's what the parentheses are for; they show you how leaves and branches fit together. If you step back, you'll realize we've got a macro definition, `make-closing-handler`, which calls a function, `arguments`, to generate part of the tree its constructing, which in turn calls some tree-manipulating helper functions, including `arg-exp`, to generate its return value. The tree that these functions have as input *happen* to represent Lisp code, and because there's no difference between Lisp code and a tree, you have a transparent syntax definition system. The input is a Lisp expression, and the output is a lisp expression that will be evaluated in its place. Possibly the simplest way of conceptualizing this is as a very simple and minimal Common Lisp to Common Lisp compiler.
 
-#### Another Short Break -- Briefly Meditating on Anaphoric Macros
+### Another Short Break -- Briefly Meditating on Anaphoric Macros
 
 A particularly widely used, and particularly simple group of such compilers are called *anaphoric macros*. You've seen `aif` already, and will later see `awhen` later on. Personally, I only tend to use those two with any frequency, but there's a fairly wide variety of them available in the [`anaphora` package](http://www.cliki.net/Anaphora). As far as I know, they were first defined by Paul Graham in an [OnLisp chapter](http://dunsmor.com/lisp/onlisp/onlisp_18.html). The use case he gives is a situation where you want to do some sort of expensive or semi-expensive check, then do something conditionally on the result. In the above context, we're using `aif` to do a check on the result of an `alist` traversal.
 
@@ -592,7 +592,7 @@ The tree hasn't bottomed out yet. In fact, by the time you get to `arg-exp`, you
 
 Now lets get back to the point; expanding type annotations for HTTP handlers. And in order to plumb the depths of that mystery, we'll need to take a look at how we intend to *define* HTTP types.
 
-### Defining HTTP Types
+## Defining HTTP Types
 
 With the above macro-related tidbits, you should be able to see that `arg-exp` is actually doing the job of generating a specific, repetitive, piece of the code tree that we eventually want to evaluate. In this case, the piece that checks for the presence of the given parameter among the handlers' `parameters`. And that's all you need to understand about it, so lets move on to...
 
@@ -690,7 +690,7 @@ That's the entirety of the handler subsystem for this project. What we've got is
 
 There's just one more chunk to put together.
 
-### Error Handling
+## Error Handling
 
 	(define-condition http-assertion-error (error)
 	  ((assertion :initarg :assertion :initform nil :reader assertion))
@@ -732,7 +732,7 @@ These are the relevant `4xx` and `5xx`-class HTTP errors that we'll be sending a
 
 It takes an error response and a socket, writes the response to the socket and closes it (ignoring errors, in case the other end has already disconnected). The `instance` argument here is purely for logging/debugging purposes. We'll get into that later.
 
-### All Together Now
+## All Together Now
 
 That did it. We can now finally write
 
@@ -764,7 +764,7 @@ And you know exactly how it's happening, down to the sockets.
 
 [[TODO: Take a crack at putting together a light JS UI so that users can actually run this.]]
 
-### Bonus Stage
+## Bonus Stage
 
 I mentioned we'd get to the debug component, and figured I'd go over it in the epilogue. This article is probably going to be heavy going for people not already familiar with Lisp, so I didn't want to weigh it down further. Over the course of writing this server, I periodically had to diagnose various low-level problems, but definitely didn't want to have those debug statements make it out into a deployment. Because I wrote most of the functionality as methods, I was able to take advantage of a particular minor feature of CLOS to cluster all of my debugging-related `printf`s into the `debug!` procedure in `util.lisp`.
 
