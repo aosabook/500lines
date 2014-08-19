@@ -105,7 +105,7 @@ Which, as you may have suspected, does something different. This is the method t
 3. If reading output got us an `:eof`, it means that the other side has closed this socket so we just discard it
 4. Otherwise, we check if the buffer is one of `complete?`, `too-big?`, `too-old?` or `too-needy?`. If it's any of them, we remove it from the connections table and send out the appropriate HTTP response.
 
-Now, firstly, you'll have to take my word for it that most of these things happen correctly until we get to their implementations later. But more importantly, it might not be entirely apparent why we're going through this rigmarole. Because we're trying to serve up content with a single thread, we can't afford to block on any particular connection. Because if we _did_, we'd block the entire server, rather than just a single connection. As a result, we have to do work to make sure that we never block on an incoming stream _and_ that if a particular stream is dragging its feet, we can move on to the next one without throwing out our work so far. That means a system of buffers to keep track of intermediate results, and a buffering process that stops if it runs out of available input before getting to a complete request. Here's ours:
+Now, firstly, you'll have to take my word for it that most of these things happen correctly until we get to their implementations later. But more importantly, it might not be entirely apparent why we're going through this rigmarole. Because we're trying to serve up content with a single thread, we can't afford to block on any particular connection. Because if we _did_, we'd block the entire server, rather than just a single connection. As a result, we have to do work to make sure that we never block on an incoming stream _and_ that if a particular stream is dragging its feet, we can move on to the next one without throwing out our work so far. That means a system of buffers to keep track of intermediate results, and a buffering process that stops if it runs out of available input before getting to a complete request. Most importantly, it means non-blocking IO. Here's ours:
 
 	(defmethod buffer! ((buffer buffer))
 	  (handler-case
@@ -121,11 +121,57 @@ Now, firstly, you'll have to take my word for it that most of these things happe
 		          finally (return char)))
 	    (error () :eof)))
 
-[[TODO - Explain the buffer class]]
-
-When you call `buffer!` on a `buffer`, it increments the `tries` count, then loops to read characters from the input stream. If it reaches the end of available input, or an `:eof`, it returns the last character it read. It also keeps track of whether its seen a `crlf` go by during the reading (this just helps decide whether a request is complete later). It also returns `:eof` if it encounters any kind of read error during this process.
+When you call `buffer!` on a `buffer`, it increments the `tries` count, then loops to read characters from the input stream. If it reaches the end of available input, or an `:eof`, it returns the last character it read. It also keeps track of whether its seen an `\r\n\r\n` go by during the reading (to make it easier to detect complete requests later) and how many times we've tried to read from this buffer (so that we can evict needy buffers further up). Finally, if it encounters any kind of error during the read process, it returns an `:eof` to signal that the caller should just throw out this particular socket.
 
 The procedure `read-char-no-hang` is essential here; that's the thing that allows us to read without blocking, or "`hang`ing", when there are no further chars to read on the incoming stream. Instead of waiting on further input like plain `read-char`, `read-char-no-hang` just returns `nil` immediately. We've also passed two additional arguments that mean it'll return `:eof` rather than erroring at the end-of-file marker. That should explain why we were just throwing away buffers and sockets that came back with an `:eof` result; it's because an `:eof` here means that the client socket has closed its stream, so there's no reason to send a reply back.
+
+The `buffer` class looks like
+
+	(defclass buffer ()
+	  ((tries :accessor tries :initform 0)
+	   (contents :accessor contents :initform nil)
+	   (bi-stream :reader bi-stream :initarg :bi-stream)
+	   (found-crlf? :accessor found-crlf? :initform nil)
+	   (content-size :accessor content-size :initform 0)
+	   (started :reader started :initform (get-universal-time))))
+
+It's just a series of storage slots to track buffering state from the incoming socket; nothing interesting whatsoever, unless you're new to Common Lisp. If you _are_ just joining us from mainstream OO languages, you might notice the odd fact that these CLOS (Common Lisp Object System) `class` declarations only involve slots and related getters/setters, or `reader`s/`accessor`s in CL terms, and initial-value-related options (`:initform` specifies a default value, while `:initarg` specifies a hook for the caller of `make-instance` to provide a default value). This is because the Lisp object system is based on generic functions.
+
+### A Brief Detour through CLOS
+
+Basically, at a very high level, you need to think "Methods specialize on classes" rather than "classes have methods". That should get you most of the way to understanding.
+
+From a theoretical perspective, the class-focused approach and the function-focused approach can be seen as perpendicular approaches to the same problem. Namely
+
+> How do we treat different classes similarly for the purposes of certain operations that they have in common?
+
+The most common concrete example is the various number implementations. No, an integer is not the same as a real number is not the same as a complex number and so forth, *but*, you can add, multiply, divide and so on each of those. And it'd be nice if you could just express the idea of addition without having to name separate operations for different types when each of them amounts to the same conceptual procedure. The class-focused approach says
+
+> You have different classes you need to deal with. Each such class implements the appropriate methods you want supported.
+
+See [Smalltalk](http://pharo.org/) for the prototypical example of this kind of system. The function-focused approach says
+
+> You have a number of generic operations that can deal with multiple types. When you call one, it dispatches on its arguments to see what concrete implementation it should apply.
+
+That's basically what you'll see in action in Common Lisp. You can think about it as a giant table with "Class Name" down the first column and "Operation" across the first row
+
+            | Addition | Subtraction | Multiplication |
+    ----------------------------------------------------------...
+    Integer |          |             |                |
+	-----------------------------------------------------
+	Real    |          |             |                |
+	-----------------------------------------------
+	Complex |          |             |
+
+and each cell representing the implementation of that operation for that type. Class-focused OO says "Focus on the first column; the class is the important part", function-focused OO says "focus on the first row; the operation needs to be central". Consequently, CF-OO systems tend to group all methods related to a class in with that class' data, whereas FF-OO systems tend to isolate the data completely and group all implementations of an operation together. In the first system, it's difficult to ask "what classes implement method `foo`?" which is easy in the second, but the second has similar problems answering "what are all the methods that specialize on class `bar`?". In a way those questions don't make sense from within the systems we're asking them, and understanding why that is will give you some insight into where you want one or the other.
+
+Bringing this back around to our `request`s, the class we defined earlier has three slots
+
+- `resource`, which is the URI the client wants, less `GET` parameters and absolute host
+- `headers`, which is the set of HTTP headers we parsed out of the incoming TCP stream
+- `parameters`, which is the parsed list of all `GET` and `POST` parameters sent by the client
+
+### End of Detour in 4. 3. 2. 
 
 The next interesting part of `process-ready` comes after the edge-case handling of old/big/needy requests. It's wrapped in another layer of error handling because we might still crap out in different ways here. In particular, if the request is old/big/needy or if an `http-assertion-error` is raised, we want to send a `400` response; the client provided us with some bad or slow data. However, if any other error happens here, it's because someone made a mistake defining a handler, which should be treated as a `500` error; something went wrong on the server side as a result of a potentially legitimate request.
 
@@ -175,48 +221,12 @@ The top two methods handle parsing buffers or strings, while the bottom two hand
 6. populate that `request` instance with each split header line
 7. set that `request`s parameters to the result of parsing our `GET` and `POST` parameters
 
-The `request` object from Step five looks like this:
+The `request` object from Step five looks like exactly like you'd expect after our CLOS detour.
 
 	(defclass request ()
 	  ((resource :accessor resource :initarg :resource)
 	   (headers :accessor headers :initarg :headers :initform nil)
 	   (parameters :accessor parameters :initarg :parameters :initform nil)))
-
-and if you're just joining us from mainstream OO languages, you might notice the odd fact that these CLOS (Common Lisp Object System) `class` declarations only involve slots and related getters/setters, or `reader`s/`accessor`s in CL terms. This is because the Lisp object system is based on generic functions.
-
-### A Brief Detour through CLOS
-
-Basically, at a very high level, you need to think "Methods specialize on classes" rather than "classes have methods". That should get you most of the way to understanding.
-
-From a theoretical perspective, the class-focused approach and the function-focused approach can be seen as perpendicular approaches to the same problem. Namely
-
-> How do we treat different classes similarly for the purposes of certain operations that they have in common?
-
-The most common concrete example is the various number implementations. No, an integer is not the same as a real number is not the same as a complex number and so forth, *but*, you can add, multiply, divide and so on each of those. And it'd be nice if you could just express the idea of addition without having to name separate operations for different types when each of them amounts to the same conceptual procedure. The class-focused approach says
-
-> You have different classes you need to deal with. Each such class implements the appropriate methods you want supported.
-
-See [Smalltalk](http://pharo.org/) for the prototypical example of this kind of system. The function-focused approach says
-
-> You have a number of generic operations that can deal with multiple types. When you call one, it dispatches on its arguments to see what concrete implementation it should apply.
-
-That's basically what you'll see in action in Common Lisp. You can think about it as a giant table with "Class Name" down the first column and "Operation" across the first row
-
-            | Addition | Subtraction | Multiplication |
-    ----------------------------------------------------------...
-    Integer |          |             |                |
-	-----------------------------------------------------
-	Real    |          |             |                |
-	-----------------------------------------------
-	Complex |          |             |
-
-and each cell representing the implementation of that operation for that type. Class-focused OO says "Focus on the first column; the class is the important part", function-focused OO says "focus on the first row; the operation needs to be central". Consequently, CF-OO systems tend to group all methods related to a class in with that class' data, whereas FF-OO systems tend to isolate the data completely and group all implementations of an operation together. In the first system, it's difficult to ask "what classes implement method `foo`?" which is easy in the second, but the second has similar problems answering "what are all the methods that specialize on class `bar`?". In a way those questions don't make sense from within the systems we're asking them, and understanding why that is will give you some insight into where you want one or the other.
-
-Bringing this back around to our `request`s, the class we defined earlier has three slots
-
-- `resource`, which is the URI the client wants, less `GET` parameters and absolute host
-- `headers`, which is the set of HTTP headers we parsed out of the incoming TCP stream
-- `parameters`, which is the parsed list of all `GET` and `POST` parameters sent by the client
 
 The only place this particular `class` gets specialized on is in `handle-request`, which you saw earlier. Now, before we take a look at how we get handlers into our `*handlers*` table, lets skip ahead a bit and see something that every handler is going to have to do; writing a response.
 
@@ -787,43 +797,3 @@ I mentioned we'd get to the debug component, and figured I'd go over it in the e
 The feature is `:before`/`:after` hooks. And I guess the built-in language feature of a `defmethod` that can be run somewhere other than the top-level, but I sort of take that for granted these days. Defining a `:before` hook on a particular method lets you specify a bit of code that'll be executed before every call to that method. `:after` is similar, except the stuff you specify happens after the main method is called. You can specialize these `:before`/`:after` hooks as arbitrarily as the main methods, and only the relevant one will actually run. One possible use for this is the above. If you take a closer look at the `error!` `:before` method, you'll see where we're using the `instance` optional argument. This is the only place, and its only use is making `:house` debug logs more easily readable.
 
 As I mentioned, most of the `:house` server is written using `defmethod`, which means I have plenty of places to hook up debugging/logging statements so I can see what's going on. Clustering all such print statements inside of the `debug!` procedures means that the rest of my code gets to stay unchanged when I need to add a `printf` somewhere, and it means that the `printf`s don't get run unless I specifically ask for them by calling `(debug!)` at some point in my session.
-
-
-
-
-
-##### v1 (here because there's probably still some salvageable material)
-
-
-
-
-#### Buffering
-
-Because we're doing event-driven client handling, we can't just wait on a client connection until we reach connection timeout. If we were writing a thread-per-request server, that approach might make sense because each client would kind of be isolated thanks to the separate thread, but in an event-driven context, if you block on one particular client connection, you block all of them for the duration. That's less than ideal, and it's why I mentioned that we'll have to be using non-blocking IO earlier. If we could block on a connection until a particular timeout, there wouldn't be an issue. However, as it stands we'll want our server to keep moving on to connections that have data ready for reading rather than sticking at the first one in. So what we want is to read all available data from a particular port, check whether what we have so far constitutes a complete request and proceed on that basis. If it *is* complete, then handle it, otherwise buffer the input so far and let it hang around until its turn comes up again. Here's how we do that
-
-	(defmethod buffer! ((buffer buffer))
-	  (handler-case
-	      (let ((stream (bi-stream buffer))
-		    (partial-crlf (list #\return #\linefeed #\return)))
-		(incf (tries buffer))
-		(loop for char = (read-char-no-hang stream nil :eof)
-		   do (when (and (eql #\linefeed char)
-				 (starts-with-subseq partial-crlf (contents buffer)))
-			(setf (found-crlf? buffer) t))
-		   until (or (null char) (eql :eof char))
-		   do (push char (contents buffer)) do (incf (content-size buffer))
-		   finally (return char)))
-	    (error () :eof)))
-
-That method takes a buffer, grabs its stream, notes the read attempt by incrementing `tries`, and finally reads until it hits one of `:eof`, `NIL` or `\r\n\r\n` (which signals a complete request). The function `read-char-no-hang` is the non-blocking part; if the character stream you try to read from has a character waiting, it's returned. Otherwise, the return value is `NIL`, which essentially means "this connection has nothing for us right now, but might in the future". A result of `:eof` means the connection was terminated for some reason other than us disconnecting. Most likely, this means the client disconnected before getting the response back, which means `:eof` translates to "this connection has nothing for us right now, and never will". We'll see how that's handled later. The return value from this method is just the last character return value from `read-char-no-hang`, so that its caller can decide how to proceed. Notice also, we've got this entire operation wrapped in a `handler-case` that'll return `:eof` in the case of any error. More on that in a bit, but first, lets take a look at the `buffer` class.
-
-	(defclass buffer ()
-	  ((tries :accessor tries :initform 0)
-	   (contents :accessor contents :initform nil)
-	   (bi-stream :reader bi-stream :initarg :bi-stream)
-	   (found-crlf? :accessor found-crlf? :initform nil)
-	   (content-size :accessor content-size :initform 0)
-	   (started :reader started :initform (get-universal-time))))
-
-Exactly what you expected, I presume. Storage slots for `tries`, `contents`, the `stream`, a `found-crlf?` flag, a number keeping track of `content-size` and a time-stamp designating when this particular buffer was instantiated. `contents` is where we keep the characters read so far, `bi-stream` is where they come from, and `found-crlf?` is set to `t` by `buffer!` in the event that we read `\r\n\r\n`. The other three are all pieces of tracking data on the basis of which we might want to terminate a connection before sending back a response; in the case that the `buffer` is too old, too big or too needy.
-
