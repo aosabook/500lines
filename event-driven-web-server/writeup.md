@@ -121,7 +121,7 @@ Now, firstly, you'll have to take my word for it that most of these things happe
 		          finally (return char)))
 	    (error () :eof)))
 
-;; TODO - Explain the buffer class
+[[TODO - Explain the buffer class]]
 
 When you call `buffer!` on a `buffer`, it increments the `tries` count, then loops to read characters from the input stream. If it reaches the end of available input, or an `:eof`, it returns the last character it read. It also keeps track of whether its seen a `crlf` go by during the reading (this just helps decide whether a request is complete later). It also returns `:eof` if it encounters any kind of read error during this process.
 
@@ -678,10 +678,49 @@ That's the entirety of the handler subsystem for this project. What we've got is
 -a user-facing DSL for easily creating type and restriction-annotated handlers
 -a user-facing micro-DSL for easily defining new types to annotate handlers with
 
+There's just one more chunk to put together.
 
-;; TODO - Explain the condition system and house-specific error classes
+### Error Handling
 
+	(define-condition http-assertion-error (error)
+	  ((assertion :initarg :assertion :initform nil :reader assertion))
+	  (:report (lambda (condition stream)
+		     (format stream "Failed assertions '~s'"
+			     (assertion condition)))))
+	
+	(defmacro assert-http (assertion)
+	  `(unless ,assertion
+	     (error (make-instance 'http-assertion-error :assertion ',assertion))))
 
+This is how you define a new error class in Common Lisp. You call `define-condition` (which you can think of as a variant of `defclass`), inherit from `error`, and hand it some options specific to your `error`. In this case, I'm defining an HTTP assertion error, and the only specific things it'll need to know are the actual assertion it's acting on, and a specific way to output itself to a stream. In other languages, you'd call this a method. Here, it's just a function that happens to be the slot value of a class.
+
+The accompanying `assert-http` macro lets you avoid the minor boilerplate associated with asserting for this specific type of error. It just expands into a check of the given assertion, throws an `http-assertion-error` if it fails, and packs the original assertion along in that event. The other chunklet of our error model has to do with how we represent errors to the client. And that's at the bottom of the same file.
+
+	(defparameter +404+
+	  (make-instance 'response :response-code "404 Not Found"
+			 :content-type "text/plain" :body "Resource not found..."))
+	
+	(defparameter +400+
+	  (make-instance 'response :response-code "400 Bad Request"
+			 :content-type "text/plain" :body "Malformed, or slow HTTP request..."))
+	
+	(defparameter +413+
+	  (make-instance 'response :response-code "413 Request Entity Too Large"
+			 :content-type "text/plain" :body "Your request is too long..."))
+	
+	(defparameter +500+
+	  (make-instance 'response :response-code "500 Internal Server Error"
+			 :content-type "text/plain" :body "Something went wrong on our end..."))
+
+These are the relevant `4xx` and `5xx`-class HTTP errors that we'll be sending around commonly enough that we just want them globally declared. You can see the `+400+` response that we fed through `error!` up at the top there. It's just an HTTP `response` with a particular `response-code`. I probably could have written a macro to abstract the common parts away, but didn't feel the need for it at the time. You can treat is as an exercise, if you like. Just to confirm that what you thought was happening is actually happening, lets take a look at one more relevant method from the core.
+
+	(defmethod error! ((err response) (sock usocket) &optional instance)
+	  (declare (ignorable instance))
+	  (ignore-errors 
+	    (write! err sock)
+	    (socket-close sock)))
+
+It takes an error response and a socket, writes the response to the socket and closes it (ignoring errors, in case the other end has already disconnected). The `instance` argument here is purely for logging/debugging purposes. We'll get into that later.
 
 ### All Together Now
 
@@ -713,6 +752,8 @@ Once you fill in the `interface.js` piece, this will in fact start an HTTP chat 
 
 And you know exactly how it's happening, down to the sockets.
 
+[[TODO: Take a crack at putting together a light JS UI so that users can actually run this.]]
+
 ### Bonus Stage
 
 I mentioned we'd get to the debug component, and figured I'd go over it in the epilogue. This article is probably going to be heavy going for people not already familiar with Lisp, so I didn't want to weigh it down further. Over the course of writing this server, I periodically had to diagnose various low-level problems, but definitely didn't want to have those debug statements make it out into a deployment. Because I wrote most of the functionality as methods, I was able to take advantage of a particular minor feature of CLOS to cluster all of my debugging-related `printf`s into the `debug!` procedure in `util.lisp`.
@@ -743,84 +784,15 @@ I mentioned we'd get to the debug component, and figured I'd go over it in the e
 		       (dbg "Publishing to channel" chan msg))
 	    nil))
 
-The feature is `:before`/`:after` hooks. And I guess the built-in language feature of a `defmethod` that can be run somewhere other than the top-level, but I sort of take that for granted these days. Defining a `:before` hook on a particular method lets you specify a bit of code that'll be executed before every call to that method. `:after` is similar, except the stuff you specify happens after the main method is called. You can specialize these `:before`/`:after` hooks as arbitrarily as the main methods, and only the relevant one will actually run. One possible use for this is the above.
+The feature is `:before`/`:after` hooks. And I guess the built-in language feature of a `defmethod` that can be run somewhere other than the top-level, but I sort of take that for granted these days. Defining a `:before` hook on a particular method lets you specify a bit of code that'll be executed before every call to that method. `:after` is similar, except the stuff you specify happens after the main method is called. You can specialize these `:before`/`:after` hooks as arbitrarily as the main methods, and only the relevant one will actually run. One possible use for this is the above. If you take a closer look at the `error!` `:before` method, you'll see where we're using the `instance` optional argument. This is the only place, and its only use is making `:house` debug logs more easily readable.
 
-As I mentioned, most of the `:house` server is written using `defmethod`, which means I have plenty of places to hook up debugging/logging statements so I can see what's going on. Clustering all such print statements inside of the `debug!` procedures means that the rest of my code gets to stay unchanged when I need to add a `printf` somewhere, and it means that the `printf`s don't get run unless I specifically ask for them by calling `(debug!)` at some point in my session. 
+As I mentioned, most of the `:house` server is written using `defmethod`, which means I have plenty of places to hook up debugging/logging statements so I can see what's going on. Clustering all such print statements inside of the `debug!` procedures means that the rest of my code gets to stay unchanged when I need to add a `printf` somewhere, and it means that the `printf`s don't get run unless I specifically ask for them by calling `(debug!)` at some point in my session.
 
 
 
 
 
 ##### v1 (here because there's probably still some salvageable material)
-
-### Back to the Model 2
-
-	(define-condition http-assertion-error (error)
-	  ((assertion :initarg :assertion :initform nil :reader assertion))
-	  (:report (lambda (condition stream)
-		     (format stream "Failed assertions '~s'"
-			     (assertion condition)))))
-	
-	(defmacro assert-http (assertion)
-	  `(unless ,assertion
-	     (error (make-instance 'http-assertion-error :assertion ',assertion))))
-
-This is how you define a new error class in Common Lisp. You `define-condition`, which you can think of as a variant of `defclass` and inherit from `error`, and hand it some options specific to your `error`. In this case, I'm defining an HTTP assertion error, and the only specific things it'll need to know are the actual assertion it's acting on, and a specific way to output itself to a stream. In other languages, you'd call this a method. Here, it's just a function that happens to be the slot value of a class.
-
-The accompanying `assert-http` macro lets you avoid the minor boilerplate associated with asserting for this specific type of error. It just expands into a check of the given assertion, throws an `http-assertion-error` if it fails, and packs the original assertion along in that event. The other chunklet of our error model has to do with how we represent errors to the client. And that's at the bottom of the same file.
-
-	(defparameter +404+
-	  (make-instance 'response :response-code "404 Not Found"
-			 :content-type "text/plain" :body "Resource not found..."))
-	
-	(defparameter +400+
-	  (make-instance 'response :response-code "400 Bad Request"
-			 :content-type "text/plain" :body "Malformed, or slow HTTP request..."))
-	
-	(defparameter +413+
-	  (make-instance 'response :response-code "413 Request Entity Too Large"
-			 :content-type "text/plain" :body "Your request is too long..."))
-	
-	(defparameter +500+
-	  (make-instance 'response :response-code "500 Internal Server Error"
-			 :content-type "text/plain" :body "Something went wrong on our end..."))
-
-These are the relevant `4xx` and `5xx`-class HTTP errors that we'll be sending around commonly enough that we just want them globally declared. You can see the `+400+` response that we fed through `error!` up at the top there. It's just an HTTP `response` with a particular `response-code`. I probably could have written a macro to abstract the common parts away, but didn't feel the need for it at the time. You can treat is as an exercise, if you like. Just to confirm that what you thought was happening is actually happening, lets take a look at one more method from the core.
-
-	(defmethod error! ((err response) (sock usocket) &optional instance)
-	  (declare (ignorable instance))
-	  (ignore-errors 
-	    (write! err sock)
-	    (socket-close sock)))
-
-It takes an error response and a socket, writes the response to the socket and closes it (ignoring errors, in case the other end has already disconnected). The `instance` argument here is purely for logging/debugging purposes. We'll get into that later.
-
-
-
-
-
-### High Level
-
-A server is basically going to be
-
-1. Listening for connections on a TCP port
-2. When a client connects, read from until you get a complete HTTP request
-3. Parse the request
-4. Route the parsed request to the appropriate handler
-5. Call that handler to generate a response
-6. Send the response out to the client
-
-That's the base case, of course. If you *also* want to be pushing data at your clients, there's also two special cases in steps `4` and `5`. Instead of fulfilling a standard request, you might have a situation where
-
-- The requester wants to subscribe to an update feed you have running
-- The requester is making a request that requires an update to be published to one or more existing feeds
-
-[[Note to editor: What's the rule on pics? This section seems like it could benefit massively from a diagram or two.]]
-
-### Implementation
-
-Now, we've already seen most of the implementation above, so there's very little left to discuss here. Lets keep going with the current tradition and start from the end, working our way towards the beginning.
-
 
 
 
@@ -855,6 +827,3 @@ That method takes a buffer, grabs its stream, notes the read attempt by incremen
 
 Exactly what you expected, I presume. Storage slots for `tries`, `contents`, the `stream`, a `found-crlf?` flag, a number keeping track of `content-size` and a time-stamp designating when this particular buffer was instantiated. `contents` is where we keep the characters read so far, `bi-stream` is where they come from, and `found-crlf?` is set to `t` by `buffer!` in the event that we read `\r\n\r\n`. The other three are all pieces of tracking data on the basis of which we might want to terminate a connection before sending back a response; in the case that the `buffer` is too old, too big or too needy.
 
-
-
-[[TODO: Take a crack at putting together a light JS UI so that users can actually run this.]]
