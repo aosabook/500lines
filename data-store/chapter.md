@@ -7,8 +7,6 @@ Dog Bed Database (it's like a couch, but not as nice).
 Memory
 ------
 
-Maybe it's always been about memory.
-
 I remember the first time I had a bug I was really stuck on. When I finished
 typing in my BASIC program and ran it, weird sparkly pixels showed up on the
 screen, and the program aborted early. When I went back to look at the code,
@@ -26,7 +24,7 @@ I remember learning about pointers and how to allocate memory with malloc, to
 stick records of arbitrary-length strings into a struct so I could sort them
 by latitude and longitude.
 
-I learned about how data strutures are laid out in memory.
+I learned how data strutures are laid out in memory.
 
 I understood that Erlang didn't have to copy data between processes, even
 though it was "strictly message-passing", because everything was immutable.
@@ -35,11 +33,14 @@ I read about Clojure's in 2009.
 Who'd have thought that learning about CouchDB in 2013 would just make me smile
 and nod?
 
-I learned some neat stuff that other people were doing.
+I learned that you can can design systems built around immutable data.
 
 Then I agreed to write a book chapter, and in trying to write a binary tree
 algorithm that mutated the tree in place, I got frustrated with how complicated
-things were getting.
+things were getting, between edge cases and trying to see how changes in one
+part of the tree affected others. I took a peek at a recursive algorithm for
+updating immutable binary trees (INSERT LINK), and it turned out to be
+relatively straightforward.
 
 I learned that it's easier to reason about things that don't change.
 
