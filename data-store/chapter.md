@@ -57,6 +57,9 @@ even if you're just writing JSON to disk:
 
 * What happens if your filesystem runs out of space?
 * What happens if your laptop battery dies while saving?
+* What if your data size exceeds available memory?
+  (unlikely for most applications on modern desktop computers&hellip;but
+  not unlikely for a mobile device or server-side web application)
 
 However,
 it's incredibly useful to understand
@@ -80,11 +83,19 @@ DBDB is not <http://en.wikipedia.org/wiki/ACID_(database)>[ACID].
 While updates are atomic and durable,
 consistency is not covered
 (there are no constraints on the data stored)
-and isolation is not guaranteed
-(since dirty reads will not cause an abort on commit).
+and isolation is not guaranteed(1).
 Application code can of course impose its own consistency guarantees,
 but proper isolation requires a transaction manager
-(which could probably be its own 500 lines).
+(which could probably be its own 500 lines;
+maybe you should write it for the 2nd edition!).
+
+1. Given key:values ``{a:1, b:1}``,
+   and two transactions ``a = b + 1`` and ``b = a + 1``,
+   full isolation requires that there's a way to run them
+   one at a time and get the same effect as running them concurrently.
+   A result of ``{a:2, b:3}`` or ``{a:3, b:2}`` are both possible with isolation.
+   Because DBDB doesn't provide this "serializable" isolation property,
+   you could end up with ``{a:2, b:2}`` instead.
 
 Stale data is not reclaimed in this implementation,
 so repeated updates
@@ -93,7 +104,7 @@ will eventually consume all disk space.
 Postgres calls this reclamation "vacuuming"
 (which makes old row space available for re-use),
 and CouchDB calls it "compaction"
-(by rewriting the entire data store into a new file,
+(by rewriting the "live" parts of the data store into a new file,
 and atomically moving it over the old one).
 DBDB can easily be enhanced to add a compaction feature,
 but it is left as an exercise for the reader.
@@ -136,7 +147,7 @@ DBDB separates the concerns of "put this on disk somewhere"
 from the logical structure of the data
 (a binary tree in this example; the logical layer)
 from the contents of the key/value store
-(the association of key "a" to value "foo").
+(the association of key "a" to value "foo"; the public API).
 
 
 ### Organizational units
