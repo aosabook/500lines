@@ -121,6 +121,8 @@ Now, firstly, you'll have to take my word for it that most of these things happe
 		          finally (return char)))
 	    (error () :eof)))
 
+;; TODO - Explain the buffer class
+
 When you call `buffer!` on a `buffer`, it increments the `tries` count, then loops to read characters from the input stream. If it reaches the end of available input, or an `:eof`, it returns the last character it read. It also keeps track of whether its seen a `crlf` go by during the reading (this just helps decide whether a request is complete later). It also returns `:eof` if it encounters any kind of read error during this process.
 
 The procedure `read-char-no-hang` is essential here; that's the thing that allows us to read without blocking, or "`hang`ing", when there are no further chars to read on the incoming stream. Instead of waiting on further input like plain `read-char`, `read-char-no-hang` just returns `nil` immediately. We've also passed two additional arguments that mean it'll return `:eof` rather than erroring at the end-of-file marker. That should explain why we were just throwing away buffers and sockets that came back with an `:eof` result; it's because an `:eof` here means that the client socket has closed its stream, so there's no reason to send a reply back.
@@ -244,7 +246,15 @@ You can see that this operation takes a `response` and a `usocket`, grabbing a s
 	   (keep-alive? :accessor keep-alive? :initform nil :initarg :keep-alive?)
 	   (body :accessor body :initform nil :initarg :body)))
 
-Which contains all the information we needed to write out a TCP response for our client back in `write!`. Now, because we want to be able to send updates to clients between requests, we want to specialize `write!` on another class
+Which contains all the information we needed to write out a TCP response for our client back in `write!`.
+
+-`content-type` is a mime-type for the thing this handler will be returning, It'll most commonly be `text/html`, which is why that's the default. Other common values include `application/json` and `text/plain`.
+-`charset` is the character encoding the page uses, which'll always be `utf-8` as far as I know.
+-`response-code` is an [HTTP response code](https://en.wikipedia.org/wiki/List_of_HTTP_status_codes). A successful result is `200 OK`. We'll see the common errors covered later.
+-`keep-alive?` is a flag that tells us whether to keep the connection active or not. In the context of `:house`, it's only used on stream handlers.
+-`body` is hopefully self explanatory.
+
+Now, because we want to be able to send updates to clients between requests, we want to specialize `write!` on another class
 
 	(defmethod write! ((res sse) (sock usocket))
 	  (let ((stream (flex-stream sock)))
@@ -271,87 +281,68 @@ While we're on the subject of sending `SSE` updates, we also need a way to keep 
 
 We can then `publish!` notifications to said channels as soon as they become available.
 
-
 	(defmethod publish! ((channel symbol) (message string))
 	  (awhen (gethash channel *channels*)
-	    (loop with msg = (make-instance 'sse :data message)
-	       for sock in it (progn (write! msg sock)
-				     (force-output (socket-stream sock))))))
+	    (setf (gethash channel *channels*)
+		  (loop with msg = (make-instance 'sse :data message)
+		     for sock in it
+		     when (ignore-errors 
+			    (write! msg sock)
+			    (force-output (socket-stream sock))
+			    sock)
+		     collect it))))
 
-Now that we know about the event-loop core, the parsing step, the writing step, and the idea behind subscribing/publishing notifications, it's time to pull it all together. What we'll want for handlers is a DSL. And we'll write it using Common Lisp's `macro` facilities.
+The `publish!` method will be called with a channel symbol and a message whenever we have something new to publish to a particular channel. It looks up all the listeners of that channel, iterates over each of them trying to write the update out, and collects each socket that is successfully written to (sockets that _weren't_ successfully written to are no longer listening, so we don't have to care). Now that we know about the event-loop core, the parsing step, the writing step, and the idea behind subscribing/publishing notifications, it's time to pull it all together.
 
+### Defining Handlers
 
-;; TODO
+We'll want to be able to write things like
 
-;; Move on to the define-handlers macro system
-
-
-
-
-##### v1 (here because there's probably still some salvageable material)
-
-Ok, this was going to start off with the basics of threaded vs event-driven servers, and a quick rundown of the use cases for each, but its been brought to my attention that the whole Common Lisp thing might be intimidating to people. Given that tidbit, I debated both internally and externally on how to begin, and decided that the best way might be from the end (Just to be clear, yes, this is a toy example. If you'd like to see a non-toy example using the same server, take a look at [cl-notebook](https://github.com/Inaimathi/cl-notebook), [deal](https://github.com/Inaimathi/deal), and possibly [langnostic](https://github.com/Inaimathi/langnostic). And on a related note This write-up also features a stripped-down version of the `house` server. [The real version](https://github.com/Inaimathi/house) also does some light static file serving, deals with sessions properly, imposes a priority system on HTTP types, has a few clearly labeled cross-platform hacks, and (by the time this article is done) will also probably be doing more detailed back-end error reporting. That's it though. The main handler definition system, HTTP types implementation as well as the *actual server* is exactly the same.). So to *that* end, here's what I want to be able to do:
-
-    (define-stream-handler (source) (room)
+    (define-handler (source :close-socket? nil) (room)
        (subscribe! (intern room :keyword) sock))
 
-    (define-closing-handler (index) ()
-       <insert some javascript UI here>)
-
-    (define-closing-handler (send-message) (room name message)
+    (define-handler (send-message) (room name message)
        (publish! (intern room :keyword) (encode-json-to-string `((:name . ,name) (:message . ,message)))))
 
-    (start 4242)
+    (define-handler (index) ()
+       (with-html-output-to-string (s nil :prologue t :indent t)
+         (:html
+           (:head (:script :type "text/javascript" :src "/static/js/interface.js"))
+           (:body (:div :id "messages")
+	              (:textarea :id "input")
+	              (:button :id "send" "Send")))))
 
-And having done that, I should be able to browse over to `localhost:4242/index` (actual front-end structure left as an exercise for the reader) and see a little chat room using which I could subscribe and post to various message channels. Because I don't hate myself, and I'd like this to actually work in some sort of production environment, I need to both do some sanitation on inputs and make sure that this sanitation needn't be done manually. So really, I want to be able to say something like
+and have them mean the obvious. Actually, because we'd ostensibly be processing requests from untrusted sources, we'd want to write something more like
 
-    (define-stream-handler (source) ((room :string (>= 16 (length room))))
-       (subscribe! (intern room :keyword) sock))
-
-    (define-closing-handler (index) ()
-       <insert some javascript UI here>)
-
-	(define-closing-handler (send-message) 
-	    ((room :string (>= 16 (length room)))
-	     (name :string (>= 64 (length name) 1))
-	     (message :string (>= 256 (length message) 5)))
-	  (publish! (intern room :keyword) (encode-json-to-string `((:name . ,name) (:message . ,message)))))
-
-    (start 4242)
-
-As a side-note, since all those validators all check `length`, we could define a separate function to simplify the input code for us.
-
-    (defun length-between (min thing max)
+    (defun len-between (min thing max)
 	  (>= max (length thing) min))
 
-    ...
-
-    (define-stream-handler (source) ((room :string (length-between 0 room 16))
+    (define-handler (source :close-socket? nil) ((room :string (len-between 0 room 16)))
        (subscribe! (intern room :keyword) sock))
 
-    ...
+    (define-handler (send-message)
+	    ((room :string (len-between 0 room 16))
+	     (name :string (len-between 1 name 64))
+	     (message :string (len-between 5 message 256)))
+       (publish! (intern room :keyword) (encode-json-to-string `((:name . ,name) (:message . ,message)))))
 
-	(define-closing-handler (send-message) 
-	    ((room :string (length-between 0 room 16))
-	     (name :string (length-between 1 name 64)
-	     (message :string (length-between 5 message 256)))
-	  (publish! (intern room :keyword) (encode-json-to-string `((:name . ,name) (:message . ,message)))))
+    (define-handler (index) ()
+       (with-html-output-to-string (s nil :prologue t :indent t)
+         (:html
+           (:head (:script :type "text/javascript" :src "/static/js/interface.js"))
+           (:body (:div :id "messages")
+	              (:textarea :id "input")
+	              (:button :id "send" "Send")))))
 
-    ...
-
-In this particular case, it doesn't gain us much, and since I'm a bit more concerned about the simplicity of *intervening* code rather than *input* code for this exercise, I'll be sticking to the primitives. You'll see what I mean by that "intervening" comment in a moment; if you're not already a Lisper it may get a bit weird.
-
-It's not *quite* strongly typed HTTP parameters, because I'm interested in enforcing more than type, but that's a good first approximation. You can imagine more or less this same thing being implemented in a mainstream class-based OO language using a class hierarchy. That is, you'd define a `handler` class, then subclass that for each handler you have, giving each `get`, `post`, `parse` and `validate` methods as needed. If you imagine this well enough, you'll also see the small but non-trivial pieces of boilerplate that the approach would get you, both in terms of setting up classes and methods themselves and in terms of doing the parsing/validation of your parameters. The Common Lisp approach, and I'd argue the right approach, is to write a DSL to handle the problem. In this case, it takes the form of a new piece of syntax that lets you declare certain properties of your handlers, and expands into the code you would have written by hand. Writing this way, your code ends up amounting to a set of instructions which a Lisp implementation can unfold into the much more verbose and extensive code that you want to run. The benefit here is that you don't have to maintain the intermediate code, as you would if you were using IDE/editor-provided code generation facilities, you have the comparably easy and straight-forward task of maintaining the unfolding instructions.
-
-### Stepping Through Expansions
+and get the validation out of the way in the same stroke. It's not *quite* strongly typed HTTP parameters, because I'm interested in enforcing more than type, but that's a good first approximation. You can imagine more or less this same thing being implemented in a mainstream class-based OO language using a class hierarchy. That is, you'd define a `handler` class, then subclass that for each handler you have, giving each `get`, `post`, `parse` and `validate` methods as needed. If you imagine this well enough, you'll also see the small but non-trivial pieces of boilerplate that the approach would get you, both in terms of setting up classes and methods themselves and in terms of doing the parsing/validation of your parameters. The Common Lisp approach, and I'd argue the right approach, is to write a DSL to handle the problem. In this case, it takes the form of a new piece of syntax that lets you declare certain properties of your handlers, and expands into the code you would have written by hand. Writing this way, your code ends up amounting to a set of instructions which a Lisp implementation can unfold into the much more verbose and extensive code that you want to run. The benefit here is that you don't have to maintain the intermediate code, as you would if you were using IDE/editor-provided code generation facilities, you have the comparably easy and straight-forward task of maintaining the unfolding instructions.
 
 Lets step through the expansion for `send-message`, just so you understand what's going on. What I'm about to show you is the output of the SLIME macro-expander, which does a one-level expansion on the macro call you give it.
 
-	(define-closing-handler (send-message) 
-	    ((room :string (>= 16 (length room)))
-	     (name :string (>= 64 (length name) 1))
-	     (message :string (>= 256 (length message) 5)))
-	  (publish! (intern room :keyword) (encode-json-to-string `((:name . ,name) (:message . ,message)))))
+    (define-handler (send-message)
+	    ((room :string (len-between 0 room 16))
+	     (name :string (len-between 1 name 64))
+	     (message :string (len-between 5 message 256)))
+       (publish! (intern room :keyword) (encode-json-to-string `((:name . ,name) (:message . ,message)))))
 
 No big deal; that's just what I want to write. What I want this to mean is
 
@@ -359,71 +350,69 @@ No big deal; that's just what I want to write. What I want this to mean is
 
 Expanding it will get us
 
-	(BIND-HANDLER SEND-MESSAGE
-	              (MAKE-CLOSING-HANDLER (:CONTENT-TYPE "text/html")
-	                  ((ROOM :STRING (>= 16 (LENGTH ROOM)))
-	                   (NAME :STRING (>= 64 (LENGTH NAME) 1))
-	                   (MESSAGE :STRING (>= 256 (LENGTH MESSAGE) 5)))
-	                (PUBLISH! (INTERN ROOM :KEYWORD)
-	                          (ENCODE-JSON-TO-STRING
-	                           `((:NAME ,@NAME) (:MESSAGE ,@MESSAGE))))))
+    (BIND-HANDLER SEND-MESSAGE
+       (MAKE-CLOSING-HANDLER (:CONTENT-TYPE "text/html")
+           ((ROOM :STRING (LEN-BETWEEN 0 ROOM 16))
+            (NAME :STRING (LEN-BETWEEN 1 NAME 64))
+            (MESSAGE :STRING (LEN-BETWEEN 5 MESSAGE 256)))
+         (PUBLISH! (INTERN ROOM :KEYWORD)
+                   (ENCODE-JSON-TO-STRING `((:NAME ,@NAME) (:MESSAGE ,@MESSAGE))))))
 
 We're binding the result of `make-closing-handler` to the (for now) symbol `send-message`. Expanding `bind-handler` gets us
 
-	(PROGN
-	 (WHEN (GETHASH "/send-message" *HANDLERS*)
-	   (WARN "Redefining handler '/send-message'"))
-	 (SETF (GETHASH "/send-message" *HANDLERS*)
-	         (MAKE-CLOSING-HANDLER (:CONTENT-TYPE "text/html")
-	             ((ROOM :STRING (>= 16 (LENGTH ROOM)))
-	              (NAME :STRING (>= 64 (LENGTH NAME) 1))
-	              (MESSAGE :STRING (>= 256 (LENGTH MESSAGE) 5)))
-	           (PUBLISH! (INTERN ROOM :KEYWORD)
-	                     (ENCODE-JSON-TO-STRING
-	                      `((:NAME ,@NAME) (:MESSAGE ,@MESSAGE)))))))
+    (PROGN
+     (WHEN (GETHASH "/send-message" *HANDLERS*)
+       (WARN "Redefining handler '/send-message'"))
+     (SETF (GETHASH "/send-message" *HANDLERS*)
+             (MAKE-CLOSING-HANDLER (:CONTENT-TYPE "text/html")
+                 ((ROOM :STRING (LEN-BETWEEN 0 ROOM 16))
+                  (NAME :STRING (LEN-BETWEEN 1 NAME 64))
+                  (MESSAGE :STRING (LEN-BETWEEN 5 MESSAGE 256)))
+               (PUBLISH! (INTERN ROOM :KEYWORD)
+                         (ENCODE-JSON-TO-STRING
+                          `((:NAME ,@NAME) (:MESSAGE ,@MESSAGE)))))))
 
 Which is to say, we'd like to associate the handler we're making with the URI `/send-message` in the handler table `*HANDLERS*`. We'd additionally like a warning to be issued if that binding already exists, but will re-bind it regardless. None of that is particularly interesting. Lets take a look at the expansion of `make-closing-handler` specifically:
 
-	(LAMBDA (SOCK #:COOKIE?1111 SESSION PARAMETERS)
-	           (DECLARE (IGNORABLE SESSION PARAMETERS))
-	           (LET ((ROOM
-	                  (AIF (CDR (ASSOC :ROOM PARAMETERS)) (URI-DECODE IT)
-	                       (ERROR (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'ROOM)))))
-	             (ASSERT-HTTP (>= 16 (LENGTH ROOM)))
-	             (LET ((NAME
-	                    (AIF (CDR (ASSOC :NAME PARAMETERS)) (URI-DECODE IT)
-	                         (ERROR
-	                          (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'NAME)))))
-	               (ASSERT-HTTP (>= 64 (LENGTH NAME) 1))
-	               (LET ((MESSAGE
-	                      (AIF (CDR (ASSOC :MESSAGE PARAMETERS)) (URI-DECODE IT)
-	                           (ERROR
-	                            (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'MESSAGE)))))
-	                 (ASSERT-HTTP (>= 256 (LENGTH MESSAGE) 5))
-	                 (LET ((RES
-	                        (MAKE-INSTANCE 'RESPONSE :CONTENT-TYPE "text/html" :COOKIE
-	                                       (UNLESS #:COOKIE?1111 (TOKEN SESSION)) :BODY
-	                                       (PROGN
-	                                        (PUBLISH! (INTERN ROOM :KEYWORD)
-	                                                  (ENCODE-JSON-TO-STRING
-	                                                   `((:NAME ,@NAME)
-	                                                     (:MESSAGE ,@MESSAGE))))))))
-	                   (WRITE! RES SOCK)
-	                   (SOCKET-CLOSE SOCK))))))
+    (LAMBDA (SOCK #:COOKIE?1110 SESSION PARAMETERS)
+      (DECLARE (IGNORABLE SESSION PARAMETERS))
+      (LET ((ROOM
+    	 (AIF (CDR (ASSOC :ROOM PARAMETERS)) (URI-DECODE IT)
+    	      (ERROR (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'ROOM)))))
+        (ASSERT-HTTP (LEN-BETWEEN 0 ROOM 16))
+        (LET ((NAME
+    	   (AIF (CDR (ASSOC :NAME PARAMETERS)) (URI-DECODE IT)
+    		(ERROR
+    		 (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'NAME)))))
+          (ASSERT-HTTP (LEN-BETWEEN 1 NAME 64))
+          (LET ((MESSAGE
+    	     (AIF (CDR (ASSOC :MESSAGE PARAMETERS)) (URI-DECODE IT)
+    		  (ERROR
+    		   (MAKE-INSTANCE 'HTTP-ASSERTION-ERROR :ASSERTION 'MESSAGE)))))
+    	(ASSERT-HTTP (LEN-BETWEEN 5 MESSAGE 256))
+    	(LET ((RES
+    	       (MAKE-INSTANCE 'RESPONSE :CONTENT-TYPE "text/html" :COOKIE
+    			      (UNLESS #:COOKIE?1110 (TOKEN SESSION)) :BODY
+    			      (PROGN
+    				(PUBLISH! (INTERN ROOM :KEYWORD)
+    					  (ENCODE-JSON-TO-STRING
+    					   `((:NAME ,@NAME)
+    					     (:MESSAGE ,@MESSAGE))))))))
+    	  (WRITE! RES SOCK)
+    	  (SOCKET-CLOSE SOCK))))))
 
 This is the big one. It looks mean, but it really amounts to an unrolled loop over the arguments. You can see that for every parameter, we're grabbing its value in the `parameters` association list, ensuring it exists, `uri-decode`ing `it` if it does, and asserting the appropriate properties we want to enforce. At any given point, if an assertion is violated, we're done and we return an error (handling said error not pictured here, but the error handlers surrounding an HTTP handler call will ensure that these errors get translated to `HTTP 400` or `500` errors over the wire). If we get through all of our arguments without running into an error, we're going to evaluate the handler body, write the result out to the requester and close the socket.
 
 ### Understanding the Expanders
 
-If you're more interested in the server proper, skip the next few sections. The first thing we're going to do is dissect the code that generates the above expansions, then dive into the internal representation of a bunch of different HTTP-related constructs. We'll start from the end again. In this case, the end of `define-handler.lisp`
+The top-level form we'll want to write is defined as
 
-	(defmacro define-closing-handler ((name &key (content-type "text/html")) (&rest args) &body body)
-	  `(bind-handler ,name (make-closing-handler (:content-type ,content-type) ,args ,@body)))
+    (defmacro define-handler ((name &key (close-socket? t) (content-type "text/html")) (&rest args) &body body)
+      (if close-socket?
+          `(bind-handler ,name (make-closing-handler (:content-type ,content-type) ,args ,@body))
+          `(bind-handler ,name (make-stream-handler ,args ,@body))))
 
-	(defmacro define-stream-handler ((name) (&rest args) &body body)
-	  `(bind-handler ,name (make-stream-handler ,args ,@body)))
-
-The `define-(*)-handler` macros just straight-forwardly expand into calls to `bind-handler` and `make-\1-handler`. You can see that, because we're using homo-iconic code, we can use the backtick and comma operators to basically cut holes in an expression we'd like to evaluate. Calling the resulting macros will slot values into said holes and evaluate the result. We *could* have defined one macro here, with perhaps an extra key argument in the first cluster that let you specify whether it is meant to close out the connection or not. That would have resulted in one slightly complicated `defmacro` rather than two dead-simple ones, so I decided against it, but reserve the right to change my mind later.
+It just almost-straight-forwardly expands into a `bind-handler` and a `make-closing-handler` or `make-stream-handler` as appropriate. You can see that, because we're using homo-iconic code, we can use the backtick and comma operators to basically cut holes in an expression we'd like to evaluate. Calling the resulting macros will slot values into said holes and evaluate the result.
 
 Next up, `bind-handler`
 
@@ -689,89 +678,80 @@ That's the entirety of the handler subsystem for this project. What we've got is
 -a user-facing DSL for easily creating type and restriction-annotated handlers
 -a user-facing micro-DSL for easily defining new types to annotate handlers with
 
-After unrolling the above macro tower and understanding how it fits together, the rest of this is going to be a pretty straight-forward event-driven server implementation. Since we just talked about the different things `make-stream-handler` and `make-closing-handler` generate to write to the client sockets' stream, this is a nice segue into the `:house` model.
 
-### Object Oriented Programming in Common Lisp
-
-The `:house` model is heavily object based. We've got six core classes, one of which is a new `error`, one utility macro and some default instances to go through.
-
-Lets start with `response` and `sse`, since we just looked at the places they get generated and used.
+;; TODO - Explain the condition system and house-specific error classes
 
 
 
+### All Together Now
 
-	
+That did it. We can now finally write
+
+    (defun len-between (min thing max)
+	  (>= max (length thing) min))
+
+    (define-handler (source :close-socket? nil) ((room :string (len-between 0 room 16)))
+       (subscribe! (intern room :keyword) sock))
+
+    (define-handler (send-message)
+	    ((room :string (len-between 0 room 16))
+	     (name :string (len-between 1 name 64))
+	     (message :string (len-between 5 message 256)))
+       (publish! (intern room :keyword) (encode-json-to-string `((:name . ,name) (:message . ,message)))))
+
+    (define-handler (index) ()
+       (with-html-output-to-string (s nil :prologue t :indent t)
+         (:html
+           (:head (:script :type "text/javascript" :src "/static/js/interface.js"))
+           (:body (:div :id "messages")
+	              (:textarea :id "input")
+	              (:button :id "send" "Send")))))
+
+    (start 4242)
+
+Once you fill in the `interface.js` piece, this will in fact start an HTTP chat server on port `4242` and listen for incoming connections, handling them all appropriately.
+
+And you know exactly how it's happening, down to the sockets.
+
+### Bonus Stage
+
+I mentioned we'd get to the debug component, and figured I'd go over it in the epilogue. This article is probably going to be heavy going for people not already familiar with Lisp, so I didn't want to weigh it down further. Over the course of writing this server, I periodically had to diagnose various low-level problems, but definitely didn't want to have those debug statements make it out into a deployment. Because I wrote most of the functionality as methods, I was able to take advantage of a particular minor feature of CLOS to cluster all of my debugging-related `printf`s into the `debug!` procedure in `util.lisp`.
+
+	(defun debug! (&optional (stream *standard-output*))
+	  (flet ((dbg (label &rest msg) (format stream ">>>> ~a~%~{~s~%----------~%~}~%" label msg)))
+	    (defmethod process-ready :before ((sock stream-usocket) conns buffers)
+		       (dbg "Preparing to buffer..." sock
+			    "CONNECTIONS: " (alexandria:hash-table-keys conns)
+			    "BUFFERS: " (alexandria:hash-table-keys buffers)))
+	    (defmethod handle-request :before (sock req) 
+		       (dbg "Handling request..." sock req (resource req) (headers req) (parameters req)))
+	    (defmethod handle-request :after (sock req) 
+		       (dbg "Completed request..."))
+	    (defmethod buffer! :before (buf)
+		       (dbg "Buffering..." buf (tries buf)))
+	    (defmethod buffer! :after (buf)
+		       (when (> (tries buf) +max-buffer-tries+)
+			 (dbg "Needy buffer..." buf (tries buf) (coerce (reverse (contents buf)) 'string))))
+	    (defmethod write! :before ((res response) sock) 
+		       (dbg "Writing response..."))
+	    (defmethod error! :before (res sock &optional instance) 
+		       (dbg "Sending error response..."
+			    instance sock res (response-code res)))
+	    (defmethod subscribe! :before (chan sock) 
+		       (dbg "New subscriber" chan))
+	    (defmethod publish! :before (chan msg) 
+		       (dbg "Publishing to channel" chan msg))
+	    nil))
+
+The feature is `:before`/`:after` hooks. And I guess the built-in language feature of a `defmethod` that can be run somewhere other than the top-level, but I sort of take that for granted these days. Defining a `:before` hook on a particular method lets you specify a bit of code that'll be executed before every call to that method. `:after` is similar, except the stuff you specify happens after the main method is called. You can specialize these `:before`/`:after` hooks as arbitrarily as the main methods, and only the relevant one will actually run. One possible use for this is the above.
+
+As I mentioned, most of the `:house` server is written using `defmethod`, which means I have plenty of places to hook up debugging/logging statements so I can see what's going on. Clustering all such print statements inside of the `debug!` procedures means that the rest of my code gets to stay unchanged when I need to add a `printf` somewhere, and it means that the `printf`s don't get run unless I specifically ask for them by calling `(debug!)` at some point in my session. 
 
 
 
 
 
-
-Anyway, the `response` and `sse` classes above should be fairly self-explanatory if you know approximately how HTTP works. A `response` needs a `content-type`, a `charset`, a `response-code`, a `keep-alive?` flag, and a `body` to be written properly.
-
--`content-type` is a mime-type for the thing this handler will be returning, It'll most commonly be `text/html`, which is why that's the default. Other common values include `application/json` and `text/plain`.
--`charset` is the character encoding the page uses, which'll always be `utf-8` as far as I know.
--`response-code` is an [HTTP response code](https://en.wikipedia.org/wiki/List_of_HTTP_status_codes). A successful result is `200 OK`. We'll see the common errors covered later.
--`keep-alive?` is a flag that tells us whether to keep the connection active or not. In the context of `:house`, it's only used on stream handlers.
--`body` is hopefully self explanatory.
-
-An `sse` needs a comparably minimal `id`, `event`, `retry` and `data` slots, and those map directly onto the corresponding fields of an SSE message as defined in [the specification](http://dev.w3.org/html5/eventsource/#event-stream-interpretation).
-
-Now, because we're in a function-focused OO system, those slots don't really give you all the information you need. You'll also need to know about the operations we plan to perform on them.
-
-
-
-
-
-
-
-### Back to the Model...
-
-That more or less gives you a good idea about the `response` and `SSE` classes; they're the things we serialize back down the socket connection to the client. At the opposite end is the thing we're going to be pumping client input into.
-
-	(defclass request ()
-	  ((resource :accessor resource :initarg :resource)
-	   (headers :accessor headers :initarg :headers :initform nil)
-	   (parameters :accessor parameters :initarg :parameters :initform nil)))
-
-A raw HTTP request is going to be finely sliced and slotted into the above. The `resource` designates which page they want. It'll look something like `/home` or `/foo/bar/baz.css`. `headers` is an association list of incoming HTTP headers (though oddly, we don't need to use any of them for our purposes with House wihch means they'll be parsed out of incoming requests then left to gather dust). Finally, `parameters` is going to hold the association list of all incoming GET and POST parameters. Again though, because we're in an FFOO system, we'll want to take a look at the operations on this class as well as its structure to understand the implications. There are actually two this time; `parse`, which creates `request`s from raw streams, and `handle-request`, which takes a `socket` and a `request` and figures out what to do about them.
-
-### Second brief look at the core
-
-	(defmethod parse ((str string))
-	  (let ((lines (split "\\r?\\n" str)))
-	    (destructuring-bind (req-type path http-version) (split " " (pop lines))
-	      (declare (ignore req-type))
-		  (assert-http (string= http-version "HTTP/1.1"))
-	      (let* ((path-pieces (split "\\?" path))
-		     (resource (first path-pieces))
-		     (parameters (second path-pieces))
-		     (req (make-instance 'request :resource resource)))
-		(loop for header = (pop lines) for (name value) = (split ": " header)
-		   until (null name) do (push (cons (->keyword name) value) (headers req)))
-		(setf (parameters req)
-		      (append (parse-params parameters)
-			      (parse-params (pop lines))))
-		req))))
-
-	(defmethod parse-params ((params null)) nil)
-	(defmethod parse-params ((params string))
-	  (loop for pair in (split "&" params)
-	     for (name val) = (split "=" pair)
-	     collect (cons (->keyword name) (or val ""))))
-
-That set of three methods is sufficient for picking apart a complete, raw request into a `request` instance. You can see that it splits its targets on cross-platform newlines to start with. The first line is going to look something like `GET /uri/the/user/wants.html HTTP/1.x`. Because we're making a minimal, special-purpose server, we can actually do with ignoring the first bit, and all we do with the last is `assert` that it's `HTTP/1.1`. The `path` component of that first line might be a bit more complicated though. Specifically, it might also look like `GET /uri/the/user/wants.html?foo=1&bar=2 HTTP/1.x`, in which case we need to parse the things to the right of the `?` as parameters rather than as part of the URI. That's why we split the path on `?`, and treat it as separate `resource` and `parameters` pieces from then on (incidentally, in languages like Haskell, or Clojure, you'd be able to destructure that `split` call implicitly, thereby avoiding the need for an intermediate `path-pieces` altogether).
-
-The next piece of work we do is creating the `request` instance, initializing it with the appropriate `resource`, then parsing out the headers one by one and finally, optionally parse the GET and POST parameters into the `parameters` slot. There are two flavors of `parameters` there; you can get them from the suffix of the URI, and/or from the request body. Regardless of where they are, they're parsed in the same way, as you can see by the `parse-params` method. That method is specialized on both `string` and `null` because either or both kinds of parameters might be absent from a particular request, and we want to gracefully handle that situation when parsing from the raw results.
-
-The only other thing we need to take a look at here is `handle-request`, which you should already sort of suspect the structure of given how our `define-handler` system is put together.
-
-	(defmethod handle-request ((sock usocket) (req request))
-	  (aif (lookup (resource req) *handlers*)
-	       (funcall it sock (parameters req))
-	       (error! +404+ sock)))
-
-That is, look up the `resource` of that parsed request in the `*handlers*` table. If you find something, call it with the socket and the request `parameters`. If you *don't* find anything, send a `404` error down to the client. And this is the perfect segue into our error model.
+##### v1 (here because there's probably still some salvageable material)
 
 ### Back to the Model 2
 
@@ -815,25 +795,9 @@ These are the relevant `4xx` and `5xx`-class HTTP errors that we'll be sending a
 
 It takes an error response and a socket, writes the response to the socket and closes it (ignoring errors, in case the other end has already disconnected). The `instance` argument here is purely for logging/debugging purposes. We'll get into that later.
 
-### Event-Driven Specifics
-
-That more or less concludes the parts of this system that are HTTP-specific. That is, you'd want them all whether you're writing a thread-per-request, or an event-driven server, and they would look the same in either case. The pieces I mentioned removing to streamline this implementation of `:house` for didactic purposes all fall into the same category, by the way, they're either pieces intrinsic to HTTP or to multi-platform Common Lisp applications. The only remaining parts of the server we still need to look at are
-
-1. The event loop itself
-2. The buffering subsystem
-
-and
-
-3. The subscription subsystem
-
-These are going to change, whether mildly or radically, depending on what kind of server you're writing and what specifically you want it to do. So with that in mind, it's about time you understood some of the basic decisions in this space and the basis on which they're made.
-
-
-[[snip async server basics]]
 
 
 
-For an example of option `c`, have a look at Yaws (the [web server](http://hyber.org/), not the [tropical infection](http://en.wikipedia.org/wiki/Yaws)). `b` strikes me as ridiculous. The reason for using a thread-per-request model is that it mechanically simplifies server implementation, but adding the requirement of a separate long-lived connection subsystem seems like it would result in a net complexity *increase*. So, if we want server pushing in the absence of really, *really*, **really** cheap threads, we're dealing with an event-driven server. Which means dealing with non-blocking IO (we'll see why that is later on), and potentially dealing with a single thread.
 
 ### High Level
 
@@ -857,36 +821,9 @@ That's the base case, of course. If you *also* want to be pushing data at your c
 
 Now, we've already seen most of the implementation above, so there's very little left to discuss here. Lets keep going with the current tradition and start from the end, working our way towards the beginning.
 
-#### Subscriptions and Broadcasts
 
-There's basically two operations we need to make SSEs a thing, and they're both very simple. We want to be able to subscribe a particular connection to a channel, and we want to be able to send a message out to all subscribers of a channel, if it exists.
 
-	(defparameter *channels* (make-hash-table))
 
-	(defmethod subscribe! ((channel symbol) (sock usocket))
-	  (push sock (gethash channel *channels*))
-	  nil)
-
-	(defmethod publish! ((channel symbol) (message string))
-	  (awhen (gethash channel *channels*)
-	    (loop with msg = (make-instance 'sse :data message)
-	       for sock in it (progn (write! msg sock)
-				     (force-output (socket-stream sock))))))
-
-There. `*channels*` is a hash table of channel names to subscriber lists. The `subscribe!` method takes a channel and a socket, and adds the socket to the particular channels' subscription list. Finally, `publish!` takes a channel and a message, and publishes that message (in `SSE` format) to each listener on that particular channel. The first two will actually, factually work in a real system, but that `publish!` method is simplified; it leaves out error handling code, and doesn't clean up connections that have stopped listening. All it does is get a channel, then iterate over all of `it`s sockets, calling `write!` on the message we want to publish.
-
-	(defmethod publish! ((channel symbol) (message string))
-	  (awhen (gethash channel *channels*)
-	    (setf (gethash channel *channels*)
-		  (loop with msg = (make-instance 'sse :data message)
-		     for sock in it
-		     when (ignore-errors 
-			    (write! msg sock)
-			    (force-output (socket-stream sock))
-			    sock)
-		     collect it))))
-
-Instead of being so simple-minded about it, this `publish!` iterates over the subscriber list, collects the sockets that were written to successfully, and assigns the subscriber list to that bag of active listeners. Any sockets that errored out during the write are dropped, since they're no longer listening. This will now *also* really, truly work properly.
 
 #### Buffering
 
@@ -918,164 +855,6 @@ That method takes a buffer, grabs its stream, notes the read attempt by incremen
 
 Exactly what you expected, I presume. Storage slots for `tries`, `contents`, the `stream`, a `found-crlf?` flag, a number keeping track of `content-size` and a time-stamp designating when this particular buffer was instantiated. `contents` is where we keep the characters read so far, `bi-stream` is where they come from, and `found-crlf?` is set to `t` by `buffer!` in the event that we read `\r\n\r\n`. The other three are all pieces of tracking data on the basis of which we might want to terminate a connection before sending back a response; in the case that the `buffer` is too old, too big or too needy.
 
-#### The Event Loop Proper
 
-This is it. This is the actual implementation of the core of the server. The piece that actually listens on a port and does stuff with incoming connections. Once you understand this, it's all over bar one or two pieces of interesting trivia.
-
-	(defmethod start ((port integer))
-	  (let ((server (socket-listen usocket:*wildcard-host* port :reuse-address t :element-type 'octet))
-		    (conns (make-hash-table))
-	        (buffers (make-hash-table)))
-	    (unwind-protect
-		     (loop (loop for ready in (wait-for-input (cons server (alexandria:hash-table-keys conns)) :ready-only t)
-			             do (process-ready ready conns buffers)))
-	       (loop for c being the hash-keys of conns
-		         do (loop while (socket-close c)))
-	       (loop while (socket-close server)))))
-	
-	(defmethod process-ready ((ready stream-server-usocket) (conns hash-table) (buffers hash-table))
-	  (setf (gethash (socket-accept ready :element-type 'octet) conns) :on))
-	
-	(defmethod process-ready ((ready stream-usocket) (conns hash-table) (buffers hash-table))
-	  (let ((buf (or (gethash ready buffers)
-		             (setf (gethash ready buffers) (make-instance 'buffer :bi-stream (flex-stream ready))))))
-	    (when (eq :eof (buffer! buf))
-	      (remhash ready conns)
-	      (remhash ready buffers)
-	      (ignore-errors (socket-close ready)))
-	    (let ((complete? (found-crlf? buf))
-		      (too-big? (> (content-size buf) +max-request-size+))
-		      (too-old? (> (- (get-universal-time) (started buf)) +max-request-age+))
-		      (too-needy? (> (tries buf) +max-buffer-tries+)))
-	      (when (or complete? too-big? too-old? too-needy?)
-		    (remhash ready conns)
-		    (remhash ready buffers)
-		    (cond (too-big?
-			       (error! +413+ ready))
-		          ((or too-old? too-needy?)
-		           (error! +400+ ready))
-		          (t
-				   (handler-case
-			           (handle-request ready (parse buf))
-			         (http-assertion-error () (error! +400+ ready))
-			         ((and (not warning)
-			               (not simple-error)) (e)
-			            (error! +500+ ready e)))))))))
-
-One step at a time here. You're almost there.
-
-`process-ready` takes advantage of Common Lisps' built-in multiple dispatch to figure out what to do in two different situations. The first is handling a ready `stream-server-usocket`.
-
-	(defmethod process-ready ((ready stream-server-usocket) (conns hash-table) (buffers hash-table))
-	  (setf (gethash (socket-accept ready :element-type 'octet) conns) :on))
-
-When a `stream-server-usocket` signals that it's `ready`, it means that said server has a connection request. So what we do is accept the connection and store it in the connections table.
-
-The second case is a ready `stream-socket`. When a non-sever `usocket` signals that it's ready, that means it has data ready to be read.
-
-	(defmethod process-ready ((ready stream-usocket) (conns hash-table) (buffers hash-table))
-	  (let ((buf (or (gethash ready buffers)
-			         (setf (gethash ready buffers) (make-instance 'buffer :bi-stream (flex-stream ready))))))
-	    (when (eq :eof (buffer! buf))
-	      (remhash ready conns)
-	      (remhash ready buffers)
-	      (ignore-errors (socket-close ready)))
-	    (let ((complete? (found-crlf? buf))
-		      (too-big? (> (content-size buf) +max-request-size+))
-		      (too-old? (> (- (get-universal-time) (started buf)) +max-request-age+))
-		      (too-needy? (> (tries buf) +max-buffer-tries+)))
-	      (when (or complete? too-big? too-old? too-needy?)
-		    (remhash ready conns)
-		    (remhash ready buffers)
-		    (cond (too-big?
-			       (error! +413+ ready))
-		          ((or too-old? too-needy?)
-		           (error! +400+ ready))
-		          (t
-				   (handler-case
-			           (handle-request ready (parse buf))
-			         (http-assertion-error () (error! +400+ ready))
-			         ((and (not warning)
-			               (not simple-error)) (e)
-			            (error! +500+ ready e)))))))))
-
-So in that case, we need to grab a `buffer`. Either the one associated with this connection, or a fresh one if no associated buffer exists. We then `buffer!` input from the `usocket` into its `buffer`. If the result of that is `:eof`, we just discard the connection and the buffer, and close the socket from our end. If we didn't get back an `:eof`, we need to check a few more conditions. If the resulting `buffer` is any of `complete?`, `too-big?`, `too-old?` or `too-needy?`, we remove it from the buffer and connection tables; one way or the other, we're not dealing with more input from this connection (This would be a bad assumption to make if we were building a websocket server. Try to work out what you'd actually want to do in that case).
-
-If the `buffer` is `too-big?`, we send a `413` error. If it's `too-old?` or `too-needy?`, we send a generic `400` error. Finally, if it's `complete?`, we try to dispatch to a handler. If *that* fails in a way that bubbles up to the `handler-case` clause found here, that means we ran into some execution error along the way, and we need to send a `500` error admitting fault.
-
-Whew.
-
-Ok, last piece.
-
-	(defmethod start ((port integer))
-	  (let ((server (socket-listen usocket:*wildcard-host* port :reuse-address t :element-type 'octet))
-		    (conns (make-hash-table))
-	        (buffers (make-hash-table)))
-	    (unwind-protect
-		     (loop (loop for ready in (wait-for-input (cons server (alexandria:hash-table-keys conns)) :ready-only t)
-			             do (process-ready ready conns buffers)))
-	       (loop for c being the hash-keys of conns
-		         do (loop while (socket-close c)))
-	       (loop while (socket-close server)))))
-
-The top-level method `start` takes a local `port` and listens on it for all incoming connections. It sets up the connection and buffer tables, and then loops forever, waiting for ready signals from all its connections, including the initial listener. If something happens, it dispatches the event using the `process-ready` method we saw above. If any error propagates *this* high up the handler chain, it either means the user has issued an interrupt, or something seriously weird has exploded. In either case, the top level just cleans up after itself and calls it a day.
-
-### All Together Now
-
-That was seriously it. We did the entire thing backwards because that's the path that exposed you to as much Lisp-specific code first and got to the mundane details last, but you now understand exactly how to write an event-driven server in Common Lisp. Having done all of the above, we can finally achieve our goal.
-
-    (define-stream-handler (source) ((room :string (>= 16 (length room))))
-       (subscribe! (intern room :keyword) sock))
-
-    (define-closing-handler (index) ()
-       <insert some javascript UI here>)
-
-	(define-closing-handler (send-message) 
-	    ((room :string (>= 16 (length room)))
-	     (name :string (>= 64 (length name) 1))
-	     (message :string (>= 256 (length message) 5)))
-	  (publish! (intern room :keyword) (encode-json-to-string `((:name . ,name) (:message . ,message)))))
-
-    (start 4242)
-
-Once you fill in the `<insert some javascript UI here>` piece, this will in fact start an HTTP chat server on port `4242` and listen for incoming connections, handling them all appropriately.
-
-And you know exactly how it's happening, down to the sockets.
 
 [[TODO: Take a crack at putting together a light JS UI so that users can actually run this.]]
-
-### Bonus Stage
-
-I mentioned we'd get to the debug component, and figured I'd go over it in the epilogue. This article is probably going to be heavy going for people not already familiar with Lisp, so I didn't want to weigh it down further. Over the course of writing this server, I periodically had to diagnose various low-level problems, but definitely didn't want to have those debug statements make it out into a deployment. Because I wrote most of the functionality as methods, I was able to take advantage of a particular minor feature of CLOS to cluster all of my debugging-related `printf`s into the `debug!` procedure in `util.lisp`.
-
-	(defun debug! (&optional (stream *standard-output*))
-	  (flet ((dbg (label &rest msg) (format stream ">>>> ~a~%~{~s~%----------~%~}~%" label msg)))
-	    (defmethod process-ready :before ((sock stream-usocket) conns buffers)
-		       (dbg "Preparing to buffer..." sock
-			    "CONNECTIONS: " (alexandria:hash-table-keys conns)
-			    "BUFFERS: " (alexandria:hash-table-keys buffers)))
-	    (defmethod handle-request :before (sock req) 
-		       (dbg "Handling request..." sock req (resource req) (headers req) (parameters req)))
-	    (defmethod handle-request :after (sock req) 
-		       (dbg "Completed request..."))
-	    (defmethod buffer! :before (buf)
-		       (dbg "Buffering..." buf (tries buf)))
-	    (defmethod buffer! :after (buf)
-		       (when (> (tries buf) +max-buffer-tries+)
-			 (dbg "Needy buffer..." buf (tries buf) (coerce (reverse (contents buf)) 'string))))
-	    (defmethod write! :before ((res response) sock) 
-		       (dbg "Writing response..."))
-	    (defmethod error! :before (res sock &optional instance) 
-		       (dbg "Sending error response..."
-			    instance sock res (response-code res)))
-	    (defmethod subscribe! :before (chan sock) 
-		       (dbg "New subscriber" chan))
-	    (defmethod publish! :before (chan msg) 
-		       (dbg "Publishing to channel" chan msg))
-	    nil))
-
-The feature is `:before`/`:after` hooks. And I guess the built-in language feature of a `defmethod` that can be run somewhere other than the top-level, but I sort of take that for granted these days. Defining a `:before` hook on a particular method lets you specify a bit of code that'll be executed before every call to that method. `:after` is similar, except the stuff you specify happens after the main method is called. You can specialize these `:before`/`:after` hooks as arbitrarily as the main methods, and only the relevant one will actually run. One possible use for this is the above.
-
-As I mentioned, most of the `:house` server is written using `defmethod`, which means I have plenty of places to hook up debugging/logging statements so I can see what's going on. Clustering all such print statements inside of the `debug!` procedures means that the rest of my code gets to stay unchanged when I need to add a `printf` somewhere, and it means that the `printf`s don't get run unless I specifically ask for them by calling `(debug!)` at some point in my session. 
-
-[[Note to Editor: Anything else I should go over that doesn't easily fit into the body of the piece?]]
