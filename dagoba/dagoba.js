@@ -233,6 +233,8 @@ Dagoba.addQFun('out', function(graph, args, gremlin, state) {
   return clone
 })
 
+// TODO: show how to refactor 'out', 'outN', and 'outAllN' using adverbs. also the 'in' equivalents. also make adverbs.
+
 Dagoba.addQFun('outAllN', function(graph, args, gremlin, state) {
   var filter = args[0]
   var limit = args[1]-1
@@ -328,8 +330,8 @@ Dagoba.addQFun('filter', function(graph, args, gremlin, state) {
   if(!gremlin) return 'pull'
   if(typeof args[0] != 'function') return Dagoba.onError('Filter arg is not a function: ' + args[0]) || gremlin
   if(!args[0](gremlin.vertex)) return 'pull'                      // gremlin fails filter function 
-  // THINK: would we ever want to filter by other parts of the gremlin?
   return gremlin
+  // THINK: would we ever want to filter by other parts of the gremlin?
 })
   
 Dagoba.addQFun('take', function(graph, args, gremlin, state) {
@@ -345,14 +347,13 @@ Dagoba.addQFun('take', function(graph, args, gremlin, state) {
 
 
 
-// hi! 
+// more todos
 // - tune gremlins (collisions, history, etc)
 // - interface: show query pieces and params,
 // - interface: resumable queries
 // - generational queries
 // - intersections
 // - adverbs
-// - you are great!
 
 
 
