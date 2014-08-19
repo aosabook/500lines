@@ -148,10 +148,9 @@ from the contents of the key/value store
 
 * ``interface.py`` defines
     a class (``DBDB``)
-    which exposes an API
-    like a Python dictionary
-    using the concrete ``BinaryTree`` implementation
-    for using DBDB inside a Python program.
+    which implements the Python dictionary API
+    using the concrete ``BinaryTree`` implementation.
+    This is how you'd use DBDB inside a Python program.
 
 * ``tree.py`` defines
     the logical layer.
