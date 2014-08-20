@@ -1,10 +1,9 @@
-import abc
-
 from dbdb.binary_tree import BinaryTree
 from dbdb.physical import Storage
 
 
-class DBDB(abc.types.DictionaryType):
+class DBDB(object):
+
     def __init__(self, f):
         self._storage = Storage(f)
         self._tree = BinaryTree(self._storage)
