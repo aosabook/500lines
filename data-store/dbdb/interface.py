@@ -1,7 +1,7 @@
 import abc
 
 from dbdb.binary_tree import BinaryTree
-from dbdb.storage import Storage
+from dbdb.physical import Storage
 
 
 class DBDB(abc.types.DictionaryType):

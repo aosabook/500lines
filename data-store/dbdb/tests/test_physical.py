@@ -3,7 +3,7 @@ import tempfile
 
 from nose.tools import eq_
 
-from dbdb.storage import Storage
+from dbdb.physical import Storage
 
 
 class TestStorage(object):
