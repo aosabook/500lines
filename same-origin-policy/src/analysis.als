@@ -24,16 +24,6 @@ assert Integrity {
     some MaliciousData & u.accesses.t
 }
 
-check Confidentiality for 3
-check Integrity for 3
-
-
-/* Restrictions */
-
--- you can comment out any of these facts if you prefer
-
-
-// Remove trivial cases 
 fact  {
   -- no malicious module begins with private data
   no m: MaliciousModule | some PrivateData & m.accesses.first
@@ -44,6 +34,14 @@ fact  {
   -- no data is both private and malicious
   no PrivateData & MaliciousData
 }
+
+check Confidentiality for 3
+check Integrity for 3
+
+
+/* Restrictions */
+
+-- you can comment out any of these facts if you prefer
 
 // Restrict calls to be only of one kind
 -- leave uncommented the kind of call you want to see only
