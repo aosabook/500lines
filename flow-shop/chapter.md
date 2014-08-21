@@ -73,9 +73,9 @@ These settings could be exposed to the user as command line parameters, but at t
 ````python
 if __name__ == '__main__':
 
-    if 2 == len(sys.argv):
+    if len(sys.argv) == 2:
         data = parse_problem(sys.argv[1], 0)
-    elif 3 == len(sys.argv):
+    elif len(sys.argv) == 3:
         data = parse_problem(sys.argv[1], int(sys.argv[2]))
     else:
         print "\nUsage: python flow.py <Taillard problem file> [<instance number>]\n"
@@ -589,7 +589,7 @@ As an extra measure, we bump up artificially all of the strategies that were not
 
 ```python
                 # Additionally boost the unused strategies to avoid starvation
-                if 0 == results[i][0]:
+                if results[i][0] == 0:
                     strat_weights[results[i][1]] += len(STRATEGIES)
 ```
 
