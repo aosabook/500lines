@@ -14,7 +14,7 @@ sig CriticalData, MaliciousData in Data {}
 
 // No malicious module should be able to access private data
 assert Confidentiality {
-  no m : Modue - TrustedModule, t : Time |
+  no m : FlowModule - TrustedModule, t : Time |
     some CriticalData & m.accesses.t 
 }
 
