@@ -299,6 +299,129 @@ Note that the request includes a cookie, which is scoped to the same domain as t
 
 These two instances tell us that extra measures are needed to restrict the behavior of scripts, especially since some of those scripts could be malicious. This is exactly where the SOP comes in.
 
+## Security Properties
+
+What exactly do we mean when we say our system is _secure_? 
+
+We turn to two well-known concepts in information
+security---confidentiality and integrity. Both of these concepts talk
+about how information should be allowed to _flow_ throughout various
+parts of the system. Roughly, confidentiality means that a critical
+piece of data should only be accessible to agents that are deemed
+trusted. On the other hand, integrity means trusted agents should only
+rely on data that have not been maliciously tampered with.
+
+Before we can state these two security properties more precisely, we
+first need to define what it means for a piece of data to _flow_ from
+one part of the system to another. In our model so far, we have
+described interactions between two endpoints as being carried out
+through _calls_; e.g., a browser interacts with a server by making
+HTTP requests, and a script interacts with the browser by invoking
+browser API calls. Intuitively, during each call, a piece of data may
+flow from one endpoint to another as an _argument_ or _return value_
+of the call. To represent this, we introduce a notion of `FlowCall`
+into the model, and associate each call with a set of `args` and
+`returns` data fields:
+
+```alloy
+sig Data in Resource + Cookie {}
+
+sig FlowCall in Call {
+  args, returns: set Data,  -- arguments and return data of this call
+}{
+ this in HttpRequest implies
+    args = this.sentCookies + this.body and
+    returns = this.receivedCookies + this.response
+ ...
+}
+```
+
+For example, during each call of type `HttpRequest`, the client
+transfers two arguments (`sentCookies` and `body`) to the server, and
+in turn, receives two addition sets of data (`receivedCookies` and
+`response`) as return values. 
+
+More generally, arguments flow from the sender of the call to the
+receiver, and return values flow from the receiver to the sender. This
+means that only way for an endpoint to access a new piece of data is
+by receiving it an argument of a call that the endpoint accepts, or a
+return value of a call that the endpoint invokes. We introduce a
+notion of `FlowModule`, and assign field `accesses` to represent the
+set of data elements that the module can access at each time step:
+
+```
+sig FlowModule in Endpoint {
+  -- Set of data that this component initially owns
+  accesses: Data -> Time
+}{
+  all d: Data, t: Time - first |
+	 -- This endpoint can only access a piece of data "d" at time "t" only when
+    d -> t in accesses implies
+      -- (1) It already had access in the previous time step, or
+      d -> t.prev in accesses or
+      -- there is some call "c" that ended at "t" such that
+      some c: Call & end.t |
+        -- (2) the endpoint receives "c" that carries "d" as one of its arguments or
+        c.to = this and d in c.args or
+        -- (3) the endpoint sends "c" that returns d" 
+        c.from = this and d in c.returns 
+}
+```
+
+We are not quite done yet! We also need to restrict data elements that a module can provide as arguments or return values of a call; otherwise, we may get weird scenarios where a module can make a call with an argument that it has no access to!
+
+```
+sig FlowCall in Call { ... } {
+  -- (1) Any arguments must be accessible to the sender
+  args in from.accesses.start
+  -- (2) Any data returned from this call must be accessible to the receiver
+  returns in to.accesses.start
+}
+```
+
+Now that we have means to describe data flow between different parts
+of the system, we are (almost) ready to state security properties that
+we care about. But recall that confidentiality and integrity are
+_context-dependent_ notions; these properties make sense only if we
+can talk about some agents within the system as being trusted (or
+malicious). Similarly, not all information is equally important: We
+need to distinguish between data elements that we consider to be
+critical or malicious (or neither):
+
+```alloy
+sig TrustedModule, MaliciousModule in FlowModule {}
+sig CriticalData, MaliciousData in Data {}
+```
+
+Then, the confidentiality property can simply be stated as the
+following restriction on flow of critical data into non-trusted parts
+of the system:
+
+```alloy
+// No malicious module should be able to access critical data
+assert Confidentiality {
+  no m : Module - TrustedModule, t : Time |
+    some CriticalData & m.accesses.t 
+}
+```
+
+The integrity property is the dual of confidentiality: 
+
+```alloy
+// No malicious data should ever flow into a trusted module
+assert Integrity {
+  no m: TrustedModule, t: Time | 
+    some MaliciousData & m.accesses.t
+}
+```
+
+When instructed, the Alloy Analyzer analyzes _all_ possible dataflow traces in the system and produces a counterexample (if any) that demonstrates how the above properties may be violated:
+
+```alloy
+check Confidentiality for 5
+check Integrity for 5
+```
+
 ## Same Origin Policy
 
 Before we can state the SOP, the first thing we should do is to introduce the

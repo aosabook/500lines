@@ -43,7 +43,7 @@ sig FlowModule in Endpoint {
   -- Set of data that this component initally owns
   accesses: Data -> Time
 }{
-  all d: Data, t: Time - last |
+  all d: Data, t: Time - first |
 	 -- This endpoint can only access a piece of data "d" at time "t" only when
     d -> t in accesses implies
       -- (1) It already had access in the previous time step, or

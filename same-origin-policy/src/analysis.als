@@ -10,12 +10,12 @@ open flow
 
 // General security properties
 sig TrustedModule, MaliciousModule in FlowModule {}
-sig PrivateData, MaliciousData in Data {}
+sig CriticalData, MaliciousData in Data {}
 
 // No malicious module should be able to access private data
 assert Confidentiality {
-  no m: MaliciousModule, t: Time | 
-    some PrivateData & m.accesses.t
+  no m : Modue - TrustedModule, t : Time |
+    some CriticalData & m.accesses.t 
 }
 
 // No malicious data should ever flow into a trusted module
@@ -26,13 +26,13 @@ assert Integrity {
 
 fact  {
   -- no malicious module begins with private data
-  no m: MaliciousModule | some PrivateData & m.accesses.first
+  no m: MaliciousModule | some CriticalData & m.accesses.first
   -- no trusted module begins with malicious data
   no m: TrustedModule | some MaliciousData & m.accesses.first
   -- no module is both trusted and malicious
   no TrustedModule & MaliciousModule
   -- no data is both private and malicious
-  no PrivateData & MaliciousData
+  no CriticalData & MaliciousData
 }
 
 check Confidentiality for 3
