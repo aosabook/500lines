@@ -89,7 +89,7 @@ module.exports = function (app, store) {
     });
   });
 
-  app.post('/wiki/add', function(request, response){
+  app.post('/add', function(request, response){
     response.redirect('/wiki/'+request.body.title+'/edit');
   });
 
