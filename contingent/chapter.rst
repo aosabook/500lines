@@ -11,7 +11,7 @@ files appears to have been modified more recently.
 >>> g.add_edge('B.body', 'B.html')
 >>> g.add_edge('C.body', 'C.html')
 
-This makes it easy, if ``B.md`` is modified, to determine which output
+This makes it easy, if ``B.rst`` is modified, to determine which output
 file needs to be rebuilt.
 
 >>> g.consequences_of(['B.body'])
@@ -151,10 +151,26 @@ than to simply perform a complete rebuild upon every modification?
 Chasing consequences
 --------------------
 
+The key insight that helps us answer the foregoing question is to note
+the difference between our intuitive understanding of the build
+process—that most changes disrupt only a small subset of the full
+consequences graph—and the dependency graph itself, which has no such
+understanding. Adding this requires the ability to answer an additional
+question: given the consequences of a change, does the change have an
+effect on the consequence's value and therefore require a rebuild of
+that consequence? To answer this question, we employ a value cache that
+records the output of each consequence's build, allowing us to compare
+its current value with its value from the previous run.
+
 >>> open('diagram3.dot', 'w').write(g.as_graphviz()) and None
 
 >>> from cachelib import Cache
 >>> c = Cache(g)
+
+In the first run of the build, the cache is empty, so each target
+requires a full rebuild (``Initial value`` is the output of the build
+process):
+
 >>> roots = ['A.rst', 'B.rst', 'C.rst']
 >>> for node in roots + g.consequences_of(roots):
 ...     c[node] = 'Initial value'
@@ -164,20 +180,29 @@ set()
 
 Changing something forces us to rebuild its consequences, but focuses
 our efforts only on the particular targets that need rebuilding.  For
-example, editing file B but only updating the body peters out rather
-quickly.
+example, editing file B requires examination of all consequences of B:
 
 >>> c['B.rst'] = 'Markup for post B'
 >>> sorted(c.todo())
 ['B.body', 'B.date', 'B.title']
+
+The build process, however, produces new values only for ``B.body``,
+leaving ``B.date`` and ``B.title`` at their prior values:
+
 >>> c['B.body'] = 'New body for B'
 >>> c['B.date'] = 'Initial value'
 >>> c['B.title'] = 'Initial value'
+
+Since it is only post B's output HTML that depends on its body content,
+the todo list peters out rather quickly:
+
 >>> sorted(c.todo())
 ['B.html']
->>> c['B.body'] = 'HTML for post B'
+>>> c['B.html'] = 'HTML for post B'
+>>> c.todo()
+set()
 
-Editing its title, on the other hand, has consequences for the HTML of
+Editing B's title, on the other hand, has consequences for the HTML of
 both post B and post C.
 
 >>> c['B.title'] = 'Title B'
