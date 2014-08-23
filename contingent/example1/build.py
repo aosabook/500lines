@@ -61,9 +61,20 @@ def body_of(call, path):
     body = re.sub(r'title_of\(([^)]+)\)', format_title_reference, body)
     return body
 
-def render(call, path):
-    return '<h1>{}</h1>\n<p>Date: {}</p>\n{}'.format(
-        call(title_of, path), call(date_of, path), call(body_of, path))
+def sorted_posts(call, paths):
+    return sorted(paths, key=lambda path: call(date_of, path))
+
+def previous_post(call, paths, path):
+    paths = call(sorted_posts, paths)
+    i = paths.index(path)
+    return paths[i - 1] if i else None
+
+def render(call, paths, path):
+    previous = call(previous_post, paths, path)
+    previous_title = 'NONE' if previous is None else call(title_of, previous)
+    return '<h1>{}</h1>\n<p>Date: {}</p>\n<p>Previous post: {}</p>\n{}'.format(
+        call(title_of, path), call(date_of, path),
+        previous_title, call(body_of, path))
 
 def main():
     thisdir = os.path.dirname(__file__)
@@ -77,10 +88,9 @@ def main():
 
     paths = (glob(os.path.join(indir, '*.rst')) +
              glob(os.path.join(indir, '*.ipynb')))
-    posts = [(call(date_of, path), call(render, path)) for path in paths]
-    for post_date, html in sorted(posts):
+    for path in call(sorted_posts, paths):
         print '-' * 72
-        print html
+        print call(render, paths, path)
 
 if __name__ == '__main__':
     main()
