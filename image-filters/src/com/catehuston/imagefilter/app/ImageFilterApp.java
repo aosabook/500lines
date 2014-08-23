@@ -121,9 +121,6 @@ public class ImageFilterApp extends PApplet {
 		case 'p':
 			redrawImage = true;
 			break;
-		case 'w':
-			imageState.image().save(imageState.filepath() + "-new.png");
-			break;
 		case ' ':
 			imageState.resetImage(this, IMAGE_MAX);
 			redrawImage = true;
