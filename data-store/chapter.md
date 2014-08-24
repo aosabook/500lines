@@ -164,7 +164,7 @@ from the contents of the key/value store
     using the concrete ``BinaryTree`` implementation.
     This is how you'd use DBDB inside a Python program.
 
-* ``tree.py`` defines
+* ``logical.py`` defines
     the logical layer.
     It's an abstract interface to a key/value store.
 
@@ -194,7 +194,7 @@ from the contents of the key/value store
         which knows how to serialize and deserialize
         a ``BinaryNode``.
 
-* ``storage.py`` defines
+* ``physical.py`` defines
     physical layer.
     The ``Storage`` class
     provides persistent, append-only record storage.
