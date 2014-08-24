@@ -55,7 +55,9 @@ class TestTool(object):
 
     def _tool(self, *args):
         return subprocess.check_output(
-            ['python', '-m', 'dbdb.tool', self.tempfile_name] + list(args))
+            ['python', '-m', 'dbdb.tool', self.tempfile_name] + list(args),
+            stderr=subprocess.STDOUT,
+        )
 
     def test_get_non_existent(self):
         with assert_raises(subprocess.CalledProcessError) as raised:
