@@ -19,6 +19,8 @@ the repository.
 
 Continuous integration systems need not run per-commit. You can also have them run every few commits, or periodically. For our example case, I am simplifying this to just being per-commit.
 
+This CI system is designed to check periodically for changes in a repository. In real-world CI systems, you can also have the repository observer get notified by a hosted repository. Github, for example, provides 'post-commit hooks' which send out notifications to a URL. Following this model, the repository observer would be called by the webserver hosted at that URL to respond to that notification. Since this is complex to model locally, we're using an observer model, where the repository observer will check for changes instead of being notified.
+
 Introduction
 ------------
 
@@ -70,8 +72,6 @@ The test runner will also need its own clone of the code, so it can checkout the
 
 The repository observer (repo_observer.py)
 ------------------------------------------
-
-The repository observer is designed to check periodically for changes in a repository. In real-world CI systems, you can also have the repository observer get notified by a hosted repository. Github, for example, provides 'post-commit hooks' which send out notifications to a URL. Following this model, the repository observer would be called by the webserver hosted at that URL to respond to that notification. Since this is complex to model locally, we're using an observer model, where the repository observer will check for changes instead of being notified.
 
 
     Ideas to explore:
