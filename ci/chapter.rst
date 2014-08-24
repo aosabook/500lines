@@ -7,7 +7,7 @@ Continuous Integration (CI) systems are dedicated systems used to test new code.
 
 
 Project Limitations
--------------------
+===================
 
 This project uses Git as the code repository that needs to be tested. Only standard source code management calls will be used, so if you are unfamiliar with Git but are familiar with other version control systems like svn or Mercurial, you can still follow along.
 
@@ -24,12 +24,12 @@ This CI system is designed to check periodically for changes in a repository. In
 CI systems also have a reporter aspect to them, where the test runner reports its results to a reporter component that gathers results and makes them available for people to see like on a webpage. For simplicity, this project gathers the test results and stores them as files in the filesystem local to the dispatcher process.
 
 Introduction
-------------
+============
 
 This basic continuous integration (CI) system has 3 components: a listener or watcher for changes in the repository, a test job dispatcher, and a test runner. The first component is used to monitor the repository. When it notices that a commit has been made, then it must notify the job dispatcher. The job dispatcher then finds a test runner and gives it the commit number to test.  In this project, each of these components is its own process, and can be run on separate machines if you wish. In real world systems, they are run in a distributed environment so we can have failover redundancy (ie: we can fallback to a standby machine if one of the machines a process was running on because defunct).
 
 
-Files in this project
+Files in This Project
 ---------------------
 
 This project contains python files for each of these components: the repository observer (repo_observer.py), the test job dispatcher (dispatcher.py), and the test runner (test_runner.py). Each of these three processes communicate with each other using sockets, and since the code used to transmit information is shared by all of them, there is a helpers.py file that contains it, so each process imports the 'communicate' function from here instead of having it duplicated in the file.
@@ -39,7 +39,7 @@ There are also bash script files used by these processes. These script files are
 Lastly, there is a 'tests' directory, which contains two example tests the CI system will run. One test will pass, and the other will fail.
 
 
-Initial Set-up
+Initial Setup
 --------------
 
 Continuous integration systems run tests whenever a commit is made to a repository. We will need to set up the repository our CI system will monitor.
@@ -72,16 +72,17 @@ The test runner will also need its own clone of the code, so it can checkout the
 
   git clone /path/to/test_repo test_repo_clone_runner
 
+The Components
+==============
 
-The repository observer (repo_observer.py)
+The Repository Observer (repo_observer.py)
 ------------------------------------------
 
+The Dispatcher (dispatcher.py)
+------------------------------------------
 
-Points of Extensibility
------------------------
-
-* Have the test runner or dispatcher report results to a result gathering process, which will host results publicly.
-
+The Test Runner (test_runner.py)
+------------------------------------------
     Ideas to explore:
         What the organizational units are (e.g. modules, classes)
         Why things were modularized the way they were
@@ -91,4 +92,10 @@ Points of Extensibility
     Conclusion:
         Further extensions that could be made
         Similar real-world projects to explore
+
+
+Points of Extensibility
+=======================
+
+* Have the test runner or dispatcher report results to a result gathering process, which will host results publicly.
 
