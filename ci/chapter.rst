@@ -17,6 +17,8 @@ Due to the limitations of code length and unittest, I simplified test
 discovery. We will *only* run tests that are in a directory named "tests" within
 the repository.
 
+Continusous integration systems monitor a master repository which is usually hosted on a webserver, and not local to the CI's filesystems. For the cases of our example, we will use a local repository instead of a remote repository.
+
 Continuous integration systems need not run per-commit. You can also have them run every few commits, or periodically. For our example case, I am simplifying this to just being per-commit.
 
 This CI system is designed to check periodically for changes in a repository. In real-world CI systems, you can also have the repository observer get notified by a hosted repository. Github, for example, provides 'post-commit hooks' which send out notifications to a URL. Following this model, the repository observer would be called by the webserver hosted at that URL to respond to that notification. Since this is complex to model locally, we're using an observer model, where the repository observer will check for changes instead of being notified.
@@ -26,8 +28,9 @@ CI systems also have a reporter aspect to them, where the test runner reports it
 Introduction
 ============
 
-This basic continuous integration (CI) system has 3 components: a listener or watcher for changes in the repository, a test job dispatcher, and a test runner. The first component is used to monitor the repository. When it notices that a commit has been made, then it must notify the job dispatcher. The job dispatcher then finds a test runner and gives it the commit number to test.  In this project, each of these components is its own process, and can be run on separate machines if you wish. In real world systems, they are run in a distributed environment so we can have failover redundancy (ie: we can fallback to a standby machine if one of the machines a process was running on because defunct).
+This basic continuous integration (CI) system has 3 components: a listener or watcher for changes in the repository, a test job dispatcher, and a test runner. The first component is used to observe the repository. When it notices that a commit has been made, then it must notify the job dispatcher. The job dispatcher then finds a test runner and gives it the commit number to test.  In this project, each of these components is its own process, and can be run on separate machines if you wish. In real world systems, they are run in a distributed environment so we can have failover redundancy (ie: we can fallback to a standby machine if one of the machines a process was running on because defunct).
 
+Each of these processes will run locally, and you must kick them off individually. Since the processes need to communicate with each other, the dispatcher and the test runner will run locally listening on distinct local ports.
 
 Files in This Project
 ---------------------
@@ -77,6 +80,8 @@ The Components
 
 The Repository Observer (repo_observer.py)
 ------------------------------------------
+
+The repository observer must know which repository to observe, so when we invoke the repo_observer.py file, we must pass it the path to the repository, in this case /path/to/test_repo_clone_obs. The repository observer must communicate with the dispatcher, and to do so, it must know its server address and port. When you start the repository observer, you can pass in the dispatcher's server address using the '--dispatcher-server' command line argument. If you do not pass it in, it will assume the default address of 'localhost:8888'. 
 
 The Dispatcher (dispatcher.py)
 ------------------------------------------
