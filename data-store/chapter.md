@@ -168,9 +168,12 @@ from the contents of the key/value store
     the logical layer.
     It's an abstract interface to a key/value store.
 
-    - ``Tree`` is not tree-specific,
-        and defers to a concrete sub-class to implement updates.
-        It manages storage locking and dereferencing internal nodes.
+    - ``LogicalBase`` provides the API for logical updates
+        (like get, set, and commit)
+        and defers to a concrete sub-class
+        to implement the updates themselves.
+        It also manages storage locking
+        and dereferencing internal nodes.
 
     - ``ValueRef`` is a Python object that refers to
         a binary blob stored in the database.
@@ -179,7 +182,7 @@ from the contents of the key/value store
 
 * ``binary_tree.py`` defines
     a concrete binary tree algorithm
-    underneath the tree interface.
+    underneath the logical interface.
 
     - ``BinaryTree`` provides a concrete implementation
         of a binary tree, with methods for

@@ -1,7 +1,7 @@
 import pickle
 
 
-from dbdb.logical import Tree, ValueRef
+from dbdb.logical import LogicalBase, ValueRef
 
 
 class BinaryNode(object):
@@ -70,7 +70,7 @@ class BinaryNodeRef(ValueRef):
         )
 
 
-class BinaryTree(Tree):
+class BinaryTree(LogicalBase):
     node_ref_class = BinaryNodeRef
 
     def _get(self, node, key):
