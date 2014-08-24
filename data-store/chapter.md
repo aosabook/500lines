@@ -79,17 +79,17 @@ in code.
 Simplifications
 ---------------
 
-DBDB is not <http://en.wikipedia.org/wiki/ACID_(database)>[ACID].
+DBDB is not [ACID](http://en.wikipedia.org/wiki/ACID).
 While updates are atomic and durable,
 consistency is not covered
 (there are no constraints on the data stored)
-and isolation is not guaranteed(1).
+and isolation is not guaranteed[^isolation].
 Application code can of course impose its own consistency guarantees,
 but proper isolation requires a transaction manager
 (which could probably be its own 500 lines;
 maybe you should write it for the 2nd edition!).
 
-1. Given key:values ``{a:1, b:1}``,
+[^isolation]: Given key:values ``{a:1, b:1}``,
    and two transactions ``a = b + 1`` and ``b = a + 1``,
    full isolation requires that there's a way to run them
    one at a time and get the same effect as running them concurrently.
@@ -101,9 +101,9 @@ Stale data is not reclaimed in this implementation,
 so repeated updates
 (even to the same key)
 will eventually consume all disk space.
-Postgres calls this reclamation "vacuuming"
+[PostgreSQL](http://www.postgresql.org/) calls this reclamation "vacuuming"
 (which makes old row space available for re-use),
-and CouchDB calls it "compaction"
+and [CouchDB](http://couchdb.apache.org/) calls it "compaction"
 (by rewriting the "live" parts of the data store into a new file,
 and atomically moving it over the old one).
 DBDB can easily be enhanced to add a compaction feature,
@@ -113,9 +113,10 @@ but it is left as an exercise for the reader.
 Intro to the toolchain
 ----------------------
 
-The code is written in polyglot Python 2/3.
+The code is written in polyglot Python 2/3
+(tested via [``tox``](https://testrun.org/tox/latest/)).
 
-I recommended using ``virtualenv``
+I recommended using [``virtualenv``](https://virtualenv.pypa.io/en/latest/)
 when installing dependencies:
 
 ```bash
@@ -126,7 +127,7 @@ when installing dependencies:
 ...
 ```
 
-Tests can be run using ``nosetests``:
+Tests can be run using [``nosetests``](https://nose.readthedocs.org/en/latest/):
 
 ```bash
 (env)500lines/data-store$ nosetests
