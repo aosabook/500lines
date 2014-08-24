@@ -106,8 +106,10 @@ will eventually consume all disk space.
 and [CouchDB](http://couchdb.apache.org/) calls it "compaction"
 (by rewriting the "live" parts of the data store into a new file,
 and atomically moving it over the old one).
-DBDB can easily be enhanced to add a compaction feature,
-but it is left as an exercise for the reader.
+DBDB can be enhanced to add a compaction feature,
+which is left as an exercise for the reader.
+Bonus feature: you can rebalance the tree during compaction
+to maintain DBDB's runtime performance.
 
 
 Intro to the toolchain
@@ -216,38 +218,36 @@ each class should have only one reason to change.
 
 ### How it works
 
-DBDB's data structures are not strictly immutable internally,
-but they are effectively immutable from the user's perspective.
-Tree nodes are created
+DBDB's data structures are immutable from the API consumer's perspective.
+``BinaryTree`` nodes are created
 with an associated key and value,
 and left and right children.
 Those associates never change.
 Updating a key/value pair involves creating new nodes
-from the inserted/modified/deleted node
+from the inserted/modified/deleted leaf node
 all the way back up to the new root.
 Internally,
-a node's private parts mutate only
-to remember where its data was written (writing a node as part of a commit),
-or to remember the data when it's read from disk (after the node was read from disk).
+a node's private attributes mutate
+to remember where its data was written (writing a node as part of a commit).
 
-![Immutable tree](immutable.svg)
-
-![Immutable tree with updates](immutable2.svg)
-
-The insertion function returns a new root node,
-and the old one is garbage collected if it's no longer referenced.
-When it's time to commit the changes to disk,
+Update functions return a new root node,
+and the old root is garbage collected if it's no longer referenced
+(it could still be in use by a concurrent reader).
+When it's time to commit changes to disk,
 the tree is walked from the bottom-up
 ("postfix" or "depth-first" traversal),
-new nodes are serialised to disk,
-and the disk address of the new root node is written atomically
-(because single-block disk writes are atomic).
+new nodes are serialised to disk.
+Finally, the disk address of the new root node is written atomically
+(we know this because single-block disk writes are atomic).
+
+This also means that readers
+get lock-free access to a consistent
+(but possibly out-of-date)
+view of the tree.
 
 ![Tree nodes on disk before update](nodes_on_disk_1.svg)
 
 ![Tree nodes on disk after update](nodes_on_disk_2.svg)
-
-This also means that readers get lock-free access to a consistent view of the tree.
 
 To avoid keeping the entire tree structure in memory concurrently,
 when a logical node is read in from disk,
@@ -256,15 +256,15 @@ the disk address of its left and right children
 are loaded into memory.
 Accessing children and values
 requires one extra function call to `NodeRef.get()`
-to "really get" the thing.
-
-[INSERT PIC OF TREE WALK]
+to dereference ("really get") the data.
 
 When changes to the tree are not committed,
 they exist in memory
 with strong references from the root down to the changed leaves.
 Additional updates can be made before issuing a commit
 because `NodeRef.get()` will return the uncommitted value if it has one.
+Concurrent updates are blocked by a lockfile on disk.
+The lock is acquired on first-update, and released after commit.
 
 
 ### Points of extensibility
@@ -272,32 +272,11 @@ because `NodeRef.get()` will return the uncommitted value if it has one.
 The algorithm used to update the data store
 can be completely changed out
 by replacing the string ``BinaryTree`` in ``interface.py``.
-In particular,
-data stores of this nature tend to use B-trees
-not binary trees
-to improve the nodes-per-byte ratio
-of the tree.
-
-By default, values are stored by ``ValueRef``
-which expects bytes as values
-(to be passed directly to ``Storage``).
-The binary tree nodes themselves
-are just a sublcass of ``ValueRef``.
-Storing richer data
-(via ``json``, ``msgpack``, ``pickle``, or your own invention)
-is just a matter of writing your own
-and setting it as the ``value_ref_class``.
-
-
-### Tradeoffs (time/space, performance/readability)
-
-The binary tree is much easier to write
-and hopefully easier to read
-than other tree structures would have been.
-Structures like B-tree, B+ tree, B\*-tree
-[and others](http://en.wikipedia.org/wiki/Tree_%28data_structure%29)
-provide superior performance,
-particularly for on-disk structures like this.
+Data stores tend to use more complex types of search trees
+such as [B-trees](http://en.wikipedia.org/wiki/B-tree),
+[B+ trees](http://en.wikipedia.org/wiki/B%2B_tree),
+[and others](http://en.wikipedia.org/w/index.php?title=Template:CS_trees)
+to improve the performance.
 While a balanced binary tree
 (and this one isn't)
 needs to do $O(log_2(n))$ random node reads to find a value,
@@ -307,6 +286,32 @@ This makes a huge different in practise,
 since looking through 4 billion entries would go from
 $log_2(2^32) = 32$ to $log_32(2^32) \approx 6.4$ lookups.
 
+By default, values are stored by ``ValueRef``
+which expects bytes as values
+(to be passed directly to ``Storage``).
+The binary tree nodes themselves
+are just a sublcass of ``ValueRef``.
+Storing richer data
+(via [``json``](http://json.org),
+[``msgpack``](http://msgpack.org),
+or your own invention)
+is just a matter of writing your own
+and setting it as the ``value_ref_class``.
+``BinaryNodeRef`` is an example of using
+[``pickle``](https://docs.python.org/3.4/library/pickle.html)
+to serialize data.
+
+Database compaction.
+Compacting should be as simple as
+doing an infix-of-median traversal of the tree
+writing things out as you go.
+It's probably best if the tree nodes all go together,
+since they're what have to be traversed
+to find any piece of data.
+Packing as many intermediate nodes as possible
+into a disk sector
+should improve read performance
+at least right after compaction.
 
 ### Patterns or principles that can be used elsewhere
 
@@ -322,40 +327,4 @@ Classes should have at most one reason to change.
 That's not strictly the case with DBDB,
 but there are multiple avenues of extension
 with only localised changes required.
-
-
-Conclusion
-----------
-
-* Futher extensions to make:
-
-    - Full and proper multi-client, non-clobbering support.
-        Concurrent dirty readers already "just work",
-        but concurrent writers,
-        and readers-who-then-write
-        could cause problems.
-        Beyond making the implementation "safe",
-        it's important to provide a useful
-        and hard-to-use-incorrectly
-        interface to users.
-
-    - Database compaction.
-        Compacting should be as simple as
-        doing an infix-of-median traversal of the tree
-        writing things out as you go.
-        It's probably best if the tree nodes all go together,
-        since they're what have to be traversed
-        to find any piece of data.
-        Packing as many intermediate nodes as possible
-        into a disk sector
-        should improve read performance
-        at least right after compaction.
-
-    - If compaction is enabled,
-        it's probably not useful to truncate uncommitted writes
-        on crash recovery.
-
-   
-* Similar real-world projects to explore:
-
-    - CouchDB
+Refactoring as I added features was a pleasure!
