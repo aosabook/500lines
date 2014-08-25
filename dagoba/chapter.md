@@ -32,7 +32,7 @@ A reasonable schema for this data structure would be to have a table of entities
 SELECT e.* FROM entities as e, relationships as r WHERE r.out = "Thor" AND r.type = "parent" AND r.in = e.id
 ```
 
-But how do we extend that to grandparents? We need to do a subquery, or use some other type of vendor-specific extension to SQL. And by the time we get to second cousins once removed we're going to have ALOTTA SQL. [I don't like ALOTTA.]
+But how do we extend that to grandparents? We need to do a subquery, or use some other type of vendor-specific extension to SQL. And by the time we get to second cousins once removed we're going to have ALOTTA SQL.
 
 What would we like to write? Something both concise and flexible; something that models our query in a natural way and extends to other queries like it. ```second_cousins_once_removed('Thor')``` is concise, but it doesn't give us any flexibility. The SQL above is flexible, but lacks concision.
 
@@ -50,7 +50,7 @@ What's the simplest thing we can build that gives us this kind of interface? We 
   children = function(x) { return E.reduce( function(acc, e) { return (e[0] === x) ? acc.concat(e[1]) : acc }, [] )}
 ```
 
-Now we can say something like ```children(children(children(parents(parents(parents('Thor'))))))```. It reads backwards and has a lot of silly parens [does eveyone know "parens"?  it took me a moment to parse], but is otherwise pretty close to what we wanted. Take a minute to look at the code. Can you see any ways to improve it?
+Now we can say something like ```children(children(children(parents(parents(parents('Thor'))))))```. It reads backwards and has a lot of silly parens, but is otherwise pretty close to what we wanted. Take a minute to look at the code. Can you see any ways to improve it?
 
 Well, we're treating the edges as a global variable, which means we can only ever have one database at a time using these helper functions. That's pretty limiting. 
 
@@ -68,7 +68,7 @@ Do you see any other issues?
   Notice that we're modeling edges as a pair of vertices. Also notice that those pairs are ordered, because we're using arrays. That means we're modeling a *directed graph*, where every edge has a starting vertex and an ending vertex. [lines have arrows.] Doing it this way adds some complexity to our model because we have to keep track of the direction of edges, but it also allows us to ask more interesting questions, like "which vertices point in to vertex 3?" or "which vertex has the most outgoing edges?". [footnote2] [footnote in a footnote? Can you get away with that if you're not David Foster Wallace?]
 
 [footnote2]
-  If needed we can model an undirected graph by doubling up our edges, but it can be cumbersome to simulate a directed graph from an undirected one. So the directed graph model is more versatile in this context.  [I'm usually good at following the code, at least a bit.  I don't see how the code below relates to this footnote.]
+  If needed we can model an undirected graph by doubling up our edges, but it can be cumbersome to simulate a directed graph from an undirected one. So the directed graph model is more versatile in this context. [maybe explain this better]
 ```
     function undirectMe (edges) 
       { return edges.reduce( function(acc, edge)
@@ -128,7 +128,7 @@ Dagoba.G.addEdge = function(edge) {
   edge._out = this.findVertexById(edge._out)
   if(!(edge._in && edge._out)) return false                       // something is missing
   edge._out._out.push(edge)
-  edge._in._in.push(edge)                                         // the edge's vertex's edges [I find myself wondering if you mean "edge's vertices' edges", but can't follow the code well enough...]
+  edge._in._in.push(edge)                                         // the edge's vertex's edges [expand this]
   this.edges.push(edge)
 }
 ```
@@ -157,7 +157,7 @@ Suppose we'd like to find a few people who have both tennis and philately as a h
 G.v('tennis').in().as('person').outV('philately').in().matches('person').take(5)
 ```
 
-And this works great, until our graph gets large and we run out of memory before Dave Brubeck gets to play [huh?  Is this the sign things are devolving?]. The problem is that we're completing each query segment before passing the data along to the next one, so we end up with an immense amount of data. If there were a way for later segments to pull data from earlier segments instead of having it pushed in to them, that would solve this problem. In other words, we need lazy evaluation. 
+And this works great, until our graph gets large and we run out of memory before Dave Brubeck gets to play. The problem is that we're completing each query segment before passing the data along to the next one, so we end up with an immense amount of data. If there were a way for later segments to pull data from earlier segments instead of having it pushed in to them, that would solve this problem. In other words, we need lazy evaluation. 
 
 Now in some languages that would be trivial, but JavaScript is an eager language, so we're going to have to do a little work. First of all, our query segments can't just return data any more. Instead we're going to need to process each segment on demand. That means we'll need some way of driving this process forward. Here's how we'll do that.
 
@@ -552,7 +552,6 @@ so we get to eat our cake and have it fast too.
 
 
 
-[this is how far I've made it so far!]
 
 ### Hooks
 
