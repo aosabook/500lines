@@ -32,6 +32,15 @@ public class ImageStateTest {
 		imageState = new ImageState(colorHelper);
 	}
 
+	private void assertState(ColorMode colorMode, int redFilter,
+			int greenFilter, int blueFilter, int hueTolerance) {
+		assertEquals(colorMode, imageState.getColorMode());
+		assertEquals(redFilter, imageState.redFilter());
+		assertEquals(greenFilter, imageState.greenFilter());
+		assertEquals(blueFilter, imageState.blueFilter());
+		assertEquals(hueTolerance, imageState.hueTolerance());
+	}
+
 	@Test public void testUpdateImageDominantHueHidden() {
 		imageState.setFilepath("filepath");
 		imageState.set(image, ColorMode.HIDE_DOMINANT_HUE, 5, 10, 15, 10);
@@ -71,39 +80,55 @@ public class ImageStateTest {
 
 	@Test public void testKeyPress() {
 		imageState.processKeyPress('r', 5, 100, 2, 200);
-		assertState(ColorMode.COLOR_FILTER, 5, 0, 0);
+		assertState(ColorMode.COLOR_FILTER, 5, 0, 0, 5);
 
 		imageState.processKeyPress('e', 5, 100, 2, 200);
-		assertState(ColorMode.COLOR_FILTER, 0, 0, 0);
+		assertState(ColorMode.COLOR_FILTER, 0, 0, 0, 5);
 
 		imageState.processKeyPress('g', 5, 100, 2, 200);
-		assertState(ColorMode.COLOR_FILTER, 0, 5, 0);
+		assertState(ColorMode.COLOR_FILTER, 0, 5, 0, 5);
 
 		imageState.processKeyPress('f', 5, 100, 2, 200);
-		assertState(ColorMode.COLOR_FILTER, 0, 0, 0);
+		assertState(ColorMode.COLOR_FILTER, 0, 0, 0, 5);
 
 		imageState.processKeyPress('b', 5, 100, 2, 200);
-		assertState(ColorMode.COLOR_FILTER, 0, 0, 5);
+		assertState(ColorMode.COLOR_FILTER, 0, 0, 5, 5);
 
 		imageState.processKeyPress('v', 5, 100, 2, 200);
-		assertState(ColorMode.COLOR_FILTER, 0, 0, 0);
+		assertState(ColorMode.COLOR_FILTER, 0, 0, 0, 5);
 
 		imageState.processKeyPress('h', 5, 100, 2, 200);
-		assertState(ColorMode.HIDE_DOMINANT_HUE, 0, 0, 0);
+		assertState(ColorMode.HIDE_DOMINANT_HUE, 0, 0, 0, 5);
+
+		imageState.processKeyPress('i', 5, 100, 2, 200);
+		assertState(ColorMode.HIDE_DOMINANT_HUE, 0, 0, 0, 7);
+
+		imageState.processKeyPress('u', 5, 100, 2, 200);
+		assertState(ColorMode.HIDE_DOMINANT_HUE, 0, 0, 0, 5);
+
+		imageState.processKeyPress('h', 5, 100, 2, 200);
+		assertState(ColorMode.COLOR_FILTER, 0, 0, 0, 5);
 
 		imageState.processKeyPress('s', 5, 100, 2, 200);
-		assertState(ColorMode.SHOW_DOMINANT_HUE, 0, 0, 0);
+		assertState(ColorMode.SHOW_DOMINANT_HUE, 0, 0, 0, 5);
+
+		imageState.processKeyPress('s', 5, 100, 2, 200);
+		assertState(ColorMode.COLOR_FILTER, 0, 0, 0, 5);
+
+		// Random key should do nothing.
+		imageState.processKeyPress('z', 5, 100, 2, 200);
+		assertState(ColorMode.COLOR_FILTER, 0, 0, 0, 5);
 	}
 
-	private void assertState(ColorMode colorMode, int redFilter,
-			int greenFilter, int blueFilter) {
-		assertEquals(colorMode, imageState.getColorMode());
-		assertEquals(redFilter, imageState.redFilter());
-		assertEquals(greenFilter, imageState.greenFilter());
-		assertEquals(blueFilter, imageState.blueFilter());
+	@Test public void testSave() {
+		imageState.set(image, ColorMode.SHOW_DOMINANT_HUE, 5, 10, 15, 10);
+		imageState.setFilepath("filepath");
+		imageState.processKeyPress('w', 5, 100, 2, 200);
+
+		verify(image).save("filepath-new.png");
 	}
 
-	@Test public void testSetupImage() {
+	@Test public void testSetupImageLandscape() {
 		imageState.set(image, ColorMode.SHOW_DOMINANT_HUE, 5, 10, 15, 10);
 		when(image.getWidth()).thenReturn(20);
 		when(image.getHeight()).thenReturn(8);
@@ -112,9 +137,18 @@ public class ImageStateTest {
 		verify(image).resize(10, 4);
 	}
 
+	@Test public void testSetupImagePortrait() {
+		imageState.set(image, ColorMode.SHOW_DOMINANT_HUE, 5, 10, 15, 10);
+		when(image.getWidth()).thenReturn(8);
+		when(image.getHeight()).thenReturn(20);
+		imageState.setUpImage(applet, 10);
+		verify(image).update(applet, null);
+		verify(image).resize(4, 10);
+	}
+
 	@Test public void testResetImage() {
 		imageState.set(image, ColorMode.SHOW_DOMINANT_HUE, 5, 10, 15, 10);
 		imageState.resetImage(applet, 10);
-		assertState(ColorMode.COLOR_FILTER, 0, 0, 0);
+		assertState(ColorMode.COLOR_FILTER, 0, 0, 0, 5);
 	}
 }
