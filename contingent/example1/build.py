@@ -2,12 +2,19 @@
 
 import os
 import re
+import sys
 from IPython.nbconvert import HTMLExporter
 from IPython.nbformat import current as nbformat
 from docutils.core import publish_doctree, publish_parts
 from docutils import nodes
 from glob import glob
 from jinja2 import DictLoader
+
+# Hmm. No distribution is in play here (so can't ``from contingent import …``)
+# and relative imports don't work because the parent package hasn't been
+# imported…
+sys.path.insert(0, '..')
+from builderlib import Builder
 
 dl = DictLoader({'full.tpl': """\
 {%- extends 'display_priority.tpl' -%}
@@ -83,14 +90,28 @@ def main():
     if not os.path.exists(outdir):
         os.mkdir(outdir)
 
-    def call(f, *args):
+    def compute(target, get):
+        "Compute a dependency by direct invocation of the target function."
+        f, args = target
+        # The functions above expect a provider callable with a parameter
+        # signature of (fn, *args). Builder.get accepts a single target tuple;
+        # ``call`` (defined below) mediates between the two by packaging its
+        # arguments into a target tuple as required by Builder.
         return f(call, *args)
+
+    builder = Builder(compute)
+
+    def call(f, *args):
+        "Compute a target using a Builder."
+        target = f, args
+        return builder.get(target)
 
     paths = (glob(os.path.join(indir, '*.rst')) +
              glob(os.path.join(indir, '*.ipynb')))
+    paths = tuple(paths)
     for path in call(sorted_posts, paths):
-        print '-' * 72
-        print call(render, paths, path)
+        print('-' * 72)
+        print(call(render, paths, path))
 
 if __name__ == '__main__':
     main()
