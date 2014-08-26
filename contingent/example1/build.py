@@ -10,6 +10,7 @@ from glob import glob
 from jinja2 import DictLoader
 
 from contingent.builderlib import Builder
+from contingent.utils import looping_wait_on
 
 dl = DictLoader({'full.tpl': """\
 {%- extends 'display_priority.tpl' -%}
@@ -107,6 +108,15 @@ def main():
     for path in call(sorted_posts, paths):
         print('-' * 72)
         print(call(render, paths, path))
+
+    print('Watching for files to change')
+
+    while True:
+        changed_paths = looping_wait_on(paths)
+        print('Reloading:', ' '.join(changed_paths))
+        for path in changed_paths:
+            builder.recompute((read_text_file, (path,)))
+        builder.rebuild(verbose=True)
 
 if __name__ == '__main__':
     main()

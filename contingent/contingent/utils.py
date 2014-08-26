@@ -28,7 +28,7 @@ def looping_wait_on(paths):
     start = time.time()
     changed_paths = []
     while not changed_paths:
-        time.sleep(1.0)
+        time.sleep(0.5)
         changed_paths = [path for path in paths
                          if os.stat(path).st_mtime > start]
     return changed_paths

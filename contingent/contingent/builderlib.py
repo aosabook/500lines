@@ -29,7 +29,7 @@ class Builder:
         value = self.cache.get(dependency)
         if value is _absent:
             value = self.recompute(dependency)
-            self.cache[dependency] = value
+            # self.cache[dependency] = value
         return value
 
     def set(self, target, value):
@@ -57,9 +57,10 @@ class Builder:
             value = self.compute(target, self.get)
         finally:
             self.target_stack.pop()
+        self.cache[target] = value
         return value
 
-    def rebuild(self):
+    def rebuild(self, verbose=True):
         """Rebuild everything.
 
         If nothing has changed recently, the cache's to-do list will be
@@ -71,6 +72,8 @@ class Builder:
         while todo:
             todo = list(todo)
             for target in self.graph.consequences_of(todo, include=True):
+                if verbose:
+                    print(target)
                 self.get(target)
             todo = self.cache.todo()
 
