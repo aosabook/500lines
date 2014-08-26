@@ -349,7 +349,7 @@ return value of a call that the endpoint invokes. We introduce a
 notion of `FlowModule`, and assign field `accesses` to represent the
 set of data elements that the module can access at each time step:
 
-```
+```alloy
 sig FlowModule in Endpoint {
   -- Set of data that this component initially owns
   accesses: Data -> Time
@@ -370,7 +370,7 @@ sig FlowModule in Endpoint {
 
 We are not quite done yet! We also need to restrict data elements that a module can provide as arguments or return values of a call; otherwise, we may get weird scenarios where a module can make a call with an argument that it has no access to!
 
-```
+```alloy
 sig FlowCall in Call { ... } {
   -- (1) Any arguments must be accessible to the sender
   args in from.accesses.start
