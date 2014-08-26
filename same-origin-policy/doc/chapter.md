@@ -463,15 +463,16 @@ In order to allow some form of cross-origin communication when necessary, browse
 
 The SOP is a classic example of the tension between functionality and security; we want to make sure our sites are secure, but the mechanism for ensuring security sometimes can get in the way of getting the sites to work properly. Indeed, when the SOP was initially introduced, developers ran into trouble building sites that had legitimate use of cross-domain communication (e.g., mashups)!
 
-In this section, we will discuss four techniques that have been devised and frequently used by web developers to bypass the restrictions imposed by the SOP: (1) "document.domain" property, (2) JSONP, (3) PostMessage, and (4) CORS. These are useful tools, but when they are without caution, the security problems that the SOP was designed to prevent in the first place can creep back into the picture! 
+In this section, we will discuss four techniques that have been devised and frequently used by web developers to bypass the restrictions imposed by the SOP: (1) "document.domain" property, (2) JSONP, (3) PostMessage, and (4) CORS. These are useful tools, but when they are used without caution, the security problems that the SOP was designed to prevent in the first place can creep back into the picture! 
 
 Each of these four techniques is surprisingly complex, and to be described in full detail, could merit its own chapter. So here, we will give you a brief flavor of how they work, potential security problems that they introduce, and how to prevent these problems.
 
 ### Domain property
 
-The general idea behind the domain property relaxation of the SOP, is to
-give two pages of a same site the chance to communicate between each other by
-setting the `document.domain` property to the same value. So, for example,
+The idea behind the domain property relaxation of the SOP, is to
+give two pages of a same site the chance to read/write each others DOM by
+setting the `document.domain` property to the same value. Thus bypassing the SOP
+restriction on DOM access. So, for example,
 a script in `foo.example.com` could read/write the DOM of `example.com` if both
 scripts set the `document.domain` property to `example.com` (assuming both
 source URLs have also the same protocol and port). 
@@ -551,7 +552,7 @@ are from different origins manage to communicate between each other:
 TODO... more here
 
 Several properties of this mechanism make it less suitable for cross-origin
-communication than other (more modern) alternatives (post message and CORS).
+DOM access than PostMessage (discussed shortly).
 First, the mechanism is not general enough. While it is possible to use it to
 enable some kinds of cross-origin communication, this is only limited to those
 situations in which all ends have the same base domain.
@@ -563,7 +564,7 @@ between each other but you are also allowing any other page, say
 `qux.example.com` to read/write the DOM of both `foo.example.com` and
 `bar.example.com` (since it is possible for it to set the domain property to
 `example.com`). It might seem like a small detail, but if `qux.example.com`
-has a XSS vulnerability, then an attacker would be able to read/write the DOM
+has a XSS vulnerability, then an attacker could be able to read/write the DOM
 of these other pages while in a situation in which the domain mechanism is not
 used, it wouldn't.
 
