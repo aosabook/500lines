@@ -555,9 +555,25 @@ pred domSop {
 Now we can ask the analyzer to give us an instance where two documents that
 are from different origins manage to communicate between each other:
 
-TODO... more here
+```alloy
+// Can a script read or write the DOM of a document with another origin?
+run { some c: ReadDom + WriteDom | origin[c.doc.src] != origin[c.from.context.src] }
+```
 
-Several properties of this mechanism make it less suitable for cross-origin
+This is one of the instances generated:
+
+![sop-instance-1](fig-sop-1.png)
+![sop-instance-2](fig-sop-2.png)
+
+In this instance we have two scripts, which are executing under a different
+context, with different URLs that correspond to different origins. But, one
+of the domain subsumes the other, so both scripts do a `SetDomain` that
+sets the domain property of each document to the same value, and after
+the execution of these calls, the `WriteDom` call is allowed. If it weren't
+for the domain property mechanism, this kind of cross-origin communication
+wouldn't be allowed per the SOP.
+
+Yet several properties of this mechanism make it less suitable for cross-origin
 DOM access than PostMessage (which we will discuss shortly).
 First, the mechanism is not general enough. While it is possible to use it to
 enable some kinds of cross-origin communication, this is only limited to those
