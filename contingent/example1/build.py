@@ -2,7 +2,6 @@
 
 import os
 import re
-import sys
 from IPython.nbconvert import HTMLExporter
 from IPython.nbformat import current as nbformat
 from docutils.core import publish_doctree, publish_parts
@@ -10,11 +9,7 @@ from docutils import nodes
 from glob import glob
 from jinja2 import DictLoader
 
-# Hmm. No distribution is in play here (so can't ``from contingent import …``)
-# and relative imports don't work because the parent package hasn't been
-# imported…
-sys.path.insert(0, '..')
-from builderlib import Builder
+from contingent.builderlib import Builder
 
 dl = DictLoader({'full.tpl': """\
 {%- extends 'display_priority.tpl' -%}

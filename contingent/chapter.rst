@@ -1,7 +1,7 @@
 
 Build systems maintain a directed graph.
 
->>> from graphlib import Graph
+>>> from contingent.graphlib import Graph
 >>> g = Graph()
 
 A system like ``make`` rebuilds an output file when one of its source
@@ -164,7 +164,7 @@ its current value with its value from the previous run.
 
 >>> open('diagram3.dot', 'w').write(g.as_graphviz()) and None
 
->>> from cachelib import Cache
+>>> from contingent.cachelib import Cache
 >>> c = Cache(g)
 
 In the first run of the build, the cache is empty, so each target
@@ -350,7 +350,7 @@ it later.  So I am going to opt for the last of these options.  By
 having our objects inherit from a base class with a single method, we
 will turn them into full participants in an object graph.
 
->> from interceptlib import Base
+>> from contingent.interceptlib import Base
 >> class Post(Base):
 ..     def __init__(self):
 ..         self.content = ''

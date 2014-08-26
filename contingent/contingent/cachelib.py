@@ -1,3 +1,4 @@
+"""Class for caching build outputs."""
 
 _absent = object()
 

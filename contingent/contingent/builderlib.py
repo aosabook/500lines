@@ -1,7 +1,7 @@
-from cachelib import Cache, _absent
 from contextlib import contextmanager
-from graphlib import Graph
 
+from .cachelib import Cache, _absent
+from .graphlib import Graph
 
 class Builder:
     def __init__(self, compute):
