@@ -31,6 +31,16 @@ steps exploring different language design choices, the last step to improve the
 efficiency of the object model. The final model is not that of a real language,
 but an idealized, simplified version of that of Python.
 
+TODO (debo): You refer a lot to smalltalk semantics throughout the chapter, but
+I feel like many of our readers will not really understand what that means
+until they've seen it.
+
+I think it might help to do a quick intro at beginning of chapter to how that
+works, and how it compares to e.g. simula-type semantics that the readers will
+probably be more familiar with. (Although I guess any of our objc-fluent
+readers will be mostly comfortable with it.)
+
+
 The object models presented in this chapter will also be implemented in Python
 (The code works on both Python 2.7 and 3.4).
 To understand the behavior and the design choice better the chapter will also
@@ -144,6 +154,14 @@ def test_read_write_field():
     assert obj.read_attr("b") == 5
 ````
 
+TODO (debo): What are OBJECT and TYPE?
+
+TODO (debo): I think it might be better to put these tests before you implement
+the base class. I wasn't exactly sure how you were going to instantiate and use
+your objects, so I was sort of re-reading the Base class definition a few times
+before I took a guess. Having the tests first would unambiguously define how
+one expects to interact with your classes+objects. 
+
 The test shows that we need two classes ``Class`` and ``Instance`` to represent
 classes and instances in the object model respectively. Both of them should
 inherit from ``Base``. The constructor of ``Instance`` just takes the class to
@@ -155,6 +173,9 @@ Both instances and classes will use a dictionary to store their fields.
 Therefore it makes sense to introduce a shared helper class for that part of
 their behaviour (in theory that behaviour could also be part of ``Base``, but in
 a later section it will become important that this is not the case):
+
+TODO (debo): Could you potentially move all of this into Base here, and then
+show your refactoring to BaseWithDict later? 
 
 ````python
 MISSING = object()
@@ -223,6 +244,15 @@ TYPE.cls = TYPE
 OBJECT.cls = TYPE
 ````
 
+TODO (debo): As of right now, I find myself wondering why we even bother having
+fields as a parameter at all, because it seems like we never use it (always
+pass empty.) Maybe a test showing how these are used would make it seem less
+extraneous.
+Also, at this stage it seems like objects are tracking their base class for no
+reason at all, because it's not being used for anything. I assume that the
+reason for this is coming up soon, but maybe a warning that we're doing some
+stuff 'in advance' here might help.
+
 To define new metaclasses it is enough to subclass ``TYPE``. However, in the
 rest of this chapter we won't do that, and simply always use ``TYPE`` as each
 classes metaclass.
@@ -232,6 +262,11 @@ XXX diagram?
 Now the first test passes. A second test that is easy to write and immediately
 passes is the following. It checks that reading and writing attributes works on
 classes as well.
+
+TODO (debo): Until we got to this point, I was confused as to why classes would
+need a dict of fields rather than just a list of fieldnames that instances
+would have to bind. I didn't realize we were going to also treat classes as
+objects at this stage. 
 
 ````python
 def test_read_write_field_class():
@@ -783,6 +818,11 @@ def test_maps():
     assert p3.map is not p1.map
     assert p3.map.attrs == {"x": 0, "z": 1}
 ````
+
+TODO (debo): Your previous tests were very black-box, whereas this one feels
+more white-box. This may be interesting to explore / discuss a bit. No worries
+if you'd rather not, it was just a thought I had.
+
 
 The ``attrs`` attribute of the map of ``p1`` describes the layout of the
 instance as having two attributes ``"x"`` and ``"y"`` which are stored at
