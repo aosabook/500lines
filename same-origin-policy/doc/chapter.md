@@ -301,27 +301,33 @@ These two instances tell us that extra measures are needed to restrict the behav
 
 ## Security Properties
 
-What exactly do we mean when we say our system is _secure_? 
+Before we move onto the SOP, there is an important question that we
+have not discussed yet: What exactly do we mean when we say our system
+is _secure_?
 
-We turn to two well-known concepts in information
+It turns out that this is actually quite difficult to answer, since
+security has different meanings to different people, and there is
+still a lot of on-going research in the security community to develop
+a universal notion of security. Nevertheless, for our purpose, we will
+turn to two well-studied concepts in information
 security---confidentiality and integrity. Both of these concepts talk
-about how information should be allowed to _flow_ throughout various
-parts of the system. Roughly, confidentiality means that a critical
-piece of data should only be accessible to agents that are deemed
-trusted. On the other hand, integrity means trusted agents should only
-rely on data that have not been maliciously tampered with.
+about how information should be allowed to travel throughout
+various parts of the system. Roughly, _confidentiality_ means that a
+critical piece of data should only be accessible to agents that are
+deemed trusted. On the other hand, _integrity_ means trusted agents
+should only rely on data that have not been maliciously tampered with.
 
-Before we can state these two security properties more precisely, we
-first need to define what it means for a piece of data to _flow_ from
-one part of the system to another. In our model so far, we have
-described interactions between two endpoints as being carried out
-through _calls_; e.g., a browser interacts with a server by making
-HTTP requests, and a script interacts with the browser by invoking
-browser API calls. Intuitively, during each call, a piece of data may
-flow from one endpoint to another as an _argument_ or _return value_
-of the call. To represent this, we introduce a notion of `FlowCall`
-into the model, and associate each call with a set of `args` and
-`returns` data fields:
+In order to specify two security properties more precisely, we first
+need to define what it means for a piece of data to _flow_ from one
+part of the system to another. In our model so far, we have described
+interactions between two endpoints as being carried out through
+_calls_; e.g., a browser interacts with a server by making HTTP
+requests, and a script interacts with the browser by invoking browser
+API calls. Intuitively, during each call, a piece of data may flow
+from one endpoint to another as an _argument_ or _return value_ of the
+call. To represent this, we introduce a notion of `FlowCall` into the
+model, and associate each call with a set of `args` and `returns` data
+fields:
 
 ```alloy
 sig Data in Resource + Cookie {}
@@ -592,24 +598,28 @@ processData(mydata)
 
 which is a valid Javascript statement, and is executed by the browser in the current document.
 
-In our approach, JSONP is modeled as a type of HTTP requests that include the identifier of a callback function as the `padding` parameter. In return, the server returns a response that includes the requested `payload` wrapped inside the name of the callback function (`cb`).
+In our approach, JSONP is modeled as a type of HTTP requests that
+include the identifier of a callback function as the `padding`
+parameter. In return, the server returns a response that is wrapped
+inside the name of the callback function (`cb`).
 
 ```alloy
 sig CallbackID {}  // identifier of a callback function
 // Request sent as a result of <script> tag
-sig JsonpRequest in browser/BrowserHttpRequest {
+sig JsonpRequest in BrowserHttpRequest {
   padding: CallbackID
+}{
+  response in JsonpResponse
 }
 sig JsonpResponse in Resource {
-  cb : CallbackID,
-  payload : Resource
+  cb: CallbackID
 }
 ```
 
 When the browser receives the response, it executes the callback function 
 
 ```alloy
-sig JsonpCallback extends script/EventHandler {
+sig JsonpCallback extends EventHandler {
   cb: CallbackID,
   payload: Resource
 }{
@@ -617,13 +627,25 @@ sig JsonpCallback extends script/EventHandler {
   let resp = causedBy.response | 
     cb = resp.@cb and
     -- result of JSONP request is passed on as an argument to the callback
-    payload = resp.@payload
+    payload = resp
 }
 ```
 
-Note that the callback function executed is the same as the one that's included in the response (`cb = resp.@cb`), but _not_ necessarily the same as the padding. In other words, for the JSONP communication to work, the server is responsible for properly constructing a response that includes the original padding as the callback function (i.e., ensure that `JsonRequest.padding = JsonpResponse.cb`). This also means that the server can choose to include any other callback (or in principle, any piece of Javascript) that is completely different from the requested padding.
+Note that the callback function executed is the same as the one that's
+included in the response (`cb = resp.@cb`), but _not_ necessarily the
+same as the padding. In other words, for the JSONP communication to
+work, the server is responsible for properly constructing a response
+that includes the original padding as the callback function (i.e.,
+ensure that `JsonRequest.padding = JsonpResponse.cb`). This also means
+that the server can choose to include any other callback (or in
+principle, any piece of Javascript) that is completely different from
+the requested padding.
 
-This last point has an important security implication; if the server is misbehaving or compromised, it can inject a piece of malicious code into the original site, essentially carrying out an XSS attack. Thus, before using JSONP, you must make sure that the server can be completely trusted.
+This last point has an important security implication; if the server
+is misbehaving or compromised, it can inject a piece of malicious code
+into the original site, essentially carrying out an XSS attack. Thus,
+before using JSONP, you must make sure that the server can be
+completely trusted.
 
 ### PostMessage
 

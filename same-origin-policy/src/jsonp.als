@@ -13,7 +13,7 @@ open origin
 sig CallbackID {}  // identifier of a callback function
 
 // Request sent as a result of <script> tag
-sig JsonpRequest in browser/BrowserHttpRequest {
+sig JsonpRequest in BrowserHttpRequest {
   padding: CallbackID
 }{
   response in JsonpResponse
@@ -24,7 +24,7 @@ sig JsonpResponse in Resource {
 }
 
 // Callback function called when the JSONP request completes
-sig JsonpCallback extends script/EventHandler {
+sig JsonpCallback extends EventHandler {
   cb: CallbackID,
   payload : Resource
 }{
