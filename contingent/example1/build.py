@@ -88,6 +88,8 @@ def main():
 
     def compute(target, get):
         "Compute a dependency by direct invocation of the target function."
+        if verbose:
+            print('Computing', target)
         f, args = target
         # The functions above expect a provider callable with a parameter
         # signature of (fn, *args). Builder.get accepts a single target tuple;
@@ -95,6 +97,7 @@ def main():
         # arguments into a target tuple as required by Builder.
         return f(call, *args)
 
+    verbose = False
     builder = Builder(compute)
 
     def call(f, *args):
@@ -111,12 +114,13 @@ def main():
 
     print('Watching for files to change')
 
+    verbose = True
     while True:
         changed_paths = looping_wait_on(paths)
         print('Reloading:', ' '.join(changed_paths))
         for path in changed_paths:
             builder.recompute((read_text_file, (path,)))
-        builder.rebuild(verbose=True)
+        builder.rebuild()
 
 if __name__ == '__main__':
     main()

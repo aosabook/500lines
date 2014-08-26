@@ -60,7 +60,7 @@ class Builder:
         self.cache[target] = value
         return value
 
-    def rebuild(self, verbose=True):
+    def rebuild(self):
         """Rebuild everything.
 
         If nothing has changed recently, the cache's to-do list will be
@@ -72,8 +72,6 @@ class Builder:
         while todo:
             todo = list(todo)
             for target in self.graph.consequences_of(todo, include=True):
-                if verbose:
-                    print(target)
                 self.get(target)
             todo = self.cache.todo()
 
