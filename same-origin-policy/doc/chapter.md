@@ -471,8 +471,8 @@ Each of these four techniques is surprisingly complex, and to be described in fu
 
 The idea behind the domain property relaxation of the SOP, is to
 give two pages of a same site the chance to read/write each others DOM by
-setting the `document.domain` property to the same value. Thus bypassing the SOP
-restriction on DOM access. So, for example,
+setting the `document.domain` property to the same value -- thus bypassing the
+SOP restriction on DOM access. So, for example,
 a script in `foo.example.com` could read/write the DOM of `example.com` if both
 scripts set the `document.domain` property to `example.com` (assuming both
 source URLs have also the same protocol and port). 
@@ -552,7 +552,7 @@ are from different origins manage to communicate between each other:
 TODO... more here
 
 Several properties of this mechanism make it less suitable for cross-origin
-DOM access than PostMessage (discussed shortly).
+DOM access than PostMessage (which we will discuss shortly).
 First, the mechanism is not general enough. While it is possible to use it to
 enable some kinds of cross-origin communication, this is only limited to those
 situations in which all ends have the same base domain.
@@ -564,7 +564,7 @@ between each other but you are also allowing any other page, say
 `qux.example.com` to read/write the DOM of both `foo.example.com` and
 `bar.example.com` (since it is possible for it to set the domain property to
 `example.com`). It might seem like a small detail, but if `qux.example.com`
-has a XSS vulnerability, then an attacker could be able to read/write the DOM
+has a XSS vulnerability, then an attacker would be able to read/write the DOM
 of these other pages while in a situation in which the domain mechanism is not
 used, it wouldn't.
 
