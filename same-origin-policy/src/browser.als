@@ -17,6 +17,11 @@ sig Browser extends Client {
   cookies: Cookie -> Time,  -- cookies stored by the browser over time
 }
 
+fact Wellformedness {
+  -- no two browser can share documents
+  no disj b1, b2: Browser, t: Time | some b1.documents.t & b2.documents.t
+}
+
 /* HTTP request sent from a browser to a server */
 
 sig BrowserHttpRequest extends HttpRequest {

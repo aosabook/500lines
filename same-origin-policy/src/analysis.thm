@@ -26,19 +26,18 @@
    <type name="flow/setDomain/SetDomain"/>
    <type name="flow/http/call/Time"/>
    <type name="flow/http/call/ord/Ord"/>
-   <set name="$Confidentiality_m" type="flow/http/Endpoint"/>
    <set name="$Confidentiality_t" type="flow/http/call/Time"/>
-   <set name="end" type="flow/http/call/Call"/>
    <set name="First" type="flow/http/call/ord/Ord"/>
    <set name="Next" type="flow/http/call/ord/Ord"/>
-   <set name="start" type="flow/http/call/Call"/>
-   <set name="flow/FlowCall" type="flow/http/call/Call"/>
    <set name="flow/jsonp/JsonpRequest" type="flow/jsonp/browser/BrowserHttpRequest"/>
    <set name="flow/postMessage/sop/cors/CorsRequest" type="flow/script/XmlHttpRequest"/>
 </node>
 
 <node color="Blue">
    <type name="flow/http/Endpoint"/>
+</node>
+
+<node color="Blue" label="Trusted">
    <set name="this/TrustedModule" type="flow/http/Endpoint"/>
 </node>
 
@@ -119,15 +118,14 @@
    <type name="flow/jsonp/origin/Origin"/>
 </node>
 
-<node shape="Parallelogram" color="Green">
-   <type name="flow/http/call/Call"/>
-</node>
-
 <node showlabel="no">
    <set name="$Confidentiality_c" type="flow/http/call/Call"/>
-   <set name="$currentCall" type="flow/http/call/Call"/>
+   <set name="$Confidentiality_m" type="flow/http/Endpoint"/>
+   <set name="end" type="flow/http/call/Call"/>
+   <set name="start" type="flow/http/call/Call"/>
    <set name="flow/Data" type="flow/http/Cookie"/>
    <set name="flow/Data" type="flow/http/Resource"/>
+   <set name="flow/FlowCall" type="flow/http/call/Call"/>
    <set name="flow/FlowModule" type="flow/http/Endpoint"/>
 </node>
 
@@ -137,6 +135,14 @@
 
 <node visible="no">
    <type name="flow/http/Dns"/>
+</node>
+
+<node visible="no" shape="Parallelogram" color="Green">
+   <type name="flow/http/call/Call"/>
+</node>
+
+<node visible="yes" showlabel="no">
+   <set name="$currentCall" type="flow/http/call/Call"/>
 </node>
 
 <edge visible="no" attribute="yes">
@@ -153,6 +159,8 @@
    <relation name="protocol"> <type name="flow/jsonp/origin/Origin"/> <type name="flow/http/Protocol"/> </relation>
    <relation name="receivedCookies"> <type name="flow/http/HttpRequest"/> <type name="flow/http/Cookie"/> </relation>
    <relation name="response"> <type name="flow/http/HttpRequest"/> <type name="flow/http/Resource"/> </relation>
+   <relation name="returns"> <type name="flow/http/call/Call"/> <type name="flow/http/Cookie"/> </relation>
+   <relation name="returns"> <type name="flow/http/call/Call"/> <type name="flow/http/Resource"/> </relation>
    <relation name="sentCookies"> <type name="flow/http/HttpRequest"/> <type name="flow/http/Cookie"/> </relation>
    <relation name="subsumes"> <type name="flow/http/Domain"/> <type name="flow/http/Domain"/> </relation>
 </edge>

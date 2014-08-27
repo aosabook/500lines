@@ -11,6 +11,11 @@ open browser
 // of the script but that's fine.
 sig Script extends Client { context: Document }
 
+fact Wellformedness {
+  -- no two scripts share the same document as their context
+  no disj s1, s2: Script | s1.context = s2.context
+}
+
 /* Calls initiated by a script */
 
 // HTTP requests sent by a script
@@ -48,12 +53,15 @@ sig WriteDom extends BrowserOp { newDom: Resource }{
   domain.end = domain.start
 }
 
-
 // Handlers for browser script events
 abstract sig EventHandler extends Call {
   causedBy: Call
 }{
+  -- this call must happen after the call that caused it
+  lt[causedBy.@start, start]
   from in Browser and to in Script
+  from in causedBy.@to + causedBy.@from
+  to.context in from.documents.start
   noDocumentChange[start, end]
   noBrowserChange[start, end]
 }

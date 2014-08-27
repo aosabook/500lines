@@ -31,6 +31,8 @@ fact  {
   no m: TrustedModule | some MaliciousData & m.accesses.first
   -- no module is both trusted and malicious
   no TrustedModule & MaliciousModule
+  -- every module is either trusted or malicious
+  FlowModule = TrustedModule + MaliciousModule
   -- no data is both private and malicious
   no CriticalData & MaliciousData
 }

@@ -10,30 +10,32 @@ open http
 open script
 open origin
 
-sig CallbackID {}  // identifier of a callback function
+sig Callback {}  // identifier of a callback function
 
 // Request sent as a result of <script> tag
 sig JsonpRequest in BrowserHttpRequest {
-  padding: CallbackID
+  padding: Callback
 }{
   response in JsonpResponse
 }
 
+// A JsonpResponse is a piece of Javascript 
 sig JsonpResponse in Resource {
-  cb : CallbackID,
+  cb: Callback,
+  payload: Resource
 }
 
 // Callback function called when the JSONP request completes
-sig JsonpCallback extends EventHandler {
-  cb: CallbackID,
+sig ExecCallback extends EventHandler {
+  cb: Callback,
   payload : Resource
 }{
   causedBy in JsonpRequest
   let resp = causedBy.response | 
     cb = resp.@cb and
     -- result of JSONP request is passed on as an argument to the callback
-    payload = resp
+    payload = resp.@payload
 }
 
-run { some cb: JsonpCallback | some cb.payload }
+run { some cb: ExecCallback | some cb.payload }
 

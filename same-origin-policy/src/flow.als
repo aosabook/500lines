@@ -26,7 +26,7 @@ sig FlowCall in Call {
   -- Constraints about particular operations
   this in HttpRequest implies
     args = this.sentCookies + this.body and
-    returns = this.receivedCookies + this.response
+    returns = this.receivedCookies + this.response + this.response.payload
 
   -- BrowserOp
   this in ReadDom implies no args and returns = this.result
@@ -35,7 +35,7 @@ sig FlowCall in Call {
   this in PostMessage implies args = this.message and no returns
 
   -- EventHandler
-  this in JsonpCallback implies args = this.payload and no returns
+  this in ExecCallback implies args = this.payload and no returns
   this in ReceiveMessage implies args = this.data and no returns
 }
 
@@ -54,6 +54,11 @@ sig FlowModule in Endpoint {
         c.to = this and d in c.args or
         -- (3) the endpoint sends "c" that returns d" 
         c.from = this and d in c.returns 
+}
+
+fact {
+	Call in FlowCall
+	Endpoint in FlowModule
 }
 
 fun initData[m: FlowModule] : set Data {
