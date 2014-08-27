@@ -672,7 +672,7 @@ so we need a way to get the gremlin from the current 'all' step up to the last '
 we could teleport it there, but 
 - can we only teleport forward in time? backwards makes loops, which really cranks up the complexity of our queries
 - marking the teleportation endpoint and the individual steps that can send to it causes a lot of cross-step connections, which reduces our compositional / transformational abilities
-so instead we could wrap the gremlin in a bubble and float it downstream until it hits an allbuster that's wired to pop it. do they pop anything? anything from the same type of step? or is it labeled? you could miss one then, which is weird. 
+so instead we could wrap the gremlin in a bubble and float it downstream until it hits an allbuster that's wired to pop it. do they pop everything? everything from the same type of step? or is it labeled? you could miss one then, which is weird. 
 and the gremlin actually does have to pass through everything eventually, triggering it as it goes -- so you really need two gremlins, a bubble one and a non-bubbled one after it. the 'all' could do that, though, by cloning it. how do you bubble? how do you pop? how do you bypass bubbles?
 
 
