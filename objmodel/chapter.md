@@ -778,8 +778,7 @@ in a list (which is a lot more compact in memory than a dictionary). The map
 stores a mapping from
 attribute names to indexes into that list.
 
-A simple white-box test that inspects the implementation details of ``Instance``
-of that behaviour looks like this:
+A simple test for ``Instance`` of that behaviour looks like this:
 
 ````python
 def test_maps():
@@ -809,10 +808,11 @@ def test_maps():
     assert p3.map.attrs == {"x": 0, "z": 1}
 ````
 
-TODO (debo): Your previous tests were very black-box, whereas this one feels
-more white-box. This may be interesting to explore / discuss a bit. No worries
-if you'd rather not, it was just a thought I had.
-
+Note how this is a different flavour of test than the ones we've written
+before. All previous tests just tested the behaviour of the classes via the
+exposed interfaces. This test instead checks the implementation details of the
+``Instance`` class by reading internal attributes and comparing them to
+predefined values. Therefore this test can be called a *white-box* test.
 
 The ``attrs`` attribute of the map of ``p1`` describes the layout of the
 instance as having two attributes ``"x"`` and ``"y"`` which are stored at
