@@ -177,9 +177,6 @@ Therefore it makes sense to introduce a shared helper class for that part of
 their behaviour (in theory that behaviour could also be part of ``Base``, but in
 a later section it will become important that this is not the case):
 
-TODO (debo): Could you potentially move all of this into Base here, and then
-show your refactoring to BaseWithDict later? 
-
 ````python
 MISSING = object()
 
