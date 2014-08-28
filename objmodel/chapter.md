@@ -59,48 +59,9 @@ Message based model
 The object model we will start out with is a majorly simplified version of that
 of Smalltalk. It will have classes and instances of them, the ability to read
 and write attributes into objects, the ability to send messages to objects and
-the ability for a class to be a subclass of another class.
-
-The interface to these features is represented by a shared base class ``Base``
-that exposes a number of methods:
-
-````python
-class Base(object):
-    """ The base class that all of the object model classes inherit from. """
-
-    def __init__(self, cls):
-        """ Every object has a class. """
-        self.cls = cls
-
-    def read_attr(self, fieldname):
-        """ read field 'fieldname' out of the object """
-        return self._read_dict(fieldname)
-
-    def write_attr(self, fieldname, value):
-        """ write field 'fieldname' into the object """
-        self._write_dict(fieldname, value)
-
-    def isinstance(self, cls):
-        """ return True if the object is an instance of class cls """
-        return self.cls.issubclass(cls)
-
-    def send(self, methname, *args):
-        """ send message 'methname' with arguments 'args' to object """
-        meth = self.cls._read_from_class(methname)
-        return meth(self, *args)
-
-    def _read_dict(self, fieldname):
-        """ read an field 'fieldname' out of the object's dict """
-        return MISSING
-
-    def _write_dict(self, fieldname, value):
-        """ write a field 'fieldname' into the object's dict """
-        raise AttributeError
-````
-
-The methods ``Base._read_dict`` and ``Base._write_dict`` are default
-implementations that do not implement interesting behaviour. They need to be
-overridden in the subclasses of ``Base``.
+the ability for a class to be a subclass of another class. Right from the
+beginning, classes will be completely regular objects, that can themselves have
+attributes and methods.
 
 To start the implementation a good approach is to write a test to think about
 what the to-be-implemented behaviour should be. All tests presented in this
@@ -108,12 +69,13 @@ chapter will always consist of two parts: A bit of completely regular Python
 code defining and using a few classes, making use of increasingly advanced
 features of the Python object model. The second half of each test is the
 corresponding test using the object model we will implement in this chapter,
-instead of normal Python classes.
+instead of normal Python classes. XXX in the final version these will maybe be
+typeset side by side.
 
 The mapping between using normal Python classes and using our object model will
 be done manually in the tests. E.g. instead of writing ``obj.attribute`` in
-Python, in the object model we would use the ``obj.read_attr("attribute")``
-method of ``Base``. This mapping would in a real language implementation be done
+Python, in the object model we would use a method ``obj.read_attr("attribute")``.
+This mapping would in a real language implementation be done
 by the interpreter of the language, or a compiler. A further simplification in
 this chapter will be that we make no sharp distinction between the code that
 implements the object model and the code that is used to write the methods used
@@ -154,17 +116,58 @@ def test_read_write_field():
     assert obj.read_attr("b") == 5
 ````
 
-TODO (debo): What are OBJECT and TYPE?
+The test uses three things that we will have to implement in this chapter. On
+the one hand the classes ``Class`` and ``Instance`` that represent classes and
+instances of our object model, respectively. On the other hand, there are two
+special instances of class, ``OBJECT`` and ``TYPE``. ``OBJECT`` corresponds to
+``object`` in Python and is the ultimate base class of the inheritance
+hierarchy. ``TYPE`` corresponds to ``type`` in Python and is the type of all
+classes.
 
-TODO (debo): I think it might be better to put these tests before you implement
-the base class. I wasn't exactly sure how you were going to instantiate and use
-your objects, so I was sort of re-reading the Base class definition a few times
-before I took a guess. Having the tests first would unambiguously define how
-one expects to interact with your classes+objects. 
+To do anything with instances of ``Class`` and ``Instance``, they implement a
+shared interface by inheriting from a shared base class ``Base``
+that exposes a number of methods:
 
-The test shows that we need two classes ``Class`` and ``Instance`` to represent
-classes and instances in the object model respectively. Both of them should
-inherit from ``Base``. The constructor of ``Instance`` just takes the class to
+````python
+class Base(object):
+    """ The base class that all of the object model classes inherit from. """
+
+    def __init__(self, cls):
+        """ Every object has a class. """
+        self.cls = cls
+
+    def read_attr(self, fieldname):
+        """ read field 'fieldname' out of the object """
+        return self._read_dict(fieldname)
+
+    def write_attr(self, fieldname, value):
+        """ write field 'fieldname' into the object """
+        self._write_dict(fieldname, value)
+
+    def isinstance(self, cls):
+        """ return True if the object is an instance of class cls """
+        return self.cls.issubclass(cls)
+
+    def send(self, methname, *args):
+        """ send message 'methname' with arguments 'args' to object """
+        meth = self.cls._read_from_class(methname)
+        return meth(self, *args)
+
+    def _read_dict(self, fieldname):
+        """ read an field 'fieldname' out of the object's dict """
+        return MISSING
+
+    def _write_dict(self, fieldname, value):
+        """ write a field 'fieldname' into the object's dict """
+        raise AttributeError
+````
+
+The methods ``Base._read_dict`` and ``Base._write_dict`` are default
+implementations that do not implement interesting behaviour. They need to be
+overridden in the subclasses of ``Base``.
+
+Now we need to implement ``Class`` and ``Instance``. The constructor of
+``Instance`` just takes the class to
 be instantiated, while the constructor of ``Class`` takes the name of the class,
 the base class, the dictionary of the class and the metaclass (what the
 metaclass is we will discuss a bit later).
@@ -254,19 +257,14 @@ reason for this is coming up soon, but maybe a warning that we're doing some
 stuff 'in advance' here might help.
 
 To define new metaclasses it is enough to subclass ``TYPE``. However, in the
-rest of this chapter we won't do that, and simply always use ``TYPE`` as each
-classes metaclass.
+rest of this chapter we won't do that, and simply always use ``TYPE`` as the
+metaclass of every class.
 
 XXX diagram?
 
 Now the first test passes. A second test that is easy to write and immediately
 passes is the following. It checks that reading and writing attributes works on
 classes as well.
-
-TODO (debo): Until we got to this point, I was confused as to why classes would
-need a dict of fields rather than just a list of fieldnames that instances
-would have to bind. I didn't realize we were going to also treat classes as
-objects at this stage. 
 
 ````python
 def test_read_write_field_class():
