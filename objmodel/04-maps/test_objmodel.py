@@ -64,8 +64,7 @@ def test_read_write_field_class():
     assert A.a == 6
 
     # Object model code
-    A = Class("A", OBJECT, {}, TYPE)
-    A.write_attr("a", 1)
+    A = Class("A", OBJECT, {"a": 1}, TYPE)
     assert A.read_attr("a") == 1
     A.write_attr("a", 5)
     assert A.read_attr("a") == 5

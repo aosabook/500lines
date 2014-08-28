@@ -198,7 +198,9 @@ class BaseWithDict(Base):
 Now we have enough scaffolding to define ``Instance`` and ``Class``. Both are
 simply subclasses of ``BaseWithDict``. When constructing an ``Instance``, the
 fields dict is initialized as an empty dictionary. For classes, the fields are
-passed into the constructor by the user of the object model.
+passed into the constructor by the user of the object model. The class
+constructor also takes a base class, which the tests so far don't need but
+which we will make use of in the next section.
 
 ````python
 class Instance(BaseWithDict):
@@ -247,15 +249,6 @@ TYPE.cls = TYPE
 OBJECT.cls = TYPE
 ````
 
-TODO (debo): As of right now, I find myself wondering why we even bother having
-fields as a parameter at all, because it seems like we never use it (always
-pass empty.) Maybe a test showing how these are used would make it seem less
-extraneous.
-Also, at this stage it seems like objects are tracking their base class for no
-reason at all, because it's not being used for anything. I assume that the
-reason for this is coming up soon, but maybe a warning that we're doing some
-stuff 'in advance' here might help.
-
 To define new metaclasses it is enough to subclass ``TYPE``. However, in the
 rest of this chapter we won't do that, and simply always use ``TYPE`` as the
 metaclass of every class.
@@ -278,8 +271,7 @@ def test_read_write_field_class():
     assert A.a == 6
 
     # Object model code
-    A = Class("A", OBJECT, {}, TYPE)
-    A.write_attr("a", 1)
+    A = Class("A", OBJECT, {"a": 1}, TYPE)
     assert A.read_attr("a") == 1
     A.write_attr("a", 5)
     assert A.read_attr("a") == 5
