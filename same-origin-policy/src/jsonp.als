@@ -23,6 +23,8 @@ sig JsonpRequest in BrowserHttpRequest {
 sig JsonpResponse in Resource {
   cb: Callback,
   payload: Resource
+}{
+  payload != this
 }
 
 // Callback function called when the JSONP request completes
@@ -31,6 +33,7 @@ sig ExecCallback extends EventHandler {
   payload : Resource
 }{
   causedBy in JsonpRequest
+  to.context = causedBy.(BrowserHttpRequest <: doc)
   let resp = causedBy.response | 
     cb = resp.@cb and
     -- result of JSONP request is passed on as an argument to the callback

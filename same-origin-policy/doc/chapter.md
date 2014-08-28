@@ -617,8 +617,9 @@ which is a valid Javascript statement, and is executed by the browser in the cur
 
 In our approach, JSONP is modeled as a type of HTTP requests that
 include the identifier of a callback function as the `padding`
-parameter. In return, the server returns a response that is wrapped
-inside the name of the callback function (`cb`).
+parameter. In return, the server returns a response that has the
+requested resource (`payload`) wrapped inside the callback function
+(`cb`).
 
 ```alloy
 sig CallbackID {}  // identifier of a callback function
@@ -629,11 +630,13 @@ sig JsonpRequest in BrowserHttpRequest {
   response in JsonpResponse
 }
 sig JsonpResponse in Resource {
-  cb: CallbackID
+  cb: CallbackID,
+  payload: Resource
 }
 ```
 
-When the browser receives the response, it executes the callback function 
+When the browser receives the response, it executes the callback
+function on the payload:
 
 ```alloy
 sig JsonpCallback extends EventHandler {
@@ -644,7 +647,7 @@ sig JsonpCallback extends EventHandler {
   let resp = causedBy.response | 
     cb = resp.@cb and
     -- result of JSONP request is passed on as an argument to the callback
-    payload = resp
+    payload = resp.@payload
 }
 ```
 
@@ -653,16 +656,32 @@ included in the response (`cb = resp.@cb`), but _not_ necessarily the
 same as the padding. In other words, for the JSONP communication to
 work, the server is responsible for properly constructing a response
 that includes the original padding as the callback function (i.e.,
-ensure that `JsonRequest.padding = JsonpResponse.cb`). This also means
-that the server can choose to include any other callback (or in
-principle, any piece of Javascript) that is completely different from
-the requested padding.
+ensure that `JsonRequest.padding = JsonpResponse.cb`). In principle,
+the server, if desired, can choose to include any other callback (or
+any piece of Javascript) that is completely different from the
+requested padding. This highlights one downside of JSONP: You must
+ensure that the server you are making a JSONP request to is completely
+trustworthy.
 
-This last point has an important security implication; if the server
-is misbehaving or compromised, it can inject a piece of malicious code
-into the original site, essentially carrying out an XSS attack. Thus,
-before using JSONP, you must make sure that the server can be
-completely trusted.
+Furthermore, even if the server itself may be free of malicious
+intent, you must also rely on it being secure. For example, let us
+consider the following counterexample that shows how JSONP may lead to
+a violation of the integrity property. Here, a hacker (controlling
+`Browser0`) sends an HTTP request that contains a piece of malicious
+content (`Resource1`), which is accepted and stored by
+`Server`.
+
+![jsonp-instance-2](fig-jsonp-2.png)
+
+In the next step, a trusted browser (`Browser1`) makes a JSONP request
+to `Server`, which returns a JSONP response that correctly includes
+the requested padding, but also the malicious data (`Resource1`) as
+its payload. `Browser1` then executes the callback function with the
+malcious data as its argument, which could lead to further security
+consequences.
+
+![jsonp-instance-2](fig-jsonp-2.png)
+![jsonp-instance-3](fig-jsonp-3.png)
 
 ### PostMessage
 
@@ -696,7 +715,23 @@ sig ReceiveMessage extends EventHandler {
 
 The browser passes two parameters to `ReceiveMessage`: a piece of resource (`data`) that corresponds to the message being sent, and the origin of the sender document (`srcOrigin`). The signature fact contains four constraints to ensure that each `ReceiveMessage` is well-formed with respect to its corresponding `PostMessage`. 
 
-By default, the `PostMessage` mechanism does not restrict who is allowed to send PostMessage; in other words, any document `A` can send a message to document `B` as long as the latter has registered a `ReceiveMessage` handler. It is the responsibility of document `B` to _additionally_ check the `srcOrigin` parameter to ensure that the message is coming from a trustworthy document. Unfortunately, in practice, many sites omit this check, enabling another document `C` to inject potentially malicious content into document `B` as part of a `PostMessage` (cite PostMessage study). For example, if document `B` uses the content of a message as part of Javascript that it executes, this could be exploited to carry out an XSS attack.
+By default, the `PostMessage` mechanism does not restrict who is allowed to send PostMessage; in other words, any document can send a message to another document as long as the latter has registered a `ReceiveMessage` handler. It is the responsibility of the receiving document to _additionally_ check the `srcOrigin` parameter to ensure that the message is coming from a trustworthy document. 
+
+Unfortunately, in practice, many sites omit this check, enabling a
+malicious document to inject bad content as part of a `PostMessage`
+(cite PostMessage study). For exaample, in the following instance
+generated from Alloy, a malicious script (`Script0`), running inside
+`Document2`, sends a malicious message (`Resource1`) to a document
+with `targetOrigin`. `Browser` then readily forwards this message to
+the document(s) with the corresponding origin (in this case
+`Document1`). Unless `Script1` specifically checks the value of
+`srcOrigin` to filter out messages from unwanted origins, `Document1`
+accepts the malicious data, possibly leading to further security
+attacks (for example, it may embed a piece of Javascript to carry out
+an XSS attack).
+
+![postmessage-instance-1](fig-postmessage-1.png)
+![postmessage-instance-2](fig-postmessage-2.png)
 
 ### CORS: Cross-Origin Resource Sharing
 
