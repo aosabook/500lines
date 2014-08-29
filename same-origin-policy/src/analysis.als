@@ -1,6 +1,5 @@
 /**
   *  analysis.als
-  *    A module that puts everything together
   *    End-to-end analysis of security properties
   */
 module analysis

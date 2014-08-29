@@ -10,7 +10,7 @@ open http
 open script
 open origin
 
-sig CorsRequest in script/XmlHttpRequest {
+sig CorsRequest in XmlHttpRequest {
   -- "origin" header
   origin: Origin,
   -- "access-control-allow-origin" header
@@ -18,8 +18,6 @@ sig CorsRequest in script/XmlHttpRequest {
 }{
   from in Script
 }
-
--- in some cases requests are pre-flighted, but we leave this out of the model
 
 fact corsRule {
   all r: CorsRequest |
