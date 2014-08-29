@@ -40,7 +40,7 @@ sig FlowCall in Call {
 }
 
 sig FlowModule in Endpoint {
-  -- Set of data that this component initally owns
+  -- Set of data that this component owns
   accesses: Data -> Time
 }{
   all d: Data, t: Time - first |

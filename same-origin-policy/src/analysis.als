@@ -13,7 +13,7 @@ sig CriticalData, MaliciousData in Data {}
 
 // No malicious module should be able to access private data
 assert Confidentiality {
-  no m : FlowModule - TrustedModule, t : Time |
+  no m: FlowModule - TrustedModule, t: Time |
     some CriticalData & m.accesses.t 
 }
 
@@ -24,7 +24,7 @@ assert Integrity {
 }
 
 fact  {
-  -- no malicious module begins with private data
+  -- no malicious module begins with critical data
   no m: MaliciousModule | some CriticalData & m.accesses.first
   -- no trusted module begins with malicious data
   no m: TrustedModule | some MaliciousData & m.accesses.first
@@ -32,7 +32,7 @@ fact  {
   no TrustedModule & MaliciousModule
   -- every module is either trusted or malicious
   FlowModule = TrustedModule + MaliciousModule
-  -- no data is both private and malicious
+  -- no data is both critical and malicious
   no CriticalData & MaliciousData
 }
 
