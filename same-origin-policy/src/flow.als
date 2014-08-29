@@ -44,7 +44,7 @@ sig FlowModule in Endpoint {
   accesses: Data -> Time
 }{
   all d: Data, t: Time - first |
-	 -- This endpoint can only access a piece of data "d" at time "t" only when
+    -- This endpoint can only access a piece of data "d" at time "t" only when
     d -> t in accesses implies
       -- (1) It already had access in the previous time step, or
       d -> t.prev in accesses or
@@ -57,14 +57,12 @@ sig FlowModule in Endpoint {
 }
 
 fact {
-	Call in FlowCall
-	Endpoint in FlowModule
+  Call in FlowCall
+  Endpoint in FlowModule
 }
 
 fun initData[m: FlowModule] : set Data {
   m.accesses.first
 }
 
-run {
-  some Client.accesses
-} for 3
+run { some Client.accesses } for 3

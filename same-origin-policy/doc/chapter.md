@@ -310,14 +310,14 @@ security has different meanings to different people, and there is
 still a lot of on-going research in the security community to develop
 a universal notion of security. Nevertheless, for our purpose, we will
 turn to two well-studied concepts in information
-security---confidentiality and integrity. Both of these concepts talk
+security -- confidentiality and integrity. Both of these concepts talk
 about how information should be allowed to travel throughout
 various parts of the system. Roughly, _confidentiality_ means that a
 critical piece of data should only be accessible to agents that are
 deemed trusted. On the other hand, _integrity_ means trusted agents
 should only rely on data that have not been maliciously tampered with.
 
-In order to specify two security properties more precisely, we first
+In order to specify these security properties more precisely, we first
 need to define what it means for a piece of data to _flow_ from one
 part of the system to another. In our model so far, we have described
 interactions between two endpoints as being carried out through
@@ -502,9 +502,9 @@ one that is a right-hand, fully qualified fragment of its hostname.
 (i.e., `foo.example.com` can set it to `example.com` but not to
  `aosabook.org`). \*
 
-(\* Wondering if it's possible to set it to just `.com`? `foo.example.com` would
- be a subdomain of `.com` after all, but browsers know that
- `.com` is a top-level domain and won't allow the operation.)
+(\* Wondering if it's possible to set it to just `com`? `foo.example.com` would
+ be a subdomain of `com` after all, but browsers know that
+ `com` is a top-level domain and won't allow the operation.)
 
 We add a `fact` to capture this rule:
 
@@ -685,7 +685,7 @@ consequences.
 
 ### PostMessage
 
-PostMessage is a new feature in HTML5 that allows scripts from two documents (of possibly different origins) to communicate to each other. It is a more disciplined alternative to the method of setting `domain` property, which is prone to mistakes, as we've already seen. However, PostMessage isn't without its own security risks, unless used carefully.
+PostMessage is a new feature in HTML5 that allows scripts from two documents (of possibly different origins) to communicate to each other. It is a more disciplined alternative to the method of setting the `domain` property, which is prone to mistakes, as we've already seen. However, PostMessage isn't without its own security risks, unless used carefully.
 
 PostMessage is a browser API function that takes two arguments: (1) the data to be sent (`message`), and (2) the URL of the document receiving the message (`targetOrigin`):
 
@@ -719,7 +719,7 @@ By default, the `PostMessage` mechanism does not restrict who is allowed to send
 
 Unfortunately, in practice, many sites omit this check, enabling a
 malicious document to inject bad content as part of a `PostMessage`
-(cite PostMessage study). For exaample, in the following instance
+(cite PostMessage study). For example, in the following instance
 generated from Alloy, a malicious script (`Script0`), running inside
 `Document2`, sends a malicious message (`Resource1`) to a document
 with `targetOrigin`. `Browser` then readily forwards this message to

@@ -1,7 +1,7 @@
 /**
   *  jsonp.als
-  *    A model of the JSONP mechanism 
-  *		for cross-domain communication from a script and a server
+  *    A model of the JSONP mechanism for cross-domain communication from a
+  *    script and a server
   */
 module jsonp
 
