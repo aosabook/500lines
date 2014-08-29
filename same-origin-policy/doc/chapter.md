@@ -759,10 +759,10 @@ corresponds to the domain that served the page issuing the request and
 `Access-Control-Allow-Origin` goes in the *response* header and indicates what
 origin sites are allowed. 
 
-The predicate `corsRule` capture when a CORS request succeeds:
+The `corsRule` fact captures when a CORS request succeeds:
 
 ```alloy
-pred corsRule {
+fact corsRule {
   all r: CorsRequest |
     -- "origin" header of every CORS request matches the script context and
     r.origin = origin[r.from.context.src] and
@@ -782,11 +782,9 @@ equivalent to having all origins of the generated instance in the
 not be a security problem, but you should always limit the list of allowed
 origins to those that are strictly necessary.
 
-Another common mistake is putting too much trust on the `origin` header. You
-might be wondering why did we even model that header, if the `corsRule` says
-that it is always set to match the script context. But what if a CORS request
-is instead crafted by a malicious user which intentionally sets the `origin`
-header to something else? We'll talk more about potential attacks later.
+Another common mistake is putting too much trust on the `origin` header. What if
+a CORS request is not sent by a browser but instead crafted by a malicious user
+which intentionally sets the `origin` header to something else?
 
 ## Appendix A: Reusable Modules in Alloy 
 

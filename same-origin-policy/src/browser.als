@@ -18,7 +18,7 @@ sig Browser extends Client {
 }
 
 fact Wellformedness {
-  -- no two browser can share documents
+  -- no two browsers can share documents
   no disj b1, b2: Browser, t: Time | some b1.documents.t & b2.documents.t
 }
 
