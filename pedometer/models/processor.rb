@@ -5,11 +5,17 @@ class Processor
     beta:  [0.000086384997973502, 0.000172769995947004, 0.000086384997973502]
   }
   
-  # Chebyshev II, Astop = 2, Fstop = 5, Fs = 100
+  # Chebyshev II, Astop = 2, Fstop = 5, Fs = 100, Direct Form I
   SMOOTHING_COEFF = {
     alpha: [1, -1.80898117793047, 0.827224480562408], 
     beta:  [0.095465967120306, -0.172688631608676, 0.095465967120306]
   }  
+
+# Direct form I, Chebyshev II, Fs = 100, Fstop = 1, Astop = 20, order = 2, type = highpass
+  HIGHPASS = {
+    alpha: [1, -1.810492533501505, 0.828461875915073], 
+    beta:  [0.910187835914484, -1.818578737587611, 0.910187835914484]
+  }
 
   FORMAT_COMBINED  = 'combined'
   FORMAT_SEPARATED = 'separated'
@@ -19,12 +25,12 @@ class Processor
   def initialize(data)
     @data = data
 
-    parse_raw_data
-    dot_product_parsed_data
-    filter_dot_product_data
+    parse
+    dot_product
+    filter
   end
 
-  def parse_raw_data
+  def parse
     # Extract numerical data into the format:
     # [ [ [x1t, y1t, z1t] ], ..., [ [xnt, ynt, znt] ] ]
     # OR
@@ -55,9 +61,9 @@ class Processor
       # [ [ [x1u, y1u, z1u], [x1g, y1g, z1g] ], ..., 
       #   [ [xnu, ynu, znu], [xng, yng, zng] ] ]
       @parsed_data = @parsed_data.length.times.map do |i|
-        coordinate_user = filtered_accl.map(&:first).map { |elem| elem[i] }
-        coordinate_grav = filtered_accl.map(&:last).map { |elem| elem[i] }
-        [coordinate_user, coordinate_grav]
+        user = filtered_accl.map(&:first).map { |elem| elem[i] }
+        grav = filtered_accl.map(&:last).map { |elem| elem[i] }
+        [user, grav]
       end
       
       FORMAT_COMBINED
@@ -66,7 +72,7 @@ class Processor
     end
   end
 
-  def dot_product_parsed_data
+  def dot_product
     @dot_product_data = @parsed_data.map do |data|
       data[0][0] * data[1][0] + 
       data[0][1] * data[1][1] + 
@@ -74,7 +80,7 @@ class Processor
     end
   end
 
-  def filter_dot_product_data
+  def filter
     @filtered_data = chebyshev_filter(@dot_product_data, SMOOTHING_COEFF)
   end
 

@@ -74,22 +74,42 @@ class AnalyzerTest < Test::Unit::TestCase
     end
   end
 
-  # -- Edge Detection Tests -------------------------------------------------
+  # -- Step Counting Tests --------------------------------------------------
 
-  def test_count_threshold_cross
+  def test_count_basic
     processor = Processor.new(File.read('test/data/female-167-70_1-100-10-walk-g.txt'))
     analyzer = Analyzer.new(processor)
-    
-    assert_equal 9, analyzer.send(:count_threshold_cross, true)
-    assert_equal 7, analyzer.send(:count_threshold_cross, false)
+    analyzer.measure
+
+    assert_equal 10, analyzer.steps
   end
 
-  def test_count_threshold_cross_false_step
+  def test_count_false_step_period_too_short
     processor = Processor.new(File.read('test/data/female-167-70_1-100-0-walk-g.txt'))
     analyzer = Analyzer.new(processor)
-    
-    assert_equal 1, analyzer.send(:count_threshold_cross, true)
-    assert_equal 1, analyzer.send(:count_threshold_cross, false)
+    analyzer.measure
+
+    assert_equal 0, analyzer.steps
+  end
+
+  def test_count_false_step_period_too_long
+    flunk
+  end
+
+  def test_count_all_peaks_too_high
+    processor = Processor.new(File.read('test/data/female-167-70_false1-100-0-walk-c.txt'))
+    analyzer = Analyzer.new(processor)
+    analyzer.measure
+
+    assert_equal 0, analyzer.steps
+  end
+
+  def test_count_some_peaks_too_high
+    processor = Processor.new(File.read('test/data/female-167-70_false2-100-1-walk-s.txt'))
+    analyzer = Analyzer.new(processor)
+    analyzer.measure
+
+    assert_equal 1, analyzer.steps
   end
 
   # -- Measurement Tests ----------------------------------------------------
@@ -100,8 +120,8 @@ class AnalyzerTest < Test::Unit::TestCase
     analyzer = Analyzer.new(processor, user)
     analyzer.measure
 
-    assert_equal 8,          analyzer.steps
-    assert_equal 800,        analyzer.distance
+    assert_equal 10,         analyzer.steps
+    assert_equal 1000,       analyzer.distance
     assert_equal (1037/100), analyzer.time
   end
 

@@ -34,9 +34,13 @@ class TrialTest < Test::Unit::TestCase
   end
 
   def test_create_with_steps
-    assert_nil Trial.new(nil, nil, 0).steps
+    assert_nil Trial.new(nil, nil, nil).steps
+    assert_nil Trial.new(nil, nil, '').steps
+    
+    assert_equal 0, Trial.new(nil, nil, 0).steps
+    assert_equal 0, Trial.new(nil, nil, '0').steps
+    
     assert_nil Trial.new(nil, nil, -1).steps
-    assert_nil Trial.new(nil, nil, '0').steps
     assert_nil Trial.new(nil, nil, '-1').steps
 
     assert_equal 10, Trial.new(nil, nil, 10).steps

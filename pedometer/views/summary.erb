@@ -15,11 +15,7 @@
       <td><%= analyzer.processor.format %></td>
       <td><%= analyzer.trial.steps %></td>
       <td><%= analyzer.steps %></td>
-      <td>
-        <%= 
-          analyzer.trial.steps ? (analyzer.steps - analyzer.trial.steps) : '-' 
-        %>
-      </td>
+      <td><%= analyzer.trial.steps ? (analyzer.steps - analyzer.trial.steps) : '' %></td>
       <td><%= analyzer.user.gender %></td>
       <% if detail_hidden %>
         <td><a href=<%= "upload/" + upload.file_path %>>Detail</a></td>

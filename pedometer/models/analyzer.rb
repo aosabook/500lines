@@ -5,8 +5,10 @@ require_relative 'trial'
 
 class Analyzer
 
-  THRESHOLD = 0.2
-  MAX_STEPS_PER_SECOND = 6.0
+  MIN_AMPLITUDE    = 0.18
+  MAX_AMPLITUDE    = 1.0
+  MIN_SEC_PER_STEP = 0.17
+  MAX_SEC_PER_STEP = 0.7
 
   attr_reader :processor, :user, :trial, :steps, :distance, :time
 
@@ -28,40 +30,31 @@ class Analyzer
 
 private
 
-  # -- Edge Detection -------------------------------------------------------
-
-  # TODO: 
-  # - It would help to have an explanation of why we 
-  # need to do edge detection here. What is an edge?
-  # - Count the number of false steps, 
-  # and if too many are occurring, don't count 
-  # any steps at all
-  def count_threshold_cross(positive)
-    count           = 0
-    index_last_step = 0
-    threshold       = positive ? THRESHOLD : -THRESHOLD
-    min_interval    = (@trial.rate/MAX_STEPS_PER_SECOND)
+  def measure_steps
+    @steps          = 0
+    next_0_crossing = 0
+    min_period = MIN_SEC_PER_STEP * @trial.rate
+    max_period = MAX_SEC_PER_STEP * @trial.rate
 
     @processor.filtered_data.each_with_index do |data, i|
-      # If the current value >= the threshold, and the previous was < the threshold
-      # AND the interval between now and the last time a step was counted is 
-      # above the minimun threshold, count this as a step
-      if (data >= threshold) && (@processor.filtered_data[i-1] < threshold)
-        next if index_last_step > 0 && (i-index_last_step) < min_interval
-        count += 1
-        index_last_step = i
+      next if i < next_0_crossing
+      if (data >= MIN_AMPLITUDE) && (@processor.filtered_data[i-1] < MIN_AMPLITUDE)
+        remaining_signal = @processor.filtered_data[i..@processor.filtered_data.length - 1]
+
+        next_0_crossing = remaining_signal.find_index { |x| x < 0 } || 0
+        next unless next_0_crossing > 0
+        next_0_crossing += i
+        previous_0_crossing = @processor.filtered_data[0, i].rindex { |x| x < 0 } || 0
+        
+        peak = @processor.filtered_data[previous_0_crossing..next_0_crossing]
+
+        next if peak.find { |x| x > MAX_AMPLITUDE }
+        next if peak.length < min_period
+        next if peak.length > max_period # TODO: this is not yet in tests
+
+        @steps += 1
       end
     end
-    count
-  end
-
-  # -- Measurement ----------------------------------------------------------
-
-  def measure_steps
-    peak_count = count_threshold_cross(true)
-    trough_count = count_threshold_cross(false)
-    
-    @steps = ((peak_count + trough_count)/2).to_f.round
   end
 
   def measure_distance
