@@ -146,8 +146,8 @@ class VirtualMachine(object):
         """Move the bytecode pointer to `jump`, so it will execute next."""
         self.frame.f_lasti = jump
 
-    # An entry point
     def run_code(self, code, f_globals=None, f_locals=None):
+        """ An entry point to execute code using the virtual machine."""
         frame = self.make_frame(code, f_globals=f_globals, f_locals=f_locals)
         val = self.run_frame(frame)
         # Check some invariants
@@ -174,12 +174,10 @@ class VirtualMachine(object):
                 arg = f.f_code.co_consts[intArg]
             elif byteCode in dis.hasname:  # Look up a name
                 arg = f.f_code.co_names[intArg]
-            elif byteCode in dis.hasjrel:  # Calculate a relative jump
-                arg = f.f_lasti + intArg
-            elif byteCode in dis.hasjabs:  # Calculate an absolute jump
-                arg = intArg
             elif byteCode in dis.haslocal: # Look up a local name
                 arg = f.f_code.co_varnames[intArg]
+            elif byteCode in dis.hasjrel:  # Calculate a relative jump
+                arg = f.f_lasti + intArg
             else:
                 arg = intArg
             arguments = [arg]

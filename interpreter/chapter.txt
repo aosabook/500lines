@@ -95,11 +95,11 @@ Some of the bytecode instructions have arguments. If an instruction has argument
 ### Byterun's objects
 There are N kinds of objects in Byterun:
 - A `VirtualMachine` class, which manages the highest-level structure, particularly the call stack of frames, and contains a mapping of instructions to operations
-- A `Frame` class.  Every `Frame` instance will have one code object and manage a few other necessary bits of state.
-- A `Function` class,
+- A `Frame` class.  Every `Frame` instance has one code object and manages a few other necessary bits of state.
+- A `Function` class, which will be used in place of real Python functions. Calling a function creates a new frame in the interpreter, so we must implement our Function so that we control the creation of new Frames.
+- A `Block` class, implemented as a named tuple, which just wraps the three attributes of blocks.
 
-
-With that context, we're now ready to write a Python interpreter. We'll begin by creating a virtual machine object to store the call stack and other attributes discussed above. `run_code` is the entry point to the virtual machine. This method takes a compiled code object as an argument. It sets up and runs a frame until it returns somehow, then checks that no data or frames are left over. We'll implement `make_frame` and `run_frame` momentarily.
+With that context, we're now ready to write a Python interpreter. We'll begin at the top level with the VirtualMachine object. Only one instance of the VirtualMachine will ever be created. The object stores the call stack and other attributes discussed above. The entry point for executing code is the method `run_code`. This method takes a compiled code object as an argument. It sets up and runs a frame until the frame somehow returns. We'll implement `make_frame` and `run_frame` momentarily.
 
 
 ``` python
@@ -113,23 +113,22 @@ class VirtualMachine(object):
         self.return_value = None
         self.last_exception = None
 
-    # An entry point
     def run_code(self, code, f_globals=None, f_locals=None):
+        """ An entry point to execute code using the virtual machine."""
         frame = self.make_frame(code, f_globals=f_globals, f_locals=f_locals)
         val = self.run_frame(frame)
 ```
 
-Next we'll write the Frame object. The frame is a very simple class - just a collection of attributes with no methods. As mentioned above, the attributes include the code object (created by the compiler) corresponding to the frame, the local and global namespaces, a reference to the previous frame, a data stack, a block stack, and the last instruction executed.
+Next we'll write the Frame object. The frame is a very simple class - just a collection of attributes with no methods. As mentioned above, the attributes include the code object (created by the compiler) corresponding to the frame, the local, global, and builtin namespaces, a reference to the previous frame, a data stack, a block stack, and the last instruction executed. (We have to do a little extra work to get to the builtin namespace because Python treats this namespace differently in different modules; this detail is not important to the virtual machine.)
 
 ``` python
 class Frame(object):
     def __init__(self, f_code, f_globals, f_locals, f_back):
-        self.f_code = f_code   # The code object
-        # Namespaces
-        self.f_globals = f_globals
-        self.f_locals = f_locals
+        self.f_code = f_code        # The code object
+        self.f_globals = f_globals  # Global namespace
+        self.f_locals = f_locals    # Local namespace
         if f_back:
-            self.f_builtins = f_back.f_builtins
+            self.f_builtins = f_back.f_builtins  # Builtin namespace
         else:
             self.f_builtins = f_locals['__builtins__']
             if hasattr(self.f_builtins, '__dict__'):
@@ -139,7 +138,7 @@ class Frame(object):
         self.stack = []        # Data stack
         self.block_stack = []  # Block stack
 
-        self.f_lineno = f_code.co_firstlineno
+        self.f_lineno = f_code.co_firstlineno  # First line number in original source code
         self.f_lasti = 0       # Last executed bytecode instruction
 ```
 
@@ -148,6 +147,7 @@ Next, we'll add frame manipulation to the virtual machine. There are three helpe
 ``` python
 class VirtualMachine(object):
     [... snip ...]
+
     # Frame manipulation
     def make_frame(self, code, callargs={}, f_globals=None, f_locals=None):
         if f_globals is not None and f_locals is None::
@@ -168,7 +168,7 @@ class VirtualMachine(object):
 
     def push_frame(self, frame):
         self.frames.append(frame)
-        self.frame = frame
+        self.frame = frame    # Update current frame in VM
 
     def pop_frame(self):
         self.frames.pop()
@@ -178,7 +178,7 @@ class VirtualMachine(object):
             self.frame = None
 ```
 
-Let's add some quick helper methods for the frame's data stack.
+Next, we'll add some helper methods for the frame's data stack. #TODO: unclear
 
 ```
 class VirtualMachine(object):
@@ -206,7 +206,9 @@ class VirtualMachine(object):
             return []
 ```
 
-Next we'll briefly discuss blocks. A block is used for certain kinds of flow control, specifically exception handling and looping. When managing the block stack on a frame, the interpreter sets a flag that can either be `None` or one of the strings `"continue"`, `"break"`, `"exception"`, or `"return"`. This indicates what kind of manipulation of the block stack and data stack should happen.  For example, if the top of the block stack is a `loop` block and the `why` code is `continue`, the looping block should remain on the stack, but if the `why` code is `break`, it should be popped off. The precise details of block manipulation are rather fiddly, and we won't spend more time on this, but interested readers are encouraged to take a careful look.
+Next we'll briefly discuss blocks. A block is used for certain kinds of flow control, specifically exception handling and looping. The block is reponsible for making sure that the data stack is in the appropriate state when the operation is finished.  For example, in a loop, the iterator object should remain on the stack until the loop is finished, but then be popped off.  In an exception handler, the stack may have an exception on it that the handler will deal with and pop off the stack.
+
+When managing the block stack on a frame, the interpreter sets a flag to indicate its state.  We implement this flag as either `None` or one of the strings `"continue"`, `"break"`, `"exception"`, or `"return"`. This indicates what kind of manipulation of the block stack and data stack should happen.  For example, if the top of the block stack is a `loop` block and the `why` code is `continue`, the looping block should remain on the stack, but if the `why` code is `break`, it should be popped off. The precise details of block manipulation are rather fiddly, and we won't spend more time on this, but interested readers are encouraged to take a careful look.
 
 ```
 Block = collections.namedtuple("Block", "type, handler, level")
@@ -225,7 +227,7 @@ class VirtualMachine(object):
     def unwind_block(self, block):
         """Unwind the values on the data stack corresponding to a given block."""
         if block.type == 'except-handler':
-            offset = 3
+            offset = 3  # The exception itself is on the stack as type, value, and traceback.
         else:
             offset = 0
 
@@ -273,9 +275,9 @@ class VirtualMachine(object):
         return why
 ```
 
-Before we get to running a frame, we need two more methods. The first takes a bytecode, checks if it has arguments, and parses the arguments if so, and sets the frames' reference to the last instruction executed appropriately.
+Before we get to running a frame, we need two more methods. The first, `parse_byte_and_args` takes a bytecode, checks if it has arguments, and parses the arguments if so. A single instruction is one byte long if it doesn't have an argument or three bytes if it does have an argument, where the last two bytes are the argument. So, for example, the instruction `POP_TOP` instruction is just one byte, and always pops the top element from the stack, but the instruction `LOAD_FAST`, to load a variable name, needs to know which name to load. For each bytecode, the argument will mean something different. For example, for `CALL_FUNCTION`, the argument to the instruction is a number representing the number of arguments to the function being called.  For `BUILD_LIST`, the argument is the number of elements in the list.  For `LOAD_CONST`, the argument is an index into the tuple of constants associated with the given code object. The `dis` module in the standard library exposes a cheatsheet to what  This method also updates the frame's attribute `f_lasti`, which tracks the  last instruction executed.
 
-The second method operates the main dispatch. As mentioned above, in the CPython interpreter the dispatch is done with a giant switch statemnt spanning 1,500 lines.  Since we're writing Python, we can be more compact.  We'll define a method for each byte name, call it `byte_FOO_BAR`, and then use `getattr` to look it up. Note that the dispatch method returns the `why` code to be passed to block management.
+The second method, `dispatch`, looks up the operations corresponding to each instruction produced by the previous method. As mentioned above, in the CPython interpreter, this dispatch is done with a giant switch statemnt spanning 1,500 lines.  Since we're writing Python, we can be more compact.  We'll define a method for each byte name, call it `byte_FOO_BAR`, and then use `getattr` to look it up. The dispatch method returns the `why` code to be passed to block management.
 
 ``` python
 class VirtualMachine(object):
@@ -297,12 +299,10 @@ class VirtualMachine(object):
                 arg = f.f_code.co_consts[intArg]
             elif byteCode in dis.hasname:  # Look up a name
                 arg = f.f_code.co_names[intArg]
-            elif byteCode in dis.hasjrel:  # Calculate a relative jump
-                arg = f.f_lasti + intArg
-            elif byteCode in dis.hasjabs:  # Calculate an absolute jump
-                arg = intArg
             elif byteCode in dis.haslocal: # Look up a local name
                 arg = f.f_code.co_varnames[intArg]
+            elif byteCode in dis.hasjrel:  # Calculate a relative jump
+                arg = f.f_lasti + intArg
             else:
                 arg = intArg
             arguments = [arg]
