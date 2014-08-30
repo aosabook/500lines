@@ -22,7 +22,7 @@ TODO: This diagram is a direct copy from Apple. Problem?
 
 ![](chapter-figures/figure-iphone-accelerometer.png)\
 
-An accelerometer returns a **signal** in 3-dimensional space. A signal is a set of data points recorded over time. Each component of the signal is a data series representing acceleration in one of the x, y, or z directions. Each point in a data series is the acceleration in that direction at a specific point in time. 
+An accelerometer returns a **signal** in 3-dimensional space. A signal is a set of data points recorded over time. Each component of the signal is a time series representing acceleration in one of the x, y, or z directions. Each point in a time series is the acceleration in that direction at a specific point in time. 
 
 The diagram below shows an example acceleration signal from an accelerometer with the three components.
 
@@ -67,21 +67,19 @@ Each component of the acceleration signal measures the **total acceleration** in
 
 User acceleration is the acceleration of the device due to the movement of the user. It's rarely constant, since it's difficult for a person to move with a constant acceleration. 
 
-Gravitational acceleration is, as expected, due to gravity, and is always constant at $-9.8 m/s^2$ in the direction of gravity. 
+Gravitational acceleration is, as expected, due to gravity, and is always constant at $9.8 m/s^2$ in the direction of gravity. 
 
-TODO: It is 9.8, not -9.8.
-
-Each of our three component data series is a sum of two data series: user acceleration, and gravitational acceleration. 
+Each of our three component time series is a sum of two time series: user acceleration, and gravitational acceleration. 
 
 ![](chapter-figures/component-signals-1.png)\
 
 TODO: Add plot of the equations above. 
 
-In order to count steps, we're interested in the step bounces created by the user in the direction of gravity. That means we're interested in **user acceleration in the direction of gravity**. User acceleration in the direction of gravity is a 1-dimensional data series, because, well, it's only in one direction, that direction being the direction of gravity. To count steps, we'll have to take our 3-dimensional acceleration signal and isolate just the 1-dimensional data series that represents user acceleration in the direction of gravity. 
+In order to count steps, we're interested in the step bounces created by the user in the direction of gravity. That means we're interested in **user acceleration in the direction of gravity**. User acceleration in the direction of gravity is a 1-dimensional time series, because, well, it's only in one direction, that direction being the direction of gravity. To count steps, we'll have to take our 3-dimensional acceleration signal and isolate just the 1-dimensional time series that represents user acceleration in the direction of gravity. 
 
-In our example above, gravitational acceleration is zero in the x and z components, and constant at $-9.8 m/s^2$ in the y component, because the phone is held such that the y direction is the only direction experiencing the force of gravity. This means that the user acceleration data series in the y component is always in the direction of gravity, while user acceleration in x and z is never in the direction of gravity. Since we're trying to find user acceleration in the direction of gravity, the user acceleration data series in the y component is the only one we need to take into account, and we can completely ignore the x and z components. 
+In our example above, gravitational acceleration is zero in the x and z components, and constant at $9.8 m/s^2$ in the y component, because the phone is held such that the y direction is the only direction experiencing the force of gravity. This means that the user acceleration time series in the y component is always in the direction of gravity, while user acceleration in x and z is never in the direction of gravity. Since we're trying to find user acceleration in the direction of gravity, the user acceleration time series in the y component is the only one we need to take into account, and we can completely ignore the x and z components. 
 
-Our accelerometer returns total acceleration in the y direction, so we have to isolate the user acceleration data series by subtracting the gravitational acceleration data series from the total acceleration component. Since gravitational acceleration is constant at $-9.8 m/s^2$ in the y direction, we can subtract a constant data series of $-9.8 m/s^2$ from the total acceleration y component, and we'll be left with user acceleration in the y direction, which in this case is equivalent to user acceleration in the direction of gravity. 
+Our accelerometer returns total acceleration in the y direction, so we have to isolate the user acceleration time series by subtracting the gravitational acceleration time series from the total acceleration component. Since gravitational acceleration is constant at $9.8 m/s^2$ in the y direction, we can subtract a constant time series of $9.8 m/s^2$ from the total acceleration y component, and we'll be left with user acceleration in the y direction, which in this case is equivalent to user acceleration in the direction of gravity. 
 
 ![](chapter-figures/component-signals-2.png)\
 
@@ -99,11 +97,11 @@ Let's see what happens when we introduce real people into the mix. What if our s
 
 Yikes. Now all three of our components have a non-zero gravitational acceleration, so the user acceleration in the direction of gravity is now split amongst all three x, y, and z components. 
 
-In order to determine user acceleration in the direction of gravity, we have to first determine which direction gravity is in, so we have to first split total acceleration in each of the x, y, and z components into a user acceleration data series and a gravitational acceleration data series. 
+In order to determine user acceleration in the direction of gravity, we have to first determine which direction gravity is in, so we have to first split total acceleration in each of the x, y, and z components into a user acceleration time series and a gravitational acceleration time series. 
 
 ![](chapter-figures/component-signals-3.png)\
 
-Once we've done that, we can isolate the portion of user acceleration in each component that is in the direction of gravity, resulting in the user acceleration data series in the direction of gravity, and ignoring user acceleration due to any other user movement not in the direction of gravity. 
+Once we've done that, we can isolate the portion of user acceleration in each component that is in the direction of gravity, resulting in the user acceleration time series in the direction of gravity, and ignoring user acceleration due to any other user movement not in the direction of gravity. 
 
 Let's define this as two steps below:
 
@@ -114,18 +112,18 @@ Every problem has a solution. Let's look at each problem separately, and put on 
 
 ## 1. Splitting Total Acceleration Into User Acceleration and Gravitational Acceleration
 
-We can use a tool called a low-pass filter to split our total acceleration component into a user acceleration data series and a gravitational acceleration data series.
+We can use a tool called a low-pass filter to split our total acceleration component into a user acceleration time series and a gravitational acceleration time series.
 
 ### Low-pass Filter
 A **filter** is a tool used in signal processing to remove an unwanted component from a signal. A **low-pass filter** allows low-frequency signals through, while attenuating signals higher than a set threshold.
 
 In our situation, the frequency, measured in Hz, depends on how quickly the acceleration is changing. A constant acceleration has a frequency of 0 Hz, while a non-constant acceleration has a non-zero frequency. This means that our constant gravitational acceleration is a 0 Hz signal, while user acceleration is not. 
 
-For each component, we can pass total acceleration through a low-pass filter, and we'll be left with just the gravitational acceleration data series. 
+For each component, we can pass total acceleration through a low-pass filter, and we'll be left with just the gravitational acceleration time series. 
 
 ![](chapter-figures/low-pass-filter-a.png)\ 
 
-Then, we can subtract gravitational acceleration from total acceleration, and we'll have the user acceleration data series. 
+Then, we can subtract gravitational acceleration from total acceleration, and we'll have the user acceleration time series. 
 
 $a(x)_{u} = a(x)_{t} - a(x)_{g}$\
 $a(y)_{u} = a(y)_{t} - a(y)_{g}$\
@@ -155,7 +153,7 @@ $a(y_{i})_{g} = \alpha_{0} * (a(y_{i})_{t} * \beta_{0} + a(y_{i-1})_{t} * \beta_
 
 $a(z_{i})_{g} = \alpha_{0} * (a(z_{i})_{t} * \beta_{0} + a(z_{i-1})_{t} * \beta_{1} + a(z_{i-2})_{t} * \beta_{2} - a(z_{i-1})_{g} * \alpha_{1} - a(z_{i-2})_{g} * \alpha_{2})$ 
 
-In this example, gravitational acceleration is near-constant at 0 in the x and z directions, and near-constant at $-9.8m/s^2$ in the y direction. 
+In this example, gravitational acceleration is near-constant at 0 in the x and z directions, and near-constant at $9.8m/s^2$ in the y direction. 
 
 ![](chapter-figures/figure-filter-gravitational.png)\ 
 
@@ -173,7 +171,9 @@ We've successfully split our total acceleration into user acceleration and gravi
 
 ## 2. Isolating User Acceleration in the Direction of Gravity
 
-The user acceleration data series for each component encompass all movements of the user, not just movements in the direction of gravity. Our goal here is to end up with a 1-dimensional data series representing user acceleration in the direction of gravity. Let's call this data series $a_{ug}$. Once we've done that, we can use our ranges for amplitude and period, and count only the peaks that fall within those ranges as steps. 
+The user acceleration time series for each component encompass all movements of the user, not just movements in the direction of gravity. Our goal here is to end up with a 1-dimensional time series representing user acceleration in the direction of gravity, so that we can count the peaks in this single time series. We'll annotate this time series as $(x_{ug}, y_{ug}, z_{ug})$.
+
+TODO: Fix this sentence: "Once we've done that, we can use our ranges for amplitude and period, and count only the peaks that fall within those ranges as steps.""
 
 Let's get to it. First, some liner algebra 101. Don't take that mathematician hat off just yet!
 
@@ -183,7 +183,7 @@ TODO: How do I explain this?
 
 The dot product is.... 
 
-The dot will take us from a sinal with 3 components to a single data series.
+The dot will take us from a signal with 3 components to a single time series.
 
 TODO: This section is fucked.
 
@@ -197,21 +197,21 @@ Let's take a look at what it means to take the dot product of $a_{u}$ and $a_{g}
 Taking the dot product in this case means that we'll get the portion of user acceleration in the direction of gravity. Just what we need! 
 
 ### Implemeting the Dot Product
-So, in order to get a single data series representing user acceleration in the direction of gravity, we need to take the dot product of user acceleration and gravitational acceleration. Let's call this resulting data series $a_{ug}$. 
+So, in order to get a single time series representing user acceleration in the direction of gravity, we need to take the dot product of user acceleration and gravitational acceleration. Let's call this resulting time series $a_{ug}$. 
 
-Using our example from before, we have three data series representing user acceleration in each direction,
+Using our example from before, we have three time series representing user acceleration in each direction,
 
 ![](chapter-figures/figure-filter-user.png)\ 
 
-and three data series representing gravitational acceleration in each direction.
+and three time series representing gravitational acceleration in each direction.
 
 ![](chapter-figures/figure-filter-gravitational.png)\ 
 
-Again we have 100 data points per data series. Let's use an index, *i*, that goes from 0 to 99. Then, $a_{ug}$ at *i*, or $a(i)_{ug}$, is:
+Again we have 100 data points per time series. Let's use an index, *i*, that goes from 0 to 99. Then, $a_{ug}$ at *i*, or $a(i)_{ug}$, is:
 
 $a(i)_{ug} = a(x_{i})_{u} * a(x_{i})_{g} + a(y_{i})_{u} * a(y_{i})_{g} + a(z_{i})_{u} * a(z_{i})_{g}$
 
-The dot product results in the data series below. 
+The dot product results in the time series below. 
 
 ![](chapter-figures/figure-dot-product-example.png)\ 
 
@@ -228,11 +228,11 @@ We can see how this data is starting to resemble our ideal sine wave.
 
 But, only "kinda, sorta" starting to. 
 
-We need to make our messy data series smoother, so that it looks more like our ideal sine wave, allowing us to count steps. Our data series is very "jumpy". This jumpiness is due to noise in the signal. An imperfect real world means an imperfect accelerometer and non-consistent step bounce accelerations, resulting in an added high frequency component to our data series. The real world is noisy and messy, and won't give us perfect peaks, but we can do a lot to smooth out all of that high-frequency noise and get pretty close to perfection. 
+We need to make our messy time series smoother, so that it looks more like our ideal sine wave, allowing us to count steps. Our time series is very "jumpy". This jumpiness is due to noise in the signal. An imperfect real world means an imperfect accelerometer and non-consistent step bounce accelerations, resulting in an added high frequency component to our time series. The real world is noisy and messy, and won't give us perfect peaks, but we can do a lot to smooth out all of that high-frequency noise and get pretty close to perfection. 
 
 Fortunately, a low-pass filter can be used once again to filter out just the low-frequency component, eliminating the "jumpy", high frequency portions.
 
-Passing our messy data series through a low-pass filter, using the same formula but different alpha and beta values, results in the cleaner data series below:
+Passing our messy time series through a low-pass filter, using the same formula but different alpha and beta values, results in the cleaner time series below:
 
 TODO: Talk more about determining alpha and beta coefficients.
 
@@ -328,7 +328,7 @@ Based on the solution we defined, and our two input formats, we'll need our code
 
 1. Parse our input formats into a standard format. 
 2. Isolate movement in the direction of gravity using the dot product.
-3. Smooth out our data series using a low-pass filter.
+3. Smooth out our time series using a low-pass filter.
 
 The diagram below shows each of these three steps.
 
@@ -340,7 +340,7 @@ Take note of the standard format:
 
 ![](chapter-figures/standard-format.png)\
 
-Our standard format allows us to store a data series, as each element represents acceleration at a point in time. We've defined it as an array of arrays of arrays. Let's peel back that onion. 
+Our standard format allows us to store a time series, as each element represents acceleration at a point in time. We've defined it as an array of arrays of arrays. Let's peel back that onion. 
 
 * The first array is just a wrapper to hold the all of the data.
 * The second set of arrays contains one array per data sample taken. If our sampling rate is 100 and we sample data for 10 seconds, we'll have $10 * 100$, or 1000, arrays in this second set. 
@@ -433,15 +433,15 @@ end
 
 ### Low-pass Filtering
 
-Let's start with the last method in our class, `chebyshev_filter`. This method implements the low-pass filter. We'll see it used twice in this class, the first time when we low-pass filter the combined input format during the parsing to the standard format, and the second time when we low-pass filter the dot product output to smooth out our data series. 
+Let's start with the last method in our class, `chebyshev_filter`. This method implements the low-pass filter. We'll see it used twice in this class, the first time when we low-pass filter the combined input format during the parsing to the standard format, and the second time when we low-pass filter the dot product output to smooth out our time series. 
 
-`chebyshev_filter` takes two parameters: `input_data` and `coefficients`. `input_data` is an array containing the data series we want passed through the filter. `coefficients` is a hash with two keys, `alpha` and `beta`, each containing an array with three numerical data points as values. Note the constants `GRAVITY_COEFF` and `SMOOTHING_COEFF` at the top of the class. These will be the hashes we'll pass to the `coefficients` parameter.
+`chebyshev_filter` takes two parameters: `input_data` and `coefficients`. `input_data` is an array containing the time series we want passed through the filter. `coefficients` is a hash with two keys, `alpha` and `beta`, each containing an array with three numerical data points as values. Note the constants `GRAVITY_COEFF` and `SMOOTHING_COEFF` at the top of the class. These will be the hashes we'll pass to the `coefficients` parameter.
 
 TODO: Talk about choosing these specific coefficients?
 
-The `chebyshev_filter` method returns an array containing the resulting data series. 
+The `chebyshev_filter` method returns an array containing the resulting time series. 
 
-We implement the low-pass filter in code by first instantiating an `output_data` array with zeros at index 0 and 1, so that the equation has inital values to work with. Then, we loop through the remaining indeces of the `input_data` data series, apply the formula at each turn, and append the result to `output_data`, returning `output_data` when the loop is complete. 
+We implement the low-pass filter in code by first instantiating an `output_data` array with zeros at index 0 and 1, so that the equation has inital values to work with. Then, we loop through the remaining indeces of the `input_data` time series, apply the formula at each turn, and append the result to `output_data`, returning `output_data` when the loop is complete. 
 
 The `chebyshev_filter` method is another example of *separation of concerns*. Since we know we'll need to implement a low-pass filter more than once in our code, we leave the knowledge of how to do that in one method only. The rest of our code need only know how to call the method and pass in the appropriate `coefficients` for the `input_data` it needs filtered. If there is ever a bug in the filtering code, we only need to fix it in the `chebyshev_filter` method.
 
@@ -505,15 +505,15 @@ Taking the dot product in our `Processor` class is a matter of using the data in
 
 ![](chapter-figures/dot-product-code.png)\ 
 
-### Step 3: Smooth Out Our Data Series Using a Low-pass Filter (filter)
+### Step 3: Smooth Out Our time series Using a Low-pass Filter (filter)
 
-Following the pattern from steps one and two, we add another instance variable, `@filtered_data`, to store the filtered data series, and a method, `filter`, that we call from the initializer.
+Following the pattern from steps one and two, we add another instance variable, `@filtered_data`, to store the filtered time series, and a method, `filter`, that we call from the initializer.
 
-The `filter` method is the second place our low-pass filtering method, `chebyshev_filter`, is used. This time, we pass `@dot_product_data` in as our data series, and `SMOOTHING_COEFF` as the `coefficients` constant. The result is our data series without the high frequency component, which we store in `@filtered_data`. This final data series, `@filtered_data`, is the clean data series we can use to count steps. 
+The `filter` method is the second place our low-pass filtering method, `chebyshev_filter`, is used. This time, we pass `@dot_product_data` in as our time series, and `SMOOTHING_COEFF` as the `coefficients` constant. The result is our time series without the high frequency component, which we store in `@filtered_data`. This final time series, `@filtered_data`, is the clean time series we can use to count steps. 
 
 ## Our Processor Class in the Wild
 
-Our Processor now takes string data in both the separated and combined formats, converts it into a more useable format, isolates user acceleration in the direction of gravity, and filters the data series to smooth it out. 
+Our Processor now takes string data in both the separated and combined formats, converts it into a more useable format, isolates user acceleration in the direction of gravity, and filters the time series to smooth it out. 
 
 Our processor class is useable on its own as is. An example with combined data:
 
@@ -696,9 +696,9 @@ Much like our `User` class, information is optional. We're given the opportunity
 Our `Trial` class is straightforward to use, so we won't bore you with the details of showing it in the wild. 
 
 ### Steps Taken
-We decided that we could count steps by counting the number of peaks in our data series. To do this, we chose to set minimum and maximum values for amplitude and period, and count the peaks in our data series, `@filtered_data`, that fall within those thresholds. 
+We decided that we could count steps by counting the number of peaks in our time series. To do this, we chose to set minimum and maximum values for amplitude and period, and count the peaks in our time series, `@filtered_data`, that fall within those thresholds. 
 
-Let's implement this threshold strategy in code. So far, we have a `Processor` class that contains `@filtered_data`, which is our processed, smooth data series representing user acceleration in the direction of gravity. We also have classes that give us the necessary information about the user and the trial. What we're missing is a way to analyze `@filtered_data` with the information from `User` and `Trial`, and count steps, measure distance, and measure time. The analysis portion of our program is different from the data manipulation of the `Processor`, and different from the information collection and aggregation of the `User` and `Trial` classes. Let's create a new class called `Analyzer` to perform this data analysis.
+Let's implement this threshold strategy in code. So far, we have a `Processor` class that contains `@filtered_data`, which is our processed, smooth time series representing user acceleration in the direction of gravity. We also have classes that give us the necessary information about the user and the trial. What we're missing is a way to analyze `@filtered_data` with the information from `User` and `Trial`, and count steps, measure distance, and measure time. The analysis portion of our program is different from the data manipulation of the `Processor`, and different from the information collection and aggregation of the `User` and `Trial` classes. Let's create a new class called `Analyzer` to perform this data analysis.
 
 ~~~~~~~
 require 'mathn'
@@ -1100,7 +1100,7 @@ Similarly, `format_time` takes a time in seconds and formats it using Ruby's `st
 => "1 hr, 59 min, 59 sec"
 ~~~~~~~
 
-The final method, `limit_1000`, takes a data series, and returns the first 1000 points. We'll see this used in the `upload` view shortly. 
+The final method, `limit_1000`, takes a time series, and returns the first 1000 points. We'll see this used in the `upload` view shortly. 
 
 Here we once again see spearation of concerns. To keep as much logic as possible out of the view, we use `ViewHelper` to format the data. The view's responsibility is to display data, not format it, so we split out the formatting into a separate class.
 
