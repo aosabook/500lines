@@ -55,7 +55,7 @@ sig Url {
 }
 sig Protocol, Domain, Port, Path {}
 ```
-Here we have five signature declarations, introducing sets for URLs and each of the basic types of objects they comprise. Within the URL declaration, we have four fields. Fields are like instance variables in a class; if `u` is a URL, for example, then `u.protocol` would represent the protocol of that URL (just like dot in Java). But in fact, as we'll see later, these fields are relations. You can think of each one as if it were a two column database table. Thus `protocol` is a table with the first column containing URLs and the second column containing Protocols. And the innocuous looking dot operator is in fact a rather general kind of relational join, so that you could also write `protocol.p` for all the URLs with a protocol `p` -- but more on that later.
+Here we have five signature declarations, introducing sets for URLs and each of the basic types of objects they comprise. Within the URL declaration, we have four fields. Fields are like instance variables in a class; if `u` is a URL, for example, then `u.protocol` would represent the protocol of that URL (just like dot in Java). But in fact, as we'll see later, these fields are relations. You can think of each one as if it were a two column database table. Thus `protocol` is a table with the first column containing URLs and the second column containing protocols. And the innocuous looking dot operator is in fact a rather general kind of relational join, so that you could also write `protocol.p` for all the URLs with a protocol `p` -- but more on that later.
 
 Note that domains and paths, unlike URLs, are treated as if they have no structure -- a simplification. The keyword `lone` (which can be read "less than or equal to one") says that each URL has at most one port. The path is the string that follows the host name in the URL, and which (for a simple static server) corresponds to the file path of the resource; we're assuming that it's always present, but can be an empty path.
 
@@ -599,9 +599,9 @@ Before the introduction of CORS (which we will discuss shortly), JSONP was perha
 <script src="http://www.example.com/myscript.js"></script>
 ```
 
-A script tag can be used to obtain code, but how do we use it to receive arbitrary _data_ (e.g., a JSON object) from a different domain? The problem is that the browser expects the content of `src` to be a piece of Javascript code, and so simply having it point at a data source results in a syntax error. 
+A script tag can be used to obtain code, but how do we use it to receive arbitrary _data_ (e.g., a JSON object) from a different domain? The problem is that the browser expects the content of `src` to be a piece of JavaScript code, and so simply having it point at a data source results in a syntax error. 
 
-One workaround is to wrap the desired data inside a piece of string that the browser recognizes as valid Javascript code; this string is sometimes called _padding_ (thus, giving rise to the name JSON with "Padding"). This padding could be any arbitrary Javascript code, but conventionally, it is the name of a callback function (already defined in the current document) that is to be executed on the response data:
+One workaround is to wrap the desired data inside a piece of string that the browser recognizes as valid JavaScript code; this string is sometimes called _padding_ (thus, giving rise to the name JSON with "Padding"). This padding could be any arbitrary JavaScript code, but conventionally, it is the name of a callback function (already defined in the current document) that is to be executed on the response data:
 
 ```html
 <script src="http://www.example.com/mydata?jsonp=processData"></script>
@@ -613,7 +613,7 @@ The server on `www.example.com` recognizes it as a JSONP request, and wraps the 
 processData(mydata)
 ```
 
-which is a valid Javascript statement, and is executed by the browser in the current document.
+which is a valid JavaScript statement, and is executed by the browser in the current document.
 
 In our approach, JSONP is modeled as a type of HTTP requests that
 include the identifier of a callback function as the `padding`
@@ -658,7 +658,7 @@ work, the server is responsible for properly constructing a response
 that includes the original padding as the callback function (i.e.,
 ensure that `JsonRequest.padding = JsonpResponse.cb`). In principle,
 the server, if desired, can choose to include any other callback (or
-any piece of Javascript) that is completely different from the
+any piece of JavaScript) that is completely different from the
 requested padding. This highlights one downside of JSONP: You must
 ensure that the server you are making a JSONP request to is completely
 trustworthy.
@@ -727,7 +727,7 @@ the document(s) with the corresponding origin (in this case
 `Document1`). Unless `Script1` specifically checks the value of
 `srcOrigin` to filter out messages from unwanted origins, `Document1`
 accepts the malicious data, possibly leading to further security
-attacks (for example, it may embed a piece of Javascript to carry out
+attacks (for example, it may embed a piece of JavaScript to carry out
 an XSS attack).
 
 ![postmessage-instance-1](fig-postmessage-1.png)
