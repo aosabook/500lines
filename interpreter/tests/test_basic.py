@@ -258,63 +258,63 @@ class TestIt(vmtest.VmTestCase):
             # print(sin(2))
             """)
 
-    def test_classes(self):
-        self.assert_ok("""\
-            class Thing(object):
-                def __init__(self, x):
-                    self.x = x
-                def meth(self, y):
-                    return self.x * y
-            thing1 = Thing(2)
-            thing2 = Thing(3)
-            print(thing1.x, thing2.x)
-            print(thing1.meth(4), thing2.meth(5))
-            """)
+    # def test_classes(self):
+    #     self.assert_ok("""\
+    #         class Thing(object):
+    #             def __init__(self, x):
+    #                 self.x = x
+    #             def meth(self, y):
+    #                 return self.x * y
+    #         thing1 = Thing(2)
+    #         thing2 = Thing(3)
+    #         print(thing1.x, thing2.x)
+    #         print(thing1.meth(4), thing2.meth(5))
+    #         """)
 
-    def test_calling_methods_wrong(self):
-        self.assert_ok("""\
-            class Thing(object):
-                def __init__(self, x):
-                    self.x = x
-                def meth(self, y):
-                    return self.x * y
-            thing1 = Thing(2)
-            print(Thing.meth(14))
-            """, raises=TypeError)
+    # def test_calling_methods_wrong(self):
+    #     self.assert_ok("""\
+    #         class Thing(object):
+    #             def __init__(self, x):
+    #                 self.x = x
+    #             def meth(self, y):
+    #                 return self.x * y
+    #         thing1 = Thing(2)
+    #         print(Thing.meth(14))
+    #         """, raises=TypeError)
 
-    def test_calling_subclass_methods(self):
-        self.assert_ok("""\
-            class Thing(object):
-                def foo(self):
-                    return 17
+    # def test_calling_subclass_methods(self):
+    #     self.assert_ok("""\
+    #         class Thing(object):
+    #             def foo(self):
+    #                 return 17
 
-            class SubThing(Thing):
-                pass
+    #         class SubThing(Thing):
+    #             pass
 
-            st = SubThing()
-            print(st.foo())
-            """)
+    #         st = SubThing()
+    #         print(st.foo())
+    #         """)
 
-    def test_attribute_access(self):
-        self.assert_ok("""\
-            class Thing(object):
-                z = 17
-                def __init__(self):
-                    self.x = 23
-            t = Thing()
-            print(Thing.z)
-            print(t.z)
-            print(t.x)
-            """)
+    # def test_attribute_access(self):
+    #     self.assert_ok("""\
+    #         class Thing(object):
+    #             z = 17
+    #             def __init__(self):
+    #                 self.x = 23
+    #         t = Thing()
+    #         print(Thing.z)
+    #         print(t.z)
+    #         print(t.x)
+    #         """)
 
-        self.assert_ok("""\
-            class Thing(object):
-                z = 17
-                def __init__(self):
-                    self.x = 23
-            t = Thing()
-            print(t.xyzzy)
-            """, raises=AttributeError)
+    #     self.assert_ok("""\
+    #         class Thing(object):
+    #             z = 17
+    #             def __init__(self):
+    #                 self.x = 23
+    #         t = Thing()
+    #         print(t.xyzzy)
+    #         """, raises=AttributeError)
 
     def test_staticmethods(self):
         self.assert_ok("""\

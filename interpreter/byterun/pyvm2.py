@@ -52,30 +52,12 @@ class Function(object):
             kw['closure'] = tuple(make_cell(0) for _ in closure)
         self._func = types.FunctionType(code, globs, **kw)
 
-    def __get__(self, instance, owner):
-        if instance is not None:
-            return Method(instance, owner, self)
-        return self
-
     def __call__(self, *args, **kwargs):
         callargs = inspect.getcallargs(self._func, *args, **kwargs)
         frame = self._vm.make_frame(
             self.func_code, callargs, self.func_globals, {}
         )
         return self._vm.run_frame(frame)
-
-class Method(object):
-    def __init__(self, obj, _class, func):
-        self.im_self = obj
-        self.im_class = _class
-        self.im_func = func
-
-    def __call__(self, *args, **kwargs):
-        if self.im_self is not None:
-            return self.im_func(self.im_self, *args, **kwargs)
-        else:
-            return self.im_func(*args, **kwargs)
-
 
 class VirtualMachineError(Exception):
     pass
