@@ -778,9 +778,16 @@ The most common mistake developers do with CORS, is to use the wildcard value
 `*` as the list of allowed origins. This allows any site to make a request to
 the page and read the response. (In our model, using the wildcard value is
 equivalent to having all origins of the generated instance in the
-`allowedOrigins` set.) Depending on what the page is serving this might or might
-not be a security problem, but you should always limit the list of allowed
-origins to those that are strictly necessary.
+`allowedOrigins` set.) For example, in the following instance generated from
+Alloy, a malicious script sends a CORS request to a trusted server which returns
+a critical piece of data (violating the confidentiality property). Even though
+the malicious script is executing with a different origin, the CORS request
+succeeds because the origin is in the `allowedOrigins` set:
+
+![cors-confidentiality](fig-cors-confidentiality.png) 
+
+You should always limit the list of allowed origins to those that are strictly
+necessary.
 
 Another common mistake is putting too much trust on the `origin` header. What if
 a CORS request is not sent by a browser but instead crafted by a malicious user
