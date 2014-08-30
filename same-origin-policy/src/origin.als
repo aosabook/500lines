@@ -23,4 +23,10 @@ fun origin[u: Url, h: Domain] : Origin {
   {o: Origin | o.protocol = u.protocol and o.host = h and o.port = u.port }
 }
 
+fact {
+  no disj o1, o2: Origin |
+    o1 != o2 and o1.protocol = o2.protocol and o1.host = o2.host and
+    o1.port = o2.port
+}
+
 run {}

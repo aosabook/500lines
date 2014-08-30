@@ -27,10 +27,14 @@ sig JsonpResponse in Resource {
   payload != this
 }
 
+fact {
+  all r: JsonpResponse | some req: JsonpRequest | req.response = r
+}
+
 // Callback function called when the JSONP request completes
 sig ExecCallback extends EventHandler {
   cb: Callback,
-  payload : Resource
+  payload: Resource
 }{
   causedBy in JsonpRequest
   to.context = causedBy.(BrowserHttpRequest <: doc)

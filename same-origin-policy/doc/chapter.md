@@ -759,10 +759,10 @@ corresponds to the domain that served the page issuing the request and
 `Access-Control-Allow-Origin` goes in the *response* header and indicates what
 origin sites are allowed. 
 
-The predicate `corsRule` capture when a CORS request succeeds:
+The `corsRule` fact captures when a CORS request succeeds:
 
 ```alloy
-pred corsRule {
+fact corsRule {
   all r: CorsRequest |
     -- "origin" header of every CORS request matches the script context and
     r.origin = origin[r.from.context.src] and
@@ -778,15 +778,20 @@ The most common mistake developers do with CORS, is to use the wildcard value
 `*` as the list of allowed origins. This allows any site to make a request to
 the page and read the response. (In our model, using the wildcard value is
 equivalent to having all origins of the generated instance in the
-`allowedOrigins` set.) Depending on what the page is serving this might or might
-not be a security problem, but you should always limit the list of allowed
-origins to those that are strictly necessary.
+`allowedOrigins` set.) For example, in the following instance generated from
+Alloy, a malicious script sends a CORS request to a trusted server which returns
+a critical piece of data (violating the confidentiality property). Even though
+the malicious script is executing with a different origin, the CORS request
+succeeds because the origin is in the `allowedOrigins` set:
 
-Another common mistake is putting too much trust on the `origin` header. You
-might be wondering why did we even model that header, if the `corsRule` says
-that it is always set to match the script context. But what if a CORS request
-is instead crafted by a malicious user which intentionally sets the `origin`
-header to something else? We'll talk more about potential attacks later.
+![cors-confidentiality](fig-cors-confidentiality.png) 
+
+You should always limit the list of allowed origins to those that are strictly
+necessary.
+
+Another common mistake is putting too much trust on the `origin` header. What if
+a CORS request is not sent by a browser but instead crafted by a malicious user
+which intentionally sets the `origin` header to something else?
 
 ## Appendix A: Reusable Modules in Alloy 
 

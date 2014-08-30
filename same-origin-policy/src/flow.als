@@ -40,7 +40,7 @@ sig FlowCall in Call {
 }
 
 sig FlowModule in Endpoint {
-  -- Set of data that this component initally owns
+  -- Set of data that this component owns
   accesses: Data -> Time
 }{
   all d: Data, t: Time - first |
@@ -53,7 +53,10 @@ sig FlowModule in Endpoint {
         -- (2) the endpoint receives "c" that carries "d" as one of its arguments or
         c.to = this and d in c.args or
         -- (3) the endpoint sends "c" that returns d" 
-        c.from = this and d in c.returns 
+        c.from = this and d in c.returns
+
+  -- Contraints about particular endpoints
+  this in Server implies Path.(this.resources) in initData
 }
 
 fact {
