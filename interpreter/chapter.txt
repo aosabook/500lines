@@ -1,16 +1,22 @@
 A Python interpreter written in Python
 
-In this chapter we will examine a Python interpreter.  Running a Python program involves four steps: lexing, parsing, compiling, and interpreting.  The first three are covered elsewhere in this book.  The final step - interpreting - takes place after the source code of Python has been processed by the first three steps and turned into _code objects_, which are the internal representation of Python code to the Python interpreter.
+In this chapter we will examine Byterun, a Python interpreter.  Running a Python program involves four steps: lexing, parsing, compiling, and interpreting.  The first three are covered elsewhere in this book.  The final step - interpreting - takes place after the source code of Python has been processed by the first three steps and turned into _code objects_, which are the internal representation of Python code to the Python interpreter. The interpreter's job is to take these code objects representing the programmer's source code and perform the operations detailed there.
 
-People often refer to Python as an "interpreted" language, like Ruby or Java, in contrast with a "compiled" language like C or Rust. This terminology isn't as precise as it seems.  Most "interpreted" languages, including Python, do involve a compilation step; it's just that the compilation does relatively less than in a "compiled" language, and the interpreter does relatively more.  The Python compiler has much less information about the behavior of the program it compiles than a C compiler would, as we'll see. You also hear the Python interpreter referred to as the "Python virtual machine."  For today, we'll treat these terms as synonymous.
+Byterun is a Python interpreter written in Python.  This may strike you as odd, but it's no more odd than writing a C compiler in C (like gcc). We could write a Python interpreter in almost any language, with greater or lesser difficulty. Writing a Python interpreter in Python will be slower than writing it in C or another low-level language, but it will make the structure and operations much more clear and easy to read for a Python programmer. Since our goal is understanding the system, not speed of execution, this is a worthy tradeoff.
 
-The Python interpreter we're examining today is written in Python.  This may strike you as odd, but it's no more odd than writing a C compiler in C (like gcc or clang [IS THIS TRUE?]). We could write a Python interpreter in almost any language, with greater or lesser difficulty. Writing a Python interpreter in Python will be slower than writing it in C or another low-level language. [footnote? You may have heard of PyPy, a prominent Python interpreter written in Python. The structure of PyPy is covered in volume 2 of AOSA, by Benjamin Peterson. Before optimzations, PyPy is four times slower than the CPython interpreter.] One advantage of writing our Python interpreter in Python is that we don't have to also implement an object system - we can seamlessly fall back to the "real" Python's object system.
+Byterun's structure very closely mirrors the interpreter in CPython, the most-used Python.  In CPython, as the name would suggest, the interpreter is written in C. Understanding Byterun means understanding the interpreter in CPython.
 
-With that background, let's begin examining the structure of the Python interpreter.  The Python interpreter is a virtual machine, meaning that it's software that emulates a physical computer. This particular virtual machine is a stack machine: it uses a stack instead of registers as it evaluates the code. In our interpreter, we'll implement a stack using a list, and push and pop from the stack by appending and popping from the end of the list.
+### "Interpreted" and "Compiled"
+Python is often called an "interpreted" language, like Ruby or Java, in contrast with a "compiled" language like C or Rust. This terminology isn't terribly precise.  Most "interpreted" languages, including Python, do involve a compilation step; it's just that the compilation does relatively less than in a "compiled" language, and the interpreter does relatively more.  The Python compiler has much less information about the behavior of the program it compiles than a C compiler would, as we'll see.
 
-We can model the virtual machine as a call stack of frames plus a couple of other attributes: the exception state, the current frame, and the return value from the interpreter (if any) to be passed between frames. [passed?]
+### The structure of Byterun
+With that background, let's begin examining the structure of Byterun.  The Python interpreter is a virtual machine, meaning that it is software that emulates a physical computer. This particular virtual machine is a stack machine: it manipulates several stacks to perform its operations (as contrasted with a register machine, that writes and reads values from particular memory locations). In our interpreter, we'll implement a stack using a Python list, and push and pop from the stack by appending and popping from the end of the list.
 
-A frame is a collection of information and context for a chunk of code (typically a function, but not always). Information on the frame includes the the code object for the frame, the global and local namespaces, a reference to the calling frame, and the last bytecode instruction executed.  Each frame has two stacks associated with it: the data stack, which contains [information] and a block stack, used for certain kinds of control flow such as exception handling and looping.  The primary work of the Python VM is manipulating these three kinds of stacks.
+There are three kinds of stacks that the Python interpreter uses.  The first is the _call stack_, a stack of _Frame_ objects. A frame is a collection of information and context for a chunk of code (typically a function, but not always). Each frame has two stacks other associated with it: the data stack, which contains data and objects, and a block stack, used for certain kinds of control flow such as exception handling and looping.  The primary work of the interpreter is manipulating these three kinds of stacks.
+
+Outside of the call stack, the interpreter needs to keep track of the exception state, the current frame, and the values to be passed between frames.
+
+Information on the frame includes the the code object for the frame, the global and local namespaces, a reference to the calling frame, and the last bytecode instruction executed.
 
 Let's make this concrete with a little diagram. Suppose we have the following code, and the Python interpreter is currently executing the marked line.  Here's a schematic of the call stack of frames, the block stacks, and the data stacks.
 
@@ -25,23 +31,24 @@ foo()              # <--- (1) We're in the middle of a call to foo ...
 ```
 
 ```
-c   ---------------------------
-a  | bar Frame                 | -> block stack: []
-l  |     (newest)              | -> data stack: [1, 2]
-l   ---------------------------
-   | foo Frame                 | -> block stack: []
-s  |                           | -> data stack: [<Function foo.<locals>.bar at 0x10d389680>, 1]
-t   ---------------------------
-a  | main (module) Frame       | -> block stack: []
-c  |       (oldest)            | -> data stack: [<Function foo at 0x10d3540e0>]
-k   ---------------------------
+c   ---------------------
+a  | bar Frame           | -> block stack: []
+l  |     (newest)        | -> data stack: [1, 2]
+l   ---------------------
+   | foo Frame           | -> block stack: []
+s  |                     | -> data stack: []
+t   ---------------------
+a  | main (module) Frame | -> block stack: []
+c  |       (oldest)      | -> data stack: []
+k   ---------------------
 ```
 
 At this point, the interpreter is in the middle of the nested function call to `bar`. There are three frames on the call stack: one for the module level, one for the function `foo`, and one for `bar`. Once `bar` returns, the frame associated with it is popped off of the call stack. In general, there will be a frame for each module, each function call, and each class definition.  Note that this is one frame per function *call*, not just one frame per function. A recursive function would have one frame on the call stack for each level of recursion.
 
 Each frame has its own data stack and block stack. Keeping separate data and block stacks enables the interpreter to pause and resume frames, as with a generator.
 
-Each frame also has a reference to its corresponding code object. (Each code object maps to at least one frame.) To understand the inner workings of the interpreter, we need to first discuss the code object. The code object is a collection of information about a chunk of code (most often a function) bundled up by the compiler. This information includes the arguments to the function, the variable names that appear in it, and the Python bytecode.  Bytecode is a series of bytes that serve as instructions to the interpreter. Bytecode is an intermediate representation of Python code: it translates the top-level Python code that you write for the Python virtual machine.
+## Instructions for the interpreter
+How does the interpreter know what operations it should perform?  Each frame has a _code object_, which has a collection of information.  The most important part of this information is called _bytecode_.  Bytecode is a series of bytes that the interpreter maps to certain operations that it should perform. (Bytecode is an _intermediate representation_ of Python code: it expresses the top-level Python code that you wrote in a way the interpreter can understand, analogous to the way that assembly serves as a representation between C code and a processor.)
 
 In Python, the code object and its bytecode are exposed, so we can examine them in the REPL.  We'll take another simple function, `three`, as an example.
 
@@ -58,17 +65,10 @@ b'|\x00\x00r\n\x00d\x01\x00Sd\x02\x00S'
 
 ```
 
-We can get a friendly, human-readable mapping of these numbers to their instruction names using the `dis` module in the standard library:
+This looks uninteligible, but there's a powerful tool we can use to understand it. The standard library has a module called `dis` which takes bytecode and outputs a nicely-formatted explanation of it for us, detailed below:
 
 ``` python
 >>> import dis
->>> dis.opname[124]
-'LOAD_FAST'
-```
-
-More conveniently, we can use `dis.dis` to get a nicely-formatted disassembly of the bytecode.
-
-``` python
 >>> dis.dis(three)
   2           0 LOAD_FAST                0 (arg)
               3 POP_JUMP_IF_FALSE       10
@@ -78,13 +78,25 @@ More conveniently, we can use `dis.dis` to get a nicely-formatted disassembly of
 
   4     >>   10 LOAD_CONST               2 (10)
              13 RETURN_VALUE
+>>> dis.opname[124]
+'LOAD_FAST'
 ```
 
-Some of the bytecode instructions have arguments. If an instruction has arguments, the arguments appear in the next two bytes. The arguments have different meaning for each instruction. In this example, the arguments to `124` (`LOAD_FAST`) are `0` and `0`. In the case of `LOAD_FAST`, the argument is an index into the list of variable names on the code object. For `POP_JUMP_IF_FALSE`, the argument is the index to jump to in the bytecode.
+The first column shows the line numbers in our Python source code. The second column is an index into the bytecode, telling us that the `LOAD_FAST` instruction appears at position zero.  The third column is the instruction itself, mapped to its human-readable name. The fourth column, when present, is the argument to that instruction.  The fifth column, when present, is a hint about what the argument means.
 
-When the virtual machine runs a frame, it starts with the first byte of the bytecode on its code object. It looks up and performs the corresponding operation, then moves to the next bytecode. The interpreter may land on a given bytecode zero, one, or more times. In the example above, the interpreter will either execute the first pair of `LOAD_CONST` / `RETURN_VALUE` or the second, but never both. (Looking back at the code that generated this bytecode, you can see that either the first return statement or the second will execute, but never both.) A frame returns when it encounters a bytecode that gives up control to the calling frame, like `RETURN_VALUE` or `YIELD_VALUE`, or until an unhandled exception is raised.
+When the interpreter executes bytecode, it starts with the first byte. It looks up and performs the corresponding operation, then moves to the next bytecode. Most of the work of writing an interpreter is providing a complete mapping of the operations associated with each instruction. In CPython, the lookup of operations corresponding to each instruction is implemented as a giant switch statement. The switch statment has one case for each bytecode and is _1,500 lines long_.
 
-In CPython - the reference implementation of Python and the most commonly used version - the lookup of operations corresponding to each instruction is implemented as a giant switch statement. The switch statment has one case for each bytecode and is 1,500 lines long.
+The interpreter may land on a given bytecode zero, one, or many times. In the example above, the interpreter will either execute the first pair of `LOAD_CONST` / `RETURN_VALUE` or the second, but never both. (Looking back at the code that generated this bytecode, you can see that either the first return statement or the second will execute, but never both.)
+
+The interpreter stops executing a particular set of bytecode when it encounters an instruction that gives up control, like `RETURN_VALUE` or `YIELD_VALUE`, or until an (unhandled) exception is raised.
+
+Some of the bytecode instructions have arguments. If an instruction has arguments, the arguments appear in the next two bytes. The arguments have different meaning for each instruction. In this example, the arguments to `124` (`LOAD_FAST`) are `0` and `0`. In the case of `LOAD_FAST`, which is an instruction to load the value associated with a given variable name, the argument is an index into the list of variable names. For `POP_JUMP_IF_FALSE` (the instruction associated with the `if` statement), the argument is the location to jump to in the bytecode.
+
+### Byterun's objects
+There are N kinds of objects in Byterun:
+- A `VirtualMachine` class, which manages the highest-level structure, particularly the call stack of frames, and contains a mapping of instructions to operations
+- A `Frame` class.  Every `Frame` instance will have one code object and manage a few other necessary bits of state.
+- A `Function` class,
 
 
 With that context, we're now ready to write a Python interpreter. We'll begin by creating a virtual machine object to store the call stack and other attributes discussed above. `run_code` is the entry point to the virtual machine. This method takes a compiled code object as an argument. It sets up and runs a frame until it returns somehow, then checks that no data or frames are left over. We'll implement `make_frame` and `run_frame` momentarily.
@@ -666,3 +678,9 @@ class VirtualMachine(object):
 
 [At some point, talk about the implementation of `Function` and `Method`.]
 
+
+
+
+
+#### cruft / possible footnotes
+. [footnote? You may have heard of PyPy, a prominent Python interpreter written in Python. The structure of PyPy is covered in volume 2 of AOSA, by Benjamin Peterson. Before optimzations, PyPy is four times slower than the CPython interpreter.] One advantage of writing our Python interpreter in Python is that we don't have to also implement an object system - we can seamlessly fall back to the "real" Python's object system.
