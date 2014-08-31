@@ -173,47 +173,36 @@ We've successfully split our total acceleration into user acceleration and gravi
 
 The user acceleration time series for each component encompass all movements of the user, not just movements in the direction of gravity. Our goal here is to end up with a 1-dimensional time series representing user acceleration in the direction of gravity, so that we can count the peaks in this single time series. We'll annotate this time series as $(x_{ug}, y_{ug}, z_{ug})$.
 
-TODO: Fix this sentence: "Once we've done that, we can use our ranges for amplitude and period, and count only the peaks that fall within those ranges as steps.""
-
 Let's get to it. First, some liner algebra 101. Don't take that mathematician hat off just yet!
 
 ### The Dot Product
 
-TODO: How do I explain this?
+When working with coordinates, you won't get very far before being introduced to the **dot product**, one of the fundametal tools used in comparing the magnitude and direction of x, y, z coordinates.
 
-The dot product is.... 
-
-The dot will take us from a signal with 3 components to a single time series.
-
-TODO: This section is fucked.
-
-The dot product takes two signals of equal length and returns a single signal. 
-In solving problem one above, we have three resulting signals: $a_{t}$, $a_{g}$ and $a_{u}$, each of which has an x, y, and z direction. Each of these signals is necessarily the same length, since $a_{u}$ and $a_{g}$ are derived from $a_{t}$. 
-
-Let's take a look at what it means to take the dot product of $a_{u}$ and $a_{g}$, $a_{u} \cdot a_{g}$, for the x direction at point $n$, which is equivalent to any point from 0 to the length of the entire signal.
+The dot product will take us from 3-dimensional space to 1-dimensional space, returning a single time series. We'll jump right in with an example.
 
 ![](chapter-figures/dot-product-explanation.png)\ 
 
-Taking the dot product in this case means that we'll get the portion of user acceleration in the direction of gravity. Just what we need! 
+Taking the dot product of user acceleration and gravitational acceleration at time *t* will give us the portion of user acceleration in the direction of gravity at that time. When we do this for every *t* in our time series, we'll get a single time series representing user acceleration in the direction of gravity. Exactly what we need! We'll arbitrarily call this new time series $a(t)$, because, well, every important time series deserves a name. 
 
 ### Implemeting the Dot Product
-So, in order to get a single time series representing user acceleration in the direction of gravity, we need to take the dot product of user acceleration and gravitational acceleration. Let's call this resulting time series $a_{ug}$. 
-
-Using our example from before, we have three time series representing user acceleration in each direction,
+Using our earlier example, we have three time series representing user acceleration in each direction,
 
 ![](chapter-figures/figure-filter-user.png)\ 
 
-and three time series representing gravitational acceleration in each direction.
+and three time series representing gravitational acceleration in each direction. We're starting in 3-dimensional space.
 
 ![](chapter-figures/figure-filter-gravitational.png)\ 
 
-Again we have 100 data points per time series. Let's use an index, *i*, that goes from 0 to 99. Then, $a_{ug}$ at *i*, or $a(i)_{ug}$, is:
+We can implement the dot product using the formula
 
-$a(i)_{ug} = a(x_{i})_{u} * a(x_{i})_{g} + a(y_{i})_{u} * a(y_{i})_{g} + a(z_{i})_{u} * a(z_{i})_{g}$
+$a(t) = x_{u}(t) * x_{g}(t) + y_{u}(t) * y_{g}(t) + z_{u}(t) * z_{g}(t)$,
 
-The dot product results in the time series below. 
+and we're left with $a(t)$, in 1-dimensional space. 
 
 ![](chapter-figures/figure-dot-product-example.png)\ 
+
+The dot product is very powerful, yet beautifully simple.
 
 ## Solutions in the Real World TODO: Make this the noise section
 We saw how quickly our seemingly simple problem turned a little more complex when we threw in the challenges of the real world and real people. However, we're getting a lot closer to counting steps. 
