@@ -1,20 +1,22 @@
 class Processor
 
-  GRAVITY_COEFF = {
+  GRAVITY = {
     alpha: [1, -1.979133761292768, 0.979521463540373],
     beta:  [0.000086384997973502, 0.000172769995947004, 0.000086384997973502]
   }
   
-  # Chebyshev II, Astop = 2, Fstop = 5, Fs = 100, Direct Form I
-  SMOOTHING_COEFF = {
+  # Direct form I, Chebyshev II, type = low-pass, 
+  # Astop = 2, Fstop = 5, Fs = 100, Direct Form I
+  SMOOTHING = {
     alpha: [1, -1.80898117793047, 0.827224480562408], 
     beta:  [0.095465967120306, -0.172688631608676, 0.095465967120306]
   }  
 
-# Direct form I, Chebyshev II, Fs = 100, Fstop = 1, Astop = 20, order = 2, type = highpass
+  # Direct form I, Chebyshev II, type = high-pass, 
+  # Fs = 100, Fstop = 0.5, Astop = 20, order = 2, 
   HIGHPASS = {
-    alpha: [1, -1.810492533501505, 0.828461875915073], 
-    beta:  [0.910187835914484, -1.818578737587611, 0.910187835914484]
+    alpha: [1, -1.905384612118461, 0.910092542787947], 
+    beta:  [0.953986986993339, -1.907503180919730, 0.953986986993339]
   }
 
   FORMAT_COMBINED  = 'combined'
@@ -44,15 +46,12 @@ class Processor
     end
 
     @format = if @parsed_data.first.count == 1
-      # TODO: Try to combine the two loops below. Will make chapter 
-      #       explanation easier. See branch parser-option-2.
-
       # Low-pass filter combined acceleration into the following format:
       # [ [ [x1u, x2u, ..., xnu], [x1g, x2g, ..., xng] ],
       #   [ [y1u, y2u, ..., ynu], [y1g, y2g, ..., yng] ],
       #   [ [z1u, z2u, ..., znu], [z1g, z2g, ..., zng] ] ]
       filtered_accl = @parsed_data.map(&:flatten).transpose.map do |total_accl|
-        grav = chebyshev_filter(total_accl, GRAVITY_COEFF)
+        grav = chebyshev_filter(total_accl, GRAVITY)
         user = total_accl.zip(grav).map { |a, b| a - b }
         [user, grav]
       end
@@ -81,7 +80,8 @@ class Processor
   end
 
   def filter
-    @filtered_data = chebyshev_filter(@dot_product_data, SMOOTHING_COEFF)
+    low_pass_filtered_data = chebyshev_filter(@dot_product_data, SMOOTHING)
+    @filtered_data = chebyshev_filter(low_pass_filtered_data, HIGHPASS)
   end
 
   def chebyshev_filter(input_data, coefficients)

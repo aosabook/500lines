@@ -74,8 +74,8 @@ class AnalyzerTest < Test::Unit::TestCase
     end
   end
 
-  # -- Step Counting Tests --------------------------------------------------
-
+  # -- Measurement Tests ----------------------------------------------------
+  
   def test_count_basic
     processor = Processor.new(File.read('test/data/female-167-70_1-100-10-walk-g.txt'))
     analyzer = Analyzer.new(processor)
@@ -83,36 +83,6 @@ class AnalyzerTest < Test::Unit::TestCase
 
     assert_equal 10, analyzer.steps
   end
-
-  def test_count_false_step_period_too_short
-    processor = Processor.new(File.read('test/data/female-167-70_1-100-0-walk-g.txt'))
-    analyzer = Analyzer.new(processor)
-    analyzer.measure
-
-    assert_equal 0, analyzer.steps
-  end
-
-  def test_count_false_step_period_too_long
-    flunk
-  end
-
-  def test_count_all_peaks_too_high
-    processor = Processor.new(File.read('test/data/female-167-70_false1-100-0-walk-c.txt'))
-    analyzer = Analyzer.new(processor)
-    analyzer.measure
-
-    assert_equal 0, analyzer.steps
-  end
-
-  def test_count_some_peaks_too_high
-    processor = Processor.new(File.read('test/data/female-167-70_false2-100-1-walk-s.txt'))
-    analyzer = Analyzer.new(processor)
-    analyzer.measure
-
-    assert_equal 1, analyzer.steps
-  end
-
-  # -- Measurement Tests ----------------------------------------------------
 
   def test_measure
     user = User.new(nil, nil, 100)

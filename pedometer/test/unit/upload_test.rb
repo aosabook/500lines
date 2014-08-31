@@ -27,7 +27,7 @@ class UploadTest < Test::Unit::TestCase
     assert_equal '1', upload.trial.name
     assert_equal 'walk', upload.trial.method
     
-    assert_equal 101, upload.analyzer.steps
+    assert_equal 103, upload.analyzer.steps
   end
 
   def test_find
@@ -44,7 +44,7 @@ class UploadTest < Test::Unit::TestCase
     assert_equal '1', upload.trial.name
     assert_equal 'walk', upload.trial.method
     
-    assert_equal 101, upload.analyzer.steps
+    assert_equal 103, upload.analyzer.steps
   end
 
   def test_all

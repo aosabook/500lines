@@ -17,7 +17,7 @@ class ProcessorTest < Test::Unit::TestCase
                    [[-0.2120710948533322, 0.0011468544965549535, 0.9994625125426089], 
                     [7.109485333219216e-05, -0.00014685449655495343, 0.0005374874573911294]] ], processor.parsed_data
     assert_equal [0.0, 0.0, 0.0005219529804999682], processor.dot_product_data
-    assert_equal [0, 0, 4.9828746074755684e-05], processor.filtered_data
+    assert_equal [0, 0, 4.753597533351234e-05], processor.filtered_data
   end
 
   def test_create_separated_data
@@ -30,7 +30,7 @@ class ProcessorTest < Test::Unit::TestCase
                    [[0, -0.07, 0.06],   [0.123, -0.947, 5]],
                    [[0.2, -1.0, 2.0], [0.1, -0.9, 3.0]] ], processor.parsed_data
     assert_equal [-24.928348, 0.36629, 6.92], processor.dot_product_data
-    assert_equal [0, 0, -1.7824384769309702], processor.filtered_data
+    assert_equal [0, 0, -1.7004231121083724], processor.filtered_data
   end
 
   def test_create_string_values_parses_to_0s
