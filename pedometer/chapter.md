@@ -16,19 +16,21 @@ The rise of the mobile device brought with it a trend to collect more and more d
 
 ## What's an Accelerometer, You Ask?
 
-An accelerometer is a piece of hardware that measures acceleration in the x, y, and z directions. In today's mobile world, many people carry an accelerometer with them wherever they go, as it's built into almost all smartphones currently on the market. The x, y, and z directions are relative to the smartphone.
+An accelerometer is a piece of hardware that measures acceleration in the x, y, and z directions. In today's mobile world, many people carry an accelerometer with them wherever they go, as it's built into almost all smartphones currently on the market.
+
+The x, y, and z directions are relative to the smartphone.
 
 TODO: This diagram is a direct copy from Apple. Problem? 
 
 ![](chapter-figures/figure-iphone-accelerometer.png)\
 
-An accelerometer returns a **signal** in 3-dimensional space. A signal is a set of data points recorded over time. Each component of the signal is a time series representing acceleration in one of the x, y, or z directions. Each point in a time series is the acceleration in that direction at a specific point in time. 
+An accelerometer returns a **signal** in 3-dimensional space. A signal is a set of data points recorded over time. Each component of the signal is a time series representing acceleration in one of the x, y, or z directions. Each point in a time series is the acceleration in that direction at a specific point in time. For simplicity, we'll assume that all smartphone accelerometers return acceleration in units of g-force. One *g* is equal to $9.8 m/s^2$, which is the gravitational acceleration on Earth.
 
-The diagram below shows an example acceleration signal from an accelerometer with the three components.
+The diagram below shows an example acceleration signal from an accelerometer with the three time series.
 
-![](chapter-figures/figure-filter-total.png)\ 
+![](chapter-figures/acceleration-total.png)\ 
 
-The **sampling rate** of the accelerometer, which can often be calibrated, determines the number of measurements per second. For instance, an acceleroemeter with a sampling rate of 100 returns 100 data points for each x, y, and z component each second.
+The **sampling rate** of the accelerometer, which can often be calibrated, determines the number of measurements per second. For instance, an acceleroemeter with a sampling rate of 100 returns 100 data points for each x, y, and z time series each second.
 
 ## Let's Talk About a Walk
 
@@ -40,36 +42,39 @@ A person bounces up and down, in the vertical direction, with each step. If you 
 
 Let's look at a person walking with a smartphone containing an accelerometer, in his or her shirt pocket, as depicted below.
 
-TODO: Change the diagram, and all others, since x is the only one not moving but z is, with this change.
-
 ![](chapter-figures/figure-xyz-normal.png)\
 
-For the sake of simplicity, we'll assume that:
+For the sake of simplicity, we'll assume that the stick person:
 
-* the stick person is walking in the x direction at a constant speed (no acceleration);
-* there is no movement in the z direction (again, no acceleration);
-* The person bounces with each step in the y direction;
-* the phone remains in the same orientation throughout the entire walk;
-
-Ah, the joys of a perfect world, that we only ever experience in texts like this. Don't fret, we'll deal with an imperfect, but real and more exciting world soon.
+* is walking in the z direction;
+* bounces with each step in the y direction;
+* maintains the phone in the same orientation throughout the entire walk;
 
 In our perfect world, acceleration from step bounces will form a perfect sine wave in the y direction.
 
 ![](chapter-figures/figure-sine-wave-1.png)\
 
-Each peak in the sine wave is exactly one step. Step counting becomes a matter of counting these perfect peaks. So far, so good. Now, let's add a little more reality to our world. 
+Each peak in the sine wave is exactly one step. Step counting becomes a matter of counting these perfect peaks. 
+
+Ah, the joys of a perfect world, that we only ever experience in texts like this. Don't fret, things are about to get a little messier, and a lot more exciting. Let's add a little more reality to our world. 
 
 ### Even Perfect Worlds Have Fundamental Forces of Nature
 
-TODO: Let's talk about gravity. Gravity is an acceleration, talk about how it's constant, etc. If your phone is sitting totally still, the phone still measures gravity. Your phone feels the pull downwards. Add a plot.
+The force of gravity causes an acceleration in the direction of gravity, which we refer to as gravitational acceleration. This acceleration is unique because it is always present, and is always constant at $9.8 m/s^2$. 
+
+Suppose a smartphone is lying on a table screen-size up. In this orientation, our coordinate system is such that the negative z direction is the one in direction of gravity. Gravity will **pull** our smarphone in the negative z direction, so our accelerometer, **even when perfectly still**, will record an acceleration of $9.8 m/s^2$ in the negative z direction. Real accelerometer data from our phone in this orientation looks like the graph below. 
+
+![](chapter-figures/acceleration-total-phone-still.png)\
+
+Note that the $x(t)$ and $y(t)$ remain constant at 0, while $z(t)$ is constant at $-1g$. Our accelerometer records all acceleration, including gravitational acceleration.
 
 Each component of the acceleration signal measures the **total acceleration** in that direction. Total acceleration is a result of **user acceleration** and **gravitational acceleration**. 
 
-User acceleration is the acceleration of the device due to the movement of the user. It's rarely constant, since it's difficult for a person to move with a constant acceleration. 
+User acceleration is the acceleration of the device due to the movement of the user. User acceleration is constant at 0 when the phone is perfectly still. However, when the user is moving with the device, user acceleration is rarely constant, since it's difficult for a person to move with a constant acceleration. 
 
-Gravitational acceleration is, as expected, due to gravity, and is always constant at $9.8 m/s^2$ in the direction of gravity. 
+Gravitational acceleration is, as discussed, due to gravity.
 
-Each of our three component time series is a sum of two time series: user acceleration, and gravitational acceleration. 
+Our total acceleration is the sum of gravitational and user acceleration.
 
 ![](chapter-figures/component-signals-1.png)\
 

@@ -13,19 +13,23 @@
 <script>
   $(function () {
         $('#container-dot-product').highcharts({
-            title: { text: 'Dot Product Data' },
+            title: { text: 'User Acceleration in the Direction of Gravity' },
             series: [{
-                name: 'Dot Product Data',
+                name: 'a(t)',
                 data: <%= limit_1000(@upload.analyzer.processor.dot_product_data) %>
-            }]
+            }],
+            xAxis: { title: { text: 'Time' } },
+            yAxis: { title: { text: 'Acceleration' } }
         });
 
         $('#container-filtered').highcharts({
-            title: { text: 'Filtered Data' },
+            title: { text: 'User Acceleration in the Direction of Gravity - Filtered' },
             series: [{
-                name: 'Filtered Data',
+                name: 'a(t)',
                 data: <%= limit_1000(@upload.analyzer.processor.filtered_data) %>
-            }]
+            }],
+            xAxis: { title: { text: 'Time' } },
+            yAxis: { title: { text: 'Acceleration' } }
         });
     });
 </script>
