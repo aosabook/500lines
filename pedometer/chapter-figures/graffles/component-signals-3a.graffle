@@ -501,8 +501,8 @@ in the
 			<integer>117</integer>
 			<key>Points</key>
 			<array>
-				<string>{530.5, 105.49999701976776}</string>
-				<string>{596.5, 130.01428498200008}</string>
+				<string>{536, 107.54285434995379}</string>
+				<string>{593, 128.71428486279078}</string>
 			</array>
 			<key>Style</key>
 			<dict>
@@ -541,7 +541,7 @@ in the
 		</dict>
 		<dict>
 			<key>Bounds</key>
-			<string>{{596.5, 123.5}, {43, 29}}</string>
+			<string>{{593, 123.5}, {50, 29}}</string>
 			<key>Class</key>
 			<string>ShapedGraphic</string>
 			<key>FitText</key>
@@ -587,9 +587,8 @@ in the
 {\colortbl;\red255\green255\blue255;}
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\qc
 
-\f0\fs48 \cf0 z
-\i\fs28 u
-\i0\fs48 (t)}</string>
+\f0\fs48 \cf0 a(z)
+\i\fs28 u}</string>
 				<key>VerticalPad</key>
 				<integer>0</integer>
 			</dict>
@@ -609,7 +608,7 @@ in the
 			<key>Points</key>
 			<array>
 				<string>{536, 99.5}</string>
-				<string>{594.5, 72.809375000000003}</string>
+				<string>{591, 74.40625}</string>
 			</array>
 			<key>Style</key>
 			<dict>
@@ -643,7 +642,7 @@ in the
 		</dict>
 		<dict>
 			<key>Bounds</key>
-			<string>{{594.5, 48.5}, {43, 29}}</string>
+			<string>{{591, 48.5}, {50, 29}}</string>
 			<key>Class</key>
 			<string>ShapedGraphic</string>
 			<key>FitText</key>
@@ -689,9 +688,8 @@ in the
 {\colortbl;\red255\green255\blue255;}
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\qc
 
-\f0\fs48 \cf0 z
-\i\fs28 g
-\i0\fs48 (t)}</string>
+\f0\fs48 \cf0 a(z)
+\i\fs28 g}</string>
 				<key>VerticalPad</key>
 				<integer>0</integer>
 			</dict>
@@ -700,7 +698,7 @@ in the
 		</dict>
 		<dict>
 			<key>Bounds</key>
-			<string>{{495.5, 84.499996423721313}, {35, 29}}</string>
+			<string>{{490, 84.499996423721313}, {46, 29}}</string>
 			<key>Class</key>
 			<string>ShapedGraphic</string>
 			<key>FitText</key>
@@ -746,7 +744,8 @@ in the
 {\colortbl;\red255\green255\blue255;}
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\qc
 
-\f0\fs48 \cf0 z(t)}</string>
+\f0\fs48 \cf0 a(z)
+\i\fs28 t}</string>
 				<key>VerticalPad</key>
 				<integer>0</integer>
 			</dict>
@@ -762,11 +761,11 @@ in the
 				<integer>111</integer>
 			</dict>
 			<key>ID</key>
-			<integer>166</integer>
+			<integer>112</integer>
 			<key>Points</key>
 			<array>
-				<string>{306.5, 105.49999701976776}</string>
-				<string>{372.5, 130.01428498200008}</string>
+				<string>{312, 107.54285434995379}</string>
+				<string>{369, 128.71428486279078}</string>
 			</array>
 			<key>Style</key>
 			<dict>
@@ -800,12 +799,12 @@ in the
 			<key>Tail</key>
 			<dict>
 				<key>ID</key>
-				<integer>165</integer>
+				<integer>108</integer>
 			</dict>
 		</dict>
 		<dict>
 			<key>Bounds</key>
-			<string>{{372.5, 123.5}, {43, 29}}</string>
+			<string>{{369, 123.5}, {50, 29}}</string>
 			<key>Class</key>
 			<string>ShapedGraphic</string>
 			<key>FitText</key>
@@ -851,9 +850,8 @@ in the
 {\colortbl;\red255\green255\blue255;}
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\qc
 
-\f0\fs48 \cf0 y
-\i\fs28 u
-\i0\fs48 (t)}</string>
+\f0\fs48 \cf0 a(y)
+\i\fs28 u}</string>
 				<key>VerticalPad</key>
 				<integer>0</integer>
 			</dict>
@@ -873,7 +871,7 @@ in the
 			<key>Points</key>
 			<array>
 				<string>{312, 99.5}</string>
-				<string>{370.5, 72.809375000000003}</string>
+				<string>{367, 74.40625}</string>
 			</array>
 			<key>Style</key>
 			<dict>
@@ -907,7 +905,7 @@ in the
 		</dict>
 		<dict>
 			<key>Bounds</key>
-			<string>{{370.5, 48.5}, {43, 29}}</string>
+			<string>{{367, 48.5}, {50, 29}}</string>
 			<key>Class</key>
 			<string>ShapedGraphic</string>
 			<key>FitText</key>
@@ -953,9 +951,8 @@ in the
 {\colortbl;\red255\green255\blue255;}
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\qc
 
-\f0\fs48 \cf0 y
-\i\fs28 g
-\i0\fs48 (t)}</string>
+\f0\fs48 \cf0 a(y)
+\i\fs28 g}</string>
 				<key>VerticalPad</key>
 				<integer>0</integer>
 			</dict>
@@ -964,7 +961,7 @@ in the
 		</dict>
 		<dict>
 			<key>Bounds</key>
-			<string>{{271.5, 84.499996423721313}, {35, 29}}</string>
+			<string>{{266, 84.499996423721313}, {46, 29}}</string>
 			<key>Class</key>
 			<string>ShapedGraphic</string>
 			<key>FitText</key>
@@ -979,7 +976,7 @@ in the
 				<real>18</real>
 			</dict>
 			<key>ID</key>
-			<integer>165</integer>
+			<integer>108</integer>
 			<key>Shape</key>
 			<string>Rectangle</string>
 			<key>Style</key>
@@ -1010,7 +1007,8 @@ in the
 {\colortbl;\red255\green255\blue255;}
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\qc
 
-\f0\fs48 \cf0 y(t)}</string>
+\f0\fs48 \cf0 a(y)
+\i\fs28 t}</string>
 				<key>VerticalPad</key>
 				<integer>0</integer>
 			</dict>
@@ -1029,8 +1027,8 @@ in the
 			<integer>107</integer>
 			<key>Points</key>
 			<array>
-				<string>{81.5, 106.99999701976776}</string>
-				<string>{147.5, 131.51428498200008}</string>
+				<string>{87, 109.04285434995379}</string>
+				<string>{144, 130.21428486279078}</string>
 			</array>
 			<key>Style</key>
 			<dict>
@@ -1069,7 +1067,7 @@ in the
 		</dict>
 		<dict>
 			<key>Bounds</key>
-			<string>{{147.5, 125}, {43, 29}}</string>
+			<string>{{144, 125}, {50, 29}}</string>
 			<key>Class</key>
 			<string>ShapedGraphic</string>
 			<key>FitText</key>
@@ -1115,9 +1113,8 @@ in the
 {\colortbl;\red255\green255\blue255;}
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\qc
 
-\f0\fs48 \cf0 x
-\i\fs28 u
-\i0\fs48 (t)}</string>
+\f0\fs48 \cf0 a(x)
+\i\fs28 u}</string>
 				<key>VerticalPad</key>
 				<integer>0</integer>
 			</dict>
@@ -1137,7 +1134,7 @@ in the
 			<key>Points</key>
 			<array>
 				<string>{87, 101}</string>
-				<string>{145.5, 74.309375000000003}</string>
+				<string>{142, 75.90625}</string>
 			</array>
 			<key>Style</key>
 			<dict>
@@ -1171,7 +1168,7 @@ in the
 		</dict>
 		<dict>
 			<key>Bounds</key>
-			<string>{{145.5, 50}, {43, 29}}</string>
+			<string>{{142, 50}, {50, 29}}</string>
 			<key>Class</key>
 			<string>ShapedGraphic</string>
 			<key>FitText</key>
@@ -1217,9 +1214,8 @@ in the
 {\colortbl;\red255\green255\blue255;}
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\qc
 
-\f0\fs48 \cf0 x
-\i\fs28 g
-\i0\fs48 (t)}</string>
+\f0\fs48 \cf0 a(x)
+\i\fs28 g}</string>
 				<key>VerticalPad</key>
 				<integer>0</integer>
 			</dict>
@@ -1228,7 +1224,7 @@ in the
 		</dict>
 		<dict>
 			<key>Bounds</key>
-			<string>{{46.5, 85.999996423721313}, {35, 29}}</string>
+			<string>{{41, 85.999996423721313}, {46, 29}}</string>
 			<key>Class</key>
 			<string>ShapedGraphic</string>
 			<key>FitText</key>
@@ -1274,7 +1270,8 @@ in the
 {\colortbl;\red255\green255\blue255;}
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\qc
 
-\f0\fs48 \cf0 x(t)}</string>
+\f0\fs48 \cf0 a(x)
+\i\fs28 t}</string>
 				<key>VerticalPad</key>
 				<integer>0</integer>
 			</dict>
@@ -1329,7 +1326,7 @@ in the
 	<key>MasterSheets</key>
 	<array/>
 	<key>ModificationDate</key>
-	<string>2014-08-31 16:56:04 +0000</string>
+	<string>2014-08-28 22:49:27 +0000</string>
 	<key>Modifier</key>
 	<string>Dessy Daskalov</string>
 	<key>NotesVisible</key>
@@ -1366,6 +1363,16 @@ in the
 		<array>
 			<string>int</string>
 			<string>0</string>
+		</array>
+		<key>NSPrinter</key>
+		<array>
+			<string>coded</string>
+			<string>BAtzdHJlYW10eXBlZIHoA4QBQISEhAlOU1ByaW50ZXIAhIQITlNPYmplY3QAhZKEhIQITlNTdHJpbmcBlIQBKyRIUCBDb2xvciBMYXNlckpldCBDUDE1MThuaSBAIGJ1aWxkZXKGhg==</string>
+		</array>
+		<key>NSPrinterName</key>
+		<array>
+			<string>string</string>
+			<string>HP Color LaserJet CP1518ni @ builder</string>
 		</array>
 		<key>NSRightMargin</key>
 		<array>
@@ -1405,7 +1412,7 @@ in the
 		<key>ExpandedCanvases</key>
 		<array/>
 		<key>Frame</key>
-		<string>{{112, 4}, {974, 774}}</string>
+		<string>{{286, 4}, {796, 774}}</string>
 		<key>ListView</key>
 		<true/>
 		<key>OutlineWidth</key>
@@ -1419,7 +1426,7 @@ in the
 		<key>SidebarWidth</key>
 		<integer>120</integer>
 		<key>VisibleRegion</key>
-		<string>{{0, 0}, {839, 635}}</string>
+		<string>{{130, 0}, {661, 635}}</string>
 		<key>Zoom</key>
 		<real>1</real>
 		<key>ZoomValues</key>

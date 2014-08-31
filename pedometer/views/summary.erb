@@ -6,7 +6,10 @@
   <th>Calculated</th>
   <th>Delta</th>
   <th>User</th>
-  <th></th>
+  <% unless detail_hidden %>
+    <th>Distance</th>
+    <th>Time</th>
+  <% end %>
   <% uploads.each do |upload| %>
     <% analyzer = upload.analyzer %>
     <tr>
@@ -26,4 +29,3 @@
     </tr>
   <% end %>
 </table>
-

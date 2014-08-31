@@ -58,7 +58,7 @@ Each peak in the sine wave is exactly one step. Step counting becomes a matter o
 
 Ah, the joys of a perfect world, that we only ever experience in texts like this. Don't fret, things are about to get a little messier, and a lot more exciting. Let's add a little more reality to our world. 
 
-### Even Perfect Worlds Have Fundamental Forces of Nature
+## Even Perfect Worlds Have Fundamental Forces of Nature
 
 The force of gravity causes an acceleration in the direction of gravity, which we refer to as gravitational acceleration. This acceleration is unique because it is always present, and is always constant at $9.8 m/s^2$. 
 
@@ -74,35 +74,29 @@ User acceleration is the acceleration of the device due to the movement of the u
 
 Gravitational acceleration is, as discussed, due to gravity.
 
-Our total acceleration is the sum of gravitational and user acceleration.
+Our total acceleration is the sum of user acceleration and gravitational acceleration.
 
 ![](chapter-figures/component-signals-1.png)\
 
-TODO: Add plot of the equations above. 
+In order to count steps, we're interested in the step bounces created by the user in the direction of gravity. That means we're interested in **user acceleration in the direction of gravity**. User acceleration in the direction of gravity is a 1-dimensional time series, because, well, it's only in one direction. To count steps, we'll have to take our 3-dimensional acceleration signal and isolate just the 1-dimensional time series that represents user acceleration in the direction of gravity. 
 
-In order to count steps, we're interested in the step bounces created by the user in the direction of gravity. That means we're interested in **user acceleration in the direction of gravity**. User acceleration in the direction of gravity is a 1-dimensional time series, because, well, it's only in one direction, that direction being the direction of gravity. To count steps, we'll have to take our 3-dimensional acceleration signal and isolate just the 1-dimensional time series that represents user acceleration in the direction of gravity. 
+In our example above with the stick person walking with step bounces only in the y direction, gravitational acceleration is zero in $x(t)$ and $z(t)$, and constant at $9.8 m/s^2$, or $1g$, in $y(t)$. This is because the phone is held such that y is the only direction experiencing the force of gravity. This means that the user acceleration time series in the y component, $y_{u}(t)$, is always in the direction of gravity. Meanwhile, user acceleration in x, $x_{u}(t)$, and z, $z_{u}(t)$, are never in the direction of gravity. This is evident in the total acceleration plot above. Note that $y(t)$ fluctuates around $-1g$, while $x(t)$ and $z(t)$ fluctuate around 0. Also note the obvious peaks in $y(t)$. Those are due to our bounces! Looking at the user acceleration plot next, we notice that when we remove gravitational acceleration from the time series, all three time series fluctuate around 0. In our last plot, gravitational acceleration, we see the $-1g$ gravitational acceleration in y, $y_{g}(t)$, and the 0 gravitational accelerations in both x and z, $x_{g}(t)$ and $z_{g}(t)$, respectively. 
 
-In our example above, gravitational acceleration is zero in the x and z components, and constant at $9.8 m/s^2$ in the y component, because the phone is held such that the y direction is the only direction experiencing the force of gravity. This means that the user acceleration time series in the y component is always in the direction of gravity, while user acceleration in x and z is never in the direction of gravity. Since we're trying to find user acceleration in the direction of gravity, the user acceleration time series in the y component is the only one we need to take into account, and we can completely ignore the x and z components. 
-
-Our accelerometer returns total acceleration in the y direction, so we have to isolate the user acceleration time series by subtracting the gravitational acceleration time series from the total acceleration component. Since gravitational acceleration is constant at $9.8 m/s^2$ in the y direction, we can subtract a constant time series of $9.8 m/s^2$ from the total acceleration y component, and we'll be left with user acceleration in the y direction, which in this case is equivalent to user acceleration in the direction of gravity. 
+User acceleration in the direction of gravity, in our simple case, is $y_{u}(t)$.
 
 ![](chapter-figures/component-signals-2.png)\
 
-TODO: Does this sine wave belong here, or below? Currently in two places.
+Although $y_{u}(t)$ isn't as smooth and perfect as our perfect sine wave, we can definitely pick out the peaks, and use those peaks to count steps. So far, so good. Now, let's add a little more reality to our world. 
 
-In our perfect world, user acceleration from step bounces will form a perfect sine wave. 
+## People Are Complicated Creatures
 
-![](chapter-figures/figure-sine-wave-1.png)\
-
-Each peak in the sine wave is exactly one step. Step counting becomes a matter of counting these perfect peaks. So far, so good. Now, let's add a little more reality to our world. 
-
-Let's see what happens when we introduce real people into the mix. What if our silly stick man holds the phone in a more wonky position? To make matters worse, what if our stick man decides to rotate his phone part way through the walk?
+Let's see what happens when we introduce real people into the mix. What if our silly stick person holds the phone in a more wonky position? To make matters worse, what if our stick man decides to rotate his phone part way through the walk?
 
 ![](chapter-figures/figure-xyz-wonky.png)\
 
-Yikes. Now all three of our components have a non-zero gravitational acceleration, so the user acceleration in the direction of gravity is now split amongst all three x, y, and z components. 
+Yikes. Now all three of our components have a non-zero gravitational acceleration, so the user acceleration in the direction of gravity is now split amongst all three x, y, and z time series. 
 
-In order to determine user acceleration in the direction of gravity, we have to first determine which direction gravity is in, so we have to first split total acceleration in each of the x, y, and z components into a user acceleration time series and a gravitational acceleration time series. 
+To determine user acceleration in the direction of gravity when it's split amongst all three time series, we have to first determine which direction gravity is in. To do this, we have to first split total acceleration in each of the three time series into a user acceleration time series and a gravitational acceleration time series. 
 
 ![](chapter-figures/component-signals-3.png)\
 
@@ -117,66 +111,80 @@ Every problem has a solution. Let's look at each problem separately, and put on 
 
 ## 1. Splitting Total Acceleration Into User Acceleration and Gravitational Acceleration
 
-We can use a tool called a low-pass filter to split our total acceleration component into a user acceleration time series and a gravitational acceleration time series.
+We can use a tool called a **filter** to split our total acceleration time series into a user acceleration time series and a gravitational acceleration time series.
 
-### Low-pass Filter
-A **filter** is a tool used in signal processing to remove an unwanted component from a signal. A **low-pass filter** allows low-frequency signals through, while attenuating signals higher than a set threshold.
+### Low-pass and High-pass Filters
+A **filter** is a tool used in signal processing to remove an unwanted component from a signal. 
+
+A **low-pass filter** allows low-frequency signals through, while attenuating signals higher than a set threshold. Conversely, a **high-pass filter** allows high-frequency signals through, while attenuating signals below a set threshold. 
+
+Using music as an analogy, a low-pass filter can be used to get rid of the treble, while and a high-pass filter can be used to get rid of the bass. 
 
 In our situation, the frequency, measured in Hz, depends on how quickly the acceleration is changing. A constant acceleration has a frequency of 0 Hz, while a non-constant acceleration has a non-zero frequency. This means that our constant gravitational acceleration is a 0 Hz signal, while user acceleration is not. 
 
-For each component, we can pass total acceleration through a low-pass filter, and we'll be left with just the gravitational acceleration time series. 
+For each component, we can pass total acceleration through a low-pass filter, and we'll be left with just the gravitational acceleration time series.
 
 ![](chapter-figures/low-pass-filter-a.png)\ 
 
 Then, we can subtract gravitational acceleration from total acceleration, and we'll have the user acceleration time series. 
 
-$a(x)_{u} = a(x)_{t} - a(x)_{g}$\
-$a(y)_{u} = a(y)_{t} - a(y)_{g}$\
-$a(z)_{u} = a(z)_{t} - a(z)_{g}$
+$x_{u}(t) = x(t) - x_{g}(t)$\
+$y_{u}(t) = y(t) - y_{g}(t)$\
+$z_{u}(t) = z(t) - z_{g}(t)$
 
-There are numerous varieties of low-pass filters, but the one we'll use is called a Chebyshev filter. We've chosen a Chebyshev filter because it has a steep cutoff, which means that it very quickly attenuates frequencies beyond our threshold, which is ideal for isolating a 0 Hz signal like gravity. 
+There are numerous varieties of filters. The one we'll use is called a Chebyshev filter. We've chosen a Chebyshev filter because it has a steep cutoff, which means that it very quickly attenuates frequencies beyond our chosen threshold.
 
-A low-pass filter is implemented using the formula $output_{i} = \alpha_{0} * (input_{i} * \beta_{0} + input_{i-1} * \beta_{1} + input_{i-2} * \beta_{2} - output_{i-1} * \alpha_{1} - output_{i-2} * \alpha_{2})$. The $\alpha$ and $\beta$ values are constants, set based on the type of filter and the attenuation we want to achieve.
+The Chebyshev filter we've chosen is implemented using the formula $output_{i} = \alpha_{0} * (input_{i} * \beta_{0} + input_{i-1} * \beta_{1} + input_{i-2} * \beta_{2} - output_{i-1} * \alpha_{1} - output_{i-2} * \alpha_{2})$. 
 
-TODO: Expand the section on calculating alpha and beta.
+The design of digital filters is outside of the scope of this chapter, but a very short teaser discussion is warranted. It's a well-studied, fascinating topic, with numerous practical applications. A digital filter can be designed to cancel any frequency or range of frequencies desired. The $\alpha$ and $\beta$ values in the formula are coefficients, set based on the the cutoff frequency, and the range of frequencies we want to preserve. 
+
+We want to cancel all frequencies except for our constant gravitational acceleration, so we've chosen coefficients that attenuate frequencies higher than 0.2 Hz. Notice that we've set our threshold slightly higher than 0 Hz. While gravity does create a true 0 Hz acceleration, our real, imperfect world has real, imperfect accelerometers, so we're allowing for a slight margin of error in measurement. 
 
 ### Implemeting a Low-pass Filter
 
-Let's look at an example implementation, starting with the total acceleration for each component, $a(x)_{t}$, $a(y)_{t}$, and $a(z)_{t}$.
+Let's work through a low-pass filter implementation using our earlier example. We'll split 
 
-TODO: Change the graph so that the legend uses $a(x)_{t}$, $a(y)_{t}$, and $a(z)_{t}$.
+* $x(t)$ into $x_{g}(t)$ and $x_{u}(t)$, 
+* $y(t)$ into $y_{g}(t)$ and $y_{u}(t)$,
+* $z(t)$ into $z_{g}(t)$ and $z_{u}(t)$.
 
-![](chapter-figures/figure-filter-total.png)\ 
+![](chapter-figures/acceleration-total.png)\ 
 
-In this example, we have 100 total acceleration values per component. Let's use an index, *i*, that goes from 2 to 99. We'll initialize the first two values of gravitational acceleration to 0, so that the formula has initial value to work with.
+We'll initialize the first two values of gravitational acceleration to 0, so that the formula has initial value to work with.
 
-$a(x_{0})_{g} = a(x_{1})_{g} = a(y_{0})_{g} = a(y_{1})_{g} = a(z_{0})_{g} = a(z_{1})_{g} = 0$\
+$x_{g}(0) = x_{g}(1) = y_{g}(0) = y_{g}(1) = z_{g}(0) = z_{g}(1) = 0$\
 
-$a(x_{i})_{g} = \alpha_{0} * (a(x_{i})_{t} * \beta_{0} + a(x_{i-1})_{t} * \beta_{1} + a(x_{i-2})_{t} * \beta_{2} - a(x_{i-1})_{g} * \alpha_{1} - a(x_{i-2})_{g} * \alpha_{2})$\
 
-$a(y_{i})_{g} = \alpha_{0} * (a(y_{i})_{t} * \beta_{0} + a(y_{i-1})_{t} * \beta_{1} + a(y_{i-2})_{t} * \beta_{2} - a(y_{i-1})_{g} * \alpha_{1} - a(y_{i-2})_{g} * \alpha_{2})$\
+Then, we'll implement the filter formula for each time series.
 
-$a(z_{i})_{g} = \alpha_{0} * (a(z_{i})_{t} * \beta_{0} + a(z_{i-1})_{t} * \beta_{1} + a(z_{i-2})_{t} * \beta_{2} - a(z_{i-1})_{g} * \alpha_{1} - a(z_{i-2})_{g} * \alpha_{2})$ 
+$x_{g}(t) = \alpha_{0} * (x(t) * \beta_{0} + x(t-1) * \beta_{1} + x(t-2) * \beta_{2} - x_{g}(t-1) * \alpha_{1} - x_{g}(t-2) * \alpha_{2})$\
 
-In this example, gravitational acceleration is near-constant at 0 in the x and z directions, and near-constant at $9.8m/s^2$ in the y direction. 
+$y_{g}(t) = \alpha_{0} * (y(t) * \beta_{0} + y(t-1) * \beta_{1} + y(t-2) * \beta_{2} - y_{g}(t-1) * \alpha_{1} - y_{g}(t-2) * \alpha_{2})$\
 
-![](chapter-figures/figure-filter-gravitational.png)\ 
+$z_{g}(t) = \alpha_{0} * (z(t) * \beta_{0} + z(t-1) * \beta_{1} + z(t-2) * \beta_{2} - z_{g}(t-1) * \alpha_{1} - z_{g}(t-2) * \alpha_{2})$\
 
-To receive user acceleration, we can subtract gravitational acceleration from our total acceleration:
 
-$a(x)_{u} = a(x)_{t} - a(x)_{g}$\
-$a(y)_{u} = a(y)_{t} - a(y)_{g}$\
-$a(z)_{u} = a(z)_{t} - a(z)_{g}$
+The resulting time series after low-pass filtering are below. 
 
-TODO: Change the graph so that the legend uses $a(x)_{u}$, $a(y)_{u}$, and $a(z)_{u}$.
+![](chapter-figures/acceleration-gravitational.png)\ 
 
-![](chapter-figures/figure-filter-user.png)\ 
+$x_{g}(t)$ and $z_{g}(t)$ hover around 0, and $y_{g}(t)$ very quickly drops to $-1g$. The initial 0 value in $y_{g}(t)$ is from the initialization of the formula.
+
+Now, to receive user acceleration, we can subtract gravitational acceleration from our total acceleration:
+
+$x_{u}(t) = x(t) - x_{g}(t)$\
+$y_{u}(t) = y(t) - y_{g}(t)$\
+$z_{u}(t) = z(t) - z_{g}(t)$
+
+When we do that, we receive the time series below:
+
+![](chapter-figures/acceleration-user.png)\ 
 
 We've successfully split our total acceleration into user acceleration and gravitational acceleration!
 
 ## 2. Isolating User Acceleration in the Direction of Gravity
 
-The user acceleration time series for each component encompass all movements of the user, not just movements in the direction of gravity. Our goal here is to end up with a 1-dimensional time series representing user acceleration in the direction of gravity, so that we can count the peaks in this single time series. We'll annotate this time series as $(x_{ug}, y_{ug}, z_{ug})$.
+$x_{u}(t)$, $y_{u}(t)$, and $z_{u}(t)$ include all movements of the user, not just movements in the direction of gravity. Our goal here is to end up with a 1-dimensional time series representing **user acceleration in the direction of gravity**. This time series will include portions of user acceleration in each of our directions.
 
 Let's get to it. First, some liner algebra 101. Don't take that mathematician hat off just yet!
 
@@ -191,81 +199,79 @@ The dot product will take us from 3-dimensional space to 1-dimensional space, re
 Taking the dot product of user acceleration and gravitational acceleration at time *t* will give us the portion of user acceleration in the direction of gravity at that time. When we do this for every *t* in our time series, we'll get a single time series representing user acceleration in the direction of gravity. Exactly what we need! We'll arbitrarily call this new time series $a(t)$, because, well, every important time series deserves a name. 
 
 ### Implemeting the Dot Product
-Using our earlier example, we have three time series representing user acceleration in each direction,
-
-![](chapter-figures/figure-filter-user.png)\ 
-
-and three time series representing gravitational acceleration in each direction. We're starting in 3-dimensional space.
-
-![](chapter-figures/figure-filter-gravitational.png)\ 
-
-We can implement the dot product using the formula
+We can implement the dot product for our earlier example using the formula
 
 $a(t) = x_{u}(t) * x_{g}(t) + y_{u}(t) * y_{g}(t) + z_{u}(t) * z_{g}(t)$,
 
-and we're left with $a(t)$, in 1-dimensional space. 
+leaving us with $a(t)$, in 1-dimensional space. 
 
-![](chapter-figures/figure-dot-product-example.png)\ 
+![](chapter-figures/acceleration-dotproduct.png)\ 
 
-The dot product is very powerful, yet beautifully simple.
+The dot product is very powerful, yet beautifully simple. 
 
-## Solutions in the Real World TODO: Make this the noise section
+## Solutions in the Real World 
+
 We saw how quickly our seemingly simple problem turned a little more complex when we threw in the challenges of the real world and real people. However, we're getting a lot closer to counting steps. 
 
-Using the two mathematical tools from above, a low-pass filter and the dot product, we were able to bring our real-world, complex signal a lot closer to our ideal one. We're even able to see pick out where the steps bounces are: 
+Using the two mathematical tools from above, a low-pass filter and the dot product, we were able to bring our real-world, complex signal a lot closer to our ideal one. We're even able to see pick out where the steps bounces are. We can see how $a(t)$ is starting to resemble our ideal sine wave. But, only "kinda, sorta" starting to. 
 
-![](chapter-figures/figure-dot-product-example-step.png)\ 
+We need to make our messy $a(t)$ time series smoother, so that it looks more like our ideal sine wave, allowing us to count steps. There are four main issues with $a(t)$ in its current state. Let's look at each one.
 
-We can see how this data is starting to resemble our ideal sine wave.
+### 1. Jumpy Peaks
 
-![](chapter-figures/figure-sine-wave-1.png)\
+$a(t)$ is very "jumpy". An imperfect real world means that as the phone accelerates with each step, it can also jiggle up and down due to where and how it's being held. These real-life issues cause the jumpiness in our time series, which we call **noise**. Noise is a high-frequency component in our time series that causes some very skinny peaks along with each peak due to a step. These can be miscounted as additional steps.  
 
-But, only "kinda, sorta" starting to. 
+![](chapter-figures/acceleration-dotproduct-jumpy.png)\ 
 
-We need to make our messy time series smoother, so that it looks more like our ideal sine wave, allowing us to count steps. Our time series is very "jumpy". This jumpiness is due to noise in the signal. An imperfect real world means an imperfect accelerometer and non-consistent step bounce accelerations, resulting in an added high frequency component to our time series. The real world is noisy and messy, and won't give us perfect peaks, but we can do a lot to smooth out all of that high-frequency noise and get pretty close to perfection. 
+The real world is noisy and messy, and won't give us perfect peaks, but we can do a lot to smooth out the noise and get close to perfection. A low-pass filter can be used once again to eliminate the "jumpy", high frequency portions. This time, we'll pick our $\alpha$ and $\beta$ coefficients such that we attenuate all signals above 5 Hz. By studying numerous data sets, we've determine that an acceleration due to a step is at a maximum frequency of 5 Hz, and anything above that is noise. 
 
-Fortunately, a low-pass filter can be used once again to filter out just the low-frequency component, eliminating the "jumpy", high frequency portions.
+Passing our messy time series through another low-pass filter, we get a cleaner $a(t)$ below.
 
-Passing our messy time series through a low-pass filter, using the same formula but different alpha and beta values, results in the cleaner time series below:
+![](chapter-figures/acceleration-dotproduct-lowpass.png)\ 
 
-TODO: Talk more about determining alpha and beta coefficients.
+### 2. Slow Peaks
 
-![](chapter-figures/figure-filtered-smooth.png)\ 
+Examining our cleaner $a(t)$, we see a very "slow" peak at the very start. Given that our sampling rate is 100, we see taht this peak, from 0 crossing to 0 crossing, took over one and a half seconds to complete. That's incredibly slow for a step, so we know that it must be due to another, slower acceleration in the direction of gravity. This slow acceleration is a low-frequency component, that we can cancel our using a high-pass filter. We'll use our Chebyshev filter formula again, only this time we'll use it to cancel all frequencies below 1 Hz. In studying enough samples of data, we've determined that the slowest step we can take is at a 1 Hz frequency. 
 
-Now, we can once again use our minimum and maximum values for amplitude and range to count peaks, and, therefore, steps. Voilà!
+Passing $a(t)$ through a high-pass filter, we see the even cleaner time series below. Note that the slow accelerations are gone. 
 
-TODO: Noise section copied from above starting here
+![](chapter-figures/acceleration-filtered.png)\ 
 
-Ready for another dose of reality? An accelerometer records all motion, not just steps, so we have to distinguish between peaks due to a step, and peaks due to other types of motion. We can characterize peaks using two properties:
+### 3. Short Peaks
 
-1. Amplitude: the height of a peak
-2. Period: the length of time the peak spans
+Since a phone is used for more than just an accelerometer, we're always going to have peaks in the direction of gravity that aren't due to a step. For instance, as a person is using an app or making a call, but not walking while doing it, the accelerometer will register smaller movements in the direction of gravity. These movements will present themselves as shorter peaks in our time series. 
 
-![](chapter-figures/amplitude-period.png)\
+![](chapter-figures/acceleration-filtered-threshold.png)\ 
 
-After taking many data samples of steps and other types of motion, we can start to understand the range of acceptable amplitudes and periods for a step.
+The easiest way to deal with these peaks is to set a minimum threshold value, and use that to disqualify peaks. We can now count steps by counting every single time $a(t)$ crosses the threshold in the positive direction.
 
-TODO: Adjust graph so that low period is before high period, for consistency.
+### 4. Bumpy Peaks
 
-![](chapter-figures/figure-sine-wave-2.png)\
+When smoothing out the time series for the purposes of building a step counter, we have to accomodate many types of people with different walks. While it's reasonable to get a near-perfect sine wave for a specific walk done by a specific person, we do need to set minimum and maximum threshold frequencies to filter out based on a large sample size of people and walks. This means that we may sometimes filter a little too much, or slightly less than necessary. While we'll often have fairly smooth peaks, we can, once in a while, get a "bumpier" peak. Let's zoom in on one such peak.
 
-In the diagram above, we've labeled the peaks that are within an acceptable amplitude and period range as steps, and circled the peaks that are outside of those ranges.
+![](chapter-figures/bumpy-peak.png)\ 
 
-Now, to count steps, we can use these minimum and maximum values for amplitude and period, and count only the peaks that fall within those ranges.
+Assuming that we've set our threshold to $0.1g$, in this situation, the bumpiness happens to be exactly at the threshold. If we're counting all instances where the time series crossed the threshold in the positive direction, we would count two steps for this one peak, even though only one step was actually taken. 
 
-![](chapter-figures/figure-sine-wave-3.png)\
+We can use a method called **hysteresis** to address this. Hysteresis refers to the dependence of an output on past inputs. In our case, we can count every time we cross not only the threshold in the positive direction, but we can also count every time we cross the x-axis at 0 in the negative direction. We only count steps where a threshold cross occurs after a 0 crossing. That way, we'll never double-count steps for a single peak.
 
-Again, we're in a position where we can count the peaks that represent steps. 
+![](chapter-figures/bumpy-peak-fixed.png)\ 
+
+### Peaks That Are Juuuust Right
+
+In accounting for these four scenarios, we've managed to take our messy $a(t)$ and get it fairly close to our ideal sine wave, allowing us to count steps. 
 
 ## Recap
 
 The problem, at first glance, looked straightforward. However, the real world and real people threw a few curve balls our way. Let's recap how we solved the problem: 
 
-1. We started with total acceleration, $a_{t}$.
-2. We used a low-pass filter to split $a_{t}$ into gravitational acceleration, $a_{g}$, and user acceleration, $a_{u}$.
-3. We took the dot product of $a_{u}$ and $a_{g}$ to obtain the user acceleration in the direction of gravity, $a_{ug}$. 
-4. We used a low-pass filter again to remove the high-frequency component of $a_{ug}$, smoothing it out.
-5. We were able to count steps by counting the peaks in $a_{ug}$.
+1. We started with total acceleration, $(x(t), y(t), z(t))$.
+2. We used a low-pass filter to split total acceleration into user acceleration, $(x_{u}(t), y_{u}(t), z_{u}(t))$, and gravitational acceleration, $(x_{g}(t), y_{g}(t), z_{g}(t))$.
+3. We took the dot product of $(x_{u}(t), y_{u}(t), z_{u}(t))$ and $(x_{g}(t), y_{g}(t), z_{g}(t))$ to obtain the user acceleration in the direction of gravity, $a(t)$. 
+4. We used a low-pass filter again to remove the high-frequency component of $a(t)$, removing noise.
+5. We used a high-pass filter to cancel the low-frequency component of $a(t)$, removing slow peaks.
+6. We set a threshold to ignore short peaks.
+7. We used hysteresis to avoid double-counting steps with bumpy peaks.
 
 As software developers in a training or academic setting, we may have been presented with a perfect signal and asked to write code to count the steps in that signal. While that may have been an interesting coding challenge, it wouldn't have been something we could apply in a live situation. We saw that in a reality with gravity and people thrown into the mix, the problem was a little more complex. We used mathematical tools to address the complexities, and were able to solve a real-world problem. Now it's time to translate our solution into code. 
 
@@ -300,7 +306,7 @@ $"x1,y1,z1; ... xn,yn,zn;"$
 
 The separated format returns user acceleration in the x, y, z directions as well as gravitational acceleration in the x, y, z directions, over time. Again, x, y, and z values will be separated by a comma, and samples will be separated by a semi-colon. User acceleration values will be separated from gravitational acceleration values by a pipe.
 
-$"x1_{u},y1_{u},z1_{u}|x1_{g},y1_{g},z1_{g}; ... xn_{u},yn_{u},zn_{u}|xn_{g},yn_{g},zn_{g};"$
+$"x_{u}1,y_{u}1,z_{u}1|x_{g}1,y_{g}1,z_{g}1; ... x_{u}n,y_{u}n,z_{u}n|x_{g}n,y_{g}n,z_{g}n;"$
 
 ## I Got Multiple Input Formats But a Standard Ain't One
 
@@ -322,7 +328,7 @@ Based on the solution we defined, and our two input formats, we'll need our code
 
 1. Parse our input formats into a standard format. 
 2. Isolate movement in the direction of gravity using the dot product.
-3. Smooth out our time series using a low-pass filter.
+3. Apply a low-pass filter and a high-pass filter to remove low-frequency and high-frequency components.
 
 The diagram below shows each of these three steps.
 
@@ -347,15 +353,20 @@ These three tasks - parse, dot product, and filter - are all related to taking i
 ~~~~~~~
 class Processor
 
-  GRAVITY_COEFF = {
+  GRAVITY = {
     alpha: [1, -1.979133761292768, 0.979521463540373],
     beta:  [0.000086384997973502, 0.000172769995947004, 0.000086384997973502]
   }
   
-  SMOOTHING_COEFF = {
+  SMOOTHING = {
     alpha: [1, -1.80898117793047, 0.827224480562408], 
     beta:  [0.095465967120306, -0.172688631608676, 0.095465967120306]
   }  
+
+  HIGHPASS = {
+    alpha: [1, -1.905384612118461, 0.910092542787947], 
+    beta:  [0.953986986993339, -1.907503180919730, 0.953986986993339]
+  }
 
   FORMAT_COMBINED  = 'combined'
   FORMAT_SEPARATED = 'separated'
@@ -380,7 +391,7 @@ class Processor
 
     @format = if @parsed_data.first.count == 1
       filtered_accl = @parsed_data.map(&:flatten).transpose.map do |total_accl|
-        grav = chebyshev_filter(total_accl, GRAVITY_COEFF)
+        grav = chebyshev_filter(total_accl, GRAVITY)
         user = total_accl.zip(grav).map { |a, b| a - b }
         [user, grav]
       end
@@ -406,7 +417,8 @@ class Processor
   end
 
   def filter
-    @filtered_data = chebyshev_filter(@dot_product_data, SMOOTHING_COEFF)
+    low_pass_filtered_data = chebyshev_filter(@dot_product_data, SMOOTHING)
+    @filtered_data = chebyshev_filter(low_pass_filtered_data, HIGHPASS)
   end
 
   def chebyshev_filter(input_data, coefficients)
@@ -425,13 +437,11 @@ class Processor
 end
 ~~~~~~~
 
-### Low-pass Filtering
+### Filtering
 
-Let's start with the last method in our class, `chebyshev_filter`. This method implements the low-pass filter. We'll see it used twice in this class, the first time when we low-pass filter the combined input format during the parsing to the standard format, and the second time when we low-pass filter the dot product output to smooth out our time series. 
+Let's start with the last method in our class, `chebyshev_filter`. This method implements the low-pass and high-pass Chebyshev filters. We'll see it used three times in this class, the first time when we low-pass filter the combined input format during the parsing to the standard format, the second time when we low-pass filter the dot product output to smooth out our time series, and the third time immediately after the second, when we high-pass our time series to remove slow accelerations. 
 
-`chebyshev_filter` takes two parameters: `input_data` and `coefficients`. `input_data` is an array containing the time series we want passed through the filter. `coefficients` is a hash with two keys, `alpha` and `beta`, each containing an array with three numerical data points as values. Note the constants `GRAVITY_COEFF` and `SMOOTHING_COEFF` at the top of the class. These will be the hashes we'll pass to the `coefficients` parameter.
-
-TODO: Talk about choosing these specific coefficients?
+`chebyshev_filter` takes two parameters: `input_data` and `coefficients`. `input_data` is an array containing the time series we want passed through the filter. `coefficients` is a hash with two keys, `alpha` and `beta`, each containing an array with three numerical data points. Note the constants `GRAVITY`, `SMOOTHING`, and `HIGHPASS` at the top of the class. These will be the hashes we'll pass to the `coefficients` parameter. `GRAVITY` contains coefficients for the first low-pass filter splitting out gravitational and user acceleration, `SMOOTHING` for the second low-pass smoothing filter, and `HIGHPASS` for the only high-pass filter we use. 
 
 The `chebyshev_filter` method returns an array containing the resulting time series. 
 
@@ -459,8 +469,8 @@ This gives us an array of arrays of arrays. Sound familiar? The next thing we do
 
 Note the differences in `@parsed_data` between the two formats at this stage:
 
-* `@parsed_data` in the *combined format* contains arrays with exactly **one** array: $[[[x1_{t}, y1_{t}, z1_{t}]], ... [[xn_{t}, yn_{t},zn_{t}]]$
-* `@parsed_data` in the *separated format* contains arrays with exactly **two** arrays: $[[[x1_{u},y1_{u},z1_{u}], [x1_{g},y1_{g},z1_{g}]], ... [[xn_{u},yn_{u},zn_{u}], [xn_{g},yn_{g},zn_{g}]]]$
+* `@parsed_data` in the *combined format* contains arrays with exactly **one** array: $[[[x1, y1, z1]], ... [[xn, yn, zn]]$
+* `@parsed_data` in the *separated format* contains arrays with exactly **two** arrays: $[[[x_{u}1,y_{u}1,z_{u}1], [x_{g}1,y_{g}1,z_{g}1]], ... [[x_{u}n,y_{u}n,z_{u}n], [x_{g}n,y_{g}n,z_{g}n]]]$
 
 We see here that the separated format is already in our desired standard format after this operation. Amazing. 
 
@@ -471,23 +481,21 @@ To get the combined format into the standard format, we'll need to low-pass filt
 
 We accomplish each of these steps with a loop. The first loop uses our array after calling `flatten` on each element, followed by `transpose` on the result, so that it can work with x, y, and z total acceleration components individually. The array after `flatten` and `transpose` and before looping is structured as follows:
 
-$[[[x1_{t}, ... xn_{t}]], [[y1_{t}, ... yn_{t}]], [[z1_{t}, ... zn_{t}]]]$
+$[[[x1, ... xn]], [[y1, ... yn]], [[z1, ... zn]]]$
 
 Then, we use `map` to loop through each of the three components. In the first line of the loop, we call `chebyshev_filter` with `GRAVITY_COEFF` to split out gravitational acceleration, storing the resulting array in `grav`. In the second line, we isolate user acceleration by using `zip` to subtract gravitational acceleration from total acceleration, storing the resulting array in `user`. In the last line, we return an array with `user` and `grav` as the two elements. 
 
 This loop runs exactly three times, once for each component, and stores the final result in `filtered_accl`:
 
-$[[[x1_{u}, x2_{u}, ..., xn_{u}], [x1_{g}, x2_{g}, ..., xn_{g}]], $\
-$[[y1_{u}, y2_{u}, ..., yn_{u}], [y1_{g}, y2_{g}, ..., yn_{g}]], $\
-$[[z1_{u}, z2_{u}, ..., zn_{u}], [z1_{g}, z2_{g}, ..., zn_{g}]]]$
+$[[[x_{u}1, x_{u}2, ..., x_{u}n], [x_{g}1, x_{g}2, ..., x_{g}n]], $\
+$[[y_{u}1, y_{u}2, ..., y_{u}n], [y_{g}1, y_{g}2, ..., y_{g}n]], $\
+$[[z_{u}1, z_{u}2, ..., z_{u}n], [z_{g}1, z_{g}2, ..., z_{g}n]]]$
 
 We're almost there. We've split total acceleration into user and gravitational. All that's left is to format `filtered_accl` to our standard format. We do this in the second loop. 
 
 The second loop sets `@parsed_data` to the standard format. We use `map` to loop once for each index in `@parsed_data`, which represents a data sample at a point in time. The first line in the loop stores an array with the x, y, and z user acceleration at that point in time in `user` by grabbing the acceleration values using `map` once again. The second line stores the equivalent values for gravitational acceleration in `grav`. The last line returns an array with `user` and `grav` as the elements. 
 
 The last thing the `if` statement does, for each branch, is set the `@format` variable to either `FORMAT_COMBINED` or `FORMAT_SEPARATED`, both of which are constants that indicate the type of format the original data was passed in as. These are used predominantly for display purposes in the web app. Otherwise, the remainder of the program is no longer concerned with these two formats. 
-
-TODO: Would be awesome to remove the format property so that we can talk about separation of concerns without this added complexity.
 
 At the end of the `if` statement, we're left with the `@parsed_data` variable holding data in the standard format, regardless of whether we started off with combined or separated data. As we add more and more input formats, we might deicde that a cleaner solution would be to split out the `parse` code into a `Parser` class to deal with these formats. For now, however, two formats are a small number to work with, so it's simpler to leave this code as a single method in our `Processor` class.
 
@@ -499,11 +507,11 @@ Taking the dot product in our `Processor` class is a matter of using the data in
 
 ![](chapter-figures/dot-product-code.png)\ 
 
-### Step 3: Smooth Out Our time series Using a Low-pass Filter (filter)
+### Step 3: Apply Filters to Remove Low-Frequency and High-Frequency Components (filter)
 
 Following the pattern from steps one and two, we add another instance variable, `@filtered_data`, to store the filtered time series, and a method, `filter`, that we call from the initializer.
 
-The `filter` method is the second place our low-pass filtering method, `chebyshev_filter`, is used. This time, we pass `@dot_product_data` in as our time series, and `SMOOTHING_COEFF` as the `coefficients` constant. The result is our time series without the high frequency component, which we store in `@filtered_data`. This final time series, `@filtered_data`, is the clean time series we can use to count steps. 
+We use our filtering method, `chebyshev_filter`, twice in `filter`. First, we pass `@dot_product_data` in as our time series, and `SMOOTHING` as the `coefficients` constant. The result is our time series without the high frequency component, which we store in `low_pass_filtered_data`. Next, we call `chebyshev_filter` once more, this time passing in `low_pass_filtered_data` as the time series, and `HIGHPASS` as the `coefficients` constant. This resulting time series is the clean one we can use to count steps, stored in `@filtered_data`. 
 
 ## Our Processor Class in the Wild
 
@@ -529,7 +537,7 @@ Our processor class is useable on its own as is. An example with combined data:
 > processor.dot_product_data
 => [0.0, 0.0, 0.0005219529804999682]
 > processor.filtered_data
-=> [0, 0, 4.9828746074755684e-05]
+=> [0, 0, 4.753597533351234e-05]
 ~~~~~~~
 
 An example with separated data:
@@ -549,7 +557,7 @@ An example with separated data:
 > processor.dot_product_data
 => [-24.928348, 0.36629, 6.92]
 > processor.filtered_data
-=> [0, 0, -1.7824384769309702]
+=> [0, 0, -1.7004231121083724]
 ~~~~~~~
 
 ## Where to Improve
@@ -669,7 +677,7 @@ class Trial
   def initialize(name = nil, rate = nil, steps = nil, method = nil)
     @name   = name
     @rate   = (rate.to_f.round > 0) ? rate.to_f.round : 100
-    @steps  = steps.to_f.round if steps.to_f.round > 0
+    @steps  = steps.to_f.round if steps.to_s != '' && steps.to_f.round >= 0
     @method = method
   end
 
@@ -677,8 +685,6 @@ end
 ~~~~~~~
 
 Our `Trial` class is quite short. Note that all of the attribute readers are set in the initializer based on optional parameters passed in:
-
-TODO: Remove `method` from code?
 
 * `name` is a name for the specific trial, to help differentiate between the different trials.
 * `rate` is the sampling rate of the accelerometer during the trial.
@@ -690,21 +696,18 @@ Much like our `User` class, information is optional. We're given the opportunity
 Our `Trial` class is straightforward to use, so we won't bore you with the details of showing it in the wild. 
 
 ### Steps Taken
-We decided that we could count steps by counting the number of peaks in our time series. To do this, we chose to set minimum and maximum values for amplitude and period, and count the peaks in our time series, `@filtered_data`, that fall within those thresholds. 
+We decided that we could count steps by counting the number of peaks in our time series. To do this, we chose a threshold value, and we can count the number of times our clean time series, `@filtered_data`, crosses the threshold, using hysteresis to avoid counting extra steps in a single, imperfect peak. 
 
-Let's implement this threshold strategy in code. So far, we have a `Processor` class that contains `@filtered_data`, which is our processed, smooth time series representing user acceleration in the direction of gravity. We also have classes that give us the necessary information about the user and the trial. What we're missing is a way to analyze `@filtered_data` with the information from `User` and `Trial`, and count steps, measure distance, and measure time. The analysis portion of our program is different from the data manipulation of the `Processor`, and different from the information collection and aggregation of the `User` and `Trial` classes. Let's create a new class called `Analyzer` to perform this data analysis.
+Let's implement this strategy in code. So far, we have a `Processor` class that contains `@filtered_data`, which is our processed, smooth time series representing user acceleration in the direction of gravity. We also have classes that give us the necessary information about the user and the trial. What we're missing is a way to analyze `@filtered_data` with the information from `User` and `Trial`, and count steps, measure distance, and measure time. The analysis portion of our program is different from the data manipulation of the `Processor`, and different from the information collection and aggregation of the `User` and `Trial` classes. Let's create a new class called `Analyzer` to perform this data analysis.
 
 ~~~~~~~
-require 'mathn'
 require_relative 'processor'
 require_relative 'user'
 require_relative 'trial'
 
 class Analyzer
 
-  MIN_AMPLITUDE        = 0.22
-  MAX_AMPLITUDE        = 1.0
-  MAX_STEPS_PER_SECOND = 6.0
+  THRESHOLD = 0.09
 
   attr_reader :processor, :user, :trial, :steps, :distance, :time
 
@@ -727,26 +730,18 @@ class Analyzer
 private
 
   def measure_steps
-    @steps          = 0
-    index_last_step = 0
-    min_interval    = (@trial.rate/MAX_STEPS_PER_SECOND)
-    
-    @processor.filtered_data.each_with_index do |data, i|
-      if (data >= MIN_AMPLITUDE) && (@processor.filtered_data[i-1] < MIN_AMPLITUDE)
-        remaining_signal = @processor.filtered_data[i..@processor.filtered_data.length - 1]
-        next_crossing = remaining_signal.find_index { |x| x < MIN_AMPLITUDE }
-        next unless next_crossing
-     
-        peak = remaining_signal[0..next_crossing]
-        next if peak.find { |x| x > MAX_AMPLITUDE   }
+    @steps = 0
+    count_steps = true
 
-        # TODO: Do this differently. Set a MIN_PERIOD and MAX_PERIOD, calculate 
-        # the period, and filter out steps with a period that is too low ot too high.
-        next if index_last_step > 0 && (i-index_last_step) < min_interval
+    @processor.filtered_data.each_with_index do |data, i|
+      if (data >= THRESHOLD) && (@processor.filtered_data[i-1] < THRESHOLD)
+        next unless count_steps
 
         @steps += 1
-        index_last_step = i
+        count_steps = false
       end
+
+      count_steps = true if (data < 0) && (@processor.filtered_data[i-1] >= 0)
     end
   end
 
@@ -763,38 +758,32 @@ end
 
 Where our `Processor` class did all of the work of the input data formatting and processing, our `Analyzer` class does the work of analyzing the processed data.
 
-TODO: Redo this entire section up to the end of measure_steps after changing the Analyzer class.
-
-The first thing we do in our `Analyzer` class file is pull in the Ruby math library, along with our `Processor`, `Trial`, and `User` classes. Then, we define two constants. 
-
-`THRESHOLD` is the threshold value where a step is counted if the signal crosses it. For the purposes of this discussion, let's assume we've analyzsed numerous diverse data sets and detemined a value for the threshold that accomodated the largest number of those data sets. The value for threshold can eventually become dynamic and vary with different users, based on the calculated versus actual steps they've taken. A learning algorithm, if you will.
-
-`MAX_STEPS_PER_SECOND` is the maximum number of steps that a person can reasonably take per second if they are walking or running. If we notice more steps taken per second, we determine that the person is not walking or running, and the device motion is for a different reson. When this occurs, we don't count those steps.
+The first thing we do in our `Analyzer` class is pull in our `Processor`, `Trial`, and `User` classes. Then, we define a `THRESHOLD` constant. For the purposes of this discussion, let's assume we've analyzsed numerous diverse data sets and detemined a threshold value that accomodated the largest number of those data sets. The threshold can eventually become dynamic and vary with different users, based on the calculated versus actual steps they've taken. A learning algorithm, if you will.
 
 Our `Analyzer`'s initializer take a mandatory `Processor` instance because we necessarily need a data set to work with because, well, otherwise we have nothing to analyze. The initalizer also optionally takes a `User` and `Trial` instance. Note that the default values for the `user` and `trial` parameters is a new instance of each. Remember how those classes both had defualt values and could handle zero input parameters? That functionality comes in handy here. The initializer raises exceptions if classes other than those expected are passed in, since we can't work with incorrect class types. Following that, it sets the instance variables `@processor`, `@user`, and `@trial` to the passed in parameters. 
 
-Aside from the initializer, the only other public method in `Analyzer` is `measure`, which calls the private methods `measure_steps`, `measure_distance`, and `measure_time`, in that order. Let's take a look at each.
+Aside from the initializer, the only other public method in `Analyzer` is `measure`, which calls `measure_steps`, `measure_distance`, and `measure_time`, in that order. All three methods are kept private so that an outside class can't call them out of order. Let's take a look at each.
 
 ### measure_steps
 
 Finally! The step counting portion of our step counting app. 
 
-`measure_steps` counts peaks and troughs through the `count_threshold_cross` method, and then sets the `@steps` variable to the average of the two. The `count_threshold_cross` method takes a boolean parameter to determine whether we're counting peaks or troughs. At the start of the method, we instantiate the following variables:
+The first thing we do in `measure_steps` is initialize two variables:
 
-* `count` is used to keep track of the number of peaks or troughs, which are each equivalent to a step, as we interate through our loop. We initalize `count` to 0.
-* `index_last_step` holds the index of the last step we counted as we loop through `@filtered_data`. We initialize `index_last_step` to 0.
-* `threshold` uses the `THRESHOLD` constant but toggles between a negative and positive value depending on whether we're counting peaks or troughs. If we're counting peaks, we use `THRESHOLD` as it is, and if we're counting troughs, we use `-THRESHOLD`.
-* `min_interval` is the minimum number of samples between steps. This is used to prevent counting steps that are impossibly close together. We calculate `min_interval` by dividing our trial's sampling rate by the maximum number of steps we're allowing per second. 
+* `@steps` is used to count the number of steps, and is, naturally, initialized to 0 before we begin counting.
+* `count_steps` is used for hysteresis to determine if we're allowed to count steps at a point in time, and is initialized to `true`. 
 
-The method iterates through each point in `@processor.filtered_data` to count steps. Let's take a closer look at the loop. We loop through `@processor.filtered_data`, keeping track of the value of each point in `data`, and the index in `i`. If our point value, `data`, is greater than or at the threshold and our previous point was below, then we're crossing the threshold. We can count a step here, as long as the last step was not counted too close to this one. We determine this by calculating the delta between `i`, and `index_last_step`, if `index_last_step` is greater than 0. If this delta is less than `min_interval`, then our previous step was impossibly close to this one, so we move to the next iteration of the loop without counting this step. If, however, our last step was far enough away, we count our step by incrementing count, and set the `index_last_step` to the current index, `i`. The method returns the value in `count` as the total steps taken. 
+After initializing the variables, we iterate through each value in `@processor.filtered_data`. If the current value is greater than or equal to `THRESHOLD`, and the previous value was less than `THRESHOLD`, then we've crossed the threshold in the positive direction, and our `if` statement evaluates to true. Then, we check if we're allowed to count steps. The `unless` statement skips ahead to the next data point if `count_steps` is `false`. If we're allowed to count steps, we increment `@steps` by 1, and set `count_steps` to `false`. The next `if` statement sets `count_steps` to true when our time series has crossed the x-axis in the negative direction. Only then is `count_steps` reset back to `true`. This prevents us from counting steps two or more times for a single peak. 
 
-We do some error handling in `count_threshold_cross` by ensuring that steps aren't impossibly close together. We can go a step further (pun intended?) by counting the number of false steps, and if we have too many, avoid counting steps at all until some reasonable number of samples. That'll prevent any steps from being counted when the phone is shaken vigorously for a period of time. 
+There we have it, the step counting portion of our program! Our `Processor` class did a lot of work to clean up the time series and remove frequencies that would result in counting false steps, so our actual step counting implentation is not overly complex. 
 
-There we have it, the step counting portion of our program. 
+It's worth noting that we store the entire time series for the walk in memory. Our trials are all short walks, so that's not currently a problem, but we'd like to eventually be able to analyze long walks with large amounts of data. We'd ideally want to stream data in, only storing very small portions of the time series in memory. Keeping this future direction in mind, we've put in the work to ensure that we only need the current data point we're analyzing and the data point before it. Additionally, we've implemented hysteresis using a boolean value, so we don't need to look backward in the time series to ensure we've crossed the x-axis at 0, avoiding having to store more than two data points in memory at a time. 
+
+There's a fine balance between accounting for likely future iterations of the product, and overengineering a solution for every conceivable product direction under the sun. In this case, it's reasonable to assume that we'll have to handle longer walks in the near future, and the costs of accounting for that in step counting are fairly low, so we've decided to keep it in mind for our implementation.
 
 ### measure_distance
 
-The distance is measured by multiplying our user's stride by the number of steps. Since the distance depends on the step count, `measure_distance` is called after `measure_steps`. All methods called by `measure` are kept private so that an outside class can't call them out of order.
+The distance is measured by multiplying our user's stride by the number of steps. Since the distance depends on the step count, `measure_distance` is called after `measure_steps`. 
 
 ### measure_time
 
@@ -808,17 +797,15 @@ We're through the most labour intensive part of our program. Next, we'll build a
 
 When a user first enters the app, they see an empty table of uploads, and an upload form. The upload form has fields for the user to enter trial info and user info.
 
-TODO: Replace all of these screenshots now that the naming has changed. 
-
-![](chapter-figures/app-1-1246w-90p.png)\ 
+![](chapter-figures/app1.png)\ 
 
 Suppose the user uses the upload form to submit data of a walk with a phone in their pocket. 
 
-![](chapter-figures/app-2-1246w-90p.png)\ 
+![](chapter-figures/app2.png)\ 
 
-Note that the user has entered everything but their stride. The user has two text files of the exact same walk, one in each of our formats. In the screenshot below, they've chosen to upload one of the files. Hitting submit presents them with the following view:
+Note that the user has entered everything but their stride. The user has two text files of the exact same walk, one in each of our formats. In the screenshot below, they've chosen to upload one of the files. Hitting **submit** presents them with the following view:
 
-![](chapter-figures/app-3-1246w-90p.png)\ 
+![](chapter-figures/app3.png)\ 
 
 Our program has parsed, processed, and analyzed the input file, and presented information at the very top for the user. Our programs outputs several pieces of information.
 
@@ -831,18 +818,18 @@ Our program has parsed, processed, and analyzed the input file, and presented in
 * **User**: the gender if the user, if provided.
 * **Distance**: the distance traveled.
 * **Time**: the time duration of the walk.
-* **Dot Product Data**: a graph of the first 1000 points of the signal after the dot product has been computed.
-* **Filtered Data**: a graph of the first 1000 points of the signal after it has been low pass filtered.
+* **User Acceleration in the Direction of Gravity**: a graph of the first 1000 points of the signal after the dot product has been computed.
+* **User Acceleration in the Direction of Gravity - Filtered**: a graph of the first 1000 points of the signal after it has been low-pass filtered and high-pass filtered, in sequence.
 
 The user can navigate back to uploads using the *Back to Uploads* link, and upload the second file.
 
-![](chapter-figures/app-4-1246w-90p.png)\ 
+![](chapter-figures/app4.png)\ 
 
-Hitting enter again outputs the following:
+Hitting **submit** again outputs the following:
 
-![](chapter-figures/app-5-1246w-90p.png)
+![](chapter-figures/app5.png)
 
-Note that since this data is the separated format, it is more accurate than the combined format. The actual number of steps taken in the walk was 300. The calculated steps with the separated format was 301, whereas with the combined format it was 289. 
+Note that this time, the data is the separated format. In both cases, the program itself determine the input format, without asking the user to provide it. 
 
 Let's look at what the outlined funtionality above implies for us, technically. We'll need two major components that we don't yet have:
 
@@ -971,7 +958,7 @@ The `all` class method grabs all of the files in our `public/uploads` folder, an
 
 Our `Upload` class contains instance methods to access the `Processor`, `User`, `Trial`, or `Analyzer` objects directly. Notice that all of these objects are lazy loaded, to prevent creation and parsing until necessary. The `user` and `trial` instance methods use the `file_name` method to parse the file path to isolate the file name, and retrieve the necessary parameters from the file name to create `User` and `Trial` objects. The `processor` method reads the data from the file itself. Finally, the `analyzer` method uses `processor`, `user`, and `trial` to instantiate an `Analyzer` object and call `measure` on it, before returning the instance.
 
-### Separation of Concerns in Upload
+## Separation of Concerns in Upload
 
 Once again, we've been wise to separate concerns in our program. All code related to storage and retrieval is contained in the `Upload` class. As our application grows, we'll likely want to use a database rather than saving everything to the filesystem. When the time comes for that, all we have to do it change the `Upload` class. This makes our refactoring simple and clean. 
 
@@ -1020,8 +1007,7 @@ get '/upload/*' do |file_path|
   erb :upload
 end
 
-# TODO
-# - Is file sanitized here? We don't want to be passing around untrusted data, especially not if it's touching the filesystem.
+especially not if it's touching the filesystem.
 post '/create' do
   begin
     @upload = Upload.create(
@@ -1049,8 +1035,6 @@ module ViewHelper
   DISTANCE = { cm_per_m: 100, cm_per_km: 100000, m_per_km: 1000 }
   DECIMAL_PLACES = 2
 
-  # TODO: Can this be cleaner?
-  # - (expr).round(2) is repeated multiple times within this function. It might be a good idea to define an anonymous function to reduce code repetition.
   def format_distance(distance_cm)
     distance_cm = distance_cm.round(DECIMAL_PLACES)
     if distance_cm >= DISTANCE[:cm_per_km]
@@ -1100,7 +1084,7 @@ Here we once again see spearation of concerns. To keep as much logic as possible
 
 Helpers are helpful (see what we did there?) when grouping methods that have a similar purpose. In our case, all of the methods in the `ViewHelper` module are for the purpose of formatting data used in a view. It's sometimes tempting to jam all miscellaneous methods of a program into one helper, making a helper a dumping ground for code we don't know what to do with. If you find yourself doing this, always question where that method should belong, and which one of your classes or modules is responsible for the functionality of that method. It's wise to resist the temptation to put outcast code into helpers, as it often allows you to mask a problem of a poorly structured app.
 
-### Back to Our App
+## Back to Our App
 
 Running `ruby pedometer.rb` from our app's directory starts the web server, and our app can now respond to HTTP requests for each of our routes. For instance, hitting `http://localhost:4567/uploads` takes us to an index of all of our uploads. 
 
@@ -1200,7 +1184,10 @@ The `uploads` view also renders the `summary` view. We place it in its own file,
   <th>Calculated</th>
   <th>Delta</th>
   <th>User</th>
-  <th></th>
+  <% unless detail_hidden %>
+    <th>Distance</th>
+    <th>Time</th>
+  <% end %>
   <% uploads.each do |upload| %>
     <% analyzer = upload.analyzer %>
     <tr>
@@ -1209,11 +1196,7 @@ The `uploads` view also renders the `summary` view. We place it in its own file,
       <td><%= analyzer.processor.format %></td>
       <td><%= analyzer.trial.steps %></td>
       <td><%= analyzer.steps %></td>
-      <td>
-        <%= 
-          analyzer.trial.steps ? (analyzer.steps - analyzer.trial.steps) : '-' 
-        %>
-      </td>
+      <td><%= analyzer.trial.steps ? (analyzer.steps - analyzer.trial.steps) : '' %></td>
       <td><%= analyzer.user.gender %></td>
       <% if detail_hidden %>
         <td><a href=<%= "upload/" + upload.file_path %>>Detail</a></td>
@@ -1252,19 +1235,23 @@ The `get '/upload/*'` route is called with a file path. For example: `http://loc
 <script>
   $(function () {
         $('#container-dot-product').highcharts({
-            title: { text: 'Dot Product Data' },
+            title: { text: 'User Acceleration in the Direction of Gravity' },
             series: [{
-                name: 'Dot Product Data',
+                name: 'a(t)',
                 data: <%= limit_1000(@upload.analyzer.processor.dot_product_data) %>
-            }]
+            }],
+            xAxis: { title: { text: 'Time' } },
+            yAxis: { title: { text: 'Acceleration' } }
         });
 
         $('#container-filtered').highcharts({
-            title: { text: 'Filtered Data' },
+            title: { text: 'User Acceleration in the Direction of Gravity - Filtered' },
             series: [{
-                name: 'Filtered Data',
+                name: 'a(t)',
                 data: <%= limit_1000(@upload.analyzer.processor.filtered_data) %>
-            }]
+            }],
+            xAxis: { title: { text: 'Time' } },
+            yAxis: { title: { text: 'Acceleration' } }
         });
     });
 </script>

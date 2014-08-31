@@ -3,8 +3,6 @@ module ViewHelper
   DISTANCE = { cm_per_m: 100, cm_per_km: 100000, m_per_km: 1000 }
   DECIMAL_PLACES = 2
 
-  # TODO: Can this be cleaner?
-  # - (expr).round(2) is repeated multiple times within this function. It might be a good idea to define an anonymous function to reduce code repetition.
   def format_distance(distance_cm)
     distance_cm = distance_cm.round(DECIMAL_PLACES)
     if distance_cm >= DISTANCE[:cm_per_km]

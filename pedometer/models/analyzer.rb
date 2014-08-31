@@ -1,4 +1,3 @@
-require 'mathn'
 require_relative 'processor'
 require_relative 'user'
 require_relative 'trial'
@@ -39,7 +38,7 @@ private
         count_steps = false
       end
 
-      count_steps = true if (data >= 0) && (@processor.filtered_data[i-1] < 0)
+      count_steps = true if (data < 0) && (@processor.filtered_data[i-1] >= 0)
     end
   end
 
