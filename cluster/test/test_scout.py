@@ -41,10 +41,8 @@ class Tests(utils.ComponentTestCase):
             self.verifyAcceptedProposals(accepted_proposals)
             self.node.fake_message(Promise(ballot_num=Ballot(10, 10),
                                            accepted_proposals=accepted_proposals), sender=acceptor)
-        self.assertMessage(['F999'], Adopted(ballot_num=Ballot(10, 10), accepted_proposals={
-            1: (Ballot(5, 99), PROPOSAL1),
-            2: (Ballot(6, 99), PROPOSAL2),
-        }))
+        self.assertMessage(['F999'], Adopted(ballot_num=Ballot(10, 10),
+                                             accepted_proposals={1: PROPOSAL1, 2: PROPOSAL2}))
         self.assertUnregistered()
 
     def test_PROMISE_preempted(self):

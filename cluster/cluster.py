@@ -374,7 +374,7 @@ class Scout(Component):
                 # We're adopted; note that this does *not* mean that no other leader is active.
                 # Any such conflicts will be handled by the commanders.
                 self.node.send([self.node.address],
-                               Adopted(ballot_num=ballot_num, accepted_proposals=self.accepted_proposals))
+                               Adopted(ballot_num=ballot_num, accepted_proposals=accepted_proposals))
                 self.stop()
         else:
             # this acceptor has promised another leader a higher ballot number, so we've lost
