@@ -6,7 +6,7 @@ import unittest
 class TestComp(Component):
     join_called = False
 
-    def do_JOIN(self, sender):
+    def do_Join(self, sender):
         self.join_called = True
         self.kill()
 

@@ -52,5 +52,5 @@ class FakeNode(Node):
 
     def fake_message(self, message, sender='F999'):
         for component in self.components:
-            fn = getattr(component, 'do_%s' % type(message).__name__.upper())
+            fn = getattr(component, 'do_%s' % type(message).__name__)
             fn(sender=sender, **message._asdict())

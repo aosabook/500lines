@@ -74,7 +74,7 @@ class Node(object):
         self.components.remove(component)
 
     def receive(self, sender, message):
-        handler_name = 'do_%s' % type(message).__name__.upper()
+        handler_name = 'do_%s' % type(message).__name__
 
         for comp in self.components[:]:
             if not hasattr(comp, handler_name):
@@ -159,7 +159,7 @@ class Acceptor(Component):
         self.ballot_num = NULL_BALLOT
         self.accepted_proposals = {}  # {slot: (ballot_num, proposal)}
 
-    def do_PREPARE(self, sender, ballot_num):
+    def do_Prepare(self, sender, ballot_num):
         if ballot_num > self.ballot_num:
             self.ballot_num = ballot_num
             # we've heard from a scout, so it might be the next leader
@@ -167,7 +167,7 @@ class Acceptor(Component):
 
         self.node.send([sender], Promise(ballot_num=self.ballot_num, accepted_proposals=self.accepted_proposals))
 
-    def do_ACCEPT(self, sender, ballot_num, slot, proposal):
+    def do_Accept(self, sender, ballot_num, slot, proposal):
         if ballot_num >= self.ballot_num:
             self.ballot_num = ballot_num
             acc = self.accepted_proposals
@@ -197,7 +197,7 @@ class Replica(Component):
 
     # making proposals
 
-    def do_INVOKE(self, sender, caller, client_id, input_value):
+    def do_Invoke(self, sender, caller, client_id, input_value):
         proposal = Proposal(caller, client_id, input_value)
         slot = next((s for s, p in self.proposals.iteritems() if p == proposal), None)
         # propose, or re-propose if this proposal already has a slot
@@ -227,13 +227,13 @@ class Replica(Component):
                 self.propose(NOOP_PROPOSAL, slot)
         self.set_timer(CATCHUP_INTERVAL, self.catchup)
 
-    def do_CATCHUP(self, sender, slots):
+    def do_Catchup(self, sender, slots):
         for slot in set(slots) & set(self.decisions):
             self.node.send([sender], Decision(slot=slot, proposal=self.decisions[slot]))
 
     # handling decided proposals
 
-    def do_DECISION(self, sender, slot, proposal):
+    def do_Decision(self, sender, slot, proposal):
         assert not self.decisions.get(self.slot, None), \
                 "next slot to commit is already decided"
         if slot in self.decisions:
@@ -272,15 +272,15 @@ class Replica(Component):
 
     # tracking the leader
 
-    def do_ADOPTED(self, sender, ballot_num, accepted_proposals):
+    def do_Adopted(self, sender, ballot_num, accepted_proposals):
         self.latest_leader = self.node.address
         self.leader_alive()
 
-    def do_ACCEPTING(self, sender, leader):
+    def do_Accepting(self, sender, leader):
         self.latest_leader = leader
         self.leader_alive()
 
-    def do_ACTIVE(self, sender):
+    def do_Active(self, sender):
         if sender != self.latest_leader:
             return
         self.leader_alive()
@@ -297,7 +297,7 @@ class Replica(Component):
 
     # adding new cluster members
 
-    def do_JOIN(self, sender):
+    def do_Join(self, sender):
         if sender in self.peers:
             self.node.send([sender], Welcome(
                 state=self.state, slot=self.slot, decisions=self.decisions))
@@ -325,7 +325,7 @@ class Commander(Component):
             self.node.send([self.node.address], Decided(slot=self.slot))
         self.stop()
 
-    def do_ACCEPTED(self, sender, slot, ballot_num):
+    def do_Accepted(self, sender, slot, ballot_num):
         if slot != self.slot:
             return
         if ballot_num == self.ballot_num:
@@ -362,7 +362,7 @@ class Scout(Component):
             if slot not in acc or acc[slot][0] < ballot_num:
                 acc[slot] = (ballot_num, proposal)
 
-    def do_PROMISE(self, sender, ballot_num, accepted_proposals):
+    def do_Promise(self, sender, ballot_num, accepted_proposals):
         if ballot_num == self.ballot_num:
             self.logger.info("got matching promise; need %d" % self.quorum)
             self.update_accepted(accepted_proposals)
@@ -377,8 +377,7 @@ class Scout(Component):
                                Adopted(ballot_num=ballot_num, accepted_proposals=self.accepted_proposals))
                 self.stop()
         else:
-            # ballot_num > self.ballot_num; responses to other scouts don't
-            # result in a call to this method
+            # this acceptor has promised another leader a higher ballot number, so we've lost
             self.node.send([self.node.address], Preempted(slot=None, preempted_by=ballot_num))
             self.stop()
 
@@ -407,7 +406,7 @@ class Leader(Component):
         self.scouting = True
         self.scout_cls(self.node, self.ballot_num, self.peers).start()
 
-    def do_ADOPTED(self, sender, ballot_num, accepted_proposals):
+    def do_Adopted(self, sender, ballot_num, accepted_proposals):
         self.scouting = False
         self.proposals.update(accepted_proposals)
         # note that we don't re-spawn commanders here; if there are undecided
@@ -419,14 +418,14 @@ class Leader(Component):
         proposal = self.proposals[slot]
         self.commander_cls(self.node, ballot_num, slot, proposal, self.peers).start()
 
-    def do_PREEMPTED(self, sender, slot, preempted_by):
+    def do_Preempted(self, sender, slot, preempted_by):
         if not slot:  # from the scout
             self.scouting = False
         self.logger.info("leader preempted by %s", preempted_by.leader)
         self.active = False
         self.ballot_num = Ballot((preempted_by or self.ballot_num).n + 1, self.ballot_num.leader)
 
-    def do_PROPOSE(self, sender, slot, proposal):
+    def do_Propose(self, sender, slot, proposal):
         if slot not in self.proposals:
             if self.active:
                 self.proposals[slot] = proposal
@@ -463,7 +462,7 @@ class Bootstrap(Component):
         self.node.send([next(self.peers_cycle)], Join())
         self.set_timer(JOIN_RETRANSMIT, self.join)
 
-    def do_WELCOME(self, sender, state, slot, decisions):
+    def do_Welcome(self, sender, state, slot, decisions):
         self.acceptor_cls(self.node)
         self.replica_cls(self.node, execute_fn=self.execute_fn, peers=self.peers,
                          state=state, slot=slot, decisions=decisions).start()
@@ -482,7 +481,7 @@ class Seed(Component):
         self.seen_peers = set([])
         self.exit_timer = None
 
-    def do_JOIN(self, sender):
+    def do_Join(self, sender):
         self.seen_peers.add(sender)
         if len(self.seen_peers) <= len(self.peers) / 2:
             return
@@ -519,7 +518,7 @@ class Request(Component):
                                                    client_id=self.client_id, input_value=self.n))
         self.invoke_timer = self.set_timer(INVOKE_RETRANSMIT, self.start)
 
-    def do_INVOKED(self, sender, client_id, output):
+    def do_Invoked(self, sender, client_id, output):
         if client_id != self.client_id:
             return
         self.logger.debug("received output %r" % (output,))
