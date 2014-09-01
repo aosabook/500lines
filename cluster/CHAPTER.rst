@@ -403,6 +403,17 @@ For Cluster, this is clearest in testing the failed leader, as any node could be
 Even with a deterministic network, a change in one message alters the random number generator's state and thus unpredictably changes later events.
 Rather than hard-coding the expected leader, the test code must dig into the internal state of each leader to find one that believes itself to be active.
 
+Fuzz Testing
+............
+
+It's very difficult to test resilient code: it is likely to be resilient to its own bugs, so integration tests may not detect even very serious bugs.
+It is also hard to imagine and construct tests for every possible failure mode.
+
+A common approach to this sort of problem is "fuzz testing": running the code repeatedly with randomly changing inputs until something breaks.
+When something *does* break, all of the debugging support becomes critical: if the failure can't be reproduced, and the logging information isn't sufficient to find the bug, then you can't fix it!
+
+I performed some manual fuzz testing of cluster during development, but a full fuzz-testing infrastructure is beyond the scope of this project.
+
 Implementation Challenges
 =========================
 
