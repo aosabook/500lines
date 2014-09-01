@@ -1274,4 +1274,4 @@ Voilà! We've built a fully functional app, with true applicability.
 
 The real world presents us with intricate, complex challenges. Software is uniquely capable of addressing these challenges at scale with minimal resources. As software engineers, we have the power to create positive change in our homes, our communities, and our world. Our training, academic or otherwise, likely equipped us with the problem-solving skills to write code that solves isolated, well-defined problems. As we grow and hone our craft, it's up to us to extend that training to address practical problems, tangled in with all of the messy realities of our world. I hope that this chapter gave you a taste of breaking down a real problem into small, addressable parts, and writing beautiful, clean, extensible code to build a solution. 
 
-Here's to solving problems in an endlessly exciting world.
+Here's to solving interesting problems in an endlessly exciting world.
