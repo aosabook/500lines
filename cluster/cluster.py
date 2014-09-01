@@ -14,7 +14,6 @@ Ballot = namedtuple('Ballot', ['n', 'leader'])
 # message types
 Accepted = namedtuple('Accepted', ['slot', 'ballot_num'])
 Accept = namedtuple('Accept', ['slot', 'ballot_num', 'proposal'])
-Catchup = namedtuple('Catchup', ['slots'])
 Decision = namedtuple('Decision', ['slot', 'proposal'])
 Invoked = namedtuple('Invoked', ['client_id', 'output'])
 Invoke = namedtuple('Invoke', ['caller', 'client_id', 'input_value'])
@@ -192,9 +191,6 @@ class Replica(Component):
         self.latest_leader = None
         self.latest_leader_timeout = None
 
-    def start(self):
-        self.catchup()
-
     # making proposals
 
     def do_Invoke(self, sender, caller, client_id, input_value):
@@ -213,23 +209,6 @@ class Replica(Component):
         leader = self.latest_leader or self.node.address
         self.logger.info("proposing %s at slot %d to leader %s" % (proposal, slot, leader))
         self.node.send([leader], Propose(slot=slot, proposal=proposal))
-
-    # catching up with the rest of the cluster
-
-    def catchup(self):
-        """Try to catch up on un-decided slots"""
-        if self.slot != self.next_slot:
-            self.logger.debug("catching up on %d .. %d" % (self.slot, self.next_slot - 1))
-        slots = set(xrange(self.slot, self.next_slot)) - set(self.decisions)
-        if slots:
-            self.node.send(self.peers, Catchup(slots=list(slots)))
-            for slot in slots - set(self.proposals):
-                self.propose(NOOP_PROPOSAL, slot)
-        self.set_timer(CATCHUP_INTERVAL, self.catchup)
-
-    def do_Catchup(self, sender, slots):
-        for slot in set(slots) & set(self.decisions):
-            self.node.send([sender], Decision(slot=slot, proposal=self.decisions[slot]))
 
     # handling decided proposals
 
@@ -465,7 +444,7 @@ class Bootstrap(Component):
     def do_Welcome(self, sender, state, slot, decisions):
         self.acceptor_cls(self.node)
         self.replica_cls(self.node, execute_fn=self.execute_fn, peers=self.peers,
-                         state=state, slot=slot, decisions=decisions).start()
+                         state=state, slot=slot, decisions=decisions)
         self.leader_cls(self.node, peers=self.peers, commander_cls=self.commander_cls,
                         scout_cls=self.scout_cls).start()
         self.stop()

@@ -36,7 +36,6 @@ class Tests(utils.ComponentTestCase):
         self.Leader.assert_called_with(self.node, peers=['p1', 'p2', 'p3'],
                                        commander_cls=self.Commander,
                                        scout_cls=self.Scout)
-        self.Replica().start.assert_called_with()
         self.Leader().start.assert_called_with()
         self.assertTimers([])
         self.assertUnregistered()

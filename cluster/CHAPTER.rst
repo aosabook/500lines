@@ -150,7 +150,7 @@ Complex protocols can exhibit complex failures, too, so we will build support fo
 Message Types
 -------------
 
-Cluster's protocol uses 16 different message types.
+Cluster's protocol uses 15 different message types.
 Using named tuples to describe each message type keeps the code clean and helps avoid some simple errors.
 The named tuple constructor will raise an exception if it is not given exactly the right attributes, making typos obvious.
 The tuples format themselves nicely in log messages, and as an added bonus don't use as much memory as a dictionary.
@@ -185,16 +185,12 @@ Replica
 The ``Replica`` class is the most complicated component class, as it has a few closely related responsibilities:
 
 * Making new proposals;
-* Catching up with missed decisions;
 * Invoking the local state machine when proposals are decided;
 * Tracking the current leader; and
 * Adding newly started nodes to the cluster.
 
 The replica creates new proposals in response to ``Invoke`` messages from clients, selecting what it believes to be an unused slot and sending a ``Propose`` message to the current leader.
 Furthermore, if the consensus for the selected slot is for a different proposal, the replic must re-propose with a new slot.
-
-We handle missed decisions with a simple gossip protocol: each replica periodically sends a ``Catchup`` method requesting information on slots it's not aware of a decision for.
-Other replicas send ``Decision`` messages in response.
 
 ``Decision`` messages represent slots on which the cluster has come to consensus.
 Here, replicas store the new decision, then run the state machine until it reaches an undecided slot.
@@ -410,20 +406,6 @@ Rather than hard-coding the expected leader, the test code must dig into the int
 Implementation Challenges
 =========================
 
-Catching Up
------------
-
-In "pure" MultiPaxos, nodes which fail to receive messages can be many slots behind the rest of the cluster.
-As long as the state of the distributed state machine is never accessed except via state machine transitions, this design is functional.
-To read from the state, the client requests a state-machine transition that does not actually alter the state, but which returns the desired value.
-This transition is executed cluster-wide, ensuring that it returns the same value everywhere, based on the state at the slot in which it is proposed.
-
-Even in the optimal case, this is slow, requiring several round trips just to read a value.
-If a distributed object store made such a request for every object access, its performance would be dismal.
-But when the node receiving the request is lagging behind, the request delay is much greater as that node must catch up to the rest of the cluster before making a successful proposal.
-
-XXX I may rip this bit of the code out and move it to a "Further Extensions" section, if I can demonstrate that the implementation is slow but correct without it
-
 Follow the Leader
 -----------------
 
@@ -442,6 +424,21 @@ Failures are detected with a heartbeat protocol.
 
 Further Extensions
 ==================
+
+Catching Up
+-----------
+
+In "pure" MultiPaxos, nodes which fail to receive messages can be many slots behind the rest of the cluster.
+As long as the state of the distributed state machine is never accessed except via state machine transitions, this design is functional.
+To read from the state, the client requests a state-machine transition that does not actually alter the state, but which returns the desired value.
+This transition is executed cluster-wide, ensuring that it returns the same value everywhere, based on the state at the slot in which it is proposed.
+
+Even in the optimal case, this is slow, requiring several round trips just to read a value.
+If a distributed object store made such a request for every object access, its performance would be dismal.
+But when the node receiving the request is lagging behind, the request delay is much greater as that node must catch up to the rest of the cluster before making a successful proposal.
+
+A simple solution is to implement a gossip-style protocol, where each replica periodically contacts other replicas to share the highest slot it knows about and to request information on unknown slots.
+Then even when a ``Decision`` message was lost, the replica would quickly find out about the decision from one of its peers.
 
 Consistent memory usage
 -----------------------

@@ -16,7 +16,6 @@ class Tests(utils.ComponentTestCase):
             name='execute_fn', spec=lambda state, input: None)
         self.rep = Replica(self.node, self.execute_fn, state='state', slot=2,
                            decisions={1: PROPOSAL1}, peers=['p1', 'F999'])
-        self.rep.start()
         self.assertNoMessages()
 
     def tearDown(self):
@@ -49,32 +48,6 @@ class Tests(utils.ComponentTestCase):
         self.rep.propose(PROPOSAL2, 2)
         self.assertEqual(self.rep.next_slot, 3)
         self.assertMessage(['F999'], Propose(slot=2, proposal=PROPOSAL2))
-
-    def test_catchup_noop(self):
-        """If slot == next_slot, there's no catchup to do"""
-        self.rep.catchup()
-        self.assertNoMessages()
-
-    @mock.patch.object(Replica, 'propose')
-    def test_catchup_missed(self, propose):
-        """If next_slot is greater than slot, then send CATCHUPs and (re-)propose"""
-        self.rep.next_slot = 5
-        self.rep.proposals = {2: PROPOSAL2, 3: PROPOSAL3}
-        self.rep.decisions = {3: PROPOSAL3, 5: PROPOSAL4}
-        # slot 2: proposed, undecided -> catchup
-        # slot 3: proposed, decided
-        # slot 4: not proposed, undecided -> catchup, null proposal
-        # slot 5: not proposed, decided
-        self.rep.catchup()
-        self.assertMessage(['F999', 'p1'], Catchup(slots=[2, 4]))
-        self.assertEqual(propose.call_args_list, [
-            mock.call(Proposal(None, None, None), 4),
-        ])
-
-    def test_CATCHUP_response(self):
-        """On CATCHUP, for all decided proposals, re-send the DECISION"""
-        self.node.fake_message(Catchup(slots=[1, 2, 3]))
-        self.assertMessage(['F999'], Decision(slot=1, proposal=PROPOSAL1))
 
     @mock.patch.object(Replica, 'commit')
     def test_DECISION_gap(self, commit):
