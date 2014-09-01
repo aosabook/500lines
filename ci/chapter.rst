@@ -98,6 +98,32 @@ The repository observer will repeat this process forever, until you kill the pro
 The Dispatcher (dispatcher.py)
 ------------------------------------------
 
+When the dispatcher.py file is invoked, you have the option of passing in a --host or a --port which will let this server listen on a custom address. By default, it will run on localhost, port 8888.
+
+The dispatcher is a separate service used to delegate testing tasks. It listens on a port for requests from test runners and from the repository observer. It allows test runners to register themselves, and when given a commit hash from the repository observer, it will dispatch a test runner against the new commit. It also gracefully handles any problems with the test runners and will redistribute the commit hash to a new test runner if anything goes wrong.
+
+When dispatch.py is executed, the 'serve' function is called. This starts the dispatcher server, and two other threads. One thread runs the 'runner_checker' function, and other thread runs the 'redistribute' function. The 'runner_checker' function is used to periodically ping each registered test runner to make sure they are still responsive. If they become unresponsive, then that runner will be removed from the pool, and its commit hash will be dispatched to the next available runner. It will log the commit hash in the 'pending_commits' variable. The 'redistribute' function is used to dispatch any of those commit hashes logged in 'pending commits'. When 'redistribute' runs, it checks if there are any commit hashes in 'pending_commits'. If so, it calls the 'dispatch_tests' function with the commit hash. The 'dispatch_tests' function is used to find an available test runner from the pool of registered runners. If one is available, it will send a 'runtest' message to it with the commit hash. If none are currently available, it will wait 2 seconds and repeat this process. Once dispatched, it logs which commit hash is being tested by which test runner in the 'dispatched_commits' variable. If this commit hash is in the 'pending_commits' variable, then it will remove it from this list, since it was successfully re-dispatched.
+
+The dispatcher server uses the SocketServer module. The default TCPServer provided by SocketServer cannot handle the case where the dispatcher is talking to one connection, say from a test runner, and then a new connection comes in, say from the repository observer. If this happens, the reponsitory observer will have to wait for the first connection to complete before it will be serviced. This is not ideal for our case, since the dispatcher server must be able to directly and swiftly communicate with all test runners and the repository observer.
+
+In order for the dispatcher server to handle simultaneous connections, it uses the ThreadingTCPServer custom class, which adds threading ability to the default SocketServer. This means that anytime the dispatcher receives a connection request, it spins off a new thread just for that connection. This allows the dispatcher to handle multiple requests at the same time.
+
+The dispatcher server works by defining handlers for each request. This is defined by the DispatcherHandler class, which inherits from SocketServer's BaseRequestHandler. This base class just needs us to define the 'handle' function, which will be invoked whenever a connection is requested. The 'handle' function defined in DispatcherHandler is our custom handler, and it will be called on each connection. It looks at the incoming connection request (self.request holds the request information), and parses out what command is being requested of it. It handles four commands: 'status', 'register', 'dispatch', and 'results':
+
+- 'status' is used to check if the dispatcher server is up and running.
+
+- 'register' is used by a test runner to register itself with the dispatcher. The format of this command is register:<host>:<port>. The dispatcher then records the test runner's address so it can communicate with it later when it needs to give it a commit hash to run tests against.
+
+- 'dispatch' is used by the repository observer to dispatch a test runner against a commit. The format of this command is dispatch:<commit hash>. The dispatcher parses out the commit hash from this message and sends it to the test runner. 
+
+- 'results' is used by a test runner when it has finished a test run and needs to report its results. The format of this command is results:<commit hash>:<length of results data in bytes>:<results>. The <commit hash> is used to identify which commit hash the tests were run against. The <length of results data in bytes> is used to figure out how big a buffer is needed to read the results data into. Lastly, <results> holds the actual result output.
+
+In order for the dispatcher to do anything useful, it needs to have at least one test runner registered. When 'register' is called, it stores the runner's information in a list (the 'runners' object attached to the ThreadingTCPServer object).
+
+When 'dispatch' is called, if the dispatcher has test runners registered with it, it will send back an 'OK' response, and will call the 'dispatch_tests' function. 
+
+When 'results' is called, the dispatcher parses out the commit hash and the test results from the message, and stores the test results in a file within the 'test_results' folder, using the commit hash as the file name.
+
 The Test Runner (test_runner.py)
 ------------------------------------------
     Ideas to explore:
