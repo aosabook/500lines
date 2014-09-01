@@ -1,7 +1,7 @@
 Clustering by Consensus
 ***********************
 
-In this chapter, we'll explore implementation of a network protocol designed to support reliable a distributed computation.
+In this chapter, we'll explore implementation of a network protocol designed to support reliable distributed computation.
 Network protocols can be difficult to implement correctly, so we'll look at some techniques for minimizing bugs and for catching and fixing the remaining few.
 Building reliable software, too, requires some special development and debugging techniques.
 
@@ -55,45 +55,42 @@ Paxos was described by Leslie Lamport in a fanciful paper, first submitted in 19
 Lamport's paper has a great deal more detail than we will get into here, and is a fun read.
 The references at the end of the chapter describe some extensions of the algorithm that we have adapted in this implementation.
 
-The simplest form of Paxos provides a way for a set of servers to agree on one fact, for all time.
+The simplest form of Paxos provides a way for a set of servers to agree on one value, for all time.
 MultiPaxos builds on this foundation by agreeing on a numbered sequence of facts, one at a time.
 To implement a distributed state machine, we use MultiPaxos to agree on each state-machine input, and execute them in sequence.
 
 Simple Paxos
 ------------
 
-So let's start with "Simple Paxos".
-For sake of illustration, we'll agree on today's lottery number.
+So let's start with "Simple Paxos", also known as the Synod protocol.
+For sake of illustration, we'll use it to agree on today's lottery number.
 While there may be another lottery drawing next week, *today's* lottery number, once decided, will never change.
 
-A round of Paxos begins with one member of the cluster (called the proposer) deciding to propose a value, let's say 7-3-22.
-The proposer selects a "ballot number" *N* greater than any other it has ever sent, and sends a ``PREPARE`` message with a ballot number to the acceptors (all of the other nodes).
-The proposer then waits to hear from a majority of the acceptors.
+The protocol operates in a series of ballots, each led by a single member of the cluster, called the proposer.
+Each ballot has a unique ballot number based on an integer and the proposer's identity.
+The proposer's goal is to get a majority of cluster members to accept its value, but only if another value has not already been decided.
 
-The ``PREPARE`` message contains a ballot number, and the protocol requires this to be unique across the cluster and strictly increasing.
-This is easier than it sounds: make each ballot number a combination of an increasing integer and a unique ID for the cluster member, such as its IP address.
+A ballot begins with the proposer sending a ``Prepare`` message with the ballot number *N* to the acceptors and waiting to hear from a majority.
 
-On receiving to a ``PREPARE`` with a ballot number *N*, each acceptor promises to ignore all proposals with a ballot number less than *N*.
-It replies with a ``PROMISE`` message including a highest ballot number it has promised and an already-accepted value *V*.
-If the acceptor has already made a promise for a larger ballot number, it includes that number in the ``PROMISE``, indicating that the proposer has been pre-empted.
+The ``Prepare`` message is a request for the accepted value (if any) with the highest ballot number less than *N*.
+Acceptors respond with a ``Promise`` containing any value they have already accepted, and promising not to accept any ballot numbered less than *N* in the future.
+If the acceptor has already made a promise for a larger ballot number, it includes that number in the ``Promise``, indicating that the proposer has been pre-empted.
 
-When the proposer has heard back from a majority of the acceptors, it sends an ``ACCEPT`` message, including the ballot number and value to all acceptors.
+When the proposer has heard back from a majority of the acceptors, it sends an ``Accept`` message, including the ballot number and value to all acceptors.
 If the proposer did not receive any existing value from any acceptor, then it sends its own desired value.
-Otherwise, it sends the value with the highest ballot number.
-Unless it would violate a promise, each acceptor records the value from the ``ACCEPT`` message as accepted.
+Otherwise, it sends the value from the highest-numbered ballot.
+Unless it would violate a promise, each acceptor records the value from the ``Accept`` message as accepted and replies with an ``Accepted`` message.
+The ballot is complete and the value decided when the proposer has heard its ballot number from a majority of acceptors.
 
-In this example, no other value has been accepted, so the acceptors all send back a ``PROMISE`` with no value, and the proposer sends an ``ACCEPT`` containing 7-3-22.
+Returning to the example, initially no other value has been accepted, so the acceptors all send back a ``Promise`` with no value, and the proposer sends an ``Accept`` containing its value, 7-3-22.
 
-Each acceptor replies with an ``ACCEPTED`` message containing the accepted ballot number.
-The round is complete and the value decided when the proposer has heard its ballot number from a majority of acceptors.
+If another proposer later initiates lower-numbered ballot, the acceptors will not accept it.
+If that ballot has a larger ballot number, then the ``Promise`` from the acceptors will contain 7-3-22, and the proposer will send that value in the ``Accept`` message.
+The new ballot will be accepted, but in favor of the same value as the first ballot.
 
-The overall effect is two round-trips: one to secure a promise and one to get agreement on the value.
+In fact, the protocol will never allow two different values to be decided, even if the ballots overlap, messages are delayed, or a minority of acceptors fail.
 
-If another server proposes a different value, say 11-13-15, with lower ballot number, then the acceptors will ignore the ``PREPARE`` messages.
-If that server uses a higher ballot number than has already been promised, then the acceptors will reply with the already-agreed value, 7-3-22.
-The server will use that value in the second phase, agreeing again on the same value.
-
-When multiple proposers make a proposal at the same time, it is common for neither proposal to win.
+When multiple proposers make a ballot at the same time, it is easy for neither ballot to be accepted.
 Both proposers then re-propose, and hopefully one wins, but the deadlock can continue indefinitely if the timing works out just right.
 In a bad -- but not uncommon -- case, it can take dozens of round-trips to reach consensus.
 
@@ -107,42 +104,42 @@ We use Paxos to agree on each operation, treated as a state machine transition.
 
 Multi-Paxos is, in effect, a sequence of simple Paxos instances (slots), each numbered sequentially.
 Each state transition is given a "slot number", and each member of the cluster executes transitions in strict numeric order.
-A node that wants to change the cluster's state (to process a withdrawal, for example) proposes a state machine transition, waits for a decision, and then broadcasts the decided transition to all nodes.
+To change the cluster's state (to process a withdrawal, for example), we try to achieve consensus on that operation in the next slot.
 
-Getting Moderately Complex
---------------------------
+Running Paxos for every slot, with its minimum of two round trips, would be too slow.
+Multi-Paxos optimizes by using the same set of ballot numbers for all slots, and performing the ``Prepare``/``Promise`` phase for all slots at once.
 
-But practice is not nearly so simple as principle.
+Paxos Made .. Pretty Hard, Actually
+-----------------------------------
 
-# XXX compare this list with what gets discussed later in the chapter, and don't leave too many loose threads
+Implementing Multi-Paxos in practical software is notoriously difficult, spawning a number of papers mocking Lamport's "Paxos Made Simple" with titles like "Paxos Made Practical".
 
-To avoid the hight cost of two round trips per decision, multi-Paxos treats the ``PREPARE``/``PROMISE`` interaction as authoritative for the current and all future slots.
-Once a proposer has received promises without values from a majority of acceptors, it only executes the second phase (``ACCEPT``/``ACCEPTED``) for subsequent slots, at least until a proposal isn't accepted.
+First, the multiple-proposers problem described above can become problematic in a busy environment, as each cluster member attempts to get its state machine operation decided in each slot.
+The fix is to elect a "leader" which is responsible for submitting ballots for each slot.
+Thus, in normal operation with only one leader, ballot conflicts do not occur.
+
+The ``Prepare``/``Promise`` phase can function as a kind of leader election.
+Whichever cluster member owns the most recently promised ballot number is considered the leader.
+As we'll see below, leader elections are actually quite complex.
 
 Although simple Paxos guarantees that the cluster will not reach conflicting decisions, it cannot guarantee that any decision will be made.
 Fixing this requires carefully orchestrated re-transmissions: enough to eventually make progress, but not so many that the cluster buries itself in a packet storm.
 
-While Paxos describes how to *make* decisions, it does not address informing all cluster nodes of those decisions.
-A simple broadcast of a ``DECISION`` message can take care of this for the normal case, but if the message is lost, a node can remain permanently ignorant of the decision.
-This leaves that node unable to apply later transitions to its copy of the distributed state machine.
-So we need some mechanism for sharing information about decided proposals.
+Another problem is the dissemination of decisions.
+A simple broadcast of a ``Decision`` message can take care of this for the normal case.
+If the message is lost, though, a node can remain permanently ignorant of the decision and unable to apply state machine transitions for later slots.
+So an implementation needs some mechanism for sharing information about decided proposals.
 
 Our use of a distributed state machine presents another interesting challenge: start-up.
 When a new node starts, it needs to catch up on the existing state of the cluster.
 Although it can do so by catching up on decisions for all slots since the first, in a mature cluster this may involve millions of slots.
 Furthermore, we need some way to initialize a new cluster.
 
-Leader Elections
-----------------
-
-XXX make the bridge from just optimizing the first phase by getting it out of the way, to "electing a leader" with the first phase.
-I'm still fuzzy on this myself, so I need to re-read some of the relevant papers to see how they describe it.
-
 Introducing Cluster
 ===================
 
 The "Cluster" library in this chapter implements a simple form of Multi-Paxos.
-It is designed for providing a consensus service to a larger application.
+It is designed as a library to provide a consensus service to a larger application.
 The application creates and starts a ``Member`` object on each cluster member, providing an application-specific state machine and a list of peers.
 The application accesses the shared state through the ``invoke`` method, which kicks off a proposal for a state transition.
 Once that proposal is decided and the state machine runs, ``invoke`` returns the machine's output.
@@ -156,7 +153,7 @@ Message Types
 Cluster's protocol uses 16 different message types.
 Using named tuples to describe each message type keeps the code clean and helps avoid some simple errors.
 The named tuple constructor will raise an exception if it is not given exactly the right attributes, making typos obvious.
-The tuples format themselves nicely in log messages, and as an added bonus don't use much RAM.
+The tuples format themselves nicely in log messages, and as an added bonus don't use as much memory as a dictionary.
 
 Component Model
 ---------------
@@ -165,11 +162,11 @@ Humans are limited by what we can hold in our active memory.
 We can't reason about the entire Cluster implementation at once -- it's just too much, and too easy to miss details.
 Instead, we break Cluster down into a handful of components, implemented as subclasses of ``Component``.
 Each class is responsible for a different part of the protocol.
-The division of the components is based on that given in Renesse (XXX - citation).
+The division of the components is based on that given in (Renesse, 2011).
 
 The components are glued together by the ``Node`` class, which represents a single node on the network.
-Components are added to and removed from the node as execution proceeds
-Messages that arrive on the node are relayed to all active components, calling a method named after the capitalized message type with a ``do_`` prefix.
+Components are added to and removed from the node as execution proceeds.
+Messages that arrive on the node are relayed to all active components, calling a method named after the message type with a ``do_`` prefix.
 These ``do_`` methods receive the message's attributes as keyword arguments for easy access.
 
 The ``Node`` class also provides some convenience methods, using ``functools.partial`` to supply some arguments to the same methods of the ``Network`` class.
@@ -179,7 +176,7 @@ Acceptor
 
 The ``Acceptor`` class illustrates the component model well.
 It implements the acceptor role in the protocol, so it must store the ballot number representing its most recent promise, along with the set of accepted proposals for each slot.
-It then responds to ``PREPARE`` and ``ACCEPT`` messages according to the protocol.
+It then responds to ``Prepare`` and ``Accept`` messages according to the protocol.
 The result is a short class that is easy to compare to the protocol.
 
 Replica
@@ -193,98 +190,97 @@ The ``Replica`` class is the most complicated component class, as it has a few c
 * Tracking the current leader; and
 * Adding newly started nodes to the cluster.
 
-The replica creates new proposals in response to ``INVOKE`` messages, selecting what it believes to be an unused slot and sending a ``PROPOSE`` message to the current leader.
-But that's not enough -- the replica must re-transmit that ``PROPOSE`` message, possibly to a different leader, until it is successful.
+The replica creates new proposals in response to ``Invoke`` messages from clients, selecting what it believes to be an unused slot and sending a ``Propose`` message to the current leader.
 Furthermore, if the consensus for the selected slot is for a different proposal, the replic must re-propose with a new slot.
 
-We handle missed decisions with a simple gossip protocol: each replica periodically sends a ``CATCHUP`` method requesting information on slots it's not aware of a decision for.
-Other replicas send ``DECISION`` messages in response.
-The ``CATCHUP`` messages also include the highest known slot, so replicas can learn about slots they didn't even know were proposed.
+We handle missed decisions with a simple gossip protocol: each replica periodically sends a ``Catchup`` method requesting information on slots it's not aware of a decision for.
+Other replicas send ``Decision`` messages in response.
 
-``DECISION`` messages represent slots on which the cluster has come to consensus.
-Here, replicas store away the new decision, then run the state machine until it reaches an undecided slot.
-Replicas distinguish *decided* proposals, on which the cluster has agreed, from *committed* proposals, which the local state machine has processed.
-When propsals are decided out of order, the committed proposals may lag behind, waiting for the next slot to be decided.
+``Decision`` messages represent slots on which the cluster has come to consensus.
+Here, replicas store the new decision, then run the state machine until it reaches an undecided slot.
+Replicas distinguish *decided* slots, on which the cluster has agreed, from *committed* slots, which the local state machine has processed.
+When slots are decided out of order, the committed proposals may lag behind, waiting for the next slot to be decided.
 
 In some circumstances, it's possible for a slot to have no active proposals and no decision.
 The state machine is required to execute slots one by one, so the cluster much reach a consensus on something to fill the slot.
 To protect against this possibility, replicas make a "no-op" proposal whenever they catch up on a slot.
 If such a proposal is eventually decided, then the state machine does nothing for that slot.
+
 Likewise, it's possible for the same proposal to be decided twice.
 The replica skips invoking the state machine for any such duplicate proposals, performing no transition for that slot.
 
-Replicas need to know which node is the active leader in order to send ``PROPOSE`` messages to it.
+Replicas need to know which node is the active leader in order to send ``Propose`` messages to it.
 There is a surprising amount of subtlty required to get this right, as we'll see later.
 Each replica tracks the active leader using three sources of information:
 
-* When the leader component becomes active, it sends an ``ADOPTED`` message to its local replica.
-* When the acceptor component sends a ``PREPARE`` to a new leader, it sends an ``ACCEPTING`` message to its local replica.
-* The active leader sends ``ACTIVE`` messages as a heartbeat.
+* When the leader component becomes active, it sends an ``Adopted`` message to its local replica.
+* When the acceptor component sends a ``Promise`` to a new leader, it sends an ``Accepting`` message to its local replica.
+* The active leader sends ``Active`` messages as a heartbeat.
   If no such message arrives before the ``LEADER_TIMEOUT`` expires, the replica assumes the leader is dead and moves on to the next leader.
-  In this case, it's important that all replicas choose the *same* new leader.
+  In this case, it's important that all replicas choose the *same* new leader, which we accomplish by sorting the members and selecting the next one in the list.
 
-Finally, when a node joins the network, the bootstrap component sends a ``JOIN`` message.
-The replica responds with a ``WELCOME`` message containing its most recent state, allowing the new node to come up to speed quickly.
+Finally, when a node joins the network, the bootstrap component sends a ``Join`` message.
+The replica responds with a ``Welcome`` message containing its most recent state, allowing the new node to come up to speed quickly.
 
 Leader, Scout, and Commander
 ............................
 
-The leader's primary task is to take in proposals messages and produce decisions.
-A leader is "active" when it has already carried out the ``PREPARE``/``PROMISE`` portion of the protocol.
-An active leader can immediately send an ``ACCEPT`` message in response to a ``PROPOSE``.
+The leader's primary task is to take ``Propose`` messages requesting new ballots and produce decisions.
+A leader is "active" when it has successfully carried out the ``Prepare``/``Promise`` portion of the protocol.
+An active leader can immediately send an ``Accept`` message in response to a ``Propose``.
 
 In keeping with the component model, the leader delegates to the scout and commander components to carry out each portion of the protocol.
 
-The leader creates a scout component when it wants to become active, in response to receiving a ``PROPOSE``.
-The scout sends (and re-sends, if necessary) a ``PREPARE`` message, and collects ``PROMISE`` responses until it has heard from a majority of its peers or until it has been preempted.
-It communicates the result back to the leader with an ``ADOPTED`` or ``PREEMPTED`` message, respectively.
+The leader creates a scout component when it wants to become active, in response to receiving a ``Propose``.
+The scout sends (and re-sends, if necessary) a ``Prepare`` message, and collects ``Promise`` responses until it has heard from a majority of its peers or until it has been preempted.
+It communicates the result back to the leader with an ``Adopted`` or ``Preempted`` message, respectively.
 
 The leader creates a commander component for each slot where it has an active proposal.
-Like a scout, a commander sends and re-sends ``ACCEPT`` messages and waits for a majority of acceptors to reply with ``ACCEPTED``, or for news of its preemption.
-When a proposal is accepted, the commander broadcasts a ``DECISION`` message to all nodes.
-It responds to the leader with either ``DECIDED`` or ``PREEMPTED``.
+Like a scout, a commander sends and re-sends ``Accept`` messages and waits for a majority of acceptors to reply with ``Accepted``, or for news of its preemption.
+When a proposal is accepted, the commander broadcasts a ``Decision`` message to all nodes.
+It responds to the leader with either ``Decided`` or ``Preempted``.
 
 .. note::
 
     A surprisingly subtle bug appeared here during development.
     At the time, the network simulator introduced packet loss even on messages within a node.
-    When *all* ``DECISION`` messages were lost, the protocol could not proceed.
-    The replica continued to re-transmit ``PROPOSE`` messages, but the leader ignored them as it already had a proposal for that slot.
+    When *all* ``Decision`` messages were lost, the protocol could not proceed.
+    The replica continued to re-transmit ``Propose`` messages, but the leader ignored them as it already had a proposal for that slot.
     The replica's catch-up process could not find the result, as no replica had heard of the decision.
-    The solution was to ensure that local messages are always delivered.
+    The solution was to ensure that local messages are always delivered, as is the case for real network stacks.
 
 
 Bootstrap
 .........
 
 When a node joins the cluster, it must determine the current cluster state before it can participate.
-The bootstrap component handles this by sending ``JOIN`` messages to each peer in turn until it receives a ``WELCOME``.
+The bootstrap component handles this by sending ``Join`` messages to each peer in turn until it receives a ``Welcome``.
 
-An early version of the implementation started each node with a full set of components (replica, leader, and acceptor), each of which began in a "startup" phase, waiting for information from the ``WELCOME`` message.
+An early version of the implementation started each node with a full set of components (replica, leader, and acceptor), each of which began in a "startup" phase, waiting for information from the ``Welcome`` message.
 This spread the initialization logic around every component, requiring separate testing of each one.
 The final design has the bootstrap component creating each of the other components once startup is complete, passing the initial state to their constructors.
 
 Seed
 ....
 
-In normal operation, when a node joins the cluster, it expects to find the cluster already running, with at least one node willing to respond to a ``JOIN`` message.
+In normal operation, when a node joins the cluster, it expects to find the cluster already running, with at least one node willing to respond to a ``Join`` message.
 But how does the cluster get started?
 An option is for the bootstrap component to decide, after attempting to contact every other node, that it is the first in the cluster.
 But this has two problems.
-First, for a large cluster it means a long wait while each ``JOIN`` times out.
+First, for a large cluster it means a long wait while each ``Join`` times out.
 More importantly, in the event of a network partition, a new node might be unable to contact any others and start a new cluster.
 When the network heals and that node can communicate with the other nodes, there are two clusters with different decisions for the same slots!
 
 To avoid this outcome, creating a new cluster is a user-specified operation.
 Exactly one node in the cluster runs the seed component, with the others running bootstrap as usual.
-The seed waits until it has received ``JOIN`` messages from a majority of its peers, then sends a ``WELCOME`` with an initial state for the state machine and an empty set of decisions.
+The seed waits until it has received ``Join`` messages from a majority of its peers, then sends a ``Welcome`` with an initial state for the state machine and an empty set of decisions.
 The seed component then stops itself and starts a bootstrap component to join the newly-seeded cluster.
 
 Request
 .......
 
 The request component manages a request to the distributed state machine.
-The component simply sends ``INVOKE`` messages to the local replica until it receives a corresponding ``INVOKED``.
+The component simply sends ``Invoke`` messages to the local replica until it receives a corresponding ``Invoked``.
 
 Network
 -------
@@ -325,9 +321,9 @@ Assertions are an important tool to catch this sort of error early.
 Assertions should include any invariants from the algorithm design, but when the code doesn't behave as we expect, asserting our expectations is a great way to see where things go astray.
 
 Identifying the right assumptions we make while reading code is a part of the art of debugging.
-In this case, the problem was that the ``DECISION`` for the next slot to commit was being ignored because it was already in ``self.decisions``.
+In this case, the problem was that the ``Decision`` for the next slot to commit was being ignored because it was already in ``self.decisions``.
 The underlying assumption being violated was that the next slot to be committed was not yet decided.
-Asserting this at the beginning of ``do_DECISION`` identified the flaw and led quickly to the fix.
+Asserting this at the beginning of ``do_Decision`` identified the flaw and led quickly to the fix.
 
 Many other assertions were added during development of the protocol, but in the interests of space, only a few remain.
 
@@ -341,9 +337,24 @@ Testing is most effective when the code is organized for testability.
 There are a few active schools of thought in this area, but the approach we've taken is to divide the code into small, minimally connected units that can be tested in isolation.
 This agrees nicely with the component model, where each component has a specific purpose and can operate in isolation from the others.
 
-Cluster is written to maximize that isolation.
-All communication between components takes place via messages, with the exception of creating new components.
+Cluster is written to maximize that isolation: all communication between components takes place via messages, with the exception of creating new components.
 For the most part, then, components can be tested by sending messages to them and observing their responses.
+
+Unit Testing
+............
+
+The unit tests for Cluster (all of which are availble in the book's Github repository) are simple and short:
+
+.. code-block::
+
+    def test_propose_active(self):
+        """A PROPOSE received while active spawns a commander."""
+        self.activate_leader()
+        self.node.fake_message(Propose(slot=10, proposal=PROPOSAL1))
+        self.assertCommanderStarted(Ballot(0, 'F999'), 10, PROPOSAL1)
+
+This method tests a single behavior (commander spawning) of a single unit (the ``Leader`` class).
+It follows the well-known "arrange, act, assert" pattern: set up an active leader, send it a message, and check the result.
 
 Dependency Injection
 ....................
@@ -367,21 +378,19 @@ The ``spawn_scout`` method (and, similarly, ``spawn_commander``) create the new 
 
 The magic of this technique is that, in testing, ``Leader`` can be given stub classes and thus tested separately from ``Scout`` and ``Commander``.
 
-Unit Testing
-............
-
-XXX include test_leader.py? parts of it? I wasn't counting that in the 500 lines..
+Interface Correctness
+.....................
 
 One pitfall of a focus on small units is that it does not test the interfaces between units.
-For example, unit tests for the acceptor component verify the format of the ``accepted`` attribute of the ``PROMISE`` message, and the unit tests for the scout component supply well-formatted values for the attribute.
+For example, unit tests for the acceptor component verify the format of the ``accepted`` attribute of the ``Promise`` message, and the unit tests for the scout component supply well-formatted values for the attribute.
 Neither test checks that those formats match.
 
 One approach to fixing this issue is to make the interfaces self-enforcing.
 In Cluster, the use of named tuples and keyword arguments avoids any disagreement over messages' attributes.
 Because the only interaction between components is via messages, this covers a substantial part of the interface.
 
-For specific issues such as the format of ``accepted``, both the real and test data can be verified using the same function, in this case ``verifyPromiseAccepted``.
-The tests for the acceptor use this method to verify each returned ``PROMISE``, and the tests for the scout use it to verify every fake ``PROMISE``.
+For specific issues such as the format of ``accepted_proposals``, both the real and test data can be verified using the same function, in this case ``verifyPromiseAccepted``.
+The tests for the acceptor use this method to verify each returned ``Promise``, and the tests for the scout use it to verify every fake ``Promise``.
 
 Integration Testing
 ...................
@@ -394,7 +403,7 @@ If there are any interface issues not discovered in unit testing, they should ca
 Because the protocol is intended to handle node failure gracefully, we test a few failure scenarios as well, including the untimely failure of the active leader.
 
 Integration tests are harder to write than unit tests, because they are less well isolated.
-For Cluster, this is clearest in testing the failed master, as the active leader depends on every detail of the protocol's operation.
+For Cluster, this is clearest in testing the failed leader, as any node could be the active leader.
 Even with a deterministic network, a change in one message alters the random number generator's state and thus unpredictably changes later events.
 Rather than hard-coding the expected leader, the test code must dig into the internal state of each leader to find one that believes itself to be active.
 
@@ -418,8 +427,18 @@ XXX I may rip this bit of the code out and move it to a "Further Extensions" sec
 Follow the Leader
 -----------------
 
-XXX based on the "Leader Elections" section above, this describes the sensitivity of the implementation to rough agreement on the identity of the current leader.
-Basically, if there's even a little disagreement over the current leader, it triggers a "fight" which nearly deadlocks the implementation.
+A cluster with many active leaders is a very noisy place, with scouts sending ever-increasing ballot numbers to acceptors, and no ballots being decided.
+A cluster with no active leader is quiet, but equally nonfunctional.
+Balancing the implementation so that a cluster almost always agrees on exactly one leader is remarkably difficult.
+
+It's easy enough to avoid fighting leaders: when preempted, a leader just accepts its new inactive status.
+However, this easily leads to a case where there are no active leaders, so an inactive leader will try to become active every time it gets a ``Propose`` message.
+
+If the whole cluster doesn't agree on which member is the active leader, there's trouble: different replicas send ``Propose`` messages to different leaders, leading to battling scouts.
+So it's important that leader elections be decided quickly, and that all cluster members find out about the result as quickly as possible.
+
+Cluster handles this by detecting a leader change as quickly as possible: when an acceptor sends a ``Promise``, chances are good that the promised member will be the next leader.
+Failures are detected with a heartbeat protocol.
 
 Further Extensions
 ==================
@@ -434,10 +453,23 @@ Unfortunately, Cluster will not run for long without failing due to ever-growing
 In the protocol definition, acceptors and replicas form the "memory" of the protocol, so they need to remember everything.
 These components never know when they will receive a request for an old slot, perhaps from a lagging replica or leader.
 To maintain correctness, then, they keep a list of every decision, ever, since the cluster was started.
-Worse, these decisions are transmitted between replicas in ``WELCOME`` messages, making these messages enormous in a long-lived cluster.
+Worse, these decisions are transmitted between replicas in ``Welcome`` messages, making these messages enormous in a long-lived cluster.
 
 One technique to address this issue is to periodically "checkpoint" each node's state, keeping information some limited number of decisions on-hand.
 Nodes which are so out of date that they have not committed all slots up to the checkpoint must "reset" themselves by leaving and re-joining the cluster.
+
+Persistent Storage
+------------------
+
+While it's OK for a minority of cluster members to fail, it's not OK for an acceptor to "forget" any of the values it has accepted or promises it has made.
+
+Unfortunately, this is exactly what happens when a cluster member fails and restarts: the newly initialized Acceptor instance has no record of the promises its predecessor made.
+The problem is that the newly-started instance takes the place of the old
+
+There are two alternatives to solve this issue.
+The simpler solution involves writing acceptor state to disk and re-reading that state on startup.
+The more complex solution is to remove failed cluster members from the cluster, and require that new members be added to the cluster.
+This kind of dynamic adjustment of the cluster membership is called a "view change".
 
 View Changes
 ------------
@@ -448,27 +480,15 @@ When that project goes "live", though, the additional load would require a large
 
 Cluster, as written, cannot change the set of peers in a cluster without restarting the entire cluster.
 Ideally, the cluster would be able to maintain a consensus about its membership, just as it does about state machine transitions.
-"The Part-Time Parliament" (citation) has a cryptic paragraph about how this might work:
+This means that the set of cluster members (the *view*) can be changed by special view-change proposals.
+But the Paxos algorithm depends on universal agreement about the members in the cluster, so we must define the view for each slot.
 
-    The Paxons decided to add and remove members of Parliament by decree.
-    This posed a circularity problem: membership in Parliament was determined by which decrees were passed, but passing a decree required knowing what constituted a majority set, which in turn depended upon who was a member of Parliament.
-    The circularity was broken by letting the membership of Parliament used in passing decree n be specified by the law as of decree n − 3.
-    A president could not try to pass decree 3255 until he knew all decrees through decree 3252.
+Lamport addresses this challeng in the final paragraph of "Paxos Made Simple":
 
-Translated into the terms used by Cluster, this means that the set of cluster members (the *view*) can be changed by special view-change proposals.
-Every slot has a view: either the view from the previous slot, or the new view decided in that slot.
+    We can allow a leader to get *α* commands ahead by letting the set of servers that execute instance *i+α* of the consensus algorithm be specified by the state after execution of the *i*\th state machine command.  (Lamport, 2001)
 
-For the protocol to work correctly, all nodes need to agree on the view used to decide each slot.
-And this is where Lamport's circularity arises: what view is used to decide a view change?
-Not the new view: since it hasn't been decided, not all nodes agree on it.
-Selecting the view from the previous slot makes sense.
-In fact, this means that *all* slots must be decided in the view of the previous slot, as the cluster hasn't decided that a slot is a view change until the slot is decided.
-
-This model works, but serializes the protocol: slots must be decided one by one, even in the presence of slow or failing nodes.
-Slot n can't be decided until the view for slot n-1 is known, which requires deciding that slot.
-
-Lamport's suggested solution is to use the view from 3 slots back instead.
-There's nothing special about the number 3 -- only that it allows a window of slots for parallelization without requiring too many decisions to make a view change.
+The idea is that each instance of Paxos (slot) uses the view from α slots earlier.
+This allows the cluster to work on, at most, α slots at any one time, so a very small value of α limits concurrency, while a very large value of α makes view changes slow to take effect.
 
 In early drafts of this implementation (dutifully preserved in the git history!), I implemented support for view changes (using α in place of 3).
 This seemingly simple change introduced a great deal of complexity:
