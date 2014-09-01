@@ -65,6 +65,14 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
         if command == "status":
             print "in status"
             self.request.sendall("OK")
+        elif command == "register":
+            # Add this test runner to our pool
+            print "register"
+            address = command_groups.group(2)
+            host, port = re.findall(r":(\w*)", address)
+            runner = {"host": host, "port":port}
+            self.server.runners.append(runner)
+            self.request.sendall("OK")
         elif command == "dispatch":
             print "going to dispatch"
             commit_hash = command_groups.group(3)
@@ -74,14 +82,6 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
                 # The coordinator can trust us to dispatch the test
                 self.request.sendall("OK")
                 dispatch_tests(self.server, commit_hash)
-        elif command == "register":
-            # Add this test runner to our pool
-            print "register"
-            address = command_groups.group(2)
-            host, port = re.findall(r":(\w*)", address)
-            runner = {"host": host, "port":port}
-            self.server.runners.append(runner)
-            self.request.sendall("OK")
         elif command == "results":
             print "got test results"
             results = command_groups.group(2)
