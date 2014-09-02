@@ -86,10 +86,13 @@
                  , got: function(G, V, E) { return [ V[6] ] } }
                  
                , { fun: function(G, V, E) { return G.v(3).out().in('son').in('son').run() /* who is tom's brother's grandfather? */ } 
-                 , got: function(G, V, E) { return [ V[1] ] } } // THINK: should we auto-unique??
+                 , got: function(G, V, E) { return [ V[1], V[1] ] } }
+                 
+               , { fun: function(G, V, E) { return G.v(3).out().in('son').in('son').unique().run()  /* same, but unique */ } 
+                 , got: function(G, V, E) { return [ V[1] ] } }
                  
                , { fun: function(G, V, E) { return G.v(1).outAllN('son', 2).property('name').run()  /* all male hiers */ } 
-                 , got: function(G, V, E) { return ["Bob","Harry","Dick","Tom"] } } // THINK: should we auto-unique??
+                 , got: function(G, V, E) { return ["Bob","Harry","Dick","Tom"] } }
                ]
       }
       
@@ -97,7 +100,7 @@
       
       // from https://github.com/entrendipity/helios.js/blob/master/tests/test.js
       
-    , { vertices: [ {"_id":1,"name":"marko","age":29, "dow":["mon", "tue"], "dob":"1984-05-05", "active":true, "salary":"$120,000", "device":{"qty":3,"mobile":{"phone":["iphone", "samsung"], "tablet":["galaxy"]}}}
+    , { vertices: [ {"_id":1,"name":"marko","age":29, "dow":["mon", "tue"], "dob":"1984-05-05", "active":true, "salary":"$120,000", "device":{"qty":3,"mobile":{"phone":["iphone", "samsung"], "tablet":["galaxy"]}}, "stars":0}
                   , {"_id":2,"name":"vadas","age":27, "dow":["mon", "wed", "thu"], "dob":"1986-03-12", "active":false, "salary":"$100,000", "device":{"qty":1,"mobile":{"phone":["iphone"]}}}
                   , {"_id":3,"name":"lop","lang":"java"}
                   , {"_id":4,"name":"josh","age":32, "dow":["fri"], "dob":"1981-09-01T00:00:00.000Z", "active":true, "salary":"$80,000", "device":{"qty":2,"mobile":{"phone":["iphone"], "tablet":["ipad"]}}}
@@ -125,13 +128,13 @@
                  
                // edge out
                
-               , { fun: function(G, V, E) { return G.v().out().run()                  /* all vertices with inbound edges */ }
+               , { fun: function(G, V, E) { return G.v().out().unique().run()         /* unique vertices w/ inbound edges */ }
                  , got: function(G, V, E) { return [ V[3], V[5], V[4], V[2] ] } }
                , { fun: function(G, V, E) { return G.v().out('knows').run()           /* vertices with outbound 'knows' */ }
                  , got: function(G, V, E) { return [ V[4], V[2] ] } }
                , { fun: function(G, V, E) { return G.v().out(['knows']).run()         /* same, but using array style */ }
                  , got: function(G, V, E) { return [ V[4], V[2] ] } }
-               , { fun: function(G, V, E) { return G.v().out(['knows', 'created']).run()  /* double the fun */ }
+               , { fun: function(G, V, E) { return G.v().out(['knows', 'created']).unique().run()  /* double the fun */ }
                  , got: function(G, V, E) { return [ V[3], V[5], V[4], V[2] ] } }
                , { fun: function(G, V, E) { return G.v(1).out().run()                 /* out from vertex 1 */ }
                  , got: function(G, V, E) { return [ V[3], V[4], V[2] ] } }
@@ -143,6 +146,8 @@
                // edge out through many levels
                
                , { fun: function(G, V, E) { return G.v(1).outAllN('', 3).property('name').run()  /* 3 tiers of ancestor from vertex 1  */ }
+                 , got: function(G, V, E) { return ["lop","josh","vadas","lop","ripple"] } }
+               , { fun: function(G, V, E) { return G.v(1).outAllN('', 3).property('name').unique().run()  /* same but unique  */ }
                  , got: function(G, V, E) { return ["lop","josh","vadas","ripple"] } }
                
                // resumable queries
@@ -158,8 +163,31 @@
 
                // serialization + deserialization
                
-               , { fun: function(G, V, E) { newG = Dagoba.fromString(G.toString()); return newG.v(1).out().run() }
-                 , got: function(G, V, E) { return G.v(1).out().run() } }
+               , { fun: function(G, V, E) { newG = Dagoba.fromString(G.toString()); return newG.v(1).out().property('name').run() /* serialization + deserialization */ }
+                 , got: function(G, V, E) { return G.v(1).out().property('name').run() } }
+               
+               // as, back and except
+               
+               , { fun: function(G, V, E) { return G.v({name: 'marko'}).as('x').out().back('x').property('name').run()          /* as and back */ }
+                 , got: function(G, V, E) { return ["marko","marko","marko"] } }
+                 
+               , { fun: function(G, V, E) { return G.v({name:'marko'}).as('x').out().back('x').unique().property('name').run() /* same but unique */ }
+                 , got: function(G, V, E) { return ["marko"] } }
+
+               , { fun: function(G, V, E) { return G.v({name: 'marko'}).out().in().unique().property('name').run() /* all my siblings */ }
+                 , got: function(G, V, E) { return ["peter","josh","marko"] } }
+               , { fun: function(G, V, E) { return G.v(1).as('x').out().in().unique().except('x').property('name').run() /* all my siblings, but not myself */ }
+                 , got: function(G, V, E) { return ["peter","josh"] } }
+               
+               // property pipe type
+               
+               , { fun: function(G, V, E) { return G.v(1).property('stars').run()    /* 0-valued property */ }
+                 , got: function(G, V, E) { return [0] } }
+               
+               , { fun: function(G, V, E) { return G.v().property('stars').run()    /* undefined properties */ }
+                 , got: function(G, V, E) { return [0] } }
+               
+               
                
                  
                /*
@@ -204,8 +232,8 @@
     GG = [] // global for console testing
     
     // this is weird but whatever
-    Dagoba.addhook('postquery', Dagoba.uniqueify)
-    Dagoba.addhook('postquery', Dagoba.cleanclone)
+    // Dagoba.addHook('postquery', Dagoba.uniqueify)
+    Dagoba.addHook('postquery', Dagoba.cleanclone)
     
     var resultlist = triallist.map(function(trial) {
       var G = Dagoba.graph() ; GG.push(G)
