@@ -122,10 +122,28 @@ In order for the dispatcher to do anything useful, it needs to have at least one
 
 When 'dispatch' is called, if the dispatcher has test runners registered with it, it will send back an 'OK' response, and will call the 'dispatch_tests' function. 
 
-When 'results' is called, the dispatcher parses out the commit hash and the test results from the message, and stores the test results in a file within the 'test_results' folder, using the commit hash as the file name.
+When 'results' is called, the dispatcher parses out the commit hash and the test results from the message, and stores the test results in a file within the 'test_results' folder, using the commit hash as the filename.
 
 The Test Runner (test_runner.py)
 ------------------------------------------
+The test runner is responsible for running tests against a given commit hash and reporting back the results. When invoking the test_runner.py file, you must point it to a clone of the repository, so it may use this clone to run tests against. In this case, you can use the previously created "/path/to/test_repo test_repo_clone_runner" clone as the argument. By default, the test_runner.py file will start its own server on localhost using a port between the range 8900-9000, and will try to connect to the dispatcher server at localhost:8888. You may pass it optional arguments to change these values. The '--host' and '--port' arguments are to designate a specific address to run the test runner server on, and the '--dispatcher-server' argument will have it connect to a different address than localhost:8888 to communicate with the dispatcher.
+
+When the test_runner.py file is invoked, it calls the 'serve' function, which will start the test runner server and will also start a thread to run the 'dispatcher_checker' function. The 'dispatcher_checker' function pings the dispatcher server every 5 seconds to make sure it is accessible. If the dispatcher server becomes unresponsive, the test runner will shut down since it won't be able to do any meaningful work if there is no dispatcher to give it work or to report to.
+
+The test runner server is a ThreadingTCPServer, like the dispatcher server. It requires threading because the dispatcher will be pinging it periodically to verify that the runner is still up while it is running tests. Instead of this design, it is possible to have the dispatcher server hold onto a connection with each test runner, but this would increase the dispatcher server's memory needs, and is vulnerable to network problems, like accidentally dropped connections. The test runner server responds to two messages:
+
+- 'ping', which is used by the dispatcher server to verify that the runner is still active
+- 'runtest', which accepts messages of the form 'runtest:<commit hash>', and is used to kick off tests on the given commit
+
+When 'runtest' is called, the test runner will check to see if it is already running a test, and if so, it will return a 'BUSY' response to the dispatcher. If it is available, it will respond to the server with an 'OK' message, set its status as busy and will run its 'run_tests' function. This function calls the shell script 'test_runner_script.sh' which is used to update the repository to the given commit hash. Once the script returns, if it was successful at updating the repository, we run the tests using unittest, and gather the results in a file. When the tests are done running, the test runner reads in the results file and sends it in a 'results' message to the dispatcher. As soon as the 'run_tests' function is complete, the test runner will mark itself as no longer busy, so it can take on new test jobs.
+
+Points of Extensibility
+=======================
+
+* Have the test runner or dispatcher report results to a result gathering process, which will host results publicly.
+* Have a test runner manager, which runs the dispatcher_checker, and starts up new test runner servers as needed
+* Alternatively, you can have the test runner wait for a dispatcher server to come back up, or finish its work and wait for it to come up and report results.
+
     Ideas to explore:
         What the organizational units are (e.g. modules, classes)
         Why things were modularized the way they were
@@ -135,10 +153,4 @@ The Test Runner (test_runner.py)
     Conclusion:
         Further extensions that could be made
         Similar real-world projects to explore
-
-
-Points of Extensibility
-=======================
-
-* Have the test runner or dispatcher report results to a result gathering process, which will host results publicly.
 
