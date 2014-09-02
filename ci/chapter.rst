@@ -148,17 +148,20 @@ This is an overview diagram of this system. This diagram assumes that all three 
 Points of Extensibility
 =======================
 
-* Have the test runner or dispatcher report results to a result gathering process, which will host results publicly.
-* Have a test runner manager, which runs the dispatcher_checker, and starts up new test runner servers as needed
-* Alternatively, you can have the test runner wait for a dispatcher server to come back up, or finish its work and wait for it to come up and report results.
+The following are just a few suggestions on how you can improve this current system.
 
-    Ideas to explore:
-        What the organizational units are (e.g. modules, classes)
-        Why things were modularized the way they were
-        Points of extensibility
-        Tradeoffs: time/space, performance/readability, etc.
-        Patterns or principles used that could be applied elsewhere
-    Conclusion:
-        Further extensions that could be made
-        Similar real-world projects to explore
+Smarter Test Runners
+--------------------
+
+If the test runner detects that the dispatcher is unresponsive, it stops running. This includes the case where the test runner was in the middle of running tests! It would be better if the test runner waits for a period of time (or indefinitely if you do not care for resource management) for the dispatcher to come back online. In this case, if the dispatcher goes down while the test runner is actively running a test, instead of shutting down, it will complete the test and wait for the dispatcher to come back online, and will report the results to it. This will ensure that we don't waste any effort the test runner makes, and ensures we will only run tests once per commit.
+
+Real Reporting
+--------------
+
+In a real CI system, you would have the test results report to a reporter service, something that would gather the results, post them somewhere for people to review, and would notify a list of interested parties when a failure or other notable event occurs. You can extend this current simple CI system by creating a new process to get the reported results in lieu of the dispatcher gathering the results. This new process could be a webserver (or can connect to a webserver) which could post the results online for others to view, and may use a mail server to alert subscribers to any test failures.
+
+Test Runner Manager
+-------------------
+
+Right now, you have to manually kick off the test_runner.py file to start a test runner. You can instead create a test runner manager process which will assess the current load of test requests from the dispatcher, and will scale the number of active test runners. This process will receive the 'runtest' messages and will start a test runner process for each request, and will kill unused processes when the load decreases.
 
