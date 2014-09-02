@@ -231,10 +231,9 @@
 
     GG = [] // global for console testing
     
-    // this is weird but whatever
-    // Dagoba.addHook('postquery', Dagoba.uniqueify)
-    Dagoba.addHook('postquery', Dagoba.cleanclone)
-    
+    cleanclone = function (results) { // remove all _-prefixed properties
+      return results.map(function(item) {return JSON.parse(JSON.stringify(item, function(key, value) {return key[0]=='_' ? undefined : value}))})}
+        
     var resultlist = triallist.map(function(trial) {
       var G = Dagoba.graph() ; GG.push(G)
       trial.vertices.forEach(G.addVertex.bind(G))
@@ -243,7 +242,7 @@
       var E = trial.edges   .reduce(function(acc, edge)   {acc[edge._id]   = G.findEdgeById(edge._id);     return acc}, {})
       return [trial, trial.tests.map(function(test) {
         var output, expected
-        if(JSON.stringify(output = test.fun(G, V, E)) == JSON.stringify(expected = Dagoba.cleanclone(test.got(G, V, E))[0]))
+        if(JSON.stringify(output = cleanclone(test.fun(G, V, E))) == JSON.stringify(expected = cleanclone(test.got(G, V, E))))
           return [1, test.fun, output]
           return [0, test.fun, output, expected]
       })]
