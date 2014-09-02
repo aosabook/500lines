@@ -17,7 +17,7 @@ Due to the limitations of code length and unittest, I simplified test
 discovery. We will *only* run tests that are in a directory named "tests" within
 the repository.
 
-Continusous integration systems monitor a master repository which is usually hosted on a webserver, and not local to the CI's filesystems. For the cases of our example, we will use a local repository instead of a remote repository.
+Continuous integration systems monitor a master repository which is usually hosted on a webserver, and not local to the CI's filesystems. For the cases of our example, we will use a local repository instead of a remote repository.
 
 Continuous integration systems need not run periodically. You can also have them run every few commits, or per-commit. For our example case, I am simplifying this to just being periodically. This means that if this is set up to check for changes in 5 minute periods, it will run tests against the most recent commit made after the 5 minute period. It won't test every commit made within that period of time, only the most recent one.
 
@@ -136,6 +136,58 @@ The test runner server is a ThreadingTCPServer, like the dispatcher server. It r
 - 'runtest', which accepts messages of the form 'runtest:<commit hash>', and is used to kick off tests on the given commit
 
 When 'runtest' is called, the test runner will check to see if it is already running a test, and if so, it will return a 'BUSY' response to the dispatcher. If it is available, it will respond to the server with an 'OK' message, set its status as busy and will run its 'run_tests' function. This function calls the shell script 'test_runner_script.sh' which is used to update the repository to the given commit hash. Once the script returns, if it was successful at updating the repository, we run the tests using unittest, and gather the results in a file. When the tests are done running, the test runner reads in the results file and sends it in a 'results' message to the dispatcher. As soon as the 'run_tests' function is complete, the test runner will mark itself as no longer busy, so it can take on new test jobs.
+
+Running the Code
+----------------
+
+We can run this simple CI system locally, using 3 different terminal shells for each process.
+
+We start the dispatcher first, running on port 8888::
+
+  python dispatcher.py
+
+In a new shell, we start the test_runner (so it can register itself with the
+dispatcher)::
+
+  python test_runner.py <path/to/test_repo_clone_runner>
+
+The test runner will assign itself its own port, in the range 8900->9000. You
+may run as many test runners as you like.
+
+Lastly, in another new shell, let's start the repo_observer::
+
+  python repo_observer.py --dispatcher-server=localhost:8888 <path/to/test_repo_clone_obs>
+
+Now that everything is set up, let's trigger some tests! To do that, we'll need
+to make a new commit. Go to your master repository and make an arbitrary change::
+
+  cd /path/to/test_repo
+  touch new_file
+  git add new_file
+  git commit -m"new file" new_file
+
+then repo_observer.py will realize that there's a new commit and will notify
+the dispatcher. You can see the output in their respective shells, so you
+can monitor them. Once the dispatcher receives the test results, it stores them
+in a test_results/ folder in this code base, using the commit hash as the
+filename.
+
+Error Handling
+==============
+
+This CI system includes some simple error handling.
+
+If you kill the test_runner.py process, dispatcher.py will figure out that
+the runner is no longer available and will remove it from the pool.
+
+You can also kill the test runner, to simulate a 
+machine crash or network failure. If you do so, the dispatcher will realize the 
+runner went down and will give another test runner the job if one is available in the pool,
+or will wait for a new test runner to register itself in the pool.
+
+If you kill the dispatcher, the repository observer will figure out it went down
+and will throw an exception. The test runners will also notice, and will
+shut down.
 
 Control Flow Diagram
 --------------------
