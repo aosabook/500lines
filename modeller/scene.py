@@ -46,7 +46,7 @@ class Scene(object):
             closest_node.selected_loc = start + direction * mindist
             self.selected_node = closest_node
 
-    def move(self, start, direction, inv_modelview):
+    def move_selected(self, start, direction, inv_modelview):
         """ Move the selected node, if there is one.
             Consume:  start, direction  describes the Ray to move to
                       inv_modelview     is the inverse modelview matrix for the scene """
@@ -89,12 +89,12 @@ class Scene(object):
 
         new_node.translate(translation[0], translation[1], translation[2])
 
-    def rotate_color(self, forwards):
+    def rotate_selected_color(self, forwards):
         """ Rotate the color of the currently selected node """
         if self.selected_node is None: return
         self.selected_node.rotate_color(forwards)
 
-    def scale(self, up):
+    def scale_selected(self, up):
         """ Scale the current selection """
         if self.selected_node is None: return
         self.selected_node.scale(up)

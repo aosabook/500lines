@@ -107,7 +107,7 @@ Any point in 3 dimensions can be represented as an offset in the x, y, and z dir
 has different representations in different coordinate spaces. Any point in 3 dimensions can be represented in any 3-dimensional coordinate space.
 
 #### Vector
-A vector is a set of three numbers representing the difference between two points in the x, y and z axes.
+A vector is an x, y, and z value representing the difference between two points in the x, y and z axes, respectively.
 
 #### Converting between Coordinate Spaces
 In computer graphics, it is convenient to use multiple different coordinate spaces for different types of points. Therefore, we need a way to convert back and forth between different coordinate spaces.
@@ -116,6 +116,7 @@ We convert between coordinate spaces with transformation matrixes.
 TODO: Diagram?
 
 #### Model, View, and Projection Coordinate Spaces
+The Model coordinate space is unique for each node in the scene.
 The purposes of the ModelView and Projection matrices can be understood with some basic linear algebra. Detailed explanations can be found here: (TODO!!!).
 
 TODO: Should we put some linear algebra here? This topic is covered in every OpenGL tutorial, but it will be unfamiliar to many people. I'm not sure if it's best to redirect to another tutorial,
@@ -603,15 +604,15 @@ the appropriate transformation to the currently selected `Node`.
 def move(self, x, y):
     """ Execute a move command on the scene. """
     start, direction = self.get_ray(x, y)
-    self.scene.move(start, direction, self.inverseModelView)
+    self.scene.move_selected(start, direction, self.inverseModelView)
 
 def rotate_color(self, forward):
     """ Rotate the color of the selected Node. Boolean 'forward' indicates direction of rotation. """
-    self.scene.rotate_color(forward)
+    self.scene.rotate_selected_color(forward)
 
 def scale(self, up):
     """ Scale the selected Node. Boolean up indicates scaling larger."""
-    self.scene.scale(up)
+    self.scene.scale_selected(up)
 ``````````````````````````````````````````
 
 
@@ -629,7 +630,7 @@ Recall that each node stores its current color. The `rotate_color` function simp
 
 `````````````````````````````````````````` {.python .numberLines startFrom="28"}
 # node.py
-def rotate_color(self, forwards):
+def rotate_selected_color(self, forwards):
     self.color_index += 1 if forwards else -1
     if self.color_index > color.MAX_COLOR:
         self.color_index = color.MIN_COLOR
@@ -641,7 +642,7 @@ def rotate_color(self, forwards):
 As with color, the scene dispatches any scaling modifications to the selected node, if there is one.
 `````````````````````````````````````````` {.python .numberLines startFrom="97" }
 # scene.py
-def scale(self, up):
+def scale_selected(self, up):
     """ Scale the current selection """
     if self.selected_node is None: return
     self.selected_node.scale(up)
@@ -672,7 +673,7 @@ We then translate the `Node` by the resulting vector.
 
 `````````````````````````````````````````` {.python .numberLines startFrom="52"}
 # scene.py
-def move(self, start, direction, inv_modelview):
+def move_selected(self, start, direction, inv_modelview):
     """ Move the selected node, if there is one.
         Consume:  start, direction  describes the Ray to move to
                   mat               is the modelview matrix for the scene """
