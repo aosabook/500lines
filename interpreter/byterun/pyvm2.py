@@ -185,6 +185,9 @@ class VirtualMachine(object):
         return byteName, arguments
 
     def dispatch(self, byteName, arguments):
+        """ Dispatch by bytename to the corresponding methods.
+        Exceptions are caught and set on the virtual machine."""
+
         # When later unwinding the block stack,
         # we need to keep track of why we are doing it.
         why = None

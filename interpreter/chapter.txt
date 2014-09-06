@@ -275,15 +275,19 @@ class VirtualMachine(object):
         return why
 ```
 
-Before we get to running a frame, we need two more methods. The first, `parse_byte_and_args` takes a bytecode, checks if it has arguments, and parses the arguments if so. A single instruction is one byte long if it doesn't have an argument or three bytes if it does have an argument, where the last two bytes are the argument. So, for example, the instruction `POP_TOP` instruction is just one byte, and always pops the top element from the stack, but the instruction `LOAD_FAST`, to load a variable name, needs to know which name to load. For each bytecode, the argument will mean something different. For example, for `CALL_FUNCTION`, the argument to the instruction is a number representing the number of arguments to the function being called.  For `BUILD_LIST`, the argument is the number of elements in the list.  For `LOAD_CONST`, the argument is an index into the tuple of constants associated with the given code object. The `dis` module in the standard library exposes a cheatsheet to what  This method also updates the frame's attribute `f_lasti`, which tracks the  last instruction executed.
+Before we get to running a frame, we need two more methods. The first, `parse_byte_and_args` takes a bytecode, checks if it has arguments, and parses the arguments if so. This method also updates the frame's attribute `f_lasti`, which tracks the  last instruction executed.
 
-The second method, `dispatch`, looks up the operations corresponding to each instruction produced by the previous method. As mentioned above, in the CPython interpreter, this dispatch is done with a giant switch statemnt spanning 1,500 lines.  Since we're writing Python, we can be more compact.  We'll define a method for each byte name, call it `byte_FOO_BAR`, and then use `getattr` to look it up. The dispatch method returns the `why` code to be passed to block management.
+A single instruction is one byte long if it doesn't have an argument or three bytes if it does have an argument, where the last two bytes are the argument.  The meaning of the argument to each instruction depends on which instruction it is. For example, as mentioned above, for `POP_JUMP_IF_FALSE`, the argument to the instruction is an index into the bytecode representing the jump target.  For `BUILD_LIST`, the argument is the number of elements in the list.
+
+Some instructions use simple numbers as their arguments. For others, the virtual machine has to do a little work to discover what the arguments mean.  The `dis` module in the standard library exposes a cheatsheet to what arguments have what meaning, which makes our code more compact.  The list `dis.hasname` tells us that the arguments to `LOAD_NAME`, `IMPORT_NAME`, `LOAD_GLOBAL`, and nine other instructions have the same meaing: in each case, the argument represents an index into the list of names on the code object.
 
 ``` python
 class VirtualMachine(object):
     [... snip ...]
 
     def parse_byte_and_args(self):
+        """ Parse 1 - 3 bytes of bytecode into
+            an instruction and maybe arguments."""
         f = self.frame
         opoffset = f.f_lasti
         byteCode = f.f_code.co_code[opoffset]
@@ -308,8 +312,20 @@ class VirtualMachine(object):
             arguments = [arg]
 
         return byteName, arguments
+```
+
+The next method is `dispatch`, which looks up the operations for a given instruction and executes them. In the CPython interpreter, this dispatch is done with a giant switch statemnt spanning 1,500 lines.  Since we're writing Python, we can be more compact.  We'll define a method for each byte name and then use `getattr` to look it up. If our bytecode was named `FOO_BAR`, the corresponding method would be named `byte_FOO_BAR`. For the moment, we'll leave the content of these methods as a black box.  Each bytecode method will return either `None` or a `why` string to be passed to block management.
+
+Notice that the bytecode methods don't return "real" values - that is, return values from the code the interpreter is actually executing. Instead, return values are tracked on the virtual machine itself.
+
+
+``` python
+class VirtualMachine(object):
+    [... snip ...]
 
     def dispatch(self, byteName, arguments):
+        """ Dispatch by bytename to the corresponding method and call it.
+            Exceptions are caught and set on the virtual machine."""
         # When later unwinding the block stack,
         # we need to keep track of why we are doing it.
         why = None
@@ -320,7 +336,7 @@ class VirtualMachine(object):
             elif byteName.startswith('BINARY_'):
                 self.binaryOperator(byteName[7:])
             else:
-                # main dispatch
+                # primary dispatch
                 bytecode_fn = getattr(self, 'byte_%s' % byteName, None)
                 if not bytecode_fn:  # Not all bytecodes are supported in 500 lines
                     raise VirtualMachineError(
