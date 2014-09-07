@@ -793,6 +793,32 @@ Another common mistake is putting too much trust on the `origin` header. What if
 a CORS request is not sent by a browser but instead crafted by a malicious user
 which intentionally sets the `origin` header to something else?
 
+## Conclusion
+
+In this chapter, we set out to construct a document that provides a
+clear understanding of the SOP and its related mechanismsq by building
+a _model_ of the policy in a language called Alloy. Our model of the
+SOP is not an implementation in the traditional sense, and can't be
+deployed for use, unlike artifacts shown in other chapters. Instead, 
+we wanted to demonstrate the key elements behind our approach to
+``agile modeling'': (1) starting out with a small, abstract model of
+the system and _incrementally_ adding details as necessary, (2)
+specifying _properties_ that the system is expected to satisfy, and
+(3) applying _rigorous analysis_ to explore potential flaws in the
+design of the system. Of course, this chapter was written long after
+the SOP was first introduced, but we believe that this type of
+modeling would potentially be even more beneficial if it is done
+during the early stage of system design.
+
+Besides the SOP, Alloy has been used to model and reason about a
+variety of systems across different domains -- ranging from network
+procotols, semantic web, bytecode security to electronic voting and
+medical systems. For many of these systems, Alloy's analysis led to
+discovery of design flaws and bugs that had eluded the developers, in
+some cases, for years. We invite our readers to visit the Alloy page
+(http://alloy.mit.edu) and try building a model of their favorite
+system!
+
 ## Appendix A: Reusable Modules in Alloy 
 
 As mentioned earlier in this chapter, Alloy makes no assumptions about
