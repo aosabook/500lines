@@ -260,6 +260,6 @@ Contributors
         </ul>
     </td>
     <td><a href="https://github.com/dessy">dessy</a></td>
-    <td></td>
+    <td>dessy.daskalov@gmail.com</td>
   </tr>
 </table>
