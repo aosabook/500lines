@@ -41,8 +41,8 @@ Dagoba.G = {}                                                     // the prototy
 
 Dagoba.graph = function(V, E) {                                   // the factory
   var graph = Object.create( Dagoba.G )
-  graph.vertices = []                                             // fresh copies so they're not shared
-  graph.edges    = []
+  graph.edges       = []                                          // fresh copies so they're not shared
+  graph.vertices    = []
   graph.vertexIndex = {}
   graph.autoid = 1                                                // an auto-incrementing id counter
   if(V && Array.isArray(V)) graph.addVertices(V)                  // arrays only, because you wouldn't
@@ -71,6 +71,7 @@ Dagoba.G.addVertex = function(vertex) {                           // accepts a v
 Dagoba.G.addEdge = function(edge) {                               // accepts an edge-like object, with properties
   edge._in  = this.findVertexById(edge._in)
   edge._out = this.findVertexById(edge._out)
+  
   if(!(edge._in && edge._out)) 
     return Dagoba.onError("That edge's " + (edge._in ? 'out' : 'in') + " vertex wasn't found")
     
@@ -83,34 +84,67 @@ Dagoba.G.addVertices = function(vertices) { vertices.forEach(this.addVertex.bind
 Dagoba.G.addEdges    = function(edges)    { edges   .forEach(this.addEdge  .bind(this)) }
 
 Dagoba.G.findVertexById = function(vertex_id) {
-  return this.vertexIndex[vertex_id] }
+  return this.vertexIndex[vertex_id] 
+}
 
 Dagoba.G.findVerticesByIds = function(ids) {
-  return ids.length == 1 ? [].concat( this.findVertexById(ids[0]) || [] )
-       : ids.map( this.findVertexById.bind(this) ).filter(Boolean) }
+  if(ids.length == 1) {
+    var maybe_vertex = this.findVertexById(ids[0])                // maybe_vertex is either a vertex or undefined
+    return maybe_vertex ? [maybe_vertex] : []
+  }
+  
+  return ids.map( this.findVertexById.bind(this) ).filter(Boolean) 
+}
+
+// Dagoba.G.findVerticesByIds = function(ids) {
+//   return ids.length == 1 ? [].concat( this.findVertexById(ids[0]) || [] )
+//        : ids.map( this.findVertexById.bind(this) ).filter(Boolean) }
 
 Dagoba.G.searchVertices = function(obj) {                         // find vertices that match obj's key-value pairs
-  return this.vertices.filter(
-    function(vertex) {
-      return Object.keys(obj).reduce(
-        function(acc, key) {
-          return acc && obj[key] == vertex[key] }, true ) } ) }
+  return this.vertices.filter( function(vertex) {
+    return Object.keys(obj).reduce( function(acc, key) {
+      return acc && obj[key] == vertex[key] 
+    }, true)
+  }) 
+}
+
+// Dagoba.G.searchVertices = function(obj) {                         // find vertices that match obj's key-value pairs
+//   return this.vertices.filter(
+//     function(vertex) {
+//       return Object.keys(obj).reduce(
+//         function(acc, key) {
+//           return acc && obj[key] == vertex[key] }, true ) } ) }
 
 Dagoba.G.findVertices = function(ids) {                           // our general vertex finding function
-  return typeof ids[0] == 'object' ? this.searchVertices(ids[0])
-       : ids.length == 0 ? this.vertices.slice()                  // OPT: slice is costly with lots of vertices
-       : this.findVerticesByIds(ids) }
+  if(typeof ids[0] == 'object')
+    return this.searchVertices(ids[0])
+  else if(ids.length == 0)
+    return this.vertices.slice()                                  // OPT: slice is costly with lots of vertices
+  else
+    return this.findVerticesByIds(ids)
+}
 
-Dagoba.G.findEdgeById = function(edge_id) {                       // OPT: this doesn't short circuit
-  return this.edges.filter(function(edge) {return edge._id == edge_id})[0]}
+// Dagoba.G.findVertices = function(ids) {                           // our general vertex finding function
+//   return typeof ids[0] == 'object' ? this.searchVertices(ids[0])
+//        : ids.length == 0 ? this.vertices.slice()                  // OPT: slice is costly with lots of vertices
+//        : this.findVerticesByIds(ids) }
+
+Dagoba.G.findEdgeById = function(edge_id) {
+  for(var i = this.edges.length - 1; i >= 0; i--) {
+    var edge = this.edges[i]
+    if(edge._id == edge_id)
+      return edge
+  }
+}
+
+// Dagoba.G.findEdgeById = function(edge_id) {                       // OPT: this doesn't short circuit
+//   return this.edges.filter(function(edge) {
+//     return edge._id == edge_id})[0] }
 
 Dagoba.G.findOutEdges = function(vertex) { return vertex._out; }
 Dagoba.G.findInEdges  = function(vertex) { return vertex._in;  }
 
-Dagoba.G.toString = function() {                                  // kids, don't hand code JSON
-  return '{"V":' + JSON.stringify(this.vertices, Dagoba.cleanvertex)
-       + ',"E":' + JSON.stringify(this.edges,    Dagoba.cleanedge) 
-       + '}' }
+Dagoba.G.toString = function() { return Dagoba.jsonify(this) }    // serialization
 
 Dagoba.fromString = function(str) {                               // another graph constructor
   var obj = JSON.parse(str)
@@ -177,7 +211,8 @@ Dagoba.Q.run = function() {                                       // our virtual
   }
 
   results = results.map(function(gremlin) {                       // return either results (like property('name')) or vertices
-    return gremlin.result != null ? gremlin.result : gremlin.vertex } )
+    return gremlin.result != null 
+         ? gremlin.result : gremlin.vertex } )
 
   return results
 }
@@ -207,8 +242,8 @@ Dagoba.getPipetype = function(name) {
 }
 
 Dagoba.fauxPipetype = function(graph, args, maybe_gremlin) {      // if you can't find a pipe type 
-  return maybe_gremlin || 'pull' }                                // just keep things flowing along
-
+  return maybe_gremlin || 'pull'                                  // just keep things flowing along
+}
 
 // BUILT-IN PIPE TYPES
 
@@ -337,19 +372,24 @@ Dagoba.addPipeType('unique', function(graph, args, gremlin, state) {
   
 Dagoba.addPipeType('filter', function(graph, args, gremlin, state) {
   if(!gremlin) return 'pull'                                      // query initialization
-  if(typeof args[0] != 'function') 
-    return Dagoba.onError('Filter arg is not a function: ' + args[0]) 
-        || gremlin                                                // keep things moving
+
+  if(typeof args[0] != 'function') {
+    Dagoba.onError('Filter arg is not a function: ' + args[0]) 
+    return gremlin                                                // keep things moving
+  }
+
   if(!args[0](gremlin.vertex, gremlin)) return 'pull'             // gremlin fails filter function 
   return gremlin
 })
   
 Dagoba.addPipeType('take', function(graph, args, gremlin, state) {
-  state.taken = state.taken ? state.taken : 0                     // state initialization
+  state.taken = state.taken || 0                                  // state initialization
+  
   if(state.taken == args[0]) {
     state.taken = 0
     return 'done'                                                 // all done
   }
+  
   if(!gremlin) return 'pull'                                      // query initialization
   state.taken++                                                   // THINK: if this didn't mutate state, we could be more
   return gremlin                                                  // cavalier about state management (but run the GC hotter)
@@ -357,7 +397,7 @@ Dagoba.addPipeType('take', function(graph, args, gremlin, state) {
 
 Dagoba.addPipeType('as', function(graph, args, gremlin, state) {
   if(!gremlin) return 'pull'                                      // query initialization
-  gremlin.state.as = gremlin.state.as ? gremlin.state.as : {}     // initialize gremlin's 'as' state
+  gremlin.state.as = gremlin.state.as || {}                       // initialize gremlin's 'as' state
   gremlin.state.as[args[0]] = gremlin.vertex                      // set label to the current vertex
   return gremlin
 })
@@ -377,25 +417,55 @@ Dagoba.addPipeType('except', function(graph, args, gremlin, state) {
 // HELPER FUNCTIONS
 
 Dagoba.makeGremlin = function(vertex, state) {                    // gremlins are simple creatures: 
-  return {vertex: vertex, state: state || {} } }                  // a current vertex, and some state
+  return {vertex: vertex, state: state || {} }                    // a current vertex, and some state
+}
 
 Dagoba.gotoVertex = function(gremlin, vertex) {                   // clone the gremlin 
-  return Dagoba.makeGremlin(vertex, gremlin.state) }              // THINK: add path tracking here?
+  return Dagoba.makeGremlin(vertex, gremlin.state)                // THINK: add path tracking here?
+}
 
-Dagoba.filterEdges = function(arg) {                              // TODO: this is mildly inscrutable, even with labels
-  return function(thing) {
-    return !arg ? true                                            // nothing is true
-         : arg+'' === arg ? thing._label == arg                   // check the label
-         : Array.isArray(arg) ? !!~arg.indexOf(thing._label)      // or a list of labels
-         : Dagoba.objectFilter(thing, arg) } }                    // try it as an object
+Dagoba.filterEdges = function(filter) {
+  return function(edge) {
+    if(!filter)                                                   // if there's no filter, everything is valid
+      return true
 
-Dagoba.objectFilter = function(thing, obj) {
-  for(var key in obj)
-    if(thing[key] != obj[key])
-      return false; return true }
+    if(filter+'' === filter)                                      // if the filter is a string, the label must match
+      return edge._label == filter
 
-Dagoba.cleanvertex = function(key, value) {return (key == '_in' || key == '_out') ? undefined : value} // for JSON.stringify
-Dagoba.cleanedge   = function(key, value) {return key == '_in' ? value._id : key == '_out' ? value._id : value}
+    if(Array.isArray(filter))                                     // if the filter is an array, the label must be in it
+      return !!~filter.indexOf(edge._label)
+
+    return Dagoba.objectFilter(edge, filter)                      // try the filter as an object
+  }
+}
+// Dagoba.filterEdges = function(arg) {
+//   return function(thing) {
+//     return !arg ? true                                            // nothing is true
+//          : arg+'' === arg ? thing._label == arg                   // check the label
+//          : Array.isArray(arg) ? !!~arg.indexOf(thing._label)      // or a list of labels
+//          : Dagoba.objectFilter(thing, arg) } }                    // try it as an object
+
+Dagoba.objectFilter = function(thing, filter) {                   // thing has to match all of filter's properties
+  for(var key in filter)
+    if(thing[key] != filter[key])
+      return false
+  
+  return true 
+}
+
+Dagoba.cleanvertex = function(key, value) {                       // for JSON.stringify
+  return (key == '_in' || key == '_out') ? undefined : value 
+}
+    
+Dagoba.cleanedge = function(key, value) {
+  return (key == '_in' || key == '_out') ? value._id : value 
+}
+
+Dagoba.jsonify = function(graph) {                                // kids, don't hand code JSON
+  return '{"V":' + JSON.stringify(graph.vertices, Dagoba.cleanvertex)
+       + ',"E":' + JSON.stringify(graph.edges,    Dagoba.cleanedge)
+       + '}' 
+}
 
 Dagoba.onError = function(msg) {
   console.log(msg)
@@ -430,3 +500,10 @@ Dagoba.onError = function(msg) {
 //       Dagoba.addPipeType('children', 'out') <-- if all out edges are kids
 //       Dagoba.addPipeType('nthGGP', 'inN', 'parent')
 // var methods = ['out', 'in', 'take', 'property', 'outAllN', 'inAllN', 'unique', 'filter', 'outV', 'outE', 'inV', 'inE', 'both', 'bothV', 'bothE']
+
+
+// what if instead of mutating the query object for each new 'method' we create a new one? then you can have something like
+// x = G.v(1).out().out()
+// q = x.take(1)
+// y = x.take(10)
+// and it will do what you want instead of exploding.
