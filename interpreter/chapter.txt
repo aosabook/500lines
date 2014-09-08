@@ -730,6 +730,9 @@ class VirtualMachine(object):
         self.frame.f_locals = self.pop()
 ```
 
+### Walk through example of "three" again
+
+### Somehow conclude
 
 
 
