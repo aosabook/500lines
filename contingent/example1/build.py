@@ -10,6 +10,7 @@ from glob import glob
 from jinja2 import DictLoader
 
 from contingent.builderlib import Builder
+from contingent.cachelib import Cache, _absent
 from contingent.utils import looping_wait_on
 
 dl = DictLoader({'full.tpl': """\
@@ -98,7 +99,7 @@ def main():
         return f(call, *args)
 
     verbose = False
-    builder = Builder(compute)
+    builder = Builder(Cache(), compute)
 
     def call(f, *args):
         "Compute a target using a Builder."
