@@ -249,6 +249,17 @@ Contributors
     </td>
     <td><a href="https://github.com/yoavrubin">yoavrubin</a></td>
     <td></td>
-    
+  </tr>
+  <tr>
+    <td>Dessy Daskalov</td>
+    <td>Nudge Rewards</td>
+    <td>Pedometer</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/dess_e">@dess_e</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/dessy">dessy</a></td>
+    <td>dessy.daskalov@gmail.com</td>
   </tr>
 </table>
