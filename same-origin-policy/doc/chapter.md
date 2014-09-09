@@ -796,7 +796,7 @@ which intentionally sets the `origin` header to something else?
 ## Conclusion
 
 In this chapter, we set out to construct a document that provides a
-clear understanding of the SOP and its related mechanismsq by building
+clear understanding of the SOP and its related mechanisms by building
 a _model_ of the policy in a language called Alloy. Our model of the
 SOP is not an implementation in the traditional sense, and can't be
 deployed for use, unlike artifacts shown in other chapters. Instead, 
