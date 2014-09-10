@@ -101,7 +101,7 @@ class Viewer(object):
         glPushMatrix()
         glLoadIdentity()
         loc = self.interaction.translation
-        glTranslated(-loc[0], -loc[1], -loc[2])
+        glTranslated(loc[0], loc[1], loc[2])
         glMultMatrixf(self.interaction.trackball.matrix)
 
         # store the inverse of the current modelview.
