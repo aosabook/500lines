@@ -1,6 +1,5 @@
 import numpy
 
-
 def translation(displacement):
     t = numpy.identity(4)
     t[0, 3] = displacement[0]

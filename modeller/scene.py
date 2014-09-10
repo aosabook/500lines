@@ -33,7 +33,8 @@ class Scene(object):
             self.selected_node = None
 
         # Keep track of the closest hit.
-        mindist, closest_node = sys.maxint, None
+        mindist = sys.maxint
+        closest_node = None
         for node in self.node_list:
             hit, distance = node.pick(start, direction, mat)
             if hit and distance < mindist:
