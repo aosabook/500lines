@@ -79,6 +79,7 @@ def render(call, paths, path):
     text = '<h1>{}</h1>\n<p>Date: {}</p>\n<p>Previous post: {}</p>\n{}'.format(
         call(title_of, path), call(date_of, path),
         previous_title, call(body_of, path))
+    print('-' * 72)
     print(text)
     return text
 
@@ -112,14 +113,14 @@ def main():
              glob(os.path.join(indir, '*.ipynb')))
     paths = tuple(paths)
     for path in call(sorted_posts, paths):
-        print('-' * 72)
         call(render, paths, path)
-
-    print('Watching for files to change')
 
     verbose = True
     while True:
+        print('=' * 72)
+        print('Watching for files to change')
         changed_paths = looping_wait_on(paths)
+        print('=' * 72)
         print('Reloading:', ' '.join(changed_paths))
         for path in changed_paths:
             builder.invalidate((read_text_file, (path,)))
