@@ -10,7 +10,7 @@ from glob import glob
 from jinja2 import DictLoader
 
 from contingent.builderlib import Builder
-from contingent.cachelib import Cache, _absent
+# from contingent.cachelib import Cache, _absent
 from contingent.utils import looping_wait_on
 
 dl = DictLoader({'full.tpl': """\
@@ -76,9 +76,11 @@ def previous_post(call, paths, path):
 def render(call, paths, path):
     previous = call(previous_post, paths, path)
     previous_title = 'NONE' if previous is None else call(title_of, previous)
-    return '<h1>{}</h1>\n<p>Date: {}</p>\n<p>Previous post: {}</p>\n{}'.format(
+    text = '<h1>{}</h1>\n<p>Date: {}</p>\n<p>Previous post: {}</p>\n{}'.format(
         call(title_of, path), call(date_of, path),
         previous_title, call(body_of, path))
+    print(text)
+    return text
 
 def main():
     thisdir = os.path.dirname(__file__)
@@ -99,7 +101,7 @@ def main():
         return f(call, *args)
 
     verbose = False
-    builder = Builder(Cache(), compute)
+    builder = Builder(compute)
 
     def call(f, *args):
         "Compute a target using a Builder."
@@ -111,7 +113,7 @@ def main():
     paths = tuple(paths)
     for path in call(sorted_posts, paths):
         print('-' * 72)
-        print(call(render, paths, path))
+        call(render, paths, path)
 
     print('Watching for files to change')
 
@@ -120,7 +122,7 @@ def main():
         changed_paths = looping_wait_on(paths)
         print('Reloading:', ' '.join(changed_paths))
         for path in changed_paths:
-            builder.recompute((read_text_file, (path,)))
+            builder.invalidate((read_text_file, (path,)))
         builder.rebuild()
 
 if __name__ == '__main__':
