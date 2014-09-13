@@ -1,14 +1,15 @@
 from contextlib import contextmanager
 
-from .cachelib import Cache, _absent
+from .cachelib import _absent
 from .graphlib import Graph
 
 class Builder:
-    def __init__(self, compute):
+    def __init__(self, cache, compute):
         self.compute = compute
         self.graph = Graph()
-        self.cache = Cache(self.graph)
+        self.cache = cache
         self.target_stack = []
+        self.todo = set()
 
     def get(self, dependency):
         """Return the value of a particular target.
@@ -27,9 +28,8 @@ class Builder:
         if self.target_stack:
             self.graph.add_edge(dependency, self.target_stack[-1])
         value = self.cache.get(dependency)
-        if value is _absent:
+        if dependency in self.todo or value is _absent:
             value = self.recompute(dependency)
-            # self.cache[dependency] = value
         return value
 
     def set(self, target, value):
@@ -50,6 +50,11 @@ class Builder:
         last run, because that information is out of date: we will now
         relearn what inputs it needs by watching it run all over again.
 
+        This removes `target` from the current to-do list, if it is
+        listed there.  And if the target's new `value` is different from
+        the currently cached value, then all targets of which `target`
+        is an immediate dependency are added to the to-do list.
+
         """
         self.graph.clear_dependencies_of(target)
         self.target_stack.append(target)
@@ -57,7 +62,11 @@ class Builder:
             value = self.compute(target, self.get)
         finally:
             self.target_stack.pop()
-        self.cache[target] = value
+
+        self.todo.discard(target)
+        if self.cache.set(target, value):
+            self.todo.update(self.graph.targets_of(target))
+
         return value
 
     def rebuild(self):
@@ -68,12 +77,9 @@ class Builder:
         through the to-do list over and over until things stop changing.
 
         """
-        todo = self.cache.todo()
-        while todo:
-            todo = list(todo)
-            for target in self.graph.consequences_of(todo, include=True):
+        while self.todo:
+            for target in self.graph.consequences_of(self.todo, include=True):
                 self.get(target)
-            todo = self.cache.todo()
 
     @contextmanager
     def consequences(self):
