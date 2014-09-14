@@ -2,8 +2,8 @@
 
     Author: Audrey Tang
     Languages: JS (ES6), HTML5, CSS3
-    Dependencies: AngularJS, Web Workers, Traceur Compiler
-    Alternatives: ReactJS, LiveScript, JS (ES5)
+    Dependencies: AngularJS (1.3), Web Workers, Traceur Compiler
+    Alternatives: ReactJS (0.11), LiveScript (1.2), JS (ES5)
 
 ## Chapter Text
 
