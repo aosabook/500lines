@@ -5,8 +5,8 @@ from .graphlib import Graph
 _not_available = object()
 
 class Builder:
-    def __init__(self, compute):
-        self.compute = compute
+    def __init__(self, callback):
+        self.task_callback = callback
         self.graph = Graph()
         self.cache = {}
         self.task_stack = []
@@ -26,25 +26,33 @@ class Builder:
         from being O(n^2).
 
         """
-        @contextmanager
-        def current_task(task):
-            if self.task_stack:
-                self.graph.add_edge(task, self.task_stack[-1])
-            self.task_stack.append(task)
-            try:
-                yield
-            finally:
-                self.task_stack.pop()
+        if self.task_stack:
+            self.graph.add_edge(task, self.task_stack[-1])
 
-        with current_task(task):
-            value = self._get_from_cache(task)
-            if value is _not_available:
-                self.graph.clear_dependencies_of(task)
-                value = self.compute(task, self.get)
-                self.set(task, value)
-            return value
+        value = self._get_from_cache(task)
+
+        if value is _not_available:
+            self.graph.clear_dependencies_of(task)
+            value = self._have_build_process_invoke_task(task)
+            self.set(task, value)
+        return value
+
+    def _have_build_process_invoke_task(self, task):
+        """Ask the outside world to compute the output of `task`.
+
+        We place the task ID on our internal stack for the duration of
+        its run, so that any tasks it kicks off get recorded as its
+        input tasks.
+
+        """
+        self.task_stack.append(task)
+        try:
+            return self.task_callback(task, self.get)
+        finally:
+            self.task_stack.pop()
 
     def _get_from_cache(self, task):
+
         """Return the output of the given `task`.
 
         If we do not have a current, valid cached value for `task`,
