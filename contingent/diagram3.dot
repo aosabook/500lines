@@ -1,4 +1,6 @@
-digraph { graph [rankdir=LR]; node [shape=rect penwidth=0 style=filled fillcolor="#d6d6d6"];
+digraph {
+graph [rankdir=LR];
+node [shape=rect penwidth=0 style=filled fillcolor="#d6d6d6"];
 "A.body" -> "A.html"
 "A.date" -> "A.html"
 "A.date" -> "sorted-posts"

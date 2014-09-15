@@ -14,7 +14,7 @@ files appears to have been modified more recently.
 This makes it easy, if ``B.rst`` is modified, to determine which output
 file needs to be rebuilt.
 
->>> g.consequences_of(['B.body'])
+>>> g.recursive_consequences_of(['B.body'])
 ['B.html']
 
 Because a target might itself be the dependency for yet further targets,
@@ -26,7 +26,7 @@ then our graph will be two stories high:
 >>> g.add_edge('A.rst', 'A.body')
 >>> g.add_edge('B.rst', 'B.body')
 >>> g.add_edge('C.rst', 'C.body')
->>> g.consequences_of(['B.rst'])
+>>> g.recursive_consequences_of(['B.rst'])
 ['B.body', 'B.html']
 
 But when dealing with document collections like a Sphinx project or
@@ -58,7 +58,7 @@ regenerate both its own HTML as well as the HTML of the subsequent post,
 to make sure that an edited title is correctly reflected in the next
 post’s navigation:
 
->>> g.consequences_of(['B.rst'])
+>>> g.recursive_consequences_of(['B.rst'])
 ['B.body', 'B.title', 'B.html', 'C.html']
 
 Note that by rebuilding both ``B.html`` and ``C.html`` in this case, a
@@ -131,7 +131,7 @@ fraction of the number of edits made during a busy writing session — a
 traditional make system will have to rebuild every single blog post when
 any single one of them is edited!
 
->>> consequences = g.consequences_of(['B.rst'])
+>>> consequences = g.recursive_consequences_of(['B.rst'])
 >>> consequences
 ['B.body', 'B.date', 'sorted-posts', 'A.prev.title', 'A.html', 'B.prev.title', 'B.title', 'B.html', 'C.prev.title', 'C.html']
 

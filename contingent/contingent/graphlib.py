@@ -18,6 +18,11 @@ class Graph:
         self._consequences_of[input_task].add(consequence_task)
         self._inputs_of[consequence_task].add(input_task)
 
+    def remove_edge(self, input_task, consequence_task):
+        """Remove an edge."""
+        self._consequences_of[input_task].remove(consequence_task)
+        self._inputs_of[consequence_task].remove(input_task)
+
     def clear_inputs_of(self, task):
         """Remove all edges leading to `task` from its previous inputs."""
         input_tasks = self._inputs_of.pop(task, ())
@@ -67,20 +72,20 @@ class Graph:
         return list(generate_consequences_backwards())[::-1]
 
     def as_graphviz(self, nodes=()):
-        """Render this graph as a block of graphviz code.
-
-        TODO: might not work any more?
-
-        """
-        nodes = set(nodes) or self.nodes()
-        lines = ['digraph { graph [rankdir=LR]; node [shape=rect penwidth=0'
-                 ' style=filled fillcolor="#d6d6d6"];']
-        for dependency, targets in try_sorting(self._targets.items()):
-            if dependency in nodes:
-                for target in try_sorting(targets):
-                    if target in nodes:
-                        lines.append('"{}" -> "{}"'.format(dependency, target))
-        return '\n'.join(lines + ['}'])
+        """Render this graph as a block of graphviz code."""
+        nodes = set(nodes) or self.all_tasks()
+        lines = [
+            'digraph {',
+            'graph [rankdir=LR];',
+            'node [shape=rect penwidth=0 style=filled fillcolor="#d6d6d6"];',
+            ]
+        for task, consequences in try_sorting(self._consequences_of.items()):
+            if task in nodes:
+                for consequence in try_sorting(consequences):
+                    if consequence in nodes:
+                        lines.append('"{}" -> "{}"'.format(task, consequence))
+        lines.append('}')
+        return '\n'.join(lines)
 
 
 def try_sorting(sequence, reverse=False):
