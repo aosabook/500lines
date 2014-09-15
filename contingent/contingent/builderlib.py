@@ -1,3 +1,4 @@
+
 from contextlib import contextmanager
 
 from .graphlib import Graph
@@ -13,17 +14,25 @@ class Builder:
         self.todo_list = set()
 
     def get(self, task):
-        """Return the value of a particular target.
+        """Return the output value of a particular task.
 
-        This is the center of our entire operation!  The fact that
-        someone needs this dependency recomputed right now does two
-        crucial things.  First, it lets us build an edge from this
-        dependency to the target whose recompute is currently underway,
-        so that the graph will tell us to recompute that target when
-        this value changes in the future.  Second, it gives us the
-        choice to simply return the value of the dependency immediately
-        if it is already in our cache, which prevents our whole scheme
-        from being O(n^2).
+        This operation involves two phases.
+
+        First, the fact that we are being asked about `task` at this
+        exact moment is evidence that whatever other task is currently
+        underway must be using this `task` as one of its inputs.  So if
+        the stack of currently-executing tasks is not simply empty, then
+        we draw an edge between this task and the top task on the stack.
+
+        Then we need to figure out a return value.  If there is a
+        still-valid output value for `task` already in our cache, we
+        return it immediately.  Otherwise we need to re-invoke the task.
+        To correctly re-learn its inputs, we clear all of its current
+        incoming edges, and then place it on top of the stack for the
+        duration of its run.  As it goes looking for its inputs, and
+        thus causes this method to be re-invoked for them, we will wind
+        up building the edges necessary to keep the task up-to-date in
+        the future.
 
         """
         if self.task_stack:
@@ -32,27 +41,17 @@ class Builder:
         value = self._get_from_cache(task)
 
         if value is _not_available:
-            self.graph.clear_dependencies_of(task)
-            value = self._have_build_process_invoke_task(task)
+            self.graph.clear_inputs_of(task)
+            self.task_stack.append(task)
+            try:
+                value = self.task_callback(task, self.get)
+            finally:
+                self.task_stack.pop()
             self.set(task, value)
+
         return value
 
-    def _have_build_process_invoke_task(self, task):
-        """Ask the outside world to compute the output of `task`.
-
-        We place the task ID on our internal stack for the duration of
-        its run, so that any tasks it kicks off get recorded as its
-        input tasks.
-
-        """
-        self.task_stack.append(task)
-        try:
-            return self.task_callback(task, self.get)
-        finally:
-            self.task_stack.pop()
-
     def _get_from_cache(self, task):
-
         """Return the output of the given `task`.
 
         If we do not have a current, valid cached value for `task`,
@@ -66,34 +65,48 @@ class Builder:
         return self.cache[task]
 
     def set(self, task, value):
+        """Add the output `value` of `task` to our cache of outputs.
 
-        """Inform the cache that a target is being updated.
-
-        This gives the cache the opportunity to compare the new value
-        against the old one to determine whether the tasks downstream
-        from the target should be added to the to-do list.
+        This gives us the opportunity to compare the new value against
+        the old one that had previously been returned by the task, to
+        determine whether the tasks downstream from `task` must be added
+        to the to-do list for re-computation.
 
         """
         self.todo_list.discard(task)
         if (task not in self.cache) or (self.cache[task] != value):
             self.cache[task] = value
-            self.todo_list.update(self.graph.targets_of(task))
+            self.todo_list |= self.graph.immediate_consequences_of(task)
 
     def invalidate(self, task):
-        """Mark `task` as needing re-computation.
+        """Mark `task` as requiring re-computation on the next `rebuild()`.
+
+        There are two ways that code preparing for a call to `rebuild()`
+        can signal that the value we have cached for a given task is no
+        longer valid.  The first is to run the task manually and then
+        use `set()` to unilaterally install the new value in our cache.
+        The other is to call this method to simply invalidate the `task`
+        and let `rebuild()` itself call it when it next runs.
 
         """
         self.todo_list.add(task)
 
     def rebuild(self):
-        """Rebuild everything.
+        """Repeatedly rebuild every out-of-date task until all are current.
 
-        If nothing has changed recently, the cache's to-do list will be
-        empty, and this call is a no-op.  Otherwise we start running
-        through the to-do list over and over until things stop changing.
+        If nothing has changed recently, our to-do list will be empty,
+        and this call will return immediately.  Otherwise we take the
+        tasks in the current to-do list, along with every consequence
+        anywhere downstream of them, and call `get()` on every single
+        one to force re-computation of the tasks that are either already
+        invalid or that become invalid as the first few in the list are
+        recomputed.
+
+        Unless there are cycles in the task graph, this will eventually
+        return.
 
         """
         while self.todo_list:
-            tasks = self.graph.consequences_of(self.todo_list, include=True)
+            tasks = self.graph.recursive_consequences_of(self.todo_list, True)
             for task in tasks:
                 self.get(task)

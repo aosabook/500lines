@@ -1,66 +1,82 @@
-"""Simple directed graph implementation."""
+"""A directed graph of tasks that use one another as inputs."""
 
 from collections import defaultdict
 
-class Graph(object):
-    """A directed graph of build targets and their dependencies."""
+class Graph:
+    """A directed graph of the relationships among build tasks.
 
+    A task can be identified by any hashable value that is eligible to
+    be enrolled as a dictionary key.
+
+    """
     def __init__(self):
-        self._dependencies = defaultdict(set)
-        self._targets = defaultdict(set)
+        self._inputs_of = defaultdict(set)
+        self._consequences_of = defaultdict(set)
 
-    def add_edge(self, dependency, target):
-        """Add an edge recording that `dependency` is needed by `target`."""
+    def add_edge(self, input_task, consequence_task):
+        """Add an edge: `consequence_task` uses the output of `input_task`."""
+        self._consequences_of[input_task].add(consequence_task)
+        self._inputs_of[consequence_task].add(input_task)
 
-        self._targets[dependency].add(target)
-        self._dependencies[target].add(dependency)
+    def clear_inputs_of(self, task):
+        """Remove all edges leading to `task` from its previous inputs."""
+        input_tasks = self._inputs_of.pop(task, ())
+        for input_task in input_tasks:
+            self._consequences_of[input_task].remove(task)
 
-    def remove_edge(self, dependency, target):
-        """Remove the edge stating that `dependency` is needed by `target`."""
+    def all_tasks(self):
+        """Return all task identifiers."""
+        return set(self._inputs_of) | set(self._consequences_of)
 
-        self._targets[dependency].remove(target)
-        self._dependencies[target].remove(dependency)
+    def immediate_consequences_of(self, task):
+        """Return the tasks that use `task` as an input."""
+        return set(self._consequences_of[task])
 
-    def clear_dependencies_of(self, target):
-        for dependency in list(self._dependencies[target]):
-            self.remove_edge(dependency, target)
+    def recursive_consequences_of(self, tasks, include=False):
+        """Return the topologically-sorted consequences of the given `tasks`.
 
-    def nodes(self):
-        """Return all nodes that are either dependencies or targets."""
+        Returns an ordered list of every task that can be reached by
+        following consequence edges from the given `tasks` down to the
+        tasks that use them as inputs.  The order of the returned list
+        is chosen so that all of the inputs to a consequence precede it
+        in the list.  This means that if you run through the list
+        executing tasks in the given order, that tasks should find that
+        the inputs they need (or at least that they needed last time)
+        are already computed and available.
 
-        return set(self._dependencies) | set(self._targets)
-
-    def targets_of(self, dependency):
-        """Return the targets to rebuild if `dependency` changes."""
-
-        return set(self._targets[dependency])
-
-    def consequences_of(self, dependencies, include=False):
-        """Return topologically-sorted consequences for changed `dependencies`.
-
-        Returns an ordered sequence listing every target that is
-        downstream from the given `dependencies`.  The order will be
-        chosen so that targets always follow all of their dependencies.
-        If the flag `include` is true then the `dependencies` themselves
-        will be correctly sorted into the resulting sequence.
+        If the flag `include` is true, then the `tasks` themselves will
+        be correctly sorted into the resulting sequence.  Otherwise they
+        will be omitted.
 
         """
-        g = self._generate_consequences_backwards(dependencies, include)
-        return list(g)[::-1]
+        def visit(task):
+            visited.add(task)
+            consequences = self._consequences_of[task]
+            for consequence in try_sorting(consequences, reverse=True):
+                if consequence not in visited:
+                    yield from visit(consequence)
+                    yield consequence
 
-    def _generate_consequences_backwards(self, dependencies, include):
-        def visit(dependency):
-            visited.add(dependency)
-            for target in try_sorting(self._targets[dependency], reverse=True):
-                if target not in visited:
-                    yield from visit(target)
-                    yield target
+        def generate_consequences_backwards():
+            for task in tasks:
+                yield from visit(task)
+                if include:
+                    yield task
+
         visited = set()
-        for dependency in dependencies:
-            yield from visit(dependency)
-            if include:
-                yield dependency
+        return list(generate_consequences_backwards())[::-1]
 
+    def _generate_consequences_backwards(self, tasks, include):
+        """Classic depth-first algorithm for producing a topological sort.
+
+        As a nicety, when considering the consequences of a task we
+        attempt to sort them.  If (a) their type allows them to be
+        sorted at all, and (b) there wind up being no other constraints
+        that force them to be in a particular order, then they will wind
+        up in an attractive order when displayed in the example code in
+        our chapter.
+
+        """
     def as_graphviz(self, nodes=()):
         """Render this graph as a block of graphviz code."""
 
@@ -76,6 +92,7 @@ class Graph(object):
 
 
 def try_sorting(sequence, reverse=False):
+    """Attempt to sort a sequence, accepting failure gracefully."""
     sequence = list(sequence)
     try:
         sequence.sort(reverse=reverse)
