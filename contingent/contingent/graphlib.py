@@ -66,20 +66,12 @@ class Graph:
         visited = set()
         return list(generate_consequences_backwards())[::-1]
 
-    def _generate_consequences_backwards(self, tasks, include):
-        """Classic depth-first algorithm for producing a topological sort.
+    def as_graphviz(self, nodes=()):
+        """Render this graph as a block of graphviz code.
 
-        As a nicety, when considering the consequences of a task we
-        attempt to sort them.  If (a) their type allows them to be
-        sorted at all, and (b) there wind up being no other constraints
-        that force them to be in a particular order, then they will wind
-        up in an attractive order when displayed in the example code in
-        our chapter.
+        TODO: might not work any more?
 
         """
-    def as_graphviz(self, nodes=()):
-        """Render this graph as a block of graphviz code."""
-
         nodes = set(nodes) or self.nodes()
         lines = ['digraph { graph [rankdir=LR]; node [shape=rect penwidth=0'
                  ' style=filled fillcolor="#d6d6d6"];']
