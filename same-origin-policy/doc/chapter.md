@@ -227,7 +227,7 @@ remember that `documents` is a 3-column relation on browsers, documents and time
 Some constraints use the `++` operator which does a relational override (i.e, `e1 ++ e2` contains all tuples of `e2`, and additionally, any tuples of `e1` whose first element is not the first element of a tuple in `e2`). For example, the constraint
 `content.end = content.start ++ doc -> response`
 says that after the call, the `content` mapping will be updated to map `doc` to `response` (clobbering any previous mapping of `doc`).
-If we where to use `+`, then the same document could map to multiple resources at the same time; which is hardly what we want.
+If we were to use `+`, then the same document could map to multiple resources at the same time; which is hardly what we want.
 
 ## Script
 
