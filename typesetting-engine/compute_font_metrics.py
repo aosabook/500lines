@@ -1,6 +1,6 @@
 import os, re, json
 
-os.system('ttf2tfm Verdana.ttf > output.txt')
+os.system('ttf2tfm \'Times New Roman.ttf\' > output.txt')
 characters = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
 
 character_width = {}
