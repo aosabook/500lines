@@ -164,63 +164,64 @@ its current value with its value from the previous run.
 
 >>> open('diagram3.dot', 'w').write(g.as_graphviz()) and None
 
->>> from contingent.cachelib import Cache
->>> c = Cache(g)
+>>> from contingent.builderlib import Builder
+>>> b = Builder(callback=lambda task, get: None)
+>>> b.graph = g
 
 In the first run of the build, the cache is empty, so each target
 requires a full rebuild (``Initial value`` is the output of the build
 process):
 
 >>> roots = ['A.rst', 'B.rst', 'C.rst']
->>> for node in roots + g.consequences_of(roots):
-...     c[node] = 'Initial value'
+>>> for node in roots + g.recursive_consequences_of(roots):
+...     b.set(node, 'Initial value')
 
->>> c.todo()
+>>> b.todo_list
 set()
 
 Changing something forces us to rebuild its consequences, but focuses
 our efforts only on the particular targets that need rebuilding.  For
 example, editing file B requires examination of all consequences of B:
 
->>> c['B.rst'] = 'Markup for post B'
->>> sorted(c.todo())
+>>> b.set('B.rst', 'Markup for post B')
+>>> sorted(b.todo_list)
 ['B.body', 'B.date', 'B.title']
 
 The build process, however, produces new values only for ``B.body``,
 leaving ``B.date`` and ``B.title`` at their prior values:
 
->>> c['B.body'] = 'New body for B'
->>> c['B.date'] = 'Initial value'
->>> c['B.title'] = 'Initial value'
+>>> b.set('B.body', 'New body for B')
+>>> b.set('B.date', 'Initial value')
+>>> b.set('B.title', 'Initial value')
 
 Since it is only post B's output HTML that depends on its body content,
 the todo list peters out rather quickly:
 
->>> sorted(c.todo())
+>>> sorted(b.todo_list)
 ['B.html']
->>> c['B.html'] = 'HTML for post B'
->>> c.todo()
+>>> b.set('B.html', 'HTML for post B')
+>>> b.todo_list
 set()
 
 Editing B's title, on the other hand, has consequences for the HTML of
 both post B and post C.
 
->>> c['B.title'] = 'Title B'
->>> sorted(c.todo())
+>>> b.set('B.title', 'Title B')
+>>> sorted(b.todo_list)
 ['B.html', 'C.prev.title']
->>> c['B.html'] = 'New HTML for post B'
->>> c['C.prev.title'] = 'Title B'
->>> c.todo()
+>>> b.set('B.html', 'New HTML for post B')
+>>> b.set('C.prev.title', 'Title B')
+>>> b.todo_list
 {'C.html'}
->>> c['C.html'] = 'HTML for post C'
->>> c.todo()
+>>> b.set('C.html', 'HTML for post C')
+>>> b.todo_list
 set()
 
 And, finally, in the presence of a change or edit that makes no
 difference the cache does not demand that we rebuild any targets at all.
 
->>> c['B.title'] = 'Title B'
->>> c.todo()
+>>> b.set('B.title', 'Title B')
+>>> b.todo_list
 set()
 
 But while this approach has started to reduce our work, a rebuild can
@@ -229,25 +230,25 @@ like this can be inefficient, because we might rebuild a given target
 several times.  Imagine, for example, that we update B’s date so that it
 now comes after C on the timeline.
 
->>> c['B.rst'] = 'Markup for post B dating it after post C'
->>> sorted(c.todo())
+>>> b.set('B.rst', 'Markup for post B dating it after post C')
+>>> sorted(b.todo_list)
 ['B.body', 'B.date', 'B.title']
->>> c['B.body'] = 'Initial value'
->>> c['B.date'] = '2014-05-15'
->>> c['B.title'] = 'Title B'
->>> sorted(c.todo())
+>>> b.set('B.body', 'Initial value')
+>>> b.set('B.date', '2014-05-15')
+>>> b.set('B.title', 'Title B')
+>>> sorted(b.todo_list)
 ['B.html', 'sorted-posts']
->>> c['B.html'] = 'Rebuilt HTML #1'
->>> c['sorted-posts'] = 'A, C, B'
->>> sorted(c.todo())
+>>> b.set('B.html', 'Rebuilt HTML #1')
+>>> b.set('sorted-posts', 'A, C, B')
+>>> sorted(b.todo_list)
 ['A.prev.title', 'B.prev.title', 'C.prev.title']
->>> c['A.prev.title'] = 'Initial value'
->>> c['B.prev.title'] = 'Title C'
->>> c['C.prev.title'] = 'Title A'
->>> sorted(c.todo())
+>>> b.set('A.prev.title', 'Initial value')
+>>> b.set('B.prev.title', 'Title C')
+>>> b.set('C.prev.title', 'Title A')
+>>> sorted(b.todo_list)
 ['B.html', 'C.html']
->>> c['B.html'] = 'Rebuilt HTML #2'
->>> c['C.html'] = 'Rebuilt HTML'
+>>> b.set('B.html', 'Rebuilt HTML #2')
+>>> b.set('C.html', 'Rebuilt HTML')
 
 As you can see, this update to B’s date has both an immediate and
 certain consequence — that its HTML needs to be rebuilt to reflect the
@@ -269,12 +270,13 @@ nodes so that targets always fall after their dependencies in the
 resulting ordering.  If used correctly, a depth-first search can produce
 such an ordering.
 
-Topological sort is built into the graph method ``consequences_of()``
-that we glanced at briefly above.  If we use its ordering instead of
-simply rebuilding nodes as soon as they appear in the ``todo()`` list,
-then we will minimize the number of rebuilds we need to perform:
+Topological sort is built into the graph method
+``recursive_consequences_of()`` that we glanced at briefly above.  If we
+use its ordering instead of simply rebuilding nodes as soon as they
+appear in the ``todo()`` list, then we will minimize the number of
+rebuilds we need to perform:
 
->>> consequences = g.consequences_of(['B.rst'])
+>>> consequences = g.recursive_consequences_of(['B.rst'])
 >>> consequences
 ['B.body', 'B.date', 'sorted-posts', 'A.prev.title', 'A.html', 'B.prev.title', 'B.title', 'B.html', 'C.prev.title', 'C.html']
 
@@ -323,7 +325,7 @@ later post C, then its dependencies would need to include that:
 Thanks to this new list of dependencies, post A will now be considered
 one of consequences of a change to the title of post C.
 
->>> g.consequences_of(['C.title'])
+>>> g.recursive_consequences_of(['C.title'])
 ['A.html', 'C.html']
 
 How can this mechanism be connected to actual code that takes the
