@@ -148,54 +148,83 @@ from dozens of other documents.
 Given such a dense dependency graph, can a build system do any better
 than to simply perform a complete rebuild upon every modification?
 
+>>> open('diagram3.dot', 'w').write(g.as_graphviz()) and None
+
 Chasing consequences
 --------------------
 
 The key insight that helps us answer the foregoing question is to note
 the difference between our intuitive understanding of the build
 process—that most changes disrupt only a small subset of the full
-consequences graph—and the dependency graph itself, which has no such
-understanding. Adding this requires the ability to answer an additional
-question: given the consequences of a change, does the change have an
-effect on the consequence's value and therefore require a rebuild of
-that consequence? To answer this question, we employ a value cache that
-records the output of each consequence's build, allowing us to compare
-its current value with its value from the previous run.
+consequences graph—and the consequences graph itself, which represents
+a more course-grained fact: that a given task depends on a certain set
+of inputs. The consequences graph tells us, for example, that ``B.title``
+uses the output of task ``B.rst`` as its input:
 
->>> open('diagram3.dot', 'w').write(g.as_graphviz()) and None
+>>> 'B.title' in g.immediate_consequences_of('B.rst')
+True
+
+but it does not understand what sorts of changes to ``B.rst`` actually
+affect ``B.title``.  Accommodating this requires us to extend the build
+system such that, when notified of a change, it can determine if the
+change has an effect on the task's value and therefore requires a
+rebuild of that task's consequences.
+
+``Builder`` manages build processes by augmenting the graph with a value
+cache that records the output of each task's build, allowing us to
+compare its current value with its value from the previous run. If a
+task's value changes, we must inform its consequent tasks in the event
+the new value has an impact on those consequences. ``Builder`` maintains
+a ``todo_list`` of tasks for this purpose: as tasks run, the value cache
+tells the ``Builder`` if the task's output has changed, requiring that
+task's consequences to be placed on the todo list for reconsideration.
+
+To illustrate, we first construct a ``Builder``
 
 >>> from contingent.builderlib import Builder
->>> b = Builder(callback=lambda task, get: None)
+>>> b = Builder(callback=None)
+
+and update its initially empty consequences graph to be the manually-
+constructed graph from our example above
+
 >>> b.graph = g
 
-In the first run of the build, the cache is empty, so each target
-requires a full rebuild (``Initial value`` is the output of the build
-process):
+For this example, we will drive the build process manually.
+In the first run of the build, the cache is empty, so each task
+requires a full rebuild:
 
 >>> roots = ['A.rst', 'B.rst', 'C.rst']
 >>> for node in roots + g.recursive_consequences_of(roots):
+...     # 'Initial value' is the simulated output of the build task for
+...     # each node
 ...     b.set(node, 'Initial value')
+
+Since each task has been freshly computed, all the tasks are up to date
+and the todo list is empty:
 
 >>> b.todo_list
 set()
 
 Changing something forces us to rebuild its consequences, but focuses
-our efforts only on the particular targets that need rebuilding.  For
-example, editing file B requires examination of all consequences of B:
+our efforts only on the particular tasks that need rebuilding.  For
+example, editing the body content of file B requires examination of all
+consequences of B:
 
->>> b.set('B.rst', 'Markup for post B')
+>>> b.set('B.rst', 'Updated body markup for post B')
 >>> sorted(b.todo_list)
 ['B.body', 'B.date', 'B.title']
 
-The build process, however, produces new values only for ``B.body``,
-leaving ``B.date`` and ``B.title`` at their prior values:
+All of these consequent tasks need to be reevaluated, but in this
+instance only ``B.body``s value is affected by the change, leaving
+``B.date`` and ``B.title`` at their prior values:
 
 >>> b.set('B.body', 'New body for B')
 >>> b.set('B.date', 'Initial value')
 >>> b.set('B.title', 'Initial value')
 
 Since it is only post B's output HTML that depends on its body content,
-the todo list peters out rather quickly:
+the ``Builder`` does not need to consider the consequences of tasks
+``B.date`` and ``B.title``, so the todo list peters out rather quickly:
 
 >>> sorted(b.todo_list)
 ['B.html']
