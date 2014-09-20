@@ -83,6 +83,30 @@ def render(call, paths, path):
     print(text)
     return text
 
+
+class BlogBuilder:
+    def __init__(self):
+        self.builder = Builder(self.compute)
+        self.verbose = False
+
+    def get(self, fn, *args):
+        return self.builder.get((fn, args))
+
+    def invalidate(self, fn, *args):
+        return self.builder.invalidate((fn, args))
+
+    def __getattr__(self, name):
+        return getattr(self.builder, name)
+
+    def compute(self, task, _):
+        "Compute a task by direct invocation."
+        if self.verbose:
+            print('Computing', task)
+
+        fn, args = task
+        return fn(self.get, *args)
+
+
 def main():
     thisdir = os.path.dirname(__file__)
     indir = os.path.normpath(os.path.join(thisdir, '..', 'posts'))
@@ -90,32 +114,15 @@ def main():
     if not os.path.exists(outdir):
         os.mkdir(outdir)
 
-    def compute(target, get):
-        "Compute a dependency by direct invocation of the target function."
-        if verbose:
-            print('Computing', target)
-        f, args = target
-        # The functions above expect a provider callable with a parameter
-        # signature of (fn, *args). Builder.get accepts a single target tuple;
-        # ``call`` (defined below) mediates between the two by packaging its
-        # arguments into a target tuple as required by Builder.
-        return f(call, *args)
+    builder = BlogBuilder()
 
-    verbose = False
-    builder = Builder(compute)
+    paths = tuple(glob(os.path.join(indir, '*.rst')) +
+                  glob(os.path.join(indir, '*.ipynb')))
 
-    def call(f, *args):
-        "Compute a target using a Builder."
-        target = f, args
-        return builder.get(target)
+    for path in builder.get(sorted_posts, paths):
+        builder.get(render, paths, path)
 
-    paths = (glob(os.path.join(indir, '*.rst')) +
-             glob(os.path.join(indir, '*.ipynb')))
-    paths = tuple(paths)
-    for path in call(sorted_posts, paths):
-        call(render, paths, path)
-
-    verbose = True
+    builder.verbose = True
     while True:
         print('=' * 72)
         print('Watching for files to change')
@@ -123,7 +130,7 @@ def main():
         print('=' * 72)
         print('Reloading:', ' '.join(changed_paths))
         for path in changed_paths:
-            builder.invalidate((read_text_file, (path,)))
+            builder.invalidate(read_text_file, path)
         builder.rebuild()
 
 if __name__ == '__main__':
