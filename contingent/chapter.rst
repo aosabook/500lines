@@ -38,12 +38,9 @@ and date.  But to keep our example simple, we will only consider that
 the title of each blog post will appear on the page of the next one.
 Like body, the title will need to appear on each post’s own page:
 
->>> g.add_edge('A.rst', 'A.title')
->>> g.add_edge('B.rst', 'B.title')
->>> g.add_edge('C.rst', 'C.title')
->>> g.add_edge('A.title', 'A.html')
->>> g.add_edge('B.title', 'B.html')
->>> g.add_edge('C.title', 'C.html')
+>>> for post in 'ABC':
+...     g.add_edge(post + '.rst', post + '.title')
+...     g.add_edge(post + '.title', post + '.html')
 
 But as part of the navigation, each title will also appear on the HTML
 page for the subsequent post:
@@ -361,6 +358,125 @@ How can this mechanism be connected to actual code that takes the
 current values of dependencies and builds the resulting targets?  Python
 gives us many possible approaches.  [Show various ways of registering
 routines?]
+
+
+----
+
+
+A Functional Blog Builder
+-------------------------
+
+``example1/`` demonstrates a functional blog builder constructed in a
+Clean Architecture style: the build process is defined by functions that
+accept and return simple data structures and are ignorant of the manager
+processes surrounding them. These functions perform the typical
+operations that allow the blog framework to produce the rendered blog
+from its sources: reading and parsing the source texts, extract metadata
+from individual posts, determining the overall ordering of the entire
+blog, and rendering to an output format.
+
+>>> from example1.build import read_text_file, parse, body_of  # etc.
+
+In this implementation, each *task* is a function and argument list
+tuple that captures both the function to be performed and the input
+arguments unique to that task:
+
+>>> task = read_text_file, ('A.rst',)
+
+This particular task depends upon the content of the file ``A.rst`` —
+its ``path`` argument — and returns the contents of that file as its
+output. Its consequences are any tasks that require the raw text of the
+file as input, such as the task ``(parse, ('A.rst',))``.
+
+How do these functions interact with a ``Builder``-managed process?
+Rather than calling each other directly, each function accepts a
+``call`` argument, a callable that allows the ``Builder`` to insert
+itself between a task and any inputs it depends on.
+
+>>> def call(task_fn, *args):
+...     print('· call(', task_fn.__name__, ', ', args, ')', sep='')
+...     # Get a task's value from the blog Builder, instantiated below
+...     return blog.get((task_fn, args))
+
+The task functions use ``call`` to request values from other tasks, as
+when ``parse`` requests the raw content of a file at a given path:
+
+.. code-block:: python
+
+    def parse(call, path):
+        "Parse the file at path; return a dict of the body, title, and date."
+
+        source = call(read_text_file, path)
+        …
+
+This indirection gives ``Builder`` the opportunity to perform its two
+crucial functions: consequence discovery and task caching. As tasks run,
+``Builder`` carefully tracks when each task requests outputs from other
+tasks, dynamically building up its consequences graph as the build runs.
+If at any point, a task requests an input ``Builder`` has recently
+computed, the value is returned directly from the cache, effectively
+halting the rebuild of tasks along that graph path.
+
+If a task's current value isn't available, ``Builder`` needs a mechanism
+to recompute it. To keep the ``Builder`` generic and flexible, it
+accepts a compute callable that mediates this return trip to the build
+framework:
+
+>>> def compute(task, _):
+...     task_fn, args = task
+...     print('· compute(', task_fn.__name__, ', ', args, ')', sep='')
+...     return task_fn(call, *args)
+
+Together, ``call`` and ``compute`` form the framework/``Builder``
+interface: ``call`` allows the framework to pass control to its
+``Builder``; ``compute`` gives ``Builder``the means to rebuild stale
+tasks by calling back to the framework.
+
+>>> blog = Builder(compute)
+
+
+>>> blog.set(task, 'Text of A')
+
+>>> blog.graph.immediate_consequences_of(task)
+set()
+
+>>> call(read_text_file, 'A.rst')
+· call(read_text_file, ('A.rst',))
+'Text of A'
+
+>>> call(body_of, 'A.rst')
+· call(body_of, ('A.rst',))
+· compute(body_of, ('A.rst',))
+· call(parse, ('A.rst',))
+· compute(parse, ('A.rst',))
+· call(read_text_file, ('A.rst',))
+'<p>Text of A</p>\n'
+
+
+>>> call(body_of, 'A.rst')
+· call(body_of, ('A.rst',))
+'<p>Text of A</p>\n'
+
+
+>>> blog.invalidate((body_of, ('A.rst',)))
+>>> call(body_of, 'A.rst')
+· call(body_of, ('A.rst',))
+· compute(body_of, ('A.rst',))
+· call(parse, ('A.rst',))
+'<p>Text of A</p>\n'
+
+
+>>> blog.graph.immediate_consequences_of(task)
+{(<function parse at 0x...>, ('A.rst',))}
+
+>>> blog.graph.recursive_consequences_of([task], include=True)
+[(<function read_text_file at 0x...>, ('A.rst',)), (<function parse at 0x...>, ('A.rst',)), (<function body_of at 0x...>, ('A.rst',))]
+
+.. illustrate task stack?
+
+
+----
+
 
 But the easiest way might be to suit up objects and watch attribute
 access and method invocation.  Python again offers several possible

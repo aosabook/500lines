@@ -36,7 +36,7 @@ def parse(call, path):
                    for i in docinfos for c in i.children}
         parts = publish_parts(source, writer_name='html')
         return {'body': parts['body'],
-                'date': docinfo['date'],
+                'date': docinfo.get('date'),
                 'title': parts['title']}
     elif path.endswith('.ipynb'):
         notebook = nbformat.reads_json(source)

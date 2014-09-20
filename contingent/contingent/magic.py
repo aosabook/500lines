@@ -1,6 +1,6 @@
 """Magically detect dependencies between methods and attributes."""
 
-from .. import utils
+from . import utils
 from functools import wraps
 from inspect import ismethod
 
