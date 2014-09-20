@@ -432,17 +432,39 @@ interface: ``call`` allows the framework to pass control to its
 ``Builder``; ``compute`` gives ``Builder`` the means to rebuild stale
 tasks by calling back to the framework.
 
+To illustrate, we can construct a new ``Builder`` initialized with an
+empty graph and this ``compute`` callback:
+
 >>> blog = Builder(compute)
 
+We can manually force an initial value for our read task using
+``Builder.set()``
 
 >>> blog.set(task, 'Text of A')
+
+Since this is the first task this ``Builder`` has encountered, the task
+has no consequences: nothing as of yet has requested its output,
 
 >>> blog.graph.immediate_consequences_of(task)
 set()
 
+and, since it is freshly computed, requests for the task's value can be
+serviced directly from ``Builder``'s cache.
+
 >>> call(read_text_file, 'A.rst')
 · call(read_text_file, ('A.rst',))
 'Text of A'
+
+Requesting the value for a new task, ``(body_of, ('A.rst',))``,
+illuminates the back and forth between the ``Builder`` and the
+framework: a request is made to the ``Builder`` for A's value, but,
+since it has never seen this task before, ``Builder`` immediately
+returns a request to the framework's ``compute`` function for a hard
+rebuild of the value. The function ``body_of``, when invoked, transfers
+control back to the ``Builder`` by requesting the value of ``(parse,
+('A.rst',))``, which is also missing and must be computed. Finally,
+``parse`` requests the value from ``read_text_file``, which the
+``Builder`` *does* have cached, thus ending the call chain.
 
 >>> call(body_of, 'A.rst')
 · call(body_of, ('A.rst',))
@@ -452,11 +474,27 @@ set()
 · call(read_text_file, ('A.rst',))
 '<p>Text of A</p>\n'
 
+Interposing the Builder between function calls allows it to dynamically
+construct the relationship between individual tasks
+
+>>> blog.graph.immediate_consequences_of(task)
+{(<function parse at 0x...>, ('A.rst',))}
+
+and the entire chain of consequences leading from that task.
+
+>>> blog.graph.recursive_consequences_of([task], include=True)
+[(<function read_text_file at 0x...>, ('A.rst',)), (<function parse at 0x...>, ('A.rst',)), (<function body_of at 0x...>, ('A.rst',))]
+
+If nothing changes, subsequent requests for ``(body_of, ('A.rst',))``
+can be served immediately from the cache,
 
 >>> call(body_of, 'A.rst')
 · call(body_of, ('A.rst',))
 '<p>Text of A</p>\n'
 
+while the effects of changes that invalidate interior task's values are
+minimized by the ``Builder``'s ability to detect the impact of a change
+at every point on the consequences graph:
 
 >>> blog.invalidate((body_of, ('A.rst',)))
 >>> call(body_of, 'A.rst')
@@ -465,12 +503,6 @@ set()
 · call(parse, ('A.rst',))
 '<p>Text of A</p>\n'
 
-
->>> blog.graph.immediate_consequences_of(task)
-{(<function parse at 0x...>, ('A.rst',))}
-
->>> blog.graph.recursive_consequences_of([task], include=True)
-[(<function read_text_file at 0x...>, ('A.rst',)), (<function parse at 0x...>, ('A.rst',)), (<function body_of at 0x...>, ('A.rst',))]
 
 .. illustrate task stack?
 
