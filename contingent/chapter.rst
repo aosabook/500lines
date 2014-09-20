@@ -212,7 +212,7 @@ consequences of B:
 ['B.body', 'B.date', 'B.title']
 
 All of these consequent tasks need to be reevaluated, but in this
-instance only ``B.body``s value is affected by the change, leaving
+instance only ``B.body``\ 's value is affected by the change, leaving
 ``B.date`` and ``B.title`` at their prior values:
 
 >>> b.set('B.body', 'New body for B')
@@ -407,7 +407,7 @@ when ``parse`` requests the raw content of a file at a given path:
         "Parse the file at path; return a dict of the body, title, and date."
 
         source = call(read_text_file, path)
-        …
+        # …
 
 This indirection gives ``Builder`` the opportunity to perform its two
 crucial functions: consequence discovery and task caching. As tasks run,
@@ -429,7 +429,7 @@ framework:
 
 Together, ``call`` and ``compute`` form the framework/``Builder``
 interface: ``call`` allows the framework to pass control to its
-``Builder``; ``compute`` gives ``Builder``the means to rebuild stale
+``Builder``; ``compute`` gives ``Builder`` the means to rebuild stale
 tasks by calling back to the framework.
 
 >>> blog = Builder(compute)
