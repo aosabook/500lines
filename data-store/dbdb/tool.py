@@ -14,6 +14,7 @@ def usage():
     print("Usage:", file=sys.stderr)
     print("\tpython -m dbdb.tool DBNAME get KEY", file=sys.stderr)
     print("\tpython -m dbdb.tool DBNAME set KEY VALUE", file=sys.stderr)
+    print("\tpython -m dbdb.tool DBNAME delete KEY", file=sys.stderr)
 
 
 def main():
@@ -21,19 +22,22 @@ def main():
         usage()
         return BAD_ARGS
     dbname, verb, key, value = (sys.argv[1:] + [None])[:4]
-    if verb not in ('get', 'set'):
+    if verb not in {'get', 'set', 'delete'}:
         usage()
         return BAD_VERB
     db = dbdb.connect(dbname)
-    if verb == 'get':
-        try:
+    try:
+        if verb == 'get':
             sys.stdout.write(db[key])
-        except KeyError:
-            print("Key not found", file=sys.stderr)
-            return BAD_KEY
-    else:
-        db[key] = value
-        db.commit()
+        elif verb == 'set':
+            db[key] = value
+            db.commit()
+        else:
+            del db[key]
+            db.commit()
+    except KeyError:
+        print("Key not found", file=sys.stderr)
+        return BAD_KEY
     return OK
 
 
