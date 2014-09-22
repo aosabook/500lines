@@ -16,37 +16,43 @@ The "transfer" operation operates on two accounts at once -- the source and dest
 If the service is hosted on a single server, this is easy to implement: use a lock to make sure that transfer operations don't run in parallel, and verify the souce account's balance in that method.
 However, a bank cannot rely on a single server for its critical account balances!
 Instead, the service is *distributed* over multiple servers, with each running a separate instance of exactly the same code.
-The servers communicate between themselves to maintain the illusion of a single, distributed service.
 Users can then contact any server to perform an operation.
-This introduces some new failure modes:
 
- * If two servers receive execute different transfer requests from the same account at the same time, the account may be overdrawn.
- * If two servers update the same account balance at the same time, one might overwrite the changes made by the other.
- * If communication between the servers fails, different servers may calculate different balances based on incomplete information, breaking the illusion of a single service.
+In a naive implementation of distributed processing, each server would keep a local copy of every account's balance.
+It would handle any operations it received, and send updates for account balances to other servers.
+But this approach introduces a serious failure mode: if two servers process operations for the same account at the same time, which new account balance is correct?
+Even if the servers share operations with one another instead of balances, two simultaneous transfers out of an account might overdraw the account.
+
+Fundamentally, these failures occur when servers use their local state to perform operations, without first ensuring that the local state matches the state on other servers.
+For example, magine that server A receives a transfer operation from account 101 to account 202, when server B has already processed another transfer account 101's full balance to account 202, but not yet informed server A.
+The local state on server A is different from that on server B, so server A incorrectly allows the transfer to complete, even though the result is an overdraft on account 101.
 
 Distributed State Machines
 ==========================
 
-Fundamentally, these failures occur when servers use their local state to perform operations, without first ensuring that the local state matches the state on other servers.
 The technique for avoiding such problems is called a "distributed state machine".
-The idea is that each server executes the same deterministic state machine on the same inputs.
+The idea is that each server executes exactly the same deterministic state machine on exactly the same inputs.
 By the nature of state machines, then, each server will see exactly the same outputs.
-Operations such as "transfer" or "get-balance" provide the inputs to the state machine.
+Operations such as "transfer" or "get-balance", together with their parameters (account numbers and amounts) represent the inputs to the state machine.
 
 The state machine for this application is simple:
 
-    def execute_operation(state, input):
-        if input.operation == 'transfer':
-            if state.accounts[input.source_account] < input.amount:
+    def execute_operation(state, operation):
+        if operation.name == 'transfer':
+            if state.accounts[operation.source_account] < operation.amount:
                 return state, False
-            state.accounts[input.source_account] -= input.amount
-            state.accounts[input.destination_account] += input.amount
+            state.accounts[operation.source_account] -= operation.amount
+            state.accounts[operation.destination_account] += operation.amount
             return state, True
-        elif input.operation == 'get-balance':
-            return state, state.accounts[input.account]
+        elif operation.name == 'get-balance':
+            return state, state.accounts[operation.account]
 
-Note that the "get-balance" operation does not modify the state, but is still implemented as a state transition.
-This guarantees that the returned balance is the latest information in the cluster, and not based on the state on a single server.
+Note that executing the "get-balance" operation does not modify the state, but is still implemented as a state transition.
+This guarantees that the returned balance is the latest information in the cluster of servers, not based on the local state on a single server.
+
+This may look different than the typical state machine you'd learn about in a computer science course.
+Rather than a finite set of named states with labeled transitions, this machine's state is the collection of account balances, so there are infinite possible states.
+Still, the usual rules of deterministic state machines apply: starting with the same state and processing the same operations will always produce the same output.
 
 So, the distributed state machine technique ensures that the same operations occur on each host.
 But the problem remains of ensuring that every server agrees on the inputs to the state machine.
@@ -66,9 +72,11 @@ To implement a distributed state machine, we use MultiPaxos to agree on each sta
 Simple Paxos
 ------------
 
-So let's start with "Simple Paxos", also known as the Synod protocol.
-For sake of illustration, we'll use it to agree on today's lottery number.
-While there may be another lottery drawing next week, *today's* lottery number, once decided, will never change.
+So let's start with "Simple Paxos", also known as the Synod protocol, which provides a way to agree on a single value.
+The name Paxos comes from the mythical island in "The Part-Time Parliament", where lawmakers vote on legislation through a process Lamport dubbed a Synod.
+
+The algorithm is a building block for more complex algorithms, so we'll set aside the bank example for the moment and use Simple Paxos to agree on today's lottery number.
+This problem involves consensus on a single value: while there may be another lottery drawing next week, *today's* lottery number, once decided, will never change.
 
 The protocol operates in a series of ballots, each led by a single member of the cluster, called the proposer.
 Each ballot has a unique ballot number based on an integer and the proposer's identity.
@@ -102,13 +110,12 @@ Multi-Paxos
 -----------
 
 Reaching consensus on a single, static value is not particularly useful on its own.
-Clustered systems want to agree on a particular state that evolves over time.
-In the case of the bank account service, the state is the collection of account balances.
+Clustered systems such as the bank account service want to agree on a particular state (account balances) that evolves over time.
 We use Paxos to agree on each operation, treated as a state machine transition.
 
 Multi-Paxos is, in effect, a sequence of simple Paxos instances (slots), each numbered sequentially.
 Each state transition is given a "slot number", and each member of the cluster executes transitions in strict numeric order.
-To change the cluster's state (to process a withdrawal, for example), we try to achieve consensus on that operation in the next slot.
+To change the cluster's state (to process a transfer operation, for example), we try to achieve consensus on that operation in the next slot.
 
 Running Paxos for every slot, with its minimum of two round trips, would be too slow.
 Multi-Paxos optimizes by using the same set of ballot numbers for all slots, and performing the ``Prepare``/``Promise`` phase for all slots at once.
@@ -120,10 +127,11 @@ Implementing Multi-Paxos in practical software is notoriously difficult, spawnin
 
 First, the multiple-proposers problem described above can become problematic in a busy environment, as each cluster member attempts to get its state machine operation decided in each slot.
 The fix is to elect a "leader" which is responsible for submitting ballots for each slot.
+All other cluster nodes then send new operations to the leader for execution.
 Thus, in normal operation with only one leader, ballot conflicts do not occur.
 
-The ``Prepare``/``Promise`` phase can function as a kind of leader election.
-Whichever cluster member owns the most recently promised ballot number is considered the leader.
+The ``Prepare``/``Promise`` phase can function as a kind of leader election: whichever cluster member owns the most recently promised ballot number is considered the leader.
+The leader is then free to execute the ``Accept``/``Accepted`` phase directly without repeating the first phase.
 As we'll see below, leader elections are actually quite complex.
 
 Although simple Paxos guarantees that the cluster will not reach conflicting decisions, it cannot guarantee that any decision will be made.
@@ -166,7 +174,7 @@ Humans are limited by what we can hold in our active memory.
 We can't reason about the entire Cluster implementation at once -- it's just too much, and too easy to miss details.
 Instead, we break Cluster down into a handful of components, implemented as subclasses of ``Component``.
 Each class is responsible for a different part of the protocol.
-The division of the components is based on that given in (Renesse, 2011).
+The division of the components is based on the set of protocol roles described in (Renesse, 2011).
 
 The components are glued together by the ``Node`` class, which represents a single node on the network.
 Components are added to and removed from the node as execution proceeds.
