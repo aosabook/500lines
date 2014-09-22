@@ -50,7 +50,20 @@ So starts the story. ``:)``
 What does it do?
 ----------------
 
-Most projects require a data store of some kind.
+DBDB is a Python library that implements a simple key/value database.
+It lets you associate a key with a value,
+and store that association on disk for later retrieval.
+
+DBDB aims to preserve data in the face of computer crashes
+and error conditions.
+It also avoids holding all data in RAM at once
+so you can store more data than you have RAM.
+
+
+Why is it interesting?
+----------------------
+
+Most projects require a database of some kind.
 You really shouldn't write your own;
 there are many edge-cases that will bite you in the end,
 even if you're just writing JSON to disk:
@@ -61,19 +74,15 @@ even if you're just writing JSON to disk:
   (unlikely for most applications on modern desktop computers&hellip;but
   not unlikely for a mobile device or server-side web application)
 
-However,
-it's incredibly useful to understand
-how data stores work.
-It will inform your use
-from a performance
-as well as crash recovery
-and durability perspectives.
+DBDB provides a simple example
+of how a database works.
+It will help inform your use of other database
+from performance,
+crash recovery,
+and durability[^durability] perspectives.
 
-DBDB is a (too) simple example
-of how save key/value data
-in an atomic and durable way,
-as well as how a persistence layer can be structured
-in code.
+[^durability]: Data stored is said to be "durable"
+    if it is still readable after a power loss or crash.
 
 
 Simplifications
