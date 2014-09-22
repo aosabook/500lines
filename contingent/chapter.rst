@@ -1,4 +1,6 @@
 
+.. introduction; discuss build systems as important automation tools?
+
 Build systems maintain a directed graph.
 
 >>> from contingent.graphlib import Graph
@@ -371,9 +373,9 @@ Clean Architecture style: the build process is defined by functions that
 accept and return simple data structures and are ignorant of the manager
 processes surrounding them. These functions perform the typical
 operations that allow the blog framework to produce the rendered blog
-from its sources: reading and parsing the source texts, extract metadata
-from individual posts, determining the overall ordering of the entire
-blog, and rendering to an output format.
+from its sources: reading and parsing the source texts, extracting
+metadata from individual posts, determining the overall ordering of the
+entire blog, and rendering to an output format.
 
 >>> from example1.build import read_text_file, parse, body_of  # etc.
 
@@ -505,6 +507,61 @@ at every point on the consequences graph:
 
 
 .. illustrate task stack?
+
+
+----
+
+
+Building Architecture
+---------------------
+
+Now that we have seen how the build system functions, we are ready to
+step back and consider the structure of the whole system, its parts and
+their responsibilities, various divisions of labor, and the coordination
+between the components to effect a build. The build system we have
+constructed consists of three main components: Graph, Builder, and the
+framework components for the artifact we are building.
+
+Graph maintains the directed task consequences graph. As we have seen
+above, it exposes methods allowing its clients to create and remove
+connections between tasks and to request the inputs and consequences of
+any tasks is aware of. It also provides the important topological
+sorting routine that allows Builder to order its work efficiently.
+
+For the convenience of our examples, Graph also includes a routine to
+produce a text representation of itself usable as input to the
+``graphviz`` visualization utility. In a larger system, we would likely
+separate the responsibility for representing the graph from the
+responsibility for visually formatting graph: a formatter would *accept*
+a Graph object as input and produce output in the desired format.
+
+Builder coordinates and manages a build process. It maintains the
+consequences graph, delegating the actual representation of the graph
+itself to an associated Graph object. As it is working, Builder
+maintains a to-do list of stale tasks as it discovers task values have
+gone out of date. A simple ``dict`` serves as the repository for cached
+task values.
+
+Notice that neither Builder nor Graph know anything whatsoever about the
+tasks they are managing! To these components, tasks are simply objects:
+a Graph sees tasks as nodes with inputs and consequences, i.e. inbound
+and outbound edges to other nodes. Builder adds the additional notion
+that tasks are associated with values; it also requires tasks to
+hashable types to support its caching optimization.
+
+This class organization and division of labor provides flexible support
+for any sort of tasks a build process might want — tasks could be
+strings, ints, custom objects, or functions as we've shown here. More
+importantly, this division of responsibilities keeps each of our classes
+simple: each has one, clearly delineated job; the implementations are
+focused and free of clutter. It is easy to reason about the parts in
+isolation from each other, and one can even imagine replacing, say, the
+Graph implementation with an off-the-shelf library.
+
+
+.. discuss framework
+
+.. deeper exposition of Builder.get
 
 
 ----
