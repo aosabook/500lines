@@ -165,7 +165,7 @@ from the contents of the key/value store
 ### Organizational units
 
 * ``tool.py`` defines
-    a CLI tool
+    a command-line tool
     for exploring a database
     from a terminal window.
 
@@ -216,7 +216,8 @@ from the contents of the key/value store
     is the atomic "commit" operation
     which updates the first few bytes of the file to point
     at a new "root" record.
-    This is atomic for all block devices.
+    This is atomic for all block devices
+    (e.g. hard disks, SSDs, flash memory devices).
     A record is a length-delimited series of bytes.
 
 These modules grew from attempting
@@ -269,9 +270,17 @@ to dereference ("really get") the data.
 
 When changes to the tree are not committed,
 they exist in memory
-with strong references from the root down to the changed leaves.
+with references from the root down to the changed leaves.
+The changes aren't saved to disk yet,
+so the changed nodes contain concrete keys and values
+and no disk addresses.
 Additional updates can be made before issuing a commit
-because `NodeRef.get()` will return the uncommitted value if it has one.
+because `NodeRef.get()` will return the uncommitted value if it has one;
+there is no difference between committed and uncommitted data
+when accessed through the API.
+The additional updates will also appear atomically to other readers,
+because changes aren't visible
+until the new root node address is written to disk.
 Concurrent updates are blocked by a lockfile on disk.
 The lock is acquired on first-update, and released after commit.
 
