@@ -274,11 +274,12 @@ with references from the root down to the changed leaves.
 The changes aren't saved to disk yet,
 so the changed nodes contain concrete keys and values
 and no disk addresses.
-Additional updates can be made before issuing a commit
+The process doing the writing can see uncommitted changes
+and can make more changes before issuing a commit,
 because `NodeRef.get()` will return the uncommitted value if it has one;
 there is no difference between committed and uncommitted data
 when accessed through the API.
-The additional updates will also appear atomically to other readers,
+All the updates will appear atomically to other readers
 because changes aren't visible
 until the new root node address is written to disk.
 Concurrent updates are blocked by a lockfile on disk.
