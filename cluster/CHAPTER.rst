@@ -5,29 +5,33 @@ In this chapter, we'll explore implementation of a network protocol designed to 
 Network protocols can be difficult to implement correctly, so we'll look at some techniques for minimizing bugs and for catching and fixing the remaining few.
 Building reliable software, too, requires some special development and debugging techniques.
 
-The focus is on the protocol implementation, but as a motivating example we'll consider a simple bank account management service.
-In this application, each account has a current balance and is identified with an account number.
-Users access the acocunts by performing operations like "deposit", "transfer", or "balance-check".
+Motivating Example
+==================
+
+The focus of this chapter is on the protocol implementation, but as a motivating example let's consider a simple bank account management service.
+In this service, each account has a current balance and is identified with an account number.
+Users access the accounts by requesting operations like "deposit", "transfer", or "get-balance".
 The "transfer" operation operates on two accounts at once -- the source and destination accounts -- and must be rejected if the source account's balance is too low.
 
-If the service is hosted on a single server, this is easy to implement: serialize the transfer method using a lock, and verify the souce account's balance in that method.
-However, a bank cannot rely on a single server for its critical acocunt balances!
-Instead, the service is *distributed* over multiple servers, with each running a separate copy of the code.
+If the service is hosted on a single server, this is easy to implement: use a lock to make sure that transfer operations don't run in parallel, and verify the souce account's balance in that method.
+However, a bank cannot rely on a single server for its critical account balances!
+Instead, the service is *distributed* over multiple servers, with each running a separate instance of exactly the same code.
 The servers communicate between themselves to maintain the illusion of a single, distributed service.
+Users can then contact any server to perform an operation.
 This introduces some new failure modes:
 
  * If two servers receive execute different transfer requests from the same account at the same time, the account may be overdrawn.
  * If two servers update the same account balance at the same time, one might overwrite the changes made by the other.
- * If communication between some servers fails, each server may determine that the others have failed and continue to process transfers that conflict with the others.
+ * If communication between the servers fails, different servers may calculate different balances based on incomplete information, breaking the illusion of a single service.
 
 Distributed State Machines
 ==========================
 
-Fundamentally, these failures occur when servers use their local state to perform operations, without first ensuring that state matches the state on other servers.
+Fundamentally, these failures occur when servers use their local state to perform operations, without first ensuring that the local state matches the state on other servers.
 The technique for avoiding such problems is called a "distributed state machine".
 The idea is that each server executes the same deterministic state machine on the same inputs.
 By the nature of state machines, then, each server will see exactly the same outputs.
-Operations such as "transfer" or "balance-check" provide the inputs to the state machine.
+Operations such as "transfer" or "get-balance" provide the inputs to the state machine.
 
 The state machine for this application is simple:
 
@@ -38,10 +42,10 @@ The state machine for this application is simple:
             state.accounts[input.source_account] -= input.amount
             state.accounts[input.destination_account] += input.amount
             return state, True
-        elif input.operation == 'balance-check':
+        elif input.operation == 'get-balance':
             return state, state.accounts[input.account]
 
-Note that the "balance-check" operation does not modify the state, but is still implemented as a state transition.
+Note that the "get-balance" operation does not modify the state, but is still implemented as a state transition.
 This guarantees that the returned balance is the latest information in the cluster, and not based on the state on a single server.
 
 So, the distributed state machine technique ensures that the same operations occur on each host.
