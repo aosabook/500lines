@@ -6,9 +6,9 @@ Network protocols can be difficult to implement correctly, so we'll look at some
 Building reliable software, too, requires some special development and debugging techniques.
 
 The focus is on the protocol implementation, but as a motivating example we'll consider a simple bank account management service.
-In this application, each account has a current balance and is identified with an account number, like a simple key-value store.
-However, operations on those accounts are more complex than for an ordinary key-value store.
-The "transfer" operation operates on two keys at once -- the source and destination accounts -- and must be rejected if the source account's balance is too low.
+In this application, each account has a current balance and is identified with an account number.
+Users access the acocunts by performing operations like "deposit", "transfer", or "balance-check".
+The "transfer" operation operates on two accounts at once -- the source and destination accounts -- and must be rejected if the source account's balance is too low.
 
 If the service is hosted on a single server, this is easy to implement: serialize the transfer method using a lock, and verify the souce account's balance in that method.
 However, a bank cannot rely on a single server for its critical acocunt balances!
