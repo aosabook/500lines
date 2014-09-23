@@ -9,7 +9,6 @@ node [shape=rect penwidth=0 style=filled fillcolor="#d6d6d6"];
 "B.rst" -> "B.body"
 "B.rst" -> "B.date"
 "B.rst" -> "B.title"
-"B.title" -> "B.html"
 "B.title" -> "C.prev.title"
 "C.prev.title" -> "C.html"
 "sorted-posts" -> "A.prev.title"
