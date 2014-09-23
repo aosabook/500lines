@@ -1,69 +1,133 @@
 
-.. introduction; discuss build systems as important automation tools?
+==========================================
+ Contingent: A Fully Dynamic Build System
+==========================================
 
-Build systems maintain a directed graph.
+Traditional build systems are hopelessly naïve.
+
+Whether you use the venerable ``make``, the document build process
+inside of LaTeX, or even the modern rebuild process inside of the
+popular Sphinx documentation tool for Python, you will have run across
+situations where you made a change and the build system failed to
+discover all of its ramifications.
+
+Document build systems are notorious in this respect.  Cross references
+in the text create dynamic relationships between the content of one page
+and the content of another — think of a ``:doc:`how-to-install`\ `` call
+in Sphinx and how the document in which it appears needs to (but usually
+will not) rebuild every time that document’s title changes.
+
+Even ``make`` could be bitten by this problem. Consider adding the
+following line to the top of a ``source.c`` source file::
+
+  #include "memhelpers.h"
+
+The source file now needs to rebuild every time this header file is
+changed, but how often do developers forget to open their Makefile and
+add a dependency like the following? ::
+
+  source.c: memhelpers.h
+
+There do exist tools to write such rules on-the-fly, which makes the
+point perfectly: the build tool, in and of itself, is not competent to
+discover which changes to which inputs require rebuilding of which
+consequences.
+
+What if we constructed a build system that were not static, rigid, and
+incapable of understanding the way that relationships between inputs and
+consequences can grow or disappear from one minute to the next as the
+inputs are edited?  What if the build system itself were instrumented to
+discover these consequences dynamically instead of having to be told
+them in a separate ``Makefile`` that has to be maintained separately?
+
+We have undertaken this challenge and produced the Python module
+described in this chapter: ``contingent``, a dynamic build graph that
+learns automatically the inputs that each build routine needs and, when
+an input changes, always does the least work necessary to get all of the
+dependencies back up to date again.
+
+Creating and Using a Build Graph
+--------------------------------
+
+Imagine that we want to automate the rebuilding of a static web site
+when any of its source files change.  Contingent offers to let us get
+started by instantiating a ``Graph`` object that will remember which
+outputs depend on which inputs.
 
 >>> from contingent.graphlib import Graph
 >>> g = Graph()
 
-A system like ``make`` rebuilds an output file when one of its source
-files appears to have been modified more recently.
+Imagine a directory of three source files containing the marked up text
+for three blog posts.  When each is passed to the markup engine, it will
+result in an HTML body that is web-ready.  We can represent this by
+creating six nodes — which as far as the graph knows are arbitrary,
+opaque strings — and three edges that link the markup file sitting on
+disk for each blog post with the idea of its rendered HTML “body” that
+is produced once the markup is parsed.
+
+>>> g.add_edge('A.rst', 'A.body')
+>>> g.add_edge('B.rst', 'B.body')
+>>> g.add_edge('C.rst', 'C.body')
+
+We are telling the graph that an input, like ``A.rst``, has as its
+consequence the node ``A.body``.  If we ask the graph “What happens if
+B.rst changes?” then, quite correctly, it tells us that the body will
+need to be rewritten.
+
+>>> g.recursive_consequences_of(['B.rst'])
+['B.body']
+
+Imagine each HTML body then being injected into a larger page template
+so that the blog’s text is surrounded by the navigation and design that
+are standard for our blog.  The HTML body in each case is the input to
+this process, and its output is a finished page ready to be pushed to
+the web server.
 
 >>> g.add_edge('A.body', 'A.html')
 >>> g.add_edge('B.body', 'B.html')
 >>> g.add_edge('C.body', 'C.html')
 
-This makes it easy, if ``B.rst`` is modified, to determine which output
-file needs to be rebuilt.
+The graph understands that consequences themselves serve as inputs for
+further consequences.  If we now ask it the results of editing the input
+markup for one of our blog posts, it identifies two outputs that need to
+be recomputed.
 
->>> g.recursive_consequences_of(['B.body'])
-['B.html']
-
-Because a target might itself be the dependency for yet further targets,
-``consequences_of`` needs to be a recursive operation that computes a
-transitive closure over our dependency graph.  If the body of each blog
-post is in fact imported from a Restructured Text file, for example,
-then our graph will be two stories high:
-
->>> g.add_edge('A.rst', 'A.body')
->>> g.add_edge('B.rst', 'B.body')
->>> g.add_edge('C.rst', 'C.body')
 >>> g.recursive_consequences_of(['B.rst'])
 ['B.body', 'B.html']
+
+So far, so good.
 
 But when dealing with document collections like a Sphinx project or
 statically generated blog, the dependency graph tends to be more
 complicated.  For example, each blog post’s navigation might point the
-way to the previous post in the blog’s history.  In real life, the
-navigation would probably need at least the previous post’s title, URL,
-and date.  But to keep our example simple, we will only consider that
-the title of each blog post will appear on the page of the next one.
-Like body, the title will need to appear on each post’s own page:
+way to the previous post in the blog’s history and therefore need its
+title Like the body, the value of the title is discovered when we parse
+the post’s input markup:
 
->>> for post in 'ABC':
-...     g.add_edge(post + '.rst', post + '.title')
-...     g.add_edge(post + '.title', post + '.html')
+>>> g.add_edge('A.rst', 'A.title')
+>>> g.add_edge('B.rst', 'B.title')
+>>> g.add_edge('C.rst', 'C.title')
 
-But as part of the navigation, each title will also appear on the HTML
-page for the subsequent post:
+As part of the navigation, each of these titles can also appear on the
+HTML page for the subsequent post:
 
 >>> g.add_edge('A.title', 'B.html')
 >>> g.add_edge('B.title', 'C.html')
 
 >>> open('diagram1.dot', 'w').write(g.as_graphviz()) and None
 
-Editing the source for either post A or post B will now force us to
-regenerate both its own HTML as well as the HTML of the subsequent post,
-to make sure that an edited title is correctly reflected in the next
-post’s navigation:
+Editing the source for either post A or post B will now force us not
+only to regenerate both its own HTML, but also the HTML of the
+subsequent post, in case we edited the text of its title which appears
+in the navigation of the next post’s page:
 
 >>> g.recursive_consequences_of(['B.rst'])
-['B.body', 'B.title', 'B.html', 'C.html']
+['B.body', 'B.html', 'B.title', 'C.html']
 
-Note that by rebuilding both ``B.html`` and ``C.html`` in this case, a
-make-inspired system will usually be doing extra work — after all, most
-edits to ``B.rst`` will probably be edits to the body and not changes to
-the title itself.  But ``C.html`` will be rebuilt with every edit.
+By rebuilding both ``B.html`` and ``C.html`` in this case, a naïve build
+system that simply runs through these recursive consequences will
+usually be doing extra work — after all, most edits to ``B.rst`` will
+probably not be edits to the title, but simply be edits to the body.
 
 But if we step back for a moment, we see that in fact things are far
 worse.  How, when it comes down to it, do we know that these three blog
@@ -132,7 +196,7 @@ any single one of them is edited!
 
 >>> consequences = g.recursive_consequences_of(['B.rst'])
 >>> consequences
-['B.body', 'B.date', 'sorted-posts', 'A.prev.title', 'A.html', 'B.prev.title', 'B.title', 'B.html', 'C.prev.title', 'C.html']
+['B.body', 'B.date', 'sorted-posts', 'A.prev.title', 'A.html', 'B.prev.title', 'B.html', 'B.title', 'C.prev.title', 'C.html']
 
 >>> open('diagram2.dot', 'w').write(g.as_graphviz(['B.rst'] + consequences)) and None
 
@@ -236,7 +300,7 @@ both post B and post C.
 
 >>> b.set('B.title', 'Title B')
 >>> sorted(b.todo_list)
-['B.html', 'C.prev.title']
+['C.prev.title']
 >>> b.set('B.html', 'New HTML for post B')
 >>> b.set('C.prev.title', 'Title B')
 >>> b.todo_list
@@ -306,7 +370,7 @@ rebuilds we need to perform:
 
 >>> consequences = g.recursive_consequences_of(['B.rst'])
 >>> consequences
-['B.body', 'B.date', 'sorted-posts', 'A.prev.title', 'A.html', 'B.prev.title', 'B.title', 'B.html', 'C.prev.title', 'C.html']
+['B.body', 'B.date', 'sorted-posts', 'A.prev.title', 'A.html', 'B.prev.title', 'B.html', 'B.title', 'C.prev.title', 'C.html']
 
 Had we followed this ordering, we would have regenerated both ``B.date``
 and ``B.prev.title`` before reaching and finally rebuilding ``B.html``.
@@ -354,7 +418,7 @@ Thanks to this new list of dependencies, post A will now be considered
 one of consequences of a change to the title of post C.
 
 >>> g.recursive_consequences_of(['C.title'])
-['A.html', 'C.html']
+['A.html']
 
 How can this mechanism be connected to actual code that takes the
 current values of dependencies and builds the resulting targets?  Python
