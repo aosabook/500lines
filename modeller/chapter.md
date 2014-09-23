@@ -61,8 +61,8 @@ class Node(object):
     def __init__(self):
         self.color_index = random.randint(color.MIN_COLOR, color.MAX_COLOR)
         self.aabb = AABB([0.0, 0.0, 0.0], [0.5, 0.5, 0.5])
-        self.translation = numpy.identity(4)
-        self.scalemat = numpy.identity(4)
+        self.translation_matrix = numpy.identity(4)
+        self.scaling_matrix = numpy.identity(4)
         self.selected = False
 
 class Primitive(Node):
@@ -332,8 +332,8 @@ Manipulating the ModelView matrix allows us to have a single render list for eac
     # class Node
     def render(self):
         glPushMatrix()
-        glMultMatrixf(numpy.transpose(self.translation))
-        glMultMatrixf(self.scalemat)
+        glMultMatrixf(numpy.transpose(self.translation_matrix))
+        glMultMatrixf(self.scaling_matrix)
         cur_color = color.COLORS[self.color_index]
         glColor3f(cur_color[0], cur_color[1], cur_color[2])
         if self.selected:  # emit light if the node is selected
@@ -590,7 +590,7 @@ Within the Node class, the `pick` function tests whether the ray intersects with
                      mat                 the modelview matrix to transform the ray by """
     
         # transform the modelview matrix by the current translation
-        newmat = numpy.dot(mat, self.translation)
+        newmat = numpy.dot(mat, self.translation_matrix)
         results = self.aabb.ray_hit(start, direction, newmat)
         return results
     
@@ -676,7 +676,7 @@ When the user modifies the scale of a Node, the resulting scaling matrix is mult
     # class Node
     def scale(self, up):
         s =  1.1 if up else 0.9
-        self.scalemat = numpy.dot(self.scalemat, scaling([s, s, s]))
+        self.scaling_matrix = numpy.dot(self.scaling_matrix, scaling([s, s, s]))
         self.aabb.scale(s)
 ``````````````````````````````````````````
 The function `scaling` returns such a matrix, given a list representing the `x`, `y`, and `z` scaling factors.
@@ -735,7 +735,7 @@ the OpenGL matrix state when rendering.
 `````````````````````````````````````````` {.python}
     # class Node
     def translate(self, x, y, z):
-        self.translation = numpy.dot(self.translation, translation([x, y, z]))
+        self.translation_matrix = numpy.dot(self.translation_matrix, translation([x, y, z]))
 ``````````````````````````````````````````
 The `translation` function returns a translation matrix given a list represting the `x`, `y`, and `z` translation distances.
 

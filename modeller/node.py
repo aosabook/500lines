@@ -14,8 +14,8 @@ class Node(object):
     def __init__(self):
         self.color_index = random.randint(color.MIN_COLOR, color.MAX_COLOR)
         self.aabb = AABB([0.0, 0.0, 0.0], [0.5, 0.5, 0.5])
-        self.translation = numpy.identity(4)
-        self.scalemat = numpy.identity(4)
+        self.translation_matrix = numpy.identity(4)
+        self.scaling_matrix = numpy.identity(4)
         self.selected = False
 
     def render(self):
@@ -23,7 +23,7 @@ class Node(object):
         raise NotImplementedError("The Abstract Node Class doesn't define 'render'")
 
     def translate(self, x, y, z):
-        self.translation = numpy.dot(self.translation, translation([x, y, z]))
+        self.translation_matrix = numpy.dot(self.translation_matrix, translation([x, y, z]))
 
     def rotate_color(self, forwards):
         self.color_index += 1 if forwards else -1
@@ -34,7 +34,7 @@ class Node(object):
 
     def scale(self, up):
         s =  1.1 if up else 0.9
-        self.scalemat = numpy.dot(self.scalemat, scaling([s, s, s]))
+        self.scaling_matrix = numpy.dot(self.scaling_matrix, scaling([s, s, s]))
         self.aabb.scale(s)
 
     def pick(self, start, direction, mat):
@@ -43,7 +43,7 @@ class Node(object):
                      mat                 the modelview matrix to transform the ray by """
 
         # transform the modelview matrix by the current translation
-        newmat = numpy.dot(mat, self.translation)
+        newmat = numpy.dot(mat, self.translation_matrix)
         results = self.aabb.ray_hit(start, direction, newmat)
         return results
 
@@ -61,8 +61,8 @@ class Primitive(Node):
 
     def render(self):
         glPushMatrix()
-        glMultMatrixf(numpy.transpose(self.translation))
-        glMultMatrixf(self.scalemat)
+        glMultMatrixf(numpy.transpose(self.translation_matrix))
+        glMultMatrixf(self.scaling_matrix)
         cur_color = color.COLORS[self.color_index]
         glColor3f(cur_color[0], cur_color[1], cur_color[2])
         if self.selected:  # emit light if the node is selected
