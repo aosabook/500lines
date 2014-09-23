@@ -5,11 +5,15 @@
 
 Traditional build systems are hopelessly naïve.
 
-Whether you use the venerable ``make``, the document build process
+Whether you use the venerable ``make``, or the document build process
 inside of LaTeX, or even the modern rebuild process inside of the
 popular Sphinx documentation tool for Python, you will have run across
 situations where you made a change and the build system failed to
 discover all of its ramifications.
+
+The alternative always seems to be rebuilding too much — as when you
+notice the failure and often have to remove the entirety of your cached
+output to restore the build to a working state!
 
 Document build systems are notorious in this respect.  Cross references
 in the text create dynamic relationships between the content of one page
@@ -22,16 +26,17 @@ following line to the top of a ``source.c`` source file::
 
   #include "memhelpers.h"
 
-The source file now needs to rebuild every time this header file is
-changed, but how often do developers forget to open their Makefile and
-add a dependency like the following? ::
+Thanks to the addition of this line, the source file now needs to be
+re-compiled every time this header file is changed. But how often do
+developers forget to open their Makefile and add a line like the
+following? ::
 
   source.c: memhelpers.h
 
-There do exist tools to write such rules on-the-fly, which makes the
-point perfectly: the build tool, in and of itself, is not competent to
-discover which changes to which inputs require rebuilding of which
-consequences.
+There do exist third-party tools to write such rules on-the-fly — to
+literally rewrite the ``Makefile`` — and this makes the point perfectly:
+the build tool, in and of itself, is not competent to discover which
+changes to which inputs require the rebuilding of which consequences.
 
 What if we constructed a build system that were not static, rigid, and
 incapable of understanding the way that relationships between inputs and
@@ -44,7 +49,7 @@ We have undertaken this challenge and produced the Python module
 described in this chapter: ``contingent``, a dynamic build graph that
 learns automatically the inputs that each build routine needs and, when
 an input changes, always does the least work necessary to get all of the
-dependencies back up to date again.
+outputs back up to date again.
 
 Creating and Using a Build Graph
 --------------------------------
@@ -52,7 +57,7 @@ Creating and Using a Build Graph
 Imagine that we want to automate the rebuilding of a static web site
 when any of its source files change.  Contingent offers to let us get
 started by instantiating a ``Graph`` object that will remember which
-outputs depend on which inputs.
+outputs are consequences of which inputs.
 
 >>> from contingent.graphlib import Graph
 >>> g = Graph()
@@ -98,11 +103,11 @@ be recomputed.
 So far, so good.
 
 But when dealing with document collections like a Sphinx project or
-statically generated blog, the dependency graph tends to be more
-complicated.  For example, each blog post’s navigation might point the
-way to the previous post in the blog’s history and therefore need its
-title Like the body, the value of the title is discovered when we parse
-the post’s input markup:
+statically generated blog, the graph tends to be more complicated.  For
+example, each blog post’s navigation might point the way to the previous
+post in the blog’s history and therefore need its title Like the body,
+the value of the title is discovered when we parse the post’s input
+markup:
 
 >>> g.add_edge('A.rst', 'A.title')
 >>> g.add_edge('B.rst', 'B.title')
@@ -147,9 +152,9 @@ means having to examine the date of every other blog post to determine
 which one has the closest previous date.
 
 What can a build system do in this situation?  Most systems either
-rebuild too few dependencies and deliver greater speed but at the risk
-of leaving output out of date, or they rebuild everything and usually do
-so unnecessarily.
+rebuild too few outputs and deliver greater speed but at the risk of
+leaving output out of date, or they rebuild everything and usually do so
+unnecessarily.
 
 The Sphinx build system, to take one example, seems to simply ignore the
 possibility that a change to document *A* might involve rewriting the
@@ -160,7 +165,7 @@ the documents currently being edited, and lets the others fall behind
 until the user forces their regeneration.
 
 To represent this problem with blog post dates in our own graph, we need
-to break the dependency we hand-crafted between adjacent blog posts:
+to break the edge we hand-crafted between adjacent blog posts:
 
 >>> g.remove_edge('A.title', 'B.html')
 >>> g.remove_edge('B.title', 'C.html')
@@ -176,19 +181,46 @@ its own HTML page.
 But we also need to let the date of each blog post decide which of its
 peers is the previous post.  All of the posting dates need to be
 considered together when making this determination.  This can only be
-implemented in our graph by creating a node that depends upon a property
-of every single blog post:
+implemented in our graph by creating a node that is the output — that is
+an aggregation — of a property (the date) of every single blog post:
 
->>> for post in 'ABC':
-...     g.add_edge(post + '.date', 'sorted-posts')
-...     g.add_edge('sorted-posts', post + '.prev.title')
-...     g.add_edge(post + '.prev.title', post + '.html')
+>>> g.add_edge('A.date', 'sorted-posts')
+>>> g.add_edge('B.date', 'sorted-posts')
+>>> g.add_edge('C.date', 'sorted-posts')
+
+This aggregate output — that knows all the blog-post dates — is then a
+necessary input to the routine that figures out what the word
+“previous,” and specifically the words “previous title,” mean when
+applied to any given blog post:
+
+>>> g.add_edge('sorted-posts', 'A.prev.title')
+>>> g.add_edge('sorted-posts', 'B.prev.title')
+>>> g.add_edge('sorted-posts', 'C.prev.title')
+
+Each of these previous-title nodes are then available for when we build
+the output HTML page for each blog post, and will get injected into
+their navigation bar:
+
+>>> g.add_edge('A.prev.title', 'A.html')
+>>> g.add_edge('B.prev.title', 'B.html')
+>>> g.add_edge('C.prev.title', 'C.html')
+
+We can expect all of the above edges to remain static.  Whatever the
+relationships among our blog posts, they will still each need to know
+the title (if any) of the chronologically previous post.
+
+But now we reach edges that will *not* necessarily remain in place over
+the lifetimes of our input files!  This is because they depend on the
+current chronological order A,B,C of the blog posts, that makes A the
+previous post to B, and B the previous post to C.  This could change the
+moment we edit one of their dates!  But for the moment the edges look
+like:
 
 >>> g.add_edge('A.title', 'B.prev.title')
 >>> g.add_edge('B.title', 'C.prev.title')
 
-And it is this set of edges that ruin our dependency graph.  Because of
-the possibility that an edit to any blog post’s source code might make a
+And it is this set of edges that ruin our graph.  Because of the
+possibility that an edit to any blog post’s source code might make a
 change to its date — although in practice this will be only a small
 fraction of the number of edits made during a busy writing session — a
 traditional make system will have to rebuild every single blog post when
@@ -208,8 +240,8 @@ referenced, and any reorganization of a library’s API documentation
 will change the URL of functions and classes that might be referred to
 from dozens of other documents.
 
-Given such a dense dependency graph, can a build system do any better
-than to simply perform a complete rebuild upon every modification?
+Given such a dense graph, can a build system do any better than to
+simply perform a complete rebuild upon every modification?
 
 >>> open('diagram3.dot', 'w').write(g.as_graphviz()) and None
 
@@ -285,8 +317,8 @@ instance only ``B.body``\ 's value is affected by the change, leaving
 >>> b.set('B.date', 'Initial value')
 >>> b.set('B.title', 'Initial value')
 
-Since it is only post B's output HTML that depends on its body content,
-the ``Builder`` does not need to consider the consequences of tasks
+Since it is only post B's output HTML that needs its body content, the
+``Builder`` does not need to consider the consequences of tasks
 ``B.date`` and ``B.title``, so the todo list peters out rather quickly:
 
 >>> sorted(b.todo_list)
@@ -310,7 +342,8 @@ both post B and post C.
 set()
 
 And, finally, in the presence of a change or edit that makes no
-difference the cache does not demand that we rebuild any targets at all.
+difference the cache does not demand that we rebuild any consequences at
+all.
 
 >>> b.set('B.title', 'Title B')
 >>> b.todo_list
@@ -318,9 +351,9 @@ set()
 
 But while this approach has started to reduce our work, a rebuild can
 still involve extra steps.  Walking naively forward through consequences
-like this can be inefficient, because we might rebuild a given target
-several times.  Imagine, for example, that we update B’s date so that it
-now comes after C on the timeline.
+like this can be inefficient, because we might rebuild a given
+consequence several times.  Imagine, for example, that we update B’s
+date so that it now comes after C on the timeline.
 
 >>> b.set('B.rst', 'Markup for post B dating it after post C')
 >>> sorted(b.todo_list)
@@ -352,13 +385,13 @@ The reason that we wound up rebuilding B twice in the session above is
 that we lacked the big picture of how our graph is connected.  There are
 two routes of different lengths between ``B.date`` and the final
 ``B.html`` output, but we went ahead and rebuilt ``B.html`` as soon as
-any of its dependencies changed instead of waiting to see how all of the
-paths played out.
+any of its inputs changed instead of waiting to see how all of the paths
+played out.
 
 The solution is that instead of letting ``todo()`` results drive us
 forwards, we should try ordering the consequences of ``B.date`` using
 what graph theorists call a *topological sort* that is careful to order
-nodes so that targets always fall after their dependencies in the
+nodes so that consequences always fall after their inputs in the
 resulting ordering.  If used correctly, a depth-first search can produce
 such an ordering.
 
@@ -380,16 +413,16 @@ redundant work.
 But we should note that, in the general case, that once we finish our
 topologically sorted rebuild we will still have to pay attention to the
 ``todo()`` list and keep looping until it is empty.  That is because
-nodes can actually change their dependency list each time they run, and
-that therefore the pre-ordering we compute might not reflect the real
-state of the dependency graph as it evolves.
+nodes can actually change their input list each time they run, and that
+therefore the pre-ordering we compute might not reflect the real state
+of the graph as it evolves.
 
 Why would the graph change as we are calculating it?
 
-The dependencies we have considered so far between documents are the
-result of static site design — here, the fact that each HTML page has a
-link to the preceding blog post.  But sometimes dependencies arise from
-the content itself!  Blog posts, for example, might refer to each other
+The edges we have considered so far between documents are the result of
+static site design — here, the fact that each HTML page has a link to
+the preceding blog post.  But sometimes edges arise from the content
+itself!  Blog posts, for example, might refer to each other
 dynamically::
 
     I have been learning even more about the Pandas library.
@@ -403,27 +436,29 @@ When this paragraph is rendered the output should look like:
 Therefore this HTML will need to be regenerated every time the title in
 ``learning-pandas.rst`` is edited and changed.
 
-After running a rebuild step for a target, therefore, we will need to
-reset the incoming edges from its dependencies.  In the rare case that
-the new set of edges includes one from a yet-to-be-rebuilt target
+After running a rebuild step for a consequence, therefore, we will need
+to rebuild the edges leading to it so that they reflect exactly the
+inputs it in fact used during its rebuild.  In the rare case that the
+new set of edges includes one from a yet-to-be-rebuilt consequence
 further along in the current topological sort, this will correctly
-assure that the target then reappears in the ``todo()`` set.  A full
-replacement of all incoming edges is offered through a dedicated graph
-method.  If an update were added to the text of post A to mention the
-later post C, then its dependencies would need to include that:
+assure that the consequence then reappears in the ``todo()`` set.  A
+full replacement of all incoming edges is offered through a dedicated
+graph method.  If an update were added to the text of post A to mention
+the later post C, then an edge would need to be generated to capture
+that:
 
 >>> g.add_edge('C.title', 'A.html')
 
-Thanks to this new list of dependencies, post A will now be considered
-one of consequences of a change to the title of post C.
+Thanks to this new edge, post A will now be considered one of
+consequences of a change to the title of post C.
 
 >>> g.recursive_consequences_of(['C.title'])
 ['A.html']
 
 How can this mechanism be connected to actual code that takes the
-current values of dependencies and builds the resulting targets?  Python
-gives us many possible approaches.  [Show various ways of registering
-routines?]
+current value of each node and builds the resulting consequences?
+Python gives us many possible approaches.  [Show various ways of
+registering routines?]
 
 
 ----
