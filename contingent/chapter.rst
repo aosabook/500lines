@@ -573,8 +573,7 @@ at every point on the consequences graph:
 .. illustrate task stack?
 
 
-----
-
+.. this section is a bit rougher than the above tour:
 
 Building Architecture
 ---------------------
@@ -622,41 +621,4 @@ focused and free of clutter. It is easy to reason about the parts in
 isolation from each other, and one can even imagine replacing, say, the
 Graph implementation with an off-the-shelf library.
 
-
-.. discuss framework
-
-.. deeper exposition of Builder.get
-
-
-----
-
-
-But the easiest way might be to suit up objects and watch attribute
-access and method invocation.  Python again offers several possible
-approaches.
-
-* We could wrap every method and property that we want the caching
-  system to intercept using a custom decorator.
-
-* Our logic could be backed by a custom metaclass that would then
-  automatically wrap a custom decorator around each method and property.
-
-* We could intercept attribute access on the classes themselves to
-  intercept both plain-value attribute access and method calls.
-
-I not only prefer simplicity, but I actually need a solution to have as
-few moving parts as possible if I am to have any chance of maintaining
-it later.  So I am going to opt for the last of these options.  By
-having our objects inherit from a base class with a single method, we
-will turn them into full participants in an object graph.
-
->> from contingent.interceptlib import Base
->> class Post(Base):
-..     def __init__(self):
-..         self.content = ''
-
-
-[TODO: blurb about file dates and ``touch`` and how it lets you force a
-rebuild even if ``make`` cannot see that some contingency has changed]
-
-[TODO: sprinkle some cache.__getitem__() operations through the text]
+.. and the chapter really needs a rousing conclusion
