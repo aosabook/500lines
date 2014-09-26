@@ -13,19 +13,18 @@ function Matrix3() {
 /*
  * Requires values to be in column major order.
  */
-Matrix3.prototype.set = function(a00, a10, a20, a30,
-                                 a01, a11, a21, a31,
-                                 a02, a12, a22, a32,
-                                 a03, a13, a23, a33) {
+Matrix3.prototype.set = function(a00, a10, a20,
+                                 a01, a11, a21,
+                                 a02, a12, a22) {
     this.values[0] = a00;
     this.values[1] = a10;
     this.values[2] = a20;
-    this.values[3] = a30;
-    this.values[4] = a01;
-    this.values[5] = a11;
-    this.values[6] = a21;
-    this.values[7] = a31;
-    this.values[8] = a02;
+    this.values[3] = a01;
+    this.values[4] = a11;
+    this.values[5] = a21;
+    this.values[6] = a02;
+    this.values[7] = a12;
+    this.values[8] = a22;
 };
 
 Matrix3.prototype.clear = function() {
