@@ -197,10 +197,12 @@ This is an overview diagram of this system. This diagram assumes that all three 
 .. image:: diagram.svg
 
 
-Points of Extensibility
-=======================
+Conclusion
+==========
 
-The following are just a few suggestions on how you can improve this current system.
+Through separating concerns into their own processes, we were able to build the fundamentals of a distributed continuous integration system. With each process communicating with each other through socket requests, we are able to host this system across multiple machines and that enabled us to make our system more reliable.
+
+Since the CI system is quite simple now, you can extend it yourself to be far more functional. A few suggestions for improvements are the following:
 
 Smarter Test Runners
 --------------------
@@ -217,3 +219,8 @@ Test Runner Manager
 
 Right now, you have to manually kick off the test_runner.py file to start a test runner. You can instead create a test runner manager process which will assess the current load of test requests from the dispatcher, and will scale the number of active test runners. This process will receive the 'runtest' messages and will start a test runner process for each request, and will kill unused processes when the load decreases.
 
+Using these suggestions, you can make this simple CI system more robust and fault-tolerant, and you can integrate it with other systems, like a web-based test reporter.
+
+If you wish to see the level of flexibility continuous integration systems can achieve, I recommend looking into Jenkins (http://jenkins-ci.org/), a very robust, open-sourced CI system written in Java. It provides you a basic CI system, which you can extend using plugins. You may also access its source code through GitHub: https://github.com/jenkinsci/jenkins/. Another recommended project is Travis CI (https://travis-ci.org/), which is written in Ruby and whose source code is available through GitHub: https://github.com/travis-ci/travis-ci
+
+This has been an exercise in understanding how CI systems work, and how to build one yourself. You should now have a more solid understanding of what is needed to make a reliable, distributed system, and you can now use this knowledge to develop more complex solutions.
