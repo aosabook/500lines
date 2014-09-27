@@ -34,7 +34,7 @@ A person bounces up and down, in the vertical direction, with each step. If you 
 
 Let's look at a person walking with a smartphone containing an accelerometer, in his or her shirt pocket, as depicted below.
 
-![](chapter-figures/figure-xyz-normal.png)\
+![](chapter-figures/walk-1.png)\
 
 For the sake of simplicity, we'll assume that the stick person:
 
@@ -42,11 +42,7 @@ For the sake of simplicity, we'll assume that the stick person:
 * bounces with each step in the y direction;
 * maintains the phone in the same orientation throughout the entire walk;
 
-In our perfect world, acceleration from step bounces will form a perfect sine wave in the y direction.
-
-![](chapter-figures/figure-sine-wave-1.png)\
-
-Each peak in the sine wave is exactly one step. Step counting becomes a matter of counting these perfect peaks. 
+In our perfect world, acceleration from step bounces will form a perfect sine wave in the y direction. Each peak in the sine wave is exactly one step. Step counting becomes a matter of counting these perfect peaks. 
 
 Ah, the joys of a perfect world, which we only ever experience in texts like this. Don't fret, things are about to get a little messier, and a lot more exciting. Let's add a little more reality to our world. 
 
@@ -134,18 +130,15 @@ We want to cancel all frequencies except for our constant gravitational accelera
 
 ### Implementing a Low-pass Filter
 
-Let's work through a low-pass filter implementation using our earlier example. We'll split 
+Let's work through a low-pass filter implementation using our earlier example. We'll split: 
 
 * $x(t)$ into $x_{g}(t)$ and $x_{u}(t)$, 
 * $y(t)$ into $y_{g}(t)$ and $y_{u}(t)$,
 * $z(t)$ into $z_{g}(t)$ and $z_{u}(t)$.
 
-![](chapter-figures/acceleration-total.png)\ 
-
 We'll initialize the first two values of gravitational acceleration to 0, so that the formula has initial value to work with.
 
 $x_{g}(0) = x_{g}(1) = y_{g}(0) = y_{g}(1) = z_{g}(0) = z_{g}(1) = 0$\
-
 
 Then, we'll implement the filter formula for each time series.
 
@@ -154,7 +147,6 @@ $x_{g}(t) = \alpha_{0} * (x(t) * \beta_{0} + x(t-1) * \beta_{1} + x(t-2) * \beta
 $y_{g}(t) = \alpha_{0} * (y(t) * \beta_{0} + y(t-1) * \beta_{1} + y(t-2) * \beta_{2} - y_{g}(t-1) * \alpha_{1} - y_{g}(t-2) * \alpha_{2})$\
 
 $z_{g}(t) = \alpha_{0} * (z(t) * \beta_{0} + z(t-1) * \beta_{1} + z(t-2) * \beta_{2} - z_{g}(t-1) * \alpha_{1} - z_{g}(t-2) * \alpha_{2})$\
-
 
 The resulting time series after low-pass filtering are below. 
 
@@ -227,7 +219,7 @@ When bumpiness occurs at our threshold, we can mistakenly count too many steps f
 
 ### Peaks That Are Juuuust Right
 
-In accounting for these four scenarios, we've managed to take our messy $a(t)$ and get it fairly close to our ideal sine wave, allowing us to count steps. 
+In accounting for these four scenarios, we've managed to bring our messy $a(t)$ fairly close to our ideal sine wave, allowing us to count steps. 
 
 ## Recap
 
@@ -282,9 +274,7 @@ $"x_{u}1,y_{u}1,z_{u}1|x_{g}1,y_{g}1,z_{g}1; ... x_{u}n,y_{u}n,z_{u}n|x_{g}n,y_{
 
 Dealing with multiple input formats is a common programming problem. If we want our entire program to work with both formats, every single piece of code dealing with the data would need to know how to handle both formats. This can become very messy, very quickly, especially if a third (or a fourth, or a fifth, or a hundredth) input format is added in the future. 
 
-The cleanest way for us to deal with this is to take our two input formats and determine a standard format to fit them both into as soon as possible, allowing the rest of the program to work with this new standard format. This means that the remaining parts of the program don't need to be concerned with, or even know about, multiple formats. 
-
-The diagram below outlines the basic idea. 
+The cleanest way for us to deal with this is to take our two input formats and determine a standard format to fit them both into as soon as possible, allowing the rest of the program to work with this new standard format. This means that the remaining parts of the program don't need to be concerned with, or even know about, multiple formats. The diagram below outlines the basic idea. 
 
 ![](chapter-figures/input-format-to-standard-format.png)\
 
@@ -582,23 +572,9 @@ private
 end
 ~~~~~~~
 
-Looking at our initializer, we notice that we're accepting `gender`, `height`, and `stride` all as optional parameters. Handling optional information is a common programming problem. The diagram below captures how we calculate stride using the optional parameters:
+At the top of our class, we define constants to avoid hardcoding "magic" numbers and strings throughout. Looking at our initializer, we notice that we're accepting `gender`, `height`, and `stride` all as optional parameters. Handling optional information is a common programming problem. Our initializer accepts the optional parameters, and sets instance variables of the same names, after some data formatting to allow for a case insensitive gender parameter to be passed in, as long as its defined in `GENDER`, and prevent a height and stride that is non-numerical or less than 0.
 
-![](chapter-figures/optional-parameters.png)\
-
-Our initializer accepts the optional parameters, and sets instance variables of the same names, after some data formatting in the initializer to allow for a case insensitive gender parameter to be passed in, and prevent a height and stride that is non-numerical or less than 0.
-
-* We set `@gender` to the stringified, downcased version of the passed in `gender` parameter, as long as it's included in the `GENDER` constant. If it's not, our `@gender` instance variable will be `nil`.
-* `@height` is set to the `height` parameter converted to a float, as long as it's greater than 0. If not, then `@height` will also be `nil`.
-* If `stride` converted to a float is greater than 0, then we set that value to `@stride`. If not, we call `calculate_stride`.
-
-At the top of our class, we define the following constants:
-
-* The `GENDER` array stores gender values.
-* The `MULTIPLIERS` hash stores the multiplier values for a male and female that we can multiply height by to calculate stride.
-* The `AVERAGES` hash stores the average stride values for a male and female.
-
-If a stride is provided, we're all set. Even when all optional parameters are provided, the input stride takes precedence. If not, our `calculate_stride` method will determine the most accurate stride length it can for the user, using the optional information provided. This is done with an `if` statement. 
+Even when all optional parameters are provided, the input stride takes precedence. If a stride is provided, we're all set. If not, our `calculate_stride` method will determine the most accurate stride length it can for the user. This is done with an `if` statement. 
 
 * The most accurate way to calculate stride beyond it being provided directly is to use a person's height and a multiplier based on gender. If we have a valid gender and height, we can calculate stride by multiplying the height by the value in `MULTIPLIERS` which corresponds to the gender provided. We use a multiplier of 0.413 for a female, and 0.415 for a male. 
 * A person's height is a better predictor of stride than their gender is. Therefore, if we don't have both gender and height, but we do have a valid height, we can multiply the height by the average of the two values in `MULTIPLIERS`. 
