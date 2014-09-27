@@ -199,7 +199,7 @@ leaving us with $a(t)$, in 1-dimensional space.
 
 ![](chapter-figures/acceleration-dotproduct.png)\ 
 
-The dot product is very powerful, yet beautifully simple. 
+We can now visially pick out where the steps are. The dot product is very powerful, yet beautifully simple. 
 
 ## Solutions in the Real World 
 
