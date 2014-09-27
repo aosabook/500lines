@@ -199,43 +199,31 @@ leaving us with $a(t)$, in 1-dimensional space.
 
 ![](chapter-figures/acceleration-dotproduct.png)\ 
 
-We can now visially pick out where the steps are. The dot product is very powerful, yet beautifully simple. 
+We can now visually pick out where the steps are. The dot product is very powerful, yet beautifully simple. 
 
 ## Solutions in the Real World 
 
 We saw how quickly our seemingly simple problem turned more complex when we threw in the challenges of the real world and real people. However, we're getting a lot closer to counting steps, and we can see how $a(t)$ is starting to resemble our ideal sine wave. But, only "kinda, sorta" starting to. We still need to make our messy $a(t)$ time series smoother. There are four main issues with $a(t)$ in its current state. Let's examine each one.
 
+![](chapter-figures/jumpy-slow-short-bumpy.png)\ 
+
 ### 1. Jumpy Peaks
 
-$a(t)$ is very "jumpy", because a phone can jiggle with each step. This adds a high-frequency component to our time series, seen as several skinny peaks per step, that we can eliminate using a low-pass Chebyshev filter.
-
-![](chapter-figures/acceleration-dotproduct-jumpy.png)\ 
-
-By studying numerous data sets, we've determined that a step acceleration is at maximum 5 Hz. We'll pick $\alpha$ and $\beta$ to attenuate all signals above 5 Hz, resulting in a cleaner $a(t)$ below.
-
-![](chapter-figures/acceleration-dotproduct-lowpass.png)\ 
+$a(t)$ is very "jumpy", because a phone can jiggle with each step, adding a high-frequency component to our time series. By studying numerous data sets, we've determined that a step acceleration is at maximum 5 Hz. We can again use a low-pass Chebyshev filter, picking $\alpha$ and $\beta$ to attenuate all signals above 5 Hz, to remove the "jumpiness".
 
 ### 2. Slow Peaks
 
-Examining our cleaner $a(t)$, we see a very "slow" peak at the start. With a sampling rate of 100, this peak spans 1.5 seconds from 0 crossing to 0 crossing, which is far too slow to be a step. This slow acceleration is a low-frequency component, that we can again cancel using a high-pass Chebyshev filter. In studying enough samples of data, we've determined that the slowest step we can take is at a 1 Hz frequency. Passing $a(t)$ through a high-pass filter, we see the even cleaner time series below.
-
-![](chapter-figures/acceleration-filtered.png)\ 
+With a sampling rate of 100, the slow peak displayed in $a(t)$ spans 1.5 seconds, which is too slow to be a step. In studying enough samples of data, we've determined that the slowest step we can take is at a 1 Hz frequency. Slower accelerations are due to a low-frequency component, that we can again remove using a high-pass Chebyshev filter, setting $\alpha$ and $\beta$ to cancel all signals below 1 Hz. 
 
 ### 3. Short Peaks
 
-Since a phone is used for more than just an accelerometer, we're always going to have peaks in the direction of gravity that aren't due to a step. For instance, as a person is using an app or making a call, but not walking while doing it, the accelerometer will register smaller movements in the direction of gravity. These movements will present themselves as shorter peaks in our time series. 
-
-![](chapter-figures/acceleration-filtered-threshold.png)\ 
-
-The easiest way to deal with these peaks is to set a minimum threshold value, and use that to disqualify peaks. We can now count steps by counting every single time $a(t)$ crosses the threshold in the positive direction.
+As a person is using an app or making a call, the accelerometer registers small movements in the direction of gravity, presenting themselves as short peaks in our time series. We can eliminate these short peaks by setting a minimum threshold, and counting a step every time $a(t)$ crosses that threshold in the positive direction.
 
 ### 4. Bumpy Peaks
 
-When smoothing out the time series for the purposes of building a step counter, we have to accommodate many types of people with different walks. While it's reasonable to get a near-perfect sine wave for a specific walk done by a specific person, we do need to set minimum and maximum threshold frequencies to filter out based on a large sample size of people and walks. This means that we may sometimes filter a little too much, or slightly less than necessary. While we'll often have fairly smooth peaks, we can, once in a while, get a "bumpier" peak. Let's zoom in on one such peak.
+Our pedometer should accommodate many people with different walks, so we set minimum and maximum step frequencies based on a large sample size of people and walks. This means that we may sometimes filter slightly too much or too little. While we'll often have fairly smooth peaks, we can, once in a while, get a "bumpier" peak. The diagram above zooms in on one such peak. 
 
-![](chapter-figures/bumpy-peak-fixed.png)\ 
-
-We've set our threshold to $0.1g$, and since the bumpiness happens exactly at the threshold, we mistakenly count two steps for this one peak. We can use a method called **hysteresis** to address this. Hysteresis refers to the dependence of an output on past inputs. We can count every time we cross not only the threshold in the positive direction, but also every time we cross the x-axis at 0 in the negative direction. We only count steps where a threshold cross occurs after a 0 crossing, to ensure we only count each step once. 
+When bumpiness occurs at our threshold, we can mistakenly count too many steps for one peak. We can use a method called **hysteresis** to address this. Hysteresis refers to the dependence of an output on past inputs. We can count threshold crossings in the positive direction, as well as 0 crossings in the negative direction. Then, we only count steps where a threshold crossing occurs after a 0 crossing, ensuring we count each step only once. 
 
 ### Peaks That Are Juuuust Right
 
