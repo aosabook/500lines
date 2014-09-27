@@ -20,7 +20,22 @@ class Node(object):
 
     def render(self):
         """ renders the item to the screen """
-        raise NotImplementedError("The Abstract Node Class doesn't define 'render'")
+        glPushMatrix()
+        glMultMatrixf(numpy.transpose(self.translation_matrix))
+        glMultMatrixf(self.scaling_matrix)
+        cur_color = color.COLORS[self.color_index]
+        glColor3f(cur_color[0], cur_color[1], cur_color[2])
+        if self.selected:  # emit light if the node is selected
+            glMaterialfv(GL_FRONT, GL_EMISSION, [0.3, 0.3, 0.3])
+        
+        self.render_self()
+        if self.selected:
+            glMaterialfv(GL_FRONT, GL_EMISSION, [0.0, 0.0, 0.0])
+
+        glPopMatrix()
+
+    def render_self(self):
+        raise NotImplementedError("The Abstract Node Class doesn't define 'render_self'")
 
     def translate(self, x, y, z):
         self.translation_matrix = numpy.dot(self.translation_matrix, translation([x, y, z]))
@@ -58,19 +73,8 @@ class Primitive(Node):
         super(Primitive, self).__init__()
         self.call_list = None
 
-    def render(self):
-        glPushMatrix()
-        glMultMatrixf(numpy.transpose(self.translation_matrix))
-        glMultMatrixf(self.scaling_matrix)
-        cur_color = color.COLORS[self.color_index]
-        glColor3f(cur_color[0], cur_color[1], cur_color[2])
-        if self.selected:  # emit light if the node is selected
-            glMaterialfv(GL_FRONT, GL_EMISSION, [0.3, 0.3, 0.3])
+    def render_self(self):
         glCallList(self.call_list)
-        if self.selected:
-            glMaterialfv(GL_FRONT, GL_EMISSION, [0.0, 0.0, 0.0])
-
-        glPopMatrix()
 
 
 
@@ -93,19 +97,9 @@ class HierarchicalNode(Node):
         super(HierarchicalNode, self).__init__()
         self.child_nodes = []
 
-    def render(self):
-        glPushMatrix()
-        glMultMatrixf(numpy.transpose(self.translation_matrix))
-        glMultMatrixf(self.scaling_matrix)
-        if self.selected:  # emit light if the node is selected
-            glMaterialfv(GL_FRONT, GL_EMISSION, [0.3, 0.3, 0.3])
-
+    def render_self(self):
         for child in self.child_nodes:
             child.render()
-
-        if self.selected:
-            glMaterialfv(GL_FRONT, GL_EMISSION, [0.0, 0.0, 0.0])
-        glPopMatrix()
 
 
 class SnowFigure(HierarchicalNode):

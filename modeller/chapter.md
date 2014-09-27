@@ -118,7 +118,7 @@ class SnowFigure(HierarchicalNode):
 We create a class called HierarchicalNode that models Nodes that contain other nodes, managing a list of 'children'. With the HierarchicalNode class, it becomes very easy to add figures
 to the scene. Now, defining the snow figure is as simple as specifying the shapes that comprise it and their relative positions and sizes.
 
-By making the `Node` class extensible in this way, we are able to add new types of shapes to the scene without changing any of the other code for scene
+By making the `Node` class extensible in this way, we can add new types of shapes to the scene without changing any of the other code for scene
 manipulation and rendering. Using `Node` concept to abstract away the fact that one `Scene` object may have many children is known as the Composite Design Pattern.
 
 ### Linear algebra and Coordinate Spaces
@@ -146,11 +146,34 @@ TODO: Diagram?
 #### Model, World, View, and Projection Coordinate Spaces
 We use the Model, World, View, and Projection coordinate spaces in this project.
 Each node in the scene has its own coordinate space, called the Model coordinate space. The representation of the node is stored with respect to the origin of the model coordinate space.
-This means that we can re-use the node representation for each instance of a particular type of Node, without having to redefine the geometry.
+For example, the cube primitive is stored as the 6 faces that make up the cube: 
 
-In order to orient nodes in the scene, we convert points Model points into the World coordinate space. In the world coordinate space, everything is represented with respect to the scene's origin.
+``````````````````````````````````````````
+# Left face
+((-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, 0.5), (-0.5, 0.5, -0.5)),
+# Back face
+((-0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (0.5, 0.5, -0.5), (0.5, -0.5, -0.5)),
+# Right face
+((0.5, -0.5, -0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5), (0.5, -0.5, 0.5)),
+# Front face
+((-0.5, -0.5, 0.5), (0.5, -0.5, 0.5), (0.5, 0.5, 0.5), (-0.5, 0.5, 0.5)),
+# Bottom face
+((-0.5, -0.5, 0.5), (-0.5, -0.5, -0.5), (0.5, -0.5, -0.5), (0.5, -0.5, 0.5)),
+# Top face
+((-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), (0.5, 0.5, 0.5), (0.5, 0.5, -0.5))
+``````````````````````````````````````````
+TODO: Diagram of the cube?
 
-Points in the World coordinate space are again converted to the View coordinate space, which represents points with respect to the camera location and orientation.
+Each of the vertices of the cube is specified with respect to the origin of that particular Cube's model coordinate space. To find the representation of the cube in the world coordinate space,
+we multiply the vertices for each of its faces by the transformation matrix that converts from model to world coordinate spaces.
+
+Each Node stores its scaling and translation matrices. These two matrices form the transformation matrix to convert from the Node's model coordinate space to the node's parent coordinate space. 
+For Nodes added directly to the scene, the parent coordinate space is the model coordinate space. However, for Hierarchical Nodes, the parent coordinate space of a child node is the Model coordinate space if its parent.
+To transform a node, we don't need to change the definition of its geometry, or manipulate any of its child nodes, we only need to adjust the transformation matrix.
+
+In the world coordinate space, everything is represented with respect to the Scene's origin. 
+
+For rendering, points in the world coordinate space are converted to the View coordinate space, which represents points with respect to the camera location and orientation.
 
 Finally the points in the View coordinate space are transformed using a special transformation matrix called a Projection matrix. The Projection matrix acts like a lens, converting the points from 3 dimensions into 2 dimensions
 so that they can be displayed on the screen.
@@ -344,18 +367,18 @@ calls the `render` function for each `Node`.
             node.render()
 ``````````````````````````````````````````
 
-
 <!--- TODO: is this the right place for a description of glCallList? -->
 An OpenGL Call List is a series of OpenGL calls that are bundled together and named. The calls can be dispatched with `glCallList(LIST_NAME)`. The rendering function uses `glCallList` after setting up the matrices.
-Each primitive (`Sphere` and `Cube`) defines the call list required to render it.  For example, the render list for the Cube primitive draws a cube at the origin with sides of length 1.
+Each primitive (`Sphere` and `Cube`) defines the call list required to render it. For example, the call list for a Cube draws the 6 faces of the cube, with the center at the origin and the edges exactly 1 unit long.
 
-Here we see how `glPushMatrix` and `glPopMatrix` functions in OpenGL allow us to save and restore the state of the ModelView matrix after we are finished rendering the Node. 
-Manipulating the ModelView matrix allows us to have a single render list for each type of primitive.  By setting the OpenGL matrix, we can change the size and location the rendered `Primitive`. Notice that the 
-`Node` stores its color, location, and scale, and applies the state to the OpenGL state before rendering. If the node is currently selected, we make it emit light. This way, the user has a visual indication of which node they have selected.
+Rendering Nodes is based on the transformation matrices that each Node stores. Regardless of the type of Node, the first step to rendering is to set the OpenGL ModelView matrix to store the transformation matrix from the model
+coordinate space to the view coordinate space. Once the OpenGL matrices are up to date, we call the `render_self` function to tell the node to make the necessary OpenGL calls to draw itself. Finally, undo any changes we made to the OpenGL
+state for this specific Node.  We use `glPushMatrix` and `glPopMatrix` functions in OpenGL to save and restore the state of the ModelView matrix after we are finished rendering the Node. 
 
 `````````````````````````````````````````` {.python}
     # class Node
     def render(self):
+        """ renders the item to the screen """
         glPushMatrix()
         glMultMatrixf(numpy.transpose(self.translation_matrix))
         glMultMatrixf(self.scaling_matrix)
@@ -363,13 +386,30 @@ Manipulating the ModelView matrix allows us to have a single render list for eac
         glColor3f(cur_color[0], cur_color[1], cur_color[2])
         if self.selected:  # emit light if the node is selected
             glMaterialfv(GL_FRONT, GL_EMISSION, [0.3, 0.3, 0.3])
-        glCallList(self.call_list)
+        
+        self.render_self()
+
         if self.selected:
             glMaterialfv(GL_FRONT, GL_EMISSION, [0.0, 0.0, 0.0])
-    
         glPopMatrix()
-``````````````````````````````````````````
 
+    def render_self(self):
+        raise NotImplementedError("The Abstract Node Class doesn't define 'render_self'")
+
+    # class Primitive
+    def render_self(self):
+        glCallList(self.call_list)
+
+    # class HierarchicalNode
+    def render_self(self):
+        for child in self.child_nodes:
+            child.render()
+
+``````````````````````````````````````````
+Recall that each Node stores the transformation matrix from its Model coordinate space to its parent coordinate space.
+
+Manipulating the ModelView matrix allows us to have a single render list for each type of primitive.  By setting the OpenGL matrix, we can change the size and location the rendered `Primitive`. Notice that the 
+`Node` stores its color, location, and scale, and applies the state to the OpenGL state before rendering. If the node is currently selected, we make it emit light. This way, the user has a visual indication of which node they have selected.
 Thus, using the scene traversal and OpenGL Matrix Stack allows us to implement the `Node` class in an extensible way, and allows each `Node`'s render code
 to be independent from its location in the scene.
 
