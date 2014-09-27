@@ -16,7 +16,7 @@ from numpy.linalg import norm, inv
 
 from interaction import Interaction
 from primitive import init_primitives, G_OBJ_PLANE
-from node import Sphere, Cube
+from node import Sphere, Cube, SnowFigure
 from scene import Scene
 
 
@@ -65,17 +65,17 @@ class Viewer(object):
         cube_node = Cube()
         cube_node.translate(2, 0, 2)
         cube_node.color_index = 2
-        #self.scene.add_node(cube_node)
+        self.scene.add_node(cube_node)
 
         sphere_node = Sphere()
         sphere_node.translate(-2, 0, 2)
         sphere_node.color_index = 3
-        #self.scene.add_node(sphere_node)
+        self.scene.add_node(sphere_node)
 
-        sphere_node_2 = Sphere()
-        sphere_node_2.translate(-2, 0, -2)
-        sphere_node_2.color_index = 1
-        #self.scene.add_node(sphere_node_2)
+        hierarchical_node = SnowFigure()
+        hierarchical_node.translate(-2, 0, -2)
+        hierarchical_node.color_index = 1
+        self.scene.add_node(hierarchical_node)
 
     def init_interaction(self):
         """ init user interaction and callbacks """
