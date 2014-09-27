@@ -1,4 +1,3 @@
-import sys
 import random
 from OpenGL.GL import glCallList, glColor3f, glMaterialfv, glMultMatrixf, glPopMatrix, glPushMatrix, \
                       GL_EMISSION, GL_FRONT
@@ -36,7 +35,6 @@ class Node(object):
     def scale(self, up):
         s =  1.1 if up else 0.9
         self.scaling_matrix = numpy.dot(self.scaling_matrix, scaling([s, s, s]))
-        #self.aabb.scale(s)
 
     def pick(self, start, direction, mat):
         """ Return whether or not the ray hits the object
@@ -88,6 +86,8 @@ class Cube(Primitive):
     def __init__(self):
         super(Cube, self).__init__()
         self.call_list = G_OBJ_CUBE 
+
+
 class HierarchicalNode(Node):
     def __init__(self):
         super(HierarchicalNode, self).__init__()
