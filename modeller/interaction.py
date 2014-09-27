@@ -93,6 +93,8 @@ class Interaction(object):
             self.trigger('place', 'sphere', x, y)
         elif key == 'c':
             self.trigger('place', 'cube', x, y)
+        elif key == 'f':
+            self.trigger('place', 'figure', x, y)
         elif key == GLUT_KEY_UP:
             self.trigger('scale', up=True)
         elif key == GLUT_KEY_DOWN:

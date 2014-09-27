@@ -1,3 +1,4 @@
+import sys
 import random
 from OpenGL.GL import glCallList, glColor3f, glMaterialfv, glMultMatrixf, glPopMatrix, glPushMatrix, \
                       GL_EMISSION, GL_FRONT
@@ -35,7 +36,7 @@ class Node(object):
     def scale(self, up):
         s =  1.1 if up else 0.9
         self.scaling_matrix = numpy.dot(self.scaling_matrix, scaling([s, s, s]))
-        self.aabb.scale(s)
+        #self.aabb.scale(s)
 
     def pick(self, start, direction, mat):
         """ Return whether or not the ray hits the object
@@ -43,7 +44,8 @@ class Node(object):
                      mat                 the modelview matrix to transform the ray by """
 
         # transform the modelview matrix by the current translation
-        newmat = numpy.dot(mat, self.translation_matrix)
+        newmat = numpy.dot(numpy.dot(mat, self.translation_matrix), numpy.linalg.inv(self.scaling_matrix))
+        print newmat
         results = self.aabb.ray_hit(start, direction, newmat)
         return results
 
@@ -71,6 +73,8 @@ class Primitive(Node):
         if self.selected:
             glMaterialfv(GL_FRONT, GL_EMISSION, [0.0, 0.0, 0.0])
 
+        self.aabb.render()
+
         glPopMatrix()
 
 
@@ -87,3 +91,37 @@ class Cube(Primitive):
     def __init__(self):
         super(Cube, self).__init__()
         self.call_list = G_OBJ_CUBE
+
+
+class HierarchicalNode(Node):
+    def __init__(self):
+        super(HierarchicalNode, self).__init__()
+        self.child_nodes = []
+
+    def render(self):
+        glPushMatrix()
+        glMultMatrixf(numpy.transpose(self.translation_matrix))
+        glMultMatrixf(self.scaling_matrix)
+        if self.selected:  # emit light if the node is selected
+            glMaterialfv(GL_FRONT, GL_EMISSION, [0.3, 0.3, 0.3])
+
+        for child in self.child_nodes:
+            child.render()
+
+        if self.selected:
+            glMaterialfv(GL_FRONT, GL_EMISSION, [0.0, 0.0, 0.0])
+        glPopMatrix()
+
+
+class SnowFigure(HierarchicalNode):
+    def __init__(self):
+        super(SnowFigure, self).__init__()
+        self.child_nodes = [Sphere(), Sphere(), Sphere()]
+        self.child_nodes[0].translate(0, -1.1, 0)
+        self.child_nodes[1].translate(0, -0.3, 0)
+        self.child_nodes[1].scaling_matrix = numpy.dot(self.scaling_matrix, scaling([0.8, 0.8, 0.8]))
+        self.child_nodes[2].translate(0, 0.4, 0)
+        self.child_nodes[2].scaling_matrix = numpy.dot(self.scaling_matrix, scaling([0.7, 0.7, 0.7]))
+        for child_node in self.child_nodes:
+            child_node.color_index = color.MIN_COLOR
+        self.aabb = AABB([0.0, 0.0, 0.0], [0.5, 1.1, 0.5])
