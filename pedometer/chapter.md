@@ -14,15 +14,9 @@ The rise of the mobile device brought with it a trend to collect more and more d
 
 ## What's an Accelerometer, You Ask?
 
-An accelerometer is a piece of hardware that measures acceleration in the x, y, and z directions. In today's mobile world, many people carry an accelerometer with them wherever they go, as it's built into almost all smartphones currently on the market.
+An accelerometer is a piece of hardware that measures acceleration in the x, y, and z directions. In today's mobile world, many people carry an accelerometer with them wherever they go, as it's built into almost all smartphones currently on the market. The x, y, and z directions are relative to the phone.
 
-The x, y, and z directions are relative to the phone.
-
-TODO: This diagram is a direct copy from Apple. Problem? 
-
-![](chapter-figures/figure-iphone-accelerometer.png)\
-
-An accelerometer returns a **signal** in 3-dimensional space. A signal is a set of data points recorded over time. Each component of the signal is a time series representing acceleration in one of the x, y, or z directions. Each point in a time series is the acceleration in that direction at a specific point in time. For simplicity, we'll assume that all smartphone accelerometers return acceleration in units of g-force. One *g* is equal to $9.8 m/s^2$, which is the gravitational acceleration on Earth.
+An accelerometer returns a **signal** in 3-dimensional space. A signal is a set of data points recorded over time. Each component of the signal is a time series representing acceleration in one of the x, y, or z directions. Each point in a time series is the acceleration in that direction at a specific point in time. Acceleration is measured in units of g-force. One *g* is equal to $9.8 m/s^2$, which is the gravitational acceleration on Earth.
 
 The diagram below shows an example acceleration signal from an accelerometer with the three time series.
 
@@ -209,21 +203,15 @@ The dot product is very powerful, yet beautifully simple.
 
 ## Solutions in the Real World 
 
-We saw how quickly our seemingly simple problem turned a little more complex when we threw in the challenges of the real world and real people. However, we're getting a lot closer to counting steps. 
-
-Using the two mathematical tools from above, a low-pass filter and the dot product, we were able to bring our real world, complex signal a lot closer to our ideal one. We're even able to see pick out where the steps bounces are. We can see how $a(t)$ is starting to resemble our ideal sine wave. But, only "kinda, sorta" starting to. 
-
-We need to make our messy $a(t)$ time series smoother, so that it looks more like our ideal sine wave, allowing us to count steps. There are four main issues with $a(t)$ in its current state. Let's look at each one.
+We saw how quickly our seemingly simple problem turned more complex when we threw in the challenges of the real world and real people. However, we're getting a lot closer to counting steps, and we can see how $a(t)$ is starting to resemble our ideal sine wave. But, only "kinda, sorta" starting to. We still need to make our messy $a(t)$ time series smoother. There are four main issues with $a(t)$ in its current state. Let's examine each one.
 
 ### 1. Jumpy Peaks
 
-$a(t)$ is very "jumpy". An imperfect real world means that as the phone accelerates with each step, it can also jiggle up and down due to where and how it's being held. These real-life issues cause the jumpiness in our time series, which we call **noise**. Noise is a high-frequency component in our time series that causes some very skinny peaks along with each peak due to a step. These can be miscounted as additional steps.  
+$a(t)$ is very "jumpy", because a phone can jiggle with each step. This adds a high-frequency component to our time series, seen as several skinny peaks per step, that we can eliminate using a low-pass Chebyshev filter.
 
 ![](chapter-figures/acceleration-dotproduct-jumpy.png)\ 
 
-The real world is noisy and messy, and won't give us perfect peaks, but we can do a lot to smooth out the noise and get close to perfection. A low-pass filter can be used once again to eliminate the "jumpy", high frequency portions. This time, we'll pick our $\alpha$ and $\beta$ coefficients such that we attenuate all signals above 5 Hz. By studying numerous data sets, we've determine that an acceleration due to a step is at a maximum frequency of 5 Hz, and anything above that is noise. 
-
-Passing our messy time series through another low-pass filter, we get a cleaner $a(t)$ below.
+By studying numerous data sets, we've determined that a step acceleration is at maximum 5 Hz. We'll pick $\alpha$ and $\beta$ to attenuate all signals above 5 Hz, resulting in a cleaner $a(t)$ below.
 
 ![](chapter-figures/acceleration-dotproduct-lowpass.png)\ 
 
@@ -247,13 +235,9 @@ The easiest way to deal with these peaks is to set a minimum threshold value, an
 
 When smoothing out the time series for the purposes of building a step counter, we have to accommodate many types of people with different walks. While it's reasonable to get a near-perfect sine wave for a specific walk done by a specific person, we do need to set minimum and maximum threshold frequencies to filter out based on a large sample size of people and walks. This means that we may sometimes filter a little too much, or slightly less than necessary. While we'll often have fairly smooth peaks, we can, once in a while, get a "bumpier" peak. Let's zoom in on one such peak.
 
-![](chapter-figures/bumpy-peak.png)\ 
-
-Assuming that we've set our threshold to $0.1g$, in this situation, the bumpiness happens to be exactly at the threshold. If we're counting all instances where the time series crossed the threshold in the positive direction, we would count two steps for this one peak, even though only one step was actually taken. 
-
-We can use a method called **hysteresis** to address this. Hysteresis refers to the dependence of an output on past inputs. In our case, we can count every time we cross not only the threshold in the positive direction, but we can also count every time we cross the x-axis at 0 in the negative direction. We only count steps where a threshold cross occurs after a 0 crossing. That way, we'll never double-count steps for a single peak.
-
 ![](chapter-figures/bumpy-peak-fixed.png)\ 
+
+We've set our threshold to $0.1g$, and since the bumpiness happens exactly at the threshold, we mistakenly count two steps for this one peak. We can use a method called **hysteresis** to address this. Hysteresis refers to the dependence of an output on past inputs. We can count every time we cross not only the threshold in the positive direction, but also every time we cross the x-axis at 0 in the negative direction. We only count steps where a threshold cross occurs after a 0 crossing, to ensure we only count each step once. 
 
 ### Peaks That Are Juuuust Right
 
@@ -1125,54 +1109,7 @@ The `get '/uploads'` route sets `@uploads` through `Upload.all`, and `@error` if
 </html>
 ~~~~~~~
 
-The `uploads` view first pulls in a style sheet file, `styles.css`. The style sheet, below, uses basic css for some minimal styling of our views.
-
-~~~~~~~
-table.summary {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  width: 50%;
-  display: inline;
-  margin: 0% 10%;
-}
-
-tr, th {
-  text-align: left;
-  font-size: 14px;
-  height: 30px;
-}
-
-td { border-top: solid 1px rgb(221, 221, 221); }
-
-form {
-  display: inline-table;
-  width: 20%;
-}
-
-h3.upload-header {
-  font-size: 14px;
-  margin-bottom: 6px;
-}
-
-input { width: 200px; }
-
-a.nav { 
-  float: right;
-  margin: 20px 150px 0 0;
-}
-
-.error { 
-  text-align: center;
-  color: red;
-}
-
-.graph {
-  min-width: 310px;
-  height: 400px;
-  margin: 0 auto;
-}
-~~~~~~~
-
-The `uploads` view also renders the `summary` view. We place it in its own file, because we reuse it again in another view, which we'll examine next.
+The `uploads` view first pulls in a style sheet file, `styles.css`, which we've eliminated for brevity. The `uploads` view also renders the `summary` view. We place it in its own file, because we reuse it again in another view, which we'll examine next.
 
 ~~~~~~~
 <table class="summary">
