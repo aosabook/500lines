@@ -53,8 +53,6 @@ This base class allows us to reason about the scene abstractly.
 The rest of the code base doesn't need to know about the details of the objects it displays, it only needs to know that they are `Node`s. 
 Each type of `Node` defines its own behaviour for rendering itself and for any other necessary interactions.
 
-In this project,`Sphere` and a `Cube` available. More shapes can be added easily by extending the Node class again.
-
 `````````````````````````````````````````` {.python}
 class Node(object):
     """ Base class for scene elements """
@@ -90,8 +88,35 @@ selection below.
 The abstract Node class contains all of the logic common to all nodes. The sub classes of `Node` override specific functionality if needed. Sub classes are also required to
 provide a `render` function.
 
-Using a class structure like this means that new scene objects can be added easily by extending the `Node` class. As an example of the extensibility, consider adding a `Node` type that combines multiple
-primitives, like a figure for a character. We can easily extend the `Node` class for this situation by creating a new class `class Figure(Node)` which overrides the functions of `Node` to manage a list of sub-nodes.
+The simplest concrete implementations of Node are Primitives. A Primitive is a single solid shape that can be added the scene. In this project, the primitives are Cube and Sphere.
+
+The class structure like this means that new scene objects can be added easily by extending the `Node` class.  In particular, we can add Nodes that contain other Nodes.
+Consider a very basic figure, such as a typical snow figure, made up of three spheres. Even though the figure is comprised of three separate primitives, we would like to be able to treat it as a single object.
+Luckily, our class structure for `Node` facilitates this very easily.
+
+`````````````````````````````````````````` {.python}
+class HierarchicalNode(Node):
+    def __init__(self):
+        super(HierarchicalNode, self).__init__()
+        self.child_nodes = []
+
+
+class SnowFigure(HierarchicalNode):
+    def __init__(self):
+        super(SnowFigure, self).__init__()
+        self.child_nodes = [Sphere(), Sphere(), Sphere()]
+        self.child_nodes[0].translate(0, -0.6, 0)
+        self.child_nodes[1].translate(0, 0.1, 0)
+        self.child_nodes[1].scaling_matrix = numpy.dot(self.scaling_matrix, scaling([0.8, 0.8, 0.8]))
+        self.child_nodes[2].translate(0, 0.75, 0)
+        self.child_nodes[2].scaling_matrix = numpy.dot(self.scaling_matrix, scaling([0.7, 0.7, 0.7]))
+        for child_node in self.child_nodes:
+            child_node.color_index = color.MIN_COLOR
+        self.aabb = AABB([0.0, 0.0, 0.0], [0.5, 1.1, 0.5])
+``````````````````````````````````````````
+
+We create a class called HierarchicalNode that models Nodes that contain other nodes, managing a list of 'children'. With the HierarchicalNode class, it becomes very easy to add figures
+to the scene. Now, defining the snow figure is as simple as specifying the shapes that comprise it and their relative positions and sizes.
 
 By making the `Node` class extensible in this way, we are able to add new types of shapes to the scene without changing any of the other code for scene
 manipulation and rendering. Using `Node` concept to abstract away the fact that one `Scene` object may have many children is known as the Composite Design Pattern.
