@@ -217,9 +217,7 @@ By studying numerous data sets, we've determined that a step acceleration is at 
 
 ### 2. Slow Peaks
 
-Examining our cleaner $a(t)$, we see a very "slow" peak at the very start. Given that our sampling rate is 100, we see that this peak, from 0 crossing to 0 crossing, took over one and a half seconds to complete. That's incredibly slow for a step, so we know that it must be due to another, slower acceleration in the direction of gravity. This slow acceleration is a low-frequency component, that we can cancel our using a high-pass filter. We'll use our Chebyshev filter formula again, only this time we'll use it to cancel all frequencies below 1 Hz. In studying enough samples of data, we've determined that the slowest step we can take is at a 1 Hz frequency. 
-
-Passing $a(t)$ through a high-pass filter, we see the even cleaner time series below. Note that the slow accelerations are gone. 
+Examining our cleaner $a(t)$, we see a very "slow" peak at the start. With a sampling rate of 100, this peak spans 1.5 seconds from 0 crossing to 0 crossing, which is far too slow to be a step. This slow acceleration is a low-frequency component, that we can again cancel using a high-pass Chebyshev filter. In studying enough samples of data, we've determined that the slowest step we can take is at a 1 Hz frequency. Passing $a(t)$ through a high-pass filter, we see the even cleaner time series below.
 
 ![](chapter-figures/acceleration-filtered.png)\ 
 
