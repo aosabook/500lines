@@ -219,8 +219,8 @@ GLUT is the OpenGL Utility Toolkit. Is is bundled with OpenGL and it allows us t
 is sufficient for our purposes. If we wanted a more full featured library for window management and user interaction, we would consider using a full windowing toolkit like GTK or Qt.
 
 ### Rendering the Scene
-With a basic understanding of OpenGL, let's examine how to render the `Scene` to the screen.  We start by creating a class, `Viewer`, to manage interaction with OpenGL.
-We use a single `Viewer` instance, and it is the driver of the rest of the program's behaviour.
+With a basic understanding of OpenGL, let's examine how to render the `Scene` to the screen.  We start by creating a class, `Viewer`, to manage interaction with OpenGL and drive the rest of the modeller.
+We use a single `Viewer` instance, which manages window creation, rendering, and contains the main loop for our program.
 In the initialization process for the Viewer, we create the GUI window and initialize OpenGL.
 The function `init_interface` creates the window that the modeller will be rendered into and specifices the function to be called when the scene needs to rendered. 
 The `init_opengl` function sets up the OpenGL state needed for the project. It sets
@@ -266,9 +266,9 @@ class Viewer(object):
     def init_scene(self):
         """ initialize the scene object and initial scene """
         self.scene = Scene()
-        self.initial_scene()
+        self.create_sample_scene()
 
-    def initial_scene(self):
+    def create_sample_scene(self):
         cube_node = Cube()
         cube_node.translate(2, 0, 2)
         cube_node.color_index = 2
@@ -304,7 +304,8 @@ if __name__ == "__main__":
 The `render` function is called when the `Scene` needs to be drawn to the screen. Drawing to the screen is necessary whenever anything in the scene has changed, or when the camera is moved. 
 The `render` function handles any of the OpenGL setup needs to be re-done each time the `Scene` is rendered. It initializes the projection matrix via `init_view` and uses data from the interaction member to initialize the modelview matrix with the
 global transformation. We will see more about the Interaction class below. It clears the screen with `glClear` and it tells the scene to render itself, and then renders the unit grid. 
-Since we want the grid to be displayed as a solid color, we disable OpenGL's lighting before rendering the grid.
+
+We disable OpenGL's lighting before rendering the grid. With lighting disabled, OpenGL renders items with solid colors, rather than lighting them. This way, the grid has visual differentiation from the scene.
 Finally, `glFlush` signals to the graphics driver that we are ready for the buffer to be flushed and displayed to the screen.
 
 `````````````````````````````````````````` {.python}
@@ -367,13 +368,12 @@ calls the `render` function for each `Node`.
             node.render()
 ``````````````````````````````````````````
 
-<!--- TODO: is this the right place for a description of glCallList? -->
-An OpenGL Call List is a series of OpenGL calls that are bundled together and named. The calls can be dispatched with `glCallList(LIST_NAME)`. The rendering function uses `glCallList` after setting up the matrices.
-Each primitive (`Sphere` and `Cube`) defines the call list required to render it. For example, the call list for a Cube draws the 6 faces of the cube, with the center at the origin and the edges exactly 1 unit long.
-
 Rendering Nodes is based on the transformation matrices that each Node stores. Regardless of the type of Node, the first step to rendering is to set the OpenGL ModelView matrix to store the transformation matrix from the model
 coordinate space to the view coordinate space. Once the OpenGL matrices are up to date, we call the `render_self` function to tell the node to make the necessary OpenGL calls to draw itself. Finally, undo any changes we made to the OpenGL
 state for this specific Node.  We use `glPushMatrix` and `glPopMatrix` functions in OpenGL to save and restore the state of the ModelView matrix after we are finished rendering the Node. 
+
+An OpenGL Call List is a series of OpenGL calls that are bundled together and named. The calls can be dispatched with `glCallList(LIST_NAME)`. The rendering function uses `glCallList` after setting up the matrices.
+Each primitive (`Sphere` and `Cube`) defines the call list required to render it. For example, the call list for a Cube draws the 6 faces of the cube, with the center at the origin and the edges exactly 1 unit long.
 
 `````````````````````````````````````````` {.python}
     # class Node
@@ -453,7 +453,8 @@ class Interaction(object):
 ``````````````````````````````````````````
 
 #### Internal Callbacks
-The `Interaction` class maintains a very simple callback system in the form of a dictionary, `callbacks`, to call in certain situations.
+The `Interaction` class receives information from the Operating System describing user input. 
+It interprets the user input into modeller specific event requests. The `Interaction` class maintains a very simple callback system in the form of a dictionary, `callbacks`, to call in certain situations.
 If you recall, the `init_interaction` function on the `Viewer` class registers callbacks on the `Interaction` instance by calling `register_callback`.
 
 `````````````````````````````````````````` {.python}
@@ -471,16 +472,21 @@ When user interface code needs to trigger an event on the scene, the `Interactio
             func(*args, **kwargs)
 ``````````````````````````````````````````
 
+This application-level callback system abstracts away the need for the rest of the system to know about Operating System input. Each application-level callback represents a meaningful request within the application.
+The `Interaction` class acts as a translator between Operating System events and application-level events.
+This means that if we decided to port the modeller to another toolkit in addition to GLUT, we would only need to replace the `Interaction` class with a class that converts the input from the new toolkit into 
+the same set of meaningful application-level callbacks.
+
 This simple callback system provides all of the functionality we need for this project. In a production 3d modeller, however, user interface objects are often created and destroyed dynamically.
 In the case where user interface objects are created and destroyed, we would need a more sophisticated event listening system, where objects can both register and un-register callbacks for events.
-With these callbacks, we ensure that the Interaction class does not need to know anything about the rest of the system.
 
+TODO: LIST THE CALLBACKS WE USE AND WHAT THEIR ARGUMENTS ARE
 
 #### Operating System Callbacks
 In order to interpret user input as meaningful actions
 on the scene, we need to combine knowledge of the mouse, mouse buttons, and keyboard. Doing so requires storing the current mouse location, the currently pressed mouse button, and the current position and rotation of the
 camera. As you can see, interpreting user input into meaningful actions requires many lines of code, and is best encapsulated in a separate class or module, away from the main code path. The `Interaction` class
-exists for exactly this purpose: to hide unrelated complexity from the rest of the codebase.
+exists for exactly this purpose: to hide unrelated complexity from the rest of the codebase and to translate operating system events into application-level events.
 
 `````````````````````````````````````````` {.python}
     # class Interaction 
@@ -588,8 +594,20 @@ button translates the scene in the x and y coordinates. Scrolling the mouse whee
 The viewer retrieves the `Interaction` camera location during rendering to use in a `glTranslated` call.
 
 #### Picking
-In this project, we implement a very simple [ray-based picking algorithm](http://www.opengl-tutorial.org/miscellaneous/clicking-on-objects/picking-with-custom-ray-obb-function/). Each node stores an Axis-Aligned Bounding Box which is an approximation of the
-space it occupies. When the user clicks in the window, we use the current projection matrix to generate a ray that represents the mouse click, as if the mouse pointer shoots a ray into the scene.
+Now that the user can move and rotate the entire scene to get the perspective they want, the next step is to allow the user to modify and manipulate the objects that make up the scene.
+
+In order for the user to manipulate objects in the scene, they will first need to be able to select items.
+
+To select an item, we use the current projection matrix to generate a ray that represents the mouse click, as if the mouse pointer shoots a ray into the scene. The selected node is the closest node to the camera with which the ray intersects.
+Thus the problem of picking reduced to the problem of finding intersections between a ray and Nodes in the scene. So the question is: How do we tell if the ray hits a Node?
+
+Calculating exactly whether a ray intersects with a node is a complicated problem in terms of both complexity of code and of performance. A ray-object intersection check would have to be written for each type of Primitive.
+For scene nodes with complex mesh geometries with many faces, and calculating exact ray-object intersection would require testing the ray against each face, which would be extremely computationally expensive.
+
+For the purposes if keeping the code compact and performance reasonable, we use a simple, fast approximation for the ray-object intersection test. 
+In our implementation, each node stores an Axis-Aligned Bounding Box (AABB) which is an approximation of the space it occupies.
+To test whether a ray intersects with a Node, we test whether the ray intersects with the Node's AABB. This implementation means that all Nodes share the same code for intersection tests, and it means that the 
+performance cost is constant and small for all Node types.
 
 `````````````````````````````````````````` {.python}
     # class Viewer
@@ -672,16 +690,13 @@ The Ray-AABB selection approach is very simple to understand and implement. Howe
 the AABB in the centre of each of its planes. However if the user clicks on the corner of the Sphere's AABB, the collision will be detected with the Sphere, even if the user intended to click
 past the Sphere onto something behind it.
 
-To address this limitation, a production modeller would use a more sophisticated selection algorithm. Increasingly accurate and fast algorithms carry the cost of increased complexity.
-For example, the picking algorithm could do an exact intersection test with each type of Node. Doing exact intersection means that each type of Node must have its own
-implementation of Ray intersection. Intersection with arbitrary objects is much more complex than AABB intersection, so there is also a performance penalty for using exact intersection. The performance
-penalty can be offset by using increasingly sophisticated algorithms for collision detection. Often, these will involve partitioning the scene, and only testing for intersection in partitions that are hit by the ray.
-
-For simplicity, we stick with this Axis-Aligned Bounding Box version of the picking algorithm.
+This trade off between complexity, performance, and accuracy is common in computer graphics and in many areas of software engineering.
 
 #### Transforming Nodes
-A selected node can be moved, resized, or colorized. When the `Viewer` receives a callback for one of these functions, it calls the appropriate function on the `Scene`, which in turn applies
-the appropriate transformation to the currently selected `Node`.
+Next, we would like to allow the user to manipulate the selected nodes. They might want to change the color, move, or resize the node that they have just selected.
+When the use inputs a command to manipulate a node, the Interaction class will convert the input into the action that the user intended, and call the corresponding callback.
+
+When the `Viewer` receives a callback for one of these events, it calls the appropriate function on the `Scene`, which in turn applies the appropriate transformation to the currently selected `Node`.
 
 `````````````````````````````````````````` {.python}
     # class Viewer

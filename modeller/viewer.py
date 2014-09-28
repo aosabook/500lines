@@ -59,9 +59,9 @@ class Viewer(object):
     def init_scene(self):
         """ initialize the scene object and initial scene """
         self.scene = Scene()
-        self.initial_scene()
+        self.create_sample_scene()
 
-    def initial_scene(self):
+    def create_sample_scene(self):
         cube_node = Cube()
         cube_node.translate(2, 0, 2)
         cube_node.color_index = 2
