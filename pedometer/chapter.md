@@ -1,3 +1,4 @@
+
 # A Perfect World
 
 Many software engineers reflecting on their training will remember having the pleasure of living in a very perfect world. We were taught to solve discrete problems, with defined parameters, in an ideal domain. 
@@ -74,13 +75,13 @@ User acceleration in the direction of gravity, in our simple case, is $y_{u}(t)$
 
 ![](chapter-figures/component-signals-2.png)\
 
-Although $y_{u}(t)$ isn't as smooth and perfect as our perfect sine wave, we can definitely pick out the peaks, and use those peaks to count steps. So far, so good. Now, let's add a little more reality to our world. 
+Although $y_{u}(t)$ isn't as smooth as our perfect sine wave, we can definitely pick out the peaks, and use those peaks to count steps. So far, so good. Now, let's add a little more reality to our world. 
 
 ## People Are Complicated Creatures
 
 Let's see what happens when we introduce real people into the mix. What if a person carries the phone in a bag on their shoulder, with the phone in a more wonky position? To make matters worse, what if the phone rotates in the bag part way through the walk?
 
-![](chapter-figures/figure-xyz-wonky.png)\
+![](chapter-figures/walk-2.png)\
 
 Yikes. Now all three of our components have a non-zero gravitational acceleration, so the user acceleration in the direction of gravity is now split amongst all three x, y, and z time series. 
 
@@ -110,15 +111,9 @@ Using music as an analogy, a low-pass filter can be used to get rid of the trebl
 
 In our situation, the frequency, measured in Hz, depends on how quickly the acceleration is changing. A constant acceleration has a frequency of 0 Hz, while a non-constant acceleration has a non-zero frequency. This means that our constant gravitational acceleration is a 0 Hz signal, while user acceleration is not. 
 
-For each component, we can pass total acceleration through a low-pass filter, and we'll be left with just the gravitational acceleration time series.
+For each component, we can pass total acceleration through a low-pass filter, and we'll be left with just the gravitational acceleration time series. Then, we can subtract gravitational acceleration from total acceleration, and we'll have the user acceleration time series. 
 
 ![](chapter-figures/low-pass-filter-a.png)\ 
-
-Then, we can subtract gravitational acceleration from total acceleration, and we'll have the user acceleration time series. 
-
-$x_{u}(t) = x(t) - x_{g}(t)$\
-$y_{u}(t) = y(t) - y_{g}(t)$\
-$z_{u}(t) = z(t) - z_{g}(t)$
 
 There are numerous varieties of filters. The one we'll use is called a Chebyshev filter. We've chosen a Chebyshev filter because it has a steep cutoff, which means that it very quickly attenuates frequencies beyond our chosen threshold.
 
@@ -741,15 +736,11 @@ We're through the most labour intensive part of our program. Next, we'll build a
 
 ## A User Scenario
 
-When a user first enters the app, they see an empty table of uploads, and an upload form. The upload form has fields for the user to enter trial info and user info.
-
-![](chapter-figures/app1.png)\ 
-
-Suppose the user uses the upload form to submit data of a walk with a phone in their pocket. 
+When a user first enters the app, they see an empty table of uploads, and an upload form. The upload form has fields for trial info (Name, Sampling Rate, Actual Step Count, and Method, in the order) and user info (Gender, Height, and Stride).
 
 ![](chapter-figures/app2.png)\ 
 
-Note that the user has entered everything but their stride. The user has two text files of the exact same walk, one in each of our formats. In the screenshot below, they've chosen to upload one of the files. Hitting **submit** presents them with the following view:
+Suppose the user uses the upload form to submit data of a walk with a phone in their pocket. Note that the user has entered everything but their stride. The user has two text files of the exact same walk, one in each of our formats. In the screenshot below, they've chosen to upload one of the files. Hitting **submit** presents them with the following view:
 
 ![](chapter-figures/app3.png)\ 
 
@@ -1174,3 +1165,4 @@ Voilà! We've built a fully functional app, with true applicability.
 The real world presents us with intricate, complex challenges. Software is uniquely capable of addressing these challenges at scale with minimal resources. As software engineers, we have the power to create positive change in our homes, our communities, and our world. Our training, academic or otherwise, likely equipped us with the problem-solving skills to write code that solves isolated, well-defined problems. As we grow and hone our craft, it's up to us to extend that training to address practical problems, tangled in with all of the messy realities of our world. I hope that this chapter gave you a taste of breaking down a real problem into small, addressable parts, and writing beautiful, clean, extensible code to build a solution. 
 
 Here's to solving interesting problems in an endlessly exciting world.
+\end{document}
