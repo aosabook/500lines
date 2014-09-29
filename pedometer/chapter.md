@@ -375,7 +375,7 @@ end
 
 ### Filtering
 
-Let's start with the last method in our class, `chebyshev_filter`, which implements the low-pass and high-pass Chebyshev filters. The first parameter it expects, `input_data`, is an array containing the time series we want filtered. The `coefficients` parameter expects a hash with two keys, `alpha` and `beta`, each of which contains the coefficients to be used in the formula. The constants `GRAVITY`, `SMOOTHING`, and `HIGHPASS` will be passed into `coefficients`. The `chebyshev_filter` method returns an array containing the resulting time series. 
+Let's start with the last method in our class, `chebyshev_filter`, which implements the low-pass and high-pass Chebyshev filters. It expects a time series as the `input_data` parameter, and a hash containing alpha and beta coefficients as the `coefficients` parameter. The constants `GRAVITY`, `SMOOTHING`, and `HIGHPASS` will be passed into `coefficients`. The `chebyshev_filter` method returns an array containing the filtered time series. 
 
 We implement the low-pass filter in code by first instantiating an `output_data` array with zeros at index 0 and 1, so that the equation has initial values to work with. Then, we loop through the remaining indices of the `input_data` time series, apply the formula at each turn, and append the result to `output_data`, returning `output_data` when the loop is complete. 
 
@@ -406,7 +406,7 @@ Note the differences in `@parsed_data` between the two formats at this stage:
 
 We see here that the separated format is already in our desired standard format after this operation. Amazing. 
 
-To get the combined format into the standard format, we'll need to low-pass filter it to split the acceleration into user and gravitational first, and ensure it ends up in the same standard format afterward. In order to do that, we use the difference in `@parsed_data` at this stage to determine whether the format is combined or separated in the `if` statement in the next portion of the code. If it's combined (or, equivalently, has exactly one array where the separated format would have two), then we proceed with:
+To get the combined format into the standard format, we'll need to low-pass filter it to split the acceleration into user and gravitational first, and ensure it ends up in the same standard format afterward. In order to do that, we use the difference in `@parsed_data` at this stage to determine whether the format is combined or separated. If it's combined (or, equivalently, has exactly one array where the separated format would have two), then we proceed with:
 
 1. passing the data through `chebyshev_filter` to low-pass filter it and split out the accelerations, and,
 2. formatting the data into the standard format. 
@@ -415,7 +415,7 @@ We accomplish each of these steps with a loop. The first loop uses our array aft
 
 $[[[x1, ... xn]], [[y1, ... yn]], [[z1, ... zn]]]$
 
-Then, we use `map` to loop through each of the three components. In the first line of the loop, we call `chebyshev_filter` with `GRAVITY` to split out gravitational acceleration, storing the resulting array in `grav`. In the second line, we isolate user acceleration by using `zip` to subtract gravitational acceleration from total acceleration, storing the resulting array in `user`. In the last line, we return an array with `user` and `grav` as the two elements. 
+Then, we use `map` to loop through each of the three components. First we call `chebyshev_filter` with `GRAVITY` to split out gravitational acceleration, storing the resulting array in `grav`. Next, we isolate user acceleration by using `zip` to subtract gravitational acceleration from total acceleration, storing the resulting array in `user`. We return an array with `user` and `grav` as the two elements. 
 
 This loop runs exactly three times, once for each component time series, and stores the final result in `filtered_accl`:
 
@@ -425,11 +425,11 @@ $[[z_{u}1, z_{u}2, ..., z_{u}n], [z_{g}1, z_{g}2, ..., z_{g}n]]]$
 
 We're almost there. We've split total acceleration into user and gravitational. All that's left is to format `filtered_accl` to our standard format. We do this in the second loop. 
 
-The second loop sets `@parsed_data` to the standard format. We use `map` to loop once for each index in `@parsed_data`, which represents a data sample at a point in time. The first line in the loop stores an array with the x, y, and z user acceleration at that point in time in `user` by grabbing the acceleration values using `map` once again. The second line stores the equivalent values for gravitational acceleration in `grav`. The last line returns an array with `user` and `grav` as the elements. 
+The second loop sets `@parsed_data` to the standard format. We use `map` to loop once for each index in `@parsed_data`. The first line in the loop stores an array with the x, y, and z user acceleration at that point in time in `user`, and the second line stores the equivalent values for gravitational acceleration in `grav`. The last line returns an array with `user` and `grav` as the elements. 
 
 The last thing the `if` statement does, for each branch, is set the `@format` variable to either `FORMAT_COMBINED` or `FORMAT_SEPARATED`, both of which are constants that indicate the type of format the original data was passed in as. These are used predominantly for display purposes in the web app. Otherwise, the remainder of the program is no longer concerned with these two formats. 
 
-At the end of the `if` statement, we're left with the `@parsed_data` variable holding data in the standard format, regardless of whether we started off with combined or separated data. Great. We can now move on without worrying about our two formats again, and with the peace of mind that the changes required if we choose to add a third or fourth or hundredth format will be isolated to just the `parse` method. What a relief!
+At the end of the `if` statement, we're left with the `@parsed_data` variable holding data in the standard format, regardless of whether we started off with combined or separated data. What a relief!
 
 ### Step 2: Isolate Movement in the Direction of Gravity Using the Dot Product (dot_product)
 
@@ -439,22 +439,20 @@ At the end of the `if` statement, we're left with the `@parsed_data` variable ho
 
 ### Step 3: Apply Filters to Remove Low-Frequency and High-Frequency Components (filter)
 
-We use `chebyshev_filter` twice in `filter`. First, we pass `@dot_product_data` in as our time series, and `SMOOTHING` as the `coefficients` parameter. The result is our time series without the high frequency component, which we store in `low_pass_filtered_data`. Next, we call `chebyshev_filter` once more, this time passing in `low_pass_filtered_data` as the time series, and `HIGHPASS` as the `coefficients` constant. This resulting time series is the clean one we can use to count steps, stored in `@filtered_data`. 
+We use `chebyshev_filter` twice in `filter`. In the first line, we low-pass filter `@dot_product_data`, storing the resulting time series without the high frequency component in `low_pass_filtered_data`. Then, we high-pass filter `low_pass_filtered_data`, leaving us with the clean time series we can use to count steps, which we store in `@filtered_data`. 
 
 ## Our Processor Class in the Wild
 
-Our Processor now takes string data in both the separated and combined formats, converts it into a more useable format, isolates user acceleration in the direction of gravity, and filters the time series to smooth it out. Our processor class is useable on its own as is.
+Our Processor now takes string data in both the separated and combined formats, converts it into a more useable format, isolates user acceleration in the direction of gravity, and filters the time series to smooth it out. 
 
 As our program grows, we would likely modify `Processor`. As we add more and more input formats, we might decide to split out the `parse` code into a `Parser` class to deal with these formats, allowing for more separation of concerns. We could also make our users' lives easier by throwing exceptions with more specific messages than "Bad Input. Ensure data is properly formatted.", to allow them to more quickly track down common input formatting problems. 
 
 ## Pedometer Functionality
 
-Our pedometer will measure **distance traveled**, **time traveled**, and **steps taken**. Let's discuss the information we'll need to calculate each of these metrics. We're intentionally leaving the exciting, step counting part of our program to the end.
+Our pedometer will measure **distance traveled**, **time traveled**, and **steps taken**. 
 
 ## Distance Traveled
-A mobile pedometer app is generally used by one person. Total distance travelled during a walk is calculated by multiplying the steps taken by the person's stride length. If the stride length is provided, we can use it directly. If it's unknown, we can allow other optional information to be provided for the user, such as gender and height. We can do the best we can with what's provided to calculate the stride and, ultimately, the distance travelled. 
-
-Information like stride length, gender, and height is related to the user, so it makes sense to create a `User` class. 
+A mobile pedometer app is generally used by one person. Total distance travelled during a walk is calculated by multiplying the steps taken by the stride length. If the stride length is unknown, we can use optional user information like gender and height to approximate it. Information like stride length, gender, and height is related to the user, so it makes sense to create a `User` class. 
 
 ~~~~~~~
 class User
