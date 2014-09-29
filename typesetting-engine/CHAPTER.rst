@@ -35,7 +35,7 @@ Directed Acyclic Graph
 
 If we ask ourselves the question: “From a certain breakpoint, what are the next feasible breakpoints?”, we can imagine a graph where the nodes are the breakpoints and there is an edge between nodes A and B if B is a feasible breakpoint right after the breakpoint A. Please note that this graph is acyclic, because the nodes along a path have increasing positions.
 
-Knowing this graph, it is easy to compute efficiently the shortest path, if we regard the demerits as distances. But here, the algorithm really is original because we compute the best path *while* constructing the DAG. To be precise, we maintain a linked list of breakpoints that are part of the DAG.
+Knowing this graph, it is easy to compute efficiently the shortest path, if we regard the demerits as distances. But here, the algorithm really is original because we compute the best path *while* constructing the directed acyclic graph (DAG). To be precise, we maintain a linked list of breakpoints that are part of the DAG.
 
 Bonus Features
 --------------
@@ -47,21 +47,38 @@ Bonus Features
 Our Implementation
 ==================
 
+The **raw text** becomes a sequence of **blocks** of which we have to figure out the best position for the **breakpoints** (Typesetting part) so that we can **paint** all blocks on a slide (Rendering part).
+
+The *best* position is chosen according to a certain “score of badness” called **demerits**.
+
 Block
 -----
 
-TODO explain namedtuple
+To represent blocks, the `Block` object needs the following attributes:
+- the *type*: box, glue, penalty (represented by a `Enum`);
+- the corresponding *character* with its *width* according to the font metrics;
+- the *stretch* and *shrink* parameters: 0 if it is a block or a penalty, a certain integer if it is a glue (there, `SPACE_STRETCH` and `SPACE_SHRINK`);
+- a `penalty` value if the block is a penalty: an amount of badness. For example, putting a breakpoint after a block corresponding to an hyphen is considered worse than putting it in place of a glue;
+- a `flag` boolean: is it a flagged penalty? Two consecutive breakpoints at flagged penalties get extra demerits. In Knuth's paper, all penalties are flagged, but as of tradition, we kept it in the implementation.
+
+All those attributes are defined at once at the beginning of the typesetting step and are not mutable. This is why we chose a `namedtuple` instead of a new class.
 
 Breakpoint
 ----------
 
-- previous: the best previous node
-- link: the next node in the linked list
+Breakpoints are at the core of our main data structure: a linked list of nodes that are part of a DAG. The `Breakpoint` class has the following attributes:
+- the *position* of this breakpoint in the sequence of blocks;
+- the corresponding *line*: indeed, imagine a really narrow text where according to the choice of breakpoints, a word could be at the end of the first line or at the end of the second line, we need to take both scenarios into account;
+- a *fitness* class which plays a role in the computation of demerits.
+- values *total_width*, *total_stretch*, *total_shrink*, *total_demerits*, that keep the sum of those values for the blocks encountered so far (CHECK: is it right after, if it's a glue?);
+- *previous*: the best previous breakpoint that leads to this breakpoint;
+- *link*: the next node in the linked list.
+
+Please keep in mind that *previous* and *link* are not symmetric. In the following graph, there is an arrow from `A` to `B` if `B.previous = A` but for example, if those breakpoints are part of the linked list, we have `so.link = seen` and `seen.link = dark`.
+http://i.imgur.com/8YUCMeM.png
 
 Computing the ratio
 -------------------
-
-TODO math formula
 
 Maintaining the linked list of breakpoints
 ------------------------------------------
