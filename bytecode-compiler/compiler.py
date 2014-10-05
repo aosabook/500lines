@@ -454,7 +454,6 @@ class CodeGen(ast.NodeVisitor):
         access = self.scope.access(name)
         if   access == 'fast':   return op.LOAD_FAST(self.varnames[name])
         elif access == 'deref':  return op.LOAD_DEREF(self.cell_index(name))
-        elif access == 'global': return op.LOAD_GLOBAL(self.names[name])
         elif access == 'name':   return op.LOAD_NAME(self.names[name])
         else: assert False
 
@@ -462,7 +461,6 @@ class CodeGen(ast.NodeVisitor):
         access = self.scope.access(name)
         if   access == 'fast':   return op.STORE_FAST(self.varnames[name])
         elif access == 'deref':  return op.STORE_DEREF(self.cell_index(name))
-        elif access == 'global': return op.STORE_GLOBAL(self.names[name])
         elif access == 'name':   return op.STORE_NAME(self.names[name])
         else: assert False
 
