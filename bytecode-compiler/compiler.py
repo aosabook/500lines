@@ -417,7 +417,7 @@ class CodeGen(ast.NodeVisitor):
     def visit_Dict(self, t):
         assert len(t.keys) < 256
         return (op.BUILD_MAP(len(t.keys))
-                + concat([self(v) + self(k)+ op.STORE_MAP
+                + concat([self(v) + self(k) + op.STORE_MAP
                           for k, v in zip(t.keys, t.values)]))
 
     def visit_Call(self, t):
