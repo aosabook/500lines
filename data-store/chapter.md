@@ -93,7 +93,7 @@ While updates are atomic and durable,
 consistency is not covered
 (there are no constraints on the data stored)
 and isolation is not guaranteed[^isolation].
-Application code can of course impose its own consistency guarantees,
+Application code can, of course, impose its own consistency guarantees,
 but proper isolation requires a transaction manager
 (which could probably be its own 500 lines;
 maybe you should write it for the 2nd edition!).
@@ -189,7 +189,7 @@ from the contents of the key/value store
     - ``ValueRef`` is a Python object that refers to
         a binary blob stored in the database.
         The indirection lets us avoid loading
-        the entire data store into memory at once.
+        the entire data store into memory all at once.
 
 * ``binary_tree.py`` defines
     a concrete binary tree algorithm
@@ -232,13 +232,14 @@ DBDB's data structures are immutable from the API consumer's perspective.
 ``BinaryTree`` nodes are created
 with an associated key and value,
 and left and right children.
-Those associates never change.
+Those associations never change.
 Updating a key/value pair involves creating new nodes
 from the inserted/modified/deleted leaf node
 all the way back up to the new root.
 Internally,
 a node's private attributes mutate
-to remember where its data was written (writing a node as part of a commit).
+to remember where its data were written
+(writing happens during the commit process).
 
 Update functions return a new root node,
 and the old root is garbage collected if it's no longer referenced
@@ -325,11 +326,11 @@ Compacting should be as simple as
 doing an infix-of-median traversal of the tree
 writing things out as you go.
 It's probably best if the tree nodes all go together,
-since they're what have to be traversed
+since they're what's traversed
 to find any piece of data.
 Packing as many intermediate nodes as possible
 into a disk sector
-should improve read performance
+should improve read performance,
 at least right after compaction.
 
 ### Patterns or principles that can be used elsewhere
