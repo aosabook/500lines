@@ -103,7 +103,7 @@ maybe you should write it for the 2nd edition!).
    full isolation requires that there's a way to run them
    one at a time and get the same effect as running them concurrently.
    A result of ``{a:2, b:3}`` or ``{a:3, b:2}`` are both possible with isolation.
-   Because DBDB doesn't provide this "serializable" isolation property,
+   Because DBDB doesn't provide this "serialisable" isolation property,
    you could end up with ``{a:2, b:2}`` instead.
 
 Stale data is not reclaimed in this implementation,
@@ -162,7 +162,7 @@ from the contents of the key/value store
 (the association of key "a" to value "foo"; the public API).
 
 
-### Organizational units
+### Organisational units
 
 * ``tool.py`` defines
     a command-line tool
@@ -205,7 +205,7 @@ from the contents of the key/value store
     - ``BinaryNode`` implements a node in the binary tree.
 
     - ``BinaryNodeRef`` is a specialised ``ValueRef``
-        which knows how to serialize and deserialize
+        which knows how to serialise and deserialise
         a ``BinaryNode``.
 
 * ``physical.py`` defines
@@ -319,7 +319,7 @@ is just a matter of writing your own
 and setting it as the ``value_ref_class``.
 ``BinaryNodeRef`` is an example of using
 [``pickle``](https://docs.python.org/3.4/library/pickle.html)
-to serialize data.
+to serialise data.
 
 Database compaction.
 Compacting should be as simple as
