@@ -25,6 +25,6 @@
   "dependencies": {
     "static-here": "*",
     "mocha": "*",
-    "traceur": "0.0.58"
+    "traceur": "0.0.66"
   }
 }
