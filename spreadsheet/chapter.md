@@ -375,7 +375,7 @@ For each variable name like `A1` and `$a1`, we define its [accessor property](ht
 
 ```js
       // Worker is reused across calculations, so only define each variable once
-      if ((Object.getOwnPropertyDescriptor( self, name ) || {}).get) { continue; }
+      if ((Object.getOwnPropertyDescriptor( self, name ) || {}).get) { return; }
 
       // Define self['A1'], which is the same thing as the global variable A1
       Object.defineProperty( self, name, { get() {
