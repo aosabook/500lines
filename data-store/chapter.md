@@ -29,11 +29,12 @@ I learned how data strutures are laid out in memory.
 I understood that Erlang didn't have to copy data between processes, even
 though it was "strictly message-passing", because everything was immutable.
 I'm not sure that the utility of immutable data structures really sank in until
-I read about Clojure's in 2009.
-Who'd have thought that learning about CouchDB in 2013 would just make me smile
-and nod?
+I read about Clojure's data structures in 2009.
+When I read about how CouchDB worked in 2013,
+I just smiled and nodded,
+recognising the structures and mechansims for evolving data.
 
-I learned that you can can design systems built around immutable data.
+I learned that you can design systems built around immutable data.
 
 Then I agreed to write a book chapter, and in trying to write a binary tree
 algorithm that mutated the tree in place, I got frustrated with how complicated
