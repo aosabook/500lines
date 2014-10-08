@@ -1,7 +1,8 @@
 angular.module('500lines', []).controller('Spreadsheet', function ($scope, $timeout) {
   // Begin of $scope properties; start with the column/row labels
-  $scope.Cols = [ for (col of range( 'A', 'H' )) col ];
-  $scope.Rows = [ for (row of range( 1, 20 )) row ];
+  $scope.Cols = [], $scope.Rows = [];
+  for (col of range( 'A', 'H' )) { $scope.Cols.push(col); }
+  for (row of range( 1, 20 )) { $scope.Rows.push(row); }
 
   function* range(cur, end) { while (cur <= end) { yield cur;
     // If it’s a number, increase it by one; otherwise move to next letter

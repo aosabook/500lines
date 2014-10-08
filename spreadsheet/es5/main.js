@@ -1,38 +1,21 @@
 angular.module('500lines', []).controller('Spreadsheet', function($scope, $timeout) {
-  var $__7 = $traceurRuntime.initGeneratorFunction(range);
+  var $__8 = $traceurRuntime.initGeneratorFunction(range);
   var $__4;
-  $scope.Cols = (function() {
-    var $__0 = 0,
-        $__1 = [];
-    for (var $__2 = range('A', 'H')[Symbol.iterator](),
-        $__3; !($__3 = $__2.next()).done; ) {
-      try {
-        throw undefined;
-      } catch (col) {
-        {
-          col = $__3.value;
-          $__1[$__0++] = col;
-        }
-      }
+  $scope.Cols = [], $scope.Rows = [];
+  for (var $__0 = range('A', 'H')[Symbol.iterator](),
+      $__1; !($__1 = $__0.next()).done; ) {
+    col = $__1.value;
+    {
+      $scope.Cols.push(col);
     }
-    return $__1;
-  }());
-  $scope.Rows = (function() {
-    var $__0 = 0,
-        $__1 = [];
-    for (var $__2 = range(1, 20)[Symbol.iterator](),
-        $__3; !($__3 = $__2.next()).done; ) {
-      try {
-        throw undefined;
-      } catch (row) {
-        {
-          row = $__3.value;
-          $__1[$__0++] = row;
-        }
-      }
+  }
+  for (var $__2 = range(1, 20)[Symbol.iterator](),
+      $__3; !($__3 = $__2.next()).done; ) {
+    row = $__3.value;
+    {
+      $scope.Rows.push(row);
     }
-    return $__1;
-  }());
+  }
   function range(cur, end) {
     return $traceurRuntime.createGeneratorInstance(function($ctx) {
       while (true)
@@ -54,7 +37,7 @@ angular.module('500lines', []).controller('Spreadsheet', function($scope, $timeo
           default:
             return $ctx.end();
         }
-    }, $__7, this);
+    }, $__8, this);
   }
   $scope.keydown = (function($__4, col, row) {
     var which = $__4.which;
@@ -100,8 +83,8 @@ angular.module('500lines', []).controller('Spreadsheet', function($scope, $timeo
       $timeout.cancel(promise);
       localStorage.setItem('', json);
       $timeout((function() {
-        var $__6;
-        ($__6 = data, $scope.errs = $__6[0], $scope.vals = $__6[1], $__6);
+        var $__7;
+        ($__7 = data, $scope.errs = $__7[0], $scope.vals = $__7[1], $__7);
       }));
     });
     $scope.worker.postMessage($scope.sheet);
