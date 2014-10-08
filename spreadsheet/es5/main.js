@@ -57,7 +57,7 @@ angular.module('500lines', []).controller('Spreadsheet', function($scope, $timeo
     }, $__7, this);
   }
   $scope.keydown = (function($__4, col, row) {
-    var which = $traceurRuntime.assertObject($__4).which;
+    var which = $__4.which;
     switch (which) {
       case 38:
       case 40:
@@ -96,12 +96,12 @@ angular.module('500lines', []).controller('Spreadsheet', function($scope, $timeo
       $scope.calc();
     }), 99);
     $scope.worker.onmessage = (function($__5) {
-      var data = $traceurRuntime.assertObject($__5).data;
+      var data = $__5.data;
       $timeout.cancel(promise);
       localStorage.setItem('', json);
       $timeout((function() {
         var $__6;
-        ($__6 = $traceurRuntime.assertObject(data), $scope.errs = $__6[0], $scope.vals = $__6[1], $__6);
+        ($__6 = data, $scope.errs = $__6[0], $scope.vals = $__6[1], $__6);
       }));
     });
     $scope.worker.postMessage($scope.sheet);

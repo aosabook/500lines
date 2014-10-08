@@ -3,7 +3,7 @@ var sheet,
     vals; importScripts("../node_modules/traceur/bin/traceur-runtime.js");
 self.onmessage = (function($__6) {
   var $__7;
-  var data = $traceurRuntime.assertObject($__6).data;
+  var data = $__6.data;
   ($__7 = [data, {}, {}], sheet = $__7[0], errs = $__7[1], vals = $__7[2], $__7);
   for (var $coord in sheet) {
     try {
