@@ -101,9 +101,9 @@ maybe you should write it for the 2nd edition!).
 
 [^isolation]: Given key:values ``{a:1, b:1}``,
    and two transactions ``a = b + 1`` and ``b = a + 1``,
-   full isolation requires that there's a way to run them
-   one at a time and get the same effect as running them concurrently.
-   A result of ``{a:2, b:3}`` or ``{a:3, b:2}`` are both possible with isolation.
+   full isolation requires that even when running them concurrently,
+   the result is the same as if they had been run one after another (in some order).
+   Results of ``{a:2, b:3}`` or ``{a:3, b:2}`` are both possible with isolation.
    Because DBDB doesn't provide this "serialisable" isolation property,
    you could end up with ``{a:2, b:2}`` instead.
 
