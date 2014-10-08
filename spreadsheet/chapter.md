@@ -18,7 +18,7 @@ How many features can a Web application offer in 99 lines? Let’s see it in act
 
 ## Overview
 
-The [spreadsheet](https://github.com/audreyt/500lines/tree/master/spreadsheet) directory contains our showcase for late-2014 editions of the three web languages: [HTML5](http://www.w3.org/TR/html5/) for structure, [CSS3](http://www.w3.org/TR/css3-ui/) for presentation, and the JS [ES6 “Harmony”](http://wiki.ecmascript.org/doku.php?id=harmony:specification_drafts) standard for interaction. It also uses [Web Storage](http://www.whatwg.org/specs/web-apps/current-work/multipage/webstorage.html) for data persistence and [Web Worker](http://www.whatwg.org/specs/web-apps/current-work/multipage/workers.html) for running JS code in the background. As of this writing, these web standards are supported by Firefox, Chrome, and Internet Explorer 11+, as well as mobile browsers on iOS 5+ and Android 4+.
+The [spreadsheet](https://github.com/audreyt/500lines/tree/master/spreadsheet) directory contains our showcase for late-2014 editions of the three web languages: [HTML5](http://www.w3.org/TR/html5/) for structure, [CSS3](http://www.w3.org/TR/css3-ui/) for presentation, and the JS [ES6 “Harmony”](http://git.io/es6features) standard for interaction. It also uses [Web Storage](http://www.whatwg.org/specs/web-apps/current-work/multipage/webstorage.html) for data persistence and [Web Worker](http://www.whatwg.org/specs/web-apps/current-work/multipage/workers.html) for running JS code in the background. As of this writing, these web standards are supported by Firefox, Chrome, and Internet Explorer 11+, as well as mobile browsers on iOS 5+ and Android 4+.
 
 Now let’s open http://audreyt.github.io/500lines/spreadsheet/ in a browser:
 
@@ -82,10 +82,10 @@ The diagram below shows the links between HTML and JS components:
 
 In order to make sense of the diagram, let’s go through the four source code files, in the same sequence as the browser loads them:
 
-* **index.html**: 20 lines
-* **main.js**: 36 lines (excluding comments and blank lines)
-* **worker.js**: 32 lines (excluding comments and blank lines)
-* **styles.css**: 11 lines
+* **index.html**: 19 lines
+* **main.js**: 38 lines (excluding comments and blank lines)
+* **worker.js**: 30 lines (excluding comments and blank lines)
+* **styles.css**: 12 lines
 
 ### HTML
 
@@ -198,11 +198,12 @@ To put `Cols` and `Rows` into the model, simply define them as properties of `$s
 
 ```js
   // Begin of $scope properties; start with the column/row labels
-  $scope.Cols = [ for (col of range( 'A', 'H' )) col ];
-  $scope.Rows = [ for (row of range( 1, 20 )) row ];
+  $scope.Cols = [], $scope.Rows = [];
+  for (col of range( 'A', 'H' )) { $scope.Cols.push(col); }
+  for (row of range( 1, 20 )) { $scope.Rows.push(row); }
 ```
 
-The ES6 [array comprehension](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Array_comprehensions) syntax makes it easy to define arrays from ranges with a start and an end point, with the helper function `range` defined as a [generator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function*):
+The ES6 [for...of](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for...of) syntax makes it easy to loop through ranges with a start and an end point, with the helper function `range` defined as a [generator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function*):
 
 
 ```js
@@ -360,16 +361,15 @@ In order to turn coordinates into global variables, we first iterate over each p
 
 We write `const coord` above so that functions defined in the loop can capture the specific value of `coord` in that iteration. This is because `const` and `let` declare _block scoped_ variables. In contrast, `var coord` would make a _function scoped_ variable, and functions defined in each loop iteration would end up pointing to the same `coord`.
 
-Customarily, formulas variables are case-insensitive and can optionally have a `$` prefix. Because JS variables are case-sensitive, we use a `for…of` loop to go over the four variable names for the same coordinate:
+Customarily, formulas variables are case-insensitive and can optionally have a `$` prefix. Because JS variables are case-sensitive, we use two `map` calls to go over the four variable names for the same coordinate:
 
 ```js
     // Four variable names pointing to the same coordinate: A1, a1, $A1, $a1
-    for (const name of [ for (p of [ '', '$' ])
-                           for (c of [ coord, coord.toLowerCase() ])
-                             p+c ]) {
+    [ '', '$' ].map( p => [ coord, coord.toLowerCase() ].map(c => {
+      const name = p+c;
 ```
 
-Note the _nested array comprehension_ syntax above, with  two `for`  expressions in the array definition.
+Note the shorthand arrow function syntax above with `p => ...`, which is the same as `(p) => { ... }`.
 
 For each variable name like `A1` and `$a1`, we define its [accessor property](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperty) on `self` that calculates `vals["A1"]` whenever they are evaluated in an expression:
 
@@ -450,8 +450,8 @@ Finally, the `get` accessor returns the calculated value stored in `vals[coord]`
         // Turn vals[coord] into a string if it's not a number or boolean
         switch (typeof vals[coord]) { case 'function': case 'object': vals[coord]+=''; }
         return vals[coord];
-      } } )
-    }
+      } } );
+    }));
   }
 ```
 

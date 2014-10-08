@@ -18,7 +18,7 @@ _(Also available in [English](https://github.com/audreyt/500lines/blob/master/sp
 
 ## 概述
 
-在 [spreadsheet](https://github.com/audreyt/500lines/tree/master/spreadsheet) 目錄裡，包含了三種 Web 程式語言在 2014 年末版本的展示範例：描述結構的 [HTML5](http://www.w3.org/TR/html5/)、描述展示風格的 [CSS3](http://www.w3.org/TR/css3-ui/)，以及描述互動功能的 JS [ES6 “Harmony”](http://wiki.ecmascript.org/doku.php?id=harmony:specification_drafts) 。它也用到 [Web Storage](http://www.whatwg.org/specs/web-apps/current-work/multipage/webstorage.html) 來保存資料，以及利用 [Web Worker](http://www.whatwg.org/specs/web-apps/current-work/multipage/workers.html) 在背景運行 JS 程式碼。在撰寫本文時，這些 Web 標準都已獲得 Firefox、Chrome、Internet Explorer 11+，以及手機行動瀏覽器 iOS 5+ 和 Android 4+ 的支援。
+在 [spreadsheet](https://github.com/audreyt/500lines/tree/master/spreadsheet) 目錄裡，包含了三種 Web 程式語言在 2014 年末版本的展示範例：描述結構的 [HTML5](http://www.w3.org/TR/html5/)、描述展示風格的 [CSS3](http://www.w3.org/TR/css3-ui/)，以及描述互動功能的 JS [ES6 “Harmony”](http://git.io/es6features) 。它也用到 [Web Storage](http://www.whatwg.org/specs/web-apps/current-work/multipage/webstorage.html) 來保存資料，以及利用 [Web Worker](http://www.whatwg.org/specs/web-apps/current-work/multipage/workers.html) 在背景運行 JS 程式碼。在撰寫本文時，這些 Web 標準都已獲得 Firefox、Chrome、Internet Explorer 11+，以及手機行動瀏覽器 iOS 5+ 和 Android 4+ 的支援。
 
 現在讓我們在瀏覽器中打開 <http://audreyt.github.io/500lines/spreadsheet/>：
 
@@ -82,10 +82,10 @@ _(Also available in [English](https://github.com/audreyt/500lines/blob/master/sp
 
 為了理解這張圖，讓我們按照瀏覽器載入的次序，逐一檢視四份原始程式碼檔案：
 
-* **index.html**: 20 行
-* **main.js**: 36 行（不包括註釋和空白行）
-* **worker.js**: 32 行（不包括註釋和空白行）
-* **styles.css**: 11 行
+* **index.html**: 19 行
+* **main.js**: 38 行（不包括註釋和空白行）
+* **worker.js**: 30 行（不包括註釋和空白行）
+* **styles.css**: 12 行
 
 ### HTML
 
@@ -198,11 +198,12 @@ angular.module('500lines', []).controller('Spreadsheet', function ($scope, $time
 
 ```js
   // Begin of $scope properties; start with the column/row labels
-  $scope.Cols = [ for (col of range( 'A', 'H' )) col ];
-  $scope.Rows = [ for (row of range( 1, 20 )) row ];
+  $scope.Cols = [], $scope.Rows = [];
+  for (col of range( 'A', 'H' )) { $scope.Cols.push(col); }
+  for (row of range( 1, 20 )) { $scope.Rows.push(row); }
 ```
 
-使用 ES6 的[陣列簡約式](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Array_comprehensions)語法，可以很容易將陣列定義為從起點到終點的範圍。這裡用到了 `range` 這個[產生器](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function*)函式作為輔助：
+此處使用 ES6 的 [for...of](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for...of) 迴圈語法，來逐項處理起點到終點的範圍，並使用 `range` 這個[產生器](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function*)函式作為輔助：
 
 ```js
   function* range(cur, end) { while (cur <= end) { yield cur;
@@ -363,12 +364,11 @@ self.onmessage = ({data})=>{
 
 ```js
     // Four variable names pointing to the same coordinate: A1, a1, $A1, $a1
-    for (const name of [ for (p of [ '', '$' ])
-                           for (c of [ coord, coord.toLowerCase() ])
-                             p+c ]) {
+    [ '', '$' ].map( p => [ coord, coord.toLowerCase() ].map(c => {
+      const name = p+c;
 ```
 
-上述的陣列定義中有兩個 `for` 表達式，這個語法稱為巢狀陣列簡約式（nested array comprehension）。
+此處用到了箭號函式的簡約語法，用 `p => ...` 來表示 `(p) => { ... }`。
 
 對於每一個變數名稱，例如 `A1` 和 `$a1`，我們在 `self` 上定義其[屬性存取式](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperty)，這樣當算式中提到這些變數時，都會自動計算 `vals["A1"]` 的值：
 
@@ -449,8 +449,8 @@ self.onmessage = ({data})=>{
         // Turn vals[coord] into a string if it's not a number or boolean
         switch (typeof vals[coord]) { case 'function': case 'object': vals[coord]+=''; }
         return vals[coord];
-      } } )
-    }
+      } } );
+    }));
   }
 ```
 
