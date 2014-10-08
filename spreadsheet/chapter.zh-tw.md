@@ -531,7 +531,7 @@ input:focus + div { white-space: nowrap; }
 
 如果你比較喜歡直接使用 2010 年版的 JS，[as-javascript-1.8.5](https://audreyt.github.io/500lines/spreadsheet/as-javascript-1.8.5/) 目錄下有以 ES5 風格寫成的 **main.js** 和 **worker.js**；它的[源碼](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-javascript-1.8.5)行數和 ES6 版本相同，可以交互對照。
 
-如果你想要更簡潔的語法，[as-livescript-1.2.0](https://audreyt.github.io/500lines/spreadsheet/as-livescript-1.2.0/) 目錄使用 [LiveScript](http://livescript.net/) 寫成 **main.ls** 和 **worker.ls**；它的[源碼](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-livescript-1.2.0)比 JS 版本少了 20 行。
+如果你想要更簡潔的語法，[as-livescript-1.3.0](https://audreyt.github.io/500lines/spreadsheet/as-livescript-1.3.0/) 目錄使用 [LiveScript](http://livescript.net/) 寫成 **main.ls** 和 **worker.ls**；它的[源碼](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-livescript-1.3.0)比 JS 版本少了 20 行。
 
 同樣採用 LiveScript 語法，[as-react-livescript](https://audreyt.github.io/500lines/spreadsheet/as-react-livescript/) 目錄使用 [ReactJS](https://facebook.github.io/react/) 框架寫成；它的[源碼](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-react-livescript)比 AngularJS 版本多了 10 行，但運行速度快了許多。
 
