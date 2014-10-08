@@ -128,7 +128,7 @@ Intro to the toolchain
 The code is written in polyglot Python 2/3
 (tested via [``tox``](https://testrun.org/tox/latest/)).
 
-I recommended using [``virtualenv``](https://virtualenv.pypa.io/en/latest/)
+I recommend using [``virtualenv``](https://virtualenv.pypa.io/en/latest/)
 when installing dependencies:
 
 ```bash
