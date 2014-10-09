@@ -11,7 +11,7 @@ I remember the first time I had a bug I was really stuck on. When I finished
 typing in my BASIC program and ran it, weird sparkly pixels showed up on the
 screen, and the program aborted early. When I went back to look at the code,
 the last few lines of the program were gone! One of my mom's friends was a
-P.Eng and she knew how to program, so my mom arranged a phone call so I could
+P.Eng.[^PEng] and she knew how to program, so my mom arranged a phone call so I could
 explain the problem and get some feedback. Within a few minutes of talking, I
 had figured out the problem: the program was too big, and had encroached into
 video memory. Clearing the screen truncated the program, and the sparkles were
@@ -46,6 +46,15 @@ relatively straightforward.
 I learned that it's easier to reason about things that don't change.
 
 So starts the story. ``:)``
+
+
+[^PEng]: From the [The Association of Professional Engineers and Geoscientists
+    of Alberta](http://www.apega.ca/applicants/Engineers/peng_general.html):
+    &ldquo;What is a P.Eng.? The P.Eng. designation is a professional licence,
+    allowing you to practice engineering in Alberta and take responsibility for
+    that work.  Only engineers licensed with APEGA, or those practising under
+    the direct supervision of a P.Eng. licensed with APEGA, have a legal right
+    to practice engineering in Alberta.&rdquo;
 
 
 What does it do?
