@@ -359,7 +359,9 @@ In order to turn coordinates into global variables, we first iterate over each p
   for (const coord in sheet) {
 ```
 
-We write `const coord` above so that functions defined in the loop can capture the specific value of `coord` in that iteration. This is because `const` and `let` declare _block scoped_ variables. In contrast, `var coord` would make a _function scoped_ variable, and functions defined in each loop iteration would end up pointing to the same `coord`.
+ES6 introduces `const` and `let` declare _block scoped_ constants and variables; `const coord` above means that functions defined in the loop would capture the specific value of `coord` in each iteration.
+
+In contrast, `var coord` in earlier versions of JS would declare a _function scoped_ variable, and functions defined in each loop iteration would end up pointing to the same `coord` variable.
 
 Customarily, formulas variables are case-insensitive and can optionally have a `$` prefix. Because JS variables are case-sensitive, we use two `map` calls to go over the four variable names for the same coordinate:
 

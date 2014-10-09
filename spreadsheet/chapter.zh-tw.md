@@ -358,7 +358,9 @@ self.onmessage = ({data})=>{
   for (const coord in sheet) {
 ```
 
-上述的 `const coord`，可以讓迴圈裡定義的函式包入該次迭代裡 `coord` 的實際數值。這是因為 `const` 和 `let` 宣告的變數屬於區塊範圍（block scope）。如果宣告寫成 `var coord` ，則會屬於函式範圍（function scope），這樣每次迭代時定義的函式最終都會指向同一個 `coord`。
+ES6 提供了 `const` 和 `let` 關鍵字，來宣告屬於區塊範圍（block scope）的常數與變數。上述的 `const coord`，可以讓迴圈裡定義的函式包入該次迭代裡 `coord` 的實際數值。
+
+如果用舊版 JS 所提供的 `var coord` 來宣告，則變數會屬於函式範圍（function scope），這樣每次迭代時定義的函式，最終都會指向同一個 `coord` 變數。
 
 習慣上，公式裡的變數名稱大小寫視為相同，並且可以加上 `$` 前綴。因為 JS 變數有區分大小寫，所以我們用 `for…of` 循環來取得同一個座標的四種變數名稱表示法：
 
