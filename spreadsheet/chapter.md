@@ -26,7 +26,7 @@ Now let’s open http://audreyt.github.io/500lines/spreadsheet/ in a browser:
 
 ### Basic Concepts
 
-The spreadsheet spans two dimensions, with _columns_ starting from **A**, and _rows_ starting from **1**. Each _cell_ has a unique _coordinate_ (such as **A1**) and _content_ (`1874`), which belongs to one of four _types_:
+The spreadsheet spans two dimensions, with _columns_ starting from **A**, and _rows_ starting from **1**. Each _cell_ has a unique _coordinate_ (such as **A1**) and _content_ (such as `1874`), which belongs to one of four _types_:
 
 * Text: `+` in **B1** and `⇒` in **D1**, aligned to the left.
 * Number: `1874` in **A1** and `2046` in **C1**, aligned to the right.
@@ -116,7 +116,7 @@ The next two lines load the CSS resource, close the `head` section, and begin th
 </head><body ng-app="500lines" ng-controller="Spreadsheet" ng-cloak>
 ```
 
-The `ng-` attributes above tell [AngularJS](http://angularjs.org/) to use the `500lines` module’s `Spreadsheet` _controller_ function, which provides a _model_— a set of names available to _bindings_ on the document _view_. The `ng-cloak` attribute hides the document from display until the bindings are in place.
+The `ng-app` and `ng-controller` attributes above tell [AngularJS](http://angularjs.org/) to call the `500lines` module’s `Spreadsheet` function, which would return a _model_: An object that provides _bindings_ on the document _view_. (The `ng-cloak` attribute hides the document from display until the bindings are in place.)
 
 As a concrete example, when the user clicks the `<button>` defined in the next line, its `ng-click` attribute will trigger and call `reset()` and `calc()`, two named functions provided by the JS model:
 

@@ -116,7 +116,7 @@ _(Also available in [English](https://github.com/audreyt/500lines/blob/master/sp
 </head><body ng-app="500lines" ng-controller="Spreadsheet" ng-cloak>
 ```
 
-上述的 `ng-` 特性指示 [AngularJS](http://angularjs.org/) 運行 `500lines` 模組中的 `Spreadsheet` 控制器（controller）函式來建立模型（model），也就是一組可以在文件顯示層（view）中進行繫結（binding）的名稱。`ng-cloak` 特性會先隱藏文件顯示，直到繫結已經就位為止。
+上述的 `ng-` 特性指示 [AngularJS](http://angularjs.org/) 運行 `500lines` 模組中的 `Spreadsheet` 控制器（controller）函式來取得模型（model）物件，來為文件顯示層（view）提供繫結（binding）。（`ng-cloak` 特性會先隱藏文件，等到繫結已經就位再顯示。）
 
 舉個具體的例子，當使用者點擊下一行中所定義的 `<button>` ，其 `ng-click` 特性會觸發並執行 `reset()` 和 `calc()` 這兩個由 JS 模型提供的函式：
 
