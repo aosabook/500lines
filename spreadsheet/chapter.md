@@ -12,9 +12,11 @@ In the 1990s, browsers added various presentational tags to the HTML vocabulary,
 
 In order to keep HTML to its original purpose—describing a document’s logical structure—browser makers eventually agreed to support two additional languages: CSS to describe presentational styles of a page, and JS to describe its dynamic interactions.
 
-Since then, the three languages have become more concise and powerful through twenty years of co-evolution. Today, cross-platform _Web applications_ (such as Web Spreadsheets) are as ubiquitous and popular as platform-specific applications (such as VisiCalc, Lotus 1-2-3 and Excel) from the previous century.
+Since then, the three languages have become more concise and powerful through twenty years of co-evolution. In particular, improvements in [JS engines](https://en.wikipedia.org/wiki/JavaScript_engine) made it practical to deploy large-scale JS frameworks, such as [AngularJS](http://angularjs.org/).
 
-How many features can a Web application offer in 99 lines? Let’s see it in action!
+Today, cross-platform _Web applications_ (such as Web Spreadsheets) are as ubiquitous and popular as platform-specific applications (such as VisiCalc, Lotus 1-2-3 and Excel) from the previous century.
+
+How many features can a Web application offer in 99 lines with AngularJS? Let’s see it in action!
 
 ## Overview
 

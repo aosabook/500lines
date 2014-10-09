@@ -12,9 +12,11 @@ _(Also available in [English](https://github.com/audreyt/500lines/blob/master/sp
 
 為了保持 HTML 的原本目的（描述文件的邏輯結構），瀏覽器開發者最後同意額外支援兩種語言：CSS 來形容網頁的展示風格，以及 JS 來描述其動態互動功能。
 
-從那時開始，這三種程式語言經過了 20 年的共同進化，已經變得更加簡潔和強大。如今，跨平台的應用網站（Web applications，例如試算表），已經跟上個世紀的桌面應用程式（如 VisiCalc、Lotus 1-2-3 和 Excel）一樣普及了。
+從那時開始，這三種程式語言經過了 20 年的共同進化，已經變得更加簡潔和強大。[JS 引擎](https://zh.wikipedia.org/wiki/JavaScript%E5%BC%95%E6%93%8E)的效能獲得高度提昇，使得大規模的 JS 框架開始盛行，例如 [AngularJS](http://angularjs.org/)。
 
-網頁應用可以在 99 行裡面提供多少功能？讓我們來看看！
+如今，跨平台的應用網站（Web applications，例如試算表），已經跟上個世紀的桌面應用程式（如 VisiCalc、Lotus 1-2-3 和 Excel）一樣普及了。
+
+使用 AngularJS 的網頁應用可以在 99 行裡面提供多少功能？讓我們來看看！
 
 ## 概述
 
