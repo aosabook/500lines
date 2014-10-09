@@ -10,21 +10,19 @@ Secondly, the CAD tool must offer some way to display the design onto the user's
 The CAD tool must model how we perceive objects, and draw them to the screen in a way that the user can understand all 3 dimensions of the object.
 Thirdly, the CAD tool must offer a way to interact with the object being designed. The designer must be able to add to and modify the design in order to produce the desired result.
 
-Each domain specific CAD tool offers many additional features for the specific requirements of the domain. For example, an architecture CAD tool would offer physics simulations to test weather and climate stresses on the building, 
+A domain specific CAD tool offers many additional features for the specific requirements of the domain. For example, an architecture CAD tool would offer physics simulations to test weather and climate stresses on the building, 
 a 3D printing tool would have features that check whether the object is actually valid to print, and electrical CAD tool would simulate the physics of electricity running through copper, and a film special effects suite would
 include features to accurately simulate pyrokinetics. 
-Additionally, all tools would need a way to save and load designs from disk that that designers can collaborate, share, and save their work.
+Additionally, all tools would need a way to save and load designs from disk so that designers can collaborate, share, and save their work.
 
 However, at their core, call CAD tools must include the three features discussed above: a data structure to represent the design, the ability to display it to the screen, and a method to interact with the design.
 
 With that in mind, let's explore how we can represent a 3D design, display it to the screen, and interact with it, in 500 lines of Python.
 
-TODO: Maybe draw a connection with the Model View Controller design pattern??
-
 ## Representing the Design: The Scene
 The first core feature of a 3D modeller is a data structure to represent the design in memory.  In this project, we call it the `Scene`.
 The `Scene` represents the 3-dimensional design. As a data structure, it contains everything that represents the design.
-The `Scene` stores a list of all of the things in the design: `node_list`.
+The `Scene` stores a list of all of the things in the design in a variable called `node_list`.
 
 `````````````````````````````````````````` {.python}
 class Scene(object):
@@ -86,7 +84,7 @@ The `Node` keeps track of important data about itself: translation matrix, scale
 selection below.
 
 The abstract Node class contains all of the logic common to all nodes. The sub classes of `Node` override specific functionality if needed. Sub classes are also required to
-provide a `render` function.
+provide a `render` function, which we will see below.
 
 The simplest concrete implementations of Node are Primitives. A Primitive is a single solid shape that can be added the scene. In this project, the primitives are Cube and Sphere.
 
@@ -146,7 +144,7 @@ TODO: Diagram?
 #### Model, World, View, and Projection Coordinate Spaces
 We use the Model, World, View, and Projection coordinate spaces in this project.
 Each node in the scene has its own coordinate space, called the Model coordinate space. The representation of the node is stored with respect to the origin of the model coordinate space.
-For example, the cube primitive is stored as the 6 faces that make up the cube: 
+For example, the cube primitive is stored as the 6 faces that make up the cube, each defined by its four corners: 
 
 ``````````````````````````````````````````
 # Left face
@@ -593,7 +591,7 @@ button translates the scene in the x and y coordinates. Scrolling the mouse whee
 (towards or away from the camera). The `Interaction` class stores the current camera location and modifies it with the `translate` function.
 The viewer retrieves the `Interaction` camera location during rendering to use in a `glTranslated` call.
 
-#### Picking
+#### Selecting Scene Objects
 Now that the user can move and rotate the entire scene to get the perspective they want, the next step is to allow the user to modify and manipulate the objects that make up the scene.
 
 In order for the user to manipulate objects in the scene, they will first need to be able to select items.
@@ -692,7 +690,7 @@ past the Sphere onto something behind it.
 
 This trade off between complexity, performance, and accuracy is common in computer graphics and in many areas of software engineering.
 
-#### Transforming Nodes
+#### Modifying Scene Objects
 Next, we would like to allow the user to manipulate the selected nodes. They might want to change the color, move, or resize the node that they have just selected.
 When the use inputs a command to manipulate a node, the Interaction class will convert the input into the action that the user intended, and call the corresponding callback.
 
@@ -715,7 +713,7 @@ When the `Viewer` receives a callback for one of these events, it calls the appr
 ``````````````````````````````````````````
 
 
-##### Color
+##### Changing Color
 Colorization is accomplished with a very simplistic list of possible colors. The user can cycle through the colors with the arrow keys. The scene dispatches the color selection to the selected node.
 
 `````````````````````````````````````````` {.python}
@@ -737,7 +735,7 @@ Recall that each node stores its current color. The `rotate_color` function simp
             self.color_index = color.MAX_COLOR
 ``````````````````````````````````````````
 
-##### Scale
+##### Scaling Nodes
 As with color, the scene dispatches any scaling modifications to the selected node, if there is one.
 `````````````````````````````````````````` {.python}
     # class Scene
@@ -771,7 +769,7 @@ def scaling(scale):
 ``````````````````````````````````````````
 
 
-##### Translation
+##### Moving Nodes
 In order to translate a node, we use the same ray calculation from picking. We pass the ray that represents the current mouse location in to the scene's
 `move` function. The new location of the Node should be on the ray.
 In order to determine where on the ray to place the Node, we need to know the Node's distance from the camera. Since we stored the Node's location and distance
