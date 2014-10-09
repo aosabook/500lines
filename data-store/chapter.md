@@ -270,12 +270,12 @@ view of the tree.
 
 ![Tree nodes on disk after update](nodes_on_disk_2.svg)
 
-To avoid keeping the entire tree structure in memory concurrently,
+To avoid keeping the entire tree structure in memory at the same time,
 when a logical node is read in from disk,
 the disk address of its left and right children
 (as well as its value)
 are loaded into memory.
-Accessing children and values
+Accessing children and their values
 requires one extra function call to `NodeRef.get()`
 to dereference ("really get") the data.
 
