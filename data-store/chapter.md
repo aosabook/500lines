@@ -39,9 +39,9 @@ I learned that you can design systems built around immutable data.
 Then I agreed to write a book chapter, and in trying to write a binary tree
 algorithm that mutated the tree in place, I got frustrated with how complicated
 things were getting, between edge cases and trying to see how changes in one
-part of the tree affected others. I took a peek at a recursive algorithm for
-updating immutable binary trees (INSERT LINK), and it turned out to be
-relatively straightforward.
+part of the tree affected others. I took a peek at a [recursive algorithm for
+updating immutable binary trees](http://en.wikipedia.org/w/index.php?title=Binary_search_tree&oldid=628341612#Insertion),
+and it turned out to be relatively straightforward.
 
 I learned that it's easier to reason about things that don't change.
 
