@@ -188,7 +188,16 @@ Finally, we close the `ng-repeat` loop in the column level with `</td>`, close t
 
 ### JS: Main Controller
 
-The sole purpose of `main.js` is defining the `500lines` module and its `Spreadsheet` controller function as required by the `<body>` element, with the JS model `$scope` provided by AngularJS:
+The `main.js` file defines the `500lines` module and its `Spreadsheet` controller function, as required by the `<body>` element in `index.html`.
+
+As the bridge between the HTML view and the background worker, it has four purposes:
+
+* Define dimensions and labels of columns and rows.
+* Provide event handlers for keyboard navigation and the reset button.
+* When the user changes the spreadsheet, send its new content to the worker.
+* When computed results arrive from the worker, update the view and save the current state.
+
+In the first line, we request the JS model `$scope` object from AngularJS:
 
 ```js
 angular.module('500lines', []).controller('Spreadsheet', function ($scope, $timeout) {
@@ -235,7 +244,7 @@ The [arrow function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Ref
     case 38: case 40: case 13: $timeout( ()=>{
 ```
 
-If it is, we use `$timeout` to schedule an update to the focused cell after the current `ng-keydown` and `ng-change` handler. Because `$timeout` accepts a function as argument, the `()=>{…}` syntax constructs a function to represent the focus-update logic, which starts by checking the direction of movement:
+If it is, we use `$timeout` to schedule a change of cell focus after the current `ng-keydown` and `ng-change` handler. Because `$timeout` requires a function as argument, the `()=>{…}` syntax constructs a function to represent the focus-change logic, which starts by checking the direction of movement:
 
 ```js
       const direction = (which === 38) ? -1 : +1;

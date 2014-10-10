@@ -58,7 +58,7 @@ _(Also available in [English](https://github.com/audreyt/500lines/blob/master/sp
 在我們開始詳細討論 99 行程式碼之前，不妨先停用瀏覽器中的 JS ，並重新載入頁面，注意一下前後區別：
 
 * 大型表格消失了，螢幕上只剩下一個 2x2 的表格以及單個內容儲存格。
-* 列和欄的標示變成 `{{ row }}` 和 `{{ col }}`。
+* 列和欄的標題變成 `{{ row }}` 和 `{{ col }}`。
 * 按下 `↻` 按鈕沒有任何反應。
 * 按 **跳格鍵** 或點擊第一列的內容時，仍然會顯示可編輯的輸入框。
 
@@ -133,7 +133,7 @@ _(Also available in [English](https://github.com/audreyt/500lines/blob/master/sp
     <th ng-repeat="col in Cols">{{ col }}</th>
 ```
 
-舉例來說，如果 JS 模型將 `Cols` 定義為 `["A","B","C"]`，就會有三個標題儲存格（`th`）來顯示標籤。內容的 `{{ col }}` 表達式會由 AngularJS 進行安插（interpolation），來在每個 `th` 的內容中填上當前的 `col` 數值。
+舉例來說，如果 JS 模型將 `Cols` 定義為 `["A","B","C"]`，就會出現三個標題儲存格（`th`）。內容的 `{{ col }}` 表達式會由 AngularJS 進行安插（interpolation），來在每個 `th` 的內容中填上當前的 `col` 數值。
 
 同樣地，下面兩行會檢查 `Rows` 的數值（`[1,2,3]` 等等），為每個數值建立橫列，並在最左邊的 `th` 儲存格以編號標註：
 
@@ -188,7 +188,16 @@ _(Also available in [English](https://github.com/audreyt/500lines/blob/master/sp
 
 ### JS: 主要控制層
 
-`main.js` 的唯一作用，是定義 `<body>` 元素所需的 `500lines` 模組中的 `Spreadsheet` 控制函式，運用 AngularJS 提供的 `$scope` 參數來定義 JS 模型：
+`main.js` 定義了 `index.html` 中 `<body>` 元素所需的 `500lines` 模組，以及模組內的 `Spreadsheet` 控制函式。
+
+作為 HTML 文件顯示層與背景工作層之間的橋梁，控制層有四項任務：
+
+* 定義各欄、各列的數量與標題。
+* 為鍵盤移動事件及重置按鈕提供處理函式。
+* 當使用者更動試算表式，將新的內容傳送給背景工作者。
+* 當工作者計算出結果時，更新文件顯示層，並儲存目前的狀態。
+
+在第一行程式裡，我們向 AngularJS 要求 `$scope` 物件，來定義 JS 模型：
 
 ```js
 angular.module('500lines', []).controller('Spreadsheet', function ($scope, $timeout) {
