@@ -197,7 +197,11 @@ As the bridge between the HTML view and the background worker, it has four purpo
 * When the user changes the spreadsheet, send its new content to the worker.
 * When computed results arrive from the worker, update the view and save the current state.
 
-In the first line, we request the JS model `$scope` object from AngularJS:
+The flowchart below shows the controller-worker interaction in more detail:
+
+![Controller-Worker Flowchart](./images/00-flowchart.png)
+
+Now let's walk through the code. In the first line, we request the JS model `$scope` object from AngularJS:
 
 ```js
 angular.module('500lines', []).controller('Spreadsheet', function ($scope, $timeout) {

@@ -197,7 +197,11 @@ _(Also available in [English](https://github.com/audreyt/500lines/blob/master/sp
 * 當使用者更動試算表式，將新的內容傳送給背景工作者。
 * 當工作者計算出結果時，更新文件顯示層，並儲存目前的狀態。
 
-在第一行程式裡，我們向 AngularJS 要求 `$scope` 物件，來定義 JS 模型：
+控制層和工作層之間的互動詳情，可以參考這張流程圖：
+
+![控制層和工作層之間的互動](./images/00-flowchart.png)
+
+現在來看程式碼。在第一行程式裡，我們向 AngularJS 要求 `$scope` 物件，來定義 JS 模型：
 
 ```js
 angular.module('500lines', []).controller('Spreadsheet', function ($scope, $timeout) {
