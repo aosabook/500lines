@@ -106,8 +106,7 @@ jump_stack_effects = {dis.opmap['FOR_ITER']: -1,
 
 def denotation(opcode):
     if opcode < dis.HAVE_ARGUMENT:
-        b = bytes([opcode])
-        return Insn(b)
+        return Insn(bytes([opcode]))
     elif opcode in dis.hasjrel or opcode in dis.hasjabs:
         return lambda label: JumpInsn(opcode, label)
     else:
