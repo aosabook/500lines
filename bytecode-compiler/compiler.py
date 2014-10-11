@@ -77,7 +77,8 @@ class Insn(Assembly):
         assert isinstance(encoded, bytes) and encoded
         self.encoded = encoded
         self.length = len(encoded)
-    def encode(self, start, addresses): return self.encoded
+    def encode(self, start, addresses):
+        return self.encoded
     def plumb(self, depths, labeled_depths):
         e = self.encoded
         effect = (stack_effect(e[0]) if len(e) == 1
