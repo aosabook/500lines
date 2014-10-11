@@ -192,7 +192,7 @@ class Scope(ast.NodeVisitor):
 
     def access(self, name):
         return ('deref' if name in self.derefvars else
-                'fast' if name in self.maskvars else
+                'fast'  if name in self.maskvars  else
                 'name')
 
     def get_child(self, t):
