@@ -454,16 +454,16 @@ class CodeGen(ast.NodeVisitor):
 
     def load(self, name):
         access = self.scope.access(name)
-        if   access == 'fast':   return op.LOAD_FAST(self.varnames[name])
-        elif access == 'deref':  return op.LOAD_DEREF(self.cell_index(name))
-        elif access == 'name':   return op.LOAD_NAME(self.names[name])
+        if   access == 'fast':  return op.LOAD_FAST(self.varnames[name])
+        elif access == 'deref': return op.LOAD_DEREF(self.cell_index(name))
+        elif access == 'name':  return op.LOAD_NAME(self.names[name])
         else: assert False
 
     def store(self, name):
         access = self.scope.access(name)
-        if   access == 'fast':   return op.STORE_FAST(self.varnames[name])
-        elif access == 'deref':  return op.STORE_DEREF(self.cell_index(name))
-        elif access == 'name':   return op.STORE_NAME(self.names[name])
+        if   access == 'fast':  return op.STORE_FAST(self.varnames[name])
+        elif access == 'deref': return op.STORE_DEREF(self.cell_index(name))
+        elif access == 'name':  return op.STORE_NAME(self.names[name])
         else: assert False
 
     def visit_List(self, t):  return self.visit_sequence(t, op.BUILD_LIST)
