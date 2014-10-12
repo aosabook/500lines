@@ -622,19 +622,17 @@ We're through the most labour intensive part of our program. Next, we'll build a
 
 ## A User Scenario
 
-When a user first enters the app, they see an empty table of uploads, and an upload form with fields for trial info (Name, Sampling Rate, Actual Step Count, and Method, in the order) and user info (Gender, Height, and Stride), some of which are optional.
+When a user first enters the app by navigating to /uploads, they see a table of existing data, and a form to submit new data by uploading an accelerometer output file and trial and user information. 
 
-![](chapter-figures/app2.png)\ 
+![](chapter-figures/graffles/app1.png)\ 
 
-Filling out the form and hitting **submit** present the user with the following view:
+Submitting the form stores the data to the file system, parses, processes, and analyzes it, and redirect back to /uploads with a new entry in the table. 
 
-![](chapter-figures/app3.png)\ 
+Clicking the **Detail** link for an entry presents the user with the following view:
 
-Our program has parsed, processed, and analyzed the input file. The information presented includes values input by the user, values calculated by our program, and graphs of the time series following the dot product operation, and again following filtering. 
+![](chapter-figures/graffles/app3.png)\ 
 
-The user can navigate back to uploads using the *Back to Uploads* link, and continue uploading files as they wish.
-
-![](chapter-figures/app4.png)\ 
+The information presented includes values input by the user through the upload form, values calculated by our program, and graphs of the time series following the dot product operation, and again following filtering. The user can navigate back to uploads using the *Back to Uploads* link. 
 
 Let's look at what the outlined functionality above implies for us, technically. We'll need two major components that we don't yet have:
 
@@ -769,13 +767,11 @@ Let's move on to the web application side of our program to see how `Upload` wil
 
 ## 2. Building a Web Application
 
-Web apps have been built many times over, so we may as well use a framework to do the boring plumbing work for us. The Sinatra framework does just that. In the tool's own words, Sinatra is "a DSL for quickly creating web applications in Ruby". Perfect. 
+Web apps have been built many times over, so we'll leverage the important work of the open source community and use an existing framework to do the boring plumbing work for us. The Sinatra framework does just that. In the tool's own words, Sinatra is "a DSL for quickly creating web applications in Ruby". Perfect. Since we're building a web app, we'll need a web server. We'll use Thin as our web server, which is simple and certainly fast enough for our purposes. 
 
-Since we're building a web app, we'll need a web server. We'll use the Thin web server, which is simple and certainly fast enough for our purposes. 
+Sinatra and Thin can be installed as RubyGems, Ruby's popular library packaging system. We'll also use Bundler, a helpful tool to install and manage our RubyGems.
 
-The last tool we'll be including is a JavaScript library called Highcharts, used for creating interactive charts. What's the point of interesting data if we can't display it in interesting ways? 
-
-We'll start by creating a Gemfile with the following lines:
+We'll start by creating a Gemfile:
 
 ~~~~~~~
 source 'https://rubygems.org'
@@ -784,7 +780,7 @@ gem 'sinatra'
 gem 'thin'
 ~~~~~~~
 
-Once we run bundle install, we'll have Sinatra, as well as the Thin web server.
+Once we run `bundle install` from our `pedometer` directory, we'll have Sinatra and the Thin web server.
 
 Our web app will need to respond to HTTP requests, so we'll need a file that defines a route for each combination of HTTP method and URL. Let's call it `pedometer.rb`.
 
@@ -810,208 +806,54 @@ end
 
 post '/create' do
   begin
-    @upload = Upload.create(
+    Upload.create(
       params[:processor][:file_upload][:tempfile], 
       params[:user].values,
       params[:trial].values
     )
 
-    erb :upload
+    redirect '/uploads'
   rescue Exception => e
     redirect '/uploads?error=creation'
   end
 end
 ~~~~~~~
 
-Our `pedometer.rb` file is responsible for responding to each of the routes defined within it, running the code within each route's associated block, and rendering a view or handling an error.
+Running `ruby pedometer.rb` from our app's directory starts the web server, allowing our app to respond to HTTP requests for each of our routes. Each route either retrieves data from, or stores data to, the file system through `Upload`, and then renders a view. Our views use erb, an emplementation of Embedded Ruby, which allows us to embed Ruby into HTML. The instance variables instantiated in our routes will be used directly in our views. The views simply display the data and aren't the focus of our app, so we we'll leave the code for them out of this chapter. 
 
-The first thing our `pedometer.rb` file does is load in all models and helpers. It then includes a `ViewHelper` module. Let's take a closer look at it.
+### Helpers are Helpful
 
-### ViewHelper
+`pedometer.rb` loads in all models and helpers, and includes a `ViewHelper` module. As the name implies, `ViewHelper` contains methods that help the view. Let's look at one of the methods as an example. 
 
 ~~~~~~~
 module ViewHelper
-
-  DISTANCE = { cm_per_m: 100, cm_per_km: 100000, m_per_km: 1000 }
-  DECIMAL_PLACES = 2
-
-  def format_distance(distance_cm)
-    distance_cm = distance_cm.round(DECIMAL_PLACES)
-    if distance_cm >= DISTANCE[:cm_per_km]
-      "#{(distance_cm/DISTANCE[:cm_per_km]).round(DECIMAL_PLACES)} km"
-    elsif distance_cm >= DISTANCE[:cm_per_m]
-      distance = (distance_cm/DISTANCE[:cm_per_m]).round(DECIMAL_PLACES)
-      (distance == DISTANCE[:m_per_km]) ? "1.0 km" : "#{distance} m"
-    else
-      (distance_cm == DISTANCE[:cm_per_m]) ? "1.0 m" : "#{distance_cm} cm"
-    end
-  end
-
+<...code truncated for brevity...>
   def format_time(time_sec)
     Time.at(time_sec.round).utc.strftime("%-H hr, %-M min, %-S sec")
   end
-
-  def limit_1000(series)
-    series.to_a[0..999]
-  end
-
+<...code truncated for brevity...>
 end
 ~~~~~~~
 
-`ViewHelper` contains methods that present numerical data in a more visually pleasing way. `ViewHelper` contains three class methods. 
+`format_time` takes a time in seconds and formats it using Ruby's `strftime`, so that the view can display it as "`x` hr, `y` min, `z` sec", making it easier to comprehend than listing the total number of seconds. 
 
-`format_distance` takes a distance in cm, converts it to the most reasonable unit of measurement, and outputs a string. Note that all "magic numbers" are defined at the top of the class as class-level variables. Let's take a look at three use cases, that show how rounding is handled.
-
-~~~~~~~
-> format_distance(99.987)
-=> "99.99 cm"
-> format_distance(99999)
-=> "999.99 m"
-> format_distance(99999.99)
-=> "1.0 km"
-~~~~~~~
-
-`format_time` takes a time in seconds and formats it using Ruby's `strftime`.
-
-The final method, `limit_1000`, takes a time series, and returns the first 1000 points. We'll see this used in the `upload` view shortly. 
-
-Here we once again see separation of concerns. To keep as much logic as possible out of the view, we leave the formatting to `ViewHelper`.
-
-Helpers are helpful (see what we did there?) when grouping methods that have a similar purpose. In our case, all of the methods in the `ViewHelper` module are for the purpose of formatting data used in a view. It's sometimes tempting to jam all miscellaneous methods of a program into one helper, making a helper a dumping ground for code we don't know what to do with. If you find yourself doing this, always question where that method should belong, and which one of your classes or modules is responsible for the functionality of that method. It's wise to resist the temptation to put outcast code into helpers, as it often allows you to mask a problem of a poorly structured app.
+Here we once again see separation of concerns. To keep as much logic as possible out of the view, we leave the formatting to `ViewHelper`. Helpers group methods that have a similar purpose. It's sometimes tempting to jam all miscellaneous methods of a program into one helper, making it a dumping ground for code we don't know what to do with. If you find yourself doing this, always question where that method should belong, and which one of your classes or modules is responsible for the functionality of that method. It's wise to resist the temptation to put outcast code into helpers, as it can mask the problem of a poorly structured app.
 
 ## Back to Our App
 
-Running `ruby pedometer.rb` from our app's directory starts the web server, and our app can now respond to HTTP requests for each of our routes. Let's look at each of our routes individually. 
+Let's look at each of the routes in `pedometer.rb` individually. 
 
 ### get '/uploads'
 
-The `get '/uploads'` route sets `@uploads` through `Upload.all`, and `@error` if an `:error` key is present in the params hash. The `uploads` view is then rendered. Let's take a look at the `uploads` view, below. 
-
-~~~~~~~
-<link href="/styles.css" rel="stylesheet" type="text/css" />
-
-<html>
-  <div class="error"><%= @error %></div>
-  <%= erb :summary, locals: { uploads: @uploads, detail_hidden: true } %>
-  <form method="post" action="/create" enctype="multipart/form-data">
-    <h3 class="upload-header">Trial Info</h3>
-    <input name="processor[file_upload]" type="file">
-    <input name="trial[name]" class="params" placeholder="Name">
-    <input name="trial[rate]" type="number" class="params" placeholder="Sampling Rate">
-    <input name="trial[steps]" type="number" class="params" placeholder="Actual Step Count">
-    <select name="trial[method]" class="params">
-      <option value="">(Select a method)</option>
-      <option value="walk">Walking</option>
-      <option value="run">Running</option>
-      <option value="bagwalk">Walking, phone in bag</option>
-      <option value="bagrun">Running, phone in bag</option>
-    </select>
-    <h3 class="upload-header">User Info</h3>
-    <select class="params" name="user[gender]">
-      <option value="">(Select a gender)</option>
-      <option value="female">Female</option>
-      <option value="male">Male</option>
-    </select>
-    <input class="params" type="number" name="user[height]" placeholder="Height (cm)">
-    <input class="params" type="number" name="user[stride]" placeholder="Stride (cm)">
-    <div class="controls"><input type="submit" value="submit"></div>
-  </form>
-</html>
-~~~~~~~
-
-The `uploads` view first pulls in a style sheet file, `styles.css`, which we've eliminated for brevity. The `uploads` view also renders the `summary` view. We place it in its own file, because we reuse it again in another view, which we'll examine next.
-
-~~~~~~~
-<table class="summary">
-  <th>Name</th>
-  <th>Method</th>
-  <th>Format</th>
-  <th>Actual</th>
-  <th>Calculated</th>
-  <th>Delta</th>
-  <th>User</th>
-  <% unless detail_hidden %>
-    <th>Distance</th>
-    <th>Time</th>
-  <% end %>
-  <% uploads.each do |upload| %>
-    <% analyzer = upload.analyzer %>
-    <tr>
-      <td><%= analyzer.trial.name %></td>
-      <td><%= analyzer.trial.method %></td>
-      <td><%= analyzer.processor.format %></td>
-      <td><%= analyzer.trial.steps %></td>
-      <td><%= analyzer.steps %></td>
-      <td><%= analyzer.trial.steps ? (analyzer.steps - analyzer.trial.steps) : '' %></td>
-      <td><%= analyzer.user.gender %></td>
-      <% if detail_hidden %>
-        <td><a href=<%= "upload/" + upload.file_path %>>Detail</a></td>
-      <% else %>
-        <td><%= format_distance(analyzer.distance) %></td>
-        <td><%= format_time(analyzer.time) %></td>
-      <% end %>
-    </tr>
-  <% end %>
-</table>
-~~~~~~~
-
-Note the use of the `ViewHelper` methods in the `summary` view.
-
-Back to the `uploads` view. The `uploads` view renders an error if one exists, renders `summary` with all uploads to present the table of upload data, and then creates the input form for user and trial info. 
-
-The last and largest portion of the `uploads` view is the layout of the form that allows a user to input data. Note that the form, on submission, performs an HTTP POST to `/create`, which we'll discuss as our last route. All input fields either have placeholder text to indicate the data needed, or, in the case of select fields, a placeholder field. The fields that require numerical data are of type `number` so that the browser doesn't allow submission of the form unless proper data is passed in. This type of front-end validation prevents us from making an unnecessary HTTP request when we know then and there that the data is incorrect.
+With our server running, navigating to `http://localhost:4567/uploads` sends an HTTP GET request to our app, triggering our `get '/uploads'` code. The route retrieves all of the uploads in the file system and renders the `uploads` view, which displays a list of the uploads, and a form to submit new uploads. If an error parameter is included, the route will create an error string, and the `uploads` view will display the error.
 
 ### get '/upload/*'
 
-The `get '/upload/*'` route is called with a file path. For example: `http://localhost:4567/upload/public/uploads/female-168.0-70.0_100-100-1-walk-c.txt`. It sets `@upload` through `Upload.find`, passing in the `file_path` from the URL. It then renders the `upload` view. 
-
-~~~~~~~
-<script src="/jquery.min.js"></script>
-<script src="/highcharts.js"></script>
-<link href="/styles.css" rel="stylesheet" type="text/css" />
-
-<html>
-    <a class="nav" href='/uploads'>Back to Uploads</a>
-    <%= erb :summary, locals: { uploads: [@upload], detail_hidden: false } %>
-
-    <div id="container-dot-product"></div>
-    <div id="container-filtered"></div>
-</html>
-
-<script>
-  $(function () {
-        $('#container-dot-product').highcharts({
-            title: { text: 'User Acceleration in the Direction of Gravity' },
-            series: [{
-                name: 'a(t)',
-                data: <%= limit_1000(@upload.analyzer.processor.dot_product_data) %>
-            }],
-            xAxis: { title: { text: 'Time' } },
-            yAxis: { title: { text: 'Acceleration' } }
-        });
-
-        $('#container-filtered').highcharts({
-            title: { text: 'User Acceleration in the Direction of Gravity - Filtered' },
-            series: [{
-                name: 'a(t)',
-                data: <%= limit_1000(@upload.analyzer.processor.filtered_data) %>
-            }],
-            xAxis: { title: { text: 'Time' } },
-            yAxis: { title: { text: 'Acceleration' } }
-        });
-    });
-</script>
-~~~~~~~
-
-Highcharts requires jQuery, so we include it at the top before we pull in `highcharts.js`. The `upload` view has both HTML and JavaScript. As our application grows, we would likely split out JavaScript code in the views into separate files. For simplicity, we've kept it all together. 
-
-In the HTML portion, we create a link to return to `/uploads`, for ease of navigation purposes. Then, we render `summary` once more. Since both summary tables are quite similar, we've chosen to extract the HTML for the summary table into one view and reuse it from both `uploads` and `upload`. This ensures that the format of the tables remains consistent, and avoids code duplication. In this case, we pass in false for `detail_hidden`, since we want to see time and distance data, whereas in the uploads view, we wanted those fields replaced with a link to this view. This is another example of separation of concerns. Following the summary table, we create containers for the charts. 
-
-The JavaScript portion uses the Highcharts API to create two charts: dot product data, and filtered data. Each chart is limited to 1000 points, to make it easy on our eyes, using the `limit_1000` method in `ViewHelper`.
+Clicking the **Detail** link for each upload sends an HTTP GET to `/upload` with the file path for that upload. For example: `http://localhost:4567/upload/public/uploads/female-168.0-70.0_100-100-1-walk-c.txt`. The route code retirieves the upload through `Upload`, using the provided `file_path`, and renders the `upload` view. The upload view displays the details of the upload, including the charts, which are creating using a JavaScript library called HighCharts. 
 
 ### post '/create'
 
-Our final route, an HTTP POST to `create`, is called when a user submits the form in the `uploads` view. The action sets an `@upload` instance variable to a new `Upload` record, created by passing in values from the params hash. It then renders the `upload` view. If an error occurs in the creation process, the `uploads` view is rendered, with the an error parameter passed in. 
+Our final route, an HTTP POST to `create`, is called when a user submits the form in the `uploads` view. The route creates a new `Upload`, using the `params` hash to grab the values input by the user through the form, and redirects back to `/uploads`. If an error occurs in the creation process, the redirect to `/uploads` includes an error parameter to let the user know that something went wrong. 
 
 # A Fully Functional App
 

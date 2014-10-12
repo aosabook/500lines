@@ -28,7 +28,7 @@ class PedometerTest < Test::Unit::TestCase
       'user'      => { 'gender' => 'female', 'height' => '157', 'stride' => '90' }
     }
     
-    assert_equal 200, last_response.status
+    assert_equal 302, last_response.status
   end
 
 end

@@ -21,13 +21,13 @@ end
 # - Is file sanitized here? We don't want to be passing around untrusted data, especially not if it's touching the filesystem.
 post '/create' do
   begin
-    @upload = Upload.create(
+    Upload.create(
       params[:processor][:file_upload][:tempfile], 
       params[:user].values,
       params[:trial].values
     )
 
-    erb :upload
+    redirect '/uploads'
   rescue Exception => e
     redirect '/uploads?error=creation'
   end
