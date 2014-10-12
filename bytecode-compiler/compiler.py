@@ -284,9 +284,8 @@ class CodeGen(ast.NodeVisitor):
         return concat(map(self, t)) if isinstance(t, list) else self.visit(t)
 
     def visit(self, t):
-        lineno = getattr(t, 'lineno', None)
-        assembly = ast.NodeVisitor.visit(self, t)
-        return assembly if lineno is None else SetLineNo(t.lineno) + assembly
+        if not hasattr(t, 'lineno'): return ast.NodeVisitor.visit(self, t)
+        else: return SetLineNo(t.lineno) + ast.NodeVisitor.visit(self, t)
 
     def generic_visit(self, t):
         assert False, t
