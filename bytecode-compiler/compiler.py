@@ -52,7 +52,7 @@ class Label(Assembly):
         else: labeled_depths[self] = depths[-1]
 
 def concat(assemblies):
-    return reduce(Chain, assemblies, no_op)
+    return sum(assemblies, no_op)
 
 class Chain(Assembly):
     def __init__(self, assembly1, assembly2):
