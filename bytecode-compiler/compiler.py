@@ -269,9 +269,9 @@ class CodeGen(ast.NodeVisitor):
         nlocals = len(self.varnames)
         stacksize = plumb_depths(assembly)
         firstlineno, lnotab = make_lnotab(assembly)
-        flags = (0x00 | (0x02 if nlocals else 0)
-                      | (0x10 if self.scope.freevars else 0)
-                      | (0x40 if not self.scope.derefvars else 0))
+        flags = (  (0x02 if nlocals                  else 0)
+                 | (0x10 if self.scope.freevars      else 0)
+                 | (0x40 if not self.scope.derefvars else 0))
         constants = tuple([constant for constant,_ in collect(self.constants)])
         return types.CodeType(argcount, kwonlyargcount,
                               nlocals, stacksize, flags, assemble(assembly),
