@@ -271,10 +271,9 @@ class CodeGen(ast.NodeVisitor):
         flags = (  (0x02 if nlocals                  else 0)
                  | (0x10 if self.scope.freevars      else 0)
                  | (0x40 if not self.scope.derefvars else 0))
-        constants = tuple([constant for constant,_ in collect(self.constants)])
         return types.CodeType(argcount, kwonlyargcount,
                               nlocals, stacksize, flags, assemble(assembly),
-                              constants,
+                              self.collect_constants(),
                               collect(self.names), collect(self.varnames),
                               self.filename, name, firstlineno, lnotab,
                               self.scope.freevars, self.scope.cellvars)
@@ -435,6 +434,9 @@ class CodeGen(ast.NodeVisitor):
 
     def load_const(self, constant):
         return op.LOAD_CONST(self.constants[constant, type(constant)])
+
+    def collect_constants(self):
+        return tuple([constant for constant,_ in collect(self.constants)])
 
     def visit_Attribute(self, t):
         sub_op = self.attr_ops[type(t.ctx)]
