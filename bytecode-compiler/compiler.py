@@ -36,12 +36,12 @@ class Assembly:
     def resolve(self, start): return ()
     def encode(self, start, addresses): return b''
     def line_nos(self, start): return ()
-
-def concat(assemblies): return reduce(Chain, assemblies, no_op)
-
-class NoOp(Assembly):
     def plumb(self, depths, labeled_depths): pass
-no_op = NoOp()
+
+no_op = Assembly()
+
+def concat(assemblies):
+    return reduce(Chain, assemblies, no_op)
 
 class Chain(Assembly):
     def __init__(self, assembly1, assembly2):
