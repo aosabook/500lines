@@ -71,7 +71,6 @@ class Label(Assembly):
 class SetLineNo(Assembly):
     def __init__(self, line): self.line = line
     def line_nos(self, start): return ((start, self.line),)
-    def plumb(self, depths, labeled_depths): pass
 
 class Insn(Assembly):
     def __init__(self, encoded):
