@@ -98,7 +98,8 @@ class JumpInsn(Assembly):
         labeled_depths[self.label] = depths[-1] + jump_stack_effect(self.opcode)
         depths.append(depths[-1] + stack_effect(self.opcode))
 
-def insn_encode(opcode, arg): return bytes([opcode, arg % 256, arg // 256])
+def insn_encode(opcode, arg):
+    return bytes([opcode, arg % 256, arg // 256])
 
 def jump_stack_effect(opcode):
     return jump_stack_effects.get(opcode, stack_effect(opcode))
@@ -119,7 +120,8 @@ op = Opcodes()
 for name, opcode in dis.opmap.items():
     setattr(op, name, denotation(opcode))
 
-def desugar(t): return ast.fix_missing_locations(Expander().visit(t))
+def desugar(t):
+    return ast.fix_missing_locations(Expander().visit(t))
 
 class Function(ast.FunctionDef): # from FunctionDef so that ast.get_docstring works. Ugh!
     _fields = ('name', 'args', 'body')
