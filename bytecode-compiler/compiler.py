@@ -9,7 +9,7 @@ def assemble(assembly):
 
 def plumb_depths(assembly):
     depths = [0]
-    assembly.plumb(depths, {})
+    assembly.plumb(depths)
     return max(depths)
 
 def make_lnotab(assembly):
@@ -36,23 +36,19 @@ class Assembly:
     def resolve(self, start): return ()
     def encode(self, start, addresses): return b''
     def line_nos(self, start): return ()
-    def plumb(self, depths, labeled_depths): pass
+    def plumb(self, depths): pass
 
 no_op = Assembly()
+
+def concat(assemblies):
+    return sum(assemblies, no_op)
 
 class SetLineNo(Assembly):
     def __init__(self, line): self.line = line
     def line_nos(self, start): return ((start, self.line),)
 
 class Label(Assembly):
-    def resolve(self, start):
-        return ((self, start),)
-    def plumb(self, depths, labeled_depths):
-        if self in labeled_depths: depths.append(labeled_depths[self])
-        else: labeled_depths[self] = depths[-1]
-
-def concat(assemblies):
-    return sum(assemblies, no_op)
+    def resolve(self, start): return ((self, start),)
 
 class Chain(Assembly):
     def __init__(self, assembly1, assembly2):
@@ -68,9 +64,9 @@ class Chain(Assembly):
     def line_nos(self, start):
         return chain(self.assembly1.line_nos(start),
                      self.assembly2.line_nos(start + self.assembly1.length))
-    def plumb(self, depths, labeled_depths):
-        self.assembly1.plumb(depths, labeled_depths)
-        self.assembly2.plumb(depths, labeled_depths)
+    def plumb(self, depths):
+        self.assembly1.plumb(depths)
+        self.assembly2.plumb(depths)
 
 class Insn(Assembly):
     def __init__(self, encoded):
@@ -79,7 +75,7 @@ class Insn(Assembly):
         self.length = len(encoded)
     def encode(self, start, addresses):
         return self.encoded
-    def plumb(self, depths, labeled_depths):
+    def plumb(self, depths):
         e = self.encoded
         effect = (stack_effect(e[0]) if len(e) == 1
                   else stack_effect(e[0], e[1] + 256*e[2]))
@@ -93,18 +89,11 @@ class JumpInsn(Assembly):
     def encode(self, start, addresses):
         base = 0 if self.opcode in dis.hasjabs else start+3
         return insn_encode(self.opcode, addresses[self.label] - base)
-    def plumb(self, depths, labeled_depths):
-        labeled_depths[self.label] = depths[-1] + jump_stack_effect(self.opcode)
+    def plumb(self, depths):
         depths.append(depths[-1] + stack_effect(self.opcode))
 
 def insn_encode(opcode, arg):
     return bytes([opcode, arg % 256, arg // 256])
-
-def jump_stack_effect(opcode):
-    return jump_stack_effects.get(opcode, stack_effect(opcode))
-jump_stack_effects = {dis.opmap['FOR_ITER']: -1,
-                      dis.opmap['JUMP_IF_TRUE_OR_POP']: 0,
-                      dis.opmap['JUMP_IF_FALSE_OR_POP']: 0}
 
 def denotation(opcode):
     if opcode < dis.HAVE_ARGUMENT:
