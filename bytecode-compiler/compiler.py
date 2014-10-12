@@ -224,8 +224,8 @@ class Scope(ast.NodeVisitor):
             self.defs.add(alias.asname or alias.name)
 
     def visit_Name(self, t):
-        if   isinstance(t.ctx, ast.Load):  return self.uses.add(t.id)
-        elif isinstance(t.ctx, ast.Store): return self.defs.add(t.id)
+        if   isinstance(t.ctx, ast.Load):  self.uses.add(t.id)
+        elif isinstance(t.ctx, ast.Store): self.defs.add(t.id)
         else: assert False
 
 def byte_compile(module_name, filename, t, f_globals):
