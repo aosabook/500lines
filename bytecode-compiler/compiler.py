@@ -40,6 +40,17 @@ class Assembly:
 
 no_op = Assembly()
 
+class SetLineNo(Assembly):
+    def __init__(self, line): self.line = line
+    def line_nos(self, start): return ((start, self.line),)
+
+class Label(Assembly):
+    def resolve(self, start):
+        return ((self, start),)
+    def plumb(self, depths, labeled_depths):
+        if self in labeled_depths: depths.append(labeled_depths[self])
+        else: labeled_depths[self] = depths[-1]
+
 def concat(assemblies):
     return reduce(Chain, assemblies, no_op)
 
@@ -60,17 +71,6 @@ class Chain(Assembly):
     def plumb(self, depths, labeled_depths):
         self.assembly1.plumb(depths, labeled_depths)
         self.assembly2.plumb(depths, labeled_depths)
-
-class Label(Assembly):
-    def resolve(self, start):
-        return ((self, start),)
-    def plumb(self, depths, labeled_depths):
-        if self in labeled_depths: depths.append(labeled_depths[self])
-        else: labeled_depths[self] = depths[-1]
-
-class SetLineNo(Assembly):
-    def __init__(self, line): self.line = line
-    def line_nos(self, start): return ((start, self.line),)
 
 class Insn(Assembly):
     def __init__(self, encoded):
