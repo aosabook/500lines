@@ -31,12 +31,17 @@ def make_lnotab(assembly):
     return firstlineno or 1, bytes(lnotab)
 
 class Assembly:
-    def __add__(self, other): return Chain(self, other)
+    def __add__(self, other):
+        return Chain(self, other)
     length = 0
-    def resolve(self, start): return ()
-    def encode(self, start, addresses): return b''
-    def line_nos(self, start): return ()
-    def plumb(self, depths): pass
+    def resolve(self, start):
+        return ()
+    def encode(self, start, addresses):
+        return b''
+    def line_nos(self, start):
+        return ()
+    def plumb(self, depths):
+        pass
 
 no_op = Assembly()
 
@@ -44,11 +49,14 @@ def concat(assemblies):
     return sum(assemblies, no_op)
 
 class SetLineNo(Assembly):
-    def __init__(self, line): self.line = line
-    def line_nos(self, start): return ((start, self.line),)
+    def __init__(self, line):
+        self.line = line
+    def line_nos(self, start):
+        return ((start, self.line),)
 
 class Label(Assembly):
-    def resolve(self, start): return ((self, start),)
+    def resolve(self, start):
+        return ((self, start),)
 
 class Chain(Assembly):
     def __init__(self, assembly1, assembly2):
