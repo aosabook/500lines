@@ -5,7 +5,7 @@ from stack_effect import stack_effect
 from check_subset import check_conformity
 
 def assemble(assembly):
-    return bytes(iter(assembly.encode(0, dict(assembly.locate(0)))))
+    return bytes(iter(assembly.encode(0, dict(assembly.resolve(0)))))
 
 def plumb_depths(assembly):
     depths = [0]
@@ -33,7 +33,7 @@ def make_lnotab(assembly):
 class Assembly:
     def __add__(self, other): return Chain(self, other)
     length = 0
-    def locate(self, start): return ()
+    def resolve(self, start): return ()
     def encode(self, start, addresses): return b''
     def line_nos(self, start): return ()
 
@@ -48,9 +48,9 @@ class Chain(Assembly):
         self.assembly1 = assembly1
         self.assembly2 = assembly2
         self.length = assembly1.length + assembly2.length
-    def locate(self, start):
-        return chain(self.assembly1.locate(start),
-                     self.assembly2.locate(start + self.assembly1.length))
+    def resolve(self, start):
+        return chain(self.assembly1.resolve(start),
+                     self.assembly2.resolve(start + self.assembly1.length))
     def encode(self, start, addresses):
         return chain(self.assembly1.encode(start, addresses),
                      self.assembly2.encode(start + self.assembly1.length, addresses))
@@ -62,7 +62,8 @@ class Chain(Assembly):
         self.assembly2.plumb(depths, labeled_depths)
 
 class Label(Assembly):
-    def locate(self, start): return ((self, start),)
+    def resolve(self, start):
+        return ((self, start),)
     def plumb(self, depths, labeled_depths):
         if self in labeled_depths: depths.append(labeled_depths[self])
         else: labeled_depths[self] = depths[-1]
