@@ -48,15 +48,15 @@ no_op = Assembly()
 def concat(assemblies):
     return sum(assemblies, no_op)
 
+class Label(Assembly):
+    def resolve(self, start):
+        return ((self, start),)
+
 class SetLineNo(Assembly):
     def __init__(self, line):
         self.line = line
     def line_nos(self, start):
         return ((start, self.line),)
-
-class Label(Assembly):
-    def resolve(self, start):
-        return ((self, start),)
 
 class Chain(Assembly):
     def __init__(self, assembly1, assembly2):
