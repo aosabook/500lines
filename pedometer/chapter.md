@@ -161,11 +161,11 @@ Let's get to it. First, some liner algebra 101. Don't take that mathematician ha
 
 When working with coordinates, you won't get very far before being introduced to the **dot product**, one of the fundamental tools used in comparing the magnitude and direction of x, y, z coordinates.
 
-The dot product will take us from 3-dimensional space to 1-dimensional space, returning a single time series. We'll jump right in with an example.
+The dot product will take us from 3-dimensional space to 1-dimensional space, returning a single time series. Taking the dot product of user acceleration and gravitational acceleration at time *t* will give us the portion of user acceleration in the direction of gravity at that time.
 
 ![](chapter-figures/dot-product-explanation.png)\ 
 
-Taking the dot product of user acceleration and gravitational acceleration at time *t* will give us the portion of user acceleration in the direction of gravity at that time. When we do this for every *t* in our time series, we'll get a single time series representing user acceleration in the direction of gravity. Exactly what we need! We'll arbitrarily call this new time series $a(t)$, because, well, every important time series deserves a name. 
+When we do this for every *t* in our time series, we'll get a single time series representing user acceleration in the direction of gravity. Exactly what we need! We'll arbitrarily call this new time series $a(t)$, because, well, every important time series deserves a name. 
 
 ### Implementing the Dot Product
 We can implement the dot product for our earlier example using the formula
