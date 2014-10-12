@@ -69,39 +69,24 @@ class Chain(Assembly):
         self.assembly2.plumb(depths)
 
 class Insn(Assembly):
-    def __init__(self, encoded):
-        assert isinstance(encoded, bytes) and encoded
-        self.encoded = encoded
-        self.length = len(encoded)
-    def encode(self, start, addresses):
-        return self.encoded
-    def plumb(self, depths):
-        e = self.encoded
-        effect = (stack_effect(e[0]) if len(e) == 1
-                  else stack_effect(e[0], e[1] + 256*e[2]))
-        depths.append(depths[-1] + effect)
-
-class JumpInsn(Assembly):
-    length = 3
-    def __init__(self, opcode, label):
+    def __init__(self, opcode, arg=None):
         self.opcode = opcode
-        self.label = label
+        self.arg    = arg
+        self.length = 1 if arg is None else 3
     def encode(self, start, addresses):
-        base = 0 if self.opcode in dis.hasjabs else start+3
-        return insn_encode(self.opcode, addresses[self.label] - base)
+        if   self.opcode in dis.hasjabs: arg = addresses[self.arg]
+        elif self.opcode in dis.hasjrel: arg = addresses[self.arg] - (start+3)
+        else:                            arg = self.arg
+        if arg is None: return bytes([self.opcode])
+        else:           return bytes([self.opcode, arg % 256, arg // 256])
     def plumb(self, depths):
-        depths.append(depths[-1] + stack_effect(self.opcode))
-
-def insn_encode(opcode, arg):
-    return bytes([opcode, arg % 256, arg // 256])
+        depths.append(depths[-1] + stack_effect(self.opcode, self.arg))
 
 def denotation(opcode):
     if opcode < dis.HAVE_ARGUMENT:
-        return Insn(bytes([opcode]))
-    elif opcode in dis.hasjrel or opcode in dis.hasjabs:
-        return lambda label: JumpInsn(opcode, label)
+        return Insn(opcode)
     else:
-        return lambda arg: Insn(insn_encode(opcode, arg))
+        return lambda arg: Insn(opcode, arg)
 
 class Opcodes: pass
 op = Opcodes()
