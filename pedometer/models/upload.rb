@@ -14,8 +14,8 @@ class Upload
     if file_path
       @file_path = file_path
     elsif input_data
-      @parser    = Parser.new(File.read(input_data))
-      @processor = Processor.new(parser.parsed_data)
+      @parser    = Parser.run(File.read(input_data))
+      @processor = Processor.run(@parser.parsed_data)
       @user      = User.new(*user_params)
       @trial     = Trial.new(*trial_params)
 
@@ -50,11 +50,11 @@ class Upload
   # -- Instance Methods -----------------------------------------------------
 
   def parser
-    @parser ||= Parser.new(File.read(file_path))
+    @parser ||= Parser.run(File.read(file_path))
   end
 
   def processor
-    @processor ||= Processor.new(parser.parsed_data)
+    @processor ||= Processor.run(parser.parsed_data)
   end
 
   def user
@@ -66,11 +66,7 @@ class Upload
   end
 
   def analyzer
-    unless @analyzer
-      @analyzer = Analyzer.new(processor, user, trial)
-      @analyzer.measure
-    end
-    @analyzer
+    @analyzer ||= Analyzer.run(processor, user, trial)
   end
 
 private

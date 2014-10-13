@@ -8,6 +8,14 @@ class Analyzer
 
   attr_reader :processor, :user, :trial, :steps, :distance, :time
 
+  def self.run(processor, user = User.new, trial = Trial.new)
+    analyzer = self.new(processor, user, trial)
+    analyzer.measure_steps
+    analyzer.measure_distance
+    analyzer.measure_time
+    analyzer
+  end
+
   def initialize(processor, user = User.new, trial = Trial.new)
     raise 'Processor invalid.' unless processor.kind_of? Processor
     raise 'User invalid.'      unless user.kind_of? User
@@ -17,14 +25,6 @@ class Analyzer
     @user      = user
     @trial     = trial
   end
-
-  def measure
-    measure_steps
-    measure_distance
-    measure_time
-  end
-
-private
 
   def measure_steps
     @steps = 0

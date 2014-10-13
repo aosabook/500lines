@@ -5,22 +5,28 @@ class Processor
 
   attr_reader :dot_product_data, :filtered_data
 
-  def initialize(data)
-    @dot_product_data = dot_product(data)
-    @filtered_data    = filter(@dot_product_data)
+  def self.run(data)
+    processor = self.new(data)
+    processor.dot_product
+    processor.filter
+    processor
   end
 
-  def dot_product(data)
-    data.map do |data|
-      data[0][0] * data[1][0] + 
-      data[0][1] * data[1][1] + 
-      data[0][2] * data[1][2]
+  def initialize(data)
+    @data = data
+  end
+
+  def dot_product
+    @dot_product_data = @data.map do |x|
+      x[0][0] * x[1][0] + 
+      x[0][1] * x[1][1] + 
+      x[0][2] * x[1][2]
     end
   end
 
-  def filter(data)
-    low_pass_filtered_data = Filter.chebyshev_filter(data, Filter::LOW_5_HZ)
-    Filter.chebyshev_filter(low_pass_filtered_data, Filter::HIGH_1_HZ)
+  def filter
+    @filtered_data = Filter.chebyshev_filter(@dot_product_data, Filter::LOW_5_HZ)
+    @filtered_data = Filter.chebyshev_filter(@filtered_data, Filter::HIGH_1_HZ)
   end
 
 end
