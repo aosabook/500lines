@@ -31,9 +31,9 @@ class UploadTest < Test::Unit::TestCase
   end
 
   def test_find
-    upload = Upload.find('public/uploads/female-168.0-70.0_1-100-100-walk-c.txt')
+    upload = Upload.find('public/uploads/female-168.0-70.0_1-100-100-walk.txt')
     
-    assert_equal File.read('public/uploads/female-168.0-70.0_1-100-100-walk-c.txt'), upload.processor.data
+    assert_equal File.read('public/uploads/female-168.0-70.0_1-100-100-walk.txt'), upload.processor.data
 
     assert_equal 'female', upload.user.gender
     assert_equal 168, upload.user.height

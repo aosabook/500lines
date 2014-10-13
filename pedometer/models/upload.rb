@@ -23,7 +23,7 @@ class Upload
                    "#{trial.name.to_s.gsub(/\s+/, '')}-" + 
                    "#{trial.rate}-" + 
                    "#{trial.steps}-" +
-                   "#{trial.method}-#{processor.format[0]}.txt"
+                   "#{trial.method}.txt"
     else 
       raise 'File name or input data must be passed in.'
     end
@@ -57,7 +57,7 @@ class Upload
   end
 
   def trial
-    @trial ||= Trial.new(*file_name.last.split('-')[0...-1])
+    @trial ||= Trial.new(*file_name.last.split('-'))
   end
 
   def analyzer
@@ -71,7 +71,7 @@ class Upload
 private
 
   def file_name
-    @file_name ||= file_path.split('/').last.split('_')
+    @file_name ||= file_path.split('/').last.split('.txt').first.split('_')
   end
 
 end

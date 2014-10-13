@@ -294,20 +294,21 @@ class Processor
     beta:  [0.000086384997973502, 0.000172769995947004, 0.000086384997973502]
   }
   
+  # Direct form I, Chebyshev II, type = low-pass, 
+  # Astop = 2, Fstop = 5, Fs = 100, Direct Form I
   SMOOTHING = {
     alpha: [1, -1.80898117793047, 0.827224480562408], 
     beta:  [0.095465967120306, -0.172688631608676, 0.095465967120306]
-  }  
+  }
 
+  # Direct form I, Chebyshev II, type = high-pass, 
+  # Fs = 100, Fstop = 0.5, Astop = 20, order = 2, 
   HIGHPASS = {
     alpha: [1, -1.905384612118461, 0.910092542787947], 
     beta:  [0.953986986993339, -1.907503180919730, 0.953986986993339]
   }
 
-  FORMAT_COMBINED  = 'combined'
-  FORMAT_SEPARATED = 'separated'
-
-  attr_reader :data, :format, :parsed_data, :dot_product_data, :filtered_data
+  attr_reader :data, :parsed_data, :dot_product_data, :filtered_data
 
   def initialize(data)
     @data = data
@@ -318,6 +319,11 @@ class Processor
   end
 
   def parse
+    # Extract numerical data into the format:
+    # [ [ [x1t, y1t, z1t] ], ..., [ [xnt, ynt, znt] ] ]
+    # OR
+    # [ [ [x1u, y1u, z1u], [x1g, y1g, z1g] ], ..., 
+    #   [ [xnu, ynu, znu], [xng, yng, zng] ] ]
     @parsed_data = @data.to_s.split(';').map { |i| i.split('|') }
                    .map { |i| i.map { |i| i.split(',').map(&:to_f) } }
 
@@ -325,22 +331,25 @@ class Processor
       raise 'Bad Input. Ensure data is properly formatted.'
     end
 
-    @format = if @parsed_data.first.count == 1
+    if @parsed_data.first.count == 1
+      # Low-pass filter combined acceleration into the following format:
+      # [ [ [x1u, x2u, ..., xnu], [x1g, x2g, ..., xng] ],
+      #   [ [y1u, y2u, ..., ynu], [y1g, y2g, ..., yng] ],
+      #   [ [z1u, z2u, ..., znu], [z1g, z2g, ..., zng] ] ]
       filtered_accl = @parsed_data.map(&:flatten).transpose.map do |total_accl|
         grav = chebyshev_filter(total_accl, GRAVITY)
         user = total_accl.zip(grav).map { |a, b| a - b }
         [user, grav]
       end
 
+      # Format filtered acceleration into the following format:
+      # [ [ [x1u, y1u, z1u], [x1g, y1g, z1g] ], ..., 
+      #   [ [xnu, ynu, znu], [xng, yng, zng] ] ]
       @parsed_data = @parsed_data.length.times.map do |i|
         user = filtered_accl.map(&:first).map { |elem| elem[i] }
         grav = filtered_accl.map(&:last).map { |elem| elem[i] }
         [user, grav]
       end
-      
-      FORMAT_COMBINED
-    else
-      FORMAT_SEPARATED
     end
   end
 
@@ -426,8 +435,6 @@ $[[z_{u}1, z_{u}2, ..., z_{u}n], [z_{g}1, z_{g}2, ..., z_{g}n]]]$
 We're almost there. We've split total acceleration into user and gravitational. All that's left is to format `filtered_accl` to our standard format. We do this in the second loop. 
 
 The second loop sets `@parsed_data` to the standard format. We use `map` to loop once for each index in `@parsed_data`. The first line in the loop stores an array with the x, y, and z user acceleration at that point in time in `user`, and the second line stores the equivalent values for gravitational acceleration in `grav`. The last line returns an array with `user` and `grav` as the elements. 
-
-The last thing the `if` statement does, for each branch, is set the `@format` variable to either `FORMAT_COMBINED` or `FORMAT_SEPARATED`, both of which are constants that indicate the type of format the original data was passed in as. These are used predominantly for display purposes in the web app. Otherwise, the remainder of the program is no longer concerned with these two formats. 
 
 At the end of the `if` statement, we're left with the `@parsed_data` variable holding data in the standard format, regardless of whether we started off with combined or separated data. What a relief!
 
@@ -671,7 +678,7 @@ class Upload
                    "#{trial.name.to_s.gsub(/\s+/, '')}-" + 
                    "#{trial.rate}-" + 
                    "#{trial.steps}-" +
-                   "#{trial.method}-#{processor.format[0]}.txt"
+                   "#{trial.method}.txt"
     else 
       raise 'File name or input data must be passed in.'
     end

@@ -77,7 +77,7 @@ class AnalyzerTest < Test::Unit::TestCase
   # -- Measurement Tests ----------------------------------------------------
   
   def test_count_basic
-    processor = Processor.new(File.read('test/data/female-167-70_1-100-10-walk-g.txt'))
+    processor = Processor.new(File.read('test/data/female-167-70_2-100-10-walk.txt'))
     analyzer = Analyzer.new(processor)
     analyzer.measure
 
@@ -86,7 +86,7 @@ class AnalyzerTest < Test::Unit::TestCase
 
   def test_measure
     user = User.new(nil, nil, 100)
-    processor = Processor.new(File.read('test/data/female-167-70_1-100-10-walk-g.txt'))
+    processor = Processor.new(File.read('test/data/female-167-70_2-100-10-walk.txt'))
     analyzer = Analyzer.new(processor, user)
     analyzer.measure
 

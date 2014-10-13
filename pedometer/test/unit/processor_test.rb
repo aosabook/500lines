@@ -10,8 +10,6 @@ class ProcessorTest < Test::Unit::TestCase
     processor = Processor.new(data)
     
     assert_equal data, processor.data
-    assert_equal Processor::FORMAT_COMBINED, processor.format
-    
     assert_equal [ [[0.123, -0.123, 5.0],   [0, 0, 0]],
                    [[0.456, -0.789, 0.111], [0, 0, 0]],
                    [[-0.2120710948533322, 0.0011468544965549535, 0.9994625125426089], 
@@ -25,7 +23,6 @@ class ProcessorTest < Test::Unit::TestCase
     processor = Processor.new(data)
     
     assert_equal data, processor.data
-    assert_equal Processor::FORMAT_SEPARATED, processor.format
     assert_equal [ [[0.028, -0.072, 5], [0.129, -0.945, -5]], 
                    [[0, -0.07, 0.06],   [0.123, -0.947, 5]],
                    [[0.2, -1.0, 2.0], [0.1, -0.9, 3.0]] ], processor.parsed_data

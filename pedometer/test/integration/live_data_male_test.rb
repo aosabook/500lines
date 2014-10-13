@@ -10,41 +10,41 @@ class LiveDataMaleTest < Test::Unit::TestCase
   end
 
   def test_walk
-    get '/upload/test/data/male-180-78_1-100-10-walk-a.txt'
+    get '/upload/test/data/male-180-78_1-100-10-walk.txt'
     assert_equal 200, last_response.status
 
-    get '/upload/test/data/male-180-78_2-100-10-walk-a.txt'
+    get '/upload/test/data/male-180-78_2-100-10-walk.txt'
     assert_equal 200, last_response.status
 
-    get '/upload/test/data/male-180-78_1-100-10-walk-g.txt'
+    get '/upload/test/data/male-180-78_1-100-10-walk.txt'
     assert_equal 200, last_response.status
 
-    get '/upload/test/data/male-180-78_2-100-10-walk-g.txt'
+    get '/upload/test/data/male-180-78_2-100-10-walk.txt'
     assert_equal 200, last_response.status
   end
 
   def test_run
-    get '/upload/test/data/male-180-78_1-100-10-run-a.txt'
+    get '/upload/test/data/male-180-78_1-100-10-run.txt'
     assert_equal 200, last_response.status
 
-    get '/upload/test/data/male-180-78_2-100-10-run-a.txt'
+    get '/upload/test/data/male-180-78_2-100-10-run.txt'
     assert_equal 200, last_response.status
 
-    get '/upload/test/data/male-180-78_1-100-10-run-g.txt'
+    get '/upload/test/data/male-180-78_1-100-10-run.txt'
     assert_equal 200, last_response.status
 
-    get '/upload/test/data/male-180-78_2-100-10-run-g.txt'
+    get '/upload/test/data/male-180-78_2-100-10-run.txt'
     assert_equal 200, last_response.status
   end
 
   def test_bagwalk
-    get '/upload/test/data/male-180-78_1-100-10-bagwalk-a.txt'
+    get '/upload/test/data/male-180-78_1-100-10-bagwalk.txt'
     assert_equal 200, last_response.status
 
-    get '/upload/test/data/male-180-78_1-100-10-bagwalk-g.txt'
+    get '/upload/test/data/male-180-78_1-100-10-bagwalk.txt'
     assert_equal 200, last_response.status
 
-    get '/upload/test/data/male-180-78_2-100-10-bagwalk-g.txt'
+    get '/upload/test/data/male-180-78_2-100-10-bagwalk.txt'
     assert_equal 200, last_response.status
   end
 

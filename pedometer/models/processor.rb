@@ -10,7 +10,7 @@ class Processor
   SMOOTHING = {
     alpha: [1, -1.80898117793047, 0.827224480562408], 
     beta:  [0.095465967120306, -0.172688631608676, 0.095465967120306]
-  }  
+  }
 
   # Direct form I, Chebyshev II, type = high-pass, 
   # Fs = 100, Fstop = 0.5, Astop = 20, order = 2, 
@@ -19,10 +19,7 @@ class Processor
     beta:  [0.953986986993339, -1.907503180919730, 0.953986986993339]
   }
 
-  FORMAT_COMBINED  = 'combined'
-  FORMAT_SEPARATED = 'separated'
-
-  attr_reader :data, :format, :parsed_data, :dot_product_data, :filtered_data
+  attr_reader :data, :parsed_data, :dot_product_data, :filtered_data
 
   def initialize(data)
     @data = data
@@ -45,7 +42,7 @@ class Processor
       raise 'Bad Input. Ensure data is properly formatted.'
     end
 
-    @format = if @parsed_data.first.count == 1
+    if @parsed_data.first.count == 1
       # Low-pass filter combined acceleration into the following format:
       # [ [ [x1u, x2u, ..., xnu], [x1g, x2g, ..., xng] ],
       #   [ [y1u, y2u, ..., ynu], [y1g, y2g, ..., yng] ],
@@ -64,10 +61,6 @@ class Processor
         grav = filtered_accl.map(&:last).map { |elem| elem[i] }
         [user, grav]
       end
-      
-      FORMAT_COMBINED
-    else
-      FORMAT_SEPARATED
     end
   end
 
