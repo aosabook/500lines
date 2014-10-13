@@ -7,14 +7,15 @@ class Upload
 
   UPLOAD_DIRECTORY = 'public/uploads/'
 
-  attr_reader :file_path, :processor, :user, :trial, :analyzer
+  attr_reader :file_path, :parser, :processor, :user, :trial, :analyzer
   attr_reader :user_params, :trial_params
 
   def initialize(file_path = nil, input_data = nil, user_params = nil, trial_params = nil)
     if file_path
       @file_path = file_path
     elsif input_data
-      @processor = Processor.new(File.read(input_data))
+      @parser    = Parser.new(File.read(input_data))
+      @processor = Processor.new(parser.parsed_data)
       @user      = User.new(*user_params)
       @trial     = Trial.new(*trial_params)
 
@@ -48,8 +49,12 @@ class Upload
 
   # -- Instance Methods -----------------------------------------------------
 
+  def parser
+    @parser ||= Parser.new(File.read(file_path))
+  end
+
   def processor
-    @processor ||= Processor.new(File.read(file_path))
+    @processor ||= Processor.new(parser.parsed_data)
   end
 
   def user

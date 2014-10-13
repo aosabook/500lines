@@ -10,7 +10,8 @@ class AnalyzerTest < Test::Unit::TestCase
   # -- Creation Tests -------------------------------------------------------
 
   def test_create_combined_data
-    processor = Processor.new('0.123,-0.123,5;')
+    parser = Parser.new('0.123,-0.123,5;')
+    processor = Processor.new(parser.parsed_data)
     user   = User.new
     trial = Trial.new
     
@@ -26,7 +27,8 @@ class AnalyzerTest < Test::Unit::TestCase
   end
 
   def test_create_separated_data
-    processor = Processor.new('0.028,-0.072,5|0.129,-0.945,-5;')
+    parser = Parser.new('0.028,-0.072,5|0.129,-0.945,-5;')
+    processor = Processor.new(parser.parsed_data)
     user   = User.new
     trial = Trial.new
 
@@ -48,7 +50,8 @@ class AnalyzerTest < Test::Unit::TestCase
   end
 
   def test_create_no_user_no_trial
-    processor = Processor.new('0.123,-0.123,5;')
+    parser = Parser.new('0.123,-0.123,5;')
+    processor = Processor.new(parser.parsed_data)
     analyzer = Analyzer.new(processor)
     assert analyzer.user.kind_of? User
     assert analyzer.trial.kind_of? Trial
@@ -62,14 +65,16 @@ class AnalyzerTest < Test::Unit::TestCase
 
   def test_create_bad_user
     assert_raise_with_message(RuntimeError, USER_MESSAGE) do
-      processor = Processor.new('0.123,-0.123,5;')
+      parser = Parser.new('0.123,-0.123,5;')
+      processor = Processor.new(parser.parsed_data)
       analyzer = Analyzer.new(processor, 'bad user')
     end
   end
 
   def test_create_bad_trial
     assert_raise_with_message(RuntimeError, TRIAL_MESSAGE) do
-      processor = Processor.new('0.123,-0.123,5;')
+      parser = Parser.new('0.123,-0.123,5;')
+      processor = Processor.new(parser.parsed_data)
       analyzer = Analyzer.new(processor, User.new, 'bad trial')
     end
   end
@@ -77,7 +82,8 @@ class AnalyzerTest < Test::Unit::TestCase
   # -- Measurement Tests ----------------------------------------------------
   
   def test_count_basic
-    processor = Processor.new(File.read('test/data/female-167-70_2-100-10-walk.txt'))
+    parser = Parser.new(File.read('test/data/female-167-70_2-100-10-walk.txt'))
+    processor = Processor.new(parser.parsed_data)
     analyzer = Analyzer.new(processor)
     analyzer.measure
 
@@ -86,7 +92,8 @@ class AnalyzerTest < Test::Unit::TestCase
 
   def test_measure
     user = User.new(nil, nil, 100)
-    processor = Processor.new(File.read('test/data/female-167-70_2-100-10-walk.txt'))
+    parser = Parser.new(File.read('test/data/female-167-70_2-100-10-walk.txt'))
+    processor = Processor.new(parser.parsed_data)
     analyzer = Analyzer.new(processor, user)
     analyzer.measure
 
