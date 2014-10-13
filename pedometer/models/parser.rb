@@ -29,7 +29,7 @@ private
       #   [ [y1u, y2u, ..., ynu], [y1g, y2g, ..., yng] ],
       #   [ [z1u, z2u, ..., znu], [z1g, z2g, ..., zng] ] ]
       filtered_accl = parsed_data.map(&:flatten).transpose.map do |total_accl|
-        grav = Filter.chebyshev_filter(total_accl, Filter::GRAVITY)
+        grav = Filter.chebyshev_filter(total_accl, Filter::LOW_0_HZ)
         user = total_accl.zip(grav).map { |a, b| a - b }
         [user, grav]
       end

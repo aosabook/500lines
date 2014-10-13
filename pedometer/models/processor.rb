@@ -19,8 +19,8 @@ class Processor
   end
 
   def filter(data)
-    low_pass_filtered_data = Filter.chebyshev_filter(data, Filter::SMOOTHING)
-    Filter.chebyshev_filter(low_pass_filtered_data, Filter::HIGHPASS)
+    low_pass_filtered_data = Filter.chebyshev_filter(data, Filter::LOW_5_HZ)
+    Filter.chebyshev_filter(low_pass_filtered_data, Filter::HIGH_1_HZ)
   end
 
 end
