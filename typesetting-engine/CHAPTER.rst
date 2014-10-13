@@ -80,11 +80,38 @@ http://i.imgur.com/8YUCMeM.png
 Computing the ratio
 -------------------
 
+If we want to justify the line between two breakpoints, we must compute the ratio of its spaces. In the best possible world, spaces need not be modified (`ratio = 0`). If the line is too short, spaces need to be stretched, all of the same amount `ratio * SPACE_STRETCH` (`ratio > 0`). If the line is too long, spaces need to be shrinked, so we need to add to each of them the negative value `ratio * SPACE_SHRINK` (`ratio < 0`).
+
+Thus, knowing the value `current_line_length - width` and the number of spaces within the current line (actually, the sum of their shrink/stretch parameters), we can compute the ratio using a simple division. In order to get a pleasant result, `abs(ratio)` needs to be as low as possible. This is why the demerits depend of the `ratio` parameter.
+
 Maintaining the linked list of breakpoints
 ------------------------------------------
 
+Using the ratio and a few other parameters (fitness class), we can compute the increase of demerits between any two breakpoints. Now our goal is to find the best sequence of breakpoints i.e. the one achieving the lowest demerits. If we knew the complete list of breakpoints, we could compute that value by dynamic programming:
+
+    For each line
+        For each breakpoint registered at this line
+            Find the best previous breakpoint (the one achieving the lowest demerits)
+
+As the graph is acyclic, the algorithm above correctly computes all demerits.
+
+But here, as we compute the demerits while adding breakpoints to our data structure, we need to use cunning.
+
+    For each block
+        If this block is a possible breakpoint
+            For each line
+                For each breakpoint registered at this line in my linked list
+                    Check if this breakpoint is the best previous breakpoint for the current block
+                Add into the linked list a breakpoint for my current block registered at the next line
+
+Those steps ensure that the linked list is sorted by line number, which is essential for our dynamic programming approach. (Those consecutive nested for loops are represented by nested while loops in the `find_best_previous_breakpoints` method.)
+
+More optimizations are made so that the linked list has no obsolete breakpoints (i.e. achieving a ratio less than -1, which corresponds to an ugly shrink).
+
 Painting
 --------
+
+As we know the width of each box, if we get the optimal sequence of breakpoints and the corresponding ratios, we can compute the position of each glue as well, thus paint all blocks at their right positions, so that the text can be justified.
 
 Troubleshooting
 ===============
