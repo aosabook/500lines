@@ -63,7 +63,7 @@ Dagoba.G.addVertex = function(vertex) {                           // accepts a v
     return Dagoba.onError('A vertex with that id already exists')
     
   this.vertices.push(vertex)
-  this.vertexIndex[vertex._id] = vertex
+  this.vertexIndex[vertex._id] = vertex                           // a fancy index thing
   vertex._out = []; vertex._in = []                               // placeholders for edge pointers
   return vertex._id
 }

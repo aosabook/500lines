@@ -81,61 +81,104 @@ Do you see any other issues?
 Let's solve a few of the problems we've discovered. Having our vertices and edges be global constructs limits us to one graph at a time, but we'd like to have more. To solve this we'll need some structure. Let's start with a namespace.
 
 ```javascript
-Dagoba   = {}                                                     // the namespace
+Dagoba = {}                                             // the namespace
 ```
+
+We'll use an object as our namespace. An object in JavaScript is mostly just an unordered set of key/value pairs. We only have four basic data structures to choose from in JS, so we'll be using this one a lot.
 
 We're also going to want some graph things. We can build these using a classic OOP pattern, but JavaScript offers us prototypal inheritance, which means we can build up a prototype object -- we'll call it Dagoba.G -- and then instantiate copies of that using a factory function. An advantage of this approach is that we can return different types of objects from the factory, instead of binding the creation process to a single class constructor. So we get some extra flexibility for free.
 
 ```javascript
-Dagoba.G = {}                                                     // the prototype
+Dagoba.G = {}                                           // the prototype
 
-Dagoba.graph = function(V, E) {                                   // the factory
+Dagoba.graph = function(V, E) {                         // the factory
   var graph = Object.create( Dagoba.G )
-  graph.vertices = []                                             // fresh copies so they're not shared
-  graph.edges = []
-  graph.vertexIndex = {}
-  if(V && Array.isArray(V)) graph.addVertices(V)                  // arrays only, because you wouldn't
-  if(E && Array.isArray(E)) graph.addEdges(E)                     // call this with singular V and E
+
+  graph.edges       = []                                // fresh copies so they're not shared
+  graph.vertices    = []
+  graph.vertexIndex = {}                                // lookup optimization (explained later)
+  
+  graph.autoid = 1                                      // an auto-incrementing id counter
+  
+  if(V && Array.isArray(V)) graph.addVertices(V)        // arrays only, because you wouldn't
+  if(E && Array.isArray(E)) graph.addEdges(E)           //   call this with singular V and E
+  
   return graph
 }
 ```
 
-We're calling addVertices and addEdges. Let's define those now.
+We'll accept two optional arguments: a list of vertices and a list of edges. Then we'll create a new object that has all of our prototype's abilities and none of its weaknesses. We create a brand new array (one of the other basic JS data structures) for our edges, another for the vertices, and a new object for something called vertexIndex -- more on that later.
+
+Then we're calling addVertices and addEdges from inside our factory, so let's define those now.
 
 ```javascript
 Dagoba.G.addVertices = function(vertices) { vertices.forEach(this.addVertex.bind(this)) }
 Dagoba.G.addEdges    = function(edges)    { edges   .forEach(this.addEdge  .bind(this)) }
 ```
 
-Okay, that was too easy. Those are just convenience methods for calling addVertex and addEdge in a list context.
+Okay, that was too easy -- we're just passing off the work to addVertex and addEdge. We should define those now too.
 
 ```javascript
-Dagoba.G.addVertex = function(vertex) {
-  if(!vertex._id) 
-    vertex._id = this.vertices.length+1                           // auto-incrementing id
+Dagoba.G.addVertex = function(vertex) {                 // accepts a vertex-like object, with properties
+  if(!vertex._id)
+    vertex._id = this.autoid++
+  else if(this.findVertexById(vertex._id))
+    return Dagoba.onError('A vertex with that id already exists')
+    
   this.vertices.push(vertex)
-  this.vertexIndex[vertex._id] = vertex                           // a fancy index thing
-  vertex._out = []; vertex._in = []                               // empty arrays of edges
+  this.vertexIndex[vertex._id] = vertex                 // a fancy index thing
+  vertex._out = []; vertex._in = []                     // placeholders for edge pointers
+  return vertex._id
 }
 ```
 
-So that's pretty simple too. We actually only need the first three lines for now -- the rest are just optimizations that we'll talk about later.
+We assign the vertex an _id property if it doesn't already have one, and cast it out if it's a duplicate. Then we push it into our graph's list of vertices, add it to the vertexIndex for efficient lookup by _id, and add two additional properties to it: _out and _in, which will both become lists of edges. [Footnote on 'list' vs 'array': we want to fulfill the list abstract data structure, and do so using an array concrete data structure.]
+
+Note that we are using the object we're handed as a vertex instead of creating a new object of our own. If the entity invoking the addVertex function retains a pointer to the vertex they give us they can manipulate it at runtime and potentially mess things up. On the other hand, while doing a deep copy here would give us some protection from outside tampering it would also double our space usage. There's a tension here between performance and protection, and the right balance depends on your use cases.
 
 ```javascript
-Dagoba.G.addEdge = function(edge) {
-  if(!edge._label) return false                                   // labels are mandatory
+Dagoba.G.addEdge = function(edge) {                     // accepts an edge-like object, with properties
   edge._in  = this.findVertexById(edge._in)
   edge._out = this.findVertexById(edge._out)
-  if(!(edge._in && edge._out)) return false                       // something is missing
-  edge._out._out.push(edge)
-  edge._in._in.push(edge)                                         // the edge's vertex's edges [expand this]
+  
+  if(!(edge._in && edge._out)) 
+    return Dagoba.onError("That edge's " + (edge._in ? 'out' : 'in') + " vertex wasn't found")
+  
+  edge._out._out.push(edge)                             // add edge to the edge's out vertex's out edges
+  edge._in._in.push(edge)                               // vice versa
+  
   this.edges.push(edge)
 }
 ```
 
-Mostly more optimizations -- the last line is where all the action is. Take the edge, add it to our graph's list of edges: easy peasy lemon squeezy.
+We're using a function called 'findVertexById', which as you might guess finds a vertex by its id. If it can't find one it returns a false value. The definition is simple, since we have our handy vertexIndex:
+
+```javascript
+Dagoba.G.findVertexById = function(vertex_id) {
+  return this.vertexIndex[vertex_id] 
+}
+```
+
+Without vertexIndex we'd have to go through each vertex in our list one at a time to decide if it matched the id -- turning a constant time operation into a linear time one, and any O(n) operations that directly rely on it into O(n^2) operations. Ouch!
+
+Then we reject the edge if it's missing either vertex. We'll use a helper function to log an error when this happens, so we can override its behavior on a per-application basis.
+
+```javascript
+Dagoba.onError = function(msg) {
+  return console.log(msg) && false
+}
+```
+
+Then we'll add our new edge to both vertices' edge lists: the edge's out vertex's list of out-side edges, and the in vertex's list of in-side edges.
+
+And that's all the graph we need for now!
 
 ### Vertices are fine but how do we ask questions?
+
+
+
+
+
 
 
 
@@ -678,6 +721,10 @@ and the gremlin actually does have to pass through everything eventually, trigge
 
 
 
+
+Notes from Leo:
+- I would hope that your writeup will eventually contain an example of a manual evaluation for a query (in mind-numbing detail in terms of gremlins and their internal state).
+- You may also want to include an explanation of the VM concept in general (and in particular, why you went this way rather than straight-up `thunks`. We talked about it but you need to make it explicit in the piece)
 
 
 
