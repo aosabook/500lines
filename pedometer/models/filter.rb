@@ -16,15 +16,14 @@ class Filter
   }
 
   def self.run(data, type)
-    coefficients = COEFFICIENTS[type]
     filtered_data = [0,0]
     (2..data.length-1).each do |i|
-      filtered_data << coefficients[:alpha][0] * 
-                     (data[i]            * coefficients[:beta][0] +
-                      data[i-1]          * coefficients[:beta][1] +
-                      data[i-2]          * coefficients[:beta][2] -
-                      filtered_data[i-1] * coefficients[:alpha][1] -
-                      filtered_data[i-2] * coefficients[:alpha][2])
+      filtered_data << COEFFICIENTS[type][:alpha][0] * 
+                      (data[i]            * COEFFICIENTS[type][:beta][0] +
+                       data[i-1]          * COEFFICIENTS[type][:beta][1] +
+                       data[i-2]          * COEFFICIENTS[type][:beta][2] -
+                       filtered_data[i-1] * COEFFICIENTS[type][:alpha][1] -
+                       filtered_data[i-2] * COEFFICIENTS[type][:alpha][2])
     end
     filtered_data
   end

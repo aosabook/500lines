@@ -1,5 +1,4 @@
 require_relative 'filter'
-require_relative 'parser'
 
 class Processor
 
@@ -18,9 +17,7 @@ class Processor
 
   def dot_product
     @dot_product_data = @data.map do |x|
-      x[0][0] * x[1][0] + 
-      x[0][1] * x[1][1] + 
-      x[0][2] * x[1][2]
+      x[0][0] * x[1][0] + x[0][1] * x[1][1] + x[0][2] * x[1][2]
     end
   end
 
