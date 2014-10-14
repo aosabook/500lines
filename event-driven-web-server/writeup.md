@@ -2,7 +2,7 @@
 
 Backstory first here. So at some point last year, I got it into my head to put together a quick little [game prototyping tool](https://github.com/Inaimathi/deal). Like, physical card and board games. The use case was doing some light game dev with a friend of mine from university who had moved across the country, so it had to be something that bridged the spatial gap _as well as_ letting us think about mechanics and physical aspects.
 
-Now, the problem with this goal is that it involves keeping long-lived connections between the clients and server, because while playing a game I (usually) want to see an opponents move as soon as it happens rather than only when I move. This wouldn't be a problem if not for the fact that [`hunchentoot`](insert link here), the most popular Common Lisp web-server, works on a thread-per-request model. Actually, before we get into the specifics, lets back up for a second.
+Now, the problem with this goal is that it involves keeping long-lived connections between the clients and server, because while playing a game I (usually) want to see an opponents move as soon as it happens rather than only when I move. This wouldn't be a problem if not for the fact that [`hunchentoot`](http://weitz.de/hunchentoot/), the most popular Common Lisp web-server, works on a thread-per-request model. Actually, before we get into the specifics, lets back up for a second.
 
 ## The Basics of Event-Driven Servers
 
@@ -10,11 +10,11 @@ At the 10k-foot-level, an HTTP exchange is one request and one response. A clien
 
 And that's it.
 
-Because this is the total of the basic protocol, many minimal servers take the thread-per-request approach. That is, for each incoming request, spin up a thread to do the work of parse/figure-out-what-to-do-about-it/send-response, and spin it down when it's done. The idea is that since each of these connections is very short lived, that won't start up too many threads at once, and it'll let you simplify a lot of the implementation. Specifically, it lets you program as though there were only one connection present at any given time, and it lets you do things like kill orphaned connections just by killing the corresponding thread and letting the garbage collector do its job.
+Because this is the total of the basic protocol, many minimal servers take the thread-per-request approach. That is, for each incoming request, spin up a thread to do the work of parse/figure-out-what-to-do-about-it/send-response, and spin it down when it's done. The idea is that since each of these connections is very short lived, that won't start too many threads at once, and it'll let you simplify a lot of the implementation. Specifically, it lets you program as though there were only one connection present at any given time, and it lets you do things like kill orphaned connections just by killing the corresponding thread and letting the garbage collector do its job.
 
 There's a couple of things missing in this description though. First, as described, there's no mechanism for a server to send updates to a client without that client specifically requesting them. Second, there's no identity mechanism, which you need in order to confidently assert that a number of requests come from the same client (or, from the client perspective, to make sure you're making a request from the server you think you're talking to). We won't be solving the second problem in the space of this write-up; a full session implementation would nudge us up to ~560 lines of code, and we've got a hard limit of 500. If you'd like to take a look, feel free peek at the full implementation of `:house` [at its github](https://github.com/Inaimathi/house).
 
-The first problem is interesting though. It's interesting if you've ever wanted to put together multi-user web-applications for whatever reason, and as I noted in the opener, that's exactly what I'm doing. In my case, we've got two or more people all interacting with the same virtual tabletop. And we want each player to know about any other players moves as soon as they happen, rather than only getting notifications when their own move is made. This means we can't naively rely on the request/response structure I outlined earlier; we need the server to push messages down to clients. Here are our options for doing that in `HTTP`-land:
+The first problem is interesting by itself, though. It's particularly interesting if you've ever wanted to put together multi-user web-applications for whatever reason, and as I noted in the opener, that's exactly what I'm doing. In my case, we've got two or more people all interacting with the same virtual tabletop. And we want each player to know about any other players moves as soon as they happen, rather than only getting notifications when their own move is made. This means we can't naively rely on the request/response structure I outlined earlier; we need the server to push messages down to clients. Here are our options for doing that in `HTTP`-land:
 
 ##### Comet/Longpoll
 
@@ -38,9 +38,9 @@ a) A server that can service many connections with a single thread
 b) A thread-per-request server that passes long-lived connections off to a separate subsystem, which must handle those long lived connections using a minimal number of threads
 c) A thread-per-request server on top of a platform where threads are cheap enough that you can afford having a few hundred thousand of them around.
 
-I maintain that Option b) is ridiculous. The main reason you want a thread-per-request model is to simplify implementation, but having to implement a threaded core _as well as_ a separate event-driven system just for server pushing would almost by definition be more complicated than using either model in isolation. In the absence of [really](http://racket-lang.org/) REALLY [cheap](http://www.erlang.org/) threads, the simplest solution is resorting to Option a). I could have switched languages, or maybe hacked some just-good-enough support into Hunchentoot. What I chose to do was write a Common Lisp server that could service many connections on a single thread.
+I maintain that Option b) is ridiculous. The main reason you want a thread-per-request model is to simplify implementation, but having to implement a threaded core _as well as_ a separate event-driven system just for server pushing would almost by definition be more complicated than using either model in isolation. In the absence of a [really](http://racket-lang.org/) REALLY [cheap](http://www.erlang.org/) thread [system](http://hackage.haskell.org/package/base-4.7.0.1/docs/Control-Concurrent.html), the simplest solution is resorting to Option a). I could have switched languages, or maybe hacked some just-good-enough support into Hunchentoot. What I chose to do was write a Common Lisp server that could service many connections on a single thread.
 
-In other words, `:house` started out as the yak-shaving project from hell, and I'm about to regale you with the resulting tale.
+In other words, `:house` started out as the yak-shaving project from hell, and I'm about to regale you with the tale.
 
 ## Server Core
 
@@ -63,7 +63,7 @@ That's the core event loop that drives the rest. Its relevant characteristics ar
 - an infinite loop waiting for new handshakes or incoming data
 - and finally some cleanup clauses to make sure it doesn't leave dangling locks on resources if it's killed by an interrupt or something.
 
-The specifics are going to be revealed in our `process-ready` function. Or rather, as it happens, method.
+The specifics are going to be revealed in our `process-ready` method.
 
 	(defmethod process-ready ((ready stream-server-usocket) (conns hash-table))
 	  (setf (gethash (socket-accept ready :element-type 'octet) conns) nil))
@@ -105,7 +105,7 @@ Which, as you may have suspected, does something different. This is the method t
 3. If reading output got us an `:eof`, it means that the other side has closed this socket so we just discard it
 4. Otherwise, we check if the buffer is one of `complete?`, `too-big?`, `too-old?` or `too-needy?`. If it's any of them, we remove it from the connections table and send out the appropriate HTTP response.
 
-Now, firstly, you'll have to take my word for it that most of these things happen correctly until we get to their implementations later. But more importantly, it might not be entirely apparent why we're going through this rigmarole. Because we're trying to serve up content with a single thread, we can't afford to block on any particular connection. Because if we _did_, we'd block the entire server, rather than just a single connection. As a result, we have to do work to make sure that we never block on an incoming stream _and_ that if a particular stream is dragging its feet, we can move on to the next one without throwing out our work so far. That means a system of buffers to keep track of intermediate results, and a buffering process that stops if it runs out of available input before getting to a complete request. Most importantly, it means non-blocking IO. Here's ours:
+Now, firstly, you'll have to take my word for it that most of these things happen correctly until we get to their implementations later. But more importantly, it might not be entirely apparent why we're going through this rigmarole. Because we're trying to serve up content with a single thread, we can't afford to block on any particular connection. Because if we _did_, we'd block the entire server, rather than just a single request. As a result, we have to do work to make sure that we never block on an incoming stream _and_ that if a particular stream is dragging its feet, we can move on to the next one without throwing out our work so far. That means a system of buffers to keep track of intermediate results, and a buffering process that stops if it runs out of available input before getting to a complete request. Most importantly, it means non-blocking IO. Here's ours:
 
 	(defmethod buffer! ((buffer buffer))
 	  (handler-case
@@ -151,7 +151,7 @@ The most common concrete example is the various number implementations. No, an i
 
 See [Smalltalk](http://pharo.org/) for the prototypical example of this kind of system. The function-focused approach says
 
-> You have a number of generic operations that can deal with multiple types. When you call one, it dispatches on its arguments to see what concrete implementation it should apply.
+> You have a number of generic operations that can deal with multiple types. When you call one, it dispatches on the types of its arguments to see what concrete implementation it should apply.
 
 That's basically what you'll see in action in Common Lisp. You can think about it as a giant table with "Class Name" down the first column and "Operation" across the first row
 
@@ -173,7 +173,7 @@ Bringing this back around to our `request`s, the class we defined earlier has th
 
 ## End of Detour in 4. 3. 2. 
 
-The next interesting part of `process-ready` comes after the edge-case handling of old/big/needy requests. It's wrapped in another layer of error handling because we might still crap out in different ways here. In particular, if the request is old/big/needy or if an `http-assertion-error` is raised, we want to send a `400` response; the client provided us with some bad or slow data. However, if any other error happens here, it's because someone made a mistake defining a handler, which should be treated as a `500` error; something went wrong on the server side as a result of a potentially legitimate request.
+The next interesting part of `process-ready` comes after the edge-case handling of old/big/needy requests. It's wrapped in another layer of error handling because we might still crap out in different ways here. In particular, if the request is old/big/needy or if an `http-assertion-error` is raised, we want to send a `400` response; the client provided us with some bad or slow data. However, if any _other_ error happens here, it's because someone made a mistake defining a handler, which should be treated as a `500` error; something went wrong on the server side as a result of a potentially legitimate request.
 
 Lets follow that trail for a while:
 
@@ -182,7 +182,7 @@ Lets follow that trail for a while:
 	       (funcall it socket (parameters req))
 	       (error! +404+ socket)))
 
-In `handle-request`, we do the tiny and obvious job of looking up the requested resource in the `*handlers*` table. If we find one, we `funcall` `it`, passing along the client `socket` as well as the parsed request parameters. If there's no matching handler in the `*handlers*` table, we instead send along a `404` error. Following that `lookup` down into the `*handlers*` table is going to drop us down the `macro` rabbit hole though, so lets quickly take a look at the parsing, writing and the key `subscribe`/`publish` system before moving on. If you're looking to learn about that specifically, and are hardcore enough to jump straight in, skip ahead to the `define-handler` section. Not that the long way will be easy-going, mind you, the alternate path takes us straight through CLOS, into the heart of what makes Common Lisp objects different from the current mainstream.
+In `handle-request`, we do the tiny and obvious job of looking up the requested resource in the `*handlers*` table. If we find one, we `funcall` `it`, passing along the client `socket` as well as the parsed request parameters. If there's no matching handler in the `*handlers*` table, we instead send along a `404` error. Following that `lookup` down into the `*handlers*` table is going to drop us down the `macro` rabbit hole though, so lets quickly take a look at the parsing, writing and the key `subscribe`/`publish` system before moving on. If you're looking to learn about macros specifically, and are hardcore enough to jump straight in, skip ahead to the `define-handler` section. Not that the long way will be easy-going, mind you.
 
 Here's how we parse requests
 
@@ -221,7 +221,7 @@ The top two methods handle parsing buffers or strings, while the bottom two hand
 6. populate that `request` instance with each split header line
 7. set that `request`s parameters to the result of parsing our `GET` and `POST` parameters
 
-The `request` object from Step five looks like exactly like you'd expect after our CLOS detour.
+The `request` object from Step five looks exactly like you'd expect after our CLOS detour.
 
 	(defclass request ()
 	  ((resource :accessor resource :initarg :resource)
@@ -276,7 +276,7 @@ which will need to hold all the information we need to send an incremental updat
 	(defclass sse ()
 	  ((id :reader id :initarg :id :initform nil)
 	   (event :reader event :initarg :event :initform nil)
-	   (retry :reader retry :initarg :retry :initform nil)
+eokrrkk4tktkktkttkttto3 954re	   (retry :reader retry :initarg :retry :initform nil)
 	   (data :reader data :initarg :data)))
 
 Writing an `SSE` out is conceptually similar to, but mechanically different from writing out a `response`. It's much simpler, because an `SSE` only has four slots, one of which is mandatory. Also, the SSE message standard doesn't specify `CRLF` line-endings, so we can get away with a single `format` call instead of the fairly involved process of `write!`ing a full HTTP request. The `~@[...~]` blocks are conditional directives. Which is to say, if `(id res)` is non-nil, we'll output `id: <the id here> `, and ditto for `event` and `retry`. `data`, the payload of our incremental update, is the only slot that's always present.
@@ -288,7 +288,7 @@ While we're on the subject of sending `SSE` updates, we also need a way to keep 
 	(defmethod subscribe! ((channel symbol) (sock usocket))
 	  (push sock (gethash channel *channels*))
 	  nil)
-
+eduu9yr  yr4a74
 We can then `publish!` notifications to said channels as soon as they become available.
 
 	(defmethod publish! ((channel symbol) (message string))
@@ -321,6 +321,7 @@ We'll want to be able to write things like
            (:body (:div :id "messages")
 	              (:textarea :id "input")
 	              (:button :id "send" "Send")))))
+
 
 and have them mean the obvious. Actually, because we'd ostensibly be processing requests from untrusted sources, we'd want to write something more like
 
