@@ -166,6 +166,12 @@ Dagoba.query = function(graph) {                                  // factory (on
   return query
 }
 
+Dagoba.Q.add = function(pipetype, args) {                         // add a new step to the query
+  var step = [pipetype, args]
+  this.program.push(step)                                         // step is an array: first the pipe type, then its args
+  return this
+}
+
 Dagoba.Q.run = function() {                                       // our virtual machine for query processing
 
   var max = this.program.length - 1                               // last step in the program
@@ -217,12 +223,6 @@ Dagoba.Q.run = function() {                                       // our virtual
   return results
 }
 
-
-Dagoba.Q.add = function(pipetype, args) {                         // add a new step to the query
-  var step = [pipetype, args]
-  this.program.push(step)                                         // step is an array: first the pipe type, then its args
-  return this
-}
 
 Dagoba.PipeTypes = {}                                             // every pipe has a type
 
@@ -362,7 +362,7 @@ Dagoba.addPipeType('property', function(graph, args, gremlin, state) {
   gremlin.result = gremlin.vertex[args[0]]
   return gremlin.result == null ? false : gremlin                 // undefined or null properties kill the gremlin
 })
-  
+
 Dagoba.addPipeType('unique', function(graph, args, gremlin, state) {
   if(!gremlin) return 'pull'                                      // query initialization
   if(state[gremlin.vertex._id]) return 'pull'                     // we've seen this gremlin, so get another instead

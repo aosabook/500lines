@@ -173,12 +173,88 @@ Then we'll add our new edge to both vertices' edge lists: the edge's out vertex'
 
 And that's all the graph we need for now!
 
-### Vertices are fine but how do we ask questions?
+### Enter the query
+
+There's really only two parts to this system: the part that holds the graph and the part that answers questions about the graph. The part that holds the graph is pretty simple, as we've seen. The query part is a little trickier.
+
+We'll start just like before, with a prototype and a query factory:
+
+```javascript
+Dagoba.Q = {}                                           // prototype
+
+Dagoba.query = function(graph) {                        // factory (only called by a graph's query initializers)
+  var query = Object.create( Dagoba.Q )
+  
+  query.   graph = graph                                // the graph itself
+  query.   state = []                                   // state for each step
+  query. program = []                                   // list of steps to take  
+  query.gremlins = []                                   // gremlins for each step
+
+  return query
+}
+```
+
+Now's a good time to introduce some new friends:
+
+A *program* is a series of steps. Each step is like a pipe in a pipeline -- a piece of data comes in one end, is transformed in some fashion, and goes out the other end. Our pipeline doesn't quite work like that, but it's a good first approximation. 
+
+Each step in our program can have *state*, and query.state is a list of per-step state that index correlates with the list of steps in query.program. 
+
+A *gremlin* is a creature that travels through the graph doing our bidding. They trace their heritage back to Tinkerpop's Blueprints and the Gremlin query language. They remember where they've been and allow us to find answers to interesting questions. 
+
+Remember that query we wanted to answer? The one about Thor's second cousins once removed? We decided ```Thor.parents.parents.parents.children.children.children``` was a pretty good way of expressing that. Each of the ```parents``` and ```children``` instances is a *step* in our *program*. Each step is a reference to a *pipetype*, which is just a function with a specific signature.
+
+The actual query in our system might look like ```g.v('Thor').out().out().out().in().in().in()```. Each of the steps is a function call, and so they can take *arguments*. The interpreter passes the step's arguments and state in to the step's pipetype function, along with a gremlin from the previous step, if there was one.
+
+We'll need a way to add steps to our query. Here's a helper function for that:
+
+```javascript
+Dagoba.Q.add = function(pipetype, args) {               // add a new step to the query
+  var step = [pipetype, args]
+  this.program.push(step)                               // step is an array: first the pipe type, then its args
+  return this
+}
+```
+
+Each step is a composite entity, combining the pipetype function with the arguments to apply to that function. We could combine the two into a partially-applied function at this stage, instead of using a tuple [data structure footnote], but then we'd loose some introspective power that will prove helpful later.
+
+
+///// need laziness first...
+
+///// then look at addPipeType, and talk about state
+
+///// then look at unique and take
+
+///// then the interpreter
+
+
+Let's look at a couple pipetype functions. First up is the 'unique' function, which only allows a gremlin to pass through if the vertex it's sitting on hasn't been seen before. 
+
+Dagoba.addPipeType('unique', function(graph, args, gremlin, state) {
+  if(!gremlin) return 'pull'                            // query initialization
+  if(state[gremlin.vertex._id]) return 'pull'           // we've seen this gremlin, so get another instead
+  state[gremlin.vertex._id] = true
+  return gremlin
+})
+
+We'll add the pipetype to our system using the addPipeType function, which takes the pipetype's name as its first argument and the function as its second. We'll look at the details of that function later. Notice that the pipetype function expects the graph, its arguments, a gremlin, and its state. 
+
+Because we're streaming results through and the interpreter can call 
 
 
 
-
-
+Dagoba.addPipeType('take', function(graph, args, gremlin, state) {
+  state.taken = state.taken || 0                                  // state initialization
+  
+  if(state.taken == args[0]) {
+    state.taken = 0
+    return 'done'                                                 // all done
+  }
+  
+  if(!gremlin) return 'pull'                                      // query initialization
+  state.taken++                                                   // THINK: if this didn't mutate state, we could be more
+  return gremlin                                                  // cavalier about state management (but run the GC hotter)
+})
 
 
 
