@@ -12,13 +12,15 @@ _(Also available in [English](https://github.com/audreyt/500lines/blob/master/sp
 
 為了保持 HTML 的原本目的（描述文件的邏輯結構），瀏覽器開發者最後同意額外支援兩種語言：CSS 來形容網頁的展示風格，以及 JS 來描述其動態互動功能。
 
-從那時開始，這三種程式語言經過了 20 年的共同進化，已經變得更加簡潔和強大。如今，跨平台的應用網站（Web applications，例如試算表），已經跟上個世紀的桌面應用程式（如 VisiCalc、Lotus 1-2-3 和 Excel）一樣普及了。
+從那時開始，這三種程式語言經過了 20 年的共同進化，已經變得更加簡潔和強大。[JS 引擎](https://zh.wikipedia.org/wiki/JavaScript%E5%BC%95%E6%93%8E)的效能獲得高度提昇，使得大規模的 JS 框架開始盛行，例如 [AngularJS](http://angularjs.org/)。
 
-網頁應用可以在 99 行裡面提供多少功能？讓我們來看看！
+如今，跨平台的應用網站（Web applications，例如試算表），已經跟上個世紀的桌面應用程式（如 VisiCalc、Lotus 1-2-3 和 Excel）一樣普及了。
+
+使用 AngularJS 的網頁應用可以在 99 行裡面提供多少功能？讓我們來看看！
 
 ## 概述
 
-在 [spreadsheet](https://github.com/audreyt/500lines/tree/master/spreadsheet) 目錄裡，包含了三種 Web 程式語言在 2014 年末版本的展示範例：描述結構的 [HTML5](http://www.w3.org/TR/html5/)、描述展示風格的 [CSS3](http://www.w3.org/TR/css3-ui/)，以及描述互動功能的 JS [ES6 “Harmony”](http://wiki.ecmascript.org/doku.php?id=harmony:specification_drafts) 。它也用到 [Web Storage](http://www.whatwg.org/specs/web-apps/current-work/multipage/webstorage.html) 來保存資料，以及利用 [Web Worker](http://www.whatwg.org/specs/web-apps/current-work/multipage/workers.html) 在背景運行 JS 程式碼。在撰寫本文時，這些 Web 標準都已獲得 Firefox、Chrome、Internet Explorer 11+，以及手機行動瀏覽器 iOS 5+ 和 Android 4+ 的支援。
+在 [spreadsheet](https://github.com/audreyt/500lines/tree/master/spreadsheet) 目錄裡，包含了三種 Web 程式語言在 2014 年末版本的展示範例：描述結構的 [HTML5](http://www.w3.org/TR/html5/)、描述展示風格的 [CSS3](http://www.w3.org/TR/css3-ui/)，以及描述互動功能的 JS [ES6 “Harmony”](http://git.io/es6features) 。它也用到 [Web Storage](http://www.whatwg.org/specs/web-apps/current-work/multipage/webstorage.html) 來保存資料，以及利用 [Web Worker](http://www.whatwg.org/specs/web-apps/current-work/multipage/workers.html) 在背景運行 JS 程式碼。在撰寫本文時，這些 Web 標準都已獲得 Firefox、Chrome、Internet Explorer 11+，以及手機行動瀏覽器 iOS 5+ 和 Android 4+ 的支援。
 
 現在讓我們在瀏覽器中打開 <http://audreyt.github.io/500lines/spreadsheet/>：
 
@@ -56,7 +58,7 @@ _(Also available in [English](https://github.com/audreyt/500lines/blob/master/sp
 在我們開始詳細討論 99 行程式碼之前，不妨先停用瀏覽器中的 JS ，並重新載入頁面，注意一下前後區別：
 
 * 大型表格消失了，螢幕上只剩下一個 2x2 的表格以及單個內容儲存格。
-* 列和欄的標示變成 `{{ row }}` 和 `{{ col }}`。
+* 列和欄的標題變成 `{{ row }}` 和 `{{ col }}`。
 * 按下 `↻` 按鈕沒有任何反應。
 * 按 **跳格鍵** 或點擊第一列的內容時，仍然會顯示可編輯的輸入框。
 
@@ -82,10 +84,10 @@ _(Also available in [English](https://github.com/audreyt/500lines/blob/master/sp
 
 為了理解這張圖，讓我們按照瀏覽器載入的次序，逐一檢視四份原始程式碼檔案：
 
-* **index.html**: 20 行
-* **main.js**: 36 行（不包括註釋和空白行）
-* **worker.js**: 32 行（不包括註釋和空白行）
-* **styles.css**: 11 行
+* **index.html**: 19 行
+* **main.js**: 38 行（不包括註釋和空白行）
+* **worker.js**: 30 行（不包括註釋和空白行）
+* **styles.css**: 12 行
 
 ### HTML
 
@@ -116,7 +118,7 @@ _(Also available in [English](https://github.com/audreyt/500lines/blob/master/sp
 </head><body ng-app="500lines" ng-controller="Spreadsheet" ng-cloak>
 ```
 
-上述的 `ng-` 特性指示 [AngularJS](http://angularjs.org/) 運行 `500lines` 模組中的 `Spreadsheet` 控制器（controller）函式來建立模型（model），也就是一組可以在文件顯示層（view）中進行繫結（binding）的名稱。`ng-cloak` 特性會先隱藏文件顯示，直到繫結已經就位為止。
+上述的 `ng-` 特性指示 [AngularJS](http://angularjs.org/) 運行 `500lines` 模組中的 `Spreadsheet` 控制器（controller）函式來取得模型（model）物件，來為文件顯示層（view）提供繫結（binding）。（`ng-cloak` 特性會先隱藏文件，等到繫結已經就位再顯示。）
 
 舉個具體的例子，當使用者點擊下一行中所定義的 `<button>` ，其 `ng-click` 特性會觸發並執行 `reset()` 和 `calc()` 這兩個由 JS 模型提供的函式：
 
@@ -131,7 +133,7 @@ _(Also available in [English](https://github.com/audreyt/500lines/blob/master/sp
     <th ng-repeat="col in Cols">{{ col }}</th>
 ```
 
-舉例來說，如果 JS 模型將 `Cols` 定義為 `["A","B","C"]`，就會有三個標題儲存格（`th`）來顯示標籤。內容的 `{{ col }}` 表達式會由 AngularJS 進行安插（interpolation），來在每個 `th` 的內容中填上當前的 `col` 數值。
+舉例來說，如果 JS 模型將 `Cols` 定義為 `["A","B","C"]`，就會出現三個標題儲存格（`th`）。內容的 `{{ col }}` 表達式會由 AngularJS 進行安插（interpolation），來在每個 `th` 的內容中填上當前的 `col` 數值。
 
 同樣地，下面兩行會檢查 `Rows` 的數值（`[1,2,3]` 等等），為每個數值建立橫列，並在最左邊的 `th` 儲存格以編號標註：
 
@@ -186,7 +188,20 @@ _(Also available in [English](https://github.com/audreyt/500lines/blob/master/sp
 
 ### JS: 主要控制層
 
-`main.js` 的唯一作用，是定義 `<body>` 元素所需的 `500lines` 模組中的 `Spreadsheet` 控制函式，運用 AngularJS 提供的 `$scope` 參數來定義 JS 模型：
+`main.js` 定義了 `index.html` 中 `<body>` 元素所需的 `500lines` 模組，以及模組內的 `Spreadsheet` 控制函式。
+
+作為 HTML 文件顯示層與背景工作層之間的橋梁，控制層有四項任務：
+
+* 定義各欄、各列的數量與標題。
+* 為鍵盤移動事件及重置按鈕提供處理函式。
+* 當使用者更動試算表式，將新的內容傳送給背景工作者。
+* 當工作者計算出結果時，更新文件顯示層，並儲存目前的狀態。
+
+控制層和工作層之間的互動詳情，可以參考這張流程圖：
+
+![控制層和工作層之間的互動](./images/00-flowchart.png)
+
+現在來看程式碼。在第一行程式裡，我們向 AngularJS 要求 `$scope` 物件，來定義 JS 模型：
 
 ```js
 angular.module('500lines', []).controller('Spreadsheet', function ($scope, $timeout) {
@@ -198,11 +213,12 @@ angular.module('500lines', []).controller('Spreadsheet', function ($scope, $time
 
 ```js
   // Begin of $scope properties; start with the column/row labels
-  $scope.Cols = [ for (col of range( 'A', 'H' )) col ];
-  $scope.Rows = [ for (row of range( 1, 20 )) row ];
+  $scope.Cols = [], $scope.Rows = [];
+  for (col of range( 'A', 'H' )) { $scope.Cols.push(col); }
+  for (row of range( 1, 20 )) { $scope.Rows.push(row); }
 ```
 
-使用 ES6 的[陣列簡約式](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Array_comprehensions)語法，可以很容易將陣列定義為從起點到終點的範圍。這裡用到了 `range` 這個[產生器](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function*)函式作為輔助：
+此處使用 ES6 的 [for...of](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for...of) 迴圈語法，來逐項處理起點到終點的範圍，並使用 `range` 這個[產生器](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function*)函式作為輔助：
 
 ```js
   function* range(cur, end) { while (cur <= end) { yield cur;
@@ -357,24 +373,25 @@ self.onmessage = ({data})=>{
   for (const coord in sheet) {
 ```
 
-上述的 `const coord`，可以讓迴圈裡定義的函式包入該次迭代裡 `coord` 的實際數值。這是因為 `const` 和 `let` 宣告的變數屬於區塊範圍（block scope）。如果宣告寫成 `var coord` ，則會屬於函式範圍（function scope），這樣每次迭代時定義的函式最終都會指向同一個 `coord`。
+ES6 提供了 `const` 和 `let` 關鍵字，來宣告屬於區塊範圍（block scope）的常數與變數。上述的 `const coord`，可以讓迴圈裡定義的函式包入該次迭代裡 `coord` 的實際數值。
+
+如果用舊版 JS 所提供的 `var coord` 來宣告，則變數會屬於函式範圍（function scope），這樣每次迭代時定義的函式，最終都會指向同一個 `coord` 變數。
 
 習慣上，公式裡的變數名稱大小寫視為相同，並且可以加上 `$` 前綴。因為 JS 變數有區分大小寫，所以我們用 `for…of` 循環來取得同一個座標的四種變數名稱表示法：
 
 ```js
     // Four variable names pointing to the same coordinate: A1, a1, $A1, $a1
-    for (const name of [ for (p of [ '', '$' ])
-                           for (c of [ coord, coord.toLowerCase() ])
-                             p+c ]) {
+    [ '', '$' ].map( p => [ coord, coord.toLowerCase() ].map(c => {
+      const name = p+c;
 ```
 
-上述的陣列定義中有兩個 `for` 表達式，這個語法稱為巢狀陣列簡約式（nested array comprehension）。
+此處用到了箭號函式的簡約語法，用 `p => ...` 來表示 `(p) => { ... }`。
 
 對於每一個變數名稱，例如 `A1` 和 `$a1`，我們在 `self` 上定義其[屬性存取式](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperty)，這樣當算式中提到這些變數時，都會自動計算 `vals["A1"]` 的值：
 
 ```js
       // Worker is reused across calculations, so only define each variable once
-      if ((Object.getOwnPropertyDescriptor( self, name ) || {}).get) { continue; }
+      if ((Object.getOwnPropertyDescriptor( self, name ) || {}).get) { return; }
 
       // Define self['A1'], which is the same thing as the global variable A1
       Object.defineProperty( self, name, { get() {
@@ -449,8 +466,8 @@ self.onmessage = ({data})=>{
         // Turn vals[coord] into a string if it's not a number or boolean
         switch (typeof vals[coord]) { case 'function': case 'object': vals[coord]+=''; }
         return vals[coord];
-      } } )
-    }
+      } } );
+    }));
   }
 ```
 
@@ -531,7 +548,7 @@ input:focus + div { white-space: nowrap; }
 
 如果你比較喜歡直接使用 2010 年版的 JS，[as-javascript-1.8.5](https://audreyt.github.io/500lines/spreadsheet/as-javascript-1.8.5/) 目錄下有以 ES5 風格寫成的 **main.js** 和 **worker.js**；它的[源碼](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-javascript-1.8.5)行數和 ES6 版本相同，可以交互對照。
 
-如果你想要更簡潔的語法，[as-livescript-1.2.0](https://audreyt.github.io/500lines/spreadsheet/as-livescript-1.2.0/) 目錄使用 [LiveScript](http://livescript.net/) 寫成 **main.ls** 和 **worker.ls**；它的[源碼](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-livescript-1.2.0)比 JS 版本少了 20 行。
+如果你想要更簡潔的語法，[as-livescript-1.3.0](https://audreyt.github.io/500lines/spreadsheet/as-livescript-1.3.0/) 目錄使用 [LiveScript](http://livescript.net/) 寫成 **main.ls** 和 **worker.ls**；它的[源碼](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-livescript-1.3.0)比 JS 版本少了 20 行。
 
 同樣採用 LiveScript 語法，[as-react-livescript](https://audreyt.github.io/500lines/spreadsheet/as-react-livescript/) 目錄使用 [ReactJS](https://facebook.github.io/react/) 框架寫成；它的[源碼](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-react-livescript)比 AngularJS 版本多了 10 行，但運行速度快了許多。
 

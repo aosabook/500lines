@@ -12,13 +12,15 @@ In the 1990s, browsers added various presentational tags to the HTML vocabulary,
 
 In order to keep HTML to its original purpose—describing a document’s logical structure—browser makers eventually agreed to support two additional languages: CSS to describe presentational styles of a page, and JS to describe its dynamic interactions.
 
-Since then, the three languages have become more concise and powerful through twenty years of co-evolution. Today, cross-platform _Web applications_ (such as Web Spreadsheets) are as ubiquitous and popular as platform-specific applications (such as VisiCalc, Lotus 1-2-3 and Excel) from the previous century.
+Since then, the three languages have become more concise and powerful through twenty years of co-evolution. In particular, improvements in [JS engines](https://en.wikipedia.org/wiki/JavaScript_engine) made it practical to deploy large-scale JS frameworks, such as [AngularJS](http://angularjs.org/).
 
-How many features can a Web application offer in 99 lines? Let’s see it in action!
+Today, cross-platform _Web applications_ (such as Web Spreadsheets) are as ubiquitous and popular as platform-specific applications (such as VisiCalc, Lotus 1-2-3 and Excel) from the previous century.
+
+How many features can a Web application offer in 99 lines with AngularJS? Let’s see it in action!
 
 ## Overview
 
-The [spreadsheet](https://github.com/audreyt/500lines/tree/master/spreadsheet) directory contains our showcase for late-2014 editions of the three web languages: [HTML5](http://www.w3.org/TR/html5/) for structure, [CSS3](http://www.w3.org/TR/css3-ui/) for presentation, and the JS [ES6 “Harmony”](http://wiki.ecmascript.org/doku.php?id=harmony:specification_drafts) standard for interaction. It also uses [Web Storage](http://www.whatwg.org/specs/web-apps/current-work/multipage/webstorage.html) for data persistence and [Web Worker](http://www.whatwg.org/specs/web-apps/current-work/multipage/workers.html) for running JS code in the background. As of this writing, these web standards are supported by Firefox, Chrome, and Internet Explorer 11+, as well as mobile browsers on iOS 5+ and Android 4+.
+The [spreadsheet](https://github.com/audreyt/500lines/tree/master/spreadsheet) directory contains our showcase for late-2014 editions of the three web languages: [HTML5](http://www.w3.org/TR/html5/) for structure, [CSS3](http://www.w3.org/TR/css3-ui/) for presentation, and the JS [ES6 “Harmony”](http://git.io/es6features) standard for interaction. It also uses [Web Storage](http://www.whatwg.org/specs/web-apps/current-work/multipage/webstorage.html) for data persistence and [Web Worker](http://www.whatwg.org/specs/web-apps/current-work/multipage/workers.html) for running JS code in the background. As of this writing, these web standards are supported by Firefox, Chrome, and Internet Explorer 11+, as well as mobile browsers on iOS 5+ and Android 4+.
 
 Now let’s open http://audreyt.github.io/500lines/spreadsheet/ in a browser:
 
@@ -26,7 +28,7 @@ Now let’s open http://audreyt.github.io/500lines/spreadsheet/ in a browser:
 
 ### Basic Concepts
 
-The spreadsheet spans two dimensions, with _columns_ starting from **A**, and _rows_ starting from **1**. Each _cell_ has a unique _coordinate_ (such as **A1**) and _content_ (`1874`), which belongs to one of four _types_:
+The spreadsheet spans two dimensions, with _columns_ starting from **A**, and _rows_ starting from **1**. Each _cell_ has a unique _coordinate_ (such as **A1**) and _content_ (such as `1874`), which belongs to one of four _types_:
 
 * Text: `+` in **B1** and `⇒` in **D1**, aligned to the left.
 * Number: `1874` in **A1** and `2046` in **C1**, aligned to the right.
@@ -82,10 +84,10 @@ The diagram below shows the links between HTML and JS components:
 
 In order to make sense of the diagram, let’s go through the four source code files, in the same sequence as the browser loads them:
 
-* **index.html**: 20 lines
-* **main.js**: 36 lines (excluding comments and blank lines)
-* **worker.js**: 32 lines (excluding comments and blank lines)
-* **styles.css**: 11 lines
+* **index.html**: 19 lines
+* **main.js**: 38 lines (excluding comments and blank lines)
+* **worker.js**: 30 lines (excluding comments and blank lines)
+* **styles.css**: 12 lines
 
 ### HTML
 
@@ -116,7 +118,7 @@ The next two lines load the CSS resource, close the `head` section, and begin th
 </head><body ng-app="500lines" ng-controller="Spreadsheet" ng-cloak>
 ```
 
-The `ng-` attributes above tell [AngularJS](http://angularjs.org/) to use the `500lines` module’s `Spreadsheet` _controller_ function, which provides a _model_— a set of names available to _bindings_ on the document _view_. The `ng-cloak` attribute hides the document from display until the bindings are in place.
+The `ng-app` and `ng-controller` attributes above tell [AngularJS](http://angularjs.org/) to call the `500lines` module’s `Spreadsheet` function, which would return a _model_: An object that provides _bindings_ on the document _view_. (The `ng-cloak` attribute hides the document from display until the bindings are in place.)
 
 As a concrete example, when the user clicks the `<button>` defined in the next line, its `ng-click` attribute will trigger and call `reset()` and `calc()`, two named functions provided by the JS model:
 
@@ -186,7 +188,20 @@ Finally, we close the `ng-repeat` loop in the column level with `</td>`, close t
 
 ### JS: Main Controller
 
-The sole purpose of `main.js` is defining the `500lines` module and its `Spreadsheet` controller function as required by the `<body>` element, with the JS model `$scope` provided by AngularJS:
+The `main.js` file defines the `500lines` module and its `Spreadsheet` controller function, as required by the `<body>` element in `index.html`.
+
+As the bridge between the HTML view and the background worker, it has four purposes:
+
+* Define dimensions and labels of columns and rows.
+* Provide event handlers for keyboard navigation and the reset button.
+* When the user changes the spreadsheet, send its new content to the worker.
+* When computed results arrive from the worker, update the view and save the current state.
+
+The flowchart below shows the controller-worker interaction in more detail:
+
+![Controller-Worker Flowchart](./images/00-flowchart.png)
+
+Now let's walk through the code. In the first line, we request the JS model `$scope` object from AngularJS:
 
 ```js
 angular.module('500lines', []).controller('Spreadsheet', function ($scope, $timeout) {
@@ -198,11 +213,12 @@ To put `Cols` and `Rows` into the model, simply define them as properties of `$s
 
 ```js
   // Begin of $scope properties; start with the column/row labels
-  $scope.Cols = [ for (col of range( 'A', 'H' )) col ];
-  $scope.Rows = [ for (row of range( 1, 20 )) row ];
+  $scope.Cols = [], $scope.Rows = [];
+  for (col of range( 'A', 'H' )) { $scope.Cols.push(col); }
+  for (row of range( 1, 20 )) { $scope.Rows.push(row); }
 ```
 
-The ES6 [array comprehension](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Array_comprehensions) syntax makes it easy to define arrays from ranges with a start and an end point, with the helper function `range` defined as a [generator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function*):
+The ES6 [for...of](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for...of) syntax makes it easy to loop through ranges with a start and an end point, with the helper function `range` defined as a [generator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function*):
 
 
 ```js
@@ -232,7 +248,7 @@ The [arrow function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Ref
     case 38: case 40: case 13: $timeout( ()=>{
 ```
 
-If it is, we use `$timeout` to schedule an update to the focused cell after the current `ng-keydown` and `ng-change` handler. Because `$timeout` accepts a function as argument, the `()=>{…}` syntax constructs a function to represent the focus-update logic, which starts by checking the direction of movement:
+If it is, we use `$timeout` to schedule a change of cell focus after the current `ng-keydown` and `ng-change` handler. Because `$timeout` requires a function as argument, the `()=>{…}` syntax constructs a function to represent the focus-change logic, which starts by checking the direction of movement:
 
 ```js
       const direction = (which === 38) ? -1 : +1;
@@ -358,24 +374,25 @@ In order to turn coordinates into global variables, we first iterate over each p
   for (const coord in sheet) {
 ```
 
-We write `const coord` above so that functions defined in the loop can capture the specific value of `coord` in that iteration. This is because `const` and `let` declare _block scoped_ variables. In contrast, `var coord` would make a _function scoped_ variable, and functions defined in each loop iteration would end up pointing to the same `coord`.
+ES6 introduces `const` and `let` declare _block scoped_ constants and variables; `const coord` above means that functions defined in the loop would capture the specific value of `coord` in each iteration.
 
-Customarily, formulas variables are case-insensitive and can optionally have a `$` prefix. Because JS variables are case-sensitive, we use a `for…of` loop to go over the four variable names for the same coordinate:
+In contrast, `var coord` in earlier versions of JS would declare a _function scoped_ variable, and functions defined in each loop iteration would end up pointing to the same `coord` variable.
+
+Customarily, formulas variables are case-insensitive and can optionally have a `$` prefix. Because JS variables are case-sensitive, we use two `map` calls to go over the four variable names for the same coordinate:
 
 ```js
     // Four variable names pointing to the same coordinate: A1, a1, $A1, $a1
-    for (const name of [ for (p of [ '', '$' ])
-                           for (c of [ coord, coord.toLowerCase() ])
-                             p+c ]) {
+    [ '', '$' ].map( p => [ coord, coord.toLowerCase() ].map(c => {
+      const name = p+c;
 ```
 
-Note the _nested array comprehension_ syntax above, with  two `for`  expressions in the array definition.
+Note the shorthand arrow function syntax above with `p => ...`, which is the same as `(p) => { ... }`.
 
 For each variable name like `A1` and `$a1`, we define its [accessor property](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperty) on `self` that calculates `vals["A1"]` whenever they are evaluated in an expression:
 
 ```js
       // Worker is reused across calculations, so only define each variable once
-      if ((Object.getOwnPropertyDescriptor( self, name ) || {}).get) { continue; }
+      if ((Object.getOwnPropertyDescriptor( self, name ) || {}).get) { return; }
 
       // Define self['A1'], which is the same thing as the global variable A1
       Object.defineProperty( self, name, { get() {
@@ -450,8 +467,8 @@ Finally, the `get` accessor returns the calculated value stored in `vals[coord]`
         // Turn vals[coord] into a string if it's not a number or boolean
         switch (typeof vals[coord]) { case 'function': case 'object': vals[coord]+=''; }
         return vals[coord];
-      } } )
-    }
+      } } );
+    }));
   }
 ```
 
@@ -532,7 +549,7 @@ This chapter aims to demonstrate new concepts in ES6, so we use the [Traceur com
 
 If you prefer to work directly with the 2010 edition of JS, the [as-javascript-1.8.5](https://audreyt.github.io/500lines/spreadsheet/as-javascript-1.8.5/) directory has **main.js** and **worker.js** written in the style of ES5; the [source code](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-javascript-1.8.5) is line-by-line comparable to the ES6 version with the same line count.
 
-For people preferring a cleaner syntax, the [as-livescript-1.2.0](https://audreyt.github.io/500lines/spreadsheet/as-livescript-1.2.0/) directory uses [LiveScript](http://livescript.net/) instead of ES6 to write **main.ls** and **worker.ls**; the [source code](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-livescript-1.2.0) is 20 lines shorter than the JS version.
+For people preferring a cleaner syntax, the [as-livescript-1.3.0](https://audreyt.github.io/500lines/spreadsheet/as-livescript-1.3.0/) directory uses [LiveScript](http://livescript.net/) instead of ES6 to write **main.ls** and **worker.ls**; the [source code](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-livescript-1.3.0) is 20 lines shorter than the JS version.
 
 Building on the LiveScript language, the [as-react-livescript](https://audreyt.github.io/500lines/spreadsheet/as-react-livescript/) directory uses the [ReactJS](https://facebook.github.io/react/) framework; the [source code](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-react-livescript) is 10 lines more than the AngularJS equivalent, but runs considerably faster.
 

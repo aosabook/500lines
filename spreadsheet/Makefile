@@ -23,6 +23,6 @@ clean ::
 	-@rm -rf es5/*.js es5/*.map
 
 es5/% :: %
-	-@traceur --source-maps --validate --block-binding true --out es5 --script $<
+	-@./node_modules/.bin/traceur --source-maps --validate --block-binding true --out es5 --script $<
 
 .PHONY: deps run es5 test clean wc

@@ -4,11 +4,11 @@ self.onmessage = ({data})=>{
 
   for (const coord in sheet) {
     // Four variable names pointing to the same coordinate: A1, a1, $A1, $a1
-    for (const name of [ for (p of [ '', '$' ])
-                           for (c of [ coord, coord.toLowerCase() ])
-                             p+c ]) {
+    [ '', '$' ].map( p => [ coord, coord.toLowerCase() ].map(c => {
+      const name = p+c;
+
       // Worker is reused across computations, so only define each variable once
-      if ((Object.getOwnPropertyDescriptor( self, name ) || {}).get) { continue; }
+      if ((Object.getOwnPropertyDescriptor( self, name ) || {}).get) { return; }
 
       // Define self['A1'], which is the same thing as the global variable A1
       Object.defineProperty( self, name, { get() {
@@ -37,7 +37,7 @@ self.onmessage = ({data})=>{
         switch (typeof vals[coord]) { case 'function': case 'object': vals[coord]+=''; }
         return vals[coord];
       } } );
-    }
+    }));
   }
 
   // For each coordinate in the sheet, call the property getter defined above
