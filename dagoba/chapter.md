@@ -216,10 +216,31 @@ Dagoba.Q.add = function(pipetype, args) {               // add a new step to the
 }
 ```
 
-Each step is a composite entity, combining the pipetype function with the arguments to apply to that function. We could combine the two into a partially-applied function at this stage, instead of using a tuple [data structure footnote], but then we'd loose some introspective power that will prove helpful later.
+Each step is a composite entity, combining the pipetype function with the arguments to apply to that function. We could combine the two into a partially-applied function at this stage, instead of using a tuple [data structure footnote], but then we'd lose some introspective power that will prove helpful later. 
+
+### The problem with being eager
+
+Before we look at the pipetypes themselves we're going to take a slight diversion into the exciting world of execution strategy. There are two main schools of thought: the Call By Value clan, also known as eager beavers, strictly insist that all arguments be evaluated before the function is applied. They are opposed by the Call By Needians, are content to procrastinate until the last possible moment before doing anything, and even then do as little as possible -- they are, in a word, lazy.
+
+JavaScript, being a strict language, will process each of our steps as they are called. Hence we would expect the evaluation of ```g.v('Thor').out().in()``` would first find the Thor vertex, then find all vertices connected to it by outgoing edges, and from each of those vertices finally return all vertices they are connected to by inbound edges.
+
+And in a lazy language we would get the same result -- the execution strategy doesn't make much difference here. But what if we added a few additional calls? Given how well-connected Thor is, our ```g.v('Thor').out().out().out().in().in().in()``` query may produce many results -- in fact, because we're not limiting our vertex list to unique results, it may produce many more results than we have vertices in our total graph. That could set us back a bit.
+
+We're probably only interested in getting a few unique results out, so we'll change the query a little: ```g.v('Thor').out().out().out().in().in().in().unique().take(10)```. Now we'll only get at most 10 results out. What happens if we evaluate this strictly, though? We're still going to have to build up our massive list of septillions of results before finally returning only the first 10. 
+
+And so we see the need for laziness: all graph databases have to support a mechanism for doing as little work as possible, and most choose some form of lazy evaluation to do so. Since we're building our own interpreter, evaluating our program lazily is certainly within our purview. But the road there is paved with good intentions and surprising consequences.
+
+----
 
 
-///// need laziness first...
+
+
+ First of all, our query segments can't just return data any more. Instead we're going to need to process each segment on demand. That means we'll need some way of driving this process forward. Here's how we'll do that.
+
+---> also: don't blow your stack on large queries (so we can't use straight recursion, need to use a different approach. lots of other benefits to this, like history and reversibility etc)
+
+
+
 
 ///// then look at addPipeType, and talk about state
 
