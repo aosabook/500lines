@@ -217,71 +217,17 @@ The problem, at first glance, looked straightforward. However, the real world an
 6. We set a threshold to ignore short peaks.
 7. We used hysteresis to avoid double-counting steps with bumpy peaks.
 
-As software developers in a training or academic setting, we may have been presented with a perfect signal and asked to write code to count the steps in that signal. While that may have been an interesting coding challenge, it wouldn't have been something we could apply in a live situation. We saw that in a reality with gravity and people thrown into the mix, the problem was a little more complex. We used mathematical tools to address the complexities, and were able to solve a real-world problem. Now it's time to translate our solution into code. 
+As software developers in a training or academic setting, we may have been presented with a perfect signal and asked to write code to count the steps in that signal. While that may have been an interesting coding challenge, it wouldn't have been something we could apply in a live situation. We saw that in a reality with gravity and people thrown into the mix, the problem was a little more complex. We used mathematical tools to address the complexities, and were able to solve a real-world problem. It's time to translate our solution into code. 
 
-# Parsing and Processing
+# Diving Into Code
 
-Our goal for this chapter is to create a web application in Ruby that accepts accelerometer data, parses, processes, and analyzes it, and returns the steps taken along with some other related information. Let's begin with the parsing and processing.
+Our goal for this chapter is to create a web application in Ruby that accepts accelerometer data, parses, processes, and analyzes it, and returns the steps taken along with other related information. 
 
-Our input data is coming from mobile devices such as Android phones and iPhones. Most mobile phones on the market today have accelerometers built in, that are able to record total acceleration. Let's call the input data format that records total acceleration the *combined format*. Many, but not all, devices can also record user acceleration and gravitational acceleration separately. Let's call this format the *separated format*. A device that has the ability to return data in the separated format necessarily has the ability to return data in the combined format. However, the inverse is not necessarily true. Some devices on the market today can only record data in the combined format. 
+# Filtering
 
-Input data in the combined format will need to be passed through a low-pass filter to turn it into the separated format. This extra step will result in slightly less accurate results. Some hardware manufacturers use additional sensors to measure rotational changes, resulting in a slightly higher degree of accuracy in their separated data, versus our strategy of splitting total acceleration into gravitational and user. Don't worry, we'll still get quite close. The discrepancy is only due to the hardware having more information at the time of measurement than we have with the combined input.
+Our solution requires us to filter our time series several times. Rather than peppering filtering code throughout our program, it makes sense to create a class that takes care of the filtering, and if we ever need to enhance or modify it, we'll only ever need to change that one class. This strategy is called *separation of concerns*, a commonly-used design principle which promotes splitting a program into numerous distinct pieces, where every piece has one primary concern. It's a beautiful way to write clean, maintainable code that's easily extensible. We'll revisit this idea several times throughout the chapter.
 
-We want our program to handle all mobile devices on the market with accelerometers, regardless of whether or not only able to record data in the combined format. This means that we'll need to accept data in both formats. 
-
-Let's look at the two formats we'll be accepting individually.
-
-### Combined Format
-
-Data in the combined format is total acceleration in the x, y, z directions, over time. x, y, and z values will be separated by a comma, and samples per unit time will be separated by a semi-colon.
-
-$"x1,y1,z1; ... xn,yn,zn;"$
-
-### Separated Format
-
-The separated format returns user acceleration in the x, y, z directions as well as gravitational acceleration in the x, y, z directions, over time. User acceleration values will be separated from gravitational acceleration values by a pipe.
-
-$"x_{u}1,y_{u}1,z_{u}1|x_{g}1,y_{g}1,z_{g}1; ... x_{u}n,y_{u}n,z_{u}n|x_{g}n,y_{g}n,z_{g}n;"$
-
-## I Got Multiple Input Formats But a Standard Ain't One
-
-Dealing with multiple input formats is a common programming problem. If we want our entire program to work with both formats, every single piece of code dealing with the data would need to know how to handle both formats. This can become very messy, very quickly, especially if a third (or a fourth, or a fifth, or a hundredth) input format is added.
-
-The cleanest way for us to deal with this is to take our two input formats and determine a standard format to fit them both into as soon as possible, allowing the rest of the program to work with this new standard format. The diagram below outlines the basic idea. 
-
-![](chapter-figures/input-format-to-standard-format.png)\
-
-We'll write a parser that allows us to take our two known input formats and convert them to a standard output format. In the future, if we ever have to add another input format, the only code we'll have to touch is this parser. Once the data is in a standard format, the program can have any number of processors that process the data from the standard format, without ever being concerned about the original format that the data was in. 
-
-Converting multiple input formats into one common format is an example of *separation of concerns*, a commonly-used design principle, which promotes splitting a program into numerous distinct pieces, where every piece has one primary concern. It's a beautiful way to write clean, maintainable code that's easily extensible. We'll revisit this idea several times throughout the chapter.
-
-# Applying Parsing and Processing
-
-Based on the solution we defined, we'll need our code to do a few things to our input data before we can count steps:
-
-1. Parse input formats into a standard format. 
-2. Isolate movement in the direction of gravity using the dot product.
-3. Remove jumpy (high-frequency) and slow (low-frequency) peaks with a low-pass filter followed by a high-pass filter.
-
-The removal of short and bumpy peaks can be handled during step counting. The diagram below shows each of the three steps.
-
-![](chapter-figures/input-data-workflow.png)\
-
-We'll need to work with user acceleration and gravitational acceleration separately in order to follow our solution, so our standard format will need to split out the two accelerations. This means that if our data is in the combined format, we'll need to first pass it through a low-pass filter in step 1 to convert it to the standard format.
-
-Take note of the standard format:
-
-![](chapter-figures/standard-format.png)\
-
-Our standard format allows us to store a time series, as each element represents acceleration at a point in time. We've defined it as an array of arrays of arrays. Let's peel back that onion. 
-
-* The first array is just a wrapper to hold the all of the data.
-* The second set of arrays contains one array per data sample taken. If our sampling rate is 100 and we sample data for 10 seconds, we'll have $10 * 100$, or 1000, arrays in this second set. 
-* The third set of arrays is the pair of arrays enclosed within the second set. They both contain acceleration data in the x, y, and z directions; the first representing user acceleration and the second gravitational acceleration.
-
-## Filtering to Start
-
-Note that we filter our time series several times: once during parsing and twice during processing. The first code we'll dive into is the filtering code, contained in, logically, a `Filter` class.
+Let's dive into the filtering code, contained in, logically, a `Filter` class.
 
 ~~~~~~~
 class Filter
@@ -291,11 +237,11 @@ class Filter
       alpha: [1, -1.979133761292768, 0.979521463540373],
       beta:  [0.000086384997973502, 0.000172769995947004, 0.000086384997973502]
     },
-    low_5_hz: { # Direct form I, Chebyshev II, type = low-pass, Astop = 2, Fstop = 5, Fs = 100, Direct Form I
+    low_5_hz: { 
       alpha: [1, -1.80898117793047, 0.827224480562408], 
       beta:  [0.095465967120306, -0.172688631608676, 0.095465967120306]
     },
-    high_1_hz: { # Direct form I, Chebyshev II, type = high-pass, Fs = 100, Fstop = 0.5, Astop = 20, order = 2, 
+    high_1_hz: {
       alpha: [1, -1.905384612118461, 0.910092542787947], 
       beta:  [0.953986986993339, -1.907503180919730, 0.953986986993339]
     }
@@ -317,7 +263,7 @@ class Filter
 end
 ~~~~~~~
 
-`Filter` is an example of *separation of concerns*. Whenever we need to filter, we can call `Filter.run` with the data we need filtered, and the type of filter we want to run: 
+Anytime our program need to filter a time series, we can call `Filter.run` with the data we need filtered, and the type of filter we want to run: 
 
 * `low_0_hz`, a low-pass filter for signals near 0 Hz
 * `low_5_hz`, a low-pass filter for signals at or below 5 Hz
@@ -325,9 +271,47 @@ end
 
 `run` implements the Chebyshev filter and returns the result. If we wish to add more filters in the future, we only need to change this one class. 
 
-## Moving on to Parsing
+One important thing to note is that all "magic" numbers are defined at the top. This makes our class easier to read and understand. The formula in `run` is much more obvious using the `COEFFICIENTS` hash than it would have been with numerical values directly inserted.
 
-Back to our three steps. In step 1, we parse input formats to our standard format. We'll separate concerns once more, and create a `Parser` class to handle the parsing.
+# Parsing
+
+Our input data is coming from mobile devices such as Android phones and iPhones. Most mobile phones on the market today have accelerometers built in, that are able to record total acceleration. Let's call the input data format that records total acceleration the *combined format*. Many, but not all, devices can also record user acceleration and gravitational acceleration separately. Let's call this format the *separated format*. A device that has the ability to return data in the separated format necessarily has the ability to return data in the combined format. However, the inverse is not always true. Some devices can only record data in the combined format. Input data in the combined format will need to be passed through a low-pass filter to turn it into the separated format. 
+
+We want our program to handle all mobile devices on the market with accelerometers, so we'll need to accept data in both formats. Let's look at the two formats we'll be accepting individually.
+
+### Combined Format
+
+Data in the combined format is total acceleration in the x, y, z directions, over time. x, y, and z values will be separated by a comma, and samples per unit time will be separated by a semi-colon.
+
+$"x1,y1,z1; ... xn,yn,zn;"$
+
+### Separated Format
+
+The separated format returns user acceleration in the x, y, z directions as well as gravitational acceleration in the x, y, z directions, over time. User acceleration values will be separated from gravitational acceleration values by a pipe.
+
+$"x_{u}1,y_{u}1,z_{u}1|x_{g}1,y_{g}1,z_{g}1; ... x_{u}n,y_{u}n,z_{u}n|x_{g}n,y_{g}n,z_{g}n;"$
+
+## I Got Multiple Input Formats But a Standard Ain't One
+
+Dealing with multiple input formats is a common programming problem. If we want our entire program to work with both formats, every single piece of code dealing with the data would need to know how to handle both formats. This can become very messy, very quickly, especially if a third (or a fourth, or a fifth, or a hundredth) input format is added.
+
+### Standard Format
+
+The cleanest way for us to deal with this is to take our two input formats and determine a standard format to fit them both into as soon as possible, allowing the rest of the program to work with this new standard format. We'll write a parser that allows us to take our two known input formats and convert them to a standard output format. In the future, if we ever have to add another input format, the only code we'll have to touch is this parser. Here with see another example of separation of concerns.
+
+![](chapter-figures/input-data-workflow-1.png)\
+
+We'll need to work with user acceleration and gravitational acceleration separately in order to follow our solution, so our standard format will need to split out the two accelerations. This means that if our data is in the combined format, we'll need to first pass it through a low-pass filter to convert it to the standard format. Take note of the standard format:
+
+![](chapter-figures/standard-format.png)\
+
+Our standard format allows us to store a time series, as each element represents acceleration at a point in time. We've defined it as an array of arrays of arrays. Let's peel back that onion. 
+
+* The first array is just a wrapper to hold the all of the data.
+* The second set of arrays contains one array per data sample taken. If our sampling rate is 100 and we sample data for 10 seconds, we'll have $10 * 100$, or 1000, arrays in this second set. 
+* The third set of arrays is the pair of arrays enclosed within the second set. They both contain acceleration data in the x, y, and z directions; the first representing user acceleration and the second gravitational acceleration.
+
+Let's separate concerns once more, and create a `Parser` class to handle the parsing.
 
 ~~~~~~~
 require_relative 'filter'
@@ -387,9 +371,20 @@ The separated format is already in our desired standard format after this operat
 
 As our program becomes more sophisticated, one area for improvement is to make our users' lives easier by throwing exceptions with more specific messages than "Bad Input. Ensure data is properly formatted.", allowing them to more quickly track down common input formatting problems. 
 
-## And Now, for the Processing
+# Processing
 
-The two processors are related to taking data in the standard format and incrementally cleaning it to return a sine wave as close as possible to ideal. Due to this relationship, it makes sense to combine these processors into one class, called a **Processor**. 
+Based on the solution we defined, we'll need our code to do a few things to our parsed data before we can count steps:
+
+1. Isolate movement in the direction of gravity using the dot product.
+2. Remove jumpy (high-frequency) and slow (low-frequency) peaks with a low-pass filter followed by a high-pass filter.
+
+The removal of short and bumpy peaks can be handled during step counting. 
+
+Now that we have our data in a standard format, we can process it to get in into a state where we can analyze it to count steps. 
+
+![](chapter-figures/input-data-workflow-2.png)\
+
+The purpose of processing is to take our data in the standard format and incrementally clean it up to get it to a state as close as possible to our ideal side wave. Our two processing operations, taking the dot product and filtering, are quite distinct, but both are intended to process our data, so we'll create one class, called a **Processor**. 
 
 ~~~~~~~
 require_relative 'filter'
@@ -423,7 +418,7 @@ class Processor
 end
 ~~~~~~~
 
-Again, we see the `run` and `initialize` methods pattern. `run` calls our two processor methods, `dot_product` and `filter`, directly. Each method accomplishes one of our two remaining steps. `dot_product` isolates movement in the direction of gravity, and filter applies the low-pass and high-pass filters in sequence to remove jumpy and slow peaks. 
+Again, we see the `run` and `initialize` methods pattern. `run` calls our two processor methods, `dot_product` and `filter`, directly. Each method accomplishes one of our two processing operations. `dot_product` isolates movement in the direction of gravity, and filter applies the low-pass and high-pass filters in sequence to remove jumpy and slow peaks. 
 
 ## Pedometer Functionality
 
