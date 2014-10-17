@@ -14,7 +14,7 @@
       return JSON.parse(localStorage.getItem(''));
     } catch (e$) {}
   }()) || SheetDefault;
-  Table = React.createClass({
+  Table = React.createFactory(React.createClass({
     getDefaultProps: function(){
       return {
         Cols: ["A", "B", "C", "D", "E", "F", "G", "H"],
@@ -90,8 +90,8 @@
       sheet = import$({}, this.state.sheet);
       return this.calc((sheet[id + ""] = value, sheet));
     }
-  });
-  Row = React.createClass({
+  }));
+  Row = React.createFactory(React.createClass({
     render: function(){
       var ref$, Cols, sheet, vals, errs, row, onChange;
       ref$ = this.props, Cols = ref$.Cols, sheet = ref$.sheet, vals = ref$.vals, errs = ref$.errs, row = ref$.row, onChange = ref$.onChange;
@@ -128,8 +128,8 @@
         return cell != null ? cell.focus() : void 8;
       }
     }
-  });
-  Cell = React.createClass({
+  }));
+  Cell = React.createFactory(React.createClass({
     render: function(){
       var ref$, id, txt, err, val, onChange, onKeyDown;
       ref$ = this.props, id = ref$.id, txt = ref$.txt, err = ref$.err, val = ref$.val, onChange = ref$.onChange, onKeyDown = ref$.onKeyDown;
@@ -147,12 +147,12 @@
           : val != null && val[0] ? 'text' : ''
       }, err || val));
     }
-  });
+  }));
   window.init = function(){
     var worker;
     worker = new Worker('worker.js');
     worker.onmessage = function(){
-      return React.renderComponent(Table({
+      return React.render(Table({
         worker: worker
       }), document.body);
     };

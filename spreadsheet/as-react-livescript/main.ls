@@ -3,7 +3,7 @@
 SheetDefault = { A1: 1874, B1: \+, C1: 2046, D1: \⇒, E1: \=A1+C1 }
 SheetInit = (try JSON.parse localStorage.getItem '') || SheetDefault
 
-Table = React.createClass do
+Table = React.createFactory React.createClass do
   getDefaultProps: -> { Cols: [\A to \H], Rows: [1 to 20] }
   getInitialState: -> { sheet: SheetInit, vals: {}, errs: {} }
   render: ->
@@ -34,7 +34,7 @@ Table = React.createClass do
     sheet = {} <<< @state.sheet
     @calc(sheet <<< { "#id": value })
 
-Row = React.createClass do
+Row = React.createFactory React.createClass do
   render: ->
     {Cols, sheet, vals, errs, row, onChange} = @props
     tr {},
@@ -49,7 +49,7 @@ Row = React.createClass do
       const cell = document.querySelector "##{ col }#{ row + direction }"
       cell?focus!
 
-Cell = React.createClass render: ->
+Cell = React.createFactory React.createClass render: ->
   {id, txt, err, val, onChange, onKeyDown} = @props
   td { className: if txt?0 is \= then \formula else '' },
     input { id, type: \text, value: txt, onChange, onKeyDown }
@@ -57,5 +57,5 @@ Cell = React.createClass render: ->
 
 window.init = ->
   worker = new Worker \worker.js
-  worker.onmessage = -> React.renderComponent Table({ worker }), document.body
+  worker.onmessage = -> React.render Table({ worker }), document.body
   worker.postMessage null
