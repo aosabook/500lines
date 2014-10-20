@@ -1321,6 +1321,9 @@ pair. Since a byte is between 0 and 255, there are two problems:
     address part in each, and then increasing the line number.
     [XXX say something about why]
 
+[XXX this line just for Markdown formatting, to make the snippet below
+be code. sheesh.]
+
     def make_lnotab(assembly):
         firstlineno, lnotab = None, []
         byte, line = 0, None
