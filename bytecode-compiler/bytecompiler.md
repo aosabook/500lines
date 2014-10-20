@@ -284,10 +284,10 @@ What was the point of this visitor? Without it, we'd need to define a
 then need to generate code to perform a test, a call, and a raise. To
 do this without duplicating logic within the compiler, we'd define
 code-generation functions for each of those, to be invoked by both the
-new `visit_Assert` and by `visit_If`, `visit_Raise`, and so on (in the
-code generator). That would not be onerous, but if we're going to have
-a desugaring pass at all, this is a good use for it: it's easier and
-clearer.
+new `visit_Assert` and by the code generator's `visit_If`,
+`visit_Raise`, and so on. That would not be onerous, but if we're
+going to have a desugaring pass at all, this is a good use for it:
+it's easier and clearer.
 
 Lambda expressions and function definitions get rewritten in terms of
 a new AST node type we'll define, called `Function`:
