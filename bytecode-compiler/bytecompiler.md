@@ -352,8 +352,8 @@ code, and thus can't clash with variables from the source:
 itself, because it's only used in the new function, locally.)
 
 CPython generates more-efficient bytecode directly from the
-comprehension, and it's considerably hairier. Generator comprehensions
-would add hair too; we won't need them.
+comprehension, in a hairier way. Generator comprehensions would add
+hair too; we won't need them.
 
 `Expander` uses these helpers:
 
