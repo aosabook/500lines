@@ -164,18 +164,18 @@ class Scope(ast.NodeVisitor):
         self.uses = set()
 
     def analyze(self, parent_defs):
-        self.maskvars = self.defs if isinstance(self.t, Function) else set()
+        self.fastvars = self.defs if isinstance(self.t, Function) else set()
         for child in self.children:
-            child.analyze(parent_defs | self.maskvars)
+            child.analyze(parent_defs | self.fastvars)
         child_uses = set([var for child in self.children for var in child.freevars])
         uses = self.uses | child_uses
-        self.cellvars = tuple(child_uses & self.maskvars)
-        self.freevars = tuple(parent_defs & (uses - self.maskvars))
+        self.cellvars = tuple(child_uses & self.fastvars)
+        self.freevars = tuple(parent_defs & (uses - self.fastvars))
         self.derefvars = self.cellvars + self.freevars
 
     def access(self, name):
         return ('deref' if name in self.derefvars else
-                'fast'  if name in self.maskvars  else
+                'fast'  if name in self.fastvars  else
                 'name')
 
     def get_child(self, t):
