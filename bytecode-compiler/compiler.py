@@ -135,6 +135,7 @@ class Expander(ast.NodeTransformer):
         fn = [ast.Assign([ast.Name('.result', store)], ast.List([], load)),
               body,
               ast.Return(ast.Name('.result', load))]
+        no_args = ast.arguments([], None, [], None, [], [])
         result = ast.Call(Function('<listcomp>', no_args, fn),
                           [], [], None, None)
         return ast.copy_location(result, t)
@@ -148,8 +149,6 @@ class Expander(ast.NodeTransformer):
                                             [], None, None),
                                    None)])
         return ast.copy_location(result, t)
-
-no_args = ast.arguments([], None, [], None, [], [])
 
 def top_scope(t):
     top = Scope(t, ())
