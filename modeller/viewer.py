@@ -64,7 +64,7 @@ class Viewer(object):
     def create_sample_scene(self):
         cube_node = Cube()
         cube_node.translate(2, 0, 2)
-        cube_node.color_index = 2
+        cube_node.color_index = 1
         self.scene.add_node(cube_node)
 
         sphere_node = Sphere()
@@ -74,7 +74,6 @@ class Viewer(object):
 
         hierarchical_node = SnowFigure()
         hierarchical_node.translate(-2, 0, -2)
-        hierarchical_node.color_index = 1
         self.scene.add_node(hierarchical_node)
 
     def init_interaction(self):

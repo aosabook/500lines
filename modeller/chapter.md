@@ -676,9 +676,11 @@ ray coordinate space as the third parameter. Each Node applies its own transform
 ``````````````````````````````````````````
 
 The Ray-AABB selection approach is very simple to understand and implement. However, the results are wrong in certain situations.
+
 For example, in the case of the `Sphere` primitive, the sphere itself only touches the AABB in the centre of each of its planes.
 However if the user clicks on the corner of the Sphere's AABB, the collision will be detected with the Sphere, even if the user intended to click
 past the Sphere onto something behind it.
+![AABB Error](AABBError.png?raw=true)
 
 This trade off between complexity, performance, and accuracy is common in computer graphics and in many areas of software engineering.
 
@@ -856,6 +858,7 @@ Finally, we translate the new node by the calculated vector.
 
 ## Summary
 In this chapter, we examined a simple implementation of a 3D modeller.
+![Sample Scene](StartScene.png?raw=true)
 We saw how to develop a exensible data structure to represent the objects in the scene. We noticed that using the Composite design pattern and a tree
 based data structure makes it easy to traverse the scene for rendering and interaction and allows us to add new types of nodes with no added complexity.
 We leveraged this data structure to render the design to the screen, and manipulated OpenGL matrices in the traversal of the scene graph.
