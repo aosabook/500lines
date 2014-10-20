@@ -104,7 +104,7 @@ for name, opcode in dis.opmap.items():
 def desugar(t):
     return ast.fix_missing_locations(Expander().visit(t))
 
-class Function(ast.FunctionDef): # from FunctionDef so that ast.get_docstring works. Ugh!
+class Function(ast.FunctionDef): # from FunctionDef so that ast.get_docstring works.
     _fields = ('name', 'args', 'body')
 
 load, store = ast.Load(), ast.Store()
@@ -114,7 +114,7 @@ class Expander(ast.NodeTransformer):
     def visit_Lambda(self, t):
         t = self.generic_visit(t)
         result = Function('<lambda>', t.args, [ast.Return(t.body)])
-        return ast.copy_location(result, t) # TODO do this automatically for every visit method?
+        return ast.copy_location(result, t)
 
     def visit_FunctionDef(self, t):
         t = self.generic_visit(t)
