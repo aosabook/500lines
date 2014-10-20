@@ -141,12 +141,12 @@ class Expander(ast.NodeTransformer):
 
     def visit_Assert(self, t):
         t = self.generic_visit(t)
-        result = ast.If(ast.UnaryOp(ast.Not(), t.test),
+        result = ast.If(t.test,
+                        [],
                         [ast.Raise(ast.Call(ast.Name('AssertionError', load),
                                             [] if t.msg is None else [t.msg],
                                             [], None, None),
-                                   None)],
-                        [])
+                                   None)])
         return ast.copy_location(result, t)
 
 no_args = ast.arguments([], None, [], None, [], [])
