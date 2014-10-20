@@ -386,7 +386,7 @@ outside. [XXX expand?]
 
 'g' has no local definition, and in fact no global one we can see
 either. So it's neither fast nor deref. (CPython's compiler will
-generate different instructions if it's known to be global --
+generate different instructions for variables known to be global --
 instructions like `LOAD_GLOBAL` -- but our compiler won't. This should
 be an easy improvement to make.)
 
