@@ -151,19 +151,18 @@ To convert a vector `v` from one coordinate space to another, we multiply by a t
 Some common transformation matrices are translations (moves), scaling, and rotations.
 
 ### Model, World, View, and Projection Coordinate Spaces
-To draw an item to the screen, we need to convert between a few different coordinate spaces. An item in the design has points that are defined with 
-respect to the item's local origin.
+To draw an item to the screen, we need to convert between a few different coordinate spaces.
 
 ![Transformation Pipeline](newtranspipe.png?raw=true)
 Thank you very much to Dr. Anton Gerdelan for the image. His OpenGL tutorial book is available [here](http://antongerdelan.net/opengl/).
 
 We let specialized OpenGL functions handle the right hand side of the diagram: conversion from eye space to homogeneous clip space is handled by `gluPerspective`, conversion to Normalized Device Space and Viewport space is handled by `glViewport`. These matrices do not change during program execution.
 Points in the view space are converted into points in 2d using the projection matrix.
-We need to manage the left hand side of the diagram, to convert points from the model spaces into the world space, and from the world space into
-the eye spaces.
+We need to manage the left hand side of the diagram. The matrix which converts points from the model spaces into the world space is called the Model matrix. The matrix which converts from the world space into the eye spaces is called the View matrix.
+In this project, we combine these two matrices to obtain the ModelView matrix.
 
 ### Rendering with the Viewer
-The `render` function begins by setting up any of the OpenGL state that needs to be done at render time. It initializes the projection matrix via `init_view` and uses data from the interaction member to initialize the modelview matrix with the transformation matrix that converts from the scene space to world space. We will see more about the Interaction class below. It clears the screen with `glClear` and it tells the scene to render itself, and then renders the unit grid. 
+The `render` function begins by setting up any of the OpenGL state that needs to be done at render time. It initializes the projection matrix via `init_view` and uses data from the interaction member to initialize the ModelView matrix with the transformation matrix that converts from the scene space to world space. We will see more about the Interaction class below. It clears the screen with `glClear` and it tells the scene to render itself, and then renders the unit grid. 
 
 We disable OpenGL's lighting before rendering the grid. With lighting disabled, OpenGL renders items with solid colors, rather than lighting them. This way, the grid has visual differentiation from the scene.
 Finally, `glFlush` signals to the graphics driver that we are ready for the buffer to be flushed and displayed to the screen.
@@ -251,7 +250,7 @@ class Scene(object):
 ``````````````````````````````````````````
 
 ### Nodes
-We have seen we render the design by calling `render` on each of the items in the `node_list` member of the Scene instance. But what are the elements
+In the Scene's `render` function, we calling `render` on each of the items in the Scene's `node_list`. But what are the elements
 of that list? We call them Nodes. 
 Conceptually, a `Node` is anything that can be placed in the scene. Anything that exists in the design is a `Node`.
 In object oriented software, we write `Node` as an abstract base class. Any classes that represent objects to be placed in the `Scene` will inherit from `Node`. 
@@ -872,6 +871,7 @@ complete user interface, which would necessitate a much more sophisticated event
 
 We could do further experimentation to add new features to this project. Try one of these:
 * Add a Node type to support triangle meshes for arbitrary shapes.
+* Add an Undo stack, to allow undo/redo of modeller actions.
 * Save/Load the design using a 3D file format like [DXF](http://en.wikipedia.org/wiki/AutoCAD_DXFhttp://en.wikipedia.org/wiki/AutoCAD_DXF).
 * Integrate a rendering engine: export the design for use in a photorealistic renderer.
 * Improve collision detection with accurate ray-object intersection.
