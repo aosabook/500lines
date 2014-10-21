@@ -387,8 +387,6 @@ By making the `Node` class extensible in this way, we can add new types of shape
 manipulation and rendering. Using `Node` concept to abstract away the fact that one `Scene` object may have many children is known as the Composite Design Pattern.
 
 
-BOOKMARK
-
 ### User Interaction
 Now that our modeller is capable of storing and displaying the scene, we need a way to interact with it. 
 There are two types of interactions that we need to facilitate.
