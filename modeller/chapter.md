@@ -8,12 +8,12 @@ To fulfil that definition, CAD tools must offer three basic pieces of functional
 Firstly, they must have a data structure to represent the object that's being designed. This is the computer's understanding of the 3-dimensional world that the user is building.
 Secondly, the CAD tool must offer some way to display the design onto the user's screen. The user is designing a physical object with 3 dimensions, but the computer screen has only 2 dimensions. 
 The CAD tool must model how we perceive objects, and draw them to the screen in a way that the user can understand all 3 dimensions of the object.
-Thirdly, the CAD tool must offer a way to interact with the object being designed. The designer must be able to add to and modify the design in order to produce the desired result.
+Thirdly, the CAD tool must offer a way to interact with the object being designed. The user must be able to add to and modify the design in order to produce the desired result.
 
 A domain specific CAD tool offers many additional features for the specific requirements of the domain. For example, an architecture CAD tool would offer physics simulations to test weather and climate stresses on the building, 
 a 3D printing tool would have features that check whether the object is actually valid to print, and electrical CAD tool would simulate the physics of electricity running through copper, and a film special effects suite would
 include features to accurately simulate pyrokinetics. 
-Additionally, all tools would need a way to save and load designs from disk so that designers can collaborate, share, and save their work.
+Additionally, all tools would need a way to save and load designs from disk so that users can collaborate, share, and save their work.
 
 However, at their core, call CAD tools must include the three features discussed above: a data structure to represent the design, the ability to display it to the screen, and a method to interact with the design.
 
@@ -148,6 +148,7 @@ A vector is an x, y, and z value representing the difference between two points 
 ### Transformation Matrix
 In computer graphics, it is convenient to use multiple different coordinate spaces for different types of points. Transformation matrices convert points from one coordinate space to another coordinate space.
 To convert a vector `v` from one coordinate space to another, we multiply by a transformation matrix `M`: `v' = M v`.
+Some common transformation matrices are translations (moves), scaling, and rotations.
 
 ### Model, World, View, and Projection Coordinate Spaces
 To draw an item to the screen, we need to convert between a few different coordinate spaces. An item in the design has points that are defined with 
@@ -252,7 +253,7 @@ class Scene(object):
 ### Nodes
 We have seen we render the design by calling `render` on each of the items in the `node_list` member of the Scene instance. But what are the elements
 of that list? We call them Nodes. 
-Conceptually, a `Node` is anything that can be placed in the scene. Anything that exists in the designer's world is a `Node`.
+Conceptually, a `Node` is anything that can be placed in the scene. Anything that exists in the design is a `Node`.
 In object oriented software, we write `Node` as an abstract base class. Any classes that represent objects to be placed in the `Scene` will inherit from `Node`. 
 This base class allows us to reason about the scene abstractly. 
 The rest of the code base doesn't need to know about the details of the objects it displays, it only needs to know that they are `Node`s. 
