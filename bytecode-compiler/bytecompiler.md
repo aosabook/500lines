@@ -188,10 +188,10 @@ follow, mostly mirroring CPython's:
     minus certain features is less sweet but equally nutritious.)
     CPython doesn't have this pass, though some have suggested it
     should: optimizations would be easier to express as AST rewrites
-    than bytecode rewrites. I don't do optimizations, but wrote it
-    this way because some node types are a little simpler and
-    substantially more readable to compile to other node types than to
-    bytecode.
+    than bytecode rewrites. (For example: rewrite `2+3` to `5`.) I
+    don't do optimizations, but wrote it this way because some node
+    types are a little simpler and substantially more readable to
+    compile to other node types than to bytecode.
 
   * We complain if the AST departs from the subset of Python we're
     going to implement. CPython lacks this pass, of course, and this
