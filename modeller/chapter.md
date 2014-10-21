@@ -855,7 +855,7 @@ Finally, we translate the new node by the calculated vector.
 ``````````````````````````````````````````
 
 ## Summary
-In this chapter, we examined a simple implementation of a 3D modeller.
+Congratulations! We've successfully implemented a tiny 3D modeller!
 ![Sample Scene](StartScene.png?raw=true)
 We saw how to develop a exensible data structure to represent the objects in the scene. We noticed that using the Composite design pattern and a tree
 based data structure makes it easy to traverse the scene for rendering and interaction and allows us to add new types of nodes with no added complexity.
