@@ -136,7 +136,7 @@ if __name__ == "__main__":
 Before we dive into the `render` function, we should discuss a little bit of linear algebra.
 
 ### Coordinate Space
-FMaor our purposes, a Coordinate Space is an origin point and a set of 3 basis vectors, usually the x, y, and z axes.
+For our purposes, a Coordinate Space is an origin point and a set of 3 basis vectors, usually the x, y, and z axes.
 
 ### Point
 Any point in 3 dimensions can be represented as an offset in the x, y, and z directions from the origin point. The representation of a point is relative to the coordinate space that the point is in. The same point 
