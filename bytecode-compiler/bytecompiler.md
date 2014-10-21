@@ -7,11 +7,11 @@ simpler language than the one you wrote it in. Did you just call on a
 big genie to make a small one?
 
 To dispel the mystery, there are some great short compilers to
-read. [XXX add a few refs at the end] This chapter will add another
-toy example compiler to the literature, this time trying to keep it
-real in an unusual way: being able to compile itself, and not omitting
-the practical details of features like debug support. Since
-something's gotta go, we'll skip the whole topic of optimization.
+read. This chapter will add another toy example compiler to the
+literature, this time trying to keep it real in an unusual way: being
+able to compile itself, and not omitting the practical details of
+features like debug support. Since something's gotta go, we'll skip
+the whole topic of optimization.
 
 Our source language and implementation language -- the language we
 compile from, and the one we code the compiler in -- are a subset of
@@ -1464,6 +1464,23 @@ And from the command line, given a filename, we compile and (using
 ## Reflections
 
 XXX fill me in
+
+
+## Further reading
+
+Peter Norvig's _Paradigms of Artificial Intelligence Programming_,
+despite the title, presents short compilers for Scheme, Prolog, and a
+pattern-matching rewrite-rule language. They all go to some trouble to
+produce efficient output. The code is of the highest quality, and not
+much longer than this book's examples.
+
+Niklaus Wirth and Jürg Gutknecht's [_Project Oberon: The Design of an
+Operating System, a Compiler, and a
+Computer_](http://projectoberon.com/) includes a compiler of about
+3000 lines that compiles itself down to RISC machine code.
+
+Andrew Appel's _Modern Compiler Implementation in ML_ explains the
+ideas behind more-complex compilers.
 
 
 [notes to self:]
