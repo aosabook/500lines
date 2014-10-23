@@ -1471,10 +1471,12 @@ pattern-matching rewrite-rule language. They all go to some trouble to
 produce efficient output. The code is of the highest quality, and not
 much longer than this book's examples.
 
-Niklaus Wirth and Jürg Gutknecht's [_Project Oberon: The Design of an
-Operating System, a Compiler, and a
-Computer_](http://projectoberon.com/) includes a compiler of about
-3000 lines that compiles itself down to RISC machine code.
+Niklaus Wirth's [_Compiler
+Construction_](http://www.ethoberon.ethz.ch/WirthPubl/CBEAll.pdf)
+explains a simple compiler from Oberon-0 to RISC code in detail. Wirth
+and Gutknecht's [_Project Oberon: The Design of an Operating System, a
+Compiler, and a Computer_](http://projectoberon.com/) elaborates it to
+the full language, ending up at about 3000 lines.
 
 Andrew Appel's _Modern Compiler Implementation in ML_ explains the
 ideas behind more-complex compilers.
