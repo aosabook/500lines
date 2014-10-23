@@ -148,7 +148,14 @@ class Checker(ast.NodeVisitor):
         self(t.value)
 
     def visit_Num(self, t):
-        pass
+        # -0.0 is distinct from +0.0, but my compiler would mistakenly
+        # coalesce the two, if both appear among the constants. Likewise
+        # for -0.0 as a component of a complex number. As a hack, instead
+        # of handling this case correctly in the compiler, we just forbid
+        # it. It's especially unlikely to crop up because the parser even
+        # parses -0.0 as UnaryOp(op=USub(), operand=Num(0.0)) -- you'd
+        # have to build the AST some other way, to get Num(-0.0).
+        assert not has_negzero(t.n)
 
     def visit_Str(self, t):
         pass
@@ -209,3 +216,11 @@ class Checker(ast.NodeVisitor):
         assert isinstance(name, str)
         # Not a private, mangled name:
         assert len(name) <= 2 or not name.startswith('__') or name.endswith('__')
+
+def has_negzero(num):
+    return (is_negzero(num)
+            or (isinstance(num, complex)
+                and (is_negzero(num.real) or is_negzero(num.imag))))
+
+def is_negzero(num):
+    return num == 0 and ('%f' % num).startswith('-')

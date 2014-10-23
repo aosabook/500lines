@@ -1230,11 +1230,8 @@ type to the table's key:
             return op.LOAD_CONST(self.constants[constant, type(constant)])
 
 (There are a few corner cases involving signed-zero floating-point
-numbers that this addition still doesn't cover. They should be caught
-by `check_conformity`, though, embarrassingly, I haven't yet
-bothered.) [XXX fix this. Probably not worth mentioning once it's
-checked for.]
-
+numbers that this addition still doesn't cover. They're caught
+by `check_conformity`.)
 
     def make_table():
         table = collections.defaultdict(lambda: len(table))
