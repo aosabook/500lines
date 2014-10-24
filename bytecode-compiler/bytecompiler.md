@@ -938,7 +938,7 @@ where `POP_JUMP_IF_FALSE` does what it says: pops the value left by
 12. Otherwise it falls through to the usual next instruction, at
 6. `JUMP_FORWARD` likewise jumps, to skip `no` if we chose `yes`.
 
-[Footnote, I guess:] (`POP_TOP` is not part of the code for the `if`
+([XXX Footnote, I guess:] `POP_TOP` is not part of the code for the `if`
 expression itself, it's code for the expression statement containing
 the `if`. It's listed here because the `JUMP_FORWARD` jumps to
 it. Every `if` appears in a context where more bytecode will follow --
