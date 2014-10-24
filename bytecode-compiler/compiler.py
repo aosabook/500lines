@@ -1,4 +1,4 @@
-import ast, collections, dis, types, os, sys
+import ast, collections, dis, types, sys
 from functools import reduce
 from itertools import chain
 from stack_effect import stack_effect
