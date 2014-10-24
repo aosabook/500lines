@@ -282,8 +282,8 @@ class CodeGen(ast.NodeVisitor):
 
     def make_closure(self, code, name):
         if code.co_freevars:
-            return (concat([op.LOAD_CLOSURE(self.cell_index(name))
-                            for name in code.co_freevars])
+            return (concat([op.LOAD_CLOSURE(self.cell_index(freevar))
+                            for freevar in code.co_freevars])
                     + op.BUILD_TUPLE(len(code.co_freevars))
                     + self.load_const(code) + self.load_const(name) + op.MAKE_CLOSURE(0))
         else:
