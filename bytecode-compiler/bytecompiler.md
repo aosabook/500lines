@@ -719,8 +719,9 @@ list of ASTs, and for a list we compile each subexpression and
 concatenate all of the bytecodes produced:
 
         def __call__(self, t):
-            assert isinstance(t, (ast.AST, list))
-            return concat(map(self, t)) if isinstance(t, list) else self.visit(t)
+            if isinstance(t, list): return concat(map(self, t)) 
+            assembly = self.visit(t)
+            return SetLineNo(t.lineno) + assembly if hasattr(t, 'lineno') else assembly
 
 Why funnel both cases into one method? Only for concision: just as the
 ubiquitous AST tree-node argument is named `t` in this program, so the
@@ -730,6 +731,26 @@ concatenated list of bytecode sequences in just this way. If these
 lists only came up a few times, I'd rather handle them in a separate
 method named, say, `visit_each`; but we're going to see them
 everywhere.
+
+In `CodeGen`, the purpose of visiting a node is to return assembly
+code. (Contrast with `Scope`, which visits a node for the effect of
+filling in the `Scope`'s fields with info about that node's subtree of
+source code. [XXX delete parenthetical probably]) Each node has a
+`lineno`: the line number of the source code it came from. These line
+numbers get propagated into the assembly as `SetLineNo`
+pseudo-instructions. [XXX plodding paragraph]
+
+`ast.NodeVisitor`'s default implementation of `visit` then calls the
+right one of the specific visit methods we've been defining -- or if
+there isn't any for `t`'s type of node, it calls `generic_visit`:
+
+        def generic_visit(self, t):
+            assert False, t
+
+Since `check_conformity` makes sure we never see an unexpected node
+type, that "can't happen" -- but sometimes, of course, it did. Before
+I overrode `generic_visit`, the default version succeeded silently,
+making my mistakes harder to see.
 
 Dict literals like `{'a': 'x', 'b': 'y'}` turn into code like
 
@@ -1195,35 +1216,6 @@ does distinguish modules and functions.)
 
 
 ### Making a code object
-
-Before we leave the `CodeGen` visitor, here are the central visit
-methods: [XXX lousy place to cover this. Consider grouping these with
-__call__ at the start of CodeGen.]
-
-        def visit(self, t):
-            if not hasattr(t, 'lineno'): return ast.NodeVisitor.visit(self, t)
-            else: return SetLineNo(t.lineno) + ast.NodeVisitor.visit(self, t)
-
-In `CodeGen`, the purpose of visiting a node is to return assembly
-code. (Contrast with `Scope`, which visits a node for the effect of
-filling in the `Scope`'s fields with info about that node's subtree of
-source code. [XXX delete parenthetical probably]) Each node has a
-`lineno`: the line number of the source code it came from. These line
-numbers get propagated into the assembly as `SetLineNo`
-pseudo-instructions. We override the default `visit` method to do this
-for all node types. [XXX plodding paragraph]
-
-`ast.NodeVisitor.visit` then calls the right one of the specific visit
-methods we've been defining -- or if there isn't any for `t`'s type of
-node, it calls `generic_visit`:
-
-        def generic_visit(self, t):
-            assert False, t
-
-Since `check_conformity` makes sure we never see an unexpected node
-type, that "can't happen" -- but sometimes, of course, it did. Before
-I overrode `generic_visit`, the default version succeeded silently,
-making my mistakes harder to see.
 
         def make_code(self, assembly, name, argcount):
             kwonlyargcount = 0
