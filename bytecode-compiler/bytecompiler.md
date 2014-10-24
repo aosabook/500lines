@@ -24,12 +24,14 @@ target machine is the CPython bytecode virtual machine, also version
 
 Let's start with an example: a module `greet.py` with this text:
 
+    !!greet.py
     def greet(name):
         print('Hello,', name)
 
 Chapter XXX explains how to parse it into an abstract syntax tree
 (AST); in this chapter we use `ast.parse` from Python's library.
 
+    !!example
     >>> import ast, dis, astpp      # astpp by Alex Leone
     >>> with open('greet.py') as f: module_text = f.read()
     ... 
@@ -63,12 +65,14 @@ in the CPython source distribution.
 Compiling the module (with Python's built-in compiler, for now)
 produces a code object, an internal Python type:
 
+    !!example
     >>> module_code = compile(module_ast, 'greet.py', 'exec')
     >>> module_code
     <code object <module> at 0xffdd7430, file "greet.py", line 1>
 
 It has a bunch of attributes named starting with `co_`:
 
+    !!example
     co_argcount       0
     co_cellvars       ()
     co_code           b'd\x00\x00d\x01\x00\x84\x00\x00Z\x00\x00d\x02\x00S'
@@ -94,6 +98,7 @@ object. We'll dig in to these fields later, but `co_code` holds the
 meat: a sequence of bytecodes in a bytestring. We can render it more
 readable by disassembly, using `dis.dis`:
 
+    !!example
     >>> dis.dis(module_code)
       1           0 LOAD_CONST               0 (<code object greet at 0x7f8ada685700, file "greet.py", line 1>)
                   3 LOAD_CONST               1 ('greet')
@@ -129,6 +134,7 @@ names it as `greet` in the current environment, the module's global
 environment. So where's the code to the actual function? That's in
 `<code object greet at 0x7f8ada685700>` and we can inspect it too:
 
+    !!example
     co_argcount       1
     co_cellvars       ()
     co_code           b't\x00\x00d\x01\x00|\x00\x00\x83\x02\x00\x01d\x00\x00S'
@@ -145,6 +151,7 @@ environment. So where's the code to the actual function? That's in
     co_stacksize      3
     co_varnames       ('name',)
 
+    !!dis
       2           0 LOAD_GLOBAL              0 (print)
                   3 LOAD_CONST               1 ('Hello,')
                   6 LOAD_FAST                0 (name)
@@ -342,6 +349,7 @@ call to a locally-defined function with the following body, except
 that `result` has a name `.result` which can't occur in Python source
 code, and thus can't clash with variables from the source:
 
+    !!example.py
     result = []
     for n in numbers:
         if n:
@@ -368,6 +376,7 @@ hair too; we won't need them.
 Scope analysis decides the runtime representation of variables:
 'fast', 'deref', or neither. Consider:
 
+    !!example.py
     def fn():
         f = "I'm fast"
         d = "I'm derefed"
@@ -487,6 +496,7 @@ Code generation happens next. Since it builds symbolic assembly, the
 logic will be easier to follow if we get familiar with asssembly
 first. Consider the `greet` function we disassembled above:
 
+    !!dis
       2           0 LOAD_GLOBAL              0 (print)
                   3 LOAD_CONST               1 ('Hello,')
                   6 LOAD_FAST                0 (name)
@@ -498,6 +508,7 @@ first. Consider the `greet` function we disassembled above:
 We could build this 'by hand' like so, using the assembly constructors
 we'll see later:
 
+    !!example.py
     assembly_for_greet = (SetLineNo(2)
                           + op.LOAD_GLOBAL(0)
                           + op.LOAD_CONST(1)
@@ -516,6 +527,7 @@ representing assembly code (as in the Gang of Four 'composite'
 pattern). In generating the code we'll build it in pieces to be strung
 together, more like
 
+    !!example.py
     function_call = (op.LOAD_GLOBAL(0)
                      + op.LOAD_CONST(1)
                      + op.LOAD_FAST(0)
@@ -622,6 +634,7 @@ instructions of bytecode. What about bigger expressions? The simplest
 of these use only unary operators like `not` and minus: `not -x` gets
 compiled to
 
+    !!dis
       1           0 LOAD_NAME                0 (x) 
                   3 UNARY_NEGATIVE       
                   4 UNARY_NOT            
@@ -653,12 +666,14 @@ Binary operators get compiled the same way:
 
 compiling, for example, `x-1` to
 
+    !!dis
       1           0 LOAD_NAME                0 (x) 
                   3 LOAD_CONST               0 (1) 
                   6 BINARY_SUBTRACT
 
 and `x*(x-1)` to
 
+    !!dis
       1           0 LOAD_NAME                0 (x) 
                   3 LOAD_NAME                0 (x) 
                   6 LOAD_CONST               0 (1) 
@@ -690,6 +705,7 @@ like `{'a', 'b', 'c'}`, can have any number of subexpressions. In the
 bytecode, the values all go onto the stack, then `BUILD_SET` collects
 them; it knows how many by an argument to the instruction, `3`.
 
+    !!dis
       1           0 LOAD_CONST               0 ('a') 
                   3 LOAD_CONST               1 ('b') 
                   6 LOAD_CONST               2 ('c') 
@@ -720,6 +736,7 @@ everywhere.
 
 Dict literals like `{'a': 'x', 'b': 'y'}` turn into code like
 
+    !!dis
       1           0 BUILD_MAP                2
                   3 LOAD_CONST               0 ('x')
                   6 LOAD_CONST               1 ('a')
@@ -750,6 +767,7 @@ than to document the problem for later.)
 Encoding of arguments affects `visit_Call` as well. First, a function
 call like `f(x, y, key=42)` compiles to
 
+    !!dis
       1           0 LOAD_NAME                0 (f)
                   3 LOAD_NAME                1 (x)
                   6 LOAD_NAME                2 (y)
@@ -785,12 +803,14 @@ some fancier call expressions like `f(*args, **kwargs)`.)
 There are just a few more types of expression. A simple subscript
 expression, `a[x]`, becomes
 
+    !!dis
       1           0 LOAD_NAME                0 (a)
                   3 LOAD_NAME                1 (x)
                   6 BINARY_SUBSCR
 
 Similarly, `a.x` becomes
 
+    !!dis
       1           0 LOAD_NAME                0 (a)
                   3 LOAD_ATTR                1 (x)
 
@@ -814,6 +834,7 @@ pass -- probably should explain it at that point.]
 A list or tuple can also appear in both load and store contexts. As a
 load, `['a', 'b']` becomes
 
+    !!dis
       1           0 LOAD_CONST               0 ('a')
                   3 LOAD_CONST               1 ('b')
                   6 BUILD_LIST               2
@@ -860,6 +881,7 @@ to be removed. `POP_TOP` does this.
 In the bytecode for `y = x + 1`, the popping is done by `STORE_NAME`
 to `y`:
 
+    !!dis
       1           0 LOAD_NAME                0 (x)
                   3 LOAD_CONST               0 (1)
                   6 BINARY_ADD
@@ -922,10 +944,12 @@ as much compiler code, to produce worse compiled code.
 Control-flow statements like `if`-`else` reduce to jumping around in
 the bytecode. The expression statement
 
+    !!example.py
     yes if ok else no
 
 becomes
 
+    !!dis
       1           0 LOAD_NAME                0 (ok)
                   3 POP_JUMP_IF_FALSE       12
                   6 LOAD_NAME                1 (yes)
@@ -975,6 +999,7 @@ likely to get borked by their changes.)
 
 The statement
 
+    !!example.py
     if ok:
         yes
     else:
@@ -989,6 +1014,7 @@ overloading `self()` to visit both nodes and node lists.
 `and` and `or` expressions point out a new concern: keeping the stack
 consistent across different branches of control. `print(x or y)` compiles to
 
+    !!dis
       1           0 LOAD_NAME                0 (print)
                   3 LOAD_NAME                1 (x)
                   6 JUMP_IF_TRUE_OR_POP     12
@@ -1254,6 +1280,7 @@ encoded bytecode. When you want multiple functions of multiple data
 types, the usual way in Python is with classes, so let's do that,
 starting with the simplest type of assembly fragment, the no-op:
 
+    !!assembler.py
     class Assembly:
         def __add__(self, other):
             return Chain(self, other)
@@ -1273,6 +1300,7 @@ starting with the simplest type of assembly fragment, the no-op:
 all the places we've been composing code like `op.DUP_TOP + left +
 right` we were calling this method. So does `concat`:
 
+    !!assembler.py
     def concat(assemblies):
         return sum(assemblies, no_op)
 
@@ -1287,6 +1315,7 @@ fact have extended jumps?]
 The `resolve` and `encode` methods respectively resolve the address of
 each label and use the resolved addresses to emit the bytecode bytes:
 
+    !!assembler.py
     def assemble(assembly):
         return bytes(iter(assembly.encode(0, dict(assembly.resolve(0)))))
 
@@ -1297,6 +1326,7 @@ assembly program, appending the individual depths to a list passed
 in. With this information `plumb_depths` can return the total size
 the stack will need:
 
+    !!assembler.py
     def plumb_depths(assembly):
         depths = [0]
         assembly.plumb(depths)
@@ -1321,6 +1351,7 @@ pair. Since a byte is between 0 and 255, there are two problems:
 [XXX this line just for Markdown formatting, to make the snippet below
 be code. sheesh.]
 
+    !!assembler.py
     def make_lnotab(assembly):
         firstlineno, lnotab = None, []
         byte, line = 0, None
@@ -1344,12 +1375,14 @@ be code. sheesh.]
 
 A `Label` is just like `no_op` except for resolving to an address.
 
+    !!assembler.py
     class Label(Assembly):
         def resolve(self, start):
             return ((self, start),)
 
 So is a `SetLineNo` except for adding to the line-number table.
 
+    !!assembler.py
     class SetLineNo(Assembly):
         def __init__(self, line):
             self.line = line
@@ -1360,6 +1393,7 @@ A `Chain` catenates two assembly-code fragments in sequence. It uses
 `itertools.chain` to catenate the label resolutions, bytecodes, or
 `lnotab` entries produced in the different methods.
 
+    !!assembler.py
     class Chain(Assembly):
         def __init__(self, assembly1, assembly2):
             self.assembly1 = assembly1
@@ -1388,6 +1422,7 @@ There are four kinds of bytecode instruction: absolute jumps, relative
 jumps, and non-jumps with or without an argument. ('Jump' for our
 purposes means any instruction taking an address argument.)
 
+    !!assembler.py
     class Insn(Assembly):
         def __init__(self, opcode, arg=None):
             self.opcode = opcode
@@ -1418,6 +1453,7 @@ straight-line stack depths are always right.
 Finally, we define `op` so that names like `op.POP_TOP` and
 `op.CALL_FUNCTION(0)` work as we've been using them.
 
+    !!assembler.py
     def denotation(opcode):
         if opcode < dis.HAVE_ARGUMENT:
             return Insn(opcode)
@@ -1434,6 +1470,7 @@ Finally, we define `op` so that names like `op.POP_TOP` and
 
 At the top level, we compile a module from a source file:
 
+    !!top.py
     import ast, collections, dis, types, os, sys
     from functools import reduce
     from itertools import chain
@@ -1487,20 +1524,27 @@ ideas behind fancier optimizing compilers.
 
 In this chapter there's so much of this pattern:
 
+    !!example
     The expression
 
+    !!example
         blah
 
+    !!example
     compiles to
 
+    !!example
         1    BLAH
              GOOBER
 
+    !!example
     This works like blah wooie wooie.
 
+    !!example
         def visit_Blah(self, t):
             return op.BLAH + op.GOOBER
 
+    !!example
     Here's an observation about the `BLAH` instruction or something.
 
 that I wonder if some sort of table would streamline the
