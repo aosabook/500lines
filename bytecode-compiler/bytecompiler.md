@@ -1541,6 +1541,9 @@ it's really a thing-to-be-assembled. Have a better name?]
 XXX resync with compiler.py -- it's definitely out of sync now
 
 
+To do: example of compiling the compiler
+
+
 data types, another way of breaking things out:
   ast
   ast visitor

@@ -96,10 +96,8 @@ def denotation(opcode):
     else:
         return lambda arg: Insn(opcode, arg)
 
-class Opcodes: pass
-op = Opcodes()
-for name, opcode in dis.opmap.items():
-    setattr(op, name, denotation(opcode))
+op = type('op', (), dict([(name, denotation(opcode))
+                          for name, opcode in dis.opmap.items()]))
 
 def desugar(t):
     return ast.fix_missing_locations(Expander().visit(t))
@@ -192,6 +190,7 @@ class Scope(ast.NodeVisitor):
         for stmt in t.body: subscope.visit(stmt)
 
     def visit_Function(self, t):
+        # XXX shouldn't there be this here too: self.defs.add(t.name)
         subscope = Scope(t, [arg.arg for arg in t.args.args])
         self.children.append(subscope)
         for stmt in t.body: subscope.visit(stmt)
@@ -209,12 +208,10 @@ class Scope(ast.NodeVisitor):
         elif isinstance(t.ctx, ast.Store): self.defs.add(t.id)
         else: assert False
 
-def byte_compile(module_name, filename, t, f_globals):
+def compile_to_code(module_name, filename, t):
     t = desugar(t)
     check_conformity(t)
-    top_level = top_scope(t)
-    code = CodeGen(filename, top_level).compile(t, module_name, 0)
-    return types.FunctionType(code, f_globals)
+    return CodeGen(filename, top_scope(t)).compile_module(t, module_name)
 
 class CodeGen(ast.NodeVisitor):
     def __init__(self, filename, scope):
@@ -224,25 +221,26 @@ class CodeGen(ast.NodeVisitor):
         self.names     = make_table()
         self.varnames  = make_table()
 
-    def compile_class(self, t):
-        self.set_docstring(t)
-        assembly = (self.load('__name__') + self.store('__module__')
-                    + self.load_const(t.name) + self.store('__qualname__') # XXX
-                    + self(t.body) + self.load_const(None) + op.RETURN_VALUE)
-        return self.make_code(assembly, t.name, 0)
+    def sprout(self, t):
+        return CodeGen(self.filename, self.scope.get_child(t))
 
-    def set_docstring(self, t):
-        self.load_const(ast.get_docstring(t))
-        
+    def compile_module(self, t, name):
+        return self.compile_function(Function(name, ast.arguments(args=()), t.body))
+
     def compile_function(self, t):
-        self.set_docstring(t)
+        self.load_const(ast.get_docstring(t))
         for arg in t.args.args:
             self.varnames[arg.arg]
-        return self.compile(t.body, t.name, len(t.args.args))
+        assembly = self(t.body) + self.load_const(None) + op.RETURN_VALUE
+        return self.make_code(assembly, t.name, len(t.args.args))
 
-    def compile(self, t, name, argcount):
-        assembly = self(t) + self.load_const(None) + op.RETURN_VALUE
-        return self.make_code(assembly, name, argcount)
+    def compile_class(self, t):
+        docstring = ast.get_docstring(t)
+        assembly = (  self.load('__name__')      + self.store('__module__')
+                    + self.load_const(t.name)    + self.store('__qualname__') # XXX
+                    + self.load_const(docstring) + self.store('__doc__')
+                    + self(t.body) + self.load_const(None) + op.RETURN_VALUE)
+        return self.make_code(assembly, t.name, 0)
 
     def make_code(self, assembly, name, argcount):
         kwonlyargcount = 0
@@ -270,16 +268,12 @@ class CodeGen(ast.NodeVisitor):
     def generic_visit(self, t):
         assert False, t
 
-    def visit_Module(self, t):
-        self.set_docstring(t)
-        return self(t.body)
-
     def visit_Function(self, t):
-        code = CodeGen(self.filename, self.scope.get_child(t)).compile_function(t)
+        code = self.sprout(t).compile_function(t)
         return self.make_closure(code, t.name)
 
     def visit_ClassDef(self, t):
-        code = CodeGen(self.filename, self.scope.get_child(t)).compile_class(t)
+        code = self.sprout(t).compile_class(t)
         return (op.LOAD_BUILD_CLASS + self.make_closure(code, t.name)
                                     + self.load_const(t.name)
                                     + self(t.bases)
@@ -469,12 +463,14 @@ def compile_file(filename, module_name):
     f = open(filename)
     source = f.read()
     f.close()
-    return byte_compile(module_name, filename, ast.parse(source),
-                        make_globals(module_name))
+    return compile_to_callable(module_name, filename, ast.parse(source))
 
-def make_globals(module_name):
-    return dict(__package__=None, __spec__=None, __name__=module_name,
-                __loader__=__loader__, __builtins__=__builtins__, __doc__=None)
+def compile_to_callable(module_name, filename, t):
+    code = compile_to_code(module_name, filename, t)
+    f_globals = dict(__package__=None, __spec__=None, __name__=module_name,
+                     __loader__=__loader__, __builtins__=__builtins__,
+                     __doc__=code.co_consts[0])
+    return types.FunctionType(code, f_globals)
 
 if __name__ == '__main__':
     compile_file(sys.argv[1], '__main__')()
