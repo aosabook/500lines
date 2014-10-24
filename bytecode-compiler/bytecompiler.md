@@ -1473,13 +1473,14 @@ much longer than this book's examples.
 
 Niklaus Wirth's [_Compiler
 Construction_](http://www.ethoberon.ethz.ch/WirthPubl/CBEAll.pdf)
-explains a simple compiler from Oberon-0 to RISC code in detail. Wirth
+details a simple compiler from Oberon-0 to RISC machine code. Wirth
 and Gutknecht's [_Project Oberon: The Design of an Operating System, a
 Compiler, and a Computer_](http://projectoberon.com/) elaborates it to
-the full language, ending up at about 3000 lines.
+the full Oberon language it's written in, ending up at about 3000
+lines.
 
 Andrew Appel's _Modern Compiler Implementation in ML_ explains the
-ideas behind more-complex compilers.
+ideas behind fancier optimizing compilers.
 
 
 [notes to self:]
