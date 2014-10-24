@@ -41,3 +41,8 @@ filling in more corners of the language. Python is big.
 That the data structure and methods used extend without change to
 supporting the full language, I'm not going to worry
 about. Something's gotta give.
+
+To run:
+
+    $ make
+    $ python3.4 compiler.py your_source_filename.py

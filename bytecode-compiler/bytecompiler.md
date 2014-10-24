@@ -225,19 +225,13 @@ follow, mostly mirroring CPython's:
 
 In code:
 
-    def byte_compile(module_name, filename, t, f_globals):
+    def compile_to_code(module_name, filename, t):
         t = desugar(t)
         check_conformity(t)
-        top_level = top_scope(t)
-        code = CodeGen(filename, top_level).compile(t, module_name, 0)
-        return types.FunctionType(code, f_globals)
+        return CodeGen(filename, top_scope(t)).compile_module(t, module_name)
 
 Throughout this compiler, `t` (for 'tree') names an AST node. These
 `t`'s appear everywhere.
-
-Once we have the code object we wrap it into a function with its
-global environment, so we can execute it. The slightly peculiar name
-`f_globals` seems to be a convention, which I chose not to break.
 
 
 ## Desugaring
@@ -261,7 +255,7 @@ transformer:
     def desugar(t):
         return ast.fix_missing_locations(Expander().visit(t))
 
-    class Expander(ast.NodeTransformer):
+    class Expander(ast.NodeTransformer):  # XXX rename to Desugarer?
 
 For a start, we rewrite statements like `assert cookie, "Want
 cookie!"` into `if not cookie: raise AssertionError("Want cookie!")`.
@@ -448,8 +442,8 @@ instead. That's the protocol for a `NodeVisitor`:
                 self.defs.add(alias.asname or alias.name)
 
         def visit_Name(self, t):
-            if   isinstance(t.ctx, ast.Load):  return self.uses.add(t.id)
-            elif isinstance(t.ctx, ast.Store): return self.defs.add(t.id)
+            if   isinstance(t.ctx, ast.Load):  self.uses.add(t.id)
+            elif isinstance(t.ctx, ast.Store): self.defs.add(t.id)
             else: assert False
 
 The `analyze` subpass then deduces the *nonlocal* uses of variables:
@@ -561,6 +555,9 @@ reusable parts just aren't a goal.
 
 ## Code generation
 
+[XXX I think I want to reorder this, covering statements first instead
+of expressions.]
+
 The code generator is one big `NodeVisitor` class. Each part is
 straightforward because the bytecodes and the AST nodes were designed
 for each other, but there are dozens of node types. `CodeGen` objects
@@ -600,16 +597,16 @@ Variable names get compiled using the scopes we just analyzed:
 
         def load(self, name):
             access = self.scope.access(name)
-            if   access == 'fast':   return op.LOAD_FAST(self.varnames[name])
-            elif access == 'deref':  return op.LOAD_DEREF(self.cell_index(name))
-            elif access == 'name':   return op.LOAD_NAME(self.names[name])
+            if   access == 'fast':  return op.LOAD_FAST(self.varnames[name])
+            elif access == 'deref': return op.LOAD_DEREF(self.cell_index(name))
+            elif access == 'name':  return op.LOAD_NAME(self.names[name])
             else: assert False
 
         def store(self, name):
             access = self.scope.access(name)
-            if   access == 'fast':   return op.STORE_FAST(self.varnames[name])
-            elif access == 'deref':  return op.STORE_DEREF(self.cell_index(name))
-            elif access == 'name':   return op.STORE_NAME(self.names[name])
+            if   access == 'fast':  return op.STORE_FAST(self.varnames[name])
+            elif access == 'deref': return op.STORE_DEREF(self.cell_index(name))
+            elif access == 'name':  return op.STORE_NAME(self.names[name])
             else: assert False
 
         def cell_index(self, name):
@@ -1069,57 +1066,39 @@ but also that loop's label to jump to. It wasn't worth it.
 ### Functions, classes, and modules
 
 [XXX what if we moved this to the start of the code-generation
-section?]
+section? I think that'd be top-heavy. Another idea: come back to
+compiling functions and classes after going all the way down through
+the assembler for compiling function/class-free code. We ought to be
+able to cover scope analysis together with codegen for functions and
+classes. Yes, that sounds promising. Downside: order is less top-down,
+breaking up the CodeGen visitor.]
 
-The top-level `byte_compile` function called the `CodeGen` visitor's
-`compile` method. We're finally ready to see it:
-
-        def compile(self, t, name, argcount):
-            assembly = self(t) + self.load_const(None) + op.RETURN_VALUE
-            return self.make_code(assembly, name, argcount)
-
-Our `t` is a `Module` node. We generate assembly that will evaluate
-the module's code and return `None`; then we assemble that into a code
-object.
-
-        def visit_Module(self, t):
-            self.set_docstring(t)
-            return self(t.body)
-
-The module's body is a statement list. First we record the docstring:
-
-        def set_docstring(self, t):
-            self.load_const(ast.get_docstring(t))
-
-The docstring goes in the code object's constants table as the first
-entry -- `None` if no docstring. This logic relies on `set_docstring`
-being called first, before any code generation, and on our table
-preserving the order we add to it. (The actual `LOAD_CONST`
-instruction is discarded, here.)
+A `Function` node is an expression desugared from a lambda expression,
+function definition, or list comprehension. Compiling one takes two
+steps: first, compile the whole nested scope into a separate code
+object. Second, generate assembly code that will build a function
+object out of this code object. [XXX yes, there was a disassembled
+example of this near the start of this chapter, but we need to bring
+it back, here, or the reader will be lost.]
 
         def visit_Function(self, t):
-            code = CodeGen(self.filename, self.scope.get_child(t)).compile_function(t)
+            code = self.sprout(t).compile_function(t)
             return self.make_closure(code, t.name)
 
-On visiting a `def` or `lambda`, we compile a whole new code object
-and use it in `make_closure`. Compiling this code object requires a
-subscope of the current scope -- previously computed by the scope
-analyzer, recovered by `scope.get_child(t)`.
+The new `CodeGen` for this new code object requires a subscope of the
+current scope -- previously computed by the scope analyzer, recovered
+by `self.scope.get_child(t)`.
 
-        def compile_function(self, t):
-            self.set_docstring(t)
-            for arg in t.args.args:
-                self.varnames[arg.arg]
-            return self.compile(t.body, t.name, len(t.args.args))
+        def sprout(self, t):
+            return CodeGen(self.filename, self.scope.get_child(t))
 
-As with the docstring, the parameter names become the first elements
-of the `varnames` table. (They're `defaultdict`s: fetching adds to
-them, as necessary.)
+Building a function out of a code object depends on whether it has
+free variables:
 
         def make_closure(self, code, name):
             if code.co_freevars:
-                return (concat([op.LOAD_CLOSURE(self.cell_index(name))
-                                for name in code.co_freevars])
+                return (concat([op.LOAD_CLOSURE(self.cell_index(freevar))
+                                for freevar in code.co_freevars])
                         + op.BUILD_TUPLE(len(code.co_freevars))
                         + self.load_const(code) + self.load_const(name) + op.MAKE_CLOSURE(0))
             else:
@@ -1132,9 +1111,9 @@ we emit assembly that will push that code object and the function's
 name on the stack and create a new function object, with
 `MAKE_FUNCTION`.
 
-[TODO: example disassembly?]
+[TODO: example disassembly again]
 
-For a function with nonlocal variables the assembly has more to do: it
+For a function with free variables the assembly has more to do: it
 will collect the values of all the nonlocals into a tuple, then push
 the code object and the name as before; then `MAKE_CLOSURE` expects
 the tuple. The scope analyzer already arranged for the nested
@@ -1143,35 +1122,76 @@ function's nonlocals to be in the current scope as 'cell variables'.
 *mutable cell holding the variable's value*, instead of the value, so
 that the nested function can mutate the variable.]
 
-[TODO: swap the arms of `if code.co_freevars` so that the code appears
-in the same order as this commentary]
+Back to compiling a function down to a code object: on a new `CodeGen`
+we called `compile_function`:
 
-Compiling `class` follows the same pattern, with more doodads to
-attend to:
+        def compile_function(self, t):
+            self.load_const(ast.get_docstring(t))
+            for arg in t.args.args:
+                self.varnames[arg.arg]
+            assembly = self(t.body) + self.load_const(None) + op.RETURN_VALUE
+            return self.make_code(assembly, t.name, len(t.args.args))
+
+The docstring goes in the code object's constants table as the first
+entry -- `None` if no docstring. This logic relies on this
+`load_const` happening first, before any code generation, and on our
+table preserving the order we add to it. (The actual `LOAD_CONST`
+instruction is discarded, here.)
+
+As with the docstring, the parameter names become the first elements
+of the `varnames` table. (They're `defaultdict`s: fetching adds to
+them, as necessary.)
+
+We generate assembly that will run the module's body and return
+`None`; then we assemble that into a code object.
+
+On to class definitions. Like functions, they sprout a new `CodeGen`
+to compile down to a code object; but the assembly that will build the
+class object is a little fancier.
 
         def visit_ClassDef(self, t):
-            code = CodeGen(self.filename, self.scope.get_child(t)).compile_class(t)
+            code = self.sprout(t).compile_class(t)
             return (op.LOAD_BUILD_CLASS + self.make_closure(code, t.name)
                                         + self.load_const(t.name)
                                         + self(t.bases)
                     + op.CALL_FUNCTION(2 + len(t.bases))
                     + self.store(t.name))
 
+The class definition's code object resembles an ordinary function's
+with some magic local-variable definitions prepended. (The docstring
+*doesn't* need to go first in the constants table for these.) Python's
+class builder (`LOAD_BUILD_CLASS`) will populate the new class's
+attributes from the locals dictionary as of the point this function
+returns. This is why scope analysis must not classify the locals of a
+class definition as 'fast'.
+
         def compile_class(self, t):
-            self.set_docstring(t)
-            assembly = (self.load('__name__') + self.store('__module__')
-                        + self.load_const(t.name) + self.store('__qualname__') # XXX come back to this
+            docstring = ast.get_docstring(t)
+            assembly = (  self.load('__name__')      + self.store('__module__')
+                        + self.load_const(t.name)    + self.store('__qualname__') # XXX need to mess with t.name?
+                        + self.load_const(docstring) + self.store('__doc__')
                         + self(t.body) + self.load_const(None) + op.RETURN_VALUE)
             return self.make_code(assembly, t.name, 0)
 
-[TODO: a bit about the doodads]
+I was a little tempted to leave classes out. Python stopped needing
+them once it gained proper nested functions -- in terms of expressive
+power, if not familiarity and legacy. As it worked out, most of the
+simplicity we'd gain by chopping out `class` we can get by forbidding
+nested classes (nested in a `class` or a `def`).  [XXX was it really
+'most'? I forget.]
 
-I was a little tempted to just leave classes out. Python stopped
-needing them once it added proper nested functions -- in terms of
-expressive power, if not familiarity and legacy. As it worked out,
-most of the simplicity we'd gain by chopping out `class` we can get by
-forbidding nested classes (nested in a `class` or a `def`).
-[XXX was it really 'most'? I forget.]
+The top-level `compile_to_code` function called the `CodeGen`
+visitor's `compile_module` method. We're finally ready to see it:
+
+        def compile_module(self, t, name):
+            return self.compile_function(Function(name, ast.arguments(args=()), t.body))
+
+Our `t` is a `Module` node. We generate code just like for a function
+of no arguments with the same body -- that's how the module's body
+will ultimately get run, by taking the code object, making a function
+out of it, and calling that. (Hm, so why not transform modules into
+functions right at the start, while desugaring? Because scope analysis
+does distinguish modules and functions.)
 
 
 ### Making a code object
@@ -1181,9 +1201,8 @@ methods: [XXX lousy place to cover this. Consider grouping these with
 __call__ at the start of CodeGen.]
 
         def visit(self, t):
-            lineno = getattr(t, 'lineno', None)
-            assembly = ast.NodeVisitor.visit(self, t)
-            return assembly if lineno is None else SetLineNo(t.lineno) + assembly
+            if not hasattr(t, 'lineno'): return ast.NodeVisitor.visit(self, t)
+            else: return SetLineNo(t.lineno) + ast.NodeVisitor.visit(self, t)
 
 In `CodeGen`, the purpose of visiting a node is to return assembly
 code. (Contrast with `Scope`, which visits a node for the effect of
@@ -1211,13 +1230,12 @@ making my mistakes harder to see.
             nlocals = len(self.varnames)
             stacksize = plumb_depths(assembly)
             firstlineno, lnotab = make_lnotab(assembly)
-            flags = (0x00 | (0x02 if nlocals else 0)                 # XXX let's drop the 0x00
-                          | (0x10 if self.scope.freevars else 0)
-                          | (0x40 if not self.scope.derefvars else 0))
-            constants = tuple([constant for constant,_ in collect(self.constants)])
+            flags = (  (0x02 if nlocals                  else 0)
+                     | (0x10 if self.scope.freevars      else 0)
+                     | (0x40 if not self.scope.derefvars else 0))
             return types.CodeType(argcount, kwonlyargcount,
                                   nlocals, stacksize, flags, assemble(assembly),
-                                  constants,
+                                  self.collect_constants(),
                                   collect(self.names), collect(self.varnames),
                                   self.filename, name, firstlineno, lnotab,
                                   self.scope.freevars, self.scope.cellvars)
@@ -1255,6 +1273,9 @@ type to the table's key:
         def load_const(self, constant):
             return op.LOAD_CONST(self.constants[constant, type(constant)])
 
+        def collect_constants(self):
+            return tuple([constant for constant,_ in collect(self.constants)])
+
 (There are a few corner cases involving signed-zero floating-point
 numbers that this addition still doesn't cover. They're caught
 by `check_conformity`.)
@@ -1265,10 +1286,6 @@ by `check_conformity`.)
 
     def collect(table):
         return tuple(sorted(table, key=table.get))
-
-[XXX bring together the code for load_const and collecting the
-constants-table entries. I guess I'll have to drop a little
-functionality to free up the lines.]
 
 
 ## Assembly
@@ -1460,10 +1477,8 @@ Finally, we define `op` so that names like `op.POP_TOP` and
         else:
             return lambda arg: Insn(opcode, arg)
 
-    class Opcodes: pass
-    op = Opcodes()
-    for name, opcode in dis.opmap.items():
-        setattr(op, name, denotation(opcode))
+    op = type('op', (), dict([(name, denotation(opcode))
+                              for name, opcode in dis.opmap.items()]))
 
 
 ## The top-level driver
@@ -1471,7 +1486,7 @@ Finally, we define `op` so that names like `op.POP_TOP` and
 At the top level, we compile a module from a source file:
 
     !!top.py
-    import ast, collections, dis, types, os, sys
+    import ast, collections, dis, types, sys
     from functools import reduce
     from itertools import chain
     from stack_effect import stack_effect
@@ -1481,12 +1496,16 @@ At the top level, we compile a module from a source file:
         f = open(filename)
         source = f.read()
         f.close()
-        return byte_compile(module_name, filename, ast.parse(source),
-                            make_globals(module_name))
+        return compile_to_callable(module_name, filename, ast.parse(source))
 
-    def make_globals(module_name):
-        return dict(__package__=None, __spec__=None, __name__=module_name,
-                    __loader__=__loader__, __builtins__=__builtins__, __doc__=None)
+Recall that a module is compiled to the code object for a no-argument function.
+
+    def compile_to_callable(module_name, filename, t):
+        code = compile_to_code(module_name, filename, t)
+        f_globals = dict(__package__=None, __spec__=None, __name__=module_name,
+                         __loader__=__loader__, __builtins__=__builtins__,
+                         __doc__=code.co_consts[0])
+        return types.FunctionType(code, f_globals)
 
 And from the command line, given a filename, we compile and (using
 `()`) run it.
