@@ -1405,21 +1405,21 @@ A `Chain` catenates two assembly-code fragments in sequence. It uses
     !!assembler.py
     class Chain(Assembly):
         def __init__(self, assembly1, assembly2):
-            self.assembly1 = assembly1
-            self.assembly2 = assembly2
+            self.part1 = assembly1
+            self.part2 = assembly2
             self.length = assembly1.length + assembly2.length
         def resolve(self, start):
-            return chain(self.assembly1.resolve(start),
-                         self.assembly2.resolve(start + self.assembly1.length))
+            return chain(self.part1.resolve(start),
+                         self.part2.resolve(start + self.part1.length))
         def encode(self, start, addresses):
-            return chain(self.assembly1.encode(start, addresses),
-                         self.assembly2.encode(start + self.assembly1.length, addresses))
+            return chain(self.part1.encode(start, addresses),
+                         self.part2.encode(start + self.part1.length, addresses))
         def line_nos(self, start):
-            return chain(self.assembly1.line_nos(start),
-                         self.assembly2.line_nos(start + self.assembly1.length))
+            return chain(self.part1.line_nos(start),
+                         self.part2.line_nos(start + self.part1.length))
         def plumb(self, depths):
-            self.assembly1.plumb(depths)
-            self.assembly2.plumb(depths)
+            self.part1.plumb(depths)
+            self.part2.plumb(depths)
 
 (I was a little surprised that no stack overflows bit me with this
 code, at least not in compiling a program the size of the compiler
