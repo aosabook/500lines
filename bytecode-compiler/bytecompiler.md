@@ -1433,7 +1433,7 @@ purposes means any instruction taking an address argument.)
 
     !!assembler.py
     class Insn(Assembly):
-        def __init__(self, opcode, arg=None):
+        def __init__(self, opcode, arg):
             self.opcode = opcode
             self.arg    = arg
             self.length = 1 if arg is None else 3
@@ -1465,7 +1465,7 @@ Finally, we define `op` so that names like `op.POP_TOP` and
     !!assembler.py
     def denotation(opcode):
         if opcode < dis.HAVE_ARGUMENT:
-            return Insn(opcode)
+            return Insn(opcode, None)
         else:
             return lambda arg: Insn(opcode, arg)
 
@@ -1503,7 +1503,7 @@ And from the command line, given a filename, we compile and (using
 `()`) run it.
 
     if __name__ == '__main__':
-        compile_file(sys.argv[1], '__main__')()
+        compile_file(sys.argv.pop(1), '__main__')()
 
 
 ## Reflections
