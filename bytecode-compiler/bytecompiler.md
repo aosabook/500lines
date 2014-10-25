@@ -1496,7 +1496,7 @@ Recall that a module is compiled to the code object for a no-argument function.
         code = compile_to_code(module_name, filename, t)
         f_globals = dict(__package__=None, __spec__=None, __name__=module_name,
                          __loader__=__loader__, __builtins__=__builtins__,
-                         __doc__=code.co_consts[0])
+                         __doc__=ast.get_docstring(t))
         return types.FunctionType(code, f_globals)
 
 And from the command line, given a filename, we compile and (using
