@@ -976,9 +976,9 @@ becomes
             >>   15 POP_TOP
 
 where `POP_JUMP_IF_FALSE` does what it says: pops the value left by
-`ok`, tests it, and if it's false jumps to the instruction at index
-12. Otherwise it falls through to the usual next instruction, at
-6. `JUMP_FORWARD` likewise jumps, to skip `no` if we chose `yes`.
+`ok`, tests it, and if it's false jumps to index 12. Otherwise
+execution falls through to the usual next instruction, at 6.
+`JUMP_FORWARD` likewise jumps, to skip `no` if we chose `yes`.
 
 ([XXX Footnote, I guess:] `POP_TOP` is not part of the code for the `if`
 expression itself, it's code for the expression statement containing
