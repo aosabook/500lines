@@ -1432,7 +1432,7 @@ jumps, and non-jumps with or without an argument. ('Jump' for our
 purposes means any instruction taking an address argument.)
 
     !!assembler.py
-    class Insn(Assembly):
+    class Instruction(Assembly):
         def __init__(self, opcode, arg):
             self.opcode = opcode
             self.arg    = arg
@@ -1465,9 +1465,9 @@ Finally, we define `op` so that names like `op.POP_TOP` and
     !!assembler.py
     def denotation(opcode):
         if opcode < dis.HAVE_ARGUMENT:
-            return Insn(opcode, None)
+            return Instruction(opcode, None)
         else:
-            return lambda arg: Insn(opcode, arg)
+            return lambda arg: Instruction(opcode, arg)
 
     op = type('op', (), dict([(name, denotation(opcode))
                               for name, opcode in dis.opmap.items()]))
@@ -1614,13 +1614,12 @@ data types, another way of breaking things out:
     Function
   scope
   assembly
-    Insn
-      JumpInsn
+    Instruction
     Label
     SetLineNo
     NoOp
     Chain
-  op {name: Insn}
+  op {name: Instruction or arg->Instruction}
   CodeType
   FunctionType
   line-number table
