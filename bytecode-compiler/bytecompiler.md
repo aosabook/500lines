@@ -1503,7 +1503,11 @@ And from the command line, given a filename, we compile and (using
 `()`) run it.
 
     if __name__ == '__main__':
-        compile_file(sys.argv.pop(1), '__main__')()
+        sys.argv.pop(0)
+        compile_file(sys.argv[0], '__main__')()
+
+(We pop the original `argv[0]` to leave the command-line arguments the
+same as if we'd run Python on the source program directly.)
 
 
 ## Reflections
