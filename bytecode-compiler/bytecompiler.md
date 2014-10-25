@@ -1612,12 +1612,11 @@ data types, another way of breaking things out:
     ast transformer
   desugared ast
     Function
-  scope
-  assembly
+  Scope
+  Assembly
     Instruction
     Label
     SetLineNo
-    NoOp
     Chain
   op {name: Instruction or arg->Instruction}
   CodeType
