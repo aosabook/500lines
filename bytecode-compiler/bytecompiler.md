@@ -1506,8 +1506,10 @@ And from the command line, given a filename, we compile and (using
         sys.argv.pop(0)
         compile_file(sys.argv[0], '__main__')()
 
-(We pop the original `argv[0]` to leave the command-line arguments the
-same as if we'd run Python on the source program directly.)
+`pop` removes the initial `argv[0]` to leave the command-line
+arguments the same as if we'd run Python on the source program
+directly: thus you can run `python greet.py`, or `python compiler.py
+greet.py`, or `python compiler.py compiler.py greet.py`...
 
 
 ## Reflections
