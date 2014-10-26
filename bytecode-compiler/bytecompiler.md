@@ -1537,6 +1537,10 @@ lines.
 Andrew Appel's _Modern Compiler Implementation in ML_ explains the
 ideas behind fancier optimizing compilers.
 
+CPython 2 has a `compiler` module in 4500 lines of Python, seemingly
+included just for fun. For the compiler that's normally run see
+`compile.c` and `symtable.c`; there's also the optimizer `peephole.c`.
+
 
 [notes to self:]
 
