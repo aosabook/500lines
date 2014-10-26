@@ -263,7 +263,7 @@ class Filter
 end
 ~~~~~~~
 
-Anytime our program need to filter a time series, we can call `Filter.run` with the data we need filtered, and the type of filter we want to run: 
+Anytime our program needs to filter a time series, we can call `Filter.run` with the data we need filtered, and the type of filter we want to run: 
 
 * `low_0_hz`, a low-pass filter for signals near 0 Hz
 * `low_5_hz`, a low-pass filter for signals at or below 5 Hz
@@ -420,7 +420,7 @@ end
 
 Again, we see the `run` and `initialize` methods pattern. `run` calls our two processor methods, `dot_product` and `filter`, directly. Each method accomplishes one of our two processing operations. `dot_product` isolates movement in the direction of gravity, and filter applies the low-pass and high-pass filters in sequence to remove jumpy and slow peaks. 
 
-## Pedometer Functionality
+# Pedometer Functionality
 
 Provided information about the person using the pedometer is available, we can measure more than just steps. Our pedometer will measure **distance traveled** and **time traveled**, as well as **steps taken**. 
 
@@ -470,7 +470,7 @@ Even when all optional parameters are provided, the input stride takes precedenc
 
 For the purposes of this discussion, let's assume that the values in `MULTIPLIERS` and `AVERAGES` have been determined from a large sample size of diverse people. Note that the further down the chain we get, the less accurate our stride length becomes. In any case, our `User` class determines the stride length as best as it can.
 
-### Time Traveled
+## Time Traveled
 
 The time traveled is measured by dividing the number of data samples in our `Processor`'s `@parsed_data` by the sampling rate of the device. Since the rate has more to do with the trial walk itself than the user, and the `User` class in fact does not have to be aware of the sampling rate, this is a good time to create a very small `Trial` class.
 
@@ -498,7 +498,7 @@ All of the attribute readers in `Trial` are set in the initializer based on opti
 
 Much like our `User` class, information is optional. We're given the opportunity to input details of the trial, if we have it, for more accurate end results. If we don't have those details, our program makes assumptions and is still able to produce results, albeit with a higher margin of error. Another similarity to our `User` class is the basic input data formatting in the initializer ensuring proper `@rate` and `@steps` values. 
 
-### Steps Taken
+## Steps Taken
 
 It's time to implement our step counting strategy in code. So far, we have a `Processor` class that contains `@filtered_data`, which is our clean time series representing user acceleration in the direction of gravity. We also have classes that give us the necessary information about the user and the trial. What we're missing is a way to analyze `@filtered_data` with the information from `User` and `Trial`, and count steps, measure distance, and measure time. The analysis portion of our program is different from the data manipulation of the `Processor`, and different from the information collection and aggregation of the `User` and `Trial` classes. Let's create a new class called `Analyzer` to perform this data analysis.
 
