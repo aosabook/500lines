@@ -1,4 +1,5 @@
 require 'test/unit'
+require_relative '../../models/parser'
 require_relative '../../models/analyzer'
 
 class AnalyzerTest < Test::Unit::TestCase

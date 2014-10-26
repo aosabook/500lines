@@ -1,4 +1,5 @@
 require 'test/unit'
+require_relative '../../models/parser'
 require_relative '../../models/processor'
 
 class ProcessorTest < Test::Unit::TestCase

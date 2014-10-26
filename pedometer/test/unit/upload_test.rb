@@ -1,4 +1,5 @@
 require 'test/unit'
+require_relative '../../models/parser'
 require_relative '../../models/upload'
 
 class UploadTest < Test::Unit::TestCase
