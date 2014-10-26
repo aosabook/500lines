@@ -22,7 +22,7 @@ end
 post '/create' do
   begin
     Upload.create(
-      params[:processor][:file_upload][:tempfile], 
+      params[:data][:tempfile], 
       params[:user].values,
       params[:trial].values
     )

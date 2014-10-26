@@ -23,9 +23,9 @@ class PedometerTest < Test::Unit::TestCase
 
   def test_create
     post '/create', {
-      'processor' => { 'file_upload' => { 'tempfile' => 'test/data/female-167-70_1-100-10-bagwalk.txt' } }, 
-      'trial'     => { 'name' => 'one', 'rate' => '100', 'steps' => '10', 'method' => 'run' }, 
-      'user'      => { 'gender' => 'female', 'height' => '157', 'stride' => '90' }
+      'data'  => { 'tempfile' => 'test/data/female-167-70_1-100-10-bagwalk.txt' }, 
+      'trial' => { 'name' => 'one', 'rate' => '100', 'steps' => '10', 'method' => 'run' }, 
+      'user'  => { 'gender' => 'female', 'height' => '157', 'stride' => '90' }
     }
     
     assert_equal 302, last_response.status
