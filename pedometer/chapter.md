@@ -169,7 +169,7 @@ When we take the dot product of the time series user acceleration and gravitatio
 ### Implementing the Dot Product
 We can implement the dot product for our earlier example using the formula
 
-$a(t) = x_{u}(t) * x_{g}(t) + y_{u}(t) * y_{g}(t) + z_{u}(t) * z_{g}(t)$,
+$a(t) = x_{u}(t)x_{g}(t) + y_{u}(t)y_{g}(t) + z_{u}(t)z_{g}(t)$,
 
 leaving us with $a(t)$, in 1-dimensional space. 
 
@@ -223,7 +223,7 @@ As software developers in a training or academic setting, we may have been prese
 
 Our goal for this chapter is to create a web application in Ruby that accepts accelerometer data, parses, processes, and analyzes it, and returns the steps taken along with other related information. 
 
-# Filtering
+# Preliminary Work
 
 Our solution requires us to filter our time series several times. Rather than peppering filtering code throughout our program, it makes sense to create a class that takes care of the filtering, and if we ever need to enhance or modify it, we'll only ever need to change that one class. This strategy is called *separation of concerns*, a commonly-used design principle which promotes splitting a program into numerous distinct pieces, where every piece has one primary concern. It's a beautiful way to write clean, maintainable code that's easily extensible. We'll revisit this idea several times throughout the chapter.
 
@@ -237,25 +237,39 @@ class Filter
       alpha: [1, -1.979133761292768, 0.979521463540373],
       beta:  [0.000086384997973502, 0.000172769995947004, 0.000086384997973502]
     },
-    low_5_hz: { 
+    low_5_hz: { # Direct form I, Chebyshev II, type = low-pass, Astop = 2, Fstop = 5, Fs = 100, Direct Form I
       alpha: [1, -1.80898117793047, 0.827224480562408], 
       beta:  [0.095465967120306, -0.172688631608676, 0.095465967120306]
     },
-    high_1_hz: {
+    high_1_hz: { # Direct form I, Chebyshev II, type = high-pass, Fs = 100, Fstop = 0.5, Astop = 20, order = 2, 
       alpha: [1, -1.905384612118461, 0.910092542787947], 
       beta:  [0.953986986993339, -1.907503180919730, 0.953986986993339]
     }
   }
 
-  def self.run(data, type)
+  def self.low_0_hz(data)
+    self.chebyshev_filter(data, COEFFICIENTS[:low_0_hz])
+  end
+
+  def self.low_5_hz(data)
+    self.chebyshev_filter(data, COEFFICIENTS[:low_5_hz])
+  end
+
+  def self.high_1_hz(data)
+    self.chebyshev_filter(data, COEFFICIENTS[:high_1_hz])
+  end
+
+private
+
+  def self.chebyshev_filter(data, coefficients)
     filtered_data = [0,0]
     (2..data.length-1).each do |i|
-      filtered_data << COEFFICIENTS[type][:alpha][0] * 
-                      (data[i]            * COEFFICIENTS[type][:beta][0] +
-                       data[i-1]          * COEFFICIENTS[type][:beta][1] +
-                       data[i-2]          * COEFFICIENTS[type][:beta][2] -
-                       filtered_data[i-1] * COEFFICIENTS[type][:alpha][1] -
-                       filtered_data[i-2] * COEFFICIENTS[type][:alpha][2])
+      filtered_data << coefficients[:alpha][0] * 
+                      (data[i]            * coefficients[:beta][0] +
+                       data[i-1]          * coefficients[:beta][1] +
+                       data[i-2]          * coefficients[:beta][2] -
+                       filtered_data[i-1] * coefficients[:alpha][1] -
+                       filtered_data[i-2] * coefficients[:alpha][2])
     end
     filtered_data
   end
@@ -263,15 +277,19 @@ class Filter
 end
 ~~~~~~~
 
-Anytime our program needs to filter a time series, we can call `Filter.run` with the data we need filtered, and the type of filter we want to run: 
+Anytime our program needs to filter a time series, we can call one of the class methods in `Filter` with the data we need filtered: 
 
-* `low_0_hz`, a low-pass filter for signals near 0 Hz
-* `low_5_hz`, a low-pass filter for signals at or below 5 Hz
-* `high_1_hz`, a high-pass filter for signals above 1 Hz
+* `low_0_hz` is used to low-pass filter signals near 0 Hz
+* `low_5_hz` is used to low-pass filter signals at or below 5 Hz
+* `high_1_hz` is used to high-pass filter signals above 1 Hz
 
-`run` implements the Chebyshev filter and returns the result. If we wish to add more filters in the future, we only need to change this one class. 
+Each class method called `chebyshev_filter`, which implements the Chebyshev filter and returns the result. If we wish to add more filters in the future, we only need to change this one class. 
 
-One important thing to note is that all "magic" numbers are defined at the top. This makes our class easier to read and understand. The formula in `run` is much more obvious using the `COEFFICIENTS` hash than it would have been with numerical values directly inserted.
+One important thing to note is that all "magic" numbers are defined at the top. This makes our class easier to read and understand. The formula in `chebyshev_filter` is much more obvious using the `coefficients` parameter than it would have been with numerical values directly inserted.
+
+# The Pipeline
+
+TODO: Add a little note on "the pipeline"...
 
 # Parsing
 
@@ -340,7 +358,7 @@ class Parser
 
     if @parsed_data.first.count == 1
       filtered_accl = @parsed_data.map(&:flatten).transpose.map do |total_accl|
-        grav = Filter.run(total_accl, :low_0_hz)
+        grav = Filter.low_0_hz(total_accl)
         user = total_accl.zip(grav).map { |a, b| a - b }
         [user, grav]
       end
@@ -411,8 +429,8 @@ class Processor
   end
 
   def filter
-    @filtered_data = Filter.run(@dot_product_data, :low_5_hz)
-    @filtered_data = Filter.run(@filtered_data, :high_1_hz)
+    @filtered_data = Filter.low_5_hz(@dot_product_data)
+    @filtered_data = Filter.high_1_hz(@filtered_data)
   end
 
 end

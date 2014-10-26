@@ -22,8 +22,8 @@ class Processor
   end
 
   def filter
-    @filtered_data = Filter.run(@dot_product_data, :low_5_hz)
-    @filtered_data = Filter.run(@filtered_data, :high_1_hz)
+    @filtered_data = Filter.low_5_hz(@dot_product_data)
+    @filtered_data = Filter.high_1_hz(@filtered_data)
   end
 
 end

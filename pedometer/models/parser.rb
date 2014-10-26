@@ -33,7 +33,7 @@ class Parser
       #   [ [y1u, y2u, ..., ynu], [y1g, y2g, ..., yng] ],
       #   [ [z1u, z2u, ..., znu], [z1g, z2g, ..., zng] ] ]
       filtered_accl = @parsed_data.map(&:flatten).transpose.map do |total_accl|
-        grav = Filter.run(total_accl, :low_0_hz)
+        grav = Filter.low_0_hz(total_accl)
         user = total_accl.zip(grav).map { |a, b| a - b }
         [user, grav]
       end
