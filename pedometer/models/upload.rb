@@ -11,6 +11,8 @@ class Upload
 
   def initialize(file_path)
     @file_path = file_path
+    @user_params = file_name.first.split('-')
+    @trial_params = file_name.last.split('-')
   end
 
   # -- Class Methods --------------------------------------------------------
@@ -46,20 +48,10 @@ class Upload
     file_paths.map { |file_path| self.new(file_path) }
   end
 
-  # -- Instance Methods -----------------------------------------------------
-
-  def user_params
-    file_name.first.split('-')
-  end
-
-  def trial_params
-    file_name.last.split('-')
-  end
-
 private
 
   def file_name
-    @file_name ||= file_path.split('/').last.split('.txt').first.split('_')
+    @file_name ||= @file_path.split('/').last.split('.txt').first.split('_')
   end
 
 end
