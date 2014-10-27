@@ -15,6 +15,14 @@ class Upload
 
   # -- Class Methods --------------------------------------------------------
 
+  def self.generate_file_path_temp(user_params, trial_params)
+    user_file_path = user_params.join('-')
+    trial_file_path = trial_params.map { |x| x.to_s.gsub(/\s+/, '')}.join('-')
+
+    UPLOAD_DIRECTORY + "#{user_file_path}_#{trial_file_path}.txt"
+  end
+
+  # TODO: Get rid of this and use the one above
   def self.generate_file_path(analyzer)
     UPLOAD_DIRECTORY + "#{analyzer.user.gender}-" + 
                        "#{analyzer.user.height}-" + 

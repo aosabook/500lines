@@ -4,15 +4,26 @@ require_relative '../../models/upload'
 
 class UploadTest < Test::Unit::TestCase
 
+  def test_generate_file_path_temp
+    user_params = ['male', 167.5, 80]
+    trial_params = ['test trial 1', 5, '10', 'walk']
+    expected = "public/uploads/male-167.5-80_testtrial1-5-10-walk.txt"
+    assert_equal expected, Upload.generate_file_path_temp(user_params, trial_params)
+
+    user_params = ['male', '167.5', '80']
+    trial_params = ['test trial 1', '5', '10', 'walk']    
+    assert_equal expected, Upload.generate_file_path_temp(user_params, trial_params)    
+  end
+
   def test_generate_file_path
     parser = Parser.run(File.read('test/data/upload-1.txt'))
     processor = Processor.run(parser.parsed_data)
     user = User.new('male', 167.5, 80)
-    trial = Trial.new('test trial 1', 5, '10', 'walk')
+    trial = Trial.new('test trial 2', 5, '10', 'walk')
 
     analyzer = Analyzer.run(processor, user, trial)
 
-    expected = "public/uploads/male-167.5-80.0_testtrial1-5-10-walk.txt"
+    expected = "public/uploads/male-167.5-80.0_testtrial2-5-10-walk.txt"
     assert_equal expected, Upload.generate_file_path(analyzer)
   end
 
