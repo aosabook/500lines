@@ -7,8 +7,7 @@ class Upload
 
   UPLOAD_DIRECTORY = 'public/uploads/'
 
-  attr_reader :file_path, :parser, :processor, :user, :trial, :analyzer
-  attr_reader :user_params, :trial_params
+  attr_reader :file_path, :user_params, :trial_params
 
   def initialize(file_path)
     # TODO: Error checking on file path?
@@ -17,17 +16,18 @@ class Upload
 
   # -- Class Methods --------------------------------------------------------
 
-  def self.create(temp_file, analyzer)
-    file_path = UPLOAD_DIRECTORY + 
-                 "#{analyzer.user.gender}-" + 
-                 "#{analyzer.user.height}-" + 
-                 "#{analyzer.user.stride}_" +
-                 "#{analyzer.trial.name.to_s.gsub(/\s+/, '')}-" + 
-                 "#{analyzer.trial.rate}-" + 
-                 "#{analyzer.trial.steps}-" +
-                 "#{analyzer.trial.method}.txt"
+  def self.file_path(analyzer)
+    UPLOAD_DIRECTORY + "#{analyzer.user.gender}-" + 
+                       "#{analyzer.user.height}-" + 
+                       "#{analyzer.user.stride}_" +
+                       "#{analyzer.trial.name.to_s.gsub(/\s+/, '')}-" + 
+                       "#{analyzer.trial.rate}-" + 
+                       "#{analyzer.trial.steps}-" +
+                       "#{analyzer.trial.method}.txt"
+  end
 
-    cp(temp_file, file_path)
+  def self.create(temp_file, analyzer)
+    cp(temp_file, self.file_path(analyzer))
   end
 
   def self.find(file_path)
@@ -41,24 +41,12 @@ class Upload
 
   # -- Instance Methods -----------------------------------------------------
 
-  def parser
-    @parser ||= Parser.run(File.read(file_path))
+  def user_params
+    file_name.first.split('-')
   end
 
-  def processor
-    @processor ||= Processor.run(parser.parsed_data)
-  end
-
-  def user
-    @user ||= User.new(*file_name.first.split('-'))
-  end
-
-  def trial
-    @trial ||= Trial.new(*file_name.last.split('-'))
-  end
-
-  def analyzer
-    @analyzer ||= Analyzer.run(processor, user, trial)
+  def trial_params
+    file_name.last.split('-')
   end
 
 private

@@ -9,8 +9,7 @@
     <th>Distance</th>
     <th>Time</th>
   <% end %>
-  <% uploads.each do |upload| %>
-    <% analyzer = upload.analyzer %>
+  <% analyzers.each do |analyzer| %>
     <tr>
       <td><%= analyzer.trial.name %></td>
       <td><%= analyzer.trial.method %></td>
@@ -19,7 +18,7 @@
       <td><%= analyzer.trial.steps ? (analyzer.steps - analyzer.trial.steps) : '' %></td>
       <td><%= analyzer.user.gender %></td>
       <% if detail_hidden %>
-        <td><a href=<%= "upload/" + upload.file_path %>>Detail</a></td>
+        <td><a href=<%= "upload/" + Upload.file_path(analyzer) %>>Detail</a></td>
       <% else %>
         <td><%= format_distance(analyzer.distance) %></td>
         <td><%= format_time(analyzer.time) %></td>

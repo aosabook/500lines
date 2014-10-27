@@ -5,15 +5,32 @@ Dir['./models/*', './helpers/*'].each {|file| require_relative file }
 include ViewHelper
 
 get '/uploads' do
-  @uploads = Upload.all
   @error = "A #{params[:error]} error has occurred." if params[:error]
+
+  uploads = Upload.all
+  @analyzers = []
+  uploads.each do |upload|
+    parser    = Parser.run(File.read(upload.file_path))
+    processor = Processor.run(parser.parsed_data)
+    user      = User.new(*upload.user_params)
+    trial     = Trial.new(*upload.trial_params)
+    analyzer  = Analyzer.run(processor, user, trial)
+
+    @analyzers << analyzer
+  end
 
   erb :uploads
 end
 
 get '/upload/*' do |file_path|
-  @upload = Upload.find(file_path)
-  
+  upload = Upload.find(file_path)
+
+  parser    = Parser.run(File.read(file_path))
+  processor = Processor.run(parser.parsed_data)
+  user      = User.new(*upload.user_params)
+  trial     = Trial.new(*upload.trial_params)
+  @analyzer = Analyzer.run(processor, user, trial)
+
   erb :upload
 end
 

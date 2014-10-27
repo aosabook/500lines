@@ -4,7 +4,7 @@
 
 <html>
     <a class="nav" href='/uploads'>Back to Uploads</a>
-    <%= erb :summary, locals: { uploads: [@upload], detail_hidden: false } %>
+    <%= erb :summary, locals: { analyzers: [@analyzer], detail_hidden: false } %>
 
     <div id="container-dot-product"></div>
     <div id="container-filtered"></div>
@@ -16,7 +16,7 @@
             title: { text: 'User Acceleration in the Direction of Gravity' },
             series: [{
                 name: 'a(t)',
-                data: <%= limit_1000(@upload.analyzer.processor.dot_product_data) %>
+                data: <%= limit_1000(@analyzer.processor.dot_product_data) %>
             }],
             xAxis: { title: { text: 'Time' } },
             yAxis: { title: { text: 'Acceleration' } }
@@ -26,7 +26,7 @@
             title: { text: 'User Acceleration in the Direction of Gravity - Filtered' },
             series: [{
                 name: 'a(t)',
-                data: <%= limit_1000(@upload.analyzer.processor.filtered_data) %>
+                data: <%= limit_1000(@analyzer.processor.filtered_data) %>
             }],
             xAxis: { title: { text: 'Time' } },
             yAxis: { title: { text: 'Acceleration' } }

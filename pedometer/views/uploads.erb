@@ -2,7 +2,7 @@
 
 <html>
   <div class="error"><%= @error %></div>
-  <%= erb :summary, locals: { uploads: @uploads, detail_hidden: true } %>
+  <%= erb :summary, locals: { analyzers: @analyzers, detail_hidden: true } %>
   <form method="post" action="/create" enctype="multipart/form-data">
     <h3 class="upload-header">Trial Info</h3>
     <input name="data" type="file">
