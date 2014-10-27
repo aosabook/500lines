@@ -10,13 +10,12 @@ class Upload
   attr_reader :file_path, :user_params, :trial_params
 
   def initialize(file_path)
-    # TODO: Error checking on file path?
     @file_path = file_path
   end
 
   # -- Class Methods --------------------------------------------------------
 
-  def self.file_path(analyzer)
+  def self.generate_file_path(analyzer)
     UPLOAD_DIRECTORY + "#{analyzer.user.gender}-" + 
                        "#{analyzer.user.height}-" + 
                        "#{analyzer.user.stride}_" +
@@ -27,7 +26,7 @@ class Upload
   end
 
   def self.create(temp_file, analyzer)
-    cp(temp_file, self.file_path(analyzer))
+    cp(temp_file, self.generate_file_path(analyzer))
   end
 
   def self.find(file_path)
