@@ -21,11 +21,13 @@ end
 # - Is file sanitized here? We don't want to be passing around untrusted data, especially not if it's touching the filesystem.
 post '/create' do
   begin
-    Upload.create(
-      params[:data][:tempfile], 
-      params[:user].values,
-      params[:trial].values
-    )
+    parser    = Parser.run(File.read(params[:data][:tempfile]))
+    processor = Processor.run(parser.parsed_data)
+    user      = User.new(*params[:user].values)
+    trial     = Trial.new(*params[:trial].values)
+    @analyzer = Analyzer.run(processor, user, trial)
+
+    Upload.create(params[:data][:tempfile], @analyzer)
 
     redirect '/uploads'
   rescue Exception => e

@@ -10,32 +10,24 @@ class Upload
   attr_reader :file_path, :parser, :processor, :user, :trial, :analyzer
   attr_reader :user_params, :trial_params
 
-  def initialize(file_path = nil, input_data = nil, user_params = nil, trial_params = nil)
-    if file_path
-      @file_path = file_path
-    elsif input_data
-      @parser    = Parser.run(File.read(input_data))
-      @processor = Processor.run(@parser.parsed_data)
-      @user      = User.new(*user_params)
-      @trial     = Trial.new(*trial_params)
-
-      @file_path = UPLOAD_DIRECTORY + 
-                   "#{user.gender}-#{user.height}-#{user.stride}_" +
-                   "#{trial.name.to_s.gsub(/\s+/, '')}-" + 
-                   "#{trial.rate}-" + 
-                   "#{trial.steps}-" +
-                   "#{trial.method}.txt"
-    else 
-      raise 'File name or input data must be passed in.'
-    end
+  def initialize(file_path)
+    # TODO: Error checking on file path?
+    @file_path = file_path
   end
 
   # -- Class Methods --------------------------------------------------------
 
-  def self.create(input_data, user_params, trial_params)
-    upload = self.new(nil, input_data, user_params, trial_params)
-    cp(input_data, upload.file_path)
-    upload
+  def self.create(temp_file, analyzer)
+    file_path = UPLOAD_DIRECTORY + 
+                 "#{analyzer.user.gender}-" + 
+                 "#{analyzer.user.height}-" + 
+                 "#{analyzer.user.stride}_" +
+                 "#{analyzer.trial.name.to_s.gsub(/\s+/, '')}-" + 
+                 "#{analyzer.trial.rate}-" + 
+                 "#{analyzer.trial.steps}-" +
+                 "#{analyzer.trial.method}.txt"
+
+    cp(temp_file, file_path)
   end
 
   def self.find(file_path)

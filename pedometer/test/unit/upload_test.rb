@@ -4,29 +4,17 @@ require_relative '../../models/upload'
 
 class UploadTest < Test::Unit::TestCase
 
-  def test_new_no_params
-    assert_raise_with_message(RuntimeError, 'File name or input data must be passed in.') do
-      Upload.new
-    end
-  end
-
   def test_create
-    upload = Upload.create(
-      'test/data/upload-1.txt',
-      ['female', '168', '70'],
-      ['1', '100', '100','walk']
-    )
+    temp_file = 'test/data/upload-1.txt'
+    parser = Parser.run(File.read(temp_file))
+    processor = Processor.run(parser.parsed_data)
+    analyzer = Analyzer.run(processor, User.new, Trial.new('bar'))
 
-    assert_equal 'female', upload.user.gender
-    assert_equal 168, upload.user.height
-    assert_equal 70, upload.user.stride
+    upload = Upload.create(temp_file, analyzer)
 
-    assert_equal 100, upload.trial.rate
-    assert_equal 100, upload.trial.steps
-    assert_equal '1', upload.trial.name
-    assert_equal 'walk', upload.trial.method
-    
-    assert_equal 103, upload.analyzer.steps
+    assert_equal File.read('public/uploads/--74_bar-100--.txt'), File.read(temp_file)
+
+    rm('public/uploads/--74_bar-100--.txt')
   end
 
   def test_find
