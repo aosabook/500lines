@@ -1,13 +1,13 @@
 # Static Analysis
 by Leah Hanson for *500 Lines or Less*
 
-Static Analysis is a way to check for problems in your code without running it. "Static" means at compile-time, rather than at run-time, and "analysis" because we're analyzing the code.
+Static Analysis is a way to check for problems in your code without running it. "Static" means at compile-time, rather than at run-time, and "analysis" because we're analyzing the code. To implement a static analysis check, you need to now what you want to do and how to do it.
 
-There are three phases to implementing static analysis:
+We can get more specific about what you need to know by describing the process as having three stages:
 
 1. Deciding what you want to check for
 
-     This refers to the general problem you'd like to solve, in terms that a user of the programming language would recognize. Examples include:
+     You should be able to explain the general problem you'd like to solve, in terms that a user of the programming language would recognize. Examples include:
 
         * Finding misspelled variable names
         * Finding race conditions in parallel code
@@ -15,7 +15,7 @@ There are three phases to implementing static analysis:
 
 2. Deciding how exactly to check for it
 
-    While we could ask a friend to do one of the tasks listed above, they aren't specific enough to explain to a computer. To tackle "misspelled variable names", for example, we'd need to decide what misspelled means here. One option would be to claim variable names should be composed of English words from the dictionary; another, more useful, option is to look for variables that are only used once (the one time you mis-typed it).
+    While we could ask a friend to do one of the tasks listed above, they aren't specific enough to explain to a computer. To tackle "misspelled variable names", for example, we'd need to decide what misspelled means here. One option would be to claim variable names should be composed of English words from the dictionary; another option is to look for variables that are only used once (the one time you mis-typed it).
 
     Now that we know we're looking for variables that are only used once, we can talk about kinds of variable usages (having their value assigned vs. read) and what code would or would not trigger a warning.
 
@@ -23,15 +23,11 @@ There are three phases to implementing static analysis:
 
     This covers the actual act of writing the code, the time spent reading the documentation for libraries you use, and figuring out how to get at the information you need to write the analysis. This could involve reading in a file of code, parsing it to understand the structure, and then making your specific check on that structure. 
 
-     Parsing code into a representative structure is a complicated business, and gets more complicated as the language grows. In this chapter, we'll be depending on internal data structures used by the compiler. This means that we don't have to worry about reading files or parsing them, but it does mean we have to work with data structures that are not in our control and that sometimes feel clumsy or ugly.
-
-     Besides all the work we'll save by not having to parse the code by ourselves, working with the same data structures that the compiler uses means that our checks will be based on an accurate assessment of the compilers understanding -- which means our check will be accurate to how the code actually runs.
-
-We're going to work through these steps for each of the individual checks implemented in this chapter. Step 1 requires enough understanding of the language we're analyzing to empathize with the kinds of problems it's users face. All the code in this chapter is Julia code, written to analyze Julia code.
+We're going to work through these steps for each of the individual checks implemented in this chapter. Step 1 requires enough understanding of the language we're analyzing to empathize with the problems its users face. All the code in this chapter is Julia code, written to analyze Julia code.
 
 # A Very Brief Introduction to Julia
 
-Julia is a young language aimed at technical computing. It was released at version 0.1 in the Spring of 2012; as of the summer of 2014, it has reached version 0.3. In general, Julia looks a lot like Python, but with some type annotations and without any object-oriented stuff. The feature that most programmers will find novel in Julia is multiple dispatch, which has a pervasive impact on both API design and on other design choices in the language.
+Julia is a young language aimed at technical computing. It was released at version 0.1 in the Spring of 2012; as of the summer of 2014, it has reached version 0.3. In general, Julia looks a lot like Python, but with some optional type annotations and without any object-oriented stuff. The feature that most programmers will find novel in Julia is multiple dispatch, which has a pervasive impact on both API design and on other design choices in the language.
 
 Here is a snippet of Julia code:
 
@@ -60,17 +56,21 @@ increment(5) # => 6
 increment(5,4) # => 9
 ~~~
 
-Now increment has two methods. Julia decides which method to run for a given call based on the number and types of the arguments; this is called dynamic multiple dispatch.
+Now the function `increment` has two methods. Julia decides which method to run for a given call based on the number and types of the arguments; this is called dynamic multiple dispatch.
 
 * *dynamic* because it's based on the types of the values used at run-time
-* *multiple* because it looks at the types and order of all the arguments. Object-oriented languages use single dispatch because they only consider the first argument (In `x.foo(y)`, the first argument is `x`.) [This is true for Python and Ruby, but not Java and C++ which can have multiple methods of the same name within a class.]
+* *multiple* because it looks at the types and order of all the arguments.
 * *dispatch* because this is a way of matching function calls to method definitions.
+
+To put this in context with languages you may already know, object-oriented languages use single dispatch because they only consider the first argument (In `x.foo(y)`, the first argument is `x`.)
 
 We haven't really seen the "multiple" part yet, but if you're curious about Julia, you'll have to look that up on your own. We need to move on to our first check.
 
 # Checking the Types of Variables in Loops
 
-A feature of Julia that sets it apart from other high-level languages is its speed. As in most programming languages, writing very fast code in Julia involves an understanding of how the computer works and how Julia works. In Julia, an important part of helping the compiler create fast code for you is writing type-stable code. When the compiler can see that a variable in a section of code will always contain the same specific type, the compiler can do more optimizations than if it believes (correctly or not) that there are many possible types for that variable.
+A feature of Julia that sets it apart from other high-level languages is its speed. As in most programming languages, writing very fast code in Julia involves an understanding of how the computer works and how Julia works. In Julia, an important part of helping the compiler create fast code for you is writing type-stable code. When the compiler can see that a variable in a section of code will always contain the same specific type, the compiler can do more optimizations than if it believes (correctly or not) that there are multiple possible types for that variable.
+
+## Why This is Important
 
 For example, let's write a function that takes an `Int64` and then increases it by some amount. If the number is small (less than 10), let's increase it by a big number (50), but if it's big, let's only increase it by a little (0.5).
 
@@ -85,13 +85,11 @@ function increment(x::Int64)
 end
 ~~~
 
-This function looks pretty straight-forward, but the type of `x` is unstable. At the end of this function, `return x` might return an `Int64` or it might return a `Float64`. This is because of the `else` clause; if you add an `Int64`, like `22`, to `0.5`, which is a `Float64`, then you'll get a `Float64` (`22.5`).
+This function looks pretty straight-forward, but the type of `x` is unstable. I selected two numbers 50, an `Int64`, and 0.5, a `Float64`; depending on the value of `x`, it might be added to either one of them. At the end of this function, `return x` might return an `Int64` or it might return a `Float64`. This is because of the `else` clause; if you add an `Int64`, like `22`, to `0.5`, which is a `Float64`, then you'll get a `Float64` (`22.5`).
 
 `Float64` is a type that represents floating-point values stored in 64 bits; in C, it is called a `double`. This is one of the floating-point types that 64-bit processors understand.
 
-In this definition of `increment`, this means that `5` will become `55` (an `Int64`), but `22` will become `22.5` (a `Float64`). If there were more code in or after this function, then it would have to handle both possible types for `x`, since the compiler (correctly) expects to need to handle both.
-
-As with most efficiency problems, this issue is more pronounced when it happens during loops. Code inside for-loops and while-loops is run many, many times, so making it fast is more important than speeding up code that is only run once or twice. Therefore, our first check is going to look for variables inside loops that have unstable types.
+As with most efficiency problems, this issue is more pronounced when it happens during loops. Code inside for-loops and while-loops is run many, many times, so making it fast is more important than speeding up code that is only run once or twice. Therefore, our first check is to look for variables that have unstable types inside loops.
 
 First, let's look at an example of what we want to catch. We'll be looking at two functions. Each of them sums the numbers 1 to 100, but instead of summing the whole numbers, they divide each one by 2 before summing it. Both functions will get the same answer (`2525.0`); both will return the same type (`Float64`). However, the first function, `unstable`, suffers from type-instability, while the second one, `stable`, does not.
 
@@ -174,23 +172,28 @@ Because `sum` in `unstable` does not have a concrete type, the compiler allocate
 
 Using `0` vs `0.0` is an easy mistake to make, especially when you're new to Julia. Automatically checking that variables used in loops are type-stable helps programmers get more insight into what the types of their variables are in performance-critical sections of their code.
 
+## Implementation Details
+
 The type of `sum` in `unstable` is `Union(Float64,Int64)`. This is a `UnionType`. A variable of type `Union(Float64,Int64)` can hold values of type `Int64` or `Float64`; a value can only have one of those types. A `UnionType` join any number of types (e.g. `UnionType(Float64, Int64, Int32)` joins three types). The specific thing that we're going to look for is `UnionType`d variables inside loops.
 
-## Implementation
+We'll need to find what variables are used inside of loops and we'll need to find the types of those variables. After we have those results, we'll need to decide how to print them in a human-readable format.
 
-In order to find those variables, we'll need to find what variables are used inside of loops and we'll need to find the types of those variables. After we have those results, we'll need to decide how to print them in a human-readable format.
+* How do we find loops?
+* How do we find variables in loops?
+* How do we find the types of a variable?
+* How do we print the results?
 
-* How do we find loops in `Expr`s
-* How do we find the types of variables
-* How do we print the results
+Parsing code into a representative structure is a complicated business, and gets more complicated as the language grows. In this chapter, we'll be depending on internal data structures used by the compiler. This means that we don't have to worry about reading files or parsing them, but it does mean we have to work with data structures that are not in our control and that sometimes feel clumsy or ugly.
 
-This process of examining Julia code and finding information about, from other Julia code, is called introspection. When you or I introspect, we're thinking about how and why we think and feel. When code introspects, it examines the representation or execution properties of code in the same language (possibly it's own code). When code's introspection extends to modifying the examined code, it's called metaprogramming (programs that write or modify programs).
+Besides all the work we'll save by not having to parse the code by ourselves, working with the same data structures that the compiler uses means that our checks will be based on an accurate assessment of the compilers understanding -- which means our check will be accurate to how the code actually runs.
+
+This process of examining Julia code from Julia code is called introspection. When you or I introspect, we're thinking about how and why we think and feel. When code introspects, it examines the representation or execution properties of code in the same language (possibly it's own code). When code's introspection extends to modifying the examined code, it's called metaprogramming (programs that write or modify programs).
+
+### Introspection in Julia
 
 Julia makes it easy to introspect. There are four functions built-in to let us see what that compiler is thinking: `code_lowered`, `code_typed`, `code_llvm`, and `code_native`. Those are listed in order of what step in the compilation process their output is from; the left-most one is closest to the code we'd type in and the right-most one is the closest to what the CPU runs. For this chapter, we'll focus on `code_typed`, which gives us the optimized, type-inferred abstract syntax tree (AST).
 
-Anyway, we need to detect those pesky mistyped variable names. To implement this, we'll be using some built-in data structures. There is a function that exposes the type-inferred and optimized AST: `code_typed`. 
-
-`code_typed` takes two arguments: the function of interest, and a tuple of argument types. For example, if we wanted to see the AST for a function `foo` when called with two Int64`s, then we would call `code_typed(foo, (Int64,Int64))`.
+`code_typed` takes two arguments: the function of interest, and a tuple of argument types. For example, if we wanted to see the AST for a function `foo` when called with two `Int64`s, then we would call `code_typed(foo, (Int64,Int64))`.
 
 ~~~jl
 function foo(x,y)
@@ -210,11 +213,9 @@ This is the structure that code_typed_ would return:
     end::Int64))))
 ~~~
 
-First, this is an `Array`; this allows `code_typed` to return multiple matching methods. Some combinations of functions and argument types may not completely determine which method should be called. For exmaple, you could pass in an type like `Any`, which is the type at the top of the type hierarchy; all types are subtypes of `Any` (including `Any`). If we included `Any`s in our tuple of argument types, and had multiple potentially matching methods, then the `Array` from `code_typed` would have more than one element in it.
+This is an `Array`; this allows `code_typed` to return multiple matching methods. Some combinations of functions and argument types may not completely determine which method should be called. For example, you could pass in a type like `Any` (instead of `Int64`). `Any` is the type at the top of the type hierarchy; all types are subtypes of `Any` (including `Any`). If we included `Any`s in our tuple of argument types, and had multiple matching methods, then the `Array` from `code_typed` would have more than one element in it; it would have one element per matching method.
 
-The structure we're interested in is inside the `Array`: it is an `Expr`. Julia uses `Expr`s (short for expression) to represent its AST. (An abstract syntax tree is how the compiler thinks about the meaning of your code; it's kind of like when you had to diagram sentences in grade school.) The `Expr` we get back represents one method. It has some metadata (about the variables that appear in the method) and the expressions that make up the body of the method.
-
-First, let's pull our example `Expr` out to make it easier to talk about.
+Let's pull our example `Expr` out to make it easier to talk about.
 ~~~jl
 julia> e = code_typed(foo,(Int64,Int64))[1]
 :($(Expr(:lambda, {:x,:y}, {{:z},{{:x,Int64,0},{:y,Int64,0},{:z,Int64,18}},{}}, :(begin  # none, line 2:
@@ -223,16 +224,28 @@ julia> e = code_typed(foo,(Int64,Int64))[1]
     end::Int64))))
 ~~~
 
-Now we can ask some questions about `e`:
+The structure we're interested in is inside the `Array`: it is an `Expr`. Julia uses `Expr`s (short for expression) to represent its AST. (An abstract syntax tree is how the compiler thinks about the meaning of your code; it's kind of like when you had to diagram sentences in grade school.) The `Expr` we get back represents one method. It has some metadata (about the variables that appear in the method) and the expressions that make up the body of the method.
+
+Now we can ask some questions about `e`.
+
+We can ask what properties an `Expr` has by using the `names` function. The `names` function, which works on any Julia value or type, returns an `Array` of names defined by that type (or the type of the value).
+
 ~~~.jl
 julia> names(e)
 3-element Array{Symbol,1}:
  :head
  :args
  :typ 
+~~~
 
+We just asked `e` what names it has, and now we can ask what value each name corresponds to. An `Expr` has three properties: `head`, `typ` and `args`.
+
+~~~.jl
 julia> e.head
 :lambda
+
+julia> e.typ
+Any
 
 julia> e.args
 3-element Array{Any,1}:
@@ -242,39 +255,44 @@ julia> e.args
         z = (top(box))(Int64,(top(add_int))(x::Int64,y::Int64))::Int64 # line 3:
         return (top(box))(Int64,(top(mul_int))(2,z::Int64))::Int64
     end::Int64)
-
-julia> e.typ
-Any
 ~~~
 
-We just asked `e` what names it has, and then asked what value each name corresponds to. An `Expr` has three properties: `head`, `typ` and `args`.
+We just saw some values printed out, but that doesn't tell us much about what they mean or how they're used.
 
-* `head` tells us what kind of expression this is; normally, you'd use ex separate types for this in Julia, but this is a type that models the structure used in the Lisp parser. Anyway, head tells us how the rest of the `Expr` is structured, and what it represents.
-* `typ` is the inferred return type of the expression; every expresision in Julia results in some value when evaluated. `typ` is the type of the value that the expression will evaluate to. For nearly all `Expr`s, this value will be `Any`. Only the `body` of type-inferred methods and most expressions inside them will have their `typ`s set to something else. (Because `type` is a keyword, this field can't use that word as its name.)
-* `args` is the most complicated part of Expr; its structure varies based on `head`. It's always an `Array{Any}` of `Array{Any}`s . This is means it's an untyped list of lists (very Lisp-y).
+* `head` tells us what kind of expression this is; normally, you'd use separate types for this in Julia, but `Expr` is a type that models the structure used in the Lisp parser. `head` tells us how the rest of the `Expr` is structured and what it represents.
+* `typ` is the inferred return type of the expression; when you evaluate any expression, it results in some value. `typ` is the type of the value that the expression will evaluate to. For nearly all `Expr`s, this value will be `Any` (which is always correct, since every possible type is a subtype of `Any`). Only the `body` of type-inferred methods and most expressions inside them will have their `typ`s set to something more specific. (Because `type` is a keyword, this field can't use that word as its name.)
+* `args` is the most complicated part of `Expr`; its structure varies based on the value of `head`. It's always an `Array{Any}` (an untyped array), but beyond that the structure changes.
 
-In this case, there will be three elements in `e.args`:
+In an `Expr` representing a method, there will be three elements in `e.args`:
 
 ~~~jl
 julia> e.args[1] # names of arguments as symbols
 2-element Array{Any,1}:
  :x
  :y
+~~~
 
-julia> e.args[2] # three lists of variable metadata (names of locals, (variable name, type, bitflags) tuples, and captured variable names)
+Symbols are a special type for representing the names of variables, constants, functions, and modules. They are a different type from strings because the specifically represent the name of a program construct.
+
+~~~
+julia> e.args[2] # three lists of variable metadata
 3-element Array{Any,1}:
  {:z}                                     
  {{:x,Int64,0},{:y,Int64,0},{:z,Int64,18}}
  {}                                       
+~~~
 
-julia> e.args[3] # an Expr containing the body of the method
+The first list above contains the names of all local variables; we only have one (`z`) here. The second list contains a tuple for each variable in and argument to the method; each tuple has the variable name, the variable's inferred type, and a number. The number conveys information about how the variable is used, in a machine (rather than human) friendly way. The last list is of captured variable names; it's empty in this example.
+
+~~~
+julia> e.args[3] # the body of the method
 :(begin  # none, line 2:
         z = (top(box))(Int64,(top(add_int))(x::Int64,y::Int64))::Int64 # line 3:
         return (top(box))(Int64,(top(mul_int))(2,z::Int64))::Int64
     end::Int64)
 ~~~
 
-While the metadata is very interesting, it isn't necessary right now. The important part is the body of the method, which is the third argument. This is another `Expr`.
+The first two `args` elements are metadata about the third. While the metadata is very interesting, it isn't necessary right now. The important part is the body of the method, which is the third element. This is another `Expr`.
 
 ~~~.jl
 julia> body = e.args[3]
@@ -285,13 +303,18 @@ julia> body = e.args[3]
 
 julia> body.head
 :body
+~~~
 
-julia> body.type
-ERROR: type Expr has no field type
+This `Expr` has head `:body` because it's the body of the method.
 
+~~~
 julia> body.typ
 Int64
+~~~
 
+The `typ` is the inferred return type of the method.
+
+~~~
 julia> body.args
 4-element Array{Any,1}:
  :( # none, line 2:)                                              
@@ -300,11 +323,9 @@ julia> body.args
  :(return (top(box))(Int64,(top(mul_int))(2,z::Int64))::Int64)    ~~
 ~~~
 
-This `Expr` has head `:body` because it's the body of the method. The `typ` is the inferred return type of the method. The `args` holds a list of expressions; the list of expressions in the method definition.
+The `args` holds a list of expressions; the list of expressions in the method's body. There are a couple of annotations of line numbers (i.e. `:( # line 3:)`), but most of the body is setting the value of `z` (`z = x + y`) and returning `2 * z`. Notice that these operations have been replaced by `Int64`-specific intrinsic functions. The `top(function-name)` indicates an intrinsic function; something that is implemented in Julia's code generation, rather than in Julia.
 
-There are a couple of annotations of line numbers, but most of it is setting the value of `z` (`z = x + y`) and returning `2 * z`. Notice that these operations have been replaced by `Int64`-specific intrinsic functions. The `top(function-name)` indicates an intrinsic function; something that is implemented in Julia's code generation, rather in Julia.
-
-The metadata gave us the names and types of all variables appearing in this function. Now we need to look at a function body with a loop, in order to see what that looks like.
+We haven't seen what a loop looks like yet, so let's try that.
 
 ~~~jl
 julia> function lloop(x)
@@ -331,9 +352,13 @@ julia> code_typed(lloop, (Int,))[1].args[3]
     end::Nothing)
 ~~~
 
-I skipped straight to the method body here. You'll notice there's no `for` or `while` loop keyword. Instead, the loop has been lowered to `label`s and `goto`s. The `goto` has a number in it; each `label` also has a number. The `goto` jumps to the the `label` with the same number. We're going to find loops by looking for `goto`s that jump backwards.
+You'll notice there's no `for` or `while` loop in the body. Instead, the loop has been lowered to `label`s and `goto`s. The `goto` has a number in it; each `label` also has a number. The `goto` jumps to the the `label` with the same number.
 
-First, we'll need to find the labels and gotos, and figure out where which ones match.
+### Detecting & Extracting Loops
+
+We're going to find loops by looking for `goto`s that jump backwards.
+
+We'll need to find the labels and gotos, and figure out which ones match. I'm going to give you the full implementation first. After the wall of code, we'll take this apart in smaller pieces.
 
 ~~~~.jl
 # This is a function for trying to detect loops in the body of a Method
@@ -367,22 +392,77 @@ function loopcontents(e::Expr)
 end
 ~~~
 
-Above, we start by getting all the expressions in the body of method, as an `Array`.
+And now to explain in pieces:
 
-~~~.jl
-# Return the body of a Method.
-# Takes an Expr representing a Method,
-# returns Vector{Expr}.
-body(e::Expr) = e.args[3].args
+1.  ~~~.jl
+b = body(e)
 ~~~
 
-`loops` is an `Array` of label line numbers where `GoTo`s that are loops occur. `nesting` indicates the number of loops we are currently inside. `lines` is an `Array` of (index, `Expr`) tuples. 
+    We start by getting all the expressions in the body of method, as an `Array`. `body` is a function that I've already implemented:
 
-We look at each expression in the body of `e`. If it is a lable, we check to see if there is a `goto` that jubmps to this label (and occurs after the current index). If the result of `findnext` is greater than zero, then such a goto node exists, so we'll add that to `loops` (the `Array` of loops we are currently in) and increment our `nesting` level.
+    ~~~.jl
+    # Return the body of a Method.
+    # Takes an Expr representing a Method,
+    # returns Vector{Expr}.
+    function body(e::Expr)
+      return e.args[3].args
+    end
+    ~~~
 
-If we're currently inside a loop, we push the current line to our array of lines to return.
+2. ~~~.jl
+  loops = Int[]
+  nesting = 0
+  lines = {}
+~~~
 
-If we're at a GotoNode, then we check to see if it's the end of a loop. If so, we remove the entry from loops and reduce our nesting level.
+    `loops` is an `Array` of label line numbers where `GoTo`s that are loops occur. `nesting` indicates the number of loops we are currently inside. `lines` is an `Array` of (index, `Expr`) tuples. 
+
+
+3. ~~~.jl
+  for i in 1:length(b)
+    if typeof(b[i]) == LabelNode
+      l = b[i].label
+      jumpback = findnext(
+        x-> (typeof(x) == GotoNode && x.label == l) || (Base.is_expr(x,:gotoifnot) && x.args[end] == l),
+        b, i)
+      if jumpback != 0
+        push!(loops,jumpback)
+        nesting += 1
+      end
+    end
+~~~
+
+    We look at each expression in the body of `e`. If it is a label, we check to see if there is a `goto` that jumps to this label (and occurs after the current index). If the result of `findnext` is greater than zero, then such a goto node exists, so we'll add that to `loops` (the `Array` of loops we are currently in) and increment our `nesting` level.
+
+4. ~~~.jl
+    if nesting > 0
+      push!(lines,(i,b[i]))
+    end
+~~~
+
+    If we're currently inside a loop, we push the current line to our array of lines to return.
+
+5. ~~~.jl
+    if typeof(b[i]) == GotoNode && in(i,loops)
+      splice!(loops,findfirst(loops,i))
+      nesting -= 1
+    end
+  end
+  lines
+end
+~~~
+
+    If we're at a GotoNode, then we check to see if it's the end of a loop. If so, we remove the entry from loops and reduce our nesting level.
+
+^TODO: Let's look at what we get from this!
+
+### Finding and Typing Variables
+
+We just finished a function `loopcontents`, which returns the `Expr`s that are inside loops. Our next function will be `loosetypes`, which takes a list of `Expr`s and returns a list of variables that are loosely typed. Later, we'll pass the output of `loopcontents` into `loosetypes`.
+
+In each expression that occurred inside a loop, `loosetypes` searches for occurrences of symbols and their associated types. Variable usages show up as `SymbolNode`s in the AST; `SymbolNode`s hold the name and inferred type of the variable.
+
+We can't just check each expression that `loopcontents` collected to see if it's a `SymbolNode`. The problem is that each `Expr` may contain one or more `Expr`; each `Expr` may contain one or more `SymbolNode`s. This means we need to pull out any nested `Expr`s, so that we can look in each of them for `SymbolNode`s.
 
 ~~~.jl
 # given `lr`, a Vector of expressions (Expr + literals, etc)
@@ -413,17 +493,46 @@ function loosetypes(lr::Vector)
 end
 ~~~~
 
-We'll pass the output of `loopcontents` into `loosetypes`. The goal of this function is to find all the variables and their types in our lines-from-inside-loops input `Vector`.
 
-In each expression that occurred inside a loop, `loosetypes` searches for occurrences of symbols and their associated types. Variable usages show up as `SymbolNode`s in the AST; `SymbolNode`s hold the name and inferred type of the variable.
+1. ~~~.jl
+  symbols = SymbolNode[]
+  for (i,e) in lr
+    if typeof(e) == Expr
+      es = copy(e.args)
+      while !isempty(es)
+        e1 = pop!(es)
+        if typeof(e1) == Expr
+          append!(es,e1.args)
+        elseif typeof(e1) == SymbolNode
+          push!(symbols,e1)
+        end
+      end
+    end
+  end
+~~~
+    The while loop goes through the guts of all the `Expr`s, recursively, until it's seen all the `Expr`s (and hopefully all the `SymbolNode`s). Every time the loop finds a `SymbolNode`, it adds it to the vector `symbols`.
 
-We can't just check each expression that `loopcontents` collected to see if it's a `SymbolNode`. The problem is that each `Expr` may contain one or more `Expr`; each `Expr` may contain one or more `SymbolNode`s. This means we need to pull out any nested `Expr`s, so that we can look in each of them for `SymbolNode`s.
+2. ~~~.jl
+  loose_types = SymbolNode[]
+  for symnode in symbols
+    if !isleaftype(symnode.typ) && typeof(symnode.typ) == UnionType
+      push!(loose_types, symnode)
+    end
+  end
+  return loose_types
+end
+~~~
+    Now we have a list of variables and their types, so it's easy to check if a type is loose. `loosetypes` does that by looking for a specific kind of non-concrete type, a `UnionType`. We get a lot more "failing" results when we consider all non-concrete types to be "failing". This is because we're evaluating each method with it's annotated argument types -- which are likely to be abstract.
 
-The while loop goes through the guts of all the `Expr`s, recursively, until it's seen all the `Expr`s (and hopefully all the `SymbolNode`s). Every time the loop finds a `SymbolNode`, it adds it to the vector `symbols`.
-
-Now we have a list of variables and their types, so it's easy to check if a type is loose. `loosetypes` does that by looking for a specific kind of non-concrete type, a `UnionType`. We get a lot more "failing" results when we consider all non-concrete types to be "failing". This is because we're evaluating each method with it's annotated argument types -- which are likely to be abstract.
+### Making This Usable
 
 Now that we can do the check on an expression, we should make it easier to call on a users's code:
+
+Now we have two ways to call `checklooptypes`:
+
+1. On a whole function; this will check each method of the given function.
+
+2. On a specific expression; this will work if the user extracts the results of `code_typed` themselves.
 
 ~~~.jl
 # for a given Function, run checklooptypes on each Method
@@ -441,12 +550,6 @@ end
 # has a concrete type
 checklooptypes(e::Expr;kwargs...) = LoopResult(MethodSignature(e),loosetypes(loopcontents(e)))
 ~~~
-
-Now we have two ways to call `checklooptypes`:
-
-1. On a whole function; this will check each method of the given function.
-
-2. On a specific expression; this will work if the user extracts the results of `code_typed` themselves.
 
 We can see both options work about the same for a function with one method:
 
@@ -475,11 +578,14 @@ julia> checklooptypes(code_typed(foo,(Int,))[1])
 	s::Union(Int64,Float64)
 ~~~
 
+#### Pretty Printing
 I've skipped an implementation detail here: how did we get the results to print out to the REPL like that?
 
-The `checklooptypes` function returns a special type, `LoopResults`. This type has a function called `show` defined for it. The REPL calls `display` on values it wants to display; `display` will then call our `show` implementation.
+First, I made some new types. `LoopResults` is the result of checking a whole function; it has the function name and the results for each method. `LoopResult` is the result of checking one method; it has the argument types and the loosely typed variables.
 
-`LoopResults` is the result of checking a whole function; it has the function name and the results for each method. `LoopResult` is the result of checking one method; it has the argument types and the loosely typed variables.
+The `checklooptypes` function returns a `LoopResults`. This type has a function called `show` defined for it. The REPL calls `display` on values it wants to display; `display` will then call our `show` implementation.
+
+This code is important for making this static analysis usable, but it is not doing static analysis. You should use the preferred method for pretty-printing types/output in your implementation language; this is just how it's done in Julia.
 
 ~~~.jl
 type LoopResult
@@ -508,29 +614,278 @@ function Base.show(io::IO, x::LoopResults)
 end
 ~~~
 
+
 # Looking For Unused Variables
 
-* Example of the problem we're checking for
-* LHS vs RHS variable usages
-* Looking for single-use variables
-* Checking for `x += 2` single usages
+Sometimes, as you're typing in your program, you type a variable -- and sometimes, you mistype the name. When you mistype it, the program can't tell that you meant the same variable as the other times. It sees a variable used only one time, where you might see a variable name misspelled.
 
-# Checking Functions for Type Stability
+We can find misspelled variable names (and other unused variables) by looking for variables that are only used once -- or only used one way.
 
-* What does type stability mean
-* Example of failing function
-* Checking function argument & return types
-* Where this fails
+Here is an example of a little bit of code with one misspelled name.
 
-# Tools for Insight into Variable Types
+~~~.jl
+function foo(variable_name::Int)
+  sum = 0
+  for i=1:variable_name
+    sum += variable_name
+  end
+  variable_nme = sum
+  return variable_name
+end
+~~~
 
-* Implementing `whos` for functions
-  + What is `whos` (modules)
-  + Getting the variables in a function
-  + implementation
+This kind of mistake can cause problems in your code that are only discovered when it's run. Let's assume you miss-spell each variable name only once. We can separate variable usages into writes and reads. If the misspelling is a write (i.e. `worng = 5`), then no error will be thrown; you'll just be silently putting the value in the wrong variable -- and it could be frustrating to find the bug. If the misspelling is a read (i.e. `right = worng + 2`), then you'll get a run-time error when the code is run; we'd like to have a static warning for this, so that you can find this error sooner, but you will still have to wait until you run the code to see the problem.
 
-* Implicit interfaces
-  + Walking the type hierarchy
-  + Getting the methods implemented for a type
-  + Implementing the function
+As code becomes longer and more complicated, it becomes harder to spot the mistake -- unless you have the help of static analysis.
 
+## Left-hand side and Right-hand side
+
+Another way to talk about "read" and "write" usages is to call them "right-hand side" (RHS) and "left-hand side" (LHS) usages. This refers to where the variable is relative to the `=` sign.
+
+Here are some usages of `x`:
+* Left-hand side:
+  + `x = 2`
+  + `x = y + 22`
+  + `x = x + y + 2`
+  + `x += 2` (which de-sugars to `x = x + 2`)
+* Right-hand side:
+  + `y = x + 22`
+  + `x = x + y + 2`
+  + `x += 2` (which de-sugars to `x = x + 2`)
+  + `2 * x`
+  + `x`
+
+Notice that expressions like `x = x + y + 2` and `x += 2` appear in both sections, since `x` appears on both sides of the `=` sign.
+
+## Looking for single-use variables
+
+There are two cases we need to look for:
+
+1. Variables used once.
+2. Variables used only on the LHS or only on the RHS.
+
+We'll look for all variable usages, but we'll look for LHS and RHS usages separately, to cover both cases.
+
+### Finding LHS usages
+
+To be on the LHS, a variable needs to have an `=` sign to be to the left of. This means we can look for `=` signs in the AST, and then look to the left of them to find the relevant variable.
+
+In the AST, an `=` is an `Expr` with the head `:(=)`. (The parenthesises are there to make it clear that this is the symbol for `=` and not another operator, `:=`.) The first value in `args` will be the variable name on its LHS. Because we're looking at an AST that the compiler has already cleaned up, there will always be just a single symbol to the left of our `=` sign.
+
+//TODO fact check (on `a[5] = 10`)
+
+Let's see what that means in code:
+~~~.jl
+julia> :(x = 5)
+:(x = 5)
+
+julia> :(x = 5).head
+:(=)
+
+julia> :(x = 5).args
+2-element Array{Any,1}:
+  :x
+ 5  
+
+julia> :(x = 5).args[1]
+:x
+~~~
+
+Below is the full implementation, followed by an explanation.
+
+~~~.jl
+# Return a list of all variables used on the left-hand-side of assignment (=)
+#
+# Arguments:
+#   e: an Expr representing a Method, as from code_typed
+#
+# Returns:
+#   a Set{Symbol}, where each element appears on the LHS of an assignment in e.
+#
+function find_lhs_variables(e::Expr)
+  output = Set{Symbol}()
+  for ex in body(e)
+    if Base.is_expr(ex,:(=))
+      push!(output,ex.args[1])
+    end
+  end
+  return output
+end
+~~~
+
+1. ~~~.jl
+  output = Set{Symbol}()
+~~~
+    We have a set of Symbols; those are variables names we've found on the LHS.
+
+2. ~~~.jl
+  for ex in body(e)
+    if Base.is_expr(ex,:(=))
+      push!(output,ex.args[1])
+    end
+  end
+~~~
+    We aren't digging deeper into the expressions, because the code_typed AST is pretty flat; loops and ifs have been converted to flat statements with gotos for control flow. There won't be any assignments hiding inside function calls' arguments.
+3. ~~~.jl
+      push!(output,ex.args[1])
+~~~
+    When we find a LHS variable usage, we `push!` the variable name into the `Set`. The `Set` will make sure that we only have one copy of each name.
+
+### Finding RHS usages
+
+To find all the other variable usages, we also need to look at each `Expr`. This is a bit more involved, because we care about basically all the `Expr`s, not just the `:(=)` ones and because we have to dig into nested `Expr`s (to handle nested function calls).
+
+Here is the full implementation, with explanation following.
+~~~.jl
+# Given an Expression, finds variables used in it (on right-hand-side)
+#
+# Arguments: e: an Expr
+#
+# Returns: a Set{Symbol}, where each e is used in a rhs expression in e
+#
+function find_rhs_variables(e::Expr)
+  output = Set{Symbol}()
+
+  if e.head == :lambda
+    for ex in body(e)
+      union!(output,find_rhs_variables(ex))
+    end
+  elseif e.head == :(=)
+    for ex in e.args[2:end]  # skip lhs
+      union!(output,find_rhs_variables(ex))
+    end
+  elseif e.head == :return
+    output = find_rhs_variables(e.args[1])
+  elseif e.head == :call
+    start = 2  # skip function name
+    e.args[1] == TopNode(:box) && (start = 3)  # skip type name
+    for ex in e.args[start:end]
+      union!(output,find_rhs_variables(ex))
+    end
+  elseif e.head == :if
+   for ex in e.args # want to check condition, too
+     union!(output,find_rhs_variables(ex))
+   end
+  elseif e.head == :(::)
+    output = find_rhs_variables(e.args[1])
+  end
+
+  return output
+end
+~~~
+
+The main structure of this function is a large if-else statement, where each case handles a different head-symbol.
+
+* ~~~.jl
+  output = Set{Symbol}()
+~~~
+
+    `output` is the set of variable names, which we will return at the end of the function. Since we only care about the fact that each of these variables has be read at least once, using a `Set` frees us from worrying about the uniqueness of each name.
+
+* ~~~.jl
+  if e.head == :lambda
+    for ex in body(e)
+      union!(output,find_rhs_variables(ex))
+    end
+~~~
+
+    This is the first condition in the if-else statement. A `:lambda` represents the body of a function. We recurse on the body of the definition, which should get all the RHS variable usages in the definition.
+
+* ~~~.jl
+  elseif e.head == :(=)
+    for ex in e.args[2:end]  # skip lhs
+      union!(output,find_rhs_variables(ex))
+    end
+~~~
+
+    If the head is `:(=)`, then the expression is an assignment. We skip the first element of `args` because that's the variable being assigned to. For each of the remaining expressions, we recursively find the RHS variables and add them to our set.
+
+* ~~~.jl
+  elseif e.head == :return
+    output = find_rhs_variables(e.args[1])
+~~~
+
+    If this is a return statement, then the first element of `args` is the expression whose value is returned; we'll add any variables in their into our set.
+
+* ~~~.jl
+  elseif e.head == :call
+    # skip function name
+    for ex in e.args[2:end]
+      union!(output,find_rhs_variables(ex))
+    end
+~~~
+
+    For function calls, we want to get all variables used in all the arguments to the call. We skip the function name, which is the first element of `args`.
+
+* ~~~.jl
+  elseif e.head == :if
+   for ex in e.args # want to check condition, too
+     union!(output,find_rhs_variables(ex))
+   end
+~~~
+    An `Expr` representing an if-statment has the `head` value `:if`. We want to get variable usages from all the expressions in the body of the if-statement, so we recurse on each element of `args`.
+
+* ~~~.jl
+  elseif e.head == :(::)
+    output = find_rhs_variables(e.args[1])
+  end
+~~~
+
+The `:(::)` operator is used to add type annotations. The first argument is the expression or variable being annotated; we check for variable usages in the annotated expression.
+
+* ~~~.jl
+  return output
+~~~
+
+   At the end of the function, we return the set of RHS variable usages.
+
+
+There's a little more code that simplifies the method above. Because the version above only handles `Expr`s, but some of the values that get passed recursively may not be `Expr`s, we need a few more methods to handle the other possible types appropriately.
+
+~~~.jl
+# Recursive Base Cases, to simplify control flow in the Expr version
+find_rhs_variables(a) = Set{Symbol}()  # unhandled, should be an immediate value, like an Int.
+find_rhs_variables(s::Symbol) = Set{Symbol}([s])
+find_rhs_variables(s::SymbolNode) = Set{Symbol}([s.name])
+~~~
+
+### Putting It Together
+
+Now that we have the two functions defined above, we can use them together to find variables that are either only read from or only written to. The function that finds them will be called `unused_locals`.
+
+~~~.jl
+function unused_locals(e::Expr)
+  lhs = find_lhs_variables(e)
+  rhs = find_rhs_variables(e)
+  setdiff(lhs,rhs)
+end
+~~~
+
+`unused_locals` will return a set of variable names. It's easy to write a function that determines whether the output of `unused_locals` counts as a "pass" or not. If the set is empty, the method passes. If all the methods of a function pass, then the function passes. The function `check_locals` below implements this logic.
+
+~~~.jl
+check_locals(f::Callable) = all([check_locals(e) for e in code_typed(f)])
+check_locals(e::Expr) = isempty(unused_locals(e))
+~~~
+
+# Making a Analysis Pipeline
+
+Now that we have multiple checks to run, we'd like to be able to run them on all our code automatically. We want that to happen automatically every time we compile or make a pull request; we also want to be able to request that it happen -- at a press-just-one-button level of convenience.
+
+We also want to make it easy for other people to use our checks with their tools, regardless of it they use the same tools as us.
+
+In this section, we're going to write an interface that makes it easy to runs all the available checks over a given piece of code. This will allow other tools to easily interface with our analysis. Each text editor or other display tool will need to write a little glue code to call our interface, but it should be relatively minimal.
+
+~~~.jl
+const checks = [check_locals, check_loops]
+function runchecks(e::Expr)
+  output = Any[]
+  for c in checks
+    push!(output, c(e))
+  end
+  return output
+end
+  
+* A common interface
+* Printing output
+* How to add new checks
