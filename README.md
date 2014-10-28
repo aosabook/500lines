@@ -214,7 +214,7 @@ Contributors
   </tr>
   <tr>
     <td>Cate Huston</td>
-    <td>Google</td>
+    <td></td>
     <td>Image Filter app</td>
     <td>
         <ul>
