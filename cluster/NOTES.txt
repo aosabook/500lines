@@ -1,6 +1,9 @@
 From Oct 5
 ----------
 
+Code:
+ - intersperse code throughout
+
 Example:
  - use the bank example throughout
 
