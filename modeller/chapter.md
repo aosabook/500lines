@@ -382,6 +382,9 @@ tree. As it traverses, it keeps a stack of modelview matrices used for conversio
 At each step, it pushes the current modelview matrix onto the stack, and when it completes rendering of all child nodes,
 it pops the matrix off the stack, leaving the parent node's modelview matrix at the top of the stack.
 
+
+![The hierarchy of Node subclasses.](nodes.jpg?raw=true)
+
 By making the `Node` class extensible in this way, we can add new types of shapes to the scene without changing any of the other code for scene
 manipulation and rendering. Using `Node` concept to abstract away the fact that one `Scene` object may have many children is known as the Composite Design Pattern.
 
