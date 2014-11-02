@@ -14,7 +14,7 @@ get '/uploads' do
     processor = Processor.run(parser.parsed_data)
     user      = upload.user
     trial     = upload.trial
-    analyzer  = Analyzer.run(processor, user, trial)
+    analyzer  = Analyzer.run(processor.filtered_data, user, trial)
 
     @analyzers << analyzer
   end
@@ -29,7 +29,7 @@ get '/upload/*' do |file_path|
   processor = Processor.run(parser.parsed_data)
   user      = upload.user
   trial     = upload.trial
-  @analyzer = Analyzer.run(processor, user, trial)
+  @analyzer = Analyzer.run(processor.filtered_data, user, trial)
 
   erb :upload
 end
@@ -42,7 +42,7 @@ post '/create' do
     processor = Processor.run(parser.parsed_data)
     user      = User.new(*params[:user].values)
     trial     = Trial.new(*params[:trial].values)
-    @analyzer = Analyzer.run(processor, user, trial)
+    @analyzer = Analyzer.run(processor.filtered_data, user, trial)
 
     Upload.create(params[:data][:tempfile], user, trial)
 

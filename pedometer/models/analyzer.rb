@@ -1,4 +1,3 @@
-require_relative 'processor'
 require_relative 'user'
 require_relative 'trial'
 
@@ -6,39 +5,38 @@ class Analyzer
 
   THRESHOLD = 0.09
 
-  attr_reader :processor, :user, :trial, :steps, :distance, :time
+  attr_reader :data, :user, :trial, :steps, :distance, :time
 
-  def self.run(processor, user = User.new, trial = Trial.new)
-    analyzer = self.new(processor, user, trial)
+  def self.run(data, user = User.new, trial = Trial.new)
+    analyzer = self.new(data, user, trial)
     analyzer.measure_steps
     analyzer.measure_distance
     analyzer.measure_time
     analyzer
   end
 
-  def initialize(processor, user = User.new, trial = Trial.new)
-    raise 'Processor invalid.' unless processor.kind_of? Processor
+  def initialize(data, user = User.new, trial = Trial.new)
     raise 'User invalid.'      unless user.kind_of? User
     raise 'Trial invalid.'     unless trial.kind_of? Trial
 
-    @processor = processor
-    @user      = user
-    @trial     = trial
+    @data  = data
+    @user  = user
+    @trial = trial
   end
 
   def measure_steps
     @steps = 0
     count_steps = true
 
-    @processor.filtered_data.each_with_index do |data, i|
-      if (data >= THRESHOLD) && (@processor.filtered_data[i-1] < THRESHOLD)
+    @data.each_with_index do |data, i|
+      if (data >= THRESHOLD) && (@data[i-1] < THRESHOLD)
         next unless count_steps
 
         @steps += 1
         count_steps = false
       end
 
-      count_steps = true if (data < 0) && (@processor.filtered_data[i-1] >= 0)
+      count_steps = true if (data < 0) && (@data[i-1] >= 0)
     end
   end
 
@@ -47,7 +45,7 @@ class Analyzer
   end
 
   def measure_time
-    @time = @processor.filtered_data.count/@trial.rate
+    @time = @data.count/@trial.rate
   end
 
 end

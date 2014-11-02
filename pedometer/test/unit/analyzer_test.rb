@@ -14,9 +14,9 @@ class AnalyzerTest < Test::Unit::TestCase
     user = User.new
     trial = Trial.new
     
-    analyzer = Analyzer.new(processor, user, trial)
+    analyzer = Analyzer.new(processor.filtered_data, user, trial)
     
-    assert_equal processor, analyzer.processor
+    assert_equal processor.filtered_data, analyzer.data
     assert_equal user, analyzer.user
     assert_equal trial, analyzer.trial
 
@@ -33,9 +33,9 @@ class AnalyzerTest < Test::Unit::TestCase
     user = User.new
     trial = Trial.new
     
-    analyzer = Analyzer.run(processor, user, trial)
+    analyzer = Analyzer.run(processor.filtered_data, user, trial)
     
-    assert_equal processor, analyzer.processor
+    assert_equal processor.filtered_data, analyzer.data
     assert_equal user, analyzer.user
     assert_equal trial, analyzer.trial
 
@@ -50,9 +50,9 @@ class AnalyzerTest < Test::Unit::TestCase
     user = User.new
     trial = Trial.new
 
-    analyzer = Analyzer.run(processor, user, trial)
+    analyzer = Analyzer.run(processor.filtered_data, user, trial)
     
-    assert_equal processor, analyzer.processor
+    assert_equal processor.filtered_data, analyzer.data
     assert_equal user, analyzer.user
     assert_equal trial, analyzer.trial
 
@@ -65,7 +65,7 @@ class AnalyzerTest < Test::Unit::TestCase
     user = User.new(nil, nil, 100)
     parser = Parser.run(File.read('test/data/female-167-70_2-100-10-walk.txt'))
     processor = Processor.run(parser.parsed_data)
-    analyzer = Analyzer.run(processor, user)
+    analyzer = Analyzer.run(processor.filtered_data, user)
 
     assert_equal 10,         analyzer.steps
     assert_equal 1000,       analyzer.distance
@@ -74,31 +74,19 @@ class AnalyzerTest < Test::Unit::TestCase
 
   # -- Creation Failure Tests -----------------------------------------------
 
-  def test_create_no_processor
-    assert_raise_with_message(RuntimeError, PROCESSOR_MESSAGE) do
-      Analyzer.new(nil)
-    end
-  end
-
   def test_create_no_user_no_trial
     parser = Parser.run('0.123,-0.123,5;')
     processor = Processor.run(parser.parsed_data)
-    analyzer = Analyzer.new(processor)
+    analyzer = Analyzer.new(processor.filtered_data)
     assert analyzer.user.kind_of? User
     assert analyzer.trial.kind_of? Trial
-  end
-
-  def test_create_bad_processor
-    assert_raise_with_message(RuntimeError, PROCESSOR_MESSAGE) do
-      Analyzer.new('bad processor')
-    end
   end
 
   def test_create_bad_user
     assert_raise_with_message(RuntimeError, USER_MESSAGE) do
       parser = Parser.run('0.123,-0.123,5;')
       processor = Processor.run(parser.parsed_data)
-      analyzer = Analyzer.new(processor, 'bad user')
+      analyzer = Analyzer.new(processor.filtered_data, 'bad user')
     end
   end
 
@@ -106,7 +94,7 @@ class AnalyzerTest < Test::Unit::TestCase
     assert_raise_with_message(RuntimeError, TRIAL_MESSAGE) do
       parser = Parser.run('0.123,-0.123,5;')
       processor = Processor.run(parser.parsed_data)
-      analyzer = Analyzer.new(processor, User.new, 'bad trial')
+      analyzer = Analyzer.new(processor.filtered_data, User.new, 'bad trial')
     end
   end
 
