@@ -19,9 +19,7 @@
       <td><%= analyzer.user.gender %></td>
       <% if detail_hidden %>
         <td>
-          <% user_params = [analyzer.user.gender, analyzer.user.height, analyzer.user.stride] %>
-          <% trial_params = [analyzer.trial.name, analyzer.trial.rate, analyzer.trial.steps, analyzer.trial.method] %>
-          <a href=<%= "upload/" + Upload.generate_file_path(user_params, trial_params) %>>Detail</a>
+          <a href=<%= "upload/" + Upload.generate_file_path(analyzer.user, analyzer.trial) %>>Detail</a>
         </td>
       <% else %>
         <td><%= format_distance(analyzer.distance) %></td>

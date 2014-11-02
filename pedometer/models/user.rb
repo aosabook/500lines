@@ -2,7 +2,7 @@ class User
 
   GENDER      = ['male', 'female']
   MULTIPLIERS = {'female' => 0.413, 'male' => 0.415}
-  AVERAGES    = {'female' => 70,    'male' => 78}
+  AVERAGES    = {'female' => 70.0,  'male' => 78.0}
   
   attr_reader :gender, :height, :stride
 

@@ -12,8 +12,8 @@ get '/uploads' do
   uploads.each do |upload|
     parser    = Parser.run(File.read(upload.file_path))
     processor = Processor.run(parser.parsed_data)
-    user      = User.new(*upload.user_params)
-    trial     = Trial.new(*upload.trial_params)
+    user      = upload.user
+    trial     = upload.trial
     analyzer  = Analyzer.run(processor, user, trial)
 
     @analyzers << analyzer
@@ -27,8 +27,8 @@ get '/upload/*' do |file_path|
 
   parser    = Parser.run(File.read(file_path))
   processor = Processor.run(parser.parsed_data)
-  user      = User.new(*upload.user_params)
-  trial     = Trial.new(*upload.trial_params)
+  user      = upload.user
+  trial     = upload.trial
   @analyzer = Analyzer.run(processor, user, trial)
 
   erb :upload
@@ -44,7 +44,7 @@ post '/create' do
     trial     = Trial.new(*params[:trial].values)
     @analyzer = Analyzer.run(processor, user, trial)
 
-    Upload.create(params[:data][:tempfile], @analyzer)
+    Upload.create(params[:data][:tempfile], user, trial)
 
     redirect '/uploads'
   rescue Exception => e
