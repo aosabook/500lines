@@ -18,7 +18,11 @@
       <td><%= analyzer.trial.steps ? (analyzer.steps - analyzer.trial.steps) : '' %></td>
       <td><%= analyzer.user.gender %></td>
       <% if detail_hidden %>
-        <td><a href=<%= "upload/" + Upload.generate_file_path(analyzer) %>>Detail</a></td>
+        <td>
+          <% user_params = [analyzer.user.gender, analyzer.user.height, analyzer.user.stride] %>
+          <% trial_params = [analyzer.trial.name, analyzer.trial.rate, analyzer.trial.steps, analyzer.trial.method] %>
+          <a href=<%= "upload/" + Upload.generate_file_path(user_params, trial_params) %>>Detail</a>
+        </td>
       <% else %>
         <td><%= format_distance(analyzer.distance) %></td>
         <td><%= format_time(analyzer.time) %></td>
