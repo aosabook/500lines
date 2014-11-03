@@ -16,8 +16,8 @@ class Analyzer
   end
 
   def initialize(data, user = User.new, trial = Trial.new)
-    raise 'User invalid.'      unless user.kind_of? User
-    raise 'Trial invalid.'     unless trial.kind_of? Trial
+    raise 'User invalid.' unless user.kind_of? User
+    raise 'Trial invalid.' unless trial.kind_of? Trial
 
     @data  = data
     @user  = user
