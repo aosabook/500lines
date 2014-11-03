@@ -25,7 +25,6 @@ post '/create' do
   begin
     user = User.new(*params[:user].values)
     trial = Trial.new(*params[:trial].values)
-    @pipeline = Pipeline.new(params[:data][:tempfile], user, trial)
     Upload.create(params[:data][:tempfile], user, trial)
 
     redirect '/uploads'
