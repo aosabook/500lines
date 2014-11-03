@@ -5,11 +5,12 @@ class Analyzer
 
   THRESHOLD = 0.09
 
-  attr_reader :data, :user, :trial, :steps, :distance, :time
+  attr_reader :data, :user, :trial, :steps, :delta, :distance, :time
 
   def self.run(data, user = User.new, trial = Trial.new)
     analyzer = self.new(data, user, trial)
     analyzer.measure_steps
+    analyzer.measure_delta
     analyzer.measure_distance
     analyzer.measure_time
     analyzer
@@ -38,6 +39,10 @@ class Analyzer
 
       count_steps = true if (data < 0) && (@data[i-1] >= 0)
     end
+  end
+
+  def measure_delta
+    @delta = @steps - @trial.steps if @trial.steps
   end
 
   def measure_distance

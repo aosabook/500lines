@@ -15,7 +15,7 @@
       <td><%= pipeline.trial.method %></td>
       <td><%= pipeline.trial.steps %></td>
       <td><%= pipeline.analyzer.steps %></td>
-      <td><%= pipeline.trial.steps ? (pipeline.analyzer.steps - pipeline.trial.steps) : '' %></td>
+      <td><%= pipeline.analyzer.delta %></td>
       <td><%= pipeline.user.gender %></td>
       <% if detail_hidden %>
         <td>

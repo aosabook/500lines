@@ -21,8 +21,6 @@ get '/upload/*' do |file_path|
   erb :upload
 end
 
-# TODO
-# - Is file sanitized here? We don't want to be passing around untrusted data, especially not if it's touching the filesystem.
 post '/create' do
   begin
     user = User.new(*params[:user].values)
