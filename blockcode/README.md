@@ -1,10 +1,22 @@
 # Blockcode - a simple visual programming toolkit
 
+> Comments from Debo:
+
+> You mention several examples of block-based languages in your intro paragraph, but I think it might be helpful to have a few sentences that just outright explain what a block-based language is, and how it differs from a 'traditional' programming language. The links are helpful in digital formats, but we will also be printing this book and it's harder for those readers to follow hyperlinks :)
+
+> [dethe]: Move all links to endnotes
+
+> You describe the js modules/files that you've decomposed the program into, but not how you arrived at that segmentation / design. The goal of this book is to give our readers examples of how to design software, so some context there would be great.
+
+> Generally, the chapter outline so far feels like it progresses too quickly. We go from "here is a high-level description of block-based programming language" to "here is a listing of all the functions in my implementation".
+
 Block Code is an attempt to create a block-based programming tool in under 500 lines of code, including HTML, CSS, Javascript. The code itself is intended to be a live-coding environment for turtle graphics.
 
-Block-based languages have a long history, with some of the prominent ones being Lego Mindstorms, Alice3D, StarLogo, and especially Scratch. There are several tools for block-based programming on the web as well, such as Blockly, AppInventor, Tynker, and [many more](http://en.wikipedia.org/wiki/Visual_programming_language).
+A block-based language differs from programming language where you type in code as words because you drag blocks that represent code into place. Learning a programming language can be difficult because they are extremely sensitive to even the slightest of typos. Most programming languages are case-sensitive, have obscure syntax, and will refuse to run if you get so much as a semicolon in the wrong place, or worse, leave one out. Most of the programming languages in use today are also based on English and the language itself cannot be localized. In contrast, a well-done block language can eliminate syntax errors completely: you can still create a program which does the wrong thing, but you cannot create one with the wrong syntax, the blocks just won't fit that way. Block languages are more more discoverable: you can see all the constructs and libraries of the language right in the list of blocks. And blocks can be localized into any language without changing the programmatic meaning of the language.
 
-This particular code is loosely based on the open-source project [Waterbear](http://waterbearlang.com/), which is not a language but a tool for wrapping existing languages with a block-based syntax. Advantages of such a wrapper include: Eliminating syntax errors, visual display of available components, visual code can sometimes be easier to read/debug, blocks are more localizable than programming languages (you can translate the text on blocks more readily than translating a programming language), blocks can be used by pre-typing children.
+Block-based languages have a long history, with some of the prominent ones being Lego Mindstorms [Mindstorms], Alice3D [Alice], StarLogo [StarLogo], and especially Scratch [Scratch]. There are several tools for block-based programming on the web as well, such as Blockly [Blockly], AppInventor [AppInventor], Tynker [Tynker], and many more [Visual Programming].
+
+This particular code is loosely based on the open-source project Waterbear [Waterbear], which is not a language but a tool for wrapping existing languages with a block-based syntax. Advantages of such a wrapper include the ones noted above: Eliminating syntax errors, visual display of available components, blocks are more localizable than programming languages (you can translate the text on blocks more readily than translating a programming language). Additionally visual code can sometimes be easier to read/debug and blocks can be used by pre-typing children. We could even go further and put icons on the blocks, either in conjunction with the text names or instead of them, to allow pre-literate children to write programs, but we don't go that far in this example.
 
 The choice of turtle graphics for this language also goes back to the Logo language, which was created specifically for teaching programming to children. Several of the block-based languages above include turtle graphics, and it is a small enough domain to be able to capture in a tightly constrained project such as this. Later we will see how easy it can be to extend or replace the turtle graphics code with code for other types of programming.
 
@@ -177,9 +189,25 @@ Shorthand for sending a custom event to an element.
 
 Including the turtle.js file is the only thing specific to the turtle language, the rest can be re-used for other block languages.
 
+## References
 
+[Mindstorms]
 
+[Alice]
 
+[StarLogo]
+
+[Scratch]
+
+[Blockly]
+
+[AppInventor]
+
+[Tynker]
+
+[Visual Programming] http://en.wikipedia.org/wiki/Visual_programming_language
+
+[Waterbear] http://waterbearlang.com/
 
 
 
