@@ -2,10 +2,6 @@
 
 > Comments from Debo:
 
-> You mention several examples of block-based languages in your intro paragraph, but I think it might be helpful to have a few sentences that just outright explain what a block-based language is, and how it differs from a 'traditional' programming language. The links are helpful in digital formats, but we will also be printing this book and it's harder for those readers to follow hyperlinks :)
-
-> [dethe]: Move all links to endnotes
-
 > You describe the js modules/files that you've decomposed the program into, but not how you arrived at that segmentation / design. The goal of this book is to give our readers examples of how to design software, so some context there would be great.
 
 > Generally, the chapter outline so far feels like it progresses too quickly. We go from "here is a high-level description of block-based programming language" to "here is a listing of all the functions in my implementation".
@@ -19,6 +15,12 @@ Block-based languages have a long history, with some of the prominent ones being
 This particular code is loosely based on the open-source project Waterbear [Waterbear], which is not a language but a tool for wrapping existing languages with a block-based syntax. Advantages of such a wrapper include the ones noted above: Eliminating syntax errors, visual display of available components, blocks are more localizable than programming languages (you can translate the text on blocks more readily than translating a programming language). Additionally visual code can sometimes be easier to read/debug and blocks can be used by pre-typing children. We could even go further and put icons on the blocks, either in conjunction with the text names or instead of them, to allow pre-literate children to write programs, but we don't go that far in this example.
 
 The choice of turtle graphics for this language also goes back to the Logo language, which was created specifically for teaching programming to children. Several of the block-based languages above include turtle graphics, and it is a small enough domain to be able to capture in a tightly constrained project such as this. Later we will see how easy it can be to extend or replace the turtle graphics code with code for other types of programming.
+
+## Goals and Structure
+
+There are a couple of things I want to accomplish with this code. First and foremost, to implement a block language for turtle graphics, where you can write code to create images through simple drag-and-drop of blocks, using as simple a structure of HTML, CSS, and JavaScript as possible. Second, but still important, is to show how the blocks themselves can serve as a framework for other languages besides our mini turtle language.
+
+To do this, we encapsulate everything that is specific to the turtle language into one file (turtle.js) that we can easily swap out with another file. Nothing else should be specific to the turtle language, the rest should just be about handling the blocks (block.js and menu.js) or generally useful web utilities (util.js, drag.js, file.js). That is the goal, although to maintain the small size of the project, some of those utilities are less general purpose and more specific to their use with the blocks.
 
 ## Stepping through the code
 
