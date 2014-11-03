@@ -28,7 +28,7 @@ I've tried to follow some conventions and best practices throughout this project
 
 Aside from `blocks.css` which provides styling (and some help with functionality we'll also explore) and `index.html` to tie everything together, there are six JavaScript files: `blocks.js` defines the block objects and how they work, `drag.js` implements drag-and-drop using HTML5 native drag-and-drop, `file.js` handles loading and saving block scripts (as JSON) as well as loading the examples, `turtle.js` implements our little turtle graphics language and the blocks for it, and `util.js` removes namespaces from some useful browser methods and implements a couple of shortcuts to save us typing (this file has a similar purpose in the project that jQuery has in other projects, but in < 50 lines of code).
 
-The file `menu.js` is a little bit weird: menu in this context is the list of blocks you can choose for your script and this file sets that up and adds a looping block that is generally useful (and thus not part of the turtle language itself) as well as some code for actually running the scripts. So this is kind of an odds-and-ends file, for things that may not have fit anywhere else.
+The file `menu.js` is a little bit weird: menu in this context is not like a drop-down (or pop-up) menu in most applications, but is the list of blocks you can choose for your script and this file sets that up and adds a looping block that is generally useful (and thus not part of the turtle language itself) as well as some code for actually running the scripts. So this is kind of an odds-and-ends file, for things that may not have fit anywhere else.
 
 ### blocks.js
 
@@ -191,21 +191,35 @@ Shorthand for sending a custom event to an element.
 
 Including the turtle.js file is the only thing specific to the turtle language, the rest can be re-used for other block languages.
 
+## Swapping out Turtles
+
+[Put info here about replacing the turtle language]
+
+## Lessons Learned
+
+[What works about this, what would change in a larger system]
+
+* Dragging does not work on mobile
+* Need options for multiple arguments to blocks
+* Ability to create new blocks from existing ones
+* Undo/redo
+* Online sharing
+
 ## References
 
-[Mindstorms]
+[Mindstorms] http://www.lego.com/en-us/mindstorms/
 
-[Alice]
+[Alice] http://www.alice.org/index.php
 
-[StarLogo]
+[StarLogo] http://education.mit.edu/projects/starlogo-tng
 
-[Scratch]
+[Scratch] http://scratch.mit.edu/
 
-[Blockly]
+[Blockly] https://developers.google.com/blockly/
 
-[AppInventor]
+[AppInventor] http://appinventor.mit.edu/explore/
 
-[Tynker]
+[Tynker] http://www.tynker.com/
 
 [Visual Programming] http://en.wikipedia.org/wiki/Visual_programming_language
 
