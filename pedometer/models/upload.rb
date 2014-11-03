@@ -12,6 +12,7 @@ class Upload
 
   def initialize(file_path)
     @file_path = file_path
+    file_name = @file_path.split('/').last.split('.txt').first.split('_')
     @user = User.new(*file_name.first.split('-'))
     @trial = Trial.new(*file_name.last.split('-'))
   end
@@ -35,12 +36,6 @@ class Upload
   def self.all
     file_paths = Dir.glob(File.join(UPLOAD_DIRECTORY, "*"))
     file_paths.map { |file_path| self.new(file_path) }
-  end
-
-private
-
-  def file_name
-    @file_name ||= @file_path.split('/').last.split('.txt').first.split('_')
   end
 
 end
