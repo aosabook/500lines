@@ -20,7 +20,7 @@ class Upload
       @trial = Trial.new(*trial_params.values)
       @file_path = generate_file_path(user, trial)
     else
-      raise 'GAH!'
+      raise 'A file path or user and trial parameters must be provided.'
     end
   end
 

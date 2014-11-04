@@ -6,7 +6,7 @@ require_relative 'analyzer'
 
 class Pipeline
 
-  attr_reader :file_path, :user, :trial, :parser, :processor, :analyzer
+  attr_reader :upload, :parser, :processor, :analyzer
 
   def self.run(upload)
     pipeline = Pipeline.new(upload)
@@ -15,15 +15,13 @@ class Pipeline
   end
 
   def initialize(upload)
-    @file_path = upload.file_path
-    @user      = upload.user
-    @trial     = upload.trial
+    @upload = upload
   end
 
   def feed
-    @parser    = Parser.run(File.read(@file_path))
+    @parser    = Parser.run(File.read(@upload.file_path))
     @processor = Processor.run(@parser.parsed_data)
-    @analyzer  = Analyzer.run(@processor.filtered_data, @user, @trial)
+    @analyzer  = Analyzer.run(@processor.filtered_data, @upload.user, @upload.trial)
   end
 
 end

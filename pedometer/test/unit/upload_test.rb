@@ -4,6 +4,12 @@ require_relative '../../models/upload'
 
 class UploadTest < Test::Unit::TestCase
 
+  def test_new_no_params
+    assert_raise_with_message(RuntimeError, 'A file path or user and trial parameters must be provided.') do
+      Upload.new
+    end
+  end
+
   def test_create
     temp_file = 'test/data/upload-1.txt'
     file_path = 'public/uploads/female-999.0-90.0_foobar-89-10-run.txt'
