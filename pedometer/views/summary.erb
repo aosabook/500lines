@@ -19,7 +19,7 @@
       <td><%= pipeline.user.gender %></td>
       <% if detail_hidden %>
         <td>
-          <a href=<%= "upload/" + Upload.generate_file_path(pipeline.user, pipeline.trial) %>>Detail</a>
+          <a href=<%= "upload/" + pipeline.file_path %>>Detail</a>
         </td>
       <% else %>
         <td><%= format_distance(pipeline.analyzer.distance) %></td>

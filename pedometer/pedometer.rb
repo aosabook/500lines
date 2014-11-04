@@ -23,9 +23,7 @@ end
 
 post '/create' do
   begin
-    user = User.new(*params[:user].values)
-    trial = Trial.new(*params[:trial].values)
-    Upload.create(params[:data][:tempfile], user, trial)
+    Upload.create(params[:data][:tempfile], params[:user], params[:trial])
 
     redirect '/uploads'
   rescue Exception => e

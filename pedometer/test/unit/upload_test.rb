@@ -4,28 +4,27 @@ require_relative '../../models/upload'
 
 class UploadTest < Test::Unit::TestCase
 
-  def test_generate_file_path
-    user = User.new('male', 167.5, 80)
-    trial = Trial.new('test trial 1', 5, '10', 'walk')
-    expected = "public/uploads/male-167.5-80.0_testtrial1-5-10-walk.txt"
-    assert_equal expected, Upload.generate_file_path(user, trial)
-
-    user = User.new
-    trial = Trial.new
-    expected = "public/uploads/--74.0_-100--.txt"
-    assert_equal expected, Upload.generate_file_path(user, trial)
-  end
-
   def test_create
     temp_file = 'test/data/upload-1.txt'
-    user = User.new
-    trial = Trial.new('bar')
+    file_path = 'public/uploads/female-999.0-90.0_foobar-89-10-run.txt'
+    user_params = { 'gender' => 'female', 'height' => '999', 'stride' => '90' }
+    trial_params = { 'name' => 'foo bar', 'rate' => '89', 'steps' => '10', 'method' => 'run' }
 
-    upload = Upload.create(temp_file, user, trial)
+    upload = Upload.create(temp_file, user_params, trial_params)
 
-    assert_equal File.read('public/uploads/--74.0_bar-100--.txt'), File.read(temp_file)
+    assert_equal file_path, upload.file_path
+    assert_equal File.read(file_path), File.read(temp_file)
 
-    rm('public/uploads/--74.0_bar-100--.txt')
+    assert_equal user_params['gender'], upload.user.gender
+    assert_equal user_params['height'].to_f, upload.user.height
+    assert_equal user_params['stride'].to_f, upload.user.stride
+    
+    assert_equal trial_params['name'], upload.trial.name
+    assert_equal trial_params['rate'].to_i, upload.trial.rate
+    assert_equal trial_params['steps'].to_i, upload.trial.steps
+    assert_equal trial_params['method'], upload.trial.method
+
+    rm(file_path)
   end
 
   def test_find
