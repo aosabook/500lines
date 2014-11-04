@@ -7,7 +7,7 @@ include ViewHelper
 get '/uploads' do
   @error = "A #{params[:error]} error has occurred." if params[:error]
   @pipelines = Upload.all.inject([]) do |a, upload|
-    a << Pipeline.new(upload)
+    a << Pipeline.run(upload)
     a
   end
 
@@ -16,7 +16,7 @@ end
 
 get '/upload/*' do |file_path|
   upload = Upload.find(file_path)
-  @pipeline = Pipeline.new(upload)
+  @pipeline = Pipeline.run(upload)
   
   erb :upload
 end

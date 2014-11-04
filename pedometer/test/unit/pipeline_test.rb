@@ -7,7 +7,7 @@ class PipelineTest < Test::Unit::TestCase
   def test_new_combined_data
     file_path = 'test/data/female-167-70_1-100-10-bagwalk.txt'
     upload = Upload.find(file_path)
-    pipeline = Pipeline.new(upload)
+    pipeline = Pipeline.run(upload)
 
     assert_equal upload.user, pipeline.user
     assert_equal upload.trial, pipeline.trial
@@ -32,7 +32,7 @@ class PipelineTest < Test::Unit::TestCase
   def test_new_separated_data
     file_path = 'test/data/female-167-70_2-100-10-bagwalk.txt'
     upload = Upload.find(file_path)
-    pipeline = Pipeline.new(upload)
+    pipeline = Pipeline.run(upload)
     
     assert_equal upload.user, pipeline.user
     assert_equal upload.trial, pipeline.trial

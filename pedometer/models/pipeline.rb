@@ -6,14 +6,24 @@ require_relative 'analyzer'
 
 class Pipeline
 
-  attr_reader :user, :trial, :parser, :processor, :analyzer
+  attr_reader :file_path, :user, :trial, :parser, :processor, :analyzer
+
+  def self.run(upload)
+    pipeline = Pipeline.new(upload)
+    pipeline.feed
+    pipeline
+  end
 
   def initialize(upload)
+    @file_path = upload.file_path
     @user      = upload.user
     @trial     = upload.trial
-    @parser    = Parser.run(File.read(upload.file_path))
+  end
+
+  def feed
+    @parser    = Parser.run(File.read(@file_path))
     @processor = Processor.run(@parser.parsed_data)
-    @analyzer  = Analyzer.run(@processor.filtered_data, user, trial)
+    @analyzer  = Analyzer.run(@processor.filtered_data, @user, @trial)
   end
 
 end
