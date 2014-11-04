@@ -1,17 +1,16 @@
 require 'test/unit'
 require_relative '../../models/pipeline'
+require_relative '../../models/upload'
 
 class PipelineTest < Test::Unit::TestCase
 
   def test_new_combined_data
     file_path = 'test/data/female-167-70_1-100-10-bagwalk.txt'
+    upload = Upload.find(file_path)
+    pipeline = Pipeline.new(upload)
 
-    user = User.new('female', 167, 70)
-    trial = Trial.new('1', 100, 10, 'bagwalk')
-    pipeline = Pipeline.new(file_path, user, trial)
-
-    assert_equal user, pipeline.user
-    assert_equal trial, pipeline.trial
+    assert_equal upload.user, pipeline.user
+    assert_equal upload.trial, pipeline.trial
     assert pipeline.parser
     assert pipeline.processor
     assert pipeline.analyzer
@@ -32,13 +31,11 @@ class PipelineTest < Test::Unit::TestCase
 
   def test_new_separated_data
     file_path = 'test/data/female-167-70_2-100-10-bagwalk.txt'
-
-    user = User.new('female', 167, 70)
-    trial = Trial.new('2', 100, 10, 'bagwalk')
-    pipeline = Pipeline.new(file_path, user, trial)
-
-    assert_equal user, pipeline.user
-    assert_equal trial, pipeline.trial
+    upload = Upload.find(file_path)
+    pipeline = Pipeline.new(upload)
+    
+    assert_equal upload.user, pipeline.user
+    assert_equal upload.trial, pipeline.trial
     assert pipeline.parser
     assert pipeline.processor
     assert pipeline.analyzer
