@@ -1,5 +1,4 @@
-require_relative 'user'
-require_relative 'trial'
+require_relative 'upload'
 require_relative 'parser'
 require_relative 'processor'
 require_relative 'analyzer'
