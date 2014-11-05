@@ -11,31 +11,31 @@ The CAD tool must model how we perceive objects, and draw them to the screen in 
 Thirdly, the CAD tool must offer a way to interact with the object being designed. The user must be able to add to and modify the design in order to produce the desired result.
 
 A domain specific CAD tool offers many additional features for the specific requirements of the domain. For example, an architecture CAD tool would offer physics simulations to test weather and climate stresses on the building, 
-a 3D printing tool would have features that check whether the object is actually valid to print, and electrical CAD tool would simulate the physics of electricity running through copper, and a film special effects suite would
+a 3D printing tool would have features that check whether the object is actually valid to print, an electrical CAD tool would simulate the physics of electricity running through copper, and a film special effects suite would
 include features to accurately simulate pyrokinetics. 
 Additionally, all tools would need a way to save and load designs from disk so that users can collaborate, share, and save their work.
 
-However, at their core, call CAD tools must include the three features discussed above: a data structure to represent the design, the ability to display it to the screen, and a method to interact with the design.
+However, all CAD tools must include at least the three features discussed above: a data structure to represent the design, the ability to display it to the screen, and a method to interact with the design.
 
 With that in mind, let's explore how we can represent a 3D design, display it to the screen, and interact with it, in 500 lines of Python.
 
 ## Rendering as a Guide
 The driving force behind many of the design decisions in a 3D modeller is the rendering process.
-We want to be able to store and render complex objects in our design, but we do not want to have a complicated set of functions to render the design.
+We want to be able to store and render complex objects in our design, but we want to keep the complexity of the rendering code low.
 Let us examine the rendering process, and explore the data structure for the design that allows us to store and draw arbitarily complex objects with simple rendering logic.
 
 ### Managing Interfaces and the Main Loop
-Before we begin rendering, there are a few things we need to set up. First of all, we need to create a window to display our design in. 
+Before we begin rendering, there are a few things we need to set up. First, we need to create a window to display our design in. 
 We use a library called 'GLUT' for this. Secondly, we want to communicate with graphics drivers to render to the screen.
 We would rather not communicate directly with graphics drivers, so we use a cross-platform abstraction layer called OpenGL.
 
 #### OpenGL: Side Note
 OpenGL is a graphical application programming interface for cross-platform development. It's the standard API for developing graphics applications across platforms.
-OpenGL is two major variants: "Legacy OpenGL" and "Modern OpenGL".
+OpenGL has two major variants: "Legacy OpenGL" and "Modern OpenGL".
 
 Rendering in OpenGL is based on polygons defined by vertices and normals. For example, to render one side of a cube, we specify the 4 vertices and the normal of the side.
 
-Legacy OpenGL provides a "fixed function pipeline". By setting global variables, the programmer can enable and disable automatic features such
+Legacy OpenGL provides a "fixed function pipeline". By setting global variables, the programmer can enable and disable automated implementations of features such
 as lighting, coloring, face culling, etc. OpenGL then automatically renders the scene with the enabled functionality. This functionality is deprecated.
 
 Modern OpenGL, on the other hand, features a programmable rendering pipeline where the programmer writes small programs called "shaders" that
@@ -158,13 +158,13 @@ Thank you very much to Dr. Anton Gerdelan for the image. His OpenGL tutorial boo
 
 We let specialized OpenGL functions handle the right hand side of the diagram: conversion from eye space to homogeneous clip space is handled by `gluPerspective`, conversion to Normalized Device Space and Viewport space is handled by `glViewport`. These matrices do not change during program execution.
 Points in the view space are converted into points in 2d using the projection matrix.
-We need to manage the left hand side of the diagram. The matrix which converts points from the model spaces into the world space is called the Model matrix. The matrix which converts from the world space into the eye spaces is called the View matrix.
+We need to manage the left hand side of the diagram ourselves. We define a matrix which converts points from the model spaces into the world space, called the Model matrix. We alse define the View matrix, which converts from the world space into the eye space.
 In this project, we combine these two matrices to obtain the ModelView matrix.
 
 ### Rendering with the Viewer
 The `render` function begins by setting up any of the OpenGL state that needs to be done at render time. It initializes the projection matrix via `init_view` and uses data from the interaction member to initialize the ModelView matrix with the transformation matrix that converts from the scene space to world space. We will see more about the Interaction class below. It clears the screen with `glClear` and it tells the scene to render itself, and then renders the unit grid. 
 
-We disable OpenGL's lighting before rendering the grid. With lighting disabled, OpenGL renders items with solid colors, rather than lighting them. This way, the grid has visual differentiation from the scene.
+We disable OpenGL's lighting before rendering the grid. With lighting disabled, OpenGL renders items with solid colors, rather than simulating a light source. This way, the grid has visual differentiation from the scene.
 Finally, `glFlush` signals to the graphics driver that we are ready for the buffer to be flushed and displayed to the screen.
 
 `````````````````````````````````````````` {.python}
@@ -250,17 +250,17 @@ class Scene(object):
 ``````````````````````````````````````````
 
 ### Nodes
-In the Scene's `render` function, we calling `render` on each of the items in the Scene's `node_list`. But what are the elements
+In the Scene's `render` function, we call `render` on each of the items in the Scene's `node_list`. But what are the elements
 of that list? We call them Nodes. 
-Conceptually, a `Node` is anything that can be placed in the scene. Anything that exists in the design is a `Node`.
+Conceptually, a `Node` is anything that can be placed in the scene.
 In object oriented software, we write `Node` as an abstract base class. Any classes that represent objects to be placed in the `Scene` will inherit from `Node`. 
 This base class allows us to reason about the scene abstractly. 
 The rest of the code base doesn't need to know about the details of the objects it displays, it only needs to know that they are `Node`s. 
 Each type of `Node` defines its own behaviour for rendering itself and for any other necessary interactions.
 The `Node` keeps track of important data about itself: translation matrix, scale matrix, color, etc. Multiplying the Node's translation matrix by
 its scaling matrix gives the transformation matrix from the Node's model coordinate space to the world coordinate space.
-We will see more about Axis Aligned Bounding Boxes (AABBs) when we discuss selection below.
-
+The Node also stores an Axis Aligned Bounding Box (AABB). We'll see more about AABBs when we discuss selection below.
+The simplest concrete implementation of Node is a Primitive. A Primitive is a single solid shape that can be added the scene. In this project, the primitives are Cube and Sphere. 
 `````````````````````````````````````````` {.python}
 class Node(object):
     """ Base class for scene elements """
@@ -312,15 +312,15 @@ class Cube(Primitive):
         super(Cube, self).__init__()
         self.call_list = G_OBJ_CUBE
 ``````````````````````````````````````````
-Rendering Nodes is based on the transformation matrices that each Node stores. The transformation matrix for a Node is the combination of its scaling matrix and it's translation matrix. Regardless of the type of Node, the first step to rendering is to set the 
-OpenGL ModelView matrix to store the transformation matrix to convert from the model coordinate space to the view coordinate space.
+Rendering Nodes is based on the transformation matrices that each Node stores. The transformation matrix for a Node is the combination of its scaling matrix and its translation matrix. Regardless of the type of Node, the first step to rendering is to set the 
+OpenGL ModelView matrix to the transformation matrix converting from the model coordinate space to the view coordinate space.
 Once the OpenGL matrices are up to date, we call `render_self` function to tell the Node to make the necessary OpenGL calls to draw itself. Finally, 
 we undo any changes we made to the OpenGL state for this specific Node.  We use `glPushMatrix` and `glPopMatrix` functions in OpenGL to save and restore 
 the state of the ModelView matrix before and after we render the Node. 
-Notice that the `Node` stores its color, location, and scale, and applies the state to the OpenGL state before rendering.
+Notice that the `Node` stores its color, location, and scale, and applies these to the OpenGL state before rendering.
 If the node is currently selected, we make it emit light. This way, the user has a visual indication of which node they have selected.
 
-The simplest concrete implementation of Node is a Primitive. A Primitive is a single solid shape that can be added the scene. In this project, the primitives are Cube and Sphere. To render primitives, we use the call lists feature from OpenGL. 
+To render primitives, we use the call lists feature from OpenGL. 
 An OpenGL Call List is a series of OpenGL calls that are defined once and bundled together under a name.
 The calls can be dispatched with `glCallList(LIST_NAME)`. Each primitive (`Sphere` and `Cube`) defines the call list required to render it (not shown).
 
@@ -353,6 +353,8 @@ The `render_self` function for heirarchical nodes is no more complicated than ca
 With the HierarchicalNode class, it is very easy to add figures to the scene.
 Now, defining the snow figure is as simple as specifying the shapes that comprise it and their relative positions and sizes.
 
+![The hierarchy of Node subclasses.](nodes.jpg?raw=true)
+
 `````````````````````````````````````````` {.python}
 class HierarchicalNode(Node):
     def __init__(self):
@@ -383,8 +385,6 @@ At each step, it pushes the current modelview matrix onto the stack, and when it
 it pops the matrix off the stack, leaving the parent node's modelview matrix at the top of the stack.
 
 
-![The hierarchy of Node subclasses.](nodes.jpg?raw=true)
-
 By making the `Node` class extensible in this way, we can add new types of shapes to the scene without changing any of the other code for scene
 manipulation and rendering. Using `Node` concept to abstract away the fact that one `Scene` object may have many children is known as the Composite Design Pattern.
 
@@ -399,7 +399,7 @@ To enable user interaction, we need to know when the user presses keys or moves 
 We write functions to interpret key presses and mouse movement, and tell GLUT to call those functions when the corresponding keys are pressed.
 Once we know keys the user is pressing, we need to interpret the input and apply the intended actions to the scene.
 The logic for listening to operating system events and interpreting their meaning is encapsultated in the `Interaction` class.
-The `Viewer` class we wrote earlier, owns the single instance of `Interaction`.
+The `Viewer` class we wrote earlier owns the single instance of `Interaction`.
 We will use the GLUT callback mechanism to register functions to be called when a mouse button is pressed (`glutMouseFunc`), when the mouse is moved (`glutMotionFunc`), when a keyboard button is pressed (`glutKeyboardFunc`), and when the arrow keys are pressed (`glutSpecialFunc`).
 We'll see the functions that handle input events shortly.
 
@@ -431,9 +431,8 @@ class Interaction(object):
 
 #### Operating System Callbacks
 In order to interpret user input as meaningful actions
-on the scene, we need to combine knowledge of the mouse, mouse buttons, and keyboard. Doing so requires storing the current mouse location, the currently pressed mouse button, and the current position and rotation of the
-camera. As you can see, because interpreting user input into meaningful actions requires many lines of code, we encapsulate it in a separate class, away from the main code path.
-The `Interaction` class hides  unrelated complexity from the rest of the codebase and to translate operating system events into application-level events.
+on the scene, we need to combine knowledge of the mouse position, mouse buttons, and keyboard. As you can see, because interpreting user input into meaningful actions requires many lines of code, we encapsulate it in a separate class, away from the main code path.
+The `Interaction` class hides unrelated complexity from the rest of the codebase and translates operating system events into application-level events.
 
 `````````````````````````````````````````` {.python}
     # class Interaction 
@@ -505,7 +504,7 @@ The `Interaction` class hides  unrelated complexity from the rest of the codebas
 In the code snippet above, you will notice that when the Interaction instance interprets a user action, it calls `self.trigger` with a string describing
 the action type. The `trigger` function on the Interaction class is part of a simple callback system that we will use for handling application-level
 events.
-If you recall, the `init_interaction` function on the `Viewer` class registers callbacks on the `Interaction` instance by calling `register_callback`.
+Recall that the `init_interaction` function on the `Viewer` class registers callbacks on the `Interaction` instance by calling `register_callback`.
 
 `````````````````````````````````````````` {.python}
     # class Interaction
@@ -526,9 +525,6 @@ The `Interaction` class acts as a translator between Operating System events and
 This means that if we decided to port the modeller to another toolkit in addition to GLUT, we would only need to replace the `Interaction` class
 with a class that converts the input from the new toolkit into the same set of meaningful application-level callbacks.
 
-This simple callback system provides all of the functionality we need for this project. In a production 3d modeller, however, user interface objects are often created and destroyed dynamically.
-In that case, we would need a more sophisticated event listening system, where objects can both register and un-register callbacks for events.
-
 We use the following callbacks and arguments:
 
 Callback | Arguments | Purpose
@@ -539,6 +535,8 @@ place   | shape:string, x:number, y:number | Places a shape of the specified typ
 rotate_color   | forward:boolean | Rotates the color of the currently selected node through the list of colors, forwards or backwards.
 scale   | up:boolean | Scales the currently selected node up or down, according to parameter.
 
+This simple callback system provides all of the functionality we need for this project. In a production 3d modeller, however, user interface objects are often created and destroyed dynamically.
+In that case, we would need a more sophisticated event listening system, where objects can both register and un-register callbacks for events.
 
 ### Interfacing with the Scene
 With our callback mechanism, we can receive meaningful information about user input events from the `Interaction` class. We are ready to apply these actions to the `Scene`.
@@ -547,7 +545,7 @@ With our callback mechanism, we can receive meaningful information about user in
 In this project, we accomplish camera motion by transforming the scene. In other words, the
 camera is at a fixed location user input moves the scene instead of moving the camera. The camera is placed at `[0, 0, -15]` and
 faces the world space origin. We could alternatively change the perspective matrix to move the camera instead of the scene.
-This design decision has very little impact on the rest of the project. We move the scene instead of the camera because it is the standard practise.
+This design decision has very little impact on the rest of the project.
 Revisiting the `render` function in the `Viewer`, we see that the `Interaction` state is used to transform the OpenGL matrix state before rendering the `Scene`.
 There are two types of interaction with the scene: rotation and translation.
 
@@ -555,7 +553,7 @@ There are two types of interaction with the scene: rotation and translation.
 We accomplish rotation of the scene by using a Trackball algorithm. The trackball is an intuitive interface for manipulating the scene in 3 dimensions.
 Conceptually, a trackball interface functions as if the scene was inside a transparent globe. Placing a hand on the surface of the globe and pushing it rotates the globe. Similarly, clicking the right mouse button and moving it on the screen rotates the scene.
 You can find out more about the theory of the trackball at the [OpenGL Wiki](http://www.opengl.org/wiki/Object_Mouse_Trackball).
-In this project, we use a trackball implementation provided as part of [Glumpy](https://code.google.com/p/glumpy/source/browse/glumpy/trackball.py). It's available in Appendix ??? (TODO: this?).
+In this project, we use a trackball implementation provided as part of [Glumpy](https://code.google.com/p/glumpy/source/browse/glumpy/trackball.py).
 
 We interact with the trackball using the `drag_to` function with starting location of the mouse and the change in mouse location as parameters.
 
@@ -575,7 +573,7 @@ converts the rotation to a matrix.
 ##### Moving the Scene
 Moving the Scene (i.e. translating it) is much simpler than scene rotation. Scene translations are provided with the mouse wheel and the left mouse button. The left mouse
 button translates the scene in the x and y coordinates. Scrolling the mouse wheel translates the scene in the z coordinate
-(towards or away from the camera). The `Interaction` class stores the current camera location and modifies it with the `translate` function.
+(towards or away from the camera). The `Interaction` class stores the current scene translation and modifies it with the `translate` function.
 The viewer retrieves the `Interaction` camera location during rendering to use in a `glTranslated` call.
 
 #### Selecting Scene Objects
@@ -587,9 +585,9 @@ To select an item, we use the current projection matrix to generate a ray that r
 into the scene. The selected node is the closest node to the camera with which the ray intersects.
 Thus the problem of picking reduced to the problem of finding intersections between a ray and Nodes in the scene. So the question is: How do we tell if the ray hits a Node?
 
-Calculating exactly whether a ray intersects with a node is a complicated problem in terms of both complexity of code and of performance. A ray-object intersection check would have to be written for each type of Primitive.
+Calculating exactly whether a ray intersects with a node is a challenging problem in terms of both complexity of code and of performance. We would need to write a ray-object intersection check for each type of Primitive.
 For scene nodes with complex mesh geometries with many faces, calculating exact ray-object intersection would require testing the ray against each face
-and would be extremely computationally expensive.
+and would be computationally expensive.
 
 For the purposes if keeping the code compact and performance reasonable, we use a simple, fast approximation for the ray-object intersection test. 
 In our implementation, each node stores an Axis-Aligned Bounding Box (AABB) which is an approximation of the space it occupies.
@@ -623,7 +621,7 @@ the same code for intersection tests, and it means that the performance cost is 
         self.scene.pick(start, direction, self.modelView)
 ``````````````````````````````````````````
 
-To determine which Node was clicked on, we traverse the scene to test whether the ray hits any Nodes. We choose the Node with the intersection closest to the ray origin and store it as the selected node.
+To determine which Node was clicked on, we traverse the scene to test whether the ray hits any Nodes. We deselect the currently selected node and then choose the Node with the intersection closest to the ray origin.
 
 `````````````````````````````````````````` {.python}
     # class Scene
@@ -678,7 +676,7 @@ ray coordinate space as the third parameter. Each Node applies its own transform
 
 The Ray-AABB selection approach is very simple to understand and implement. However, the results are wrong in certain situations.
 
-For example, in the case of the `Sphere` primitive, the sphere itself only touches the AABB in the centre of each of its planes.
+For example, in the case of the `Sphere` primitive, the sphere itself only touches the AABB in the centre of each of the AABBs faces.
 However if the user clicks on the corner of the Sphere's AABB, the collision will be detected with the Sphere, even if the user intended to click
 past the Sphere onto something behind it.
 ![AABB Error](AABBError.png?raw=true)
@@ -708,7 +706,8 @@ When the `Viewer` receives a callback for one of these events, it calls the appr
 ``````````````````````````````````````````
 
 ##### Changing Color
-Colorization is accomplished with a list of possible colors. The user can cycle through the colors with the arrow keys. The scene dispatches the color selection to the selected node.
+Colorization is accomplished with a list of possible colors. The user can cycle through the list with the arrow keys. The scene dispatches the color change command to
+the currently selected node.
 
 `````````````````````````````````````````` {.python}
     # class Scene
@@ -717,7 +716,7 @@ Colorization is accomplished with a list of possible colors. The user can cycle 
         if self.selected_node is None: return
         self.selected_node.rotate_color(forwards)
 ``````````````````````````````````````````
-Recall that each node stores its current color. The `rotate_color` function simply modifies the current color of the node. The color is passed to OpenGL with `glColor` when the Node is rendered. 
+Each node stores its current color. The `rotate_color` function simply modifies the current color of the node. The color is passed to OpenGL with `glColor` when the Node is rendered. 
 
 `````````````````````````````````````````` {.python}
     # class Node
@@ -763,7 +762,7 @@ def scaling(scale):
 ``````````````````````````````````````````
 
 ##### Moving Nodes
-In order to translate a node, we use the same ray calculation from picking. We pass the ray that represents the current mouse location in to the scene's
+In order to translate a node, we use the same ray calculation we used for picking. We pass the ray that represents the current mouse location in to the scene's
 `move` function. The new location of the Node should be on the ray.
 In order to determine where on the ray to place the Node, we need to know the Node's distance from the camera. Since we stored the Node's location and distance
 from the camera when it was selected (in the `pick` function), we can use that data here.
@@ -803,7 +802,7 @@ As with scale, each node stores a matrix which represents its translation. A tra
 ![Translation Matrix](translate.png?raw=true)
 
 When the node is translated, we construct a new translation matrix for the current translation, and multiply it into the Node's
-translation matrix so that it can be multiplied into the OpenGL matrix state when rendering.
+translation matrix for use during rendering.
 
 `````````````````````````````````````````` {.python}
     # class Node
@@ -861,7 +860,7 @@ Finally, we translate the new node by the calculated vector.
 Congratulations! We've successfully implemented a tiny 3D modeller!
 ![Sample Scene](StartScene.png?raw=true)
 We saw how to develop a exensible data structure to represent the objects in the scene. We noticed that using the Composite design pattern and a tree
-based data structure makes it easy to traverse the scene for rendering and interaction and allows us to add new types of nodes with no added complexity.
+based data structure makes it easy to traverse the scene for rendering  and allows us to add new types of nodes with no added complexity.
 We leveraged this data structure to render the design to the screen, and manipulated OpenGL matrices in the traversal of the scene graph.
 We built a very simple callback system for application-level events, and used it to encapsulate handling of operating system events.
 We discussed possible implementations for ray-object collision detection, and the trade-offs between correctness, complexity, and performance.
@@ -869,7 +868,7 @@ Finally, we implemented methods for manipulating the contents of the scene.
 
 You can expect to find these same basic building blocks in production 3D software. The scene graph structure and relative coordinate spaces are found in 
 many types of 3D graphics applications, from CAD tools to game engines.
-The area where a major simplification was made in this project is in the user interface. A production 3D modeller would be expected to have a
+One major simplification in this project is in the user interface. A production 3D modeller would be expected to have a
 complete user interface, which would necessitate a much more sophisticated events system instead of our simple callback system.
 
 We could do further experimentation to add new features to this project. Try one of these:
