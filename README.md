@@ -168,6 +168,19 @@ Contributors
     <td>&nbsp;</td>
   </tr>
   <tr>
+    <td>Ned Batchelder</td>
+    <td>edX</td>
+    <td>templating engine</td>
+    <td>
+        <ul>
+            <li><a href="http://nedbatchelder.com">nedbatchelder.com</a></li>
+            <li><a href="https://twitter.com/nedbat">@nedbat</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/nedbat">nedbat</a></td>
+    <td>ned@nedbatchelder.com</td>
+  </tr>
+  <tr>
     <td>Leah Hanson</td>
     <td>Google</td>
     <td>static analysis</td>
@@ -190,6 +203,7 @@ Contributors
     </td>
     <td><a href="https://github.com/haz">haz</a></td>
     <td>christian.muise@gmail.com</td>
+  </tr>
   <tr>
     <td>Carlos Scheidegger</td>
     <td>AT&amp;T Research</td>
@@ -201,5 +215,55 @@ Contributors
     </td>
     <td><a href="https://github.com/cscheid">cscheid</a></td>
     <td>carlos.scheidegger@gmail.com</td>
+  </tr>
+  <tr>
+    <td>Marina Samuel</td>
+    <td>Mozilla</td>
+    <td>ocr</td>
+    <td>
+        <ul>
+            <li><a href="http://marinasamuel.com">www.marinasamuel.com</a></li>
+            <li><a href="https://twitter.com/emtwos">@emtwos</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/emtwo">emtwo</a></td>
+    <td>msamuel@mozilla.com</td>
+  </tr>
+  <tr>
+    <td>Cate Huston</td>
+    <td></td>
+    <td>Image Filter app</td>
+    <td>
+        <ul>
+            <li><a href="http://www.accidentallyincode.com/">www.accidentallyincode.com/</a></li>
+            <li><a href="https://twitter.com/catehstn">@catehstn</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/catehstn">catehstn</a></td>
+    <td>catehuston@gmail.com</td>
+  </tr>
+  <tr>
+    <td>Yoav Rubin</td>
+    <td>Microsoft</td>
+    <td>In-memory functional database</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/yoavrubin">@yoavrubin</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/yoavrubin">yoavrubin</a></td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Dessy Daskalov</td>
+    <td>Nudge Rewards</td>
+    <td>Pedometer</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/dess_e">@dess_e</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/dessy">dessy</a></td>
+    <td>dessy.daskalov@gmail.com</td>
   </tr>
 </table>
