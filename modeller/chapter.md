@@ -112,10 +112,9 @@ class Viewer(object):
         sphere_node.color_index = 3
         self.scene.add_node(sphere_node)
 
-        sphere_node_2 = Sphere()
-        sphere_node_2.translate(-2, 0, -2)
-        sphere_node_2.color_index = 1
-        self.scene.add_node(sphere_node_2)
+        hierarchical_node = SnowFigure()
+        hierarchical_node.translate(-2, 0, -2)
+        self.scene.add_node(hierarchical_node)
 
     def init_interaction(self):
         """ init user interaction and callbacks """
@@ -173,9 +172,7 @@ Finally, `glFlush` signals to the graphics driver that we are ready for the buff
         """ The render pass for the scene """
         self.init_view()
 
-        # Enable lighting and color
         glEnable(GL_LIGHTING)
-
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         # Load the modelview matrix from the current state of the trackball
@@ -216,7 +213,6 @@ Finally, `glFlush` signals to the graphics driver that we are ready for the buff
         glTranslated(0, 0, -15)
 
 ``````````````````````````````````````````
-
 ### What to Render: The Scene
 Now that we've initialized the rendering pipeline to handle drawing in the world coordinate space, what are we going to render? Recall that our goal is 
 to have a design consisting of 3D models. We need a data structure to contain the design, and we need use this data structure to render the design.
@@ -711,7 +707,7 @@ the currently selected node.
 
 `````````````````````````````````````````` {.python}
     # class Scene
-    def rotate_color(self, forwards):
+    def rotate_selected_color(self, forwards):
         """ Rotate the color of the currently selected node """
         if self.selected_node is None: return
         self.selected_node.rotate_color(forwards)
@@ -720,7 +716,7 @@ Each node stores its current color. The `rotate_color` function simply modifies 
 
 `````````````````````````````````````````` {.python}
     # class Node
-    def rotate_selected_color(self, forwards):
+    def rotate_color(self, forwards):
         self.color_index += 1 if forwards else -1
         if self.color_index > color.MAX_COLOR:
             self.color_index = color.MIN_COLOR
@@ -843,6 +839,7 @@ Finally, we translate the new node by the calculated vector.
         new_node = None
         if shape == 'sphere': new_node = Sphere()
         elif shape == 'cube': new_node = Cube()
+        elif shape == 'figure': new_node = SnowFigure()
     
         self.add_node(new_node)
     
