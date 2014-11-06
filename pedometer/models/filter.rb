@@ -14,15 +14,15 @@ class Filter
   }
 
   def self.low_0_hz(data)
-    self.chebyshev_filter(data, COEFFICIENTS_LOW_0_HZ)
+    chebyshev_filter(data, COEFFICIENTS_LOW_0_HZ)
   end
 
   def self.low_5_hz(data)
-    self.chebyshev_filter(data, COEFFICIENTS_LOW_5_HZ)
+    chebyshev_filter(data, COEFFICIENTS_LOW_5_HZ)
   end
 
   def self.high_1_hz(data)
-    self.chebyshev_filter(data, COEFFICIENTS_HIGH_1_HZ)
+    chebyshev_filter(data, COEFFICIENTS_HIGH_1_HZ)
   end
 
 private

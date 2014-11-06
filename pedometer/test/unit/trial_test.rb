@@ -20,31 +20,43 @@ class TrialTest < Test::Unit::TestCase
   end
 
   def test_create_with_rate
+    flunk 'Move integer_or_default method to helper'
     assert_equal 100, Trial.new(nil).rate
     assert_equal 100, Trial.new(nil, nil).rate
+    assert_equal 100, Trial.new(nil, '').rate
     assert_equal 100, Trial.new(nil, 'bad rate').rate
+    assert_equal 100, Trial.new(nil, 2.0).rate
+    assert_equal 100, Trial.new(nil, 1.7).rate
+    assert_equal 100, Trial.new(nil, 0.5).rate
+
     assert_equal 100, Trial.new(nil, 0).rate
+    assert_equal 100, Trial.new(nil, '0').rate
+
     assert_equal 100, Trial.new(nil, -1).rate
+    assert_equal 100, Trial.new(nil, '-1').rate
     
     assert_equal 2, Trial.new(nil, '2').rate
     assert_equal 2, Trial.new(nil, 2).rate
-    assert_equal 2, Trial.new(nil, 2.0).rate
-    assert_equal 2, Trial.new(nil, 1.7).rate
-    assert_equal 1, Trial.new(nil, 1.2).rate
   end
 
   def test_create_with_steps
+    flunk 'Move integer_or_default method to helper'
+    assert_nil Trial.new(nil, nil).steps
     assert_nil Trial.new(nil, nil, nil).steps
     assert_nil Trial.new(nil, nil, '').steps
-    
+    assert_nil Trial.new(nil, nil, 'bad steps').steps
+    assert_nil Trial.new(nil, nil, 2.0).steps
+    assert_nil Trial.new(nil, nil, 1.7).steps
+    assert_nil Trial.new(nil, nil, 0.5).steps
+
     assert_equal 0, Trial.new(nil, nil, 0).steps
     assert_equal 0, Trial.new(nil, nil, '0').steps
     
     assert_nil Trial.new(nil, nil, -1).steps
     assert_nil Trial.new(nil, nil, '-1').steps
 
-    assert_equal 10, Trial.new(nil, nil, 10).steps
-    assert_equal 1,  Trial.new(nil, nil, 0.5).steps
+    assert_equal 2, Trial.new(nil, nil, '2').steps
+    assert_equal 2, Trial.new(nil, nil, 2).steps
   end
 
 end

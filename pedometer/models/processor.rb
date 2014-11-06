@@ -5,7 +5,7 @@ class Processor
   attr_reader :dot_product_data, :filtered_data
 
   def self.run(data)
-    processor = self.new(data)
+    processor = Processor.new(data)
     processor.dot_product
     processor.filter
     processor

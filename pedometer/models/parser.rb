@@ -5,7 +5,7 @@ class Parser
   attr_reader :parsed_data
 
   def self.run(data)
-    parser = self.new(data)
+    parser = Parser.new(data)
     parser.parse
     parser
   end
