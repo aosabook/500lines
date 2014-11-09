@@ -7,10 +7,6 @@ import Queue
 import random
 import threading
 
-# data types
-Proposal = namedtuple('Proposal', ['caller', 'client_id', 'input'])
-Ballot = namedtuple('Ballot', ['n', 'leader'])
-
 # message types
 Accepted = namedtuple('Accepted', ['slot', 'ballot_num'])
 Accept = namedtuple('Accept', ['slot', 'ballot_num', 'proposal'])
@@ -28,16 +24,19 @@ Preempted = namedtuple('Preempted', ['slot', 'preempted_by'])
 Adopted = namedtuple('Adopted', ['ballot_num', 'accepted_proposals'])
 Accepting = namedtuple('Accepting', ['leader'])
 
-# constants - all of these should really be in terms of average round-trip time
+# constants - these times should really be in terms of average round-trip time
 JOIN_RETRANSMIT = 0.7
 CATCHUP_INTERVAL = 0.6
 ACCEPT_RETRANSMIT = 1.0
 PREPARE_RETRANSMIT = 1.0
 INVOKE_RETRANSMIT = 0.5
 LEADER_TIMEOUT = 1.0
-
 NULL_BALLOT = Ballot(-1, -1)  # sorts before all real ballots
 NOOP_PROPOSAL = Proposal(None, None, None)  # no-op to fill otherwise empty slots
+
+# data types
+Proposal = namedtuple('Proposal', ['caller', 'client_id', 'input'])
+Ballot = namedtuple('Ballot', ['n', 'leader'])
 
 class Component(object):
 

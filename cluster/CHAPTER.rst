@@ -37,6 +37,8 @@ Operations such as "transfer" or "get-balance", together with their parameters (
 
 The state machine for this application is simple:
 
+.. code-block:: python
+
     def execute_operation(state, operation):
         if operation.name == 'transfer':
             if state.accounts[operation.source_account] < operation.amount:
@@ -152,9 +154,6 @@ Introducing Cluster
 
 The "Cluster" library in this chapter implements a simple form of Multi-Paxos.
 It is designed as a library to provide a consensus service to a larger application.
-The application creates and starts a ``Member`` object on each cluster member, providing an application-specific state machine and a list of peers.
-The application accesses the shared state through the ``invoke`` method, which kicks off a proposal for a state transition.
-Once that proposal is decided and the state machine runs, ``invoke`` returns the machine's output.
 
 Users of this library will depend on its correctness, so it's important to structure the code so that we can see -- and test -- its correspondance to the specification.
 Complex protocols can exhibit complex failures, too, so we will build support for reproducing and debugging rare failures.
@@ -162,10 +161,57 @@ Complex protocols can exhibit complex failures, too, so we will build support fo
 Message Types
 -------------
 
-Cluster's protocol uses 15 different message types.
+Cluster's protocol uses 15 different message types, each defined as a Python ``namedtuple``.
 Using named tuples to describe each message type keeps the code clean and helps avoid some simple errors.
 The named tuple constructor will raise an exception if it is not given exactly the right attributes, making typos obvious.
 The tuples format themselves nicely in log messages, and as an added bonus don't use as much memory as a dictionary.
+
+{{{ from_to cluster.py '# message types' '^$'
+.. code-block:: python
+
+    Accepted = namedtuple('Accepted', ['slot', 'ballot_num'])
+    Accept = namedtuple('Accept', ['slot', 'ballot_num', 'proposal'])
+    Decision = namedtuple('Decision', ['slot', 'proposal'])
+    Invoked = namedtuple('Invoked', ['client_id', 'output'])
+    Invoke = namedtuple('Invoke', ['caller', 'client_id', 'input_value'])
+    Join = namedtuple('Join', [])
+    Active = namedtuple('Active', [])
+    Prepare = namedtuple('Prepare', ['ballot_num'])
+    Promise = namedtuple('Promise', ['ballot_num', 'accepted_proposals'])
+    Propose = namedtuple('Propose', ['slot', 'proposal'])
+    Welcome = namedtuple('Welcome', ['state', 'slot', 'decisions'])
+    Decided = namedtuple('Decided', ['slot'])
+    Preempted = namedtuple('Preempted', ['slot', 'preempted_by'])
+    Adopted = namedtuple('Adopted', ['ballot_num', 'accepted_proposals'])
+    Accepting = namedtuple('Accepting', ['leader'])
+    
+}}}
+
+The code also introduces a few constants, most of which define timeouts for various messages:
+
+{{{ from_to cluster.py '# constants' '^$'
+.. code-block:: python
+
+    JOIN_RETRANSMIT = 0.7
+    CATCHUP_INTERVAL = 0.6
+    ACCEPT_RETRANSMIT = 1.0
+    PREPARE_RETRANSMIT = 1.0
+    INVOKE_RETRANSMIT = 0.5
+    LEADER_TIMEOUT = 1.0
+    NULL_BALLOT = Ballot(-1, -1)  # sorts before all real ballots
+    NOOP_PROPOSAL = Proposal(None, None, None)  # no-op to fill otherwise empty slots
+    
+}}}
+
+Finally, Cluster uses two named data types, named to correspond to the protocol description:
+
+{{{ from_to cluster.py '# data types' '^$'
+.. code-block:: python
+
+    Proposal = namedtuple('Proposal', ['caller', 'client_id', 'input'])
+    Ballot = namedtuple('Ballot', ['n', 'leader'])
+    
+}}}
 
 Component Model
 ---------------
@@ -176,12 +222,114 @@ Instead, we break Cluster down into a handful of components, implemented as subc
 Each class is responsible for a different part of the protocol.
 The division of the components is based on the set of protocol roles described in (Renesse, 2011).
 
+{{{ code_block cluster.py 'class Component'
+.. code-block:: python
+
+    class Component(object):
+    
+        def __init__(self, node):
+            self.node = node
+            self.node.register(self)
+            self.running = True
+            self.logger = node.logger.getChild(type(self).__name__)
+    
+        def set_timer(self, seconds, callback):
+            return self.node.network.set_timer(self.node.address, seconds,
+                                               lambda: self.running and callback())
+    
+        def stop(self):
+            self.running = False
+            self.node.unregister(self)
+    
+}}}
+
 The components are glued together by the ``Node`` class, which represents a single node on the network.
 Components are added to and removed from the node as execution proceeds.
 Messages that arrive on the node are relayed to all active components, calling a method named after the message type with a ``do_`` prefix.
 These ``do_`` methods receive the message's attributes as keyword arguments for easy access.
+The ``Node`` class also provides a ``send`` method as a convenience, using ``functools.partial`` to supply some arguments to the same methods of the ``Network`` class.
 
-The ``Node`` class also provides some convenience methods, using ``functools.partial`` to supply some arguments to the same methods of the ``Network`` class.
+{{{ code_block cluster.py 'class Node'
+.. code-block:: python
+
+    class Node(object):
+        unique_ids = itertools.count()
+    
+        def __init__(self, network, address):
+            self.network = network
+            self.address = address or 'N%d' % self.unique_ids.next()
+            self.logger = SimTimeLogger(logging.getLogger(self.address), {'network': self.network})
+            self.logger.info('starting')
+            self.components = []
+            self.send = functools.partial(self.network.send, self)
+    
+        def register(self, component):
+            self.components.append(component)
+    
+        def unregister(self, component):
+            self.components.remove(component)
+    
+        def receive(self, sender, message):
+            handler_name = 'do_%s' % type(message).__name__
+    
+            for comp in self.components[:]:
+                if not hasattr(comp, handler_name):
+                    continue
+                comp.logger.debug("received %s from %s", message, sender)
+                fn = getattr(comp, handler_name)
+                fn(sender=sender, **message._asdict())
+    
+}}}
+
+..
+    this comment helps vim highlight correctly**
+
+Application Interface
+---------------------
+
+The application creates and starts a ``Member`` object on each cluster member, providing an application-specific state machine and a list of peers.
+The member object creates a ``Bootstrap`` if it is joining an existing cluster, or a ``Seed`` component if it is creating a new cluster, and runs the protocol (via ``Network.run``) in a separate thread.
+
+The application interacts with the cluster through the ``invoke`` method, which kicks off a proposal for a state transition.
+Once that proposal is decided and the state machine runs, ``invoke`` returns the machine's output.
+The method uses a simple Queue to wait for the result from the protocol thread.
+
+{{{ code_block cluster.py 'class Member'
+.. code-block:: python
+
+    class Member(object):
+    
+        def __init__(self, state_machine, network, peers, seed=None,
+                     seed_cls=Seed, bootstrap_cls=Bootstrap):
+            self.network = network
+            self.node = network.new_node()
+            if seed is not None:
+                self.component = seed_cls(self.node, initial_state=seed, peers=peers,
+                                          execute_fn=state_machine)
+            else:
+                self.component = bootstrap_cls(self.node, execute_fn=state_machine, peers=peers)
+            self.current_request = None
+    
+        def start(self):
+            self.component.start()
+            self.thread = threading.Thread(target=self.network.run)
+            self.thread.start()
+    
+        def invoke(self, input_value, request_cls=Request):
+            assert self.current_request is None
+            q = Queue.Queue()
+            self.current_request = request_cls(self.node, input_value, q.put)
+            self.current_request.start()
+            output = q.get()
+            self.current_request = None
+            return output
+    
+}}}
+
+Components
+----------
+
+Let's look at each of the components of the library, one by one.
 
 Acceptor
 ........
@@ -190,6 +338,36 @@ The ``Acceptor`` class illustrates the component model well.
 It implements the acceptor role in the protocol, so it must store the ballot number representing its most recent promise, along with the set of accepted proposals for each slot.
 It then responds to ``Prepare`` and ``Accept`` messages according to the protocol.
 The result is a short class that is easy to compare to the protocol.
+
+{{{ code_block cluster.py 'class Acceptor'
+.. code-block:: python
+
+    class Acceptor(Component):
+    
+        def __init__(self, node):
+            super(Acceptor, self).__init__(node)
+            self.ballot_num = NULL_BALLOT
+            self.accepted_proposals = {}  # {slot: (ballot_num, proposal)}
+    
+        def do_Prepare(self, sender, ballot_num):
+            if ballot_num > self.ballot_num:
+                self.ballot_num = ballot_num
+                # we've heard from a scout, so it might be the next leader
+                self.node.send([self.node.address], Accepting(leader=sender))
+    
+            self.node.send([sender], Promise(ballot_num=self.ballot_num, accepted_proposals=self.accepted_proposals))
+    
+        def do_Accept(self, sender, ballot_num, slot, proposal):
+            if ballot_num >= self.ballot_num:
+                self.ballot_num = ballot_num
+                acc = self.accepted_proposals
+                if slot not in acc or acc[slot][0] < ballot_num:
+                    acc[slot] = (ballot_num, proposal)
+    
+            self.node.send([sender], Accepted(
+                slot=slot, ballot_num=self.ballot_num))
+    
+}}}
 
 Replica
 .......
@@ -230,6 +408,116 @@ Each replica tracks the active leader using three sources of information:
 Finally, when a node joins the network, the bootstrap component sends a ``Join`` message.
 The replica responds with a ``Welcome`` message containing its most recent state, allowing the new node to come up to speed quickly.
 
+{{{ code_block cluster.py 'class Replica'
+.. code-block:: python
+
+    class Replica(Component):
+    
+        def __init__(self, node, execute_fn, state, slot, decisions, peers):
+            super(Replica, self).__init__(node)
+            self.execute_fn = execute_fn
+            self.state = state
+            self.slot = slot
+            self.decisions = decisions.copy()
+            self.peers = peers
+            self.proposals = {}
+            # next slot num for a proposal (may lead slot)
+            self.next_slot = slot
+            self.latest_leader = None
+            self.latest_leader_timeout = None
+    
+        # making proposals
+    
+        def do_Invoke(self, sender, caller, client_id, input_value):
+            proposal = Proposal(caller, client_id, input_value)
+            slot = next((s for s, p in self.proposals.iteritems() if p == proposal), None)
+            # propose, or re-propose if this proposal already has a slot
+            self.propose(proposal, slot)
+    
+        def propose(self, proposal, slot=None):
+            """Send (or resend, if slot is specified) a proposal to the leader"""
+            if not slot:
+                slot, self.next_slot = self.next_slot, self.next_slot + 1
+            self.proposals[slot] = proposal
+            # find a leader we think is working - either the latest we know of, or
+            # ourselves (which may trigger a scout to make us the leader)
+            leader = self.latest_leader or self.node.address
+            self.logger.info("proposing %s at slot %d to leader %s" % (proposal, slot, leader))
+            self.node.send([leader], Propose(slot=slot, proposal=proposal))
+    
+        # handling decided proposals
+    
+        def do_Decision(self, sender, slot, proposal):
+            assert not self.decisions.get(self.slot, None), \
+                    "next slot to commit is already decided"
+            if slot in self.decisions:
+                assert self.decisions[slot] == proposal, \
+                    "slot %d already decided with %r!" % (slot, self.decisions[slot])
+                return
+            self.decisions[slot] = proposal
+            self.next_slot = max(self.next_slot, slot + 1)
+    
+            # re-propose our proposal in a new slot if it lost its slot and wasn't a no-op
+            our_proposal = self.proposals.get(slot)
+            if our_proposal is not None and our_proposal != proposal and our_proposal.caller:
+                self.propose(our_proposal)
+    
+            # execute any pending, decided proposals
+            while True:
+                commit_proposal = self.decisions.get(self.slot)
+                if not commit_proposal:
+                    break  # not decided yet
+                commit_slot, self.slot = self.slot, self.slot + 1
+    
+                self.commit(commit_slot, commit_proposal)
+    
+        def commit(self, slot, proposal):
+            """Actually commit a proposal that is decided and in sequence"""
+            decided_proposals = [p for s, p in self.decisions.iteritems() if s < slot]
+            if proposal in decided_proposals:
+                self.logger.info("not committing duplicate proposal %r at slot %d", proposal, slot)
+                return  # duplicate
+    
+            self.logger.info("committing %r at slot %d" % (proposal, slot))
+            if proposal.caller is not None:
+                # perform a client operation
+                self.state, output = self.execute_fn(self.state, proposal.input)
+                self.node.send([proposal.caller], Invoked(client_id=proposal.client_id, output=output))
+    
+        # tracking the leader
+    
+        def do_Adopted(self, sender, ballot_num, accepted_proposals):
+            self.latest_leader = self.node.address
+            self.leader_alive()
+    
+        def do_Accepting(self, sender, leader):
+            self.latest_leader = leader
+            self.leader_alive()
+    
+        def do_Active(self, sender):
+            if sender != self.latest_leader:
+                return
+            self.leader_alive()
+    
+        def leader_alive(self):
+            if self.latest_leader_timeout:
+                self.latest_leader_timeout.cancel()
+    
+            def reset_leader():
+                idx = self.peers.index(self.latest_leader)
+                self.latest_leader = self.peers[(idx + 1) % len(self.peers)]
+                self.logger.debug("leader timed out; tring the next one, %s", self.latest_leader)
+            self.latest_leader_timeout = self.set_timer(LEADER_TIMEOUT, reset_leader)
+    
+        # adding new cluster members
+    
+        def do_Join(self, sender):
+            if sender in self.peers:
+                self.node.send([sender], Welcome(
+                    state=self.state, slot=self.slot, decisions=self.decisions))
+    
+}}}
+
 Leader, Scout, and Commander
 ............................
 
@@ -257,6 +545,159 @@ It responds to the leader with either ``Decided`` or ``Preempted``.
     The replica's catch-up process could not find the result, as no replica had heard of the decision.
     The solution was to ensure that local messages are always delivered, as is the case for real network stacks.
 
+{{{ code_block cluster.py 'class Leader'
+.. code-block:: python
+
+    class Leader(Component):
+    
+        def __init__(self, node, peers, commander_cls=Commander, scout_cls=Scout):
+            super(Leader, self).__init__(node)
+            self.ballot_num = Ballot(0, node.address)
+            self.active = False
+            self.proposals = {}
+            self.commander_cls = commander_cls
+            self.scout_cls = scout_cls
+            self.scouting = False
+            self.peers = peers
+    
+        def start(self):
+            # reminder others we're active before LEADER_TIMEOUT expires
+            def active():
+                if self.active:
+                    self.node.send(self.peers, Active())
+                self.set_timer(LEADER_TIMEOUT / 2.0, active)
+            active()
+    
+        def spawn_scout(self):
+            assert not self.scouting
+            self.scouting = True
+            self.scout_cls(self.node, self.ballot_num, self.peers).start()
+    
+        def do_Adopted(self, sender, ballot_num, accepted_proposals):
+            self.scouting = False
+            self.proposals.update(accepted_proposals)
+            # note that we don't re-spawn commanders here; if there are undecided
+            # proposals, the replicas will re-propose
+            self.logger.info("leader becoming active")
+            self.active = True
+    
+        def spawn_commander(self, ballot_num, slot):
+            proposal = self.proposals[slot]
+            self.commander_cls(self.node, ballot_num, slot, proposal, self.peers).start()
+    
+        def do_Preempted(self, sender, slot, preempted_by):
+            if not slot:  # from the scout
+                self.scouting = False
+            self.logger.info("leader preempted by %s", preempted_by.leader)
+            self.active = False
+            self.ballot_num = Ballot((preempted_by or self.ballot_num).n + 1, self.ballot_num.leader)
+    
+        def do_Propose(self, sender, slot, proposal):
+            if slot not in self.proposals:
+                if self.active:
+                    self.proposals[slot] = proposal
+                    self.logger.info("spawning commander for slot %d" % (slot,))
+                    self.spawn_commander(self.ballot_num, slot)
+                else:
+                    if not self.scouting:
+                        self.logger.info("got PROPOSE when not active - scouting")
+                        self.spawn_scout()
+                    else:
+                        self.logger.info("got PROPOSE while scouting; ignored")
+            else:
+                self.logger.info("got PROPOSE for a slot already being proposed")
+    
+}}}
+
+{{{ code_block cluster.py 'class Scout'
+.. code-block:: python
+
+    class Scout(Component):
+    
+        def __init__(self, node, ballot_num, peers):
+            super(Scout, self).__init__(node)
+            self.ballot_num = ballot_num
+            self.accepted_proposals = {}
+            self.acceptors = set([])
+            self.peers = peers
+            self.quorum = len(peers) / 2 + 1
+            self.retransmit_timer = None
+    
+        def start(self):
+            self.logger.info("scout starting")
+            self.send_prepare()
+    
+        def send_prepare(self):
+            self.node.send(self.peers, Prepare(ballot_num=self.ballot_num))
+            self.retransmit_timer = self.set_timer(PREPARE_RETRANSMIT, self.send_prepare)
+    
+        def update_accepted(self, accepted_proposals):
+            acc = self.accepted_proposals
+            for slot, (ballot_num, proposal) in accepted_proposals.iteritems():
+                if slot not in acc or acc[slot][0] < ballot_num:
+                    acc[slot] = (ballot_num, proposal)
+    
+        def do_Promise(self, sender, ballot_num, accepted_proposals):
+            if ballot_num == self.ballot_num:
+                self.logger.info("got matching promise; need %d" % self.quorum)
+                self.update_accepted(accepted_proposals)
+                self.acceptors.add(sender)
+                if len(self.acceptors) >= self.quorum:
+                    # strip the ballot numbers from self.accepted_proposals, now that it
+                    # represents a majority
+                    accepted_proposals = dict((s, p) for s, (b, p) in self.accepted_proposals.iteritems())
+                    # We're adopted; note that this does *not* mean that no other leader is active.
+                    # Any such conflicts will be handled by the commanders.
+                    self.node.send([self.node.address],
+                                   Adopted(ballot_num=ballot_num, accepted_proposals=accepted_proposals))
+                    self.stop()
+            else:
+                # this acceptor has promised another leader a higher ballot number, so we've lost
+                self.node.send([self.node.address], Preempted(slot=None, preempted_by=ballot_num))
+                self.stop()
+    
+}}}
+
+{{{ code_block cluster.py 'class Commander'
+.. code-block:: python
+
+    class Commander(Component):
+    
+        def __init__(self, node, ballot_num, slot, proposal, peers):
+            super(Commander, self).__init__(node)
+            self.ballot_num = ballot_num
+            self.slot = slot
+            self.proposal = proposal
+            self.acceptors = set([])
+            self.peers = peers
+            self.quorum = len(peers) / 2 + 1
+    
+        def start(self):
+            self.node.send(set(self.peers) - self.acceptors, Accept(
+                                slot=self.slot, ballot_num=self.ballot_num, proposal=self.proposal))
+            self.set_timer(ACCEPT_RETRANSMIT, self.start)
+    
+        def finished(self, ballot_num, preempted):
+            if preempted:
+                self.node.send([self.node.address], Preempted(slot=self.slot, preempted_by=ballot_num))
+            else:
+                self.node.send([self.node.address], Decided(slot=self.slot))
+            self.stop()
+    
+        def do_Accepted(self, sender, slot, ballot_num):
+            if slot != self.slot:
+                return
+            if ballot_num == self.ballot_num:
+                self.acceptors.add(sender)
+                if len(self.acceptors) < self.quorum:
+                    return
+                self.node.send(self.peers, Decision(slot=self.slot, proposal=self.proposal))
+                self.finished(ballot_num, False)
+            else:
+                self.finished(ballot_num, True)
+    
+}}}
+
 
 Bootstrap
 .........
@@ -267,6 +708,41 @@ The bootstrap component handles this by sending ``Join`` messages to each peer i
 An early version of the implementation started each node with a full set of components (replica, leader, and acceptor), each of which began in a "startup" phase, waiting for information from the ``Welcome`` message.
 This spread the initialization logic around every component, requiring separate testing of each one.
 The final design has the bootstrap component creating each of the other components once startup is complete, passing the initial state to their constructors.
+
+{{{ code_block cluster.py 'class Bootstrap'
+.. code-block:: python
+
+    class Bootstrap(Component):
+    
+        def __init__(self, node, peers, execute_fn,
+                     replica_cls=Replica, acceptor_cls=Acceptor, leader_cls=Leader,
+                     commander_cls=Commander, scout_cls=Scout):
+            super(Bootstrap, self).__init__(node)
+            self.execute_fn = execute_fn
+            self.peers = peers
+            self.peers_cycle = itertools.cycle(peers)
+            self.replica_cls = replica_cls
+            self.acceptor_cls = acceptor_cls
+            self.leader_cls = leader_cls
+            self.commander_cls = commander_cls
+            self.scout_cls = scout_cls
+    
+        def start(self):
+            self.join()
+    
+        def join(self):
+            self.node.send([next(self.peers_cycle)], Join())
+            self.set_timer(JOIN_RETRANSMIT, self.join)
+    
+        def do_Welcome(self, sender, state, slot, decisions):
+            self.acceptor_cls(self.node)
+            self.replica_cls(self.node, execute_fn=self.execute_fn, peers=self.peers,
+                             state=state, slot=slot, decisions=decisions)
+            self.leader_cls(self.node, peers=self.peers, commander_cls=self.commander_cls,
+                            scout_cls=self.scout_cls).start()
+            self.stop()
+    
+}}}
 
 Seed
 ....
@@ -284,11 +760,77 @@ Exactly one node in the cluster runs the seed component, with the others running
 The seed waits until it has received ``Join`` messages from a majority of its peers, then sends a ``Welcome`` with an initial state for the state machine and an empty set of decisions.
 The seed component then stops itself and starts a bootstrap component to join the newly-seeded cluster.
 
+{{{ code_block cluster.py 'class Seed'
+.. code-block:: python
+
+    class Seed(Component):
+    
+        def __init__(self, node, initial_state, execute_fn, peers, bootstrap_cls=Bootstrap):
+            super(Seed, self).__init__(node)
+            self.initial_state = initial_state
+            self.execute_fn = execute_fn
+            self.peers = peers
+            self.bootstrap_cls = bootstrap_cls
+            self.seen_peers = set([])
+            self.exit_timer = None
+    
+        def do_Join(self, sender):
+            self.seen_peers.add(sender)
+            if len(self.seen_peers) <= len(self.peers) / 2:
+                return
+    
+            # cluster is ready - welcome everyone
+            self.node.send(list(self.seen_peers), Welcome(
+                state=self.initial_state, slot=1, decisions={}))
+    
+            # stick around for long enough that we don't hear any new JOINs from
+            # the newly formed cluster
+            if self.exit_timer:
+                self.exit_timer.cancel()
+            self.exit_timer = self.set_timer(JOIN_RETRANSMIT * 2, self.finish)
+    
+        def finish(self):
+            # hand over this node to a bootstrap component
+            bs = self.bootstrap_cls(self.node, peers=self.peers, execute_fn=self.execute_fn)
+            bs.start()
+            self.stop()
+    
+}}}
+
 Request
 .......
 
 The request component manages a request to the distributed state machine.
 The component simply sends ``Invoke`` messages to the local replica until it receives a corresponding ``Invoked``.
+
+{{{ code_block cluster.py 'class Request'
+.. code-block:: python
+
+    class Request(Component):
+    
+        client_ids = itertools.count(start=100000)
+    
+        def __init__(self, node, n, callback):
+            super(Request, self).__init__(node)
+            self.client_id = self.client_ids.next()
+            self.n = n
+            self.output = None
+            self.callback = callback
+    
+        def start(self):
+            self.node.send([self.node.address], Invoke(caller=self.node.address,
+                                                       client_id=self.client_id, input_value=self.n))
+            self.invoke_timer = self.set_timer(INVOKE_RETRANSMIT, self.start)
+    
+        def do_Invoked(self, sender, client_id, output):
+            if client_id != self.client_id:
+                return
+            self.logger.debug("received output %r" % (output,))
+            self.invoke_timer.cancel()
+            self.callback(output)
+            self.stop()
+    
+}}}
 
 Network
 -------
@@ -306,6 +848,76 @@ We again use ``functools.partial`` to set up a future call to the destination no
 
 Running the simulation just involves popping timers from the heap and executing them if they have not been cancelled and if the destination node is still active.
 
+{{{ code_block cluster.py 'class Timer'
+.. code-block:: python
+
+    class Timer(object):
+    
+        def __init__(self, expires, address, callback):
+            self.expires = expires
+            self.address = address
+            self.callback = callback
+            self.cancelled = False
+    
+        def __cmp__(self, other):
+            return cmp(self.expires, other.expires)
+    
+        def cancel(self):
+            self.cancelled = True
+    
+}}}
+
+{{{ code_block cluster.py 'class Network'
+.. code-block:: python
+
+    class Network(object):
+        PROP_DELAY = 0.03
+        PROP_JITTER = 0.02
+        DROP_PROB = 0.05
+    
+        def __init__(self, seed):
+            self.nodes = {}
+            self.rnd = random.Random(seed)
+            self.timers = []
+            self.now = 1000.0
+    
+        def new_node(self, address=None):
+            node = Node(self, address=address)
+            self.nodes[node.address] = node
+            return node
+    
+        def run(self):
+            while self.timers:
+                next_timer = self.timers[0]
+                if next_timer.expires > self.now:
+                    self.now = next_timer.expires
+                heapq.heappop(self.timers)
+                if next_timer.cancelled:
+                    continue
+                if not next_timer.address or next_timer.address in self.nodes:
+                    next_timer.callback()
+    
+        def stop(self):
+            self.timers = []
+    
+        def set_timer(self, address, seconds, callback):
+            timer = Timer(self.now + seconds, address, callback)
+            heapq.heappush(self.timers, timer)
+            return timer
+    
+        def send(self, sender, destinations, message):
+            sender.logger.debug("sending %s to %s", message, destinations)
+            for dest in (d for d in destinations if d in self.nodes):
+                if dest == sender.address:
+                    # reliably deliver local messages with no delay
+                    self.set_timer(sender.address, 0, lambda: sender.receive(sender.address, message))
+                elif self.rnd.uniform(0, 1.0) > self.DROP_PROB:
+                    delay = self.PROP_DELAY + self.rnd.uniform(-self.PROP_JITTER, self.PROP_JITTER)
+                    self.set_timer(dest, delay, functools.partial(self.nodes[dest].receive,
+                                                                  sender.address, message))
+    
+}}}
+
 Debugging Support
 -----------------
 
@@ -319,6 +931,20 @@ This means that we can add additional debugging checks or output to the code and
 
 Of course, much of that detail is in the messages sent and received by the different nodes and components, so those are automatically logged in their entirety.
 That logging includes the component sending or receiving the message, as well as the simulated timestamp, injected via the ``SimTimeLogger`` class.
+
+{{{ code_block cluster.py 'class SimTimeLogger'
+.. code-block:: python
+
+    class SimTimeLogger(logging.LoggerAdapter):
+    
+        def process(self, msg, kwargs):
+            return "T=%.3f %s" % (self.extra['network'].now, msg), kwargs
+    
+        def getChild(self, name):
+            return self.__class__(self.logger.getChild(name),
+                                  {'network': self.extra['network']})
+    
+}}}
 
 A resilient protocol such as this one can often run for a long time after some bug has been triggered.
 For example, during development, a data aliasing error caused all replicas to share the same ``decisions`` dictionary.
@@ -353,13 +979,17 @@ Unit Testing
 
 The unit tests for Cluster (all of which are availble in the book's Github repository) are simple and short:
 
-.. code-block::
+{{{ code_block test/test_leader.py 'class Tests' 'def test_propose_active'
+.. code-block:: python
 
-    def test_propose_active(self):
-        """A PROPOSE received while active spawns a commander."""
-        self.activate_leader()
-        self.node.fake_message(Propose(slot=10, proposal=PROPOSAL1))
-        self.assertCommanderStarted(Ballot(0, 'F999'), 10, PROPOSAL1)
+    class Tests(utils.ComponentTestCase):
+        def test_propose_active(self):
+            """A PROPOSE received while active spawns a commander."""
+            self.activate_leader()
+            self.node.fake_message(Propose(slot=10, proposal=PROPOSAL1))
+            self.assertCommanderStarted(Ballot(0, 'F999'), 10, PROPOSAL1)
+    
+}}}
 
 This method tests a single behavior (commander spawning) of a single unit (the ``Leader`` class).
 It follows the well-known "arrange, act, assert" pattern: set up an active leader, send it a message, and check the result.
@@ -371,18 +1001,34 @@ We use a technique called "dependency injection" to handle creation of new compo
 Each component which creates other components takes a list of class objects as constructor arguments, defaulting to the actual classes.
 For example, ``Leader``'s constructor looks like
 
-.. code-block::
+{{{ code_block cluster.py 'class Leader' 'def __init__'
+.. code-block:: python
 
-    def __init__(self, node, peers, commander_cls=Commander, scout_cls=Scout):
-        # ..
-        self.commander_cls = commander_cls
-        self.scout_cls = scout_cls
+    class Leader(Component):
+        def __init__(self, node, peers, commander_cls=Commander, scout_cls=Scout):
+            super(Leader, self).__init__(node)
+            self.ballot_num = Ballot(0, node.address)
+            self.active = False
+            self.proposals = {}
+            self.commander_cls = commander_cls
+            self.scout_cls = scout_cls
+            self.scouting = False
+            self.peers = peers
+    
+}}}
 
-The ``spawn_scout`` method (and, similarly, ``spawn_commander``) create the new component with
+The ``spawn_scout`` method (and, similarly, ``spawn_commander``) create the new component with ``self.scout_cls``:
 
-.. code-block::
+{{{ code_block cluster.py 'class Leader' 'def spawn_scout'
+.. code-block:: python
 
-    sct = self.scout_cls(self.node, self.ballot_num, self.peers)
+    class Leader(Component):
+        def spawn_scout(self):
+            assert not self.scouting
+            self.scouting = True
+            self.scout_cls(self.node, self.ballot_num, self.peers).start()
+    
+}}}
 
 The magic of this technique is that, in testing, ``Leader`` can be given stub classes and thus tested separately from ``Scout`` and ``Commander``.
 
