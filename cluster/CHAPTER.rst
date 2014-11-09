@@ -218,7 +218,7 @@ Likewise, it's possible for the same proposal to be decided twice.
 The replica skips invoking the state machine for any such duplicate proposals, performing no transition for that slot.
 
 Replicas need to know which node is the active leader in order to send ``Propose`` messages to it.
-There is a surprising amount of subtlty required to get this right, as we'll see later.
+There is a surprising amount of subtlety required to get this right, as we'll see later.
 Each replica tracks the active leader using three sources of information:
 
 * When the leader component becomes active, it sends an ``Adopted`` message to its local replica.
