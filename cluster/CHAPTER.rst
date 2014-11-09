@@ -40,7 +40,11 @@ The state machine for this application is simple:
 .. code-block:: python
 
     def execute_operation(state, operation):
-        if operation.name == 'transfer':
+        if operation.name == 'deposit':
+            if not verify_signature(operation.deposit_signature):
+                return state, False
+            state.accounts[operation.destination_account] += operation.amount
+        elif operation.name == 'transfer':
             if state.accounts[operation.source_account] < operation.amount:
                 return state, False
             state.accounts[operation.source_account] -= operation.amount
@@ -74,11 +78,12 @@ To implement a distributed state machine, we use MultiPaxos to agree on each sta
 Simple Paxos
 ------------
 
-So let's start with "Simple Paxos", also known as the Synod protocol, which provides a way to agree on a single value.
+So let's start with "Simple Paxos", also known as the Synod protocol, which provides a way to agree on a single value that can never change.
 The name Paxos comes from the mythical island in "The Part-Time Parliament", where lawmakers vote on legislation through a process Lamport dubbed a Synod.
 
-The algorithm is a building block for more complex algorithms, so we'll set aside the bank example for the moment and use Simple Paxos to agree on today's lottery number.
-This problem involves consensus on a single value: while there may be another lottery drawing next week, *today's* lottery number, once decided, will never change.
+The algorithm is a building block for more complex algorithms, as we'll see below.
+The single value we'll agree on in this example is the 15th transaction processed by our hypothetical bank.
+While the bank will process transactions every day, the 15th transaction will only occur once and never change, so we can use Simple Paxos to agree on its details.
 
 The protocol operates in a series of ballots, each led by a single member of the cluster, called the proposer.
 Each ballot has a unique ballot number based on an integer and the proposer's identity.
@@ -96,10 +101,10 @@ Otherwise, it sends the value from the highest-numbered ballot.
 Unless it would violate a promise, each acceptor records the value from the ``Accept`` message as accepted and replies with an ``Accepted`` message.
 The ballot is complete and the value decided when the proposer has heard its ballot number from a majority of acceptors.
 
-Returning to the example, initially no other value has been accepted, so the acceptors all send back a ``Promise`` with no value, and the proposer sends an ``Accept`` containing its value, 7-3-22.
+Returning to the example, initially no other value has been accepted, so the acceptors all send back a ``Promise`` with no value, and the proposer sends an ``Accept`` containing its value, say ``operation(name='deposit', amount=100.00, destination_account='Michael DiBernardo')``.
 
-If another proposer later initiates lower-numbered ballot, the acceptors will not accept it.
-If that ballot has a larger ballot number, then the ``Promise`` from the acceptors will contain 7-3-22, and the proposer will send that value in the ``Accept`` message.
+If another proposer later initiates a ballot with a lower ballot number and a different operation (say, a transfer to acount ``'Dustin J. Mitchell'``), the acceptors will simply not accept it.
+If that ballot has a larger ballot number, then the ``Promise`` from the acceptors will inform the proposer about Michael's $100.00 deposit operation, and the proposer will send that value in the ``Accept`` message instead of the transfer to Dustin.
 The new ballot will be accepted, but in favor of the same value as the first ballot.
 
 In fact, the protocol will never allow two different values to be decided, even if the ballots overlap, messages are delayed, or a minority of acceptors fail.

@@ -1,9 +1,6 @@
 From Oct 5
 ----------
 
-Example:
- - use the bank example throughout
-
 Diagrams:
  - node types and relationships between them
  - list of message types at "Message Types"
