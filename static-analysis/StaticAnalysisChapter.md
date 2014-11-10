@@ -1,7 +1,9 @@
 # Static Analysis
 by Leah Hanson for *500 Lines or Less*
 
-Static Analysis is a way to check for problems in your code without running it. "Static" means at compile-time, rather than at run-time, and "analysis" because we're analyzing the code. To implement a static analysis check, you need to now what you want to do and how to do it.
+You may be familiar with a fancy IDE that draws red-underlines under parts of your code that don't compile. You may have run a linter on your code to check for formatting or style problems. You might run your compiler in super-picky mode with all the warnings turned on. All of these tools are applications of static analysis.
+
+Static Analysis is a way to check for problems in your code without running it. "Static" means at compile-time, rather than at run-time, and "analysis" because we're analyzing the code. When you've used the tools I mentioned above, it may have felt like magic. But those tools are just programs -- they are made of source code that was written by a person, a programmer like you. In this chapter, we're going to talk about how to implement a couple static analysis checks. In order to do this, we need to now what we want the check to do and how we want to do it.
 
 We can get more specific about what you need to know by describing the process as having three stages:
 
@@ -44,7 +46,9 @@ This code defines a method of the function `increment` that takes one argument, 
 
 `Int64` is a type whose values are signed integers represented in memory by 64 bits; they are the integers that your hardware understands if your computer has a 64-bit processor. Types in Julia define the representation of data in memory, in addition to influencing method dispatch.
 
-The name `increment` refers to a generic function, which may have many methods. We have just defined one method of it. Let's define another:
+The name `increment` refers to a generic function, which may have many methods. We have just defined one method of it. In many languages, the terms "function" and "method" are used interchangeably; in Julia, they have distinct meanings. This chapter will make more sense if you are careful to understand "function" as a named collection of methods, where "method"s are specific implementations for specific type signatures.
+
+Let's define another method of the `increment` function:
 
 ~~~jl
 # Increment x by y
@@ -62,7 +66,9 @@ Now the function `increment` has two methods. Julia decides which method to run 
 * *multiple* because it looks at the types and order of all the arguments.
 * *dispatch* because this is a way of matching function calls to method definitions.
 
-To put this in context with languages you may already know, object-oriented languages use single dispatch because they only consider the first argument (In `x.foo(y)`, the first argument is `x`.)
+To put this in context with languages you may already know, object-oriented languages use single dispatch because they only consider the first argument (In `x.foo(y)`, the first argument is `x`).
+
+Both single and multiple dispatch are based on the types of the arguments. The `x::Int64` above is a type annotation purely for dispatch. In Julia's dynamic type system, you could assign a value of any type to `x` during the function without an error.
 
 We haven't really seen the "multiple" part yet, but if you're curious about Julia, you'll have to look that up on your own. We need to move on to our first check.
 
@@ -85,7 +91,7 @@ function increment(x::Int64)
 end
 ~~~
 
-This function looks pretty straight-forward, but the type of `x` is unstable. I selected two numbers 50, an `Int64`, and 0.5, a `Float64`; depending on the value of `x`, it might be added to either one of them. At the end of this function, `return x` might return an `Int64` or it might return a `Float64`. This is because of the `else` clause; if you add an `Int64`, like `22`, to `0.5`, which is a `Float64`, then you'll get a `Float64` (`22.5`).
+This function looks pretty straight-forward, but the type of `x` is unstable. I selected two numbers 50, an `Int64`, and 0.5, a `Float64`; depending on the value of `x`, it might be added to either one of them. If you add an `Int64`, like `22`, to `0.5`, which is a `Float64`, then you'll get a `Float64` (`22.5`). Because the type of a variable in the function (`x`) could change depending on the value of the arguments to the function (`x`), this method of `increment` and specifically the variable `x` are type unstable.
 
 `Float64` is a type that represents floating-point values stored in 64 bits; in C, it is called a `double`. This is one of the floating-point types that 64-bit processors understand.
 
@@ -164,9 +170,13 @@ The new `unstable` allocated about 320kb, which is what we would expect if the a
 
 This difference between `unstable` and `stable` is because `unstable`'s `sum` must be boxed while `stable`'s `sum` can be unboxed. Boxed values consist of a type tag and the actual bits that represent the value; unboxed values only have their actual bits. The type tag is small, so that's not why boxing values allocates a lot more memory.
 
-The difference comes from what optimizations the compiler can make. When a variable has a concrete, immutable type, the compiler can unbox it inside the function. If that's not the case, then the variable must be allocated on the heap, and participate in the garbage collector. Immutable types are usually types that represent values, rather than collections of values; most numeric types, including `Int64` and `Float64`, are immutable. Because immutable types cannot be modified, you must make a new copy every time you change one. For example `4 + 6` must make a new `Int64` to hold the result. In contrast, the members of a mutable type can be updated in-place; this means you don't have to make a copy of the whole thing to make a change.
+The difference comes from what optimizations the compiler can make. When a variable has a concrete, immutable type, the compiler can unbox it inside the function. If that's not the case, then the variable must be allocated on the heap, and participate in the garbage collector. Immutable types are a concept specific to Julia. When you make a value of a type that's immutable, the value can't be changed.
 
-Because `sum` in `stable` has a concrete type (`Flaot64`), the compiler know that it can store it unboxed locally in the function and mutate it's value; `sum` will not be allocated on the heap and new copies don't have to be made every time we add `i/2`.
+Immutable types are usually types that represent values, rather than collections of values. For example, most numeric types, including `Int64` and `Float64`, are immutable. (Numeric types in Julia are normal types, not special primitive types; you could define a new `MyInt64` that's the same as the provided one.) Because immutable types cannot be modified, you must make a new copy every time you want change one. For example `4 + 6` must make a new `Int64` to hold the result. In contrast, the members of a mutable type can be updated in-place; this means you don't have to make a copy of the whole thing to make a change.
+
+The idea of `x = x + 2` allocating memory probably sounds pretty weird; why would you make such a basic operation slow by making `Int64`s immutable? This is where those compiler optimizations come in: using immutable types doesn't (usually) slow this down. If `x` has a stable, concrete type (such as `Int64`), then the compiler is free to allocate `x` on the stack and mutate `x` in place. The problem is only when `x` has an unstable type (so the compiler doesn't know how big or what type it will be); once `x` is boxed and on the heap, the compiler isn't complete sure that some other piece of code isn't using the value, and thus can't edit it.
+
+Because `sum` in `stable` has a concrete type (`Float64`), the compiler knows that it can store it unboxed locally in the function and mutate its value; `sum` will not be allocated on the heap and new copies don't have to be made every time we add `i/2`.
 
 Because `sum` in `unstable` does not have a concrete type, the compiler allocates it on the heap. Every time we modify sum, we allocated a new value on the heap. All this time spent allocating values on the heap (and retrieving them every time we want to read the value of `sum`) is expensive.
 
@@ -174,14 +184,18 @@ Using `0` vs `0.0` is an easy mistake to make, especially when you're new to Jul
 
 ## Implementation Details
 
-The type of `sum` in `unstable` is `Union(Float64,Int64)`. This is a `UnionType`. A variable of type `Union(Float64,Int64)` can hold values of type `Int64` or `Float64`; a value can only have one of those types. A `UnionType` join any number of types (e.g. `UnionType(Float64, Int64, Int32)` joins three types). The specific thing that we're going to look for is `UnionType`d variables inside loops.
-
 We'll need to find what variables are used inside of loops and we'll need to find the types of those variables. After we have those results, we'll need to decide how to print them in a human-readable format.
 
 * How do we find loops?
 * How do we find variables in loops?
 * How do we find the types of a variable?
 * How do we print the results?
+* How do we tell if the type is unstable?
+
+I'm going to tackle the last question first, since this whole endevour hinges on it. We've looked at an unstable function and seen as programmers how to identify an unstable variable, but we need our program to find them. This sounds like it would require simulating the function to look for variables whose values might change; this sounds like it would take some work. Luckily for us, Julia's type inference already traces through the function's execution to determine the types.
+
+The type of `sum` in `unstable` is `Union(Float64,Int64)`. This is a `UnionType`, a special type of type that indicates the variable may hold any of a set of types of values. A variable of type `Union(Float64,Int64)` can hold values of type `Int64` or `Float64`; a value can only have one of those types. A `UnionType` join any number of types (e.g. `UnionType(Float64, Int64, Int32)` joins three types). The specific thing that we're going to look for is `UnionType`d variables inside loops.
+Parsing code into a representative structure is a complicated business, and gets more complicated as the language grows. In this chapter, we'll be depending on internal data structures used by the compiler. This means that we don't have to worry about reading files or parsing them, but it does mean we have to work with data structures that are not in our control and that sometimes feel clumsy or ugly.
 
 Parsing code into a representative structure is a complicated business, and gets more complicated as the language grows. In this chapter, we'll be depending on internal data structures used by the compiler. This means that we don't have to worry about reading files or parsing them, but it does mean we have to work with data structures that are not in our control and that sometimes feel clumsy or ugly.
 
@@ -191,7 +205,7 @@ This process of examining Julia code from Julia code is called introspection. Wh
 
 ### Introspection in Julia
 
-Julia makes it easy to introspect. There are four functions built-in to let us see what that compiler is thinking: `code_lowered`, `code_typed`, `code_llvm`, and `code_native`. Those are listed in order of what step in the compilation process their output is from; the left-most one is closest to the code we'd type in and the right-most one is the closest to what the CPU runs. For this chapter, we'll focus on `code_typed`, which gives us the optimized, type-inferred abstract syntax tree (AST).
+Julia makes it easy to introspect. There are four functions built-in to let us see what that compiler is thinking: `code_lowered`, `code_typed`, `code_llvm`, and `code_native`. Those are listed in order of what step in the compilation process their output is from; the left-most one is closest to the code we'd type in and the right-most one is the closest to what the CPU runs. For this chapter, we'll focus on `code_typed`, which gives us the optimized, type-inferred abstract syntax tree (AST). [TODO: point to other 500 lines chapters that use ASTs]
 
 `code_typed` takes two arguments: the function of interest, and a tuple of argument types. For example, if we wanted to see the AST for a function `foo` when called with two `Int64`s, then we would call `code_typed(foo, (Int64,Int64))`.
 
@@ -394,7 +408,8 @@ end
 
 And now to explain in pieces:
 
-1.  ~~~.jl
+1. 
+~~~.jl
 b = body(e)
 ~~~
 
@@ -454,11 +469,11 @@ end
 
     If we're at a GotoNode, then we check to see if it's the end of a loop. If so, we remove the entry from loops and reduce our nesting level.
 
-^TODO: Let's look at what we get from this!
+The result of this function is the `lines` array; that's an array of (index, value) tuples. This means that each value in the array has an index into the method-body-`Expr`'s body and the value at that index. Each element of `lines` is an expression that occurred inside a loop.
 
 ### Finding and Typing Variables
 
-We just finished a function `loopcontents`, which returns the `Expr`s that are inside loops. Our next function will be `loosetypes`, which takes a list of `Expr`s and returns a list of variables that are loosely typed. Later, we'll pass the output of `loopcontents` into `loosetypes`.
+We just finished the function `loopcontents`, which returns the `Expr`s that are inside loops. Our next function will be `loosetypes`, which takes a list of `Expr`s and returns a list of variables that are loosely typed. Later, we'll pass the output of `loopcontents` into `loosetypes`.
 
 In each expression that occurred inside a loop, `loosetypes` searches for occurrences of symbols and their associated types. Variable usages show up as `SymbolNode`s in the AST; `SymbolNode`s hold the name and inferred type of the variable.
 
@@ -526,9 +541,7 @@ end
 
 ### Making This Usable
 
-Now that we can do the check on an expression, we should make it easier to call on a users's code:
-
-Now we have two ways to call `checklooptypes`:
+Now that we can do the check on an expression, we should make it easier to call on a users's code. We'll create two ways to call `checklooptypes`:
 
 1. On a whole function; this will check each method of the given function.
 
@@ -868,24 +881,6 @@ check_locals(f::Callable) = all([check_locals(e) for e in code_typed(f)])
 check_locals(e::Expr) = isempty(unused_locals(e))
 ~~~
 
-# Making a Analysis Pipeline
+# Conclusion
 
-Now that we have multiple checks to run, we'd like to be able to run them on all our code automatically. We want that to happen automatically every time we compile or make a pull request; we also want to be able to request that it happen -- at a press-just-one-button level of convenience.
-
-We also want to make it easy for other people to use our checks with their tools, regardless of it they use the same tools as us.
-
-In this section, we're going to write an interface that makes it easy to runs all the available checks over a given piece of code. This will allow other tools to easily interface with our analysis. Each text editor or other display tool will need to write a little glue code to call our interface, but it should be relatively minimal.
-
-~~~.jl
-const checks = [check_locals, check_loops]
-function runchecks(e::Expr)
-  output = Any[]
-  for c in checks
-    push!(output, c(e))
-  end
-  return output
-end
-  
-* A common interface
-* Printing output
-* How to add new checks
+We've just done two distinct analyses of Julia code by writing Julia code. Hopefully, your new understanding of how static analysis tools are written will help you understand the tools you use on your code, and maybe inspire your to write one of your own.
