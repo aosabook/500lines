@@ -657,10 +657,6 @@ Like a scout, a commander sends and re-sends ``Accept`` messages and waits for a
 When a proposal is accepted, the commander broadcasts a ``Decision`` message to all nodes.
 It responds to the leader with either ``Decided`` or ``Preempted``.
 
-Leader, Scout, and Commander
-............................
-
-
 .. code-block:: None
                            Commander      ---------      Acceptor        Acceptor        Acceptor
                                *--->>----/ Accept /---------+---------------+---------------+
@@ -981,6 +977,22 @@ See the "Replica" section, above, for this role's communication diagram.
             self.stop()
     
 }}}
+
+Summary
+.......
+
+To recap, cluster's roles are:
+
+ * Acceptor -- make promises and accept proposals
+ * Replica -- manage the distributed state machine, submitting proposals, committing decisions, and responding to requesters
+ * Leader -- lead rounds of the multi-paxos algorithm
+ * Scout -- perform the ``Prepare``/``Promise`` portion of the mult-paxos algorithm for a leader
+ * Commander -- perform the ``Accept``/``Accepted`` portion of the mult-paxos algorithm for a leader
+ * Bootstrap -- introduce a new node to an existing cluster
+ * Seed -- create a new cluster
+ * Requester -- request a distributed state machine operation
+
+There is just one more piece of equipment required to make Cluster go: the network through which all of the nodes communicate.
 
 Network
 -------

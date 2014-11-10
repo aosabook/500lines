@@ -8,5 +8,4 @@ Detail:
 Editing:
  - Transition at "Introducing Cluster"
  - "The application accesses the shared state through .." unclear
- - Transition after components (Network/------)
  - at "Interactive debuggers", also hard to debug over multiple machines
