@@ -87,9 +87,39 @@ While the bank will process transactions every day, the 15th transaction will on
 
 The protocol operates in a series of ballots, each led by a single member of the cluster, called the proposer.
 Each ballot has a unique ballot number based on an integer and the proposer's identity.
-The proposer's goal is to get a majority of cluster members to accept its value, but only if another value has not already been decided.
+The proposer's goal is to get a majority of cluster members, acting as acceptors, to accept its value, but only if another value has not already been decided.
 
-A ballot begins with the proposer sending a ``Prepare`` message with the ballot number *N* to the acceptors and waiting to hear from a majority.
+A single ballot looks like this:
+
+.. code-block:: none
+
+    Proposer      -------------------------     Acceptor        Acceptor        Acceptor
+       *--->>----/ Prepare(ballot_num=..) /--------+---------------+---------------+
+       :         -------------------------         :               :               :
+       :    -----------------------------------    :               :               :
+       +---/ Promise(ballot_num=.., value=..) /-<<-*               :               :
+       :   -----------------------------------                     :               :
+       :            -----------------------------------            :               :
+       +-----------/ Promise(ballot_num=.., value=..) /-----<<-----*               :
+       :           -----------------------------------                             :
+       :                    -----------------------------------                    :
+       +-------------------/ Promise(ballot_num=.., value=..) /---------<<---------*
+       :                   -----------------------------------      
+       :
+       :       -----------------------------------
+       *--->>--/ Accept(ballot_num=.., value=..) /-+---------------+---------------+
+       :      -----------------------------------  :               :               :
+       :        --------------------------         :               :               :
+       +-------/ Accepted(ballot_num=..) /---<<----*               :               :
+       :       --------------------------                          :               :
+       :                --------------------------                 :               :
+       +---------------/ Accepted(ballot_num=..) /-------<<--------*               :
+       :               --------------------------                                  :
+       :                        --------------------------                         :
+       +-----------------------/ Accepted(ballot_num=..) /-----------<<------------*
+                               --------------------------      
+
+The ballot begins with the proposer sending a ``Prepare`` message with the ballot number *N* to the acceptors and waiting to hear from a majority.
 
 The ``Prepare`` message is a request for the accepted value (if any) with the highest ballot number less than *N*.
 Acceptors respond with a ``Promise`` containing any value they have already accepted, and promising not to accept any ballot numbered less than *N* in the future.
@@ -97,7 +127,8 @@ If the acceptor has already made a promise for a larger ballot number, it includ
 
 When the proposer has heard back from a majority of the acceptors, it sends an ``Accept`` message, including the ballot number and value to all acceptors.
 If the proposer did not receive any existing value from any acceptor, then it sends its own desired value.
-Otherwise, it sends the value from the highest-numbered ballot.
+Otherwise, it sends the value from the highest-numbered promise.
+
 Unless it would violate a promise, each acceptor records the value from the ``Accept`` message as accepted and replies with an ``Accepted`` message.
 The ballot is complete and the value decided when the proposer has heard its ballot number from a majority of acceptors.
 
@@ -344,6 +375,8 @@ The ``Acceptor`` implements the acceptor role in the protocol, so it must store 
 It then responds to ``Prepare`` and ``Accept`` messages according to the protocol.
 The result is a short class that is easy to compare to the protocol.
 
+For acceptors, Multi Paxos looks a lot like simple paxos, with the addition of slot numbers to the messages.
+
 {{{ code_block cluster.py 'class Acceptor'
 .. code-block:: python
 
@@ -385,12 +418,28 @@ The ``Replica`` class is the most complicated role class, as it has a few closel
 * Adding newly started nodes to the cluster.
 
 The replica creates new proposals in response to ``Invoke`` messages from clients, selecting what it believes to be an unused slot and sending a ``Propose`` message to the current leader.
-Furthermore, if the consensus for the selected slot is for a different proposal, the replic must re-propose with a new slot.
+Furthermore, if the consensus for the selected slot is for a different proposal, the replica must re-propose with a new slot.
+
+.. code-block:: none
+
+                                Local
+    Request      ---------     Replica                  Current
+       *--->>---/ Invoke /--------+                      Leader
+                ---------         :         ----------
+                                  *--->>---/ Propose /-----+
+                                           ----------      :
+                                                     (multi-paxos)
+                                           -----------     :
+                                  +-------/ Decision /-<<--*
+                 ----------       :       -----------
+       *--------/ Invoked /---<<--*
+       :        ----------
 
 ``Decision`` messages represent slots on which the cluster has come to consensus.
 Here, replicas store the new decision, then run the state machine until it reaches an undecided slot.
 Replicas distinguish *decided* slots, on which the cluster has agreed, from *committed* slots, which the local state machine has processed.
 When slots are decided out of order, the committed proposals may lag behind, waiting for the next slot to be decided.
+When a slot is committed, each replica sends an ``Invoked`` message back to the requester with the result of the operation.
 
 In some circumstances, it's possible for a slot to have no active proposals and no decision.
 The state machine is required to execute slots one by one, so the cluster much reach a consensus on something to fill the slot.
@@ -404,14 +453,53 @@ Replicas need to know which node is the active leader in order to send ``Propose
 There is a surprising amount of subtlety required to get this right, as we'll see later.
 Each replica tracks the active leader using three sources of information:
 
-* When the leader role becomes active, it sends an ``Adopted`` message to its local replica.
+* When the leader role becomes active, it sends an ``Adopted`` message to the replica on the same node.
+
+  .. code-block:: None
+
+                                  Local 
+      Leader      ----------     Replica
+        *--->>---/ Adopted /--------+
+                 ----------
+
 * When the acceptor role sends a ``Promise`` to a new leader, it sends an ``Accepting`` message to its local replica.
+
+  .. code-block:: None
+
+                                    Local 
+      Acceptor     ------------    Replica
+          *--->>--/ Accepting /-------+
+                  ------------
+
 * The active leader sends ``Active`` messages as a heartbeat.
   If no such message arrives before the ``LEADER_TIMEOUT`` expires, the replica assumes the leader is dead and moves on to the next leader.
   In this case, it's important that all replicas choose the *same* new leader, which we accomplish by sorting the members and selecting the next one in the list.
 
+  .. code-block:: None
+
+      Leader      ---------    Replica   Replica   Replica
+         *--->>--/ Active /-------+---------+---------+
+                 ---------
+
+
 Finally, when a node joins the network, the bootstrap role sends a ``Join`` message.
 The replica responds with a ``Welcome`` message containing its most recent state, allowing the new node to come up to speed quickly.
+
+.. code-block:: None
+
+    Bootstrap   -------    Replica   Replica   Replica
+        *-->>--/ Join /-------+---------+---------+
+        :      -------        :         :         :
+        :     ----------      :         :         :
+        +----/ Welcome /--<<--*         :         :
+             ----------                 :         :
+                   ----------           :         :
+        +---------/ Welcome /----<<-----*         :
+                  ----------                      :
+                        ----------                :
+        +--------------/ Welcome /------<<--------*
+                       ----------
+
 
 {{{ code_block cluster.py 'class Replica'
 .. code-block:: python
@@ -532,14 +620,49 @@ An active leader can immediately send an ``Accept`` message in response to a ``P
 
 In keeping with the class-per-role model, the leader delegates to the scout and commander roles to carry out each portion of the protocol.
 
-The leader creates a scout role when it wants to become active, in response to receiving a ``Propose``.
+The leader creates a scout role when it wants to become active, in response to receiving a ``Propose`` when it is inactive.
 The scout sends (and re-sends, if necessary) a ``Prepare`` message, and collects ``Promise`` responses until it has heard from a majority of its peers or until it has been preempted.
 It communicates the result back to the leader with an ``Adopted`` or ``Preempted`` message, respectively.
+
+.. code-block:: None
+
+                             Scout        ----------     Acceptor        Acceptor        Acceptor
+                               *--->>----/ Prepare /--------+---------------+---------------+
+                               :         ----------         :               :               :
+                               :       ----------           :               :               :
+                               +------/ Promise /----<<-----*               :               :
+                               :      ----------                            :               :
+                               :                  ----------                :               :
+                               +-----------------/ Promise /-------<<-------*               :
+                               :                 ----------                                 :
+                               :                              ----------                    :
+                               +-----------------------------/ Promise /---------<<---------*
+    Leader    ----------       :                             ---------- 
+      +------/ Adopted /---<<--*
+             ----------   
 
 The leader creates a commander role for each slot where it has an active proposal.
 Like a scout, a commander sends and re-sends ``Accept`` messages and waits for a majority of acceptors to reply with ``Accepted``, or for news of its preemption.
 When a proposal is accepted, the commander broadcasts a ``Decision`` message to all nodes.
 It responds to the leader with either ``Decided`` or ``Preempted``.
+
+Leader, Scout, and Commander
+............................
+
+                           Commander      ---------      Acceptor        Acceptor        Acceptor
+                               *--->>----/ Accept /---------+---------------+---------------+
+                               :         ---------          :               :               :
+                               :       -----------          :               :               :
+                               +------/ Accepted /---<<-----*               :               :
+                               :      -----------                           :               :
+                               :                  -----------               :               :
+                               +-----------------/ Accepted /------<<-------*               :
+                               :                 -----------                                :
+                               :                              -----------                   :
+                               +-----------------------------/ Accepted /--------<<---------*
+    Leader    ----------       :                             -----------
+      +------/ Decided /---<<--*
+             ----------   
 
 .. note::
 
@@ -709,6 +832,7 @@ Bootstrap
 
 When a node joins the cluster, it must determine the current cluster state before it can participate.
 The bootstrap role handles this by sending ``Join`` messages to each peer in turn until it receives a ``Welcome``.
+Bootstrap's communication diagram is shown above in the "Replica" section.
 
 An early version of the implementation started each node with a full set of roles (replica, leader, and acceptor), each of which began in a "startup" phase, waiting for information from the ``Welcome`` message.
 This spread the initialization logic around every role, requiring separate testing of each one.
@@ -765,6 +889,8 @@ Exactly one node in the cluster runs the seed role, with the others running boot
 The seed waits until it has received ``Join`` messages from a majority of its peers, then sends a ``Welcome`` with an initial state for the state machine and an empty set of decisions.
 The seed role then stops itself and starts a bootstrap role to join the newly-seeded cluster.
 
+Seed emulates the ``Join``/``Welcome`` part of the bootstrap - replica interaction, so its communication diagram is the same as for the replica role.
+
 {{{ code_block cluster.py 'class Seed'
 .. code-block:: python
 
@@ -807,6 +933,7 @@ Request
 
 The request role manages a request to the distributed state machine.
 The role class simply sends ``Invoke`` messages to the local replica until it receives a corresponding ``Invoked``.
+See the "Replica" section, above, for this role's communication diagram.
 
 {{{ code_block cluster.py 'class Request'
 .. code-block:: python

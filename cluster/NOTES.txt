@@ -1,10 +1,6 @@
 From Oct 5
 ----------
 
-Diagrams:
- - node types and relationships between them
- - interaction diagrams for each bunch of message types
-
 Detail:
  - example of no decision being made in simple paxos
  - examples of message type implementation (at "Using named tuples to
@@ -18,3 +14,4 @@ Editing:
  - define "network partition"
  - Transition after components (Network/------)
  - at "Interactive debuggers", also hard to debug over multiple machines
+ - s/Request/Requester/g
