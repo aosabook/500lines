@@ -163,8 +163,8 @@ It is designed as a library to provide a consensus service to a larger applicati
 Users of this library will depend on its correctness, so it's important to structure the code so that we can see -- and test -- its correspondance to the specification.
 Complex protocols can exhibit complex failures, too, so we will build support for reproducing and debugging rare failures.
 
-Message Types
--------------
+Types and Constants
+-------------------
 
 Cluster's protocol uses 15 different message types, each defined as a Python ``namedtuple``.
 Using named tuples to describe each message type keeps the code clean and helps avoid some simple errors.
@@ -192,6 +192,7 @@ The tuples format themselves nicely in log messages, and as an added bonus don't
     
 }}}
 
+We'll see what these messages mean in the sections tha follow.
 The code also introduces a few constants, most of which define timeouts for various messages:
 
 {{{ from_to cluster.py '# constants' '^$'
@@ -331,8 +332,8 @@ The method uses a simple Queue to wait for the result from the protocol thread.
     
 }}}
 
-Components
-----------
+Role Classes
+------------
 
 Let's look at each of the role classes in the library, one by one.
 

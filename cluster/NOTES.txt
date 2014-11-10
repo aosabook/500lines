@@ -3,7 +3,6 @@ From Oct 5
 
 Diagrams:
  - node types and relationships between them
- - list of message types at "Message Types"
  - interaction diagrams for each bunch of message types
 
 Detail:
