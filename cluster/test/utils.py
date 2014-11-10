@@ -25,7 +25,7 @@ class ComponentTestCase(unittest.TestCase):
         self.assertEqual(self.node.network.get_times(), times)
 
     def assertUnregistered(self):
-        self.assertEqual(self.node.components, [])
+        self.assertEqual(self.node.roles, [])
 
     def verifyAcceptedProposals(self, accepted_proposals):
         """Verify that the ``accepted_proposals`` field of a promise is formatted

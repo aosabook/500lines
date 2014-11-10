@@ -3,7 +3,7 @@ import mock
 import unittest
 
 
-class TestComp(Component):
+class TestComp(Role):
     join_called = False
 
     def do_Join(self, sender):

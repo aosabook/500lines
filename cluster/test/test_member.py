@@ -44,12 +44,12 @@ class Tests(unittest.TestCase):
             execute_fn=self.state_machine)
 
     def test_start(self):
-        """Member.start starts the component and node in self.thread"""
+        """Member.start starts the role and node in self.thread"""
         sh = Member(self.state_machine, network=self.network,
                        peers=['p1', 'p2'], **self.cls_args)
         sh.start()
         sh.thread.join()
-        sh.component.start.assert_called_once_with()
+        sh.startup_role.start.assert_called_once_with()
         self.failUnless(self.network.ran)
 
     def test_invoke(self):

@@ -19,4 +19,3 @@ Editing:
  - define "network partition"
  - Transition after components (Network/------)
  - at "Interactive debuggers", also hard to debug over multiple machines
- - rename components to roles

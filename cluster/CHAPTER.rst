@@ -223,14 +223,13 @@ Component Model
 
 Humans are limited by what we can hold in our active memory.
 We can't reason about the entire Cluster implementation at once -- it's just too much, and too easy to miss details.
-Instead, we break Cluster down into a handful of components, implemented as subclasses of ``Component``.
-Each class is responsible for a different part of the protocol.
-The division of the components is based on the set of protocol roles described in (Renesse, 2011).
+Instead, we break Cluster down into a handful of classes corresponding to the roles described in the protocol.
+Each is a subclass of ``Role``.
 
-{{{ code_block cluster.py 'class Component'
+{{{ code_block cluster.py 'class Role'
 .. code-block:: python
 
-    class Component(object):
+    class Role(object):
     
         def __init__(self, node):
             self.node = node
@@ -248,9 +247,9 @@ The division of the components is based on the set of protocol roles described i
     
 }}}
 
-The components are glued together by the ``Node`` class, which represents a single node on the network.
-Components are added to and removed from the node as execution proceeds.
-Messages that arrive on the node are relayed to all active components, calling a method named after the message type with a ``do_`` prefix.
+The roles that a cluster node has are glued together by the ``Node`` class, which represents a single node on the network.
+Roles are added to and removed from the node as execution proceeds.
+Messages that arrive on the node are relayed to all active roles, calling a method named after the message type with a ``do_`` prefix.
 These ``do_`` methods receive the message's attributes as keyword arguments for easy access.
 The ``Node`` class also provides a ``send`` method as a convenience, using ``functools.partial`` to supply some arguments to the same methods of the ``Network`` class.
 
@@ -265,19 +264,19 @@ The ``Node`` class also provides a ``send`` method as a convenience, using ``fun
             self.address = address or 'N%d' % self.unique_ids.next()
             self.logger = SimTimeLogger(logging.getLogger(self.address), {'network': self.network})
             self.logger.info('starting')
-            self.components = []
+            self.roles = []
             self.send = functools.partial(self.network.send, self)
     
-        def register(self, component):
-            self.components.append(component)
+        def register(self, roles):
+            self.roles.append(roles)
     
-        def unregister(self, component):
-            self.components.remove(component)
+        def unregister(self, roles):
+            self.roles.remove(roles)
     
         def receive(self, sender, message):
             handler_name = 'do_%s' % type(message).__name__
     
-            for comp in self.components[:]:
+            for comp in self.roles[:]:
                 if not hasattr(comp, handler_name):
                     continue
                 comp.logger.debug("received %s from %s", message, sender)
@@ -293,7 +292,8 @@ Application Interface
 ---------------------
 
 The application creates and starts a ``Member`` object on each cluster member, providing an application-specific state machine and a list of peers.
-The member object creates a ``Bootstrap`` if it is joining an existing cluster, or a ``Seed`` component if it is creating a new cluster, and runs the protocol (via ``Network.run``) in a separate thread.
+The member object adds a bootstrap role to the node if it is joining an existing cluster, or seed if it is creating a new cluster.
+It then runs the protocol (via ``Network.run``) in a separate thread.
 
 The application interacts with the cluster through the ``invoke`` method, which kicks off a proposal for a state transition.
 Once that proposal is decided and the state machine runs, ``invoke`` returns the machine's output.
@@ -309,14 +309,14 @@ The method uses a simple Queue to wait for the result from the protocol thread.
             self.network = network
             self.node = network.new_node()
             if seed is not None:
-                self.component = seed_cls(self.node, initial_state=seed, peers=peers,
+                self.startup_role = seed_cls(self.node, initial_state=seed, peers=peers,
                                           execute_fn=state_machine)
             else:
-                self.component = bootstrap_cls(self.node, execute_fn=state_machine, peers=peers)
+                self.startup_role = bootstrap_cls(self.node, execute_fn=state_machine, peers=peers)
             self.current_request = None
     
         def start(self):
-            self.component.start()
+            self.startup_role.start()
             self.thread = threading.Thread(target=self.network.run)
             self.thread.start()
     
@@ -334,20 +334,19 @@ The method uses a simple Queue to wait for the result from the protocol thread.
 Components
 ----------
 
-Let's look at each of the components of the library, one by one.
+Let's look at each of the role classes in the library, one by one.
 
 Acceptor
 ........
 
-The ``Acceptor`` class illustrates the component model well.
-It implements the acceptor role in the protocol, so it must store the ballot number representing its most recent promise, along with the set of accepted proposals for each slot.
+The ``Acceptor`` implements the acceptor role in the protocol, so it must store the ballot number representing its most recent promise, along with the set of accepted proposals for each slot.
 It then responds to ``Prepare`` and ``Accept`` messages according to the protocol.
 The result is a short class that is easy to compare to the protocol.
 
 {{{ code_block cluster.py 'class Acceptor'
 .. code-block:: python
 
-    class Acceptor(Component):
+    class Acceptor(Role):
     
         def __init__(self, node):
             super(Acceptor, self).__init__(node)
@@ -377,7 +376,7 @@ The result is a short class that is easy to compare to the protocol.
 Replica
 .......
 
-The ``Replica`` class is the most complicated component class, as it has a few closely related responsibilities:
+The ``Replica`` class is the most complicated role class, as it has a few closely related responsibilities:
 
 * Making new proposals;
 * Invoking the local state machine when proposals are decided;
@@ -404,19 +403,19 @@ Replicas need to know which node is the active leader in order to send ``Propose
 There is a surprising amount of subtlety required to get this right, as we'll see later.
 Each replica tracks the active leader using three sources of information:
 
-* When the leader component becomes active, it sends an ``Adopted`` message to its local replica.
-* When the acceptor component sends a ``Promise`` to a new leader, it sends an ``Accepting`` message to its local replica.
+* When the leader role becomes active, it sends an ``Adopted`` message to its local replica.
+* When the acceptor role sends a ``Promise`` to a new leader, it sends an ``Accepting`` message to its local replica.
 * The active leader sends ``Active`` messages as a heartbeat.
   If no such message arrives before the ``LEADER_TIMEOUT`` expires, the replica assumes the leader is dead and moves on to the next leader.
   In this case, it's important that all replicas choose the *same* new leader, which we accomplish by sorting the members and selecting the next one in the list.
 
-Finally, when a node joins the network, the bootstrap component sends a ``Join`` message.
+Finally, when a node joins the network, the bootstrap role sends a ``Join`` message.
 The replica responds with a ``Welcome`` message containing its most recent state, allowing the new node to come up to speed quickly.
 
 {{{ code_block cluster.py 'class Replica'
 .. code-block:: python
 
-    class Replica(Component):
+    class Replica(Role):
     
         def __init__(self, node, execute_fn, state, slot, decisions, peers):
             super(Replica, self).__init__(node)
@@ -530,13 +529,13 @@ The leader's primary task is to take ``Propose`` messages requesting new ballots
 A leader is "active" when it has successfully carried out the ``Prepare``/``Promise`` portion of the protocol.
 An active leader can immediately send an ``Accept`` message in response to a ``Propose``.
 
-In keeping with the component model, the leader delegates to the scout and commander components to carry out each portion of the protocol.
+In keeping with the class-per-role model, the leader delegates to the scout and commander roles to carry out each portion of the protocol.
 
-The leader creates a scout component when it wants to become active, in response to receiving a ``Propose``.
+The leader creates a scout role when it wants to become active, in response to receiving a ``Propose``.
 The scout sends (and re-sends, if necessary) a ``Prepare`` message, and collects ``Promise`` responses until it has heard from a majority of its peers or until it has been preempted.
 It communicates the result back to the leader with an ``Adopted`` or ``Preempted`` message, respectively.
 
-The leader creates a commander component for each slot where it has an active proposal.
+The leader creates a commander role for each slot where it has an active proposal.
 Like a scout, a commander sends and re-sends ``Accept`` messages and waits for a majority of acceptors to reply with ``Accepted``, or for news of its preemption.
 When a proposal is accepted, the commander broadcasts a ``Decision`` message to all nodes.
 It responds to the leader with either ``Decided`` or ``Preempted``.
@@ -553,7 +552,7 @@ It responds to the leader with either ``Decided`` or ``Preempted``.
 {{{ code_block cluster.py 'class Leader'
 .. code-block:: python
 
-    class Leader(Component):
+    class Leader(Role):
     
         def __init__(self, node, peers, commander_cls=Commander, scout_cls=Scout):
             super(Leader, self).__init__(node)
@@ -617,7 +616,7 @@ It responds to the leader with either ``Decided`` or ``Preempted``.
 {{{ code_block cluster.py 'class Scout'
 .. code-block:: python
 
-    class Scout(Component):
+    class Scout(Role):
     
         def __init__(self, node, ballot_num, peers):
             super(Scout, self).__init__(node)
@@ -666,7 +665,7 @@ It responds to the leader with either ``Decided`` or ``Preempted``.
 {{{ code_block cluster.py 'class Commander'
 .. code-block:: python
 
-    class Commander(Component):
+    class Commander(Role):
     
         def __init__(self, node, ballot_num, slot, proposal, peers):
             super(Commander, self).__init__(node)
@@ -708,16 +707,16 @@ Bootstrap
 .........
 
 When a node joins the cluster, it must determine the current cluster state before it can participate.
-The bootstrap component handles this by sending ``Join`` messages to each peer in turn until it receives a ``Welcome``.
+The bootstrap role handles this by sending ``Join`` messages to each peer in turn until it receives a ``Welcome``.
 
-An early version of the implementation started each node with a full set of components (replica, leader, and acceptor), each of which began in a "startup" phase, waiting for information from the ``Welcome`` message.
-This spread the initialization logic around every component, requiring separate testing of each one.
-The final design has the bootstrap component creating each of the other components once startup is complete, passing the initial state to their constructors.
+An early version of the implementation started each node with a full set of roles (replica, leader, and acceptor), each of which began in a "startup" phase, waiting for information from the ``Welcome`` message.
+This spread the initialization logic around every role, requiring separate testing of each one.
+The final design has the bootstrap role adding each of the other roles to the node once startup is complete, passing the initial state to their constructors.
 
 {{{ code_block cluster.py 'class Bootstrap'
 .. code-block:: python
 
-    class Bootstrap(Component):
+    class Bootstrap(Role):
     
         def __init__(self, node, peers, execute_fn,
                      replica_cls=Replica, acceptor_cls=Acceptor, leader_cls=Leader,
@@ -754,21 +753,21 @@ Seed
 
 In normal operation, when a node joins the cluster, it expects to find the cluster already running, with at least one node willing to respond to a ``Join`` message.
 But how does the cluster get started?
-An option is for the bootstrap component to decide, after attempting to contact every other node, that it is the first in the cluster.
+One option is for the bootstrap role to determine, after attempting to contact every other node, that it is the first in the cluster.
 But this has two problems.
 First, for a large cluster it means a long wait while each ``Join`` times out.
 More importantly, in the event of a network partition, a new node might be unable to contact any others and start a new cluster.
 When the network heals and that node can communicate with the other nodes, there are two clusters with different decisions for the same slots!
 
 To avoid this outcome, creating a new cluster is a user-specified operation.
-Exactly one node in the cluster runs the seed component, with the others running bootstrap as usual.
+Exactly one node in the cluster runs the seed role, with the others running bootstrap as usual.
 The seed waits until it has received ``Join`` messages from a majority of its peers, then sends a ``Welcome`` with an initial state for the state machine and an empty set of decisions.
-The seed component then stops itself and starts a bootstrap component to join the newly-seeded cluster.
+The seed role then stops itself and starts a bootstrap role to join the newly-seeded cluster.
 
 {{{ code_block cluster.py 'class Seed'
 .. code-block:: python
 
-    class Seed(Component):
+    class Seed(Role):
     
         def __init__(self, node, initial_state, execute_fn, peers, bootstrap_cls=Bootstrap):
             super(Seed, self).__init__(node)
@@ -795,7 +794,7 @@ The seed component then stops itself and starts a bootstrap component to join th
             self.exit_timer = self.set_timer(JOIN_RETRANSMIT * 2, self.finish)
     
         def finish(self):
-            # hand over this node to a bootstrap component
+            # bootstrap this node into the cluster we just seeded
             bs = self.bootstrap_cls(self.node, peers=self.peers, execute_fn=self.execute_fn)
             bs.start()
             self.stop()
@@ -805,13 +804,13 @@ The seed component then stops itself and starts a bootstrap component to join th
 Request
 .......
 
-The request component manages a request to the distributed state machine.
-The component simply sends ``Invoke`` messages to the local replica until it receives a corresponding ``Invoked``.
+The request role manages a request to the distributed state machine.
+The role class simply sends ``Invoke`` messages to the local replica until it receives a corresponding ``Invoked``.
 
 {{{ code_block cluster.py 'class Request'
 .. code-block:: python
 
-    class Request(Component):
+    class Request(Role):
     
         client_ids = itertools.count(start=100000)
     
@@ -934,8 +933,8 @@ The most important debugging feature in Cluster is a *deterministic* simulator.
 Unlike a real network, it will behave exactly the same way on every run, given the same seed for the random number generator.
 This means that we can add additional debugging checks or output to the code and re-run the simulation to see the same failure in more detail.
 
-Of course, much of that detail is in the messages sent and received by the different nodes and components, so those are automatically logged in their entirety.
-That logging includes the component sending or receiving the message, as well as the simulated timestamp, injected via the ``SimTimeLogger`` class.
+Of course, much of that detail is in the messages sent and received by the different nodes in the cluster, so those are automatically logged in their entirety.
+That logging includes the role class sending or receiving the message, as well as the simulated timestamp, injected via the ``SimTimeLogger`` class.
 
 {{{ code_block cluster.py 'class SimTimeLogger'
 .. code-block:: python
@@ -974,10 +973,10 @@ Code without tests is probably incorrect, and modifying the code is risky withou
 
 Testing is most effective when the code is organized for testability.
 There are a few active schools of thought in this area, but the approach we've taken is to divide the code into small, minimally connected units that can be tested in isolation.
-This agrees nicely with the component model, where each component has a specific purpose and can operate in isolation from the others.
+This agrees nicely with the role model, where each role has a specific purpose and can operate in isolation from the others, resulting in a compact, self-sufficient class.
 
-Cluster is written to maximize that isolation: all communication between components takes place via messages, with the exception of creating new components.
-For the most part, then, components can be tested by sending messages to them and observing their responses.
+Cluster is written to maximize that isolation: all communication between roles takes place via messages, with the exception of creating new roles.
+For the most part, then, roles can be tested by sending messages to them and observing their responses.
 
 Unit Testing
 ............
@@ -1002,14 +1001,14 @@ It follows the well-known "arrange, act, assert" pattern: set up an active leade
 Dependency Injection
 ....................
 
-We use a technique called "dependency injection" to handle creation of new components.
-Each component which creates other components takes a list of class objects as constructor arguments, defaulting to the actual classes.
+We use a technique called "dependency injection" to handle creation of new roles.
+Each role class which adds other roles to the network takes a list of class objects as constructor arguments, defaulting to the actual classes.
 For example, ``Leader``'s constructor looks like
 
 {{{ code_block cluster.py 'class Leader' 'def __init__'
 .. code-block:: python
 
-    class Leader(Component):
+    class Leader(Role):
         def __init__(self, node, peers, commander_cls=Commander, scout_cls=Scout):
             super(Leader, self).__init__(node)
             self.ballot_num = Ballot(0, node.address)
@@ -1022,12 +1021,12 @@ For example, ``Leader``'s constructor looks like
     
 }}}
 
-The ``spawn_scout`` method (and, similarly, ``spawn_commander``) create the new component with ``self.scout_cls``:
+The ``spawn_scout`` method (and, similarly, ``spawn_commander``) create the new role object with ``self.scout_cls``:
 
 {{{ code_block cluster.py 'class Leader' 'def spawn_scout'
 .. code-block:: python
 
-    class Leader(Component):
+    class Leader(Role):
         def spawn_scout(self):
             assert not self.scouting
             self.scouting = True
@@ -1041,12 +1040,12 @@ Interface Correctness
 .....................
 
 One pitfall of a focus on small units is that it does not test the interfaces between units.
-For example, unit tests for the acceptor component verify the format of the ``accepted`` attribute of the ``Promise`` message, and the unit tests for the scout component supply well-formatted values for the attribute.
+For example, unit tests for the acceptor role verify the format of the ``accepted`` attribute of the ``Promise`` message, and the unit tests for the scout role supply well-formatted values for the attribute.
 Neither test checks that those formats match.
 
 One approach to fixing this issue is to make the interfaces self-enforcing.
 In Cluster, the use of named tuples and keyword arguments avoids any disagreement over messages' attributes.
-Because the only interaction between components is via messages, this covers a substantial part of the interface.
+Because the only interaction between role classes is via messages, this covers a substantial part of the interface.
 
 For specific issues such as the format of ``accepted_proposals``, both the real and test data can be verified using the same function, in this case ``verifyPromiseAccepted``.
 The tests for the acceptor use this method to verify each returned ``Promise``, and the tests for the scout use it to verify every fake ``Promise``.
@@ -1122,7 +1121,7 @@ It shouldn't add unreliability of its own.
 Unfortunately, Cluster will not run for long without failing due to ever-growing memory use and message size.
 
 In the protocol definition, acceptors and replicas form the "memory" of the protocol, so they need to remember everything.
-These components never know when they will receive a request for an old slot, perhaps from a lagging replica or leader.
+These classes never know when they will receive a request for an old slot, perhaps from a lagging replica or leader.
 To maintain correctness, then, they keep a list of every decision, ever, since the cluster was started.
 Worse, these decisions are transmitted between replicas in ``Welcome`` messages, making these messages enormous in a long-lived cluster.
 
@@ -1178,7 +1177,7 @@ References
 
 * Lamport - "The Part-Time Parliament"
 * Lamport - "Paxos Made Simple"
-* Renesse - "Paxos Made Moderately Complex" (the origin of the component names)
+* Renesse - "Paxos Made Moderately Complex" (the origin of the role names)
 * Chandra, Griesemer, and Redstone - "Paxos Made Live - An Engineering Perspective" (regarding snapshots, in particular)
 * Mazieres - "Paxos Made Practical" (view changes, although not of the type described here)
 * Liskov - "From Viewstamped Replication to Byzantine Fault Tolerance" (another, different look at view changes)

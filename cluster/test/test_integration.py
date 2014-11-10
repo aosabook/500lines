@@ -117,12 +117,12 @@ class Tests(unittest.TestCase):
             self.network.set_timer(None, n+1, req.start)
 
         # kill the leader node at N/2 seconds (it should be stable by then).  Some of the
-        # Request components were attached to this node, so we fake success of those requests
+        # Request roles were attached to this node, so we fake success of those requests
         # since we don't know what state they're in right now.
         def is_leader(n):
             try:
-                leader_component = [c for c in n.components if isinstance(c, Leader)][0]
-                return leader_component.active
+                leader_role = [c for c in n.roles if isinstance(c, Leader)][0]
+                return leader_role.active
             except IndexError:
                 return False
         def kill_leader():

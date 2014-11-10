@@ -38,22 +38,6 @@ LEADER_TIMEOUT = 1.0
 NULL_BALLOT = Ballot(-1, -1)  # sorts before all real ballots
 NOOP_PROPOSAL = Proposal(None, None, None)  # no-op to fill otherwise empty slots
 
-class Component(object):
-
-    def __init__(self, node):
-        self.node = node
-        self.node.register(self)
-        self.running = True
-        self.logger = node.logger.getChild(type(self).__name__)
-
-    def set_timer(self, seconds, callback):
-        return self.node.network.set_timer(self.node.address, seconds,
-                                           lambda: self.running and callback())
-
-    def stop(self):
-        self.running = False
-        self.node.unregister(self)
-
 class Node(object):
     unique_ids = itertools.count()
 
@@ -62,19 +46,19 @@ class Node(object):
         self.address = address or 'N%d' % self.unique_ids.next()
         self.logger = SimTimeLogger(logging.getLogger(self.address), {'network': self.network})
         self.logger.info('starting')
-        self.components = []
+        self.roles = []
         self.send = functools.partial(self.network.send, self)
 
-    def register(self, component):
-        self.components.append(component)
+    def register(self, roles):
+        self.roles.append(roles)
 
-    def unregister(self, component):
-        self.components.remove(component)
+    def unregister(self, roles):
+        self.roles.remove(roles)
 
     def receive(self, sender, message):
         handler_name = 'do_%s' % type(message).__name__
 
-        for comp in self.components[:]:
+        for comp in self.roles[:]:
             if not hasattr(comp, handler_name):
                 continue
             comp.logger.debug("received %s from %s", message, sender)
@@ -150,7 +134,23 @@ class SimTimeLogger(logging.LoggerAdapter):
         return self.__class__(self.logger.getChild(name),
                               {'network': self.extra['network']})
 
-class Acceptor(Component):
+class Role(object):
+
+    def __init__(self, node):
+        self.node = node
+        self.node.register(self)
+        self.running = True
+        self.logger = node.logger.getChild(type(self).__name__)
+
+    def set_timer(self, seconds, callback):
+        return self.node.network.set_timer(self.node.address, seconds,
+                                           lambda: self.running and callback())
+
+    def stop(self):
+        self.running = False
+        self.node.unregister(self)
+
+class Acceptor(Role):
 
     def __init__(self, node):
         super(Acceptor, self).__init__(node)
@@ -175,7 +175,7 @@ class Acceptor(Component):
         self.node.send([sender], Accepted(
             slot=slot, ballot_num=self.ballot_num))
 
-class Replica(Component):
+class Replica(Role):
 
     def __init__(self, node, execute_fn, state, slot, decisions, peers):
         super(Replica, self).__init__(node)
@@ -280,7 +280,7 @@ class Replica(Component):
             self.node.send([sender], Welcome(
                 state=self.state, slot=self.slot, decisions=self.decisions))
 
-class Commander(Component):
+class Commander(Role):
 
     def __init__(self, node, ballot_num, slot, proposal, peers):
         super(Commander, self).__init__(node)
@@ -315,7 +315,7 @@ class Commander(Component):
         else:
             self.finished(ballot_num, True)
 
-class Scout(Component):
+class Scout(Role):
 
     def __init__(self, node, ballot_num, peers):
         super(Scout, self).__init__(node)
@@ -359,7 +359,7 @@ class Scout(Component):
             self.node.send([self.node.address], Preempted(slot=None, preempted_by=ballot_num))
             self.stop()
 
-class Leader(Component):
+class Leader(Role):
 
     def __init__(self, node, peers, commander_cls=Commander, scout_cls=Scout):
         super(Leader, self).__init__(node)
@@ -418,7 +418,7 @@ class Leader(Component):
         else:
             self.logger.info("got PROPOSE for a slot already being proposed")
 
-class Bootstrap(Component):
+class Bootstrap(Role):
 
     def __init__(self, node, peers, execute_fn,
                  replica_cls=Replica, acceptor_cls=Acceptor, leader_cls=Leader,
@@ -448,7 +448,7 @@ class Bootstrap(Component):
                         scout_cls=self.scout_cls).start()
         self.stop()
 
-class Seed(Component):
+class Seed(Role):
 
     def __init__(self, node, initial_state, execute_fn, peers, bootstrap_cls=Bootstrap):
         super(Seed, self).__init__(node)
@@ -475,12 +475,12 @@ class Seed(Component):
         self.exit_timer = self.set_timer(JOIN_RETRANSMIT * 2, self.finish)
 
     def finish(self):
-        # hand over this node to a bootstrap component
+        # bootstrap this node into the cluster we just seeded
         bs = self.bootstrap_cls(self.node, peers=self.peers, execute_fn=self.execute_fn)
         bs.start()
         self.stop()
 
-class Request(Component):
+class Request(Role):
 
     client_ids = itertools.count(start=100000)
 
@@ -511,14 +511,14 @@ class Member(object):
         self.network = network
         self.node = network.new_node()
         if seed is not None:
-            self.component = seed_cls(self.node, initial_state=seed, peers=peers,
+            self.startup_role = seed_cls(self.node, initial_state=seed, peers=peers,
                                       execute_fn=state_machine)
         else:
-            self.component = bootstrap_cls(self.node, execute_fn=state_machine, peers=peers)
+            self.startup_role = bootstrap_cls(self.node, execute_fn=state_machine, peers=peers)
         self.current_request = None
 
     def start(self):
-        self.component.start()
+        self.startup_role.start()
         self.thread = threading.Thread(target=self.network.run)
         self.thread.start()
 

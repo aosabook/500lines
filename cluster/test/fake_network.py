@@ -42,15 +42,15 @@ class FakeNode(Node):
         self.sent = []
         self.logger = logging.getLogger('node.%s' % (self.address,))
 
-    def register(self, component):
-        assert component not in self.components
-        super(FakeNode, self).register(component)
+    def register(self, role):
+        assert role not in self.roles
+        super(FakeNode, self).register(role)
 
-    def unregister(self, component):
-        assert component in self.components
-        super(FakeNode, self).unregister(component)
+    def unregister(self, role):
+        assert role in self.roles
+        super(FakeNode, self).unregister(role)
 
     def fake_message(self, message, sender='F999'):
-        for component in self.components:
-            fn = getattr(component, 'do_%s' % type(message).__name__)
+        for role in self.roles:
+            fn = getattr(role, 'do_%s' % type(message).__name__)
             fn(sender=sender, **message._asdict())
