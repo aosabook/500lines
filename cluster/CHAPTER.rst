@@ -1068,6 +1068,9 @@ Running the simulation just involves popping timers from the heap and executing 
     
 }}}
 
+While it's not included in this implementation, the component model allows us to swap in a real-world network implementation, communicating between actual servers on a real network, with no changes to the other components.
+Testing and debugging can take place using the simulated network, with production use of the library operating over real network hardware.
+
 Debugging Support
 -----------------
 
