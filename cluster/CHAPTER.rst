@@ -264,7 +264,9 @@ Component Model
 
 Humans are limited by what we can hold in our active memory.
 We can't reason about the entire Cluster implementation at once -- it's just too much, and too easy to miss details.
-Instead, we break Cluster down into a handful of classes corresponding to the roles described in the protocol.
+For similar reasons, large monolithic codebases are harder to test: test cases must manipulate many moving pieces and are brittle, failing on almost any change to the code.
+
+To encourage testability and keep the code readable, we break Cluster down into a handful of classes corresponding to the roles described in the protocol.
 Each is a subclass of ``Role``.
 
 {{{ code_block cluster.py 'class Role'
