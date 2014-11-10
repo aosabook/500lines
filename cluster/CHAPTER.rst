@@ -660,6 +660,8 @@ It responds to the leader with either ``Decided`` or ``Preempted``.
 Leader, Scout, and Commander
 ............................
 
+
+.. code-block:: None
                            Commander      ---------      Acceptor        Acceptor        Acceptor
                                *--->>----/ Accept /---------+---------------+---------------+
                                :         ---------          :               :               :
