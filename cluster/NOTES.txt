@@ -3,8 +3,7 @@ From Oct 5
 
 Detail:
  - example of no decision being made in simple paxos
- - examples of message type implementation (at "Using named tuples to
-   describe each message")
+   (need to review the literature)
  - component model would allow swapping in a "real" network class
 
 Editing:

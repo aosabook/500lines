@@ -198,9 +198,6 @@ Types and Constants
 -------------------
 
 Cluster's protocol uses 15 different message types, each defined as a Python ``namedtuple``.
-Using named tuples to describe each message type keeps the code clean and helps avoid some simple errors.
-The named tuple constructor will raise an exception if it is not given exactly the right attributes, making typos obvious.
-The tuples format themselves nicely in log messages, and as an added bonus don't use as much memory as a dictionary.
 
 {{{ from_to cluster.py '# message types' '^$'
 .. code-block:: python
@@ -223,7 +220,19 @@ The tuples format themselves nicely in log messages, and as an added bonus don't
     
 }}}
 
-We'll see what these messages mean in the sections tha follow.
+Using named tuples to describe each message type keeps the code clean and helps avoid some simple errors.
+The named tuple constructor will raise an exception if it is not given exactly the right attributes, making typos obvious.
+The tuples format themselves nicely in log messages, and as an added bonus don't use as much memory as a dictionary.
+
+Creating a message reads naturally::
+
+    msg = Accepted(slot=10, ballot_num=30)
+
+And the fields of that message are accessible with a minimum of extra typing::
+
+    got_ballot_num = msg.ballot_num
+
+We'll see what these messages mean in the sections that follow.
 The code also introduces a few constants, most of which define timeouts for various messages:
 
 {{{ from_to cluster.py '# constants' '^$'
