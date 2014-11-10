@@ -57,5 +57,5 @@ class Tests(unittest.TestCase):
         sh = Member(self.state_machine, network=self.network,
                        peers=['p1', 'p2'], **self.cls_args)
         res = sh.invoke('ROTATE', request_cls=FakeRequest)
-        self.assertEqual(sh.current_request, None)
+        self.assertEqual(sh.requester, None)
         self.assertEqual(res, ('ROTATED', sh.node, 'ROTATE'))

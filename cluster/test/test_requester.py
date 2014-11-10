@@ -10,13 +10,13 @@ class Tests(utils.ComponentTestCase):
     def setUp(self):
         super(Tests, self).setUp()
         self.callback = mock.Mock(name='callback')
-        with mock.patch.object(Request, 'client_ids') as client_ids:
+        with mock.patch.object(Requester, 'client_ids') as client_ids:
             client_ids.next.return_value = CLIENT_ID
-            self.req = Request(self.node, 10, self.callback)
+            self.req = Requester(self.node, 10, self.callback)
         self.assertEqual(self.req.client_id, CLIENT_ID)
 
     def test_function(self):
-        """Request should repeatedly send INVOKE until receiving a matching INVOKED"""
+        """Requester should repeatedly send INVOKE until receiving a matching INVOKED"""
         self.req.start()
         self.assertMessage(['F999'], Invoke(caller='F999', client_id=CLIENT_ID, input_value=10))
         self.network.tick(INVOKE_RETRANSMIT)

@@ -56,7 +56,7 @@ class Tests(unittest.TestCase):
             self.event("request done: %s" % output)
         def make_request(n, node):
             self.event("request: %s" % n)
-            req = Request(node, n, request_done)
+            req = Requester(node, n, request_done)
             req.start()
         for time, callback in [
                 (1.0, lambda: make_request(5, nodes[1])),
@@ -77,7 +77,7 @@ class Tests(unittest.TestCase):
         nodes = self.setupNetwork(5)
         results = []
         for n in range(1, N+1):
-            req = Request(nodes[n % 4], n, results.append)
+            req = Requester(nodes[n % 4], n, results.append)
             self.network.set_timer(None, 1.0, req.start)
 
         self.network.set_timer(None, 10.0, self.network.stop)
@@ -91,7 +91,7 @@ class Tests(unittest.TestCase):
         nodes = self.setupNetwork(7)
         results = []
         for n in range(1, N+1):
-            req = Request(nodes[n % 3], n, results.append)
+            req = Requester(nodes[n % 3], n, results.append)
             self.network.set_timer(None, n+1, req.start)
 
         # kill nodes 3 and 4 at N/2 seconds
@@ -113,11 +113,11 @@ class Tests(unittest.TestCase):
         nodes = self.setupNetwork(7, execute_fn=identity)
         results = []
         for n in range(1, N+1):
-            req = Request(nodes[n % 6], n, results.append)
+            req = Requester(nodes[n % 6], n, results.append)
             self.network.set_timer(None, n+1, req.start)
 
         # kill the leader node at N/2 seconds (it should be stable by then).  Some of the
-        # Request roles were attached to this node, so we fake success of those requests
+        # Requester roles were attached to this node, so we fake success of those requests
         # since we don't know what state they're in right now.
         def is_leader(n):
             try:

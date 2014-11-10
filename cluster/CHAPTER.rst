@@ -352,7 +352,7 @@ The method uses a simple Queue to wait for the result from the protocol thread.
             self.thread = threading.Thread(target=self.network.run)
             self.thread.start()
     
-        def invoke(self, input_value, request_cls=Request):
+        def invoke(self, input_value, request_cls=Requester):
             assert self.current_request is None
             q = Queue.Queue()
             self.current_request = request_cls(self.node, input_value, q.put)
@@ -423,17 +423,17 @@ Furthermore, if the consensus for the selected slot is for a different proposal,
 .. code-block:: none
 
                                 Local
-    Request      ---------     Replica                  Current
-       *--->>---/ Invoke /--------+                      Leader
-                ---------         :         ----------
-                                  *--->>---/ Propose /-----+
-                                           ----------      :
-                                                     (multi-paxos)
-                                           -----------     :
-                                  +-------/ Decision /-<<--*
-                 ----------       :       -----------
-       *--------/ Invoked /---<<--*
-       :        ----------
+    Requester    ---------     Replica                  Current
+        *--->>---/ Invoke /--------+                      Leader
+                 ---------         :         ----------
+                                   *--->>---/ Propose /-----+
+                                            ----------      :
+                                                      (multi-paxos)
+                                            -----------     :
+                                   +-------/ Decision /-<<--*
+                  ----------       :       -----------
+        *--------/ Invoked /---<<--*
+        :        ----------
 
 ``Decision`` messages represent slots on which the cluster has come to consensus.
 Here, replicas store the new decision, then run the state machine until it reaches an undecided slot.
@@ -928,22 +928,22 @@ Seed emulates the ``Join``/``Welcome`` part of the bootstrap - replica interacti
     
 }}}
 
-Request
-.......
+Requester
+.........
 
-The request role manages a request to the distributed state machine.
+The requester role manages a request to the distributed state machine.
 The role class simply sends ``Invoke`` messages to the local replica until it receives a corresponding ``Invoked``.
 See the "Replica" section, above, for this role's communication diagram.
 
-{{{ code_block cluster.py 'class Request'
+{{{ code_block cluster.py 'class Requester'
 .. code-block:: python
 
-    class Request(Role):
+    class Requester(Role):
     
         client_ids = itertools.count(start=100000)
     
         def __init__(self, node, n, callback):
-            super(Request, self).__init__(node)
+            super(Requester, self).__init__(node)
             self.client_id = self.client_ids.next()
             self.n = n
             self.output = None

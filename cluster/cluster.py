@@ -480,12 +480,12 @@ class Seed(Role):
         bs.start()
         self.stop()
 
-class Request(Role):
+class Requester(Role):
 
     client_ids = itertools.count(start=100000)
 
     def __init__(self, node, n, callback):
-        super(Request, self).__init__(node)
+        super(Requester, self).__init__(node)
         self.client_id = self.client_ids.next()
         self.n = n
         self.output = None
@@ -515,18 +515,18 @@ class Member(object):
                                       execute_fn=state_machine)
         else:
             self.startup_role = bootstrap_cls(self.node, execute_fn=state_machine, peers=peers)
-        self.current_request = None
+        self.requester = None
 
     def start(self):
         self.startup_role.start()
         self.thread = threading.Thread(target=self.network.run)
         self.thread.start()
 
-    def invoke(self, input_value, request_cls=Request):
-        assert self.current_request is None
+    def invoke(self, input_value, request_cls=Requester):
+        assert self.requester is None
         q = Queue.Queue()
-        self.current_request = request_cls(self.node, input_value, q.put)
-        self.current_request.start()
+        self.requester = request_cls(self.node, input_value, q.put)
+        self.requester.start()
         output = q.get()
-        self.current_request = None
+        self.requester = None
         return output
