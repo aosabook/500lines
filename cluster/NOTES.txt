@@ -10,6 +10,5 @@ Editing:
  - Transition at "Introducing Cluster"
  - "The application accesses the shared state through .." unclear
  - Tie in testing at "Component Model"
- - define "network partition"
  - Transition after components (Network/------)
  - at "Interactive debuggers", also hard to debug over multiple machines

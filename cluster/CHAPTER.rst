@@ -891,7 +891,12 @@ One option is for the bootstrap role to determine, after attempting to contact e
 But this has two problems.
 First, for a large cluster it means a long wait while each ``Join`` times out.
 More importantly, in the event of a network partition, a new node might be unable to contact any others and start a new cluster.
-When the network heals and that node can communicate with the other nodes, there are two clusters with different decisions for the same slots!
+
+Network partitions are the most challenging failure case for clustered applications.
+In a network partition, all cluster members remain alive, but communication fails between some members.
+For example, if the network link joining a cluster with nodes in Berlin and Taipei fails, the network is partitioned.
+If both parts of a cluster continue to operate during a partition, then re-joining the parts after the network link is restored can be challenging.
+In the multi-paxos case, the healed network would be hosting two clusters with different decisions for the same slot numbers.
 
 To avoid this outcome, creating a new cluster is a user-specified operation.
 Exactly one node in the cluster runs the seed role, with the others running bootstrap as usual.
