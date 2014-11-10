@@ -6,5 +6,4 @@ Detail:
    (need to review the literature)
 
 Editing:
- - Transition at "Introducing Cluster"
  - at "Interactive debuggers", also hard to debug over multiple machines

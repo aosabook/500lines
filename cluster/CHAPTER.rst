@@ -185,6 +185,8 @@ When a new node starts, it needs to catch up on the existing state of the cluste
 Although it can do so by catching up on decisions for all slots since the first, in a mature cluster this may involve millions of slots.
 Furthermore, we need some way to initialize a new cluster.
 
+But enough talk of theory and algorithms -- let's have a look at the code.
+
 Introducing Cluster
 ===================
 
@@ -193,6 +195,11 @@ It is designed as a library to provide a consensus service to a larger applicati
 
 Users of this library will depend on its correctness, so it's important to structure the code so that we can see -- and test -- its correspondance to the specification.
 Complex protocols can exhibit complex failures, too, so we will build support for reproducing and debugging rare failures.
+
+The implementation in this chapter is proof-of-concept code: enough to demonstrate that the core concept is practical, but without all of the mundane equipment required for use in production.
+However, the code is structured so that such equipment can be added later with minimal changes to the core implementation.
+
+Let's get started.
 
 Types and Constants
 -------------------
