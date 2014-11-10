@@ -54,7 +54,7 @@ The state machine for this application is simple:
             return state, state.accounts[operation.account]
 
 Note that executing the "get-balance" operation does not modify the state, but is still implemented as a state transition.
-This guarantees that the returned balance is the latest information in the cluster of servers, not based on the local state on a single server.
+This guarantees that the returned balance is the latest information in the cluster of servers, not based on the (possibly stale) local state on a single server.
 
 This may look different than the typical state machine you'd learn about in a computer science course.
 Rather than a finite set of named states with labeled transitions, this machine's state is the collection of account balances, so there are infinite possible states.
