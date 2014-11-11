@@ -4,14 +4,16 @@ Typesetting engine
 A typesetting engine deals with the composition of text for visual display or printing. In the digital era we live in, the main challenge for achieving an aesthetically pleasant result is to figure out the best possible line breaks in a stream of text representing paragraphs.
 
 To illustrate the need of a good algorithm for breaking paragraphs into lines, I will let the god speak:
-http://jill-jenn.net/metasentence.png
+
+.. image:: http://jill-jenn.net/metasentence.png
+   :align: center
 
 Our contribution takes a stream of paragraphs with titles and creates PostScript slides.
 
 PostScript Slides
 =================
 
-For the rendering part, we use the page description language PostScript because of its simplicity. The main command that suits our needs is `x y moveto (c) show`: it puts the character `c` at the position `x` `y` of the current slide.
+For the rendering part, we use the page description language PostScript because of its simplicity. The main command that suits our needs is ``x y moveto (c) show``: it puts the character ``c`` at the position ``x`` ``y`` of the current slide.
 
 Line-Breaking Algorithm
 =======================
@@ -22,6 +24,7 @@ Boxes, Glue and Penalties
 -------------------------
 
 Our text is composed of blocks of several types:
+
 - characters of a certain size that can't be altered, such as letters and punctuation (boxes);
 - spaces that can be stretched or shrinked of a certain amount (glue);
 - and special characters such as hyphens or forced breaks (penalties).
@@ -47,66 +50,70 @@ Bonus Features
 Our Implementation
 ==================
 
-The **raw text** becomes a sequence of **blocks** of which we have to figure out the best position for the **breakpoints** (Typesetting part) so that we can **paint** all blocks on a slide (Rendering part).
+The **raw text** becomes a sequence of **blocks** for which we have to figure out the best position of the **breakpoints** (typesetting part) so that we can **paint** all blocks on a slide (rendering part).
 
 The *best* position is chosen according to a certain “score of badness” called **demerits**.
 
 Block
 -----
 
-To represent blocks, the `Block` object needs the following attributes:
-- the *type*: box, glue, penalty (represented by a `Enum`);
-- the corresponding *character* with its *width* according to the font metrics;
-- the *stretch* and *shrink* parameters: 0 if it is a block or a penalty, a certain integer if it is a glue (there, `SPACE_STRETCH` and `SPACE_SHRINK`);
-- a `penalty` value if the block is a penalty: an amount of badness. For example, putting a breakpoint after a block corresponding to an hyphen is considered worse than putting it in place of a glue;
-- a `flag` boolean: is it a flagged penalty? Two consecutive breakpoints at flagged penalties get extra demerits. In Knuth's paper, all penalties are flagged, but as of tradition, we kept it in the implementation.
+To represent blocks, the ``Block`` object needs the following attributes:
 
-All those attributes are defined at once at the beginning of the typesetting step and are not mutable. This is why we chose a `namedtuple` instead of a new class.
+- the *type*: box, glue, penalty (represented by a ``Enum``);
+- the corresponding *character* with its *width* according to the font metrics;
+- the *stretch* and *shrink* parameters: 0 if it is a block or a penalty, a certain integer if it is a glue (there, ``SPACE_STRETCH`` and ``SPACE_SHRINK``);
+- a ``penalty`` value if the block is a penalty: an amount of badness. For example, putting a breakpoint after a block corresponding to an hyphen is considered worse than putting it in place of a glue;
+- a ``flag`` boolean: “Is this a flagged penalty?” Two consecutive breakpoints at flagged penalties get extra demerits. In Knuth's paper, all penalties are flagged ones. As of tradition, we kept it in the implementation.
+
+All those attributes are defined at the beginning of the typesetting step and are not supposed to be modified. This is why we chose a ``namedtuple``, which is not mutable, instead of a new class.
 
 Breakpoint
 ----------
 
-Breakpoints are at the core of our main data structure: a linked list of nodes that are part of a DAG. The `Breakpoint` class has the following attributes:
+Breakpoints are at the core of our main data structure: a linked list of nodes that are part of a DAG. The ``Breakpoint`` class has the following attributes:
+
 - the *position* of this breakpoint in the sequence of blocks;
-- the corresponding *line*: indeed, imagine a really narrow text where according to the choice of breakpoints, a word could be at the end of the first line or at the end of the second line, we need to take both scenarios into account;
+- the corresponding *line*: indeed, imagine a really narrow text where according to the choice of breakpoints, a certain word could be at the end of the first line or at the end of the second line, we need to take both scenarios into account;
 - a *fitness* class which plays a role in the computation of demerits.
-- values *total_width*, *total_stretch*, *total_shrink*, *total_demerits*, that keep the sum of those values for the blocks encountered so far (CHECK: is it right after, if it's a glue?);
+- values *total_width*, *total_stretch*, *total_shrink*, *total_demerits*, which contains the sum of those values for the blocks encountered so far (CHECK: is it right after, if it's a glue?);
 - *previous*: the best previous breakpoint that leads to this breakpoint;
 - *link*: the next node in the linked list.
 
-Please keep in mind that *previous* and *link* are not symmetric. In the following graph, there is an arrow from `A` to `B` if `B.previous = A` but for example, if those breakpoints are part of the linked list, we have `so.link = seen` and `seen.link = dark`.
-http://i.imgur.com/8YUCMeM.png
+Please keep in mind that *previous* and *link* are not symmetric. In the following graph, there is an arrow from ``A`` to ``B`` if ``B.previous = A`` but for example, if those breakpoints are part of the linked list, we have ``so.link = seen`` and ``seen.link = dark``.
+
+.. image:: http://i.imgur.com/8YUCMeM.png
+   :align: center
 
 Computing the ratio
 -------------------
 
-If we want to justify the line between two breakpoints, we must compute the ratio of its spaces. In the best possible world, spaces need not be modified (`ratio = 0`). If the line is too short, spaces need to be stretched, all of the same amount `ratio * SPACE_STRETCH` (`ratio > 0`). If the line is too long, spaces need to be shrinked, so we need to add to each of them the negative value `ratio * SPACE_SHRINK` (`ratio < 0`).
+If we want to justify the line between two breakpoints, we must compute the ratio of its spaces. In the best possible world, spaces need not be modified (``ratio = 0``). If the line is too short, spaces need to be stretched, all of the same amount ``ratio * SPACE_STRETCH`` (``ratio > 0``). If the line is too long, spaces need to be shrinked, so we need to add to each of them the negative value ``ratio * SPACE_SHRINK`` (``ratio < 0``).
 
-Thus, knowing the value `current_line_length - width` and the number of spaces within the current line (actually, the sum of their shrink/stretch parameters), we can compute the ratio using a simple division. In order to get a pleasant result, `abs(ratio)` needs to be as low as possible. This is why the demerits depend of the `ratio` parameter.
+Thus, knowing the value ``current_line_length - width`` and the number of spaces within the current line (actually, the sum of their shrink/stretch parameters), we can compute the ratio using a simple division. In order to get a pleasant result, ``abs(ratio)`` needs to be as low as possible. This is why the demerits depend of the ``ratio`` parameter.
 
 Maintaining the linked list of breakpoints
 ------------------------------------------
 
-Using the ratio and a few other parameters (fitness class), we can compute the increase of demerits between any two breakpoints. Now our goal is to find the best sequence of breakpoints i.e. the one achieving the lowest demerits. If we knew the complete list of breakpoints, we could compute that value by dynamic programming:
+Using the ratio and a few other parameters (fitness class), we can compute the increase of demerits between any two breakpoints. Now our goal is to find the best sequence of breakpoints i.e. the one achieving the lowest demerits. If we knew the complete list of breakpoints, we could compute that value by dynamic programming:::
 
     For each line
         For each breakpoint registered at this line
             Find the best previous breakpoint (the one achieving the lowest demerits)
 
-As the graph is acyclic, the algorithm above correctly computes all demerits.
-
-But here, as we compute the demerits while adding breakpoints to our data structure, we need to use cunning.
+But we don't. As we compute the demerits while adding breakpoints to our data structure, we need to use cunning.::
 
     For each block
         If this block is a possible breakpoint
             For each line
                 For each breakpoint registered at this line in my linked list
                     Check if this breakpoint is the best previous breakpoint for the current block
-                Add into the linked list a breakpoint for my current block registered at the next line
+                Add into the linked list a breakpoint for my current block registered at the next line, knowing its best previous breakpoint
 
-Those steps ensure that the linked list is sorted by line number, which is essential for our dynamic programming approach. (Those consecutive nested for loops are represented by nested while loops in the `find_best_previous_breakpoints` method.)
+Well, that's clever.
 
-More optimizations are made so that the linked list has no obsolete breakpoints (i.e. achieving a ratio less than -1, which corresponds to an ugly shrink).
+Those steps ensure that the linked list is sorted by line number, which is essential for our dynamic programming approach. (Those consecutive nested for loops are represented by nested while loops in the ``find_best_previous_breakpoints`` method.)
+
+More optimizations are made so that the linked list has no obsolete breakpoints (i.e. achieving a ratio less than -1, which corresponds to an ugly shrink). The first nodes of the linked list are progressively pruned.
 
 Painting
 --------
@@ -116,7 +123,7 @@ As we know the width of each box, if we get the optimal sequence of breakpoints 
 Troubleshooting
 ===============
 
-It was hard to find how to get the width of all characters of a given font. There were several ways to estimate them but we wanted to get the true value. Our final solution used the output of `ttf2tfm` (TeX font metric) as stated in `compute_font_metrics.py`.
+It was hard to find how to get the width of all characters of a given font. There were several ways to estimate them but we wanted to get the true value. Our final solution used the output of ``ttf2tfm`` (TeX font metric) as stated in ``compute_font_metrics.py``.
 
 Further Extensions
 ==================
