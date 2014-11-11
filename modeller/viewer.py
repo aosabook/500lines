@@ -16,7 +16,7 @@ from numpy.linalg import norm, inv
 
 from interaction import Interaction
 from primitive import init_primitives, G_OBJ_PLANE
-from node import Sphere, Cube
+from node import Sphere, Cube, SnowFigure
 from scene import Scene
 
 
@@ -37,20 +37,6 @@ class Viewer(object):
         glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB)
         glutDisplayFunc(self.render)
 
-    def init_interaction(self):
-        """ init user interaction and callbacks """
-        self.interaction = Interaction()
-        self.interaction.register_callback('pick', self.pick)
-        self.interaction.register_callback('move', self.move)
-        self.interaction.register_callback('place', self.place)
-        self.interaction.register_callback('rotate_color', self.rotate_color)
-        self.interaction.register_callback('scale', self.scale)
-
-    def init_scene(self):
-        """ initialize the scene object and initial scene """
-        self.scene = Scene()
-        self.initial_scene()
-
     def init_opengl(self):
         """ initialize the opengl settings to render the scene """
         self.inverseModelView = numpy.identity(4)
@@ -67,7 +53,37 @@ class Viewer(object):
 
         glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE)
         glEnable(GL_COLOR_MATERIAL)
-        glClearColor(1.0, 1.0, 1.0, 0.0)
+        glClearColor(0.4, 0.4, 0.4, 0.0)
+
+
+    def init_scene(self):
+        """ initialize the scene object and initial scene """
+        self.scene = Scene()
+        self.create_sample_scene()
+
+    def create_sample_scene(self):
+        cube_node = Cube()
+        cube_node.translate(2, 0, 2)
+        cube_node.color_index = 1
+        self.scene.add_node(cube_node)
+
+        sphere_node = Sphere()
+        sphere_node.translate(-2, 0, 2)
+        sphere_node.color_index = 3
+        self.scene.add_node(sphere_node)
+
+        hierarchical_node = SnowFigure()
+        hierarchical_node.translate(-2, 0, -2)
+        self.scene.add_node(hierarchical_node)
+
+    def init_interaction(self):
+        """ init user interaction and callbacks """
+        self.interaction = Interaction()
+        self.interaction.register_callback('pick', self.pick)
+        self.interaction.register_callback('move', self.move)
+        self.interaction.register_callback('place', self.place)
+        self.interaction.register_callback('rotate_color', self.rotate_color)
+        self.interaction.register_callback('scale', self.scale)
 
     def main_loop(self):
         glutMainLoop()
@@ -76,10 +92,7 @@ class Viewer(object):
         """ The render pass for the scene """
         self.init_view()
 
-        # Enable lighting and color
         glEnable(GL_LIGHTING)
-
-        glClearColor(0.4, 0.4, 0.4, 0.0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         # Load the modelview matrix from the current state of the trackball
@@ -87,7 +100,7 @@ class Viewer(object):
         glPushMatrix()
         glLoadIdentity()
         loc = self.interaction.translation
-        glTranslated(-loc[0], -loc[1], -loc[2])
+        glTranslated(loc[0], loc[1], loc[2])
         glMultMatrixf(self.interaction.trackball.matrix)
 
         # store the inverse of the current modelview.
@@ -119,22 +132,6 @@ class Viewer(object):
         gluPerspective(70, aspect_ratio, 0.1, 1000.0)
         glTranslated(0, 0, -15)
 
-    def initial_scene(self):
-        cube_node = Cube()
-        cube_node.translate(2, 0, 2)
-        cube_node.color_index = 2
-        self.scene.add_node(cube_node)
-
-        sphere_node = Sphere()
-        sphere_node.translate(-2, 0, 2)
-        sphere_node.color_index = 3
-        self.scene.add_node(sphere_node)
-
-        sphere_node_2 = Sphere()
-        sphere_node_2.translate(-2, 0, -2)
-        sphere_node_2.color_index = 1
-        self.scene.add_node(sphere_node_2)
-
     def get_ray(self, x, y):
         """ Generate a ray beginning at the near plane, in the direction that the x, y coordinates are facing
             Consumes: x, y coordinates of mouse on screen
@@ -159,23 +156,24 @@ class Viewer(object):
         start, direction = self.get_ray(x, y)
         self.scene.pick(start, direction, self.modelView)
 
-    def move(self, x, y):
-        """ Execute a move command on the scene. """
-        start, direction = self.get_ray(x, y)
-        self.scene.move(start, direction, self.inverseModelView)
-
     def place(self, shape, x, y):
         """ Execute a placement of a new primitive into the scene. """
         start, direction = self.get_ray(x, y)
         self.scene.place(shape, start, direction, self.inverseModelView)
 
+    def move(self, x, y):
+        """ Execute a move command on the scene. """
+        start, direction = self.get_ray(x, y)
+        self.scene.move_selected(start, direction, self.inverseModelView)
+
     def rotate_color(self, forward):
         """ Rotate the color of the selected Node. Boolean 'forward' indicates direction of rotation. """
-        self.scene.rotate_color(forward)
+        self.scene.rotate_selected_color(forward)
 
     def scale(self, up):
         """ Scale the selected Node. Boolean up indicates scaling larger."""
-        self.scene.scale(up)
+        self.scene.scale_selected(up)
+
 
 if __name__ == "__main__":
     viewer = Viewer()
