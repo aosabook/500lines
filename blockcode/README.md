@@ -1,11 +1,5 @@
 # Blockcode - a simple visual programming toolkit
 
-> Comments from Debo:
-
-> You describe the js modules/files that you've decomposed the program into, but not how you arrived at that segmentation / design. The goal of this book is to give our readers examples of how to design software, so some context there would be great.
-
-> Generally, the chapter outline so far feels like it progresses too quickly. We go from "here is a high-level description of block-based programming language" to "here is a listing of all the functions in my implementation".
-
 Block Code is an attempt to create a block-based programming tool in under 500 lines of code, including HTML, CSS, Javascript. The code itself is intended to be a live-coding environment for turtle graphics.
 
 A block-based language differs from programming language where you type in code as words because you drag blocks that represent code into place. Learning a programming language can be difficult because they are extremely sensitive to even the slightest of typos. Most programming languages are case-sensitive, have obscure syntax, and will refuse to run if you get so much as a semicolon in the wrong place, or worse, leave one out. Most of the programming languages in use today are also based on English and the language itself cannot be localized. In contrast, a well-done block language can eliminate syntax errors completely: you can still create a program which does the wrong thing, but you cannot create one with the wrong syntax, the blocks just won't fit that way. Block languages are more more discoverable: you can see all the constructs and libraries of the language right in the list of blocks. And blocks can be localized into any language without changing the programmatic meaning of the language.
@@ -22,170 +16,79 @@ There are a couple of things I want to accomplish with this code. First and fore
 
 To do this, we encapsulate everything that is specific to the turtle language into one file (turtle.js) that we can easily swap out with another file. Nothing else should be specific to the turtle language, the rest should just be about handling the blocks (block.js and menu.js) or generally useful web utilities (util.js, drag.js, file.js). That is the goal, although to maintain the small size of the project, some of those utilities are less general purpose and more specific to their use with the blocks.
 
+In order to make the resulting tool available to the widest possible audience, it is web-native. Simple HTML, CSS, and JavaScript means it should work in the widest variety of browsers and platforms. Wherever possible, if something about the implementation began to be too complex, I took that as a sign that I wasn't doing it "the web way" and tried to re-think how to leverage the tools built into the browser better. Modern web browsers are powerful platforms, with a rich set of tools for building great apps, worth exploring for projects large and small.
+
+## Why not use MVC?
+
+Mode-View-Controller (MVC) was a good design choice for Smalltalk programs in the 80s and it can work in some variation or other for web apps, but it isn't the right tool for every problem. All the state (the model in MVC) is captured by the block elements in a block language anyway, so replicating it into Javascript has little benefit unless there is some other need for the model (if we were editing shared, distributed code, for instance). An early version of Waterbear went to great lengths to keep the model in JavaScript and sync it with the DOM until I noticed that more than half the code and 90% of the bugs were due to keeping the model matching the DOM. Eliminating the duplication allowed the code to be simpler and more robust, and with all the state on the DOM elements, many bugs could be found simply by looking at the DOM in the developer tools. So in this case there is little benefit to building further separation of MVC than we already have in HTML/CSS/JavaScript.
+
 ## Stepping through the code
 
 I've tried to follow some conventions and best practices throughout this project. Each JavaScript file is wrapped in a function to avoid leaking variables into the global environment. If it needs to expose variables to other files it will define a single global per file, based on the filename, with the exposed functions in it. This will be near the end of the file, followed by any event handlers set by that file, so you can always glance a the end of a file to see what events it handles.
 
 Aside from `blocks.css` which provides styling (and some help with functionality we'll also explore) and `index.html` to tie everything together, there are six JavaScript files: `blocks.js` defines the block objects and how they work, `drag.js` implements drag-and-drop using HTML5 native drag-and-drop, `file.js` handles loading and saving block scripts (as JSON) as well as loading the examples, `turtle.js` implements our little turtle graphics language and the blocks for it, and `util.js` removes namespaces from some useful browser methods and implements a couple of shortcuts to save us typing (this file has a similar purpose in the project that jQuery has in other projects, but in < 50 lines of code).
 
-The file `menu.js` is a little bit weird: menu in this context is not like a drop-down (or pop-up) menu in most applications, but is the list of blocks you can choose for your script and this file sets that up and adds a looping block that is generally useful (and thus not part of the turtle language itself) as well as some code for actually running the scripts. So this is kind of an odds-and-ends file, for things that may not have fit anywhere else.
-
 ### blocks.js
 
 Each block consists of a few HTML elements, styled with CSS, with some JavaScript event handlers for drag-and-drop and modifying the input argument. It's all standard web stuff, and this file just helps to create and manage these grouping of elements as single objects. When a type of block is added to the block menu, it is also associated with a JavaScript function to run to implement the language, and so each block in the script has to be able to find its associated function and to call it when the script runs.
 
-#### `createBlock(name, value, contents)`
+The entry point for a block is the `createBlock(name, value, contents)` function, which returns a DOM element representing the block, which can be appended to the document. This can be used to create blocks for the menu, or for restoring script blocks saved in files or localStorage. While it is flexible this way, it is built specifically for the Blockcode "language" and makes assumptions about it, so if there is a value it assumes the value represents a numeric argument and creates an input of type "number". Since this is a limitation of the blockcode as used here, this is fine, but if we were to extend the blocks to support other types of arguments, or more than one argument, the code would have to change extensively.
 
-This can be used to create blocks for the menu, or for restoring blocks saved in files or localStorage.
-
-####`blockContents(block)`
-
-Simply retrieve the child blocks of a container block. Always returns a list if called on a container block, always returns null on a simple block
-
-#### `blockValue(block)`
-
-Return the numerical value of the input on a block, if the block has an input field of type number, or string for other input type, null if there is no input element for the block.
-
-#### `blockScript(block)`
-
-Returns the script of a block as a structure suitable for stringifying with JSON. Used for saving blocks in a form they can easily be restored from.
-
-#### `runBlocks(blocks)`
-
-Handler to run an array of blocks by sending each block the "run" event.
+We have some utilities for handling blocks as DOM elements, `blockContents(block)` simply retrieve the child blocks of a container block. it always returns a list if called on a container block, always returns null on a simple block. The `blockValue(block)` function returnw the numerical value of the input on a block, if the block has an input field of type number, or string for other input type, null if there is no input element for the block. To retrieve the script from a block `blockScript(block)` will return a structure suitable for stringifying with JSON. This is used for saving blocks in a form they can easily be restored from. Finally, `runBlocks(blocks)` is a handler to run an array of blocks by sending each block the "run" event.
 
 ### drag.js
 
 We're using HTML5 drag and drop, which requires some specific JavaScript event handlers to be defined, and those are defined here. For more information on using HTML5 drag and drop, see Eric Bidleman's article here: http://www.html5rocks.com/en/tutorials/dnd/basics/. While it is nice to have built-in support for drag and drop, it does have some oddities when using it, and some pretty major limitations (like not being implemented in any mobile browser at the time of this writing).
 
-We define a bunch of variables at the top of the file. When we're dragging, we'll need to reference these from different stages of the dragging callback dance.
+We define a bunch of variables at the top of the file. When we're dragging, we'll need to reference these from different stages of the dragging callback dance. There's also a utility function, `findPosition(evt)`, which returns the block we should insert the dragged block before, if any.
 
-#### `findPosition(evt)`
+The `findPosition` function is called from `drop(evt)` rather than on drag because of bug in Firefox drag events (no clientX, etc). This should also improve drag performance, but doesn't give us an opportunity to provide user feedback during dragging. Ideally we'd like to highlight potential drop targets while the user is dragging, to show where a block can legally be placed and to provide some feedback that it will be dropped where they expect.
 
-Find which block we should insert the dragged block before.
-
-#### `drop(evt)`
-
-The `findPosition` function is called on drop vs. drag because of bug in Firefox drag event (no clientX, etc). This should also improve drag performance, but doesn't give opportunity to provide user feedback during drag. Ideally we'd like to highlight potential drop targets while the user is dragging, to show where a block can legally be placed and to provide some feedback that it will be dropped where they expect.
-
-Depending on where the drag starts from and ends, it will have different effects:
+Depending on where the drag starts from and ends, `drop` will have different effects:
 
 * If dragging from script to menu, delete dragTarget (remove block from script).
 * If dragging from script to script, move dragTarget (move an existing script block).
 * If dragging from menu to script, copy dragTarget (insert new block in script).
 * If dragging from menu to menu, do nothing.
 
-#### `dragEnd(evt)`
-
-Based on the repetitive nature of this code, it looks like a good place for a helper function.
+The `dragEnd(evt)` is called when we mouse up. Based on the repetitive nature of this code, this might be a good place for a helper function to clean things up.
 
 ### menu.js
 
-#### `menu`, `script`
+The file `menu.js` is a little bit weird: menu in this context is not like a drop-down (or pop-up) menu in most applications, but is the list of blocks you can choose for your script and this file sets that up and adds a looping block that is generally useful (and thus not part of the turtle language itself) as well as some code for actually running the scripts. So this is kind of an odds-and-ends file, for things that may not have fit anywhere else.
 
-We use these a lot, keep references around.
+This is useful, especially when an architecture is under development. My theory of keeping a clean house is to have places for designed clutter, and building a program architecture has similar needs. You can have one file or module which is the catch-all for things that don't have a clear place to fit in yet. As this file grows it is important to watch for patterns that emerge: several related functions can be spun off into a separate module (or joined together into a more general function). You don't want the catch-all to grow indefinitely, but only to be a temporary place until you figure out the right way to organize the code.
 
-#### `scriptRegistry`
+We keep around references to `menu` and `script` because we use them a lot, no point hunting through the DOM for them over and over. We'll also use `scriptRegistry`, where we store the scripts of blocks in the menu. We use a very simple name -> script mapping, which does not support either multiple menu blocks with the same name, or renaming blocks. A more complex scripting environment would need something more robust.
+We use `scriptDirty` to keep track of whether the script has been modified since the last time it was run, so we don't keep trying to run it constantly.
 
-This is where we will store the scripts of blocks in the menu. We use a very simple name -> script mapping, so it does not support either multiple menu blocks with the same name, or renaming blocks.
+When we want to notify the system to run the assembled script during the next frame handler, we call `runSoon()` which just sets teh `scriptDirty` flag to `true`. The system calls `run()` on every frame, but returns immediately unless `scriptDirty` is set, when it actually runs all the script blocks, and also triggers events to let the specific language handle any tasks it needs before and after the script is run. This decouples the blocks-as-toolkit from the turtle language to make the blocks re-usable (or the language pluggable, depending how you look at it). As part of running the script, we iterate over each block, calling `runEach(evt)` on it, which sets a class on the block, then finds and executes its associated function. If we slow things down, you should be able to watch the code execute as each block highlights to show when it is running.
 
-#### `scriptDirty`
+We add blocks to the menu using `menuItem(name, fn, value, contents)` which takes a normal block,  associates it with a function, and and puts in the menu column.
 
-Keep track of whether the script has been modified since the last time it was run, so we don't keep trying to run it constantly.
-
-#### `runSoon()`
-
-Flag the system that we should run the assembled script during the next frame handler
-
-#### `menuItem(name, fn, value, contents)`
-
-A menu block is just a normal block that is associated with a function, and it lives in the menu column.
-
-#### `run()`
-
-Run all the script blocks, let the specific language handle any tasks it needs before and after the script is run.
-
-#### `runEach(evt)`
-
-As each block is run, set a class on it, then find and execute its associated function. If we slow things down, you should be able to watch the code execute as each block highlights to show when it is running.
-
-#### `repeat(block)`
-
-One of the default menu blocks reused in each language.
+We define one block here, outside of the turtle language, because `repeat(block)` is generally useful in different potential languages. If we had blocks for conditionals and reading and writing variables they could also go here, or into a separate trans-language module, but right now we only have one of these general purpose blocks defined.
 
 ### file.js
 
-#### `saveLocal()`
+This module handles saving and restoring scripts, both to actual files and also to temporary storage in the browser's `locacalStorage` key-value database. Scripts are stored as simple JSON-formatted files to make things simple, since they are not intended to be human-readable (or human-writable). The `scriptToJSON()` and `jsonToScript(json)` functions handle converting between DOM blocks and strings suitable for storing.
 
-Handler to save the current script in localStorage on page refresh.
+The `saveLocal()` function is a handler to save the current script in localStorage on when navigating away,  closing the window, or refreshing the page so we don't lose the work in progress and `restoreLocal()` handler is called on page load to restore the script. For files we have three functions, `saveFile()` which does some background work to convince HTML to make a link downloadable, where the contents of the link is our script (rendered on the fly), creates a temporary link, and calls `click()` on it to start the download. The inverse, loading the script uses `readFile(file)` as a callback to load in the script, but `loadFile()` to initiate the async file reading. Reading a file like this can easily be triggered from a button or by dropping a suitable file onto a target, using the same callback either way.
 
-#### `scriptToJson()`
-
-Self-explanatory, a utility for converting scripts to JSON format.
-
-#### `jsonToScript(json)`
-
-The inverse of `scriptToJson()`.
-
-#### `restoreLocal()`
-
-Handler to restore the current script on page refresh.
-
-#### `clearScript()`
-
-Handler to clear the current script.
-
-#### `saveFile()`
-
-Handler to save to a local file
-
-#### `readFile(file)`
-
-Handler to load from a local file.
-
-#### `loadFile()`
-
-Part of the handshake involved in asych file loading.
+As the odd function out, we also have `clearScript()`, a handler to clear the current script when the user wants a fresh start.
 
 ### turtle.js
 
-This is the implmentation of the turtle block language. It exposes no globals of its own., but it does define local variables for managing the canvas itself and save some handier references to frequently-used parts of Math.
+This is the implmentation of the turtle block language. It exposes no globals of its own., but it does define local variables for managing the canvas and saves some handier references to frequently-used parts of Math.
 
-#### `reset()`
-
-Resets all the state variables (we could embed these in an object if we wanted to support more than one turtle).
-
-#### `deg2rad(deg)`
-
-Utility so we can work with degrees in the UI, but draw in radians.
-
-#### `drawTurtle()`
-
-Draw the turtle itself. Default turtle is a triangle, but you could override this to get a more "turtle-looking" turtle.
+The `reset()` function clears all the state variables to their defaults. If we wanted to support multiple turtles, these variables should be encapsulated in an object.  We also have a utility, `deg2rad(deg)`, because we work in degrees in the UI, but we draw in radians. Finally, `drawTurtle()` draws the turtle itself. The default turtle is simply a triangle, but you could override this to get a more "turtle-looking" turtle.
 
 ### util.js
 
-This code may not belong in the count of 500 lines since it is all support and polyfills for things that should be native to the browser.
+This code may not belong in the count of 500 lines since it is just support functions and polyfills for things that should be native to the browser.
 
-#### `elem(name, attrs, children)`
+The shorthand function `elem(name, attrs, children)` saves us from typing out a lot of repetitive DOM code to create elements, while allowing us to simultaneously set their attributes and add child elements. Modern browsers already implement the useful `matches(elem, selector)` function, but using a "namespace", so this code just removes the namespaces. And we need `matches` so we can implement `closest(elem, selector)`, which is one of the handiest methods in all of jQuery that hasn't been built into the browser yet.
 
-Shorthand function to create elements easily, while also setting their attributes and adding child elements
-
-#### `matches(elem, selector)`
-
-Remove namespace for matches. This is a lot of code just to get functionality that is already built-in.
-
-#### `closest(elem, selector)`
-
-Emulate one of the handiest methods in all of jQuery that isn't already built in to the browser yet
-
-#### `requestAnimationFrame(fn)`
-
-Another polyfill for built-in functionality, just to get rid of namespaces in older browsers, or to emulate it for browsers that don't have requestAnimationFrame yet.
-
-#### `trigger(name, target)`
-
-Shorthand for sending a custom event to an element.
+The `requestAnimationFrame(fn)` is another polyfill for built-in functionality, just to get rid of namespaces in older browsers, or to emulate it for browsers that don't have requestAnimationFrame yet. And for sending custom events to elements we define the shorthand function `trigger(name, target)`.
 
 ### index.html
 
