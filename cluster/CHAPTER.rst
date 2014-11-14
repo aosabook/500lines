@@ -142,7 +142,16 @@ In fact, the protocol will never allow two different values to be decided, even 
 
 When multiple proposers make a ballot at the same time, it is easy for neither ballot to be accepted.
 Both proposers then re-propose, and hopefully one wins, but the deadlock can continue indefinitely if the timing works out just right.
-In a bad -- but not uncommon -- case, it can take dozens of round-trips to reach consensus.
+
+Consider the following sequence of events:
+
+* Proposer A performs the ``Prepare``/``Promise`` phase for ballot number 1.
+* Before proposer A manages to get its proposal accepted, proposer B performs a ``Prepare``/``Promise`` phase for ballot number 2.
+* When proposer A finally sends its ``Accept`` with ballot number 1, the acceptors reject it because they have already promised ballot number 2.
+* Proposer A reacts by immediately sending a ``Prepare`` with a higher ballot number (3), before proposer B can send its ``Accept`` message.
+* Proposer B's subsequent ``Accept`` is rejected, and the process repeats.
+
+With unlucky timing -- more common over long-distance connections where the time between sending a message and getting a response is long -- this deadlock can continue for many rounds.
 
 Multi-Paxos
 -----------

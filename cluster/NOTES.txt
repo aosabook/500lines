@@ -1,6 +1,0 @@
-From Oct 5
-----------
-
-Detail:
- - example of no decision being made in simple paxos
-   (need to review the literature)
