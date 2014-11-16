@@ -27,7 +27,7 @@ The **sampling rate** of the accelerometer, which can often be calibrated, deter
 
 ## Let's Talk About a Walk
 
-When a person walks, they bounce slightly with each step. Just watch the top of a person's head as they walk away from you. Their head, torso, and hips are synchronized in a smooth bouncing motion. While people don't bounce very far, only one or two inches, it is one of the clearest, most constant, and most recognizable parts of a person's walking acceleration signal!
+When a person walks, they bounce slightly with each step. Just watch the top of a person's head as they walk away from you. Their head, torso, and hips are synchronized in a smooth bouncing motion. While people don't bounce very far, only one or two centimeters, it is one of the clearest, most constant, and most recognizable parts of a person's walking acceleration signal.
 
 A person bounces up and down, in the vertical direction, with each step. If you are walking on Earth, or another big ball of mass floating in space, the bounce is conveniently in the same direction as gravity. 
 
