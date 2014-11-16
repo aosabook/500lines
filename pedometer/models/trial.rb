@@ -12,14 +12,21 @@ class Trial
   end
 
 private
-  
+
   def integer_or_default(val, default, greater_than_val)
-    int = val.to_i
-    if (int.to_s == val.to_s)
-      (int > greater_than_val) ? int : default
-    else
-      default
-    end
+    int = Integer(val)
+    (int > greater_than_val) ? int : default
+  rescue ArgumentError, TypeError
+    default
   end
+  
+  # def integer_or_default(val, default, greater_than_val)
+  #   int = val.to_i
+  #   if (int.to_s == val.to_s)
+  #     (int > greater_than_val) ? int : default
+  #   else
+  #     default
+  #   end
+  # end
 
 end

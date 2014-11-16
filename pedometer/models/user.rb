@@ -17,13 +17,20 @@ class User
 private
 
   def float_or_default(val, default, greater_than_val)
-    float = val.to_f
-    if (float.to_s == val.to_s || float.to_s.gsub('.0', '') == val.to_s)
-      (float > greater_than_val) ? float : default
-    else
-      default
-    end
+    float = Float(val)
+    (float > greater_than_val) ? float : default
+  rescue ArgumentError, TypeError
+    default
   end
+
+  # def float_or_default(val, default, greater_than_val)
+  #   float = val.to_f
+  #   if (float.to_s == val.to_s || float.to_s.gsub('.0', '') == val.to_s)
+  #     (float > greater_than_val) ? float : default
+  #   else
+  #     default
+  #   end
+  # end
 
   def calculate_stride
     if gender && height
