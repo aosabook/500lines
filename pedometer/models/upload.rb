@@ -42,9 +42,9 @@ class Upload
 private
 
   def generate_file_path(user, trial)
-    UPLOAD_DIRECTORY + "#{user.gender}-#{user.height}-#{user.stride}_" +
-                       "#{trial.name.to_s.gsub(/\s+/, '')}-" + 
-                       "#{trial.rate}-#{trial.steps}-#{trial.method}.txt"
+    UPLOAD_DIRECTORY + 
+    "#{user.gender}-#{user.height}-#{user.stride}_" +
+    "#{trial.name}-#{trial.rate}-#{trial.steps}-#{trial.method}.txt"
   end
 
 end

@@ -4,19 +4,19 @@ require_relative '../../models/trial'
 class TrialTest < Test::Unit::TestCase
 
   def test_create
-    trial = Trial.new('test trial 1', 5, '10', 'walk')
-    assert_equal 5,              trial.rate
-    assert_equal 'walk',         trial.method
-    assert_equal 10,             trial.steps
-    assert_equal 'test trial 1', trial.name
+    trial = Trial.new('test trial 1', 5, '10', 'bag walk')
+    assert_equal 5,            trial.rate
+    assert_equal 'bagwalk',    trial.method
+    assert_equal 10,           trial.steps
+    assert_equal 'testtrial1', trial.name
   end
 
   def test_create_empty
     trial = Trial.new
     assert_equal 100, trial.rate
-    assert_nil trial.method
+    assert_equal '', trial.method
     assert_nil trial.steps
-    assert_nil trial.name
+    assert_equal '', trial.name
   end
 
   def test_create_with_rate

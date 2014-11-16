@@ -12,9 +12,9 @@ class UploadTest < Test::Unit::TestCase
 
   def test_create
     temp_file = 'test/data/upload-1.txt'
-    file_path = 'public/uploads/female-999.0-90.0_foobar-89-10-run.txt'
+    file_path = 'public/uploads/female-999.0-90.0_foo-89-10-run.txt'
     user_params = { 'gender' => 'female', 'height' => '999', 'stride' => '90' }
-    trial_params = { 'name' => 'foo bar', 'rate' => '89', 'steps' => '10', 'method' => 'run' }
+    trial_params = { 'name' => 'foo', 'rate' => '89', 'steps' => '10', 'method' => 'run' }
 
     upload = Upload.create(temp_file, user_params, trial_params)
 

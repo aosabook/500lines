@@ -3,12 +3,12 @@ class Trial
   attr_reader :name, :rate, :steps, :method
 
   def initialize(name = nil, rate = nil, steps = nil, method = nil)
-    @name   = name
+    @name   = name.to_s.delete(' ')
     # @rate   = (rate.to_f.round > 0) ? rate.to_f.round : 100
     # @steps  = steps.to_f.round if steps.to_s != '' && steps.to_f.round >= 0
     @rate   = integer_or_default(rate, 100, 0)
     @steps  = integer_or_default(steps, nil, -1)
-    @method = method
+    @method = method.to_s.delete(' ')
   end
 
 private
