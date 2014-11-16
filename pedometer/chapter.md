@@ -203,6 +203,8 @@ When bumpiness occurs at our threshold, we can mistakenly count too many steps f
 
 ### Peaks That Are Juuuust Right
 
+![](chapter-figures/acceleration-filtered.png)\ 
+
 In accounting for these four scenarios, we've managed to bring our messy $a(t)$ fairly close to our ideal sine wave, allowing us to count steps. 
 
 ## Recap
@@ -221,7 +223,7 @@ As software developers in a training or academic setting, we may have been prese
 
 # Diving Into Code
 
-Our goal for this chapter is to create a web application in Ruby that accepts accelerometer data, parses, processes, and analyzes it, and returns the steps taken along with other related information. 
+Our goal for this chapter is to create a web application in Ruby that accepts accelerometer data, parses, processes, and analyzes it, and returns the number of steps taken, the distance traveled, and the elapsed time. 
 
 # Preliminary Work
 
@@ -246,15 +248,15 @@ class Filter
   }
 
   def self.low_0_hz(data)
-    self.chebyshev_filter(data, COEFFICIENTS_LOW_0_HZ)
+    chebyshev_filter(data, COEFFICIENTS_LOW_0_HZ)
   end
 
   def self.low_5_hz(data)
-    self.chebyshev_filter(data, COEFFICIENTS_LOW_5_HZ)
+    chebyshev_filter(data, COEFFICIENTS_LOW_5_HZ)
   end
 
   def self.high_1_hz(data)
-    self.chebyshev_filter(data, COEFFICIENTS_HIGH_1_HZ)
+    chebyshev_filter(data, COEFFICIENTS_HIGH_1_HZ)
   end
 
 private
@@ -281,7 +283,7 @@ Anytime our program needs to filter a time series, we can call one of the class 
 * `low_5_hz` is used to low-pass filter signals at or below 5 Hz
 * `high_1_hz` is used to high-pass filter signals above 1 Hz
 
-Each class method called `chebyshev_filter`, which implements the Chebyshev filter and returns the result. If we wish to add more filters in the future, we only need to change this one class. 
+Each class method calls `chebyshev_filter`, which implements the Chebyshev filter and returns the result. If we wish to add more filters in the future, we only need to change this one class. 
 
 One important thing to note is that all "magic" numbers are defined at the top. This makes our class easier to read and understand. The formula in `chebyshev_filter` is much more obvious using the `coefficients` parameter than it would have been with numerical values directly inserted.
 
