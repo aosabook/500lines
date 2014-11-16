@@ -36,12 +36,24 @@ class UserTest < Test::Unit::TestCase
   end
 
   def test_create_with_height
+    assert_nil User.new(nil).height
+    assert_nil User.new(nil, nil).height
+    assert_nil User.new(nil, '').height
+    assert_nil User.new(nil, 'bad height').height
+
+    assert_equal 150, User.new(nil, 150).height
+    assert_equal 150, User.new(nil, '150').height
+    assert_equal 150, User.new(nil, 150.0).height
+    assert_equal 150, User.new(nil, '150.0').height
+    assert_equal 167.5, User.new(nil, 167.5).height
     assert_equal 167.5, User.new(nil, '167.5').height
-    assert_equal 100.52, User.new(nil, 100.52).height
-    
-    assert_nil User.new(nil, 'invalid value').height
+    assert_equal 181.12, User.new(nil, 181.12).height
+    assert_equal 181.12, User.new(nil, '181.12').height
+
     assert_nil User.new(nil, 0).height
+    assert_nil User.new(nil, '0').height
     assert_nil User.new(nil, -1).height
+    assert_nil User.new(nil, '-1').height
   end
 
   def test_create_with_height_and_gender

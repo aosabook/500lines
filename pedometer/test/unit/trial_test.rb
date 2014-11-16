@@ -20,7 +20,6 @@ class TrialTest < Test::Unit::TestCase
   end
 
   def test_create_with_rate
-    flunk 'Move integer_or_default method to helper'
     assert_equal 100, Trial.new(nil).rate
     assert_equal 100, Trial.new(nil, nil).rate
     assert_equal 100, Trial.new(nil, '').rate
@@ -40,7 +39,6 @@ class TrialTest < Test::Unit::TestCase
   end
 
   def test_create_with_steps
-    flunk 'Move integer_or_default method to helper'
     assert_nil Trial.new(nil, nil).steps
     assert_nil Trial.new(nil, nil, nil).steps
     assert_nil Trial.new(nil, nil, '').steps
