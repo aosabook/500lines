@@ -17,6 +17,8 @@ class Project:
         self.trace = []
 
     def end_tracing(self):
+        """Stop recording task invocations, and return the trace as text."""
+
         def parenthesize(tup):
             return repr(tup)[:-2] + ')' if len(tup) == 1 else repr(tup)
 
