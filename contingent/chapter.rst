@@ -467,7 +467,7 @@ registering routines?]
 A Functional Blog Builder
 -------------------------
 
-``example1/`` demonstrates a functional blog builder constructed in a
+``example/`` demonstrates a functional blog builder constructed in a
 Clean Architecture style: the build process is defined by functions that
 accept and return simple data structures and are ignorant of the manager
 processes surrounding them. These functions perform the typical
@@ -476,7 +476,7 @@ from its sources: reading and parsing the source texts, extracting
 metadata from individual posts, determining the overall ordering of the
 entire blog, and rendering to an output format.
 
->>> from example1.build import read_text_file, parse, body_of  # etc.
+>>> from example.build import read_text_file, parse, body_of  # etc.
 
 In this implementation, each *task* is a function and argument list
 tuple that captures both the function to be performed and the input
