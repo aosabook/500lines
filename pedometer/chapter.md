@@ -327,7 +327,7 @@ Our system takes, as input, data from an accelerometer along with information on
 
 ![](chapter-figures/pipeline.png)\
 
-In the spirit of separation of concerns, we'll write the code for each distinct component of the pipeline, parsing, processing, and analyzing, individually.
+In the spirit of separation of concerns, we'll write the code for each distinct component of the pipeline - parsing, processing, and analyzing - individually.
 
 # Parsing
 
@@ -673,64 +673,11 @@ Let's examine each of these two requirements.
 
 ## 1. Storing and Retrieving Data
 
-We need to store the text file containing the data samples, as well as the user and trial inputs associated with it. These inputs are related to an upload, so we'll create an `Upload` class to keep track of, store, and load this data. 
+Our app needs to store input data to, and retrieve data from, the file system. We'll create an `Upload` class to do this. We'll store the text file containing the data samples directly to the file system, with the file path accessed through the `@file_path` instance variable. The information on the user and trial will be stored in the file name, and we'll have access to those objects through `@user` and `@trial` instance variables. Our `Upload` class has three class-level methods for file system access and retrieval, all of which return one of more instances of `Upload`:
 
-~~~~~~~
-require 'fileutils'
-require_relative 'user'
-require_relative 'trial'
-
-include FileUtils::Verbose
-
-class Upload
-
-  UPLOAD_DIRECTORY = 'public/uploads/'
-
-  attr_reader :file_path, :user, :trial
-
-  def initialize(file_path = nil, user_params = nil, trial_params = nil)
-    if @file_path = file_path
-      file_name = @file_path.split('/').last.split('.txt').first.split('_')
-      @user = User.new(*file_name.first.split('-'))
-      @trial = Trial.new(*file_name.last.split('-'))      
-    elsif user_params && trial_params
-      @user = User.new(*user_params.values)
-      @trial = Trial.new(*trial_params.values)
-      @file_path = UPLOAD_DIRECTORY + 
-                   "#{user.gender}-#{user.height}-#{user.stride}_" +
-                   "#{trial.name}-#{trial.rate}-#{trial.steps}-#{trial.method}.txt"
-    else
-      raise 'A file path or user and trial parameters must be provided.'
-    end
-  end
-
-  def self.create(temp_file, user_params, trial_params)
-    upload = self.new(nil, user_params, trial_params)
-    cp(temp_file, upload.file_path)
-    upload
-  end
-
-  def self.find(file_path)
-    self.new(file_path)
-  end
-
-  def self.all
-    file_paths = Dir.glob(File.join(UPLOAD_DIRECTORY, "*"))
-    file_paths.map { |file_path| self.new(file_path) }
-  end
-
-end
-~~~~~~~
-
-Our `Upload` class has three class-level methods used to store data to, and retrieve data from, the file system. All of the class-level methods call into the initializer, and return one or more instances of `Upload`. Our `Upload` class contains instance methods to access `file_path`, as well as `User` and `Trial` objects directly. 
-
-### Storing Data
-
-The `create` method stores a file to the file system that a user uploads using the browser upload field. The details of the user and trial information passed in through the browser input fields and dropdown boxes are stored in the filename. When using the browser upload field, the browser creates a temporary file that our app has access to. The first parameter passed in to `create`, `temp_file`, is the location of this temporary file. The next two parameters, `user_params` and `trial_params`, are hashes of the values for a user and a trial, respectively.
-
-### Retrieving Data
-
-We retrieve data from the file system using the `find` and `all` class methods. Like the `create` method, `find` returns an instance of `Upload` for the file path requested, and `all` returns an array of `Upload` instances for all files in the file system. 
+* `create` takes a file along with user and trial information. It stores the file to the file system, under a file name containing the user and trial information.
+* `find` takes a file path and returns an instance of `Upload`.
+* `all` returns an array of `Upload` instances, one for each accelerometer data file in the file system.
 
 ## Separation of Concerns in Upload
 
@@ -738,7 +685,7 @@ Once again, we've been wise to separate concerns in our program. All code relate
 
 In the future, we can save `User` and `Trial` objects to the database. The `create`, `find`, and `all` methods in `Upload` will then be relevant to `User` and `Trial` as well. That means we'd likely refactor those out into their own class to deal with data storage and retrieval in general, and each of our `User`, `Trial`, and `Upload` classes would inherit from that class. We might eventually add helper query methods to that class, and continue building it up from there. 
 
-Let's move on to the web application side of our program to see how `Upload` will be helpful.
+Since the `Upload` class deals only with the file system and doesn't relate directly to the implementation of the pedometer, we've left it out for brevity. Let's move on to the web application side of our program.
 
 ## 2. Building a Web Application
 
@@ -754,25 +701,25 @@ Dir['./models/*', './helpers/*'].each {|file| require_relative file }
 include ViewHelper
 
 get '/uploads' do
-  @uploads = Upload.all
   @error = "A #{params[:error]} error has occurred." if params[:error]
+  @pipelines = Upload.all.inject([]) do |a, upload|
+    a << Pipeline.run(File.read(upload.file_path), upload.user, upload.trial) 
+    a
+  end
 
   erb :uploads
 end
 
 get '/upload/*' do |file_path|
-  @upload = Upload.find(file_path)
+  upload = Upload.find(file_path)
+  @pipeline = Pipeline.run(File.read(file_path), upload.user, upload.trial)
   
   erb :upload
 end
 
 post '/create' do
   begin
-    Upload.create(
-      params[:processor][:file_upload][:tempfile], 
-      params[:user].values,
-      params[:trial].values
-    )
+    Upload.create(params[:data][:tempfile], params[:user], params[:trial])
 
     redirect '/uploads'
   rescue Exception => e
@@ -781,17 +728,17 @@ post '/create' do
 end
 ~~~~~~~
 
-Running `ruby pedometer.rb` from our app's directory starts the web server, allowing our app to respond to HTTP requests for each of our routes. Each route either retrieves data from, or stores data to, the file system through `Upload`, and then renders a view. Our views use erb, an emplementation of Embedded Ruby, which allows us to embed Ruby into HTML. The instance variables instantiated in our routes will be used directly in our views. The views simply display the data and aren't the focus of our app, so we we'll leave the code for them out of this chapter. 
+`pedometer.rb` allows our app to respond to HTTP requests for each of our routes. Each route either retrieves data from, or stores data to, the file system through `Upload`, and then renders a view or redirects. Our views use erb, an emplementation of Embedded Ruby, which allows us to embed Ruby into HTML. The instance variables instantiated in our routes will be used directly in our views. The views simply display the data and aren't the focus of our app, so we we'll leave the code for them out of this chapter. 
 
 Let's look at each of the routes in `pedometer.rb` individually. 
 
 ### get '/uploads'
 
-With our server running, navigating to `http://localhost:4567/uploads` sends an HTTP GET request to our app, triggering our `get '/uploads'` code. The route retrieves all of the uploads in the file system and renders the `uploads` view, which displays a list of the uploads, and a form to submit new uploads. If an error parameter is included, the route will create an error string, and the `uploads` view will display the error.
+Navigating to `http://localhost:4567/uploads` sends an HTTP GET request to our app, triggering our `get '/uploads'` code. The route runs the pipeline for all of the uploads in the file system and renders the `uploads` view, which displays a list of the uploads, and a form to submit new uploads. If an error parameter is included, the route will create an error string, and the `uploads` view will display the error.
 
 ### get '/upload/*'
 
-Clicking the **Detail** link for each upload sends an HTTP GET to `/upload` with the file path for that upload. For example: `http://localhost:4567/upload/public/uploads/female-168.0-70.0_100-100-1-walk-c.txt`. The route code retirieves the upload through `Upload`, using the provided `file_path`, and renders the `upload` view. The upload view displays the details of the upload, including the charts, which are creating using a JavaScript library called HighCharts. 
+Clicking the **Detail** link for each upload sends an HTTP GET to `/upload` with the file path for that upload. The route code runs the pipeline and renders the `upload` view. The view displays the details of the upload, including the charts, which are creating using a JavaScript library called HighCharts. 
 
 ### post '/create'
 
