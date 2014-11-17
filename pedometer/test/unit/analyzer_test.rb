@@ -6,7 +6,7 @@ require_relative '../../models/analyzer'
 class AnalyzerTest < Test::Unit::TestCase
 
   def test_new
-    analyzer = Analyzer.new([0, 0])
+    analyzer = Analyzer.new([0, 0], User.new, Trial.new)
 
     assert_nil analyzer.steps
     assert_nil analyzer.distance
@@ -19,7 +19,7 @@ class AnalyzerTest < Test::Unit::TestCase
     data = [0, 0, 3.0950446845522207e-05, 8.888784491236883e-05, 
             0.00017675661757108235, 0.0003010710258273255, 
             0.0004670334044406543, 0.0006857659826903315]
-    analyzer = Analyzer.run(data)
+    analyzer = Analyzer.run(data, User.new, Trial.new)
     
     assert_nil analyzer.delta
     assert_equal 0, analyzer.steps
@@ -38,24 +38,6 @@ class AnalyzerTest < Test::Unit::TestCase
     assert_equal -8,         analyzer.delta
     assert_equal 700,        analyzer.distance
     assert_equal (1037/100), analyzer.time
-  end
-
-  # -- Creation Failure Tests -----------------------------------------------
-
-  def test_create_bad_user
-    assert_raise_with_message(RuntimeError, 'User invalid.') do
-      parser = Parser.run('0.123,-0.123,5;')
-      processor = Processor.run(parser.parsed_data)
-      analyzer = Analyzer.new(processor.filtered_data, 'bad user')
-    end
-  end
-
-  def test_create_bad_trial
-    assert_raise_with_message(RuntimeError, 'Trial invalid.') do
-      parser = Parser.run('0.123,-0.123,5;')
-      processor = Processor.run(parser.parsed_data)
-      analyzer = Analyzer.new(processor.filtered_data, User.new, 'bad trial')
-    end
   end
 
 end

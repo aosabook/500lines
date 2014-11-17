@@ -323,7 +323,7 @@ Our standard format allows us to store a time series, as each element represents
 
 # The Pipeline
 
-Our solution takes data from an accelerometer as input, applies our signal processing solution, and returns as output the number of steps taken, the distance traveled, and the elapsed time. The entire process from input to output can be viewed as a pipeline. 
+Our system takes, as input, data from an accelerometer along with information on the user taking the walk (gender, stride, etc.) and information on the trial walk itself (sampling rate, actual steps taken, etc.). Given the input, our signal processing solution is applied, and our system returns as output the number of steps calculated, the delta between the actual steps and calculated steps, the distance traveled, and the elapsed time. The entire process from input to output can be viewed as a pipeline. 
 
 ![](chapter-figures/pipeline.png)\
 
@@ -536,7 +536,7 @@ class Analyzer
 
   attr_reader :steps, :delta, :distance, :time
 
-  def self.run(data, user = User.new, trial = Trial.new)
+  def self.run(data, user, trial)
     analyzer = Analyzer.new(data, user, trial)
     analyzer.measure_steps
     analyzer.measure_delta
@@ -545,10 +545,7 @@ class Analyzer
     analyzer
   end
 
-  def initialize(data, user = User.new, trial = Trial.new)
-    raise 'User invalid.' unless user.kind_of? User
-    raise 'Trial invalid.' unless trial.kind_of? Trial
-
+  def initialize(data, user, trial)
     @data  = data
     @user  = user
     @trial = trial
@@ -587,7 +584,7 @@ end
 
 The first thing we do in `Analyzer` is define a `THRESHOLD` constant. For the purposes of this discussion, let's assume we've analyzed numerous diverse data sets and determined a threshold value that accommodated the largest number of those data sets. The threshold can eventually become dynamic and vary with different users, based on the calculated versus actual steps they've taken. A learning algorithm, if you will.
 
-Our `Analyzer`'s initializer take a mandatory `data` parameter because we necessarily need a data set to work with, and optionally takes a `User` and `Trial` instance. Note that the default values for the `user` and `trial` parameters is a new instance of each. Remember how those classes both had default values and could handle zero input parameters? That functionality comes in handy here. The initializer raises exceptions if classes other than those expected are passed in, and sets the instance variables `@data`, `@user`, and `@trial` to the passed in parameters. 
+Our `Analyzer`'s initializer take a `data` parameter and instances of `User` and `Trial`, and sets the instance variables `@data`, `@user`, and `@trial` to the passed in parameters. 
 
 Aside from the initializer, the only other public method in `Analyzer` is `measure`, which calls `measure_steps`, `measure_distance`, and `measure_time`, in that order. All three methods are kept private so that an outside class can't call them out of order. Let's take a look at each.
 
@@ -612,10 +609,42 @@ The distance is measured by multiplying our user's stride by the number of steps
 
 Time is calculated by dividing the total number of samples in `filtered_data` by the sampling rate. It follows, then, that time is calculated in numbers of seconds. 
 
-TODO: Move elsewhere
-# Tying It All Together
+# Tying It All Together With the Pipeline
 
-Our Parser, Processor, and Analyzer classes, while useful individually, are definitely better together. Our program will often use them to run through the pipeline we introduced earlier. For the pipeline to work, we need to supply it with data from the accelerometer, along with instances of User and Trial. 
+Our Parser, Processor, and Analyzer classes, while useful individually, are definitey better together. Our program will often use them to run through the pipeline we introduced earlier. Since the pipeline will need to be run frequently, we'll create a `Pipeline` class to run it for us.
+
+~~~~~~~
+require_relative 'parser'
+require_relative 'processor'
+require_relative 'analyzer'
+
+class Pipeline
+
+  attr_reader :data, :user, :trial, :parser, :processor, :analyzer
+
+  def self.run(data, user, trial)
+    pipeline = Pipeline.new(data, user, trial)
+    pipeline.feed
+    pipeline
+  end
+
+  def initialize(data, user, trial)
+    @data  = data
+    @user  = user
+    @trial = trial
+  end
+
+  def feed
+    @parser    = Parser.run(@data)
+    @processor = Processor.run(@parser.parsed_data)
+    @analyzer  = Analyzer.run(@processor.filtered_data, @user, @trial)
+  end
+
+end
+~~~~~~~
+
+We use our now familiar `run` pattern and supply `Pipeline` with accelerometer data, and instances of `User` and `Trial`. The `feed` method implements the pipeline, which entails running `Parser` with the accelerometer data, then using the parser's parsed data to run `Processor`, and finally using the processor's filtered data to run `Analyzer`. The `Pipeline` keeps `@parser`, `@processor`, and `@analyzer` instance variables, so that the program has access to information from those objects for display purposes through the app. 
+TODO: Add note on stateful versus stateless?
 
 # Adding Some Friendly
 

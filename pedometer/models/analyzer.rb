@@ -7,7 +7,7 @@ class Analyzer
 
   attr_reader :steps, :delta, :distance, :time
 
-  def self.run(data, user = User.new, trial = Trial.new)
+  def self.run(data, user, trial)
     analyzer = Analyzer.new(data, user, trial)
     analyzer.measure_steps
     analyzer.measure_delta
@@ -16,10 +16,7 @@ class Analyzer
     analyzer
   end
 
-  def initialize(data, user = User.new, trial = Trial.new)
-    raise 'User invalid.' unless user.kind_of? User
-    raise 'Trial invalid.' unless trial.kind_of? Trial
-
+  def initialize(data, user, trial)
     @data  = data
     @user  = user
     @trial = trial

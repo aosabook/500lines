@@ -1,4 +1,3 @@
-require_relative 'upload'
 require_relative 'parser'
 require_relative 'processor'
 require_relative 'analyzer'

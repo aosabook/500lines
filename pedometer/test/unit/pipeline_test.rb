@@ -1,6 +1,5 @@
 require 'test/unit'
 require_relative '../../models/pipeline'
-require_relative '../../models/upload'
 
 class PipelineTest < Test::Unit::TestCase
 
