@@ -537,8 +537,8 @@ control back to the ``Builder`` by requesting the value of ``(parse,
 '<p>Text of A</p>\n'
 >>> print(project.end_tracing())
 calling body_of('A.rst')
-calling parse('A.rst')
-returning cached read_text_file('A.rst')
+. calling parse('A.rst')
+. . returning cached read_text_file('A.rst')
 
 Interposing the Builder between function calls allows it to dynamically
 construct the relationship between individual tasks
@@ -570,7 +570,7 @@ at every point on the consequences graph:
 '<p>Text of A</p>\n'
 >>> print(project.end_tracing())
 calling body_of('A.rst')
-returning cached parse('A.rst')
+. returning cached parse('A.rst')
 
 .. illustrate task stack?
 

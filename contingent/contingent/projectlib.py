@@ -13,6 +13,7 @@ class Project:
         self.trace = None
 
     def start_tracing(self):
+        """Start recording every task that is invoked in this project."""
         self.trace = []
 
     def end_tracing(self):
@@ -20,9 +21,12 @@ class Project:
             return repr(tup)[:-2] + ')' if len(tup) == 1 else repr(tup)
 
         text = '\n'.join(
-            '{} {}{}'.format(verb, function.__name__, parenthesize(args))
-            for (verb, (function, args)) in self.trace
-            )
+            '{}{} {}{}'.format(
+                '. ' * depth,
+                'calling' if not_available else 'returning cached',
+                function.__name__,
+                parenthesize(args),
+            ) for (depth, not_available, (function, args)) in self.trace)
 
         self.trace = None
         return text
@@ -41,11 +45,13 @@ class Project:
 
         If the cache does not have an up-to-date return value, then the
         wrapper invokes `task_function` and saves its return value to
-        the cache for future use.  Before invoking the `task_function`,
-        the wrapper places it atop the current stack of executing tasks
-        so that if `task_function` invokes any further tasks we can
-        record that it used their return values, and will need to be
-        called again in the future if any of those subordinate tasks
+        the cache for future use before returning it to the caller.
+
+        If it must invoke the `task_function`, then the wrapper places
+        the task atop the current stack of executing tasks.  This makes
+        sure that if `task_function` invokes any further tasks that we
+        can remember that it used their return values, and will need to
+        be re-invoked again in the future if any of those other tasks
         change their return value.
 
         """
@@ -64,9 +70,11 @@ class Project:
 
             value = self._get_from_cache(task)
 
+            if self.trace is not None:
+                tup = (len(self.task_stack), value is _not_available, task)
+                self.trace.append(tup)
+
             if value is _not_available:
-                if self.trace is not None:
-                    self.trace.append(('calling', task))
                 self.graph.clear_inputs_of(task)
                 self.task_stack.append(task)
                 try:
@@ -74,9 +82,6 @@ class Project:
                 finally:
                     self.task_stack.pop()
                 self.set(task, value)
-            else:
-                if self.trace is not None:
-                    self.trace.append(('returning cached', task))
 
             return value
 
