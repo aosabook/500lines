@@ -9,7 +9,7 @@ from docutils import nodes
 from glob import glob
 from jinja2 import DictLoader
 
-from contingent.builderlib import Builder
+from contingent.projectlib import Project
 # from contingent.cachelib import Cache, _absent
 from contingent.utils import looping_wait_on
 
@@ -23,12 +23,17 @@ dl = DictLoader({'full.tpl': """\
 {% endblock %}
 """})
 
-def read_text_file(call, path):
+project = Project()
+task = project.task
+
+@task
+def read_text_file(path):
     with open(path) as f:
         return f.read()
 
-def parse(call, path):
-    source = call(read_text_file, path)
+@task
+def parse(path):
+    source = read_text_file(path)
     if path.endswith('.rst'):
         doctree = publish_doctree(source)
         docinfos = doctree.traverse(nodes.docinfo)
@@ -46,66 +51,48 @@ def parse(call, path):
                 'date': notebook['metadata']['date'],
                 'title': notebook['metadata']['name']}
 
-def title_of(call, path):
-    info = call(parse, path)
+@task
+def title_of(path):
+    info = parse(path)
     return info['title']
 
-def date_of(call, path):
-    info = call(parse, path)
+@task
+def date_of(path):
+    info = parse(path)
     return info['date']
 
-def body_of(call, path):
-    info = call(parse, path)
+@task
+def body_of(path):
+    info = parse(path)
     dirname = os.path.dirname(path)
     body = info['body']
     def format_title_reference(match):
         filename = match.group(1)
-        title = title_of(call, os.path.join(dirname, filename))
+        title = title_of(os.path.join(dirname, filename))
         return '<i>{}</i>'.format(title)
     body = re.sub(r'title_of\(([^)]+)\)', format_title_reference, body)
     return body
 
-def sorted_posts(call, paths):
-    return sorted(paths, key=lambda path: call(date_of, path))
+@task
+def sorted_posts(paths):
+    return sorted(paths, key=date_of)
 
-def previous_post(call, paths, path):
-    paths = call(sorted_posts, paths)
+@task
+def previous_post(paths, path):
+    paths = sorted_posts(paths)
     i = paths.index(path)
     return paths[i - 1] if i else None
 
-def render(call, paths, path):
-    previous = call(previous_post, paths, path)
-    previous_title = 'NONE' if previous is None else call(title_of, previous)
+@task
+def render(paths, path):
+    previous = previous_post(paths, path)
+    previous_title = 'NONE' if previous is None else title_of(previous)
     text = '<h1>{}</h1>\n<p>Date: {}</p>\n<p>Previous post: {}</p>\n{}'.format(
-        call(title_of, path), call(date_of, path),
-        previous_title, call(body_of, path))
+        title_of(path), date_of(path),
+        previous_title, body_of(path))
     print('-' * 72)
     print(text)
     return text
-
-
-class BlogBuilder:
-    def __init__(self):
-        self.builder = Builder(self.compute)
-        self.verbose = False
-
-    def get(self, fn, *args):
-        return self.builder.get((fn, args))
-
-    def invalidate(self, fn, *args):
-        return self.builder.invalidate((fn, args))
-
-    def __getattr__(self, name):
-        return getattr(self.builder, name)
-
-    def compute(self, task, _):
-        "Compute a task by direct invocation."
-        if self.verbose:
-            print('Computing', task)
-
-        fn, args = task
-        return fn(self.get, *args)
-
 
 def main():
     thisdir = os.path.dirname(__file__)
@@ -114,15 +101,13 @@ def main():
     if not os.path.exists(outdir):
         os.mkdir(outdir)
 
-    builder = BlogBuilder()
-
     paths = tuple(glob(os.path.join(indir, '*.rst')) +
                   glob(os.path.join(indir, '*.ipynb')))
 
-    for path in builder.get(sorted_posts, paths):
-        builder.get(render, paths, path)
+    for path in sorted_posts(paths):
+        render(paths, path)
 
-    builder.verbose = True
+    project.verbose = True
     while True:
         print('=' * 72)
         print('Watching for files to change')
@@ -130,8 +115,8 @@ def main():
         print('=' * 72)
         print('Reloading:', ' '.join(changed_paths))
         for path in changed_paths:
-            builder.invalidate(read_text_file, path)
-        builder.rebuild()
+            project.invalidate(read_text_file, (path,))
+        project.rebuild()
 
 if __name__ == '__main__':
     main()

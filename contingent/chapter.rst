@@ -276,8 +276,8 @@ task's consequences to be placed on the todo list for reconsideration.
 
 To illustrate, we first construct a ``Builder``
 
->>> from contingent.builderlib import Builder
->>> b = Builder(callback=None)
+>>> from contingent.projectlib import Project
+>>> b = Project()
 
 and update its initially empty consequences graph to be the manually-
 constructed graph from our example above
@@ -476,39 +476,22 @@ from its sources: reading and parsing the source texts, extracting
 metadata from individual posts, determining the overall ordering of the
 entire blog, and rendering to an output format.
 
->>> from example.build import read_text_file, parse, body_of  # etc.
+>>> from example.blog_project import project
+>>> from example.blog_project import read_text_file, parse, body_of  # etc.
 
 In this implementation, each *task* is a function and argument list
 tuple that captures both the function to be performed and the input
 arguments unique to that task:
 
->>> task = read_text_file, ('A.rst',)
+>>> task = read_text_file.wrapped, ('A.rst',)
 
 This particular task depends upon the content of the file ``A.rst`` —
 its ``path`` argument — and returns the contents of that file as its
 output. Its consequences are any tasks that require the raw text of the
 file as input, such as the task ``(parse, ('A.rst',))``.
 
-How do these functions interact with a ``Builder``-managed process?
-Rather than calling each other directly, each function accepts a
-``call`` argument, a callable that allows the ``Builder`` to insert
-itself between a task and any inputs it depends on.
-
->>> def call(task_fn, *args):
-...     print('· call(', task_fn.__name__, ', ', args, ')', sep='')
-...     # Get a task's value from the blog Builder, instantiated below
-...     return blog.get((task_fn, args))
-
-The task functions use ``call`` to request values from other tasks, as
-when ``parse`` requests the raw content of a file at a given path:
-
-.. code-block:: python
-
-    def parse(call, path):
-        "Parse the file at path; return a dict of the body, title, and date."
-
-        source = call(read_text_file, path)
-        # …
+[TODO: explain that the Project decorator wrapped each function so that
+it can intercept calls.]
 
 This indirection gives ``Builder`` the opportunity to perform its two
 crucial functions: consequence discovery and task caching. As tasks run,
@@ -518,43 +501,25 @@ If at any point, a task requests an input ``Builder`` has recently
 computed, the value is returned directly from the cache, effectively
 halting the rebuild of tasks along that graph path.
 
-If a task's current value isn't available, ``Builder`` needs a mechanism
-to recompute it. To keep the ``Builder`` generic and flexible, it
-accepts a compute callable that mediates this return trip to the build
-framework:
-
->>> def compute(task, _):
-...     task_fn, args = task
-...     print('· compute(', task_fn.__name__, ', ', args, ')', sep='')
-...     return task_fn(call, *args)
-
-Together, ``call`` and ``compute`` form the framework/``Builder``
-interface: ``call`` allows the framework to pass control to its
-``Builder``; ``compute`` gives ``Builder`` the means to rebuild stale
-tasks by calling back to the framework.
-
-To illustrate, we can construct a new ``Builder`` initialized with an
-empty graph and this ``compute`` callback:
-
->>> blog = Builder(compute)
-
 We can manually force an initial value for our read task using
 ``Builder.set()``
 
->>> blog.set(task, 'Text of A')
+>>> project.set(task, 'Text of A')
 
 Since this is the first task this ``Builder`` has encountered, the task
 has no consequences: nothing as of yet has requested its output,
 
->>> blog.graph.immediate_consequences_of(task)
+>>> project.graph.immediate_consequences_of(task)
 set()
 
 and, since it is freshly computed, requests for the task's value can be
 serviced directly from ``Builder``'s cache.
 
->>> call(read_text_file, 'A.rst')
-· call(read_text_file, ('A.rst',))
+>>> project.start_tracing()
+>>> read_text_file('A.rst')
 'Text of A'
+>>> print(project.end_tracing())
+returning cached read_text_file('A.rst')
 
 Requesting the value for a new task, ``(body_of, ('A.rst',))``,
 illuminates the back and forth between the ``Builder`` and the
@@ -567,43 +532,45 @@ control back to the ``Builder`` by requesting the value of ``(parse,
 ``parse`` requests the value from ``read_text_file``, which the
 ``Builder`` *does* have cached, thus ending the call chain.
 
->>> call(body_of, 'A.rst')
-· call(body_of, ('A.rst',))
-· compute(body_of, ('A.rst',))
-· call(parse, ('A.rst',))
-· compute(parse, ('A.rst',))
-· call(read_text_file, ('A.rst',))
+>>> project.start_tracing()
+>>> body_of('A.rst')
 '<p>Text of A</p>\n'
+>>> print(project.end_tracing())
+calling body_of('A.rst')
+calling parse('A.rst')
+returning cached read_text_file('A.rst')
 
 Interposing the Builder between function calls allows it to dynamically
 construct the relationship between individual tasks
 
->>> blog.graph.immediate_consequences_of(task)
+>>> project.graph.immediate_consequences_of(task)
 {(<function parse at 0x...>, ('A.rst',))}
 
 and the entire chain of consequences leading from that task.
 
->>> blog.graph.recursive_consequences_of([task], include=True)
+>>> project.graph.recursive_consequences_of([task], include=True)
 [(<function read_text_file at 0x...>, ('A.rst',)), (<function parse at 0x...>, ('A.rst',)), (<function body_of at 0x...>, ('A.rst',))]
 
 If nothing changes, subsequent requests for ``(body_of, ('A.rst',))``
 can be served immediately from the cache,
 
->>> call(body_of, 'A.rst')
-· call(body_of, ('A.rst',))
+>>> project.start_tracing()
+>>> body_of('A.rst')
 '<p>Text of A</p>\n'
+>>> print(project.end_tracing())
+returning cached body_of('A.rst')
 
 while the effects of changes that invalidate interior task's values are
 minimized by the ``Builder``'s ability to detect the impact of a change
 at every point on the consequences graph:
 
->>> blog.invalidate((body_of, ('A.rst',)))
->>> call(body_of, 'A.rst')
-· call(body_of, ('A.rst',))
-· compute(body_of, ('A.rst',))
-· call(parse, ('A.rst',))
+>>> project.invalidate((body_of.wrapped, ('A.rst',)))
+>>> project.start_tracing()
+>>> body_of('A.rst')
 '<p>Text of A</p>\n'
-
+>>> print(project.end_tracing())
+calling body_of('A.rst')
+returning cached parse('A.rst')
 
 .. illustrate task stack?
 

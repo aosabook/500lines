@@ -1,17 +1,62 @@
 
-from contextlib import contextmanager
-
+from functools import wraps
 from .graphlib import Graph
 
 _not_available = object()
 
-class Builder:
-    def __init__(self, callback):
-        self.task_callback = callback
+class Project:
+    def __init__(self):
         self.graph = Graph()
         self.cache = {}
         self.task_stack = []
         self.todo_list = set()
+        self.trace = None
+
+    def start_tracing(self):
+        self.trace = []
+
+    def end_tracing(self):
+        def parenthesize(tup):
+            return repr(tup)[:-2] + ')' if len(tup) == 1 else repr(tup)
+
+        text = '\n'.join(
+            '{} {}{}'.format(verb, function.__name__, parenthesize(args))
+            for (verb, (function, args)) in self.trace
+            )
+
+        self.trace = None
+        return text
+
+    def task(self, task_function):
+        """Decorate a task function."""
+
+        @wraps(task_function)
+        def wrapper(*args):
+            task = (task_function, args)
+
+            if self.task_stack:
+                self.graph.add_edge(task, self.task_stack[-1])
+
+            value = self._get_from_cache(task)
+
+            if value is _not_available:
+                if self.trace is not None:
+                    self.trace.append(('calling', task))
+                self.graph.clear_inputs_of(task)
+                self.task_stack.append(task)
+                try:
+                    value = task_function(*args)
+                finally:
+                    self.task_stack.pop()
+                self.set(task, value)
+            else:
+                if self.trace is not None:
+                    self.trace.append(('returning cached', task))
+
+            return value
+
+        wrapper.wrapped = task_function
+        return wrapper
 
     def get(self, task):
         """Return the output value of a particular task.
