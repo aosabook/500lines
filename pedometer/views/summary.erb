@@ -11,15 +11,15 @@
   <% end %>
   <% pipelines.each do |pipeline| %>
     <tr>
-      <td><%= pipeline.upload.trial.name %></td>
-      <td><%= pipeline.upload.trial.method %></td>
-      <td><%= pipeline.upload.trial.steps %></td>
+      <td><%= pipeline.trial.name %></td>
+      <td><%= pipeline.trial.method %></td>
+      <td><%= pipeline.trial.steps %></td>
       <td><%= pipeline.analyzer.steps %></td>
       <td><%= pipeline.analyzer.delta %></td>
-      <td><%= pipeline.upload.user.gender %></td>
+      <td><%= pipeline.user.gender %></td>
       <% if detail_hidden %>
         <td>
-          <a href=<%= "upload/" + pipeline.upload.file_path %>>Detail</a>
+          <a href=<%= "upload/" + Upload.generate_file_path(pipeline.user, pipeline.trial) %>>Detail</a>
         </td>
       <% else %>
         <td><%= format_distance(pipeline.analyzer.distance) %></td>

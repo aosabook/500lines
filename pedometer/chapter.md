@@ -612,6 +612,11 @@ The distance is measured by multiplying our user's stride by the number of steps
 
 Time is calculated by dividing the total number of samples in `filtered_data` by the sampling rate. It follows, then, that time is calculated in numbers of seconds. 
 
+TODO: Move elsewhere
+# Tying It All Together
+
+Our Parser, Processor, and Analyzer classes, while useful individually, are definitely better together. Our program will often use them to run through the pipeline we introduced earlier. For the pipeline to work, we need to supply it with data from the accelerometer, along with instances of User and Trial. 
+
 # Adding Some Friendly
 
 We're through the most labour intensive part of our program. Next, we'll build a web app to present the data in a format that is pleasing to a user. A web app naturally separates the data processing from the presentation of the data. Let's look at our app from a user's perspective before we dive into the code. 
@@ -639,11 +644,12 @@ Let's examine each of these two requirements.
 
 ## 1. Storing and Retrieving Data
 
-We need to store the text file containing the data samples, as well as the user and trial inputs associated with it. These user inputs are related to an upload, so we'll create an `Upload` class to keep track of, store, and load this data. 
+We need to store the text file containing the data samples, as well as the user and trial inputs associated with it. These inputs are related to an upload, so we'll create an `Upload` class to keep track of, store, and load this data. 
 
 ~~~~~~~
 require 'fileutils'
-require_relative 'analyzer'
+require_relative 'user'
+require_relative 'trial'
 
 include FileUtils::Verbose
 
@@ -651,34 +657,27 @@ class Upload
 
   UPLOAD_DIRECTORY = 'public/uploads/'
 
-  attr_reader :file_path, :parser, :processor, :user, :trial, :analyzer
-  attr_reader :user_params, :trial_params
+  attr_reader :file_path, :user, :trial
 
-  def initialize(file_path = nil, input_data = nil, user_params = nil, trial_params = nil)
-    if file_path
-      @file_path = file_path
-    elsif input_data
-      @parser    = Parser.run(File.read(input_data))
-      @processor = Processor.run(@parser.parsed_data)
-      @user      = User.new(*user_params)
-      @trial     = Trial.new(*trial_params)
-
+  def initialize(file_path = nil, user_params = nil, trial_params = nil)
+    if @file_path = file_path
+      file_name = @file_path.split('/').last.split('.txt').first.split('_')
+      @user = User.new(*file_name.first.split('-'))
+      @trial = Trial.new(*file_name.last.split('-'))      
+    elsif user_params && trial_params
+      @user = User.new(*user_params.values)
+      @trial = Trial.new(*trial_params.values)
       @file_path = UPLOAD_DIRECTORY + 
                    "#{user.gender}-#{user.height}-#{user.stride}_" +
-                   "#{trial.name.to_s.gsub(/\s+/, '')}-" + 
-                   "#{trial.rate}-" + 
-                   "#{trial.steps}-" +
-                   "#{trial.method}.txt"
-    else 
-      raise 'File name or input data must be passed in.'
+                   "#{trial.name}-#{trial.rate}-#{trial.steps}-#{trial.method}.txt"
+    else
+      raise 'A file path or user and trial parameters must be provided.'
     end
   end
 
-  # -- Class Methods --------------------------------------------------------
-
-  def self.create(input_data, user_params, trial_params)
-    upload = self.new(nil, input_data, user_params, trial_params)
-    cp(input_data, upload.file_path)
+  def self.create(temp_file, user_params, trial_params)
+    upload = self.new(nil, user_params, trial_params)
+    cp(temp_file, upload.file_path)
     upload
   end
 
@@ -691,68 +690,18 @@ class Upload
     file_paths.map { |file_path| self.new(file_path) }
   end
 
-  # -- Instance Methods -----------------------------------------------------
-
-  def parser
-    @parser ||= Parser.run(File.read(file_path))
-  end
-
-  def processor
-    @processor ||= Processor.run(parser.parsed_data)
-  end
-
-  def user
-    @user ||= User.new(*file_name.first.split('-'))
-  end
-
-  def trial
-    @trial ||= Trial.new(*file_name.last.split('-'))
-  end
-
-  def analyzer
-    @analyzer ||= Analyzer.run(processor, user, trial)
-  end
-
-private
-
-  def file_name
-    @file_name ||= file_path.split('/').last.split('.txt').first.split('_')
-  end
-
 end
 ~~~~~~~
 
-Our `Upload` class has three class-level methods used to store data to, and retrieve data from, the file system. 
+Our `Upload` class has three class-level methods used to store data to, and retrieve data from, the file system. All of the class-level methods call into the initializer, and return one or more instances of `Upload`. Our `Upload` class contains instance methods to access `file_path`, as well as `User` and `Trial` objects directly. 
 
 ### Storing Data
 
-The `create` method stores a file that a user uploads using the browser upload field. The details of the user and trial information passed in through the browser input fields and dropdown boxes are stored in the filename. When using the browser upload field, the browser creates a temporary file that our app has access to. The first parameter passed in to `create`, `input_data`, is the location of the temporary file. The next two parameters, `user_params` and `trial_params`, are arrays of the values for a user and a trial, respectively.
-
-~~~~~~~
-> Upload.create('test/data/upload-1.txt', ['female', '168', '71'], ['1', 100', '10', 'run'])
-~~~~~~~
-
-The `create` method calls the initializer to create a new instance of `Upload`, passing in `nil` for the `file_path` parameter, and passing forward the remaining three parameters, `input_data`, `user_params`, and `trial_params`, unchanged. The initializer then creates and sets `Processor`, `User`, and `Trial` objects, and generates a filename using the attributes from these objects. Finally, the `create` method copies the temporary file to the file system under `public/uploads`, using the `file_path`. The `Upload` instance is returned. 
+The `create` method stores a file to the file system that a user uploads using the browser upload field. The details of the user and trial information passed in through the browser input fields and dropdown boxes are stored in the filename. When using the browser upload field, the browser creates a temporary file that our app has access to. The first parameter passed in to `create`, `temp_file`, is the location of this temporary file. The next two parameters, `user_params` and `trial_params`, are hashes of the values for a user and a trial, respectively.
 
 ### Retrieving Data
 
-We retrieve data from the file system using the `find` and `all` class methods.
-
-Like the `create` method, `find` returns an instance of `Upload`. It calls into the initializer, passing in the `file_path`. All the initializer does if it's passed a `file_path` is set the `@file_path` instance variable. 
-
-~~~~~~~
-> Upload.find('public/uploads/female-168.0-70.0_1-100-100-walk-c.txt')
-~~~~~~~
-
-The `all` class method grabs all of the files in our `public/uploads` folder, and returns an array of `Upload` objects.
-
-~~~~~~~
-> Upload.all
-~~~~~~~
-
-### Working With an Instance of Upload
-
-Our `Upload` class contains instance methods to access the `Processor`, `User`, `Trial`, and `Analyzer` objects directly. These objects are lazy loaded, to prevent creation until necessary. The `user` and `trial` instance methods use the `file_name` method to parse the file path to isolate the file name, and retrieve the necessary parameters from the file name to create `User` and `Trial` objects. The `processor` method reads the data from the file itself. Finally, the `analyzer` method uses `processor`, `user`, and `trial` to instantiate an `Analyzer` object and call `measure` on it, before returning the instance.
+We retrieve data from the file system using the `find` and `all` class methods. Like the `create` method, `find` returns an instance of `Upload` for the file path requested, and `all` returns an array of `Upload` instances for all files in the file system. 
 
 ## Separation of Concerns in Upload
 
@@ -764,20 +713,7 @@ Let's move on to the web application side of our program to see how `Upload` wil
 
 ## 2. Building a Web Application
 
-Web apps have been built many times over, so we'll leverage the important work of the open source community and use an existing framework to do the boring plumbing work for us. The Sinatra framework does just that. In the tool's own words, Sinatra is "a DSL for quickly creating web applications in Ruby". Perfect. Since we're building a web app, we'll need a web server. We'll use Thin as our web server, which is simple and certainly fast enough for our purposes. 
-
-Sinatra and Thin can be installed as RubyGems, Ruby's popular library packaging system. We'll also use Bundler, a helpful tool to install and manage our RubyGems.
-
-We'll start by creating a Gemfile:
-
-~~~~~~~
-source 'https://rubygems.org'
-
-gem 'sinatra'
-gem 'thin'
-~~~~~~~
-
-Once we run `bundle install` from our `pedometer` directory, we'll have Sinatra and the Thin web server.
+Web apps have been built many times over, so we'll leverage the important work of the open source community and use an existing framework to do the boring plumbing work for us. The Sinatra framework does just that. In the tool's own words, Sinatra is "a DSL for quickly creating web applications in Ruby". Perfect. 
 
 Our web app will need to respond to HTTP requests, so we'll need a file that defines a route for each combination of HTTP method and URL. Let's call it `pedometer.rb`.
 
@@ -817,26 +753,6 @@ end
 ~~~~~~~
 
 Running `ruby pedometer.rb` from our app's directory starts the web server, allowing our app to respond to HTTP requests for each of our routes. Each route either retrieves data from, or stores data to, the file system through `Upload`, and then renders a view. Our views use erb, an emplementation of Embedded Ruby, which allows us to embed Ruby into HTML. The instance variables instantiated in our routes will be used directly in our views. The views simply display the data and aren't the focus of our app, so we we'll leave the code for them out of this chapter. 
-
-### Helpers are Helpful
-
-`pedometer.rb` loads in all models and helpers, and includes a `ViewHelper` module. As the name implies, `ViewHelper` contains methods that help the view. Let's look at one of the methods as an example. 
-
-~~~~~~~
-module ViewHelper
-<...code truncated for brevity...>
-  def format_time(time_sec)
-    Time.at(time_sec.round).utc.strftime("%-H hr, %-M min, %-S sec")
-  end
-<...code truncated for brevity...>
-end
-~~~~~~~
-
-`format_time` takes a time in seconds and formats it using Ruby's `strftime`, so that the view can display it as "`x` hr, `y` min, `z` sec", making it easier to comprehend than listing the total number of seconds. 
-
-Here we once again see separation of concerns. To keep as much logic as possible out of the view, we leave the formatting to `ViewHelper`. Helpers group methods that have a similar purpose. It's sometimes tempting to jam all miscellaneous methods of a program into one helper, making it a dumping ground for code we don't know what to do with. If you find yourself doing this, always question where that method should belong, and which one of your classes or modules is responsible for the functionality of that method. It's wise to resist the temptation to put outcast code into helpers, as it can mask the problem of a poorly structured app.
-
-## Back to Our App
 
 Let's look at each of the routes in `pedometer.rb` individually. 
 

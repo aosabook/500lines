@@ -55,4 +55,12 @@ class UploadTest < Test::Unit::TestCase
     assert_equal [Upload], uploads.map { |t| t.class }.uniq
   end
 
+  def test_generate_file_path
+    file_path = 'public/uploads/female-999.0-90.0_foo-89-10-run.txt'
+    user = User.new('female', '999', '90')
+    trial = Trial.new('foo', '89', '10', 'run')
+
+    assert_equal file_path, Upload.generate_file_path(user, trial)
+  end
+
 end

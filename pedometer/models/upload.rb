@@ -13,12 +13,12 @@ class Upload
   def initialize(file_path = nil, user_params = nil, trial_params = nil)
     if @file_path = file_path
       file_name = @file_path.split('/').last.split('.txt').first.split('_')
-      @user = User.new(*file_name.first.split('-'))
-      @trial = Trial.new(*file_name.last.split('-'))      
+      @user     = User.new(*file_name.first.split('-'))
+      @trial    = Trial.new(*file_name.last.split('-'))      
     elsif user_params && trial_params
-      @user = User.new(*user_params.values)
-      @trial = Trial.new(*trial_params.values)
-      @file_path = generate_file_path(user, trial)
+      @user      = User.new(*user_params.values)
+      @trial     = Trial.new(*trial_params.values)
+      @file_path = Upload.generate_file_path(user, trial)
     else
       raise 'A file path or user and trial parameters must be provided.'
     end
@@ -39,9 +39,7 @@ class Upload
     file_paths.map { |file_path| self.new(file_path) }
   end
 
-private
-
-  def generate_file_path(user, trial)
+  def self.generate_file_path(user, trial)
     UPLOAD_DIRECTORY + 
     "#{user.gender}-#{user.height}-#{user.stride}_" +
     "#{trial.name}-#{trial.rate}-#{trial.steps}-#{trial.method}.txt"
