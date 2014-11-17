@@ -1,10 +1,14 @@
+"""Provide a Project of related tasks that can be rebuilt when inputs change.
 
+"""
 from functools import wraps
 from .graphlib import Graph
 
 _not_available = object()
 
 class Project:
+    """A collection of tasks that are related as inputs and consequences."""
+
     def __init__(self):
         self.graph = Graph()
         self.cache = {}
@@ -49,9 +53,9 @@ class Project:
         If it must invoke the `task_function`, then the wrapper places
         the task atop the current stack of executing tasks.  This makes
         sure that if `task_function` invokes any further tasks that we
-        can remember that it used their return values, and will need to
-        be re-invoked again in the future if any of those other tasks
-        change their return value.
+        can remember that it used their return values, and that it will
+        need to be re-invoked again in the future if any of those other
+        tasks change their return value.
 
         """
         @wraps(task_function)
@@ -96,17 +100,15 @@ class Project:
         """
         if task in self.todo_list:
             return _not_available
-        if task not in self.cache:
-            return _not_available
-        return self.cache[task]
+        return self.cache.get(task, _not_available)
 
     def set(self, task, value):
         """Add the output `value` of `task` to our cache of outputs.
 
         This gives us the opportunity to compare the new value against
         the old one that had previously been returned by the task, to
-        determine whether the tasks downstream from `task` must be added
-        to the to-do list for re-computation.
+        determine whether the tasks that use `task` as input must be
+        added to the to-do list for re-computation.
 
         """
         self.todo_list.discard(task)
