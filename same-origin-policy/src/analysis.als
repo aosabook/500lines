@@ -6,14 +6,13 @@ module analysis
 
 open flow
 
-
 // General security properties
-sig TrustedModule, MaliciousModule in FlowModule {}
+sig TrustedModule, MaliciousModule in DataflowModule {}
 sig CriticalData, MaliciousData in Data {}
 
 // No malicious module should be able to access private data
 assert Confidentiality {
-  no m: FlowModule - TrustedModule, t: Time |
+  no m: DataflowModule - TrustedModule, t: Time |
     some CriticalData & m.accesses.t 
 }
 
@@ -31,28 +30,10 @@ fact  {
   -- no module is both trusted and malicious
   no TrustedModule & MaliciousModule
   -- every module is either trusted or malicious
-  FlowModule = TrustedModule + MaliciousModule
+  DataflowModule = TrustedModule + MaliciousModule
   -- no data is both critical and malicious
   no CriticalData & MaliciousData
 }
 
 check Confidentiality for 3
 check Integrity for 3
-
-
-/* Restrictions */
-
--- you can comment out any of these facts if you prefer
-
-// Restrict calls to be only of one kind
--- leave uncommented the kind of call you want to see only
-fact {
-  -- all c: Call | c in SetDomain
-  all c: Call | c in XmlHttpRequest
-}
-
-/* Helper functions for visualization */
-
-fun currentCall: Call -> Time {
-  {c: Call, t: Time | c.start = t }
-}

@@ -7,13 +7,15 @@ module postMessage
 
 open origin
 open script
-open sop
+//open sop
 
 // Browser API function for cross-document messaging
 // used to send a message from one script to another
 sig PostMessage extends BrowserOp {
   message: Resource,
   targetOrigin: Origin
+}{
+  noDocumentChange[start, end]
 }
 
 sig ReceiveMessage extends EventHandler {

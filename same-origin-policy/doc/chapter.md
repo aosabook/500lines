@@ -2,34 +2,104 @@
 
 ## Introduction
 
-The same-origin policy (SOP) is part of the security mechanism of every modern browser. It controls when scripts running in a browser can communicate with one another (roughly, when they originate from the same website). First introduced in Netscape Navigator, the SOP now plays a critical role in the security of web applications; without it, it would be far easier for a malicious hacker to peruse your private photos on Facebook, or empty the balance on your bank account.
+The same-origin policy (SOP) is an important part of the security
+mechanism of every modern browser. It controls when scripts running in
+a browser can communicate with one another (roughly, when they
+originate from the same website). First introduced in Netscape
+Navigator, the SOP now plays a critical role in the security of web
+applications; without it, it would be far easier for a malicious
+hacker to peruse your private photos on Facebook, or empty the balance
+on your bank account.
 
-But the SOP is far from perfect. At times, it is too restrictive; there are cases (such as mashups) in which scripts from different origins should be able to share a resource but cannot. At other times, it is not restrictive enough, leaving corner cases that can be exploited using common attacks such as cross-site request forgery (CSRF). Furthermore, the design of the SOP has evolved organically over the years and puzzles many developers.
+But the SOP is far from perfect. At times, it is too restrictive;
+there are cases (such as mashups) in which scripts from different
+origins should be able to share a resource but cannot. At other times,
+it is not restrictive enough, leaving corner cases that can be
+exploited using common attacks such as cross-site request forgery
+(CSRF). Furthermore, the design of the SOP has evolved organically
+over the years and puzzles many developers.
 
-The goal of this chapter is to construct a crystallized description of this important -- yet often misunderstood -- policy. In particular, we will answer the following questions by implementing the SOP ourselves:
+The goal of this chapter is to construct a crystallized description of
+this important -- yet often misunderstood -- policy. In particular, we
+will answer the following questions by implementing the SOP ourselves:
 
 * Why is the SOP necessary? What are the types of security violations that it prevents?
 * How is the behavior of a web application affected by the SOP?
 * What are different mechanisms for bypassing the SOP? 
 * How secure are these mechanisms? What are potential security issues that they introduce?
 
-But building an implementation of the SOP is a daunting task, given the complexity of the parts that are involved -- a web server, a browser, the HTTP protocol, HTML documents, client-side scripts, etc. Even before getting to the SOP, we will likely get bogged down by all the gritty details of these pieces (not to mention, we need to do this in less in 500 lines of code!). So how do we go about building a version of the SOP that is simple and yet detailed enough to capture all of the questions above?
+But building an implementation of the SOP is a daunting task, given
+the complexity of the parts that are involved -- a web server, a
+browser, the HTTP protocol, HTML documents, client-side scripts,
+etc. Even before getting to the SOP, we will likely get bogged down by
+all the gritty details of these pieces (not to mention, we need to do
+this in less in 500 lines of code!). So how do we go about building a
+version of the SOP that is simple and yet detailed enough to capture
+all of the questions above?
 
 ## Modeling with Alloy
 
-This chapter is somewhat different from others in this book. Instead of building a working implementation, we will construct an executable _model_ that serves as a simple yet precise description of the SOP. Like an implementation, the model can be executed to explore dynamic behaviors of the system; but unlike an implementation, the model omits low-level details that may get in the way of understanding the essential concepts.
+This chapter is somewhat different from others in this book. Instead
+of building a working implementation, we will construct an executable
+_model_ that serves as a simple yet precise description of the
+SOP. Like an implementation, the model can be executed to explore
+dynamic behaviors of the system; but unlike an implementation, the
+model omits low-level details that may get in the way of understanding
+the essential concepts.
 
-The approach we take might be called “agile modeling” because of its similarities to agile programming. We work incrementally, assembling the model bit by bit. Our evolving model is at every point something that can be executed. We formulate and run tests as we go, so that by the end we have not only the model itself but also a collection of _properties_ that it satisfies. 
+The approach we take might be called “agile modeling” because of its
+similarities to agile programming. We work incrementally, assembling
+the model bit by bit. Our evolving model is at every point something
+that can be executed. We formulate and run tests as we go, so that by
+the end we have not only the model itself but also a collection of
+_properties_ that it satisfies.
 
-To construct this model, we use _Alloy_, a language for modeling and analyzing software design. An Alloy model cannot be executed in the traditional sense of program execution. Instead, a model can be (1) _simulated_ to produce an _instance_, which represents a valid scenario or configuration of a system, and (2) _checked_ to see whether the model satisfies a desired property.
+To construct this model, we use _Alloy_, a language for modeling and
+analyzing software design. An Alloy model cannot be executed in the
+traditional sense of program execution. Instead, a model can be (1)
+_simulated_ to produce an _instance_, which represents a valid
+scenario or configuration of a system, and (2) _checked_ to see
+whether the model satisfies a desired property.
 
-Despite above similarities, agile modeling differs from agile programming in one key respect. Although we'll be running tests, we actually won't be writing any. Alloy's analyzer generates test cases automatically, and all that needs to be provided is the property to be checked. Needless to say, this saves a lot of trouble (and text). The analyzer actually executes all possible test cases up to a certain size (called a _scope_); this typically means generating all starting states with at most some number of objects, and then choosing operations and arguments to apply up to some number of steps. Because so many tests are executed (typically billions), and because all possible configurations that a state can take are covered (albeit within the scope), this analysis tends to expose bugs more effectively than conventional testing.
+Despite above similarities, agile modeling differs from agile
+programming in one key respect. Although we'll be running tests, we
+actually won't be writing any. Alloy's analyzer generates test cases
+automatically, and all that needs to be provided is the property to be
+checked. Needless to say, this saves a lot of trouble (and text). The
+analyzer actually executes all possible test cases up to a certain
+size (called a _scope_); this typically means generating all starting
+states with at most some number of objects, and then choosing
+operations and arguments to apply up to some number of steps. Because
+so many tests are executed (typically billions), and because all
+possible configurations that a state can take are covered (albeit
+within the scope), this analysis tends to expose bugs more effectively
+than conventional testing.
 
-## Simplifications
+### Simplifications
 
-Because the SOP operates in the context of browsers, servers, the HTTP protocol, and so on, a complete description would be overwhelming. So our model (like all models) abstracts away irrelevant aspects, such as how network packets are structured and routed. But it also simplifies some relevant aspects, which means that the model cannot fully account for all possible security vulnerabilities.
+Because the SOP operates in the context of browsers, servers, the HTTP
+protocol, and so on, a complete description would be overwhelming. So
+our model (like all models) abstracts away irrelevant aspects, such as
+how network packets are structured and routed. But it also simplifies
+some relevant aspects, which means that the model cannot fully account
+for all possible security vulnerabilities.
 
-For example, we treat HTTP requests like remote procedure calls, ignoring the fact that responses to requests might come out of order. We also assume that DNS (the domain name service) is static, so we cannot consider attacks in which a DNS binding changes during an interaction. In principle, though, it would be possible to extend our model to cover all these aspects, although it's in the very nature of security analysis that no model (even if it represents the entire codebase) can be guaranteed complete.
+For example, we treat HTTP requests like remote procedure calls,
+ignoring the fact that responses to requests might come out of
+order. We also assume that DNS (the domain name service) is static, so
+we cannot consider attacks in which a DNS binding changes during an
+interaction. In principle, though, it would be possible to extend our
+model to cover all these aspects, although it's in the very nature of
+security analysis that no model (even if it represents the entire
+codebase) can be guaranteed complete.
+
+## Roadmap
+
+Here is the order in which we will proceed with our model of the SOP. We will begin by building models of three key components that we need in order for us to talk about the SOP: the HTTP protocol, the browser, and the client-side scripting. We will build on top of these basic models to define what it means for some web application to be _secure_, and then introduce the SOP as a mechanism that attempts to achieve the security properties.
+
+But we will then see that the SOP can be sometimes too restrictive, in that it sometimes gets in the way of a web application functioning properly! So we will introduce four different techniques that can be used to bypass the restrictions that are imposed by the policy.
+
+Feel free to explore the sections in any order you'd like, although if you are new to Alloy, we recommend the first three sections (HTTP, Browser, and Script), as they will introduce some of the basic concepts of the modeling language. While you are making your way through the chapter, we also encourage you to play with the models in the Alloy Analyzer; run them, explore the generated scenarios, and add your own details to the models! The tool is freely available for download (http://alloy.mit.edu).
 
 ## HTTP Protocol
 
@@ -59,7 +129,7 @@ Here we have five signature declarations, introducing sets for URLs and each of 
 
 Note that domains and paths, unlike URLs, are treated as if they have no structure -- a simplification. The keyword `lone` (which can be read "less than or equal to one") says that each URL has at most one port. The path is the string that follows the host name in the URL, and which (for a simple static server) corresponds to the file path of the resource; we're assuming that it's always present, but can be an empty path.
 
-Now we need some clients and servers:
+Let us introduce clients and servers, each of which contains a mapping from paths to resources:
 
 ```alloy
 abstract sig Endpoint {}
@@ -71,8 +141,6 @@ abstract sig Server extends Endpoint {
 
 The `extends` keyword introduces a subset, so the set `Client` of all clients, for example, is a subset of the set `Endpoint` of all endpoints. Extensions are disjoint, so no endpoint is both a client and a server. The `abstract` keyword says that all extensions of a signature exhaust it, so its occurrence in the declaration of `Endpoint`, for example, says that every endpoint must belong to one of the subsets (at this point, `Client` and `Server`). For a server `s`, the expression `s.resources` will denote a map from paths to resources (hence the arrow in the declaration). But as before, remember that each field is actually a relation that includes the owning signature as a first column, so this field represents a three-column relation on `Server`, `Path` and `Resource`.
 
-This is a very simple model of a server: it has a static mapping of paths to resources. In general, the mapping is dynamic, but that won't matter for our analysis.
-
 To map a URL to a server, we introduce a set `Dns` of domain name servers, each with a mapping from domains to servers:
 
 ```alloy
@@ -81,7 +149,12 @@ one sig Dns {
 }
 ```
 
-The keyword `one` in the signature declaration means that (for simplicity) we're going to restrict to exactly one domain name server, so that `Dns.map` will be the mapping used everywhere. Again, as with serving resources, this could be dynamic (and in fact there are known security attacks that rely on changing DNS bindings during an interaction) but we're simplifying.
+The keyword `one` in the signature declaration means that (for
+simplicity) we're going to restrict to exactly one domain name server,
+so that `Dns.map` will be the mapping used everywhere. Again, as with
+serving resources, this could be dynamic (and in fact there are known
+security attacks that rely on changing DNS bindings during an
+interaction) but we're simplifying.
 
 In order to model HTTP requests, we also need the concept of _cookies_, so let's declare them:
 
@@ -116,7 +189,7 @@ When writing the `HttpRequest` signature, we found that it contained generic fea
 open call[Endpoint]
 ```
 
-It's a polymorphic module, so it's instantiated with `Endpoint`, the set of things calls are from and to (details about calls can be found in Appendix A).
+It's a polymorphic module, so it's instantiated with `Endpoint`, the set of things calls are from and to (details about calls can be found in Appendix).
 
 Following the field declarations in `HttpRequest` is a collection of constraints. Each of these constraints applies to all members of the set of HTTP requests. The constraints say that (1) each request comes from a client, and (2) each request is sent to one of the servers specified by the URL host under the DNS mapping.
 
@@ -147,9 +220,10 @@ check { all r1, r2: HttpRequest | r1.url = r2.url implies r1.response = r2.respo
 ```
 Given this `check` command, the analyzer explores every possible behavior of the system (up to the specified bound), and as soon as it finds one that violates the property, it returns that instance as a *counterexample*:
 
-![http-instance-2](fig-http-2.png)
+![http-instance-2a](fig-http-2a.png)
+![http-instance-2b](fig-http-2b.png)
 
-This counterexample again shows an HTTP request being made by a client, but with two different servers (in Alloy, objects of the same type are distinguished with a numeric suffix). Note that while the DNS server maps `Domain` to both `Server0` and `Server1` (in reality, this is a common practice for load balancing), only `Server0` maps `Path` to a resource object, causing `HttpRequest0` to result in empty response: another error in our model! To fix this, we add an Alloy *fact* to ensure that any two servers mapped to the common host by the DNS provide the same set of resources:
+This counterexample again shows an HTTP request being made by a client, but with two different servers (in Alloy, objects of the same type are distinguished with a numeric suffix). Note that while the DNS server maps `Domain` to both `Server0` and `Server1` (in reality, this is a common practice for load balancing), only `Server1` maps `Path` to a resource object, causing `HttpRequest1` to result in empty response: another error in our model! To fix this, we add an Alloy *fact* to ensure that any two servers mapped to the common host by the DNS provide the same set of resources:
 
 ```alloy
 fact ServerAssumption {
@@ -172,10 +246,7 @@ sig Browser extends Client {
 }
 ```
 
-This is our first example of a signature with "dynamic fields". Alloy has no built-in notions of time or behavior, which means that a variety of idioms can be used. In this model, we're using a common idiom in which you introduce a set of times `sig Time {}`
-(a signature that is actually declared in the `call` module), and then you attach `Time` as a final column for every time-varying field. Take `cookies` for example. As explained above (when we were talking about the `resources` field of `Server`), `cookies` is a relation with three columns. For a browser `b`, `b.cookies` will be a relation from cookies to time, and `b.cookies.t` will be the cookies held in `b` at time `t`. Likewise, the `documents` field associates a set of documents with each browser at a given time. 
-
-Note that there is absolutely nothing special about `Time`; we've could named it any other way (for example, `Step` or `State`), and it wouldn't have changed the behavior of the model at all. All we are doing here is using the additional column in the relation as a way of representing the content of a field at different points in a system execution. In this sense, `Time` objects are nothing but helper objects used as a kind of indices.
+This is our first example of a signature with *dynamic fields*. Alloy has no built-in notions of time or behavior, which means that a variety of idioms can be used. In this model, we're using a common idiom in which you introduce a notion of `Time`, and attach it as a final column for every time-varying field. For example, expression `b.cookes.t` represents the set of cookies that are stored in browser `b` at particular time `t`. Likewise, the `documents` field associates a set of documents with each browser at a given time (for more details about we model the dyanmic behavior, see Appendix).
 
 Documents are created from a response to an HTTP request. They could also be
 destroyed if, for example, the user closes a tab or the browser but
@@ -295,9 +366,51 @@ Another instance shows `Script` making an `XmlHttpRequest` to a server with a di
 
 ![script-instance-2](fig-script-2.png)
 
-Note that the request includes a cookie, which is scoped to the same domain as the destination server. This is potentially dangerous, because if the cookie is used to represent your identity (e.g., a session cookie), `Script` can effectively pretend to be you and trick the server into responding with your private data!
+Note that the request includes a cookie, which is scoped to the same
+domain as the destination server. This is potentially dangerous,
+because if the cookie is used to represent your identity (e.g., a
+session cookie), `Script` can effectively pretend to be you and trick
+the server into responding with your private data!
 
-These two instances tell us that extra measures are needed to restrict the behavior of scripts, especially since some of those scripts could be malicious. This is exactly where the SOP comes in.
+These two instances tell us that extra measures are needed to restrict
+the behavior of scripts, especially since some of those scripts could
+be malicious. This is exactly where the SOP comes in.
+
+## Modeling a Particular System Configuration
+
+Given a `run` or `check` command, the Alloy Analyzer attempts to
+generate a sample scenario that is consistent with the description of
+the system in the model. By default, the analyzer arbitrarily picks
+_any_ one of the possible system scenarios (up to the specified
+bound), and assign numeric identifiers to signature instances
+(`Server0`, `Browser1`, etc.,) in the generated scenario. As we
+mentioned earlier, the benefit of this type of analysis is that the we
+do not need to write any manual test cases -- the analyzer can be
+instructed to enumerate every possible scenario of the system
+_automatically_.
+
+Sometimes, we may wish to analyze the behavior of a _particular_ web
+application, instead of exploring scenarios with a random
+configuration of servers and clients. For example, imagine that we
+wish to build an e-mail application that runs inside a browser
+(similar to Gmail). In addition to providing basic email features, our
+application will display a banner from a third-party advertisement
+service, which is controlled by a potentially malicious actor. 
+
+To model this application, 
+
+```alloy
+one sig EmailServer, EvilServer extends Server {}
+one sig InboxPage, AdBanner extends Document {}
+one sig EvilScript extends Script {}
+one sig EmailDomain, EvilDomain extends Domain {}
+fact Configuration {
+  EvilScript.context = AdBanner
+  InboxPage.domain.first = EmailDomain
+  AdBanner.domain.first = EvilDomain  
+  Dns.map = EmailDomain -> EmailServer + EvilDomain -> EvilServer
+}
+```
 
 ## Security Properties
 
@@ -325,14 +438,14 @@ _calls_; e.g., a browser interacts with a server by making HTTP
 requests, and a script interacts with the browser by invoking browser
 API calls. Intuitively, during each call, a piece of data may flow
 from one endpoint to another as an _argument_ or _return value_ of the
-call. To represent this, we introduce a notion of `FlowCall` into the
+call. To represent this, we introduce a notion of `DataflowCall` into the
 model, and associate each call with a set of `args` and `returns` data
 fields:
 
 ```alloy
 sig Data in Resource + Cookie {}
 
-sig FlowCall in Call {
+sig DataflowCall in Call {
   args, returns: set Data,  -- arguments and return data of this call
 }{
  this in HttpRequest implies
@@ -349,14 +462,14 @@ in turn, receives two addition sets of data (`receivedCookies` and
 
 More generally, arguments flow from the sender of the call to the
 receiver, and return values flow from the receiver to the sender. This
-means that only way for an endpoint to access a new piece of data is
-by receiving it an argument of a call that the endpoint accepts, or a
-return value of a call that the endpoint invokes. We introduce a
-notion of `FlowModule`, and assign field `accesses` to represent the
+means that the only way for an endpoint to access a new piece of data
+is by receiving it as an argument of a call that the endpoint accepts,
+or a return value of a call that the endpoint invokes. We introduce a
+notion of `DataflowModule`, and assign field `accesses` to represent the
 set of data elements that the module can access at each time step:
 
 ```alloy
-sig FlowModule in Endpoint {
+sig DataflowModule in Endpoint {
   -- Set of data that this component initially owns
   accesses: Data -> Time
 }{
@@ -377,7 +490,7 @@ sig FlowModule in Endpoint {
 We are not quite done yet! We also need to restrict data elements that a module can provide as arguments or return values of a call; otherwise, we may get weird scenarios where a module can make a call with an argument that it has no access to!
 
 ```alloy
-sig FlowCall in Call { ... } {
+sig DataflowCall in Call { ... } {
   -- (1) Any arguments must be accessible to the sender
   args in from.accesses.start
   -- (2) Any data returned from this call must be accessible to the receiver
@@ -395,7 +508,7 @@ need to distinguish between data elements that we consider to be
 critical or malicious (or neither):
 
 ```alloy
-sig TrustedModule, MaliciousModule in FlowModule {}
+sig TrustedModule, MaliciousModule in DataflowModule {}
 sig CriticalData, MaliciousData in Data {}
 ```
 
@@ -671,7 +784,7 @@ a violation of the integrity property. Here, a hacker (controlling
 content (`Resource1`), which is accepted and stored by
 `Server`.
 
-![jsonp-instance-2](fig-jsonp-2.png)
+![jsonp-instance-1](fig-jsonp-1.png)
 
 In the next step, a trusted browser (`Browser1`) makes a JSONP request
 to `Server`, which returns a JSONP response that correctly includes
@@ -819,7 +932,7 @@ some cases, for years. We invite our readers to visit the Alloy page
 (http://alloy.mit.edu) and try building a model of their favorite
 system!
 
-## Appendix A: Reusable Modules in Alloy 
+## Appendix: Reusing Modules in Alloy 
 
 As mentioned earlier in this chapter, Alloy makes no assumptions about
 the behavior of the system being modeled. The lack of a built-in
@@ -849,16 +962,24 @@ It is often convenient to describe the system execution as taking
 place over a global time frame, so that we can talk about calls as
 occurring before or after each other (or at the same time). To
 represent the notion of time, we introduce a new signature called `Time`:
- 
+
 ```alloy
 open util/ordering[Time] as ord
 sig Time {}
 ```
-
 In Alloy, `util/ordering` is a built-in module that imposes a total
 order on the type parameter, and so by importing `ordering[Time]`, we
 obtain a set of `Time` objects that behave like other totally ordered
 sets (e.g., natural numbers).
+
+Note that there is absolutely nothing special about `Time`; we've
+could named it any other way (for example, `Step` or `State`), and it
+wouldn't have changed the behavior of the model at all. All we are
+doing here is using an additional column in a relation as a way of
+representing the content of a field at different points in a system
+execution (for example, `cookies` in the `Browser` signature). In this
+sense, `Time` objects are nothing but helper objects used as a kind of
+indices.
 
 Each call occurs between two points in time -- its `start` and `end`
 times, and is associated with a sender (represented by `from`) and a

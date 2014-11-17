@@ -5,7 +5,6 @@
   */
 module setDomain
 
-open http
 open script
 
 // Modify the document.domain property

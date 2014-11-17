@@ -5,21 +5,22 @@
   */
 module flow
 
-open http
 open jsonp
 open postMessage
 open setDomain
-open script
-
+open cors
 
 sig Data in Resource + Cookie {}
 
-sig FlowCall in Call {
+sig DataflowCall in Call {
   args, returns: set Data,  -- arguments and return data of this call
 }{
   -- Two general constrains about dataflow calls
   -- (1) Any arguments must be accessible to the sender
-  args in from.accesses.start
+  args in from.accesses.start + 
+  -- unless it's an Ajax call, in which case arguments could include browser cookies)
+	(this in XmlHttpRequest implies from.browser[start].accesses.start & Cookie else none)
+  
   -- (2) Any data returned from this call must be accessible to the receiver
   returns in to.accesses.start
 
@@ -39,7 +40,7 @@ sig FlowCall in Call {
   this in ReceiveMessage implies args = this.data and no returns
 }
 
-sig FlowModule in Endpoint {
+sig DataflowModule in Endpoint {
   -- Set of data that this component owns
   accesses: Data -> Time
 }{
@@ -60,11 +61,11 @@ sig FlowModule in Endpoint {
 }
 
 fact {
-  Call in FlowCall
-  Endpoint in FlowModule
+  Call in DataflowCall
+  Endpoint in DataflowModule
 }
 
-fun initData[m: FlowModule] : set Data {
+fun initData[m: DataflowModule] : set Data {
   m.accesses.first
 }
 

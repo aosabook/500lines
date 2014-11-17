@@ -10,7 +10,7 @@ open util/relation
 abstract sig Resource {}
 abstract sig Endpoint {}
 
-sig Protocol, Port, Path {}
+abstract sig Protocol, Port, Path {}
 sig Domain { subsumes: set Domain }
 
 fact subsumesRule { partialOrder[subsumes, Domain] }

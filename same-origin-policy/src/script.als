@@ -9,7 +9,7 @@ open browser
 // A script can issue requests through the XmlHttpRequest object
 // In reality though, these requests are issued by the browser on behalf
 // of the script but that's fine.
-sig Script extends Client { context: Document }
+abstract sig Script extends Client { context: Document }
 
 fact Wellformedness {
   -- no two scripts share the same document as their context
@@ -18,12 +18,17 @@ fact Wellformedness {
 
 /* Calls initiated by a script */
 
+-- browser that script "s" is running in at time "t"
+fun browser[s : Script, t : Time] : Browser {
+	(documents.t).(s.context)
+}
+
 // HTTP requests sent by a script
 sig XmlHttpRequest extends HttpRequest {}{
   from in Script
   -- browser that contains this script
-  let browser = (documents.start).(from.context) | 
-    sentCookies in browser.cookies.start and
+  let b = from.browser[start] | 
+    sentCookies in b.cookies.start and
     -- every cookie sent must be scoped to the url of the request
     matchingScope[sentCookies, url]
   noBrowserChange[start, end] and noDocumentChange[start, end]

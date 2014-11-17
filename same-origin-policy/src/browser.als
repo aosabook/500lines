@@ -6,13 +6,13 @@ module browser
 
 open http
 
-sig Document {
+abstract sig Document {
   src: Url,  -- URL from which this document was originated
   content: Resource -> Time,  -- the content of the document (i.e., DOM)
   domain: Domain -> Time,  -- "document.domain" property
 }
 
-sig Browser extends Client {
+abstract sig Browser extends Client {
   documents: Document -> Time,  -- documents that the browser displays over time
   cookies: Cookie -> Time,  -- cookies stored by the browser over time
 }
@@ -20,6 +20,9 @@ sig Browser extends Client {
 fact Wellformedness {
   -- no two browsers can share documents
   no disj b1, b2: Browser, t: Time | some b1.documents.t & b2.documents.t
+  -- documents already opened are well-formed
+  all b: Browser, d: b.documents.first |
+    d.src.host = d.domain.first
 }
 
 /* HTTP request sent from a browser to a server */

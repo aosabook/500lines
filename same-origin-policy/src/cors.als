@@ -5,8 +5,6 @@
   */
 module cors
 
-open browser
-open http
 open script
 open origin
 

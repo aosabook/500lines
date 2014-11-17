@@ -4,11 +4,8 @@
   */
 module sop
 
-open browser
 open cors
-open http
 open origin
-open script
 open setDomain
 
 fact sameOriginPolicy {

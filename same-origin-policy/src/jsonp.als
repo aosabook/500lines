@@ -5,12 +5,9 @@
   */
 module jsonp
 
-open browser
-open http
 open script
-open origin
 
-sig Callback {}  // identifier of a callback function
+abstract sig Callback {}  // identifier of a callback function
 
 // Request sent as a result of <script> tag
 sig JsonpRequest in BrowserHttpRequest {
