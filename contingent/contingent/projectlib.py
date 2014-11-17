@@ -28,10 +28,35 @@ class Project:
         return text
 
     def task(self, task_function):
-        """Decorate a task function."""
+        """Decorate a function that defines one of the tasks for this project.
 
+        The `task_function` should be a function that the programmer
+        wants to add to this project.  This decorator will return a
+        wrapped version of the function.  Each time the wrapper is
+        called with a particular argument list, it checks our internal
+        cache of previous calls to find out if we already know what this
+        function returns for those particular arguments.  If we already
+        know, then the wrapper skips the function call itself and simply
+        returns the cached value.
+
+        If the cache does not have an up-to-date return value, then the
+        wrapper invokes `task_function` and saves its return value to
+        the cache for future use.  Before invoking the `task_function`,
+        the wrapper places it atop the current stack of executing tasks
+        so that if `task_function` invokes any further tasks we can
+        record that it used their return values, and will need to be
+        called again in the future if any of those subordinate tasks
+        change their return value.
+
+        """
         @wraps(task_function)
         def wrapper(*args):
+            try:
+                hash(args)
+            except TypeError as e:
+                raise ValueError('arguments to project tasks must be immutable'
+                                 ' and hashable, not the {}'.format(e))
+
             task = (task_function, args)
 
             if self.task_stack:
@@ -57,44 +82,6 @@ class Project:
 
         wrapper.wrapped = task_function
         return wrapper
-
-    def get(self, task):
-        """Return the output value of a particular task.
-
-        This operation involves two phases.
-
-        First, the fact that we are being asked about `task` at this
-        exact moment is evidence that whatever other task is currently
-        underway must be using this `task` as one of its inputs.  So if
-        the stack of currently-executing tasks is not simply empty, then
-        we draw an edge between this task and the top task on the stack.
-
-        Then we need to figure out a return value.  If there is a
-        still-valid output value for `task` already in our cache, we
-        return it immediately.  Otherwise we need to re-invoke the task.
-        To correctly re-learn its inputs, we clear all of its current
-        incoming edges, and then place it on top of the stack for the
-        duration of its run.  As it goes looking for its inputs, and
-        thus causes this method to be re-invoked for them, we will wind
-        up building the edges necessary to keep the task up-to-date in
-        the future.
-
-        """
-        if self.task_stack:
-            self.graph.add_edge(task, self.task_stack[-1])
-
-        value = self._get_from_cache(task)
-
-        if value is _not_available:
-            self.graph.clear_inputs_of(task)
-            self.task_stack.append(task)
-            try:
-                value = self.task_callback(task, self.get)
-            finally:
-                self.task_stack.pop()
-            self.set(task, value)
-
-        return value
 
     def _get_from_cache(self, task):
         """Return the output of the given `task`.

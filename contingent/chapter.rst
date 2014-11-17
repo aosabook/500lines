@@ -574,6 +574,10 @@ returning cached parse('A.rst')
 
 .. illustrate task stack?
 
+>>> read_text_file(['mutable', 'list'])
+Traceback (most recent call last):
+  ...
+ValueError: arguments to project tasks must be immutable and hashable, not the unhashable type: 'list'
 
 .. this section is a bit rougher than the above tour:
 
