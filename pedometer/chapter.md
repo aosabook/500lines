@@ -285,11 +285,13 @@ Anytime our program needs to filter a time series, we can call one of the class 
 
 Each class method calls `chebyshev_filter`, which implements the Chebyshev filter and returns the result. If we wish to add more filters in the future, we only need to change this one class. 
 
-One important thing to note is that all "magic" numbers are defined at the top. This makes our class easier to read and understand. The formula in `chebyshev_filter` is much more obvious using the `coefficients` parameter than it would have been with numerical values directly inserted.
+One important thing to note is that all magic numbers are defined at the top. This makes our class easier to read and understand. The formula in `chebyshev_filter` is much more obvious using the `coefficients` parameter than it would have been with numerical values directly inserted.
 
 # The Pipeline
 
-TODO: Add a little note on "the pipeline"...
+Our solution takes data from an accelerometer as input, uses signal processing to transform the input signal and analyze it, and returns as output the number of steps taken, the distance traveled, and the elapsed time. The entire process from input to output can be viewed as a pipeline. 
+
+
 
 # Parsing
 
