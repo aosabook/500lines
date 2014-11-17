@@ -13,21 +13,18 @@ class Project:
         self.trace = None
 
     def start_tracing(self):
-        """Start recording every task that is invoked in this project."""
+        """Start recording every task that is invoked by this project."""
         self.trace = []
 
     def end_tracing(self):
         """Stop recording task invocations, and return the trace as text."""
-
-        def parenthesize(tup):
-            return repr(tup)[:-2] + ')' if len(tup) == 1 else repr(tup)
 
         text = '\n'.join(
             '{}{} {}{}'.format(
                 '. ' * depth,
                 'calling' if not_available else 'returning cached',
                 function.__name__,
-                parenthesize(args),
+                repr(args)[:-2] + ')' if len(args) == 1 else repr(args),
             ) for (depth, not_available, (function, args)) in self.trace)
 
         self.trace = None
