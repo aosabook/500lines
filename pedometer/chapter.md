@@ -287,13 +287,7 @@ Each class method calls `chebyshev_filter`, which implements the Chebyshev filte
 
 One important thing to note is that all magic numbers are defined at the top. This makes our class easier to read and understand. The formula in `chebyshev_filter` is much more obvious using the `coefficients` parameter than it would have been with numerical values directly inserted.
 
-# The Pipeline
-
-Our solution takes data from an accelerometer as input, uses signal processing to transform the input signal and analyze it, and returns as output the number of steps taken, the distance traveled, and the elapsed time. The entire process from input to output can be viewed as a pipeline. 
-
-
-
-# Parsing
+# Input Formats
 
 Our input data is coming from mobile devices such as Android phones and iPhones. Most mobile phones on the market today have accelerometers built in, that are able to record total acceleration. Let's call the input data format that records total acceleration the *combined format*. Many, but not all, devices can also record user acceleration and gravitational acceleration separately. Let's call this format the *separated format*. A device that has the ability to return data in the separated format necessarily has the ability to return data in the combined format. However, the inverse is not always true. Some devices can only record data in the combined format. Input data in the combined format will need to be passed through a low-pass filter to turn it into the separated format. 
 
@@ -317,11 +311,7 @@ Dealing with multiple input formats is a common programming problem. If we want 
 
 ### Standard Format
 
-The cleanest way for us to deal with this is to take our two input formats and determine a standard format to fit them both into as soon as possible, allowing the rest of the program to work with this new standard format. We'll write a parser that allows us to take our two known input formats and convert them to a standard output format. In the future, if we ever have to add another input format, the only code we'll have to touch is this parser. Here with see another example of separation of concerns.
-
-![](chapter-figures/input-data-workflow-1.png)\
-
-We'll need to work with user acceleration and gravitational acceleration separately in order to follow our solution, so our standard format will need to split out the two accelerations. This means that if our data is in the combined format, we'll need to first pass it through a low-pass filter to convert it to the standard format. Take note of the standard format:
+The cleanest way for us to deal with this is to take our two input formats and determine a standard format to fit them both into as soon as possible, allowing the rest of the program to work with this new standard format. We'll need to work with user acceleration and gravitational acceleration separately in order to follow our solution, so our standard format will need to split out the two accelerations:
 
 ![](chapter-figures/standard-format.png)\
 
@@ -331,7 +321,21 @@ Our standard format allows us to store a time series, as each element represents
 * The second set of arrays contains one array per data sample taken. If our sampling rate is 100 and we sample data for 10 seconds, we'll have $10 * 100$, or 1000, arrays in this second set. 
 * The third set of arrays is the pair of arrays enclosed within the second set. They both contain acceleration data in the x, y, and z directions; the first representing user acceleration and the second gravitational acceleration.
 
-Let's separate concerns once more, and create a `Parser` class to handle the parsing.
+# The Pipeline
+
+Our solution takes data from an accelerometer as input, applies our signal processing solution, and returns as output the number of steps taken, the distance traveled, and the elapsed time. The entire process from input to output can be viewed as a pipeline. 
+
+![](chapter-figures/pipeline.png)\
+
+In the spirit of separation of concerns, we'll write the code for each distinct component of the pipeline, parsing, processing, and analyzing, individually.
+
+# Parsing
+
+Given that we want our data in the standard format as early as possible, it makes sense to write a parser that allows us to take our two known input formats and convert them to a standard output format as the first component of our pipeline. Our standard format splits out user acceleration and gravitatinal acceleration, which means that if our data is in the combined format, out parser will need to first pass it through a low-pass filter to convert it to the standard format. 
+
+![](chapter-figures/input-data-workflow-1.png)\
+
+In the future, if we ever have to add another input format, the only code we'll have to touch is this parser. Let's separate concerns once more, and create a `Parser` class to handle the parsing.
 
 ~~~~~~~
 require_relative 'filter'
@@ -341,7 +345,7 @@ class Parser
   attr_reader :parsed_data
 
   def self.run(data)
-    parser = self.new(data)
+    parser = Parser.new(data)
     parser.parse
     parser
   end
@@ -393,14 +397,14 @@ As our program becomes more sophisticated, one area for improvement is to make o
 
 # Processing
 
-Based on the solution we defined, we'll need our code to do a few things to our parsed data before we can count steps:
+Based on the solution we defined, we'll need our code to do a couple of things to our parsed data before we can count steps:
 
 1. Isolate movement in the direction of gravity using the dot product.
 2. Remove jumpy (high-frequency) and slow (low-frequency) peaks with a low-pass filter followed by a high-pass filter.
 
 The removal of short and bumpy peaks can be handled during step counting. 
 
-Now that we have our data in a standard format, we can process it to get in into a state where we can analyze it to count steps. 
+Now that we have our data in the standard format, we can process it to get in into a state where we can analyze it to count steps. 
 
 ![](chapter-figures/input-data-workflow-2.png)\
 
@@ -414,7 +418,7 @@ class Processor
   attr_reader :dot_product_data, :filtered_data
 
   def self.run(data)
-    processor = self.new(data)
+    processor = Processor.new(data)
     processor.dot_product
     processor.filter
     processor
@@ -442,10 +446,10 @@ Again, we see the `run` and `initialize` methods pattern. `run` calls our two pr
 
 # Pedometer Functionality
 
-Provided information about the person using the pedometer is available, we can measure more than just steps. Our pedometer will measure **distance traveled** and **time traveled**, as well as **steps taken**. 
+Provided information about the person using the pedometer is available, we can measure more than just steps. Our pedometer will measure **distance traveled** and **elapsed time**, as well as **steps taken**. 
 
 ## Distance Traveled
-A mobile pedometer is generally used by one person. Distance travelled during a walk is calculated by multiplying the steps taken by the person's stride length. If the stride length is unknown, we can use optional user information like gender and height to approximate it. Ler's create a `User` class to encapsulate this related information. 
+A mobile pedometer is generally used by one person. Distance traveled during a walk is calculated by multiplying the steps taken by the person's stride length. If the stride length is unknown, we can use optional user information like gender and height to approximate it. Let's create a `User` class to encapsulate this related information. 
 
 ~~~~~~~
 class User
@@ -479,7 +483,7 @@ private
 end
 ~~~~~~~
 
-At the top of our class, we define constants to avoid hardcoding "magic" numbers and strings throughout. Our initializer accepts `gender`, `height`, and `stride` all as optional arguments. Handling optional information is a common programming problem. If the optional parameters are passed in, our initializer sets instance variables of the same names, after some data formatting to allow for a case insensitive gender parameter to be passed in, as long as its defined in `GENDER`, and prevent a height and stride that is non-numerical or less than 0.
+At the top of our class, we define constants to avoid hardcoding magic numbers and strings throughout. Our initializer accepts `gender`, `height`, and `stride` all as optional arguments. Handling optional information is a common programming problem. If the optional parameters are passed in, our initializer sets instance variables of the same names, after some data formatting to allow for a case insensitive gender parameter to be passed in, as long as its defined in `GENDER`, and prevent a height and stride that is non-numerical or less than 0.
 
 Even when all optional parameters are provided, the input stride takes precedence. If it's not provided, `calculate_stride` determines the most accurate stride length it can for the user. This is done with an `if` statement:
 
@@ -500,10 +504,10 @@ class Trial
   attr_reader :name, :rate, :steps, :method
 
   def initialize(name = nil, rate = nil, steps = nil, method = nil)
-    @name   = name
+    @name   = name.to_s.delete(' ')
     @rate   = (rate.to_f.round > 0) ? rate.to_f.round : 100
     @steps  = steps.to_f.round if steps.to_s != '' && steps.to_f.round >= 0
-    @method = method
+    @method = method.to_s.delete(' ')
   end
 
 end
@@ -516,14 +520,13 @@ All of the attribute readers in `Trial` are set in the initializer based on opti
 * `steps` is used to set the actual steps taken, so that we can record the difference between the actual steps the user took and the ones our program counted.
 * `method` is used to set the type of walk that is taken. Types of walks include walking with the device in a pocket, walking with the device in a bag, jogging with the device in a pocket, jogging with the device in a bag, etc.
 
-Much like our `User` class, information is optional. We're given the opportunity to input details of the trial, if we have it, for more accurate end results. If we don't have those details, our program makes assumptions and is still able to produce results, albeit with a higher margin of error. Another similarity to our `User` class is the basic input data formatting in the initializer ensuring proper `@rate` and `@steps` values. 
+Much like our `User` class, information is optional. We're given the opportunity to input details of the trial, if we have it, for more accurate end results. If we don't have those details, our program makes assumptions and is still able to produce results, albeit with a higher margin of error. Another similarity to our `User` class is the basic input data formatting in the initializer.
 
 ## Steps Taken
 
 It's time to implement our step counting strategy in code. So far, we have a `Processor` class that contains `@filtered_data`, which is our clean time series representing user acceleration in the direction of gravity. We also have classes that give us the necessary information about the user and the trial. What we're missing is a way to analyze `@filtered_data` with the information from `User` and `Trial`, and count steps, measure distance, and measure time. The analysis portion of our program is different from the data manipulation of the `Processor`, and different from the information collection and aggregation of the `User` and `Trial` classes. Let's create a new class called `Analyzer` to perform this data analysis.
 
 ~~~~~~~
-require_relative 'processor'
 require_relative 'user'
 require_relative 'trial'
 
@@ -531,40 +534,44 @@ class Analyzer
 
   THRESHOLD = 0.09
 
-  attr_reader :processor, :user, :trial, :steps, :distance, :time
+  attr_reader :steps, :delta, :distance, :time
 
-  def self.run(processor, user = User.new, trial = Trial.new)
-    analyzer = self.new(processor, user, trial)
+  def self.run(data, user = User.new, trial = Trial.new)
+    analyzer = Analyzer.new(data, user, trial)
     analyzer.measure_steps
+    analyzer.measure_delta
     analyzer.measure_distance
     analyzer.measure_time
     analyzer
   end
 
-  def initialize(processor, user = User.new, trial = Trial.new)
-    raise 'Processor invalid.' unless processor.kind_of? Processor
-    raise 'User invalid.'      unless user.kind_of? User
-    raise 'Trial invalid.'     unless trial.kind_of? Trial
+  def initialize(data, user = User.new, trial = Trial.new)
+    raise 'User invalid.' unless user.kind_of? User
+    raise 'Trial invalid.' unless trial.kind_of? Trial
 
-    @processor = processor
-    @user      = user
-    @trial     = trial
+    @data  = data
+    @user  = user
+    @trial = trial
   end
 
   def measure_steps
     @steps = 0
     count_steps = true
 
-    @processor.filtered_data.each_with_index do |data, i|
-      if (data >= THRESHOLD) && (@processor.filtered_data[i-1] < THRESHOLD)
+    @data.each_with_index do |data, i|
+      if (data >= THRESHOLD) && (@data[i-1] < THRESHOLD)
         next unless count_steps
 
         @steps += 1
         count_steps = false
       end
 
-      count_steps = true if (data < 0) && (@processor.filtered_data[i-1] >= 0)
+      count_steps = true if (data < 0) && (@data[i-1] >= 0)
     end
+  end
+
+  def measure_delta
+    @delta = @steps - @trial.steps if @trial.steps
   end
 
   def measure_distance
@@ -572,7 +579,7 @@ class Analyzer
   end
 
   def measure_time
-    @time = @processor.filtered_data.count/@trial.rate
+    @time = @data.count/@trial.rate
   end
 
 end
@@ -580,7 +587,7 @@ end
 
 The first thing we do in `Analyzer` is define a `THRESHOLD` constant. For the purposes of this discussion, let's assume we've analyzed numerous diverse data sets and determined a threshold value that accommodated the largest number of those data sets. The threshold can eventually become dynamic and vary with different users, based on the calculated versus actual steps they've taken. A learning algorithm, if you will.
 
-Our `Analyzer`'s initializer take a mandatory `Processor` instance because we necessarily need a data set to work with, and optionally takes a `User` and `Trial` instance. Note that the default values for the `user` and `trial` parameters is a new instance of each. Remember how those classes both had default values and could handle zero input parameters? That functionality comes in handy here. The initializer raises exceptions if classes other than those expected are passed in, and sets the instance variables `@processor`, `@user`, and `@trial` to the passed in parameters. 
+Our `Analyzer`'s initializer take a mandatory `data` parameter because we necessarily need a data set to work with, and optionally takes a `User` and `Trial` instance. Note that the default values for the `user` and `trial` parameters is a new instance of each. Remember how those classes both had default values and could handle zero input parameters? That functionality comes in handy here. The initializer raises exceptions if classes other than those expected are passed in, and sets the instance variables `@data`, `@user`, and `@trial` to the passed in parameters. 
 
 Aside from the initializer, the only other public method in `Analyzer` is `measure`, which calls `measure_steps`, `measure_distance`, and `measure_time`, in that order. All three methods are kept private so that an outside class can't call them out of order. Let's take a look at each.
 
@@ -595,9 +602,7 @@ We then iterate through `@processor.filtered_data`. If the current value is grea
 
 There we have it, the step counting portion of our program! Our `Processor` class did a lot of work to clean up the time series and remove frequencies that would result in counting false steps, so our actual step counting implementation is not overly complex. 
 
-It's worth noting that we store the entire time series for the walk in memory. Our trials are all short walks, so that's not currently a problem, but we'd like to eventually be able to analyze long walks with large amounts of data. We'd ideally want to stream data in, only storing very small portions of the time series in memory. Keeping this future direction in mind, we've put in the work to ensure that we only need the current data point we're analyzing and the data point before it. Additionally, we've implemented hysteresis using a boolean value, so we don't need to look backward in the time series to ensure we've crossed the x-axis at 0, avoiding having to store more than two data points in memory at a time. 
-
-There's a fine balance between accounting for likely future iterations of the product, and over engineering a solution for every conceivable product direction under the sun. In this case, it's reasonable to assume that we'll have to handle longer walks in the near future, and the costs of accounting for that in step counting are fairly low, so we've decided to include it in our implementation.
+It's worth noting that we store the entire time series for the walk in memory. Our trials are all short walks, so that's not currently a problem, but we'd like to eventually analyze long walks with large amounts of data. We'd ideally want to stream data in, only storing very small portions of the time series in memory. Keeping this future direction in mind, we've put in the work to ensure that we only need the current data point we're analyzing and the data point before it. Additionally, we've implemented hysteresis using a boolean value, so we don't need to look backward in the time series to ensure we've crossed the x-axis at 0, avoiding having to store more than two data points in memory at a time. There's a fine balance between accounting for likely future iterations of the product, and over engineering a solution for every conceivable product direction under the sun. In this case, it's reasonable to assume that we'll have to handle longer walks in the near future, and the costs of accounting for that in step counting are fairly low, so we've decided to include it in our implementation.
 
 ### measure_distance
 
