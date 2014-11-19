@@ -26,7 +26,7 @@ This chapter explores the implementation of a series of very simple object
 models. It starts out with just having simple instances and classes and the
 possibilities to call methods on instances. This is the "classical"
 object-oriented approach that was started by early OO languages such as
-Simula-67 and Smalltalk. This model is then extend step by step, the first three
+Simula-67 and Smalltalk. This model is then extended step by step, the first three
 steps exploring different language design choices, the last step to improve the
 efficiency of the object model. The final model is not that of a real language,
 but an idealized, simplified version of that of Python.
