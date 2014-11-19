@@ -24,7 +24,7 @@ better feeling of the programming language design space.
 
 This chapter explores the implementation of a series of very simple object
 models. It starts out with just having simple instances and classes and the
-possibilities to send messages to instances. This is the "classical"
+possibilities to call methods on instances. This is the "classical"
 object-oriented approach that was started by early OO languages such as
 Simula-67 and Smalltalk. This model is then extend step by step, the first three
 steps exploring different language design choices, the last step to improve the
@@ -56,12 +56,12 @@ getting bogged down by implementation details.
 
 
 
-Message based model
+Method based model
 ----------------------
 
 The object model we will start out with is a majorly simplified version of that
 of Smalltalk. It will have classes and instances of them, the ability to read
-and write attributes into objects, the ability to send messages to objects and
+and write attributes into objects, the ability to call methods on objects and
 the ability for a class to be a subclass of another class. Right from the
 beginning, classes will be completely regular objects, that can themselves have
 attributes and methods.
@@ -151,8 +151,8 @@ class Base(object):
         """ return True if the object is an instance of class cls """
         return self.cls.issubclass(cls)
 
-    def send(self, methname, *args):
-        """ send message 'methname' with arguments 'args' to object """
+    def callmethod(self, methname, *args):
+        """ call method 'methname' with arguments 'args' on object """
         meth = self.cls._read_from_class(methname)
         return meth(self, *args)
 
@@ -236,8 +236,7 @@ class of all classes, meaning it has no base class. ``TYPE`` is a subclass of
 ``OBJECT``.
 By default, every class is an instance of ``TYPE``. In particular, both
 ``TYPE`` and ``OBJECT`` are instances of ``TYPE``. However, the programmer can
-also subclass ``TYPE`` to make a different metaclass, and have their classes be
-an instance of that metaclass.
+also subclass ``TYPE`` to make a new metaclass
 
 ````python
 # set up the base hierarchy like in Python (the ObjVLisp model)
@@ -337,15 +336,15 @@ class Class(BaseWithDict):
 With that code the test passes.
 
 
-Message sending
+Calling methods
 ++++++++++++++++++++
 
 The remaining missing feature for this first version of the object model is the
-ability to send messages to objects. In this chapter we will implement a simple
+ability to call methods on objects. In this chapter we will implement a simple
 single inheritance model.
 
 ````python
-def test_send_simple():
+def test_callmethod_simple():
     # Python code
     class A(object):
         def f(self):
@@ -366,12 +365,12 @@ def test_send_simple():
     A = Class(name="A", base_class=OBJECT, fields={"f": f}, metaclass=TYPE)
     obj = Instance(A)
     obj.write_attr("x", 1)
-    assert obj.send("f") == 2
+    assert obj.callmethod("f") == 2
 
     B = Class(name="B", base_class=A, fields={}, metaclass=TYPE)
     obj = Instance(B)
     obj.write_attr("x", 2)
-    assert obj.send("f") == 3
+    assert obj.callmethod("f") == 3
 ````
 
 To find the correct implementation of a method that is sent to an object we walk
@@ -391,7 +390,7 @@ class Class(BaseWithDict):
 
 ````
 
-Together with the code for ``send`` in the ``Base`` implementation, this passes
+Together with the code for ``callmethod`` in the ``Base`` implementation, this passes
 the test.
 
 To make sure that methods with arguments work as well, and that overriding of
@@ -399,7 +398,7 @@ methods is implemented correctly, we can use the following slightly more complex
 test, which already passes:
 
 ````python
-def test_send_subclassing_and_arguments():
+def test_callmethod_subclassing_and_arguments():
     # Python code
     class A(object):
         def g(self, arg):
@@ -421,14 +420,14 @@ def test_send_subclassing_and_arguments():
     A = Class(name="A", base_class=OBJECT, fields={"g": g_A}, metaclass=TYPE)
     obj = Instance(A)
     obj.write_attr("x", 1)
-    assert obj.send("g", 4) == 5
+    assert obj.callmethod("g", 4) == 5
 
     def g_B(self, arg):
         return self.read_attr("x") + arg * 2
     B = Class(name="B", base_class=A, fields={"g": g_B}, metaclass=TYPE)
     obj = Instance(B)
     obj.write_attr("x", 4)
-    assert obj.send("g", 4) == 12
+    assert obj.callmethod("g", 4) == 12
 ````
 
 
@@ -440,11 +439,11 @@ Attribute based model
 
 Now that we have the simplest version of our object model working we can now think of
 ways to change it. The change that this section will introduce is the
-distinction between a message-based model and an attribute-based model. This is
+distinction between a method-based model and an attribute-based model. This is
 one of the core differences between Smalltalk, Ruby, Javascript on the one hand
-and Python, Lua on the other hand. The message-based model has the sending of
-messages as the primitive operation of program execution. The attribute-based
-model splits up the sending of a message into two steps, looking up an attribute
+and Python, Lua on the other hand. The method-based model has the calling of
+methods as the primitive operation of program execution. The attribute-based
+model splits up the method calling into two steps, looking up an attribute
 and then calling the result. This difference can be shown in the following test:
 
 ````python
@@ -482,7 +481,7 @@ def test_bound_method():
 ````
 
 While the set up of the classes is the same as the corresponding test for
-message sends, the way that the methods are called is different. First, the
+method calls, the way that the methods are called is different. First, the
 attribute with the name of the method is looked up on the object. The result of
 that lookup operation is a *bound method*, an object that encapsulates both the
 object as well as the function found in the class. Then that bound method is
@@ -497,7 +496,7 @@ implementation. If the attribute is not found in the dictionary, it is looked
 for in the class. If it is found in the class, and the attribute is a callable,
 it needs to be turned into a bound method. To emulate a bound method we simply
 use a closure. In addition to changing ``Base.read_attr`` we can also change
-``Base.send`` to use the new approach to message sending to make sure the
+``Base.callmethod`` to use the new approach to calling methods to make sure the
 previous tests still pass.
 
 ````python
@@ -515,8 +514,8 @@ class Base(object):
             return result
         raise AttributeError(fieldname)
 
-    def send(self, methname, *args):
-        """ send message 'methname' with arguments 'args' to object """
+    def callmethod(self, methname, *args):
+        """ call method 'methname' with arguments 'args' on object """
         meth = self.read_attr(methname)
         return meth(*args)
 

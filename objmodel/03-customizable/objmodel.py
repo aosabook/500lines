@@ -31,8 +31,8 @@ class Base(object):
         """ return True if the object is an instance of class cls """
         return self.cls.issubclass(cls)
 
-    def send(self, methname, *args):
-        """ send message 'methname' with arguments 'args' to object """
+    def callmethod(self, methname, *args):
+        """ call method 'methname' with arguments 'args' on object """
         meth = self.read_attr(methname)
         return meth(*args)
 

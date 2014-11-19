@@ -70,7 +70,7 @@ def test_read_write_field_class():
     assert A.read_attr("a") == 5
 
 
-def test_send_simple():
+def test_callmethod_simple():
     # Python code
     class A(object):
         def f(self):
@@ -91,15 +91,15 @@ def test_send_simple():
     A = Class(name="A", base_class=OBJECT, fields={"f": f}, metaclass=TYPE)
     obj = Instance(A)
     obj.write_attr("x", 1)
-    assert obj.send("f") == 2
+    assert obj.callmethod("f") == 2
 
     B = Class(name="B", base_class=A, fields={}, metaclass=TYPE)
     obj = Instance(B)
     obj.write_attr("x", 2)
-    assert obj.send("f") == 3
+    assert obj.callmethod("f") == 3
 
 
-def test_send_subclassing_and_arguments():
+def test_callmethod_subclassing_and_arguments():
     # Python code
     class A(object):
         def g(self, arg):
@@ -121,14 +121,14 @@ def test_send_subclassing_and_arguments():
     A = Class(name="A", base_class=OBJECT, fields={"g": g_A}, metaclass=TYPE)
     obj = Instance(A)
     obj.write_attr("x", 1)
-    assert obj.send("g", 4) == 5
+    assert obj.callmethod("g", 4) == 5
 
     def g_B(self, arg):
         return self.read_attr("x") + arg * 2
     B = Class(name="B", base_class=A, fields={"g": g_B}, metaclass=TYPE)
     obj = Instance(B)
     obj.write_attr("x", 4)
-    assert obj.send("g", 4) == 12
+    assert obj.callmethod("g", 4) == 12
 
 
 # ____________________________________________________________
