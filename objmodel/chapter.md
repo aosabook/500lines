@@ -11,9 +11,9 @@ today with a lot of languages providing some form of object-orientation. While o
 surface the mechanisms that different object-oriented programming languages
 provide to the programmer are very similar, the details can vary a lot.
 Commonalities of most languages are the presence of objects and some kind of
-inheritance mechanism. But already whether the language supports classes depends
-on the precise language. For example in prototype based languages like Self or
-Javascript the concept of class does not exist and instances instead inherit
+inheritance mechanism. Classes, however, are a feature that not every language
+supports directly. For example in prototype based languages like Self or
+JavaScript the concept of class does not exist and objects instead inherit
 directly from each other.
 
 Understanding the differences between different object models can be
@@ -60,7 +60,8 @@ getting bogged down by implementation details.
 Method based model
 ----------------------
 
-The object model we will start out with is a majorly simplified version of that
+The object model we will start out with is an extremely simplified version of
+that
 of Smalltalk. It will have classes and instances of them, the ability to read
 and write attributes into objects, the ability to call methods on objects and
 the ability for a class to be a subclass of another class. Right from the
@@ -312,10 +313,12 @@ def test_isinstance():
 ````
 
 To check whether an object ``obj`` is an instance of a certain class ``cls`` it
-is enough to check whether ``cls`` is a superclass of the class of ``obj``.
+is enough to check whether ``cls`` is a superclass of the class of ``obj``, or
+the class itself.
 To check whether a class is a superclass of another class the chain of
 superclasses of that class is walked. If and only if the other class is found in
-that chain it is a superclass. The chain of superclasses of a class is also
+that chain it is a superclass. The chain of superclasses of a class with the
+class itself included is also
 called the "method resolution order" of that class. It can easily be
 computed recursively:
 
@@ -443,7 +446,7 @@ Attribute based model
 Now that we have the simplest version of our object model working we can now think of
 ways to change it. The change that this section will introduce is the
 distinction between a method-based model and an attribute-based model. This is
-one of the core differences between Smalltalk, Ruby, Javascript on the one hand
+one of the core differences between Smalltalk, Ruby, JavaScript on the one hand
 and Python, Lua on the other hand. The method-based model has the calling of
 methods as the primitive operation of program execution:
 
@@ -782,7 +785,7 @@ pioneered by the VM for the Self programming language (footnote:
 C. Chambers, D. Ungar, and E. Lee, “An efficient implementation of SELF a
 dynamically-typed object-oriented language based on prototypes,” in OOPSLA,
 1989, vol. 24.). It is still one of the most important object model
-optimizations. It's used in PyPy and all all modern Javascript VMs, such as V8
+optimizations. It's used in PyPy and all all modern JavaScript VMs, such as V8
 (where the optimization is called *hidden classes*).
 
 The optimization starts from the following observation. In the object model as
