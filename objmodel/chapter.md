@@ -316,7 +316,7 @@ is enough to check whether ``cls`` is a superclass of the class of ``obj``.
 To check whether a class is a superclass of another class the chain of
 superclasses of that class is walked. If and only if the other class is found in
 that chain it is a superclass. The chain of superclasses of a class is also
-called the "method resolution order" (mro) of that class. It can easily be
+called the "method resolution order" of that class. It can easily be
 computed recursively:
 
 
@@ -324,16 +324,16 @@ computed recursively:
 class Class(BaseWithDict):
     ...
 
-    def mro(self):
-        """ compute the mro (method resolution order) of the class """
+    def method_resolution_order(self):
+        """ compute the method resolution order of the class """
         if self.base_class is None:
             return [self]
         else:
-            return [self] + self.base_class.mro()
+            return [self] + self.base_class.method_resolution_order()
 
     def issubclass(self, cls):
         """ is self a subclass of cls? """
-        return cls in self.mro()
+        return cls in self.method_resolution_order()
 ````
 
 With that code the test passes.
@@ -386,7 +386,7 @@ class Class(BaseWithDict):
     ...
 
     def _read_from_class(self, methname):
-        for cls in self.mro():
+        for cls in self.method_resolution_order():
             if methname in cls._fields:
                 return cls._fields[methname]
         return MISSING
@@ -445,9 +445,22 @@ ways to change it. The change that this section will introduce is the
 distinction between a method-based model and an attribute-based model. This is
 one of the core differences between Smalltalk, Ruby, Javascript on the one hand
 and Python, Lua on the other hand. The method-based model has the calling of
-methods as the primitive operation of program execution. The attribute-based
+methods as the primitive operation of program execution:
+
+````python
+result = obj.f(arg1, arg2)
+````
+
+The attribute-based
 model splits up the method calling into two steps, looking up an attribute
-and then calling the result. This difference can be shown in the following test:
+and then calling the result:
+
+````python
+method = obj.f
+result = method(arg1, arg2)
+````
+
+This difference can be shown in the following test:
 
 ````python
 def test_bound_method():
@@ -936,7 +949,7 @@ to experiment with various language design choices. Here are some possibilities:
   interesting ones to add are ``__init__``, ``__getattribute__``, ``__set__``.
 
 - The model can be very easily extended to support multiple inheritance. To do
-  this, every class would get a list of base classes. Then, the ``Class.mro``
+  this, every class would get a list of base classes. Then, the ``Class.method_resolution_order``
   method needs to be changed to support looking up methods. A simple method
   resolution order can be computed using a depth first search with removal of
   duplicates. A more complicated but better one is the C3 algorithm (footnote:
