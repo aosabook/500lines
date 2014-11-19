@@ -86,9 +86,9 @@ def test_callmethod_simple():
     assert obj.f() == 2 # works on subclass too
 
     # Object model code
-    def f(self):
+    def f_A(self):
         return self.read_attr("x") + 1
-    A = Class(name="A", base_class=OBJECT, fields={"f": f}, metaclass=TYPE)
+    A = Class(name="A", base_class=OBJECT, fields={"f": f_A}, metaclass=TYPE)
     obj = Instance(A)
     obj.write_attr("x", 1)
     assert obj.callmethod("f") == 2
@@ -149,9 +149,9 @@ def test_bound_method():
     assert m(10) == 12 # works on subclass too
 
     # Object model code
-    def f(self, a):
+    def f_A(self, a):
         return self.read_attr("x") + a + 1
-    A = Class(name="A", base_class=OBJECT, fields={"f": f}, metaclass=TYPE)
+    A = Class(name="A", base_class=OBJECT, fields={"f": f_A}, metaclass=TYPE)
     obj = Instance(A)
     obj.write_attr("x", 2)
     m = obj.read_attr("f")
