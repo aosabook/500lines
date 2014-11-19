@@ -31,18 +31,6 @@ steps exploring different language design choices, the last step to improve the
 efficiency of the object model. The final model is not that of a real language,
 but an idealized, simplified version of that of Python.
 
-TODO (debo): looking back, I don't think it was the Smalltalk reference that I
-found confusing. It was more the fact that I didn't have a 'roadmap' as to what
-features you'd be implementing in what order, and the tests actually prepare
-for future features before their implementation. (i.e. early tests passing in
-empty dicts that aren't really needed yet.)
-
-I think it's fine to leave things the way they are, with some sort of addition
-of "here are the specific semantics we're going to implement at a very high
-level, and here's what we're doing first, and now this, etc." I think many
-programmers will now be familiar with the ideal of 'everything is an object',
-even if they haven't used SmallTalk before.
-
 
 The object models presented in this chapter will also be implemented in Python.
 The code works on both Python 2.7 and 3.4. The tests can be run with either
@@ -61,8 +49,16 @@ Method based model
 ----------------------
 
 The object model we will start out with is an extremely simplified version of
-that
-of Smalltalk. It will have classes and instances of them, the ability to read
+that of Smalltalk. Smalltalk was an object-oriented programming language
+designed by Alan Kay's group at Xerox Parc in the 1970s. It popularized
+object-oriented programming and is the source of many features found in today's
+programming languages. One of the core tenets of Smalltalk's language design
+was "everything is an object". Smalltalk's most immediate successor in use
+today is Ruby, which uses a more C-like syntax but retains most of Smalltalk's
+object model.
+
+The object model of this section will have classes and instances of them, the
+ability to read
 and write attributes into objects, the ability to call methods on objects and
 the ability for a class to be a subclass of another class. Right from the
 beginning, classes will be completely regular objects, that can themselves have
@@ -936,11 +932,17 @@ making the behaviour worse for programs that use extremely dynamic features.
 
 Another interesting aspect of maps is that while in this chapter they are only
 used as a memory optimization, in actual VMs that use a JIT compiler they also
-improve the performance of the program. To achieve that, the JIT will specialize
-the user functions at runtime according to the maps that the involved objects
-use. Then it can compile attribute lookups to a lookup in the objects' storage
-at a fixed offset, getting rid of all dictionary lookups completely.
-
+improve the performance of the program. To achieve that, the JIT uses the maps
+to compile attribute lookups to a lookup in the objects' storage
+at a fixed offset, getting rid of all dictionary lookups completely (footnote:
+How that works is quite a bit beyond the scope of this chapter. I've tried to
+give a reasonably readable account of how a JIT can do that in a paper I wrote
+a few years ago. It uses an object model that is basically a variant of the one
+in this chapter: C. F. Bolz, A. Cuni, M. Fijałkowski, M. Leuschel, S. Pedroni,
+and A. Rigo, “Runtime feedback in a meta-tracing JIT for efficient dynamic
+languages,” in Proceedings of the 6th Workshop on Implementation, Compilation,
+Optimization of Object-Oriented Languages, Programs and Systems, New York, NY,
+USA, 2011, pp. 9:1–9:8.).
 
 Potential Extensions
 ----------------------
