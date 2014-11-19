@@ -236,7 +236,7 @@ To define new metaclasses it is enough to subclass ``TYPE``. However, in the
 rest of this chapter we won't do that, and simply always use ``TYPE`` as the
 metaclass of every class.
 
-XXX diagram?
+XXX diagram: figures/inheritance.svg
 
 Now the first test passes. A second test that is easy to write and immediately
 passes is the following. It checks that reading and writing attributes works on
@@ -855,7 +855,7 @@ a different map, which ``next_map`` computes. The method uses the ``next_maps``
 dictionary to cache already created maps. That way, objects that have the same
 layout also end up using the same ``Map`` object.
 
-XXX diagram of map transitions?
+XXX diagram: figures/maptransitions.svg
 
 The changed ``Instance`` implementation that uses maps looks like this:
 
