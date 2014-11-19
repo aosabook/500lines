@@ -958,7 +958,9 @@ to experiment with various language design choices. Here are some possibilities:
   method needs to be changed to support looking up methods. A simple method
   resolution order can be computed using a depth first search with removal of
   duplicates. A more complicated but better one is the C3 algorithm (footnote:
-  https://www.python.org/download/releases/2.3/mro/ ).
+  https://www.python.org/download/releases/2.3/mro/ ) that adds
+  better handling in the base of diamond-shaped multiple inheritance
+  hierarchies and rejects insensible inheritance patterns.
 
 - A more radical change is to switch to a prototype model, which is the removal
   of the distinction between classes and instances.
