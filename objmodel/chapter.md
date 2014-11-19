@@ -231,11 +231,13 @@ which has a fairly complex metaclass system. Instead we will use the model of Ob
 also the one that Python adopted (footnote: P. Cointe, “Metaclasses are first
 class: The ObjVlisp Model,” SIGPLAN Not, vol. 22, no. 12, pp. 156–162, 1987.)
 
-In that model ``OBJECT`` and ``TYPE`` are intertwined. ``OBJECT`` is the base
+In the ObjVlisp model ``OBJECT`` and ``TYPE`` are intertwined. ``OBJECT`` is the base
 class of all classes, meaning it has no base class. ``TYPE`` is a subclass of
 ``OBJECT``.
-``TYPE`` is the class of almost all classes. Thus both ``TYPE`` and ``OBJECT``
-are instances of ``TYPE``.
+By default, every class is an instance of ``TYPE``. In particular, both
+``TYPE`` and ``OBJECT`` are instances of ``TYPE``. However, the programmer can
+also subclass ``TYPE`` to make a different metaclass, and have their classes be
+an instance of that metaclass.
 
 ````python
 # set up the base hierarchy like in Python (the ObjVLisp model)
