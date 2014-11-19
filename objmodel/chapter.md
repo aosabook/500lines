@@ -135,9 +135,10 @@ that exposes a number of methods:
 class Base(object):
     """ The base class that all of the object model classes inherit from. """
 
-    def __init__(self, cls):
+    def __init__(self, cls, fields):
         """ Every object has a class. """
         self.cls = cls
+        self._fields = fields
 
     def read_attr(self, fieldname):
         """ read field 'fieldname' out of the object """
@@ -158,64 +159,45 @@ class Base(object):
 
     def _read_dict(self, fieldname):
         """ read an field 'fieldname' out of the object's dict """
-        return MISSING
-
-    def _write_dict(self, fieldname, value):
-        """ write a field 'fieldname' into the object's dict """
-        raise AttributeError
-````
-
-The methods ``Base._read_dict`` and ``Base._write_dict`` are default
-implementations that do not implement interesting behaviour. They need to be
-overridden in the subclasses of ``Base``.
-
-Now we need to implement ``Class`` and ``Instance``. The constructor of
-``Instance`` just takes the class to
-be instantiated, while the constructor of ``Class`` takes the name of the class,
-the base class, the dictionary of the class and the metaclass (what the
-metaclass is we will discuss a bit later).
-
-Both instances and classes will use a dictionary to store their fields.
-Therefore it makes sense to introduce a shared helper class for that part of
-their behaviour (in theory that behaviour could also be part of ``Base``, but in
-a later section it will become important that this is not the case):
-
-````python
-MISSING = object()
-
-class BaseWithDict(Base):
-    def __init__(self, cls, fields):
-        Base.__init__(self, cls)
-        self._fields = fields
-
-    def _read_dict(self, fieldname):
         return self._fields.get(fieldname, MISSING)
 
     def _write_dict(self, fieldname, value):
+        """ write a field 'fieldname' into the object's dict """
         self._fields[fieldname] = value
+
+MISSING = object()
+
 ````
 
-Now we have enough scaffolding to define ``Instance`` and ``Class``. Both are
-simply subclasses of ``BaseWithDict``. When constructing an ``Instance``, the
-fields dict is initialized as an empty dictionary. For classes, the fields are
+The ``Base`` class implements storing the class of an object, and a dictionary
+containing the field values of the object.
+Now we need to implement ``Class`` and ``Instance``. The constructor of
+``Instance`` just takes the class to
+be instantiated, it initializes the fields dict as an empty dictionary.
+Otherwise ``Instance`` is just a very thin subclass around ``Base`` that does
+not add any extra functionality.
+The constructor of ``Class`` takes the name of the class,
+the base class, the dictionary of the class and the metaclass (what the
+metaclass is we will discuss a bit later).
+For classes, the fields are
 passed into the constructor by the user of the object model. The class
 constructor also takes a base class, which the tests so far don't need but
 which we will make use of in the next section.
 
 ````python
-class Instance(BaseWithDict):
+class Instance(Base):
     """Instance of a user-defined class. """
 
     def __init__(self, cls):
         assert isinstance(cls, Class)
-        BaseWithDict.__init__(self, cls, {})
+        Base.__init__(self, cls, {})
 
 
-class Class(BaseWithDict):
+class Class(Base):
     """ A User-defined class. """
 
     def __init__(self, name, base_class, fields, metaclass):
-        BaseWithDict.__init__(self, metaclass, fields)
+        Base.__init__(self, metaclass, fields)
         self.name = name
         self.base_class = base_class
 ````
@@ -320,7 +302,7 @@ computed recursively:
 
 
 ````python
-class Class(BaseWithDict):
+class Class(Base):
     ...
 
     def method_resolution_order(self):
@@ -381,7 +363,7 @@ found in the dictionary of one of the classes in the method resolution order is
 then called. The code for that looks as follows:
 
 ````python
-class Class(BaseWithDict):
+class Class(Base):
     ...
 
     def _read_from_class(self, methname):
@@ -883,7 +865,7 @@ class Instance(Base):
 
     def __init__(self, cls):
         assert isinstance(cls, Class)
-        Base.__init__(self, cls)
+        Base.__init__(self, cls, None)
         self.map = EMPTY_MAP
         self.storage = []
 
@@ -903,16 +885,20 @@ class Instance(Base):
             self.map = new_map
 ````
 
-The class now inherits from ``Base`` directly, because instances don't use a
-dictionary any more to store their attributes. Therefore it now needs to
-implement the ``_read_dict`` and ``_write_dict`` methods.
+The class now passes ``None`` as the fields dict to ``Base``, as ``Instance``
+will now store the content of the dict in another way. Therefore it now needs
+to override the the ``_read_dict`` and ``_write_dict`` methods. In a real
+implementation, we would refactor the ``Base`` class to not be responsible for
+storing the field dictionary any more, but for this section having instances
+store ``None`` there is good enough.
 
 When creating a new instance it starts out with using the ``EMPTY_MAP``, which
 has no attributes, and an empty storage. To implement ``_read_dict``, the
 instance's map is asked for the index of the attribute name. Then the
 corresponding entry of the storage list is returned.
 
-Writing a dictionary has two cases. On the one hand the value of an existing
+Writing into the fields dictionary has two cases. On the one hand the value of
+an existing
 attribute can be changed. This is done by simply changing the storage at the
 corresponding index. If the attribute does not exist yet, a *map transition* is
 needed using the ``next_map`` method. The value of the new attribute is appended

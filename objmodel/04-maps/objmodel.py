@@ -3,9 +3,10 @@ MISSING = object()
 class Base(object):
     """ The base class that all of the object model classes inherit from. """
 
-    def __init__(self, cls):
+    def __init__(self, cls, fields):
         """ Every object has a class. """
         self.cls = cls
+        self._fields = fields
 
     def read_attr(self, fieldname):
         """ read field 'fieldname' out of the object """
@@ -38,11 +39,11 @@ class Base(object):
 
     def _read_dict(self, fieldname):
         """ read an field 'fieldname' out of the object's dict """
-        return MISSING
+        return self._fields.get(fieldname, MISSING)
 
     def _write_dict(self, fieldname, value):
         """ write a field 'fieldname' into the object's dict """
-        raise AttributeError
+        self._fields[fieldname] = value
 
 
 def _is_bindable(meth):
@@ -54,18 +55,6 @@ def _make_boundmethod(meth, self):
 
 def OBJECT__setattr__(self, fieldname, value):
     self._write_dict(fieldname, value)
-
-
-class BaseWithDict(Base):
-    def __init__(self, cls, fields):
-        Base.__init__(self, cls)
-        self._fields = fields
-
-    def _read_dict(self, fieldname):
-        return self._fields.get(fieldname, MISSING)
-
-    def _write_dict(self, fieldname, value):
-        self._fields[fieldname] = value
 
 
 class Map(object):
@@ -92,7 +81,7 @@ class Instance(Base):
 
     def __init__(self, cls):
         assert isinstance(cls, Class)
-        Base.__init__(self, cls)
+        Base.__init__(self, cls, None)
         self.map = EMPTY_MAP
         self.storage = []
 
@@ -112,11 +101,11 @@ class Instance(Base):
             self.map = new_map
 
 
-class Class(BaseWithDict):
+class Class(Base):
     """ A User-defined class. """
 
     def __init__(self, name, base_class, fields, metaclass):
-        BaseWithDict.__init__(self, metaclass, fields)
+        Base.__init__(self, metaclass, fields)
         self.name = name
         self.base_class = base_class
 
