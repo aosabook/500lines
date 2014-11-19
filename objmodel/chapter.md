@@ -65,6 +65,8 @@ and write attributes into objects, the ability to call methods on objects and
 the ability for a class to be a subclass of another class. Right from the
 beginning, classes will be completely regular objects, that can themselves have
 attributes and methods.
+A note on terminology: In this chapter I will use the word "instance" to mean
+"an object that is not a class".
 
 To start the implementation a good approach is to write a test to think about
 what the to-be-implemented behaviour should be. All tests presented in this
