@@ -31,14 +31,17 @@ steps exploring different language design choices, the last step to improve the
 efficiency of the object model. The final model is not that of a real language,
 but an idealized, simplified version of that of Python.
 
-TODO (debo): You refer a lot to smalltalk semantics throughout the chapter, but
-I feel like many of our readers will not really understand what that means
-until they've seen it.
+TODO (debo): looking back, I don't think it was the Smalltalk reference that I
+found confusing. It was more the fact that I didn't have a 'roadmap' as to what
+features you'd be implementing in what order, and the tests actually prepare
+for future features before their implementation. (i.e. early tests passing in
+empty dicts that aren't really needed yet.)
 
-I think it might help to do a quick intro at beginning of chapter to how that
-works, and how it compares to e.g. simula-type semantics that the readers will
-probably be more familiar with. (Although I guess any of our objc-fluent
-readers will be mostly comfortable with it.)
+I think it's fine to leave things the way they are, with some sort of addition
+of "here are the specific semantics we're going to implement at a very high
+level, and here's what we're doing first, and now this, etc." I think many
+programmers will now be familiar with the ideal of 'everything is an object',
+even if they haven't used SmallTalk before.
 
 
 The object models presented in this chapter will also be implemented in Python
