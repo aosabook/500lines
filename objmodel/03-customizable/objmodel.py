@@ -103,9 +103,11 @@ class Class(BaseWithDict):
 
 # set up the base hierarchy like in Python (the ObjVLisp model)
 # the ultimate base class is OBJECT
-OBJECT = Class("object", None, {"__setattr__": OBJECT__setattr__}, None)
+OBJECT = Class(name="object", base_class=None,
+               fields={"__setattr__": OBJECT__setattr__},
+               metaclass=None)
 # TYPE is a subclass of OBJECT
-TYPE = Class("type", OBJECT, {}, None)
+TYPE = Class(name="type", base_class=OBJECT, fields={}, metaclass=None)
 # TYPE is an instance of itself
 TYPE.cls = TYPE
 # OBJECT is an instance of TYPE

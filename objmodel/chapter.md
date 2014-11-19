@@ -105,7 +105,7 @@ def test_read_write_field():
     assert obj.b == 5
 
     # Object model code
-    A = Class("A", OBJECT, {}, TYPE)
+    A = Class(name="A", base_class=OBJECT, fields={}, metaclass=TYPE)
     obj = Instance(A)
     obj.write_attr("a", 1)
     assert obj.read_attr("a") == 1
@@ -242,9 +242,9 @@ an instance of that metaclass.
 ````python
 # set up the base hierarchy like in Python (the ObjVLisp model)
 # the ultimate base class is OBJECT
-OBJECT = Class("object", None, {}, None)
+OBJECT = Class(name="object", base_class=None, fields={}, metaclass=None)
 # TYPE is a subclass of OBJECT
-TYPE = Class("type", OBJECT, {}, None)
+TYPE = Class(name="type", base_class=OBJECT, fields={}, metaclass=None)
 # TYPE is an instance of itself
 TYPE.cls = TYPE
 # OBJECT is an instance of TYPE
@@ -273,7 +273,7 @@ def test_read_write_field_class():
     assert A.a == 6
 
     # Object model code
-    A = Class("A", OBJECT, {"a": 1}, TYPE)
+    A = Class(name="A", base_class=OBJECT, fields={"a": 1}, metaclass=TYPE)
     assert A.read_attr("a") == 1
     A.write_attr("a", 5)
     assert A.read_attr("a") == 5
@@ -300,8 +300,8 @@ def test_isinstance():
     assert not isinstance(b, type)
 
     # Object model code
-    A = Class("A", OBJECT, {}, TYPE)
-    B = Class("B", A, {}, TYPE)
+    A = Class(name="A", base_class=OBJECT, fields={}, metaclass=TYPE)
+    B = Class(name="B", base_class=A, fields={}, metaclass=TYPE)
     b = Instance(B)
     assert b.isinstance(B)
     assert b.isinstance(A)
@@ -363,12 +363,12 @@ def test_send_simple():
     # Object model code
     def f(self):
         return self.read_attr("x") + 1
-    A = Class("A", OBJECT, {"f": f}, TYPE)
+    A = Class(name="A", base_class=OBJECT, fields={"f": f}, metaclass=TYPE)
     obj = Instance(A)
     obj.write_attr("x", 1)
     assert obj.send("f") == 2
 
-    B = Class("B", A, {}, TYPE)
+    B = Class(name="B", base_class=A, fields={}, metaclass=TYPE)
     obj = Instance(B)
     obj.write_attr("x", 2)
     assert obj.send("f") == 3
@@ -418,14 +418,14 @@ def test_send_subclassing_and_arguments():
     # Object model code
     def g_A(self, arg):
         return self.read_attr("x") + arg
-    A = Class("A", OBJECT, {"g": g_A}, TYPE)
+    A = Class(name="A", base_class=OBJECT, fields={"g": g_A}, metaclass=TYPE)
     obj = Instance(A)
     obj.write_attr("x", 1)
     assert obj.send("g", 4) == 5
 
     def g_B(self, arg):
         return self.read_attr("x") + arg * 2
-    B = Class("B", A, {"g": g_B}, TYPE)
+    B = Class(name="B", base_class=A, fields={"g": g_B}, metaclass=TYPE)
     obj = Instance(B)
     obj.write_attr("x", 4)
     assert obj.send("g", 4) == 12
@@ -468,13 +468,13 @@ def test_bound_method():
     # Object model code
     def f(self, a):
         return self.read_attr("x") + a + 1
-    A = Class("A", OBJECT, {"f": f}, TYPE)
+    A = Class(name="A", base_class=OBJECT, fields={"f": f}, metaclass=TYPE)
     obj = Instance(A)
     obj.write_attr("x", 2)
     m = obj.read_attr("f")
     assert m(4) == 7
 
-    B = Class("B", A, {}, TYPE)
+    B = Class(name="B", base_class=A, fields={}, metaclass=TYPE)
     obj = Instance(B)
     obj.write_attr("x", 1)
     m = obj.read_attr("f")
@@ -614,7 +614,9 @@ def test_getattr():
             # call the base implementation
             OBJECT.read_attr("__setattr__")(self, name, value)
 
-    A = Class("A", OBJECT, {"__getattr__": __getattr__, "__setattr__": __setattr__}, TYPE)
+    A = Class(name="A", base_class=OBJECT,
+              fields={"__getattr__": __getattr__, "__setattr__": __setattr__},
+              metaclass=TYPE)
     obj = Instance(A)
     obj.write_attr("celsius", 30)
     assert obj.read_attr("fahrenheit") == 86 # test __getattr__
@@ -715,7 +717,9 @@ def test_get():
         def __get__(self, inst, cls):
             return inst.read_attr("celsius") * 9. / 5. + 32
 
-    A = Class("A", OBJECT, {"fahrenheit": FahrenheitGetter()}, TYPE)
+    A = Class(name="A", base_class=OBJECT,
+              fields={"fahrenheit": FahrenheitGetter()},
+              metaclass=TYPE)
     obj = Instance(A)
     obj.write_attr("celsius", 30)
     assert obj.read_attr("fahrenheit") == 86
@@ -785,7 +789,7 @@ A simple test for ``Instance`` of that behaviour looks like this:
 ````python
 def test_maps():
     # white box test inspecting the implementation
-    Point = Class("Point", OBJECT, {}, TYPE)
+    Point = Class(name="Point", base_class=OBJECT, fields={}, metaclass=TYPE)
     p1 = Instance(Point)
     p1.write_attr("x", 1)
     p1.write_attr("y", 2)

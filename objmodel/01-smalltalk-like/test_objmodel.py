@@ -13,8 +13,8 @@ def test_isinstance():
     assert not isinstance(b, type)
 
     # Object model code
-    A = Class("A", OBJECT, {}, TYPE)
-    B = Class("B", A, {}, TYPE)
+    A = Class(name="A", base_class=OBJECT, fields={}, metaclass=TYPE)
+    B = Class(name="B", base_class=A, fields={}, metaclass=TYPE)
     b = Instance(B)
     assert b.isinstance(B)
     assert b.isinstance(A)
@@ -39,7 +39,7 @@ def test_read_write_field():
     assert obj.b == 5
 
     # Object model code
-    A = Class("A", OBJECT, {}, TYPE)
+    A = Class(name="A", base_class=OBJECT, fields={}, metaclass=TYPE)
     obj = Instance(A)
     obj.write_attr("a", 1)
     assert obj.read_attr("a") == 1
@@ -64,7 +64,7 @@ def test_read_write_field_class():
     assert A.a == 6
 
     # Object model code
-    A = Class("A", OBJECT, {"a": 1}, TYPE)
+    A = Class(name="A", base_class=OBJECT, fields={"a": 1}, metaclass=TYPE)
     assert A.read_attr("a") == 1
     A.write_attr("a", 5)
     assert A.read_attr("a") == 5
@@ -88,12 +88,12 @@ def test_send_simple():
     # Object model code
     def f(self):
         return self.read_attr("x") + 1
-    A = Class("A", OBJECT, {"f": f}, TYPE)
+    A = Class(name="A", base_class=OBJECT, fields={"f": f}, metaclass=TYPE)
     obj = Instance(A)
     obj.write_attr("x", 1)
     assert obj.send("f") == 2
 
-    B = Class("B", A, {}, TYPE)
+    B = Class(name="B", base_class=A, fields={}, metaclass=TYPE)
     obj = Instance(B)
     obj.write_attr("x", 2)
     assert obj.send("f") == 3
@@ -118,14 +118,14 @@ def test_send_subclassing_and_arguments():
     # Object model code
     def g_A(self, arg):
         return self.read_attr("x") + arg
-    A = Class("A", OBJECT, {"g": g_A}, TYPE)
+    A = Class(name="A", base_class=OBJECT, fields={"g": g_A}, metaclass=TYPE)
     obj = Instance(A)
     obj.write_attr("x", 1)
     assert obj.send("g", 4) == 5
 
     def g_B(self, arg):
         return self.read_attr("x") + arg * 2
-    B = Class("B", A, {"g": g_B}, TYPE)
+    B = Class(name="B", base_class=A, fields={"g": g_B}, metaclass=TYPE)
     obj = Instance(B)
     obj.write_attr("x", 4)
     assert obj.send("g", 4) == 12
