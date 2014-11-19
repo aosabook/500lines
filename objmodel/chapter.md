@@ -955,8 +955,17 @@ to experiment with various language design choices. Here are some possibilities:
 Conclusions
 --------------
 
-Writing an object model is easy and fun
-one can embed this into another language (eg gobject for C, many others) and use
-it there
-can experiment with different language design without the "boring" parts of
-language implementation (parsing and execution)
+The details of its object model are one of the core aspects of the design of an
+object oriented programming language. Writing small object model prototypes is
+thus an easy and fun way to understand the inner workings of existing languages
+better and to get insights into the design space of object oriented languages.
+Playing with object models is a good way to experiment with different language
+design ideas without having to care for the more boring parts of language
+implementation, such as parsing and executing code.
+
+Such object models can also be useful in practice, not just as vehicles for
+experimentation. They can be embedded and used from other languages. Examples
+of this approach are common, e.g. the GObject object model, written in C,
+that's used in GLib and other Gnome libraries; or the various class system
+implementations in JavaScript.
+

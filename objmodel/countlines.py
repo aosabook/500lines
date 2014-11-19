@@ -3,7 +3,7 @@ import difflib
 
 currdir = os.path.dirname(os.path.abspath(__file__))
 
-dirs = [p for p in os.listdir(currdir) if os.path.isdir(p)]
+dirs = [p for p in os.listdir(currdir) if os.path.isdir(p) and "0" in p]
 dirs.sort()
 
 total = 0
