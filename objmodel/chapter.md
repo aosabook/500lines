@@ -545,12 +545,14 @@ special methods usually have names that start and end with two underscores, e.g.
 ``__init__``. Special methods can be used to override primitive operations and
 provide custom behaviour for them instead. Thus they are hooks that tell the
 object model machinery how exactly to do certain things. Python's object model
-has dozens of special methods. XXX find the list
+has dozens of special methods
+(footnote: https://docs.python.org/2/reference/datamodel.html#special-method-names )
 
 Historically meta-object protocols have been introduced by Smalltalk but even
 more strongly by the object systems for Common Lisp, such as CLOS, which is also
 where the name *meta-object protocol* for collections of special methods was
-coined (XXX footnote: The Art of the Meta-Object Protocol).
+coined (footnote: G. Kiczales, J. des Rivieres, and D. G. Bobrow, The Art of
+the Metaobject Protocol. Cambridge, Mass: The MIT Press, 1991.).
 
 In this chapter we will add three such meta-hooks to our object model. They are
 used to fine-tune what exactly happens when reading and writing attributes. The
@@ -937,7 +939,8 @@ to experiment with various language design choices. Here are some possibilities:
   this, every class would get a list of base classes. Then, the ``Class.mro``
   method needs to be changed to support looking up methods. A simple method
   resolution order can be computed using a depth first search with removal of
-  duplicates. A more complicated but better one is the C3 algorithm (XXX link).
+  duplicates. A more complicated but better one is the C3 algorithm (footnote:
+  https://www.python.org/download/releases/2.3/mro/ ).
 
 - A more radical change is to switch to a prototype model, which is the removal
   of the distinction between classes and instances.
