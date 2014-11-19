@@ -44,8 +44,9 @@ programmers will now be familiar with the ideal of 'everything is an object',
 even if they haven't used SmallTalk before.
 
 
-The object models presented in this chapter will also be implemented in Python
-(The code works on both Python 2.7 and 3.4).
+The object models presented in this chapter will also be implemented in Python.
+The code works on both Python 2.7 and 3.4. The tests can be run with either
+py.test or nose.
 To understand the behavior and the design choice better the chapter will also
 present tests for the object model. The choice of Python as an implementation
 language is quite unrealistic. A "real" VM is typically implemented in a
