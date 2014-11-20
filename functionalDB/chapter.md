@@ -185,7 +185,7 @@ When we index a datom (a triplet of entity-id, attribute-name and value) we plac
 
 For example, let’s look at at the index sketched in Figure 2. In that index, the first level map holds entity-ids (the blue-ish area) that are mapped the second level maps. These hold attribute-names (attributes of the entity at the first level). In that second level map (the green-ish area), each key (an attribute-name) is mapped to the value held by that attribute (the pink-ish area). 
 
-This index is named EAVT, as the top level map holds **E**ntity ids, the second level holds **A**ttribute names, and the leaves holds **V**alues. The **T **comes from the fact that each layer in the database has its own indices, hence the index itself is relevant for a specific **T**ime. 
+This index is named EAVT, as the top level map holds *E*ntity ids, the second level holds *A*ttribute names, and the leaves holds *V*alues. The *T*comes from the fact that each layer in the database has its own indices, hence the index itself is relevant for a specific *T* ime. 
 
 ![image alt text](image_1.png)
 
@@ -209,7 +209,7 @@ Note that a more correct naming of the indices would be TEAV and TAVE , but smur
 
 On top of having information about the data found in the database, an index should be accompanied with some metadata of its own, to allow proper management and usage of the index itself. 
 
-This additional information is held as as a metadata of the index, using Clojure’s metadata handling functions (i.e., *meta *and *with-meta*) and two utility functions. 
+This additional information is held as as a metadata of the index, using Clojure’s metadata handling functions (i.e., *meta* and *with-meta*) and two utility functions. 
 
 There are two main aspects of index handling that are used:
 
@@ -228,8 +228,8 @@ These functions are read from the index using the utility functions *from-eav *a
     (with-meta {} {:from-eav from-eav :to-eav to-eav :usage-pred usage-pred}))
  
  (defn from-eav [index] (:from-eav (meta index)))
- (**defn** to-eav [index] (:to-eav (meta index)))
- (**defn** usage-pred [index] (:usage-pred (meta index)))
+ (defn to-eav [index] (:to-eav (meta index)))
+ (defn usage-pred [index] (:usage-pred (meta index)))
 ````
 In our database there are four indices - EAVT (as depicted in Figure 2), AVET (as can be seen in Figure 3), VEAT and VAET, these names are held as a vector of values returned from the *indices *function.
 
