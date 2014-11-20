@@ -356,7 +356,7 @@ It then runs the protocol (via ``Network.run``) in a separate thread.
 
 The application interacts with the cluster through the ``invoke`` method, which kicks off a proposal for a state transition.
 Once that proposal is decided and the state machine runs, ``invoke`` returns the machine's output.
-The method uses a simple Queue to wait for the result from the protocol thread.
+The method uses a simple synchronized Queue to wait for the result from the protocol thread.
 
 {{{ code_block cluster.py 'class Member'
 .. code-block:: python
