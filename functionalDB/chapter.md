@@ -219,7 +219,7 @@ There are two main aspects of index handling that are used:
 
     * from the index specific to the natural structure called *to-eav*. 
 
-These functions are read from the index using the utility functions *from-eav *and *to-eav*, both receive an index as an argument.
+These functions are read from the index using the utility functions *from-eav* and *to-eav*, both receive an index as an argument.
 
 * What to index: index maintenance has its costs, therefore, when defining an index, the user also provides a predicate that receives an attribute and decides whether that attribute should be indexed by the defined index. This predicate is read from an index using the *usage-pred* function that receives the relevant index as an argument.  
 
