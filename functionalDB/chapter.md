@@ -185,7 +185,7 @@ When we index a datom (a triplet of entity-id, attribute-name and value) we plac
 
 For example, let’s look at at the index sketched in Figure 2. In that index, the first level map holds entity-ids (the blue-ish area) that are mapped the second level maps. These hold attribute-names (attributes of the entity at the first level). In that second level map (the green-ish area), each key (an attribute-name) is mapped to the value held by that attribute (the pink-ish area). 
 
-This index is named EAVT, as the top level map holds **E**ntity ids, the second level holds **A**ttribute names, and the leaves holds **V**alues. The **T** comes from the fact that each layer in the database has its own indices, hence the index itself is relevant for a specific **T**ime. 
+This index is named EAVT, as the top level map holds (E) entity ids, the second level holds (A) attribute names, and the leaves hold (V) values. The (T) comes from the fact that each layer in the database has its own indices, hence the index itself is relevant for a specific (T) time. 
 
 ![image alt text](image_1.png)
 
