@@ -1,4 +1,4 @@
-Designing a database like an archaeologist
+#Designing a database like an archaeologist
 
 Software development is often viewed as a rigorous process, where the inputs are requirements and the output is the working product. However, software developers are people with their own perspectives and biases, which colors the outcome of their work. 
 
@@ -231,22 +231,18 @@ These functions are read from the index using the utility functions *from-eav* a
  (defn to-eav [index] (:to-eav (meta index)))
  (defn usage-pred [index] (:usage-pred (meta index)))
 ````
-In our database there are four indices - EAVT (as depicted in Figure 2), AVET (as can be seen in Figure 3), VEAT and VAET, these names are held as a vector of values returned from the *indices *function.
+In our database there are four indices - EAVT (as depicted in Figure 2), AVET (as can be seen in Figure 3), VEAT and VAET, these names are held as a vector of values returned from the *indices* function.
 
 ````clojure
 (defn indices[] [:VAET :AVET :VEAT :EAVT])
 ````
 For example, the result of indexing the following five entities can be seen in the table below (the color coding follows the color coding of Figure 2 and Figure 3)
 
-1. Julius Caesar (also known as JC) lives in Rome 
-
-2. Brutus (also known as B)  lives in Rome 
-
-3. Cleopatra (also known as Cleo) lives in Egypt
-
-4. Rome’s river is the Tiber
-
-5. Egypt’s river is the Nile 
+1. <span style="background-color:lightblue">Julius Caesar</span> (also known as JC) <span style="background-color:lightgreen">lives in</span> <span style="background-color:pink">Rome</span> 
+2. <span style="background-color:lightblue">Brutus</span> (also known as B) <span style="background-color:lightgreen">lives in</span> <span style="background-color:pink">Rome</span> 
+3. <span style="background-color:lightblue">Cleopatra</span> (also known as Cleo) <span style="background-color:lightgreen">lives in</span> <span style="background-color:pink">Egypt</span>
+4. <span style="background-color:lightblue">Rome</span>’s <span style="background-color:lightgreen">river</span> is the <span style="background-color:pink">Tiber/span>
+5. <span style="background-color:lightblue">Egypt</span>’s <span style="background-color:lightgreen">river</span> is the <span style="background-color:pink">Nile</span> 
 
 <table>
   <tr>
@@ -254,31 +250,68 @@ For example, the result of indexing the following five entities can be seen in t
     <td>AVET index</td>
   </tr>
   <tr>
-    <td>JC ⇒ {lives-in ⇒ {Rome}}
-B ⇒ {lives-in ⇒ {Rome}}
-Cleo ⇒{lives-in ⇒ {Rome}}
-Rome ⇒ {river ⇒ {Tiber}}
-Egypt ⇒ {river ⇒ {Nile}}</td>
-    <td>lives-in ⇒ {Rome ⇒ {JC, B}}
-                    Egypt ⇒ {Cleo}}
-river ⇒ {Rome ⇒ {Tiber}}
-               {Egypt ⇒ {Nile}}
-</td>
+    <td><ul>
+<li>
+<span style="background-color:lightblue">JC</span> &nbsp&nbsp&nbsp&nbsp&nbsp ⇒ {<span style="background-color:lightgreen">lives-in</span> ⇒ {<span style="background-color:pink">Rome</span>}}
+</li>
+<li>
+<span style="background-color:lightblue">B</span> &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp ⇒ {<span style="background-color:lightgreen">lives-in</span> ⇒ {<span style="background-color:pink">Rome</span>}}
+</li>
+<li>
+<span style="background-color:lightblue">Cleo</span> &nbsp ⇒ {<span style="background-color:lightgreen">lives-in</span> ⇒ {<span style="background-color:pink">Egypt</span>}}
+</li>
+<li>
+<span style="background-color:lightblue">Rome</span> ⇒ {<span style="background-color:lightgreen">river</span> &nbsp&nbsp&nbsp&nbsp⇒ {<span style="background-color:pink">Tiber</span>}}
+</li>
+<li>
+<span style="background-color:lightblue">Egypt</span> ⇒ {<span style="background-color:lightgreen">river</span> &nbsp&nbsp&nbsp&nbsp⇒ {<span style="background-color:pink">Nile</span>}}
+</li>
+</ul></td>
+<td><ul>
+<li>
+<span style="background-color:lightgreen">lives-in</span> ⇒ {<span style="background-color:pink">Rome</span> ⇒ {<span style="background-color:lightblue">JC, B</span>}}</br>
+&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
+                         <span style="background-color:pink">Egypt</span> ⇒ {<span style="background-color:lightblue">Cleo</span>}}
+</li>
+<li>
+<span style="background-color:lightgreen">river</span> &nbsp&nbsp&nbsp&nbsp⇒ {<span style="background-color:pink">Rome</span> ⇒ {<span style="background-color:lightblue">Tiber</span>}}</br>
+&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
+&nbsp&nbsp&nbsp&nbsp{<span style="background-color:pink">Egypt</span> ⇒ {<span style="background-color:lightblue">Nile</span>}}
+</li>
+</ul></td>
   </tr>
   <tr>
     <td>VEAT index</td>
     <td>VAET index</td>
   </tr>
   <tr>
-    <td>Rome ⇒ {JC ⇒ {lives-in}}
-                {B ⇒ {lives-in}}
-Egypt ⇒ {Cleo ⇒ {lives-in}}
-Tiber ⇒ {Rome ⇒ {river}}
-Nile ⇒ {Egypt ⇒ {river}} </td>
-    <td>Rome ⇒ {lives-in ⇒ {JC, B}}
-Egypt ⇒ {lives-in ⇒ {Cleo}}
-Tiber ⇒ {river ⇒ {Rome}}
-Nile ⇒ {river ⇒ {Egypt}}</td>
+    <td><ul>
+<li>
+<span style="background-color:pink">Rome</span> ⇒ {<span style="background-color:lightblue">JC</span> &nbsp&nbsp&nbsp&nbsp ⇒ {<span style="background-color:lightgreen">lives-in</span>}}<br/>
+&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
+{<span style="background-color:lightblue">B</span> &nbsp&nbsp&nbsp&nbsp&nbsp ⇒ {<span style="background-color:lightgreen">lives-in</span>}}
+</li>
+<li>
+<span style="background-color:pink">Egypt</span> ⇒ {<span style="background-color:lightblue">Cleo</span> &nbsp&nbsp⇒ {<span style="background-color:lightgreen">lives-in</span>}}
+</li>
+<li>
+<span style="background-color:pink">Tiber</span>&nbsp&nbsp⇒ {<span style="background-color:lightblue">Rome</span> ⇒ {<span style="background-color:lightgreen">river</span>}}
+</li>
+<li>
+<span style="background-color:pink">Nile</span>&nbsp&nbsp&nbsp&nbsp⇒ {<span style="background-color:lightblue">Egypt</span> ⇒ {<span style="background-color:lightgreen">river</span>}}
+</li></ul></td>
+<td><ul>
+<li>
+<span style="background-color:pink">Rome</span>&nbsp⇒ {<span style="background-color:lightgreen">lives-in</span> ⇒ {<span style="background-color:lightblue">JC, B</span>}}
+</li>
+<li>
+<span style="background-color:pink">Egypt</span>&nbsp⇒ {<span style="background-color:lightgreen">lives-in</span> ⇒ {<span style="background-color:lightblue">Cleo</span>}}</li>
+<li>
+<span style="background-color:pink">Tiber</span>&nbsp&nbsp⇒ {<span style="background-color:lightgreen">river</span>&nbsp&nbsp&nbsp&nbsp ⇒ {<span style="background-color:lightblue">Rome</span>}}
+</li>
+<li>
+<span style="background-color:pink">Nile</span>&nbsp&nbsp&nbsp&nbsp⇒ {<span style="background-color:lightgreen">river</span>&nbsp&nbsp&nbsp&nbsp ⇒ {<span style="background-color:lightblue">Egypt</span>}}
+</li></ul></td>
   </tr>
 </table>
 
@@ -291,7 +324,7 @@ The last structural building block that we need to understand is the place where
 
 Constructing a database means to creating an initial empty layer with no data and a set of empty indices. as well as set its top-id to be 0 and its curr-time to be 0, as can be seen in the *make-db* function. 
 
-In Clojure, all the collections are immutable, thus this structure has a crucial downside from a databasing point of view, which is its lack of ability to perform write operations. To have this capability we wrap this structure with an **atom**, which is one of Clojure’s** **reference types and provides atomic writes to the element it wraps.
+In Clojure, all the collections are immutable, thus this structure has a crucial downside from a databasing point of view, which is its lack of ability to perform write operations. To have this capability we wrap this structure with an **atom**, which is one of Clojure’s reference types and provides atomic writes to the element it wraps.
 
 ````clojure
 (defn ref? [attr] (= :db/ref (:type (meta attr))))
@@ -754,9 +787,7 @@ A query itself is a map containing two entries:
 A clause is a vector composed of three predicates, each one to operate of a different part of a datom:
 
     * Predicate to operate on the entity-id
-
     * Predicate to operate on the attribute-name
-
     * Predicate to operate on the value
 
 In the example above [?e  :likes "pizza"] is a clause.  
@@ -886,9 +917,11 @@ Each one of the query’s parts has its own specific transformation:
 
 * The *:find* part of the query is transformed into a set that holds all the names of the variables that needs to be reported. These names are held as strings, and the transformation itself is done in the macro *symbol-col-to-set *
 
-(**defmacro** symbol-col-to-set [coll] (**set** (**map** str coll)))
+````clojure
+(defmacro symbol-col-to-set [coll] (set (map str coll)))
+````
 
-* The* :where* part of the query is transformation is done by changing each of the terms in each of the clauses to a predicate (following the description in Table 3) while keeping the same structure. Besides that, metadata is defined for each of the predicates clauses which holds a vector with the names of the variables used in that clause. The transformation from term to a predicate is implemented in the macro *clause-term-expr* and the detection of the variable in each term is done in the macro *clause-term-meta*
+* The *:where* part of the query is transformation is done by changing each of the terms in each of the clauses to a predicate (following the description in Table 3) while keeping the same structure. Besides that, metadata is defined for each of the predicates clauses which holds a vector with the names of the variables used in that clause. The transformation from term to a predicate is implemented in the macro *clause-term-expr* and the detection of the variable in each term is done in the macro *clause-term-meta*
 
 ````clojure
 (defmacro clause-term-expr [clause-term]
