@@ -92,7 +92,7 @@ Each layer consists of:
 
 2. Indices, which are used to quickly locate elements in the database. These indices and the meaning of their names is explained later in the chapter.
 
-In our design, a single conceptual ‘database’ may consist of many *Database *instances, each of which represents a snapshot of the database at *curr-time*.  A *Layer* may share the exact same entity with another *Layer *if the entity’s state hasn’t changed between the times they represent.
+In our design, a single conceptual ‘database’ may consist of many *Database* instances, each of which represents a snapshot of the database at *curr-time*. A *Layer* may share the exact same entity with another *Layer* if the entity’s state hasn’t changed between the times they represent.
 
 ### Entities
 
@@ -115,7 +115,7 @@ In addition to these fields, each attribute keeps two metadata fields,to describ
 
 The main usage of the *type* metadata is in the cases where an attribute acts as a reference to another entity. In that case, the *type* of the attribute is *:db/ref* and the value of the attribute is the referred entity id. Other than that, users are free to define their own types and leverage them to provide additional semantics for their data.
 
-The *cardinality *metadata specifies whether the attribute represents single value or a set of values. Cardinality determines what operations the database will permit on this attribute.
+The *cardinality* metadata specifies whether the attribute represents single value or a set of values. Cardinality determines what operations the database will permit on this attribute.
 
 Creating an attribute is done using the *make-attr* function 
 
@@ -128,7 +128,7 @@ Creating an attribute is done using the *make-attr* function
      {:pre [(contains? #{:db/single :db/multiple} cardinality)]}
     (with-meta (Attr. name value -1 -1) {:type type :cardinality cardinality})))
 ````
-Few things to note about how the *make-attr *function handles the cardinality of an attribute:
+Few things to note about how the *make-attr* function handles the cardinality of an attribute:
 
 * taking advantage of Clojure’s Design by Contract [ADD REF HERE] capabilities and sets preconditions to validate that the cardinality parameter is either *:db/single* or *:db/multiple* 
 * leveraging Clojure’s descruturing mechanism to provide default value (which is *:db/single*)  
@@ -357,7 +357,7 @@ The following functions do exactly that, and share some commonalities between th
 
 * Take an optional timestamp value to know from which time to fetched the needed element. This is an optional argument as it defaults to the current time. 
 
-The functions *entity-at* and *ind-at* find the right layer and within it find the needed element (*entity-at* looks at the storage, *ind-at* goes directly to the right index). The function *attr-at* first calls *entity-at *and then reads the attribute from the entity and *value-of-at* calls *attr-at* and then reads the value from the attribute.
+The functions *entity-at* and *ind-at* find the right layer and within it find the needed element (*entity-at* looks at the storage, *ind-at* goes directly to the right index). The function *attr-at* first calls *entity-at* and then reads the attribute from the entity and *value-of-at* calls *attr-at* and then reads the value from the attribute.
 
 It is worth mentioning that while *entity-at*, *attr-at*, *value-of-at* and *ind-at* have a similar structure, and therefore are explained in this section, *ind-at* is to be used only by the database and not by the database users.
 
@@ -404,7 +404,7 @@ Each of these functionalities, when executed, adds another layer to the database
 
 The driving force of the entity adding process is the *add-entity* function. It  is responsible to do three things - prepare the entity for addition to the database, add it to the storage and update the indices with the relevant information from the entity.
 
-Preparing an entity means providing it with an id (if it doesn’t have) and setting its timestamp field, these actions take place in the function *fix-new-entity* and it’s auxiliary functions *next-id*, * *next-ts* and *update-creation-ts*. These helper functions are responsible for finding the next timestamp of the database and update the creation timestamp of a given entity (which is actually the timestamp field of each of the entity’s attributes), as well as find whether an entity needs to be assigned with an id field, if so set its id and prevent future use of that id.
+Preparing an entity means providing it with an id (if it doesn’t have) and setting its timestamp field, these actions take place in the function *fix-new-entity* and it’s auxiliary functions *next-id*, *next-ts* and *update-creation-ts*. These helper functions are responsible for finding the next timestamp of the database and update the creation timestamp of a given entity (which is actually the timestamp field of each of the entity’s attributes), as well as find whether an entity needs to be assigned with an id field, if so set its id and prevent future use of that id.
 
 ````clojure
 (defn- next-ts [db] (inc (:curr-time db)))
@@ -481,7 +481,7 @@ When an entity is removed from the database, it means that a new layer is constr
 
 When removing an entity’s trace, we do not need only to remove the entity, but also affect other entities that refer to it, as well as clear that referencing from the indexing system.
 
-This entire cleanup process (or more correctly - a "construct without" process) is managed by the *remove-entity *function. In order not to tire the reader, we’ll skip the part where the entity itself is removed (this part is quite similar to the addition process described before), and we’ll focus on the reference removal part.
+This entire cleanup process (or more correctly - a "construct without" process) is managed by the *remove-entity* function. In order not to tire the reader, we’ll skip the part where the entity itself is removed (this part is quite similar to the addition process described before), and we’ll focus on the reference removal part.
 
 ````clojure
 (defn remove-entity [db ent-id]
@@ -589,7 +589,7 @@ Performing a transactional operation is done in Clojure using the *Atom* element
 
 As for the function that is to be executed, this function needs to perform all the operations that the user requested, while eventually adding one layer to the database.  To do so we would need to overcome the fact that each of the lifecycle functions adds a layer reflecting the change it inflicts. 
 
-Here we resort to the insight that changes on different attributes (that can be part of either the same or different entities) accumulate when stacking layers, thus a top layer holds all the changes that built the layers below it. Therefore, the solution is to execute each of the user’s operations one after another, each creating a new layer. While doing so, we do not update the databases’s timestamp field. When the last layer is completed, we take only that top layer and place it on the initial database  (leaving all the intermediate layers to pine for the fjords) and only then update the database’s timestamp. All this is happening in the* transact-on-db* function
+Here we resort to the insight that changes on different attributes (that can be part of either the same or different entities) accumulate when stacking layers, thus a top layer holds all the changes that built the layers below it. Therefore, the solution is to execute each of the user’s operations one after another, each creating a new layer. While doing so, we do not update the databases’s timestamp field. When the last layer is completed, we take only that top layer and place it on the initial database  (leaving all the intermediate layers to pine for the fjords) and only then update the database’s timestamp. All this is happening in the *transact-on-db* function
 
 ````clojure
 (defn transact-on-db [initial-db txs]
