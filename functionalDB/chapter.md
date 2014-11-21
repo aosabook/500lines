@@ -96,7 +96,7 @@ In our design, a single conceptual ‘database’ may consist of many *Database 
 
 ### Entities
 
-Next, we define each of our records to be an *Entity*, which can be thought of as a row in a table (or a slice in Figure 1). An entity has an *id** *and  a list of *attribute**s*, it is defined by the *Entity* record and created using the *make-entity *function.
+Next, we define each of our records to be an *Entity*, which can be thought of as a row in a table (or a slice in Figure 1). An entity has an *id* and a list of *attributes*, it is defined by the *Entity* record and created using the *make-entity* function.
 
 ````clojure
 (defrecord Entity [id attrs])
@@ -130,9 +130,8 @@ Creating an attribute is done using the *make-attr* function
 ````
 Few things to note about how the *make-attr *function handles the cardinality of an attribute:
 
-* taking advantage of Clojure’s Design by Contract [ADD REF HERE] capabilities and sets preconditions to validate that the cardinality parameter is either :db/single or :db/multiple
-
-* leveraging Clojure’s descruturing mechanism to provide default value (which is :db/single)  
+* taking advantage of Clojure’s Design by Contract [ADD REF HERE] capabilities and sets preconditions to validate that the cardinality parameter is either *:db/single* or *:db/multiple* 
+* leveraging Clojure’s descruturing mechanism to provide default value (which is *:db/single*)  
 
 The creation interplay between an entity and its attributes is finalized once an attribute is added to an entity, using the *add-attr* function. This function adds the given attribute to a map that holds the attributes within an entity. That map, called :attrs, maps the attribute’s name to the attribute itself - thus allowing fast lookup of an attribute within an entity. Note that instead of using directly the attribute’s name, we first convert it into a keyword, to adhere to Clojure’s idiomatic usage of maps.
 
@@ -165,7 +164,7 @@ In our database, as mentioned above, we’ll hold the data in memory, and use th
 (defrecord InMemory [] Storage
    (get-entity [storage e-id] (e-id storage))
    (write-entity [storage entity] (assoc storage (:id entity) entity))
-   (drop-entity [storage entity] (**dissoc** storage (:id entity))))
+   (drop-entity [storage entity] (dissoc storage (:id entity))))
 ````
 ### Indices
 
@@ -338,7 +337,7 @@ In Clojure, all the collections are immutable, thus this structure has a crucial
                    (make-index #(vector %1 %2 %3) #(vector %1 %2 %3) always); EAVT
                   )] 0 0)))
 ````
-Note that we use the *always *function for the AVET, VEAT and EAVT indices, and the* ref?* predicate for the VAET index. This is a result of the different usage scenario of the indices. We’ll explore this issue later when discussing the various querying operations of the database.
+Note that we use the *always* function for the AVET, VEAT and EAVT indices, and the *ref?* predicate for the VAET index. This is a result of the different usage scenario of the indices. We’ll explore this issue later when discussing the various querying operations of the database.
 
 ### Basic reads
 
@@ -358,9 +357,9 @@ The following functions do exactly that, and share some commonalities between th
 
 * Take an optional timestamp value to know from which time to fetched the needed element. This is an optional argument as it defaults to the current time. 
 
-The functions *entity-at* and *ind-at* find the right layer and within it find the needed element (*entity-at *looks at the storage, *ind-at* goes directly to the right index). The function *attr-at* first calls *entity-at *and then reads the attribute from the entity and *value-of-at *calls *attr-at *and then reads the value from the attribute.
+The functions *entity-at* and *ind-at* find the right layer and within it find the needed element (*entity-at* looks at the storage, *ind-at* goes directly to the right index). The function *attr-at* first calls *entity-at *and then reads the attribute from the entity and *value-of-at* calls *attr-at* and then reads the value from the attribute.
 
-It is worth mentioning that while *entity-at, attr-at, value-of-at *and *ind-at* have a similar structure, and therefore are explained in this section, *idn-at* is to be used only by the database and not by the database users.
+It is worth mentioning that while *entity-at*, *attr-at*, *value-of-at* and *ind-at* have a similar structure, and therefore are explained in this section, *ind-at* is to be used only by the database and not by the database users.
 
 ````clojure
 (defn entity-at
@@ -397,7 +396,7 @@ To implement the defined data lifecycle, all we needed to do was to implement th
 
 * removing an entity - an operation that start with the *remove-entity* function
 
-* updating an entity - an operation that starts with the *update-datom *function. This function is named that way as the update operation is done on a datom (the value of an attribute in an entity) and it is not an entire entity update.
+* updating an entity - an operation that starts with the *update-datom* function. This function is named that way as the update operation is done on a datom (the value of an attribute in an entity) and it is not an entire entity update.
 
 Each of these functionalities, when executed, adds another layer to the database.
 
@@ -405,7 +404,7 @@ Each of these functionalities, when executed, adds another layer to the database
 
 The driving force of the entity adding process is the *add-entity* function. It  is responsible to do three things - prepare the entity for addition to the database, add it to the storage and update the indices with the relevant information from the entity.
 
-Preparing an entity means providing it with an id (if it doesn’t have) and setting its timestamp field, these actions take place in the function *fix-new-entity *and it’s auxiliary functions *next-id, * *next-ts *and *update-creation-ts.* These helper functions are responsible for finding the next timestamp of the database and update the creation timestamp of a given entity (which is actually the timestamp field of each of the entity’s attributes), as well as find whether an entity needs to be assigned with an id field, if so set its id and prevent future use of that id.
+Preparing an entity means providing it with an id (if it doesn’t have) and setting its timestamp field, these actions take place in the function *fix-new-entity* and it’s auxiliary functions *next-id*, * *next-ts* and *update-creation-ts*. These helper functions are responsible for finding the next timestamp of the database and update the creation timestamp of a given entity (which is actually the timestamp field of each of the entity’s attributes), as well as find whether an entity needs to be assigned with an id field, if so set its id and prevent future use of that id.
 
 ````clojure
 (defn- next-ts [db] (inc (:curr-time db)))
@@ -430,9 +429,9 @@ Adding the entity to the storage is simply a matter of locating the last layer i
 
 Last but not least phase in adding an entity to the database is updating the indices. This means that:
 
-1. For each of the indices (done by the combination of *reduce *and the *partial*-ed *add-entity-to-index *at the *add-entity* function),
+1. For each of the indices (done by the combination of *reduce* and the *partial*-ed *add-entity-to-index* at the *add-entity* function)
 
-2. Find the attributes that should be indexed (see the combination of *filter* with the index’s *usage-pred* that operates on the attributes in *add-entity-to-index*), 
+2. Find the attributes that should be indexed (see the combination of *filter* with the index’s *usage-pred* that operates on the attributes in *add-entity-to-index*) 
 
 3. build an index-path from the the entity’s id (see the combination of the *partial*-ed *update-entry-in-index* with *from-eav* at the *update-attr-in-index* function)
 
@@ -514,7 +513,7 @@ It starts by locating the entities that refer to the removed entity, by calling 
                reffing reffing-set]
               [reffing attr-name e-id])))
 ````
- When the *remove-back-refs *function gets the triplets sequence, it just calls the *update-datom *function (which will be explain in the next part) to update the referencing entity to not hold the id of the removed entity (at the found attribute).
+ When the *remove-back-refs* function gets the triplets sequence, it just calls the *update-datom* function (which will be explain in the next part) to update the referencing entity to not hold the id of the removed entity (at the found attribute).
 
 The reference removal process ends with clearing-up the removed entity’s id from the VAET index (the index that holds the references) at the *remove-entity* function.
 
@@ -586,7 +585,7 @@ All the operations described before (add / remove / edit) do a single operation 
 
 The way to answer these requirements is by using a mechanism that takes as an input input the database and a set of operations to be performed, and produces as an output a database whose state reflects the given changes. More than that, all the changes should be seen as an addition of a single layer. 
 
-Performing a transactional operation is done in Clojure using the *Atom *element (this is why we wrap a database with such an element). This element allow us to invoke a single function on it, and all changes to it happen in an atomic and isolated manner. 
+Performing a transactional operation is done in Clojure using the *Atom* element (this is why we wrap a database with such an element). This element allow us to invoke a single function on it, and all changes to it happen in an atomic and isolated manner. 
 
 As for the function that is to be executed, this function needs to perform all the operations that the user requested, while eventually adding one layer to the database.  To do so we would need to overcome the fact that each of the lifecycle functions adds a layer reflecting the change it inflicts. 
 
@@ -609,20 +608,15 @@ This function is performed on the Atom that wraps the database (to modify the da
 * The transaction call chain : transact →  _transact → swap! → transact-on-db
 
     * When using this chain of calls, the user provides the operations and the connection to the database (i.e., the atom element)
-
     * The output of this chain is the atom element pointing to a new database
-
     * The *swap!* function updates the atom element
-
 * The what-if call chain : what-if → _transact →   _what-if → transact-on-db 
 
     * When using this chain of calls, the user provides the operations and the database itself
-
     * The output of this chain is a new database element
-
     * The _what-if function acts as an adapter from this chain to transaction chain (especially using a database and not an atom and swap!)
 
-As can be seen, this chains differs in the function called by the *_transact* function. This difference is injected into the chain by the function that the user called, either *transact * or *what-if* : 
+As can be seen, this chains differs in the function called by the *_transact* function. This difference is injected into the chain by the function that the user called, either *transact* or *what-if* : 
 
 ````clojure
 (defmacro what-if [db & txs]  `(_transact ~db _what-if  ~@txs))
@@ -701,7 +695,7 @@ The function *evolution-of* does exactly that, and return a sequence of pairs - 
 ````
 ### Graph traversal
 
-The reference connection between entities is created when an entity’s attribute’s type is :db/ref, which means that the value of that attribute is an id of another entity. When referring entity is added to the database, the reference is indexed at the VAET index. In that index, the top level items are ids of entries that are referenced to by other entities and at the leafs we can find the referring entities’ ids. This information can be leveraged to extract all the incoming links to an entity and is done in the function *incoming-refs*, which simply collects for the given entity all the leaves that are reachable from it at the VAET index::
+The reference connection between entities is created when an entity’s attribute’s type is *:db/ref*, which means that the value of that attribute is an id of another entity. When referring entity is added to the database, the reference is indexed at the VAET index. In that index, the top level items are ids of entries that are referenced to by other entities and at the leafs we can find the referring entities’ ids. This information can be leveraged to extract all the incoming links to an entity and is done in the function *incoming-refs*, which simply collects for the given entity all the leaves that are reachable from it at the VAET index::
 
 ````clojure
 (defn incoming-refs [db ts ent-id & ref-names]
@@ -710,7 +704,7 @@ The reference connection between entities is created when an entity’s attribut
          filtered-map (if ref-names (select-keys ref-names all-attr-map) all-attr-map)]
       (reduce into #{} (vals filtered-map))))
 ````
-We can also, for a given entity, go through all of it’s attributes and collect all the values of attribute of type :db/ref, and by that extract all the outgoing references from an entity. This is done at the *outgoing-refs *function 
+We can also, for a given entity, go through all of it’s attributes and collect all the values of attribute of type :db/ref, and by that extract all the outgoing references from an entity. This is done at the *outgoing-refs* function 
 
 ````clojure
 (defn outgoing-refs [db ts ent-id & needed-keys]
@@ -721,7 +715,7 @@ We can also, for a given entity, go through all of it’s attributes and collect
 ````
 These two functions act as the basic building blocks for any graph traversal operations, as they are the ones that raise the level of abstraction from entities to nodes in graph. These functions can provide either all the refs (either incoming or outgoing) of an entity or a subset of them. This is possible as each ref is an attribute (with a type of :db\ref), so to define a subset of the refs means to define a subset of the attribute names and provide it via the *ref-names* argument of these functions. 
 
-On top of providing these two functions, our database also provides the two classical graph traversing algorithms - breadth-first-search and depth-first-search, that start from a given node, and traverse the graph along either the incoming or outgoing references (using either *incoming-refs * or *outgoing-refs *appropriately).
+On top of providing these two functions, our database also provides the two classical graph traversing algorithms - breadth-first-search and depth-first-search, that start from a given node, and traverse the graph along either the incoming or outgoing references (using either *incoming-refs* or *outgoing-refs* appropriately).
 
 As these two algorithms have almost identical implementation, they are both implemented in the same function, called *traverse*, and their difference is buffered by the function *traverse-db* that receives as an input which algorithm to use (either :graph/bfs or :graph/dfs) and along which references to walk (either :graph/outgoing or :graph/incoming). 
 
@@ -787,9 +781,9 @@ A clause is a vector composed of three predicates, each one to operate of a diff
     * Predicate to operate on the attribute-name
     * Predicate to operate on the value
 
-In the example above [?e  :likes "pizza"] is a clause.  
+In the example above *[?e  :likes "pizza"]* is a clause.  
 
-The role of the *:where *part is to define rules that are to be used as filters of the datoms in the database.
+The role of the *:where* part is to define rules that are to be used as filters of the datoms in the database.
 
 * An entry whose key is *:find* and its value is a vector. That vector defines which parts of the datoms that passed the predicates should be reported and compose the answer of the query (think of the Select statement in an SQL query). 
 This does not includes formatting of the answer - operations such as sorting or grouping are not supported.
@@ -798,7 +792,7 @@ The description above is missing a crucial notion, which is how to make differen
 
 These two kinds of links are done using variables. 
 
-A variable’s syntax is defined as a symbol that starts with ‘*?’* (e.g., *?e* in the example above), also there is a special variable, which is the "dont-care" variable and is identified using *‘_’*. (underscore). To understand whether something is a variable or not we have our *variable? *predicate. This predicate was implemented as a function that accepts strings and not as a macro that accepts symbols to allow us to use it as a higher order function, and more specifically, to be sent as an argument to another function: 
+A variable’s syntax is defined as a symbol that starts with *‘?’* (e.g., *?e* in the example above), also there is a special variable, which is the "dont-care" variable and is identified using *‘_’*. (underscore). To understand whether something is a variable or not we have our *variable?* predicate. This predicate was implemented as a function that accepts strings and not as a macro that accepts symbols to allow us to use it as a higher order function, and more specifically, to be sent as an argument to another function: 
 
 ````clojure
 (defn variable?
@@ -912,7 +906,7 @@ This phase’s purpose is to receive the query from the user and transform it in
 
 Each one of the query’s parts has its own specific transformation:
 
-* The *:find* part of the query is transformed into a set that holds all the names of the variables that needs to be reported. These names are held as strings, and the transformation itself is done in the macro *symbol-col-to-set *
+* The *:find* part of the query is transformed into a set that holds all the names of the variables that needs to be reported. These names are held as strings, and the transformation itself is done in the macro *symbol-col-to-set*
 
 ````clojure
 (defmacro symbol-col-to-set [coll] (set (map str coll)))
@@ -966,7 +960,7 @@ The plan is constructed at the *build-query-plan* function. The right index is c
 
 * Joining variable that operates on the attribute values means it is best to execute the query on the EAVT index.
 
-The index of the joining variable is done at the *index-of-joining-variable *function.
+The index of the joining variable is done at the *index-of-joining-variable* function.
 
 ````clojure
 (defn index-of-joining-variable [query-clauses]
@@ -989,7 +983,7 @@ Having the query plan be a function that accepts a database as an argument is a 
 ````
 #### Phase 3 - Execution of the plan
 
-The general scheme of operation of our query plan is to apply each predicate clause on an index (each predicate on its appropriate index level) unite the results (thus performing an AND operation between the clauses) and return it in a structure that would simplify the reporting of the results. The function *single-index-query-plan *implements this description
+The general scheme of operation of our query plan is to apply each predicate clause on an index (each predicate on its appropriate index level) unite the results (thus performing an AND operation between the clauses) and return it in a structure that would simplify the reporting of the results. The function *single-index-query-plan* implements this description
 
 ````clojure
 (defn single-index-query-plan [query indx db]
