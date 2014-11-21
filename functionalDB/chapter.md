@@ -241,7 +241,7 @@ For example, the result of indexing the following five entities can be seen in t
 1. <span style="background-color:lightblue">Julius Caesar</span> (also known as JC) <span style="background-color:lightgreen">lives in</span> <span style="background-color:pink">Rome</span> 
 2. <span style="background-color:lightblue">Brutus</span> (also known as B) <span style="background-color:lightgreen">lives in</span> <span style="background-color:pink">Rome</span> 
 3. <span style="background-color:lightblue">Cleopatra</span> (also known as Cleo) <span style="background-color:lightgreen">lives in</span> <span style="background-color:pink">Egypt</span>
-4. <span style="background-color:lightblue">Rome</span>’s <span style="background-color:lightgreen">river</span> is the <span style="background-color:pink">Tiber/span>
+4. <span style="background-color:lightblue">Rome</span>’s <span style="background-color:lightgreen">river</span> is the <span style="background-color:pink">Tiber</span>
 5. <span style="background-color:lightblue">Egypt</span>’s <span style="background-color:lightgreen">river</span> is the <span style="background-color:pink">Nile</span> 
 
 <table>
@@ -252,31 +252,29 @@ For example, the result of indexing the following five entities can be seen in t
   <tr>
     <td><ul>
 <li>
-<span style="background-color:lightblue">JC</span> &nbsp&nbsp&nbsp&nbsp&nbsp ⇒ {<span style="background-color:lightgreen">lives-in</span> ⇒ {<span style="background-color:pink">Rome</span>}}
+<span style="background-color:lightblue">JC</span> ⇒ {<span style="background-color:lightgreen">lives-in</span> ⇒ {<span style="background-color:pink">Rome</span>}}
 </li>
 <li>
-<span style="background-color:lightblue">B</span> &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp ⇒ {<span style="background-color:lightgreen">lives-in</span> ⇒ {<span style="background-color:pink">Rome</span>}}
+<span style="background-color:lightblue">B</span>  ⇒ {<span style="background-color:lightgreen">lives-in</span> ⇒ {<span style="background-color:pink">Rome</span>}}
 </li>
 <li>
-<span style="background-color:lightblue">Cleo</span> &nbsp ⇒ {<span style="background-color:lightgreen">lives-in</span> ⇒ {<span style="background-color:pink">Egypt</span>}}
+<span style="background-color:lightblue">Cleo</span> ⇒ {<span style="background-color:lightgreen">lives-in</span> ⇒ {<span style="background-color:pink">Egypt</span>}}
 </li>
 <li>
-<span style="background-color:lightblue">Rome</span> ⇒ {<span style="background-color:lightgreen">river</span> &nbsp&nbsp&nbsp&nbsp⇒ {<span style="background-color:pink">Tiber</span>}}
+<span style="background-color:lightblue">Rome</span> ⇒ {<span style="background-color:lightgreen">river</span> ⇒ {<span style="background-color:pink">Tiber</span>}}
 </li>
 <li>
-<span style="background-color:lightblue">Egypt</span> ⇒ {<span style="background-color:lightgreen">river</span> &nbsp&nbsp&nbsp&nbsp⇒ {<span style="background-color:pink">Nile</span>}}
+<span style="background-color:lightblue">Egypt</span> ⇒ {<span style="background-color:lightgreen">river</span> ⇒ {<span style="background-color:pink">Nile</span>}}
 </li>
 </ul></td>
 <td><ul>
 <li>
 <span style="background-color:lightgreen">lives-in</span> ⇒ {<span style="background-color:pink">Rome</span> ⇒ {<span style="background-color:lightblue">JC, B</span>}}</br>
-&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
-                         <span style="background-color:pink">Egypt</span> ⇒ {<span style="background-color:lightblue">Cleo</span>}}
+                         {<span style="background-color:pink">Egypt</span> ⇒ {<span style="background-color:lightblue">Cleo</span>}}
 </li>
 <li>
-<span style="background-color:lightgreen">river</span> &nbsp&nbsp&nbsp&nbsp⇒ {<span style="background-color:pink">Rome</span> ⇒ {<span style="background-color:lightblue">Tiber</span>}}</br>
-&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
-&nbsp&nbsp&nbsp&nbsp{<span style="background-color:pink">Egypt</span> ⇒ {<span style="background-color:lightblue">Nile</span>}}
+<span style="background-color:lightgreen">river</span> ⇒ {<span style="background-color:pink">Rome</span> ⇒ {<span style="background-color:lightblue">Tiber</span>}}</br>
+{<span style="background-color:pink">Egypt</span> ⇒ {<span style="background-color:lightblue">Nile</span>}}
 </li>
 </ul></td>
   </tr>
@@ -287,30 +285,29 @@ For example, the result of indexing the following five entities can be seen in t
   <tr>
     <td><ul>
 <li>
-<span style="background-color:pink">Rome</span> ⇒ {<span style="background-color:lightblue">JC</span> &nbsp&nbsp&nbsp&nbsp ⇒ {<span style="background-color:lightgreen">lives-in</span>}}<br/>
-&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
-{<span style="background-color:lightblue">B</span> &nbsp&nbsp&nbsp&nbsp&nbsp ⇒ {<span style="background-color:lightgreen">lives-in</span>}}
+<span style="background-color:pink">Rome</span> ⇒ {<span style="background-color:lightblue">JC</span> ⇒ {<span style="background-color:lightgreen">lives-in</span>}}<br/>
+{<span style="background-color:lightblue">B</span> ⇒ {<span style="background-color:lightgreen">lives-in</span>}}
 </li>
 <li>
-<span style="background-color:pink">Egypt</span> ⇒ {<span style="background-color:lightblue">Cleo</span> &nbsp&nbsp⇒ {<span style="background-color:lightgreen">lives-in</span>}}
+<span style="background-color:pink">Egypt</span> ⇒ {<span style="background-color:lightblue">Cleo</span> ⇒ {<span style="background-color:lightgreen">lives-in</span>}}
 </li>
 <li>
-<span style="background-color:pink">Tiber</span>&nbsp&nbsp⇒ {<span style="background-color:lightblue">Rome</span> ⇒ {<span style="background-color:lightgreen">river</span>}}
+<span style="background-color:pink">Tiber</span> ⇒ {<span style="background-color:lightblue">Rome</span> ⇒ {<span style="background-color:lightgreen">river</span>}}
 </li>
 <li>
-<span style="background-color:pink">Nile</span>&nbsp&nbsp&nbsp&nbsp⇒ {<span style="background-color:lightblue">Egypt</span> ⇒ {<span style="background-color:lightgreen">river</span>}}
+<span style="background-color:pink">Nile</span> ⇒ {<span style="background-color:lightblue">Egypt</span> ⇒ {<span style="background-color:lightgreen">river</span>}}
 </li></ul></td>
 <td><ul>
 <li>
-<span style="background-color:pink">Rome</span>&nbsp⇒ {<span style="background-color:lightgreen">lives-in</span> ⇒ {<span style="background-color:lightblue">JC, B</span>}}
+<span style="background-color:pink">Rome</span> ⇒ {<span style="background-color:lightgreen">lives-in</span> ⇒ {<span style="background-color:lightblue">JC, B</span>}}
 </li>
 <li>
-<span style="background-color:pink">Egypt</span>&nbsp⇒ {<span style="background-color:lightgreen">lives-in</span> ⇒ {<span style="background-color:lightblue">Cleo</span>}}</li>
+<span style="background-color:pink">Egypt</span> ⇒ {<span style="background-color:lightgreen">lives-in</span> ⇒ {<span style="background-color:lightblue">Cleo</span>}}</li>
 <li>
-<span style="background-color:pink">Tiber</span>&nbsp&nbsp⇒ {<span style="background-color:lightgreen">river</span>&nbsp&nbsp&nbsp&nbsp ⇒ {<span style="background-color:lightblue">Rome</span>}}
+<span style="background-color:pink">Tiber</span> ⇒ {<span style="background-color:lightgreen">river</span> ⇒ {<span style="background-color:lightblue">Rome</span>}}
 </li>
 <li>
-<span style="background-color:pink">Nile</span>&nbsp&nbsp&nbsp&nbsp⇒ {<span style="background-color:lightgreen">river</span>&nbsp&nbsp&nbsp&nbsp ⇒ {<span style="background-color:lightblue">Egypt</span>}}
+<span style="background-color:pink">Nile</span> ⇒ {<span style="background-color:lightgreen">river</span> ⇒ {<span style="background-color:lightblue">Egypt</span>}}
 </li></ul></td>
   </tr>
 </table>
