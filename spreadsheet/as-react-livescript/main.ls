@@ -1,9 +1,11 @@
+React = require \react
 {table, thead, tbody, tr, th, td, input, div, button} = React.DOM
 
 SheetDefault = { A1: 1874, B1: \+, C1: 2046, D1: \⇒, E1: \=A1+C1 }
 SheetInit = (try JSON.parse localStorage.getItem '') || SheetDefault
 
 Table = React.createFactory React.createClass do
+  displayName: \Table
   getDefaultProps: -> { Cols: [\A to \H], Rows: [1 to 20] }
   getInitialState: -> { sheet: SheetInit, vals: {}, errs: {} }
   render: ->
@@ -35,6 +37,7 @@ Table = React.createFactory React.createClass do
     @calc(sheet <<< { "#id": value })
 
 Row = React.createFactory React.createClass do
+  displayName: \Row
   render: ->
     {Cols, sheet, vals, errs, row, onChange} = @props
     tr {},
@@ -49,7 +52,7 @@ Row = React.createFactory React.createClass do
       const cell = document.querySelector "##{ col }#{ row + direction }"
       cell?focus!
 
-Cell = React.createFactory React.createClass render: ->
+Cell = React.createFactory React.createClass displayName: \Cell render: ->
   {id, txt, err, val, onChange, onKeyDown} = @props
   td { className: if txt?0 is \= then \formula else '' },
     input { id, type: \text, value: txt, onChange, onKeyDown }
