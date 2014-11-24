@@ -101,7 +101,9 @@ But we will then see that the SOP can be sometimes too restrictive, in that it s
 
 Feel free to explore the sections in any order you'd like, although if you are new to Alloy, we recommend the first three sections (HTTP, Browser, and Script), as they will introduce some of the basic concepts of the modeling language. While you are making your way through the chapter, we also encourage you to play with the models in the Alloy Analyzer; run them, explore the generated scenarios, and add your own details to the models! The tool is freely available for download (http://alloy.mit.edu).
 
-## HTTP Protocol
+## Model of the Web
+
+### HTTP Protocol
 
 The first step in building an Alloy model is to declare some sets of objects. Let's start with resources:
 
@@ -233,9 +235,9 @@ fact ServerAssumption {
 
 When we re-run the `check` command after adding the fact, the analyzer no longer reports any counterexamples for the property.
 
-These examples show how even simple, abstract instances can provide often surprising insights into the system being modeled. Alloy is well-suited for this type of agile modeling: start out by building a small model of the system, run an analysis, and incrementally grow the model based on feedback from the analysis results. 
+These examples show how even simple, abstract instances can provide often surprising insights into the system being modeled. Alloy is well-suited for this type of agile modeling: start out by building a small model of the system, run an analysis, and incrementally grow the model based on feedback from the analysis results.
 
-## Browser
+### Browser
 
 Let's introduce browsers:
 
@@ -300,7 +302,7 @@ Some constraints use the `++` operator which does a relational override (i.e, `e
 says that after the call, the `content` mapping will be updated to map `doc` to `response` (clobbering any previous mapping of `doc`).
 If we were to use `+`, then the same document could map to multiple resources at the same time; which is hardly what we want.
 
-## Script
+### Script
 
 Next, we will build on the HTTP and browser models to introduce *client-side scripts*, which represent a piece of code (typically in JavaScript) executing inside a browser document (`context`). 
 ```alloy
@@ -349,9 +351,12 @@ sig WriteDom extends BrowserOp { new_dom: Resource }{
 ```
 `ReadDom` returns the content the target document, but does not modify it; `WriteDom`, on the other hand, sets the new content of the target document to `new_dom`.
 
-In addition, a script can modify various properties of a document, such as its width, height, domain, and title. For the discussion of the SOP, we are only interested in the domain property, which
-we will discuss in a later section.
+In addition, a script can modify various properties of a document,
+such as its width, height, domain, and title. For the discussion of
+the SOP, we are only interested in the domain property, which we will
+introduce in a later section.
 
+<!--
 Let's ask the Alloy Analyzer to generate instances with scripts in action:
 ```alloy
 run { some BrowserOp and some XmlHttpRequest} for 3 
@@ -375,33 +380,41 @@ the server into responding with your private data!
 These two instances tell us that extra measures are needed to restrict
 the behavior of scripts, especially since some of those scripts could
 be malicious. This is exactly where the SOP comes in.
+-->
 
-## Modeling a Particular System Configuration
+## Example: Email Application
 
-Given a `run` or `check` command, the Alloy Analyzer attempts to
-generate a sample scenario that is consistent with the description of
-the system in the model. By default, the analyzer arbitrarily picks
-_any_ one of the possible system scenarios (up to the specified
-bound), and assign numeric identifiers to signature instances
-(`Server0`, `Browser1`, etc.,) in the generated scenario. As we
-mentioned earlier, the benefit of this type of analysis is that the we
-do not need to write any manual test cases -- the analyzer can be
-instructed to enumerate every possible scenario of the system
-_automatically_.
+As we've seen earlier, given a `run` or `check` command, the Alloy
+Analyzer generates a scenario (if any) that is consistent with the
+description of the system in the model. By default, the analyzer
+arbitrarily picks _any_ one of the possible system scenarios (up to
+the specified bound), and assign numeric identifiers to signature
+instances (`Server0`, `Browser1`, etc.,) in the scenario.
 
 Sometimes, we may wish to analyze the behavior of a _particular_ web
 application, instead of exploring scenarios with a random
 configuration of servers and clients. For example, imagine that we
-wish to build an e-mail application that runs inside a browser
+wish to build an email application that runs inside a browser
 (similar to Gmail). In addition to providing basic email features, our
 application will display a banner from a third-party advertisement
 service, which is controlled by a potentially malicious actor. 
 
-To model this application, 
+In Alloy, keyword `one sig` introduces a _singleton_ that represents
+one particular atom in the system. For example, the following line
+says that there are two distinct `Document` objects that represent the
+inbox of the email app and the third-party ad banner, respectively:
+
+```alloy
+one sig InboxPage, AdBanner extends Document {}
+```
+
+With this declaration, every scenario that Alloy generates will
+contain at least these two `Document` objects.
+
+Let's introduce the other parts of the system, and use a fact (`Configuration`) to specify the relationships between them: 
 
 ```alloy
 one sig EmailServer, EvilServer extends Server {}
-one sig InboxPage, AdBanner extends Document {}
 one sig EvilScript extends Script {}
 one sig EmailDomain, EvilDomain extends Domain {}
 fact Configuration {
@@ -411,6 +424,8 @@ fact Configuration {
   Dns.map = EmailDomain -> EmailServer + EvilDomain -> EvilServer
 }
 ```
+
+For example, the last constraint in the fact specifies how the DNS is configured to map domain names for the two servers in our system. Without this constraint, the Alloy Analyzer may generate scenarios where `EmailDomain` is mapped to `EvilServer`, which are not of interest to us (in practice, such a mapping may be possible due to an attack called _DNS sproofing_, but we will rule it out from our model since it lies outside the class of attacks that the SOP is designed to prevent). 
 
 ## Security Properties
 
@@ -423,7 +438,7 @@ security has different meanings to different people, and there is
 still a lot of on-going research in the security community to develop
 a universal notion of security. Nevertheless, for our purpose, we will
 turn to two well-studied concepts in information
-security -- confidentiality and integrity. Both of these concepts talk
+security -- _confidentiality_ and _integrity_. Both of these concepts talk
 about how information should be allowed to travel throughout
 various parts of the system. Roughly, _confidentiality_ means that a
 critical piece of data should only be accessible to agents that are
@@ -512,9 +527,8 @@ sig TrustedModule, MaliciousModule in DataflowModule {}
 sig CriticalData, MaliciousData in Data {}
 ```
 
-Then, the confidentiality property can simply be stated as the
-following restriction on flow of critical data into non-trusted parts
-of the system:
+Then, the confidentiality property can be stated as an _assertion_ on
+the flow of critical data into non-trusted parts of the system:
 
 ```alloy
 // No malicious module should be able to access critical data
@@ -534,12 +548,39 @@ assert Integrity {
 }
 ```
 
-When instructed, the Alloy Analyzer analyzes _all_ possible dataflow traces in the system and produces a counterexample (if any) that demonstrates how the above properties may be violated:
+When prompted with a `check` command, the Alloy Analyzer analyzes _all_ possible dataflow traces in the system and produces a counterexample (if any) that demonstrates how an assertion might be violated:
 
-```alloy
-check Confidentiality for 5
-check Integrity for 5
 ```
+check Confidentiality for 5
+```
+
+For example, when checking the model of our example application against the confidentiality property, the analyzer generates the following scenario, which shows how `EvilScript` may access a piece of critical data (`MyInboxInfo`):
+
+![attack-instance-1a](fig-attack-1a.png) 
+![attack-instance-1b](fig-attack-1b.png) 
+
+This counterexample involves two steps. In the first step, `EvilScript`, executing inside `AdBanner` from `EvilDomain`, reads the content of `InboxPage`, which originates from `EmailDomain`. In the next step, `EvilScript` sends the same content (`MyInboxInfo`) to `EvilServer` by making an `XmlHtttpRequest` call. The core of the problem here is that a script executing under one domain is able to read the content of a document from another domain; as we will see in the next section, this is exactly one of the issues that the SOP is designed to solve.
+
+There may exist multiple counterexamples to a single assertion. Consider the following scenario, which shows a different way in which the system may violate the confidentiality property:
+
+![attack-instance-2](fig-attack-2.png) 
+
+In this scenario, instead of reading the content of the inbox page,
+`EvilScript` directly makes a `GetInboxInfo` request to `EmailServer`.
+Note that the request includes a cookie (`MyCookie`), which is scoped
+to the same domain as the destination server. This is potentially
+dangerous, because if the cookie is used to represent the user's
+identity (e.g., a session cookie), `EvilScript` can effectively
+pretend to be the user and trick the server into responding with the
+user's private data (`MyInboxInfo`)! Here, the problem is again
+related to the liberal ways in which a script may be used to access
+information across different domains -- namely, that a script executing
+under one domain is able to make an HTTP request to a server with a
+different domain.
+
+These two counterexamples tell us that extra measures are needed to
+restrict the behavior of scripts, especially since some of those
+scripts could be malicious. This is exactly where the SOP comes in.
 
 ## Same Origin Policy
 
