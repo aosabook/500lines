@@ -86,7 +86,7 @@ Dagoba = {}                                             // the namespace
 
 We'll use an object as our namespace. An object in JavaScript is mostly just an unordered set of key/value pairs. We only have four basic data structures to choose from in JS, so we'll be using this one a lot.
 
-We're also going to want some graph things. We can build these using a classic OOP pattern, but JavaScript offers us prototypal inheritance, which means we can build up a prototype object -- we'll call it Dagoba.G -- and then instantiate copies of that using a factory function. An advantage of this approach is that we can return different types of objects from the factory, instead of binding the creation process to a single class constructor. So we get some extra flexibility for free.
+Now we need some some graphs. We can build these using a classic OOP pattern, but JavaScript offers us prototypal inheritance, which means we can build up a prototype object -- we'll call it Dagoba.G -- and then instantiate copies of that using a factory function. An advantage of this approach is that we can return different types of objects from the factory, instead of binding the creation process to a single class constructor. So we get some extra flexibility for free.
 
 ```javascript
 Dagoba.G = {}                                           // the prototype
@@ -100,8 +100,8 @@ Dagoba.graph = function(V, E) {                         // the factory
   
   graph.autoid = 1                                      // an auto-incrementing id counter
   
-  if(V && Array.isArray(V)) graph.addVertices(V)        // arrays only, because you wouldn't
-  if(E && Array.isArray(E)) graph.addEdges(E)           //   call this with singular V and E
+  if(Array.isArray(V)) graph.addVertices(V)             // arrays only, because you wouldn't
+  if(Array.isArray(E)) graph.addEdges(E)                //   call this with singular V and E
   
   return graph
 }
@@ -226,9 +226,103 @@ JavaScript, being a strict language, will process each of our steps as they are 
 
 And in a lazy language we would get the same result -- the execution strategy doesn't make much difference here. But what if we added a few additional calls? Given how well-connected Thor is, our ```g.v('Thor').out().out().out().in().in().in()``` query may produce many results -- in fact, because we're not limiting our vertex list to unique results, it may produce many more results than we have vertices in our total graph. That could set us back a bit.
 
-We're probably only interested in getting a few unique results out, so we'll change the query a little: ```g.v('Thor').out().out().out().in().in().in().unique().take(10)```. Now we'll only get at most 10 results out. What happens if we evaluate this strictly, though? We're still going to have to build up our massive list of septillions of results before finally returning only the first 10. 
+We're probably only interested in getting a few unique results out, so we'll change the query a little: ```g.v('Thor').out().out().out().in().in().in().unique().take(10)```. Now we'll only get at most 10 results out. What happens if we evaluate this strictly, though? We're still going to have to build up septillions of results before returning only the first 10.
 
-And so we see the need for laziness: all graph databases have to support a mechanism for doing as little work as possible, and most choose some form of lazy evaluation to do so. Since we're building our own interpreter, evaluating our program lazily is certainly within our purview. But the road there is paved with good intentions and surprising consequences.
+And so we see the need for laziness: all graph databases have to support a mechanism for doing as little work as possible, and most choose some form of lazy evaluation to do so. Since we're building our own interpreter, evaluating our program lazily is certainly within our purview. But the road to lazyville is paved with good intentions and surprising consequences.
+
+### The heart of the matter
+
+Putting var declarations at the top is like eating desert before your entree. All the surprise is gone. Everything is revealed. And yet nothing has any meaning -- we don't know why we need them yet, they're just empty words.
+
+[This would be a great section to build up to slowly, with fits and starts. But it's not going to be easy.]
+
+```javascript
+Dagoba.Q.run = function() {                             // our virtual machine for query processing
+
+  var max = this.program.length - 1                     // last step in the program
+  var maybe_gremlin = false                             // a gremlin, a signal string, or false
+  var results = []                                      // results for this particular run
+  var done = -1                                         // behindwhich things have finished
+  var pc = max                                          // our program counter -- we start from the end
+  
+  var step, state, pipetype
+  
+```
+
+So now we have a bunch of machinery in place in case we need it later. Let's find out whether we do.
+
+```javascript
+  // driver loop
+  while(done < max) {
+    
+    step = this.program[pc]                             // step is an array: first the pipe type, then its args
+    state = (this.state[pc] = this.state[pc] || {})     // the state for this step: ensure it's always an object
+    pipetype = Dagoba.getPipetype(step[0])              // a pipetype is just a function
+    
+    maybe_gremlin = pipetype(this.graph, step[1], maybe_gremlin, state)
+    
+    if(maybe_gremlin == 'pull') {                       // 'pull' tells us the pipe wants further input
+      maybe_gremlin = false
+      if(pc-1 > done) {
+        pc--                                            // try the previous pipe
+        continue
+      } else {
+        done = pc                                       // previous pipe is finished, so we are too
+      }
+    }
+    
+    if(maybe_gremlin == 'done') {                       // 'done' tells us the pipe is finished
+      maybe_gremlin = false
+      done = pc
+    }
+    
+    pc++                                                // move on to the next pipe
+    
+    if(pc > max) {
+      if(maybe_gremlin)
+        results.push(maybe_gremlin)                     // a gremlin popped out the end of the pipeline
+      maybe_gremlin = false
+      pc--                                              // take a step back
+    }
+  }
+
+  results = results.map(function(gremlin) {             // return either results (like property('name')) or vertices
+    return gremlin.result != null 
+         ? gremlin.result : gremlin.vertex } )
+
+  return results
+}
+```
+
+Ah, much better! Now we see where it all fits in. That makes perfect sense!
+
+Let's move on to something very intriguing: the pipetypes. 
+
+```javascript
+Dagoba.PipeTypes = {}                                   // every pipe has a type
+
+Dagoba.addPipeType = function(name, fun) {              // adds a new method to our query object
+  Dagoba.PipeTypes[name] = fun
+  Dagoba.Q[name] = function() {
+    return this.add(name, [].slice.apply(arguments)) }  // capture the pipetype and args
+}
+
+Dagoba.getPipetype = function(name) {
+  var pipetype = Dagoba.PipeTypes[name]                 // a pipe type is just a function 
+
+  if(!pipetype)                                         // most likely this actually results in a TypeError
+    Dagoba.onError('Unrecognized pipe type: ' + name)   // but if you do make it here you get a nice message
+
+  return pipetype || Dagoba.fauxPipetype
+}
+
+Dagoba.fauxPipetype = function(_, _, maybe_gremlin) {   // if you can't find a pipe type 
+  return maybe_gremlin || 'pull'                        // just keep things flowing along
+}
+```
+
+See those underscores? We use those to label params that won't be used in our function. Most other pipetypes will use all three params. We really only did this here to make the comments line up nicely.
+
 
 ----
 
