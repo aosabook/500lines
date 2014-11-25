@@ -12,13 +12,13 @@ And that's it.
 
 Because this is the total of the basic protocol, many minimal servers take the thread-per-request approach. That is, for each incoming request, spin up a thread to do the work of parse/figure-out-what-to-do-about-it/send-response, and spin it down when it's done. The idea is that since each of these connections is very short lived, that won't start too many threads at once, and it'll let you simplify a lot of the implementation. Specifically, it lets you program as though there were only one connection present at any given time, and it lets you do things like kill orphaned connections just by killing the corresponding thread and letting the garbage collector do its job.
 
-There's a couple of things missing in this description though. First, as described, there's no mechanism for a server to send updates to a client without that client specifically requesting them. Second, there's no identity mechanism, which you need in order to confidently assert that a number of requests come from the same client (or, from the client perspective, to make sure you're making a request from the server you think you're talking to). We won't be solving the second problem in the space of this write-up; a full session implementation would nudge us up to ~560 lines of code, and we've got a hard limit of 500. If you'd like to take a look, feel free peek at the full implementation of `:house` [at its github](https://github.com/Inaimathi/house).
+There's a couple of things missing in this description though. First, as described, there's no mechanism for a server to send updates to a client without that client specifically requesting them. Second, there's no identity mechanism, which you need in order to confidently assert that a number of requests come from the same client (or, from the client perspective, to make sure you're making a request from the server you think you're talking to). We won't be solving the second problem in the space of this write-up; a full session implementation would nudge us up to ~560 lines of code, and we've got a hard limit of 500. If you'd like to take a look, peek at the full implementation of `:house` [at its github](https://github.com/Inaimathi/house).
 
 The first problem is interesting by itself, though. It's particularly interesting if you've ever wanted to put together multi-user web-applications for whatever reason, and as I noted in the opener, that's exactly what I'm doing. In my case, we've got two or more people all interacting with the same virtual tabletop. And we want each player to know about any other players moves as soon as they happen, rather than only getting notifications when their own move is made. This means we can't naively rely on the request/response structure I outlined earlier; we need the server to push messages down to clients. Here are our options for doing that in `HTTP`-land:
 
 ##### Comet/Longpoll
 
-Build the client such that it automatically sends the server a new request as soon as it receives a response. Instead of fulfilling that request right away, the server then sits on it until there's new information to send, like say, a new message from Beatrice. The end result is that Adrian gets new updates as soon as they happen, rather than just when he takes action. It's a bit of a semantic distinction though, since the client *is* taking action on his behalf on every update.
+Build the client such that it automatically sends the server a new request as soon as it receives a response. Instead of fulfilling that request right away, the server then sits on it until there's new information to send, like say, a new message from some other user. The end result is that each user gets new updates as soon as they happen, rather than just when he takes action. It's a bit of a semantic distinction though, since the client *is* taking action on the users' behalf on every update.
 
 ##### SSE
 
@@ -56,7 +56,7 @@ At its' very core, every event-driven server has to look something like
 		     do (loop while (socket-close c)))
 	     (loop while (socket-close server)))))
 
-That's the core event loop that drives the rest. Its relevant characteristics are
+That's the event loop that drives the rest. Its relevant characteristics are
 
 - A server socket that listens for incoming connections,
 - some structure in which to store connections/buffers
@@ -173,7 +173,7 @@ Bringing this back around to our `request`s, the class we defined earlier has th
 
 ## End of Detour in 4. 3. 2. 
 
-The next interesting part of `process-ready` comes after the edge-case handling of old/big/needy requests. It's wrapped in another layer of error handling because we might still crap out in different ways here. In particular, if the request is old/big/needy or if an `http-assertion-error` is raised, we want to send a `400` response; the client provided us with some bad or slow data. However, if any _other_ error happens here, it's because someone made a mistake defining a handler, which should be treated as a `500` error; something went wrong on the server side as a result of a potentially legitimate request.
+The next interesting part of `process-ready` comes after the edge-case handling of old/big/needy requests. It's wrapped in another layer of error handling because we might still crap out in different ways here. In particular, if the request is old/big/needy or if an `http-assertion-error` is raised, we want to send a `400` response; the client provided us with some bad or slow data. However, if any _other_ error happens here, it's because someone made a mistake defining a handler, which should be treated as a `500` error. Something went wrong on the server side as a result of a potentially legitimate request.
 
 Lets follow that trail for a while:
 
@@ -221,14 +221,14 @@ The top two methods handle parsing buffers or strings, while the bottom two hand
 6. populate that `request` instance with each split header line
 7. set that `request`s parameters to the result of parsing our `GET` and `POST` parameters
 
-The `request` object from Step five looks exactly like you'd expect after our CLOS detour.
+The `request` object from step five looks exactly how you'd expect after our CLOS detour.
 
 	(defclass request ()
 	  ((resource :accessor resource :initarg :resource)
 	   (headers :accessor headers :initarg :headers :initform nil)
 	   (parameters :accessor parameters :initarg :parameters :initform nil)))
 
-The only place this particular `class` gets specialized on is in `handle-request`, which you saw earlier. Now, before we take a look at how we get handlers into our `*handlers*` table, lets skip ahead a bit and see something that every handler is going to have to do; writing a response.
+The only place this particular `class` gets specialized on is in `handle-request`, which you saw earlier. Now, before we take a look at how we get handlers into our `*handlers*` table, lets skip ahead a bit and see something that every handler is going to have to do; write a response.
 
 	(defmethod write! ((res response) (sock usocket))
 	  (let ((stream (flex-stream sock)))
@@ -276,7 +276,7 @@ which will need to hold all the information we need to send an incremental updat
 	(defclass sse ()
 	  ((id :reader id :initarg :id :initform nil)
 	   (event :reader event :initarg :event :initform nil)
-eokrrkk4tktkktkttkttto3 954re	   (retry :reader retry :initarg :retry :initform nil)
+       (retry :reader retry :initarg :retry :initform nil)
 	   (data :reader data :initarg :data)))
 
 Writing an `SSE` out is conceptually similar to, but mechanically different from writing out a `response`. It's much simpler, because an `SSE` only has four slots, one of which is mandatory. Also, the SSE message standard doesn't specify `CRLF` line-endings, so we can get away with a single `format` call instead of the fairly involved process of `write!`ing a full HTTP request. The `~@[...~]` blocks are conditional directives. Which is to say, if `(id res)` is non-nil, we'll output `id: <the id here> `, and ditto for `event` and `retry`. `data`, the payload of our incremental update, is the only slot that's always present.
@@ -288,7 +288,7 @@ While we're on the subject of sending `SSE` updates, we also need a way to keep 
 	(defmethod subscribe! ((channel symbol) (sock usocket))
 	  (push sock (gethash channel *channels*))
 	  nil)
-eduu9yr  yr4a74
+
 We can then `publish!` notifications to said channels as soon as they become available.
 
 	(defmethod publish! ((channel symbol) (message string))
