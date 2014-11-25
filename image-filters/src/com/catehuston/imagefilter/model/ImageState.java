@@ -12,9 +12,9 @@ public class ImageState {
 		HIDE_DOMINANT_HUE
 	}
 
-	ColorHelper colorHelper;
-	IFAImage image;
-	String filepath;
+	private final ColorHelper colorHelper;
+	private IFAImage image;
+	private String filepath;
 
 	public static final int INITIAL_HUE_TOLERANCE = 5;
 
@@ -121,6 +121,9 @@ public class ImageState {
 			} else {
 				colorModeState = ColorMode.SHOW_DOMINANT_HUE;
 			}
+			break;
+		case 'w':
+			image().save(filepath() + "-new.png");
 			break;
 		}
 	}

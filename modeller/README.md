@@ -1,4 +1,3 @@
-
 Modeller
 =========
 
@@ -13,10 +12,6 @@ Prerequisites
 * A virtualenv with:
     * pip install -I pyopengl
     * pip install -I numpy
-    * pip install -I PIL
-    * pip install -I PyDispatcher
-    * pip install -I https://pypi.python.org/packages/source/O/OpenGLContext/OpenGLContext-2.2.0a3.tar.gz#md5=b5bdedbdae5215e7acff3b087c8220d3
-    * pip install -I https://pypi.python.org/packages/source/P/PyVRML97/PyVRML97-2.3.0a3.tar.gz#md5=56cd4dd382cfb5a4ca5fdb88ae8f1733
     
 
 Running

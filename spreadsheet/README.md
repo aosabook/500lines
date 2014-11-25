@@ -2,8 +2,8 @@
 
     Author: Audrey Tang
     Languages: JS (ES6), HTML5, CSS3
-    Dependencies: AngularJS, Web Workers, Traceur Compiler
-    Alternatives: ReactJS, LiveScript, JS (ES5)
+    Dependencies: AngularJS (1.3), Web Workers, Traceur Compiler
+    Alternatives: ReactJS (0.11), LiveScript (1.3), JS (ES5)
 
 ## Chapter Text
 
@@ -27,13 +27,13 @@ If you'd like to use Chrome, type `make run` or `node extra/static-here.js` and 
 
 To build from source, first install [NodeJS](http://www.nodejs.org/) 0.10 or later, and run `make` (only tested on Linux/OSX at the moment).
 
-JS source code (`main.js` and `worker.js`) are written in ECMAScript 6 (aka _ES.next_, aka _Harmony_), specifically the subset marked with [TC39 Consensus](https://developer.mozilla.org/en-US/docs/Web/JavaScript/ECMAScript_6_support_in_Mozilla) as of February 2014.
+JS source code (`main.js` and `worker.js`) are written in ECMAScript 6 (aka _Harmony_), specifically the [feature-frozen draft](https://developer.mozilla.org/en-US/docs/Web/JavaScript/ECMAScript_6_support_in_Mozilla) as of August 2014.
 
 For backward compatibility with ECMAScript 5 browsers, we use [Traceur](https://github.com/google/traceur-compiler) to compile source files into the `es5/` directory.
 
 If you prefer to work directly with the 2010 edition of JS, the [as-javascript-1.8.5](https://audreyt.github.io/500lines/spreadsheet/as-javascript-1.8.5/) directory has **main.js** and **worker.js** written in the style of ES5; the [source code](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-javascript-1.8.5) is line-by-line comparable to the ES6 version with the same line count.
 
-For people preferring a cleaner syntax, the [as-livescript-1.2.0](https://audreyt.github.io/500lines/spreadsheet/as-livescript-1.2.0/) directory uses [LiveScript](http://livescript.net/) instead of ES6 to write **main.ls** and **worker.ls**; the [source code](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-livescript-1.2.0) is 20 lines shorter than the JS version.
+For people preferring a cleaner syntax, the [as-livescript-1.3.0](https://audreyt.github.io/500lines/spreadsheet/as-livescript-1.3.0/) directory uses [LiveScript](http://livescript.net/) instead of ES6 to write **main.ls** and **worker.ls**; the [source code](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-livescript-1.3.0) is 20 lines shorter than the JS version.
 
 Building on the LiveScript language, the [as-react-livescript](https://audreyt.github.io/500lines/spreadsheet/as-react-livescript/) directory uses the [ReactJS](https://facebook.github.io/react/) framework; the [source code](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-react-livescript) is 10 lines more than the AngularJS equivalent, but runs considerably faster.
 

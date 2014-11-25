@@ -1,0 +1,31 @@
+<table class="summary">
+  <th>Name</th>
+  <th>Method</th>
+  <th>Format</th>
+  <th>Actual</th>
+  <th>Calculated</th>
+  <th>Delta</th>
+  <th>User</th>
+  <% unless detail_hidden %>
+    <th>Distance</th>
+    <th>Time</th>
+  <% end %>
+  <% uploads.each do |upload| %>
+    <% analyzer = upload.analyzer %>
+    <tr>
+      <td><%= analyzer.trial.name %></td>
+      <td><%= analyzer.trial.method %></td>
+      <td><%= analyzer.processor.format %></td>
+      <td><%= analyzer.trial.steps %></td>
+      <td><%= analyzer.steps %></td>
+      <td><%= analyzer.trial.steps ? (analyzer.steps - analyzer.trial.steps) : '' %></td>
+      <td><%= analyzer.user.gender %></td>
+      <% if detail_hidden %>
+        <td><a href=<%= "upload/" + upload.file_path %>>Detail</a></td>
+      <% else %>
+        <td><%= format_distance(analyzer.distance) %></td>
+        <td><%= format_time(analyzer.time) %></td>
+      <% end %>
+    </tr>
+  <% end %>
+</table>

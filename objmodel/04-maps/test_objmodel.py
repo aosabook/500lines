@@ -13,8 +13,8 @@ def test_isinstance():
     assert not isinstance(b, type)
 
     # Object model code
-    A = Class("A", OBJECT, {}, TYPE)
-    B = Class("B", A, {}, TYPE)
+    A = Class(name="A", base_class=OBJECT, fields={}, metaclass=TYPE)
+    B = Class(name="B", base_class=A, fields={}, metaclass=TYPE)
     b = Instance(B)
     assert b.isinstance(B)
     assert b.isinstance(A)
@@ -39,7 +39,7 @@ def test_read_write_field():
     assert obj.b == 5
 
     # Object model code
-    A = Class("A", OBJECT, {}, TYPE)
+    A = Class(name="A", base_class=OBJECT, fields={}, metaclass=TYPE)
     obj = Instance(A)
     obj.write_attr("a", 1)
     assert obj.read_attr("a") == 1
@@ -64,14 +64,13 @@ def test_read_write_field_class():
     assert A.a == 6
 
     # Object model code
-    A = Class("A", OBJECT, {}, TYPE)
-    A.write_attr("a", 1)
+    A = Class(name="A", base_class=OBJECT, fields={"a": 1}, metaclass=TYPE)
     assert A.read_attr("a") == 1
     A.write_attr("a", 5)
     assert A.read_attr("a") == 5
 
 
-def test_send_simple():
+def test_callmethod_simple():
     # Python code
     class A(object):
         def f(self):
@@ -87,20 +86,20 @@ def test_send_simple():
     assert obj.f() == 2 # works on subclass too
 
     # Object model code
-    def f(self):
+    def f_A(self):
         return self.read_attr("x") + 1
-    A = Class("A", OBJECT, {"f": f}, TYPE)
+    A = Class(name="A", base_class=OBJECT, fields={"f": f_A}, metaclass=TYPE)
     obj = Instance(A)
     obj.write_attr("x", 1)
-    assert obj.send("f") == 2
+    assert obj.callmethod("f") == 2
 
-    B = Class("B", A, {}, TYPE)
+    B = Class(name="B", base_class=A, fields={}, metaclass=TYPE)
     obj = Instance(B)
     obj.write_attr("x", 2)
-    assert obj.send("f") == 3
+    assert obj.callmethod("f") == 3
 
 
-def test_send_subclassing_and_arguments():
+def test_callmethod_subclassing_and_arguments():
     # Python code
     class A(object):
         def g(self, arg):
@@ -119,17 +118,17 @@ def test_send_subclassing_and_arguments():
     # Object model code
     def g_A(self, arg):
         return self.read_attr("x") + arg
-    A = Class("A", OBJECT, {"g": g_A}, TYPE)
+    A = Class(name="A", base_class=OBJECT, fields={"g": g_A}, metaclass=TYPE)
     obj = Instance(A)
     obj.write_attr("x", 1)
-    assert obj.send("g", 4) == 5
+    assert obj.callmethod("g", 4) == 5
 
     def g_B(self, arg):
         return self.read_attr("x") + arg * 2
-    B = Class("B", A, {"g": g_B}, TYPE)
+    B = Class(name="B", base_class=A, fields={"g": g_B}, metaclass=TYPE)
     obj = Instance(B)
     obj.write_attr("x", 4)
-    assert obj.send("g", 4) == 12
+    assert obj.callmethod("g", 4) == 12
 
 
 def test_bound_method():
@@ -150,20 +149,22 @@ def test_bound_method():
     assert m(10) == 12 # works on subclass too
 
     # Object model code
-    def f(self, a):
+    def f_A(self, a):
         return self.read_attr("x") + a + 1
-    A = Class("A", OBJECT, {"f": f}, TYPE)
+    A = Class(name="A", base_class=OBJECT, fields={"f": f_A}, metaclass=TYPE)
     obj = Instance(A)
     obj.write_attr("x", 2)
     m = obj.read_attr("f")
     assert m(4) == 7
 
-    B = Class("B", A, {}, TYPE)
+    B = Class(name="B", base_class=A, fields={}, metaclass=TYPE)
     obj = Instance(B)
     obj.write_attr("x", 1)
     m = obj.read_attr("f")
     assert m(10) == 12
 
+# ____________________________________________________________
+# new tests
 
 def test_getattr():
     # Python code
@@ -181,11 +182,11 @@ def test_getattr():
                 object.__setattr__(self, name, value)
     obj = A()
     obj.celsius = 30
-    assert obj.fahrenheit == 86
+    assert obj.fahrenheit == 86 # test __getattr__
     obj.celsius = 40
     assert obj.fahrenheit == 104
 
-    obj.fahrenheit = 86
+    obj.fahrenheit = 86 # test __setattr__
     assert obj.celsius == 30
     assert obj.fahrenheit == 86
 
@@ -201,13 +202,15 @@ def test_getattr():
             # call the base implementation
             OBJECT.read_attr("__setattr__")(self, name, value)
 
-    A = Class("A", OBJECT, {"__getattr__": __getattr__, "__setattr__": __setattr__}, TYPE)
+    A = Class(name="A", base_class=OBJECT,
+              fields={"__getattr__": __getattr__, "__setattr__": __setattr__},
+              metaclass=TYPE)
     obj = Instance(A)
     obj.write_attr("celsius", 30)
-    assert obj.read_attr("fahrenheit") == 86
+    assert obj.read_attr("fahrenheit") == 86 # test __getattr__
     obj.write_attr("celsius", 40)
     assert obj.read_attr("fahrenheit") == 104
-    obj.write_attr("fahrenheit", 86)
+    obj.write_attr("fahrenheit", 86) # test __setattr__
     assert obj.read_attr("celsius") == 30
     assert obj.read_attr("fahrenheit") == 86
 
@@ -229,12 +232,9 @@ def test_get():
         def __get__(self, inst, cls):
             return inst.read_attr("celsius") * 9. / 5. + 32
 
-    def __getattr__(self, name):
-        if name == "fahrenheit":
-            return self.read_attr("celsius") * 9. / 5. + 32
-        raise AttributeError(name)
-
-    A = Class("A", OBJECT, {"fahrenheit": FahrenheitGetter()}, TYPE)
+    A = Class(name="A", base_class=OBJECT,
+              fields={"fahrenheit": FahrenheitGetter()},
+              metaclass=TYPE)
     obj = Instance(A)
     obj.write_attr("celsius", 30)
     assert obj.read_attr("fahrenheit") == 86
@@ -245,19 +245,26 @@ def test_get():
 
 def test_maps():
     # white box test inspecting the implementation
-    Point = Class("Point", OBJECT, {}, TYPE)
+    Point = Class(name="Point", base_class=OBJECT, fields={}, metaclass=TYPE)
     p1 = Instance(Point)
     p1.write_attr("x", 1)
     p1.write_attr("y", 2)
+    assert p1.storage == [1, 2]
+    assert p1.map.attrs == {"x": 0, "y": 1}
 
     p2 = Instance(Point)
     p2.write_attr("x", 5)
     p2.write_attr("y", 6)
     assert p1.map is p2.map
-    assert p1.storage == [1, 2]
     assert p2.storage == [5, 6]
 
     p1.write_attr("x", -1)
     p1.write_attr("y", -2)
     assert p1.map is p2.map
     assert p1.storage == [-1, -2]
+
+    p3 = Instance(Point)
+    p3.write_attr("x", 100)
+    p3.write_attr("z", -343)
+    assert p3.map is not p1.map
+    assert p3.map.attrs == {"x": 0, "z": 1}

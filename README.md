@@ -1,6 +1,10 @@
 *500 Lines or Less*
 ===================
 
+> "What I cannot create, I do not understand."
+>
+> -- Richard Feynman
+
 This is the source for the book *500 Lines or Less*, the fourth in the
 [Architecture of Open Source Applications](http://aosabook.org) series.  As
 with other books in the series, all written material will be covered by the
@@ -227,7 +231,7 @@ Contributors
   </tr>
   <tr>
     <td>Cate Huston</td>
-    <td>Google</td>
+    <td></td>
     <td>Image Filter app</td>
     <td>
         <ul>
@@ -249,6 +253,17 @@ Contributors
     </td>
     <td><a href="https://github.com/yoavrubin">yoavrubin</a></td>
     <td></td>
-    
+  </tr>
+  <tr>
+    <td>Dessy Daskalov</td>
+    <td>Nudge Rewards</td>
+    <td>Pedometer</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/dess_e">@dess_e</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/dessy">dessy</a></td>
+    <td>dessy.daskalov@gmail.com</td>
   </tr>
 </table>

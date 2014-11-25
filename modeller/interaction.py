@@ -29,9 +29,7 @@ class Interaction(object):
         glutMouseFunc(self.handle_mouse_button)
         glutMotionFunc(self.handle_mouse_move)
         glutKeyboardFunc(self.handle_keystroke)
-
         glutSpecialFunc(self.handle_keystroke)
-        glutPassiveMotionFunc(None)
 
     def register_callback(self, name, func):
         """ registers a callback for a certain event """
@@ -61,9 +59,9 @@ class Interaction(object):
             elif button == GLUT_LEFT_BUTTON:  # pick
                 self.trigger('pick', x, y)
             elif button == 3:  # scroll up
-                self.translate(0, 0, -1.0)
-            elif button == 4:  # scroll up
                 self.translate(0, 0, 1.0)
+            elif button == 4:  # scroll down
+                self.translate(0, 0, -1.0)
         else:  # mouse button release
             self.pressed = None
         glutPostRedisplay()
@@ -73,11 +71,11 @@ class Interaction(object):
         xSize, ySize = glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT)
         y = ySize - screen_y  # invert the y coordinate because OpenGL is inverted
         if self.pressed is not None:
-            dx = self.mouse_loc[0] - x
-            dy = self.mouse_loc[1] - y
+            dx = x - self.mouse_loc[0]
+            dy = y - self.mouse_loc[1]
             if self.pressed == GLUT_RIGHT_BUTTON and self.trackball is not None:
                 # ignore the updated camera loc because we want to always rotate around the origin
-                self.trackball.drag_to(self.mouse_loc[0], self.mouse_loc[1], -dx, -dy)
+                self.trackball.drag_to(self.mouse_loc[0], self.mouse_loc[1], dx, dy)
             elif self.pressed == GLUT_LEFT_BUTTON:
                 self.trigger('move', x, y)
             elif self.pressed == GLUT_MIDDLE_BUTTON:
@@ -95,6 +93,8 @@ class Interaction(object):
             self.trigger('place', 'sphere', x, y)
         elif key == 'c':
             self.trigger('place', 'cube', x, y)
+        elif key == 'f':
+            self.trigger('place', 'figure', x, y)
         elif key == GLUT_KEY_UP:
             self.trigger('scale', up=True)
         elif key == GLUT_KEY_DOWN:
