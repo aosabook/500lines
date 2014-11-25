@@ -3,6 +3,222 @@
  Contingent: A Fully Dynamic Build System
 ==========================================
 
+Systems to rebuild formatted documents from source texts
+always seem to do too much work, or too little.
+They do too much work
+when they respond to a minor edit
+by making you wait for unrelated chapters
+to be re-parsed and re-formatted.
+But they can also rebuild too little,
+leaving you with an inconsistent final product.
+
+Consider Sphinx 1.2.3, the current version
+of the document builder
+used for both the Python language official documentation
+as well as for a number of other projects in the Python community.
+Your project’s ``index.rst`` will usually include a table of contents::
+
+   Table of Contents
+   =================
+
+   .. toctree::
+
+      install.rst
+      tutorial.rst
+      api.rst
+
+This list of chapter filenames
+tells Sphinx to include a link to each chapter
+when it builds the ``index.html`` output file.
+It will also include links to any sections within each chapter.
+Stripped of its markup, the result might look like::
+
+  Table of Contents
+
+  • Installation
+
+  • Newcomers Tutorial
+      • Hello, World
+      • Adding Logging
+
+  • API Reference
+      • Handy Functions
+      • Obscure Classes
+
+This table of contents is a mash-up
+of information from four different files.
+While its basic order and structure come from ``index.rst``,
+the actual title of each chapter and section
+is pulled from its own source file.
+
+If you later reconsider the tutorial’s chapter title —
+after all, the word “newcomer” sounds so antique,
+as if your users are settlers who have just arrived in pioneer Wyoming —
+then you would edit the first line of ``tutorial.rst``
+to produce something better::
+
+  -Newcomers Tutorial
+  +Beginners Tutorial
+   ==================
+
+   Welcome to the tutorial!
+   This text will take you through the basics of...
+
+When you are ready to rebuild,
+Sphinx will do exactly the right thing!
+It will rebuild both the tutorial chapter itself,
+and also rebuild the index. ::
+
+   writing output... [ 50%] index
+   writing output... [100%] tutorial
+
+Not only will ``tutorial.html`` have the new title at its top,
+but the output ``index.html`` will display the updated title
+in the table of contents entry for the tutorial chapter.
+In this case, Sphinx does exactly the right thing.
+
+What if your edit to ``tutorial.rst`` is more minor? ::
+
+   Beginners Tutorial
+   ==================
+
+  -Welcome to the tutorial!
+  +Welcome to our tutorial!
+   This text will take you through the basics of...
+
+In this case there is no need to rebuild ``index.html``
+because this minor edit to the interior of a paragraph
+does not change any of the information in the table of contents.
+But it turns out that Sphinx is not quite as clever
+as it might have at first appeared.
+Just in case the chapter title or a section title has changed,
+it goes ahead and does the redundant work of rebuilding
+``index.html`` even though it will come out exactly the same. ::
+
+   writing output... [ 50%] index
+   writing output... [100%] tutorial
+
+You can run ``diff``
+on the “before” and “after” versions of ``index.html``
+to confirm that your small edit to ``tutorial.rst`` had zero effect
+on its contents —
+yet Sphinx made you wait while it was rebuilt anyway.
+
+You might not even notice the extra rebuild effort
+for small documents that are easy to compile.
+But the delay to your workflow can become significant
+when you are making frequent tweaks and edits
+to documents that are long, complex, or that involve the generation
+of multimedia like plots or animations.
+While Sphinx is at least making an effort here
+to not rebuild every chapter in your project —
+it has not rebuilt ``install.html`` or ``api.html``
+in response to your ``tutorial.rst`` edit —
+it is doing more than necessary.
+
+But it turns out that Sphinx does something even worse:
+it sometimes does too little.
+
+One of the simplest failures modes that you can induce in Sphinx
+is to add a cross reference to the top of your API documentation::
+
+   API Reference
+   =============
+
+  +Before reading this, try reading our :doc:`tutorial`!
+
+   The lists below include every function
+   and every single class and method offered...
+
+With its usual caution as regards the table of contents,
+Sphinx will rebuild both this API reference document
+as well as the ``index.html`` home page of your project::
+
+   writing output... [ 50%] api
+   writing output... [100%] index
+
+In the ``api.html`` output file you can confirm
+that Sphinx has include the attractive human-readable title
+of the tutorial chapter into the cross reference’s anchor tag::
+
+   <p>Before reading this, try reading our
+   <a class="reference internal" href="tutorial.html">
+     <em>Beginners Tutorial</em>
+   </a>!</p>
+
+What if you now make another edit
+to the title at the top of the ``tutorial.rst`` file?
+You will have invalidated three output files.
+The change needs to be reflected
+at the top of ``tutorial.html`` itself,
+in the table of contents in ``index.rst``,
+and in this embedded cross reference
+in the first paragraph of ``api.html``.
+What does Sphinx do? ::
+
+   writing output... [ 50%] index
+   writing output... [100%] tutorial
+
+Sphinx has failed to correctly rebuild your documentation.
+If you now push your HTML to the web,
+users will see one title in the cross reference in ``api.html``
+but then a different title
+once the link has carried them to ``tutorial.html`` itself.
+This seems to happen with every kind of cross reference
+that Sphinx supports:
+chapter titles, section titles, paragraphs,
+classes, method, and functions.
+
+Experienced Sphinx users have a time-honored solution
+to the cross-reference problem —
+a solution that has been honed and practiced for decades.
+In various forms it goes all the way back
+to the original habits of users of the Document Workbench
+suite of tools for which Unix was originally marketed. ::
+
+   $ rm -r _build
+   $ make html
+
+This certainly solves the problem
+of guaranteeing consistency before publishing your documentation.
+
+But could we construct a better approach?
+
+What if your build system were a persistent process
+that remembered every title, every section, and every cross reference
+that passed from the source code of one document
+to the text of another?
+Then its decisions about whether to rebuild other documents
+after a change to ``tutorial.html``
+could be precise instead of mere guesses,
+and correct instead of leaving the output in an inconsistent state.
+
+The result would be a system like the old static ``make`` tool,
+but which learned the dependencies between files as they were built —
+that adds and remove dependencies dynamically
+cross references were added, updated, and then later deleted.
+
+In the sections that follows we will construct such a tool in Python,
+named ``contingent``, that guarantees both correctness
+and minimum rebuild effort in the presence of dynamic dependencies.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Traditional build systems are hopelessly naïve.
 
 Whether you use the venerable ``make``, or the document build process
@@ -52,7 +268,7 @@ an input changes, always does the least work necessary to get all of the
 outputs back up to date again.
 
 Creating and Using a Build Graph
---------------------------------
+================================
 
 Imagine that we want to automate the rebuilding of a static web site
 when any of its source files change.  Contingent offers to let us get
@@ -246,7 +462,7 @@ simply perform a complete rebuild upon every modification?
 >>> open('diagram3.dot', 'w').write(g.as_graphviz()) and None
 
 Chasing consequences
---------------------
+====================
 
 The key insight that helps us answer the foregoing question is to note
 the difference between our intuitive understanding of the build
@@ -465,7 +681,7 @@ registering routines?]
 
 
 A Functional Blog Builder
--------------------------
+=========================
 
 ``example/`` demonstrates a functional blog builder constructed in a
 Clean Architecture style: the build process is defined by functions that
@@ -582,7 +798,7 @@ ValueError: arguments to project tasks must be immutable and hashable, not the u
 .. this section is a bit rougher than the above tour:
 
 Building Architecture
----------------------
+=====================
 
 Now that we have seen how the build system functions, we are ready to
 step back and consider the structure of the whole system, its parts and
@@ -628,3 +844,5 @@ isolation from each other, and one can even imagine replacing, say, the
 Graph implementation with an off-the-shelf library.
 
 .. and the chapter really needs a rousing conclusion
+
+.. _Sphinx: http://sphinx-doc.org/
