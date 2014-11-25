@@ -49,13 +49,13 @@ This table of contents is a mash-up
 of information from four different files.
 While its basic order and structure come from ``index.rst``,
 the actual title of each chapter and section
-is pulled from its own source file.
+is pulled from your chapter source files themselves.
 
 If you later reconsider the tutorial’s chapter title —
 after all, the word “newcomer” sounds so antique,
 as if your users are settlers who have just arrived in pioneer Wyoming —
 then you would edit the first line of ``tutorial.rst``
-to produce something better::
+and write something better::
 
   -Newcomers Tutorial
   +Beginners Tutorial
@@ -67,15 +67,22 @@ to produce something better::
 When you are ready to rebuild,
 Sphinx will do exactly the right thing!
 It will rebuild both the tutorial chapter itself,
-and also rebuild the index. ::
+and also rebuild the index.
+(Piping the output into ``cat`` makes Sphinx
+display each rebuilt file on its own line,
+instead of overwriting a single line with its progress updates.)
+::
 
+   $ make html | cat
+   ⋮
    writing output... [ 50%] index
    writing output... [100%] tutorial
 
-Not only will ``tutorial.html`` have the new title at its top,
+Sphinx chose to rebuild both documents.
+Not only will the top of ``tutorial.html`` now feature its new title,
 but the output ``index.html`` will display the updated title
-in the table of contents entry for the tutorial chapter.
-In this case, Sphinx does exactly the right thing.
+in the table of contents.
+Sphinx has rebuilt everything so that the output is consistent.
 
 What if your edit to ``tutorial.rst`` is more minor? ::
 
@@ -100,8 +107,8 @@ it goes ahead and does the redundant work of rebuilding
 
 You can run ``diff``
 on the “before” and “after” versions of ``index.html``
-to confirm that your small edit to ``tutorial.rst`` had zero effect
-on its contents —
+to confirm that your small edit
+has had zero effect on the project front page —
 yet Sphinx made you wait while it was rebuilt anyway.
 
 You might not even notice the extra rebuild effort
@@ -111,23 +118,23 @@ when you are making frequent tweaks and edits
 to documents that are long, complex, or that involve the generation
 of multimedia like plots or animations.
 While Sphinx is at least making an effort here
-to not rebuild every chapter in your project —
-it has not rebuilt ``install.html`` or ``api.html``
+by not rebuilding every chapter in your project —
+it has not, for example, rebuilt ``install.html`` or ``api.html``
 in response to your ``tutorial.rst`` edit —
-it is doing more than necessary.
+it is doing more than is necessary.
 
 But it turns out that Sphinx does something even worse:
 it sometimes does too little.
 
-One of the simplest failures modes that you can induce in Sphinx
-is to add a cross reference to the top of your API documentation::
+To see one of Sphinx’s simplest failure modes,
+add a cross reference to the top of your API documentation::
 
    API Reference
    =============
 
   +Before reading this, try reading our :doc:`tutorial`!
 
-   The lists below include every function
+   The sections below list every function
    and every single class and method offered...
 
 With its usual caution as regards the table of contents,
@@ -161,26 +168,28 @@ What does Sphinx do? ::
 
 Sphinx has failed to correctly rebuild your documentation.
 If you now push your HTML to the web,
-users will see one title in the cross reference in ``api.html``
+users will see one title in the cross reference
+at the top of ``api.html``
 but then a different title
 once the link has carried them to ``tutorial.html`` itself.
-This seems to happen with every kind of cross reference
+This happens many kinds of cross reference
 that Sphinx supports:
 chapter titles, section titles, paragraphs,
-classes, method, and functions.
+classes, methods, and functions.
 
 Experienced Sphinx users have a time-honored solution
-to the cross-reference problem —
-a solution that has been honed and practiced for decades.
-In various forms it goes all the way back
+to the cross-reference problem.
+The solution has been honed and practiced for decades,
+and in various forms it goes all the way back
 to the original habits of users of the Document Workbench
-suite of tools for which Unix was originally marketed. ::
+with which Unix was originally marketed. ::
 
    $ rm -r _build
    $ make html
 
 This certainly solves the problem
 of guaranteeing consistency before publishing your documentation.
+Everything gets rebuilt from scratch before going to the publisher!
 
 But could we construct a better approach?
 
@@ -188,84 +197,23 @@ What if your build system were a persistent process
 that remembered every title, every section, and every cross reference
 that passed from the source code of one document
 to the text of another?
-Then its decisions about whether to rebuild other documents
-after a change to ``tutorial.html``
-could be precise instead of mere guesses,
-and correct instead of leaving the output in an inconsistent state.
+Its decisions about whether to rebuild other documents
+after a change to a single source file could be precise,
+instead of mere guesses,
+and correct,
+instead of leaving the output in an inconsistent state.
 
 The result would be a system like the old static ``make`` tool,
 but which learned the dependencies between files as they were built —
-that adds and remove dependencies dynamically
-cross references were added, updated, and then later deleted.
+that added and removed dependencies dynamically
+as cross references were added, updated, and then later deleted.
 
 In the sections that follows we will construct such a tool in Python,
-named ``contingent``, that guarantees both correctness
-and minimum rebuild effort in the presence of dynamic dependencies.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Traditional build systems are hopelessly naïve.
-
-Whether you use the venerable ``make``, or the document build process
-inside of LaTeX, or even the modern rebuild process inside of the
-popular Sphinx documentation tool for Python, you will have run across
-situations where you made a change and the build system failed to
-discover all of its ramifications.
-
-The alternative always seems to be rebuilding too much — as when you
-notice the failure and often have to remove the entirety of your cached
-output to restore the build to a working state!
-
-Document build systems are notorious in this respect.  Cross references
-in the text create dynamic relationships between the content of one page
-and the content of another — think of a ``:doc:`how-to-install`\ `` call
-in Sphinx and how the document in which it appears needs to (but usually
-will not) rebuild every time that document’s title changes.
-
-Even ``make`` could be bitten by this problem. Consider adding the
-following line to the top of a ``source.c`` source file::
-
-  #include "memhelpers.h"
-
-Thanks to the addition of this line, the source file now needs to be
-re-compiled every time this header file is changed. But how often do
-developers forget to open their Makefile and add a line like the
-following? ::
-
-  source.c: memhelpers.h
-
-There do exist third-party tools to write such rules on-the-fly — to
-literally rewrite the ``Makefile`` — and this makes the point perfectly:
-the build tool, in and of itself, is not competent to discover which
-changes to which inputs require the rebuilding of which consequences.
-
-What if we constructed a build system that were not static, rigid, and
-incapable of understanding the way that relationships between inputs and
-consequences can grow or disappear from one minute to the next as the
-inputs are edited?  What if the build system itself were instrumented to
-discover these consequences dynamically instead of having to be told
-them in a separate ``Makefile`` that has to be maintained separately?
-
-We have undertaken this challenge and produced the Python module
-described in this chapter: ``contingent``, a dynamic build graph that
-learns automatically the inputs that each build routine needs and, when
-an input changes, always does the least work necessary to get all of the
-outputs back up to date again.
+named Contingent``,
+that guarantees correctness in the presence of dynamic dependencies
+while performing the fewest possible rebuild steps.
+While Contingent can be applied to any problem domain,
+we will run it against a small version of the problem outlined above.
 
 Creating and Using a Build Graph
 ================================
