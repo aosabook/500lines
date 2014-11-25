@@ -89,6 +89,9 @@ class Project:
             return value
 
         wrapper.wrapped = task_function
+        #wrapper.__cmp__ = task_function.__name__.__cmp__
+        wrapper.__lt__ = task_function.__name__.__lt__
+        #wrapper.__gt__ = task_function.__name__.__gt__
         return wrapper
 
     def _get_from_cache(self, task):

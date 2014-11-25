@@ -1,6 +1,7 @@
 """A directed graph of tasks that use one another as inputs."""
 
 from collections import defaultdict
+from types import FunctionType
 
 class Graph:
     """A directed graph of the relationships among build tasks.
@@ -77,21 +78,34 @@ class Graph:
         consequences = self._inputs_of.keys()
         lines = ['digraph {', 'graph [rankdir=LR];']
         append = lines.append
+
+        def node(task):
+            is_function_and_args = (isinstance(task, tuple) and len(task) == 2
+                                    and isinstance(task[0], FunctionType))
+            if is_function_and_args:
+                function, args = task
+                name = task[0].__name__
+                args = repr(args)
+                if args.endswith(',)'):
+                    args = args[:-2] + ')'
+                return '"{}{}"'.format(name, args)
+            return '"{}"'.format(task)
+
         append('{rank=same node [shape=rect penwidth=2 color="#DAB21D"')
         append('                 style=filled fillcolor="#F4E5AD"]')
         for task in try_sorting(inputs - consequences):
-            append('"{}"'.format(task))
+            append(node(task))
         append('}')
         append('{rank=same node [shape=rect penwidth=2 color="#708BA6"')
         append('                 style=filled fillcolor="#DCE9ED"]')
         for task in try_sorting(consequences - inputs):
-            append('"{}"'.format(task))
+            append(node(task))
         append('}')
         append('node [shape=oval penwidth=0 style=filled fillcolor="#E8EED2"')
         append('      margin="0.05,0"]')
         for task, consequences in self._consequences_of.items():
             for consequence in try_sorting(consequences):
-                append('"{}" -> "{}"'.format(task, consequence))
+                append('{} -> {}'.format(node(task), node(consequence)))
         append('}')
         return '\n'.join(lines)
 

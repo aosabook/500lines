@@ -215,22 +215,117 @@ while performing the fewest possible rebuild steps.
 While Contingent can be applied to any problem domain,
 we will run it against a small version of the problem outlined above.
 
-Linking Tasks To Form A Graph
+Linking Tasks To Make a Graph
 =============================
 
+The Contingent system needs a way to remember
+that the output of a task like
+“get the title of the API chapter”
+is then needed as an input of tasks like
+“build the ``index.html`` output file.”
+And this relationship between tasks might be transitive.
+The task “get the title of the API chapter” that we just mentioned
+might itself need another task to run as its input,
+like “parse the ``api.rst`` source text file.”
+
+When you represent input tasks and their consequences on paper,
+you probably use arrows to connect them,
+as shown in Figure 1.
+
+.. image:: figure1.png
+
+Mathematicians call this kind of diagram a *graph,*
+which is an unfortunate name — to most people,
+*graph* means a rectangular plot that uses a jagged line
+to display the unemployment rate or the stock market.
+But computer programming was born as a discipline of mathematics,
+and so Contingent also uses the term *graph*
+for a collection of boxes and arrows —
+or, as mathematicians say, *nodes* and *edges* —
+like those in Figure 1.
+
+At the core of Contingent is a ``Graph`` library [Brandon runs out of steam]
+
+OKAY, DAN!
+
+Time to go to town!  Everything from here down is (a) great code that I
+have just edited, with (b) rough notes for you to work from.  Turn on
+your CS prof superpowers and explain everything clearly, concisely, and
+whimsically.
+
+Also, edit any of my stuff above that you'd like.  And I can edit you
+when you have turned the notes that follow into text, and after our
+mutual edits hopefully it will read fairly clearly.
+
+I have adjusted the code below so that it shows what Graph() does more
+simply than before, so we can work on explaining the implementation.
+Put words around these code samples, talking about the following points
+(based on Debo's email to us) (these do not need to be long parts each,
+by the way, you just need to make each point clearly, along with other
+points that I'm sure will occur to you as you quote sections of
+graphlib.py and discuss them (try to include them with RST file-line
+inclusion, not by cutting and pasting):
+
+* A graph needs to store edges.
+* You might need to do lookup either way: what edges arrive here?  What
+  edges go away from this node?  And for each question, outline a
+  situation in which Contingent will need to answer a question.
+* Talk about how we solve problems in Python: not with a Node class and an
+  Edge class and an OutgoingEdgesCollection class, but with simple
+  generic data structures.
+* Do four bullet points with a sentence each: tuple, list, dict, set
+* Discover that we should use a dict-of-sets pointing in each direction.
+* Show __init__() and talk about defaultdict
+* Then add_edge() then remove_edge()
+* Contingent will sometimes need to rebuild, in case ``api.rst``
+  is edited to add or remove a cross reference: clear_inputs_of()
+* (leave the rest out for now?)
+* Finally, step back: our API only asks that nodes be represented
+  with hashable types. Discuss that tuples are fine too, not just
+  strings like we are using in this section.
+* Another step back: note that our API hides the data structures
+  COMPLETELY! We could change to a stupid Node class and Edge class
+  any time we wanted, because only task IDs pass our API border.
+
+There's probably more great points we can make about Python and our
+wonderful API, but those are the ones that come to mind right now that I
+wanted to get down before I forgot them. :)
 
 
->>> from contingent.graphlib import Graph
->>> g = Graph()
+
+>>> from contingent import graphlib
+>>> g = graphlib.Graph()
+
+.. The code in this comment makes sets print in stable order:
+ >>> from pprint import pformat, pprint
+ >>> def key_of(thing):
+ ...     if isinstance(thing, tuple):
+ ...         return (thing[0].__name__, thing[1])
+ ...     return thing
+ >>> class pretty_set(set):
+ ...     def __repr__(self):
+ ...         if not self:
+ ...             return 'set()'
+ ...         items = list(self)
+ ...         joiner = ',\n ' if isinstance(items[0], tuple) else ', '
+ ...         items = sorted(self, key=key_of)
+ ...         return '{' + joiner.join(repr(item) for item in items) + '}'
+ ...     def __or__(self, other):
+ ...         return pretty_set(set(self) | other)
+ >>> graphlib.set = pretty_set
+ >>> g = graphlib.Graph()
+
+
+
 
 >>> g.add_edge('index.rst', 'index.html')
 >>> g.add_edge('tutorial.rst', 'tutorial.html')
 >>> g.add_edge('api.rst', 'api.html')
 
 
-
 ..
  >>> open('figure1.dot', 'w').write(g.as_graphviz()) and None
+
 
 
 >>> g.add_edge('tutorial.rst', 'tutorial-title')
@@ -239,198 +334,169 @@ Linking Tasks To Form A Graph
 >>> g.add_edge('tutorial-title', 'index.html')
 >>> g.add_edge('api-title', 'index.html')
 
+
 ..
  >>> open('figure2.dot', 'w').write(g.as_graphviz()) and None
 
 
+FINALLY -
 
-Imagine that we want to automate the rebuilding of a static web site
-when any of its source files change.  Contingent offers to let us get
-started by instantiating a ``Graph`` object that will remember which
-outputs are consequences of which inputs.
+is it time here to describe and justify the consequences methods?
+Maybe?
 
->>> from contingent.graphlib import Graph
->>> g = Graph()
 
-Imagine a directory of three source files containing the marked up text
-for three blog posts.  When each is passed to the markup engine, it will
-result in an HTML body that is web-ready.  We can represent this by
-creating six nodes — which as far as the graph knows are arbitrary,
-opaque strings — and three edges that link the markup file sitting on
-disk for each blog post with the idea of its rendered HTML “body” that
-is produced once the markup is parsed.
+>>> g.immediate_consequences_of('index.rst')
+{'index.html'}
 
->>> g.add_edge('A.rst', 'A.body')
->>> g.add_edge('B.rst', 'B.body')
->>> g.add_edge('C.rst', 'C.body')
+That is simple.  But this is a several-step cascade,
+we have to follow to the bottom:
 
-We are telling the graph that an input, like ``A.rst``, has as its
-consequence the node ``A.body``.  If we ask the graph “What happens if
-B.rst changes?” then, quite correctly, it tells us that the body will
-need to be rewritten.
+>>> sorted(g.immediate_consequences_of('api.rst'))
+['api-title', 'api.html']
+>>> g.immediate_consequences_of('api-title')
+{'index.html'}
+>>> g.immediate_consequences_of('index.html')
+set()
+>>> g.immediate_consequences_of('api.html')
+set()
 
->>> g.recursive_consequences_of(['B.rst'])
-['B.body']
+Whenever things change we want to do that, but to be careful of the
+order.  [Ugh - should we even explain?  Maybe just mention for the
+advanced people: to avoid rerunning a task several times, we need a
+topological sort.]
 
-Imagine each HTML body then being injected into a larger page template
-so that the blog’s text is surrounded by the navigation and design that
-are standard for our blog.  The HTML body in each case is the input to
-this process, and its output is a finished page ready to be pushed to
-the web server.
+>>> g.recursive_consequences_of(['api.rst'])
+['api-title', 'index.html', 'api.html']
 
->>> g.add_edge('A.body', 'A.html')
->>> g.add_edge('B.body', 'B.html')
->>> g.add_edge('C.body', 'C.html')
+Wow look it did what we did manually above!  It's great!
 
-The graph understands that consequences themselves serve as inputs for
-further consequences.  If we now ask it the results of editing the input
-markup for one of our blog posts, it identifies two outputs that need to
-be recomputed.
-
->>> g.recursive_consequences_of(['B.rst'])
-['B.body', 'B.html']
-
-So far, so good.
-
-But when dealing with document collections like a Sphinx project or
-statically generated blog, the graph tends to be more complicated.  For
-example, each blog post’s navigation might point the way to the previous
-post in the blog’s history and therefore need its title Like the body,
-the value of the title is discovered when we parse the post’s input
-markup:
-
->>> g.add_edge('A.rst', 'A.title')
->>> g.add_edge('B.rst', 'B.title')
->>> g.add_edge('C.rst', 'C.title')
-
-As part of the navigation, each of these titles can also appear on the
-HTML page for the subsequent post:
-
->>> g.add_edge('A.title', 'B.html')
->>> g.add_edge('B.title', 'C.html')
-
-Editing the source for either post A or post B will now force us not
-only to regenerate both its own HTML, but also the HTML of the
-subsequent post, in case we edited the text of its title which appears
-in the navigation of the next post’s page:
-
->>> g.recursive_consequences_of(['B.rst'])
-['B.body', 'B.html', 'B.title', 'C.html']
-
-By rebuilding both ``B.html`` and ``C.html`` in this case, a naïve build
-system that simply runs through these recursive consequences will
-usually be doing extra work — after all, most edits to ``B.rst`` will
-probably not be edits to the title, but simply be edits to the body.
-
-But if we step back for a moment, we see that in fact things are far
-worse.  How, when it comes down to it, do we know that these three blog
-posts belong in the order A-B-C?
-
-So far in this example, we have simply been assuming that I named the
-blog posts in the correct alphabetical order.  But real blog posts are
-going to need a date attribute which dictates their order — an
-attribute, like all of their other attributes, that might change over
-the course of composition or need to be corrected later.
-
-This means that an edit to a blog post, because it could move the blog
-post’s position in history, might require an update of *any* of the
-other output files!  To take a concrete example: answering the question
-“which blog post comes immediately before blog post ``B`` in time?”
-means having to examine the date of every other blog post to determine
-which one has the closest previous date.
-
-What can a build system do in this situation?  Most systems either
-rebuild too few outputs and deliver greater speed but at the risk of
-leaving output out of date, or they rebuild everything and usually do so
-unnecessarily.
-
-The Sphinx build system, to take one example, seems to simply ignore the
-possibility that a change to document *A* might involve rewriting the
-text of a cross-reference in another document *B*, or might mean that
-another document’s mention of a function or class can now become a real
-linked cross-reference.  This only keeps up-to-date the HTML pages for
-the documents currently being edited, and lets the others fall behind
-until the user forces their regeneration.
-
-To represent this problem with blog post dates in our own graph, we need
-to break the edge we hand-crafted between adjacent blog posts:
-
->>> g.remove_edge('A.title', 'B.html')
->>> g.remove_edge('B.title', 'C.html')
-
-Each blog post’s date, of course, will probably be stored as a piece of
-metadata in its source file markup, and need to be included somewhere on
-its own HTML page.
-
->>> for post in 'ABC':
-...     g.add_edge(post + '.rst', post + '.date')
-...     g.add_edge(post + '.date', post + '.html')
-
-But we also need to let the date of each blog post decide which of its
-peers is the previous post.  All of the posting dates need to be
-considered together when making this determination.  This can only be
-implemented in our graph by creating a node that is the output — that is
-an aggregation — of a property (the date) of every single blog post:
-
->>> g.add_edge('A.date', 'sorted-posts')
->>> g.add_edge('B.date', 'sorted-posts')
->>> g.add_edge('C.date', 'sorted-posts')
-
-This aggregate output — that knows all the blog-post dates — is then a
-necessary input to the routine that figures out what the word
-“previous,” and specifically the words “previous title,” mean when
-applied to any given blog post:
-
->>> g.add_edge('sorted-posts', 'A.prev.title')
->>> g.add_edge('sorted-posts', 'B.prev.title')
->>> g.add_edge('sorted-posts', 'C.prev.title')
-
-Each of these previous-title nodes are then available for when we build
-the output HTML page for each blog post, and will get injected into
-their navigation bar:
-
->>> g.add_edge('A.prev.title', 'A.html')
->>> g.add_edge('B.prev.title', 'B.html')
->>> g.add_edge('C.prev.title', 'C.html')
-
-We can expect all of the above edges to remain static.  Whatever the
-relationships among our blog posts, they will still each need to know
-the title (if any) of the chronologically previous post.
-
-But now we reach edges that will *not* necessarily remain in place over
-the lifetimes of our input files!  This is because they depend on the
-current chronological order A,B,C of the blog posts, that makes A the
-previous post to B, and B the previous post to C.  This could change the
-moment we edit one of their dates!  But for the moment the edges look
-like:
-
->>> g.add_edge('A.title', 'B.prev.title')
->>> g.add_edge('B.title', 'C.prev.title')
-
-And it is this set of edges that ruin our graph.  Because of the
-possibility that an edit to any blog post’s source code might make a
-change to its date — although in practice this will be only a small
-fraction of the number of edits made during a busy writing session — a
-traditional make system will have to rebuild every single blog post when
-any single one of them is edited!
-
->>> consequences = g.recursive_consequences_of(['B.rst'])
->>> consequences
-['B.body', 'B.date', 'sorted-posts', 'A.prev.title', 'A.html', 'B.prev.title', 'B.html', 'B.title', 'C.prev.title', 'C.html']
-
-This simple example illustrates only one of many ways that a document’s
-content winds up inside of other documents in a modern document tree.
-The real-world cross referencing system in Spinx, for example, also
-includes a document’s URL and title in every other document where it is
-referenced, and any reorganization of a library’s API documentation
-will change the URL of functions and classes that might be referred to
-from dozens of other documents.
-
-Given such a dense graph, can a build system do any better than to
-simply perform a complete rebuild upon every modification?
-
-Chasing consequences
+Learning Connections
 ====================
+
+Okay: if we keep our edges up to date,
+we will never again have the problem of rebuilding too little.
+
+But how can the edges be kept up to date?
+
+We can use wrappers plus a stack.
+
+Yay!  Fundamental computer science like Debo wanted,
+with a great chance to show how easily these are implemented in Python.
+
+We need some fake files.
+For illustration we will do something simpler than full Sphinx/rst.
+
+>>> index = """
+... Table of Contents
+... -----------------
+... * `tutorial.txt`
+... * `api.txt`
+... """
+
+>>> tutorial = """
+... Beginners Tutorial
+... ------------------
+... Welcome to the tutorial!
+... We hope you enjoy it.
+... """
+
+>>> api = """
+... API Reference
+... -------------
+... You might want to read
+... the `tutorial.txt` first.
+... """
+
+So we have this decorator, which adds a wrapper.
+
+>>> from contingent.projectlib import Project
+>>> project = Project()
+>>> task = project.task
+
+>>> @task
+... def read(filename):
+...     return {'index.txt': index,
+...             'tutorial.txt': tutorial,
+...             'api.txt': api}[filename]
+
+>>> import re
+>>> @task
+... def parse(filename):
+...     text = read(filename).strip('\n')
+...     title, body = text.split('\n', 1)
+...     return title, body
+
+>>> @task
+... def title_of(filename):
+...     title, body = parse(filename)
+...     return title
+
+>>> @task
+... def render(filename):
+...     title, body = parse(filename)
+...     body = re.sub(r'`([^`]+)`',
+...         lambda match: title_of(match.group(1)),
+...         body)
+...     return title + '\n' + body
+
+
+The project graph knows nothing to begin with.
+
+>>> project.graph.all_tasks()
+set()
+
+But if we ask it to build:
+
+>>> for filename in 'index.txt', 'tutorial.txt', 'api.txt':
+...     print(render(filename))
+...     print('=' * 30)
+Table of Contents
+-----------------
+* Beginners Tutorial
+* API Reference
+==============================
+Beginners Tutorial
+------------------
+Welcome to the tutorial!
+We hope you enjoy it.
+==============================
+API Reference
+-------------
+You might want to read
+the Beginners Tutorial first.
+==============================
+
+Now what does the graph know about?
+
+>>> project.graph.all_tasks()
+{(<function parse at 0x...>, ('api.txt',)),
+ (<function parse at 0x...>, ('index.txt',)),
+ (<function parse at 0x...>, ('tutorial.txt',)),
+ (<function read at 0x...>, ('api.txt',)),
+ (<function read at 0x...>, ('index.txt',)),
+ (<function read at 0x...>, ('tutorial.txt',)),
+ (<function render at 0x...>, ('api.txt',)),
+ (<function render at 0x...>, ('index.txt',)),
+ (<function render at 0x...>, ('tutorial.txt',)),
+ (<function title_of at 0x...>, ('api.txt',)),
+ (<function title_of at 0x...>, ('tutorial.txt',))}
+
+..
+ >>> open('figure3.dot', 'w').write(project.graph.as_graphviz()) and None
+
+
+Caching consequences
+====================
+
+So, building-too-little is solved.
+
+But what about building too much?
+
+Given Figure 2, how can we avoid rebuilding index.html
+if api.rst is edited but the document title is not what changed?
+
+To solve this, we need 
+
 
 The key insight that helps us answer the foregoing question is to note
 the difference between our intuitive understanding of the build
@@ -440,7 +506,7 @@ a more course-grained fact: that a given task depends on a certain set
 of inputs. The consequences graph tells us, for example, that ``B.title``
 uses the output of task ``B.rst`` as its input:
 
->>> 'B.title' in g.immediate_consequences_of('B.rst')
+x>>> 'B.title' in g.immediate_consequences_of('B.rst')
 True
 
 but it does not understand what sorts of changes to ``B.rst`` actually
@@ -460,28 +526,28 @@ task's consequences to be placed on the todo list for reconsideration.
 
 To illustrate, we first construct a ``Builder``
 
->>> from contingent.projectlib import Project
->>> b = Project()
+x>>> from contingent.projectlib import Project
+x>>> b = Project()
 
 and update its initially empty consequences graph to be the manually-
 constructed graph from our example above
 
->>> b.graph = g
+x>>> b.graph = g
 
 For this example, we will drive the build process manually.
 In the first run of the build, the cache is empty, so each task
 requires a full rebuild:
 
->>> roots = ['A.rst', 'B.rst', 'C.rst']
->>> for node in roots + g.recursive_consequences_of(roots):
-...     # 'Initial value' is the simulated output of the build task for
-...     # each node
-...     b.set(node, 'Initial value')
+x>>> roots = ['A.rst', 'B.rst', 'C.rst']
+x>>> for node in roots + g.recursive_consequences_of(roots):
+x...     # 'Initial value' is the simulated output of the build task for
+x...     # each node
+x...     b.set(node, 'Initial value')
 
 Since each task has been freshly computed, all the tasks are up to date
 and the todo list is empty:
 
->>> b.todo_list
+x>>> b.todo_list
 set()
 
 Changing something forces us to rebuild its consequences, but focuses
@@ -489,48 +555,48 @@ our efforts only on the particular tasks that need rebuilding.  For
 example, editing the body content of file B requires examination of all
 consequences of B:
 
->>> b.set('B.rst', 'Updated body markup for post B')
->>> sorted(b.todo_list)
+x>>> b.set('B.rst', 'Updated body markup for post B')
+x>>> sorted(b.todo_list)
 ['B.body', 'B.date', 'B.title']
 
 All of these consequent tasks need to be reevaluated, but in this
 instance only ``B.body``\ 's value is affected by the change, leaving
 ``B.date`` and ``B.title`` at their prior values:
 
->>> b.set('B.body', 'New body for B')
->>> b.set('B.date', 'Initial value')
->>> b.set('B.title', 'Initial value')
+x>>> b.set('B.body', 'New body for B')
+x>>> b.set('B.date', 'Initial value')
+x>>> b.set('B.title', 'Initial value')
 
 Since it is only post B's output HTML that needs its body content, the
 ``Builder`` does not need to consider the consequences of tasks
 ``B.date`` and ``B.title``, so the todo list peters out rather quickly:
 
->>> sorted(b.todo_list)
+x>>> sorted(b.todo_list)
 ['B.html']
->>> b.set('B.html', 'HTML for post B')
->>> b.todo_list
+x>>> b.set('B.html', 'HTML for post B')
+x>>> b.todo_list
 set()
 
 Editing B's title, on the other hand, has consequences for the HTML of
 both post B and post C.
 
->>> b.set('B.title', 'Title B')
->>> sorted(b.todo_list)
+x>>> b.set('B.title', 'Title B')
+x>>> sorted(b.todo_list)
 ['C.prev.title']
->>> b.set('B.html', 'New HTML for post B')
->>> b.set('C.prev.title', 'Title B')
->>> b.todo_list
+x>>> b.set('B.html', 'New HTML for post B')
+x>>> b.set('C.prev.title', 'Title B')
+x>>> b.todo_list
 {'C.html'}
->>> b.set('C.html', 'HTML for post C')
->>> b.todo_list
+x>>> b.set('C.html', 'HTML for post C')
+x>>> b.todo_list
 set()
 
 And, finally, in the presence of a change or edit that makes no
 difference the cache does not demand that we rebuild any consequences at
 all.
 
->>> b.set('B.title', 'Title B')
->>> b.todo_list
+x>>> b.set('B.title', 'Title B')
+x>>> b.todo_list
 set()
 
 But while this approach has started to reduce our work, a rebuild can
@@ -539,25 +605,25 @@ like this can be inefficient, because we might rebuild a given
 consequence several times.  Imagine, for example, that we update B’s
 date so that it now comes after C on the timeline.
 
->>> b.set('B.rst', 'Markup for post B dating it after post C')
->>> sorted(b.todo_list)
+x>>> b.set('B.rst', 'Markup for post B dating it after post C')
+x>>> sorted(b.todo_list)
 ['B.body', 'B.date', 'B.title']
->>> b.set('B.body', 'Initial value')
->>> b.set('B.date', '2014-05-15')
->>> b.set('B.title', 'Title B')
->>> sorted(b.todo_list)
+x>>> b.set('B.body', 'Initial value')
+x>>> b.set('B.date', '2014-05-15')
+x>>> b.set('B.title', 'Title B')
+x>>> sorted(b.todo_list)
 ['B.html', 'sorted-posts']
->>> b.set('B.html', 'Rebuilt HTML #1')
->>> b.set('sorted-posts', 'A, C, B')
->>> sorted(b.todo_list)
+x>>> b.set('B.html', 'Rebuilt HTML #1')
+x>>> b.set('sorted-posts', 'A, C, B')
+x>>> sorted(b.todo_list)
 ['A.prev.title', 'B.prev.title', 'C.prev.title']
->>> b.set('A.prev.title', 'Initial value')
->>> b.set('B.prev.title', 'Title C')
->>> b.set('C.prev.title', 'Title A')
->>> sorted(b.todo_list)
+x>>> b.set('A.prev.title', 'Initial value')
+x>>> b.set('B.prev.title', 'Title C')
+x>>> b.set('C.prev.title', 'Title A')
+x>>> sorted(b.todo_list)
 ['B.html', 'C.html']
->>> b.set('B.html', 'Rebuilt HTML #2')
->>> b.set('C.html', 'Rebuilt HTML')
+x>>> b.set('B.html', 'Rebuilt HTML #2')
+x>>> b.set('C.html', 'Rebuilt HTML')
 
 As you can see, this update to B’s date has both an immediate and
 certain consequence — that its HTML needs to be rebuilt to reflect the
@@ -585,8 +651,8 @@ use its ordering instead of simply rebuilding nodes as soon as they
 appear in the ``todo()`` list, then we will minimize the number of
 rebuilds we need to perform:
 
->>> consequences = g.recursive_consequences_of(['B.rst'])
->>> consequences
+x>>> consequences = g.recursive_consequences_of(['B.rst'])
+x>>> consequences
 ['B.body', 'B.date', 'sorted-posts', 'A.prev.title', 'A.html', 'B.prev.title', 'B.html', 'B.title', 'C.prev.title', 'C.html']
 
 Had we followed this ordering, we would have regenerated both ``B.date``
@@ -615,7 +681,7 @@ dynamically::
 
 When this paragraph is rendered the output should look like:
 
-    ...original `Learning About Pandas`_ blog post from last year.
+    x...original `Learning About Pandas`_ blog post from last year.
 
 Therefore this HTML will need to be regenerated every time the title in
 ``learning-pandas.rst`` is edited and changed.
@@ -631,12 +697,12 @@ graph method.  If an update were added to the text of post A to mention
 the later post C, then an edge would need to be generated to capture
 that:
 
->>> g.add_edge('C.title', 'A.html')
+x>>> g.add_edge('C.title', 'A.html')
 
 Thanks to this new edge, post A will now be considered one of
 consequences of a change to the title of post C.
 
->>> g.recursive_consequences_of(['C.title'])
+x>>> g.recursive_consequences_of(['C.title'])
 ['A.html']
 
 How can this mechanism be connected to actual code that takes the
@@ -660,14 +726,14 @@ from its sources: reading and parsing the source texts, extracting
 metadata from individual posts, determining the overall ordering of the
 entire blog, and rendering to an output format.
 
->>> from example.blog_project import project
->>> from example.blog_project import read_text_file, parse, body_of  # etc.
+x>>> from example.blog_project import project
+x>>> from example.blog_project import read_text_file, parse, body_of  # etc.
 
 In this implementation, each *task* is a function and argument list
 tuple that captures both the function to be performed and the input
 arguments unique to that task:
 
->>> task = read_text_file.wrapped, ('A.rst',)
+x>>> task = read_text_file.wrapped, ('A.rst',)
 
 This particular task depends upon the content of the file ``A.rst`` —
 its ``path`` argument — and returns the contents of that file as its
@@ -688,21 +754,21 @@ halting the rebuild of tasks along that graph path.
 We can manually force an initial value for our read task using
 ``Builder.set()``
 
->>> project.set(task, 'Text of A')
+x>>> project.set(task, 'Text of A')
 
 Since this is the first task this ``Builder`` has encountered, the task
 has no consequences: nothing as of yet has requested its output,
 
->>> project.graph.immediate_consequences_of(task)
+x>>> project.graph.immediate_consequences_of(task)
 set()
 
 and, since it is freshly computed, requests for the task's value can be
 serviced directly from ``Builder``'s cache.
 
->>> project.start_tracing()
->>> read_text_file('A.rst')
+x>>> project.start_tracing()
+x>>> read_text_file('A.rst')
 'Text of A'
->>> print(project.end_tracing())
+x>>> print(project.end_tracing())
 returning cached read_text_file('A.rst')
 
 Requesting the value for a new task, ``(body_of, ('A.rst',))``,
@@ -716,10 +782,10 @@ control back to the ``Builder`` by requesting the value of ``(parse,
 ``parse`` requests the value from ``read_text_file``, which the
 ``Builder`` *does* have cached, thus ending the call chain.
 
->>> project.start_tracing()
->>> body_of('A.rst')
+x>>> project.start_tracing()
+x>>> body_of('A.rst')
 '<p>Text of A</p>\n'
->>> print(project.end_tracing())
+x>>> print(project.end_tracing())
 calling body_of('A.rst')
 . calling parse('A.rst')
 . . returning cached read_text_file('A.rst')
@@ -727,40 +793,40 @@ calling body_of('A.rst')
 Interposing the Builder between function calls allows it to dynamically
 construct the relationship between individual tasks
 
->>> project.graph.immediate_consequences_of(task)
-{(<function parse at 0x...>, ('A.rst',))}
+x>>> project.graph.immediate_consequences_of(task)
+{(<function parse at 0xx...>, ('A.rst',))}
 
 and the entire chain of consequences leading from that task.
 
->>> project.graph.recursive_consequences_of([task], include=True)
-[(<function read_text_file at 0x...>, ('A.rst',)), (<function parse at 0x...>, ('A.rst',)), (<function body_of at 0x...>, ('A.rst',))]
+x>>> project.graph.recursive_consequences_of([task], include=True)
+[(<function read_text_file at 0xx...>, ('A.rst',)), (<function parse at 0xx...>, ('A.rst',)), (<function body_of at 0xx...>, ('A.rst',))]
 
 If nothing changes, subsequent requests for ``(body_of, ('A.rst',))``
 can be served immediately from the cache,
 
->>> project.start_tracing()
->>> body_of('A.rst')
+x>>> project.start_tracing()
+x>>> body_of('A.rst')
 '<p>Text of A</p>\n'
->>> print(project.end_tracing())
+x>>> print(project.end_tracing())
 returning cached body_of('A.rst')
 
 while the effects of changes that invalidate interior task's values are
 minimized by the ``Builder``'s ability to detect the impact of a change
 at every point on the consequences graph:
 
->>> project.invalidate((body_of.wrapped, ('A.rst',)))
->>> project.start_tracing()
->>> body_of('A.rst')
+x>>> project.invalidate((body_of.wrapped, ('A.rst',)))
+x>>> project.start_tracing()
+x>>> body_of('A.rst')
 '<p>Text of A</p>\n'
->>> print(project.end_tracing())
+x>>> print(project.end_tracing())
 calling body_of('A.rst')
 . returning cached parse('A.rst')
 
 .. illustrate task stack?
 
->>> read_text_file(['mutable', 'list'])
+x>>> read_text_file(['mutable', 'list'])
 Traceback (most recent call last):
-  ...
+  x...
 ValueError: arguments to project tasks must be immutable and hashable, not the unhashable type: 'list'
 
 .. this section is a bit rougher than the above tour:
