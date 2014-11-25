@@ -71,20 +71,28 @@ class Graph:
         visited = set()
         return list(generate_consequences_backwards())[::-1]
 
-    def as_graphviz(self, nodes=()):
+    def as_graphviz(self):
         """Render this graph as a block of graphviz code."""
-        nodes = set(nodes) or self.all_tasks()
-        lines = [
-            'digraph {',
-            'graph [rankdir=LR];',
-            'node [shape=rect penwidth=0 style=filled fillcolor="#d6d6d6"];',
-            ]
-        for task, consequences in try_sorting(self._consequences_of.items()):
-            if task in nodes:
-                for consequence in try_sorting(consequences):
-                    if consequence in nodes:
-                        lines.append('"{}" -> "{}"'.format(task, consequence))
-        lines.append('}')
+        inputs = self._consequences_of.keys()
+        consequences = self._inputs_of.keys()
+        lines = ['digraph {', 'graph [rankdir=LR];']
+        append = lines.append
+        append('{rank=same node [shape=rect penwidth=2 color="#DAB21D"')
+        append('                 style=filled fillcolor="#F4E5AD"]')
+        for task in try_sorting(inputs - consequences):
+            append('"{}"'.format(task))
+        append('}')
+        append('{rank=same node [shape=rect penwidth=2 color="#708BA6"')
+        append('                 style=filled fillcolor="#DCE9ED"]')
+        for task in try_sorting(consequences - inputs):
+            append('"{}"'.format(task))
+        append('}')
+        append('node [shape=oval penwidth=0 style=filled fillcolor="#E8EED2"')
+        append('      margin="0.05,0"]')
+        for task, consequences in self._consequences_of.items():
+            for consequence in try_sorting(consequences):
+                append('"{}" -> "{}"'.format(task, consequence))
+        append('}')
         return '\n'.join(lines)
 
 
