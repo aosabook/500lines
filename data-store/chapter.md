@@ -36,10 +36,11 @@ recognising the structures and mechansims for evolving data.
 
 I learned that you can design systems built around immutable data.
 
-Then I agreed to write a book chapter, and in trying to write a binary tree
+Then I agreed to write a book chapter. In trying to write a binary tree
 algorithm that mutated the tree in place, I got frustrated with how complicated
-things were getting, between edge cases and trying to see how changes in one
-part of the tree affected others. I took a peek at a [recursive algorithm for
+things were getting. The number of edge cases and trying to reason about how
+changes in one part of the tree affected others was making my head hurt.
+So I took a peek at a [recursive algorithm for
 updating immutable binary trees](http://en.wikipedia.org/w/index.php?title=Binary_search_tree&oldid=628341612#Insertion),
 and it turned out to be relatively straightforward.
 
