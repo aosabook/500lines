@@ -209,14 +209,40 @@ that added and removed dependencies dynamically
 as cross references were added, updated, and then later deleted.
 
 In the sections that follows we will construct such a tool in Python,
-named Contingent``,
+named Contingent,
 that guarantees correctness in the presence of dynamic dependencies
 while performing the fewest possible rebuild steps.
 While Contingent can be applied to any problem domain,
 we will run it against a small version of the problem outlined above.
 
-Creating and Using a Build Graph
-================================
+Linking Tasks To Form A Graph
+=============================
+
+
+
+>>> from contingent.graphlib import Graph
+>>> g = Graph()
+
+>>> g.add_edge('index.rst', 'index.html')
+>>> g.add_edge('tutorial.rst', 'tutorial.html')
+>>> g.add_edge('api.rst', 'api.html')
+
+
+
+..
+ >>> open('figure1.dot', 'w').write(g.as_graphviz()) and None
+
+
+>>> g.add_edge('tutorial.rst', 'tutorial-title')
+>>> g.add_edge('api.rst', 'api-title')
+
+>>> g.add_edge('tutorial-title', 'index.html')
+>>> g.add_edge('api-title', 'index.html')
+
+..
+ >>> open('figure2.dot', 'w').write(g.as_graphviz()) and None
+
+
 
 Imagine that we want to automate the rebuilding of a static web site
 when any of its source files change.  Contingent offers to let us get
@@ -282,8 +308,6 @@ HTML page for the subsequent post:
 
 >>> g.add_edge('A.title', 'B.html')
 >>> g.add_edge('B.title', 'C.html')
-
->>> open('diagram1.dot', 'w').write(g.as_graphviz()) and None
 
 Editing the source for either post A or post B will now force us not
 only to regenerate both its own HTML, but also the HTML of the
@@ -394,8 +418,6 @@ any single one of them is edited!
 >>> consequences
 ['B.body', 'B.date', 'sorted-posts', 'A.prev.title', 'A.html', 'B.prev.title', 'B.html', 'B.title', 'C.prev.title', 'C.html']
 
->>> open('diagram2.dot', 'w').write(g.as_graphviz(['B.rst'] + consequences)) and None
-
 This simple example illustrates only one of many ways that a document’s
 content winds up inside of other documents in a modern document tree.
 The real-world cross referencing system in Spinx, for example, also
@@ -406,8 +428,6 @@ from dozens of other documents.
 
 Given such a dense graph, can a build system do any better than to
 simply perform a complete rebuild upon every modification?
-
->>> open('diagram3.dot', 'w').write(g.as_graphviz()) and None
 
 Chasing consequences
 ====================

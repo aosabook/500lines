@@ -1,5 +1,13 @@
 
-all: diagram1.png diagram2.png diagram3.png diagram-example.png
+DOTS=$(wildcard *.dot)
+PNGS=$(addsuffix .png, $(basename $(DOTS)))
 
-diagram1.png diagram2.png diagram3.png diagram-example.png: diagram%.png: diagram%.dot
+all: .up-to-date~ $(PNGS)
+# diagram-example.png
+
+.up-to-date~: chapter.rst
+	python3 -m doctest -o ELLIPSIS -f chapter.rst
+	touch .up-to-date~
+
+$(PNGS): %.png: %.dot
 	dot -Tpng $< > $@
