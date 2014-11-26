@@ -21,7 +21,7 @@ class Project:
         """Start recording every task that is invoked by this project."""
         self.trace = []
 
-    def stop_tracing(self):
+    def stop_tracing(self, verbose=False):
         """Stop recording task invocations, and return the trace as text."""
 
         text = '\n'.join(
@@ -30,7 +30,8 @@ class Project:
                 'calling' if not_available else 'returning cached',
                 function.__name__,
                 repr(args)[:-2] + ')' if len(args) == 1 else repr(args),
-            ) for (depth, not_available, (function, args)) in self.trace)
+            ) for (depth, not_available, (function, args)) in self.trace
+            if verbose or not_available)
 
         self.trace = None
         return text

@@ -360,9 +360,14 @@ We can use wrappers plus a stack.
 
 Yay!  Fundamental computer science like Debo wanted,
 with a great chance to show how easily these are implemented in Python.
+Explain how the stack we bulid and tear down
+reflects exactly the way the real stack is growing and shrinking.
+
+Time to illustrate.
 
 We need some fake files.
-For illustration we will do something simpler than full Sphinx/rst.
+For illustration we will do something simpler than full Sphinx-and-rst
+but instead build our own little syntax for a cross reference.
 
 >>> index = """
 ... Table of Contents
@@ -391,6 +396,8 @@ So we have this decorator, which adds a wrapper.
 >>> project = Project()
 >>> task = project.task
 
+And we decorate four functions, that do all of the work.
+
 >>> @task
 ... def read(filename):
 ...     return {'index.txt': index,
@@ -413,7 +420,7 @@ So we have this decorator, which adds a wrapper.
 ... def render(filename):
 ...     title, body = parse(filename)
 ...     body = re.sub(r'`([^`]+)`',
-...         lambda match: title_of(match.group(1)),
+...         lambda match: repr(title_of(match.group(1))),
 ...         body)
 ...     return title + '\n' + body
 
@@ -430,8 +437,8 @@ But if we ask it to build:
 ...     print('=' * 30)
 Table of Contents
 -----------------
-* Beginners Tutorial
-* API Reference
+* 'Beginners Tutorial'
+* 'API Reference'
 ==============================
 Beginners Tutorial
 ------------------
@@ -441,10 +448,15 @@ We hope you enjoy it.
 API Reference
 -------------
 You might want to read
-the Beginners Tutorial first.
+the 'Beginners Tutorial' first.
 ==============================
 
+It worked!
+The titles got substited.
+
 Now what does the graph know about?
+
+Look!  All the tasks!
 
 >>> from pprint import pprint
 >>> pprint(project.graph.all_tasks())
@@ -464,7 +476,7 @@ Now what does the graph know about?
  >>> open('figure3.dot', 'w').write(project.graph.as_graphviz()) and None
 
 So as you can see by Figure 3, it has things figured out.
-So by watching one function invoke another
+By watching one function invoke another
 it has automatically learned the graph of inputs and consequences.
 Yay.
 
@@ -472,7 +484,7 @@ So it can auto-learn depenencies.
 And knows all the things to rebuild.
 
 But can it avoid rebuilding them?
-Look at all the things that need to be rebuilt
+Look at all the things that MIGHT need to be rebuilt
 if the tutorial source text is touched.
 
 >>> task = read, ('tutorial.txt',)
@@ -499,34 +511,61 @@ So: cache!
 
 That is why we _get_from_cache()
 
-So show stuff from the listing.
+So show rest of stuff from the listing?
 
 Show how awesome Python is:
 again, because functions are both 1st class objects
 and are also hashable, we can use them as part of keys:
 (f, args) is a completely natural key.
 
+So what if title and body both change?
+
 >>> task = read, ('tutorial.txt',)
 >>> project.set(task, """
-... Beginners Tutorial
+... The Coder Tutorial
 ... ------------------
 ... This is a new and improved
 ... introductory paragraph.
 ... """)
 
+No surprise: everything gets rebuilt,
+because every document needs to change.
+
 >>> project.start_tracing()
-
 >>> project.rebuild()
-
 >>> print(project.stop_tracing())
 calling parse('tutorial.txt')
-. returning cached read('tutorial.txt')
 calling render('tutorial.txt')
-. returning cached parse('tutorial.txt')
 calling title_of('tutorial.txt')
-. returning cached parse('tutorial.txt')
-returning cached render('api.txt')
-returning cached render('index.txt')
+calling render('api.txt')
+calling render('index.txt')
+
+But what if we edit it again,
+but this time leave the title the same?
+
+>>> project.set(task, """
+... The Coder Tutorial
+... ------------------
+... Welcome to the coder tutorial!
+... It should be read top to bottom.
+... """)
+
+This should have no effect on the other documents.
+
+>>> project.start_tracing()
+>>> project.rebuild()
+>>> print(project.stop_tracing())
+calling parse('tutorial.txt')
+calling render('tutorial.txt')
+calling title_of('tutorial.txt')
+
+Success!
+Only one document got rebuilt.
+
+The fact that the newly computed return value
+of ``title_of('tutorial.txt')`` is exactly equal to the old one
+stopped the build process from having to recompute
+any of the consequences downstream of it.
 
 Subtlety
 ========
