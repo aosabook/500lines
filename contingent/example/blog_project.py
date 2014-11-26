@@ -10,8 +10,7 @@ from glob import glob
 from jinja2 import DictLoader
 
 from contingent.projectlib import Project
-# from contingent.cachelib import Cache, _absent
-from contingent.utils import looping_wait_on
+from contingent.io import looping_wait_on
 
 dl = DictLoader({'full.tpl': """\
 {%- extends 'display_priority.tpl' -%}
