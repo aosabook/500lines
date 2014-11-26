@@ -64,7 +64,7 @@ class Graph:
                     yield consequence
 
         def generate_consequences_backwards():
-            for task in tasks:
+            for task in try_sorting(tasks, reverse=True):
                 yield from visit(task)
                 if include:
                     yield task

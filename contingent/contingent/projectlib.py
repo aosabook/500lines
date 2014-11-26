@@ -20,7 +20,7 @@ class Project:
         """Start recording every task that is invoked by this project."""
         self.trace = []
 
-    def end_tracing(self):
+    def stop_tracing(self):
         """Stop recording task invocations, and return the trace as text."""
 
         text = '\n'.join(
@@ -89,9 +89,7 @@ class Project:
             return value
 
         wrapper.wrapped = task_function
-        #wrapper.__cmp__ = task_function.__name__.__cmp__
         wrapper.__lt__ = task_function.__name__.__lt__
-        #wrapper.__gt__ = task_function.__name__.__gt__
         return wrapper
 
     def _get_from_cache(self, task):
@@ -149,5 +147,5 @@ class Project:
         """
         while self.todo_list:
             tasks = self.graph.recursive_consequences_of(self.todo_list, True)
-            for task in tasks:
-                self.get(task)
+            for function, args in tasks:
+                function(*args)

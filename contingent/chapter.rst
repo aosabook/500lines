@@ -312,6 +312,13 @@ wanted to get down before I forgot them. :)
  ...         return '{' + joiner.join(repr(item) for item in items) + '}'
  ...     def __or__(self, other):
  ...         return pretty_set(set(self) | other)
+ >>> from collections import MutableSequence
+ >>> class pretty_list(list, MutableSequence):
+ ...     def __getitem__(self, index):
+ ...         return pretty_list(list.__getitem__(self, index))
+ ...     def __repr__(self):
+ ...         return pformat(list(self))
+ >>> graphlib.list = pretty_list
  >>> graphlib.set = pretty_set
  >>> g = graphlib.Graph()
 
@@ -484,188 +491,83 @@ Now what does the graph know about?
 ..
  >>> open('figure3.dot', 'w').write(project.graph.as_graphviz()) and None
 
+So as you can see by Figure 3, it has things figured out.
+So by watching one function invoke another
+it has automatically learned the graph of inputs and consequences.
+Yay.
+
+So it can auto-learn depenencies.
+And knows all the things to rebuild.
+
+But can it avoid rebuilding them?
+Look at all the things that need to be rebuilt
+if the tutorial source text is touched.
+
+>>> task = read.wrapped, ('tutorial.txt',)
+>>> project.graph.recursive_consequences_of([task])
+[(<function parse at 0x...>, ('tutorial.txt',)),
+ (<function title_of at 0x...>, ('tutorial.txt',)),
+ (<function render at 0x...>, ('api.txt',)),
+ (<function render at 0x...>, ('index.txt',)),
+ (<function render at 0x...>, ('tutorial.txt',))]
+
+But what if the title did not change?
+As you can see in Figure 3,
+that should not need to touch the other documents.
+
+What can we do?
 
 Caching consequences
 ====================
 
-So, building-too-little is solved.
+We want to avoid rebuilding everything
+if tutorial.rst is touched but title is not changed.
 
-But what about building too much?
+So: cache!
 
-Given Figure 2, how can we avoid rebuilding index.html
-if api.rst is edited but the document title is not what changed?
+That is why we _get_from_cache()
 
-To solve this, we need 
+So show stuff from the listing.
+
+Show how awesome Python is:
+again, because functions are both 1st class objects
+and are also hashable, we can use them as part of keys:
+(f, args) is a completely natural key.
+
+>>> task = read.wrapped, ('tutorial.txt',)
+>>> project.set(task, """
+... Beginners Tutorial
+... ------------------
+... This is a new and improved
+... introductory paragraph.
+... """)
+
+.>>> project.start_tracing()
+.>>> project.rebuild()
+.>>> project.stop_tracing()
+.''
+
+Subtlety
+========
+
+<!-- HMM. WAIT. By this point we are kind of set.
+The story is nice and seems done.
+Do we really need a secion on how the graph can
+change even as you traverse it?
+I am not sure. Maybe it should be axed.
+What do you think, Dan?
+Am leaving it hear til you give an opinion. -->
 
 
-The key insight that helps us answer the foregoing question is to note
-the difference between our intuitive understanding of the build
-process—that most changes disrupt only a small subset of the full
-consequences graph—and the consequences graph itself, which represents
-a more course-grained fact: that a given task depends on a certain set
-of inputs. The consequences graph tells us, for example, that ``B.title``
-uses the output of task ``B.rst`` as its input:
+In fact:
 
-x>>> 'B.title' in g.immediate_consequences_of('B.rst')
-True
+----------------- ignore everything -----------------
+--------------- from here down -------------
+--------------- unless dan chooses to resurrect it ------------
+----------- otherwise, we axe it in favor of a triumpant conclusion! --------
 
-but it does not understand what sorts of changes to ``B.rst`` actually
-affect ``B.title``.  Accommodating this requires us to extend the build
-system such that, when notified of a change, it can determine if the
-change has an effect on the task's value and therefore requires a
-rebuild of that task's consequences.
 
-``Builder`` manages build processes by augmenting the graph with a value
-cache that records the output of each task's build, allowing us to
-compare its current value with its value from the previous run. If a
-task's value changes, we must inform its consequent tasks in the event
-the new value has an impact on those consequences. ``Builder`` maintains
-a ``todo_list`` of tasks for this purpose: as tasks run, the value cache
-tells the ``Builder`` if the task's output has changed, requiring that
-task's consequences to be placed on the todo list for reconsideration.
 
-To illustrate, we first construct a ``Builder``
-
-x>>> from contingent.projectlib import Project
-x>>> b = Project()
-
-and update its initially empty consequences graph to be the manually-
-constructed graph from our example above
-
-x>>> b.graph = g
-
-For this example, we will drive the build process manually.
-In the first run of the build, the cache is empty, so each task
-requires a full rebuild:
-
-x>>> roots = ['A.rst', 'B.rst', 'C.rst']
-x>>> for node in roots + g.recursive_consequences_of(roots):
-x...     # 'Initial value' is the simulated output of the build task for
-x...     # each node
-x...     b.set(node, 'Initial value')
-
-Since each task has been freshly computed, all the tasks are up to date
-and the todo list is empty:
-
-x>>> b.todo_list
-set()
-
-Changing something forces us to rebuild its consequences, but focuses
-our efforts only on the particular tasks that need rebuilding.  For
-example, editing the body content of file B requires examination of all
-consequences of B:
-
-x>>> b.set('B.rst', 'Updated body markup for post B')
-x>>> sorted(b.todo_list)
-['B.body', 'B.date', 'B.title']
-
-All of these consequent tasks need to be reevaluated, but in this
-instance only ``B.body``\ 's value is affected by the change, leaving
-``B.date`` and ``B.title`` at their prior values:
-
-x>>> b.set('B.body', 'New body for B')
-x>>> b.set('B.date', 'Initial value')
-x>>> b.set('B.title', 'Initial value')
-
-Since it is only post B's output HTML that needs its body content, the
-``Builder`` does not need to consider the consequences of tasks
-``B.date`` and ``B.title``, so the todo list peters out rather quickly:
-
-x>>> sorted(b.todo_list)
-['B.html']
-x>>> b.set('B.html', 'HTML for post B')
-x>>> b.todo_list
-set()
-
-Editing B's title, on the other hand, has consequences for the HTML of
-both post B and post C.
-
-x>>> b.set('B.title', 'Title B')
-x>>> sorted(b.todo_list)
-['C.prev.title']
-x>>> b.set('B.html', 'New HTML for post B')
-x>>> b.set('C.prev.title', 'Title B')
-x>>> b.todo_list
-{'C.html'}
-x>>> b.set('C.html', 'HTML for post C')
-x>>> b.todo_list
-set()
-
-And, finally, in the presence of a change or edit that makes no
-difference the cache does not demand that we rebuild any consequences at
-all.
-
-x>>> b.set('B.title', 'Title B')
-x>>> b.todo_list
-set()
-
-But while this approach has started to reduce our work, a rebuild can
-still involve extra steps.  Walking naively forward through consequences
-like this can be inefficient, because we might rebuild a given
-consequence several times.  Imagine, for example, that we update B’s
-date so that it now comes after C on the timeline.
-
-x>>> b.set('B.rst', 'Markup for post B dating it after post C')
-x>>> sorted(b.todo_list)
-['B.body', 'B.date', 'B.title']
-x>>> b.set('B.body', 'Initial value')
-x>>> b.set('B.date', '2014-05-15')
-x>>> b.set('B.title', 'Title B')
-x>>> sorted(b.todo_list)
-['B.html', 'sorted-posts']
-x>>> b.set('B.html', 'Rebuilt HTML #1')
-x>>> b.set('sorted-posts', 'A, C, B')
-x>>> sorted(b.todo_list)
-['A.prev.title', 'B.prev.title', 'C.prev.title']
-x>>> b.set('A.prev.title', 'Initial value')
-x>>> b.set('B.prev.title', 'Title C')
-x>>> b.set('C.prev.title', 'Title A')
-x>>> sorted(b.todo_list)
-['B.html', 'C.html']
-x>>> b.set('B.html', 'Rebuilt HTML #2')
-x>>> b.set('C.html', 'Rebuilt HTML')
-
-As you can see, this update to B’s date has both an immediate and
-certain consequence — that its HTML needs to be rebuilt to reflect the
-new date — and also a consequence that takes longer to play out: it now
-comes after post C, so its “Previous Post” link now needs to display C’s
-title instead of A’s title.
-
-The reason that we wound up rebuilding B twice in the session above is
-that we lacked the big picture of how our graph is connected.  There are
-two routes of different lengths between ``B.date`` and the final
-``B.html`` output, but we went ahead and rebuilt ``B.html`` as soon as
-any of its inputs changed instead of waiting to see how all of the paths
-played out.
-
-The solution is that instead of letting ``todo()`` results drive us
-forwards, we should try ordering the consequences of ``B.date`` using
-what graph theorists call a *topological sort* that is careful to order
-nodes so that consequences always fall after their inputs in the
-resulting ordering.  If used correctly, a depth-first search can produce
-such an ordering.
-
-Topological sort is built into the graph method
-``recursive_consequences_of()`` that we glanced at briefly above.  If we
-use its ordering instead of simply rebuilding nodes as soon as they
-appear in the ``todo()`` list, then we will minimize the number of
-rebuilds we need to perform:
-
-x>>> consequences = g.recursive_consequences_of(['B.rst'])
-x>>> consequences
-['B.body', 'B.date', 'sorted-posts', 'A.prev.title', 'A.html', 'B.prev.title', 'B.html', 'B.title', 'C.prev.title', 'C.html']
-
-Had we followed this ordering, we would have regenerated both ``B.date``
-and ``B.prev.title`` before reaching and finally rebuilding ``B.html``.
-Our final algorithm will therefore use the topological sort to minimize
-redundant work.
-
-But we should note that, in the general case, that once we finish our
-topologically sorted rebuild we will still have to pay attention to the
-``todo()`` list and keep looping until it is empty.  That is because
-nodes can actually change their input list each time they run, and that
-therefore the pre-ordering we compute might not reflect the real state
-of the graph as it evolves.
 
 Why would the graph change as we are calculating it?
 
