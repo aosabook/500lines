@@ -1,7 +1,6 @@
 """A directed graph of tasks that use one another as inputs."""
 
 from collections import defaultdict
-from types import FunctionType
 
 class Graph:
     """A directed graph of the relationships among build tasks.
@@ -51,9 +50,14 @@ class Graph:
         for input_task in input_tasks:
             self._consequences_of[input_task].remove(task)
 
-    def all_tasks(self):
+    def tasks(self):
         """Return all task identifiers."""
         return self.sorted(set(self._inputs_of) | set(self._consequences_of))
+
+    def edges(self):
+        """Return all edges as ``(input_task, consequence_task)`` tuples."""
+        return [(a, b) for a in self.sorted(self._consequences_of)
+                       for b in self.sorted(self._consequences_of[a])]
 
     def immediate_consequences_of(self, task):
         """Return the tasks that use `task` as an input."""
@@ -97,51 +101,3 @@ class Graph:
 
         visited = set()
         return list(generate_consequences_backwards())[::-1]
-
-    def as_graphviz(self):
-        """Render this graph as a block of graphviz code."""
-        edges = set((input, consequence)
-                    for input, consequences in self._consequences_of.items()
-                    for consequence in consequences)
-        inputs = set(input for input, consequence in edges)
-        consequences = set(consequence for input, consequence in edges)
-        lines = ['digraph {', 'graph [rankdir=LR];']
-        append = lines.append
-
-        def node(task):
-            is_function_and_args = (isinstance(task, tuple) and len(task) == 2
-                                    and isinstance(task[0], FunctionType))
-            if is_function_and_args:
-                function, args = task
-                name = task[0].__name__
-                args = repr(args)
-                if args.endswith(',)'):
-                    args = args[:-2] + ')'
-                return '"{}{}"'.format(name, args)
-            return '"{}"'.format(task)
-
-        append('node [shape=rect penwidth=2 color="#DAB21D"')
-        append('      style=filled fillcolor="#F4E5AD"]')
-
-        append('{rank=same')
-        for task in self.sorted(inputs - consequences):
-            append(node(task))
-        append('}')
-
-        append('node [shape=rect penwidth=2 color="#708BA6"')
-        append('      style=filled fillcolor="#DCE9ED"]')
-
-        append('{rank=same')
-        for task in self.sorted(consequences - inputs):
-            append(node(task))
-        append('}')
-
-        append('node [shape=oval penwidth=0 style=filled fillcolor="#E8EED2"')
-        append('      margin="0.05,0"]')
-
-        for task, consequences in self._consequences_of.items():
-            for consequence in self.sorted(consequences):
-                append('{} -> {}'.format(node(task), node(consequence)))
-
-        append('}')
-        return '\n'.join(lines)

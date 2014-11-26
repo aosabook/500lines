@@ -302,7 +302,8 @@ wanted to get down before I forgot them. :)
 
 
 ..
- >>> open('figure1.dot', 'w').write(g.as_graphviz()) and None
+ >>> from contingent.rendering import as_graphviz
+ >>> open('figure1.dot', 'w').write(as_graphviz(g)) and None
 
 
 
@@ -314,7 +315,7 @@ wanted to get down before I forgot them. :)
 
 
 ..
- >>> open('figure2.dot', 'w').write(g.as_graphviz()) and None
+ >>> open('figure2.dot', 'w').write(as_graphviz(g)) and None
 
 
 FINALLY -
@@ -427,7 +428,7 @@ And we decorate four functions, that do all of the work.
 
 The project graph knows nothing to begin with.
 
->>> project.graph.all_tasks()
+>>> project.graph.tasks()
 []
 
 But if we ask it to build:
@@ -459,7 +460,7 @@ Now what does the graph know about?
 Look!  All the tasks!
 
 >>> from pprint import pprint
->>> pprint(project.graph.all_tasks())
+>>> pprint(project.graph.tasks())
 [(<function parse at 0x...>, ('api.txt',)),
  (<function parse at 0x...>, ('index.txt',)),
  (<function parse at 0x...>, ('tutorial.txt',)),
@@ -473,7 +474,7 @@ Look!  All the tasks!
  (<function title_of at 0x...>, ('tutorial.txt',))]
 
 ..
- >>> open('figure3.dot', 'w').write(project.graph.as_graphviz()) and None
+ >>> open('figure3.dot', 'w').write(as_graphviz(project.graph)) and None
 
 So as you can see by Figure 3, it has things figured out.
 By watching one function invoke another
