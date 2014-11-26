@@ -22,10 +22,10 @@ class Graph:
         """Try sorting `nodes`, else return them in iteration order.
 
         When possible, many graph methods try to return nodes in a
-        stable order to make testing and display more pleasant.  They
-        use this method to do so, which applies the ``Graph`` object
-        ``sort_key`` to order the nodes.  If sorting cannot succeed,
-        then the nodes are returned in their natural iteration order.
+        stable order to make printing and testing more pleasant.  They
+        apply this method, which tries to use this object's ``sort_key``
+        to order the nodes.  If sorting does not succeed, then the nodes
+        are returned in their natural iteration order instead.
 
         """
         nodes = list(nodes)  # grab nodes in one pass, in case it's a generator
@@ -145,13 +145,3 @@ class Graph:
 
         append('}')
         return '\n'.join(lines)
-
-
-def try_sorting(sequence, reverse=False):
-    """Attempt to sort a sequence, accepting failure gracefully."""
-    sequence = list(sequence)
-    try:
-        sequence.sort(reverse=reverse)
-    except TypeError:
-        pass
-    return sequence

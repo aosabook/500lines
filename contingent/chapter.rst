@@ -172,8 +172,7 @@ users will see one title in the cross reference
 at the top of ``api.html``
 but then a different title
 once the link has carried them to ``tutorial.html`` itself.
-This happens many kinds of cross reference
-that Sphinx supports:
+This can happen for many kinds of cross reference that Sphinx supports:
 chapter titles, section titles, paragraphs,
 classes, methods, and functions.
 
@@ -295,34 +294,6 @@ wanted to get down before I forgot them. :)
 
 >>> from contingent import graphlib
 >>> g = graphlib.Graph()
-
-.. The code in this comment makes sets print in stable order:
- >>> from pprint import pformat, pprint
- >>> def key_of(thing):
- ...     if isinstance(thing, tuple):
- ...         return (thing[0].__name__, thing[1])
- ...     return thing
- >>> class pretty_set(set):
- ...     def __repr__(self):
- ...         if not self:
- ...             return 'set()'
- ...         items = list(self)
- ...         joiner = ',\n ' if isinstance(items[0], tuple) else ', '
- ...         items = sorted(self, key=key_of)
- ...         return '{' + joiner.join(repr(item) for item in items) + '}'
- ...     def __or__(self, other):
- ...         return pretty_set(set(self) | other)
- >>> from collections import MutableSequence
- >>> class pretty_list(list, MutableSequence):
- ...     def __getitem__(self, index):
- ...         return pretty_list(list.__getitem__(self, index))
- ...     def __repr__(self):
- ...         return pformat(list(self))
- >>> graphlib.BLAH_list = pretty_list
- >>> graphlib.BLAH_set = pretty_set
- >>> g = graphlib.Graph()
-
-
 
 
 >>> g.add_edge('index.rst', 'index.html')
@@ -475,6 +446,7 @@ the Beginners Tutorial first.
 
 Now what does the graph know about?
 
+>>> from pprint import pprint
 >>> pprint(project.graph.all_tasks())
 [(<function parse at 0x...>, ('api.txt',)),
  (<function parse at 0x...>, ('index.txt',)),
