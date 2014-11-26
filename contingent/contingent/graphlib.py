@@ -74,8 +74,11 @@ class Graph:
 
     def as_graphviz(self):
         """Render this graph as a block of graphviz code."""
-        inputs = self._consequences_of.keys()
-        consequences = self._inputs_of.keys()
+        edges = set((input, consequence)
+                    for input, consequences in self._consequences_of.items()
+                    for consequence in consequences)
+        inputs = set(input for input, consequence in edges)
+        consequences = set(consequence for input, consequence in edges)
         lines = ['digraph {', 'graph [rankdir=LR];']
         append = lines.append
 
@@ -91,21 +94,29 @@ class Graph:
                 return '"{}{}"'.format(name, args)
             return '"{}"'.format(task)
 
-        append('{rank=same node [shape=rect penwidth=2 color="#DAB21D"')
-        append('                 style=filled fillcolor="#F4E5AD"]')
+        append('node [shape=rect penwidth=2 color="#DAB21D"')
+        append('      style=filled fillcolor="#F4E5AD"]')
+
+        append('{rank=same')
         for task in try_sorting(inputs - consequences):
             append(node(task))
         append('}')
-        append('{rank=same node [shape=rect penwidth=2 color="#708BA6"')
-        append('                 style=filled fillcolor="#DCE9ED"]')
+
+        append('node [shape=rect penwidth=2 color="#708BA6"')
+        append('      style=filled fillcolor="#DCE9ED"]')
+
+        append('{rank=same')
         for task in try_sorting(consequences - inputs):
             append(node(task))
         append('}')
+
         append('node [shape=oval penwidth=0 style=filled fillcolor="#E8EED2"')
         append('      margin="0.05,0"]')
+
         for task, consequences in self._consequences_of.items():
             for consequence in try_sorting(consequences):
                 append('{} -> {}'.format(node(task), node(consequence)))
+
         append('}')
         return '\n'.join(lines)
 
