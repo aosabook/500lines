@@ -318,8 +318,8 @@ wanted to get down before I forgot them. :)
  ...         return pretty_list(list.__getitem__(self, index))
  ...     def __repr__(self):
  ...         return pformat(list(self))
- >>> graphlib.list = pretty_list
- >>> graphlib.set = pretty_set
+ >>> graphlib.BLAH_list = pretty_list
+ >>> graphlib.BLAH_set = pretty_set
  >>> g = graphlib.Graph()
 
 
@@ -353,7 +353,7 @@ Maybe?
 
 
 >>> g.immediate_consequences_of('index.rst')
-{'index.html'}
+['index.html']
 
 That is simple.  But this is a several-step cascade,
 we have to follow to the bottom:
@@ -361,11 +361,11 @@ we have to follow to the bottom:
 >>> sorted(g.immediate_consequences_of('api.rst'))
 ['api-title', 'api.html']
 >>> g.immediate_consequences_of('api-title')
-{'index.html'}
+['index.html']
 >>> g.immediate_consequences_of('index.html')
-set()
+[]
 >>> g.immediate_consequences_of('api.html')
-set()
+[]
 
 Whenever things change we want to do that, but to be careful of the
 order.  [Ugh - should we even explain?  Maybe just mention for the
@@ -450,7 +450,7 @@ So we have this decorator, which adds a wrapper.
 The project graph knows nothing to begin with.
 
 >>> project.graph.all_tasks()
-set()
+[]
 
 But if we ask it to build:
 
@@ -475,8 +475,8 @@ the Beginners Tutorial first.
 
 Now what does the graph know about?
 
->>> project.graph.all_tasks()
-{(<function parse at 0x...>, ('api.txt',)),
+>>> pprint(project.graph.all_tasks())
+[(<function parse at 0x...>, ('api.txt',)),
  (<function parse at 0x...>, ('index.txt',)),
  (<function parse at 0x...>, ('tutorial.txt',)),
  (<function read at 0x...>, ('api.txt',)),
@@ -486,7 +486,7 @@ Now what does the graph know about?
  (<function render at 0x...>, ('index.txt',)),
  (<function render at 0x...>, ('tutorial.txt',)),
  (<function title_of at 0x...>, ('api.txt',)),
- (<function title_of at 0x...>, ('tutorial.txt',))}
+ (<function title_of at 0x...>, ('tutorial.txt',))]
 
 ..
  >>> open('figure3.dot', 'w').write(project.graph.as_graphviz()) and None
@@ -503,13 +503,13 @@ But can it avoid rebuilding them?
 Look at all the things that need to be rebuilt
 if the tutorial source text is touched.
 
->>> task = read.wrapped, ('tutorial.txt',)
->>> project.graph.recursive_consequences_of([task])
+>>> task = read, ('tutorial.txt',)
+>>> pprint(project.graph.recursive_consequences_of([task]))
 [(<function parse at 0x...>, ('tutorial.txt',)),
+ (<function render at 0x...>, ('tutorial.txt',)),
  (<function title_of at 0x...>, ('tutorial.txt',)),
  (<function render at 0x...>, ('api.txt',)),
- (<function render at 0x...>, ('index.txt',)),
- (<function render at 0x...>, ('tutorial.txt',))]
+ (<function render at 0x...>, ('index.txt',))]
 
 But what if the title did not change?
 As you can see in Figure 3,
@@ -534,7 +534,7 @@ again, because functions are both 1st class objects
 and are also hashable, we can use them as part of keys:
 (f, args) is a completely natural key.
 
->>> task = read.wrapped, ('tutorial.txt',)
+>>> task = read, ('tutorial.txt',)
 >>> project.set(task, """
 ... Beginners Tutorial
 ... ------------------
@@ -542,10 +542,19 @@ and are also hashable, we can use them as part of keys:
 ... introductory paragraph.
 ... """)
 
-.>>> project.start_tracing()
-.>>> project.rebuild()
-.>>> project.stop_tracing()
-.''
+>>> project.start_tracing()
+
+>>> project.rebuild()
+
+>>> print(project.stop_tracing())
+calling parse('tutorial.txt')
+. returning cached read('tutorial.txt')
+calling render('tutorial.txt')
+. returning cached parse('tutorial.txt')
+calling title_of('tutorial.txt')
+. returning cached parse('tutorial.txt')
+returning cached render('api.txt')
+returning cached render('index.txt')
 
 Subtlety
 ========

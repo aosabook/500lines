@@ -6,13 +6,34 @@ from types import FunctionType
 class Graph:
     """A directed graph of the relationships among build tasks.
 
-    A task can be identified by any hashable value that is eligible to
-    be enrolled as a dictionary key.
+    A task can be identified by any hashable value that is eligible for
+    use as a Python dictionary key.  If the user has a preferred order
+    for tasks when the graph is otherwise agnostic about order, they may
+    set the ``sort_key`` attribute to a ``sorted()`` key function.
 
     """
+    sort_key = None
+
     def __init__(self):
         self._inputs_of = defaultdict(set)
         self._consequences_of = defaultdict(set)
+
+    def sorted(self, nodes, reverse=False):
+        """Try sorting `nodes`, else return them in iteration order.
+
+        When possible, many graph methods try to return nodes in a
+        stable order to make testing and display more pleasant.  They
+        use this method to do so, which applies the ``Graph`` object
+        ``sort_key`` to order the nodes.  If sorting cannot succeed,
+        then the nodes are returned in their natural iteration order.
+
+        """
+        nodes = list(nodes)  # grab nodes in one pass, in case it's a generator
+        try:
+            nodes.sort(key=self.sort_key, reverse=reverse)
+        except TypeError:
+            pass
+        return nodes
 
     def add_edge(self, input_task, consequence_task):
         """Add an edge: `consequence_task` uses the output of `input_task`."""
@@ -32,11 +53,11 @@ class Graph:
 
     def all_tasks(self):
         """Return all task identifiers."""
-        return set(self._inputs_of) | set(self._consequences_of)
+        return self.sorted(set(self._inputs_of) | set(self._consequences_of))
 
     def immediate_consequences_of(self, task):
         """Return the tasks that use `task` as an input."""
-        return set(self._consequences_of[task])
+        return self.sorted(set(self._consequences_of[task]))
 
     def recursive_consequences_of(self, tasks, include=False):
         """Return the topologically-sorted consequences of the given `tasks`.
@@ -54,17 +75,22 @@ class Graph:
         be correctly sorted into the resulting sequence.  Otherwise they
         will be omitted.
 
+        If the caller has a preferred order in which nodes should appear
+        when the graph itself is agnostic about order (to stabilize the
+        output for a doctest or a human reader, for example), then they
+        may provide a `sort()` callable.
+
         """
         def visit(task):
             visited.add(task)
             consequences = self._consequences_of[task]
-            for consequence in try_sorting(consequences, reverse=True):
+            for consequence in self.sorted(consequences, reverse=True):
                 if consequence not in visited:
                     yield from visit(consequence)
                     yield consequence
 
         def generate_consequences_backwards():
-            for task in try_sorting(tasks, reverse=True):
+            for task in self.sorted(tasks, reverse=True):
                 yield from visit(task)
                 if include:
                     yield task
@@ -98,7 +124,7 @@ class Graph:
         append('      style=filled fillcolor="#F4E5AD"]')
 
         append('{rank=same')
-        for task in try_sorting(inputs - consequences):
+        for task in self.sorted(inputs - consequences):
             append(node(task))
         append('}')
 
@@ -106,7 +132,7 @@ class Graph:
         append('      style=filled fillcolor="#DCE9ED"]')
 
         append('{rank=same')
-        for task in try_sorting(consequences - inputs):
+        for task in self.sorted(consequences - inputs):
             append(node(task))
         append('}')
 
@@ -114,7 +140,7 @@ class Graph:
         append('      margin="0.05,0"]')
 
         for task, consequences in self._consequences_of.items():
-            for consequence in try_sorting(consequences):
+            for consequence in self.sorted(consequences):
                 append('{} -> {}'.format(node(task), node(consequence)))
 
         append('}')

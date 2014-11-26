@@ -11,6 +11,7 @@ class Project:
 
     def __init__(self):
         self.graph = Graph()
+        self.graph.sort_key = task_key
         self.cache = {}
         self.task_stack = []
         self.todo_list = set()
@@ -66,7 +67,7 @@ class Project:
                 raise ValueError('arguments to project tasks must be immutable'
                                  ' and hashable, not the {}'.format(e))
 
-            task = (task_function, args)
+            task = (wrapper, args)
 
             if self.task_stack:
                 self.graph.add_edge(task, self.task_stack[-1])
@@ -76,6 +77,9 @@ class Project:
             if self.trace is not None:
                 tup = (len(self.task_stack), value is _not_available, task)
                 self.trace.append(tup)
+                if len(self.trace) > 30:
+                    print(self.stop_output())
+                    raise RuntimeError()
 
             if value is _not_available:
                 self.graph.clear_inputs_of(task)
@@ -88,8 +92,6 @@ class Project:
 
             return value
 
-        wrapper.wrapped = task_function
-        wrapper.__lt__ = task_function.__name__.__lt__
         return wrapper
 
     def _get_from_cache(self, task):
@@ -115,7 +117,7 @@ class Project:
         self.todo_list.discard(task)
         if (task not in self.cache) or (self.cache[task] != value):
             self.cache[task] = value
-            self.todo_list |= self.graph.immediate_consequences_of(task)
+            self.todo_list.update(self.graph.immediate_consequences_of(task))
 
     def invalidate(self, task):
         """Mark `task` as requiring re-computation on the next `rebuild()`.
@@ -149,3 +151,10 @@ class Project:
             tasks = self.graph.recursive_consequences_of(self.todo_list, True)
             for function, args in tasks:
                 function(*args)
+
+# Helper functions.
+
+def task_key(task):
+    """Return a sort key for a given task."""
+    function, args = task
+    return function.__name__, args
