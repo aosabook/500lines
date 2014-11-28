@@ -676,13 +676,13 @@ Becomes eventually:
 ````
 ## Connected data
 
-Beyond having lifecycle, data can generate insights. However, extracting good insights is not an easy task. It is the role of the database to ease-up the search for insights process. 
+Beyond having lifecycle, data can generate insights. However, extracting good insights is not an easy task. Therefore, a crucial role of a database to ease-up the search for insights process. 
 
 The first place to look for insights is in the connections between pieces of data. Such connection may be between an entity’s to itself at different times (an evolutionary connection). Another connection may be a reference between two entities. When such connection gets aggregated across the entities in the database, it forms a graph whose nodes are the entities and the edges are the references. In this section we’ll see how to utilizes these connection types and provide mechanisms to extract insights based them.
 
 ### Evolution
 
-In our database, an update operation is done by appending new value (as oppose to overwrite in standard databases). This opens up the possibility of linking two attribute values, in two different times. The way this linking is implemented in our database is by having the attribute hold the timestamp of the previous update. That timestamp points to a layer in which the attribute held the previous value. More than that, we can look at the attribute at that layer, and continue going back in time and look deeper into history, thus observing the how the attribute’s value evolved throughout time.  
+In our database, an update operation is done by appending a new value to an attribute (as oppose to overwrite in standard databases). This opens up the possibility of linking two attribute values, in two different times. The way this linking is implemented in our database is by having the attribute hold the timestamp of the previous update. That timestamp points to a layer in which the attribute held the previous value. More than that, we can look at the attribute at that layer, and continue going back in time and look deeper into history, thus observing the how the attribute’s value evolved throughout time.  
 
 The function *evolution-of* does exactly that, and return a sequence of pairs - each consist of the timestamp and value of an attribute’s update.
 
@@ -695,7 +695,8 @@ The function *evolution-of* does exactly that, and return a sequence of pairs - 
 ````
 ### Graph traversal
 
-The reference connection between entities is created when an entity’s attribute’s type is *:db/ref*, which means that the value of that attribute is an id of another entity. When referring entity is added to the database, the reference is indexed at the VAET index. In that index, the top level items are ids of entries that are referenced to by other entities and at the leafs we can find the referring entities’ ids. This information can be leveraged to extract all the incoming links to an entity and is done in the function *incoming-refs*, which simply collects for the given entity all the leaves that are reachable from it at the VAET index::
+A reference connection between entities is created when an entity’s attribute’s type is *:db/ref*, which means that the value of that attribute is an id of another entity. When a referring entity is added to the database, the reference is indexed at the VAET index. In that index, the top level items (the *V*'s) are ids of entities that are referenced to by other entities.The leaves of this index (the *E*'s) hold the referring entities’ ids. The *Attribute*'s name is captured in the second layer of that index (the *A*'s).  
+The information found in the VAET index can be leveraged to extract all the incoming links to an entity and is done in the function *incoming-refs*, which collects for the given entity all the leaves that are reachable from it at that index:
 
 ````clojure
 (defn incoming-refs [db ts ent-id & ref-names]
@@ -704,7 +705,7 @@ The reference connection between entities is created when an entity’s attribut
          filtered-map (if ref-names (select-keys ref-names all-attr-map) all-attr-map)]
       (reduce into #{} (vals filtered-map))))
 ````
-We can also, for a given entity, go through all of it’s attributes and collect all the values of attribute of type :db/ref, and by that extract all the outgoing references from an entity. This is done at the *outgoing-refs* function 
+We can also, for a given entity, go through all of it’s attributes and collect all the values of attribute of type :db/ref, and by that extract all the outgoing references from that entity. This is done at the *outgoing-refs* function 
 
 ````clojure
 (defn outgoing-refs [db ts ent-id & needed-keys]
@@ -713,11 +714,11 @@ We can also, for a given entity, go through all of it’s attributes and collect
      (->> (entity-at db ts ent-id)
           (:attrs) (val-filter-fn) (filter ref?) (mapcat :value)))))
 ````
-These two functions act as the basic building blocks for any graph traversal operations, as they are the ones that raise the level of abstraction from entities to nodes in graph. These functions can provide either all the refs (either incoming or outgoing) of an entity or a subset of them. This is possible as each ref is an attribute (with a type of :db\ref), so to define a subset of the refs means to define a subset of the attribute names and provide it via the *ref-names* argument of these functions. 
+These two functions act as the basic building blocks for any graph traversal operation, as they are the ones that raise the level of abstraction from entities and attributes to nodes and links in a graph. These functions can provide either all the refs (either incoming or outgoing) of an entity or a subset of them. This is possible as each ref is an attribute (with a type of :db\ref), so to define a subset of the refs means to define a subset of the attribute names and provide it via the *ref-names* argument of these functions. 
 
-On top of providing these two functions, our database also provides the two classical graph traversing algorithms - breadth-first-search and depth-first-search, that start from a given node, and traverse the graph along either the incoming or outgoing references (using either *incoming-refs* or *outgoing-refs* appropriately).
+On top of providing these two building blocks of graph traversal, our database also provides the two classical graph traversing algorithms - breadth-first-search and depth-first-search, that start from a given node, and traverse the graph along either the incoming or outgoing references (using either *incoming-refs* or *outgoing-refs* appropriately).
 
-As these two algorithms have almost identical implementation, they are both implemented in the same function, called *traverse*, and their difference is buffered by the function *traverse-db* that receives as an input which algorithm to use (either :graph/bfs or :graph/dfs) and along which references to walk (either :graph/outgoing or :graph/incoming). 
+As these two algorithms have almost identical implementation, they are both implemented in the same function, called *traverse*, and the difference is mitigated by the function *traverse-db* that receives as an input which algorithm to use (either *:graph/bfs* or *:graph/dfs*) and along which references to walk (either *:graph/outgoing* or *:graph/incoming*). 
 
 ````clojure
 (defn traverse-db 
@@ -728,7 +729,7 @@ As these two algorithms have almost identical implementation, they are both impl
        (traverse [start-ent-id] #{}  
                 (partial explore-fn db ts) (partial entity-at db ts) structure-fn))))
  ````
-The implementation itself of the algorithm is the classical implementation with a minor twist - laziness. The results of the traversal are computed lazily, meaning that the traversal would continue as long as its results are consumed. 
+The implementation itself of the algorithm is the classical implementation with a minor, yet important twist - laziness. The results of the traversal are computed lazily, meaning that the traversal would continue as long as its results are needed.
 
 This is done by having the combination of *cons* and *lazy-seq* wrapping the recursive call at the *traverse* function.
 
@@ -742,7 +743,7 @@ This is done by having the combination of *cons* and *lazy-seq* wrapping the rec
                         (lazy-seq (traverse next-pends (conj explored item) 
                                             exploring-fn ent-at structure-fn))))))
 ````
-This function uses a helper function call *remove-explored* to help preventing re-visits to an already explored entities, its implementation is straightforward - remove from one  list the items in another list and return the result in the right data structure that is required by the algorithm, as can be seen as follows:
+This function uses a helper function call *remove-explored* to help preventing re-visits to an already explored entities, its implementation is straightforward - remove from one list the items in another list and return the result in the right data structure that is required by the algorithm, as can be seen as follows:
 
 ````clojure
 (defn- remove-explored [pendings explored structure-fn]
@@ -750,9 +751,9 @@ This function uses a helper function call *remove-explored* to help preventing r
 ````
 ## Querying the database
 
-Querying is what makes database a database. Without querying all we have is a  storage backed data structure - a software component that provides predefined APIs with an abstraction level that is higher than writing and reading raw data.
+Querying is what makes database a database. Without querying all we have is a storage backed data structure - a software component that provides predefined APIs with an abstraction level that is higher than writing and reading raw data.
 
-In order to query a database, we first need to decide what querying language to use. The first and most important criteria for choosing a querying language is its fit for the database’s data model. For example, the relational data model (i.e., data is described with predefined tables where the columns are the attribute and the rows are the entities), SQL is the natural fit, as it is rooted at relational algebra. 
+To query a database, we first need to decide what querying language to use. The first and most important criteria for choosing a querying language is its fit for the database’s data model. For example, for the relational data model (i.e., data is described with predefined tables where the columns are the attribute and the rows are the entities), SQL is the natural fit, as it is rooted at relational algebra. 
 
 Our data model is based on accumulation of facts (which we call datoms). In our database, the most distilled form of a fact is a triplet containing an entity id, the attribute name and the attribute value (at a given time). For this model, a natural place to look for the query language in at the domain of logic programming. In this domain, a commonly used query language is Datalog, that apart of being well suited for our data model, has a very elegant adaptation to Clojure’s syntax, which was defined as part of the Datomic database (see [http://docs.datomic.com/query.html](http://docs.datomic.com/query.html)). Our query engine will implement a subset of the that adaptation.
 
@@ -781,16 +782,15 @@ A clause is a vector composed of three predicates, each one to operate of a diff
     * Predicate to operate on the attribute-name
     * Predicate to operate on the value
 
-In the example above *[?e  :likes "pizza"]* is a clause.  
+	In the example above *[?e  :likes "pizza"]* is a clause.  
+The role of the *:where* entry in the query is to define rules that are to be used as filters of the datoms in the database.
 
-The role of the *:where* part is to define rules that are to be used as filters of the datoms in the database.
-
-* An entry whose key is *:find* and its value is a vector. That vector defines which parts of the datoms that passed the predicates should be reported and compose the answer of the query (think of the Select statement in an SQL query). 
+* An entry whose key is *:find* and its value is a vector. That vector defines which parts of the datoms that passed all the clauses should be reported and compose the answer of the query (think of the Select statement in an SQL query). 
 This does not includes formatting of the answer - operations such as sorting or grouping are not supported.
 
-The description above is missing a crucial notion, which is how to make different clauses sync on a value (i.e., make a join operation between them), and how to transmit values found at the *:where* part to be reported by the *:find* part. 
+The description above is missing a crucial part, which is how to make different clauses sync on a value (i.e., make a join operation between them), and how to transmit values found at the *:where* part to be reported by the *:find* part. 
 
-These two kinds of links are done using variables. 
+These two kinds of agreements (between clauses and between *:where* and *:find* parts) are done using variables. 
 
 A variable’s syntax is defined as a symbol that starts with *‘?’* (e.g., *?e* in the example above), also there is a special variable, which is the "dont-care" variable and is identified using *‘_’*. (underscore). To understand whether something is a variable or not we have our *variable?* predicate. This predicate was implemented as a function that accepts strings and not as a macro that accepts symbols to allow us to use it as a higher order function, and more specifically, to be sent as an argument to another function: 
 
