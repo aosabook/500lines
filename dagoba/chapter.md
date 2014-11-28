@@ -123,7 +123,7 @@ Dagoba.G.addVertex = function(vertex) {                 // accepts a vertex-like
   if(!vertex._id)
     vertex._id = this.autoid++
   else if(this.findVertexById(vertex._id))
-    return Dagoba.onError('A vertex with that id already exists')
+    return Dagoba.error('A vertex with that id already exists')
     
   this.vertices.push(vertex)
   this.vertexIndex[vertex._id] = vertex                 // a fancy index thing
@@ -142,7 +142,7 @@ Dagoba.G.addEdge = function(edge) {                     // accepts an edge-like 
   edge._out = this.findVertexById(edge._out)
   
   if(!(edge._in && edge._out)) 
-    return Dagoba.onError("That edge's " + (edge._in ? 'out' : 'in') + " vertex wasn't found")
+    return Dagoba.error("That edge's " + (edge._in ? 'out' : 'in') + " vertex wasn't found")
   
   edge._out._out.push(edge)                             // add edge to the edge's out vertex's out edges
   edge._in._in.push(edge)                               // vice versa
@@ -164,7 +164,7 @@ Without vertexIndex we'd have to go through each vertex in our list one at a tim
 Then we reject the edge if it's missing either vertex. We'll use a helper function to log an error when this happens, so we can override its behavior on a per-application basis.
 
 ```javascript
-Dagoba.onError = function(msg) {
+Dagoba.error = function(msg) {
   return console.log(msg) && false
 }
 ```
@@ -311,7 +311,7 @@ Dagoba.getPipetype = function(name) {
   var pipetype = Dagoba.PipeTypes[name]                 // a pipe type is just a function 
 
   if(!pipetype)                                         // most likely this actually results in a TypeError
-    Dagoba.onError('Unrecognized pipe type: ' + name)   // but if you do make it here you get a nice message
+    Dagoba.error('Unrecognized pipe type: ' + name)   // but if you do make it here you get a nice message
 
   return pipetype || Dagoba.fauxPipetype
 }
@@ -324,8 +324,130 @@ Dagoba.fauxPipetype = function(_, _, maybe_gremlin) {   // if you can't find a p
 See those underscores? We use those to label params that won't be used in our function. Most other pipetypes will use all three params. We really only did this here to make the comments line up nicely.
 
 
-----
+Let's introduce our cast of characters.
 
+#### El vertex
+
+Most of the pipetypes we will meet take gremlins as their input, but this special pipetype generates new ones. Given a vertex id it will create a new gremlin on that vertex, if it exists. 
+
+You can also give it a query, and it will find all matching vertices. It creates one new gremlin at a time until it's worked through all of them. We'll look at the findVertices function a little later.
+
+```javascript
+Dagoba.addPipeType('vertex', function(graph, args, gremlin, state) {
+  if(!state.vertices) 
+    state.vertices = graph.findVertices(args)           // state initialization
+
+  if(!state.vertices.length)                            // all done
+    return 'done'
+
+  var vertex = state.vertices.pop()                     // OPT: this relies on cloning the vertices
+  return Dagoba.makeGremlin(vertex, gremlin.state)      // we can have incoming gremlins from as/back queries
+})
+```
+
+We first check to see if we've already gathered matching vertices. If not then we use findVertices to try to find some. 
+
+Note that we're directly mutating the state argument here, and not passing it back. An alternative would be to return an object instead of a gremlin or signal, and pass state back that way. If JS allowed multiple return values it would make this option more elegant. 
+
+We would still need to find a way to deal with the mutations, though, as the call site still has a reference to the original variable. Linear types would solve this by automatically taking the reference out of scope when the pipetype is called. Then we would assign it again in the call site's scope once the pipetype function returned its new version of the scope object. 
+
+Linear types would allow us to avoid expensive copy-on-write schemes or complicated persistent data structures, while still retaining the benefits of immutability -- in this case, avoiding spooky action at a distance. Two references to the same mutable data structure act like a pair of walkie-talkies, allowing whoever holds them to communicate directly. Those walkie-talkies can be passed around from function to function, and cloned to create a whole set of walkie-talkies. This completely subverts the natural communication channels your code already possesses. In a system with no concurrency you can sometimes get away with it, but introduce multithreading or asynchronous behavior and all those walkie-talkies squawking can really be a drag. 
+
+JS lacks linear types, but we can get the same effect if we're really, really disciplined. Which we will be. For now.
+
+NOTE: see // state note below: keeping it in the driver loop aids instrumentation & debugging (& cloning), cuts down on per-pipe garbage, and keeps the pipetype functions "pure" in the sense that they don't keep local state, are referentially transparent [ish] and don't cause effects [ish].
+
+TODO: discuss OPT note
+TODO: discuss incoming gremlins note
+
+
+#### In-N-Out
+
+Walking the graph is as easy as ordering a burger. These two lines set up the 'in' and 'out' pipetypes for us.
+
+```javascript
+Dagoba.addPipeType('out', Dagoba.simpleTraversal('out'))
+Dagoba.addPipeType('in',  Dagoba.simpleTraversal('in'))
+```
+
+The simpleTraversal function returns a pipetype handler that accepts a gremlin as its input, and then spawns a new gremlin each time it's queried. When it's out of gremlins it sending back a 'pull' request to get a new gremlin from its predecessor. 
+
+```javascript
+Dagoba.simpleTraversal = function(dir) {
+  var find_method = dir == 'out' ? 'findOutEdges' : 'findInEdges'
+  var edge_list   = dir == 'out' ? '_in' : '_out'
+  
+  return function(graph, args, gremlin, state) {
+    if(!gremlin && (!state.edges || !state.edges.length))         // query initialization
+      return 'pull'
+  
+    if(!state.edges || !state.edges.length) {                     // state initialization
+      state.gremlin = gremlin
+      state.edges = graph[find_method](gremlin.vertex)             // get edges that match our query
+                         .filter(Dagoba.filterEdges(args[0]))
+    }
+
+    if(!state.edges.length)                                       // all done
+      return 'pull'
+
+    var vertex = state.edges.pop()[edge_list]                     // use up an edge
+    return Dagoba.gotoVertex(state.gremlin, vertex)
+  }
+}
+```
+
+The first couple lines handle the differences between the in version and the out version. Then we're ready to return our pipetype function, which looks quite a bit like the vertex pipetype we just saw. That's a little surprising, since this one takes in a gremlin whereas the vertex pipetype creates gremlins ex nihilo.
+
+But we can see the same beats being hit here, with the addition of a query initialization step. If there's no gremlin and we're out of available edges then we pull. If we have a gremlin but haven't yet set state then we find any edges going the appropriate direction and add them to our state. If there's a gremlin but its current vertex has no appropriate edges then we pull. And finally we pop off an edge and return a freshly cloned gremlin on the vertex to which it points.
+
+Glancing at this code we see ```!state.edges.length``` repeated in each of the three clauses. It's tempting to refactor this to reduce the complexity of those conditionals. There are two issues keeping us from doing so. One is relatively minor: the third ```!state.edges.length``` means something different than the first two, since ```state.edges``` has been changed between the second and third conditional. This actually encourages us to refactor, because having the same label mean two different things inside a single function usually isn't ideal.
+
+But this isn't the only pipetype function we're writing, and we'll see these ideas of query initialization and/or state initialization repeated over and over. There's always a balancing act when writing code between structural attributes and unstructured qualities. Too much structure and you pay a high cost in boilerplate and abstraction complexity. Too little structure and you'll have to keep all the plumbing minutia in your head.
+
+In this case, with a dozen or so pipetypes, the right choice seems to be to style each of the pipetype functions as similarly as possible, and label the constituent pieces with comments. So we resist our impulse to refactor this particular pipetype, because doing so would reduce uniformity, but we also resist the urge to engineer a formal structural abstraction for query initialization, state initialization, and the like. If there were hundreds of pipetypes that latter choice would likely be the right one -- the complexity cost of the abstraction is constant, while the benefit accrues linearly with the number of units. When handling that many moving pieces anything you can do to enforce regularity among them is helpful.
+
+
+#### Property
+
+Let's pause for a moment to consider an example query based on the three pipetypes we've seen. We can ask for Thor's grandfathers like this: ```g.v('Thor').in('father').in('father').run()```. But what if we wanted their names? [Have we mentioned run() yet?]
+
+We could put a map on the end of that:
+```g.v('Thor').in('father').in('father').run().map(function(vertex) {return vertex.name})```
+
+But this is a common enough operation that we'd prefer to write something more like:
+```g.v('Thor').in('father').in('father').property('name').run()```
+
+Plus this way the property pipe is an integral part of the query, instead of something appended after. This has some interesting benefits, as we'll soon see.
+
+```javascript
+Dagoba.addPipeType('property', function(graph, args, gremlin, state) {
+  if(!gremlin) return 'pull'                            // query initialization
+  gremlin.result = gremlin.vertex[args[0]]
+  return gremlin.result == null ? false : gremlin       // undefined or null properties kill the gremlin
+})
+```
+
+Our query initialization here is trivial: if there's no gremlin, we pull. If there is a gremlin, we'll set its result to the property's value. Then the gremlin can continue onward. If it makes it through the last pipe its result will be collected and returned from the query. [Gremlins without a result value return the last vertex they visited.]
+
+Note that if the property doesn't exit we return false instead of the gremlin, so property pipes also act as a type of filter. Can you think of a use for this? What are the tradeoffs in this design decision? 
+
+
+#### Unique
+
+
+
+```javascript
+Dagoba.addPipeType('unique', function(graph, args, gremlin, state) {
+  if(!gremlin) return 'pull'                            // query initialization
+  if(state[gremlin.vertex._id]) return 'pull'           // we've seen this gremlin, so get another instead
+  state[gremlin.vertex._id] = true
+  return gremlin
+})
+```
+
+
+
+----
 
 
 
