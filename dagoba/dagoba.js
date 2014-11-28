@@ -45,8 +45,8 @@ Dagoba.graph = function(V, E) {                                   // the factory
   graph.vertices    = []
   graph.vertexIndex = {}
   graph.autoid = 1                                                // an auto-incrementing id counter
-  if(V && Array.isArray(V)) graph.addVertices(V)                  // arrays only, because you wouldn't
-  if(E && Array.isArray(E)) graph.addEdges(E)                     // call this with singular V and E
+  if(Array.isArray(V)) graph.addVertices(V)                       // arrays only, because you wouldn't
+  if(Array.isArray(E)) graph.addEdges(E)                          // call this with singular V and E
   return graph
 }
 
@@ -60,10 +60,10 @@ Dagoba.G.addVertex = function(vertex) {                           // accepts a v
   if(!vertex._id)
     vertex._id = this.autoid++
   else if(this.findVertexById(vertex._id))
-    return Dagoba.onError('A vertex with that id already exists')
+    return Dagoba.error('A vertex with that id already exists')
     
   this.vertices.push(vertex)
-  this.vertexIndex[vertex._id] = vertex                           // a fancy index thing
+  this.vertexIndex[vertex._id] = vertex
   vertex._out = []; vertex._in = []                               // placeholders for edge pointers
   return vertex._id
 }
@@ -73,7 +73,7 @@ Dagoba.G.addEdge = function(edge) {                               // accepts an 
   edge._out = this.findVertexById(edge._out)
   
   if(!(edge._in && edge._out)) 
-    return Dagoba.onError("That edge's " + (edge._in ? 'out' : 'in') + " vertex wasn't found")
+    return Dagoba.error("That edge's " + (edge._in ? 'out' : 'in') + " vertex wasn't found")
     
   edge._out._out.push(edge)                                       // add edge to the edge's out vertex's out edges
   edge._in._in.push(edge)                                         // vice versa
@@ -166,12 +166,6 @@ Dagoba.query = function(graph) {                                  // factory (on
   return query
 }
 
-Dagoba.Q.add = function(pipetype, args) {                         // add a new step to the query
-  var step = [pipetype, args]
-  this.program.push(step)                                         // step is an array: first the pipe type, then its args
-  return this
-}
-
 Dagoba.Q.run = function() {                                       // our virtual machine for query processing
 
   var max = this.program.length - 1                               // last step in the program
@@ -224,6 +218,12 @@ Dagoba.Q.run = function() {                                       // our virtual
 }
 
 
+Dagoba.Q.add = function(pipetype, args) {                         // add a new step to the query
+  var step = [pipetype, args]
+  this.program.push(step)                                         // step is an array: first the pipe type, then its args
+  return this
+}
+
 Dagoba.PipeTypes = {}                                             // every pipe has a type
 
 Dagoba.addPipeType = function(name, fun) {                        // adds a new method to our query object
@@ -236,7 +236,7 @@ Dagoba.getPipetype = function(name) {
   var pipetype = Dagoba.PipeTypes[name]                           // a pipe type is just a function 
 
   if(!pipetype)                                                   // most likely this actually results in a TypeError
-    Dagoba.onError('Unrecognized pipe type: ' + name)             // but if you do make it here you get a nice message
+    Dagoba.error('Unrecognized pipe type: ' + name)               // but if you do make it here you get a nice message
 
   return pipetype || Dagoba.fauxPipetype
 }
@@ -250,7 +250,7 @@ Dagoba.fauxPipetype = function(graph, args, maybe_gremlin) {      // if you can'
 
 Dagoba.addPipeType('vertex', function(graph, args, gremlin, state) {
   if(!state.vertices) 
-    state.vertices = graph.findVertices(args)                     // our findVertices function is quite general
+    state.vertices = graph.findVertices(args)                     // state initialization
 
   if(!state.vertices.length)                                      // all done
     return 'done'
@@ -260,8 +260,8 @@ Dagoba.addPipeType('vertex', function(graph, args, gremlin, state) {
 })
 
 Dagoba.simpleTraversal = function(dir) {                          // handles basic in and out pipetypes
-  var findMethod = dir == 'out' ? 'findOutEdges' : 'findInEdges'
-  var edgeList   = dir == 'out' ? '_in' : '_out'
+  var find_method = dir == 'out' ? 'findOutEdges' : 'findInEdges'
+  var edge_list   = dir == 'out' ? '_in' : '_out'
   
   return function(graph, args, gremlin, state) {
     if(!gremlin && (!state.edges || !state.edges.length))         // query initialization
@@ -269,14 +269,14 @@ Dagoba.simpleTraversal = function(dir) {                          // handles bas
   
     if(!state.edges || !state.edges.length) {                     // state initialization
       state.gremlin = gremlin
-      state.edges = graph[findMethod](gremlin.vertex)             // this just gets edges that match our query
+      state.edges = graph[find_method](gremlin.vertex)            // get edges that match our query
                          .filter(Dagoba.filterEdges(args[0]))
     }
 
     if(!state.edges.length)                                       // all done
       return 'pull'
 
-    var vertex = state.edges.pop()[edgeList]                      // use up an edge
+    var vertex = state.edges.pop()[edge_list]                     // use up an edge
     return Dagoba.gotoVertex(state.gremlin, vertex)
   }
 }
@@ -362,7 +362,7 @@ Dagoba.addPipeType('property', function(graph, args, gremlin, state) {
   gremlin.result = gremlin.vertex[args[0]]
   return gremlin.result == null ? false : gremlin                 // undefined or null properties kill the gremlin
 })
-
+  
 Dagoba.addPipeType('unique', function(graph, args, gremlin, state) {
   if(!gremlin) return 'pull'                                      // query initialization
   if(state[gremlin.vertex._id]) return 'pull'                     // we've seen this gremlin, so get another instead
@@ -374,7 +374,7 @@ Dagoba.addPipeType('filter', function(graph, args, gremlin, state) {
   if(!gremlin) return 'pull'                                      // query initialization
 
   if(typeof args[0] != 'function') {
-    Dagoba.onError('Filter arg is not a function: ' + args[0]) 
+    Dagoba.error('Filter arg is not a function: ' + args[0]) 
     return gremlin                                                // keep things moving
   }
 
@@ -453,21 +453,21 @@ Dagoba.objectFilter = function(thing, filter) {                   // thing has t
   return true 
 }
 
-Dagoba.cleanvertex = function(key, value) {                       // for JSON.stringify
+Dagoba.cleanVertex = function(key, value) {                       // for JSON.stringify
   return (key == '_in' || key == '_out') ? undefined : value 
 }
     
-Dagoba.cleanedge = function(key, value) {
+Dagoba.cleanEdge = function(key, value) {
   return (key == '_in' || key == '_out') ? value._id : value 
 }
 
 Dagoba.jsonify = function(graph) {                                // kids, don't hand code JSON
-  return '{"V":' + JSON.stringify(graph.vertices, Dagoba.cleanvertex)
-       + ',"E":' + JSON.stringify(graph.edges,    Dagoba.cleanedge)
+  return '{"V":' + JSON.stringify(graph.vertices, Dagoba.cleanVertex)
+       + ',"E":' + JSON.stringify(graph.edges,    Dagoba.cleanEdge)
        + '}' 
 }
 
-Dagoba.onError = function(msg) {
+Dagoba.error = function(msg) {
   console.log(msg)
   return false 
 }
@@ -507,3 +507,9 @@ Dagoba.onError = function(msg) {
 // q = x.take(1)
 // y = x.take(10)
 // and it will do what you want instead of exploding.
+
+// or....
+// x = g.v(1).out().out()
+// y = D.clone(x).take(1)
+// x.take(1).run()
+// y.run() // same answer
