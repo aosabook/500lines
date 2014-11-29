@@ -65,7 +65,7 @@ def neighbours_idle(data, perm, size=4):
 
     for i in range(len(data)):
         finish_time = sol[-1][i] + data[perm[i]][-1]
-        idle_time = (finish_time - sol[0][i]) - sum([time for time in data[perm[i]]])
+        idle_time = (finish_time - sol[0][i]) - sum([t for t in data[perm[i]]])
         results.append((idle_time, i))
 
     # Take the <size> most idle jobs

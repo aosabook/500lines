@@ -36,7 +36,7 @@ def initialize_strategies():
     global STRATEGIES
 
     # Define the neighbourhoods (and parameters) we would like to use
-    NEIGHBOURHOODS = [
+    neighbourhoods = [
         ('Random Permutation', partial(neigh.neighbours_random, num=100)),
         ('Swapped Pairs', neigh.neighbours_swap),
         ('Large Neighbourhood Search (2)', partial(neigh.neighbours_LNS, size=2)),
@@ -47,14 +47,14 @@ def initialize_strategies():
     ]
 
     # Define the heuristics we would like to use
-    HEURISTICS = [
+    heuristics = [
         ('Hill Climbing', heur.heur_hillclimbing),
         ('Random Selection', heur.heur_random),
         ('Biased Random Selection', heur.heur_random_hillclimbing)
     ]
 
     # Combine every neighbourhood and heuristic strategy
-    for (n, h) in product(NEIGHBOURHOODS, HEURISTICS):
+    for (n, h) in product(neighbourhoods, heuristics):
         STRATEGIES.append(Strategy("%s / %s" % (n[0], h[0]), n[1], h[1]))
 
 
@@ -238,8 +238,8 @@ def compile_solution(data, perm):
 
     num_machines = len(data[0])
 
-    # Note that using [[]] * range(k) would be incorrect, as it would simply
-    #  copy the same list k times (as opposed to creating k distinct lists).
+    # Note that using [[]] * m would be incorrect, as it would simply
+    #  copy the same list m times (as opposed to creating m distinct lists).
     machine_times = [[] for _ in range(num_machines)]
 
     # Assign the initial job to the machines
