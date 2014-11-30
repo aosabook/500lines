@@ -294,6 +294,8 @@ So now we have a bunch of machinery in place in case we need it later. Let's fin
 }
 ```
 
+[program counter is like a head that moves forward or backward. it's a kind of turing machine. it reads the current entry, possibly changing it (the state), and then moves either forward or backward. very simple.]
+
 Ah, much better! Now we see where it all fits in. That makes perfect sense!
 
 Let's move on to something very intriguing: the pipetypes. 
@@ -434,7 +436,9 @@ Note that if the property doesn't exit we return false instead of the gremlin, s
 
 #### Unique
 
+If we want to collect all of Thor's grandparents' grandchildren -- his cousins, his siblings, and himself -- we could do a query like this: ```g.v('Thor').in().in().out().out().run()```. That would give us many duplicates, however. In fact there would be at least four copies of Thor himself. (Can you think of a time when there might be more?)
 
+To resolve this we introduce a new pipetype called 'unique'. Our new query ```g.v('Thor').in().in().out().out().unique().run()``` produces output in one-to-one correspondence with the grandchildren.
 
 ```javascript
 Dagoba.addPipeType('unique', function(graph, args, gremlin, state) {
@@ -444,6 +448,217 @@ Dagoba.addPipeType('unique', function(graph, args, gremlin, state) {
   return gremlin
 })
 ```
+
+A unique pipe is purely a filter: it either passes the gremlin through unchanged or it tries to pull a new gremlin from the previous pipe. 
+
+We initialize by trying to collect a gremlin. If the gremlin's current vertex is in our cache, then we've seen it before so we try to collect a new one. Otherwise, we add the gremlin's current vertex to our cache and pass it along. Easy peasy.
+
+
+#### Filter
+
+We've seen two simplistic ways of filtering, but sometimes we need more elaborate constraints. What if we wanted Thor's siblings whose weight in skippund is greater than their height in fathoms? This query would give us our answer: ```g.v('Thor').in().out().unique().filter(function(asgardian) {return asgardian.weight > asgardian.height}).run()```
+
+[Æsir?] [depending on the density of asgardian flesh this may return many results, or none at all]
+
+```javascript
+Dagoba.addPipeType('filter', function(graph, args, gremlin, state) {
+  if(!gremlin) return 'pull'                            // query initialization
+
+  if(typeof args[0] != 'function') {
+    Dagoba.error('Filter is not a function: ' + args[0]) 
+    return gremlin                                      // keep things moving
+  }
+
+  if(!args[0](gremlin.vertex, gremlin)) return 'pull'   // gremlin fails filter function 
+  return gremlin
+})
+```
+
+If the filter's first argument is not a function we trigger an error, and then pass the gremlin along. Pause for a minute, and consider the alternatives. Why would we decide to continue the query once an error is encountered?
+
+There are two possibilities for this error to arise. The first involves the user typing in queries, either in a REPL or in code they're actively working on. When that query is run it will produce results, but also generate an error. The user then corrects the error to filter down the set of results produced. The alternative approach for this use case would be to display the error produce and produce no results. Which of those you prefer is mostly personal preference.
+
+The second possibility is that the filter is being applied dynamically at run time. This is a much more important case, because the person invoking the query is not necessarily the author of the query code. Because this is on the web, our default rule is to always show as much as we can, and never break things. It is usually preferable to soldier on in the face of grave tribulations rather than succumb to our wounds and present the user with a grisly error message.
+
+For those rare occasions when showing too few results is better than showing too many, Dagoba.error can be overridden to throw an error, circumventing the natural control flow and generally breaking things. This is the path of pedants, and typically results in a horrible user experience. If you are launching missiles you should like some pedants on your team. 
+
+
+#### Take
+
+We don't always want all the results at once. Sometimes we only need a handful of results: we want a dozen of Thor's contemporaries, going all the way back to the primeval cow Auðumbla: 
+
+```
+g.v('Thor').in().in().in().in().out().out().out().out().unique().take(12).run()
+```
+
+Without the take pipe that query could take quite a while to run [have we talked about laziness yet?].
+
+Sometimes we just want one at a time: we'll process the result, work with it, and then come back for another one. This pipetype allows us to do that as well.
+
+```
+q = g.v('Auðumbla').out().out().take(1)
+x1 = q.run()
+x2 = q.run()
+```
+
+```javascript
+Dagoba.addPipeType('take', function(graph, args, gremlin, state) {
+  state.taken = state.taken || 0                        // state initialization
+  
+  if(state.taken == args[0]) {
+    state.taken = 0
+    return 'done'                                       // all done
+  }
+  
+  if(!gremlin) return 'pull'                            // query initialization
+  state.taken++
+  return gremlin
+})
+
+We initialize ```state.taken``` to zero if it doesn't already exist. JavaScript has implicit coercion, but coerces ```undefined``` into ```NaN```, so we have to be explicit here. 
+
+The when ```state.taken``` reaches ```args[0]``` we return 'done', sealing off the pipes before us. We also reset the ```state.taken``` counter, allowing us to repeat the query later.
+
+We do those two steps before query initialization to handle the cases of ```take(0)``` and ```take()```, which return no results. [double check this]. Then we increment our counter and return the gremlin.
+
+
+#### As
+
+These next three pipetypes work as a group to allow more advanced queries. This one just allows you to label the current vertex. We'll use that label with the next two pipetypes.
+
+```javascript
+Dagoba.addPipeType('as', function(graph, args, gremlin, state) {
+  if(!gremlin) return 'pull'                            // query initialization
+  gremlin.state.as = gremlin.state.as || {}             // initialize gremlin's 'as' state
+  gremlin.state.as[args[0]] = gremlin.vertex            // set label to the current vertex
+  return gremlin
+})
+```
+
+After initializing the query, we then ensure the gremlin's local state has an 'as' parameter. Then we set a property of that parameter to the gremlin's current vertex.
+
+[Have we talked about gremlin local state yet?]
+
+
+#### Except
+
+We've already seen cases where we would like to say "Give me all of Thor's siblings who are not Thor". We can do that with a filter:
+
+```g.v('Thor').in().out().unique().filter(function(asgardian) {return asgardian.name != 'Thor'}).run()```
+[Test this]
+
+It's more straightforward with 'as' and 'except':
+
+```g.v('Thor').as('me').in().out().except('me').unique().run()```
+
+But there are also queries that would be very difficult to try to filter. What if we wanted Thor's uncles and aunts? How would we filter out his parents? It's easy with 'as' and 'except':
+
+```g.v('Thor').in().as('parent').in().out().out().except('parent').unique().run()```
+[Test this... it doesn't actually work quite like that. If DAG not tree then this breaks. Better example?]
+[How would you get 'pure' uncles and aunts instead of half-uncles and step-aunts? and the pure u/a's current SOs?]
+
+```javascript
+Dagoba.addPipeType('except', function(graph, args, gremlin, state) {
+  if(!gremlin) return 'pull'                            // query initialization
+  if(gremlin.vertex == gremlin.state.as[args[0]]) return 'pull'
+  return gremlin
+})
+```
+
+Here we're just checking whether the current vertex is equal to the one we stored previously. If it is, we skip it.
+
+
+#### Back
+
+Some of the questions we might ask involve checking further into the graph, only to return later to our point of origin if the answer is in the affirmative. Suppose we wanted to know which of Freya's daughters had children with one of Odin's sons? 
+
+```g.v('Freya').out('daughter').as('me').out().in('father').in('father').filter(function(asgardian) {return asgardian == 'Odin'}).back('me').unique().run()```
+[Test this]
+
+```javascript
+Dagoba.addPipeType('back', function(graph, args, gremlin, state) {
+  if(!gremlin) return 'pull'                            // query initialization
+  return Dagoba.gotoVertex(gremlin, gremlin.state.as[args[0]])
+})
+```
+
+We're using the ```Dagoba.gotoVertex``` helper function to do all real work. Let's check a look at that.
+
+```javascript
+Dagoba.gotoVertex = function(gremlin, vertex) {         // clone the gremlin 
+  return Dagoba.makeGremlin(vertex, gremlin.state)      // THINK: add path tracking here?
+}
+```
+
+So sending a gremlin some place is pretty simple. How do we make a new gremlin from an old one?
+
+```javascript
+Dagoba.makeGremlin = function(vertex, state) {          // gremlins are simple creatures: 
+  return {vertex: vertex, state: state || {} }          // a current vertex, and some state
+}
+```
+
+Nice.
+
+
+### Filtering
+
+```javascript
+Dagoba.filterEdges = function(filter) {
+  return function(edge) {
+    if(!filter)                                         // if there's no filter, everything is valid
+      return true
+
+    if(filter+'' === filter)                            // if the filter is a string, the label must match
+      return edge._label == filter
+
+    if(Array.isArray(filter))                           // if the filter is an array, the label must be in it
+      return !!~filter.indexOf(edge._label)
+
+    return Dagoba.objectFilter(edge, filter)            // try the filter as an object
+  }
+}
+```
+
+```javascript
+Dagoba.objectFilter = function(thing, filter) {         // thing has to match all of filter's properties
+  for(var key in filter)
+    if(thing[key] != filter[key])
+      return false
+  
+  return true 
+}
+```
+
+
+### Serialization
+
+
+```javascript
+Dagoba.jsonify = function(graph) {
+  return '{"V":' + JSON.stringify(graph.vertices, Dagoba.cleanVertex)
+       + ',"E":' + JSON.stringify(graph.edges,    Dagoba.cleanEdge)
+       + '}' 
+}
+```
+
+```javascript
+Dagoba.cleanVertex = function(key, value) {
+  return (key == '_in' || key == '_out') ? undefined : value 
+}
+```
+
+```javascript   
+Dagoba.cleanEdge = function(key, value) {
+  return (key == '_in' || key == '_out') ? value._id : value 
+}
+```
+
+
+### Storage
+
+[add store/restore aka localStorage]
+
 
 
 
