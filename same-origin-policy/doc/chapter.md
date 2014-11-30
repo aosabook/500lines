@@ -744,7 +744,6 @@ has a XSS vulnerability, then an attacker would be able to read/write the DOM
 of these other pages while in a situation in which the domain mechanism is not
 used, it wouldn't.
 
-
 ### JSON with Padding (JSONP)
 
 Before the introduction of CORS (which we will discuss shortly), JSONP was perhaps the most popular technique for bypassing the SOP restriction on XMLHttpRequest, and still remains widely used today. JSONP takes advantage of the fact that script inclusion tags in HTML (i.e., `<script>`) are exempt from the SOP; that is, you can include a script from _any_ URL, and the browser readily executes it in the current document:
@@ -835,7 +834,6 @@ malcious data as its argument, which could lead to further security
 consequences.
 
 ![jsonp-instance-2](fig-jsonp-2.png)
-![jsonp-instance-3](fig-jsonp-3.png)
 
 ### PostMessage
 
@@ -887,14 +885,32 @@ an XSS attack).
 ![postmessage-instance-1](fig-postmessage-1.png)
 ![postmessage-instance-2](fig-postmessage-2.png)
 
-### CORS: Cross-Origin Resource Sharing
+### Cross-Origin Resource Sharing (CORS)
 
-The CORS mechanism for bypassing the SOP works by having the browser and server
-communicate through new HTTP headers to determine whether some non-same-origin
-request should be allowed to happen or not.
+Cross-Origin Resource Sharing (CORS) is a mechanism designed to allow
+a server to share its resources with sites from different origins. In
+particular, CORS can be used by a script from one origin to make
+requests to a server with a different origin, effectively bypassing
+the restriction of the SOP on cross-origin Ajax requests. 
 
-We model a CORS request as a special kind of `XmlHttpRequest` which additionally
-contains two extra fields `origin` and `allowedOrigins`:
+Briefly, a typical CORS process involves two steps: (1) a script
+wanting to access a resource from a foreign server includes, in its
+request, an "Origin" header that specifies the origin of the script,
+and (2) the server includes an "Access-Control-Allow-Origin" header as
+part of its response, indicating a set of origins that are allowed to
+access the server's resource. Normally, without CORS, a browser would
+prevent the script from making a cross-origin request in the first
+place, conforming to the SOP. However, with CORS enabled, the browser
+allows the script to send the request and access its response, but
+_only if_ "Origin" is one of the origins specified in
+"Access-Control-Allow-Origin".
+
+(CORS additionally includes a notion of _preflighted_ requests to
+support complex types of cross-origin requests besides GETs and POSTs,
+but we will omit its discussion in this chapter.)
+
+In Alloy, we model a CORS request as a special kind of
+`XmlHttpRequest`, with two extra fields `origin` and `allowedOrigins`:
 
 ```alloy
 sig CorsRequest in XmlHttpRequest {
@@ -907,13 +923,7 @@ sig CorsRequest in XmlHttpRequest {
 }
 ```
 
-These correspond to the "Origin" and "Access-Control-Allow-Origin" header
-fields. `Origin` goes in the *request* header and
-corresponds to the domain that served the page issuing the request and
-`Access-Control-Allow-Origin` goes in the *response* header and indicates what
-origin sites are allowed. 
-
-The `corsRule` fact captures when a CORS request succeeds:
+We then use an Alloy fact `corsRule` to describe what constitutes a valid CORS reuqest:
 
 ```alloy
 fact corsRule {
@@ -926,26 +936,38 @@ fact corsRule {
 }
 ```
 
-Basically, when the request origin is in the allowed origins list of the server.
+Namely, a CORS request is valid if and only if `origin` correctly captures the actual origin of the script, and `origin` belongs to the set of origins that are deemed "allowed" by the server.
 
-The most common mistake developers do with CORS, is to use the wildcard value
-`*` as the list of allowed origins. This allows any site to make a request to
-the page and read the response. (In our model, using the wildcard value is
-equivalent to having all origins of the generated instance in the
-`allowedOrigins` set.) For example, in the following instance generated from
-Alloy, a malicious script sends a CORS request to a trusted server which returns
-a critical piece of data (violating the confidentiality property). Even though
-the malicious script is executing with a different origin, the CORS request
-succeeds because the origin is in the `allowedOrigins` set:
+One common mistake that developers make with CORS is to use the
+wildcard value "\*" as the value of "access-control-allow-origin"
+header, allowing any site to access a resource on the server. This
+access pattern is appropriate if the resource is considered public and
+accessible to anyone; however, it turns out that many sites use "\*"
+as the default value even for private resources, inadvertently
+allowing malicious scripts to access them through CORS requests [cite
+CORS study].
 
-![cors-confidentiality](fig-cors-confidentiality.png) 
+In our model, the wildcard value can be represented as
+`allowedOrigins` containing to the set of all `Origin` objects in the
+universe:
 
-You should always limit the list of allowed origins to those that are strictly
-necessary.
+```alloy 
+some r : CorsRequest | r.allowedOrigins = Origin 
+```
 
-Another common mistake is putting too much trust on the `origin` header. What if
-a CORS request is not sent by a browser but instead crafted by a malicious user
-which intentionally sets the `origin` header to something else?
+The developer of the calendar application decides to share some of its resources with other applications by using the CORS mechanism. Unfortunately, `CalendarServer` is configured to always return "\*" as the value of the `access-control-allow-origin` header in CORS responses, exposing sensitive information (`MySchedule`) to a larger part of the web than the developer might have intended:
+
+![cors-confidentiality](fig-cors.png) 
+
+At this point, you may be thinking: "Clearly, this is a careless
+mistake that can be easily avoided. Why didn't the developer restrict
+the list of allowed origins to those that are meant to access
+resources? The value "\*" should never be used!" However, coming up
+with a suitable list of allowed origins is not always straightforward,
+because it may not be possible to predict which origins will need
+legimitiate access to the CORS resources at deployment time (imagine a
+service that allows 3rd-party apps to dynamically subscribe to its
+resources).
 
 ## Conclusion
 
