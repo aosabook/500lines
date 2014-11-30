@@ -514,6 +514,7 @@ Dagoba.addPipeType('take', function(graph, args, gremlin, state) {
   state.taken++
   return gremlin
 })
+```
 
 We initialize ```state.taken``` to zero if it doesn't already exist. JavaScript has implicit coercion, but coerces ```undefined``` into ```NaN```, so we have to be explicit here. 
 
@@ -549,7 +550,9 @@ We've already seen cases where we would like to say "Give me all of Thor's sibli
 
 It's more straightforward with 'as' and 'except':
 
-```g.v('Thor').as('me').in().out().except('me').unique().run()```
+```
+g.v('Thor').as('me').in().out().except('me').unique().run()
+```
 
 But there are also queries that would be very difficult to try to filter. What if we wanted Thor's uncles and aunts? How would we filter out his parents? It's easy with 'as' and 'except':
 
