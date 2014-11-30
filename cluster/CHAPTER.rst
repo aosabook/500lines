@@ -372,7 +372,7 @@ The method uses a simple synchronized Queue to wait for the result from the prot
                                           execute_fn=state_machine)
             else:
                 self.startup_role = bootstrap_cls(self.node, execute_fn=state_machine, peers=peers)
-            self.current_request = None
+            self.requester = None
     
         def start(self):
             self.startup_role.start()
@@ -380,12 +380,12 @@ The method uses a simple synchronized Queue to wait for the result from the prot
             self.thread.start()
     
         def invoke(self, input_value, request_cls=Requester):
-            assert self.current_request is None
+            assert self.requester is None
             q = Queue.Queue()
-            self.current_request = request_cls(self.node, input_value, q.put)
-            self.current_request.start()
+            self.requester = request_cls(self.node, input_value, q.put)
+            self.requester.start()
             output = q.get()
-            self.current_request = None
+            self.requester = None
             return output
     
 }}}
@@ -1135,10 +1135,22 @@ Even with this serious bug, the cluster produced correct results for several tra
 Assertions are an important tool to catch this sort of error early.
 Assertions should include any invariants from the algorithm design, but when the code doesn't behave as we expect, asserting our expectations is a great way to see where things go astray.
 
+{{{ from_to cluster.py ' +def do_Decision' ' +return'
+.. code-block:: python
+
+    assert not self.decisions.get(self.slot, None), \
+            "next slot to commit is already decided"
+    if slot in self.decisions:
+        assert self.decisions[slot] == proposal, \
+            "slot %d already decided with %r!" % (slot, self.decisions[slot])
+    
+}}}
+
 Identifying the right assumptions we make while reading code is a part of the art of debugging.
-In this case, the problem was that the ``Decision`` for the next slot to commit was being ignored because it was already in ``self.decisions``.
+In this code from ``Replica.do_Decision``, the problem was that the ``Decision`` for the next slot to commit was being ignored because it was already in ``self.decisions``.
 The underlying assumption being violated was that the next slot to be committed was not yet decided.
 Asserting this at the beginning of ``do_Decision`` identified the flaw and led quickly to the fix.
+Similarly, other bugs led to cases where different proposals were decided in the same slot -- a serious error.
 
 Many other assertions were added during development of the protocol, but in the interests of space, only a few remain.
 
