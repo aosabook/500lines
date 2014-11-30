@@ -24,7 +24,7 @@ But this approach introduces a serious failure mode: if two servers process oper
 Even if the servers share operations with one another instead of balances, two simultaneous transfers out of an account might overdraw the account.
 
 Fundamentally, these failures occur when servers use their local state to perform operations, without first ensuring that the local state matches the state on other servers.
-For example, magine that server A receives a transfer operation from account 101 to account 202, when server B has already processed another transfer account 101's full balance to account 202, but not yet informed server A.
+For example, imagine that server A receives a transfer operation from account 101 to account 202, when server B has already processed another transfer account 101's full balance to account 202, but not yet informed server A.
 The local state on server A is different from that on server B, so server A incorrectly allows the transfer to complete, even though the result is an overdraft on account 101.
 
 Distributed State Machines
@@ -44,6 +44,7 @@ The state machine for this application is simple:
             if not verify_signature(operation.deposit_signature):
                 return state, False
             state.accounts[operation.destination_account] += operation.amount
+            return state, True
         elif operation.name == 'transfer':
             if state.accounts[operation.source_account] < operation.amount:
                 return state, False
@@ -82,8 +83,8 @@ So let's start with "Simple Paxos", also known as the Synod protocol, which prov
 The name Paxos comes from the mythical island in "The Part-Time Parliament", where lawmakers vote on legislation through a process Lamport dubbed a Synod.
 
 The algorithm is a building block for more complex algorithms, as we'll see below.
-The single value we'll agree on in this example is the 15th transaction processed by our hypothetical bank.
-While the bank will process transactions every day, the 15th transaction will only occur once and never change, so we can use Simple Paxos to agree on its details.
+The single value we'll agree on in this example is the first transaction processed by our hypothetical bank.
+While the bank will process transactions every day, the first transaction will only occur once and never change, so we can use Simple Paxos to agree on its details.
 
 The protocol operates in a series of ballots, each led by a single member of the cluster, called the proposer.
 Each ballot has a unique ballot number based on an integer and the proposer's identity.
@@ -124,6 +125,7 @@ The ballot begins with the proposer sending a ``Prepare`` message with the ballo
 The ``Prepare`` message is a request for the accepted value (if any) with the highest ballot number less than *N*.
 Acceptors respond with a ``Promise`` containing any value they have already accepted, and promising not to accept any ballot numbered less than *N* in the future.
 If the acceptor has already made a promise for a larger ballot number, it includes that number in the ``Promise``, indicating that the proposer has been pre-empted.
+In this case, the ballot is over, but the proposer is free to try again in another ballot (and with a larger ballot number).
 
 When the proposer has heard back from a majority of the acceptors, it sends an ``Accept`` message, including the ballot number and value to all acceptors.
 If the proposer did not receive any existing value from any acceptor, then it sends its own desired value.
@@ -163,6 +165,7 @@ We use Paxos to agree on each operation, treated as a state machine transition.
 Multi-Paxos is, in effect, a sequence of simple Paxos instances (slots), each numbered sequentially.
 Each state transition is given a "slot number", and each member of the cluster executes transitions in strict numeric order.
 To change the cluster's state (to process a transfer operation, for example), we try to achieve consensus on that operation in the next slot.
+In concrete terms, this means adding a slot number to each message, with all of the protocol state tracked on a per-slot basis.
 
 Running Paxos for every slot, with its minimum of two round trips, would be too slow.
 Multi-Paxos optimizes by using the same set of ballot numbers for all slots, and performing the ``Prepare``/``Promise`` phase for all slots at once.
@@ -182,6 +185,7 @@ The leader is then free to execute the ``Accept``/``Accepted`` phase directly wi
 As we'll see below, leader elections are actually quite complex.
 
 Although simple Paxos guarantees that the cluster will not reach conflicting decisions, it cannot guarantee that any decision will be made.
+For example, if the initial ``Prepare`` message is lost and doesn't reach the acceptors, then the proposer will wait for ``Promise`` message that will never arive.
 Fixing this requires carefully orchestrated re-transmissions: enough to eventually make progress, but not so many that the cluster buries itself in a packet storm.
 
 Another problem is the dissemination of decisions.
@@ -469,7 +473,7 @@ When slots are decided out of order, the committed proposals may lag behind, wai
 When a slot is committed, each replica sends an ``Invoked`` message back to the requester with the result of the operation.
 
 In some circumstances, it's possible for a slot to have no active proposals and no decision.
-The state machine is required to execute slots one by one, so the cluster much reach a consensus on something to fill the slot.
+The state machine is required to execute slots one by one, so the cluster must reach a consensus on something to fill the slot.
 To protect against this possibility, replicas make a "no-op" proposal whenever they catch up on a slot.
 If such a proposal is eventually decided, then the state machine does nothing for that slot.
 
@@ -647,57 +651,6 @@ An active leader can immediately send an ``Accept`` message in response to a ``P
 
 In keeping with the class-per-role model, the leader delegates to the scout and commander roles to carry out each portion of the protocol.
 
-The leader creates a scout role when it wants to become active, in response to receiving a ``Propose`` when it is inactive.
-The scout sends (and re-sends, if necessary) a ``Prepare`` message, and collects ``Promise`` responses until it has heard from a majority of its peers or until it has been preempted.
-It communicates the result back to the leader with an ``Adopted`` or ``Preempted`` message, respectively.
-
-.. code-block:: None
-
-                             Scout        ----------     Acceptor        Acceptor        Acceptor
-                               *--->>----/ Prepare /--------+---------------+---------------+
-                               :         ----------         :               :               :
-                               :       ----------           :               :               :
-                               +------/ Promise /----<<-----*               :               :
-                               :      ----------                            :               :
-                               :                  ----------                :               :
-                               +-----------------/ Promise /-------<<-------*               :
-                               :                 ----------                                 :
-                               :                              ----------                    :
-                               +-----------------------------/ Promise /---------<<---------*
-    Leader    ----------       :                             ---------- 
-      +------/ Adopted /---<<--*
-             ----------   
-
-The leader creates a commander role for each slot where it has an active proposal.
-Like a scout, a commander sends and re-sends ``Accept`` messages and waits for a majority of acceptors to reply with ``Accepted``, or for news of its preemption.
-When a proposal is accepted, the commander broadcasts a ``Decision`` message to all nodes.
-It responds to the leader with either ``Decided`` or ``Preempted``.
-
-.. code-block:: None
-                           Commander      ---------      Acceptor        Acceptor        Acceptor
-                               *--->>----/ Accept /---------+---------------+---------------+
-                               :         ---------          :               :               :
-                               :       -----------          :               :               :
-                               +------/ Accepted /---<<-----*               :               :
-                               :      -----------                           :               :
-                               :                  -----------               :               :
-                               +-----------------/ Accepted /------<<-------*               :
-                               :                 -----------                                :
-                               :                              -----------                   :
-                               +-----------------------------/ Accepted /--------<<---------*
-    Leader    ----------       :                             -----------
-      +------/ Decided /---<<--*
-             ----------   
-
-.. note::
-
-    A surprisingly subtle bug appeared here during development.
-    At the time, the network simulator introduced packet loss even on messages within a node.
-    When *all* ``Decision`` messages were lost, the protocol could not proceed.
-    The replica continued to re-transmit ``Propose`` messages, but the leader ignored them as it already had a proposal for that slot.
-    The replica's catch-up process could not find the result, as no replica had heard of the decision.
-    The solution was to ensure that local messages are always delivered, as is the case for real network stacks.
-
 {{{ code_block cluster.py 'class Leader'
 .. code-block:: python
 
@@ -762,6 +715,27 @@ It responds to the leader with either ``Decided`` or ``Preempted``.
     
 }}}
 
+The leader creates a scout role when it wants to become active, in response to receiving a ``Propose`` when it is inactive.
+The scout sends (and re-sends, if necessary) a ``Prepare`` message, and collects ``Promise`` responses until it has heard from a majority of its peers or until it has been preempted.
+It communicates the result back to the leader with an ``Adopted`` or ``Preempted`` message, respectively.
+
+.. code-block:: None
+
+                             Scout        ----------     Acceptor        Acceptor        Acceptor
+                               *--->>----/ Prepare /--------+---------------+---------------+
+                               :         ----------         :               :               :
+                               :       ----------           :               :               :
+                               +------/ Promise /----<<-----*               :               :
+                               :      ----------                            :               :
+                               :                  ----------                :               :
+                               +-----------------/ Promise /-------<<-------*               :
+                               :                 ----------                                 :
+                               :                              ----------                    :
+                               +-----------------------------/ Promise /---------<<---------*
+    Leader    ----------       :                             ---------- 
+      +------/ Adopted /---<<--*
+             ----------   
+
 {{{ code_block cluster.py 'class Scout'
 .. code-block:: python
 
@@ -811,6 +785,27 @@ It responds to the leader with either ``Decided`` or ``Preempted``.
     
 }}}
 
+The leader creates a commander role for each slot where it has an active proposal.
+Like a scout, a commander sends and re-sends ``Accept`` messages and waits for a majority of acceptors to reply with ``Accepted``, or for news of its preemption.
+When a proposal is accepted, the commander broadcasts a ``Decision`` message to all nodes.
+It responds to the leader with either ``Decided`` or ``Preempted``.
+
+.. code-block:: None
+                           Commander      ---------      Acceptor        Acceptor        Acceptor
+                               *--->>----/ Accept /---------+---------------+---------------+
+                               :         ---------          :               :               :
+                               :       -----------          :               :               :
+                               +------/ Accepted /---<<-----*               :               :
+                               :      -----------                           :               :
+                               :                  -----------               :               :
+                               +-----------------/ Accepted /------<<-------*               :
+                               :                 -----------                                :
+                               :                              -----------                   :
+                               +-----------------------------/ Accepted /--------<<---------*
+    Leader    ----------       :                             -----------
+      +------/ Decided /---<<--*
+             ----------   
+
 {{{ code_block cluster.py 'class Commander'
 .. code-block:: python
 
@@ -850,6 +845,15 @@ It responds to the leader with either ``Decided`` or ``Preempted``.
                 self.finished(ballot_num, True)
     
 }}}
+
+.. note::
+
+    A surprisingly subtle bug appeared here during development.
+    At the time, the network simulator introduced packet loss even on messages within a node.
+    When *all* ``Decision`` messages were lost, the protocol could not proceed.
+    The replica continued to re-transmit ``Propose`` messages, but the leader ignored them as it already had a proposal for that slot.
+    The replica's catch-up process could not find the result, as no replica had heard of the decision.
+    The solution was to ensure that local messages are always delivered, as is the case for real network stacks.
 
 
 Bootstrap
@@ -1223,7 +1227,7 @@ The ``spawn_scout`` method (and, similarly, ``spawn_commander``) create the new 
     
 }}}
 
-The magic of this technique is that, in testing, ``Leader`` can be given stub classes and thus tested separately from ``Scout`` and ``Commander``.
+The magic of this technique is that, in testing, ``Leader`` can be given fake classes and thus tested separately from ``Scout`` and ``Commander``.
 
 Interface Correctness
 .....................
@@ -1323,7 +1327,7 @@ Persistent Storage
 While it's OK for a minority of cluster members to fail, it's not OK for an acceptor to "forget" any of the values it has accepted or promises it has made.
 
 Unfortunately, this is exactly what happens when a cluster member fails and restarts: the newly initialized Acceptor instance has no record of the promises its predecessor made.
-The problem is that the newly-started instance takes the place of the old
+The problem is that the newly-started instance takes the place of the old.
 
 There are two alternatives to solve this issue.
 The simpler solution involves writing acceptor state to disk and re-reading that state on startup.
