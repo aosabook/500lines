@@ -753,9 +753,9 @@ This function uses a helper function call *remove-explored* to help preventing r
 
 Querying is what makes database a database. Without querying all we have is a storage backed data structure - a software component that provides predefined APIs with an abstraction level that is higher than writing and reading raw data.
 
-To query a database, we first need to decide what querying language to use. The first and most important criteria for choosing a querying language is its fit for the database’s data model. For example, for the relational data model (i.e., data is described with predefined tables where the columns are the attribute and the rows are the entities), SQL is the natural fit, as it is rooted at relational algebra. 
+To query a database, we first need to decide what querying language to use. The first and most important criteria for choosing a querying language is its fit for the database’s data model. For example, for the relational data model (i.e., data is described with predefined tables where the columns are the attribute and the rows are the entities), the best fit would be a language whose roots are in relational algebra, SQL is such language. 
 
-Our data model is based on accumulation of facts (which we call datoms). In our database, the most distilled form of a fact is a triplet containing an entity id, the attribute name and the attribute value (at a given time). For this model, a natural place to look for the query language in at the domain of logic programming. In this domain, a commonly used query language is Datalog, that apart of being well suited for our data model, has a very elegant adaptation to Clojure’s syntax, which was defined as part of the Datomic database (see [http://docs.datomic.com/query.html](http://docs.datomic.com/query.html)). Our query engine will implement a subset of the that adaptation.
+Our data model is based on accumulation of facts (which we call datoms).The most distilled form of a fact is a triplet containing an entity id, attribute name and the attribute value (at a given time). For this model, a natural place to look for the right query language the domain of logic programming. In this domain, a commonly used query language is Datalog, that apart of being well suited for our data model, has a very elegant adaptation to Clojure’s syntax, which was defined as part of the Datomic database (see [http://docs.datomic.com/query.html](http://docs.datomic.com/query.html)). Our query engine will implement a subset of the that adaptation.
 
 ### Query language
 
@@ -771,19 +771,18 @@ To have a clear definition of the structure of a query, let’s start with an ex
 ````
 #### The query’s syntax
 
-It is important to notice that a query’s syntax is based on Clojure’s data literals, hence the query itself can be described using Clojure’s data structures. This simplifies the parsing of the query and having in-memory representation of it, while still having a readable and familiar textual representation of the query.
+The query’s syntax is based on Clojure’s data literals. This simplifies the parsing of the query while still allows having a readable and familiar textual representation of it.
 
 A query itself is a map containing two entries:
 
-* An entry whose key is *:where* and its value is a vector holding clauses. 
-A clause is a vector composed of three predicates, each one to operate of a different part of a datom:
+* An entry whose key is *:where* and its value is a rule (implemented as a vector) holding clauses. A clause is a vector composed of three predicates, each one to operate of a different part of a datom:
 
     * Predicate to operate on the entity-id
     * Predicate to operate on the attribute-name
     * Predicate to operate on the value
 
 	In the example above *[?e  :likes "pizza"]* is a clause.  
-The role of the *:where* entry in the query is to define rules that are to be used as filters of the datoms in the database.
+The role of the *:where* entry in the query is to define a rule that acts as a filter of the datoms in the database
 
 * An entry whose key is *:find* and its value is a vector. That vector defines which parts of the datoms that passed all the clauses should be reported and compose the answer of the query (think of the Select statement in an SQL query). 
 This does not includes formatting of the answer - operations such as sorting or grouping are not supported.
@@ -792,7 +791,7 @@ The description above is missing a crucial part, which is how to make different 
 
 These two kinds of agreements (between clauses and between *:where* and *:find* parts) are done using variables. 
 
-A variable’s syntax is defined as a symbol that starts with *‘?’* (e.g., *?e* in the example above), also there is a special variable, which is the "dont-care" variable and is identified using *‘_’*. (underscore). To understand whether something is a variable or not we have our *variable?* predicate. This predicate was implemented as a function that accepts strings and not as a macro that accepts symbols to allow us to use it as a higher order function, and more specifically, to be sent as an argument to another function: 
+A variable’s syntax is defined as a symbol that starts with *‘?’* (e.g., *?e* in the example above), also there is a special variable, which is the "don't-care" variable and is identified using *‘_’*. (underscore). To understand whether something is a variable or not we have our *variable?* predicate. This predicate was implemented as a function that accepts strings and not as a macro that accepts symbols to allow us to use it as a higher order function, and more specifically, to be sent as an argument to another function: 
 
 ````clojure
 (defn variable?
