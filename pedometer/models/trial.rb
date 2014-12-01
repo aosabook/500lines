@@ -11,7 +11,7 @@ class Trial
     raise('Invalid rate') if @rate && (@rate <= 0)
     raise('Invalid steps') if @steps && (@steps < 0)
 
-    @rate ||= 100    
+    @rate ||= 100
   end
 
 end

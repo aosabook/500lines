@@ -238,11 +238,11 @@ class Filter
     alpha: [1, -1.979133761292768, 0.979521463540373],
     beta:  [0.000086384997973502, 0.000172769995947004, 0.000086384997973502]
   }
-  COEFFICIENTS_LOW_5_HZ = { # Direct form I, Chebyshev II, type = low-pass, Astop = 2, Fstop = 5, Fs = 100, Direct Form I
+  COEFFICIENTS_LOW_5_HZ = {
     alpha: [1, -1.80898117793047, 0.827224480562408], 
     beta:  [0.095465967120306, -0.172688631608676, 0.095465967120306]
   }
-  COEFFICIENTS_HIGH_1_HZ = { # Direct form I, Chebyshev II, type = high-pass, Fs = 100, Fstop = 0.5, Astop = 20, order = 2, 
+  COEFFICIENTS_HIGH_1_HZ = {
     alpha: [1, -1.905384612118461, 0.910092542787947], 
     beta:  [0.953986986993339, -1.907503180919730, 0.953986986993339]
   }
@@ -456,14 +456,20 @@ class User
 
   GENDER      = ['male', 'female']
   MULTIPLIERS = {'female' => 0.413, 'male' => 0.415}
-  AVERAGES    = {'female' => 70,    'male' => 78}
+  AVERAGES    = {'female' => 70.0,  'male' => 78.0}
   
   attr_reader :gender, :height, :stride
 
   def initialize(gender = nil, height = nil, stride = nil)
-    @gender = gender.to_s.downcase if GENDER.include? gender.to_s.downcase
-    @height = height.to_f if height.to_f > 0
-    @stride = (stride.to_f > 0) ? stride.to_f : calculate_stride
+    @gender = gender.to_s.downcase unless gender.to_s.empty?
+    @height = Float(height) unless height.to_s.empty?
+    @stride = Float(stride) unless stride.to_s.empty?
+
+    raise('Invalid gender') if @gender && !GENDER.include?(@gender)
+    raise('Invalid height') if @height && (@height <= 0)
+    raise('Invalid stride') if @stride && (@stride <= 0)
+
+    @stride ||= calculate_stride
   end
 
 private
@@ -483,7 +489,7 @@ private
 end
 ~~~~~~~
 
-At the top of our class, we define constants to avoid hardcoding magic numbers and strings throughout. Our initializer accepts `gender`, `height`, and `stride` all as optional arguments. Handling optional information is a common programming problem. If the optional parameters are passed in, our initializer sets instance variables of the same names, after some data formatting to allow for a case insensitive gender parameter to be passed in, as long as its defined in `GENDER`, and prevent a height and stride that is non-numerical or less than 0.
+At the top of our class, we define constants to avoid hardcoding magic numbers and strings throughout. Our initializer accepts `gender`, `height`, and `stride` all as optional arguments. Handling optional information is a common programming problem. If the optional parameters are passed in, our initializer sets instance variables of the same names, after some data formatting to allow for a case insensitive gender parameter to be passed in, as long as its defined in `GENDER`, and prevent a height and stride that aren't valid floats or are less than or equal to 0.
 
 Even when all optional parameters are provided, the input stride takes precedence. If it's not provided, `calculate_stride` determines the most accurate stride length it can for the user. This is done with an `if` statement:
 
@@ -501,13 +507,18 @@ The time traveled is measured by dividing the number of data samples in our `Pro
 ~~~~~~~
 class Trial
 
-  attr_reader :name, :rate, :steps, :method
+  attr_reader :name, :method, :rate, :steps
 
-  def initialize(name = nil, rate = nil, steps = nil, method = nil)
+  def initialize(name = nil, method = nil, rate = nil, steps = nil)
     @name   = name.to_s.delete(' ')
-    @rate   = (rate.to_f.round > 0) ? rate.to_f.round : 100
-    @steps  = steps.to_f.round if steps.to_s != '' && steps.to_f.round >= 0
     @method = method.to_s.delete(' ')
+    @rate   = Integer(rate.to_s) unless rate.to_s.empty?
+    @steps  = Integer(steps.to_s) unless steps.to_s.empty?
+
+    raise('Invalid rate') if @rate && (@rate <= 0)
+    raise('Invalid steps') if @steps && (@steps < 0)
+
+    @rate ||= 100    
   end
 
 end
@@ -516,11 +527,11 @@ end
 All of the attribute readers in `Trial` are set in the initializer based on optional parameters passed in:
 
 * `name` is a name for the specific trial, to help differentiate between the different trials.
+* `method` is used to set the type of walk that is taken. Types of walks include walking with the device in a pocket, walking with the device in a bag, running with the device in a pocket, running with the device in a bag, etc.
 * `rate` is the sampling rate of the accelerometer during the trial.
 * `steps` is used to set the actual steps taken, so that we can record the difference between the actual steps the user took and the ones our program counted.
-* `method` is used to set the type of walk that is taken. Types of walks include walking with the device in a pocket, walking with the device in a bag, jogging with the device in a pocket, jogging with the device in a bag, etc.
 
-Much like our `User` class, information is optional. We're given the opportunity to input details of the trial, if we have it, for more accurate end results. If we don't have those details, our program makes assumptions and is still able to produce results, albeit with a higher margin of error. Another similarity to our `User` class is the basic input data formatting in the initializer.
+Much like our `User` class, information is optional. We're given the opportunity to input details of the trial, if we have it, for more accurate end results. If we don't have those details, our program makes assumptions and is still able to produce results, albeit with a higher margin of error. Another similarity to our `User` class is the prevention of invalid values.
 
 ## Steps Taken
 
