@@ -2,14 +2,20 @@ class User
 
   GENDER      = ['male', 'female']
   MULTIPLIERS = {'female' => 0.413, 'male' => 0.415}
-  AVERAGES    = {'female' => 70,    'male' => 78}
+  AVERAGES    = {'female' => 70.0,  'male' => 78.0}
   
   attr_reader :gender, :height, :stride
 
   def initialize(gender = nil, height = nil, stride = nil)
-    @gender = gender.to_s.downcase if GENDER.include? gender.to_s.downcase
-    @height = height.to_f if height.to_f > 0
-    @stride = (stride.to_f > 0) ? stride.to_f : calculate_stride
+    @gender = gender.to_s.downcase unless gender.to_s.empty?
+    @height = Float(height) unless height.to_s.empty?
+    @stride = Float(stride) unless stride.to_s.empty?
+
+    raise('Invalid gender') if @gender && !GENDER.include?(@gender)
+    raise('Invalid height') if @height && (@height <= 0)
+    raise('Invalid stride') if @stride && (@stride <= 0)
+
+    @stride ||= calculate_stride
   end
 
 private

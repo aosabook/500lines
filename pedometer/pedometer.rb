@@ -5,29 +5,27 @@ Dir['./models/*', './helpers/*'].each {|file| require_relative file }
 include ViewHelper
 
 get '/uploads' do
-  @uploads = Upload.all
   @error = "A #{params[:error]} error has occurred." if params[:error]
+  @pipelines = Upload.all.inject([]) do |a, upload|
+    a << Pipeline.run(File.read(upload.file_path), upload.user, upload.trial) 
+    a
+  end
 
   erb :uploads
 end
 
 get '/upload/*' do |file_path|
-  @upload = Upload.find(file_path)
+  upload = Upload.find(file_path)
+  @pipeline = Pipeline.run(File.read(file_path), upload.user, upload.trial)
   
   erb :upload
 end
 
-# TODO
-# - Is file sanitized here? We don't want to be passing around untrusted data, especially not if it's touching the filesystem.
 post '/create' do
   begin
-    @upload = Upload.create(
-      params[:processor][:file_upload][:tempfile], 
-      params[:user].values,
-      params[:trial].values
-    )
+    Upload.create(params[:data][:tempfile], params[:user], params[:trial])
 
-    erb :upload
+    redirect '/uploads'
   rescue Exception => e
     redirect '/uploads?error=creation'
   end

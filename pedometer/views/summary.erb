@@ -1,7 +1,6 @@
 <table class="summary">
   <th>Name</th>
   <th>Method</th>
-  <th>Format</th>
   <th>Actual</th>
   <th>Calculated</th>
   <th>Delta</th>
@@ -10,21 +9,21 @@
     <th>Distance</th>
     <th>Time</th>
   <% end %>
-  <% uploads.each do |upload| %>
-    <% analyzer = upload.analyzer %>
+  <% pipelines.each do |pipeline| %>
     <tr>
-      <td><%= analyzer.trial.name %></td>
-      <td><%= analyzer.trial.method %></td>
-      <td><%= analyzer.processor.format %></td>
-      <td><%= analyzer.trial.steps %></td>
-      <td><%= analyzer.steps %></td>
-      <td><%= analyzer.trial.steps ? (analyzer.steps - analyzer.trial.steps) : '' %></td>
-      <td><%= analyzer.user.gender %></td>
+      <td><%= pipeline.trial.name %></td>
+      <td><%= pipeline.trial.method %></td>
+      <td><%= pipeline.trial.steps %></td>
+      <td><%= pipeline.analyzer.steps %></td>
+      <td><%= pipeline.analyzer.delta %></td>
+      <td><%= pipeline.user.gender %></td>
       <% if detail_hidden %>
-        <td><a href=<%= "upload/" + upload.file_path %>>Detail</a></td>
+        <td>
+          <a href=<%= "upload/" + Upload.generate_file_path(pipeline.user, pipeline.trial) %>>Detail</a>
+        </td>
       <% else %>
-        <td><%= format_distance(analyzer.distance) %></td>
-        <td><%= format_time(analyzer.time) %></td>
+        <td><%= format_distance(pipeline.analyzer.distance) %></td>
+        <td><%= format_time(pipeline.analyzer.time) %></td>
       <% end %>
     </tr>
   <% end %>
