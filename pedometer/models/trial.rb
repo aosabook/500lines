@@ -1,6 +1,6 @@
 class Trial
 
-  attr_reader :name, :rate, :steps, :method
+  attr_reader :name, :method, :rate, :steps
 
   def initialize(name = nil, method = nil, rate = nil, steps = nil)
     @name   = name.to_s.delete(' ')
