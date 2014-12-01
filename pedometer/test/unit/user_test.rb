@@ -39,10 +39,14 @@ class UserTest < Test::Unit::TestCase
     assert_nil User.new(nil, nil).height
     assert_nil User.new(nil, '').height
 
-    ['invalid height', 0, '0', -1, '-1'].each do |height|
+    [0, '0', -1, '-1'].each do |height|
       assert_raise_with_message(RuntimeError, 'Invalid height') do
         User.new(nil, height)
       end
+    end
+
+    assert_raises(ArgumentError) do
+      User.new(nil, 'invalid height')
     end
 
     assert_equal 150, User.new(nil, 150).height
@@ -60,12 +64,16 @@ class UserTest < Test::Unit::TestCase
     assert_equal 74, User.new(nil, nil, nil).stride
     assert_equal 74, User.new(nil, nil, '').stride
 
-    ['invalid stride', 0, '0', -1, '-1'].each do |stride|
+    [0, '0', -1, '-1'].each do |stride|
       assert_raise_with_message(RuntimeError, 'Invalid stride') do
         User.new(nil, nil, stride)
       end
     end
     
+    assert_raises(ArgumentError) do
+      User.new(nil, nil, 'invalid stride')
+    end
+
     assert_equal 80,    User.new(nil, nil, 80).stride
     assert_equal 80,    User.new(nil, nil, '80').stride
     assert_equal 80,    User.new(nil, nil, 80.0).stride
