@@ -24,8 +24,14 @@ class TrialTest < Test::Unit::TestCase
     assert_equal 100, Trial.new(nil, nil, nil).rate
     assert_equal 100, Trial.new(nil, nil, '').rate
 
-    ['invalid rate', 0, '0', -1, '-1', 2.5, '2.5'].each do |rate|
+    [0, '0', -1, '-1'].each do |rate|
       assert_raise_with_message(RuntimeError, 'Invalid rate') do
+        Trial.new(nil, nil, rate)
+      end
+    end
+
+    ['invalid rate', 2.5, '2.5'].each do |rate|
+      assert_raises(ArgumentError) do
         Trial.new(nil, nil, rate)
       end
     end
@@ -41,8 +47,14 @@ class TrialTest < Test::Unit::TestCase
     assert_nil Trial.new(nil, nil, nil, nil).steps
     assert_nil Trial.new(nil, nil, nil, '').steps
 
-    ['invalid steps', -1, '-1', 2.5, '2.5'].each do |steps|
+    [-1, '-1'].each do |steps|
       assert_raise_with_message(RuntimeError, 'Invalid steps') do
+        Trial.new(nil, nil, nil, steps)
+      end
+    end
+
+    ['invalid steps', 2.5, '2.5'].each do |steps|
+      assert_raises(ArgumentError) do
         Trial.new(nil, nil, nil, steps)
       end
     end
