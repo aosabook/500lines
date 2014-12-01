@@ -23,40 +23,36 @@ class TrialTest < Test::Unit::TestCase
     assert_equal 100, Trial.new(nil, nil).rate
     assert_equal 100, Trial.new(nil, nil, nil).rate
     assert_equal 100, Trial.new(nil, nil, '').rate
-    assert_equal 100, Trial.new(nil, nil, 'bad rate').rate
-    
-    assert_equal 2,   Trial.new(nil, nil, 2.0).rate
-    assert_equal 1,   Trial.new(nil, nil, 1.7).rate
-    assert_equal 100, Trial.new(nil, nil, 0.5).rate
 
-    assert_equal 100, Trial.new(nil, nil, 0).rate
-    assert_equal 100, Trial.new(nil, nil, '0').rate
+    ['invalid rate', 0, '0', -1, '-1', 2.5, '2.5'].each do |rate|
+      assert_raise_with_message(RuntimeError, 'Invalid rate') do
+        Trial.new(nil, nil, rate)
+      end
+    end
 
-    assert_equal 100, Trial.new(nil, nil, -1).rate
-    assert_equal 100, Trial.new(nil, nil, '-1').rate
-    
-    assert_equal 2, Trial.new(nil, nil, '2').rate
-    assert_equal 2, Trial.new(nil, nil, 2).rate
+    assert_equal 1, Trial.new(nil, nil, 1).rate
+    assert_equal 1, Trial.new(nil, nil, '1').rate
+    assert_equal 100, Trial.new(nil, nil, 100).rate
+    assert_equal 100, Trial.new(nil, nil, '100').rate
   end
 
   def test_create_with_steps
     assert_nil Trial.new(nil, nil, nil).steps
     assert_nil Trial.new(nil, nil, nil, nil).steps
     assert_nil Trial.new(nil, nil, nil, '').steps
-    assert_nil Trial.new(nil, nil, nil, 'bad steps').steps
-    
-    assert_equal 2, Trial.new(nil, nil, nil, 2.0).steps
-    assert_equal 1, Trial.new(nil, nil, nil, 1.7).steps
-    assert_equal 0, Trial.new(nil, nil, nil, 0.5).steps
+
+    ['invalid steps', -1, '-1', 2.5, '2.5'].each do |steps|
+      assert_raise_with_message(RuntimeError, 'Invalid steps') do
+        Trial.new(nil, nil, nil, steps)
+      end
+    end
 
     assert_equal 0, Trial.new(nil, nil, nil, 0).steps
     assert_equal 0, Trial.new(nil, nil, nil, '0').steps
-    
-    assert_nil Trial.new(nil, nil, nil, -1).steps
-    assert_nil Trial.new(nil, nil, nil, '-1').steps
-
-    assert_equal 2, Trial.new(nil, nil, nil, '2').steps
-    assert_equal 2, Trial.new(nil, nil, nil, 2).steps
+    assert_equal 1, Trial.new(nil, nil, nil, 1).steps
+    assert_equal 1, Trial.new(nil, nil, nil, '1').steps
+    assert_equal 100, Trial.new(nil, nil, nil, 100).steps
+    assert_equal 100, Trial.new(nil, nil, nil, '100').steps
   end
 
 end

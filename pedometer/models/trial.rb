@@ -4,29 +4,14 @@ class Trial
 
   def initialize(name = nil, method = nil, rate = nil, steps = nil)
     @name   = name.to_s.delete(' ')
-    # @rate   = (rate.to_f.round > 0) ? rate.to_f.round : 100
-    # @steps  = steps.to_f.round if steps.to_s != '' && steps.to_f.round >= 0
-    @rate   = integer_or_default(rate, 100, 0)
-    @steps  = integer_or_default(steps, nil, -1)
     @method = method.to_s.delete(' ')
-  end
+    @rate   = Integer(rate.to_s) unless rate.to_s.empty? rescue raise('Invalid rate')
+    @steps  = Integer(steps.to_s) unless steps.to_s.empty? rescue raise('Invalid steps')
 
-private
+    raise('Invalid rate') if @rate && (@rate <= 0)
+    raise('Invalid steps') if @steps && (@steps < 0)
 
-  def integer_or_default(val, default, greater_than_val)
-    int = Integer(val)
-    (int > greater_than_val) ? int : default
-  rescue ArgumentError, TypeError
-    default
+    @rate ||= 100    
   end
-  
-  # def integer_or_default(val, default, greater_than_val)
-  #   int = val.to_i
-  #   if (int.to_s == val.to_s)
-  #     (int > greater_than_val) ? int : default
-  #   else
-  #     default
-  #   end
-  # end
 
 end
