@@ -29,8 +29,8 @@ class AnalyzerTest < Test::Unit::TestCase
 
   def test_create_non_zero_data
     user = User.new('female', 167, 70)
-    trial = Trial.new('test trial 1', 100, 18, 'walk')
-    parser = Parser.run(File.read('test/data/female-167-70_2-100-10-walk.txt'))
+    trial = Trial.new('test trial 1', 'walk', 100, 18)
+    parser = Parser.run(File.read('test/data/female-167-70_2-walk-100-10.txt'))
     processor = Processor.run(parser.parsed_data)
     analyzer = Analyzer.run(processor.filtered_data, user, trial)
 

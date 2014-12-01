@@ -12,9 +12,9 @@ class UploadTest < Test::Unit::TestCase
 
   def test_create
     temp_file = 'test/data/upload-1.txt'
-    file_path = 'public/uploads/female-999.0-90.0_foo-89-10-run.txt'
+    file_path = 'public/uploads/female-999.0-90.0_foo-run-89-10.txt'
     user_params = { 'gender' => 'female', 'height' => '999', 'stride' => '90' }
-    trial_params = { 'name' => 'foo', 'rate' => '89', 'steps' => '10', 'method' => 'run' }
+    trial_params = { 'name' => 'foo', 'method' => 'run', 'rate' => '89', 'steps' => '10' }
 
     upload = Upload.create(temp_file, user_params, trial_params)
 
@@ -34,7 +34,7 @@ class UploadTest < Test::Unit::TestCase
   end
 
   def test_find
-    file_path = 'public/uploads/female-168.0-70.0_1-100-100-walk.txt'
+    file_path = 'public/uploads/female-168.0-70.0_1-walk-100-100.txt'
     upload = Upload.find(file_path)
 
     assert_equal file_path, upload.file_path
@@ -56,9 +56,9 @@ class UploadTest < Test::Unit::TestCase
   end
 
   def test_generate_file_path
-    file_path = 'public/uploads/female-999.0-90.0_foo-89-10-run.txt'
+    file_path = 'public/uploads/female-999.0-90.0_foo-run-89-10.txt'
     user = User.new('female', '999', '90')
-    trial = Trial.new('foo', '89', '10', 'run')
+    trial = Trial.new('foo', 'run', '89', '10')
 
     assert_equal file_path, Upload.generate_file_path(user, trial)
   end

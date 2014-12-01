@@ -7,8 +7,6 @@
     <h3 class="upload-header">Trial Info</h3>
     <input name="data" type="file">
     <input name="trial[name]" class="params" placeholder="Name">
-    <input name="trial[rate]" type="number" class="params" placeholder="Sampling Rate">
-    <input name="trial[steps]" type="number" class="params" placeholder="Actual Step Count">
     <select name="trial[method]" class="params">
       <option value="">(Select a method)</option>
       <option value="walk">Walking</option>
@@ -16,6 +14,8 @@
       <option value="bagwalk">Walking, phone in bag</option>
       <option value="bagrun">Running, phone in bag</option>
     </select>
+    <input name="trial[rate]" type="number" class="params" placeholder="Sampling Rate">
+    <input name="trial[steps]" type="number" class="params" placeholder="Actual Step Count">
     <h3 class="upload-header">User Info</h3>
     <select class="params" name="user[gender]">
       <option value="">(Select a gender)</option>

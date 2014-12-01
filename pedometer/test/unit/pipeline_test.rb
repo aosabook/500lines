@@ -4,7 +4,7 @@ require_relative '../../models/pipeline'
 class PipelineTest < Test::Unit::TestCase
 
   def test_new_combined_data
-    file_path = 'test/data/female-167-70_1-100-10-bagwalk.txt'
+    file_path = 'test/data/female-167-70_1-bagwalk-100-10.txt'
     user = User.new
     trial = Trial.new('foobar1')
     pipeline = Pipeline.run(File.read(file_path), user, trial)
@@ -21,7 +21,7 @@ class PipelineTest < Test::Unit::TestCase
   end
 
   def test_new_separated_data
-    file_path = 'test/data/female-167-70_2-100-10-bagwalk.txt'
+    file_path = 'test/data/female-167-70_2-bagwalk-100-10.txt'
     user = User.new
     trial = Trial.new('foobar1')
     pipeline = Pipeline.run(File.read(file_path), user, trial)
