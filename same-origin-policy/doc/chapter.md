@@ -752,9 +752,13 @@ Before the introduction of CORS (which we will discuss shortly), JSONP was perha
 <script src="http://www.example.com/myscript.js"></script>
 ```
 
-A script tag can be used to obtain code, but how do we use it to receive arbitrary _data_ (e.g., a JSON object) from a different domain? The problem is that the browser expects the content of `src` to be a piece of JavaScript code, and so simply having it point at a data source results in a syntax error. 
+A script tag can be used to obtain code, but how do we use it to
+receive arbitrary _data_ (e.g., a JSON object) from a different
+domain? The problem is that the browser expects the content of `src`
+to be a piece of JavaScript code, and so simply having it point at a
+data source (e.g., JSON or HTML file) results in a syntax error.
 
-One workaround is to wrap the desired data inside a piece of string that the browser recognizes as valid JavaScript code; this string is sometimes called _padding_ (thus, giving rise to the name JSON with "Padding"). This padding could be any arbitrary JavaScript code, but conventionally, it is the name of a callback function (already defined in the current document) that is to be executed on the response data:
+One workaround is to wrap the desired data inside a piece of string that the browser recognizes as valid JavaScript code; this string is sometimes called _padding_ (hence the name "JSON with padding"). This padding could be any arbitrary JavaScript code, but conventionally, it is the name of a callback function (already defined in the current document) that is to be executed on the response data:
 
 ```html
 <script src="http://www.example.com/mydata?jsonp=processData"></script>
@@ -766,11 +770,11 @@ The server on `www.example.com` recognizes it as a JSONP request, and wraps the 
 processData(mydata)
 ```
 
-which is a valid JavaScript statement, and is executed by the browser in the current document.
+which is a valid JavaScript statement (namely, the application of function "processData" on value "mydata"), and is executed by the browser in the current document.
 
-In our approach, JSONP is modeled as a type of HTTP requests that
-include the identifier of a callback function as the `padding`
-parameter. In return, the server returns a response that has the
+In our model, JSONP is modeled as a type of HTTP requests that include
+the identifier of a callback function as field `padding`. After
+receiving a JSONP request, the server returns a response that has the
 requested resource (`payload`) wrapped inside the callback function
 (`cb`).
 
@@ -806,38 +810,33 @@ sig JsonpCallback extends EventHandler {
 
 Note that the callback function executed is the same as the one that's
 included in the response (`cb = resp.@cb`), but _not_ necessarily the
-same as the padding. In other words, for the JSONP communication to
-work, the server is responsible for properly constructing a response
-that includes the original padding as the callback function (i.e.,
-ensure that `JsonRequest.padding = JsonpResponse.cb`). In principle,
-the server, if desired, can choose to include any other callback (or
-any piece of JavaScript) that is completely different from the
-requested padding. This highlights one downside of JSONP: You must
-ensure that the server you are making a JSONP request to is completely
-trustworthy.
+same as `padding` in the original JSONP request. In other words, for
+the JSONP communication to work, the server is responsible for
+properly constructing a response that includes the original padding as
+the callback function (i.e., ensure that `JsonRequest.padding =
+JsonpResponse.cb`). In principle, the server can choose to include any
+other callback function (or any piece of JavaScript) that has nothing
+to do with `padding` in the request. This highlights one potential
+risk of JSONP: The server that accepts the JSONP requests must be
+completely trustworthy and secure, because it basically has the
+ability to execute any piece of Javascript code in your document.
 
-Furthermore, even if the server itself may be free of malicious
-intent, you must also rely on it being secure. For example, let us
-consider the following counterexample that shows how JSONP may lead to
-a violation of the integrity property. Here, a hacker (controlling
-`Browser0`) sends an HTTP request that contains a piece of malicious
-content (`Resource1`), which is accepted and stored by
-`Server`.
+Yet another risk with JSONP is its vulenrability to cross-site request
+forgery (CSRF) attacks.  Consider the following scenario from our Alloy model. Suppose that the calendar application (`CalenderServer`) makes its resouces available to third-party sites using a JSONP endpoint (`GetSchedule`). To restrict access to the resources, `CalendarServer` only sends back a response with the schedule for a user if the request contains a cookie that correctly identifies that user. 
+
+Once a server provides an HTTP endpoint as a JSONP service, anyone can
+make a JSONP request to it, including malicious sites. In this
+scenario, the ad banner page from `EvilServer` includes a _script_ tag that causes a `GetSchedule` request, with a callback function called `Leak` as `padding`. Typically, the developer of `AdBanner` does not have direct access to the victim user's session cookie (`Mycookie`) for `CalendarServer`. However, because the JSONP request is being sent to `CalendarServer`, the browser automatically includes `MyCookie` as part of the request; `CalendarServer`, having received a JSONP request with `MyCookie`, will return the victim's resource (`MySchedule`) wrapped inside the padding `Leak`.
 
 ![jsonp-instance-1](fig-jsonp-1.png)
 
-In the next step, a trusted browser (`Browser1`) makes a JSONP request
-to `Server`, which returns a JSONP response that correctly includes
-the requested padding, but also the malicious data (`Resource1`) as
-its payload. `Browser1` then executes the callback function with the
-malcious data as its argument, which could lead to further security
-consequences.
+In the next step, the browser interprets the JSONP response as a call to `Leak(MySchedule)`. The rest of the attack is simple; `Leak` can simply be programmed to forward the input argument to `EvilServer`, allowing the attacker to access the victim's sensitive information.
 
 ![jsonp-instance-2](fig-jsonp-2.png)
 
 ### PostMessage
 
-PostMessage is a new feature in HTML5 that allows scripts from two documents (of possibly different origins) to communicate to each other. It is a more disciplined alternative to the method of setting the `domain` property, which is prone to mistakes, as we've already seen. However, PostMessage isn't without its own security risks, unless used carefully.
+PostMessage is a new feature in HTML5 that allows scripts from two documents (of possibly different origins) to communicate to each other. It is a more disciplined alternative to the method of setting the `domain` property, which is prone to mistakes, as we've already seen. However, PostMessage isn't without its own security risks unless used carefully.
 
 PostMessage is a browser API function that takes two arguments: (1) the data to be sent (`message`), and (2) the URL of the document receiving the message (`targetOrigin`):
 
@@ -871,19 +870,23 @@ By default, the `PostMessage` mechanism does not restrict who is allowed to send
 
 Unfortunately, in practice, many sites omit this check, enabling a
 malicious document to inject bad content as part of a `PostMessage`
-(cite PostMessage study). For example, in the following instance
-generated from Alloy, a malicious script (`Script0`), running inside
-`Document2`, sends a malicious message (`Resource1`) to a document
-with `targetOrigin`. `Browser` then readily forwards this message to
-the document(s) with the corresponding origin (in this case
-`Document1`). Unless `Script1` specifically checks the value of
-`srcOrigin` to filter out messages from unwanted origins, `Document1`
-accepts the malicious data, possibly leading to further security
-attacks (for example, it may embed a piece of JavaScript to carry out
-an XSS attack).
+[cite PostMessage study]. For example, in the following instance
+generated from Alloy, `EvilScript`, running inside `AdBanner`, sends a
+malicious `PostMessage` to a document with the target origin of
+`EmailDomain`.
 
 ![postmessage-instance-1](fig-postmessage-1.png)
+
+The browser then forwards this message to the document(s)
+with the corresponding origin (in this case, `InboxPage`).  Unless
+`InboxScript` specifically checks the value of `srcOrigin` to filter out
+messages from unwanted origins, `InboxPage` will accept the malicious
+data, possibly leading to further security attacks (for example, it
+may embed a piece of JavaScript to carry out an XSS attack).
+
 ![postmessage-instance-2](fig-postmessage-2.png)
+
+Implementing an appropriate check on incoming PostMessage can be tricky; in some applications, you may not be able to pre-determine the list of trusted origins from which you expect to receive a message (imagine an app where this list changes dynamically). As a result, it turns out, that many sites that use PostMessages fail to implement an origin check ([cite the PostMessage study]), leading to an attack such as the one above.
 
 ### Cross-Origin Resource Sharing (CORS)
 
