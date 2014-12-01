@@ -76,7 +76,7 @@ Do you see any other issues?
 ```
 
 
-### Solve some problems
+## Solve some problems
 
 Let's solve a few of the problems we've discovered. Having our vertices and edges be global constructs limits us to one graph at a time, but we'd like to have more. To solve this we'll need some structure. Let's start with a namespace.
 
@@ -173,7 +173,7 @@ Then we'll add our new edge to both vertices' edge lists: the edge's out vertex'
 
 And that's all the graph we need for now!
 
-### Enter the query
+## Enter the query
 
 There's really only two parts to this system: the part that holds the graph and the part that answers questions about the graph. The part that holds the graph is pretty simple, as we've seen. The query part is a little trickier.
 
@@ -218,7 +218,7 @@ Dagoba.Q.add = function(pipetype, args) {               // add a new step to the
 
 Each step is a composite entity, combining the pipetype function with the arguments to apply to that function. We could combine the two into a partially-applied function at this stage, instead of using a tuple [data structure footnote], but then we'd lose some introspective power that will prove helpful later. 
 
-### The problem with being eager
+## The problem with being eager
 
 Before we look at the pipetypes themselves we're going to take a slight diversion into the exciting world of execution strategy. There are two main schools of thought: the Call By Value clan, also known as eager beavers, strictly insist that all arguments be evaluated before the function is applied. They are opposed by the Call By Needians, are content to procrastinate until the last possible moment before doing anything, and even then do as little as possible -- they are, in a word, lazy.
 
@@ -230,7 +230,7 @@ We're probably only interested in getting a few unique results out, so we'll cha
 
 And so we see the need for laziness: all graph databases have to support a mechanism for doing as little work as possible, and most choose some form of lazy evaluation to do so. Since we're building our own interpreter, evaluating our program lazily is certainly within our purview. But the road to lazyville is paved with good intentions and surprising consequences.
 
-### The heart of the matter
+## The heart of the matter
 
 Putting var declarations at the top is like eating desert before your entree. All the surprise is gone. Everything is revealed. And yet nothing has any meaning -- we don't know why we need them yet, they're just empty words.
 
@@ -326,9 +326,11 @@ Dagoba.fauxPipetype = function(_, _, maybe_gremlin) {   // if you can't find a p
 See those underscores? We use those to label params that won't be used in our function. Most other pipetypes will use all three params. We really only did this here to make the comments line up nicely.
 
 
+## Pipetypes
+
 Let's introduce our cast of characters.
 
-#### El vertex
+#### Vertex
 
 Most of the pipetypes we will meet take gremlins as their input, but this special pipetype generates new ones. Given a vertex id it will create a new gremlin on that vertex, if it exists. 
 
@@ -385,7 +387,7 @@ Dagoba.simpleTraversal = function(dir) {
   
     if(!state.edges || !state.edges.length) {                     // state initialization
       state.gremlin = gremlin
-      state.edges = graph[find_method](gremlin.vertex)             // get edges that match our query
+      state.edges = graph[find_method](gremlin.vertex)            // get edges that match our query
                          .filter(Dagoba.filterEdges(args[0]))
     }
 
@@ -400,11 +402,11 @@ Dagoba.simpleTraversal = function(dir) {
 
 The first couple lines handle the differences between the in version and the out version. Then we're ready to return our pipetype function, which looks quite a bit like the vertex pipetype we just saw. That's a little surprising, since this one takes in a gremlin whereas the vertex pipetype creates gremlins ex nihilo.
 
-But we can see the same beats being hit here, with the addition of a query initialization step. If there's no gremlin and we're out of available edges then we pull. If we have a gremlin but haven't yet set state then we find any edges going the appropriate direction and add them to our state. If there's a gremlin but its current vertex has no appropriate edges then we pull. And finally we pop off an edge and return a freshly cloned gremlin on the vertex to which it points.
+But we can see the same beats being hit here, with the addition of a query initialization step. If there's no gremlin and we're out of available edges then we pull. If we have a gremlin but haven't yet set state then we find any edges going the appropriate direction and add them to our state [footnote on filtering]. If there's a gremlin but its current vertex has no appropriate edges then we pull. And finally we pop off an edge and return a freshly cloned gremlin on the vertex to which it points.
 
 Glancing at this code we see ```!state.edges.length``` repeated in each of the three clauses. It's tempting to refactor this to reduce the complexity of those conditionals. There are two issues keeping us from doing so. One is relatively minor: the third ```!state.edges.length``` means something different than the first two, since ```state.edges``` has been changed between the second and third conditional. This actually encourages us to refactor, because having the same label mean two different things inside a single function usually isn't ideal.
 
-But this isn't the only pipetype function we're writing, and we'll see these ideas of query initialization and/or state initialization repeated over and over. There's always a balancing act when writing code between structural attributes and unstructured qualities. Too much structure and you pay a high cost in boilerplate and abstraction complexity. Too little structure and you'll have to keep all the plumbing minutia in your head.
+But this isn't the only pipetype function we're writing, and we'll see these ideas of query initialization and/or state initialization repeated over and over. There's always a balancing act when writing code between structured qualities and unstructured qualities. Too much structure and you pay a high cost in boilerplate and abstraction complexity. Too little structure and you'll have to keep all the plumbing minutia in your head.
 
 In this case, with a dozen or so pipetypes, the right choice seems to be to style each of the pipetype functions as similarly as possible, and label the constituent pieces with comments. So we resist our impulse to refactor this particular pipetype, because doing so would reduce uniformity, but we also resist the urge to engineer a formal structural abstraction for query initialization, state initialization, and the like. If there were hundreds of pipetypes that latter choice would likely be the right one -- the complexity cost of the abstraction is constant, while the benefit accrues linearly with the number of units. When handling that many moving pieces anything you can do to enforce regularity among them is helpful.
 
@@ -495,11 +497,17 @@ Without the take pipe that query could take quite a while to run [have we talked
 
 Sometimes we just want one at a time: we'll process the result, work with it, and then come back for another one. This pipetype allows us to do that as well.
 
+```javascript
+q = g.v('Auðumbla').out().out().out().property('name').take(1)
+
+q.run() // ["Odin"]
+q.run() // ["Vili"]
+q.run() // ["Vé"]
+q.run() // []
 ```
-q = g.v('Auðumbla').out().out().take(1)
-x1 = q.run()
-x2 = q.run()
-```
+
+Our query can function in an asynchronous environment, allowing us to collect more results as needed. When we run out an empty array is returned.
+
 
 ```javascript
 Dagoba.addPipeType('take', function(graph, args, gremlin, state) {
@@ -578,6 +586,10 @@ Some of the questions we might ask involve checking further into the graph, only
 ```g.v('Freya').out('daughter').as('me').out().in('father').in('father').filter(function(asgardian) {return asgardian == 'Odin'}).back('me').unique().run()```
 [Test this]
 
+This is really all the pipetypes we need to do some pretty serious queries. 
+
+[Add more examples here]
+
 ```javascript
 Dagoba.addPipeType('back', function(graph, args, gremlin, state) {
   if(!gremlin) return 'pull'                            // query initialization
@@ -585,26 +597,41 @@ Dagoba.addPipeType('back', function(graph, args, gremlin, state) {
 })
 ```
 
-We're using the ```Dagoba.gotoVertex``` helper function to do all real work. Let's check a look at that.
+We're using the ```Dagoba.gotoVertex``` helper function to do all real work here. Let's check a look at that and some other helpers now.
+
+
+## Helper functions
+
+The pipetypes above rely on a few helper functions. We'll look at those first, and then look at some functions that haven't been mentioned yet.
+
+#### Gremlins
+
+Gremlins are simple creatures: they have a current vertex, and some local state. So to make a new one we just need to make an object with those two things.
+
+```javascript
+Dagoba.makeGremlin = function(vertex, state) {
+  return {vertex: vertex, state: state || {} }
+}
+```
+
+Any object that has a vertex property and a state property is a gremlin by this definition, so we could just inline the constructor, but wrapping it in a function allows us to add new properties to all gremlins in a single place.
+
+We can also take an existing gremlin and send it to a new vertex, as we saw in the 'back' pipetype and the simpleTraversal function.
 
 ```javascript
 Dagoba.gotoVertex = function(gremlin, vertex) {         // clone the gremlin 
-  return Dagoba.makeGremlin(vertex, gremlin.state)      // THINK: add path tracking here?
+  return Dagoba.makeGremlin(vertex, gremlin.state)
 }
 ```
 
-So sending a gremlin some place is pretty simple. How do we make a new gremlin from an old one?
+Note that this function actually returns a brand new gremlin -- a clone of the old one, sent to our desired destination. That means a gremlin can sit on a vertex and be cloned out to many other vertices, which is exactly what happens in simpleTraversal.
 
-```javascript
-Dagoba.makeGremlin = function(vertex, state) {          // gremlins are simple creatures: 
-  return {vertex: vertex, state: state || {} }          // a current vertex, and some state
-}
-```
-
-Nice.
+As an example of possible enhancements, we could add tracking for every vertex the gremlin visits, and then add new pipetypes to take advantage of those paths.
 
 
-### Filtering
+#### Filtering
+
+We saw that simpleTraversal uses a filtering function on the edges it encounters. It's a simple function, but powerful enough for our purposes.
 
 ```javascript
 Dagoba.filterEdges = function(filter) {
@@ -612,7 +639,7 @@ Dagoba.filterEdges = function(filter) {
     if(!filter)                                         // if there's no filter, everything is valid
       return true
 
-    if(filter+'' === filter)                            // if the filter is a string, the label must match
+    if(typeof filter == 'string')                       // if the filter is a string, the label must match
       return edge._label == filter
 
     if(Array.isArray(filter))                           // if the filter is an array, the label must be in it
@@ -622,6 +649,14 @@ Dagoba.filterEdges = function(filter) {
   }
 }
 ```
+
+The first case is no filter at all: ```g.v('Odin').out().run()``` traverses all out edges from Odin.
+
+The second filters on the edge's label: ```g.v('Odin').out('son').run()``` traverses all out edges with a label of 'son'.
+
+The third case accepts an array of labels: ```g.v('Odin').out(['daughter', 'son']).run()``` traverses both son and daughter edges.
+
+And the fourth case uses another helper function:
 
 ```javascript
 Dagoba.objectFilter = function(thing, filter) {         // thing has to match all of filter's properties
@@ -633,8 +668,11 @@ Dagoba.objectFilter = function(thing, filter) {         // thing has to match al
 }
 ```
 
+This allows us to query the edge using a filter object: ```g.v('Odin').out({position: 2, _label: daughter}).run()``` finds Odin's second daughter, if position is genderized. 
 
-### Serialization
+
+#### Serialization
+
 
 
 ```javascript
@@ -658,9 +696,57 @@ Dagoba.cleanEdge = function(key, value) {
 ```
 
 
-### Storage
 
-[add store/restore aka localStorage]
+#### Persistence
+
+Persistence is usually one of the trickier parts of a database: disks are horridly slow, but relatively safe. Batching writes, making them atomic, journaling -- these are all difficult things to get right. 
+
+Fortunately, we're building an IN-MEMORY database, so we don't have to worry about any of that! We may, though, occasionally want to save a copy of the db locally for fast restart on page load. We can use our serialize / deserlizer together with localStorage to do just that. 
+
+// is localhost really atomic/secure? if not build it ourselves (at cost of storage/2); storing in localhost is crowded, often not the best option (filewriter?)
+
+
+
+
+
+#### Orthogonal Optimization
+
+We've improved our performance for large graphs by several dozen orders of magnitude. That's pretty good, but we can do better. Each step in our query has a fixed cost for building the gremlins and making the function calls, as well as a per-step cost. Because we're splitting each step out into its own separate unit, those per-step costs can be quite high compared to what they could be if we could combine some steps. We've sacrificed performance for code simplicity. 
+Many will argue that this sacrifice is acceptable, and that simplicity should trump performance whenever possible, but this is a false dichotomy. We can have our simple, easily understood model and also gain the performance benefits of combining steps -- we just have to beef up our compiler a little. 
+How do we do that without sacrificing simplicity? By making the new compilation steps orthogonal to our existing model. We already have a working system, so keep that in place. But let's add some new stepflavours, and some new preprocessors that we can turn on to pull those flavours in to our pipeline. We'll tag the preprocessors so we can turn them all on or off easily. 
+
+// ok build that
+// perf test it
+// cool it's faster
+
+Great, we're fast! Notice that by deliberately ignoring the chances we had to optimize early and by writing everything in as decomposed and simplistic a way as we possibly could that we've opened up opportunities for global optimizations. [more]
+
+We should probably confirm that our optimizations don't break anything. Maybe we can write a bunch of tests for each of these new pieces, like we did before. 
+
+// write a test or two
+
+This is *really* boring... and error prone. And it doesn't reveal any of the unexpected ways that combinations of optimizations may interact, or how the preprocessor affects that. Ok, new plan: probabilistic testing!
+Because we have a working, well-tested pipeline and because we've created our optimizations as an optional, orthogonal pipeline we can now write tests that take advantage of this fact.
+
+// build a random graph
+// build a random query
+// compare opt and non-opt flavours
+
+We've created a (very specialized) version of quickcheck [N] in 9 lines of code! Now we just let this run for awhile whenever we add new optimizations and it will tell us when they fail.
+
+
+## Wrapping up
+
+So what have we learned? Graph databases are great for storing interconnected [Z] data that you plan to query via graph traversals. Adding laziness allows for a fluent interface over queries you could never express in an eager system for performance reasons, and allows you to cross async boundaries. Time makes things complicated, and time from multiple perspectives (i.e. concurrency) makes things very complicated, so whenever we can avoid introducing a temporal dependence (e.g. mutable state, measurable effects, etc) we make reasoning about our system easier. Building in a simple, decoupled and painfully unoptimized style leaves the door open for global optimizations later on, and using a driver loop allows for orthogonal optimizations -- each without introducing the brittleness and complexity into our code that is the hallmark of most optimization techniques. 
+
+That last point can't be overstated: keep it simple. Eschew optimization in favor of simplicity. Work hard to achieve simplicity by finding the right model. Explore many possibilities. The chapters in this book provide ample evidence that highly non-trivial applications can have a small, tight kernel. Once you find that kernel for the application you are building, fight to keep complexity from polluting it. Build hooks for attaching additional functionality, and maintain your abstraction barriers at all costs. Using these techniques well is not easy, but they can give you leverage over otherwise intractable problems. 
+
+
+
+
+
+[Z] Not *too* interconnected, though -- you'd like the number of edges to grow in direct proportion to the number of vertices. In other words the average number of edges a vertex has shouldn't vary with the size of the graph. Most systems we'd consider putting in a graph database already have this property: if we add 100,000 Nigerian films to our movie database that doesn't increase the degree of the Kevin Bacon vertex.
+
 
 
 
@@ -669,47 +755,10 @@ Dagoba.cleanEdge = function(key, value) {
 
 
 
- First of all, our query segments can't just return data any more. Instead we're going to need to process each segment on demand. That means we'll need some way of driving this process forward. Here's how we'll do that.
-
----> also: don't blow your stack on large queries (so we can't use straight recursion, need to use a different approach. lots of other benefits to this, like history and reversibility etc)
 
 
 
 
-///// then look at addPipeType, and talk about state
-
-///// then look at unique and take
-
-///// then the interpreter
-
-
-Let's look at a couple pipetype functions. First up is the 'unique' function, which only allows a gremlin to pass through if the vertex it's sitting on hasn't been seen before. 
-
-Dagoba.addPipeType('unique', function(graph, args, gremlin, state) {
-  if(!gremlin) return 'pull'                            // query initialization
-  if(state[gremlin.vertex._id]) return 'pull'           // we've seen this gremlin, so get another instead
-  state[gremlin.vertex._id] = true
-  return gremlin
-})
-
-We'll add the pipetype to our system using the addPipeType function, which takes the pipetype's name as its first argument and the function as its second. We'll look at the details of that function later. Notice that the pipetype function expects the graph, its arguments, a gremlin, and its state. 
-
-Because we're streaming results through and the interpreter can call 
-
-
-
-Dagoba.addPipeType('take', function(graph, args, gremlin, state) {
-  state.taken = state.taken || 0                                  // state initialization
-  
-  if(state.taken == args[0]) {
-    state.taken = 0
-    return 'done'                                                 // all done
-  }
-  
-  if(!gremlin) return 'pull'                                      // query initialization
-  state.taken++                                                   // THINK: if this didn't mutate state, we could be more
-  return gremlin                                                  // cavalier about state management (but run the GC hotter)
-})
 
 
 
@@ -745,94 +794,6 @@ We'll need to modify our query components to work within this new system. This i
 ```javascript
 Dagoba.Q = {}                                                     // prototype
 
-Dagoba.query = function(graph) {                                  // factory (only called by a graph's query initializers)
-  var query = Object.create( Dagoba.Q )
-  
-  query.   graph = graph                                          // the graph itself
-  query.   state = []                                             // state for each step
-  query. program = []                                             // list of steps to take  
-  query.gremlins = []                                             // gremlins for each step
-  
-  return query
-}
-
-Dagoba.Q.run = function() {                                       // the magic lives here
-  
-  var graph = this.graph                                          // these are closed over in the helpers
-  var state = this.state                                          // so we give them a spot in the frame
-  var program  = this.program
-  var gremlins = this.gremlins
-
-  var max = program.length-1                                      // work backwards
-  var pc = max                                                    // program counter
-  var done = -1                                                   // behind which things have finished
-  var results = []                                                // results for this run
-  var maybe_gremlin = false                                       // a mythical beast
-
-  if(!program.length) return []                                   // don't bother
-  
-  
-  // driver loop
-  while(done < max) {
-    maybe_gremlin = try_step(pc, maybe_gremlin)                   // maybe_gremlin is a gremlin or (string | false)
-    
-    if(maybe_gremlin == 'pull') {
-      maybe_gremlin = false
-      if(pc-1 > done) {
-        pc--
-        continue
-      } else {
-        done = pc
-      }
-    }
-    
-    if(maybe_gremlin == 'done') {
-      done = pc
-      maybe_gremlin = false
-    }
-    
-    pc++
-    
-    if(pc > max) {                                                // a gremlin is popping out of the pipeline. catch it!
-      if(maybe_gremlin)
-        results.push(maybe_gremlin)
-      maybe_gremlin = false
-      pc--
-    }
-  }
-
-  // TODO: deal with gremlin paths / history and gremlin "collisions"
-  
-  results = results.map(function(gremlin) {                       // make this a query component (or posthook)
-    return gremlin.result ? gremlin.result : gremlin.vertex } )
-
-  results = Dagoba.firehooks('postquery', this, results)[0] 
-  
-  return results
-  
-  // NAMED HELPERS
-  
-  function try_step(pc, maybe_gremlin) {
-    var step = program[pc]
-    var my_state = (state[pc] = state[pc] || {})
-    if(!Dagoba.QFuns[step[0]]) return Dagoba.onError('Unrecognized function call: ' + step[0]) || maybe_gremlin || 'pull'
-    return Dagoba.QFuns[step[0]](graph, step.slice(1) || {}, maybe_gremlin, my_state)
-  }
-    
-  function gremlin_boxer(step_index) { return function(gremlin) { return [step_index, gremlin] } }
-  
-  function stepper(step_index, gremlin) {
-    var step = program[step_index]
-    if(!Dagoba.QFuns[step[0]]) return Dagoba.onError('Unrecognized function call: ' + step[0]) || {}
-    return Dagoba.QFuns[step[0]](graph, step.slice(1) || {}, gremlin || {}, state[step_index] || {})
-  }
-  
-  function eat_gremlins(gremlins, step_index, result) {
-    return gremlins.concat( (result.stay || []).map(gremlin_boxer(step_index))   )
-                   .concat( (result.go   || []).map(gremlin_boxer(step_index+1)) ) }
-  
-  function setbang_gremlins(step_index, result) {gremlins = eat_gremlins(gremlins, step_index, result)}
-}
 ```
 
 // new query components
@@ -845,144 +806,6 @@ Dagoba.Q.add = function(list) {                                  // add a new tr
   return this
 }
 
-Dagoba.addQFun = function(name, fun) {                            // add a new traversal type
-  Dagoba.QFuns[name] = fun
-  Dagoba.Q[name] = function() { return this.add([name].concat([].slice.apply(arguments))) } 
-  // TODO: accept string fun and allow extra params, for building quick aliases like
-  //       Dagoba.addQFun('children', 'out') <-- if all out edges are kids
-  //       Dagoba.addQFun('nthGGP', 'inN', 'parent')
-  // var methods = ['out', 'in', 'take', 'property', 'outAllN', 'inAllN', 'unique', 'filter', 'outV', 'outE', 'inV', 'inE', 'both', 'bothV', 'bothE']
-}
-
-
-Dagoba.QFuns = {}                                                 // all traversal types
-
-Dagoba.addQFun('vertex', function(graph, args, gremlin, state) {
-  if(!state.vertices) state.vertices = graph.findVertices(args)
-  if(!state.vertices.length) return 'done'
-  var vertex = state.vertices.pop() 
-  return Dagoba.make_gremlin(vertex)
-})
-  
-Dagoba.addQFun('out', function(graph, args, gremlin, state) {
-  if(!gremlin && (!state.edges || !state.edges.length)) return 'pull'
-  if(!state.edges || !state.edges.length) 
-    state.edges = graph.findOutEdges(gremlin.vertex).filter(Dagoba.filterThings(args[0]))
-  if(!state.edges.length) return 'pull'
-  var vertex = state.edges.pop()._in // what?
-  var clone = Dagoba.make_gremlin(vertex) // we lose history here: use clone_gremlin(gremlin).goto(vertex) instead
-  return clone
-})
-
-Dagoba.addQFun('outAllN', function(graph, args, gremlin, state) {
-  var filter = args[0]
-  var limit = args[1]-1
-  
-  if(!state.edgeList) { // initialize
-    if(!gremlin) return 'pull'
-    state.edgeList = []
-    state.current = 0
-    state.edgeList[0] = graph.findOutEdges(gremlin.vertex).filter(Dagoba.filterThings(filter))
-  }
-  
-  if(!state.edgeList[state.current].length) { // finished this round
-    if(state.current >= limit || !state.edgeList[state.current+1]   // totally done, or the next round has no items
-                              || !state.edgeList[state.current+1].length) {
-      state.edgeList = false
-      return 'pull'
-    }
-    state.current++ // go to next round
-    state.edgeList[state.current+1] = [] 
-  }
-  
-  var vertex = state.edgeList[state.current].pop()._in
-  
-  if(state.current < limit) { // add all our matching edges to the next level
-    if(!state.edgeList[state.current+1]) state.edgeList[state.current+1] = []
-    state.edgeList[state.current+1] = state.edgeList[state.current+1].concat(
-      graph.findOutEdges(vertex).filter(Dagoba.filterThings(filter))
-    )
-  }
-  
-  var clone = Dagoba.make_gremlin(vertex) // we lose history here: use clone_gremlin(gremlin).goto(vertex) instead
-  return clone
-})
-  
-Dagoba.addQFun('inAllN', function(graph, args, gremlin, state) {
-  var filter = args[0]
-  var limit = args[1]-1
-  
-  if(!state.edgeList) {                                           // initialize
-    if(!gremlin) return 'pull'
-    state.edgeList = []
-    state.current = 0
-    state.edgeList[0] = graph.findInEdges(gremlin.vertex).filter(Dagoba.filterThings(filter))
-  }
-  
-  if(!state.edgeList[state.current].length) {                     // finished this round
-    if(state.current >= limit || !state.edgeList[state.current+1] // totally done, or the next round has no items
-                              || !state.edgeList[state.current+1].length) {
-      state.edgeList = false
-      return 'pull'
-    }
-    state.current++                                               // go to next round
-    state.edgeList[state.current+1] = [] 
-  }
-  
-  var vertex = state.edgeList[state.current].pop()._out
-  
-  if(state.current < limit) {                                     // add all our matching edges to the next level
-    if(!state.edgeList[state.current+1]) state.edgeList[state.current+1] = []
-    state.edgeList[state.current+1] = state.edgeList[state.current+1].concat(
-      graph.findInEdges(vertex).filter(Dagoba.filterThings(filter))
-    )
-  }
-  
-  var clone = Dagoba.make_gremlin(vertex) // we lose history here: use clone_gremlin(gremlin).goto(vertex) instead
-  return clone
-})
-  
-Dagoba.addQFun('in', function(graph, args, gremlin, state) {
-  if(!gremlin && (!state.edges || !state.edges.length)) return 'pull'
-  if(!state.edges || !state.edges.length) 
-    state.edges = graph.findInEdges(gremlin.vertex).filter(Dagoba.filterThings(args[0]))
-  if(!state.edges.length) return 'pull'
-  var vertex = state.edges.pop()._out // what? // also, abstract this...
-  var clone = Dagoba.make_gremlin(vertex) // we lose history here: use clone_gremlin(gremlin).goto(vertex) instead
-  return clone
-})
-  
-Dagoba.addQFun('property', function(graph, args, gremlin, state) {
-  if(!gremlin) return 'pull'
-  gremlin.result = gremlin.vertex[args[0]]
-  return gremlin
-})
-  
-Dagoba.addQFun('unique', function(graph, args, gremlin, state) {
-  if(!gremlin) return 'pull'
-  if(state[gremlin.vertex._id]) return 'pull'                     // we've seen this gremlin, so get another instead
-  state[gremlin.vertex._id] = true
-  return gremlin
-})
-  
-Dagoba.addQFun('filter', function(graph, args, gremlin, state) {
-  if(!gremlin) return 'pull'
-  if(typeof args[0] != 'function') return Dagoba.onError('Filter arg is not a function: ' + args[0]) || gremlin
-  if(!args[0](gremlin.vertex)) return 'pull'                      // gremlin fails filter function 
-  // THINK: would we ever want to filter by other parts of the gremlin?
-  return gremlin
-})
-  
-Dagoba.addQFun('take', function(graph, args, gremlin, state) {
-  state.taken = state.taken ? state.taken : 0
-  if(state.taken == args[0]) {
-    state.taken = 0
-    return 'done'
-  }
-  if(!gremlin) return 'pull'
-  state.taken++ // FIXME: mutating! ugh!
-  return gremlin
-})
 ```
 
 // state
@@ -991,34 +814,8 @@ Notice that we're keeping all the component state up at the driver loop level. T
 
 So why the scare quotes around pure? Because we're mutating the state argument inside the function. We usually try to avoid mutation to curb spooky action at a distance, but in this case we're taking advantage of JS's mutable variables. This state variable is only changed within the component itself, so if we're careful to respect this within any state-peeking features we add later, then hopefully we can avoid having this bite us. The advantages are that we can simplify our return value and cut down on garbage created in the components.
 
-// new pipe thing
-
-We can even resume this after coming back in from an asynchronous event, so we can use external sources to drive our querying. 
-
-// example
-
-```javascript
-Q = G.v(1).out().property('name').take(1)
-
-Q.run() // ["lop"]
-Q.run() // ["josh"]
-Q.run() // ["vadas"]
-
-Q.run() // []
-```
 
 
-
-/// anyway later we'll include stepparents, but w/ parents ALWAYS older than children (DAG). then open it up for general graph stuff after.
-
-```
-/// (this is old, and may get skipped entirely)
-/// How do we get laziness in JS? Well, we're using ES6 features, so generators come to mind. That could look like this: []
-/// -- good idea, but: can't go backward, can't orthopt, 
-/// --> query transformer: id() -> attr('_id')
-/// --> then we add label matching for easy edge walking
-/// --> then we add object queries for more complicated stuff
-```
 
 
 ### Updates
@@ -1122,297 +919,4 @@ And then we can use orthopt to push .out().out().out() -> .outN(3) for efficienc
 and likewise for .out().all().out().all() -> .outAllN(3)
 so we get to eat our cake and have it fast too.
 ```
-
-
-
-
-
-### Hooks
-
-Uniqueness of results vs counting # of results -- both are valid use cases. Can we solve with query component for counting plus hook for uniqueness?
-
-(Maybe merge this section with updating, because half the hooks involve cloning)
-
-
-### error handling
-
-What if we did a query like this:
-```
-> G.v(-23).out([2,3,4]).take('a').foo()
-```
-
-Maybe we should handle those errors a little better.
-
-### tests
-
-- tests for components
-- end-to-end tests
-
-### serialization
-
----> transit as an option for json serialization over the wire; 
-
-
-
-### persistence
-
-Persistence is usually one of the trickier parts of a database: disks are horridly slow, but relatively safe. Basthing writes, making them atomic, journaling -- these are all difficult things to get right. 
-
-Fortunately, we're building an IN-MEMORY database, so we don't have to worry about any of that! We may, though, occasionally want to save a copy of the db locally for fast restart on page load. We can use our serialize / deserlizer together with localStorage to do just that. 
-
-// is localhost really atomic/secure? if not build it ourselves (at cost of storage/2); storing in localhost is crowded, often not the best option (filewriter?)
-
-
-### OO vs FP re GDB wrt Dagoba (extensibility, pipeline management, etc)
-
-
-## Make it fast
-
-All production graph databases share a very particular performance characteristic: graph traversal queries are constant time with respect to total graph size. [N] [The fancy term for this is "index-free adjacency".] In a non-graph database, asking for the list of someone's friends can require time proportional to the number of entries, because in the naive case you have to look at every entry. The means if a query over ten entries takes a millisecond then a query over ten million entries will take almost two weeks. Your friend list would arrive faster if sent by Pony Express! [N] [Though only in operation for 18 months due to the arrival of the transcontinental telegraph and the outbreak of the American Civil War, the Pony Express is still remembered today for delivering mail coast to coast in just ten days.]
-
-// do a perf test with the O(n) graph
-```
-Dagoba.Graph.findOutEdges = function(vertex) { return this.edges.filter(function(edge) {return edge._out == vertex._id} ) }
-Dagoba.Graph.findInEdges = function(vertex) { return this.edges.filter(function(edge) {return edge._in == vertex._id} ) }
-```
-
-To alleviate this dismal performance most databases index over oft-queried fields, which turns an O(n) search into an O(log n) search. This gives considerably better search time performance, but at the cost of some write performance and a lot of space -- indices can easily double the size of a database. Much of the modern DBA's role lies in carefully balancing these time/space tradeoffs and tediously tending to the index garden, weeding out unneeded indices and adding new ones when necessary. [replace this]
-
-// add an index
-// do a perf test with an indexed graph
-```
-Dagoba.Graph.findOutEdges = function(vertex) { return this.outEdgeIndex[vertex._id] }
-Dagoba.Graph.findInEdges = function(vertex) { return this.inEdgeIndex[vertex._id] }
-```
-
-
-Graph databases sidestep this issue by making direct connections between vertices and edges, so graph traversals are just pointer jumps: no need to read through everything, no need for indices. Now finding your friends has the same price regardless of total number of people in the graph, with no additional space cost or write time cost. One downside to this approach is that the pointers work best when the whole graph is in memory on the same machine. Sharding a graph across multiple machines is still an active area of research. [N] [point to a couple graph theory papers on NP-completeness of optimal splitting, but also some practical takes on this that mostly work ok]
-
-// add pointers
-// perf test
-// wow such perform
-```
-Dagoba.Graph.findOutEdges = function(vertex) { return vertex._out; }
-Dagoba.Graph.findInEdges = function(vertex) { return vertex._in; }
-```
-
-### Orthogonal Optimization
-
-We've improved our performance for large graphs by several dozen orders of magnitude. That's pretty good, but we can do better. Each step in our query has a fixed cost for building the gremlins and making the function calls, as well as a per-step cost. Because we're splitting each step out into its own separate unit, those per-step costs can be quite high compared to what they could be if we could combine some steps. We've sacrificed performance for code simplicity. 
-Many will argue that this sacrifice is acceptable, and that simplicity should trump performance whenever possible, but this is a false dichotomy. We can have our simple, easily understood model and also gain the performance benefits of combining steps -- we just have to beef up our compiler a little. 
-How do we do that without sacrificing simplicity? By making the new compilation steps orthogonal to our existing model. We already have a working system, so keep that in place. But let's add some new stepflavours, and some new preprocessors that we can turn on to pull those flavours in to our pipeline. We'll tag the preprocessors so we can turn them all on or off easily. 
-
-// ok build that
-// perf test it
-// cool it's faster
-
-Great, we're fast! Notice that by deliberately ignoring the chances we had to optimize early and by writing everything in as decomposed and simplistic a way as we possibly could that we've opened up opportunities for global optimizations. [more]
-
-We should probably confirm that our optimizations don't break anything. Maybe we can write a bunch of tests for each of these new pieces, like we did before. 
-
-// write a test or two
-
-This is *really* boring... and error prone. And it doesn't reveal any of the unexpected ways that combinations of optimizations may interact, or how the preprocessor affects that. Ok, new plan: probabilistic testing!
-Because we have a working, well-tested pipeline and because we've created our optimizations as an optional, orthogonal pipeline we can now write tests that take advantage of this fact.
-
-// build a random graph
-// build a random query
-// compare opt and non-opt flavours
-
-We've created a (very specialized) version of quickcheck [N] in 9 lines of code! Now we just let this run for awhile whenever we add new optimizations and it will tell us when they fail.
-
-## Wrapping up
-
-So what have we learned? Graph databases are great for storing interconnected [Z] data that you plan to query via graph traversals. Adding laziness allows for a fluent interface over queries you could never express in an eager system for performance reasons, and allows you to cross async boundaries. Time makes things complicated, and time from multiple perspectives (i.e. concurrency) makes things very complicated, so whenever we can avoid introducing a temporal dependence (e.g. mutable state, measurable effects, etc) we make reasoning about our system easier. Building in a simple, decoupled and painfully unoptimized style leaves the door open for global optimizations later on, and using a driver loop allows for orthogonal optimizations -- each without introducing the brittleness and complexity into our code that is the hallmark of most optimization techniques. 
-
-That last point can't be overstated: keep it simple. Eschew optimization in favor of simplicity. Work hard to achieve simplicity by finding the right model. Explore many possibilities. The chapters in this book provide ample evidence that highly non-trivial applications can have a small, tight kernel. Once you find that kernel for the application you are building, fight to keep complexity from polluting it. Build hooks for attaching additional functionality, and maintain your abstraction barriers at all costs. Using these techniques well is not easy, but they can give you leverage over otherwise intractable problems. 
-
-
-
-
-
-
-
-
-
-[Z] Not *too* interconnected, though -- you'd like the number of edges to grow in direct proportion to the number of vertices. In other words the average number of edges a vertex has shouldn't vary with the size of the graph. Most systems we'd consider putting in a graph database already have this property: if we add 100,000 Nigerian films to our movie database that doesn't increase the degree of the Kevin Bacon vertex.
-
-
-
-
-Adverbs: 
-we need to get collect gremlins from 'all' steps without having them modified by interleaving traversal steps.
-so we need a way to get the gremlin from the current 'all' step up to the last 'all' step. 
-we could teleport it there, but 
-- can we only teleport forward in time? backwards makes loops, which really cranks up the complexity of our queries
-- marking the teleportation endpoint and the individual steps that can send to it causes a lot of cross-step connections, which reduces our compositional / transformational abilities
-so instead we could wrap the gremlin in a bubble and float it downstream until it hits an allbuster that's wired to pop it. do they pop everything? everything from the same type of step? or is it labeled? you could miss one then, which is weird. 
-and the gremlin actually does have to pass through everything eventually, triggering it as it goes -- so you really need two gremlins, a bubble one and a non-bubbled one after it. the 'all' could do that, though, by cloning it. how do you bubble? how do you pop? how do you bypass bubbles?
-
-
-
-
-
-Notes from Leo:
-- I would hope that your writeup will eventually contain an example of a manual evaluation for a query (in mind-numbing detail in terms of gremlins and their internal state).
-- You may also want to include an explanation of the VM concept in general (and in particular, why you went this way rather than straight-up `thunks`. We talked about it but you need to make it explicit in the piece)
-
-
-
-
-
-
-======================================================================================================
-
-What follows is detritus in need of cleaning.
-
-======================================================================================================
-
-
-
-  
-  /* 
-      new idea: 
-      - start with last component (collector)
-      - it provides a 'pull' request as its return value
-      - driver loop goes to previous component:
-        - it might 'push' results
-        - it might make a 'pull' request
-        - it might be 'done'
-  
-      a query with a take(1) at the end provides one result at a time: you can keep calling it to get more results
-      - this requires the take component to update itself on re-query: does it only provide 'done' once? 
-        - once anything is 'done' everything above it is probably done also, so there's no backtracking?
-        - it'd be better to toggle this on re-query: downstream components might be funky.
-        - track it in the query? a list of 'done' components: don't even ask them.
-      
-      intersection/backtracking/etc... gremlin memory: it's not the vertex that arrives at the end, it's the gremlin.
-      if we want history/state/replay then add that as a query stack modifier (inject between each queue item)
-      likewise with gremlin collision (merging): query-inject it into the queue after collision-capable components
-      
-      (really query-injectors and query-transformers are the same: they're all just transformers. 
-       can be run ad hoc, or added to the default queue-transformer list. [ordering? probably priority numbers... but proper dependencies / pre-pendencies (has to run before) would be better (a before/after list might be easy (but break cycles))])
-  */
-  
-  
-
----  Suppose you've been asked to create a booking system for an airline. [Toronto to Timbuktu...]
----  
----  Let's start with a simple question: how many connected components are there in the Lagarias arithmetic derivative of the first N numbers out to k steps? 
----  [N] [https://cs.uwaterloo.ca/journals/JIS/VOL6/Ufnarovski/ufnarovski.pdf,
----  http://christopherolah.files.wordpress.com/2011/04/arithmetic_derivative_250.png]
-
-
-
-Or we could ask about the shortest path from one vertex to another:
-
-  function shortestPath (node) {}
-
-Let's run some tests! 
-
-...
-
-maybe we load in the collatz sequence as a test graph? http://xkcd.com/710/ [it's a tree, less interesting]
-prime factors graph. [it's too connected, perhaps less interesting]
-random graph (add 1-10, then each new node connects to 3 existing nodes selected at random) [just right (goldilocks graph)]
-random graph, show threshold for connectivity (cite proof etc)
-Watts-Strogatz small-world model simulator
-Barabási–Albert model
-Dorogovtsev and Mendes : http://arxiv.org/pdf/1007.4031v1.pdf
-
-----
-
-
-// TODO: change all node -> vertex   (/sigh)
-// can you put the _id in the node/edge? does addNodes return a list of ids or a list of nodes? 
-// property graph model
-
-var g = Dagoba.graph()
-g.addNodes([ {_id:1, name:"Fred"}, {_id:2, name:"Bob"}, {_id:3, name:"Tom"}, {_id:4, name:"Dick"}, {_id:5, name:"Harry"} ])
-g.addEdges([ {_inV: 1, _outV: 2, _label: "father"}, {_inV: 2, _outV: 3, _label: "father"}, {_inV: 2, _outV: 4, _label: "father"}, {_inV: 2, _outV: 5, _label: "father"} ])
-
-g.v(1).out().out('father').name    // TODO: check proxies for this -- can we use them? otherwise...
-g.v(1).out().out('father').attr('name')
-g.v(1).out().out('father').attr('name').paths()
-
-so each of these g.xxx things is actually just adding elements to a query list, which can be optimized when something calls it and everything happens lazily. how do we do that?
-
-
-// function incoming (node) { return edges.reduce(function(edge) {if (edge[1] === node) acc.push(edge[0]) }, [])}
-// function outgoing (node) { return edges.reduce(function(edge) {if (edge[0] === node) acc.push(edge[1]) }, [])}
-// function neighbors (node) { return incoming(node).concat(outgoing(node)) }
-
-//  I have quite a few more features to add and I want a debugger/visualizer/history thing 
-//  and I want to convert it all to ES6 but this is where it's at right now.
-
-
-make it right:
-
-there's a problem here though -- it's really cumbersome to combine these questions. What if we wanted the nearest neighbor with a foo of bar?
-
-use filters to create subgraphs...
-
-a fluent style for creating subgraphs...
-
-modularlize it so you can have multiple graphs and a nice api...
-
-and allow query filters (and later optimizers) to be added at runtime...
-
-non-enumerable properties for storing edges on nodes?
-
-http://christopherolah.wordpress.com/2011/04/11/arithmetic-derivative-graph-and-thoughts/
-
-
-
--------------------  
-  
-  
-  
-a relational db of companies and people, with info on when each person worked at which company in a join table. ok, but now we want to know every person Joe Smith has worked with. duhn duhn duhn.
-
-
-hercules.out('depictedIn').as('movie').out('hasActor').out('role').retain(hercules).back(2).out('actor').as('star').selected({ it:name })
-
---> note: back, as, selected, and edges only have their name instead of real properties
-
-collision detection?
-dags for parsing and rule-based systems and data flow etc
-
-GraphSON https://github.com/tinkerpop/blueprints/wiki/GraphSON-Reader-and-Writer-Library
-
-graph query language vs graph traversal language
-
-Kahn process networks, tinkerpop pipes, gremlin and pacer, 
-
-later: GraphML import/export support, https://github.com/lambdazen/pixy/wiki , 
-
-
-
-
-step through debugger, reversible, 
-
-
-updates:
-- mutate in place
-- remove and re-add
-issues: 
-- performance (mutate-in-place is a bit faster -- for large updates this probably matters)
-- remove and re-add still has to connect to all the old pointers by _id: otherwise the old edges fail
-  - also the only (natural) way to add loops and be a full graph
-- normal issues with mutate-in-place apply: shared mutable state plus concurrency -> asplode
-- but if we hand out references to the real nodes other things can mutate them, even if we don't
-
-so: let's mutate-in-place for perf and simplicity, but never hand out refs to prevent mutation issues. it's a little slower because we have to serialize (or at least deep clone) before we hand over the results, but that part happens in a callback that we can cancel if our application doesn't need it.
-
-
-Definitions
-
-
-
-concurrency. immutable data structures. update syntax -- no problem, can't update directly anyway. {'foo.baz.smile': 123, 'args.lala.gogo': 333}
-
-
-
-
-============================================================================
 

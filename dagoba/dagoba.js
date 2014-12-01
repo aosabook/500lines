@@ -429,7 +429,7 @@ Dagoba.filterEdges = function(filter) {
     if(!filter)                                                   // if there's no filter, everything is valid
       return true
 
-    if(filter+'' === filter)                                      // if the filter is a string, the label must match
+    if(typeof filter == 'string')                                 // if the filter is a string, the label must match
       return edge._label == filter
 
     if(Array.isArray(filter))                                     // if the filter is an array, the label must be in it
