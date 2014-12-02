@@ -467,6 +467,12 @@ Dagoba.jsonify = function(graph) {                                // kids, don't
        + '}' 
 }
 
+Dagoba.persist = function(graph, name) {
+  name = name || 'graph'
+  var flatgraph = Dagoba.jsonify(graph)
+  localStorage.setItem('DAGOBA::'+name, flatgraph)
+}
+
 Dagoba.error = function(msg) {
   console.log(msg)
   return false 

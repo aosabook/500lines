@@ -230,6 +230,27 @@ We're probably only interested in getting a few unique results out, so we'll cha
 
 And so we see the need for laziness: all graph databases have to support a mechanism for doing as little work as possible, and most choose some form of lazy evaluation to do so. Since we're building our own interpreter, evaluating our program lazily is certainly within our purview. But the road to lazyville is paved with good intentions and surprising consequences.
 
+[
+ALSO:
+    ### Laziness
+
+    [Suppose you've got a hobby, like tennis or philately. I've got a hobby: re-building genealogy. Can we find anyone who likes both our hobbies? ]
+
+    Suppose we'd like to find a few people who have both tennis and philately as a hobby. We can start from tennis, go out to its hobbyists, out again to their hobbies, back in from philately and then take a few. (change this query)
+
+    ```
+    G.v('tennis').in().as('person').outV('philately').in().matches('person').take(5)
+    ```
+
+    And this works great, until our graph gets large and we run out of memory before Dave Brubeck gets to play. The problem is that we're completing each query segment before passing the data along to the next one, so we end up with an immense amount of data. If there were a way for later segments to pull data from earlier segments instead of having it pushed in to them, that would solve this problem. In other words, we need lazy evaluation. 
+
+    Now in some languages that would be trivial, but JavaScript is an eager language, so we're going to have to do a little work. First of all, our query segments can't just return data any more. Instead we're going to need to process each segment on demand. That means we'll need some way of driving this process forward. Here's how we'll do that.
+
+    ---> also: don't blow your stack on large queries (so we can't use straight recursion, need to use a different approach. lots of other benefits to this, like history and reversibility etc)
+
+]
+
+
 ## The heart of the matter
 
 Putting var declarations at the top is like eating desert before your entree. All the surprise is gone. Everything is revealed. And yet nothing has any meaning -- we don't know why we need them yet, they're just empty words.
@@ -296,6 +317,18 @@ So now we have a bunch of machinery in place in case we need it later. Let's fin
 
 [program counter is like a head that moves forward or backward. it's a kind of turing machine. it reads the current entry, possibly changing it (the state), and then moves either forward or backward. very simple.]
 
+[ALSO:
+
+    NOTE: see // state note below: keeping it in the driver loop aids instrumentation & debugging (& cloning), cuts down on per-pipe garbage, and keeps the pipetype functions "pure" in the sense that they don't keep local state, are referentially transparent [ish] and don't cause effects [ish].
+
+    // state
+
+    Notice that we're keeping all the component state up at the driver loop level. This allows us to keep track of all the state in one place so we can easily read it and clear it.  And it means we can keep the components as "pure" functions that take some inputs and give some output, so the driver loop doesn't need to instantiate them or indeed know anything about them. It's tidier too, because everything we need for re-running the query is contained in pc, program and state.
+
+    So why the scare quotes around pure? Because we're mutating the state argument inside the function. We usually try to avoid mutation to curb spooky action at a distance, but in this case we're taking advantage of JS's mutable variables. This state variable is only changed within the component itself, so if we're careful to respect this within any state-peeking features we add later, then hopefully we can avoid having this bite us. The advantages are that we can simplify our return value and cut down on garbage created in the components.
+
+]
+
 Ah, much better! Now we see where it all fits in. That makes perfect sense!
 
 Let's move on to something very intriguing: the pipetypes. 
@@ -358,8 +391,6 @@ We would still need to find a way to deal with the mutations, though, as the cal
 Linear types would allow us to avoid expensive copy-on-write schemes or complicated persistent data structures, while still retaining the benefits of immutability -- in this case, avoiding spooky action at a distance. Two references to the same mutable data structure act like a pair of walkie-talkies, allowing whoever holds them to communicate directly. Those walkie-talkies can be passed around from function to function, and cloned to create a whole set of walkie-talkies. This completely subverts the natural communication channels your code already possesses. In a system with no concurrency you can sometimes get away with it, but introduce multithreading or asynchronous behavior and all those walkie-talkies squawking can really be a drag. 
 
 JS lacks linear types, but we can get the same effect if we're really, really disciplined. Which we will be. For now.
-
-NOTE: see // state note below: keeping it in the driver loop aids instrumentation & debugging (& cloning), cuts down on per-pipe garbage, and keeps the pipetype functions "pure" in the sense that they don't keep local state, are referentially transparent [ish] and don't cause effects [ish].
 
 TODO: discuss OPT note
 TODO: discuss incoming gremlins note
@@ -493,7 +524,7 @@ We don't always want all the results at once. Sometimes we only need a handful o
 g.v('Thor').in().in().in().in().out().out().out().out().unique().take(12).run()
 ```
 
-Without the take pipe that query could take quite a while to run [have we talked about laziness yet?].
+Without the take pipe that query could take quite a while to run, but thanks to our lazy evaluation strategy the query with the take pipe is very fast.
 
 Sometimes we just want one at a time: we'll process the result, work with it, and then come back for another one. This pipetype allows us to do that as well.
 
@@ -602,7 +633,7 @@ We're using the ```Dagoba.gotoVertex``` helper function to do all real work here
 
 ## Helper functions
 
-The pipetypes above rely on a few helper functions. We'll look at those first, and then look at some functions that haven't been mentioned yet.
+The pipetypes above rely on a few helper functions. We'll look at those first, and then look at some functions and features that haven't been mentioned yet.
 
 #### Gremlins
 
@@ -671,42 +702,36 @@ Dagoba.objectFilter = function(thing, filter) {         // thing has to match al
 This allows us to query the edge using a filter object: ```g.v('Odin').out({position: 2, _label: daughter}).run()``` finds Odin's second daughter, if position is genderized. 
 
 
-#### Serialization
+#### Performance
 
+All production graph databases share a very particular performance characteristic: graph traversal queries are constant time with respect to total graph size. [footnote: The fancy term for this is "index-free adjacency".] In a non-graph database, asking for the list of someone's friends can require time proportional to the number of entries, because in the naive case you have to look at every entry. The means if a query over ten entries takes a millisecond then a query over ten million entries will take almost two weeks. Your friend list would arrive faster if sent by Pony Express! [footnote: Though only in operation for 18 months due to the arrival of the transcontinental telegraph and the outbreak of the American Civil War, the Pony Express is still remembered today for delivering mail coast to coast in just ten days.]
 
+To alleviate this dismal performance most databases index over oft-queried fields, which turns an O(n) search into an O(log n) search. This gives considerably better search time performance, but at the cost of some write performance and a lot of space -- indices can easily double the size of a database. Much of the modern DBA's role lies in carefully balancing these time/space tradeoffs and tediously tending to the index garden, weeding out unneeded indices and adding new ones when necessary. [replace this]
 
-```javascript
-Dagoba.jsonify = function(graph) {
-  return '{"V":' + JSON.stringify(graph.vertices, Dagoba.cleanVertex)
-       + ',"E":' + JSON.stringify(graph.edges,    Dagoba.cleanEdge)
-       + '}' 
-}
+Graph databases sidestep this issue by making direct connections between vertices and edges, so graph traversals are just pointer jumps: no need to read through everything, no need for indices. Now finding your friends has the same price regardless of total number of people in the graph, with no additional space cost or write time cost. One downside to this approach is that the pointers work best when the whole graph is in memory on the same machine. Sharding a graph across multiple machines is still an active area of research. [footnote: point to a couple graph theory papers on NP-completeness of optimal splitting, but also some practical takes on this that mostly work ok]
+
+We can see this at work in the microcosm of Dagoba if we replace the functions for finding edges. Here's a naive version that searches through all the edges in linear time.
+
+```
+Dagoba.Graph.findOutEdges = function(vertex) { return this.edges.filter(function(edge) {return edge._out == vertex._id} ) }
+Dagoba.Graph.findInEdges  = function(vertex) { return this.edges.filter(function(edge) {return edge._in  == vertex._id} ) }
 ```
 
-```javascript
-Dagoba.cleanVertex = function(key, value) {
-  return (key == '_in' || key == '_out') ? undefined : value 
-}
+We can add an index for edges, which gets us most of the way there with small graphs but has all the classic indexing issues for large ones.
+
+```
+Dagoba.Graph.findOutEdges = function(vertex) { return this.outEdgeIndex[vertex._id] }
+Dagoba.Graph.findInEdges  = function(vertex) { return this.inEdgeIndex[vertex._id]  }
 ```
 
-```javascript   
-Dagoba.cleanEdge = function(key, value) {
-  return (key == '_in' || key == '_out') ? value._id : value 
-}
+And here we have our old friends back again: pure, sweet index-free adjacency.
+
+```
+Dagoba.Graph.findOutEdges = function(vertex) { return vertex._out }
+Dagoba.Graph.findInEdges  = function(vertex) { return vertex._in  }
 ```
 
-
-
-#### Persistence
-
-Persistence is usually one of the trickier parts of a database: disks are horridly slow, but relatively safe. Batching writes, making them atomic, journaling -- these are all difficult things to get right. 
-
-Fortunately, we're building an IN-MEMORY database, so we don't have to worry about any of that! We may, though, occasionally want to save a copy of the db locally for fast restart on page load. We can use our serialize / deserlizer together with localStorage to do just that. 
-
-// is localhost really atomic/secure? if not build it ourselves (at cost of storage/2); storing in localhost is crowded, often not the best option (filewriter?)
-
-
-
+Run these yourself to experience the graph database difference.
 
 
 #### Orthogonal Optimization
@@ -723,6 +748,9 @@ Great, we're fast! Notice that by deliberately ignoring the chances we had to op
 
 We should probably confirm that our optimizations don't break anything. Maybe we can write a bunch of tests for each of these new pieces, like we did before. 
 
+
+#### Testing
+
 // write a test or two
 
 This is *really* boring... and error prone. And it doesn't reveal any of the unexpected ways that combinations of optimizations may interact, or how the preprocessor affects that. Ok, new plan: probabilistic testing!
@@ -733,6 +761,83 @@ Because we have a working, well-tested pipeline and because we've created our op
 // compare opt and non-opt flavours
 
 We've created a (very specialized) version of quickcheck [N] in 9 lines of code! Now we just let this run for awhile whenever we add new optimizations and it will tell us when they fail.
+
+
+#### Serialization
+
+Having a graph in memory is great, but how do we get it there in the first place? We saw that our graph constructor can take a list of vertices and edges and create a graph for us, but once those structures have been built is there any way to get them back out?
+
+Our natural inclination is to do something like ```JSON.stringify(graph)```, which produces the terribly helpful error ```TypeError: Converting circular structure to JSON```. What's happened is that our vertices were linked to their edges, and their edges to their vertices, and now everything refers to everything else. So how can we extract our nice neat sets again? JSON replacer functions to the rescue.
+
+The JSON.stringify function takes a value to stringify, but it also takes two additional parameters: a replacer function and a whitespace number [footnote: doing JSON.stringify(x, 0, 2) in the console is a great way to make ugly data readable]. The replacer allows you to customize how the stringify function operates. 
+
+In our case, we'd like to treat the vertices and edges differently, so we're going to manually merge the two sides into a single JSON string. Manually manipulating JSON like this isn't recommended, because the format is insufferably persnickety, but with only a dozen characters in our raw output we should be okay. [footnote: He says glibly. The first three attempts at this were botched in some browsers. It really is insufferable.]
+
+```javascript
+Dagoba.jsonify = function(graph) {
+  return '{"V":' + JSON.stringify(graph.vertices, Dagoba.cleanVertex)
+       + ',"E":' + JSON.stringify(graph.edges,    Dagoba.cleanEdge)
+       + '}' 
+}
+```
+
+And these are the replacers for vertices and edges.
+
+```javascript
+Dagoba.cleanVertex = function(key, value) {
+  return (key == '_in' || key == '_out') ? undefined : value 
+}
+
+Dagoba.cleanEdge = function(key, value) {
+  return (key == '_in' || key == '_out') ? value._id : value 
+}
+```
+
+The only difference between them is what they do when a cycle is about to be formed: for vertices, we skip the edge list entirely. For edges, we make a list of each vertex's identifier. 
+
+We could glue these together into a single function, and even hit the whole graph with a single replacer to avoid having to manually massage the JSON output, but the result would probably be messier. Try it yourself and see if you can come up with a well-factored solution that avoids hand-coded JSON. [footnote: bonus points if it fits in a tweet.]
+
+
+#### Persistence
+
+Persistence is usually one of the trickier parts of a database: disks are dreadfully slow, but relatively safe. Batching writes, making them atomic, journaling -- all of these are difficult to get right. 
+
+Fortunately, we're building an *in-memory* database, so we don't have to worry about any of that! We may, though, occasionally want to save a copy of the database locally for fast restart on page load. We can use the serializer we just built to do exactly that.
+
+```
+Dagoba.persist = function (graph, name) {
+  name = 'DAGOBA::' + (name || 'graph')
+  var flatgraph = Dagoba.jsonify(graph)
+  localStorage.setItem(name, flatgraph)
+}
+
+Dagoba.depersist = function (name) {
+  name = 'DAGOBA::' + (name || 'graph')
+  var flatgraph = localStorage.getItem(name)
+  var seedgraph = JSON.parse(flatgraph)                 // this can throw
+  return Dagoba.graph(seedgraph.V, seedgraph.E)
+}
+```
+
+We preface the name with a faux namespace to avoid polluting the localStorage properties of the domain, as it can get quite crowded in there [footnote: it also makes our closing parens all line up vertically, which is always a nice bonus]. There's usually a low storage limit also, so for larger graphs we'd probably want to use a Blob of some sort. 
+
+There are also potential issues if multiple browser windows from the same domain are persisting and depersisting simultaneously. The localStorage space is shared between those windows, and they're potentially on different event loops, so there's the possibility for one to carelessly overwrite the work of another. The spec says there should be a mutex required for read/write access to localStorage, but it's inconsistently implemented between different browsers, and even with it a naive implementation like ours could still encounter issues.
+
+If we wanted our persistence implementation to be concurrency aware we could use the storage events that are fired when changes are made to localStorage, and update our local graph accordingly. 
+
+
+#### Updates
+
+There's a problem with our 'out' query component: if someone deletes an edge we've visited while we're in the middle of a query, we'll skip a different edge because our counter is off. We could lock the vertices in our query, but one of the strengths of this approach is driving the iteration through the query space from code, so our query object might be long-lived. Even though we're in a single-threaded event loop, our queries can span multiple asynchronous re-entries, which means concurrency concerns like this are a very real problem. 
+So instead we'll slice and pop the edge list each time we reach a new vertex. This burns some extra CPU and pushes more work onto the GC, so we'll stick a note here so we know what to do if this shows up as a hotspot during our profiling.
+
+// new 'out' query component (and friends)
+
+One concern with doing our queries this new way is that we're still not seeing a completely consistent chronology. Skipping random edges, like we did before, leaves us with an entirely inconsistent view of the universe, where things that have always existed may appear to be gone. This is generally undesirable, though many modern systems for storing very large amounts of data have exactly this property. [N] [google, facebook, kayak, etc -- often queries over heavily sharded datasets or multiple apis with pagination or timeouts have this property]
+
+The change we just made means we will always traverse every edge a particular vertex had _at the moment we visited it_. That means that as we begin traversing edges, we may see new vertices at different points in the graph chronology, and may even see the same vertex at different points in the chronology at different points in our query. Depending on the relationships we're storing, this may provide a view of the universe that seemingly defies the laws of physics, even though no laws have actually been broken. 
+
+If we need to see the world as it exists at a particular moment in time (e.g. 'now', where now is the moment our query begins) we can change our driver loop and the update handlers to add versioning to the data, and pass a pointer to that particular version into the query system. Doing this also opens the door to true transactions, and automated rollback/retries in an STM-like fashion. 
 
 
 ## Wrapping up
@@ -750,88 +855,23 @@ That last point can't be overstated: keep it simple. Eschew optimization in favo
 
 
 
-
-----
-
-
+THE END
+-------
 
 
 
 
 
+OTHER STUFF
+-----------
 
 
 
 
 
-## Make it right
-
-So we've clearly got some work to do. Let's start with an issue we didn't highlight above: 
 
 
 
-### Laziness
-
-[Suppose you've got a hobby, like tennis or philately. I've got a hobby: re-building genealogy. Can we find anyone who likes both our hobbies? ]
-
-Suppose we'd like to find a few people who have both tennis and philately as a hobby. We can start from tennis, go out to its hobbyists, out again to their hobbies, back in from philately and then take a few. (change this query)
-
-```
-G.v('tennis').in().as('person').outV('philately').in().matches('person').take(5)
-```
-
-And this works great, until our graph gets large and we run out of memory before Dave Brubeck gets to play. The problem is that we're completing each query segment before passing the data along to the next one, so we end up with an immense amount of data. If there were a way for later segments to pull data from earlier segments instead of having it pushed in to them, that would solve this problem. In other words, we need lazy evaluation. 
-
-Now in some languages that would be trivial, but JavaScript is an eager language, so we're going to have to do a little work. First of all, our query segments can't just return data any more. Instead we're going to need to process each segment on demand. That means we'll need some way of driving this process forward. Here's how we'll do that.
-
----> also: don't blow your stack on large queries (so we can't use straight recursion, need to use a different approach. lots of other benefits to this, like history and reversibility etc)
-
-
-// introduce the driver loop
-
-We'll need to modify our query components to work within this new system. This is moderately straightforward:
-
-```javascript
-Dagoba.Q = {}                                                     // prototype
-
-```
-
-// new query components
-
-Cool, now we can query without blowing our memory limits and wasting a bunch of cycles on unneeded computation. As a side benefit, we can build a new query component that allows us to progressively take more elements until we get all that we need:
-
-```javascript
-Dagoba.Q.add = function(list) {                                  // add a new traversal to the query
-  this.program.push(list)
-  return this
-}
-
-```
-
-// state
-
-Notice that we're keeping all the component state up at the driver loop level. This allows us to keep track of all the state in one place so we can easily read it and clear it.  And it means we can keep the components as "pure" functions that take some inputs and give some output, so the driver loop doesn't need to instantiate them or indeed know anything about them. It's tidier too, because everything we need for re-running the query is contained in pc, program and state.
-
-So why the scare quotes around pure? Because we're mutating the state argument inside the function. We usually try to avoid mutation to curb spooky action at a distance, but in this case we're taking advantage of JS's mutable variables. This state variable is only changed within the component itself, so if we're careful to respect this within any state-peeking features we add later, then hopefully we can avoid having this bite us. The advantages are that we can simplify our return value and cut down on garbage created in the components.
-
-
-
-
-
-### Updates
-
-(maybe lead in from the async stuff above, since that provides the context for concurrency issues.)
-
-There's a problem with our 'out' query component: if someone deletes an edge we've visited while we're in the middle of a query, we'll skip a different edge because our counter is off. We could lock the vertices in our query, but one of the strengths of this approach is driving the iteration through the query space from code, so our query object might be long-lived. Even though we're in a single-threaded event loop, our queries can span multiple asynchronous re-entries, which means concurrency concerns like this are a very real problem. 
-So instead we'll slice and pop the edge list each time we reach a new vertex. This burns some extra CPU and pushes more work onto the GC, so we'll stick a note here so we know what to do if this shows up as a hotspot during our profiling.
-
-// new 'out' query component (and friends)
-
-One concern with doing our queries this new way is that we're still not seeing a completely consistent chronology. Skipping random edges, like we did before, leaves us with an entirely inconsistent view of the universe, where things that have always existed may appear to be gone. This is generally undesirable, though many modern systems for storing very large amounts of data have exactly this property. [N] [google, facebook, kayak, etc -- often queries over heavily sharded datasets or multiple apis with pagination or timeouts have this property]
-
-The change we just made means we will always traverse every edge a particular vertex had _at the moment we visited it_. That means that as we begin traversing edges, we may see new vertices at different points in the graph chronology, and may even see the same vertex at different points in the chronology at different points in our query. Depending on the relationships we're storing, this may provide a view of the universe that seemingly defies the laws of physics, even though no laws have actually been broken. 
-
-If we need to see the world as it exists at a particular moment in time (e.g. 'now', where now is the moment our query begins) we can change our driver loop and the update handlers to add versioning to the data, and pass a pointer to that particular version into the query system. Doing this also opens the door to true transactions, and automated rollback/retries in an STM-like fashion. 
 
 ```
 /// What happens if someone grabs some data while someone else updates some data? What if two folks update at the same time? 
