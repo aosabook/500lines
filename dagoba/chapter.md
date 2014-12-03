@@ -233,91 +233,18 @@ We're probably only interested in getting a few unique results out, so we'll cha
 
 And so we see the need for laziness: all graph databases have to support a mechanism for doing as little work as possible, and most choose some form of lazy evaluation to do so. Since we're building our own interpreter, evaluating our program lazily is certainly within our purview. But the road to lazyville is paved with good intentions and surprising consequences.
 
-    ---> also: don't blow your stack on large queries (so we can't use straight recursion, need to use a different approach. lots of other benefits to this, like history and reversibility etc)
+
+## Pipetypes
+
+Before we dig in to the internals of the interpreter we'll spend some time getting to know the pipetypes that make up the core functionality of our system. Once we understand how each pipetype works we'll have a better basis for understanding how they're invoked and sequenced together.
 
 
-
-## The heart of the matter
-
-Putting var declarations at the top is like eating desert before your entree. All the surprise is gone. Everything is revealed. And yet nothing has any meaning -- we don't know why we need them yet, they're just empty words.
-
-[This would be a great section to build up to slowly, with fits and starts. But it's not going to be easy.]
-
-```javascript
-Dagoba.Q.run = function() {                             // our virtual machine for query processing
-
-  var max = this.program.length - 1                     // last step in the program
-  var maybe_gremlin = false                             // a gremlin, a signal string, or false
-  var results = []                                      // results for this particular run
-  var done = -1                                         // behindwhich things have finished
-  var pc = max                                          // our program counter -- we start from the end
-  
-  var step, state, pipetype
-  
-```
-
-So now we have a bunch of machinery in place in case we need it later. Let's find out whether we do.
-
-```javascript
-  // driver loop
-  while(done < max) {
-    
-    step = this.program[pc]                             // step is an array: first the pipe type, then its args
-    state = (this.state[pc] = this.state[pc] || {})     // the state for this step: ensure it's always an object
-    pipetype = Dagoba.getPipetype(step[0])              // a pipetype is just a function
-    
-    maybe_gremlin = pipetype(this.graph, step[1], maybe_gremlin, state)
-    
-    if(maybe_gremlin == 'pull') {                       // 'pull' tells us the pipe wants further input
-      maybe_gremlin = false
-      if(pc-1 > done) {
-        pc--                                            // try the previous pipe
-        continue
-      } else {
-        done = pc                                       // previous pipe is finished, so we are too
-      }
-    }
-    
-    if(maybe_gremlin == 'done') {                       // 'done' tells us the pipe is finished
-      maybe_gremlin = false
-      done = pc
-    }
-    
-    pc++                                                // move on to the next pipe
-    
-    if(pc > max) {
-      if(maybe_gremlin)
-        results.push(maybe_gremlin)                     // a gremlin popped out the end of the pipeline
-      maybe_gremlin = false
-      pc--                                              // take a step back
-    }
-  }
-
-  results = results.map(function(gremlin) {             // return either results (like property('name')) or vertices
-    return gremlin.result != null 
-         ? gremlin.result : gremlin.vertex } )
-
-  return results
-}
-```
-
-[program counter is like a head that moves forward or backward. it's a kind of turing machine. it reads the current entry, possibly changing it (the state), and then moves either forward or backward. very simple.]
-
-[ALSO:
-
-    NOTE: see // state note below: keeping it in the driver loop aids instrumentation & debugging (& cloning), cuts down on per-pipe garbage, and keeps the pipetype functions "pure" in the sense that they don't keep local state, are referentially transparent [ish] and don't cause effects [ish].
-
-    // state
-
-    Notice that we're keeping all the component state up at the driver loop level. This allows us to keep track of all the state in one place so we can easily read it and clear it.  And it means we can keep the components as "pure" functions that take some inputs and give some output, so the driver loop doesn't need to instantiate them or indeed know anything about them. It's tidier too, because everything we need for re-running the query is contained in pc, program and state.
-
-    So why the scare quotes around pure? Because we're mutating the state argument inside the function. We usually try to avoid mutation to curb spooky action at a distance, but in this case we're taking advantage of JS's mutable variables. This state variable is only changed within the component itself, so if we're careful to respect this within any state-peeking features we add later, then hopefully we can avoid having this bite us. The advantages are that we can simplify our return value and cut down on garbage created in the components.
-
+[
+  Talk about the inputs
+  and the outputs
+  up here
 ]
 
-Ah, much better! Now we see where it all fits in. That makes perfect sense!
-
-Let's move on to something very intriguing: the pipetypes. 
 
 ```javascript
 Dagoba.PipeTypes = {}                                   // every pipe has a type
@@ -342,12 +269,11 @@ Dagoba.fauxPipetype = function(_, _, maybe_gremlin) {   // if you can't find a p
 }
 ```
 
-See those underscores? We use those to label params that won't be used in our function. Most other pipetypes will use all three params. We really only did this here to make the comments line up nicely.
+See those underscores? We use those to label params that won't be used in our function. Most other pipetypes will use all three params. (We really only did this here to make the comments line up nicely.)
 
 
-## Pipetypes
 
-Let's introduce our cast of characters.
+
 
 #### Vertex
 
@@ -619,7 +545,7 @@ We're using the ```Dagoba.gotoVertex``` helper function to do all real work here
 
 ## Helper functions
 
-The pipetypes above rely on a few helper functions. We'll look at those first, and then look at some functions and features that haven't been mentioned yet.
+The pipetypes above rely on a few helper functions. Let's take a quick look at those before diving in to the interpreter. This is ostensibly because understanding these helpers will aid in understanding the interpreter, but it's mostly just to build up the anticipation.
 
 #### Gremlins
 
@@ -641,9 +567,9 @@ Dagoba.gotoVertex = function(gremlin, vertex) {         // clone the gremlin
 }
 ```
 
-Note that this function actually returns a brand new gremlin -- a clone of the old one, sent to our desired destination. That means a gremlin can sit on a vertex and be cloned out to many other vertices, which is exactly what happens in simpleTraversal.
+Note that this function actually returns a brand new gremlin -- a clone of the old one, sent to our desired destination. That means a gremlin can sit on a vertex while its clones are sent out to explore many other vertices. This is exactly what happens in simpleTraversal.
 
-As an example of possible enhancements, we could add tracking for every vertex the gremlin visits, and then add new pipetypes to take advantage of those paths.
+As an example of possible enhancements, we could add a bit of state to keep track of every vertex the gremlin visits, and then add new pipetypes to take advantage of those paths.
 
 
 #### Filtering
@@ -686,6 +612,146 @@ Dagoba.objectFilter = function(thing, filter) {         // thing has to match al
 ```
 
 This allows us to query the edge using a filter object: ```g.v('Odin').out({position: 2, _label: daughter}).run()``` finds Odin's second daughter, if position is genderized. 
+
+
+## The interpreter itself
+
+We've arrived at the top of the narrative mountain, ready to receive our prize: the fabled interpreter. It's actually quite a simple beast, but it does require a bit of concentration to fully understand.
+
+We compared programs to pipelines earlier, and that's a good mental model for writing queries. But the actual program evaluation is more akin to a Turing machine than a pipeline. There's a read/write head that sits over a particular step. It "reads" the step, changes its "state", and then moves either right or left.
+
+Reading the step means evaluating the pipetype function. As we saw above, each of those functions accepts as input the entire graph, its own arguments, maybe a gremlin, and its own local state. As output it provides a gremlin, false, or a signal of 'pull' or 'done'. The output is what our quasi-Turing machine reads to change its own state.
+
+That state is comprised of just two variables: one to record steps that are ```done```, and another to record the ```results``` of the query. Those are potentially updated, and the machine head either moves left, moves right, or the query finishes and the result is returned.
+
+So we've now described all the state in our machine. We'll have a list of results that starts empty:
+
+```javascript
+  var results = []
+```
+
+An index of the last ```done``` step that starts behind the first step:
+
+```javascript
+  var done = -1
+```
+
+We need a place to store most recent step's output, which might be a gremlin or might be false [footnote: it could also be a signal, but that's actually just an optimization for false+signal] so we'll call it ```maybe_gremlin```:
+
+```javascript
+  var maybe_gremlin = false
+```
+
+And finally we'll need a program counter to indicate the position of the read/write head, which will start on the first step:
+
+```javascript
+  var pc = 0
+```
+
+Except... wait a second. How are we going to get lazy? The traditional way of building a lazy system out of an eager one is to store function calls as "thunks" instead of evaluating them. A thunk is a closure that wraps a function and its arguments into a single function call with no parameters. 
+
+[Example of a function call, the thunked form, a thunking device (fun, x, y, z), and a thunking wrapper (fun) -> fun-that-returns-a-thunk]
+
+None of the thunks are invoked until one is actually "needed", which usually implies some type of output is required: in our case the result of a query. Because each new thunk takes all previous thunks as one of its input parameters (CPS) the AST gets rolled up backwards, and the first thing we actually evaluate is the innermost thing we need in order to produce the results.
+
+There are a couple of tradeoffs with this approach: one is that spacial performance becomes much more difficult to reason about, because of the potentially vast thunk trees that are created. Another is that our program is now expressed as a single outermost (innermost) thunk, which means we can't do much with it at that point. 
+
+This second point isn't usually an issue, because of the phase separation between when our compiler runs its optimizations and when all the thunking occurs during runtime. But in our case we don't have that advantage: because we're using method chaining to implement a fluent interface [footnote: the parts that let us write ```g.v('Thor').in().out()```, with all the functions nicely chained together, instead of var query = g.query(); query.add('vertex', 'Thor'); query.add('in'); or something equally ugly] if we are using thunks to get our laziness we would have to thunk each new method as it is called, which means by the time we get to ```run()``` we have only a single thunk as our input, and no way to optimize our query. 
+
+This is a pretty big setback, but we have an advantage that most languages don't -- our queries are linear. They don't have any branches. Maybe there's a clever way of using that property to get our laziness but still be able to optimize our query?
+
+```javascript
+  var pc = this.program.length - 1
+```
+
+Could it really be that easy? We just set our program counter to the *last* step instead of the first one and work our way backwards? 
+
+
+
+These declarations constitute all the state in our machine. The ```max``` value is a constant. The output of the current step is kept in ```maybe_gremlin```, which takes on the values described in the pipetypes intro. We've just discussed the ```results``` and ```done``` variables. The ```pc``` variable, our program counter, tracks our current step: it's the position of the read/write head in the Turing machine analogy. 
+
+
+
+And ```step```, ```state```, and ```pipetype``` are labels for aspects of the current step.
+
+
+[segue to laziness...]
+
+
+Could it really be that simple? 
+
+
+---> [re: laziness] also: don't blow your stack on large queries (so we can't use straight recursion, need to use a different approach. lots of other benefits to this, like history and reversibility etc)
+
+
+
+
+
+```javascript
+Dagoba.Q.run = function() {                             // a machine for query processing
+
+  var max = this.program.length - 1                     // index of the last step in the program
+  var maybe_gremlin = false                             // a gremlin, a signal string, or false
+  var results = []                                      // results for this particular run
+  var done = -1                                         // behindwhich things have finished
+  var pc = max                                          // our program counter
+
+  // driver loop
+  while(done < max) {
+    step = this.program[pc]                             // step is an array: first the pipe type, then its args
+    state = (this.state[pc] = this.state[pc] || {})     // the state for this step: ensure it's always an object
+    pipetype = Dagoba.getPipetype(step[0])              // a pipetype is just a function
+    
+    maybe_gremlin = pipetype(this.graph, step[1], maybe_gremlin, state)
+    
+    if(maybe_gremlin == 'pull') {                       // 'pull' tells us the pipe wants further input
+      maybe_gremlin = false
+      if(pc-1 > done) {
+        pc--                                            // try the previous pipe
+        continue
+      } else {
+        done = pc                                       // previous pipe is finished, so we are too
+      }
+    }
+    
+    if(maybe_gremlin == 'done') {                       // 'done' tells us the pipe is finished
+      maybe_gremlin = false
+      done = pc
+    }
+    
+    pc++                                                // move on to the next pipe
+    
+    if(pc > max) {
+      if(maybe_gremlin)
+        results.push(maybe_gremlin)                     // a gremlin popped out the end of the pipeline
+      maybe_gremlin = false
+      pc--                                              // take a step back
+    }
+  }
+
+  results = results.map(function(gremlin) {             // return either results (like property('name')) or vertices
+    return gremlin.result != null 
+         ? gremlin.result : gremlin.vertex } )
+
+  return results
+}
+```
+
+[program counter is like a head that moves forward or backward. it's a kind of turing machine. it reads the current entry, possibly changing it (the state), and then moves either forward or backward. very simple.]
+
+[ALSO:
+
+    NOTE: see // state note below: keeping it in the driver loop aids instrumentation & debugging (& cloning), cuts down on per-pipe garbage, and keeps the pipetype functions "pure" in the sense that they don't keep local state, are referentially transparent [ish] and don't cause effects [ish].
+
+    // state
+
+    Notice that we're keeping all the component state up at the driver loop level. This allows us to keep track of all the state in one place so we can easily read it and clear it.  And it means we can keep the components as "pure" functions that take some inputs and give some output, so the driver loop doesn't need to instantiate them or indeed know anything about them. It's tidier too, because everything we need for re-running the query is contained in pc, program and state.
+
+    So why the scare quotes around pure? Because we're mutating the state argument inside the function. We usually try to avoid mutation to curb spooky action at a distance, but in this case we're taking advantage of JS's mutable variables. This state variable is only changed within the component itself, so if we're careful to respect this within any state-peeking features we add later, then hopefully we can avoid having this bite us. The advantages are that we can simplify our return value and cut down on garbage created in the components.
+
+]
+
+Ah, much better! Now we see where it all fits in. That makes perfect sense!
 
 
 #### Performance
@@ -755,7 +821,7 @@ Having a graph in memory is great, but how do we get it there in the first place
 
 Our natural inclination is to do something like ```JSON.stringify(graph)```, which produces the terribly helpful error ```TypeError: Converting circular structure to JSON```. What's happened is that our vertices were linked to their edges, and their edges to their vertices, and now everything refers to everything else. So how can we extract our nice neat sets again? JSON replacer functions to the rescue.
 
-The JSON.stringify function takes a value to stringify, but it also takes two additional parameters: a replacer function and a whitespace number [footnote: doing JSON.stringify(x, 0, 2) in the console is a great way to make ugly data readable]. The replacer allows you to customize how the stringify function operates. 
+The JSON.stringify function takes a value to stringify, but it also takes two additional parameters: a replacer function and a whitespace number [footnote: Given a deep tree deep_tree, doing JSON.stringify(deep_tree, 0, 2) in the console is a great way to make it readable]. The replacer allows you to customize how the stringify function operates. 
 
 In our case, we'd like to treat the vertices and edges differently, so we're going to manually merge the two sides into a single JSON string. Manually manipulating JSON like this isn't recommended, because the format is insufferably persnickety, but with only a dozen characters in our raw output we should be okay. [footnote: He says glibly. The first three attempts at this were botched in some browsers. It really is insufferable.]
 
@@ -841,8 +907,8 @@ That last point can't be overstated: keep it simple. Eschew optimization in favo
 
 
 
-THE END
--------
+FIN
+---
 
 
 
