@@ -4,9 +4,9 @@ _An exploration of connectedness through the lens of familial lineage_
 
 A long time ago, when the world was still young, all data walked happily in single file. To ask a question of your data you merely put a fence in the path, and each datum jumped it in turn. Life was easy and programming was a breeze.
 
-Then came the random access revolution, and data grazed freely across the hillside. Herding data became a serious concern -- if you can access any piece of data at any time, how do you know which one to pick next? Techniques were developed for corralling the data by forming links between items [N] [the network model (CODASYL), the hierarchical model (IMS), etc], marshaling groups of units into formation through their linking assemblage. Questioning data meant picking a sheep and pulling along everything connected to it. 
+Then came the random access revolution, and data grazed freely across the hillside. Herding data became a serious concern -- if you can access any piece of data at any time, how do you know which one to pick next? Techniques were developed for corralling the data by forming links between items [footenote: the network model (CODASYL), the hierarchical model (IMS), etc], marshaling groups of units into formation through their linking assemblage. Questioning data meant picking a sheep and pulling along everything connected to it. 
 
-Later programmers departed from this tradition, imposing a set of rules on how data would be aggregated. [N] [Codd, etc] Rather than tying disparate data directly together they would cluster by content, decomposing data into bite-sized pieces, clustered in kennels and collared with a name tag. Questions were declaratively posited, resulting in accumulating pieces of partially decomposed data (a state the relationalists refer to as "normal") into a frankencollection returned to the programmer.
+Later programmers departed from this tradition, imposing a set of rules on how data would be aggregated. [footenote: Codd, etc] Rather than tying disparate data directly together they would cluster by content, decomposing data into bite-sized pieces, clustered in kennels and collared with a name tag. Questions were declaratively posited, resulting in accumulating pieces of partially decomposed data (a state the relationalists refer to as "normal") into a frankencollection returned to the programmer.
 
 For much of recorded history this relational model reigned supreme. Its dominance remained unchallenged through two major language wars and countless skirmishes. It offered everything you could ask for in a model, for the small price of inefficiency, clumsiness and lack of scalability. For eons that was a price programmers were willing to pay. Then the internet happened.
 
@@ -300,12 +300,13 @@ Note that we're directly mutating the state argument here, and not passing it ba
 
 We would still need to find a way to deal with the mutations, though, as the call site still has a reference to the original variable. Linear types would solve this by automatically taking the reference out of scope when the pipetype is called. Then we would assign it again in the call site's scope once the pipetype function returned its new version of the scope object. 
 
-Linear types would allow us to avoid expensive copy-on-write schemes or complicated persistent data structures, while still retaining the benefits of immutability -- in this case, avoiding spooky action at a distance. Two references to the same mutable data structure act like a pair of walkie-talkies, allowing whoever holds them to communicate directly. Those walkie-talkies can be passed around from function to function, and cloned to create a whole set of walkie-talkies. This completely subverts the natural communication channels your code already possesses. In a system with no concurrency you can sometimes get away with it, but introduce multithreading or asynchronous behavior and all those walkie-talkies squawking can really be a drag. 
+Linear types would allow us to avoid expensive copy-on-write schemes or complicated persistent data structures, while still retaining the benefits of immutability -- in this case, avoiding spooky action at a distance. Two references to the same mutable data structure act like a pair of walkie-talkies, allowing whoever holds them to communicate directly. Those walkie-talkies can be passed around from function to function, and cloned to create whole passel of walkie-talkies. This completely subverts the natural communication channels your code already possesses. In a system with no concurrency you can sometimes get away with it, but introduce multithreading or asynchronous behavior and all that walkie-talkie squawking can really be a drag.
 
 JS lacks linear types, but we can get the same effect if we're really, really disciplined. Which we will be. For now.
 
 TODO: discuss OPT note
 TODO: discuss incoming gremlins note
+TODO: "The advantages are that we can simplify our return value and cut down on garbage created in the components. instrumentation & debugging & cloning"
 
 
 #### In-N-Out
@@ -636,7 +637,7 @@ An index of the last ```done``` step that starts behind the first step:
   var done = -1
 ```
 
-We need a place to store most recent step's output, which might be a gremlin or might be false [footnote: it could also be a signal, but that's actually just an optimization for false+signal] so we'll call it ```maybe_gremlin```:
+We need a place to store most recent step's output, which might be a gremlin -- or it might be nothing -- so we'll call it ```maybe_gremlin```:
 
 ```javascript
   var maybe_gremlin = false
@@ -666,26 +667,11 @@ This is a pretty big setback, but we have an advantage that most languages don't
 
 Could it really be that easy? We just set our program counter to the *last* step instead of the first one and work our way backwards? 
 
+It turns out we can make this work with a little effort, most of which has already been baked in to the design of our pipetypes and the signals they send. In additional to being able to optimize at runtime this new style has many other benefits related to the ease of instrumentation: history, reversibility, stepwise debugging, query statistics -- all of these are easy to add dynamically because we control the interpreter and have left it as a virtual machine evaluator instead of a pile of thunks. 
 
+[think: "don't blow your stack on large queries (so we can't use straight recursion, need to use a different approach."]
 
-These declarations constitute all the state in our machine. The ```max``` value is a constant. The output of the current step is kept in ```maybe_gremlin```, which takes on the values described in the pipetypes intro. We've just discussed the ```results``` and ```done``` variables. The ```pc``` variable, our program counter, tracks our current step: it's the position of the read/write head in the Turing machine analogy. 
-
-
-
-And ```step```, ```state```, and ```pipetype``` are labels for aspects of the current step.
-
-
-[segue to laziness...]
-
-
-Could it really be that simple? 
-
-
----> [re: laziness] also: don't blow your stack on large queries (so we can't use straight recursion, need to use a different approach. lots of other benefits to this, like history and reversibility etc)
-
-
-
-
+Let's see this all in context:
 
 ```javascript
 Dagoba.Q.run = function() {                             // a machine for query processing
@@ -696,14 +682,23 @@ Dagoba.Q.run = function() {                             // a machine for query p
   var done = -1                                         // behindwhich things have finished
   var pc = max                                          // our program counter
 
-  // driver loop
+  var step, state, pipetype
+
   while(done < max) {
     step = this.program[pc]                             // step is an array: first the pipe type, then its args
     state = (this.state[pc] = this.state[pc] || {})     // the state for this step: ensure it's always an object
     pipetype = Dagoba.getPipetype(step[0])              // a pipetype is just a function
-    
+```
+
+Here ```max``` is just a constant, and ```step```, ```state```, and ```pipetype``` cache information about the current step. We've entered the driver loop, and we won't stop until the last step is done.
+
+```javascript    
     maybe_gremlin = pipetype(this.graph, step[1], maybe_gremlin, state)
+```
+
+Calling the step's pipetype function with its arguments.
     
+```javascript    
     if(maybe_gremlin == 'pull') {                       // 'pull' tells us the pipe wants further input
       maybe_gremlin = false
       if(pc-1 > done) {
@@ -713,12 +708,22 @@ Dagoba.Q.run = function() {                             // a machine for query p
         done = pc                                       // previous pipe is finished, so we are too
       }
     }
-    
+```
+
+To handle the 'pull' case we first set ```maybe_gremlin``` to false. We're overloading our 'maybe' here by using it as a channel to pass the 'pull' and 'done' signals, but once one of those signals is sucked out we go back to thinking of this as a proper 'maybe'. [footnote: maybe explain 'maybe']
+
+If the step before us isn't 'done' [footnote: Recall that done starts at -1, so the first step's predecessor is always done] we'll move the head backward and try again. Otherwise, we mark ourselves as 'done' and let the head naturally fall forward.
+
+```javascript
     if(maybe_gremlin == 'done') {                       // 'done' tells us the pipe is finished
       maybe_gremlin = false
       done = pc
-    }
-    
+    }    
+```
+
+Handling the 'done' case is even easier: set ```maybe_gremlin``` to false and mark this step as 'done'.
+
+```javascript
     pc++                                                // move on to the next pipe
     
     if(pc > max) {
@@ -728,7 +733,13 @@ Dagoba.Q.run = function() {                             // a machine for query p
       pc--                                              // take a step back
     }
   }
+```
 
+We're done with the current step, and we've moved the head to the next one. If we're at the end of the program and ```maybe_gremlin``` contains a gremlin then we'll add it to the results, set ```maybe_gremlin``` to false and move the head back to the last step in the program. 
+
+This is also the initialization state, since ```pc``` starts as ```max```. So we start here and work our way back, and end up here again at least once for each final result the query returns.
+
+```javascript
   results = results.map(function(gremlin) {             // return either results (like property('name')) or vertices
     return gremlin.result != null 
          ? gremlin.result : gremlin.vertex } )
@@ -737,24 +748,10 @@ Dagoba.Q.run = function() {                             // a machine for query p
 }
 ```
 
-[program counter is like a head that moves forward or backward. it's a kind of turing machine. it reads the current entry, possibly changing it (the state), and then moves either forward or backward. very simple.]
-
-[ALSO:
-
-    NOTE: see // state note below: keeping it in the driver loop aids instrumentation & debugging (& cloning), cuts down on per-pipe garbage, and keeps the pipetype functions "pure" in the sense that they don't keep local state, are referentially transparent [ish] and don't cause effects [ish].
-
-    // state
-
-    Notice that we're keeping all the component state up at the driver loop level. This allows us to keep track of all the state in one place so we can easily read it and clear it.  And it means we can keep the components as "pure" functions that take some inputs and give some output, so the driver loop doesn't need to instantiate them or indeed know anything about them. It's tidier too, because everything we need for re-running the query is contained in pc, program and state.
-
-    So why the scare quotes around pure? Because we're mutating the state argument inside the function. We usually try to avoid mutation to curb spooky action at a distance, but in this case we're taking advantage of JS's mutable variables. This state variable is only changed within the component itself, so if we're careful to respect this within any state-peeking features we add later, then hopefully we can avoid having this bite us. The advantages are that we can simplify our return value and cut down on garbage created in the components.
-
-]
-
-Ah, much better! Now we see where it all fits in. That makes perfect sense!
+We're out of the driver loop now: the query has ended, the results are in, and we just need to process and return them. If any gremlin has its result set we'll return that, otherwise we'll return the gremlin's final vertex. Are there other things we might want to return? What are the tradeoffs here? 
 
 
-#### Performance
+## Performance
 
 All production graph databases share a very particular performance characteristic: graph traversal queries are constant time with respect to total graph size. [footnote: The fancy term for this is "index-free adjacency".] In a non-graph database, asking for the list of someone's friends can require time proportional to the number of entries, because in the naive case you have to look at every entry. The means if a query over ten entries takes a millisecond then a query over ten million entries will take almost two weeks. Your friend list would arrive faster if sent by Pony Express! [footnote: Though only in operation for 18 months due to the arrival of the transcontinental telegraph and the outbreak of the American Civil War, the Pony Express is still remembered today for delivering mail coast to coast in just ten days.]
 
@@ -786,7 +783,7 @@ Dagoba.Graph.findInEdges  = function(vertex) { return vertex._in  }
 Run these yourself to experience the graph database difference.
 
 
-#### Orthogonal Optimization
+## Orthogonal Optimization
 
 We've improved our performance for large graphs by several dozen orders of magnitude. That's pretty good, but we can do better. Each step in our query has a fixed cost for building the gremlins and making the function calls, as well as a per-step cost. Because we're splitting each step out into its own separate unit, those per-step costs can be quite high compared to what they could be if we could combine some steps. We've sacrificed performance for code simplicity. 
 Many will argue that this sacrifice is acceptable, and that simplicity should trump performance whenever possible, but this is a false dichotomy. We can have our simple, easily understood model and also gain the performance benefits of combining steps -- we just have to beef up our compiler a little. 
@@ -801,25 +798,11 @@ Great, we're fast! Notice that by deliberately ignoring the chances we had to op
 We should probably confirm that our optimizations don't break anything. Maybe we can write a bunch of tests for each of these new pieces, like we did before. 
 
 
-#### Testing
-
-// write a test or two
-
-This is *really* boring... and error prone. And it doesn't reveal any of the unexpected ways that combinations of optimizations may interact, or how the preprocessor affects that. Ok, new plan: probabilistic testing!
-Because we have a working, well-tested pipeline and because we've created our optimizations as an optional, orthogonal pipeline we can now write tests that take advantage of this fact.
-
-// build a random graph
-// build a random query
-// compare opt and non-opt flavours
-
-We've created a (very specialized) version of quickcheck [N] in 9 lines of code! Now we just let this run for awhile whenever we add new optimizations and it will tell us when they fail.
-
-
-#### Serialization
+## Serialization
 
 Having a graph in memory is great, but how do we get it there in the first place? We saw that our graph constructor can take a list of vertices and edges and create a graph for us, but once those structures have been built is there any way to get them back out?
 
-Our natural inclination is to do something like ```JSON.stringify(graph)```, which produces the terribly helpful error ```TypeError: Converting circular structure to JSON```. What's happened is that our vertices were linked to their edges, and their edges to their vertices, and now everything refers to everything else. So how can we extract our nice neat sets again? JSON replacer functions to the rescue.
+Our natural inclination is to do something like ```JSON.stringify(graph)```, which produces the terribly helpful error ```TypeError: Converting circular structure to JSON```. What's happened is that our vertices were linked to their edges, and their edges to their vertices, and now everything refers to everything else. So how can we extract our nice neat lists again? JSON replacer functions to the rescue.
 
 The JSON.stringify function takes a value to stringify, but it also takes two additional parameters: a replacer function and a whitespace number [footnote: Given a deep tree deep_tree, doing JSON.stringify(deep_tree, 0, 2) in the console is a great way to make it readable]. The replacer allows you to customize how the stringify function operates. 
 
@@ -850,7 +833,7 @@ The only difference between them is what they do when a cycle is about to be for
 We could glue these together into a single function, and even hit the whole graph with a single replacer to avoid having to manually massage the JSON output, but the result would probably be messier. Try it yourself and see if you can come up with a well-factored solution that avoids hand-coded JSON. [footnote: bonus points if it fits in a tweet.]
 
 
-#### Persistence
+## Persistence
 
 Persistence is usually one of the trickier parts of a database: disks are dreadfully slow, but relatively safe. Batching writes, making them atomic, journaling -- all of these are difficult to get right. 
 
@@ -878,14 +861,14 @@ There are also potential issues if multiple browser windows from the same domain
 If we wanted our persistence implementation to be concurrency aware we could use the storage events that are fired when changes are made to localStorage, and update our local graph accordingly. 
 
 
-#### Updates
+## Updates
 
 There's a problem with our 'out' query component: if someone deletes an edge we've visited while we're in the middle of a query, we'll skip a different edge because our counter is off. We could lock the vertices in our query, but one of the strengths of this approach is driving the iteration through the query space from code, so our query object might be long-lived. Even though we're in a single-threaded event loop, our queries can span multiple asynchronous re-entries, which means concurrency concerns like this are a very real problem. 
 So instead we'll slice and pop the edge list each time we reach a new vertex. This burns some extra CPU and pushes more work onto the GC, so we'll stick a note here so we know what to do if this shows up as a hotspot during our profiling.
 
 // new 'out' query component (and friends)
 
-One concern with doing our queries this new way is that we're still not seeing a completely consistent chronology. Skipping random edges, like we did before, leaves us with an entirely inconsistent view of the universe, where things that have always existed may appear to be gone. This is generally undesirable, though many modern systems for storing very large amounts of data have exactly this property. [N] [google, facebook, kayak, etc -- often queries over heavily sharded datasets or multiple apis with pagination or timeouts have this property]
+One concern with doing our queries this new way is that we're still not seeing a completely consistent chronology. Skipping random edges, like we did before, leaves us with an entirely inconsistent view of the universe, where things that have always existed may appear to be gone. This is generally undesirable, though many modern systems for storing very large amounts of data have exactly this property. [footnote: google, facebook, kayak, etc -- often queries over heavily sharded datasets or multiple apis with pagination or timeouts have this property]
 
 The change we just made means we will always traverse every edge a particular vertex had _at the moment we visited it_. That means that as we begin traversing edges, we may see new vertices at different points in the graph chronology, and may even see the same vertex at different points in the chronology at different points in our query. Depending on the relationships we're storing, this may provide a view of the universe that seemingly defies the laws of physics, even though no laws have actually been broken. 
 
@@ -894,121 +877,9 @@ If we need to see the world as it exists at a particular moment in time (e.g. 'n
 
 ## Wrapping up
 
-So what have we learned? Graph databases are great for storing interconnected [Z] data that you plan to query via graph traversals. Adding laziness allows for a fluent interface over queries you could never express in an eager system for performance reasons, and allows you to cross async boundaries. Time makes things complicated, and time from multiple perspectives (i.e. concurrency) makes things very complicated, so whenever we can avoid introducing a temporal dependency (e.g. mutable state, measurable effects, etc) we make reasoning about our system easier. Building in a simple, decoupled and painfully unoptimized style leaves the door open for global optimizations later on, and using a driver loop allows for orthogonal optimizations -- each without introducing the brittleness and complexity into our code that is the hallmark of most optimization techniques. 
+So what have we learned? Graph databases are great for storing interconnected [footnote1337] data that you plan to query via graph traversals. Adding laziness allows for a fluent interface over queries you could never express in an eager system for performance reasons, and allows you to cross async boundaries. Time makes things complicated, and time from multiple perspectives (i.e. concurrency) makes things very complicated, so whenever we can avoid introducing a temporal dependency (e.g. mutable state, measurable effects, etc) we make reasoning about our system easier. Building in a simple, decoupled and painfully unoptimized style leaves the door open for global optimizations later on, and using a driver loop allows for orthogonal optimizations -- each without introducing the brittleness and complexity into our code that is the hallmark of most optimization techniques. 
 
 That last point can't be overstated: keep it simple. Eschew optimization in favor of simplicity. Work hard to achieve simplicity by finding the right model. Explore many possibilities. The chapters in this book provide ample evidence that highly non-trivial applications can have a small, tight kernel. Once you find that kernel for the application you are building, fight to keep complexity from polluting it. Build hooks for attaching additional functionality, and maintain your abstraction barriers at all costs. Using these techniques well is not easy, but they can give you leverage over otherwise intractable problems. 
 
 
-
-
-
-[Z] Not *too* interconnected, though -- you'd like the number of edges to grow in direct proportion to the number of vertices. In other words the average number of edges connected to a vertex shouldn't vary with the size of the graph. Most systems we'd consider putting in a graph database already have this property: if we add 100,000 Nigerian films to our movie database that doesn't increase the degree of the Kevin Bacon vertex.
-
-
-
-
-FIN
----
-
-
-
-
-
-OTHER STUFF
------------
-
-
-
-
-
-
-
-
-
-```
-/// What happens if someone grabs some data while someone else updates some data? What if two folks update at the same time? 
-/// - immutable data (crypto sig of hash of data a la puffs)
-///   - weak map for bonus data
-///   - immutable lib, query over time
-
-/// If we want to treat the data we receive as immutable we have a couple of choices: JSON/clone or hand out references to graph data but clone on change (update-on-write). The latter requires we trust our users not to mess with our data, or maybe we can "Freeze" it to keep them from changing it. In ES6 we can use Proxy Objects for this [maybe]. 
-/// Even doing this doesn't free us from other concurrency concerns, though: if multiple write[s?] come in from different places, what happens? Last write wins? Or do we require a reference to the previous object (Clojure's atoms), otherwise fail / retry (retry case could be like STM)? Do we lock nodes that are undergoing a transaction? What is a transaction in this context anyway? [do once/queue/later help here?]
-```
-
-Generational queries -- add a 'gen' param to everything, and only query things with a gen lower than the query's gen. [what about updates and deletes?]
-
-```
-topological ordering (necessary for scoring, because of the dependencies): 
-G.v().noOut('parent').as('x').outAllFull('parent').merge('x').take(1)
-// outAllFull -> outAll -> outAllN() -> outAllN(0) -> outAllN(0, 'parent')
---> or bind/spread
---> cache: G.v().noOut('parent'): test each new V... (oh, but also each changed V? if you add an edge it might change *everything*)
-G.X.noOut('parent') <-- X contains 'static' methods
-G.v(1).p(G.X.out().in(), G.Y.all, G.Y.times(5)) 
-G.v(1).inN(5) --> G.v(1).p(G.X.in(), G.Y.times(5))
-so we can bind query segments and manipulate them
-can we do this with js instead? er, like, what does G.Y.times(5) return? f(query-segments)? is it just a transformer?
-because that's pretty interesting. orthopt -> transformers (also debug, rollback, etc) -> transformers as query abstractors
-
-diff between G.Y.all().times(5) and [G.Y.all(), G.Y.times(5)]
-
-G.v().outDegree(5, 'parent')
-```
-
-/////////
-
-out -> outN -> outNAll
-
-Cross your eyes and squint a little and the similarities are obvious. It's good policy in general to take a cross-eyed squinty first pass of new code. You might end up with a nickname like ol' cross-eyed McSquintyPants, but no one will question your deduplication prowess. 
-
-Spotting this similarity leaves us at a bit of a dilemma, however. [on the horns of]. There's a tension at play between wanting to not repeat ourselves and our desire to maintain the [isolation] of one-fun-per-component. 
-
-Unfortunately there's no hard and fast rule for this situation -- it really comes down to good judgement. If the internals are likely to mutate away from each other, leave them separate. If maintaining the one-fun-per-component [invariant] is structurally useful, leave it. If you find yourself endlessly repeating the same chunk of boilerplate with small, easily-parametrizable variations, consolidate it -- but in the absence of such strong indicators you'll need to follow your nose.
-
-Another approach we could take is leaving the individual functions, but pull 'component' out of their bodies and squish 'em together. This seems like pure win, but there are tradeoffs here as well. We're introducing a layer of abstraction, which always ups the complexity cost. We're moving the guts of the component elsewhere, forcing us to hunt to find its meaning. 
-
-Developing abstraction barriers that minimize overall code complexity is a subtle art, but one well worth mastering. 
-
-Let's take another look at these functions. What would it take to parametrize them?
-
-[list of params]
-
-This actually seems kind of painful to parametrize fully. Let's take a step back and try a different tack instead. What if we make some helper functions that allow us to treat any single function this way? [downsides] [sequence of ops -- transformers]
-
-So ultimately we can take any component (verb) and n-ize it (adverb) and any sequence of verbs (out-out-in) and 'all' them (or any other adverb, even n-ize) 
-
-```
-g.v(1).in().out().in().out().in().out()
-g.v(1).st().in().out().et().nize(3)
-g.v(1).st('a').in().out().et('a').nize(3)
-
-g.v(1)
-  .start()
-    .start('a')
-      .in()
-      .out()
-    .end('a')  <-- done three times
-    .nize(3)
-               <-- .all() inserted here, because st--et+adverb is a single verb clause
-    .out()     
-               <-- and inserted here, after the next verb clause
-  .end()
-  .all()
-
-so G.v(1).start().in().out().end().all().nize(2) becomes
-   G.v(1).in().all() .out().all() .in().all() .out().all() 
-because the all() adverb cracks open the start-end wrapper and injects all() inside it, then nize doubles the verb phrase
-
-but G.v(1).start().in().out().end().nize(2).all() becomes
-    G.v(1).in().out().all() .in().out().all() 
-because nize creates a new verb phrase wrapper like [[in,out], [in,out]] and the all is injected at the outermost level.
-
-actually since adverbs are always 'end' nodes, we really just need start nodes. and they don't actually need labels because the start always correlates with the closest unbound adverb. (like matched parens, with implicit matching at the beginning of the query for unmatched adverbs)
-
-G.v(1).s().in().out().nize(2).all()
-
-And then we can use orthopt to push .out().out().out() -> .outN(3) for efficiency (if it's actually more efficient)
-and likewise for .out().all().out().all() -> .outAllN(3)
-so we get to eat our cake and have it fast too.
-```
-
+[footenote1337] Not *too* interconnected, though -- you'd like the number of edges to grow in direct proportion to the number of vertices. In other words the average number of edges connected to a vertex shouldn't vary with the size of the graph. Most systems we'd consider putting in a graph database already have this property: if we add 100,000 Nigerian films to our movie database that doesn't increase the degree of the Kevin Bacon vertex.
