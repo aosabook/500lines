@@ -22,39 +22,34 @@ If you were to ask an archaeologist regarding this tradeoff, and what they would
 
 If you were to ask an archaeologist to design a database, what would the requirements look like? its a fair guess to assume that it would look a lot like an *excavation site:*
 
-* All the data is found and catalogued at the site
-
+* All the data is found and cataloged at the site
 * Artefacts found at the same layer are from the same period
-
 * Going deeper means going back in time
-
 * Going deeper in a specific place mean looking at the state of that place at older times
 
-* Each artefact may have pieces of information attached that are originated from different periods
+* Each artefact may have pieces of information attached, these pieces of information may originate from different periods.
+	* For example, a wall may have roman symbols drawn on it at on one layer, and in a lower layer there may be greek symbols. Both these observations are recorded
 
-* An artefact may have different attributes at different times  
+Another way to explain this way of thinking is using the exemplary schematic visualization in  Figure 1, where:
 
-    * The history of these values is recorded by the catalog
-
-    * e.g., a wall may have roman symbols drawn on it at on one layer, and in a lower layer there may be greek symbols. Both these observations are recorded
-
-Another way to explain this way of thinking is using the schematic visualization as found in  Figure 1, where:
-
-* The entire circle is the database
-
+* The entire circle is the excavation site
 * Each ring is a layer (here numbered from 0 to 4) 
-
-* Each slice is an entity (entity Ids are ‘a’ through ‘e’)
-
-* Each entity has a ‘color’ attribute (white means no update was made)
-
+* Each slice is an artefect (entity Ids are ‘a’ through ‘e’
+* Each artefect has a ‘color’ attribute (white means no update was made)
 * Black arrows point from an attributed updated value to the attribute previous value (e.g., from c.color @t2 to c.color @t0)
-
 * Light blue arrows are arbitrary relationships between entities (e.g., from ‘b’ to ‘d’
 
  ![image alt text](image_0.png)
 
 Figure 1
+
+When translating the archaeology terms to CS language, we'd get that:
+* An excavation site is a database
+* An artefact is an entity
+* Each entity may have several attributes
+	* The set of attributes may change throughout time
+* Each attribute, at a given time, has a specific value
+	* The value may change throughout time
 
 This may look very different than the kinds of databases you are used to working with. This design is sometimes referred to as "functional database", since it uses ideas from the domain of functional programming. The rest of the chapter describes how to implement such a database.
 
@@ -77,9 +72,7 @@ Defining each of these is done follows:
 A database consists of:
 
 1. Layers of entities, each with its own unique timestamp (rings in Figure 1)
-
 2. A top-id value which is used to generate unique ids
-
 3. The time at which this database was last updated
 
 
@@ -147,9 +140,7 @@ A crucial feature of a database is storing data. In this chapter, we resort to t
 The APIs for accessing the storage are defined in the *Storage* protocol, and include functions for:
 
 * Reading an entity from the storage
-
 * Writing an entity to the storage
-
 * dropping an entity from the storage
 
 ````clojure
@@ -193,9 +184,7 @@ Figure 2
 Figure 3 shows an index that would be called AVET since:
 
 * First level map holds attribute-name
-
 * Second level map holds the values (of the attributes)
-
 * Third level set holds the entity-ids (of the entities whose attribute is at the first level) 
 
 ![image alt text](image_2.png)
@@ -215,7 +204,6 @@ There are two main aspects of index handling that are used:
 * Structure: The structure of a datom is entity ⇒ attribute ⇒ value (called an ‘eav’ structure). However, an index may be structured differently (each index with its own specific structure). To allow transition between the two different structures (natural and index specific), each index holds two functions, one for each specific transition:
 
     * from the natural structure to the index specific, called *from-eav*, 
-
     * from the index specific to the natural structure called *to-eav*. 
 
 These functions are read from the index using the utility functions *from-eav* and *to-eav*, both receive an index as an argument.
@@ -348,11 +336,8 @@ The following functions do exactly that, and share some commonalities between th
 * Take the database as an argument: this is the manifestation of treating the database as a value - the ability to send it to a function and still rely on the results to be consistent.
 
 * Take a set of arguments that identify an element: 
-
     * Entity is identified by an entity-id
-
     * Attribute is identified by the combination of an entity-id and attribute-name
-
     * Index is identified by its name
 
 * Take an optional timestamp value to know from which time to fetched the needed element. This is an optional argument as it defaults to the current time. 
@@ -393,9 +378,7 @@ If we go back to our schematic visualization of the database in Figure 1, data l
 To implement the defined data lifecycle, all we needed to do was to implement three functionalities: 
 
 * adding an entity - an operation that starts with the *add-entity* function
-
 * removing an entity - an operation that start with the *remove-entity* function
-
 * updating an entity - an operation that starts with the *update-datom* function. This function is named that way as the update operation is done on a datom (the value of an attribute in an entity) and it is not an entire entity update.
 
 Each of these functionalities, when executed, adds another layer to the database.
@@ -430,11 +413,8 @@ Adding the entity to the storage is simply a matter of locating the last layer i
 Last but not least phase in adding an entity to the database is updating the indices. This means that:
 
 1. For each of the indices (done by the combination of *reduce* and the *partial*-ed *add-entity-to-index* at the *add-entity* function)
-
 2. Find the attributes that should be indexed (see the combination of *filter* with the index’s *usage-pred* that operates on the attributes in *add-entity-to-index*) 
-
 3. build an index-path from the the entity’s id (see the combination of the *partial*-ed *update-entry-in-index* with *from-eav* at the *update-attr-in-index* function)
-
 4. Add that path to the index (see the *update-entry-in-index* function)
 
 ````clojure
@@ -560,6 +540,7 @@ The update itself has two parts:
   [attr new-ts]
        (assoc attr :ts new-ts :prev-ts (:ts attr)))
 ````
+
 * Performing the value change as requested by the user and supported by the attribute’s cardinality. This can be seen at the *update-attr-value* function.
 
 ````clojure
@@ -578,9 +559,7 @@ Once we have the updated attribute, all that is left is to remove the old value 
 All the operations described before (add / remove / edit) do a single operation on a single entity. The return value from them is the database as it was before the operation  topped with an additional layer. Yet, a key requirement of any database is the ability to perform a transaction that includes several operations, possibly on several elements, while:
 
 * Viewed from the outside as a single (i.e., atomic) operation, meaning either all operations succeed or all operations fails
-
 * Keep the database in a valid state at any given time 
-
 * Keep the update operations isolated from the outside at any point in time until they are completed. 
 
 The way to answer these requirements is by using a mechanism that takes as an input input the database and a set of operations to be performed, and produces as an output a database whose state reflects the given changes. More than that, all the changes should be seen as an addition of a single layer. 
@@ -842,9 +821,7 @@ Table 3
 Engineering is all about tradeoff handling. Therefore, when designing the query engine (and just like in any other engineering task), there are tradeoff to tackle. In this case it is the classical "feature-richness vs implementation span and complexity" tradeoff. A resolution of this tradeoff comes in a design decision of what are the acceptable limitations of the system. In our database, the resolution of this tradeoff was to build A query engine with the following limitations:
 
 * Logic operations between clauses: clauses are always ‘ANDed’ between them, and user cannot define any logical operations between the clauses. Users can mitigate this restriction by providing their own functions to act as predicates (as long as they can act as unary or binary operators)
-
 * Joining: If there’s more than one clause in a query, there must be one variable that is found in all of the clauses of that query. This variable acts as a joining variable as it performs a join operation between different datoms. This limitation helps in having a simple query optimizer
-
 * A query is executed on a single database. 
 
 The combination of these restrictions with the richness available by datalog query results in allowing most of the happy-path, simple yet useful, queries.
@@ -892,11 +869,8 @@ Therefore, in a spoken language, the exemplary query means "find the names and a
 A query engine is the component within a database that is responsible for answering user’s queries. When a query engine receives a query, it operates along the lines of the following four phases:
 
 1. Transformation to internal representation: this phase focuses on transforming the query from being in a query syntax (as the user entered it) to be represented using a data structure that is adapted to the needs of the next phase. This is needed to allow the next phase to be simpler and more performant.
-
 2. Building a query plan: based on the internal representation, this phase analyzes what’s the best course of action to get to the needed results of the query. Based on that analysis this phase outputs a query plan. In our case a query plan is a function to be invoked.
-
 3. Executing the function: this phase is responsible for executing the plan and sending its results to the next phase.
-
 4. Unification and reporting: this phase receives query results, takes from it the portion that needs to be reported (a unification of the user’s input with the query results) and formats it to be in the way that the user requested.
 
 #### Phase 1 - Transformation
@@ -954,9 +928,7 @@ The general plan is to choose an index , apply on it the predicate clauses, merg
 The plan is constructed at the *build-query-plan* function. The right index is chosen based on the kind of the joining variable, where we use our assumption (and limitation) that there’s at most one such variable. There are three options for it:
 
 * Joining variable that operates on entity-ids means that it is best to execute the query on the AVET index
-
 * Joining variable that operates on attribute-names means it is best to execute the query on the VEAT index
-
 * Joining variable that operates on the attribute values means it is best to execute the query on the EAVT index.
 
 The index of the joining variable is done at the *index-of-joining-variable* function.
@@ -1088,13 +1060,9 @@ This is done either directly using the *resultify-bind-pair* function or using a
 Our journey started with trying to take a different perspective on databasing, and adopt a point of view whose voice is rarely heard in the software design world. It ended with database that its main capabilities are:
 
 * Supports ACI transactions (the durability was lost when we decided to have the data stored in-memory) 
-
 * Handle simple datalog queries that are optimized by using indices
-
 * provides APIs for graph queries
-
 * Introduces and implemented the notion of evolutionary queries
-
 * Allows to ask what-if questions
 
 All this was implemented in a code base whose size is 488 lines of code, of which 74 are blank and 54 are docstrings, which brings us to a database implementation done in 360 lines of code.
@@ -1102,4 +1070,3 @@ All this was implemented in a code base whose size is 488 lines of code, of whic
 There are still things to be done if we want to make it better database. We can caching all over the place to improve performance, we can extend the functionality by supporting stronger queries - both datalog and graph queries. We can add real storage support to provide data durability and add APIs so client could interact with the database over the web. All these features and more are already part of a real database, called Datomic, which was the inspiration for our database. 
 
 Taking a look at the Datomic database, and other software components in the Clojure ecosystem, is highly recommended, as one of the main themes of this ecosystem is favoring clean and practical software design, an approach that will help you become a better software person. 
-
