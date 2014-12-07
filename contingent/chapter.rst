@@ -207,7 +207,7 @@ but which learned the dependencies between files as they were built —
 that added and removed dependencies dynamically
 as cross references were added, updated, and then later deleted.
 
-In the sections that follows we will construct such a tool in Python,
+In the sections that follow we will construct such a tool in Python,
 named Contingent,
 that guarantees correctness in the presence of dynamic dependencies
 while performing the fewest possible rebuild steps.
@@ -243,69 +243,289 @@ for a collection of boxes and arrows —
 or, as mathematicians say, *nodes* and *edges* —
 like those in Figure 1.
 
-At the core of Contingent is a ``Graph`` library [Brandon runs out of steam]
+.. OKAY, DAN!
 
-OKAY, DAN!
+.. Time to go to town!  Everything from here down is (a) great code that I
+.. have just edited, with (b) rough notes for you to work from.  Turn on
+.. your CS prof superpowers and explain everything clearly, concisely, and
+.. whimsically.
 
-Time to go to town!  Everything from here down is (a) great code that I
-have just edited, with (b) rough notes for you to work from.  Turn on
-your CS prof superpowers and explain everything clearly, concisely, and
-whimsically.
+.. Also, edit any of my stuff above that you'd like.  And I can edit you
+.. when you have turned the notes that follow into text, and after our
+.. mutual edits hopefully it will read fairly clearly.
 
-Also, edit any of my stuff above that you'd like.  And I can edit you
-when you have turned the notes that follow into text, and after our
-mutual edits hopefully it will read fairly clearly.
+.. I have adjusted the code below so that it shows what Graph() does more
+.. simply than before, so we can work on explaining the implementation.
+.. Put words around these code samples, talking about the following points
+.. (based on Debo's email to us) (these do not need to be long parts each,
+.. by the way, you just need to make each point clearly, along with other
+.. points that I'm sure will occur to you as you quote sections of
+.. graphlib.py and discuss them (try to include them with RST file-line
+.. inclusion, not by cutting and pasting):
 
-I have adjusted the code below so that it shows what Graph() does more
-simply than before, so we can work on explaining the implementation.
-Put words around these code samples, talking about the following points
-(based on Debo's email to us) (these do not need to be long parts each,
-by the way, you just need to make each point clearly, along with other
-points that I'm sure will occur to you as you quote sections of
-graphlib.py and discuss them (try to include them with RST file-line
-inclusion, not by cutting and pasting):
+.. * A graph needs to store edges.
+.. * You might need to do lookup either way: what edges arrive here?  What
+..   edges go away from this node?  And for each question, outline a
+..   situation in which Contingent will need to answer a question.
+.. * Talk about how we solve problems in Python: not with a Node class and an
+..   Edge class and an OutgoingEdgesCollection class, but with simple
+..   generic data structures.
+.. * Do four bullet points with a sentence each: tuple, list, dict, set
+.. * Discover that we should use a dict-of-sets pointing in each direction.
+.. * Show __init__() and talk about defaultdict
+.. * Then add_edge() then remove_edge()
+.. * Contingent will sometimes need to rebuild, in case ``api.rst``
+..   is edited to add or remove a cross reference: clear_inputs_of()
+.. * (leave the rest out for now?)
+.. * Finally, step back: our API only asks that nodes be represented
+..   with hashable types. Discuss that tuples are fine too, not just
+..   strings like we are using in this section.
+.. * Another step back: note that our API hides the data structures
+..   COMPLETELY! We could change to a stupid Node class and Edge class
+..   any time we wanted, because only task IDs pass our API border.
 
-* A graph needs to store edges.
-* You might need to do lookup either way: what edges arrive here?  What
-  edges go away from this node?  And for each question, outline a
-  situation in which Contingent will need to answer a question.
-* Talk about how we solve problems in Python: not with a Node class and an
-  Edge class and an OutgoingEdgesCollection class, but with simple
-  generic data structures.
-* Do four bullet points with a sentence each: tuple, list, dict, set
-* Discover that we should use a dict-of-sets pointing in each direction.
-* Show __init__() and talk about defaultdict
-* Then add_edge() then remove_edge()
-* Contingent will sometimes need to rebuild, in case ``api.rst``
-  is edited to add or remove a cross reference: clear_inputs_of()
-* (leave the rest out for now?)
-* Finally, step back: our API only asks that nodes be represented
-  with hashable types. Discuss that tuples are fine too, not just
-  strings like we are using in this section.
-* Another step back: note that our API hides the data structures
-  COMPLETELY! We could change to a stupid Node class and Edge class
-  any time we wanted, because only task IDs pass our API border.
-
-There's probably more great points we can make about Python and our
-wonderful API, but those are the ones that come to mind right now that I
-wanted to get down before I forgot them. :)
+.. There's probably more great points we can make about Python and our
+.. wonderful API, but those are the ones that come to mind right now that I
+.. wanted to get down before I forgot them. :)
 
 
+How could we represent such a graph in Contingent?
+Neither the core Python language nor the standard library
+provide a direct equivalent to a graph data structure,
+which isn't really surprising:
+while a language like Python provides many useful data structures like
+lists, sets, and dictionaries,
+when solving problems we inevitably need structures or functions that
+the language authors didn't put in.
+Rather than trying to anticipate every possible need a user might
+have — which is impossible anyway — good language designers try to
+provide two things:
+
+1. flexible, general purpose data structures and functions, and
+2. language features that let users build entirely *new* functions and
+   data structures that fit the problem at hand.
+
+This is a lot of the fun and challenge of language design,
+since different users have different opinions about what constitutes a
+“flexible” system,
+what features merit being called “general purpose,”
+and what kinds of facilities the language should offer for extension.
+
+Since Python doesn't contain exactly what we need,
+we'll have to construct something ourselves.
+At the core of Contingent is a ``Graph`` library,
+which is just such an extension to Python
+that gives us a convenient way to keep
+all the nodes and edges of a graph organized.
 
 >>> from contingent import graphlib
 >>> g = graphlib.Graph()
 
+A class like ``Graph`` defines a useful *abstraction*
+that gives up some generality
+in exchange for closer proximity to whatever problem we're working on;
+``Graph``, for example,
+allows us to write our program using the language of *graphs*,
+rather than having to express everything
+in terms of lists and dicts.
+While they don't really matter to the computer,
+good names are vitally important to the *programmer*,
+and the ability to work with names that closely match the problem is an
+important feature of modern programming languages.
+
+Newly created ``Graph`` objects are empty:
+
+>>> g.edges()
+[]
+
+To represent a graph like that shown in Figure 1,
+we need a way to add edges between nodes:
 
 >>> g.add_edge('index.rst', 'index.html')
 >>> g.add_edge('tutorial.rst', 'tutorial.html')
 >>> g.add_edge('api.rst', 'api.html')
 
+The object ``g`` now represents the same graph that we saw in Figure 1,
+
+>>> from pprint import pprint
+>>> edges = g.edges()
+>>> pprint(edges)
+[('api.rst', 'api.html'),
+ ('index.rst', 'index.html'),
+ ('tutorial.rst', 'tutorial.html')]
+
+but, since it is a real live Python object and not just a pretty picture,
+we can ask it interesting questions!
+For example, when Contingent is building a blog from source files,
+it will need to know things like “What depends on ``api.rst``?” when
+the content of ``api.rst`` changes:
+
+>>> g.immediate_consequences_of('api.rst')
+['api.html']
+
+``Graph`` thus tells Contingent that,
+when ``api.rst`` changes,
+``api.html`` is now stale and must be rebuilt.
+How about ``index.html``?
+
+>>> g.immediate_consequences_of('index.html')
+[]
+
+Since ``index.html`` is at the end of the graph ­— it is what
+graph folks call a *leaf node* — nothing depends on it and so nothing
+needs to be rebuilt if it changes.
+
+How can we implement a method like ``add_edges``?
+Careful readers will have noticed that we added edges to our graph
+without explicitly creating node and edge objects,
+and that the nodes themselves are simply strings.
+Coming from other languages and traditions,
+one might have expected to see something more like::
+
+    Graph g = new Graph();
+    Node indexRstNode = new Node("index.rst");
+    Node indexHtmlNode = new Node("index.html");
+    Edge indexEdge = new Edge(indexRstNode, indexHtmlNode);
+    g.addEdge(indexEdge);
+
+with user-defined classes for everything in the system.
+The Python language and community explicitly and intentionally emphasize
+using simple, generic data structures to solve problems,
+rather than creating custom classes for every problem we want to tackle.
+This is one facet of the notion of “Pythonic” solutions that you may
+have read about: Pythonic solutions try to
+minimize syntactic overhead
+and leverage Python's powerful built-in tools
+like strings, lists, dicts, and sets.
+
+What does this say about how should we build the ``Graph`` class?
+The main purpose of ``Graph`` is to keep track of the relationships
+between all the various nodes by maintaining a collection of all the
+edges between them.
+This will allow Contingent,
+when looking at a node,
+to determine which nodes are consequences of it.
+We also need to be sure that two edges
+pointing to something called ``index.html``
+actually point to the same node.
+But, since we want to push as much work as possible to Python itself,
+we need to examine the facilitites that it offers
+that might be of use to solve this problem.
+
+Python provides a number of data structures that might work:
+
+* ``tuples`` are immutable sequences of objects:
+  duplicate object references are allowed but,
+  once created,
+  tuple instances cannot be changed.
+
+* ``lists`` are mutable sequences of objects: new objects can be added
+  and existing objects removed or rearranged.
+  As with tuples,
+  lists can have duplicate references to the same object.
+
+* ``dicts`` are mutable mappings from one object (the “key”)
+  to another object (the “value”).
+  A typical use for dicts is to track collections of complex objects
+  by a name or other convenient identifier.
+  dict values can be duplicated but keys must be unique.
+
+* ``sets`` are mutable, unordered collections of *unique* objects.
+
+Looking at our requirements,
+it seems like we need bits from both ``dict`` and ``set``:
+tracking the consequences of a node in a ``set`` would make sure we
+never duplicate edges,
+while ``dict`` would give us a way to track the *adjacent* nodes
+to each node in our graph.
+This leads us to a dict-of-sets approach:
+the dict's keys are the nodes in the graph,
+while the values are the set of nodes adjacent to each key node:
+
+>>> consequences_of = {
+...     'index.rst': set(['index.html']),
+...     'api.rst': set(['api.html']),
+... }
+>>> 'index.html' in consequences_of['index.rst']
+True
+
+If we happen to record a connection between two nodes more than once,
+``set`` ensures that we remember that we've already seen
+this edge and therefore don't need to record it again:
+
+>>> consequences_of['api.rst'].add('api.html')
+>>> consequences_of['api.rst'] == set(['api.html'])
+True
+
+``Graph`` maintains two of these dict-of-sets structures,
+one recording the consequences of each node
+and a second recording its inputs —
+the nodes *it* depends on.
+This duplication is a tradeoff of space for convenience:
+while either data structure represents the entire graph unambiguously,
+having both makes asking questions in either direction
+a symmetric operation.
+
+Here is ``Graph``\ 's constructor:
+
+.. include:: contingent/graphlib.py
+    :code: python
+    :start-line: 15
+    :end-line: 18
+
+Whoa now, what's this ``defaultdict``?
+It turns out that handling the “key doesn't exist yet” case is so common
+that Python includes a special utility to make dealing with it easier.
+With a normal ``dict``,
+if you try to retrieve a key that does not exist you get a ``KeyError``:
+
+>>> consequences_of = {}
+>>> consequences_of['index.rst'].add('index.html')
+Traceback (most recent call last):
+     ...
+KeyError: 'index.rst'
+
+Rather than having to gum up your code with ugly special cases all over
+the place, like this:
+
+.. code:: python
+
+    # handle “we haven't seen this task yet”
+    if input_task not in self._consequences_of:
+        self._consequences_of[input_task] = set()
+
+    self._consequences_of[input_task].add(consequence_task)
+
+``defaultdict`` simplifies things by allowing you to provide a
+function that returns a value for absent keys.
+In our case, we want empty keys to be represented with an empty ``set``:
+
+>>> from collections import defaultdict
+>>> consequences_of = defaultdict(set)
+>>> len(consequences_of.keys())
+0
+
+When we ask for a key that the ``defaultdict`` hasn't yet seen,
+we get a new, empty ``set`` object:
+
+>>> consequences_of['api.rst']
+set()
+
+This means that,
+for operations that need to work with this data structure,
+the first-time case is identical to
+the second-and-subsequent-times case:
+
+>>> consequences_of['index.rst'].add('index.html')
+>>> 'index.html' in consequences_of['index.rst']
+True
 
 ..
  >>> from contingent.rendering import as_graphviz
  >>> open('figure1.dot', 'w').write(as_graphviz(g)) and None
 
 
+----
 
 >>> g.add_edge('tutorial.rst', 'tutorial-title')
 >>> g.add_edge('api.rst', 'api-title')
@@ -604,7 +824,7 @@ dynamically::
 
 When this paragraph is rendered the output should look like:
 
-    x...original `Learning About Pandas`_ blog post from last year.
+..    x...original `Learning About Pandas`_ blog post from last year.
 
 Therefore this HTML will need to be regenerated every time the title in
 ``learning-pandas.rst`` is edited and changed.
