@@ -4,20 +4,20 @@ from scipy.special import gammaln
 
 class MultinomialDistribution(object):
 
-    def __init__(self, p, rso=None):
+    def __init__(self, p, rso=np.random):
         """Initialize the multinomial random variable.
 
         Parameters
         ----------
-        p: numpy array with shape (k,)
+        p: numpy array of length `k`
             The outcome probabilities
-        rso: numpy RandomState object (default: None)
+        rso: numpy RandomState object (default: np.random)
             The random number generator
 
         """
 
-        # Check that the probabilities sum to 1 -- if they don't, then
-        # something is wrong.
+        # Check that the probabilities sum to 1. If they don't, then
+        # something is wrong!
         if not np.isclose(np.sum(p), 1.0):
             raise ValueError("outcome probabilities do not sum to 1")
 
@@ -25,16 +25,10 @@ class MultinomialDistribution(object):
         self.p = p
         self.rso = rso
 
-        # Precompute log probabilities, for use by the log-PMF.
+        # Precompute log probabilities, for use by the log-PMF, for
+        # each element of `self.p` (the function `np.log` operates
+        # elementwise over NumPy arrays, as well as on scalars.)
         self.logp = np.log(self.p)
-
-        # Get the appropriate function for generating the random
-        # samples, depending on whether we're using a RandomState
-        # object or not.
-        if self.rso:
-            self._sample_func = self.rso.multinomial
-        else:
-            self._sample_func = np.random.multinomial
 
     def sample(self, n):
         """Samples draws of `n` events from a multinomial distribution with
@@ -47,11 +41,11 @@ class MultinomialDistribution(object):
 
         Returns
         -------
-        numpy array with shape (k,)
+        numpy array of length `k`
             The sampled number of occurrences for each outcome
 
         """
-        x = self._sample_func(n, self.p)
+        x = self.rso.multinomial(n, self.p)
         return x
 
     def log_pmf(self, x):
@@ -60,7 +54,7 @@ class MultinomialDistribution(object):
 
         Parameters
         ----------
-        x: numpy array with shape (k,)
+        x: numpy array of length `k`
             The number of occurrences of each outcome
 
         Returns
@@ -95,7 +89,7 @@ class MultinomialDistribution(object):
 
         Parameters
         ----------
-        x: numpy array with shape (k,)
+        x: numpy array of length `k`
             The number of occurrences of each outcome
 
         Returns

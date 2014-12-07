@@ -9,7 +9,7 @@ class MagicItemDistribution(object):
     stats_names = ("dexterity", "constitution", "strength",
                    "intelligence", "wisdom", "charisma")
 
-    def __init__(self, bonus_probs, stats_probs, rso=None):
+    def __init__(self, bonus_probs, stats_probs, rso=np.random):
         """Initialize a magic item distribution parameterized by `bonus_probs`
         and `stats_probs`.
 
@@ -26,7 +26,7 @@ class MagicItemDistribution(object):
             the probability of giving a bonus point to the ith stat,
             i.e. the value at `MagicItemDistribution.stats_names[i]`.
 
-        rso: numpy RandomState object (default: None)
+        rso: numpy RandomState object (default: np.random)
             The random number generator
 
         """
@@ -102,7 +102,7 @@ class MagicItemDistribution(object):
         # `sample` is an array of zeros and a single one at the
         # location corresponding to the bonus. We want to convert this
         # one into the actual value of the bonus.
-        bonus = np.argwhere(sample)[0, 0]
+        bonus = np.argmax(sample)
         return bonus
 
     def _sample_stats(self):
@@ -175,7 +175,8 @@ class MagicItemDistribution(object):
         # Then calculate the probability of the stats
         logp_stats = self.stats_dist.log_pmf(stats)
 
-        # Then multiply them together
+        # Then multiply them together (using addition, because we are
+        # working in log-space)
         log_pmf = logp_bonus + logp_stats
         return log_pmf
 
@@ -183,7 +184,7 @@ class MagicItemDistribution(object):
 class DamageDistribution(object):
 
     def __init__(self, num_items, item_dist,
-                 num_dice_sides=12, num_hits=1, rso=None):
+                 num_dice_sides=12, num_hits=1, rso=np.random):
         """Initialize a distribution over attack damage. This object can
         sample possible values for the attack damage dealt over
         `num_hits` hits when the player has `num_items` items, and
@@ -200,7 +201,7 @@ class DamageDistribution(object):
             The number of sides on each die.
         num_hits: int (default: 1)
             The number of hits across which we want to calculate damage.
-        rso: numpy RandomState object (default: None)
+        rso: numpy RandomState object (default: np.random)
             The random number generator
 
         """

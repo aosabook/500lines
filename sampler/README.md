@@ -79,7 +79,11 @@ the specific application.
 Typically when we talk about probability distributions, we will use
 mathematical notation like $p(x)$ to indicate that $p$ is the
 *probability density function* (PDF) or *probability mass function*
-(PMF) over values $x$ of a random variable.
+(PMF) over values $x$ of a random variable. A PDF is a *continuous*
+function $p(x)$ such that $\int_{-\infty}^\infty p(x)\ \mathrm{d}x\ =\
+1$, whereas a PMF is a *discrete* function $p(x)$ such that
+$\sum_{x\in \mathbb{Z}} p(x)=1$. In both cases, $p(x) \geq 0$ for all
+$x$.
  
 There are two things that we might want to do with a probability
 distribution. Given a value (or location) $x$, we might want to
@@ -178,8 +182,12 @@ distributions. There are several advantages to doing so:
    these constants in the constructor, rather than having to compute
    them every time the PMF or PDF function is called.
 
-TODO: add a note about how this is actually the way scipy's
-distributions work
+In practice, this is how many statistics packages work, including
+SciPy's own distributions, which are located in the `scipy.stats`
+module. While we are using other SciPy functions, however, we are not
+using their probability distributions, both for the sake of
+illustration, and because there is currently no multinomial
+distribution in SciPy.
 
 Here is the constructor code for the class:
 
@@ -188,19 +196,19 @@ import numpy as np
 
 class MultinomialDistribution(object):
 
-    def __init__(self, p, rso=None):
+    def __init__(self, p, rso=np.random):
         """Initialize the multinomial random variable.
 
         Parameters
         ----------
-        p: numpy array with shape (k,)
+        p: numpy array of length `k`
             The event probabilities
         rso: numpy RandomState object (default: None)
             The random number generator
 
         """
-        # Check that the probabilities sum to 1 -- if they don't, then
-        # something is wrong.
+        # Check that the probabilities sum to 1. If they don't, then
+        # something is wrong!
         if not np.isclose(np.sum(p), 1.0):
             raise ValueError("event probabilities do not sum to 1")
 
@@ -208,16 +216,10 @@ class MultinomialDistribution(object):
         self.p = p
         self.rso = rso
 
-        # Precompute log probabilities, for use by the log-PMF.
+        # Precompute log probabilities, for use by the log-PMF, for
+        # each element of `self.p` (the function `np.log` operates
+        # elementwise over NumPy arrays, as well as on scalars.)
         self.logp = np.log(self.p)
-
-        # Get the appropriate function for generating the random
-        # samples, depending on whether we're using a RandomState
-        # object or not.
-        if self.rso:
-            self._sample_func = self.rso.multinomial
-        else:
-            self._sample_func = np.random.multinomial
 ```
 
 The class takes as arguments the event probabilities, $p$, and a
@@ -355,7 +357,7 @@ to using `np.random.multinomial`. Otherwise, it uses the multinomial
 sampler from the `RandomState` object itself.
 
 > Aside: the functions in `np.random` actually do rely on a random
-> number generator that we can control -- NumPy's global random number
+> number generator that we can control: NumPy's global random number
 > generator. You can set the global seed with `np.seed`. There's a
 > tradeoff to using the global generator vs. a local `RandomState`
 > object. If you use the global generator, then you don't have to pass
@@ -409,11 +411,11 @@ def sample(self, n):
 
     Returns
     -------
-    numpy array with shape (k,)
+    numpy array of length `k`
         The sampled number of occurrences for each outcome
 
     """
-    x = self._sample_func(n, self.p)
+    x = self.rso.multinomial(n, self.p)
     return x
 ```
 
@@ -546,7 +548,7 @@ underflow:
 Still, doing all our computations in log-space can save a lot of
 headache. We might be forced to lose that precision if we need to go
 out of log-space, but we at least maintain *some* information about
-the probabilities -- enough to compare them, for example -- that would
+the probabilities---enough to compare them, for example---that would
 otherwise be lost.
 
 #### Writing the PMF code
@@ -561,7 +563,7 @@ def log_pmf(self, x):
 
     Parameters
     ----------
-    x: numpy array with shape (k,)
+    x: numpy array of length `k`
         The number of occurrences of each outcome
 
     Returns
@@ -594,11 +596,24 @@ def log_pmf(self, x):
 For the most part, this is a straightforward implementation of the
 equation above for the multinomial PMF. The `gammaln` function is from
 `scipy.special`, and computes the log-gamma function,
-$\log{\Gamma(x)}$. There is one edge case that we need to tackle,
-which is when one of our probabilities is zero.
+$\log{\Gamma(x)}$. As mentioned above, it is more convenient to use
+the gamma function rather than a factorial function; this is because
+SciPy gives us a log-gamma function, but not a log-factorial function.
+We could have computed a log factorial ourselves, using something like:
 
-When $p_i=0$, then $\log{p_i}=-\infty$. This would be fine, except for
-the following behavior when infinity is multiplied by zero:
+```
+sum_log_xi_factorial = np.sum([np.sum(np.log(np.arange(1, i + 1))) for i in x])
+```
+
+but it is easier to understand, easier to code, and more
+computationally efficient if we use the gamma function already built
+in to SciPy, `np.sum(np.gammaln(x + 1))`, because it operates
+elementwise on the vector `x`.
+
+There is one edge case that we need to tackle, which is when one of
+our probabilities is zero. When $p_i=0$, then $\log{p_i}=-\infty$.
+This would be fine, except for the following behavior when infinity is
+multiplied by zero:
 
 ```python
 >>> # it's fine to multiply infinity by integers...
@@ -614,7 +629,7 @@ with, because most computations with `nan` result in another
 will end up with a `nan`. That will get summed with other numbers,
 producing another `nan`, which is just not useful. To handle this, we
 check specifically for the case when $x_i=0$, and set the resulting
-$\log(p_i^x_i)$ also to zero.
+$\log(p_i^{x_i})$ also to zero.
 
 Let's return for a moment to our discussion of log-space. If we really
 do need the PMF, and not the log-PMF, we can still compute
@@ -629,7 +644,7 @@ def pmf(self, x):
 
     Parameters
     ----------
-    x: numpy array with shape (k,)
+    x: numpy array of length `k`
         The number of occurrences of each outcome
 
     Returns
@@ -687,7 +702,7 @@ class MagicItemDistribution(object):
     stats_names = ("dexterity", "constitution", "strength",
                    "intelligence", "wisdom", "charisma")
 
-    def __init__(self, bonus_probs, stats_probs, rso=None):
+    def __init__(self, bonus_probs, stats_probs, rso=np.random):
         """Initialize a magic item distribution parameterized by `bonus_probs`
         and `stats_probs`.
 
@@ -704,7 +719,7 @@ class MagicItemDistribution(object):
             the probability of giving a bonus point to the ith stat,
             i.e. the value at `MagicItemDistribution.stats_names[i]`.
 
-        rso: numpy RandomState object (default: None)
+        rso: numpy RandomState object (default: np.random)
             The random number generator
 
         """
@@ -746,7 +761,7 @@ def _sample_bonus(self):
     # `sample` is an array of zeros and a single one at the
     # location corresponding to the bonus. We want to convert this
     # one into the actual value of the bonus.
-    bonus = np.argwhere(sample)[0, 0]
+    bonus = np.argmax(sample)
     return bonus
 
 def _sample_stats(self):
@@ -769,11 +784,12 @@ def _sample_stats(self):
     return stats
 ```
 
-We *could* have made these be just a single method--especially since
+We *could* have made these be just a single method---especially since
 `_sample_stats` is the only function that depends on
-`_sample_bonus`--but I have chosen to keep them separate, both because
-it makes the sampling routine easier to understand, and because
-breaking it up into smaller pieces makes the code easier to test.
+`_sample_bonus`---but I have chosen to keep them separate, both
+because it makes the sampling routine easier to understand, and
+because breaking it up into smaller pieces makes the code easier to
+test.
 
 You'll also notice that these methods are prefixed with an underscore,
 indicating that they're not really meant to be used outside the
@@ -798,8 +814,8 @@ def sample(self):
 The `sample` function does essentially the same thing as
 `_sample_stats`, except that it returns a dictionary with the stats
 names as keys. This provides a clean and understandable interface for
-sampling items--it is obvious which stats have how many bonus
-points--but it also keeps the option open for using just
+sampling items---it is obvious which stats have how many bonus
+points---but it also keeps the option open for using just
 `_sample_stats` if one needs to take many samples and efficiency is
 required.
 
@@ -847,10 +863,44 @@ def pmf(self, item):
     return np.exp(self.log_pmf(item))
 ```
 
-These methods rely on `_bonus_log_pmf`, which computes the probability
-of the overall bonus, and `_stats_log_pmf`, which computes the
+These methods rely on `_stats_log_pmf`, which computes the
 probability of the stats (but which takes an array rather than a
 dictionary):
+
+```
+def _stats_log_pmf(self, stats):
+    """Evaluate the log-PMF for the given distribution of bonus points
+    across the different stats.
+
+    Parameters
+    ----------
+    stats: numpy array of length 6
+        The distribution of bonus points across the stats
+
+    Returns
+    -------
+    float
+        The value corresponding to log(p(stats))
+
+    """
+    # There are never any leftover bonus points, so the sum of the
+    # stats gives us the total bonus.
+    total_bonus = np.sum(stats)
+
+    # First calculate the probability of the total bonus
+    logp_bonus = self._bonus_log_pmf(total_bonus)
+
+    # Then calculate the probability of the stats
+    logp_stats = self.stats_dist.log_pmf(stats)
+
+    # Then multiply them together (using addition, because we are
+    # working in log-space)
+    log_pmf = logp_bonus + logp_stats
+    return log_pmf
+```
+
+The method `_stats_log_pmf`, in turn, relies on `_bonus_log_pmf`,
+which computes the probability of the overall bonus:
 
 ```python
 def _bonus_log_pmf(self, bonus):
@@ -878,35 +928,6 @@ def _bonus_log_pmf(self, bonus):
     x[bonus] = 1
 
     return self.bonus_dist.log_pmf(x)
-
-def _stats_log_pmf(self, stats):
-    """Evaluate the log-PMF for the given distribution of bonus points
-    across the different stats.
-
-    Parameters
-    ----------
-    stats: numpy array of length 6
-        The distribution of bonus points across the stats
-
-    Returns
-    -------
-    float
-        The value corresponding to log(p(stats))
-
-    """
-    # There are never any leftover bonus points, so the sum of the
-    # stats gives us the total bonus.
-    total_bonus = np.sum(stats)
-
-    # First calculate the probability of the total bonus
-    logp_bonus = self._bonus_log_pmf(total_bonus)
-
-    # Then calculate the probability of the stats
-    logp_stats = self.stats_dist.log_pmf(stats)
-
-    # Then multiply them together
-    log_pmf = logp_bonus + logp_stats
-    return log_pmf
 ```
 
 We can now create our distrbution as follows:
@@ -982,7 +1003,7 @@ implementation of this scheme:
 class DamageDistribution(object):
 
     def __init__(self, num_items, item_dist,
-                 num_dice_sides=12, num_hits=1, rso=None):
+                 num_dice_sides=12, num_hits=1, rso=np.random):
         """Initialize a distribution over attack damage. This object can
         sample possible values for the attack damage dealt over
         `num_hits` hits when the player has `num_items` items, and
@@ -999,7 +1020,7 @@ class DamageDistribution(object):
             The number of sides on each die.
         num_hits: int (default: 1)
             The number of hits across which we want to calculate damage.
-        rso: numpy RandomState object (default: None)
+        rso: numpy RandomState object (default: np.random)
             The random number generator
 
         """
@@ -1058,7 +1079,7 @@ our trusty multinomial functions) and compute the damage from that.
 
 You may have noticed that we didn't include a `log_pmf` or `pmf`
 function in our `DamageDistribution`. This is because we actually do
-not know what the what the PMF should be! This would be the equation:
+not know what the PMF should be! This would be the equation:
 
 $$
 \sum_{{item}_1, \ldots{}, {item}_m}p({damage}\ |\ {item}_1,\ldots{},{item}_m)p({item}_1)\cdots{}p({item}_m)
@@ -1140,5 +1161,5 @@ know (e.g., discovering how much damage a player with two items is
 likely to deal). Almost every type of sampling you might encounter
 falls under one of these two categories; the differences only have to
 do with what distributions you are sampling from. The general
-structure of the code--independent of those distributions--remains the
-same.
+structure of the code---independent of those distributions---remains
+the same.
