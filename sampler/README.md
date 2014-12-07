@@ -1,3 +1,5 @@
+<!-- to convert to HTML, run `pandoc --to html --mathjax -s README.md > README.html -->
+
 # Sampling Methods
 
 Note: this chapter assumes some familiarity with statistics and
@@ -182,12 +184,12 @@ distributions. There are several advantages to doing so:
    these constants in the constructor, rather than having to compute
    them every time the PMF or PDF function is called.
 
-In practice, this is how many statistics packages work, including
-SciPy's own distributions, which are located in the `scipy.stats`
-module. While we are using other SciPy functions, however, we are not
-using their probability distributions, both for the sake of
-illustration, and because there is currently no multinomial
-distribution in SciPy.
+> In practice, this is how many statistics packages work, including
+> SciPy's own distributions, which are located in the `scipy.stats`
+> module. While we are using other SciPy functions, however, we are
+> not using their probability distributions, both for the sake of
+> illustration, and because there is currently no multinomial
+> distribution in SciPy.
 
 Here is the constructor code for the class:
 
@@ -299,8 +301,7 @@ already does it: `np.random.multinomial`.
 
 > NumPy includes functions to draw samples from many different types
 > of distributions. For a full list, take a look at the
-> [random sampling module](http://docs.scipy.org/doc/numpy/reference/routines.random.html),
-> `np.random`.
+> random sampling module, `np.random`.
 
 Despite the fact that this function already exists, there are a few
 design decisions surrounding it that we can make.
