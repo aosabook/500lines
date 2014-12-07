@@ -1,33 +1,3 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-  <meta http-equiv="Content-Style-Type" content="text/css" />
-  <meta name="generator" content="pandoc" />
-  <title></title>
-  <style type="text/css">code{white-space: pre;}</style>
-  <style type="text/css">
-table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
-  margin: 0; padding: 0; vertical-align: baseline; border: none; }
-table.sourceCode { width: 100%; line-height: 100%; }
-td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
-td.sourceCode { padding-left: 5px; }
-code > span.kw { color: #007020; font-weight: bold; }
-code > span.dt { color: #902000; }
-code > span.dv { color: #40a070; }
-code > span.bn { color: #40a070; }
-code > span.fl { color: #40a070; }
-code > span.ch { color: #4070a0; }
-code > span.st { color: #4070a0; }
-code > span.co { color: #60a0b0; font-style: italic; }
-code > span.ot { color: #007020; }
-code > span.al { color: #ff0000; font-weight: bold; }
-code > span.fu { color: #06287e; }
-code > span.er { color: #ff0000; font-weight: bold; }
-  </style>
-  <script src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
-</head>
-<body>
 <h1 id="sampling-methods">Sampling Methods</h1>
 <p>Note: this chapter assumes some familiarity with statistics and probability theory.</p>
 <h2 id="introduction">Introduction</h2>
@@ -45,51 +15,52 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <h3 id="programming-with-samples-and-probabilities">Programming with samples and probabilities</h3>
 <p>As with most applications in computer science, you can make design decisions when programming with samples and probabilities that will influence the overall cleanliness, coherence, and correctness of your code. In this chapter, we will go through a simple example of how to sample random items in a computer game. In particular, we will focus on the design decisions which are specific to working with probabilities: including functions both for sampling and for evaluating probabilities, working in &quot;log-space&quot;, allowing reproducibility, and separating the process of generating samples from the specific application.</p>
 <h4 id="a-brief-aside-about-notation">A brief aside about notation</h4>
-<p>Typically when we talk about probability distributions, we will use mathematical notation like <span class="math">\(p(x)\)</span> to indicate that <span class="math">\(p\)</span> is the <em>probability density function</em> (PDF) or <em>probability mass function</em> (PMF) over values <span class="math">\(x\)</span> of a random variable.</p>
-<p>There are two things that we might want to do with a probability distribution. Given a value (or location) <span class="math">\(x\)</span>, we might want to <em>evaluate</em> what the probability density (or mass) is at that location. In mathematical notation, we would write this as <span class="math">\(p(x)\)</span> (the probability density at the value <span class="math">\(x\)</span>).</p>
-<p>Given the PDF or PMF, we might also want to <em>sample</em> a value <span class="math">\(x\)</span> in a manner proportional to the distribution (such that we are more likely to get a sample at places where the probability is higher). In mathematical notation, we would write this as <span class="math">\(x\sim p\)</span>, to indicate that <span class="math">\(x\)</span> is sampled proportional to <span class="math">\(p\)</span>.</p>
+<p>Typically when we talk about probability distributions, we will use mathematical notation like <span class="math"><em>p</em>(<em>x</em>)</span> to indicate that <span class="math"><em>p</em></span> is the <em>probability density function</em> (PDF) or <em>probability mass function</em> (PMF) over values <span class="math"><em>x</em></span> of a random variable. A PDF is a <em>continuous</em> function <span class="math"><em>p</em>(<em>x</em>)</span> such that <span class="math">$\int_{-\infty}^\infty p(x)\ \mathrm{d}x\ =\
+1$</span>, whereas a PMF is a <em>discrete</em> function <span class="math"><em>p</em>(<em>x</em>)</span> such that <span class="math">∑<sub><em>x</em> ∈ ℤ</sub><em>p</em>(<em>x</em>) = 1</span>. In both cases, <span class="math"><em>p</em>(<em>x</em>) ≥ 0</span> for all <span class="math"><em>x</em></span>.</p>
+<p>There are two things that we might want to do with a probability distribution. Given a value (or location) <span class="math"><em>x</em></span>, we might want to <em>evaluate</em> what the probability density (or mass) is at that location. In mathematical notation, we would write this as <span class="math"><em>p</em>(<em>x</em>)</span> (the probability density at the value <span class="math"><em>x</em></span>).</p>
+<p>Given the PDF or PMF, we might also want to <em>sample</em> a value <span class="math"><em>x</em></span> in a manner proportional to the distribution (such that we are more likely to get a sample at places where the probability is higher). In mathematical notation, we would write this as <span class="math"><em>x</em> ∼ <em>p</em></span>, to indicate that <span class="math"><em>x</em></span> is sampled proportional to <span class="math"><em>p</em></span>.</p>
 <h2 id="sampling-magical-items">Sampling magical items</h2>
-<p>As a simple example to demonstrate the various design decisions involved with programming with probabilities, let's imagine we're writing a roleplaying game (RPG). We would like a method of generating bonus stats for the magical items that are randomly dropped by monsters. We might decide that the maximum bonus we want an item to confer is +5, and that higher bonuses are less likely than lower bonuses. If <span class="math">\(B\)</span> is a random variable over the values of the bonus, then:</p>
-<p><span class="math">\[
+<p>As a simple example to demonstrate the various design decisions involved with programming with probabilities, let's imagine we're writing a roleplaying game (RPG). We would like a method of generating bonus stats for the magical items that are randomly dropped by monsters. We might decide that the maximum bonus we want an item to confer is +5, and that higher bonuses are less likely than lower bonuses. If <span class="math"><em>B</em></span> is a random variable over the values of the bonus, then:</p>
+<p><br /><span class="math">$$
 P(B=\mathrm{+1}) = 0.55\\
 P(B=\mathrm{+2}) = 0.25\\
 P(B=\mathrm{+3}) = 0.12\\
 P(B=\mathrm{+4}) = 0.06\\
 P(B=\mathrm{+5}) = 0.02
-\]</span></p>
+$$</span><br /></p>
 <p>We can also specify that there are six stats (dexterity, constitution, strength, intelligence, wisdom, and charisma) that our bonus should be distributed between. So, an item with a +5 bonus could have those points distributed across different stats (e.g., +2 wisdom and +3 intelligence) or concentrated within a single stat (e.g., +5 charisma).</p>
 <p>How would we randomly sample these stats? The easiest way is probably to first sample the overall item bonus. Then, we sample the way the bonus is distributed across the stats. Conveniently, the probability distributions of the bonus and the way that it is distributed are both instances of the <em>multinomial distribution</em>.</p>
 <h2 id="the-multinomial-distribution">The multinomial distribution</h2>
-<p>The multinomial distribution is used when you have several possible outcomes, and you want to characterize the probability of each of those outcomes occurring. The classic example used to describe the multinomial distribution is the <em>ball and urn</em> example. The idea is that you have an urn with different colored balls in it (for example, 30% red, 20% blue, and 50% green). You pull out a ball, record its color, put it back in the urn, and then repeat this multiple times. In this case, an <em>outcome</em> corresponds to drawing a ball of a particular color, and the probability of each outcome corresponds to the proportion of balls of that color (e.g., for the outcome of drawing a blue ball, the probability is <span class="math">\(p_{blue}=0.20\)</span>). The multinomial distribution is then used to describe the possible combinations of outcomes when multiple balls are drawn (e.g., two green and one blue).</p>
+<p>The multinomial distribution is used when you have several possible outcomes, and you want to characterize the probability of each of those outcomes occurring. The classic example used to describe the multinomial distribution is the <em>ball and urn</em> example. The idea is that you have an urn with different colored balls in it (for example, 30% red, 20% blue, and 50% green). You pull out a ball, record its color, put it back in the urn, and then repeat this multiple times. In this case, an <em>outcome</em> corresponds to drawing a ball of a particular color, and the probability of each outcome corresponds to the proportion of balls of that color (e.g., for the outcome of drawing a blue ball, the probability is <span class="math"><em>p</em><sub><em>b</em><em>l</em><em>u</em><em>e</em></sub> = 0.20</span>). The multinomial distribution is then used to describe the possible combinations of outcomes when multiple balls are drawn (e.g., two green and one blue).</p>
 <p>Note: the code in this section is also located in the file <code>multinomial.py</code>.</p>
 <h3 id="the-multinomialdistribution-class">The <code>MultinomialDistribution</code> class</h3>
-<p>In general, there are two use cases for a distribution: we might want to <em>sample</em> from that distribution, and we might want to <em>evaluate the probability</em> of a sample (or samples) under that distribution's PMF or PDF. While the actual computations needed to perform these two functions are fairly different, they rely on a common piece of information: what the <em>parameters</em> of the distribution are. In the case of the multinomial distribution, the parameters are the event probabilities, <span class="math">\(p\)</span> (which correspond to the proportions of the different colored balls in the urn example above).</p>
+<p>In general, there are two use cases for a distribution: we might want to <em>sample</em> from that distribution, and we might want to <em>evaluate the probability</em> of a sample (or samples) under that distribution's PMF or PDF. While the actual computations needed to perform these two functions are fairly different, they rely on a common piece of information: what the <em>parameters</em> of the distribution are. In the case of the multinomial distribution, the parameters are the event probabilities, <span class="math"><em>p</em></span> (which correspond to the proportions of the different colored balls in the urn example above).</p>
 <p>The simplest solution would be to simply create two functions that both take the same parameters, but are otherwise independent. However, I will usually opt to use a class for representing my distributions. There are several advantages to doing so:</p>
 <ol style="list-style-type: decimal">
 <li>You only need to pass in the parameters once, when creating the class.</li>
 <li>There are additional attributes we might want to know about a distribution: the mean, variance, derivative, etc. Once we have even a handful of functions that operate on a common object, it is even more convenient to use a class rather than passing the same parameters to many different functions.</li>
-<li>It is usually a good idea to check that the parameter values are valid (for example, in the case of the multinomial distribution, the vector <span class="math">\(p\)</span> of event probabilities should sum to 1). It is much more efficient to do this check once, in the constructor of the class, rather than every time one of the functions is called.</li>
+<li>It is usually a good idea to check that the parameter values are valid (for example, in the case of the multinomial distribution, the vector <span class="math"><em>p</em></span> of event probabilities should sum to 1). It is much more efficient to do this check once, in the constructor of the class, rather than every time one of the functions is called.</li>
 <li>Sometimes computing the PMF or PDF involves computing constant values (given the parameters). With a class, we can pre-compute these constants in the constructor, rather than having to compute them every time the PMF or PDF function is called.</li>
 </ol>
-<p>TODO: add a note about how this is actually the way scipy's distributions work</p>
+<p>In practice, this is how many statistics packages work, including SciPy's own distributions, which are located in the <code>scipy.stats</code> module. While we are using other SciPy functions, however, we are not using their probability distributions, both for the sake of illustration, and because there is currently no multinomial distribution in SciPy.</p>
 <p>Here is the constructor code for the class:</p>
 <pre class="sourceCode python"><code class="sourceCode python"><span class="ch">import</span> numpy <span class="ch">as</span> np
 
 <span class="kw">class</span> MultinomialDistribution(<span class="dt">object</span>):
 
-    <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, p, rso=<span class="ot">None</span>):
+    <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, p, rso=np.random):
         <span class="co">&quot;&quot;&quot;Initialize the multinomial random variable.</span>
 
 <span class="co">        Parameters</span>
 <span class="co">        ----------</span>
-<span class="co">        p: numpy array with shape (k,)</span>
+<span class="co">        p: numpy array of length `k`</span>
 <span class="co">            The event probabilities</span>
 <span class="co">        rso: numpy RandomState object (default: None)</span>
 <span class="co">            The random number generator</span>
 
 <span class="co">        &quot;&quot;&quot;</span>
-        <span class="co"># Check that the probabilities sum to 1 -- if they don&#39;t, then</span>
-        <span class="co"># something is wrong.</span>
+        <span class="co"># Check that the probabilities sum to 1. If they don&#39;t, then</span>
+        <span class="co"># something is wrong!</span>
         <span class="kw">if</span> not np.isclose(np.<span class="dt">sum</span>(p), <span class="fl">1.0</span>):
             <span class="kw">raise</span> <span class="ot">ValueError</span>(<span class="st">&quot;event probabilities do not sum to 1&quot;</span>)
 
@@ -97,21 +68,15 @@ P(B=\mathrm{+5}) = 0.02
         <span class="ot">self</span>.p = p
         <span class="ot">self</span>.rso = rso
 
-        <span class="co"># Precompute log probabilities, for use by the log-PMF.</span>
-        <span class="ot">self</span>.logp = np.log(<span class="ot">self</span>.p)
-
-        <span class="co"># Get the appropriate function for generating the random</span>
-        <span class="co"># samples, depending on whether we&#39;re using a RandomState</span>
-        <span class="co"># object or not.</span>
-        <span class="kw">if</span> <span class="ot">self</span>.rso:
-            <span class="ot">self</span>._sample_func = <span class="ot">self</span>.rso.multinomial
-        <span class="kw">else</span>:
-            <span class="ot">self</span>._sample_func = np.random.multinomial</code></pre>
-<p>The class takes as arguments the event probabilities, <span class="math">\(p\)</span>, and a variable called <code>rso</code>. First, the constructor checks that the parameters are valid (i.e., that <code>p</code> sums to 1). It then stores the arguments that were passed in, and uses the event probabilities to compute the event <em>log</em> probabilities (we'll go into why this is necessary in a bit). Finally, it determines which function to use for sampling according to the value of <code>rso</code> (we'll talk about what the <code>rso</code> object is and why we need to choose different sampling functions a bit later as well).</p>
+        <span class="co"># Precompute log probabilities, for use by the log-PMF, for</span>
+        <span class="co"># each element of `self.p` (the function `np.log` operates</span>
+        <span class="co"># elementwise over NumPy arrays, as well as on scalars.)</span>
+        <span class="ot">self</span>.logp = np.log(<span class="ot">self</span>.p)</code></pre>
+<p>The class takes as arguments the event probabilities, <span class="math"><em>p</em></span>, and a variable called <code>rso</code>. First, the constructor checks that the parameters are valid (i.e., that <code>p</code> sums to 1). It then stores the arguments that were passed in, and uses the event probabilities to compute the event <em>log</em> probabilities (we'll go into why this is necessary in a bit). Finally, it determines which function to use for sampling according to the value of <code>rso</code> (we'll talk about what the <code>rso</code> object is and why we need to choose different sampling functions a bit later as well).</p>
 <p>Before we get into the rest of the class, I want to briefly go over two points related to the constructor.</p>
 <h4 id="descriptive-vs.-mathematic-variable-names">Descriptive vs. mathematic variable names</h4>
 <p>Usually, programmers are encouraged to use descriptive variable names: for example, it would be considered better practice to use the names <code>independent_variable</code> and <code>dependent_variable</code> rather than <code>x</code> and <code>y</code>. A standard rule of thumb is to never use variable names that are only one or two characters. However, you'll notice that in the constructor to our <code>MultinomialDistribution</code> class, we use the variable name of <code>p</code>, which is in violation of typical naming conventions.</p>
-<p>While I agree that such naming conventions should apply in almost every domain, there is one exception: math. The difficulty with coding up mathematical equations is that those equations usually have variable names which are just a single letter: <span class="math">\(x\)</span>, <span class="math">\(y\)</span>, <span class="math">\(\alpha\)</span>, etc. So, if you were translating them directly into code, the easiest variable names would be <code>x</code>, <code>y</code>, and <code>alpha</code>. Obviously, these are not the most informative variable names (the name <code>x</code> does not convey much information), but having more descriptive variable names can also make it harder to go back and forth between the the code and the equation.</p>
+<p>While I agree that such naming conventions should apply in almost every domain, there is one exception: math. The difficulty with coding up mathematical equations is that those equations usually have variable names which are just a single letter: <span class="math"><em>x</em></span>, <span class="math"><em>y</em></span>, <span class="math"><em>α</em></span>, etc. So, if you were translating them directly into code, the easiest variable names would be <code>x</code>, <code>y</code>, and <code>alpha</code>. Obviously, these are not the most informative variable names (the name <code>x</code> does not convey much information), but having more descriptive variable names can also make it harder to go back and forth between the the code and the equation.</p>
 <p>I am personally of the opinion that when you are writing code that directly implements an equation, then the same variable names should be used as those in the equation. This makes it easy to see which parts of the code are implementing which pieces of the equation. This, of course, can make the code harder to understand in isolation, so it is especially important that comments then do a good job of explaining what the goal of the various computations are. If the equation is listed in paper, then the comments should reference the equation number so it can be easily looked up.</p>
 <h4 id="importing-numpy">Importing NumPy</h4>
 <p>You may have noticed that we imported the <code>numpy</code> module as <code>np</code>. This is standard practice in the world of numerical computing, because NumPy provides a huge number of useful functions, many of which might be used even in a single file. In the simple examples from this chapter, we only use 11 NumPy functions, but in other cases, the number can be much higher: it is not uncommon for me to use around 40 different NumPy function throughout a project!</p>
@@ -144,12 +109,12 @@ P(B=\mathrm{+5}) = 0.02
 <p>Earlier, we saw that the constructor took an argument called <code>rso</code> and used it to determine the sampling function. This <code>rso</code> variable is a <code>RandomState</code> object that has already been initialized. I like to make the <code>RandomState</code> object an optional parameter: it is occasionally convenient to not be <em>forced</em> to use it, but I do want to have the <em>option</em> of using it (which, if I were to just use the <code>np.random</code> function, I would not be able to do).</p>
 <p>So, if the <code>rso</code> variable is not given, then the constructor defaults to using <code>np.random.multinomial</code>. Otherwise, it uses the multinomial sampler from the <code>RandomState</code> object itself.</p>
 <blockquote>
-<p>Aside: the functions in <code>np.random</code> actually do rely on a random number generator that we can control -- NumPy's global random number generator. You can set the global seed with <code>np.seed</code>. There's a tradeoff to using the global generator vs. a local <code>RandomState</code> object. If you use the global generator, then you don't have to pass around a <code>RandomState</code> object everywhere. However, you also run the risk of depending on some third party code that also uses the global generator without your knowledge. If you use a local object, then it is easier to find out whether there is nondeterminism coming from somewhere other than your own code.</p>
+<p>Aside: the functions in <code>np.random</code> actually do rely on a random number generator that we can control: NumPy's global random number generator. You can set the global seed with <code>np.seed</code>. There's a tradeoff to using the global generator vs. a local <code>RandomState</code> object. If you use the global generator, then you don't have to pass around a <code>RandomState</code> object everywhere. However, you also run the risk of depending on some third party code that also uses the global generator without your knowledge. If you use a local object, then it is easier to find out whether there is nondeterminism coming from somewhere other than your own code.</p>
 </blockquote>
 <h4 id="whats-a-parameter">What's a parameter?</h4>
 <p>Once we've decided whether to use <code>np.random.multinomial</code> or <code>rso.multinomial</code>, sampling is just a matter of calling the appropriate function. However, there is one other decision that we might consider: what counts as a parameter.</p>
-<p>Earlier, I said that the outcome probabilities, <span class="math">\(p\)</span>, were the parameters of the multinomial distribution. However, depending on who you ask, the number of events, <span class="math">\(n\)</span>, can <em>also</em> be a parameter of the multinomial distribution. So, why didn't we include <span class="math">\(n\)</span> as an argument to the constructor?</p>
-<p>This question, while relatively specific to the multinomial distribution, actually comes up fairly frequently when dealing with probability distributions, and the answer really depends on the use case. For a multinomial, can you make the assumption that the number of events is always the same? If so, then it might be better to pass in <span class="math">\(n\)</span> as an argument to the constructor. If not, then requiring <span class="math">\(n\)</span> to be specified at object creation time could be very restrictive, and might even require you to create a new distribution object every time you need to draw a sample!</p>
+<p>Earlier, I said that the outcome probabilities, <span class="math"><em>p</em></span>, were the parameters of the multinomial distribution. However, depending on who you ask, the number of events, <span class="math"><em>n</em></span>, can <em>also</em> be a parameter of the multinomial distribution. So, why didn't we include <span class="math"><em>n</em></span> as an argument to the constructor?</p>
+<p>This question, while relatively specific to the multinomial distribution, actually comes up fairly frequently when dealing with probability distributions, and the answer really depends on the use case. For a multinomial, can you make the assumption that the number of events is always the same? If so, then it might be better to pass in <span class="math"><em>n</em></span> as an argument to the constructor. If not, then requiring <span class="math"><em>n</em></span> to be specified at object creation time could be very restrictive, and might even require you to create a new distribution object every time you need to draw a sample!</p>
 <p>I usually don't like to be that restricted by my code, and thus choose to have <code>n</code> be an argument to the <code>sample</code> function, rather than having it be an argument to the constructor. An alternate solution could be to have <code>n</code> be an argument to the constructor, but also include methods to allow for the value of <code>n</code> to be changed, without having to create an entirely new object. For our purposes, though, this solution is probably overkill, so we'll stick to just having it be an argument to <code>sample</code>:</p>
 <pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> sample(<span class="ot">self</span>, n):
     <span class="co">&quot;&quot;&quot;Samples draws of `n` events from a multinomial distribution with</span>
@@ -162,11 +127,11 @@ P(B=\mathrm{+5}) = 0.02
 
 <span class="co">    Returns</span>
 <span class="co">    -------</span>
-<span class="co">    numpy array with shape (k,)</span>
+<span class="co">    numpy array of length `k`</span>
 <span class="co">        The sampled number of occurrences for each outcome</span>
 
 <span class="co">    &quot;&quot;&quot;</span>
-    x = <span class="ot">self</span>._sample_func(n, <span class="ot">self</span>.p)
+    x = <span class="ot">self</span>.rso.multinomial(n, <span class="ot">self</span>.p)
     <span class="kw">return</span> x</code></pre>
 <h3 id="evaluating-the-multinomial-pmf">Evaluating the multinomial PMF</h3>
 <p>Although we don't explicitly need to compute the probability of the magical items that we generate, it is almost always a good idea to write a function that can compute the distribution's probability mass function (PMF) or probability density function (PDF). Why?</p>
@@ -175,16 +140,16 @@ P(B=\mathrm{+5}) = 0.02
 <p>Finally, in many cases, your particular use case will dictate that you implement the PMF or PDF from the beginning, anyway.</p>
 <h4 id="the-multinomial-pmf-equation">The multinomial PMF equation</h4>
 <p>Formally, the multinomial distribution has the following equation:</p>
-<p><span class="math">\[
+<p><br /><span class="math">$$
 p(\mathbf{x}; \mathbf{p}) = \frac{(\sum_{i=1}^k x_i)!}{x_1!\cdots{}x_k!}p_1^{x_1}\cdots{}p_k^{x_k},
-\]</span></p>
-<p>where <span class="math">\(\mathbf{x}=[x_1, \ldots{}, x_k]\)</span> is a vector of length <span class="math">\(k\)</span> specifying the number of times each event happened, and <span class="math">\(\mathbf{p}=[p_1, \ldots{}, p_k]\)</span> is a vector specifying the probability of each event occurring. As mentioned above, the event probabilities <span class="math">\(\mathbf{p}\)</span> are the <em>parameters</em> of the distribution.</p>
-<p>The factorials in the equation above can actually be expressed using a special function, <span class="math">\(\Gamma\)</span>, called the <em>gamma function</em>. When we get to writing the code, it will be more convenient and efficient to use the gamma function rather than factorial, so we will rewrite the equation using <span class="math">\(\Gamma\)</span>:</p>
-<p><span class="math">\[
+$$</span><br /></p>
+<p>where <span class="math"><strong>x</strong> = [<em>x</em><sub>1</sub>, …, <em>x</em><sub><em>k</em></sub>]</span> is a vector of length <span class="math"><em>k</em></span> specifying the number of times each event happened, and <span class="math"><strong>p</strong> = [<em>p</em><sub>1</sub>, …, <em>p</em><sub><em>k</em></sub>]</span> is a vector specifying the probability of each event occurring. As mentioned above, the event probabilities <span class="math"><strong>p</strong></span> are the <em>parameters</em> of the distribution.</p>
+<p>The factorials in the equation above can actually be expressed using a special function, <span class="math">Γ</span>, called the <em>gamma function</em>. When we get to writing the code, it will be more convenient and efficient to use the gamma function rather than factorial, so we will rewrite the equation using <span class="math">Γ</span>:</p>
+<p><br /><span class="math">$$
 p(\mathbf{x}; \mathbf{p}) = \frac{\Gamma((\sum_{i=1}^k x_i)+1)}{\Gamma(x_1+1)\cdots{}\Gamma(x_k+1)}p_1^{x_1}\cdots{}p_k^{x_k},
-\]</span></p>
+$$</span><br /></p>
 <h4 id="working-in-log-space">Working in &quot;log-space&quot;</h4>
-<p>Before getting into the actual code needed to implement the equation above, I want to emphasize one of the <em>the most important design decisions</em> when writing code with probabilities: working in &quot;log-space&quot;. What this means is that rather than working directly with probabilities <span class="math">\(p(x)\)</span>, we should be working with <em>log</em>-probabilities, <span class="math">\(\log{p(x)}\)</span>. This is because probabilities can get very small very quickly, resulting in underflow errors.</p>
+<p>Before getting into the actual code needed to implement the equation above, I want to emphasize one of the <em>the most important design decisions</em> when writing code with probabilities: working in &quot;log-space&quot;. What this means is that rather than working directly with probabilities <span class="math"><em>p</em>(<em>x</em>)</span>, we should be working with <em>log</em>-probabilities, <span class="math">log<em>p</em>(<em>x</em>)</span>. This is because probabilities can get very small very quickly, resulting in underflow errors.</p>
 <p>To motivate this, consider that probabilities must range between 0 and 1 (inclusive). NumPy has a useful function, <code>finfo</code>, that will tell us the limits of floating point values for our system. For example, on a 64-bit machine, we see that the smallest usable positive number (given by <code>tiny</code>) is:</p>
 <pre class="sourceCode python"><code class="sourceCode python">&gt;&gt;&gt; <span class="ch">import</span> numpy <span class="ch">as</span> np
 &gt;&gt;&gt; np.finfo(<span class="dt">float</span>).tiny
@@ -194,7 +159,7 @@ p(\mathbf{x}; \mathbf{p}) = \frac{\Gamma((\sum_{i=1}^k x_i)+1)}{\Gamma(x_1+1)\cd
 &gt;&gt;&gt; <span class="co"># if we multiply numbers that are too small, we lose all precision</span>
 &gt;&gt;&gt; tiny * tiny
 <span class="fl">0.0</span></code></pre>
-<p>However, taking the log can help alleviate this issue because we can represent a much wider range of numbers in log-space than we can normally. Officially, log-space ranges from <span class="math">\(-\infty\)</span> to zero. In practice, log-space ranges from the <code>min</code> value returned by <code>finfo</code>, which is the smallest number that can be represented, to zero. The <code>min</code> value is <em>much</em> smaller than the log of the <code>tiny</code> value (which would be our lower bound if we did not work in log space):</p>
+<p>However, taking the log can help alleviate this issue because we can represent a much wider range of numbers in log-space than we can normally. Officially, log-space ranges from <span class="math"> − ∞</span> to zero. In practice, log-space ranges from the <code>min</code> value returned by <code>finfo</code>, which is the smallest number that can be represented, to zero. The <code>min</code> value is <em>much</em> smaller than the log of the <code>tiny</code> value (which would be our lower bound if we did not work in log space):</p>
 <pre class="sourceCode python"><code class="sourceCode python">&gt;&gt;&gt; <span class="co"># this is our lower bound normally</span>
 &gt;&gt;&gt; np.log(tiny)
 -<span class="fl">708.39641853226408</span>
@@ -202,7 +167,7 @@ p(\mathbf{x}; \mathbf{p}) = \frac{\Gamma((\sum_{i=1}^k x_i)+1)}{\Gamma(x_1+1)\cd
 &gt;&gt;&gt; np.finfo(<span class="dt">float</span>).<span class="dt">min</span>
 -<span class="fl">1.7976931348623157e+308</span></code></pre>
 <p>So, by working in log-space, we can greatly expand our range of representable numbers.</p>
-<p>Moreover, we can perform multiplication in log-space using addition, because of the identity that <span class="math">\(\log(x\cdot{}y) = \log(x) +  \log(y)\)</span>. Thus, if we do the multiplication above in log-space, we do not have to worry (as much) about loss of precision due to underflow:</p>
+<p>Moreover, we can perform multiplication in log-space using addition, because of the identity that <span class="math">log(<em>x</em> ⋅ <em>y</em>) = log(<em>x</em>) + log(<em>y</em>)</span>. Thus, if we do the multiplication above in log-space, we do not have to worry (as much) about loss of precision due to underflow:</p>
 <pre class="sourceCode python"><code class="sourceCode python">&gt;&gt;&gt; <span class="co"># the result of multiplying small probabilities</span>
 &gt;&gt;&gt; np.log(tiny * tiny)
 -inf
@@ -214,7 +179,7 @@ p(\mathbf{x}; \mathbf{p}) = \frac{\Gamma((\sum_{i=1}^k x_i)+1)}{\Gamma(x_1+1)\cd
 <span class="fl">0.0</span>
 &gt;&gt;&gt; np.exp(np.log(tiny) + np.log(tiny))
 <span class="fl">0.0</span></code></pre>
-<p>Still, doing all our computations in log-space can save a lot of headache. We might be forced to lose that precision if we need to go out of log-space, but we at least maintain <em>some</em> information about the probabilities -- enough to compare them, for example -- that would otherwise be lost.</p>
+<p>Still, doing all our computations in log-space can save a lot of headache. We might be forced to lose that precision if we need to go out of log-space, but we at least maintain <em>some</em> information about the probabilities---enough to compare them, for example---that would otherwise be lost.</p>
 <h4 id="writing-the-pmf-code">Writing the PMF code</h4>
 <p>Now that we have seen the importance of working in log-space, we can actually write our function to compute the log-PMF:</p>
 <pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> log_pmf(<span class="ot">self</span>, x):
@@ -223,7 +188,7 @@ p(\mathbf{x}; \mathbf{p}) = \frac{\Gamma((\sum_{i=1}^k x_i)+1)}{\Gamma(x_1+1)\cd
 
 <span class="co">    Parameters</span>
 <span class="co">    ----------</span>
-<span class="co">    x: numpy array with shape (k,)</span>
+<span class="co">    x: numpy array of length `k`</span>
 <span class="co">        The number of occurrences of each outcome</span>
 
 <span class="co">    Returns</span>
@@ -251,14 +216,16 @@ p(\mathbf{x}; \mathbf{p}) = \frac{\Gamma((\sum_{i=1}^k x_i)+1)}{\Gamma(x_1+1)\cd
     <span class="co"># Put it all together.</span>
     log_pmf = log_n_factorial - sum_log_xi_factorial + sum_log_pi_xi
     <span class="kw">return</span> log_pmf</code></pre>
-<p>For the most part, this is a straightforward implementation of the equation above for the multinomial PMF. The <code>gammaln</code> function is from <code>scipy.special</code>, and computes the log-gamma function, <span class="math">\(\log{\Gamma(x)}\)</span>. There is one edge case that we need to tackle, which is when one of our probabilities is zero.</p>
-<p>When <span class="math">\(p_i=0\)</span>, then <span class="math">\(\log{p_i}=-\infty\)</span>. This would be fine, except for the following behavior when infinity is multiplied by zero:</p>
+<p>For the most part, this is a straightforward implementation of the equation above for the multinomial PMF. The <code>gammaln</code> function is from <code>scipy.special</code>, and computes the log-gamma function, <span class="math">logΓ(<em>x</em>)</span>. As mentioned above, it is more convenient to use the gamma function rather than a factorial function; this is because SciPy gives us a log-gamma function, but not a log-factorial function. We could have computed a log factorial ourselves, using something like:</p>
+<pre><code>sum_log_xi_factorial = np.sum([np.sum(np.log(np.arange(1, i + 1))) for i in x])</code></pre>
+<p>but it is easier to understand, easier to code, and more computationally efficient if we use the gamma function already built in to SciPy, <code>np.sum(np.gammaln(x + 1))</code>, because it operates elementwise on the vector <code>x</code>.</p>
+<p>There is one edge case that we need to tackle, which is when one of our probabilities is zero. When <span class="math"><em>p</em><sub><em>i</em></sub> = 0</span>, then <span class="math">log<em>p</em><sub><em>i</em></sub> =  − ∞</span>. This would be fine, except for the following behavior when infinity is multiplied by zero:</p>
 <pre class="sourceCode python"><code class="sourceCode python">&gt;&gt;&gt; <span class="co"># it&#39;s fine to multiply infinity by integers...</span>
 &gt;&gt;&gt; -np.inf * <span class="fl">2.0</span>
 &gt;&gt;&gt; <span class="co"># ...but things break when we try to multiply by zero</span>
 &gt;&gt;&gt; -np.inf * <span class="fl">0.0</span>
 nan</code></pre>
-<p><code>nan</code> means &quot;not a number&quot;, and it is almost always a pain to deal with, because most computations with <code>nan</code> result in another <code>nan</code>. So, if we don't handle the case where <span class="math">\(p_i=0\)</span> and <span class="math">\(x_i=0\)</span>, we will end up with a <code>nan</code>. That will get summed with other numbers, producing another <code>nan</code>, which is just not useful. To handle this, we check specifically for the case when <span class="math">\(x_i=0\)</span>, and set the resulting <span class="math">\(\log(p_i^x_i)\)</span> also to zero.</p>
+<p><code>nan</code> means &quot;not a number&quot;, and it is almost always a pain to deal with, because most computations with <code>nan</code> result in another <code>nan</code>. So, if we don't handle the case where <span class="math"><em>p</em><sub><em>i</em></sub> = 0</span> and <span class="math"><em>x</em><sub><em>i</em></sub> = 0</span>, we will end up with a <code>nan</code>. That will get summed with other numbers, producing another <code>nan</code>, which is just not useful. To handle this, we check specifically for the case when <span class="math"><em>x</em><sub><em>i</em></sub> = 0</span>, and set the resulting <span class="math">log(<em>p</em><sub><em>i</em></sub><sup><em>x</em><sub><em>i</em></sub></sup>)</span> also to zero.</p>
 <p>Let's return for a moment to our discussion of log-space. If we really do need the PMF, and not the log-PMF, we can still compute it. However, it is generally better to <em>first</em> compute it in log-space, and then exponentiate it if we need to take it out of log-space:</p>
 <pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> pmf(<span class="ot">self</span>, x):
     <span class="co">&quot;&quot;&quot;Evaluates the probability mass function (PMF) of a multinomial</span>
@@ -266,7 +233,7 @@ nan</code></pre>
 
 <span class="co">    Parameters</span>
 <span class="co">    ----------</span>
-<span class="co">    x: numpy array with shape (k,)</span>
+<span class="co">    x: numpy array of length `k`</span>
 <span class="co">        The number of occurrences of each outcome</span>
 
 <span class="co">    Returns</span>
@@ -298,7 +265,7 @@ inf
     stats_names = (<span class="st">&quot;dexterity&quot;</span>, <span class="st">&quot;constitution&quot;</span>, <span class="st">&quot;strength&quot;</span>,
                    <span class="co">&quot;intelligence&quot;</span>, <span class="st">&quot;wisdom&quot;</span>, <span class="st">&quot;charisma&quot;</span>)
 
-    <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, bonus_probs, stats_probs, rso=<span class="ot">None</span>):
+    <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, bonus_probs, stats_probs, rso=np.random):
         <span class="co">&quot;&quot;&quot;Initialize a magic item distribution parameterized by `bonus_probs`</span>
 <span class="co">        and `stats_probs`.</span>
 
@@ -315,7 +282,7 @@ inf
 <span class="co">            the probability of giving a bonus point to the ith stat,</span>
 <span class="co">            i.e. the value at `MagicItemDistribution.stats_names[i]`.</span>
 
-<span class="co">        rso: numpy RandomState object (default: None)</span>
+<span class="co">        rso: numpy RandomState object (default: np.random)</span>
 <span class="co">            The random number generator</span>
 
 <span class="co">        &quot;&quot;&quot;</span>
@@ -340,7 +307,7 @@ inf
     <span class="co"># `sample` is an array of zeros and a single one at the</span>
     <span class="co"># location corresponding to the bonus. We want to convert this</span>
     <span class="co"># one into the actual value of the bonus.</span>
-    bonus = np.argwhere(sample)[<span class="dv">0</span>, <span class="dv">0</span>]
+    bonus = np.argmax(sample)
     <span class="kw">return</span> bonus
 
 <span class="kw">def</span> _sample_stats(<span class="ot">self</span>):
@@ -361,7 +328,7 @@ inf
     <span class="co"># number of events.</span>
     stats = <span class="ot">self</span>.stats_dist.sample(bonus)
     <span class="kw">return</span> stats</code></pre>
-<p>We <em>could</em> have made these be just a single method--especially since <code>_sample_stats</code> is the only function that depends on <code>_sample_bonus</code>--but I have chosen to keep them separate, both because it makes the sampling routine easier to understand, and because breaking it up into smaller pieces makes the code easier to test.</p>
+<p>We <em>could</em> have made these be just a single method---especially since <code>_sample_stats</code> is the only function that depends on <code>_sample_bonus</code>---but I have chosen to keep them separate, both because it makes the sampling routine easier to understand, and because breaking it up into smaller pieces makes the code easier to test.</p>
 <p>You'll also notice that these methods are prefixed with an underscore, indicating that they're not really meant to be used outside the class. Instead, we provide the function <code>sample</code>:</p>
 <pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> sample(<span class="ot">self</span>):
     <span class="co">&quot;&quot;&quot;Sample a random magical item.</span>
@@ -376,7 +343,7 @@ inf
     stats = <span class="ot">self</span>._sample_stats()
     item_stats = <span class="dt">dict</span>(<span class="dt">zip</span>(<span class="ot">self</span>.stats_names, stats))
     <span class="kw">return</span> item_stats</code></pre>
-<p>The <code>sample</code> function does essentially the same thing as <code>_sample_stats</code>, except that it returns a dictionary with the stats names as keys. This provides a clean and understandable interface for sampling items--it is obvious which stats have how many bonus points--but it also keeps the option open for using just <code>_sample_stats</code> if one needs to take many samples and efficiency is required.</p>
+<p>The <code>sample</code> function does essentially the same thing as <code>_sample_stats</code>, except that it returns a dictionary with the stats names as keys. This provides a clean and understandable interface for sampling items---it is obvious which stats have how many bonus points---but it also keeps the option open for using just <code>_sample_stats</code> if one needs to take many samples and efficiency is required.</p>
 <p>We use a similar design for evaluating the probability of items. Again, we expose high-level methods <code>pmf</code> and <code>log_pmf</code> which take dictionaries of the form produced by <code>sample</code>:</p>
 <pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> log_pmf(<span class="ot">self</span>, item):
     <span class="co">&quot;&quot;&quot;Compute the log probability the given magical item.</span>
@@ -415,7 +382,37 @@ inf
 
 <span class="co">    &quot;&quot;&quot;</span>
     <span class="kw">return</span> np.exp(<span class="ot">self</span>.log_pmf(item))</code></pre>
-<p>These methods rely on <code>_bonus_log_pmf</code>, which computes the probability of the overall bonus, and <code>_stats_log_pmf</code>, which computes the probability of the stats (but which takes an array rather than a dictionary):</p>
+<p>These methods rely on <code>_stats_log_pmf</code>, which computes the probability of the stats (but which takes an array rather than a dictionary):</p>
+<pre><code>def _stats_log_pmf(self, stats):
+    &quot;&quot;&quot;Evaluate the log-PMF for the given distribution of bonus points
+    across the different stats.
+
+    Parameters
+    ----------
+    stats: numpy array of length 6
+        The distribution of bonus points across the stats
+
+    Returns
+    -------
+    float
+        The value corresponding to log(p(stats))
+
+    &quot;&quot;&quot;
+    # There are never any leftover bonus points, so the sum of the
+    # stats gives us the total bonus.
+    total_bonus = np.sum(stats)
+
+    # First calculate the probability of the total bonus
+    logp_bonus = self._bonus_log_pmf(total_bonus)
+
+    # Then calculate the probability of the stats
+    logp_stats = self.stats_dist.log_pmf(stats)
+
+    # Then multiply them together (using addition, because we are
+    # working in log-space)
+    log_pmf = logp_bonus + logp_stats
+    return log_pmf</code></pre>
+<p>The method <code>_stats_log_pmf</code>, in turn, relies on <code>_bonus_log_pmf</code>, which computes the probability of the overall bonus:</p>
 <pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> _bonus_log_pmf(<span class="ot">self</span>, bonus):
     <span class="co">&quot;&quot;&quot;Evaluate the log-PMF for the given bonus.</span>
 
@@ -440,36 +437,7 @@ inf
     x = np.zeros(<span class="dt">len</span>(<span class="ot">self</span>.bonus_dist.p))
     x[bonus] = <span class="dv">1</span>
 
-    <span class="kw">return</span> <span class="ot">self</span>.bonus_dist.log_pmf(x)
-
-<span class="kw">def</span> _stats_log_pmf(<span class="ot">self</span>, stats):
-    <span class="co">&quot;&quot;&quot;Evaluate the log-PMF for the given distribution of bonus points</span>
-<span class="co">    across the different stats.</span>
-
-<span class="co">    Parameters</span>
-<span class="co">    ----------</span>
-<span class="co">    stats: numpy array of length 6</span>
-<span class="co">        The distribution of bonus points across the stats</span>
-
-<span class="co">    Returns</span>
-<span class="co">    -------</span>
-<span class="co">    float</span>
-<span class="co">        The value corresponding to log(p(stats))</span>
-
-<span class="co">    &quot;&quot;&quot;</span>
-    <span class="co"># There are never any leftover bonus points, so the sum of the</span>
-    <span class="co"># stats gives us the total bonus.</span>
-    total_bonus = np.<span class="dt">sum</span>(stats)
-
-    <span class="co"># First calculate the probability of the total bonus</span>
-    logp_bonus = <span class="ot">self</span>._bonus_log_pmf(total_bonus)
-
-    <span class="co"># Then calculate the probability of the stats</span>
-    logp_stats = <span class="ot">self</span>.stats_dist.log_pmf(stats)
-
-    <span class="co"># Then multiply them together</span>
-    log_pmf = logp_bonus + logp_stats
-    <span class="kw">return</span> log_pmf</code></pre>
+    <span class="kw">return</span> <span class="ot">self</span>.bonus_dist.log_pmf(x)</code></pre>
 <p>We can now create our distrbution as follows:</p>
 <pre class="sourceCode python"><code class="sourceCode python">&gt;&gt;&gt; <span class="ch">import</span> numpy <span class="ch">as</span> np
 &gt;&gt;&gt; <span class="ch">from</span> rpg <span class="ch">import</span> MagicItemDistribution
@@ -507,7 +475,7 @@ inf
 <pre class="sourceCode python"><code class="sourceCode python"><span class="kw">class</span> DamageDistribution(<span class="dt">object</span>):
 
     <span class="kw">def</span> <span class="ot">__init__</span>(<span class="ot">self</span>, num_items, item_dist,
-                 num_dice_sides=<span class="dv">12</span>, num_hits=<span class="dv">1</span>, rso=<span class="ot">None</span>):
+                 num_dice_sides=<span class="dv">12</span>, num_hits=<span class="dv">1</span>, rso=np.random):
         <span class="co">&quot;&quot;&quot;Initialize a distribution over attack damage. This object can</span>
 <span class="co">        sample possible values for the attack damage dealt over</span>
 <span class="co">        `num_hits` hits when the player has `num_items` items, and</span>
@@ -524,7 +492,7 @@ inf
 <span class="co">            The number of sides on each die.</span>
 <span class="co">        num_hits: int (default: 1)</span>
 <span class="co">            The number of hits across which we want to calculate damage.</span>
-<span class="co">        rso: numpy RandomState object (default: None)</span>
+<span class="co">        rso: numpy RandomState object (default: np.random)</span>
 <span class="co">            The random number generator</span>
 
 <span class="co">        &quot;&quot;&quot;</span>
@@ -564,11 +532,9 @@ inf
 <p>The constructor takes as arguments the number of sides the dice have, how many hits we want to compute damage over, how many items the player has, a distribution over magic items (of type <code>MagicItemDistribution</code>) and a random state object. By default, we set <code>num_dice_sides</code> to <code>12</code> because, while it is technically a parameter, it is unlikely to change. Similarly, we set <code>num_hits</code> to <code>1</code> as a default because a more likely use case is that we just want to take one sample of the damage for a single hit.</p>
 <p>We then implement the actual sampling logic in <code>sample</code> (note the structural similarity to <code>MagicItemDistribution</code>!). First, we generate a set of possible magic items that the player has. Then, we look at the strength stat of those items, and from that compute the number of dice to roll. Finally, we roll the dice (again relying on our trusty multinomial functions) and compute the damage from that.</p>
 <h4 id="what-happened-to-evaluating-probabilities">What happened to evaluating probabilities?</h4>
-<p>You may have noticed that we didn't include a <code>log_pmf</code> or <code>pmf</code> function in our <code>DamageDistribution</code>. This is because we actually do not know what the what the PMF should be! This would be the equation:</p>
-<p><span class="math">\[
-\sum_{{item}_1, \ldots{}, {item}_m}p({damage}\ |\ {item}_1,\ldots{},{item}_m)p({item}_1)\cdots{}p({item}_m)
-\]</span></p>
-<p>What this equation says is that we would need to compute the probability of every possible damage amount, given every possible set of <span class="math">\(m\)</span> items. We actually <em>could</em> compute this through brute force, but it wouldn't be pretty. This is actually a perfect example of a case where we want to use sampling to approximate the solution to a problem that we can't compute exactly (or which would be very difficult to compute exactly). So, rather than having a method for the PMF, we'll show in the next section how we can approximate the distribution with many samples.</p>
+<p>You may have noticed that we didn't include a <code>log_pmf</code> or <code>pmf</code> function in our <code>DamageDistribution</code>. This is because we actually do not know what the PMF should be! This would be the equation:</p>
+<p><br /><span class="math">∑<sub><em>i</em><em>t</em><em>e</em><em>m</em><sub>1</sub>, …, <em>i</em><em>t</em><em>e</em><em>m</em><sub><em>m</em></sub></sub><em>p</em>(<em>d</em><em>a</em><em>m</em><em>a</em><em>g</em><em>e</em> | <em>i</em><em>t</em><em>e</em><em>m</em><sub>1</sub>, …, <em>i</em><em>t</em><em>e</em><em>m</em><sub><em>m</em></sub>)<em>p</em>(<em>i</em><em>t</em><em>e</em><em>m</em><sub>1</sub>)⋯<em>p</em>(<em>i</em><em>t</em><em>e</em><em>m</em><sub><em>m</em></sub>)</span><br /></p>
+<p>What this equation says is that we would need to compute the probability of every possible damage amount, given every possible set of <span class="math"><em>m</em></span> items. We actually <em>could</em> compute this through brute force, but it wouldn't be pretty. This is actually a perfect example of a case where we want to use sampling to approximate the solution to a problem that we can't compute exactly (or which would be very difficult to compute exactly). So, rather than having a method for the PMF, we'll show in the next section how we can approximate the distribution with many samples.</p>
 <h3 id="approximating-the-distribution">Approximating the distribution</h3>
 <p>Now we have the machinery to answer our question from earlier: if the player has two items, and we want the player to be able to defeat the monster within three hits 50% of the time, how many hit points should the monster have?</p>
 <p>First, we create our distribution object, using the same <code>item_dist</code> and <code>rso</code> that we created earlier:</p>
@@ -595,6 +561,4 @@ inf
 <li>Generating samples from a random number generator object to enable reproducible randomness.</li>
 <li>Writing functions whose inputs/outputs are clear and understandable (e.g., using dictionaries as the output of <code>MagicItemDistribution.sample</code>) while still exposing the less clear but more efficient and purely numeric version of those functions (e.g., <code>MagicItemDistribution._sample_stats</code>).</li>
 </ol>
-<p>Additionally, we've seen how sampling from a probability distribution can be useful both for producing single random values (e.g., generating a single magical item after defeating a monster) and for computing information about a distribution that we would otherwise not know (e.g., discovering how much damage a player with two items is likely to deal). Almost every type of sampling you might encounter falls under one of these two categories; the differences only have to do with what distributions you are sampling from. The general structure of the code--independent of those distributions--remains the same.</p>
-</body>
-</html>
+<p>Additionally, we've seen how sampling from a probability distribution can be useful both for producing single random values (e.g., generating a single magical item after defeating a monster) and for computing information about a distribution that we would otherwise not know (e.g., discovering how much damage a player with two items is likely to deal). Almost every type of sampling you might encounter falls under one of these two categories; the differences only have to do with what distributions you are sampling from. The general structure of the code---independent of those distributions---remains the same.</p>
