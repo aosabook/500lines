@@ -9,8 +9,7 @@ def test_init_without_rso():
     dist = MultinomialDistribution(p)
     assert (dist.p == p).all()
     assert (dist.logp == np.log(p)).all()
-    assert dist.rso is None
-    assert dist._sample_func == np.random.multinomial
+    assert dist.rso is np.random
 
 
 def test_init_with_rso():
@@ -21,7 +20,6 @@ def test_init_with_rso():
     assert (dist.p == p).all()
     assert (dist.logp == np.log(p)).all()
     assert dist.rso == rso
-    assert dist._sample_func == rso.multinomial
 
 
 def test_init_bad_probabilities():
