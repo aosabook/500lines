@@ -17,7 +17,9 @@ class MultinomialDistribution(object):
         """
 
         # Check that the probabilities sum to 1. If they don't, then
-        # something is wrong!
+        # something is wrong! We use `np.isclose` rather than checking
+        # for exact equality because in many cases, we won't have
+        # exact equality due to floating-point error.
         if not np.isclose(np.sum(p), 1.0):
             raise ValueError("outcome probabilities do not sum to 1")
 

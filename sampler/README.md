@@ -1,4 +1,4 @@
-<!-- to convert to HTML, run `pandoc --to html --mathjax -s README.md > README.html -->
+<!-- to convert to HTML, run `pandoc --to html --mathjax -s README.md > README.html` -->
 
 # Sampling Methods
 
@@ -82,10 +82,12 @@ Typically when we talk about probability distributions, we will use
 mathematical notation like $p(x)$ to indicate that $p$ is the
 *probability density function* (PDF) or *probability mass function*
 (PMF) over values $x$ of a random variable. A PDF is a *continuous*
-function $p(x)$ such that $\int_{-\infty}^\infty p(x)\ \mathrm{d}x\ =\
-1$, whereas a PMF is a *discrete* function $p(x)$ such that
-$\sum_{x\in \mathbb{Z}} p(x)=1$. In both cases, $p(x) \geq 0$ for all
-$x$.
+function $p(x)$ such that $\int_{-\infty}^\infty p(x)\ \mathrm{d}x=1$,
+whereas a PMF is a *discrete* function $p(x)$ such that $\sum_{x\in
+\mathbb{Z}} p(x)=1$. For example, the probability distribution in the
+case of the dart board would be a continuous PDF, while the
+probability distribution in the case of a die would be a discrete PMF.
+In both cases, $p(x) \geq 0$ for all $x$.
  
 There are two things that we might want to do with a probability
 distribution. Given a value (or location) $x$, we might want to
@@ -111,11 +113,11 @@ bonuses. If $B$ is a random variable over the values of the bonus,
 then:
 
 $$
-P(B=\mathrm{+1}) = 0.55\\
-P(B=\mathrm{+2}) = 0.25\\
-P(B=\mathrm{+3}) = 0.12\\
-P(B=\mathrm{+4}) = 0.06\\
-P(B=\mathrm{+5}) = 0.02
+p(B=\mathrm{+1}) = 0.55\\
+p(B=\mathrm{+2}) = 0.25\\
+p(B=\mathrm{+3}) = 0.12\\
+p(B=\mathrm{+4}) = 0.06\\
+p(B=\mathrm{+5}) = 0.02
 $$
 
 We can also specify that there are six stats (dexterity, constitution,
@@ -143,9 +145,10 @@ color, put it back in the urn, and then repeat this multiple times. In
 this case, an *outcome* corresponds to drawing a ball of a particular
 color, and the probability of each outcome corresponds to the
 proportion of balls of that color (e.g., for the outcome of drawing a
-blue ball, the probability is $p_{blue}=0.20$). The multinomial
-distribution is then used to describe the possible combinations of
-outcomes when multiple balls are drawn (e.g., two green and one blue).
+blue ball, the probability is $p(\mathrm{blue})=0.20$). The
+multinomial distribution is then used to describe the possible
+combinations of outcomes when multiple balls are drawn (e.g., two
+green and one blue).
 
 Note: the code in this section is also located in the file
 `multinomial.py`.
@@ -184,12 +187,12 @@ distributions. There are several advantages to doing so:
    these constants in the constructor, rather than having to compute
    them every time the PMF or PDF function is called.
 
-> In practice, this is how many statistics packages work, including
+> *In practice, this is how many statistics packages work, including
 > SciPy's own distributions, which are located in the `scipy.stats`
 > module. While we are using other SciPy functions, however, we are
 > not using their probability distributions, both for the sake of
 > illustration, and because there is currently no multinomial
-> distribution in SciPy.
+> distribution in SciPy.*
 
 Here is the constructor code for the class:
 
@@ -209,8 +212,11 @@ class MultinomialDistribution(object):
             The random number generator
 
         """
+
         # Check that the probabilities sum to 1. If they don't, then
-        # something is wrong!
+        # something is wrong! We use `np.isclose` rather than checking
+        # for exact equality because in many cases, we won't have
+        # exact equality due to floating-point error.
         if not np.isclose(np.sum(p), 1.0):
             raise ValueError("event probabilities do not sum to 1")
 
@@ -226,13 +232,12 @@ class MultinomialDistribution(object):
 
 The class takes as arguments the event probabilities, $p$, and a
 variable called `rso`. First, the constructor checks that the
-parameters are valid (i.e., that `p` sums to 1). It then stores the
-arguments that were passed in, and uses the event probabilities to
+parameters are valid (i.e., that `p` sums to 1). Then, it then stores
+the arguments that were passed in, and uses the event probabilities to
 compute the event *log* probabilities (we'll go into why this is
-necessary in a bit). Finally, it determines which function to use for
-sampling according to the value of `rso` (we'll talk about what the
-`rso` object is and why we need to choose different sampling functions
-a bit later as well).
+necessary in a bit). The `rso` object is what we'll use later to
+produce random numbers (we'll talk more about what it is a bit later
+as well).
 
 Before we get into the rest of the class, I want to briefly go over
 two points related to the constructor.
@@ -266,8 +271,8 @@ parts of the code are implementing which pieces of the equation. This,
 of course, can make the code harder to understand in isolation, so it
 is especially important that comments then do a good job of explaining
 what the goal of the various computations are. If the equation is
-listed in paper, then the comments should reference the equation
-number so it can be easily looked up.
+listed in an academic paper, then the comments should reference the
+equation number so it can be easily looked up.
 
 #### Importing NumPy
 
@@ -277,7 +282,7 @@ NumPy provides a huge number of useful functions, many of which might
 be used even in a single file. In the simple examples from this
 chapter, we only use 11 NumPy functions, but in other cases, the
 number can be much higher: it is not uncommon for me to use around 40
-different NumPy function throughout a project!
+different NumPy functions throughout a project!
 
 There are a few options for how to import NumPy. We could use `from
 numpy import *`, but that is generally poor style, because it makes it
@@ -299,9 +304,9 @@ Taking a sample from a multinomial distribution is actually fairly
 straightforward, because NumPy provides us with a function that
 already does it: `np.random.multinomial`.
 
-> NumPy includes functions to draw samples from many different types
+> *NumPy includes functions to draw samples from many different types
 > of distributions. For a full list, take a look at the
-> random sampling module, `np.random`.
+> random sampling module, `np.random`.*
 
 Despite the fact that this function already exists, there are a few
 design decisions surrounding it that we can make.
@@ -345,19 +350,18 @@ numbers in the same order, thus ensuring replicability:
 0.6190581888276206
 ```
 
-Earlier, we saw that the constructor took an argument called `rso` and
-used it to determine the sampling function. This `rso` variable is a
-`RandomState` object that has already been initialized. I like to make
-the `RandomState` object an optional parameter: it is occasionally
-convenient to not be *forced* to use it, but I do want to have the
-*option* of using it (which, if I were to just use the `np.random`
-function, I would not be able to do).
+Earlier, we saw that the constructor took an argument called `rso`.
+This `rso` variable is a `RandomState` object that has already been
+initialized. I like to make the `RandomState` object an optional
+parameter: it is occasionally convenient to not be *forced* to use it,
+but I do want to have the *option* of using it (which, if I were to
+just use the `np.random` module, I would not be able to do).
 
 So, if the `rso` variable is not given, then the constructor defaults
 to using `np.random.multinomial`. Otherwise, it uses the multinomial
 sampler from the `RandomState` object itself.
 
-> Aside: the functions in `np.random` actually do rely on a random
+> *Aside: the functions in `np.random` actually do rely on a random
 > number generator that we can control: NumPy's global random number
 > generator. You can set the global seed with `np.seed`. There's a
 > tradeoff to using the global generator vs. a local `RandomState`
@@ -366,7 +370,7 @@ sampler from the `RandomState` object itself.
 > risk of depending on some third party code that also uses the global
 > generator without your knowledge. If you use a local object, then it
 > is easier to find out whether there is nondeterminism coming from
-> somewhere other than your own code.
+> somewhere other than your own code.*
 
 #### What's a parameter?
 
@@ -602,14 +606,14 @@ the gamma function rather than a factorial function; this is because
 SciPy gives us a log-gamma function, but not a log-factorial function.
 We could have computed a log factorial ourselves, using something like:
 
-```
+```python
+log_n_factorial = np.sum(np.log(np.arange(1, n + 1)))
 sum_log_xi_factorial = np.sum([np.sum(np.log(np.arange(1, i + 1))) for i in x])
 ```
 
 but it is easier to understand, easier to code, and more
 computationally efficient if we use the gamma function already built
-in to SciPy, `np.sum(np.gammaln(x + 1))`, because it operates
-elementwise on the vector `x`.
+in to SciPy.
 
 There is one edge case that we need to tackle, which is when one of
 our probabilities is zero. When $p_i=0$, then $\log{p_i}=-\infty$.
@@ -619,6 +623,7 @@ multiplied by zero:
 ```python
 >>> # it's fine to multiply infinity by integers...
 >>> -np.inf * 2.0
+-inf
 >>> # ...but things break when we try to multiply by zero
 >>> -np.inf * 0.0
 nan
@@ -630,13 +635,12 @@ with, because most computations with `nan` result in another
 will end up with a `nan`. That will get summed with other numbers,
 producing another `nan`, which is just not useful. To handle this, we
 check specifically for the case when $x_i=0$, and set the resulting
-$\log(p_i^{x_i})$ also to zero.
+$x_i\cdot{}\log(p_i)$ also to zero.
 
-Let's return for a moment to our discussion of log-space. If we really
-do need the PMF, and not the log-PMF, we can still compute
-it. However, it is generally better to *first* compute it in
-log-space, and then exponentiate it if we need to take it out of
-log-space:
+Let's return for a moment to our discussion of log-space. Even if we
+really only need the PMF, and not the log-PMF, it is generally better
+to *first* compute it in log-space, and then exponentiate it if we
+need to take it out of log-space:
 
 ```python
 def pmf(self, x):
@@ -868,7 +872,7 @@ These methods rely on `_stats_log_pmf`, which computes the
 probability of the stats (but which takes an array rather than a
 dictionary):
 
-```
+```python
 def _stats_log_pmf(self, stats):
     """Evaluate the log-PMF for the given distribution of bonus points
     across the different stats.
