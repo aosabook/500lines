@@ -868,10 +868,10 @@ Therefore, in a spoken language, the exemplary query means "find the names and a
 
 A query engine is the component within a database that is responsible for answering user’s queries. When a query engine receives a query, it operates along the lines of the following four phases:
 
-1. Transformation to internal representation: this phase focuses on transforming the query from being in a query syntax (as the user entered it) to be represented using a data structure that is adapted to the needs of the next phase. This is needed to allow the next phase to be simpler and more performant.
-2. Building a query plan: based on the internal representation, this phase analyzes what’s the best course of action to get to the needed results of the query. Based on that analysis this phase outputs a query plan. In our case a query plan is a function to be invoked.
-3. Executing the function: this phase is responsible for executing the plan and sending its results to the next phase.
-4. Unification and reporting: this phase receives query results, takes from it the portion that needs to be reported (a unification of the user’s input with the query results) and formats it to be in the way that the user requested.
+1. Transformation to internal representation: this phase focuses on transforming the query from its textual form (i.e., in its query syntax) as the user entered it, to its in-memory form, which is kept in a specifically devised data structure. 
+2. Building a query plan: this phase analyzes what’s the best course of action to get to the needed results of the query. Based on that analysis this phase outputs a query plan. In our case a query plan is a function to be invoked.
+3. Executing the function: this phase is responsible for executing the plan and send its results to the next phase.
+4. Unification and reporting: this phase receives query results, extracts from it only the part that needs to be reported (a unification of the user’s input with the query results) and formats it to be in the way that the user requested.
 
 #### Phase 1 - Transformation
 
@@ -913,7 +913,7 @@ The iteration on the terms in each clause is done at the *pred-clause* macro and
           (with-meta exprs# {:db/variable metas#}))))
           
 (defmacro  q-clauses-to-pred-clauses [clauses]
-     (loop [[frst# & rst#] clauses preds-vecs# []  ]
+     (loop [[frst# & rst#] clauses preds-vecs# []]
        (if-not frst#  preds-vecs#
          (recur rst# `(conj ~preds-vecs# (pred-clause ~frst#))))))
 ````
