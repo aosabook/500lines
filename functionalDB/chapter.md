@@ -763,8 +763,8 @@ A query itself is a map containing two entries:
 	In the example above *[?e  :likes "pizza"]* is a clause.  
 The role of the *:where* entry in the query is to define a rule that acts as a filter of the datoms in the database
 
-* An entry whose key is *:find* and its value is a vector. That vector defines which parts of the datoms that passed all the clauses should be reported and compose the answer of the query (think of the Select statement in an SQL query). 
-This does not includes formatting of the answer - operations such as sorting or grouping are not supported.
+* An entry whose key is *:find* and its value is a vector. The vector defines which parts of a datoms that passed all the clauses should be reported and compose the answer of the query (think of a Select statement in an SQL query). 
+This does not include formatting of the answer - operations such as sorting or grouping are not supported.
 
 The description above is missing a crucial part, which is how to make different clauses sync on a value (i.e., make a join operation between them), and how to transmit values found at the *:where* part to be reported by the *:find* part. 
 
@@ -818,10 +818,10 @@ Table 3
 
 #### Limitations
 
-Engineering is all about tradeoff handling. Therefore, when designing the query engine (and just like in any other engineering task), there are tradeoff to tackle. In this case it is the classical "feature-richness vs implementation span and complexity" tradeoff. A resolution of this tradeoff comes in a design decision of what are the acceptable limitations of the system. In our database, the resolution of this tradeoff was to build A query engine with the following limitations:
+Engineering is all about managing tradeoff, so when designing the query engine, there are tradeoff to tackle. In our case, the first tradeoff is the "feature-richness vs implementation span and complexity". The resolution of this tradeoff starts by deciding what are the acceptable limitations of the system. In our database, the decision was to build A query engine with the following limitations:
 
-* Logic operations between clauses: clauses are always ‘ANDed’ between them, and user cannot define any logical operations between the clauses. Users can mitigate this restriction by providing their own functions to act as predicates (as long as they can act as unary or binary operators)
-* Joining: If there’s more than one clause in a query, there must be one variable that is found in all of the clauses of that query. This variable acts as a joining variable as it performs a join operation between different datoms. This limitation helps in having a simple query optimizer
+* Logic operations between clauses: user cannot define any logical operations between the clauses, they are always ‘ANDed’. Users can mitigate this restriction by providing their own functions to act as predicates (as long as they can act as unary or binary operators)
+* Joining: If there's more than one clause in a query, there must be one variable that is found in all of the clauses of that query. This variable acts as a joining variable. This limitation helps in having a simple query optimizer.
 * A query is executed on a single database. 
 
 The combination of these restrictions with the richness available by datalog query results in allowing most of the happy-path, simple yet useful, queries.
