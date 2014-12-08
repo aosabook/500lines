@@ -84,10 +84,11 @@ mathematical notation like $p(x)$ to indicate that $p$ is the
 (PMF) over values $x$ of a random variable. A PDF is a *continuous*
 function $p(x)$ such that $\int_{-\infty}^\infty p(x)\ \mathrm{d}x=1$,
 whereas a PMF is a *discrete* function $p(x)$ such that $\sum_{x\in
-\mathbb{Z}} p(x)=1$. For example, the probability distribution in the
-case of the dart board would be a continuous PDF, while the
-probability distribution in the case of a die would be a discrete PMF.
-In both cases, $p(x) \geq 0$ for all $x$.
+\mathbb{Z}} p(x)=1$, where $\mathbb{Z}$ is the set of all integers.
+For example, the probability distribution in the case of the dart
+board would be a continuous PDF, while the probability distribution in
+the case of a die would be a discrete PMF. In both cases, $p(x) \geq
+0$ for all $x$ (i.e., the probabilities have to be non-negative).
  
 There are two things that we might want to do with a probability
 distribution. Given a value (or location) $x$, we might want to
