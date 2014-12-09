@@ -7,7 +7,6 @@ module postMessage
 
 open origin
 open script
-//open sop
 
 // Browser API function for cross-document messaging
 // used to send a message from one script to another

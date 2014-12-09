@@ -9,6 +9,7 @@ open jsonp
 open postMessage
 open setDomain
 open cors
+open sop
 
 sig Data in Resource + Cookie {}
 

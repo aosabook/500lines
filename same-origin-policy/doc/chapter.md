@@ -95,11 +95,27 @@ codebase) can be guaranteed complete.
 
 ## Roadmap
 
-Here is the order in which we will proceed with our model of the SOP. We will begin by building models of three key components that we need in order for us to talk about the SOP: the HTTP protocol, the browser, and the client-side scripting. We will build on top of these basic models to define what it means for some web application to be _secure_, and then introduce the SOP as a mechanism that attempts to achieve the security properties.
+Here is the order in which we will proceed with our model of the
+SOP. We will begin by building models of three key components that we
+need in order for us to talk about the SOP: the HTTP protocol, the
+browser, and the client-side scripting. We will build on top of these
+basic models to define what it means for some web application to be
+_secure_, and then introduce the SOP as a mechanism that attempts to
+achieve the security properties.
 
-But we will then see that the SOP can be sometimes too restrictive, in that it sometimes gets in the way of a web application functioning properly! So we will introduce four different techniques that can be used to bypass the restrictions that are imposed by the policy.
+But we will then see that the SOP can be sometimes too restrictive, in
+that it sometimes gets in the way of a web application functioning
+properly! So we will introduce four different techniques that can be
+used to bypass the restrictions that are imposed by the policy.
 
-Feel free to explore the sections in any order you'd like, although if you are new to Alloy, we recommend the first three sections (HTTP, Browser, and Script), as they will introduce some of the basic concepts of the modeling language. While you are making your way through the chapter, we also encourage you to play with the models in the Alloy Analyzer; run them, explore the generated scenarios, and add your own details to the models! The tool is freely available for download (http://alloy.mit.edu).
+Feel free to explore the sections in any order you'd like, although if
+you are new to Alloy, we recommend the first three sections (HTTP,
+Browser, and Script), as they will introduce some of the basic
+concepts of the modeling language. While you are making your way
+through the chapter, we also encourage you to play with the models in
+the Alloy Analyzer; run them, explore the generated scenarios, and add
+your own details to the models! The tool is freely available for
+download (http://alloy.mit.edu).
 
 ## Model of the Web
 
@@ -191,9 +207,15 @@ When writing the `HttpRequest` signature, we found that it contained generic fea
 open call[Endpoint]
 ```
 
-It's a polymorphic module, so it's instantiated with `Endpoint`, the set of things calls are from and to (details about calls can be found in Appendix).
+It's a polymorphic module, so it's instantiated with `Endpoint`, the
+set of things calls are from and to (details about calls can be found
+in Appendix).
 
-Following the field declarations in `HttpRequest` is a collection of constraints. Each of these constraints applies to all members of the set of HTTP requests. The constraints say that (1) each request comes from a client, and (2) each request is sent to one of the servers specified by the URL host under the DNS mapping.
+Following the field declarations in `HttpRequest` is a collection of
+constraints. Each of these constraints applies to all members of the
+set of HTTP requests. The constraints say that (1) each request comes
+from a client, and (2) each request is sent to one of the servers
+specified by the URL host under the DNS mapping.
 
 One of the prominent features of Alloy is that a model, no matter how simple or detailed, can be executed at any time to generate sample system instances. Let's use a `run` command to ask the Alloy Analyzer to execute the HTTP model that we have so far:
 
@@ -248,7 +270,7 @@ sig Browser extends Client {
 }
 ```
 
-This is our first example of a signature with *dynamic fields*. Alloy has no built-in notions of time or behavior, which means that a variety of idioms can be used. In this model, we're using a common idiom in which you introduce a notion of `Time`, and attach it as a final column for every time-varying field. For example, expression `b.cookes.t` represents the set of cookies that are stored in browser `b` at particular time `t`. Likewise, the `documents` field associates a set of documents with each browser at a given time (for more details about we model the dyanmic behavior, see Appendix).
+This is our first example of a signature with *dynamic fields*. Alloy has no built-in notions of time or behavior, which means that a variety of idioms can be used. In this model, we're using a common idiom in which you introduce a notion of `Time`, and attach it as a final column for every time-varying field. For example, expression `b.cookes.t` represents the set of cookies that are stored in browser `b` at particular time `t`. Likewise, the `documents` field associates a set of documents with each browser at a given time (for more details about we model the dynamic behavior, see Appendix).
 
 Documents are created from a response to an HTTP request. They could also be
 destroyed if, for example, the user closes a tab or the browser but
@@ -425,7 +447,7 @@ fact Configuration {
 }
 ```
 
-For example, the last constraint in the fact specifies how the DNS is configured to map domain names for the two servers in our system. Without this constraint, the Alloy Analyzer may generate scenarios where `EmailDomain` is mapped to `EvilServer`, which are not of interest to us (in practice, such a mapping may be possible due to an attack called _DNS sproofing_, but we will rule it out from our model since it lies outside the class of attacks that the SOP is designed to prevent). 
+For example, the last constraint in the fact specifies how the DNS is configured to map domain names for the two servers in our system. Without this constraint, the Alloy Analyzer may generate scenarios where `EmailDomain` is mapped to `EvilServer`, which are not of interest to us (in practice, such a mapping may be possible due to an attack called _DNS spoofing_, but we will rule it out from our model since it lies outside the class of attacks that the SOP is designed to prevent). 
 
 ## Security Properties
 
@@ -615,9 +637,20 @@ pred xmlHttpReqSop { all x: XmlHttpRequest | origin[x.url] = origin[x.from.conte
 ```
 As we can see, the SOP is designed to prevent the two types of vulnerabilities that could arise from actions of a malicious script; without it, the web would be a much more dangerous place than it is today.
 
-It turns out, however, that the SOP can be *too* restrictive. For example, sometimes you *do* want to allow communication between two documents of different origins. By the above definition of an origin, a script from `foo.example.com` would not be able to read the content of `bar.example.com`, or send a HTTP request to `www.example.com`, because these are all considered distinct hosts. 
+It turns out, however, that the SOP can be *too* restrictive. For
+example, sometimes you *do* want to allow communication between two
+documents of different origins. By the above definition of an origin,
+a script from `foo.example.com` would not be able to read the content
+of `bar.example.com`, or send a HTTP request to `www.example.com`,
+because these are all considered distinct hosts.
 
-In order to allow some form of cross-origin communication when necessary, browsers implemented a variety of mechanisms for relaxing the SOP. Some of these are more well-thought-out than others, and some have serious flaws that, when badly used, could negate the security benefits of the SOP. In the following sections, we will describe the most common of these mechanisms, and discuss their potential security pitfalls.
+In order to allow some form of cross-origin communication when
+necessary, browsers implemented a variety of mechanisms for relaxing
+the SOP. Some of these are more well-thought-out than others, and some
+have serious flaws that, when badly used, could negate the security
+benefits of the SOP. In the following sections, we will describe the
+most common of these mechanisms, and discuss their potential security
+pitfalls.
 
 ## Techniques for Bypassing the SOP
 
@@ -627,7 +660,7 @@ In this section, we will discuss four techniques that have been devised and freq
 
 Each of these four techniques is surprisingly complex, and to be described in full detail, could merit its own chapter. So here, we will give you a brief flavor of how they work, potential security problems that they introduce, and how to prevent these problems.
 
-### Domain property
+### Domain Property
 
 The idea behind the domain property relaxation of the SOP, is to
 give two pages of a same site the chance to read/write each others DOM by
@@ -673,7 +706,7 @@ fact setDomainRule {
 If it weren't for this rule, any site could set the `document.domain` property
 to any value, which means that, for example, a malicious
 site could set the domain property to your bank domain, load your bank
-account in a iframe, and (assuming the bank page has set its domain property)
+account in an iframe, and (assuming the bank page has set its domain property)
 read the DOM of your bank page!
 
 Now we modify our original definition of the SOP for DOM accesses to reflect
@@ -706,7 +739,7 @@ pred domSop {
 }
 ```
 
-Now we can ask the analyzer to give us an instance where two documents that
+We can ask the analyzer to give us an instance where two documents that
 are from different origins manage to communicate between each other:
 
 ```alloy
@@ -714,39 +747,68 @@ are from different origins manage to communicate between each other:
 run { some c: ReadDom + WriteDom | origin[c.doc.src] != origin[c.from.context.src] }
 ```
 
-This is one of the instances generated:
+The analyzer generates the following scenario, showing how two documents from distinct origins, `CalendarPage` and `InboxPage`, may communicate to each other by setting their domain properties to a common value (`ParentDomain`):
 
-![sop-instance-1](fig-sop-1.png)
-![sop-instance-2](fig-sop-2.png)
+![setdomain-instance-1a](fig-setdomain-1a.png)
+![setdomain-instance-1b](fig-setdomain-1b.png)
+![setdomain-instance-1c](fig-setdomain-1c.png)
 
-In this instance we have two scripts, which are executing under a different
-context, with different URLs that correspond to different origins. But, one
-of the domain subsumes the other, so both scripts do a `SetDomain` that
-sets the domain property of each document to the same value, and after
-the execution of these calls, the `WriteDom` call is allowed. If it weren't
-for the domain property mechanism, this kind of cross-origin communication
-wouldn't be allowed per the SOP.
+At the beginning of the scenario, `InboxPage` and `CalendarPage` have
+their domain properties set to two distinct values (`EmailDomain` and
+`ParentDomain`, respectively), meaning that the browser will prevent
+them from accessing each other's DOM. To get around this restriction,
+the scripts running inisde the documents (`InboxScript` and
+`CalendarScript`) execute `SetDomain` operation to modify their domain
+properties to `ParentDomain` (note that this only works only if
+`ParentDomain` is a superdomain of the original domain). Once they
+have the common domain property, they can now access each other's DOM
+by executing `ReadDom` or `WriteDom` operations.
 
-Yet several properties of this mechanism make it less suitable for cross-origin
-DOM access than PostMessage (which we will discuss shortly).
-First, the mechanism is not general enough. While it is possible to use it to
-enable some kinds of cross-origin communication, this is only limited to those
-situations in which all ends have the same base domain.
+While this method of cross-origin communication may seem simple and
+convenient, several characteristics of the domain property make it less
+than desirable.  First, this method is
+not general enough. In particular, it may be used enable cross-origin
+DOM access _only_ between documents that have a common superdomain,
+meaning it cannot be used by applications from completely
+different domains.
 
-Second, using the domain property mechanism might put your entire site at risk.
-When you set the domain property of both `foo.example.com` and `bar.example.com`
-to `example.com` you are not only allowing these two pages to communicate
-between each other but you are also allowing any other page, say
-`qux.example.com` to read/write the DOM of both `foo.example.com` and
-`bar.example.com` (since it is possible for it to set the domain property to
-`example.com`). It might seem like a small detail, but if `qux.example.com`
-has a XSS vulnerability, then an attacker would be able to read/write the DOM
-of these other pages while in a situation in which the domain mechanism is not
-used, it wouldn't.
+Second, using the domain property mechanism might put your entire site
+at risk.  When you set the domain property of both "email.parent.com"
+and "calendar.parent.com" to "parent.com", you are allowing not only
+these two pages to communicate between each other, but also _any_
+other page that has "parent.com" as a superdomain
+(e.g. "blog.parent.com"). This has significant security consequences;
+for example, if "blog.parent.com" has a XSS vulnerability, then an
+attacker may inject a malicious script into the blog page, modify its
+domain property to "parent.com", and then use the DOM API functions to
+access the content of the other pages. 
+
+When prompted to check the confidentiality property of the example
+email application, the Alloy Analyzer generates the following
+scenario, which demonstrates how a malicious script, running inside
+`BlogPage`, may be able to read the content of the inbox page by
+setting its domain property to `ParentDomain`:
+
+![setdomain-instance-2a](fig-setdomain-2a.png)
+![setdomain-instance-2b](fig-setdomain-2b.png)
+
+This attack points out one crucial weakness of the domain property
+method for cross-origin communication: The security of an application
+that uses this method is only as strong as the weakest link in all of
+the pages that share the same base domain. We will shortly discuss
+another method called PostMessage, which can be used for a more
+general class of cross-origin communication while also being more
+secure.
 
 ### JSON with Padding (JSONP)
 
-Before the introduction of CORS (which we will discuss shortly), JSONP was perhaps the most popular technique for bypassing the SOP restriction on XMLHttpRequest, and still remains widely used today. JSONP takes advantage of the fact that script inclusion tags in HTML (i.e., `<script>`) are exempt from the SOP; that is, you can include a script from _any_ URL, and the browser readily executes it in the current document:
+Before the introduction of CORS (which we will discuss shortly), JSONP
+was perhaps the most popular technique for bypassing the SOP
+restriction on XMLHttpRequest, and still remains widely used
+today. JSONP takes advantage of the fact that script inclusion tags in
+HTML (i.e., `<script>`) are exempt from the SOP; that is, you can
+include a script from _any_ URL, and the browser readily executes it
+in the current document:
 
 ```html
 <script src="http://www.example.com/myscript.js"></script>
@@ -822,11 +884,11 @@ completely trustworthy and secure, because it basically has the
 ability to execute any piece of Javascript code in your document.
 
 Yet another risk with JSONP is its vulenrability to cross-site request
-forgery (CSRF) attacks.  Consider the following scenario from our Alloy model. Suppose that the calendar application (`CalenderServer`) makes its resouces available to third-party sites using a JSONP endpoint (`GetSchedule`). To restrict access to the resources, `CalendarServer` only sends back a response with the schedule for a user if the request contains a cookie that correctly identifies that user. 
+forgery (CSRF) attacks.  Consider the following scenario from our Alloy model. Suppose that the calendar application (`CalenderServer`) makes its resources available to third-party sites using a JSONP endpoint (`GetSchedule`). To restrict access to the resources, `CalendarServer` only sends back a response with the schedule for a user if the request contains a cookie that correctly identifies that user. 
 
 Once a server provides an HTTP endpoint as a JSONP service, anyone can
 make a JSONP request to it, including malicious sites. In this
-scenario, the ad banner page from `EvilServer` includes a _script_ tag that causes a `GetSchedule` request, with a callback function called `Leak` as `padding`. Typically, the developer of `AdBanner` does not have direct access to the victim user's session cookie (`Mycookie`) for `CalendarServer`. However, because the JSONP request is being sent to `CalendarServer`, the browser automatically includes `MyCookie` as part of the request; `CalendarServer`, having received a JSONP request with `MyCookie`, will return the victim's resource (`MySchedule`) wrapped inside the padding `Leak`.
+scenario, the ad banner page from `EvilServer` includes a _script_ tag that causes a `GetSchedule` request, with a callback function called `Leak` as `padding`. Typically, the developer of `AdBanner` does not have direct access to the victim user's session cookie (`MyCookie`) for `CalendarServer`. However, because the JSONP request is being sent to `CalendarServer`, the browser automatically includes `MyCookie` as part of the request; `CalendarServer`, having received a JSONP request with `MyCookie`, will return the victim's resource (`MySchedule`) wrapped inside the padding `Leak`.
 
 ![jsonp-instance-1](fig-jsonp-1.png)
 
@@ -926,7 +988,7 @@ sig CorsRequest in XmlHttpRequest {
 }
 ```
 
-We then use an Alloy fact `corsRule` to describe what constitutes a valid CORS reuqest:
+We then use an Alloy fact `corsRule` to describe what constitutes a valid CORS request:
 
 ```alloy
 fact corsRule {
@@ -968,7 +1030,7 @@ the list of allowed origins to those that are meant to access
 resources? The value "\*" should never be used!" However, coming up
 with a suitable list of allowed origins is not always straightforward,
 because it may not be possible to predict which origins will need
-legimitiate access to the CORS resources at deployment time (imagine a
+legitimate access to the CORS resources at deployment time (imagine a
 service that allows 3rd-party apps to dynamically subscribe to its
 resources).
 
@@ -991,7 +1053,7 @@ during the early stage of system design.
 
 Besides the SOP, Alloy has been used to model and reason about a
 variety of systems across different domains -- ranging from network
-procotols, semantic web, bytecode security to electronic voting and
+protocols, semantic web, bytecode security to electronic voting and
 medical systems. For many of these systems, Alloy's analysis led to
 discovery of design flaws and bugs that had eluded the developers, in
 some cases, for years. We invite our readers to visit the Alloy page

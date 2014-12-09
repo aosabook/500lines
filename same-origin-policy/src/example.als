@@ -20,15 +20,15 @@ one sig InboxPage extends Document {}{
   content.first = MyInboxInfo
 }
 one sig InboxScript extends Script {} {
-	context = InboxPage
+  context = InboxPage
 }
 
 // A malicious server providing an ad service
 one sig EvilServer extends Server {}
 // Document loaded from the evil ad server
 one sig AdBanner extends Document {}{
-	domain.first = EvilDomain
-	no CriticalData & content.first 
+  domain.first = EvilDomain
+  no CriticalData & content.first 
 }
 // An evil script running inside the ad 
 one sig EvilScript extends Script {}
@@ -41,7 +41,7 @@ one sig CalendarPage extends Document {}{
 }
 // Trusted scripts
 one sig CalendarScript extends Script {}{
-	context = CalendarPage
+  context = CalendarPage
 }
 
 // The victim user's browser
@@ -57,7 +57,7 @@ one sig MyInboxInfo in Resource {}
 one sig MySchedule in Resource {}
 // Cookie used to authenticate the user by the email and calendar apps
 one sig MyCookie in Cookie {}{
-	domains = EmailDomain + CalendarDomain
+  domains = EmailDomain + CalendarDomain
 }
 
 one sig HTTP extends Protocol {}
@@ -81,7 +81,7 @@ sig GetSchedule in HttpRequest {}{
 
 fact SecurityAssumptions {
 	-- designate trusted modules
-	EmailServer + MyBrowser + CalendarServer + 
+  	EmailServer + MyBrowser + CalendarServer + 
 		InboxScript + CalendarScript + BlogServer in TrustedModule
 	EvilScript + EvilServer in MaliciousModule
 	CriticalData = MyInboxInfo + MyCookie + MySchedule
@@ -93,6 +93,8 @@ fact SecurityAssumptions {
    -- in reality, this attack is possible, but will be ruled out here
 	Dns.map = EmailDomain -> EmailServer + CalendarDomain -> CalendarServer 
 					+ BlogDomain -> BlogServer + EvilDomain -> EvilServer 
+
+	MyInboxInfo != MySchedule
 }
 
 run {} for 3
@@ -164,22 +166,51 @@ run corsAttack for 3 but 2 Time, 1 Call
 
 one sig BlogDomain, ParentDomain extends Domain {}
 one sig BlogServer extends Server {}{
-  no accesses.first
+//	no accesses.first
+}	
+fact {
+	no BlogServer.accesses.first
 }
 one sig BlogPage extends Document {}{
 	domain.first = BlogDomain
     no content.first
 }
 
+pred setdomainNormal {
+	subsumes = 
+		ParentDomain -> EmailDomain + ParentDomain -> CalendarDomain  +
+		ParentDomain -> BlogDomain + (Domain <: iden)
+	
+	some o : SetDomain | o.start = first and o.from = InboxScript and o.newDomain = ParentDomain
+	some o : SetDomain | o.start = first.next and o.from = CalendarScript and o.newDomain = ParentDomain
+	some o : ReadDom {
+		o.from = CalendarScript 
+		o.doc = InboxPage
+	}
+}
+run setdomainNormal for 7 but 5 Domain, 4 Time, 3 Call
+
 pred setdomainAttack {
 	subsumes = 
 		ParentDomain -> EmailDomain + ParentDomain -> CalendarDomain + 
 		ParentDomain -> BlogDomain + (Domain <: iden)
 	EvilScript.context = BlogPage
-//	MySchedule in EvilScript.accesses.last
-		
+	
+	some o : SetDomain | o.start = first and o.from = InboxScript and o.newDomain = ParentDomain
+	some o : SetDomain | o.start = first.next and o.from = CalendarScript and o.newDomain = ParentDomain
+	some o : ReadDom {
+		o.start = first.next.next
+		o.from = CalendarScript 
+		o.doc = InboxPage
+	}
+	some o : SetDomain | o.start = first.next.next.next and o.from = EvilScript and o.newDomain = ParentDomain
+	some o : ReadDom {
+		o.start = first.next.next.next.next
+		o.from = EvilScript
+		o.doc = InboxPage
+	}
 }
-run setdomainAttack for 7 but 5 Domain, 5 Time, 4 Call
+run setdomainAttack for 7 but 5 Domain, 6 Time, 5 Call
 
 /* Helper functions for visualization */
 
