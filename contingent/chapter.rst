@@ -145,7 +145,7 @@ as well as the ``index.html`` home page of your project::
    writing output... [100%] index
 
 In the ``api.html`` output file you can confirm
-that Sphinx has include the attractive human-readable title
+that Sphinx has included the attractive human-readable title
 of the tutorial chapter into the cross reference’s anchor tag::
 
    <p>Before reading this, try reading our
@@ -323,9 +323,9 @@ all the nodes and edges of a graph organized.
 
 A class like ``Graph`` defines a useful *abstraction*
 that gives up some generality
-in exchange for closer proximity to whatever problem we're working on;
-``Graph``, for example,
-allows us to write our program using the language of *graphs*,
+in exchange for closer proximity to whatever problem we're working on.
+``Graph`` allows us to write our program using
+names drawn from the language of *graphs*,
 rather than having to express everything
 in terms of lists and dicts.
 While they don't really matter to the computer,
@@ -333,23 +333,25 @@ good names are vitally important to the *programmer*,
 and the ability to work with names that closely match the problem is an
 important feature of modern programming languages.
 
-Newly created ``Graph`` objects are empty:
+When we create a new ``Graph`` object,
+it won't have any nodes or edges:
 
 >>> g.edges()
 []
 
-To represent a graph like that shown in Figure 1,
+Let's see if we can build the graph for our Sphinx example by hand.
+First,
 we need a way to add edges between nodes:
 
 >>> g.add_edge('index.rst', 'index.html')
 >>> g.add_edge('tutorial.rst', 'tutorial.html')
 >>> g.add_edge('api.rst', 'api.html')
 
-The object ``g`` now represents the same graph that we saw in Figure 1,
+And just like that,
+``g`` represents the same graph that we saw in Figure 1,
 
 >>> from pprint import pprint
->>> edges = g.edges()
->>> pprint(edges)
+>>> pprint(g.edges())
 [('api.rst', 'api.html'),
  ('index.rst', 'index.html'),
  ('tutorial.rst', 'tutorial.html')]
@@ -363,7 +365,7 @@ the content of ``api.rst`` changes:
 >>> g.immediate_consequences_of('api.rst')
 ['api.html']
 
-``Graph`` thus tells Contingent that,
+``Graph`` is telling Contingent that,
 when ``api.rst`` changes,
 ``api.html`` is now stale and must be rebuilt.
 How about ``index.html``?
@@ -382,16 +384,17 @@ and that the nodes themselves are simply strings.
 Coming from other languages and traditions,
 one might have expected to see something more like::
 
-    Graph g = new Graph();
-    Node indexRstNode = new Node("index.rst");
-    Node indexHtmlNode = new Node("index.html");
-    Edge indexEdge = new Edge(indexRstNode, indexHtmlNode);
+    Graph g = new ConcreteGraph();
+    Node indexRstNode = new StringNode("index.rst");
+    Node indexHtmlNode = new StringNode("index.html");
+    Edge indexEdge = new DirectedEdge(indexRstNode, indexHtmlNode);
     g.addEdge(indexEdge);
 
-with user-defined classes for everything in the system.
+with user-defined classes and interfaces for everything in the system.
 The Python language and community explicitly and intentionally emphasize
 using simple, generic data structures to solve problems,
-rather than creating custom classes for every problem we want to tackle.
+rather than creating custom classes for every minute detail
+of the problem we want to tackle.
 This is one facet of the notion of “Pythonic” solutions that you may
 have read about: Pythonic solutions try to
 minimize syntactic overhead
@@ -490,7 +493,7 @@ the place, like this:
 
 .. code:: python
 
-    # handle “we haven't seen this task yet”
+    # ugly special case to handle “we haven't seen this task yet”
     if input_task not in self._consequences_of:
         self._consequences_of[input_task] = set()
 
@@ -524,14 +527,126 @@ True
  >>> from contingent.rendering import as_graphviz
  >>> open('figure1.dot', 'w').write(as_graphviz(g)) and None
 
+And now we're ready to look at ``add_edge()``:
+
+.. include:: contingent/graphlib.py
+    :code: python
+    :start-line: 36
+    :end-line: 41
+
+Adding an edge means updating both the
+inputs and consequences structures;
+here, adding a consequence of ``'tutorial.rst'``
+also adds an input of ``'tutorial-title'``:
+
+>>> g.add_edge('tutorial.rst', 'tutorial-title')
+>>> g.inputs_of('tutorial-title')
+['tutorial.rst']
+
+Since we chose to represent the graph in both directions
+we need to update ``_inputs_of`` and ``_consequences_of``
+whenever we add a new edge.
+This makes it easy to ask about either
+a node's inputs or its consequences
+but requires ``Graph`` to keep the two structures
+carefully synchronized.
+An alternative implementation might choose
+to represent one side directly
+and derive the other via computation,
+thereby choosing to reduce space consumption by
+increasing code complexity.
+Unless your graph is enormous or your hardware peculiar, however,
+you are unlikely to notice the performance difference;
+you certainly *will* notice if your code is more complicated,
+particularly if you stare at it at 2 in the morning.
+
+Speaking of uncomplicated code,
+notice how ``add_edge()`` doesn't know or care
+whether either node has been seen before:
+because the inputs and consequences data structures
+are defined as ``defaultdict(set)``,
+``add_edge()`` remains blissfully ignorant
+as to the novelty of a node,
+while ``defaultdict`` takes care of the difference
+by creating new ``set`` objects on the fly as needed.
+As we saw above, ``add_edge()`` would be
+3 times as long without ``defaultdict``;
+more importantly, it would be much more difficult
+to read its purpose and behavior from the resulting code.
+This implementation demonstrates a Pythonic
+approach to problems: simple, direct, concise.
+
+At this point you might be wondering:
+“what's up with the ‘``_``’ at the beginning of the ``Graph``
+attribute names ``_inputs_of`` and ``_consequences_of``?”
+This is a Python convention —
+a rule generally followed by the community
+but not enforced by the language itself.
+You can read it as a marker on the attribute indicating
+“this attribute is an implementation detail; don't depend on it.”
+Python's open philosophy and powerful introspection
+mean that anyone will be able to see and manipulate these attributes:
+
+>>> '_inputs_of' in dir(g)
+True
+
+Recognizing a need to signal differences among
+public-facing, internal, and other types of attributes,
+this convention is one way the community has developed
+to allow programmers to pass messages and warnings
+through spacetime to each other.
+It provides a concise and fairly consistent indicator
+to other programmers,
+including our future selves,
+that the original authors intended these attributes
+to be viewed as part of the internal machinery of the class.
+
+The implementation of ``remove_edge()`` is,
+unsurprisingly, the inverse of ``add_edge()``:
+
+.. include:: contingent/graphlib.py
+    :code: python
+    :start-line: 40
+    :end-line: 45
+
+Figure 1 shows a simplified representation of our example
+that ignores document titles and the table of contents.
+Let's fill in some of the details:
+a moment ago we added an edge
+from ``tutorial.rst`` to ``tutorial-title``
+
+>>> 'tutorial-title' in g.immediate_consequences_of('tutorial.rst')
+True
+
+and we also need to show that ``api.rst`` has ``api-title`` as
+a consequence and that both of these are inputs to ``index.html``:
+
+>>> g.add_edge('api.rst', 'api-title')
+>>> g.add_edge('tutorial-title', 'index.html')
+>>> g.add_edge('api-title', 'index.html')
+
+This manual walk-through illustrates what we
+will eventually have Contingent do for us:
+the graph ``g`` captures the inputs and consequences
+for the various artifacts in our project's documentation.
+Figure 2 depicts the result.
+
+.. image:: figure2.png
 
 ----
 
->>> g.add_edge('tutorial.rst', 'tutorial-title')
->>> g.add_edge('api.rst', 'api-title')
+[I wonder if we should defer talking about clear_inputs_of() until
+ later, rather than trying to conjure up a motivation for it here.]
 
->>> g.add_edge('tutorial-title', 'index.html')
->>> g.add_edge('api-title', 'index.html')
+>>> g.add_edge('tutorial-title', 'api.html')
+
+.. include:: contingent/graphlib.py
+    :code: python
+    :start-line: 50
+    :end-line: 55
+
+
+
 
 
 ..
