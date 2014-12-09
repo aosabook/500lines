@@ -44,6 +44,10 @@ class Graph:
         self._consequences_of[input_task].remove(consequence_task)
         self._inputs_of[consequence_task].remove(input_task)
 
+    def inputs_of(self, task):
+        """Return the tasks that are inputs to `task`."""
+        return self.sorted(set(self._inputs_of[task]))
+
     def clear_inputs_of(self, task):
         """Remove all edges leading to `task` from its previous inputs."""
         input_tasks = self._inputs_of.pop(task, ())
