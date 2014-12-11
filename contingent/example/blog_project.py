@@ -114,7 +114,8 @@ def main():
         print('=' * 72)
         print('Reloading:', ' '.join(changed_paths))
         for path in changed_paths:
-            project.invalidate(read_text_file, (path,))
+            task = read_text_file, (path,)
+            project.invalidate(task)
         project.rebuild()
 
 if __name__ == '__main__':
