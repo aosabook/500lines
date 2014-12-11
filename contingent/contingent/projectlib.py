@@ -36,6 +36,19 @@ class Project:
         self.trace = None
         return text
 
+    def _trace_task(self, task, value):
+        """Add a task to the currently running task trace.
+
+        Does nothing if no trace is running.
+
+        """
+        if self.trace is not None:
+            tup = (len(self.task_stack), value is _not_available, task)
+            self.trace.append(tup)
+            if len(self.trace) > 30:
+                print(self.stop_output())
+                raise RuntimeError()
+
     def task(self, task_function):
         """Decorate a function that defines one of the tasks for this project.
 
@@ -60,27 +73,16 @@ class Project:
         tasks change their return value.
 
         """
+
         @wraps(task_function)
         def wrapper(*args):
-            try:
-                hash(args)
-            except TypeError as e:
-                raise ValueError('arguments to project tasks must be immutable'
-                                 ' and hashable, not the {}'.format(e))
-
-            task = (wrapper, args)
+            task = task_tuple(wrapper, args)
 
             if self.task_stack:
                 self.graph.add_edge(task, self.task_stack[-1])
 
             value = self._get_from_cache(task)
-
-            if self.trace is not None:
-                tup = (len(self.task_stack), value is _not_available, task)
-                self.trace.append(tup)
-                if len(self.trace) > 30:
-                    print(self.stop_output())
-                    raise RuntimeError()
+            self._trace_task(task, value)
 
             if value is _not_available:
                 self.graph.clear_inputs_of(task)
@@ -159,3 +161,22 @@ def task_key(task):
     """Return a sort key for a given task."""
     function, args = task
     return function.__name__, args
+
+def task_tuple(task_function, args):
+    """Turn a call to a function into a task 2-tuple.
+
+    Given a task function and an argument list, returns a task 2-tuple
+    that encapsulates the call as a single object. `Project` uses these
+    task objects for consequence tracking and caching.
+
+    Raises `ValueError` if `args` is not hashable.
+
+    """
+
+    try:
+        hash(args)
+    except TypeError as e:
+        raise ValueError('arguments to project tasks must be immutable'
+                         ' and hashable, not the {}'.format(e))
+
+    return (task_function, args)
