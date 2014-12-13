@@ -824,7 +824,7 @@ Engineering is all about managing tradeoff, so when designing the query engine, 
 * Joining: If there's more than one clause in a query, there must be one variable that is found in all of the clauses of that query. This variable acts as a joining variable. This limitation helps in having a simple query optimizer.
 * A query is executed on a single database. 
 
-The combination of these restrictions with the richness available by datalog query results in allowing most of the happy-path, simple yet useful, queries.
+The bottom line of this decision is even when imposing these restrictions on the richness provided by Datalog, we still support most of the happy-path, simple yet useful, queries.
 
 #### Reading the example
 
