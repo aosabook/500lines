@@ -1,6 +1,5 @@
 <table class="summary">
   <th>Name</th>
-  <th>Method</th>
   <th>Actual</th>
   <th>Calculated</th>
   <th>Delta</th>
@@ -12,7 +11,6 @@
   <% pipelines.each do |pipeline| %>
     <tr>
       <td><%= pipeline.trial.name %></td>
-      <td><%= pipeline.trial.method %></td>
       <td><%= pipeline.trial.steps %></td>
       <td><%= pipeline.analyzer.steps %></td>
       <td><%= pipeline.analyzer.delta %></td>
