@@ -1,18 +1,165 @@
 A Python interpreter written in Python
 
-In this chapter we will examine Byterun, a Python interpreter.  Running a Python program involves four steps: lexing, parsing, compiling, and interpreting.  The first three are covered elsewhere in this book.  The final step - interpreting - takes place after the source code of Python has been processed by the first three steps and turned into _code objects_, which are the internal representation of Python code to the Python interpreter. The interpreter's job is to take these code objects and perform the operations detailed there.
+[ What: A Python interpreter ]
+[ Why: interpreters ]
+[ How: stack machines ]
 
-Byterun is a Python interpreter written in Python.  This may strike you as odd, but it's no more odd than writing a C compiler in C (like gcc). We could write a Python interpreter in almost any language, with greater or lesser difficulty. Writing a Python interpreter in Python will be slower than writing it in C or another low-level language, but it will make the structure and operations much more clear and easy to read for a Python programmer. Since our goal is understanding the system, not speed of execution, this is a worthy tradeoff.
+Byterun is a Python interpreter written in Python.
 
-Byterun's structure very closely mirrors the interpreter in CPython, the most commonly used Python interpreter.  In CPython, as the name would suggest, the interpreter is written in C. Understanding Byterun means understanding the interpreter in CPython.
+The word "interpreter" is used in a variety of different ways when discussing Python, so first we will disambiguate what it means in this context. Sometimes "interpreter" refers to the Python REPL, the interactive prompt you get by typing just "python" from the command line. Sometimes people use "the Python interpreter" more or less interchangeably with "Python" to talk about executing Python code from start to finish. In this chapter, "interpreter" has a more narrow meaning: it's the last step in the process of running a Python program.
 
-### "Interpreted" and "Compiled"
-Python is often called an "interpreted" language, like Ruby or Java, in contrast with a "compiled" language like C or Rust. This terminology isn't terribly precise.  Most "interpreted" languages, including Python, do involve a compilation step; it's just that the compilation does relatively less than in a "compiled" language, and the interpreter does relatively more.  The Python compiler has much less information about the behavior of the program it compiles than a C compiler would, as we'll see.
+Before the interpreter takes over, Python performs three other steps: lexing, parsing, and compiling. Together, they turn the programmer's source code from lines of text into structured _code objects_ that the interpreter knows how to understand. Each code object contains a set of instructions that the interpreter will execute, plus other information necessary to execute those instructions. The interpreter's job is to take these code objects and perform the operations detailed there.
 
-### The structure of Byterun: A virtual machine and frames
-With that background, let's begin examining the structure of Byterun.  The Python interpreter is a virtual machine, meaning that it is software that emulates a physical computer. This particular virtual machine is a stack machine: it manipulates several stacks to perform its operations (as contrasted with a register machine, that writes and reads values from particular memory locations). In our interpreter, we'll implement a stack using a Python list, and push and pop from the stack by appending and popping from the end of the list.
+You may be surprised to hear that Python code is compiled. Python is often called an "interpreted" language, like Ruby or Java, in contrast with a "compiled" language like C or Rust. This terminology isn't as precise as it seems.  Most interpreted languages, including Python, do involve a compilation step. However, in an interpreted language, the compilation does relatively less work (and the interpreter does relatively more) than in a compiled language.  As we'll see later in the chapter, the Python compiler has much less information about the behavior of a program than a C compiler does.
 
-There are three kinds of stacks that the Python interpreter uses.  The first is the _call stack_, a stack of _Frame_ objects. A frame is a collection of information and context for a chunk of code (typically a function, but not always). Each frame has two stacks other associated with it: the data stack, which contains data and objects, and a block stack, used for certain kinds of control flow such as exception handling and looping.  The primary work of the interpreter is manipulating these three kinds of stacks.
+### Bytecode
+In Python, the set of instructions that the interpreter interprets is called _bytecode_. Bytecode is a series of bytes that the interpreter maps to different operations that it should perform. Bytecode is called an _intermediate representation_ of Python code: it expresses the source code that you wrote in a way the interpreter can understand, analogous to the way that assembly language serves as a representation between C code and a piece of hardware.
+
+### A Python Python interpreter
+Byterun is a Python interpreter written in Python.  This may strike you as odd, but it's no more odd than writing a C compiler in C. (Indeed, the widely-used C compiler gcc is written in C.) We could write a Python interpreter in almost any language.
+
+Byterun's structure very closely mirrors the structure of the "real" interpreter in CPython, the most commonly used Python interpreter. In CPython, as the name would suggest, the interpreter is written in C. Understanding Byterun, via this chapter, will help you understand interpreters in general and the CPython interpreter in particular.
+
+Executing code via Byterun is much slower than executing it in CPython. However, Byterun is much easier to understand. It is simplified relative to CPython: not all bytecodes are included, no optimizations for speed are present, and it's written in a higher-level language that many people find easier to read. Since our goal is understanding the system, not speed of execution, writing Byterun in Python is an easy decision.
+
+## what about PyPy
+There is a efficient Python interpreter written mostly in Python, called PyPy. PyPy's structure is signficantly different from CPython's structure, and it includes many interesting optimizations. I encourage curious readers to also read the chapter about PyPy from the second edition of this book.
+
+
+
+
+### The structure of Byterun: A virtual machine
+With that background, let's begin examining the structure of Byterun. The Python interpreter is a virtual machine, meaning that it is software that emulates a physical computer. This particular virtual machine is a stack machine: it manipulates several stacks to perform its operations (as contrasted with a register machine, that writes and reads values from particular memory locations). In our interpreter, we'll implement a stack using a Python list.
+
+To make this concrete, let's start with a very minimal interpreter. This interpreter can only add numbers, and it understands just three instructions:
+
+- LOAD_VALUE
+- ADD_TWO_VALUES
+- PRINT_ANSWER
+
+When you call code that adds two numbers, the interpreter will begin by pushin the first number to be added onto the stack, then pushing the second number onto the stack. Next it will pop both numbers off, add them together, and push the result onto the stack. Finally, it will pop the answer back off the stack and return it.
+
+You want to write a program that adds two numbers. You write code like this:
+~~~~
+>>> def f(a,b):
+...     return a + b
+...
+>>> # then call it
+>>> f(7,5)
+~~~~
+
+The steps before the interpreter (the lexer, parser, and compiler) take your code and turned it in to instructions for the interpreter. These instructions are similar to bytecode. (For this first example, we'll look just at the instructions for calling the function `f`, not the instructions for defining it.)
+
+~~~~
+["LOAD_VALUE",
+ "LOAD_VALUE",
+ "ADD_TWO_VALUES",
+ "PRINT_ANSWER"]
+~~~~
+
+Before it can add numbers for you, the interpreter needs a little more information. The instructions tell it to push a number on to the stack, but they don't say which number. We'll add an extra piece of information to each instruction, telling the interpreter where to find the number if one is required. We'll also pass the numbers themselves to the interpreter. We'll wrap up these two pieces, the instructions and the numbers, into a dictionary. Here, the "instructions" piece is like Python bytecode, and the entire "what to execute" dictionary is like a code object.
+
+~~~~
+what_to_execute = {
+    "instructions": [("LOAD_VALUE", 0),  # the first number
+                     ("LOAD_VALUE", 1),  # the second number
+                     ("ADD_TWO_VALUES", None),
+                     ("PRINT_ANSWER", None)],
+    "numbers": [7, 5] }
+~~~~
+
+Now let's look at the interpreter itself. The interpreter object has a stack, represented by a list.
+
+~~~~
+class Interpreter(object):
+    def __init__(self):
+        self.stack = []
+
+    def LOAD_VALUE(self, what_to_push):
+        self.stack.append(what_to_push)
+
+    def PRINT_ANSWER(self):
+        answer = self.stack.pop()
+        print(answer)
+
+    def ADD_TWO_VALUES(self):
+        first_num = self.stack.pop()
+        second_num = self.stack.pop()
+        total = first_num + second_num
+        self.stack.append(total)
+~~~~
+
+The interpreter needs one more piece, a way to tie everything together and start executing.
+
+~~~~.py
+    def execute(self, what_to_execute):
+        instructions = what_to_execute["instructions"]
+        numbers = what_to_execute["numbers"]
+        for each_step in instructions:
+            instruction, argument = each_step
+            if argument is not None:
+                number = numbers[argument]
+            if instruction == "LOAD_VALUE":
+                self.LOAD_VALUE(number)
+            elif instruction == "ADD_TWO_VALUES":
+                self.ADD_TWO_VALUES()
+            elif instruction == "PRINT_ANSWER":
+                self.PRINT_ANSWER()
+~~~~
+
+Let's test it out:
+
+~~~~
+    interpreter = Interpreter()
+    interpreter.execute(what_to_execute)
+~~~~
+
+Sure enough, it prints the answer - 12.
+
+Although this interpreter is quite limited, this process is almost exactly how the real Python interpreter adds numbers. There are a couple of things to notice from even this small example.  First of all, some instructions need arguments. In real Python bytecode, about half of instructions have arguments. The arguments are packed in with the instructions, much like in our example. Second, notice that the instruction for adding together two values did not require any arguments - instead, the values to be added together were popped off of the interpreter's stack. Given valid instruction sets, without any changes to our interpreter, we can add more than two numbers at at time. Try running this instruction set:
+
+~~~~
+    what_to_execute = {
+        "instructions": [("LOAD_VALUE", 0),
+                         ("LOAD_VALUE", 1),
+                         ("ADD_TWO_VALUES", None),
+                         ("LOAD_VALUE", 2),
+                         ("ADD_TWO_VALUES", None),
+                         ("PRINT_ANSWER", None)],
+        "numbers": [7, 5, 8] }
+~~~~
+
+So far our interpreter that can only do simple arithmetic. However, we can begin to see how this structure is extensible - we can add methods on the object that describe many more operations. (For this chapter, we'll assume that we're always handed a well-formed instruction set, since we're not currently concerned with compilers.)
+
+# Variables
+Adding variables to our interpreter requires three main pieces: two instructions for storing and retrieving the values, plus a dictionary mapping names to values, stored on the interpreter object.
+
+~~~~
+>>> def s():
+...     a = 1
+...     b = 2
+...     return a + b
+
+    what_to_execute = {
+        "instructions": [("LOAD_VALUE", 0),
+                         ("STORE_NAME", 0),
+                         ("LOAD_VALUE", 1),
+                         ("STORE_NAME", 1),
+                         ("LOAD_NAME", 0),
+                         ("LOAD_NAME", 1),
+                         ("ADD_TWO_VALUES", None),
+                         ("PRINT_ANSWER", None)],
+        "numbers": [1, 2],
+        "names":   ["a", "b"] }
+~~~
+
+
+# Conditionals
+# Loops
+# Functions
+# Exceptions
+
+There are three kinds of stacks that the Python interpreter uses.  The first is the _call stack_, made up of frames. A frame is a collection of information and context for a chunk of code, typically a single function call. Each frame has two more stacks associated with it: the data stack, which contains data and objects, and a block stack, used for certain kinds of (control flow such as exception handling and looping).  The primary work of the interpreter is manipulating these three kinds of stacks.
 
 The interpreter needs to keep track of a few things beyond the call stack, like the exception state, the current frame, and the values to be passed between frames.
 
