@@ -6,7 +6,7 @@ class PipelineTest < Test::Unit::TestCase
   def test_new_combined_data
     file_path = 'test/data/female-167-70_bagwalk1-100-10.txt'
     user = User.new
-    trial = Trial.new('foobar1')
+    trial = Trial.new('foobar1', 100)
     pipeline = Pipeline.run(File.read(file_path), user, trial)
 
     assert_equal user, pipeline.user
@@ -23,7 +23,7 @@ class PipelineTest < Test::Unit::TestCase
   def test_new_separated_data
     file_path = 'test/data/female-167-70_bagwalk2-100-10.txt'
     user = User.new
-    trial = Trial.new('foobar1')
+    trial = Trial.new('foobar1', 100)
     pipeline = Pipeline.run(File.read(file_path), user, trial)
     
     assert_equal user, pipeline.user
