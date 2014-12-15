@@ -794,19 +794,18 @@ Now what does the graph know about?
 
 Look!  All the tasks!
 
->>> from pprint import pprint
 >>> pprint(project.graph.tasks())
-[(<function parse at 0x...>, ('api.txt',)),
- (<function parse at 0x...>, ('index.txt',)),
- (<function parse at 0x...>, ('tutorial.txt',)),
- (<function read at 0x...>, ('api.txt',)),
- (<function read at 0x...>, ('index.txt',)),
- (<function read at 0x...>, ('tutorial.txt',)),
- (<function render at 0x...>, ('api.txt',)),
- (<function render at 0x...>, ('index.txt',)),
- (<function render at 0x...>, ('tutorial.txt',)),
- (<function title_of at 0x...>, ('api.txt',)),
- (<function title_of at 0x...>, ('tutorial.txt',))]
+[parse('api.txt'),
+ parse('index.txt'),
+ parse('tutorial.txt'),
+ read('api.txt'),
+ read('index.txt'),
+ read('tutorial.txt'),
+ render('api.txt'),
+ render('index.txt'),
+ render('tutorial.txt'),
+ title_of('api.txt'),
+ title_of('tutorial.txt')]
 
 ..
  >>> open('figure3.dot', 'w').write(as_graphviz(project.graph)) and None
@@ -825,11 +824,11 @@ if the tutorial source text is touched.
 
 >>> task = read, ('tutorial.txt',)
 >>> pprint(project.graph.recursive_consequences_of([task]))
-[(<function parse at 0x...>, ('tutorial.txt',)),
- (<function render at 0x...>, ('tutorial.txt',)),
- (<function title_of at 0x...>, ('tutorial.txt',)),
- (<function render at 0x...>, ('api.txt',)),
- (<function render at 0x...>, ('index.txt',))]
+[parse('tutorial.txt'),
+ render('tutorial.txt'),
+ title_of('tutorial.txt'),
+ render('api.txt'),
+ render('index.txt')]
 
 But what if the title did not change?
 As you can see in Figure 3,

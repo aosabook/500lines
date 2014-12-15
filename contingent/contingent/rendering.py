@@ -18,17 +18,6 @@ def as_graphviz(graph):
     append = lines.append
 
     def node(task):
-        """Recognize (func, arg_tuple) nodes and format them prettily."""
-
-        is_function_and_args = (isinstance(task, tuple) and len(task) == 2
-                                and isinstance(task[0], FunctionType))
-        if is_function_and_args:
-            function, args = task
-            name = task[0].__name__
-            args = repr(args)
-            if args.endswith(',)'):
-                args = args[:-2] + ')'
-            return '"{}{}"'.format(name, args)
         return '"{}"'.format(task)
 
     append('node [shape=rect penwidth=2 color="#DAB21D"')

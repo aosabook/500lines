@@ -1,6 +1,7 @@
 """Provide a Project of related tasks that can be rebuilt when inputs change.
 
 """
+from collections import namedtuple
 from functools import wraps
 from .graphlib import Graph
 
@@ -25,12 +26,11 @@ class Project:
         """Stop recording task invocations, and return the trace as text."""
 
         text = '\n'.join(
-            '{}{} {}{}'.format(
+            '{}{} {}'.format(
                 '. ' * depth,
                 'calling' if not_available else 'returning cached',
-                function.__name__,
-                repr(args)[:-2] + ')' if len(args) == 1 else repr(args),
-            ) for (depth, not_available, (function, args)) in self.trace
+                task
+            ) for (depth, not_available, task) in self.trace
             if verbose or not_available)
 
         self.trace = None
@@ -76,7 +76,7 @@ class Project:
 
         @wraps(task_function)
         def wrapper(*args):
-            task = task_tuple(wrapper, args)
+            task = pack_task(wrapper, args)
 
             if self.task_stack:
                 self.graph.add_edge(task, self.task_stack[-1])
@@ -162,7 +162,7 @@ def task_key(task):
     function, args = task
     return function.__name__, args
 
-def task_tuple(task_function, args):
+class pack_task(namedtuple('Task', ('task_function', 'args'))):
     """Turn a call to a function into a task 2-tuple.
 
     Given a task function and an argument list, returns a task 2-tuple
@@ -173,10 +173,19 @@ def task_tuple(task_function, args):
 
     """
 
-    try:
-        hash(args)
-    except TypeError as e:
-        raise ValueError('arguments to project tasks must be immutable'
-                         ' and hashable, not the {}'.format(e))
+    __slots__ = ()
 
-    return (task_function, args)
+    def __new__(cls, task_function, args):
+        try:
+            hash(args)
+        except TypeError as e:
+            raise ValueError('arguments to project tasks must be immutable'
+                             ' and hashable, not the {}'.format(e))
+
+        return super().__new__(cls, task_function, args)
+
+    def __repr__(self):
+        "Produce a “syntactic,” source-like representation of the task."
+
+        return '{}({})'.format(self.task_function.__name__,
+                               ', '.join(repr(arg) for arg in self.args))
