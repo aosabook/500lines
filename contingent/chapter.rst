@@ -631,79 +631,96 @@ the graph ``g`` captures the inputs and consequences
 for the various artifacts in our project's documentation.
 Figure 2 depicts the result.
 
-.. image:: figure2.png
-
-----
-
-[I wonder if we should defer talking about clear_inputs_of() until
- later, rather than trying to conjure up a motivation for it here.]
-
->>> g.add_edge('tutorial-title', 'api.html')
-
-.. include:: contingent/graphlib.py
-    :code: python
-    :start-line: 50
-    :end-line: 55
-
-
-
-
-
 ..
  >>> open('figure2.dot', 'w').write(as_graphviz(g)) and None
 
+.. image:: figure2.png
 
-FINALLY -
+.. ----
 
-is it time here to describe and justify the consequences methods?
-Maybe?
+.. [I wonder if we should defer talking about clear_inputs_of() until
+..  later, rather than trying to conjure up a motivation for it here.]
+
+.. >>> g.add_edge('tutorial-title', 'api.html')
+
+.. .. include:: contingent/graphlib.py
+..     :code: python
+..     :start-line: 50
+..     :end-line: 55
+
+.. FINALLY -
+
+.. is it time here to describe and justify the consequences methods?
+.. Maybe?
 
 
->>> g.immediate_consequences_of('index.rst')
-['index.html']
+.. >>> g.immediate_consequences_of('index.rst')
+.. ['index.html']
 
-That is simple.  But this is a several-step cascade,
-we have to follow to the bottom:
+.. That is simple.  But this is a several-step cascade,
+.. we have to follow to the bottom:
 
->>> sorted(g.immediate_consequences_of('api.rst'))
-['api-title', 'api.html']
->>> g.immediate_consequences_of('api-title')
-['index.html']
->>> g.immediate_consequences_of('index.html')
-[]
->>> g.immediate_consequences_of('api.html')
-[]
+.. >>> sorted(g.immediate_consequences_of('api.rst'))
+.. ['api-title', 'api.html']
+.. >>> g.immediate_consequences_of('api-title')
+.. ['index.html']
+.. >>> g.immediate_consequences_of('index.html')
+.. []
+.. >>> g.immediate_consequences_of('api.html')
+.. []
 
-Whenever things change we want to do that, but to be careful of the
-order.  [Ugh - should we even explain?  Maybe just mention for the
-advanced people: to avoid rerunning a task several times, we need a
-topological sort.]
+.. Whenever things change we want to do that, but to be careful of the
+.. order.  [Ugh - should we even explain?  Maybe just mention for the
+.. advanced people: to avoid rerunning a task several times, we need a
+.. topological sort.]
 
->>> g.recursive_consequences_of(['api.rst'])
-['api-title', 'index.html', 'api.html']
+.. >>> g.recursive_consequences_of(['api.rst'])
+.. ['api-title', 'index.html', 'api.html']
 
-Wow look it did what we did manually above!  It's great!
+.. Wow look it did what we did manually above!  It's great!
+
 
 Learning Connections
 ====================
 
-Okay: if we keep our edges up to date,
-we will never again have the problem of rebuilding too little.
+We now have a way for Contingent
+to keep track of tasks and the relationships between them.
+If we look more closely at Figure 2, however,
+we see that it is actually a little hand wavy and vague:
+what does it mean to say that
+``index.rst``, ``api-title``, and ``tutorial.html`` are “tasks?”
+Our intuitive notion of these ideas
+served when we were constructing consequences graphs by hand,
+but unfortunately computers are not terribly intuitive,
+so we'll need to be more precise about what we want:
+what are tasks?
+How are they defined and executed?
+And how can Contingent know the connections between them?
 
-But how can the edges be kept up to date?
+In Contingent, tasks are modeled as functions plus arguments,
+where the functions define actions the particular project
+understands how to perform with the arguments providing
+the specifics: *which* source document should be read,
+*which* blog title is needed.
+As they are running,
+these functions may in turn invoke *other* task functions,
+passing whatever arguments they need answers for.
 
-We can use wrappers plus a stack.
+To see how this works we'll continue with our blog building example.
+In order to prevent ourselves from wallowing around in a bog of details,
+for this illustration we will work with
+simplified input and output document formats.
+Our input documents will consist of a title on the first line,
+with the remainder of the text forming the body.
+Cross references are simply source file names
+enclosed in back ticks (`````),
+which are replaced with the title
+from the corresponding document in the output.
 
-Yay!  Fundamental computer science like Debo wanted,
-with a great chance to show how easily these are implemented in Python.
-Explain how the stack we bulid and tear down
-reflects exactly the way the real stack is growing and shrinking.
-
-Time to illustrate.
-
-We need some fake files.
-For illustration we will do something simpler than full Sphinx-and-rst
-but instead build our own little syntax for a cross reference.
+Here is the content of our example
+``index.txt``, ``api.txt``, and ``tutorial.txt``,
+illustrating titles, document bodies, and cross-references
+from our little document format:
 
 >>> index = """
 ... Table of Contents
@@ -726,47 +743,153 @@ but instead build our own little syntax for a cross reference.
 ... the `tutorial.txt` first.
 ... """
 
-So we have this decorator, which adds a wrapper.
+Now that we have some source material to work with,
+what functions would a Contingent-based blog builder
+need?
+In the simplistic examples above,
+the HTML output files proceed directly from the source,
+but in a realistic system,
+turning source into markup involves several steps:
+reading the raw text from disk,
+parsing the text to a convenient internal representation,
+processing any directives the author may have specified,
+resolving cross-references or other external dependencies
+(such as include files),
+and applying one or more view transformations
+to convert the internal representation to its output form.
+
+Contingent manages tasks by grouping them into a ``Project``,
+a sort of build system busybody
+that injects itself into the middle of the build process,
+noting every time one task talks to another
+to construct a graph of the relationships between all the tasks.
 
 >>> from contingent.projectlib import Project
 >>> project = Project()
 >>> task = project.task
 
-And we decorate four functions, that do all of the work.
+This simplified build system requires four basic functions:
 
->>> @task
-... def read(filename):
-...     return {'index.txt': index,
-...             'tutorial.txt': tutorial,
-...             'api.txt': api}[filename]
+* ``read()`` pretends to read the files from disk;
+  since we defined the source text in variables,
+  all it actually needs to do is convert from a filename
+  to the corresponding text:
 
->>> import re
->>> @task
-... def parse(filename):
-...     text = read(filename).strip('\n')
-...     title, body = text.split('\n', 1)
-...     return title, body
+    >>> @task
+    ... def read(filename):
+    ...     return {'index.txt': index,
+    ...             'tutorial.txt': tutorial,
+    ...             'api.txt': api}[filename]
 
->>> @task
-... def title_of(filename):
-...     title, body = parse(filename)
-...     return title
+* ``parse()`` splits the raw text into a title and a body:
 
->>> @task
-... def render(filename):
-...     title, body = parse(filename)
-...     body = re.sub(r'`([^`]+)`',
-...         lambda match: repr(title_of(match.group(1))),
-...         body)
-...     return title + '\n' + body
+    >>> @task
+    ... def parse(filename):
+    ...     text = read(filename).strip('\n')
+    ...     title, body = text.split('\n', 1)
+    ...     return title, body
+
+  This parser is a little silly, admittedly,
+  but it illustrates the interpretive and transformative responsibilities
+  that parsers are required to carry out.
+  Parsing in general is a very interesting subject
+  and many books have been written
+  either partially or completely dedicated to it.
+  In a system like Sphinx,
+  the parser must understand the many markup tokens,
+  directives, and commands defined by the system,
+  transforming the input text into something
+  the rest of the system can work with.
+
+  Notice the connection point between
+  ``parse()`` and ``read()``:
+  ``parse()``'s first task is to pass the filename it has been given
+  to ``read()``, which finds and returns the content
+  of that file.
+
+* ``title_of()``, given a source file name,
+  returns the document's title:
+
+    >>> @task
+    ... def title_of(filename):
+    ...     title, body = parse(filename)
+    ...     return title
+
+  This task nicely illustrates the
+  separation of responsibilities between
+  the parts of a document processing system:
+  ``title_of()`` works from an in-memory representation of a document,
+  in this case a tuple,
+  rather than *itself* having to sift the chaos of bits
+  in the input file looking for a document title.
+  ``parse()``'s job is to produce the in-memory representation,
+  in accordance with the contract of the system specification,
+  that the rest of the blog builder processing functions
+  like ``title_of()``
+  expect to be able to use.
+
+  If you are coming from an orthodox object-oriented tradition,
+  this function-oriented design may look a little weird.
+  In an OO solution,
+  ``parse()`` would return some sort of ``Document`` object
+  that has ``title_of()`` as a method or property.
+  In fact, Sphinx works exactly this way,
+  its ``Parser`` subsystem producing a “Docutils document tree” object
+  for the other parts of the system.
+  Contingent is not opinionated
+  with regard to these differing design paradigms
+  and supports either approach equally well.
+
+* ``render()``
+
+    >>> import re
+    >>> @task
+    ... def render(filename):
+    ...     title, body = parse(filename)
+    ...     body = re.sub(r'`([^`]+)`',
+    ...         lambda match: repr(title_of(match.group(1))),
+    ...         body)
+    ...     return title + '\n' + body
+
+..
+ >>> render('tutorial.txt') and None
+ >>> open('figure3.dot', 'w').write(as_graphviz(project.graph)) and None
+
+.. image:: figure3.png
 
 
-The project graph knows nothing to begin with.
 
->>> project.graph.tasks()
-[]
 
-But if we ask it to build:
+
+
+
+
+
+
+
+
+
+
+
+
+Okay: if we keep our edges up to date,
+we will never again have the problem of rebuilding too little.
+
+But how can the edges be kept up to date?
+
+We can use wrappers plus a stack.
+
+Yay!  Fundamental computer science like Debo wanted,
+with a great chance to show how easily these are implemented in Python.
+Explain how the stack we bulid and tear down
+reflects exactly the way the real stack is growing and shrinking.
+
+Time to illustrate.
+
+
+So we have this decorator, which adds a wrapper.
+
+
 
 >>> for filename in 'index.txt', 'tutorial.txt', 'api.txt':
 ...     print(render(filename))
@@ -808,9 +931,11 @@ Look!  All the tasks!
  title_of('tutorial.txt')]
 
 ..
- >>> open('figure3.dot', 'w').write(as_graphviz(project.graph)) and None
+ >>> open('figure4.dot', 'w').write(as_graphviz(project.graph)) and None
 
-So as you can see by Figure 3, it has things figured out.
+.. image:: figure4.png
+
+So as you can see by Figure 4, it has things figured out.
 By watching one function invoke another
 it has automatically learned the graph of inputs and consequences.
 Yay.
