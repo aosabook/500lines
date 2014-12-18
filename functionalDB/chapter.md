@@ -8,13 +8,13 @@ In this chapter, we will  explore how a change in a common perspective affects  
 
 Database systems are designed to store and query data. This is something that all information workers do; however, the systems themselves were  designed by computer scientists. As a result, modern database systems are highly influenced by what a computer scientist’s definition of data is, and what can be done with it. 
 
-For example, most modern databases implement updates by overwriting instead of appending. This mechanism, nicknamed "place oriented programming" by Rich Hickey [REF], saves storage space but makes it impossible to retrieve the entire history of a particular record.
+For example, most modern databases implement updates by overwriting old data with the new data instead of appending the new data and keeping the old. This mechanism, nicknamed "place oriented programming" by Rich Hickey [REF], saves storage space but makes it impossible to retrieve the entire history of a particular record.
 
  
 
 The "overwrite-old-data" design decision reflects the computer scientist’s perspective that ‘history’ is less important than the price of its storage. 
 
-If you were to ask an archaeologist regarding this tradeoff, and what they would expect to happen to the old data in such a scenario, their answer would be "hopefully, it’s just buried underneath".
+If you were to ask an archaeologist's opinion regarding on how to handle this situation, and what they would expect to happen to old data when new data comes in, their answer would be "hopefully, it’s just buried underneath".
 
  (Disclaimer: my understanding of a typical archaeologist is based on a few visits to museums, reading several wikipedia articles and watching the entire Indiana Jones series).
 
