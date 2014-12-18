@@ -97,10 +97,13 @@ Including the turtle.js file is the only thing specific to the turtle language, 
 ## Swapping out Turtles
 
 [Put info here about replacing the turtle language]
+[Sprite language where each sprite has an index so we only need integers]
+Sprite language: Draw sprite, turn sprite, turn sprite vector, forward, slow, sprite collides with [x].
 
 ## Lessons Learned
 
 [What works about this, what would change in a larger system]
+[How valuable this is as an exercise, to make a small simple system from your larger more complex one, and how doing this has influenced Waterbear. Benefits include: being able to test ideas without drastic changes to the more complex system (i.e., HTML5 drag-and-drop works fine on desktop, but is useless on mobile), try different layouts and looks, refactor bits from the bigger system to be more re-usable and have fewer assumptions, handling live coding, moving all code out of blocks and pointing to it.]
 
 * Dragging does not work on mobile
 * Need options for multiple arguments to blocks
