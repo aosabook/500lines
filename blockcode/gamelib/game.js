@@ -8,7 +8,7 @@
     var ctx = canvas.getContext('2d');
     var cos = Math.cos, sin = Math.sin, atan2 = Math.atan2, sqrt = Math.sqrt, floor = Math.floor, PI = Math.PI;
     var DEGREE = PI / 180;
-    var WIDTH, HEIGHT, position, direction, visible, pen, color;
+    var WIDTH, HEIGHT, position, direction, visible, pen, color, center;
 
     // Tiny vector library
 
@@ -20,6 +20,15 @@
             y: sin(radians) * magnitude,
             mag: magnitude,
             rad: radians
+        };
+    }
+
+    function vectorAtPoint(x,y){
+        return {
+            x: x,
+            y: y,
+            mag: sqrt(x*x + y*y),
+            rad: atan2(y,x)
         };
     }
 
@@ -61,11 +70,19 @@
     function multv(vec, scal){
         var mag = vec.mag * scal;
         return {
-            x: cos(radians) * mag,
-            y: sin(radians) * mag,
+            x: cos(vec.rad) * mag,
+            y: sin(vec.rad) * mag,
             mag: mag,
-            rad: vec.rad + PI
+            rad: vec.rad
         };
+    }
+
+    // Make magnitude equal to 1
+    function normalizev(vec){
+        if (vec.mag !== 0){
+            return mult(vec, 1 / vec.mag);
+        }
+        return vec;
     }
 
     function rotatev(vec, deg){
@@ -84,14 +101,58 @@
     }
 
     // cross product of two vectors, giving a new vector
-    function crossv(v1, v2){
-        var mag = v1.mag * v2.mag * sin(v1.rad - v2.rad);
+    // only relevant for 3D vectors
+    // function crossv(v1, v2){
+    //     var mag = v1.mag * v2.mag * sin(v1.rad - v2.rad);
+    // }
+
+    // Tiny Sprite library
+
+    function Sprite(color){
+        this.color = color;
+        this.position = vector(0,0);
+        this.facing = vector(0,0.1);
+        this.velocity = vector(0,0.1);
     }
+
+    Sprite.prototype.accelerate = function(speed){
+        this.velocity = addv(this.velocity, multv(this.facing, speed));
+    }
+
+    Sprite.prototype.applyForce = function(vec){
+        this.velocity = addv(this.velocity, vec);
+    }
+
+    Sprite.prototype.rotate = function(r){
+        this.facing = rotatev(this.facing, r);
+    }
+
+    Sprite.prototype.move = function(){
+        this.position = addv(this.position, this.velocity);
+        console.log('position %s,%s', this.position.x, this.position.y);
+    }
+
+    Sprite.prototype.draw = function(){
+        console.log('draw %s', this.color);
+        ctx.lineStyle = this.color;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(this.position.x, this.position.y);
+        ctx.lineTo(cos(this.facing - PI/8) * 30 + this.position.x, sin(this.facing - PI/8) * 30 + this.position.y);
+        ctx.moveTo(this.position.x, this.position.y);
+        ctx.lineTo(cos(this.facing + PI/8) * 30 + this.position.x, sin(this.facing + PI/8) * 30 + this.position.y);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fillRect(this.position.x, this.position.y, 50, 50);
+    }
+
+
 
 
     function onResize(evt){
         WIDTH = canvasPlaceholder.getBoundingClientRect().width * PIXEL_RATIO;
         HEIGHT = canvasPlaceholder.getBoundingClientRect().height * PIXEL_RATIO;
+        center = vectorAtPoint(WIDTH / 2, HEIGHT / 2);
         canvas.setAttribute('width', WIDTH);
         canvas.setAttribute('height', HEIGHT);
         canvas.style.top = canvasPlaceholder.getBoundingClientRect().top + "px";
@@ -103,107 +164,47 @@
         }
     }
 
-    function reset(){
-        recenter();
-        direction = deg2rad(90); // facing "up"
-        visible = true;
-        pen = true; // when pen is true we draw, otherwise we move without drawing
-        color = 'black';
-    }
+    var sprite1 = new Sprite('#00FF00');
 
-
-    function drawTurtle(){
-        var userPen = pen; // save pen state
-        if (visible){
-            penUp(); _moveForward(5); penDown();
-            _turn(-150); _moveForward(12);
-            _turn(-120); _moveForward(12);
-            _turn(-120); _moveForward(12);
-            _turn(30);
-            penUp(); _moveForward(-5);
-            if (userPen){
-                penDown(); // restore pen state
-            }
-        }
-    }
-
-    function drawCircle(radius){
-        // Math for this is from http://www.mathopenref.com/polygonradius.html
-        var userPen = pen; // save pen state
-        if (visible){
-            penUp(); _moveForward(-radius); penDown();
-            _turn(-90);
-            var steps = Math.min(Math.max(6, Math.floor(radius / 2)), 360);
-            var theta = 360 / steps;
-            var side = radius * 2 * Math.sin(Math.PI / steps);
-            _moveForward(side / 2);
-            for (var i = 1; i < steps; i++){
-                _turn(theta); _moveForward(side);
-            }
-            _turn(theta); _moveForward(side / 2);
-            _turn(90);
-            penUp(); _moveForward(radius); penDown();
-            if (userPen){
-                penDown(); // restore pen state
-            }
-        }
-
-    }
-
-
-    function _moveForward(distance){
-        var start = position;
-        position = {
-            x: cos(direction) * distance * PIXEL_RATIO + start.x,
-            y: -sin(direction) * distance * PIXEL_RATIO + start.y
+    function setWrap(){ /* set some global for wrapping */ }
+    function setBounce(){ /* set some global for bouncing */ }
+    function accelerate(block){ sprite1.accelerate(Block.value(block)); }
+    function rotate(block){ sprite1.rotate(Block.value(block)); }
+    function moveToX(block){ sprite1.position = vectorAtPoint(Block.value(block), sprite1.position.y); }
+    function moveToY(block){ sprite1.position = vectorAtPoint(sprite1.position.x, Block.value(block)); }
+    function onKey(block){ console.log(Block.value(block)); }
+    function move(){ sprite1.move(); }
+    function draw(){ sprite1.draw(); }
+    function eachFrame(block){
+        window.onFrame = function(){
+            clear();
+            var children = Block.contents(block);
+            Block.run(children);
         };
-        if (pen){
-            ctx.lineStyle = color;
-            ctx.beginPath();
-            ctx.moveTo(start.x, start.y);
-            ctx.lineTo(position.x, position.y);
-            ctx.stroke();
-        }
     }
-
-    function penUp(){ pen = false; }
-    function penDown(){ pen = true; }
-    function hideTurtle(){ visible = false; }
-    function showTurtle(){ visible = true; }
-    function forward(block){ _moveForward(Block.value(block)); }
-    function back(block){ _moveForward(-Block.value(block)); }
-    function circle(block){ drawCircle(Block.value(block)); }
-    function _turn(degrees){ direction += deg2rad(degrees); }
-    function left(block){ _turn(Block.value(block)); }
-    function right(block){ _turn(-Block.value(block)); }
-    function recenter(){ position = {x: WIDTH/2, y: HEIGHT/2}; }
 
     function clear(){
         ctx.save();
         ctx.fillStyle = 'white';
         ctx.fillRect(0,0,WIDTH,HEIGHT);
         ctx.restore();
-        reset();
-        ctx.moveTo(position.x, position.y);
     }
 
     onResize();
     clear();
-    drawTurtle();
 
-    Menu.item('Left', left, 5, 'degrees');
-    Menu.item('Right', right, 5, 'degrees');
-    Menu.item('Forward', forward, 10, 'steps');
-    Menu.item('Back', back, 10, 'steps');
-    Menu.item('Circle', circle, 20, 'radius');
-    Menu.item('Pen up', penUp);
-    Menu.item('Pen down', penDown);
-    Menu.item('Back to center', recenter);
-    Menu.item('Hide turtle', hideTurtle);
-    Menu.item('Show turtle', showTurtle);
+    Menu.item('set screen to wrap-around', setWrap);
+    Menu.item('set screen to bounce', setBounce);
+    Menu.item('accelerate', accelerate, 1, 'unit');
+    Menu.item('rotate by', rotate, 1, 'degrees');
+    Menu.item('move x to', moveToX, 20);
+    Menu.item('move y to', moveToY, 20);
+    Menu.item('on key down', onKey, 132, []);
+    Menu.item('each frame', eachFrame, null, []);
+    Menu.item('move', move);
+    Menu.item('draw', draw);
 
     script.addEventListener('beforeRun', clear, false); // always clear canvas first
-    script.addEventListener('afterRun', drawTurtle, false); // show turtle if visible
     window.addEventListener('resize', onResize, false);
 
 })(window);
