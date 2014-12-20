@@ -501,20 +501,16 @@ the place, like this:
 
 ``defaultdict`` simplifies things by allowing you to provide a
 function that returns a value for absent keys.
-In our case, we want empty keys to be represented with an empty ``set``:
+In this case,
+when we ask about an edge that the ``Graph`` hasn't yet seen,
+we want to get back an empty ``set`` rather than an exception:
 
 >>> from collections import defaultdict
 >>> consequences_of = defaultdict(set)
->>> len(consequences_of.keys())
-0
-
-When we ask for a key that the ``defaultdict`` hasn't yet seen,
-we get a new, empty ``set`` object:
-
 >>> consequences_of['api.rst']
 set()
 
-This means that,
+Structuring our implementation this way means that,
 for operations that need to work with this data structure,
 the first-time case is identical to
 the second-and-subsequent-times case:
@@ -557,7 +553,8 @@ thereby choosing to reduce space consumption by
 increasing code complexity.
 Unless your graph is enormous or your hardware peculiar, however,
 you are unlikely to notice the performance difference;
-you certainly *will* notice if your code is more complicated,
+you certainly *will* notice
+if your code is awkward or complicated,
 particularly if you stare at it at 2 in the morning.
 
 Speaking of uncomplicated code,
@@ -590,12 +587,14 @@ mean that anyone will be able to see and manipulate these attributes:
 >>> '_inputs_of' in dir(g)
 True
 
-Recognizing a need to signal differences among
-public-facing, internal, and other types of attributes,
-this convention is one way the community has developed
+This convention is one way the community has developed
 to allow programmers to pass messages and warnings
 through spacetime to each other.
-It provides a concise and fairly consistent indicator
+Recognizing the need to signal differences among
+public-facing, internal, and other types of object attributes,
+the community adopted single leading underscores
+as a way to provide
+a concise and fairly consistent indicator
 to other programmers,
 including our future selves,
 that the original authors intended these attributes
@@ -692,8 +691,8 @@ what does it mean to say that
 Our intuitive notion of these ideas
 served when we were constructing consequences graphs by hand,
 but unfortunately computers are not terribly intuitive,
-so we'll need to be more precise about what we want:
-what are tasks?
+so we'll need to be more precise about what we want.
+What are tasks?
 How are they defined and executed?
 And how can Contingent know the connections between them?
 
