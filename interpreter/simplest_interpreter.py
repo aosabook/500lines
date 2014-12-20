@@ -7,7 +7,7 @@ class SimpleInterpreter(object):
         #                    3: self.POP_FROM_STACK }
 
     def LOAD_VALUE(self, argument):
-        what_to_push = argument
+        what_to_push = self.numbers[argument]
         self.stack.append(what_to_push)
 
     def PRINT_ANSWER(self):
@@ -31,9 +31,14 @@ class SimpleInterpreter(object):
 
     def execute(self, what_to_execute):
         instructions = what_to_execute["instructions"]
-        numbers = what_to_execute["numbers"]
+
         for each_step in instructions:
-            instruction, argument = each_step
+            instruction, argument_type, index = each_step
+            if argument_type == "number":
+                argument = what_to_execute["numbers"][index]
+            elif argument_type == "name":
+                argument = what_to_execute["name"][index]
+
             if instruction == "LOAD_VALUE":
                 self.LOAD_VALUE(argument)
             elif instruction == "ADD_TWO_VALUES":
