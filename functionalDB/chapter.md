@@ -804,12 +804,16 @@ A clause in a query is composed of three predicates, the following table defines
   </tr>
   <tr>
     <td>Unary operator</td>
-    <td>Unary operation that its operand is a variable. Bind the value of the item in the datom to the variable and return the application of the operation</td>
+    <td>Unary operation that its operand is a variable.</br>
+        Bind the value of the item in the datom to the variable.</br>
+        Return the application of the operation</td>
     <td>(birthday-this-week? _)</td>
   </tr>
   <tr>
     <td>Binary operator</td>
-    <td>A binary operation, must have a variable as one of its operands. Bind the value of the item in the datom to the variable and return the result of the operation</td>
+    <td>A binary operation, must have a variable as one of its operands.<br/>
+        Bind the value of the item in the datom to the variable.</br>
+        Return the result of the operation</td>
     <td>(< :ag 20)</td>
   </tr>
 </table>
