@@ -853,7 +853,7 @@ Following the above explanation, we can now read and understand the different te
     <td>that entity has a name (remember that name)</td>
   </tr>
   <tr>
-    <td>?e :age (< ?ag 20)</td>
+    <td>?e :age (&gt; ?ag 20) </td>
     <td>that entity’s age is above 20 (remember that age)</td>
   </tr>
   <tr>
