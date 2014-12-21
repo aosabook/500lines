@@ -770,15 +770,16 @@ The description above is missing a crucial part, which is how to make different 
 
 These two kinds of agreements (between clauses and between *:where* and *:find* parts) are done using variables. 
 
-A variable’s syntax is defined as a symbol that starts with *‘?’* (e.g., *?e* in the example above), also there is a special variable, which is the "don't-care" variable and is identified using *‘_’*. (underscore). To understand whether something is a variable or not we have our *variable?* predicate. This predicate was implemented as a function that accepts strings and not as a macro that accepts symbols to allow us to use it as a higher order function, and more specifically, to be sent as an argument to another function: 
-
+A variable is any symbol that starts with *‘?’* (e.g., *?e* in the example above). The only exception to this definition is the "don't-care" variable and its symbol is *‘_’*  (underscore). To understand whether something is a variable or not we have our *variable?* predicate.  
 ````clojure
 (defn variable?
    ([x] (variable? x true))
    ([x accept_?]  
    (or (and accept_? (= x "_")) (= (first x) \?))))
 ````
-As for predicate, we said that a clause is composed of three predicates, yet, in the example above, there are parts of a clause that do not seem too predicate-ish. There are variables and constants, are they predicates? The answer for this is yes, and the database defines the following terms as predicates:
+A common usage of a predicate is when it acts as an argument to *filter* (i.e., the predicate is a higher order function). Since functions evaluate their arguments, it is not possible to implement the predicate as a function that receives the user entered symbol (as the evaluation of that symbol would fail). Instead, it is a function that receives a string (thus callers to it would need to "stringify" the symbols they wish to check). It may seem cleaner to implement this predicate as a macro that can receive the user entered symbol (as macros do not evaluate their arguments), however, Clojure does not allow macros to be used as a higher order functions.
+
+A clause in a query is composed of three predicates, the following table defines what can act as a predicate in our query language:
 
 <table>
   <tr>
@@ -793,7 +794,7 @@ As for predicate, we said that a clause is composed of three predicates, yet, in
   </tr>
   <tr>
     <td>Variable</td>
-    <td>The value of the variable is assigned to the value of the item in the datom, the predicate returns true</td>
+    <td>Bind the value of the item in the datom to the variable and return true</td>
     <td>?e</td>
   </tr>
   <tr>
@@ -803,12 +804,12 @@ As for predicate, we said that a clause is composed of three predicates, yet, in
   </tr>
   <tr>
     <td>Unary operator</td>
-    <td>Predicate based on unary operation, accepts a variable (or don’t-care) as an operand</td>
+    <td>Unary operation that its operand is a variable. Bind the value of the item in the datom to the variable and return the application of the operation</td>
     <td>(birthday-this-week? _)</td>
   </tr>
   <tr>
     <td>Binary operator</td>
-    <td>Predicate based on binary operation, must have a variable (or don’t-care) as one of its operands </td>
+    <td>A binary operation, must have a variable as one of its operands. Bind the value of the item in the datom to the variable and return the result of the operation</td>
     <td>(< :ag 20)</td>
   </tr>
 </table>
