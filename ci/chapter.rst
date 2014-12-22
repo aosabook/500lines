@@ -36,9 +36,9 @@ There are many ways to architect a CI system. We could have the observer, dispat
 
 To build a CI system that is fault tolerant and load bearing, in this project, each of these components is its own process. This will let each process be independent of each other, and we can run multiple instances of each process. This is useful when you have more than one test job that needs to be run at the same time. We can then spawn multiple test runners in parallel, allowing us to run as many jobs as needed, and avoid us from accumulating a backlog of queued tests.
 
-In this project, not only do these components run as separate processes, but they also communicate via sockets, which will let you run each of these processes on separate, networked machines. This assigns a unique host/port address to each component. This design will let us handle hardware failures on the fly by enabling a distributed architecture. We can have the observer run on one machine, the test job dispatcher on another, and the test runners on another, and they are all communicating with each other over a network. If any of these machines go down, we can schedule a new machine to go up on the network, so the system becomes fail-safe. This project does not include auto-recovery code, as that is dependent on your distributed system's architecture, but in real world systems, CI systems are run in a distributed environment like this so they can have failover redundancy (ie: we can fallback to a standby machine if one of the machines a process was running on becomes defunct).
+In this project, not only do these components run as separate processes, but they also communicate via sockets, which will let you run each of these processes on separate, networked machines. This assigns a unique host/port address to each component, and each process will communicate with each other by posting messages at the assigned addresses. This design will let us handle hardware failures on the fly by enabling a distributed architecture. We can have the observer run on one machine, the test job dispatcher on another, and the test runners on another, and they are all communicating with each other over a network. If any of these machines go down, we can schedule a new machine to go up on the network, so the system becomes fail-safe. This project does not include auto-recovery code, as that is dependent on your distributed system's architecture, but in real world systems, CI systems are run in a distributed environment like this so they can have failover redundancy (ie: we can fallback to a standby machine if one of the machines a process was running on becomes defunct).
 
-For the purposes of this project, each of these processes will run locally, and you must kick them off individually. Since the processes need to communicate with each other, the dispatcher and the test runner will run locally listening on distinct local ports.
+For the purposes of this project, each of these processes will run locally, and you must kick them off individually. Since the processes need to communicate with each other, they will run on distinct local ports.
 
 Files in This Project
 ---------------------
@@ -48,7 +48,6 @@ This project contains python files for each of these components: the repository 
 There are also bash script files used by these processes. These script files are used to execute bash and git commands in an easier way than constantly using python's operating system-level modules like 'os' and 'subprocess'.
 
 Lastly, there is a 'tests' directory, which contains two example tests the CI system will run. One test will pass, and the other will fail.
-
 
 Initial Setup
 --------------
@@ -211,6 +210,11 @@ Conclusion
 Through separating concerns into their own processes, we were able to build the fundamentals of a distributed continuous integration system. With each process communicating with each other through socket requests, we are able to host this system across multiple machines and that enabled us to make our system more reliable.
 
 Since the CI system is quite simple now, you can extend it yourself to be far more functional. A few suggestions for improvements are the following:
+
+Per-Commit Test Runs
+--------------------
+
+The current system will periodically check to see if new commits are run and will run the most recent commit. This should be improved to test each commit. To do this, you can modify the periodic checker to dispatch test runs for each commit in the log between the last tested commit and the latest commit.
 
 Smarter Test Runners
 --------------------
