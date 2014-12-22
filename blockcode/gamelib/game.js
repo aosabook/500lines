@@ -106,6 +106,10 @@
     //     var mag = v1.mag * v2.mag * sin(v1.rad - v2.rad);
     // }
 
+    function strv(v){
+        return '<' + v.x + ',' + v.y + '>';
+    }
+
     // Tiny Sprite library
 
     function Sprite(color){
@@ -117,6 +121,7 @@
 
     Sprite.prototype.accelerate = function(speed){
         this.velocity = addv(this.velocity, multv(this.facing, speed));
+        console.log('position: %s, velocity: %s, facing: %s', strv(this.position), strv(this.velocity), strv(this.facing));
     }
 
     Sprite.prototype.applyForce = function(vec){
@@ -125,6 +130,7 @@
 
     Sprite.prototype.rotate = function(r){
         this.facing = rotatev(this.facing, r);
+        console.log('position: %s, velocity: %s, facing: %s', strv(this.position), strv(this.velocity), strv(this.facing));
     }
 
     Sprite.prototype.move = function(){
@@ -147,16 +153,13 @@
     }
 
     var keys = {};
-    var everyKeyFunction = [];
+    // var everyKeyFunction = [];
     function onKeydown(evt){
-        console.log(evt.keyCode);
         keys[evt.keyCode] = true;
     }
     function onKeyup(evt){
         keys[evt.keyCode] = false;
     }
-
-
 
     function onResize(evt){
         WIDTH = canvasPlaceholder.getBoundingClientRect().width * PIXEL_RATIO;
@@ -177,18 +180,63 @@
 
     function setWrap(){ /* set some global for wrapping */ }
     function setBounce(){ /* set some global for bouncing */ }
-    function setHardEdges(){ /* set some global for stopping at the edge */ }
+    function setLimit(){ /* set some global for limiting */ }
     /* Move in the direction the sprite is facing */
     function accelerate(block){ sprite1.accelerate(Block.value(block)); }
     function rotate(block){ sprite1.rotate(Block.value(block)); }
     function moveToX(block){ sprite1.position = vectorAtPoint(Block.value(block), sprite1.position.y); }
     function moveToY(block){ sprite1.position = vectorAtPoint(sprite1.position.x, Block.value(block)); }
-    function onKey(block){
-        var key = Block.value(block);
+    // function onKey(block){
+    //     var key = Block.value(block);
+    //     var children = Block.contents(block);
+    //     everyKeyFunction.push([key, function(){
+    //         Block.run(children);
+    //     }]);
+    // }
+    function onLeft(block){
+        // count left arrow or 'a'
         var children = Block.contents(block);
-        everyKeyFunction.push([key, function(){
-            Block.run(children);
-        }]);
+        everyFrameFunction.push(function(){
+            if (keys[37] || keys[65]){
+                Block.run(children);
+            }
+        });
+    }
+    function onRight(block){
+        // count right arrow or 'd'
+        var children = Block.contents(block);
+        everyFrameFunction.push(function(){
+            if (keys[39] || keys[68]){
+                Block.run(children);
+            }
+        });
+    }
+    function onUp(block){
+        // count up arrow or 'w'
+        var children = Block.contents(block);
+        everyFrameFunction.push(function(){
+            if (keys[38] || keys[87]){
+                Block.run(children);
+            }
+        });
+    }
+    function onDown(block){
+        // count down arrow or 's'
+        var children = Block.contents(block);
+        everyFrameFunction.push(function(){
+            if (keys[40] || keys[83]){
+                Block.run(children);
+            }
+        });
+    }
+    function onSpace(block){
+        // count space
+        var children = Block.contents(block);
+        everyFrameFunction.push(function(){
+            if (keys[32]){
+                Block.run(children);
+            }
+        });
     }
     /* move in the direction of current momentum */
     function move(){ sprite1.move(); }
@@ -203,12 +251,12 @@
     var everyFrameFunction = [];
     function everyFrame(){
         clear();
-        for (var i = 0; i < everyKeyFunction.length; i++){
-            var key = everyKeyFunction[i][0];
-            if (keys[key]){
-                everyKeyFunction[i][1]();
-            }
-        }
+        // for (var i = 0; i < everyKeyFunction.length; i++){
+        //     var key = everyKeyFunction[i][0];
+        //     if (keys[key]){
+        //         everyKeyFunction[i][1]();
+        //     }
+        // }
         for (var i = 0; i < everyFrameFunction.length; i++){
             everyFrameFunction[i]();
         }
@@ -220,7 +268,7 @@
         sprite1 = new Sprite('#00FF00');
         everyFrameFunction = [];
         keys = {};
-        everyKeyFunction = {};
+        // everyKeyFunction = [];
     }
 
     function clear(){
@@ -235,19 +283,24 @@
 
     Menu.item('set screen to wrap-around', setWrap);
     Menu.item('set screen to bounce', setBounce);
+    Menu.item('set screen to limit', setLimit);
     Menu.item('accelerate', accelerate, 1, 'unit');
     Menu.item('rotate by', rotate, 1, 'degrees');
     Menu.item('move x to', moveToX, 20);
     Menu.item('move y to', moveToY, 20);
-    Menu.item('while key down', onKey, 132, []);
     Menu.item('each frame', eachFrame, null, []);
+    Menu.item('while up key pressed', onUp, null, []);
+    Menu.item('while right key pressed', onRight, null, []);
+    Menu.item('while down key pressed', onDown, null, []);
+    Menu.item('while left key pressed', onLeft, null, []);
+    Menu.item('while space key pressed', onSpace, null, []);
     Menu.item('move', move);
     Menu.item('draw', draw);
 
     script.addEventListener('beforeRun', beforeRun, false); // always clear canvas first
     window.addEventListener('resize', onResize, false);
-    canvas.addEventListener('keydown', onKeydown, false);
-    canvas.addEventListener('keyup', onKeyup, false);
+    window.addEventListener('keydown', onKeydown, false);
+    window.addEventListener('keyup', onKeyup, false);
     script.addEventListener('everyFrame', everyFrame, false);
 
 })(window);
