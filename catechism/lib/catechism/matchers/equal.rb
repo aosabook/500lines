@@ -11,9 +11,9 @@ module Catechism
 
       def failure_message
         if negated
-          "#{subject} equals #{expected}"
+          "#{subject.inspect} equals #{expectation.inspect}"
         else
-          "#{subject} does not equal #{expected}"
+          "#{subject.inspect} does not equal #{expectation.inspect}"
         end
       end
     end

@@ -7,17 +7,13 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     Page = '''\
 <html>
 <body>
-<p>Hello, Nitinat!</p>
+<p>Hello, web!</p>
 </body>
 </html>
 '''
 
     # Handle a GET request.
     def do_GET(self):
-        self.sendPage()
-
-    # Send the page.
-    def sendPage(self):
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.send_header("Content-Length", str(len(self.Page)))
