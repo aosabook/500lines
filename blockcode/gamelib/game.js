@@ -6,6 +6,7 @@
     var canvas = document.querySelector('.canvas');
     var script = document.querySelector('.script');
     var ctx = canvas.getContext('2d');
+    window.ctx = ctx;
     var cos = Math.cos, sin = Math.sin, atan2 = Math.atan2, sqrt = Math.sqrt, floor = Math.floor, PI = Math.PI;
     var DEGREE = PI / 180;
     var WIDTH, HEIGHT, position, direction, visible, pen, color, center;
@@ -121,7 +122,7 @@
 
     Sprite.prototype.accelerate = function(speed){
         this.velocity = addv(this.velocity, multv(this.facing, speed));
-        console.log('position: %s, velocity: %s, facing: %s', strv(this.position), strv(this.velocity), strv(this.facing));
+        // console.log('position: %s, velocity: %s, facing: %s', strv(this.position), strv(this.velocity), strv(this.facing));
     }
 
     Sprite.prototype.applyForce = function(vec){
@@ -138,18 +139,22 @@
     }
 
     Sprite.prototype.draw = function(){
+        // ctx.save();
+        var width = PI - PI/6;
+        var length = 20;
+        var nosex = cos(this.facing.rad) * length + this.position.x;
+        var nosey = sin(this.facing.rad) * length + this.position.y;
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 4;
         ctx.beginPath();
-        ctx.lineStyle = this.color;
-        ctx.lineWidth = 3;
-        ctx.moveTo(this.position.x, this.position.y);
-        ctx.lineTo(cos(this.facing - PI/8) * 30 + this.position.x,
-                   sin(this.facing - PI/8) * 30 + this.position.y);
-        ctx.moveTo(this.position.x, this.position.y);
-        ctx.lineTo(cos(this.facing + PI/8) * 30 + this.position.x,
-                   sin(this.facing + PI/8) * 30 + this.position.y);
-        ctx.closePath();
+        ctx.moveTo(nosex, nosey);
+        ctx.lineTo(cos(this.facing.rad - width) * length + this.position.x,
+                   sin(this.facing.rad - width) * length + this.position.y);
+        ctx.moveTo(nosex, nosey);
+        ctx.lineTo(cos(this.facing.rad + width) * length + this.position.x,
+                   sin(this.facing.rad + width) * length + this.position.y);
         ctx.stroke();
-        ctx.fillRect(this.position.x, this.position.y, 50, 50);
+        // ctx.restore();
     }
 
     var keys = {};
