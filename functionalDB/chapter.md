@@ -789,31 +789,33 @@ A clause in a query is composed of three predicates, the following table defines
   </tr>
   <tr>
     <td>Constant</td>
-    <td>Is the value of the item in the datom equals to the constant</td>
+    <td>Is the value of the item in the datom equals to the constant.</td>
     <td>:likes</td>
   </tr>
   <tr>
     <td>Variable</td>
-    <td>Bind the value of the item in the datom to the variable and return true</td>
+    <td>Bind the value of the item in the datom to the variable and return true.</td>
     <td>?e</td>
   </tr>
   <tr>
-    <td>Don’t-care </td>
-    <td>The predicate always returns true</td>
+    <td>Don’t-care</td>
+    <td>The predicate always returns true.</td>
     <td>_</td>
   </tr>
   <tr>
     <td>Unary operator</td>
     <td>Unary operation that its operand is a variable.<br/>
-        Bind the value of the item in the datom to the variable.<br/>
-        Return the application of the operation</td>
+        Bind the value of the item in the datom to the variable (unless it's a Don't-care).<br/>
+        Replace the variable with the value of the item in the datom.<br/>
+        Return the application of the operation.</td>
     <td>(birthday-this-week? _)</td>
   </tr>
   <tr>
     <td>Binary operator</td>
     <td>A binary operation, must have a variable as one of its operands.<br/>
-        Bind the value of the item in the datom to the variable.<br/>
-        Return the result of the operation</td>
+        Bind the value of the item in the datom to the variable (unless it's a Don't-care).<br/>        
+        Replace the variable with the value of the item in the datom.<br/>
+        Return the result of the operation.</td>
     <td>(&gt; :ag 20)</td>
   </tr>
 </table>
