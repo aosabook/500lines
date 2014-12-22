@@ -805,7 +805,7 @@ A clause in a query is composed of three predicates, the following table defines
   <tr>
     <td>Unary operator</td>
     <td>Unary operation that its operand is a variable.<br/>
-        Bind the value of the item in the datom to the variable (unless it's a Don't-care).<br/>
+        Bind the datom's item's value to the variable (unless it's an '_').<br/>
         Replace the variable with the value of the item in the datom.<br/>
         Return the application of the operation.</td>
     <td>(birthday-this-week? _)</td>
@@ -813,7 +813,7 @@ A clause in a query is composed of three predicates, the following table defines
   <tr>
     <td>Binary operator</td>
     <td>A binary operation, must have a variable as one of its operands.<br/>
-        Bind the value of the item in the datom to the variable (unless it's a Don't-care).<br/>        
+        Bind the datom's item's value to the variable (unless it's an '_').<br/>        
         Replace the variable with the value of the item in the datom.<br/>
         Return the result of the operation.</td>
     <td>(&gt; :ag 20)</td>
