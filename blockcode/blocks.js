@@ -3,7 +3,7 @@
 
 	function createBlock(name, value, contents){
 		var item = elem('div', {'class': 'block', draggable: true, 'data-name': name}, [name]);
-		if (value !== undefined){
+		if (value !== undefined && value !== null){
 			item.appendChild(elem('input', {type: 'number', value: value}));
 		}
 		if (Array.isArray(contents)){
@@ -13,7 +13,7 @@
 		}else if (typeof contents === 'string'){ // Add units specifier
 			item.appendChild(document.createTextNode(' ' + contents));
 		}
-		return item;		
+		return item;
 	}
 
 	function blockContents(block){
@@ -27,14 +27,17 @@
 	}
 
 	function blockUnits(block){
-		if (block.lastChild.nodeType === Node.TEXT_NODE && block.lastChild.textContent){
+		if (block.children.length > 1 && block.lastChild.nodeType === Node.TEXT_NODE && block.lastChild.textContent){
 			return block.lastChild.textContent.slice(1);
 		}
 	}
 
 	function blockScript(block){
 		var script = [block.dataset.name];
-		script.push(blockValue(block));
+        var value = blockValue(block);
+        if (value !== null){
+    		script.push(blockValue(block));
+        }
 		var contents = blockContents(block);
 		var units = blockUnits(block);
 		if (contents){script.push(contents.map(blockScript));}

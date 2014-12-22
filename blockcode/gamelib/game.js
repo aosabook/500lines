@@ -111,7 +111,7 @@
     function Sprite(color){
         this.color = color;
         this.position = vector(0,0);
-        this.facing = vector(0,0.1);
+        this.facing = vector(-PI/2,0.1);
         this.velocity = vector(0,0.1);
     }
 
@@ -129,23 +129,32 @@
 
     Sprite.prototype.move = function(){
         this.position = addv(this.position, this.velocity);
-        console.log('position %s,%s', this.position.x, this.position.y);
     }
 
     Sprite.prototype.draw = function(){
-        console.log('draw %s', this.color);
+        ctx.beginPath();
         ctx.lineStyle = this.color;
         ctx.lineWidth = 3;
-        ctx.beginPath();
         ctx.moveTo(this.position.x, this.position.y);
-        ctx.lineTo(cos(this.facing - PI/8) * 30 + this.position.x, sin(this.facing - PI/8) * 30 + this.position.y);
+        ctx.lineTo(cos(this.facing - PI/8) * 30 + this.position.x,
+                   sin(this.facing - PI/8) * 30 + this.position.y);
         ctx.moveTo(this.position.x, this.position.y);
-        ctx.lineTo(cos(this.facing + PI/8) * 30 + this.position.x, sin(this.facing + PI/8) * 30 + this.position.y);
+        ctx.lineTo(cos(this.facing + PI/8) * 30 + this.position.x,
+                   sin(this.facing + PI/8) * 30 + this.position.y);
         ctx.closePath();
         ctx.stroke();
         ctx.fillRect(this.position.x, this.position.y, 50, 50);
     }
 
+    var keys = {};
+    var everyKeyFunction = [];
+    function onKeydown(evt){
+        console.log(evt.keyCode);
+        keys[evt.keyCode] = true;
+    }
+    function onKeyup(evt){
+        keys[evt.keyCode] = false;
+    }
 
 
 
@@ -168,19 +177,50 @@
 
     function setWrap(){ /* set some global for wrapping */ }
     function setBounce(){ /* set some global for bouncing */ }
+    function setHardEdges(){ /* set some global for stopping at the edge */ }
+    /* Move in the direction the sprite is facing */
     function accelerate(block){ sprite1.accelerate(Block.value(block)); }
     function rotate(block){ sprite1.rotate(Block.value(block)); }
     function moveToX(block){ sprite1.position = vectorAtPoint(Block.value(block), sprite1.position.y); }
     function moveToY(block){ sprite1.position = vectorAtPoint(sprite1.position.x, Block.value(block)); }
-    function onKey(block){ console.log(Block.value(block)); }
+    function onKey(block){
+        var key = Block.value(block);
+        var children = Block.contents(block);
+        everyKeyFunction.push([key, function(){
+            Block.run(children);
+        }]);
+    }
+    /* move in the direction of current momentum */
     function move(){ sprite1.move(); }
     function draw(){ sprite1.draw(); }
     function eachFrame(block){
-        window.onFrame = function(){
-            clear();
-            var children = Block.contents(block);
+        var children = Block.contents(block);
+        everyFrameFunction.push(function(){
             Block.run(children);
-        };
+        });
+    }
+
+    var everyFrameFunction = [];
+    function everyFrame(){
+        clear();
+        for (var i = 0; i < everyKeyFunction.length; i++){
+            var key = everyKeyFunction[i][0];
+            if (keys[key]){
+                everyKeyFunction[i][1]();
+            }
+        }
+        for (var i = 0; i < everyFrameFunction.length; i++){
+            everyFrameFunction[i]();
+        }
+    };
+
+
+    function beforeRun(){
+        clear();
+        sprite1 = new Sprite('#00FF00');
+        everyFrameFunction = [];
+        keys = {};
+        everyKeyFunction = {};
     }
 
     function clear(){
@@ -199,12 +239,15 @@
     Menu.item('rotate by', rotate, 1, 'degrees');
     Menu.item('move x to', moveToX, 20);
     Menu.item('move y to', moveToY, 20);
-    Menu.item('on key down', onKey, 132, []);
+    Menu.item('while key down', onKey, 132, []);
     Menu.item('each frame', eachFrame, null, []);
     Menu.item('move', move);
     Menu.item('draw', draw);
 
-    script.addEventListener('beforeRun', clear, false); // always clear canvas first
+    script.addEventListener('beforeRun', beforeRun, false); // always clear canvas first
     window.addEventListener('resize', onResize, false);
+    canvas.addEventListener('keydown', onKeydown, false);
+    canvas.addEventListener('keyup', onKeyup, false);
+    script.addEventListener('everyFrame', everyFrame, false);
 
 })(window);

@@ -22,8 +22,8 @@
 			var blocks = [].slice.call(document.querySelectorAll('.script > .block'));
 			Block.run(blocks);
 			Block.trigger('afterRun', script);
-		}else if (window['onFrame']){
-            window.onFrame();
+		}else{
+            Block.trigger('everyFrame', script);
         }
 		requestAnimationFrame(run);
 	}
