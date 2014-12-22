@@ -153,9 +153,11 @@
     }
 
     var keys = {};
-    // var everyKeyFunction = [];
     function onKeydown(evt){
+        if (evt.target.tagName === 'INPUT') return;
         keys[evt.keyCode] = true;
+        evt.preventDefault();
+        evt.stopPropagation();
     }
     function onKeyup(evt){
         keys[evt.keyCode] = false;
@@ -186,13 +188,6 @@
     function rotate(block){ sprite1.rotate(Block.value(block)); }
     function moveToX(block){ sprite1.position = vectorAtPoint(Block.value(block), sprite1.position.y); }
     function moveToY(block){ sprite1.position = vectorAtPoint(sprite1.position.x, Block.value(block)); }
-    // function onKey(block){
-    //     var key = Block.value(block);
-    //     var children = Block.contents(block);
-    //     everyKeyFunction.push([key, function(){
-    //         Block.run(children);
-    //     }]);
-    // }
     function onLeft(block){
         // count left arrow or 'a'
         var children = Block.contents(block);
@@ -251,12 +246,6 @@
     var everyFrameFunction = [];
     function everyFrame(){
         clear();
-        // for (var i = 0; i < everyKeyFunction.length; i++){
-        //     var key = everyKeyFunction[i][0];
-        //     if (keys[key]){
-        //         everyKeyFunction[i][1]();
-        //     }
-        // }
         for (var i = 0; i < everyFrameFunction.length; i++){
             everyFrameFunction[i]();
         }
@@ -268,7 +257,6 @@
         sprite1 = new Sprite('#00FF00');
         everyFrameFunction = [];
         keys = {};
-        // everyKeyFunction = [];
     }
 
     function clear(){
