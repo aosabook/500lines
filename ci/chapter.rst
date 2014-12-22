@@ -19,7 +19,7 @@ the repository.
 
 Continuous integration systems monitor a master repository which is usually hosted on a web server, and not local to the CI's file systems. For the cases of our example, we will use a local repository instead of a remote repository.
 
-Continuous integration systems need not run periodically. You can also have them run every few commits, or per-commit. For our example case, I am simplifying this to just being periodically. This means that if this is set up to check for changes in 5 minute periods, it will run tests against the most recent commit made after the 5 minute period. It won't test every commit made within that period of time, only the most recent one.
+Continuous integration systems need not run periodically. You can also have them run every few commits, or per-commit. For our example case, I am simplifying this to just being periodically. This means that if this is set up to check for changes in 5 second periods, it will run tests against the most recent commit made after the 5 second period. It won't test every commit made within that period of time, only the most recent one.
 
 This CI system is designed to check periodically for changes in a repository. In real-world CI systems, you can also have the repository observer get notified by a hosted repository. Github, for example, provides 'post-commit hooks' which send out notifications to a URL. Following this model, the repository observer would be called by the web server hosted at that URL to respond to that notification. Since this is complex to model locally, we're using an observer model, where the repository observer will check for changes instead of being notified.
 
@@ -52,7 +52,8 @@ Lastly, there is a 'tests' directory, which contains two example tests the CI sy
 Initial Setup
 --------------
 
-Continuous integration systems run tests whenever a commit is made to a repository. We will need to set up the repository our CI system will monitor.
+Continuous integration systems run tests by detecting changes in a code repository, so to start, we will need to set up the repository our CI system will monitor.
+
 Let's call this test_repo::
 
   mkdir test_repo
@@ -88,11 +89,13 @@ The Components
 The Repository Observer (repo_observer.py)
 ------------------------------------------
 
-The repository observer must know which repository to observe. To do this, we previously created a clone of our repository at /path/to/test_repo_clone_obs. The repository will use this clone to detect changes. In order for the repository observer to use this clone, when we invoke the repo_observer.py file, we must pass it this path. The repository observer will use this clone to pull from the main repository, and on each commit, will notify the dispatcher.
+The repository observer will monitor a code repository, and will notify a dispatcher with the commit hash to run tests against when a new commit is found.
 
-The repository observer must communicate with the dispatcher, and to do so, it must know its server address and port. When you start the repository observer, you can pass in the dispatcher's server address using the '--dispatcher-server' command line argument. If you do not pass it in, it will assume the default address of 'localhost:8888'. 
+In order for the observer to run, it must know which repository to observe. We previously created a clone of our repository at /path/to/test_repo_clone_obs. The repository will use this clone to detect changes. To allow the repository observer to use this clone, we must pass it this path when we invoke the repo_observer.py file. The repository observer will use this clone to pull from the main repository, and on each commit, will notify the dispatcher.
 
-Once the repository observer file is invoked, the poll() function is called. This function parses the command line arguments, and then kicks off an infinite while loop. The while loop is used to periodically check the repository for changes. The first thing it does is call the 'update_repo.sh' Bash file. Bash is used because we need to check file existence, create files, and use git, and using a shell script is the most direct and easy way to achieve this. Alternatively, python's 'os' built-in module can be used for using the file system and GitPython from PyPI can be used for git access, and these will be operating system independent, but are more roundabout.
+We must also give it the dispatcher address, so it may send it messages. When you start the repository observer, you can pass in the dispatcher's server address using the '--dispatcher-server' command line argument. If you do not pass it in, it will assume the default address of 'localhost:8888'. 
+
+Once the repository observer file is invoked, the poll() function is called. This function parses the command line arguments, and then kicks off an infinite while loop. The while loop is used to periodically check the repository for changes. The first thing it does is call the 'update_repo.sh' Bash file. Bash is used because we need to check file existence, create files, and use git, and using a shell script is the most direct and easy way to achieve this. Alternatively, python's 'os' built-in module can be used for accessing the file system, and GitPython from PyPI can be used for git access, and these will be operating system independent, but are more roundabout.
 
 The 'update_repo.sh' file is used to identify any new commits and let the repository observer know. It does this by noting what commit hash we are currently aware of, then pulls the repository, and checks the latest commit hash. If they match, no changes are made, so the repository observer doesn't need to do anything, but if there is a difference in the commit hash, then we know a new commit has been made. In this case, 'update_repo.sh' will create a file called .commit_hash with the latest commit hash stored in it.
 
