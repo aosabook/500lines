@@ -1066,13 +1066,13 @@ This is done either directly using the *resultify-bind-pair* function or using a
 Our journey started with trying to take a different perspective on databasing, and adopt a point of view whose voice is rarely heard in the software design world. It ended with database that its main capabilities are:
 
 * Supports ACI transactions (the durability was lost when we decided to have the data stored in-memory) 
+* Supports a "what-if" interactions
+* Answers time related questions 
 * Handle simple datalog queries that are optimized by using indices
 * provides APIs for graph queries
 * Introduces and implemented the notion of evolutionary queries
-* Allows to ask what-if questions
 
-All this was implemented in a code base whose size is 488 lines of code, of which 74 are blank and 54 are docstrings, which brings us to a database implementation done in 360 lines of code.
+There are still things to be done if we want to make it a better database. We can sprinkle caching all over the place to improve performance, extend the functionality by supporting stronger queries - both datalog and graph queries and add real storage support to provide data durability to name a few.
 
-There are still things to be done if we want to make it better database. We can caching all over the place to improve performance, we can extend the functionality by supporting stronger queries - both datalog and graph queries. We can add real storage support to provide data durability and add APIs so client could interact with the database over the web. All these features and more are already part of a real database, called Datomic, which was the inspiration for our database. 
-
-Taking a look at the Datomic database, and other software components in the Clojure ecosystem, is highly recommended, as one of the main themes of this ecosystem is favoring clean and practical software design, an approach that will help you become a better software person. 
+All this was implemented in a code base whose size is 488 lines of code, of which 74 are blank and 54 are docstrings, which brings us to a database implementation done in 360 lines of Clojure code.
+ 
