@@ -401,7 +401,7 @@ We initialize by trying to collect a gremlin. If the gremlin's current vertex is
 
 We've seen two simplistic ways of filtering, but sometimes we need more elaborate constraints. What if we wanted Thor's siblings whose weight in skippund is greater than their height in fathoms? This query would give us our answer: ```g.v('Thor').in().out().unique().filter(function(asgardian) {return asgardian.weight > asgardian.height}).run()```
 
-[Æsir?] [depending on the density of asgardian flesh this may return many results, or none at all]
+[footnote: Depending on the density of Asgardian flesh this may return many results, or none at all.]
 
 ```javascript
 Dagoba.addPipeType('filter', function(graph, args, gremlin, state) {
@@ -423,12 +423,12 @@ There are two possibilities for this error to arise. The first involves the user
 
 The second possibility is that the filter is being applied dynamically at run time. This is a much more important case, because the person invoking the query is not necessarily the author of the query code. Because this is on the web, our default rule is to always show as much as we can, and never break things. It is usually preferable to soldier on in the face of grave tribulations rather than succumb to our wounds and present the user with a grisly error message.
 
-For those rare occasions when showing too few results is better than showing too many, Dagoba.error can be overridden to throw an error, circumventing the natural control flow and generally breaking things. This is the path of pedants, and typically results in a horrible user experience. If you are launching missiles you should like some pedants on your team. 
+For those occasions when showing too few results is better than showing too many, Dagoba.error can be overridden to throw an error, circumventing the natural control flow.
 
 
 #### Take
 
-We don't always want all the results at once. Sometimes we only need a handful of results: we want a dozen of Thor's contemporaries, going all the way back to the primeval cow Auðumbla: 
+We don't always want all the results at once. Sometimes we only need a handful of results: we want a dozen of Thor's contemporaries, so we go all the way back to the primeval cow Auðumbla: 
 
 ```
 g.v('Thor').in().in().in().in().out().out().out().out().unique().take(12).run()
@@ -614,7 +614,7 @@ This allows us to query the edge using a filter object: ```g.v('Odin').out({posi
 
 ## The interpreter itself
 
-We've arrived at the top of the narrative mountain, ready to receive our prize: the fabled interpreter. It's actually quite a simple beast, but it does require a bit of concentration to fully understand.
+We've arrived at the top of the narrative mountain, ready to receive our prize: the fabled interpreter. It's actually a relatively simple beast, but it does require a bit of concentration to fully understand.
 
 We compared programs to pipelines earlier, and that's a good mental model for writing queries. But the actual program evaluation is more akin to a Turing machine than a pipeline. There's a read/write head that sits over a particular step. It "reads" the step, changes its "state", and then moves either right or left.
 
@@ -870,6 +870,11 @@ One concern with doing our queries this new way is that we're still not seeing a
 The change we just made means we will always traverse every edge a particular vertex had _at the moment we visited it_. That means that as we begin traversing edges, we may see new vertices at different points in the graph chronology, and may even see the same vertex at different points in the chronology at different points in our query. Depending on the relationships we're storing, this may provide a view of the universe that seemingly defies the laws of physics, even though no laws have actually been broken. 
 
 If we need to see the world as it exists at a particular moment in time (e.g. 'now', where now is the moment our query begins) we can change our driver loop and the update handlers to add versioning to the data, and pass a pointer to that particular version into the query system. Doing this also opens the door to true transactions, and automated rollback/retries in an STM-like fashion. 
+
+
+## Future directions
+
+
 
 
 ## Wrapping up
