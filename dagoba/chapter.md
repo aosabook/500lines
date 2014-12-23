@@ -2,7 +2,7 @@
 
 _An exploration of connectedness through the lens of familial lineage_
 
-A long time ago, when the world was still young, all data walked happily in single file. To ask a question of your data you merely put a fence in the path, and each datum jumped it in turn. Life was easy and programming was a breeze.
+A long time ago, when the world was still young, all data walked happily in single file. If you wanted your data to jump over a fence, you just set the fence down in its path and each datum jumped it in turn. Punch cards in, punch cards out. Life was easy and programming was a breeze.
 
 Then came the random access revolution, and data grazed freely across the hillside. Herding data became a serious concern -- if you can access any piece of data at any time, how do you know which one to pick next? Techniques were developed for corralling the data by forming links between items [footenote: the network model (CODASYL), the hierarchical model (IMS), etc], marshaling groups of units into formation through their linking assemblage. Questioning data meant picking a sheep and pulling along everything connected to it. 
 
@@ -15,7 +15,7 @@ The distributed revolution changed everything, again. Data broke free of spacial
 
 ## Definitions and introductions
 
-Graph databases allow us to elegantly solve all kinds of interesting problems. This raises two questions: what is a graph database, and which problems?
+We're going to build a graph databases which will allow us to elegantly solve all kinds of interesting problems. So what's a graph database?
 
 Well, the dictionary defines "graph database" as a database for graphs. Thanks, dictionary! Let's break that down a little.
 
@@ -40,20 +40,18 @@ Something like ```Thor.parents.parents.parents.children.children.children``` str
 What's the simplest thing we can build that gives us this kind of interface? We could make a list of entities, and a list of edges, just like the relational schema, and then build some helper functions. It might look something like this:
 
 ```javascript
-///  hi, this needs work!
-///  vertices = ['Thor', 'Freya', 'Odin', 'Loki']
-  V = [1,2,3,4,5,6]
-  E = [ [1,2], [2,3], [3,1], [3,4], [4,5], [4,6] ]
+  V = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+  E = [ [1,2], [1,3], [2,4], [2,5], [3,6], [3,7], [4,8], [4,9], [5,10], [5,11], [6,12], [6,13], [7,14], [7,15] ]
   
-  parents  = function(x) { return E.reduce( function(acc, e) { return (e[1] === x) ? acc.concat(e[0]) : acc }, [] )}
-  children = function(x) { return E.reduce( function(acc, e) { return (e[0] === x) ? acc.concat(e[1]) : acc }, [] )}
+  parents  = function(x) { return E.reduce( function(acc, e) { return ~x.indexOf(e[1]) ? acc.concat(e[0]) : acc }, [] )}
+  children = function(x) { return E.reduce( function(acc, e) { return ~x.indexOf(e[0]) ? acc.concat(e[1]) : acc }, [] )}
 ```
 
-Now we can say something like ```children(children(children(parents(parents(parents('Thor'))))))```. It reads backwards and you get lost in silly parens, but is otherwise pretty close to what we wanted. Take a minute to look at the code. Can you see any ways to improve it?
+Now we can say something like ```children(children(children(parents(parents(parents([8]))))))```. It reads backwards and you get lost in silly parens, but is otherwise pretty close to what we wanted. Take a minute to look at the code. Can you see any ways to improve it?
 
 Well, we're treating the edges as a global variable, which means we can only ever have one database at a time using these helper functions. That's pretty limiting. 
 
-We're also not using the vertices at all. What does that tell us? It implies that everything we need is in the edges array, which in this case is true: the vertex values are scalars, so they exist independently in the edges array. If we want to answer questions like "How many of Freya's descendants were Valkyries?" we'll need to add more information to the vertices, which means making them compound values, which means the edges array should reference them by pointer instead of copying the value.
+We're also not using the vertices at all. What does that tell us? It implies that everything we need is in the edges array, which in this case is true: the vertex values are scalars, so they exist independently in the edges array. If we want to answer questions like "How many of Freya's descendants were Valkyries?" we'll need to add more information to the vertices, which means making them compound values, which means the edges array should reference vertices instead of copying their value.
 
 The same holds true for our edges: they contain an 'in' vertex and an 'out' vertex [footnote1], but no elegant way to incorporate additional information. We'll need that to answer questions like "How many stepparents did Loki have?" or "How many children did Odin have before Thor was born?"
 
