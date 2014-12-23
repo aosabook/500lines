@@ -37,7 +37,7 @@ What would we like to write? Something both concise and flexible; something that
 
 Something like ```Thor.parents.parents.parents.children.children.children``` strikes a reasonably good balance. The primitives give us flexibility to ask many similar questions, but the query is also very concise and natural. This particular phrasing gives us too many results, as it includes first cousins and siblings, but we're going for gestalt here.
 
-What's the simplest thing we can build that gives us this kind of interface? We could make a list of entities, and a list of edges, just like the relational schema, and then build some helper functions. It might look something like this:
+What's the simplest thing we can build that gives us this kind of interface? We could make a list of entities and a list of edges, just like the relational schema, and then build some helper functions. It might look something like this:
 
 ```javascript
   V = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
@@ -130,9 +130,9 @@ Dagoba.G.addVertex = function(vertex) {                 // accepts a vertex-like
 
 If the vertex doesn't already have an _id property we assign it one using our autoid [footnote: Why can't we just use vertex.length here?]. If the _id already exists on a vertex in our graph we reject the new vertex. 
 
-Then we add the new vertex into our graph's list of vertices, add it to the vertexIndex for efficient lookup by _id, and add two additional properties to it: _out and _in, which will both become lists of edges. [footnote: We use the term 'list' to refer to the abstract data structure with [[[push, pop, readN, shift, and unshift]]] operations. We use the 'array' concrete data structure to fulfill the API required by the list abstraction. Technically both "list of edges" and "array of edges" are correct, so which we use at a given moment depends on context: if we are relying on the specific properties of JavaScript arrays, like the ```.length``` property, we will say "array of edges". Otherwise we say "list of edges", as an indication that any list implementation would suffice.]
+Then we add the new vertex into our graph's list of vertices, add it to the vertexIndex for efficient lookup by _id, and add two additional properties to it: _out and _in, which will both become lists of edges. [footnote: We use the term 'list' to refer to the abstract data structure with push, head, and tail operations. We use the 'array' concrete data structure to fulfill the API required by the list abstraction. Technically both "list of edges" and "array of edges" are correct, so which we use at a given moment depends on context: if we are relying on the specific properties of JavaScript arrays, like the ```.length``` property or random access, we will say "array of edges". Otherwise we say "list of edges", as an indication that any list implementation would suffice.]
 
-Note that we are using the object we're handed as a vertex instead of creating a new object of our own. If the entity invoking the addVertex function retains a pointer to the vertex they can manipulate it at runtime and potentially mess things up. On the other hand, while doing a deep copy would give us some protection from outside tampering it would also double our space usage [footnote: We could also use persistent data structures, which add only log(N) space overhead. But the problem of doubling our space usage remains: if the application using this graph database retains a pointer to the vertex data, then regardless of whether we deep copy or convert to a persistent data structure we pay at least twice the space cost. Since Dagoba's original use case involved immutable vertices with a copy retained in the host application it has been optimized for that case.]. There's a tension here between performance and protection, and the right balance depends on your use cases.
+Note that we are using the object we're handed as a vertex instead of creating a new object of our own. If the entity invoking the addVertex function retains a pointer to the vertex they can manipulate it at runtime and potentially mess things up. On the other hand, while doing a deep copy would give us some protection from outside tampering it would also double our space usage [footnote: Often when faced with space leaks due to deep copying the solution is to use a persistent data structure, which allows mutation-free changes for only log(N) extra space. But the problem remains: if the host application retains a pointer to the vertex data then it can mutate that data any time, regardless of what strictures we impose in our database. The only practical solution is deep copying vertices, which doubles our space usage. Dagoba's original use case involves vertices that are treated as immutable by the host application, which allows us to avoid this issue, but requires a certain amount of discipline on the part of the user.]. There's a tension here between performance and protection, and the right balance depends on your use cases.
 
 ```javascript
 Dagoba.G.addEdge = function(edge) {                     // accepts an edge-like object, with properties
@@ -268,7 +268,6 @@ Dagoba.fauxPipetype = function(_, _, maybe_gremlin) {   // if you can't find a p
 ```
 
 See those underscores? We use those to label params that won't be used in our function. Most other pipetypes will use all three params. (We really only did this here to make the comments line up nicely.)
-
 
 
 
