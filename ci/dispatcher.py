@@ -2,7 +2,7 @@
 This is the test dispatcher.
 
 It will dispatch tests against any registered test runners when the repo
-observer sends it a 'dispatch' message with the commit hash to be used. It
+observer sends it a 'dispatch' message with the commit ID to be used. It
 will store results when the test runners have completed running the tests and
 send back the results in a 'results' messagee
 
@@ -21,19 +21,19 @@ import helpers
 
 
 # Shared dispatcher code
-def dispatch_tests(server, commit_hash):
+def dispatch_tests(server, commit_id):
     # NOTE: usually we don't run this forever
     while True:
         print "trying to dispatch to runners"
         for runner in server.runners:
             response = helpers.communicate(runner["host"],
                                            int(runner["port"]),
-                                           "runtest:%s" % commit_hash)
+                                           "runtest:%s" % commit_id)
             if response == "OK":
-                print "adding hash %s" % commit_hash
-                server.dispatched_commits[commit_hash] = runner
-                if commit_hash in server.pending_commits:
-                    server.pending_commits.remove(commit_hash)
+                print "adding id %s" % commit_id
+                server.dispatched_commits[commit_id] = runner
+                if commit_id in server.pending_commits:
+                    server.pending_commits.remove(commit_id)
                 return
         time.sleep(2)
 
@@ -76,27 +76,27 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
             self.request.sendall("OK")
         elif command == "dispatch":
             print "going to dispatch"
-            commit_hash = command_groups.group(2)[1:]
+            commit_id = command_groups.group(2)[1:]
             if not self.server.runners:
                 self.request.sendall("No runners are registered")
             else:
                 # The coordinator can trust us to dispatch the test
                 self.request.sendall("OK")
-                dispatch_tests(self.server, commit_hash)
+                dispatch_tests(self.server, commit_id)
         elif command == "results":
             print "got test results"
             results = command_groups.group(2)[1:]
             results = results.split(":")
-            commit_hash = results[0]
+            commit_id = results[0]
             length_msg = int(results[1])
             # 3 is the number of ":" in the sent command
-            remaining_buffer = self.BUF_SIZE - (len(command) + len(commit_hash) + len(results[1]) + 3)
+            remaining_buffer = self.BUF_SIZE - (len(command) + len(commit_id) + len(results[1]) + 3)
             if length_msg > remaining_buffer:
                 self.data += self.request.recv(length_msg - remaining_buffer).strip()
-            del self.server.dispatched_commits[commit_hash]
+            del self.server.dispatched_commits[commit_id]
             if not os.path.exists("test_results"):
                 os.makedirs("test_results")
-            with open("test_results/%s" % commit_hash, "w") as f:
+            with open("test_results/%s" % commit_id, "w") as f:
                 data = self.data.split(":")[3:]
                 data = "\n".join(data)
                 f.write(data)

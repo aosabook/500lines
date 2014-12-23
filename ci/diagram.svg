@@ -87,7 +87,7 @@
       <rect x="388.125" y="81.875" clip-path="url(#clipPath2)" fill="none" width="107" rx="4" ry="4" height="30"/>
       <text fill="red" x="138.8184" xml:space="preserve" y="207.5273" clip-path="url(#clipPath2)" stroke="none">sends 'dispatch'</text>
       <text fill="red" x="143.5439" xml:space="preserve" y="221.6602" clip-path="url(#clipPath2)" stroke="none">message with </text>
-      <text fill="red" x="147.4668" xml:space="preserve" y="235.793" clip-path="url(#clipPath2)" stroke="none">commit hash</text>
+      <text fill="red" x="147.4668" xml:space="preserve" y="235.793" clip-path="url(#clipPath2)" stroke="none">commit id</text>
     </g>
     <g fill="rgb(255,204,0)" text-rendering="geometricPrecision" shape-rendering="geometricPrecision" transform="matrix(1,0,0,1,154,160)" stroke="rgb(255,204,0)">
       <rect x="272.3319" y="187.125" clip-path="url(#clipPath2)" width="70" rx="4" ry="4" height="30" stroke="none"/>
@@ -97,7 +97,7 @@
       <rect x="272.3319" y="187.125" clip-path="url(#clipPath2)" fill="none" width="70" rx="4" ry="4" height="30"/>
       <text fill="red" x="434.668" xml:space="preserve" y="227.5273" clip-path="url(#clipPath2)" stroke="none">sends 'runtests'</text>
       <text fill="red" x="440.4424" xml:space="preserve" y="241.6602" clip-path="url(#clipPath2)" stroke="none">message with</text>
-      <text fill="red" x="442.4668" xml:space="preserve" y="255.793" clip-path="url(#clipPath2)" stroke="none">commit hash</text>
+      <text fill="red" x="442.4668" xml:space="preserve" y="255.793" clip-path="url(#clipPath2)" stroke="none">commit id</text>
     </g>
     <g fill="rgb(255,204,0)" text-rendering="geometricPrecision" shape-rendering="geometricPrecision" transform="matrix(1,0,0,1,154,160)" stroke="rgb(255,204,0)">
       <rect x="723.875" y="-34.125" clip-path="url(#clipPath2)" width="143.75" rx="4" ry="4" height="30" stroke="none"/>
@@ -113,7 +113,7 @@
       <text x="641.4756" xml:space="preserve" y="101.4102" clip-path="url(#clipPath2)" stroke="none">handle(...)</text>
       <rect x="635.6875" y="81.875" clip-path="url(#clipPath2)" fill="none" width="70" rx="4" ry="4" height="30"/>
       <text fill="red" x="697.9453" xml:space="preserve" y="234.7041" clip-path="url(#clipPath2)" stroke="none">sends 'results' message with</text>
-      <text fill="red" x="691.7783" xml:space="preserve" y="248.8369" clip-path="url(#clipPath2)" stroke="none">commit hash, byte length, and</text>
+      <text fill="red" x="691.7783" xml:space="preserve" y="248.8369" clip-path="url(#clipPath2)" stroke="none">commit id, byte length, and</text>
       <text fill="red" x="739.8369" xml:space="preserve" y="262.9697" clip-path="url(#clipPath2)" stroke="none">results output</text>
     </g>
     <g fill="rgb(255,204,0)" text-rendering="geometricPrecision" shape-rendering="geometricPrecision" transform="matrix(1,0,0,1,154,160)" stroke="rgb(255,204,0)">
