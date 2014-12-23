@@ -68,7 +68,7 @@ Do you see any other issues?
 ```
 function undirectMe (edges) 
   { return edges.reduce( function(acc, edge)
-    { acc.push([ edge[1], edge[0] ]) }, edges.slice() )}
+    { return acc.concat([[ edge[1], edge[0] ]]) }, edges.slice() )}
 ```
 
 
