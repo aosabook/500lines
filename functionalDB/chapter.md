@@ -229,8 +229,8 @@ For example, the result of indexing the following five entities can be seen in t
 2. <span style="background-color:lightblue">Brutus</span> (also known as B) <span style="background-color:lightgreen">lives in</span> <span style="background-color:pink">Rome</span> 
 3. <span style="background-color:lightblue">Cleopatra</span> (also known as Cleo) <span style="background-color:lightgreen">lives in</span> <span style="background-color:pink">Egypt</span>
 4. <span style="background-color:lightblue">Rome</span>’s <span style="background-color:lightgreen">river</span> is the <span style="background-color:pink">Tiber</span>
-5. <span style="background-color:lightblue">Egypt</span>’s <span style="background-color:lightgreen">river</span> is the <span style="background-color:pink">Nile</span> 
-
+5. <span style="background-color:lightblue">Egypt</span>’s <span style="background-color:lightgreen">river</span> is the <span style="background-color:pink">Nile</span>
+ 
 <table>
   <tr>
     <td>EAVT index</td>
@@ -298,8 +298,6 @@ For example, the result of indexing the following five entities can be seen in t
 </li></ul></td>
   </tr>
 </table>
-
-
 Table 2
 
 ### Database
@@ -867,7 +865,7 @@ Following the above explanation, we can now read and understand the different te
 
 Table 4
 
-Therefore, in a spoken language, the exemplary query means "find the names and ages of the people who like pizza, their age is more than 20 and have birthday this week".
+To sum it up, in a spoken language, the exemplary query means "find the names and ages of the people who like pizza, their age is more than 20 and have birthday this week".
 
  
 
@@ -878,13 +876,13 @@ A query engine is the component within a database that is responsible for answer
 1. Transformation to internal representation: this phase focuses on transforming the query from its textual form (i.e., in its query syntax) as the user entered it, to its in-memory form, which is kept in a specifically devised data structure. 
 2. Building a query plan: this phase analyzes what’s the best course of action to get to the needed results of the query. Based on that analysis this phase outputs a query plan. In our case a query plan is a function to be invoked.
 3. Executing the function: this phase is responsible for executing the plan and send its results to the next phase.
-4. Unification and reporting: this phase receives query results, extracts from it only the part that needs to be reported (a unification of the user’s input with the query results) and formats it to be in the way that the user requested.
+4. Unification and reporting: this phase receives the query results, extracts from it only the part that needs to be reported (a unification of the user’s input with the query results) and formats it to be in the way that the user requested.
 
 #### Phase 1 - Transformation
 
-This phase’s purpose is to receive the query from the user and transform it into a structure that the query engine can operate with in an efficient way. Efficiency is gained by allowing the engine to use data structures that are adapted for its computations, as oppose to using the raw query (which is designed for user’s ease of use). 
+This phase’s purpose is to receive the query from the user and transform it into a structure that the query engine can use in an efficient way. Efficiency is gained by having the engine use data structures that were designed with the engine's computations in mind (as oppose to using the raw query, which is designed for user’s ease of use). 
 
-Each one of the query’s parts has its own specific transformation:
+Each of a query’s parts has its tailored data structure:
 
 * The *:find* part of the query is transformed into a set that holds all the names of the variables that needs to be reported. These names are held as strings, and the transformation itself is done in the macro *symbol-col-to-set*
 
@@ -892,16 +890,17 @@ Each one of the query’s parts has its own specific transformation:
 (defmacro symbol-col-to-set [coll] (set (map str coll)))
 ````
 
-* The *:where* part of the query is transformation is done by changing each of the terms in each of the clauses to a predicate (following the description in Table 3) while keeping the same structure. Besides that, metadata is defined for each of the predicates clauses which holds a vector with the names of the variables used in that clause. The transformation from term to a predicate is implemented in the macro *clause-term-expr* and the detection of the variable in each term is done in the macro *clause-term-meta*
+* The *:where* part of the query keeps its nested vector structure. However, each of the terms in each of the clauses is replaced with a predicate according to the description in Table 3. Also, for each clause, a vector with the names of the variables used in that clause is set as its metadata. 
+The transformation from term to a predicate is implemented in the macro *clause-term-expr* and the detection of the variable in each term is done in the macro *clause-term-meta*
 
 ````clojure
 (defmacro clause-term-expr [clause-term]
    (cond
-    (variable? (str clause-term)) #(= % %) 
-    (not (coll? clause-term)) `#(= % ~clause-term)
-    (= 2 (count clause-term)) `#(~(first clause-term) %)
-    (variable? (str (second clause-term))) `#(~(first clause-term) % ~(last clause-term)) 
-    (variable? (str (last clause-term))) `#(~(first clause-term) ~(second clause-term) %))) 
+    (variable? (str clause-term)) #(= % %) ; variable
+    (not (coll? clause-term)) `#(= % ~clause-term) ; constant
+    (= 2 (count clause-term)) `#(~(first clause-term) %) ; unary operator
+    (variable? (str (second clause-term))) `#(~(first clause-term) % ~(last clause-term)) ; binary operator, first operand is a variable
+    (variable? (str (last clause-term))) `#(~(first clause-term) ~(second clause-term) %))) ; binary operator, second operand is variable
 
 (defmacro clause-term-meta [clause-term]
    (cond
@@ -924,7 +923,7 @@ The iteration on the terms in each clause is done at the *pred-clause* macro and
        (if-not frst#  preds-vecs#
          (recur rst# `(conj ~preds-vecs# (pred-clause ~frst#))))))
 ````
-You may ask why the entire transformation process is using macros and not functions. This the result of a decision to simplify the query APIs by allowing users to enter the variable names as symbols and not as strings (e.g., allowing ?name and not requiring the user to enter "?name"). Macros allow us to do it as they do not evaluate their arguments when they get called. 
+You may ask why the entire transformation process uses macros and not functions. This is the result of a decision to simplify the query APIs by allowing users to enter the variable names as symbols and not as strings (e.g., allowing ?name and not requiring the user to enter "?name"). Macros allow us to do it as they do not evaluate their arguments when they get called. 
 
 #### Phase 2 - Making a plan
 
