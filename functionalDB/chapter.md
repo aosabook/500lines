@@ -1075,7 +1075,21 @@ From the user's perspective, invoking a query is a call to the *q* macro, that a
      (unify query-internal-res# needed-vars#)));unifying the query result with the needed variables to report out what the user asked for
 ````  
 
-Note that the entire query engine was implemented in a separate namespace and the database itself is not depended on it. This means that the query engine itself acts as a library that was added to the database, and others may provide their own query engines.
+## Architectural notes
+
+The approach used when designing and implementing followed to Clojure appoach of having a minimal core and provide additional capabilities via libraries. The basic functionallity of the database was defined to be its data maintenance - storage, lifecycle and indexing. These capabilities were implemented in these files:
+
+* constructs.clj - data structures - Database, Layer, Entity, Attr and indices.
+* manage.clj - all things related to managing databases and connections to them
+* storage.clj - where the storage APIs are defined as well as providing the InMemory implementation
+* core.clj -  where data life cycle, indexing and transacting is handled
+
+These capabilities are extended by the two mini-libraries:
+
+* graph.clj - where graph and evolution APIs are implemented 
+* query.clj - where the query engine is implemented
+
+Having the graph APIs and query engine provided as libraries allows in the future to replace any of them, and shows the how it is possible to extend the database with more capabilities.
 
 ## Summary
 
@@ -1090,5 +1104,5 @@ Our journey started with trying to take a different perspective on databasing, a
 
 There are still things to be done if we want to make it a better database. We can sprinkle caching all over the place to improve performance, extend the functionality by supporting stronger queries - both datalog and graph queries and add real storage support to provide data durability to name a few.
 
-All this was implemented in a code base whose size is 488 lines of code, of which 74 are blank and 54 are docstrings, which brings us to a database implementation done in 360 lines of Clojure code.
+All this was implemented in a code base whose size is 488 lines of code, of which 73 are blank and 55 are docstrings, which brings us to a database implementation done in 360 lines of Clojure code.
  
