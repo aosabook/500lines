@@ -2,6 +2,7 @@ class SimpleInterpreter(object):
     def __init__(self):
         self.stack = []
         self.environment = {}
+        self.should_stop = False
         # instruction_map = {1: self.LOAD_VALUE,
         #                    2: self.ADD_TWO_VALUES,
         #                    3: self.POP_FROM_STACK }
@@ -33,16 +34,16 @@ class SimpleInterpreter(object):
         if not cond:
             self.next_i = jump_target
 
-    def STOP(self):
+    def RETURN(self):
         self.should_stop = True
 
     def parse_argument(self, instruction, argument, what_to_execute):
-        argument_meaning = {"numbers": ["LOAD_VALUE"],
+        argument_meaning = {"values": ["LOAD_VALUE"],
                             "names": ["LOAD_NAME", "STORE_NAME"],
                             "jumps": ["JUMP_IF_FALSE"]}
 
-        if instruction in argument_meaning["numbers"]:
-            argument = what_to_execute["numbers"][argument]
+        if instruction in argument_meaning["values"]:
+            argument = what_to_execute["values"][argument]
         elif instruction in argument_meaning["names"]:
             argument = what_to_execute["names"][argument]
         elif instruction in argument_meaning["jumps"]:
@@ -72,55 +73,29 @@ class SimpleInterpreter(object):
                 self.LOAD_NAME(argument)
             elif instruction == "JUMP_IF_FALSE":
                 self.JUMP_IF_FALSE(argument)
-            elif instruction == "STOP":
-                self.STOP()
+            elif instruction == "RETURN":
+                self.RETURN()
 
             self.next_i += 1
 
 def test_simple_interpreter():
-    simple = SimpleInterpreter()
-    what_to_execute = {
-        "instructions": [("LOAD_VALUE", 0),  # the first number
-                        ("LOAD_VALUE", 1),  # the second number
-                        ("ADD_TWO_VALUES", None),
-                        ("PRINT_ANSWER", None)],
-        "numbers": [7,5] }
-    simple.execute(what_to_execute)
-    print(" == 12")
-
-    what_to_execute = {
-        "instructions": [("LOAD_VALUE", 0),  # the first number
-                        ("LOAD_VALUE", 1),  # the second number
-                        ("ADD_TWO_VALUES", None),
-                        ("LOAD_VALUE", 2),  # the second number
-                        ("ADD_TWO_VALUES", None),
-                        ("PRINT_ANSWER", None)],
-        "numbers": [7,5, 8] }
-    simple.execute(what_to_execute)
-    print(" == 20")
 
     what_to_execute = {
         "instructions": [("LOAD_VALUE", 0),
                          ("STORE_NAME", 0),
-                         ("LOAD_VALUE", 1),
-                         ("STORE_NAME", 1),
                          ("LOAD_NAME", 0),
-                         ("LOAD_NAME", 1),
-                         ("ADD_TWO_VALUES", None),
-                         ("PRINT_ANSWER", None)],
-        "numbers": [1, 2],
-        "names":   ["a", "b"] }
-    simple.execute(what_to_execute)
-    print(" == 3")
+                         ("JUMP_IF_FALSE", None),
+                         ("LOAD_VALUE", 1),
+                         ("PRINT_ANSWER", None),
+                         ("RETURN", None),
+                         ("LOAD_VALUE", 2),
+                         ("PRINT_ANSWER", None),
+                         ("RETURN", None)],
+        "values": [True, 'yes', 'no'],
+        "names": ["a"] }
 
-    what_to_execute = {
-        "instructions": [("LOAD_VALUE", 0),
-                        ("JUMP_IF_FALSE", None),
-                        ("LOAD_VALUE", 1),  # the second number
-                        ("PRINT_ANSWER", None),
-                        ("LOAD_VALUE", 2),  # the second number
-                        ("PRINT_ANSWER", None)],
-        "values": [True, 'yes', 'no'] }}
+    interpreter = SimpleInterpreter()
+    interpreter.execute(what_to_execute)
 
 
 if __name__ == '__main__':

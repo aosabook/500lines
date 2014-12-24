@@ -28,7 +28,7 @@ There is a efficient Python interpreter written mostly in Python, called PyPy. P
 
 
 
-### The structure of Byterun: A virtual machine
+### Building an interpreter
 With that background, let's begin examining the structure of Byterun. The Python interpreter is a virtual machine, meaning that it is software that emulates a physical computer. This particular virtual machine is a stack machine: it manipulates several stacks to perform its operations (as contrasted with a register machine, that writes and reads values from particular memory locations). In our interpreter, we'll implement a stack using a Python list.
 
 To make this concrete, let's start with a very minimal interpreter. This interpreter can only add numbers, and it understands just three instructions.
@@ -44,7 +44,7 @@ When you call code that adds two numbers, the interpreter will begin by pushing 
 The steps before the interpreter (the lexer, parser, and compiler) take your code and turned it in to instructions for the interpreter. These instructions are similar to bytecode.
 
 ~~~~
-1 + 2
+7 + 5
 ~~~~
 produces "bytecode" like this:
 
@@ -55,7 +55,7 @@ produces "bytecode" like this:
  "PRINT_ANSWER"]
 ~~~~
 
-Before the interpreter can add numbers for you, it needs a little more information. The instructions tell it to push a number on to the stack, but they don't say which number. We'll add an extra piece of information to each instruction, telling the interpreter where to find the number if one is required. We'll also pass the numbers themselves to the interpreter. We'll wrap up these two pieces, the instructions and the numbers, into a dictionary. Here, the "instructions" piece is like Python bytecode, and the entire "what to execute" dictionary is like a code object.
+Before the interpreter can add numbers for you, it needs a little more information. The instructions tell it to push a number on to the stack, but they don't say which number. We'll add an extra piece of information to each instruction, telling the interpreter where to find the number if one is required. We'll also pass the numbers themselves to the interpreter. We'll wrap up these two pieces, the instructions and the numbers, into a dictionary. In Python, what we're calling "instructions" is called _bytecode_, and the entire "what to execute" object is a called a _code object_.
 
 ~~~~
 what_to_execute = {
@@ -66,7 +66,7 @@ what_to_execute = {
     "numbers": [7, 5] }
 ~~~~
 
-Now let's look at the interpreter itself. The interpreter object has a stack, represented by a list. Each instruction is defined as a method on the object.
+Now let's start to write the interpreter itself. The interpreter object has a stack, represented by a list. Each instruction is defined as a method on the object.
 
 ~~~~
 class Interpreter(object):
