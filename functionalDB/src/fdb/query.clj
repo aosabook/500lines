@@ -27,7 +27,7 @@
    (variable? (str (last clause-term))) `#(~(first clause-term) ~(second clause-term) %))) ; a binary predicate, the variable is the second argument, e.g.,  (> ?a 42)
 
 (defmacro  pred-clause
-  "Builds a predicate-clause from a query clause (a vector with three elements describing EAV). Apredicate clause is a vector of predicates that would operate on
+  "Builds a predicate-clause from a query clause (a vector with three elements describing EAV). A predicate clause is a vector of predicates that would operate on
     an index, and set for that vector's metadata to be the names of the variables that the user assigned for each item in the clause"
   [clause]
   (loop [[trm# & rst-trm#] clause exprs# [] metas# [] ]
@@ -110,10 +110,10 @@
  (defn index-of-joining-variable
   "A joining variable is the variable that is found on all of the query clauses"
   [query-clauses]
-  (let [metas-seq  (map #(:db/variable (meta %)) query-clauses)
-        collapse-seqs (fn [s1 s2] (map #(when (= %1 %2) %1) s1 s2))
-        collapsed (reduce collapse-seqs metas-seq)]
-    (first (keep-indexed #(when (variable? %2 false) %1)  collapsed))))
+  (let [metas-seq  (map #(:db/variable (meta %)) query-clauses) ; all the metas (which are vectors) for the query
+        collapse-seqs-reduce-fn (fn [s1 s2] (map #(when (= %1 %2) %1) s1 s2)) ; going over the vectors, collapsing each onto another, term by term, keeping a term only if the two terms are equal
+        collapsed (reduce collapse-seqs-reduce-fn metas-seq)] ; using the above fn on the metas, eventually get a seq with one item who is not null, this is the joining variable
+    (first (keep-indexed #(when (variable? %2 false) %1)  collapsed)))) ; returning the index of the first element that is a variable (there's only one)
 
   (defn build-query-plan
    "Upon receiving a database and query clauses, this function responsible to deduce on which index in the db it is best to perform the query clauses, and then return

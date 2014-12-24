@@ -927,11 +927,11 @@ You may ask why the entire transformation process uses macros and not functions.
 
 #### Phase 2 - Making a plan
 
-Once there is an engine-friendly representation of the 	query, it is up to the engine to decide what the best way to execute the query and plan how to execute it. 
+Once there is an engine-friendly representation of the 	query, it is up to the engine to decide what's the best way to execute the query and construct a plan for such execution. 
 
-The general plan is to choose an index , apply on it the predicate clauses, merge the results and return it. 
+From a bird's eye's view, The general execution plan in our database is to choose an index, apply on it the predicate clauses, merge the results and return it. 
 
-The plan is constructed at the *build-query-plan* function. The right index is chosen based on the kind of the joining variable, where we use our assumption (and limitation) that there’s at most one such variable. There are three options for it:
+The plan is constructed at the *build-query-plan* function. The right index is chosen based on the joining variable, where we use our assumption (and limitation) that there’s at most one such variable. There are three options for it:
 
 * Joining variable that operates on entity-ids means that it is best to execute the query on the AVET index
 * Joining variable that operates on attribute-names means it is best to execute the query on the VEAT index
@@ -941,16 +941,16 @@ The index of the joining variable is done at the *index-of-joining-variable* fun
 
 ````clojure
 (defn index-of-joining-variable [query-clauses]
-   (let [metas-seq  (map #(:db/variable (meta %)) query-clauses)
-         collapse-seqs (fn [s1 s2] (map #(when (= %1 %2) %1) s1 s2))
-         collapsed (reduce collapse-seqs metas-seq)]
-     (first (keep-indexed #(when (variable? %2 false) %1)  collapsed))))
+   (let [metas-seq  (map #(:db/variable (meta %)) query-clauses) ; all the metas (which are vectors) for the query
+         collapse-seqs-reduce-fn (fn [s1 s2] (map #(when (= %1 %2) %1) s1 s2))  ; going over the vectors, collapsing each onto another, term by term, keeping a term only if the two terms are equal 
+         collapsed (reduce collapse-seqs-reduce-fn metas-seq)] ; using the above fn on the metas, eventually get a seq with one item who is not null, this is the joining variable
+     (first (keep-indexed #(when (variable? %2 false) %1)  collapsed)))) ; returning the index of the first element that is a variable (there's only one)
 ````
-(The rationale behind this choice would be clear in the next section, where the execution of the plan is described). 
+(The rationale behind this mapping between the joining variable and index would be clear in the next section, where the execution of the plan is described). 
 
 Once the index is chosen, we construct and return a function that closes over the query and the index name, executes the plan, and return its results.
 
-Having the query plan be a function that accepts a database as an argument is a design decision that keeps open the future possibility of considering several plans, and all we know at this stage of the design is that surely any query plan would need a database to work on.
+Having the query plan to be a function that accepts a database as an argument is a design decision that keeps open the future possibility of considering several plans, and all we know at this stage of the design is that surely any query plan would need a database to work on.
 
 ````clojure
 (defn build-query-plan [query]
