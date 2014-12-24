@@ -96,7 +96,7 @@
   only the last-level-items that are part of all the result-clauses."
    [index pred-clauses]
    (let [result-clauses (filter-index index pred-clauses) ; the predicate clauses from the root of the index to the leaves (a leaf of an index is a set)
-         relevant-items (items-that-answer-all-conditions (map last result-clauses) (count clause-preds)) ; the set of elements, each answers all the pred-clauses
+         relevant-items (items-that-answer-all-conditions (map last result-clauses) (count pred-clauses)) ; the set of elements, each answers all the pred-clauses
          cleaned-result-clauses (map (partial mask-path-leaf-with-items relevant-items) result-clauses)] ; the result clauses, now their leaves are filtered to have only the items that fulfilled the predicates
      (filter #(not-empty (last %)) cleaned-result-clauses))) ; of these, we'll build a subset of the index that contains the clauses with the leaves (sets), and these leaves contain only the valid items
 
@@ -148,3 +148,13 @@
   (map (partial locate-vars-in-query-res needed-vars) binded-res-col))
 
 (defmacro symbol-col-to-set [coll] (set (map str coll)))
+
+(defmacro q
+  "querying the database using datalog queries built in a map structure ({:find [variables*] :where [ [e a v]* ]}). (after the where there are clauses)
+  At the moment support only filtering queries, no joins is also assumed."
+  [db query]
+  `(let [pred-clauses#  (q-clauses-to-pred-clauses ~(:where query)) ; transforming the clauses of the query to an internal representation structure called query-clauses
+           needed-vars# (symbol-col-to-set  ~(:find query))  ; extracting from the query the variables that needs to be reported out as a set
+           query-plan# (build-query-plan pred-clauses#) ; extracting a query plan based on the query-clauses
+           query-internal-res# (query-plan# ~db)] ;executing the plan on the database
+     (unify query-internal-res# needed-vars#)));unifying the query result with the needed variables to report out what the user asked for

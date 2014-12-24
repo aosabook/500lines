@@ -973,7 +973,7 @@ Let’s start go deeper and take a look at the *query-index* function, where que
 (defn query-index [index pred-clauses]
    (let [result-clauses (filter-index index pred-clauses)
          relevant-items (items-that-answer-all-conditions (map last result-clauses) 
-                                                          (count clause-preds))
+                                                          (count pred-clauses))
          cleaned-result-clauses (map (partial mask-path-leaf-with-items relevant-items)
                                      result-clauses)] 
      (filter #(not-empty (last %)) cleaned-result-clauses)))
@@ -1061,6 +1061,22 @@ This is done either directly using the *resultify-bind-pair* function or using a
 (defn resultify-av-pair [vars-set accum-res av-pair]
    (reduce (partial resultify-bind-pair vars-set) accum-res  av-pair))
 ````
+#### Running the show
+
+From the user's perspective, invoking a query is a call to the *q* macro, that accepts the query and returns the results. This macro is responsible for managing the calls for each of the engine's phases, provide them with the right input and send onward their output. 
+
+````clojure
+(defmacro q
+  [db query]
+  `(let [pred-clauses#  (q-clauses-to-pred-clauses ~(:where query)) ; transforming the clauses of the query to an internal representation structure called query-clauses
+           needed-vars# (symbol-col-to-set  ~(:find query))  ; extracting from the query the variables that needs to be reported out as a set
+           query-plan# (build-query-plan pred-clauses#) ; extracting a query plan based on the query-clauses
+           query-internal-res# (query-plan# ~db)] ;executing the plan on the database
+     (unify query-internal-res# needed-vars#)));unifying the query result with the needed variables to report out what the user asked for
+````  
+
+Note that the entire query engine was implemented in a separate namespace and the database itself is not depended on it. This means that the query engine itself acts as a library that was added to the database, and others may provide their own query engines.
+
 ## Summary
 
 Our journey started with trying to take a different perspective on databasing, and adopt a point of view whose voice is rarely heard in the software design world. It ended with database that its main capabilities are:
