@@ -31,24 +31,22 @@ There is a efficient Python interpreter written mostly in Python, called PyPy. P
 ### The structure of Byterun: A virtual machine
 With that background, let's begin examining the structure of Byterun. The Python interpreter is a virtual machine, meaning that it is software that emulates a physical computer. This particular virtual machine is a stack machine: it manipulates several stacks to perform its operations (as contrasted with a register machine, that writes and reads values from particular memory locations). In our interpreter, we'll implement a stack using a Python list.
 
-To make this concrete, let's start with a very minimal interpreter. This interpreter can only add numbers, and it understands just three instructions:
+To make this concrete, let's start with a very minimal interpreter. This interpreter can only add numbers, and it understands just three instructions.
 
 - LOAD_VALUE
 - ADD_TWO_VALUES
 - PRINT_ANSWER
 
-When you call code that adds two numbers, the interpreter will begin by pushin the first number to be added onto the stack, then pushing the second number onto the stack. Next it will pop both numbers off, add them together, and push the result onto the stack. Finally, it will pop the answer back off the stack and return it.
+Since we're not concerned with the lexer, parser, and compiler in this chapter, it doesn't matter how these instructions were produced.  You can imagine writing `1 + 1` in Python syntax and having a compiler emit these three compiles down to these three instructions, properly arranged. You could write lisp syntax and have a compiler that generates the same three instructions. All that matters is that our interpreter has an arrangement of these three instructions in a way that makes sense to it. We'll now look at such a system.
 
-You want to write a program that adds two numbers. You write code like this:
-~~~~
->>> def f(a,b):
-...     return a + b
-...
->>> # then call it
->>> f(7,5)
-~~~~
+When you call code that adds two numbers, the interpreter will begin by pushing the first number onto the stack, then pushing the second number onto the stack. Next it will pop both numbers off, add them together, and push the result onto the stack. Finally, it will pop the answer back off the stack and return it.
 
-The steps before the interpreter (the lexer, parser, and compiler) take your code and turned it in to instructions for the interpreter. These instructions are similar to bytecode. (For this first example, we'll look just at the instructions for calling the function `f`, not the instructions for defining it.)
+The steps before the interpreter (the lexer, parser, and compiler) take your code and turned it in to instructions for the interpreter. These instructions are similar to bytecode.
+
+~~~~
+1 + 2
+~~~~
+produces "bytecode" like this:
 
 ~~~~
 ["LOAD_VALUE",
@@ -57,7 +55,7 @@ The steps before the interpreter (the lexer, parser, and compiler) take your cod
  "PRINT_ANSWER"]
 ~~~~
 
-Before it can add numbers for you, the interpreter needs a little more information. The instructions tell it to push a number on to the stack, but they don't say which number. We'll add an extra piece of information to each instruction, telling the interpreter where to find the number if one is required. We'll also pass the numbers themselves to the interpreter. We'll wrap up these two pieces, the instructions and the numbers, into a dictionary. Here, the "instructions" piece is like Python bytecode, and the entire "what to execute" dictionary is like a code object.
+Before the interpreter can add numbers for you, it needs a little more information. The instructions tell it to push a number on to the stack, but they don't say which number. We'll add an extra piece of information to each instruction, telling the interpreter where to find the number if one is required. We'll also pass the numbers themselves to the interpreter. We'll wrap up these two pieces, the instructions and the numbers, into a dictionary. Here, the "instructions" piece is like Python bytecode, and the entire "what to execute" dictionary is like a code object.
 
 ~~~~
 what_to_execute = {
@@ -68,15 +66,15 @@ what_to_execute = {
     "numbers": [7, 5] }
 ~~~~
 
-Now let's look at the interpreter itself. The interpreter object has a stack, represented by a list.
+Now let's look at the interpreter itself. The interpreter object has a stack, represented by a list. Each instruction is defined as a method on the object.
 
 ~~~~
 class Interpreter(object):
     def __init__(self):
         self.stack = []
 
-    def LOAD_VALUE(self, what_to_push):
-        self.stack.append(what_to_push)
+    def LOAD_VALUE(self, number):
+        self.stack.append(number)
 
     def PRINT_ANSWER(self):
         answer = self.stack.pop()
@@ -89,7 +87,7 @@ class Interpreter(object):
         self.stack.append(total)
 ~~~~
 
-The interpreter needs one more piece, a way to tie everything together and start executing.
+The interpreter needs one more piece: a way to tie everything together and start executing. This method takes the "what_to_execute" dictionary defined above as an argument. It loops over each instruction, processes the arguments to that instruction if there are any, and then calls the corresponding method on the interpreter object.
 
 ~~~~.py
     def execute(self, what_to_execute):
@@ -97,9 +95,8 @@ The interpreter needs one more piece, a way to tie everything together and start
         numbers = what_to_execute["numbers"]
         for each_step in instructions:
             instruction, argument = each_step
-            if argument is not None:
-                number = numbers[argument]
             if instruction == "LOAD_VALUE":
+                number = numbers[argument]
                 self.LOAD_VALUE(number)
             elif instruction == "ADD_TWO_VALUES":
                 self.ADD_TWO_VALUES()
@@ -116,7 +113,9 @@ Let's test it out:
 
 Sure enough, it prints the answer - 12.
 
-Although this interpreter is quite limited, this process is almost exactly how the real Python interpreter adds numbers. There are a couple of things to notice from even this small example.  First of all, some instructions need arguments. In real Python bytecode, about half of instructions have arguments. The arguments are packed in with the instructions, much like in our example. Second, notice that the instruction for adding together two values did not require any arguments - instead, the values to be added together were popped off of the interpreter's stack. Given valid instruction sets, without any changes to our interpreter, we can add more than two numbers at at time. Try running this instruction set:
+Although this interpreter is quite limited, this process is almost exactly how the real Python interpreter adds numbers. There are a couple of things to notice from even this small example.  First of all, some instructions need arguments. In real Python bytecode, about half of instructions have arguments. The arguments are packed in with the instructions, much like in our example. Notice that the arguments to the _instructions_ are different than the arguments to the methods that are called. In the numbers example, the argument to the instruction was an index saying where to find the object. To see why, imagine if we were adding strings together instead of numbers. We wouldn't want to have the strings stuffed in with the instructions, since they could be arbitrarily large.
+
+Second, notice that the instruction for adding together two values did not require any arguments. Instead, the values to be added together were popped off of the interpreter's stack. Given valid instruction sets, without any changes to our interpreter, we can add more than two numbers at at time. Try running the instruction set below. What do you expect to happen? If you had a friendly compiler, what code could you write to generate this instruction set?
 
 ~~~~
     what_to_execute = {
@@ -129,7 +128,7 @@ Although this interpreter is quite limited, this process is almost exactly how t
         "numbers": [7, 5, 8] }
 ~~~~
 
-So far our interpreter that can only do simple arithmetic. However, we can begin to see how this structure is extensible - we can add methods on the object that describe many more operations. (For this chapter, we'll assume that we're always handed a well-formed instruction set, since we're not currently concerned with compilers.)
+So far our interpreter that can only do simple arithmetic. However, we can begin to see how this structure is extensible - we can add methods on the object that describe many more operations (as long as we have a compiler to hand us well-formed instruction sets).
 
 # Variables
 Adding variables to our interpreter requires three main pieces: two instructions for storing and retrieving the values, plus a dictionary mapping names to values, stored on the interpreter object.
@@ -139,7 +138,7 @@ Adding variables to our interpreter requires three main pieces: two instructions
 ...     a = 1
 ...     b = 2
 ...     return a + b
-
+<< compiler works here >>
     what_to_execute = {
         "instructions": [("LOAD_VALUE", 0),
                          ("STORE_NAME", 0),
@@ -153,8 +152,56 @@ Adding variables to our interpreter requires three main pieces: two instructions
         "names":   ["a", "b"] }
 ~~~
 
+The interpreter now needs to keep track of what names are bound to what values, so we'll add an "environment" dictionary to the __init__ method. We'll also add STORE_NAME and LOAD_NAME methods that are analogous to the STORE_VALUE and LOAD_VALUE methods we defined earlier.
+
+The arguments to an instruction can now mean two different things. It can either be an index into the "numbers" list, or it can be an index into the "names" list. The interpreter knows which is should be by checking what the instruction should do. We'll break out this logic - and the mapping of instructions to what their arguments mean - into a separate method.
+
+~~~~
+    def __init__(self):
+        self.stack = []
+        self.environment = {}
+
+    def STORE_NAME(self, name):
+        val = self.stack.pop()
+        print("storing name %s: %s" % (name, val))
+        self.environment[name] = val
+
+    def LOAD_NAME(self, name):
+        val = self.environment[name]
+        self.stack.append(val)
+
+    def parse_argument(self, instruction, argument, what_to_execute):
+        argument_meaning = {"numbers": ["LOAD_VALUE"],
+                            "names": ["LOAD_NAME", "STORE_NAME"]}
+
+        if instruction in argument_meaning["numbers"]:
+            argument = what_to_execute["numbers"][argument]
+        elif instruction in argument_meaning["names"]:
+            argument = what_to_execute["names"][argument]
+
+        return argument
+
+    def execute(self, what_to_execute):
+        instructions = what_to_execute["instructions"]
+        for each_step in instructions:
+            instruction, argument = each_step
+            argument = self.parse_argument(instruction, argument, what_to_execute)
+
+            if instruction == "LOAD_VALUE":
+                self.LOAD_VALUE(argument)
+            elif instruction == "ADD_TWO_VALUES":
+                self.ADD_TWO_VALUES()
+            elif instruction == "PRINT_ANSWER":
+                self.PRINT_ANSWER()
+            elif instruction == "STORE_NAME":
+                self.STORE_NAME(argument)
+            elif instruction == "LOAD_NAME":
+                self.LOAD_NAME(argument)
 
 # Conditionals
+
+
+
 # Loops
 # Functions
 # Exceptions

@@ -6,9 +6,8 @@ class SimpleInterpreter(object):
         #                    2: self.ADD_TWO_VALUES,
         #                    3: self.POP_FROM_STACK }
 
-    def LOAD_VALUE(self, argument):
-        what_to_push = self.numbers[argument]
-        self.stack.append(what_to_push)
+    def LOAD_VALUE(self, number):
+        self.stack.append(number)
 
     def PRINT_ANSWER(self):
         answer = self.stack.pop()
@@ -29,15 +28,33 @@ class SimpleInterpreter(object):
         val = self.environment[name]
         self.stack.append(val)
 
+    def JUMP_IF_TRUE(self, jump_target):
+        cond = self.stack.pop()
+        if cond:
+            self.next_instruction = jump_target
+        else:
+            self.next_instruction += 1
+
+    def parse_argument(self, instruction, argument, what_to_execute):
+        argument_meaning = {"numbers": ["LOAD_VALUE"],
+                            "names": ["LOAD_NAME", "STORE_NAME"],
+                            "jumps": ["JUMP_IF_TRUE"]}
+
+        if instruction in argument_meaning["numbers"]:
+            argument = what_to_execute["numbers"][argument]
+        elif instruction in argument_meaning["names"]:
+            argument = what_to_execute["names"][argument]
+        elif instruction in argument_meaning["jumps"]:
+            pass
+
+        return argument
+
+
     def execute(self, what_to_execute):
         instructions = what_to_execute["instructions"]
-
         for each_step in instructions:
-            instruction, argument_type, index = each_step
-            if argument_type == "number":
-                argument = what_to_execute["numbers"][index]
-            elif argument_type == "name":
-                argument = what_to_execute["name"][index]
+            instruction, argument = each_step
+            argument = self.parse_argument(instruction, argument, what_to_execute)
 
             if instruction == "LOAD_VALUE":
                 self.LOAD_VALUE(argument)
@@ -49,6 +66,8 @@ class SimpleInterpreter(object):
                 self.STORE_NAME(argument)
             elif instruction == "LOAD_NAME":
                 self.LOAD_NAME(argument)
+            elif instruction == "JUMP_IF_TRUE":
+                self.JUMP_IF_TRUE(argument)
 
 
 
@@ -61,6 +80,7 @@ def test_simple_interpreter():
                         ("PRINT_ANSWER", None)],
         "numbers": [7,5] }
     simple.execute(what_to_execute)
+    print(" == 12")
 
     what_to_execute = {
         "instructions": [("LOAD_VALUE", 0),  # the first number
@@ -71,6 +91,7 @@ def test_simple_interpreter():
                         ("PRINT_ANSWER", None)],
         "numbers": [7,5, 8] }
     simple.execute(what_to_execute)
+    print(" == 20")
 
     what_to_execute = {
         "instructions": [("LOAD_VALUE", 0),
@@ -84,6 +105,7 @@ def test_simple_interpreter():
         "numbers": [1, 2],
         "names":   ["a", "b"] }
     simple.execute(what_to_execute)
+    print(" == 3")
 
 
 
