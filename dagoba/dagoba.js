@@ -235,8 +235,8 @@ Dagoba.addPipeType = function(name, fun) {                        // adds a new 
 Dagoba.getPipetype = function(name) {
   var pipetype = Dagoba.PipeTypes[name]                           // a pipe type is just a function 
 
-  if(!pipetype)                                                   // most likely this actually results in a TypeError
-    Dagoba.error('Unrecognized pipe type: ' + name)               // but if you do make it here you get a nice message
+  if(!pipetype)
+    Dagoba.error('Unrecognized pipe type: ' + name)
 
   return pipetype || Dagoba.fauxPipetype
 }
