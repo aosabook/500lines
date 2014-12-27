@@ -12,7 +12,7 @@ For much of recorded history this relational model reigned supreme. Its dominanc
 
 The distributed revolution changed everything, again. Data broke free of spacial constraints and roamed from machine to machine. CAP-wielding theorists busted the relational monopoly, opening the door to a plethora of new herding techniques -- some of which harken back to the earliest attempts to domesticate random-access data. We're going to look at one of these, a style known as the graph database.
 
-[footnoteA: One of the very first database designs was the hierarchical model, which grouped items into tree-shaped hierarchies and is still used as the basis of IBM's IMS product, a high-speed transaction processing system and hierarchical database. It's influence can also been seen in XML, file systems and geographical information storage. The network model, invented by Charles Bachmann and standardized by CODASYL, generalized the hierarchical model by allowing multiple parents, forming a DAG instead of a tree. These navigational database models came in to vogue in the 1960s and continued their dominance until performance gains made relational databases usable in the 1980s.]
+[footnoteA: One of the very first database designs was the hierarchical model, which grouped items into tree-shaped hierarchies and is still used as the basis of IBM's IMS product, a high-speed transaction processing system. It's influence can also been seen in XML, file systems and geographic information storage. The network model, invented by Charles Bachmann and standardized by CODASYL, generalized the hierarchical model by allowing multiple parents, forming a DAG instead of a tree. These navigational database models came in to vogue in the 1960s and continued their dominance until performance gains made relational databases usable in the 1980s.]
 
 [footnoteB: Codd developed relational database theory while working at IBM. Big Blue feared a new relational database would cannibalize the sales of IMS, and while they eventually built a research prototype called System R it was based on a new non-relational language (SEQUEL) instead of Codd's original Alpha language. The SEQUEL language was copied by Larry Ellison in his Oracle Database based on pre-launch conference papers, and the name changed to SQL to avoid trademark disputes. A nice model twisted into a half-baked prototype, which spawns a shoddy copy with a different name, which becomes wildly popular and wastes millions of programmer hours: this is the story of software engineering.]
 
@@ -27,7 +27,7 @@ A data base is like a fort for data. You can put data in it and get data back ou
 
 A graph in this sense is a set of vertices and a set of edges. It's basically a bunch of dots connected by lines. 
 
-What kinds of problems can it solve? Suppose that you are one of those who have discovered the unbridled joy of tracking ancestral trees: parents, children, all that kind of thing. You'd like to develop a system that allows you to make natural and elegant queries like "Who are Thor's second cousins once removed?" or "How many of Freya's descendants are Valkyries?". [TODO make the second one more realistic]
+What kinds of problems can it solve? Suppose that you are one of those who have discovered the unbridled joy of tracking ancestral trees: parents, children, all that kind of thing. You'd like to develop a system that allows you to make natural and elegant queries like "Who are Thor's second cousins once removed?" or "What is Freyja's connection to the Valkyries?".
 
 A reasonable schema for this data structure would be to have a table of entities and a table of relationships. A query for Thor's parents might look like:
 
@@ -55,7 +55,7 @@ Now we can say something like ```children(children(children(parents(parents(pare
 
 Well, we're treating the edges as a global variable, which means we can only ever have one database at a time using these helper functions. That's pretty limiting. 
 
-We're also not using the vertices at all. What does that tell us? It implies that everything we need is in the edges array, which in this case is true: the vertex values are scalars, so they exist independently in the edges array. If we want to answer questions like "How many of Freya's descendants were Valkyries?" we'll need to add more information to the vertices, which means making them compound values, which means the edges array should reference vertices instead of copying their value.
+We're also not using the vertices at all. What does that tell us? It implies that everything we need is in the edges array, which in this case is true: the vertex values are scalars, so they exist independently in the edges array. If we want to answer questions like "What is Freyja's connection to the Valkyries?" we'll need to add more information to the vertices, which means making them compound values, which means the edges array should reference vertices instead of copying their value.
 
 The same holds true for our edges: they contain an 'in' vertex and an 'out' vertex [footnote1], but no elegant way to incorporate additional information. We'll need that to answer questions like "How many stepparents did Loki have?" or "How many children did Odin have before Thor was born?"
 
