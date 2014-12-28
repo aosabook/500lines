@@ -265,14 +265,31 @@ and the old root is garbage collected if it's no longer referenced
 When it's time to commit changes to disk,
 the tree is walked from the bottom-up
 ("postfix" or "depth-first" traversal),
-new nodes are serialised to disk.
-Finally, the disk address of the new root node is written atomically
-(we know this because single-block disk writes are atomic).
+and new nodes are serialised to disk.
+Finally, the disk address of the new root node is written atomically.
+We know it's atomic because we store the disk address on a sector boundary
+(it's the very first thing in the file, so this is true regardless of sector size),
+and single-sector disk writes are atomic.
 
-This also means that readers
-get lock-free access to a consistent
-(but possibly out-of-date)
-view of the tree.
+Because the root node address has either the old or new value
+(never a bit of old and a bit of new),
+other processes can read from the database without getting a lock.
+An external process might see the old or the new tree,
+but never a mix of the two.
+In this way, commits are atomic.
+
+Because we write the new data to disk and call the ``fsync`` syscall[^fsync]
+before we write the root node address,
+uncommitted data are unreachable.
+Conversely, once the root node address has been updated,
+we know that all the data it references is also on disk.
+In this way, commits are also durable.
+
+[^fsync]: Calling ``fsync`` on a file descriptor
+   asks the operating system and hard drive (or SSD)
+   to write all buffered data immediately.
+   Operating systems and drives don't usually write everything immediately
+   in order to improve performance.
 
 ![Tree nodes on disk before update](nodes_on_disk_1.svg)
 
