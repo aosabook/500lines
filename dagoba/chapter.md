@@ -65,15 +65,19 @@ Do you see any other issues?
 
 
 [footnote1]
-  Notice that we're modeling edges as a pair of vertices. Also notice that those pairs are ordered, because we're using arrays. That means we're modeling a *directed graph*, where every edge has a starting vertex and an ending vertex. [lines have arrows.] Doing it this way adds some complexity to our model because we have to keep track of the direction of edges, but it also allows us to ask more interesting questions, like "which vertices point in to vertex 3?" or "which vertex has the most outgoing edges?". [footnote2]
+  Notice that we're modeling edges as a pair of vertices. Also notice that those pairs are ordered, because we're using arrays. That means we're modeling a *directed graph*, where every edge has a starting vertex and an ending vertex. Our "dots and lines" visual model becomes a "dots and arrows" model instead.
+  Doing it this way adds a little complexity to our model, because we have to keep track of the direction of edges, but it also allows us to ask more interesting questions, like "which vertices point in to vertex 3?" or "which vertex has the most outgoing edges?". [footnote2]
 
 [footnote2]
-  If needed we can model an undirected graph by doubling up our edges, but it can be cumbersome to simulate a directed graph from an undirected one. So the directed graph model is more versatile in this context. [TODO maybe explain this better]
+  If we need to model an undirected graph, we can simply double each edge in our directed graph [footnote3]. For small graphs this works relatively well, and we can use a simple helper function to transform the edge list:
 ```
 function undirectMe (edges) 
   { return edges.reduce( function(acc, edge)
     { return acc.concat([[ edge[1], edge[0] ]]) }, edges.slice() )}
 ```
+
+[footnote3]
+  It can be cumbersome to go the other direction, and simulate a directed graph from an undirected one. Can you think of a way to do it?
 
 
 ## Build a better graph
@@ -222,6 +226,16 @@ Dagoba.Q.add = function(pipetype, args) {               // add a new step to the
 
 Each step is a composite entity, combining the pipetype function with the arguments to apply to that function. We could combine the two into a partially-applied function at this stage, instead of using a tuple [footnote: A tuple is another abstract data structure -- one that is more constrained than a list. In particular a tuple has a fixed size: in this case we're using a 2-tuple (also known as a "pair" in the technical jargon of data structure researchers). Using the term for the most constrained abstract data structure required is a nicety for future implementors.], but then we'd lose some introspective power that will prove helpful later.
 
+We'll use a small set of query initializers that create generate a new query from a graph. Here's one that starts most of our examples: the ```v``` method. It builds a new query, then uses our ```add``` helper to populate the initial query program. This makes use of the ```vertex``` pipetype, which we'll look at soon.
+
+```javascript
+Dagoba.G.v = function() {                                         // a query initializer: g.v() -> query
+  var query = Dagoba.query(this)
+  query.add('vertex', [].slice.call(arguments))                   // add a vertex pipetype step to our program
+  return query
+}
+```
+
 
 ## The problem with being eager
 
@@ -229,25 +243,18 @@ Before we look at the pipetypes themselves we're going to take a slight diversio
 
 JavaScript, being a strict language, will process each of our steps as they are called. We would then expect the evaluation of ```g.v('Thor').out().in()``` to first find the Thor vertex, then find all vertices connected to it by outgoing edges, and from each of those vertices finally return all vertices they are connected to by inbound edges.
 
-In a lazy language we would get the same result -- the execution strategy doesn't make much difference here. But what if we added a few additional calls? Given how well-connected Thor is, our ```g.v('Thor').out().out().out().in().in().in()``` query may produce many results -- in fact, because we're not limiting our vertex list to unique results, it may produce many more results than we have vertices in our total graph. That could set us back a bit.
+In a lazy language we would get the same result -- the execution strategy doesn't make much difference here. But what if we added a few additional calls? Given how well-connected Thor is, our ```g.v('Thor').out().out().out().in().in().in()``` query may produce many results -- in fact, because we're not limiting our vertex list to unique results, it may produce many more results than we have vertices in our total graph.
 
 We're probably only interested in getting a few unique results out, so we'll change the query a little: ```g.v('Thor').out().out().out().in().in().in().unique().take(10)```. Now we'll only get at most 10 results out. What happens if we evaluate this strictly, though? We're still going to have to build up septillions of results before returning only the first 10.
 
-And so we see the need for laziness: all graph databases have to support a mechanism for doing as little work as possible, and most choose some form of lazy evaluation to do so. Since we're building our own interpreter, evaluating our program lazily is certainly within our purview. But the road to lazyville is paved with good intentions and surprising consequences.
+All graph databases have to support a mechanism for doing as little work as possible, and most choose some form of non-strict evaluation to do so. Since we're building our own interpreter, evaluating our program lazily is certainly within our purview. But the road to laziness is paved with good intentions and surprising consequences.
 
 
 ## Pipetypes
 
 Before we dig in to the internals of the interpreter we'll spend some time getting to know the pipetypes that make up the core functionality of our system. Once we understand how each pipetype works we'll have a better basis for understanding how they're invoked and sequenced together.
 
-
-[
-  TODO
-  Talk about the inputs
-  and the outputs
-  up here
-]
-
+We'll start by making a place to put our pipe types, and a way to add new ones.
 
 ```javascript
 Dagoba.PipeTypes = {}                                   // every pipe has a type
@@ -257,7 +264,15 @@ Dagoba.addPipeType = function(name, fun) {              // adds a new method to 
   Dagoba.Q[name] = function() {
     return this.add(name, [].slice.apply(arguments)) }  // capture the pipetype and args
 }
+```
 
+The pipetype's function is added to the list of pipetypes, and then a new method is added to the query object. Every pipetype must have a corresponding query method. That method adds a new step to the query program, along with its arguments. 
+
+When we evaluate ```g.v('Thor').in('father').out('brother')``` the ```v``` call returns a query object, the ```in``` call adds a new step and returns the query object, and the ```out``` call does the same. This is what enables our method chaining API.
+
+Note that adding a new pipetype with the same name replaces the existing one, which allows runtime modification of existing pipetypes. What's the cost of this decision? What are the alternatives?
+
+```javascript
 Dagoba.getPipetype = function(name) {
   var pipetype = Dagoba.PipeTypes[name]                 // a pipe type is just a function 
 
@@ -266,13 +281,17 @@ Dagoba.getPipetype = function(name) {
 
   return pipetype || Dagoba.fauxPipetype
 }
+```
 
+
+
+```javascript
 Dagoba.fauxPipetype = function(_, _, maybe_gremlin) {   // if you can't find a pipe type 
   return maybe_gremlin || 'pull'                        // just keep things flowing along
 }
 ```
 
-See those underscores? We use those to label params that won't be used in our function. Most other pipetypes will use all three parameters, and have all three parameter names. This allows us to distinguish at a glance which parameters a particular pipetype relies on [footnote: Actually, we only used this underscore technique here to make the comments line up nicely. No, seriously. If code is to be written primarily for humans and only incidentally for machines, then it immediately follows that our primary concern should be making our code pretty.].
+See those underscores? We use those to label params that won't be used in our function. Most other pipetypes will use all three parameters, and have all three parameter names. This allows us to distinguish at a glance which parameters a particular pipetype relies on [footnote: Actually, we only used this underscore technique here to make the comments line up nicely. No, seriously. If code is to be written primarily for humans and only incidentally for machines, then it immediately follows that our predominant concern should be making code pretty.].
 
 
 #### Vertex
@@ -686,7 +705,6 @@ var sum2 = thunk_wrapper(sum)
 var thunk2 = sum2(1, 2, 3)
 thunk2()            // 6
 ```
-
 
 None of the thunks are invoked until one is actually "needed", which usually implies some type of output is required: in our case the result of a query. Because each new thunk takes all previous thunks as one of its input parameters (CPS) the AST gets rolled up backwards, and the first thing we actually evaluate is the innermost thing we need in order to produce the results. [TODO Maybe a footnote to clarify this further. Maybe use the "short-circuit evaluation plus xxx" explanation.]
 
