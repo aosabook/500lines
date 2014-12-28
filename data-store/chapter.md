@@ -136,7 +136,7 @@ DBDB can be enhanced to add a compaction feature,
 but it is left as an exercise for the reader.
 Bonus feature:
 you can ensure that the compacted tree structure is balanced,
-which helps with performance.
+which helps maintain performance over time.
 
 
 Intro to the toolchain
