@@ -283,7 +283,7 @@ Dagoba.getPipetype = function(name) {
 }
 ```
 
-
+If we can't find a pipetype we generate an error and return the default pipetype, which acts like an empty conduit: if a message comes in one side, it gets passed out the other.
 
 ```javascript
 Dagoba.fauxPipetype = function(_, _, maybe_gremlin) {   // if you can't find a pipe type 
@@ -298,7 +298,7 @@ See those underscores? We use those to label params that won't be used in our fu
 
 Most of the pipetypes we will meet take gremlins as their input, but this special pipetype generates new ones. Given a vertex id it will create a new gremlin on that vertex, if it exists. 
 
-You can also give it a query, and it will find all matching vertices. It creates one new gremlin at a time until it's worked through all of them. We'll look at the findVertices function a little later.
+You can also give it a query, and it will find all matching vertices. It creates one new gremlin at a time until it's worked through all of them.
 
 ```javascript
 Dagoba.addPipetype('vertex', function(graph, args, gremlin, state) {
@@ -313,19 +313,20 @@ Dagoba.addPipetype('vertex', function(graph, args, gremlin, state) {
 })
 ```
 
-We first check to see if we've already gathered matching vertices. If not then we use findVertices to try to find some. 
-
 Note that we're directly mutating the state argument here, and not passing it back. An alternative would be to return an object instead of a gremlin or signal, and pass state back that way. If JS allowed multiple return values it would make this option more elegant. 
 
-We would still need to find a way to deal with the mutations, though, as the call site still has a reference to the original variable. Linear types would solve this by automatically taking the reference out of scope when the pipetype is called. Then we would assign it again in the call site's scope once the pipetype function returned its new version of the scope object. 
+We would still need to find a way to deal with the mutations, though, as the call site still has a reference to the original variable. Linear types would solve this by automatically taking the reference out of scope when the pipetype is called. Then we would assign it again in the call site's scope once the pipetype function returned its new version of the state object. 
 
 Linear types would allow us to avoid expensive copy-on-write schemes or complicated persistent data structures, while still retaining the benefits of immutability -- in this case, avoiding spooky action at a distance. Two references to the same mutable data structure act like a pair of walkie-talkies, allowing whoever holds them to communicate directly. Those walkie-talkies can be passed around from function to function, and cloned to create whole passel of walkie-talkies. This completely subverts the natural communication channels your code already possesses. In a system with no concurrency you can sometimes get away with it, but introduce multithreading or asynchronous behavior and all that walkie-talkie squawking can really be a drag.
 
 JS lacks linear types, but we can get the same effect if we're really, really disciplined. Which we will be. For now.
 
 TODO: discuss OPT note
-TODO: discuss incoming gremlins note
+TODO: discuss incoming gremlins note and gremlin local state
 TODO: "The advantages are that we can simplify our return value and cut down on garbage created in the components. instrumentation & debugging & cloning"
+TODO: "We first check to see if we've already gathered matching vertices. If not then we use findVertices to try to find some."
+TODO: include all the findVertices functions -- maybe down below with gremlins and filters
+TODO: look for other missing code snippets
 
 
 #### In-N-Out
@@ -497,7 +498,9 @@ We initialize ```state.taken``` to zero if it doesn't already exist. JavaScript 
 
 Then when ```state.taken``` reaches ```args[0]``` we return 'done', sealing off the pipes before us. We also reset the ```state.taken``` counter, allowing us to repeat the query later.
 
-We do those two steps before query initialization to handle the cases of ```take(0)``` and ```take()```, which return no results. [TODO double check this]. Then we increment our counter and return the gremlin.
+We do those two steps before query initialization to handle the cases of ```take(0)``` and ```take()``` [footnoteQ]. Then we increment our counter and return the gremlin.
+
+[footnoteQ: What would you expect each of those to return? What do they actually return?]
 
 
 #### As
@@ -514,8 +517,6 @@ Dagoba.addPipetype('as', function(graph, args, gremlin, state) {
 ```
 
 After initializing the query, we then ensure the gremlin's local state has an 'as' parameter. Then we set a property of that parameter to the gremlin's current vertex.
-
-[TODO Have we talked about gremlin local state yet?]
 
 
 #### Except
