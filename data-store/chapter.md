@@ -305,7 +305,8 @@ Concurrent updates are blocked by a lockfile on disk.
 The lock is acquired on first-update, and released after commit.
 
 
-### Points of extensibility
+
+### Exercises for the reader
 
 The algorithm used to update the data store
 can be completely changed out
@@ -323,6 +324,9 @@ because each node splits 32 ways instead of just 2.
 This makes a huge different in practise,
 since looking through 4 billion entries would go from
 $log_2(2^32) = 32$ to $log_32(2^32) \approx 6.4$ lookups.
+Each lookup is a random access,
+which is incredibly expensive for hard disks with spinning platters.
+SSDs help with the latency, but the savings in I/O still stand.
 
 By default, values are stored by ``ValueRef``
 which expects bytes as values
@@ -330,9 +334,8 @@ which expects bytes as values
 The binary tree nodes themselves
 are just a sublcass of ``ValueRef``.
 Storing richer data
-(via [``json``](http://json.org),
-[``msgpack``](http://msgpack.org),
-or your own invention)
+(via [``json``](http://json.org)
+or [``msgpack``](http://msgpack.org))
 is just a matter of writing your own
 and setting it as the ``value_ref_class``.
 ``BinaryNodeRef`` is an example of using
