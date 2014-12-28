@@ -4,6 +4,21 @@ DBDB
 Dog Bed Database (it's like a couch, but not as nice).
 
 
+What does it do?
+----------------
+
+DBDB is a Python library that implements a simple key/value database.
+It lets you associate a key with a value,
+and store that association on disk for later retrieval.
+
+DBDB aims to preserve data in the face of computer crashes
+and error conditions.
+It also avoids holding all data in RAM at once
+so you can store more data than you have RAM.
+
+But first&hellip;
+
+
 Memory
 ------
 
@@ -56,19 +71,6 @@ So starts the story. ``:)``
     that work.  Only engineers licensed with APEGA, or those practising under
     the direct supervision of a P.Eng. licensed with APEGA, have a legal right
     to practice engineering in Alberta.&rdquo;
-
-
-What does it do?
-----------------
-
-DBDB is a Python library that implements a simple key/value database.
-It lets you associate a key with a value,
-and store that association on disk for later retrieval.
-
-DBDB aims to preserve data in the face of computer crashes
-and error conditions.
-It also avoids holding all data in RAM at once
-so you can store more data than you have RAM.
 
 
 Why is it interesting?
