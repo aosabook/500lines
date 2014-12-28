@@ -338,7 +338,7 @@ While a balanced binary tree
 needs to do $O(log_2(n))$ random node reads to find a value,
 a B+tree needs many fewer, e.g. $O(log_32(n))$
 because each node splits 32 ways instead of just 2.
-This makes a huge different in practise,
+This makes a huge different in practice,
 since looking through 4 billion entries would go from
 $log_2(2^32) = 32$ to $log_32(2^32) \approx 6.4$ lookups.
 Each lookup is a random access,
