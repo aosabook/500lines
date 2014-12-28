@@ -937,14 +937,15 @@ The plan is constructed at the *build-query-plan* function. The right index is c
 * Joining variable that operates on attribute-names means it is best to execute the query on the VEAT index
 * Joining variable that operates on the attribute values means it is best to execute the query on the EAVT index.
 
-The index of the joining variable is done at the *index-of-joining-variable* function.
+Locating the index of the joining variable is done at the *index-of-joining-variable* function.
+This function starts by extracting the metadata of each clause in the query (where the metadata is a 3 items vector, each is a variable name or *nil*) and goes to reduce them into one. That reduced sequence is built of either *nil* or a variable name that is appears in all of the metadata vectors at the same index (this is the joining variable), and return that index (as there's only one such variable).
 
 ````clojure
 (defn index-of-joining-variable [query-clauses]
-   (let [metas-seq  (map #(:db/variable (meta %)) query-clauses) ; all the metas (which are vectors) for the query
-         collapse-seqs-reduce-fn (fn [s1 s2] (map #(when (= %1 %2) %1) s1 s2))  ; going over the vectors, collapsing each onto another, term by term, keeping a term only if the two terms are equal 
-         collapsed (reduce collapse-seqs-reduce-fn metas-seq)] ; using the above fn on the metas, eventually get a seq with one item who is not null, this is the joining variable
-     (first (keep-indexed #(when (variable? %2 false) %1)  collapsed)))) ; returning the index of the first element that is a variable (there's only one)
+   (let [metas-seq  (map #(:db/variable (meta %)) query-clauses) 
+         collapsing-fn (fn [accV v] (map #(when (= %1 %2) %1)  accV v))
+         collapsed (reduce collapsing-fn metas-seq)] 
+     (first (keep-indexed #(when (variable? %2 false) %1)  collapsed)))) 
 ````
 (The rationale behind this mapping between the joining variable and index would be clear in the next section, where the execution of the plan is described). 
 
