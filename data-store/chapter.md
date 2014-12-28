@@ -357,11 +357,14 @@ at least right after compaction.
 ### Patterns or principles that can be used elsewhere
 
 Test interfaces, not implementation.
-I wrote my first tests against an in-memory version of the database,
-then extended it to persist to disk,
-then added the concept of NodeRefs.
+As part of developing DBDB,
+I wrote a number of tests
+that described how I wanted to be able to use it.
+The first tests ran against an in-memory version of the database,
+then I extended DBDB to persist to disk,
+and even later added the concept of NodeRefs.
 Most of the tests didn't have to change,
-which gave me confidence that things were still working.
+which gave me confidence that things were still working as expected.
 
 Single Responsibility Principle.
 Classes should have at most one reason to change.
