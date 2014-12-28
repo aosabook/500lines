@@ -142,7 +142,7 @@ which helps maintain performance over time.
 Intro to the toolchain
 ----------------------
 
-The code is written in polyglot Python 2/3
+The code is written in the common subset of Python 2.7 and 3.4
 (tested via [``tox``](https://testrun.org/tox/latest/)).
 
 I recommend using [``virtualenv``](https://virtualenv.pypa.io/en/latest/)
