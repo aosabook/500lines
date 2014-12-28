@@ -176,6 +176,21 @@ one sig BlogPage extends Document {}{
     no content.first
 }
 
+pred CRASH {
+	subsumes = 
+		ParentDomain -> EmailDomain + ParentDomain -> CalendarDomain  +
+		ParentDomain -> BlogDomain + (Domain <: iden)
+	
+	some o : SetDomain | o.start = first and o.from = InboxScript and o.newDomain = ParentDomain
+	some o : SetDomain | o.start = first.next and o.from = CalendarScript and o.newDomain = ParentDomain
+	some o : ReadDom {
+//		o.from = CalendarScript 
+		o.doc = InboxPage
+		o.from = CalendarPage
+	}
+}
+run CRASH for 7 but 5 Domain, 4 Time, 3 Call
+
 pred setdomainNormal {
 	subsumes = 
 		ParentDomain -> EmailDomain + ParentDomain -> CalendarDomain  +
@@ -184,8 +199,9 @@ pred setdomainNormal {
 	some o : SetDomain | o.start = first and o.from = InboxScript and o.newDomain = ParentDomain
 	some o : SetDomain | o.start = first.next and o.from = CalendarScript and o.newDomain = ParentDomain
 	some o : ReadDom {
-		o.from = CalendarScript 
-		o.doc = InboxPage
+//		o.from = CalendarScript 
+//		o.doc = InboxPage
+		o.from = CalendarPage
 	}
 }
 run setdomainNormal for 7 but 5 Domain, 4 Time, 3 Call
