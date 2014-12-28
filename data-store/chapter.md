@@ -45,13 +45,17 @@ I understood that Erlang didn't have to copy data between processes, even
 though it was "strictly message-passing", because everything was immutable.
 I'm not sure that the utility of immutable data structures really sank in until
 I read about Clojure's data structures in 2009.
-When I read about how CouchDB worked in 2013,
+When I read about CouchDB for my new job in 2013,
 I just smiled and nodded,
-recognising the structures and mechansims for evolving data.
+recognising the structures and mechanisms for managing data as it changes.
 
 I learned that you can design systems built around immutable data.
 
-Then I agreed to write a book chapter. In trying to write a binary tree
+Then I agreed to write a book chapter.
+I thought that describing the core data storage concepts of CouchDB
+(as I understood them)
+would be fun.
+In trying to write a binary tree
 algorithm that mutated the tree in place, I got frustrated with how complicated
 things were getting. The number of edge cases and trying to reason about how
 changes in one part of the tree affected others was making my head hurt.
