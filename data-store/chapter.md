@@ -93,7 +93,7 @@ even if you're just writing JSON to disk:
 
 DBDB provides a simple example
 of how a database works.
-It will help inform your use of other database
+It will help inform your use of other databases
 from performance,
 crash recovery,
 and durability[^durability] perspectives.
@@ -111,9 +111,9 @@ consistency is not covered
 (there are no constraints on the data stored)
 and isolation is not guaranteed[^isolation].
 Application code can, of course, impose its own consistency guarantees,
-but proper isolation requires a transaction manager
-(which could probably be its own 500 lines;
-maybe you should write it for the 2nd edition!).
+but proper isolation requires a transaction manager.
+That could be its own 500 lines;
+maybe you should write it for the 2nd edition!.
 
 [^isolation]: Given key:values ``{a:1, b:1}``,
    and two transactions ``a = b + 1`` and ``b = a + 1``,
@@ -133,9 +133,10 @@ and [CouchDB](http://couchdb.apache.org/) calls it "compaction"
 (by rewriting the "live" parts of the data store into a new file,
 and atomically moving it over the old one).
 DBDB can be enhanced to add a compaction feature,
-which is left as an exercise for the reader.
-Bonus feature: you can rebalance the tree during compaction
-to maintain DBDB's runtime performance.
+but it is left as an exercise for the reader.
+Bonus feature:
+you can ensure that the compacted tree structure is balanced,
+which helps with performance.
 
 
 Intro to the toolchain
