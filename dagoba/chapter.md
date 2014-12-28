@@ -257,10 +257,10 @@ Before we dig in to the internals of the interpreter we'll spend some time getti
 We'll start by making a place to put our pipe types, and a way to add new ones.
 
 ```javascript
-Dagoba.PipeTypes = {}                                   // every pipe has a type
+Dagoba.Pipetypes = {}                                   // every pipe has a type
 
-Dagoba.addPipeType = function(name, fun) {              // adds a new method to our query object
-  Dagoba.PipeTypes[name] = fun
+Dagoba.addPipetype = function(name, fun) {              // adds a new method to our query object
+  Dagoba.Pipetypes[name] = fun
   Dagoba.Q[name] = function() {
     return this.add(name, [].slice.apply(arguments)) }  // capture the pipetype and args
 }
@@ -274,7 +274,7 @@ Note that adding a new pipetype with the same name replaces the existing one, wh
 
 ```javascript
 Dagoba.getPipetype = function(name) {
-  var pipetype = Dagoba.PipeTypes[name]                 // a pipe type is just a function 
+  var pipetype = Dagoba.Pipetypes[name]                 // a pipe type is just a function 
 
   if(!pipetype)
     Dagoba.error('Unrecognized pipe type: ' + name)
@@ -301,7 +301,7 @@ Most of the pipetypes we will meet take gremlins as their input, but this specia
 You can also give it a query, and it will find all matching vertices. It creates one new gremlin at a time until it's worked through all of them. We'll look at the findVertices function a little later.
 
 ```javascript
-Dagoba.addPipeType('vertex', function(graph, args, gremlin, state) {
+Dagoba.addPipetype('vertex', function(graph, args, gremlin, state) {
   if(!state.vertices) 
     state.vertices = graph.findVertices(args)           // state initialization
 
@@ -333,8 +333,8 @@ TODO: "The advantages are that we can simplify our return value and cut down on 
 Walking the graph is as easy as ordering a burger. These two lines set up the 'in' and 'out' pipetypes for us.
 
 ```javascript
-Dagoba.addPipeType('out', Dagoba.simpleTraversal('out'))
-Dagoba.addPipeType('in',  Dagoba.simpleTraversal('in'))
+Dagoba.addPipetype('out', Dagoba.simpleTraversal('out'))
+Dagoba.addPipetype('in',  Dagoba.simpleTraversal('in'))
 ```
 
 The simpleTraversal function returns a pipetype handler that accepts a gremlin as its input, and then spawns a new gremlin each time it's queried. When it's out of gremlins it sending back a 'pull' request to get a new gremlin from its predecessor. 
@@ -387,7 +387,7 @@ But this is a common enough operation that we'd prefer to write something more l
 Plus this way the property pipe is an integral part of the query, instead of something appended after. This has some interesting benefits, as we'll soon see.
 
 ```javascript
-Dagoba.addPipeType('property', function(graph, args, gremlin, state) {
+Dagoba.addPipetype('property', function(graph, args, gremlin, state) {
   if(!gremlin) return 'pull'                            // query initialization
   gremlin.result = gremlin.vertex[args[0]]
   return gremlin.result == null ? false : gremlin       // undefined or null properties kill the gremlin
@@ -406,7 +406,7 @@ If we want to collect all of Thor's grandparents' grandchildren -- his cousins, 
 To resolve this we introduce a new pipetype called 'unique'. Our new query ```g.v('Thor').in().in().out().out().unique().run()``` produces output in one-to-one correspondence with the grandchildren.
 
 ```javascript
-Dagoba.addPipeType('unique', function(graph, args, gremlin, state) {
+Dagoba.addPipetype('unique', function(graph, args, gremlin, state) {
   if(!gremlin) return 'pull'                            // query initialization
   if(state[gremlin.vertex._id]) return 'pull'           // we've seen this gremlin, so get another instead
   state[gremlin.vertex._id] = true
@@ -432,7 +432,7 @@ g.v('Thor').in().out().unique()
 [footnote: Depending on the density of Asgardian flesh this may return many results, or possibly just Volstagg [footnote: Provided we're allowing Shakespeare via Jack Kirby into our pantheon.].] 
 
 ```javascript
-Dagoba.addPipeType('filter', function(graph, args, gremlin, state) {
+Dagoba.addPipetype('filter', function(graph, args, gremlin, state) {
   if(!gremlin) return 'pull'                            // query initialization
 
   if(typeof args[0] != 'function') {
@@ -479,7 +479,7 @@ Our query can function in an asynchronous environment, allowing us to collect mo
 
 
 ```javascript
-Dagoba.addPipeType('take', function(graph, args, gremlin, state) {
+Dagoba.addPipetype('take', function(graph, args, gremlin, state) {
   state.taken = state.taken || 0                        // state initialization
   
   if(state.taken == args[0]) {
@@ -505,7 +505,7 @@ We do those two steps before query initialization to handle the cases of ```take
 These next three pipetypes work as a group to allow more advanced queries. This one just allows you to label the current vertex. We'll use that label with the next two pipetypes.
 
 ```javascript
-Dagoba.addPipeType('as', function(graph, args, gremlin, state) {
+Dagoba.addPipetype('as', function(graph, args, gremlin, state) {
   if(!gremlin) return 'pull'                            // query initialization
   gremlin.state.as = gremlin.state.as || {}             // initialize gremlin's 'as' state
   gremlin.state.as[args[0]] = gremlin.vertex            // set label to the current vertex
@@ -538,7 +538,7 @@ But there are also queries that would be very difficult to try to filter. What i
 [How would you get 'pure' uncles and aunts instead of half-uncles and step-aunts? and the pure u/a's current SOs?]
 
 ```javascript
-Dagoba.addPipeType('except', function(graph, args, gremlin, state) {
+Dagoba.addPipetype('except', function(graph, args, gremlin, state) {
   if(!gremlin) return 'pull'                            // query initialization
   if(gremlin.vertex == gremlin.state.as[args[0]]) return 'pull'
   return gremlin
@@ -560,7 +560,7 @@ This is really all the pipetypes we need to do some pretty serious queries.
 [TODO Add more examples here]
 
 ```javascript
-Dagoba.addPipeType('back', function(graph, args, gremlin, state) {
+Dagoba.addPipetype('back', function(graph, args, gremlin, state) {
   if(!gremlin) return 'pull'                            // query initialization
   return Dagoba.gotoVertex(gremlin, gremlin.state.as[args[0]])
 })

@@ -224,16 +224,16 @@ Dagoba.Q.add = function(pipetype, args) {                         // add a new s
   return this
 }
 
-Dagoba.PipeTypes = {}                                             // every pipe has a type
+Dagoba.Pipetypes = {}                                             // every pipe has a type
 
-Dagoba.addPipeType = function(name, fun) {                        // adds a new method to our query object
-  Dagoba.PipeTypes[name] = fun
+Dagoba.addPipetype = function(name, fun) {                        // adds a new method to our query object
+  Dagoba.Pipetypes[name] = fun
   Dagoba.Q[name] = function() {
     return this.add(name, [].slice.apply(arguments)) }            // capture the pipetype and args
 }
 
 Dagoba.getPipetype = function(name) {
-  var pipetype = Dagoba.PipeTypes[name]                           // a pipe type is just a function 
+  var pipetype = Dagoba.Pipetypes[name]                           // a pipe type is just a function 
 
   if(!pipetype)
     Dagoba.error('Unrecognized pipe type: ' + name)
@@ -248,7 +248,7 @@ Dagoba.fauxPipetype = function(graph, args, maybe_gremlin) {      // if you can'
 // BUILT-IN PIPE TYPES
 
 
-Dagoba.addPipeType('vertex', function(graph, args, gremlin, state) {
+Dagoba.addPipetype('vertex', function(graph, args, gremlin, state) {
   if(!state.vertices) 
     state.vertices = graph.findVertices(args)                     // state initialization
 
@@ -281,11 +281,11 @@ Dagoba.simpleTraversal = function(dir) {                          // handles bas
   }
 }
 
-Dagoba.addPipeType('out', Dagoba.simpleTraversal('out'))
-Dagoba.addPipeType('in',  Dagoba.simpleTraversal('in'))
+Dagoba.addPipetype('out', Dagoba.simpleTraversal('out'))
+Dagoba.addPipetype('in',  Dagoba.simpleTraversal('in'))
 
 
-Dagoba.addPipeType('outAllN', function(graph, args, gremlin, state) {
+Dagoba.addPipetype('outAllN', function(graph, args, gremlin, state) {
 
   //// THIS PIPETYPE IS GOING AWAY DON'T READ IT
 
@@ -321,7 +321,7 @@ Dagoba.addPipeType('outAllN', function(graph, args, gremlin, state) {
   return Dagoba.gotoVertex(gremlin, vertex)
 })
   
-Dagoba.addPipeType('inAllN', function(graph, args, gremlin, state) {
+Dagoba.addPipetype('inAllN', function(graph, args, gremlin, state) {
 
   //// THIS PIPETYPE IS GOING AWAY DON'T READ IT
 
@@ -357,20 +357,20 @@ Dagoba.addPipeType('inAllN', function(graph, args, gremlin, state) {
   return Dagoba.gotoVertex(gremlin.state, vertex)
 })
   
-Dagoba.addPipeType('property', function(graph, args, gremlin, state) {
+Dagoba.addPipetype('property', function(graph, args, gremlin, state) {
   if(!gremlin) return 'pull'                                      // query initialization
   gremlin.result = gremlin.vertex[args[0]]
   return gremlin.result == null ? false : gremlin                 // undefined or null properties kill the gremlin
 })
   
-Dagoba.addPipeType('unique', function(graph, args, gremlin, state) {
+Dagoba.addPipetype('unique', function(graph, args, gremlin, state) {
   if(!gremlin) return 'pull'                                      // query initialization
   if(state[gremlin.vertex._id]) return 'pull'                     // we've seen this gremlin, so get another instead
   state[gremlin.vertex._id] = true
   return gremlin
 })
   
-Dagoba.addPipeType('filter', function(graph, args, gremlin, state) {
+Dagoba.addPipetype('filter', function(graph, args, gremlin, state) {
   if(!gremlin) return 'pull'                                      // query initialization
 
   if(typeof args[0] != 'function') {
@@ -382,7 +382,7 @@ Dagoba.addPipeType('filter', function(graph, args, gremlin, state) {
   return gremlin
 })
   
-Dagoba.addPipeType('take', function(graph, args, gremlin, state) {
+Dagoba.addPipetype('take', function(graph, args, gremlin, state) {
   state.taken = state.taken || 0                                  // state initialization
   
   if(state.taken == args[0]) {
@@ -395,19 +395,19 @@ Dagoba.addPipeType('take', function(graph, args, gremlin, state) {
   return gremlin                                                  // cavalier about state management (but run the GC hotter)
 })
 
-Dagoba.addPipeType('as', function(graph, args, gremlin, state) {
+Dagoba.addPipetype('as', function(graph, args, gremlin, state) {
   if(!gremlin) return 'pull'                                      // query initialization
   gremlin.state.as = gremlin.state.as || {}                       // initialize gremlin's 'as' state
   gremlin.state.as[args[0]] = gremlin.vertex                      // set label to the current vertex
   return gremlin
 })
 
-Dagoba.addPipeType('back', function(graph, args, gremlin, state) {
+Dagoba.addPipetype('back', function(graph, args, gremlin, state) {
   if(!gremlin) return 'pull'                                      // query initialization
   return Dagoba.gotoVertex(gremlin, gremlin.state.as[args[0]])    // TODO: check for nulls
 })
 
-Dagoba.addPipeType('except', function(graph, args, gremlin, state) {
+Dagoba.addPipetype('except', function(graph, args, gremlin, state) {
   if(!gremlin) return 'pull'                                      // query initialization
   if(gremlin.vertex == gremlin.state.as[args[0]]) return 'pull'   // TODO: check for nulls
   return gremlin
@@ -501,10 +501,10 @@ Dagoba.error = function(msg) {
 */
 
 
-// re: Dagoba.Q.addPipeType
+// re: Dagoba.Q.addPipetype
 // TODO: accept string fun and allow extra params, for building quick aliases like
-//       Dagoba.addPipeType('children', 'out') <-- if all out edges are kids
-//       Dagoba.addPipeType('nthGGP', 'inN', 'parent')
+//       Dagoba.addPipetype('children', 'out') <-- if all out edges are kids
+//       Dagoba.addPipetype('nthGGP', 'inN', 'parent')
 // var methods = ['out', 'in', 'take', 'property', 'outAllN', 'inAllN', 'unique', 'filter', 'outV', 'outE', 'inV', 'inE', 'both', 'bothV', 'bothE']
 
 
