@@ -217,7 +217,7 @@ set of HTTP requests. The constraints say that (1) each request comes
 from a client, and (2) each request is sent to one of the servers
 specified by the URL host under the DNS mapping.
 
-One of the prominent features of Alloy is that a model, no matter how simple or detailed, can be executed at any time to generate sample system instances. Let's use a `run` command to ask the Alloy Analyzer to execute the HTTP model that we have so far:
+One of the prominent features of Alloy is that a model, no matter how simple or detailed, can be executed at any time to generate sample system instances. Let's use the `run` command to ask the Alloy Analyzer to execute the HTTP model that we have so far:
 
 ```alloy
 run {} for 3	-- generate an instance with up to 3 objects of every signature type
@@ -270,10 +270,10 @@ sig Browser extends Client {
 }
 ```
 
-This is our first example of a signature with *dynamic fields*. Alloy has no built-in notions of time or behavior, which means that a variety of idioms can be used. In this model, we're using a common idiom in which you introduce a notion of `Time`, and attach it as a final column for every time-varying field. For example, expression `b.cookes.t` represents the set of cookies that are stored in browser `b` at particular time `t`. Likewise, the `documents` field associates a set of documents with each browser at a given time (for more details about we model the dynamic behavior, see Appendix).
+This is our first example of a signature with *dynamic fields*. Alloy has no built-in notions of time or behavior, which means that a variety of idioms can be used. In this model, we're using a common idiom in which you introduce a notion of `Time`, and attach it as a final column for every time-varying field. For example, expression `b.cookes.t` represents the set of cookies that are stored in browser `b` at particular time `t`. Likewise, the `documents` field associates a set of documents with each browser at a given time (for more details about how we model the dynamic behavior, see Appendix).
 
 Documents are created from a response to an HTTP request. They could also be
-destroyed if, for example, the user closes a tab or the browser but
+destroyed if, for example, the user closes a tab or the browser, but
 we leave this out of the model.
 A document has a URL (the one from which the document was originated), some
 content (the DOM) and domain:
@@ -319,7 +319,7 @@ This kind of request has one new field, `doc`, which is the document created in 
 `documents.end = documents.start + from -> doc`
 remember that `documents` is a 3-column relation on browsers, documents and times. The fields `start` and `end` come from the declaration of `Call` (which we haven't seen, but is included in the listing at the end), and represent the times at the beginning and end of the call. The expression `documents.end` gives the mapping from browsers to documents when the call has ended. So this constraint says that after the call, the mapping is the same, except for a new entry in the table mapping `from` to `doc`.
 
-Some constraints use the `++` operator which does a relational override (i.e, `e1 ++ e2` contains all tuples of `e2`, and additionally, any tuples of `e1` whose first element is not the first element of a tuple in `e2`). For example, the constraint
+Some constraints use the `++` operator which does a relational override (i.e., `e1 ++ e2` contains all tuples of `e2`, and additionally, any tuples of `e1` whose first element is not the first element of a tuple in `e2`). For example, the constraint
 `content.end = content.start ++ doc -> response`
 says that after the call, the `content` mapping will be updated to map `doc` to `response` (clobbering any previous mapping of `doc`).
 If we were to use `+`, then the same document could map to multiple resources at the same time; which is hardly what we want.
@@ -339,7 +339,7 @@ sig XmlHttpRequest extends HttpRequest {}{
   noBrowserChange[start, end] and noDocumentChange[start, end]
 }
 ```
-An `XmlHttpRequest` can be used by a script to send/receive resources to/from a server, but unlike `BrowserHttpRequest`, it does not immediately result in creation of a new page or other changes to the browser and its documents. To say that a call does not modify the states of the system, we use predicates `noBrowserChange` and `noDocumentChange`:
+An `XmlHttpRequest` can be used by a script to send/receive resources to/from a server, but unlike `BrowserHttpRequest`, it does not immediately result in creation of a new page or other changes to the browser and its documents. To say that a call does not modify these aspects of the system, we use predicates `noBrowserChange` and `noDocumentChange`:
 ```alloy
 pred noBrowserChange[start, end: Time] {
   documents.end = documents.start and cookies.end = cookies.start  
@@ -519,7 +519,7 @@ sig DataflowModule in Endpoint {
       some c: Call & end.t |
         -- (2) the endpoint receives "c" that carries "d" as one of its arguments or
         c.to = this and d in c.args or
-        -- (3) the endpoint sends "c" that returns d" 
+        -- (3) the endpoint sends "c" that returns "d" 
         c.from = this and d in c.returns 
 }
 ```
@@ -555,7 +555,7 @@ the flow of critical data into non-trusted parts of the system:
 ```alloy
 // No malicious module should be able to access critical data
 assert Confidentiality {
-  no m : Module - TrustedModule, t : Time |
+  no m: Module - TrustedModule, t: Time |
     some CriticalData & m.accesses.t 
 }
 ```
@@ -691,7 +691,7 @@ one that is a right-hand, fully qualified fragment of its hostname.
 
 (\* Wondering if it's possible to set it to just `com`? `foo.example.com` would
  be a subdomain of `com` after all, but browsers know that
- `com` is a top-level domain and won't allow the operation.)
+ `com` is a top-level domain and don't allow the operation.)
 
 We add a `fact` to capture this rule:
 
@@ -881,9 +881,9 @@ other callback function (or any piece of JavaScript) that has nothing
 to do with `padding` in the request. This highlights one potential
 risk of JSONP: The server that accepts the JSONP requests must be
 completely trustworthy and secure, because it basically has the
-ability to execute any piece of Javascript code in your document.
+ability to execute any piece of JavaScript code in your document.
 
-Yet another risk with JSONP is its vulenrability to cross-site request
+Yet another risk with JSONP is its vulnerability to cross-site request
 forgery (CSRF) attacks.  Consider the following scenario from our Alloy model. Suppose that the calendar application (`CalenderServer`) makes its resources available to third-party sites using a JSONP endpoint (`GetSchedule`). To restrict access to the resources, `CalendarServer` only sends back a response with the schedule for a user if the request contains a cookie that correctly identifies that user. 
 
 Once a server provides an HTTP endpoint as a JSONP service, anyone can
@@ -1017,7 +1017,7 @@ In our model, the wildcard value can be represented as
 universe:
 
 ```alloy 
-some r : CorsRequest | r.allowedOrigins = Origin 
+some r: CorsRequest | r.allowedOrigins = Origin 
 ```
 
 The developer of the calendar application decides to share some of its resources with other applications by using the CORS mechanism. Unfortunately, `CalendarServer` is configured to always return "\*" as the value of the `access-control-allow-origin` header in CORS responses, exposing sensitive information (`MySchedule`) to a larger part of the web than the developer might have intended:
