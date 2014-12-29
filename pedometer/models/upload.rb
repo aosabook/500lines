@@ -42,7 +42,7 @@ class Upload
   def self.generate_file_path(user, trial)
     UPLOAD_DIRECTORY + 
     "#{user.gender}-#{user.height}-#{user.stride}_" +
-    "#{trial.name}-#{trial.method}-#{trial.rate}-#{trial.steps}.txt"
+    "#{trial.name}-#{trial.rate}-#{trial.steps}.txt"
   end
 
 end

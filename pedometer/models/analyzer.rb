@@ -47,7 +47,7 @@ class Analyzer
   end
 
   def measure_time
-    @time = @data.count/@trial.rate
+    @time = @data.count/@trial.rate if @trial.rate
   end
 
 end

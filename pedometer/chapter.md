@@ -449,6 +449,7 @@ Again, we see the `run` and `initialize` methods pattern. `run` calls our two pr
 Provided information about the person using the pedometer is available, we can measure more than just steps. Our pedometer will measure **distance traveled** and **elapsed time**, as well as **steps taken**. 
 
 ## Distance Traveled
+
 A mobile pedometer is generally used by one person. Distance traveled during a walk is calculated by multiplying the steps taken by the person's stride length. If the stride length is unknown, we can use optional user information like gender and height to approximate it. Let's create a `User` class to encapsulate this related information. 
 
 ~~~~~~~
@@ -465,9 +466,9 @@ class User
     @height = Float(height) unless height.to_s.empty?
     @stride = Float(stride) unless stride.to_s.empty?
 
-    raise('Invalid gender') if @gender && !GENDER.include?(@gender)
-    raise('Invalid height') if @height && (@height <= 0)
-    raise('Invalid stride') if @stride && (@stride <= 0)
+    raise 'Invalid gender' if @gender && !GENDER.include?(@gender)
+    raise 'Invalid height' if @height && (@height <= 0)
+    raise 'Invalid stride' if @stride && (@stride <= 0)
 
     @stride ||= calculate_stride
   end
@@ -489,9 +490,9 @@ private
 end
 ~~~~~~~
 
-At the top of our class, we define constants to avoid hardcoding magic numbers and strings throughout. Our initializer accepts `gender`, `height`, and `stride` all as optional arguments. Handling optional information is a common programming problem. If the optional parameters are passed in, our initializer sets instance variables of the same names, after some data formatting to allow for a case insensitive gender parameter to be passed in, as long as its defined in `GENDER`, and prevent a height and stride that aren't valid floats or are less than or equal to 0.
+At the top of our class, we define constants to avoid hardcoding magic numbers and strings throughout. Our initializer accepts `gender`, `height`, and `stride` all as optional arguments. Handling optional information is a common programming problem. If the optional parameters are passed in, our initializer sets instance variables of the same names, after some data formatting. We raise an exception for invalid values.
 
-Even when all optional parameters are provided, the input stride takes precedence. If it's not provided, `calculate_stride` determines the most accurate stride length it can for the user. This is done with an `if` statement:
+Even when all optional parameters are provided, the input stride takes precedence. If it's not provided, the `calculate_stride` method determines the most accurate stride length it can for the user. This is done with an `if` statement:
 
 * The most accurate way to calculate stride beyond it being given directly is to use a person's height and a multiplier based on gender, provided we have a valid gender and height.
 * A person's height is a better predictor of stride than their gender is. If we have a height but not a gender, we can multiply the height by the average of the two values in `MULTIPLIERS`. 
@@ -502,36 +503,33 @@ For the purposes of this discussion, let's assume that the values in `MULTIPLIER
 
 ## Time Traveled
 
-The time traveled is measured by dividing the number of data samples in our `Processor`'s `@parsed_data` by the sampling rate of the device. Since the rate has more to do with the trial walk itself than the user, and the `User` class in fact does not have to be aware of the sampling rate, this is a good time to create a very small `Trial` class.
+The time traveled is measured by dividing the number of data samples in our `Processor`'s `@parsed_data` by the sampling rate of the device, if we have it. Since the rate has more to do with the trial walk itself than the user, and the `User` class in fact does not have to be aware of the sampling rate, this is a good time to create a very small `Trial` class.
 
 ~~~~~~~
 class Trial
 
-  attr_reader :name, :method, :rate, :steps
+  attr_reader :name, :rate, :steps
 
-  def initialize(name = nil, method = nil, rate = nil, steps = nil)
-    @name   = name.to_s.delete(' ')
-    @method = method.to_s.delete(' ')
-    @rate   = Integer(rate.to_s) unless rate.to_s.empty?
-    @steps  = Integer(steps.to_s) unless steps.to_s.empty?
+  def initialize(name, rate = nil, steps = nil)
+    @name  = name.to_s.delete(' ')
+    @rate  = Integer(rate.to_s) unless rate.to_s.empty?
+    @steps = Integer(steps.to_s) unless steps.to_s.empty?
 
-    raise('Invalid rate') if @rate && (@rate <= 0)
-    raise('Invalid steps') if @steps && (@steps < 0)
-
-    @rate ||= 100    
+    raise 'Invalid name'  if @name.empty?
+    raise 'Invalid rate'  if @rate && (@rate <= 0)
+    raise 'Invalid steps' if @steps && (@steps < 0)
   end
 
 end
 ~~~~~~~
 
-All of the attribute readers in `Trial` are set in the initializer based on optional parameters passed in:
+All of the attribute readers in `Trial` are set in the initializer based on parameters passed in:
 
 * `name` is a name for the specific trial, to help differentiate between the different trials.
-* `method` is used to set the type of walk that is taken. Types of walks include walking with the device in a pocket, walking with the device in a bag, running with the device in a pocket, running with the device in a bag, etc.
 * `rate` is the sampling rate of the accelerometer during the trial.
 * `steps` is used to set the actual steps taken, so that we can record the difference between the actual steps the user took and the ones our program counted.
 
-Much like our `User` class, information is optional. We're given the opportunity to input details of the trial, if we have it, for more accurate end results. If we don't have those details, our program makes assumptions and is still able to produce results, albeit with a higher margin of error. Another similarity to our `User` class is the prevention of invalid values.
+Much like our `User` class, some information is optional. We're given the opportunity to input details of the trial, if we have it. If we don't have those details, our program bypasses calculating the additional results, such as time traveled. Another similarity to our `User` class is the prevention of invalid values.
 
 ## Steps Taken
 
@@ -587,7 +585,7 @@ class Analyzer
   end
 
   def measure_time
-    @time = @data.count/@trial.rate
+    @time = @data.count/@trial.rate if @trial.rate
   end
 
 end
@@ -618,7 +616,7 @@ The distance is measured by multiplying our user's stride by the number of steps
 
 ### measure_time
 
-Time is calculated by dividing the total number of samples in `filtered_data` by the sampling rate. It follows, then, that time is calculated in numbers of seconds. 
+As long as we have a sampling rate, time is calculated by dividing the total number of samples in `filtered_data` by the sampling rate. It follows, then, that time is calculated in numbers of seconds. 
 
 # Tying It All Together With the Pipeline
 
