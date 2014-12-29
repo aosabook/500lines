@@ -1,6 +1,6 @@
 SuperSimpleCI
 =============
-**Author;** Malini Das
+**Author:** Malini Das
 
 **Project:** SuperSimpleCI
 
@@ -15,8 +15,8 @@ Files
 * dispatcher.py -- Receives test requests and dispatches them against test runners
 * test_runner.py -- Runs the tests and returns the results 
 * helpers.py -- Holds shared code
-* update_repo.sh -- Updates the shared repo and drops a new file with the hash if there's a change
-* test_runner_script.sh -- Updates the test runner's repository to the given commit hash
+* update_repo.sh -- Updates the shared repo and drops a new file with the commit id if there's a change
+* test_runner_script.sh -- Updates the test runner's repository to the given commit id 
 * run_or_fail.sh -- Helper method used in update_repo.sh and test_runner_script.sh
 * tests/ -- Holds some demo tests to run
 
@@ -115,7 +115,7 @@ to make a new commit. Go to your master repo and make an arbitrary change::
 then repo_observer.py will realize that there's a new commit and will notify
 the dispatcher. You can see the output in their respective shells, so you
 can monitor them. Once the dispatcher receives the test results, it stores them
-in a test_results/ folder in this code base, using the commit hash as the
+in a test_results/ folder in this code base, using the commit id as the
 file name.
 
 Error Handling

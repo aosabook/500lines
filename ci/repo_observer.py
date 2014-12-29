@@ -2,8 +2,8 @@
 This is the repo observer.
 
 It checks for new commits to the master repo, and will notify the dispatcher of
-the latest commit hash, so the dispatcher can dispatch the tests against this
-commit hash.
+the latest commit ID, so the dispatcher can dispatch the tests against this
+commit ID.
 """
 import argparse
 import os
@@ -31,13 +31,13 @@ def poll():
     while True:
         try:
             # call the bash script that will update the repo and check
-            # for changes. If there's a change, it will drop a .commit_hash file
+            # for changes. If there's a change, it will drop a .commit_id file
             # with the latest commit in the current working directory
             subprocess.check_output(["./update_repo.sh", args.repo])
         except subprocess.CalledProcessError as e:
             raise Exception("Could not update and check repository. Reason: %s" % e.output)
 
-        if os.path.isfile(".commit_hash"):
+        if os.path.isfile(".commit_id"):
             # great, we have a change! let's execute the tests
             # First, check the status of the dispatcher server to see
             # if we can send the tests
@@ -50,7 +50,7 @@ def poll():
             if response == "OK":
                 # Dispatcher is present, let's send it a test
                 commit = ""
-                with open(".commit_hash", "r") as f:
+                with open(".commit_id", "r") as f:
                     commit = f.readline()
                 response = helpers.communicate(dispatcher_host,
                                                int(dispatcher_port),
