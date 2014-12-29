@@ -8,34 +8,33 @@ a browser can communicate with one another (roughly, when they
 originate from the same website). First introduced in Netscape
 Navigator, the SOP now plays a critical role in the security of web
 applications; without it, it would be far easier for a malicious
-hacker to peruse your private photos on Facebook, or empty the balance
-on your bank account.
+hacker to peruse your private photos on Facebook, read your email, or empty
+your bank account.
 
 But the SOP is far from perfect. At times, it is too restrictive;
 there are cases (such as mashups) in which scripts from different
-origins should be able to share a resource but cannot. At other times,
+origins should be able to share a resource but cannot. At other times
 it is not restrictive enough, leaving corner cases that can be
-exploited using common attacks such as cross-site request forgery
-(CSRF). Furthermore, the design of the SOP has evolved organically
+exploited using common attacks such as cross-site request forgery.
+Furthermore, the design of the SOP has evolved organically
 over the years and puzzles many developers.
 
-The goal of this chapter is to construct a crystallized description of
-this important -- yet often misunderstood -- policy. In particular, we
-will answer the following questions by implementing the SOP ourselves:
+The goal of this chapter is to capture the essence of
+this important -- yet often misunderstood -- feature. In particular, we
+will attempt to answer the following questions:
 
 * Why is the SOP necessary? What are the types of security violations that it prevents?
 * How is the behavior of a web application affected by the SOP?
 * What are different mechanisms for bypassing the SOP? 
 * How secure are these mechanisms? What are potential security issues that they introduce?
 
-But building an implementation of the SOP is a daunting task, given
-the complexity of the parts that are involved -- a web server, a
-browser, the HTTP protocol, HTML documents, client-side scripts,
-etc. Even before getting to the SOP, we will likely get bogged down by
-all the gritty details of these pieces (not to mention, we need to do
-this in less in 500 lines of code!). So how do we go about building a
-version of the SOP that is simple and yet detailed enough to capture
-all of the questions above?
+Covering the SOP in its entirety is a daunting task, given
+the complexity of the parts that are involved -- web servers, 
+browsers, the HTTP protocol, HTML documents, client-side scripts,
+and so on. We would likely get bogged down by
+the gritty details of all these parts (and consume our 500 lines before even
+reaching SOP!). But how can we hope to be precise without representing
+crucial details?
 
 ## Modeling with Alloy
 
@@ -73,7 +72,8 @@ operations and arguments to apply up to some number of steps. Because
 so many tests are executed (typically billions), and because all
 possible configurations that a state can take are covered (albeit
 within the scope), this analysis tends to expose bugs more effectively
-than conventional testing.
+than conventional testing (and is sometimes described not as "testing"
+but as "bounded verification").
 
 ### Simplifications
 
@@ -98,23 +98,23 @@ codebase) can be guaranteed complete.
 Here is the order in which we will proceed with our model of the
 SOP. We will begin by building models of three key components that we
 need in order for us to talk about the SOP: the HTTP protocol, the
-browser, and the client-side scripting. We will build on top of these
-basic models to define what it means for some web application to be
+browser, and client-side scripting. We will build on top of these
+basic models to define what it means for a web application to be
 _secure_, and then introduce the SOP as a mechanism that attempts to
-achieve the security properties.
+achieve the required security properties.
 
-But we will then see that the SOP can be sometimes too restrictive, in
-that it sometimes gets in the way of a web application functioning
-properly! So we will introduce four different techniques that can be
+We will then see that the SOP can be sometimes too restrictive, getting
+in the way of a web application's proper functioning.
+So we introduce four different techniques that are commonly
 used to bypass the restrictions that are imposed by the policy.
 
-Feel free to explore the sections in any order you'd like, although if
-you are new to Alloy, we recommend the first three sections (HTTP,
-Browser, and Script), as they will introduce some of the basic
+Feel free to explore the sections in any order you'd like. If
+you are new to Alloy, we recommend starting with the first three sections (HTTP,
+Browser, and Script), as they introduce some of the basic
 concepts of the modeling language. While you are making your way
 through the chapter, we also encourage you to play with the models in
-the Alloy Analyzer; run them, explore the generated scenarios, and add
-your own details to the models! The tool is freely available for
+the Alloy Analyzer; run them, explore the generated scenarios, and try 
+making modifications and seeing their effects. The tool is freely available for
 download (http://alloy.mit.edu).
 
 ## Model of the Web
@@ -127,11 +127,8 @@ The first step in building an Alloy model is to declare some sets of objects. Le
 sig Resource {}
 ```
 
-The keyword “sig” identifies this as an Alloy signature declaration.
-Signatures represent sets and are assigned values in analysis (they
-play a similar role to static variables in programming languages).
-Think of these, just like the objects of a class with no instance variables, as blobs that have identity but no contents.
-This signature, therefore, introduces a set of resource objects.
+The keyword “sig” identifies this as an Alloy signature declaration. This introduces a set of resource objects; think of these, just like the objects of a class with no instance variables, as blobs that have identity but no content. When the analysis runs, this set will be determined, just as a class in an object-oriented language comes to denote a set of objects when the program executes.
+
 Resources are named by URLs (*uniform resource locators*):
 
 ```alloy
@@ -143,7 +140,7 @@ sig Url {
 }
 sig Protocol, Domain, Port, Path {}
 ```
-Here we have five signature declarations, introducing sets for URLs and each of the basic types of objects they comprise. Within the URL declaration, we have four fields. Fields are like instance variables in a class; if `u` is a URL, for example, then `u.protocol` would represent the protocol of that URL (just like dot in Java). But in fact, as we'll see later, these fields are relations. You can think of each one as if it were a two column database table. Thus `protocol` is a table with the first column containing URLs and the second column containing protocols. And the innocuous looking dot operator is in fact a rather general kind of relational join, so that you could also write `protocol.p` for all the URLs with a protocol `p` -- but more on that later.
+Here we have five signature declarations, introducing a set of URLs and four additional sets for each of the basic kinds of objects they comprise. Within the URL declaration, we have four fields. Fields are like instance variables in a class; if `u` is a URL, for example, then `u.protocol` would represent the protocol of that URL (just like dot in Java). But in fact, as we'll see later, these fields are relations. You can think of each one as if it were a two-column database table. Thus `protocol` is a table with the first column containing URLs and the second column containing protocols. And the innocuous looking dot operator is in fact a rather general kind of relational join, so that you could also write `protocol.p` for all the URLs with a protocol `p` -- but more on that later.
 
 Note that domains and paths, unlike URLs, are treated as if they have no structure -- a simplification. The keyword `lone` (which can be read "less than or equal to one") says that each URL has at most one port. The path is the string that follows the host name in the URL, and which (for a simple static server) corresponds to the file path of the resource; we're assuming that it's always present, but can be an empty path.
 
@@ -157,7 +154,7 @@ abstract sig Server extends Endpoint {
 }
 ```
 
-The `extends` keyword introduces a subset, so the set `Client` of all clients, for example, is a subset of the set `Endpoint` of all endpoints. Extensions are disjoint, so no endpoint is both a client and a server. The `abstract` keyword says that all extensions of a signature exhaust it, so its occurrence in the declaration of `Endpoint`, for example, says that every endpoint must belong to one of the subsets (at this point, `Client` and `Server`). For a server `s`, the expression `s.resources` will denote a map from paths to resources (hence the arrow in the declaration). But as before, remember that each field is actually a relation that includes the owning signature as a first column, so this field represents a three-column relation on `Server`, `Path` and `Resource`.
+The `extends` keyword introduces a subset, so the set `Client` of all clients, for example, is a subset of the set `Endpoint` of all endpoints. Extensions are disjoint, so no endpoint is both a client and a server. The `abstract` keyword says that all extensions of a signature exhaust it, so its occurrence in the declaration of `Endpoint`, for example, says that every endpoint must belong to one of the subsets (at this point, `Client` and `Server`). For a server `s`, the expression `s.resources` will denote a map from paths to resources (hence the arrow in the declaration). Recall that each field is actually a relation that includes the owning signature as a first column, so this field represents a three-column relation on `Server`, `Path` and `Resource`.
 
 To map a URL to a server, we introduce a set `Dns` of domain name servers, each with a mapping from domains to servers:
 
@@ -168,8 +165,9 @@ one sig Dns {
 ```
 
 The keyword `one` in the signature declaration means that (for
-simplicity) we're going to restrict to exactly one domain name server,
-so that `Dns.map` will be the mapping used everywhere. Again, as with
+simplicity) we're going to assume exactly one domain name server,
+and there will be  single DNS mapping, given by the expression `Dns.map`.
+Again, as with the
 serving resources, this could be dynamic (and in fact there are known
 security attacks that rely on changing DNS bindings during an
 interaction) but we're simplifying.
@@ -208,8 +206,7 @@ open call[Endpoint]
 ```
 
 It's a polymorphic module, so it's instantiated with `Endpoint`, the
-set of things calls are from and to (details about calls can be found
-in Appendix).
+set of things calls are from and to. (The module appears in full in the Appendix.)
 
 Following the field declarations in `HttpRequest` is a collection of
 constraints. Each of these constraints applies to all members of the
@@ -223,13 +220,13 @@ One of the prominent features of Alloy is that a model, no matter how simple or 
 run {} for 3	-- generate an instance with up to 3 objects of every signature type
 ```
 
-As soon as the analyzer finds a possible instance of the system, it automatically produces its graphical representation, like the following:
+As soon as the analyzer finds a possible instance of the system, it displays it graphically, like this:
 
 ![http-instance-1](fig-http-1.png)
 
 This instance shows a client (represented by node `Client`) sending an `HttpRequest` to `Server`, which, in response, returns a resource object and instructs the client to store `Cookie` at `Domain`. 
 
-Even though it's a tiny instance with seemingly few details, it already tells us something strange about the model -- note that the resource returned from the request (`Resource1`) does not actually exist in the server! Clearly, we neglected to specify an important part of the server; namely, that every response to a request must be a resource that the server stores. We can go back to our definition of `HttpRequest` and append the following constraint:
+Even though this is a tiny instance with seemingly few details, it signals a flaw in our model. Note that the resource returned from the request (`Resource1`) does not exist in the server! We neglected to specify an obvious fact about the server; namely, that every response to a request is a resource that the server stores. We can go back to our definition of `HttpRequest` and append the following constraint:
 
 ```alloy
 abstract sig HttpRequest extends Call { ... }{
@@ -238,16 +235,20 @@ abstract sig HttpRequest extends Call { ... }{
 }
 ```
 
-Instead of generating sample instances, we can ask the analyzer to *check* whether the model satisfies a property. For example, one property that we want is that whenever a client sends the same request multiple times, it always receives the same response back:
+Rerunning produces now instances without the flaw.
+
+Instead of generating sample instances, we can ask the analyzer to *check* whether the model satisfies a property. For example, one property we might want is that when a client sends the same request multiple times, it always receives the same response back:
 ```alloy
 check { all r1, r2: HttpRequest | r1.url = r2.url implies r1.response = r2.response } for 3 
 ```
-Given this `check` command, the analyzer explores every possible behavior of the system (up to the specified bound), and as soon as it finds one that violates the property, it returns that instance as a *counterexample*:
+Given this `check` command, the analyzer explores every possible behavior of the system (up to the specified bound), and when it find one that violates the property, displays that instance as a *counterexample*:
 
 ![http-instance-2a](fig-http-2a.png)
 ![http-instance-2b](fig-http-2b.png)
 
-This counterexample again shows an HTTP request being made by a client, but with two different servers (in Alloy, objects of the same type are distinguished with a numeric suffix). Note that while the DNS server maps `Domain` to both `Server0` and `Server1` (in reality, this is a common practice for load balancing), only `Server1` maps `Path` to a resource object, causing `HttpRequest1` to result in empty response: another error in our model! To fix this, we add an Alloy *fact* to ensure that any two servers mapped to the common host by the DNS provide the same set of resources:
+This counterexample again shows an HTTP request being made by a client, but with two different servers. (In the Alloy visualizer, objects of the same type are distinguished by appending numeric suffixes to their names; if there is only one object of a given type, no suffix is added. Every name that appears in a snapshot diagram is the name of an object. So -- perhaps confusingly at first sight -- the names Domain, Path, Resource, Url all refer to individual objects, not to types!)
+
+Note that while the DNS server maps `Domain` to both `Server0` and `Server1` (in reality, this is a common practice for load balancing), only `Server1` maps `Path` to a resource object, causing `HttpRequest1` to result in empty response: another error in our model! To fix this, we add an Alloy *fact* recording the assumption that  any two servers to which DNS maps a single host provide the same set of resources:
 
 ```alloy
 fact ServerAssumption {
@@ -255,9 +256,7 @@ fact ServerAssumption {
 }
 ```
 
-When we re-run the `check` command after adding the fact, the analyzer no longer reports any counterexamples for the property.
-
-These examples show how even simple, abstract instances can provide often surprising insights into the system being modeled. Alloy is well-suited for this type of agile modeling: start out by building a small model of the system, run an analysis, and incrementally grow the model based on feedback from the analysis results.
+When we re-run the `check` command after adding this fact, the analyzer no longer reports any counterexamples for the property. This doesn't mean the property has been proven to be true, since there might be a counterexample in a larger scope. But it is unlikely that the property is false, since the analyzer has tested all possible instances involving 3 objects of each type. In this scope, the `map` field alone (representing the DNS mapping) has 512 possible values.
 
 ### Browser
 
@@ -270,13 +269,13 @@ sig Browser extends Client {
 }
 ```
 
-This is our first example of a signature with *dynamic fields*. Alloy has no built-in notions of time or behavior, which means that a variety of idioms can be used. In this model, we're using a common idiom in which you introduce a notion of `Time`, and attach it as a final column for every time-varying field. For example, expression `b.cookes.t` represents the set of cookies that are stored in browser `b` at particular time `t`. Likewise, the `documents` field associates a set of documents with each browser at a given time (for more details about how we model the dynamic behavior, see Appendix).
+This is our first example of a signature with *dynamic fields*. Alloy has no built-in notions of time or behavior, which means that a variety of idioms can be used. In this model, we're using a common idiom in which you introduce a notion of `Time`, and attach it as a final column for every time-varying field. For example, expression `b.cookes.t` represents the set of cookies that are stored in browser `b` at particular time `t`. Likewise, the `documents` field associates a set of documents with each browser at a given time (for more details about how we model the dynamic behavior, see the Appendix).
 
-Documents are created from a response to an HTTP request. They could also be
+Documents are created from a response to an HTTP request. They can also be
 destroyed if, for example, the user closes a tab or the browser, but
 we leave this out of the model.
 A document has a URL (the one from which the document was originated), some
-content (the DOM) and domain:
+content (the DOM) and a domain:
 
 ```alloy
 sig Document {
@@ -286,7 +285,7 @@ sig Document {
 }
 ```
 
-The inclusion of the `Time` column for the last two tells us that they can vary over time, but the first (`src`, representing the source URL of the document) is fixed.
+The inclusion of the `Time` column for the latter two fields tells us that they can vary over time, and its omission for the first (`src`, representing the source URL of the document) indicates that the source URL is fixed.
 
 To model the effect of an HTTP request on a browser, we introduce a new signature, since not all HTTP requests will originate at the level of the browser; the rest will come from scripts.
 
@@ -301,7 +300,7 @@ sig BrowserHttpRequest extends HttpRequest {
   -- every cookie sent must be scoped to the url of the request
   all c: sentCookies | url.host in c.domains
 
-  -- browser creates a new document to display the content of the response
+  -- a new document is created to display the content of the response
   documents.end = documents.start + from -> doc
   -- the new document has the response as its contents
   content.end = content.start ++ doc -> response
@@ -315,22 +314,24 @@ sig BrowserHttpRequest extends HttpRequest {
 }
 ```
 
-This kind of request has one new field, `doc`, which is the document created in the browser from the resource returned by the request. As with `HttpRequest`, the behavior is described as a collection of constraints. Some of these say when the call can happen: for example, that the call has to come from a browser. Some of these constrain the arguments of the call: for example, that the cookies must be scoped appropriately. Some of these constrain the effect, and have a common form that relates the value of a relation after the call to its value before. For example, to understand
+This kind of request has one new field, `doc`, representing the document created in the browser from the resource returned by the request. As with `HttpRequest`, the behavior is described as a collection of constraints. Some of these say when the call can happen: for example, that the call has to come from a browser. Some constrain the arguments of the call: for example, that the cookies must be scoped appropriately. And some constrain the effect, using a common idiom that relates the value of a relation after the call to its value before.
+
+For example, to understand the constraint
 `documents.end = documents.start + from -> doc`
 remember that `documents` is a 3-column relation on browsers, documents and times. The fields `start` and `end` come from the declaration of `Call` (which we haven't seen, but is included in the listing at the end), and represent the times at the beginning and end of the call. The expression `documents.end` gives the mapping from browsers to documents when the call has ended. So this constraint says that after the call, the mapping is the same, except for a new entry in the table mapping `from` to `doc`.
 
-Some constraints use the `++` operator which does a relational override (i.e., `e1 ++ e2` contains all tuples of `e2`, and additionally, any tuples of `e1` whose first element is not the first element of a tuple in `e2`). For example, the constraint
+Some constraints use the `++` relational override operator: `e1 ++ e2` contains all tuples of `e2`, and additionally, any tuples of `e1` whose first element is not the first element of a tuple in `e2`. For example, the constraint
 `content.end = content.start ++ doc -> response`
 says that after the call, the `content` mapping will be updated to map `doc` to `response` (clobbering any previous mapping of `doc`).
-If we were to use `+`, then the same document could map to multiple resources at the same time; which is hardly what we want.
+If we were to use the union operator `+` instead, then the same document might (incorrectly) be mapped in the after state to multiple resources.
 
 ### Script
 
-Next, we will build on the HTTP and browser models to introduce *client-side scripts*, which represent a piece of code (typically in JavaScript) executing inside a browser document (`context`). 
+Next, we will build on the HTTP and browser models to introduce *client-side scripts*, which represent pieces of code (typically in JavaScript) executing inside a browser document (`context`). 
 ```alloy
 sig Script extends Client { context: Document }
 ```
-A script is a dynamic entity that can perform two different types of actions: (1) it can make HTTP requests (i.e., Ajax requests) and (2) perform browser operations to manipulate the content and properties of a document. The flexibility of client-side scripts is one of the main catalysts behind the rapid development of Web 2.0, but it's also the reason why the SOP was created in the first place. Without the policy, scripts would be able to send arbitrary requests to servers, or freely modify the documents inside the browser -- which would be bad news if one or more of the scripts turned out to be malicious! 
+A script is a dynamic entity that can perform two different kinds of action: (1) it can make HTTP requests (i.e., Ajax requests) and (2) it can erform browser operations to manipulate the content and properties of a document. The flexibility of client-side scripts is one of the main catalysts behind the rapid development of Web 2.0, but is also the reason why the SOP was created in the first place. Without the SOP, scripts would be able to send arbitrary requests to servers, or freely modify  documents inside the browser -- which would be bad news if one or more of the scripts turned out to be malicious! 
 
 A script can communicate to a server by sending an `XmlHttpRequest`:
 ```alloy
@@ -339,7 +340,7 @@ sig XmlHttpRequest extends HttpRequest {}{
   noBrowserChange[start, end] and noDocumentChange[start, end]
 }
 ```
-An `XmlHttpRequest` can be used by a script to send/receive resources to/from a server, but unlike `BrowserHttpRequest`, it does not immediately result in creation of a new page or other changes to the browser and its documents. To say that a call does not modify these aspects of the system, we use predicates `noBrowserChange` and `noDocumentChange`:
+An `XmlHttpRequest` can be used by a script to send/receive resources to/from a server, but unlike `BrowserHttpRequest`, it does not immediately result in creation of a new page or other changes to the browser and its documents. To say that a call does not modify these aspects of the system, we define predicates `noBrowserChange` and `noDocumentChange`:
 ```alloy
 pred noBrowserChange[start, end: Time] {
   documents.end = documents.start and cookies.end = cookies.start  
@@ -356,11 +357,9 @@ abstract sig BrowserOp extends Call { doc: Document }{
   noBrowserChange[start, end]
 }
 ```
-Field `doc` refers to the document that will be accessed or manipulated by this call. The second constraint in the signature facts says that both `doc` and the document in which the script executes (`from.context`) must be documents that currently exist inside the browser. Finally, a `BrowserOp` may modify the state of a document, but not the set of documents or cookies* that are stored in the browser.
+Field `doc` refers to the document that will be accessed or manipulated by this call. The second constraint in the signature facts says that both `doc` and the document in which the script executes (`from.context`) must be documents that currently exist inside the browser. Finally, a `BrowserOp` may modify the state of a document, but not the set of documents or cookies that are stored in the browser. (Actually, cookies can be associated with a document and modified using a browser API, but we  omit this detail for now.)
 
-(* actually, cookies can be associated with a document and modified using a browser API, but we will omit this detail for now.)
-
-A script can read from and write to various parts of a document (often called DOM elements). In a typical browser, there are a large number of API functions for accessing DOM (e.g., `document.getElementById`), but enumerating all of them is not important for our purpose, we will simply group those into two types -- `ReadDom` and `WriteDom`:
+A script can read from and write to various parts of a document (usually called DOM elements). In a typical browser, there are a large number of API functions for accessing the DOM (e.g., `document.getElementById`), but enumerating all of them is not important for our purpose. Instead, we will simply group them into two kinds -- `ReadDom` and `WriteDom` -- and model modifications as wholesale replacements of the entire document:
 ```alloy
 sig ReadDom extends BrowserOp { result: Resource }{
   result = doc.content.start
@@ -374,7 +373,7 @@ sig WriteDom extends BrowserOp { new_dom: Resource }{
 `ReadDom` returns the content the target document, but does not modify it; `WriteDom`, on the other hand, sets the new content of the target document to `new_dom`.
 
 In addition, a script can modify various properties of a document,
-such as its width, height, domain, and title. For the discussion of
+such as its width, height, domain, and title. For our discussion of
 the SOP, we are only interested in the domain property, which we will
 introduce in a later section.
 
@@ -407,7 +406,7 @@ be malicious. This is exactly where the SOP comes in.
 ## Example: Email Application
 
 As we've seen earlier, given a `run` or `check` command, the Alloy
-Analyzer generates a scenario (if any) that is consistent with the
+Analyzer generates a scenario (if it exists) that is consistent with the
 description of the system in the model. By default, the analyzer
 arbitrarily picks _any_ one of the possible system scenarios (up to
 the specified bound), and assign numeric identifiers to signature
@@ -416,24 +415,23 @@ instances (`Server0`, `Browser1`, etc.,) in the scenario.
 Sometimes, we may wish to analyze the behavior of a _particular_ web
 application, instead of exploring scenarios with a random
 configuration of servers and clients. For example, imagine that we
-wish to build an email application that runs inside a browser
-(similar to Gmail). In addition to providing basic email features, our
-application will display a banner from a third-party advertisement
+wish to build an email application (like Gmail) that runs inside a browser.
+In addition to providing basic email features, our
+application might display a banner from a third-party advertisement
 service, which is controlled by a potentially malicious actor. 
 
-In Alloy, keyword `one sig` introduces a _singleton_ that represents
-one particular atom in the system. For example, the following line
-says that there are two distinct `Document` objects that represent the
-inbox of the email app and the third-party ad banner, respectively:
+In Alloy, the keywords `one sig` introduce a _singleton_ signature containing exactly one object; we
+saw an example above with `Dns`. This syntax can be used to specify concrete atoms. For example, to 
+say that there is one inbox page and one ad banner (each of which is a document) we can write:
 
 ```alloy
 one sig InboxPage, AdBanner extends Document {}
 ```
-
 With this declaration, every scenario that Alloy generates will
 contain at least these two `Document` objects.
 
-Let's introduce the other parts of the system, and use a fact (`Configuration`) to specify the relationships between them: 
+Likewise, we can specify particular servers, domains and so on, with a constraint (which we've called `Configuration`)
+to specify the relationships between them: 
 
 ```alloy
 one sig EmailServer, EvilServer extends Server {}
@@ -451,21 +449,18 @@ For example, the last constraint in the fact specifies how the DNS is configured
 
 ## Security Properties
 
-Before we move onto the SOP, there is an important question that we
+Before we get to the SOP itself, there is an important question that we
 have not discussed yet: What exactly do we mean when we say our system
 is _secure_?
 
-It turns out that this is actually quite difficult to answer, since
-security has different meanings to different people, and there is
-still a lot of on-going research in the security community to develop
-a universal notion of security. Nevertheless, for our purpose, we will
+Not surprisingly, this is a tricky question to answer. For our purposes, we will
 turn to two well-studied concepts in information
 security -- _confidentiality_ and _integrity_. Both of these concepts talk
-about how information should be allowed to travel throughout
+about how information should be allowed to pass through the 
 various parts of the system. Roughly, _confidentiality_ means that a
-critical piece of data should only be accessible to agents that are
-deemed trusted. On the other hand, _integrity_ means trusted agents
-should only rely on data that have not been maliciously tampered with.
+critical piece of data should only be accessible to parts that are
+deemed trusted, and _integrity_ means that trusted parts
+only rely on data that have not been maliciously tampered with.
 
 In order to specify these security properties more precisely, we first
 need to define what it means for a piece of data to _flow_ from one
@@ -473,7 +468,7 @@ part of the system to another. In our model so far, we have described
 interactions between two endpoints as being carried out through
 _calls_; e.g., a browser interacts with a server by making HTTP
 requests, and a script interacts with the browser by invoking browser
-API calls. Intuitively, during each call, a piece of data may flow
+API operations. Intuitively, during each call, a piece of data may flow
 from one endpoint to another as an _argument_ or _return value_ of the
 call. To represent this, we introduce a notion of `DataflowCall` into the
 model, and associate each call with a set of `args` and `returns` data
@@ -524,7 +519,7 @@ sig DataflowModule in Endpoint {
 }
 ```
 
-We are not quite done yet! We also need to restrict data elements that a module can provide as arguments or return values of a call; otherwise, we may get weird scenarios where a module can make a call with an argument that it has no access to!
+We also need to restrict data elements that a module can provide as arguments or return values of a call. Otherwise, we may get weird scenarios where a module can make a call with an argument that it has no access to!
 
 ```alloy
 sig DataflowCall in Call { ... } {
@@ -540,7 +535,7 @@ of the system, we are (almost) ready to state security properties that
 we care about. But recall that confidentiality and integrity are
 _context-dependent_ notions; these properties make sense only if we
 can talk about some agents within the system as being trusted (or
-malicious). Similarly, not all information is equally important: We
+malicious). Similarly, not all information is equally important: we
 need to distinguish between data elements that we consider to be
 critical or malicious (or neither):
 
@@ -570,7 +565,7 @@ assert Integrity {
 }
 ```
 
-When prompted with a `check` command, the Alloy Analyzer analyzes _all_ possible dataflow traces in the system and produces a counterexample (if any) that demonstrates how an assertion might be violated:
+When prompted with a `check` command, the Alloy Analyzer analyzes _all_ possible dataflow traces in the system and produces a counterexample (if one exists) that demonstrates how an assertion might be violated:
 
 ```
 check Confidentiality for 5
@@ -581,9 +576,9 @@ For example, when checking the model of our example application against the conf
 ![attack-instance-1a](fig-attack-1a.png) 
 ![attack-instance-1b](fig-attack-1b.png) 
 
-This counterexample involves two steps. In the first step, `EvilScript`, executing inside `AdBanner` from `EvilDomain`, reads the content of `InboxPage`, which originates from `EmailDomain`. In the next step, `EvilScript` sends the same content (`MyInboxInfo`) to `EvilServer` by making an `XmlHtttpRequest` call. The core of the problem here is that a script executing under one domain is able to read the content of a document from another domain; as we will see in the next section, this is exactly one of the issues that the SOP is designed to solve.
+This counterexample involves two steps. In the first step, `EvilScript`, executing inside `AdBanner` from `EvilDomain`, reads the content of `InboxPage`, which originates from `EmailDomain`. In the next step, `EvilScript` sends the same content (`MyInboxInfo`) to `EvilServer` by making an `XmlHtttpRequest` call. The core of the problem here is that a script executing under one domain is able to read the content of a document from another domain; as we will see in the next section, this is exactly one of the scenarios that the SOP is designed to prevent.
 
-There may exist multiple counterexamples to a single assertion. Consider the following scenario, which shows a different way in which the system may violate the confidentiality property:
+There may be multiple counterexamples to a single assertion. Consider the following scenario, which shows a different way in which the system may violate the confidentiality property:
 
 ![attack-instance-2](fig-attack-2.png) 
 
@@ -617,8 +612,7 @@ sig Origin {
 }
 ```
 
-So two URLs have the same origin if they share the same protocol, host, and
-port:
+We define a function that given a URL returns the corresponding origin:
 
 ```alloy
 fun origin[u: Url] : Origin {
@@ -647,23 +641,23 @@ because these are all considered distinct hosts.
 In order to allow some form of cross-origin communication when
 necessary, browsers implemented a variety of mechanisms for relaxing
 the SOP. Some of these are more well-thought-out than others, and some
-have serious flaws that, when badly used, could negate the security
+have serious flaws that, when badly used, can undermine the security
 benefits of the SOP. In the following sections, we will describe the
 most common of these mechanisms, and discuss their potential security
 pitfalls.
 
 ## Techniques for Bypassing the SOP
 
-The SOP is a classic example of the tension between functionality and security; we want to make sure our sites are secure, but the mechanism for ensuring security sometimes can get in the way of getting the sites to work properly. Indeed, when the SOP was initially introduced, developers ran into trouble building sites that had legitimate use of cross-domain communication (e.g., mashups)!
+The SOP is a classic example of the tension between functionality and security; we want to make sure our sites are secure, but the mechanism for ensuring security sometimes can get in the way. Indeed, when the SOP was initially introduced, developers ran into trouble building sites that made legitimate uses of cross-domain communication, e.g. for mashups.
 
-In this section, we will discuss four techniques that have been devised and frequently used by web developers to bypass the restrictions imposed by the SOP: (1) "document.domain" property, (2) JSONP, (3) PostMessage, and (4) CORS. These are useful tools, but when they are used without caution, the security problems that the SOP was designed to prevent in the first place can creep back into the picture! 
+In this section, we will discuss four techniques that have been devised and frequently used by web developers to bypass the restrictions imposed by the SOP: (1) The "document.domain" property relaxation; (2) JSONP; (3) PostMessage; and (4) CORS. These are useful tools, but if used without caution may make a web application vulnerable to exactly the kinds of attacks SOP was designed to thwart.
 
-Each of these four techniques is surprisingly complex, and to be described in full detail, could merit its own chapter. So here, we will give you a brief flavor of how they work, potential security problems that they introduce, and how to prevent these problems.
+Each of these four techniques is surprisingly complex, and if described in full detail, would merit its own chapter. So here we just give a brief flavor of how they work, potential security problems that they introduce, and how to prevent these problems.
 
 ### Domain Property
 
 The idea behind the domain property relaxation of the SOP, is to
-give two pages of a same site the chance to read/write each others DOM by
+give two pages of the same site permission to read and write each other's DOM by
 setting the `document.domain` property to the same value -- thus bypassing the
 SOP restriction on DOM access. So, for example,
 a script in `foo.example.com` could read/write the DOM of `example.com` if both
@@ -684,14 +678,14 @@ sig SetDomain extends BrowserOp { newDomain: Domain }{
 ```
 
 The `newDomain` field represents the value to which the property should be set.
-There's a caveat though, scripts can only set the domain property to only
-one that is a right-hand, fully qualified fragment of its hostname.
+There's a caveat, though: scripts can only set the domain property to 
+a right-hand, fully qualified fragment of its hostname.
 (i.e., `foo.example.com` can set it to `example.com` but not to
- `aosabook.org`). \*
+ `google.com`). \*
 
-(\* Wondering if it's possible to set it to just `com`? `foo.example.com` would
+(\* Wondering if it's possible to set the domain to just `com`? `foo.example.com` would
  be a subdomain of `com` after all, but browsers know that
- `com` is a top-level domain and don't allow the operation.)
+ `com` is a top-level domain and disallow this.)
 
 We add a `fact` to capture this rule:
 
@@ -713,73 +707,70 @@ Now we modify our original definition of the SOP for DOM accesses to reflect
 the domain property relaxation. If two scripts set the `document.domain`
 property to the same value, and they
 have the same protocol and port, then these two scripts
-can interact with each other (read and write each other's DOM), but they won't
-be allowed if only one of the scripts sets the property while the other doesn't,
-even if they match.\*
+can interact with each other (that is, read and write each other's DOM). They won't
+be allowed to do so if only one of the scripts sets the property while the other one doesn't,
+even if the resulting properties match.\*
 
-(\* Wondering why is it that (some) browsers make this distinction between
-the property being explicitly set or not, even though they could have the same
-value in both cases? Bad things could happen if it weren't for this, for example,
-a site could be subject to XSS from its subdomains (`foo.example.com` could
-set the `document.domain` property to `example.com` and write its DOM, even
-if `example.com` never set the property))
+(\* At first sight, it's strange that browsers distinguish whether the property is explicitly 
+set rather than just examining its value. Without this, various bad things can happen. For example,
+a site could be subject to a cross-site scripting attack from its subdomains: `foo.example.com`, say, 
+might set the `document.domain` property to `example.com` and write to the parent domain's DOM, even
+if the parent domain never set the property.)
 
 ```alloy
 pred domSop {
-  all c: ReadDom + WriteDom | 
-    -- A script can only access the DOM of a document with the same origin or
-    origin[c.doc.src] = origin[c.from.context.src] or
-    -- (relaxation) the domain property of both the script's context and the
-    -- target document has been set and
-    (c.doc + c.from.context in (c.prevs <: SetDomain).doc and
-    -- they have the same origin (using the domain property as the host and not
-    -- the src host)
-    origin[c.doc.src, c.doc.domain.(c.start)] =
-    origin[c.from.context.src, c.from.context.domain.(c.start)])
+  all op: ReadDom + WriteDom | 
+    -- a script can access the DOM of a document with the same origin
+    origin[op.doc.src] = origin[op.from.context.src] or
+    -- the domain property of both script's context and target doc have been set...
+    (op.doc + op.from.context in (op.prevs <: SetDomain).doc and
+    -- ...and they have the same origin (with the domain property as host)
+    origin[op.doc.src, op.doc.domain.(op.start)] =
+    origin[op.from.context.src, op.from.context.domain.(op.start)])\*
 }
 ```
 
-We can ask the analyzer to give us an instance where two documents that
-are from different origins manage to communicate between each other:
+(\* In these constraints, `op.start` is the start time of the read or write operation, so the expression `op.doc.domain.(op.start)`, for example, refers to the domain of the operation's document as it was _before_ the operation occurred.)
+
+To illustrate the purpose of this relaxation, we can ask the analyzer to give us an instance where two documents that are from different origins nevertheless communicate with each other:
 
 ```alloy
 // Can a script read or write the DOM of a document with another origin?
 run { some c: ReadDom + WriteDom | origin[c.doc.src] != origin[c.from.context.src] }
 ```
 
-The analyzer generates the following scenario, showing how two documents from distinct origins, `CalendarPage` and `InboxPage`, may communicate to each other by setting their domain properties to a common value (`ParentDomain`):
+The analyzer generates the following scenario, showing how two documents from distinct origins, `CalendarPage` and `InboxPage`, communicate by setting their domain properties to a common value (`ParentDomain`):
 
 ![setdomain-instance-1a](fig-setdomain-1a.png)
 ![setdomain-instance-1b](fig-setdomain-1b.png)
 ![setdomain-instance-1c](fig-setdomain-1c.png)
 
 At the beginning of the scenario, `InboxPage` and `CalendarPage` have
-their domain properties set to two distinct values (`EmailDomain` and
-`ParentDomain`, respectively), meaning that the browser will prevent
-them from accessing each other's DOM. To get around this restriction,
-the scripts running inisde the documents (`InboxScript` and
-`CalendarScript`) execute `SetDomain` operation to modify their domain
-properties to `ParentDomain` (note that this only works only if
-`ParentDomain` is a superdomain of the original domain). Once they
-have the common domain property, they can now access each other's DOM
+domain properties with two distinct values (`EmailDomain` and
+`ParentDomain`, respectively), so the browser will prevent
+them from accessing each other's DOM. The scripts running inside the
+documents (`InboxScript` and
+`CalendarScript`) each execute the `SetDomain` operation to modify their domain
+properties to `ParentDomain` (which is allowed because
+`ParentDomain` is a superdomain of the original domain). Having done this, 
+they can now access each other's DOM
 by executing `ReadDom` or `WriteDom` operations.
 
 While this method of cross-origin communication may seem simple and
-convenient, several characteristics of the domain property make it less
-than desirable.  First, this method is
+convenient, it is far from perfect.  First, this method is
 not general enough. In particular, it may be used enable cross-origin
 DOM access _only_ between documents that have a common superdomain,
 meaning it cannot be used by applications from completely
 different domains.
 
-Second, using the domain property mechanism might put your entire site
+Second, using the domain property mechanism can put the entire site
 at risk.  When you set the domain property of both "email.parent.com"
 and "calendar.parent.com" to "parent.com", you are allowing not only
 these two pages to communicate between each other, but also _any_
 other page that has "parent.com" as a superdomain
 (e.g. "blog.parent.com"). This has significant security consequences;
-for example, if "blog.parent.com" has a XSS vulnerability, then an
-attacker may inject a malicious script into the blog page, modify its
+for example, if "blog.parent.com" has a cross-site scripting vulnerability, an
+attacker can inject a malicious script into the blog page, modify its
 domain property to "parent.com", and then use the DOM API functions to
 access the content of the other pages. 
 
@@ -806,9 +797,11 @@ Before the introduction of CORS (which we will discuss shortly), JSONP
 was perhaps the most popular technique for bypassing the SOP
 restriction on XMLHttpRequest, and still remains widely used
 today. JSONP takes advantage of the fact that script inclusion tags in
-HTML (i.e., `<script>`) are exempt from the SOP; that is, you can
+HTML (i.e., `<script>`) are exempt from the SOP*; that is, you can
 include a script from _any_ URL, and the browser readily executes it
 in the current document:
+
+(\* Without this exemption, it would not be possible to load Javascript libraries, such as JQuery, from other domains.)
 
 ```html
 <script src="http://www.example.com/myscript.js"></script>
@@ -834,8 +827,8 @@ processData(mydata)
 
 which is a valid JavaScript statement (namely, the application of function "processData" on value "mydata"), and is executed by the browser in the current document.
 
-In our model, JSONP is modeled as a type of HTTP requests that include
-the identifier of a callback function as field `padding`. After
+In our model, JSONP is modeled as a kind of HTTP request that includes
+the identifier of a callback function in the field `padding`. After
 receiving a JSONP request, the server returns a response that has the
 requested resource (`payload`) wrapped inside the callback function
 (`cb`).
@@ -877,11 +870,11 @@ the JSONP communication to work, the server is responsible for
 properly constructing a response that includes the original padding as
 the callback function (i.e., ensure that `JsonRequest.padding =
 JsonpResponse.cb`). In principle, the server can choose to include any
-other callback function (or any piece of JavaScript) that has nothing
-to do with `padding` in the request. This highlights one potential
-risk of JSONP: The server that accepts the JSONP requests must be
-completely trustworthy and secure, because it basically has the
-ability to execute any piece of JavaScript code in your document.
+callback function (or any piece of JavaScript), including one that has nothing
+to do with `padding` in the request. This highlights a potential
+risk of JSONP: the server that accepts the JSONP requests must be
+trustworthy and secure, because it has the
+ability to execute any piece of JavaScript code in the client document.
 
 Yet another risk with JSONP is its vulnerability to cross-site request
 forgery (CSRF) attacks.  Consider the following scenario from our Alloy model. Suppose that the calendar application (`CalenderServer`) makes its resources available to third-party sites using a JSONP endpoint (`GetSchedule`). To restrict access to the resources, `CalendarServer` only sends back a response with the schedule for a user if the request contains a cookie that correctly identifies that user. 
@@ -898,9 +891,9 @@ In the next step, the browser interprets the JSONP response as a call to `Leak(M
 
 ### PostMessage
 
-PostMessage is a new feature in HTML5 that allows scripts from two documents (of possibly different origins) to communicate to each other. It is a more disciplined alternative to the method of setting the `domain` property, which is prone to mistakes, as we've already seen. However, PostMessage isn't without its own security risks unless used carefully.
+PostMessage is a new feature in HTML5 that allows scripts from two documents (of possibly different origins) to communicate with each other. It offers a more disciplined alternative to the method of setting the `domain` property, but brings its own security risks.
 
-PostMessage is a browser API function that takes two arguments: (1) the data to be sent (`message`), and (2) the URL of the document receiving the message (`targetOrigin`):
+`PostMessage` is a browser API function that takes two arguments: (1) the data to be sent (`message`), and (2) the origin of the document receiving the message (`targetOrigin`):
 
 ```alloy
 sig PostMessage extends BrowserOp {
@@ -909,7 +902,7 @@ sig PostMessage extends BrowserOp {
 }
 ```
 
-To receive a message from another document, the receiving document must register an event handler that is invoked by the browser as a consequence of a `PostMessage`:
+To receive a message from another document, the receiving document  registers an event handler that is invoked by the browser as a consequence of a `PostMessage`:
 
 ```alloy
 sig ReceiveMessage extends EventHandler {
@@ -926,7 +919,7 @@ sig ReceiveMessage extends EventHandler {
 }
 ```
 
-The browser passes two parameters to `ReceiveMessage`: a piece of resource (`data`) that corresponds to the message being sent, and the origin of the sender document (`srcOrigin`). The signature fact contains four constraints to ensure that each `ReceiveMessage` is well-formed with respect to its corresponding `PostMessage`. 
+The browser passes two parameters to `ReceiveMessage`: a resource (`data`) that corresponds to the message being sent, and the origin of the sender document (`srcOrigin`). The signature fact contains four constraints to ensure that each `ReceiveMessage` is well-formed with respect to its corresponding `PostMessage`. 
 
 By default, the `PostMessage` mechanism does not restrict who is allowed to send PostMessage; in other words, any document can send a message to another document as long as the latter has registered a `ReceiveMessage` handler. It is the responsibility of the receiving document to _additionally_ check the `srcOrigin` parameter to ensure that the message is coming from a trustworthy document. 
 
@@ -948,7 +941,7 @@ may embed a piece of JavaScript to carry out an XSS attack).
 
 ![postmessage-instance-2](fig-postmessage-2.png)
 
-Implementing an appropriate check on incoming PostMessage can be tricky; in some applications, you may not be able to pre-determine the list of trusted origins from which you expect to receive a message (imagine an app where this list changes dynamically). As a result, it turns out, that many sites that use PostMessages fail to implement an origin check ([cite the PostMessage study]), leading to an attack such as the one above.
+Implementing an appropriate check on incoming PostMessage can be tricky; in some applications, it is hard to determine in advance the list of trusted origins from which messages are expected to be received (in some apps, this list may even change dynamically). So the omission of the origin check may not be the result of simple incompetence.
 
 ### Cross-Origin Resource Sharing (CORS)
 
@@ -970,18 +963,17 @@ allows the script to send the request and access its response, but
 _only if_ "Origin" is one of the origins specified in
 "Access-Control-Allow-Origin".
 
-(CORS additionally includes a notion of _preflighted_ requests to
-support complex types of cross-origin requests besides GETs and POSTs,
-but we will omit its discussion in this chapter.)
+(CORS additionally includes a notion of _preflight_ requests, not discussed here, to
+support complex types of cross-origin requests besides GETs and POSTs.)
 
 In Alloy, we model a CORS request as a special kind of
 `XmlHttpRequest`, with two extra fields `origin` and `allowedOrigins`:
 
 ```alloy
 sig CorsRequest in XmlHttpRequest {
-  -- "origin" header
+  -- "origin" header in request from client
   origin: Origin,
-  -- "access-control-allow-origin" header
+  -- "access-control-allow-origin" header in response from server
   allowedOrigins: set Origin
 }{
   from in Script
@@ -993,15 +985,12 @@ We then use an Alloy fact `corsRule` to describe what constitutes a valid CORS r
 ```alloy
 fact corsRule {
   all r: CorsRequest |
-    -- "origin" header of every CORS request matches the script context and
+    -- the origin header of a CORS request matches the script context
     r.origin = origin[r.from.context.src] and
-    -- a CORS request is accepted iff it is allowed by the server, as indicated
-    -- in "access-control-allow-origin" header
+    -- the specified origin is one of the allowed origins
     r.origin in r.allowedOrigins
 }
 ```
-
-Namely, a CORS request is valid if and only if `origin` correctly captures the actual origin of the script, and `origin` belongs to the set of origins that are deemed "allowed" by the server.
 
 One common mistake that developers make with CORS is to use the
 wildcard value "\*" as the value of "access-control-allow-origin"
@@ -1012,9 +1001,8 @@ as the default value even for private resources, inadvertently
 allowing malicious scripts to access them through CORS requests [cite
 CORS study].
 
-In our model, the wildcard value can be represented as
-`allowedOrigins` containing to the set of all `Origin` objects in the
-universe:
+In our model, the wildcard value is represented by assigning to
+`allowedOrigins` the set of all `Origin` objects:
 
 ```alloy 
 some r: CorsRequest | r.allowedOrigins = Origin 
@@ -1024,15 +1012,11 @@ The developer of the calendar application decides to share some of its resources
 
 ![cors-confidentiality](fig-cors.png) 
 
-At this point, you may be thinking: "Clearly, this is a careless
-mistake that can be easily avoided. Why didn't the developer restrict
-the list of allowed origins to those that are meant to access
-resources? The value "\*" should never be used!" However, coming up
-with a suitable list of allowed origins is not always straightforward,
-because it may not be possible to predict which origins will need
-legitimate access to the CORS resources at deployment time (imagine a
-service that allows 3rd-party apps to dynamically subscribe to its
-resources).
+You may wonder why a developer would ever use the wildcard.
+In practice, specifying the allowed origins can be tricky because it
+may not be clear at design time which origins should be granted access
+at runtime. A service may, for example, allow third party applications to
+subscribe dynamically to its resources.
 
 ## Conclusion
 
