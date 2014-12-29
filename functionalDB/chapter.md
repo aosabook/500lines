@@ -961,7 +961,14 @@ Having the query plan to be a function that accepts a database as an argument is
 ````
 #### Phase 3 - Execution of the plan
 
-The general scheme of operation of our query plan is to apply each predicate clause on an index (each predicate on its appropriate index level) unite the results (thus performing an AND operation between the clauses) and return it in a structure that would simplify the reporting of the results. The function *single-index-query-plan* implements this description
+In general, the execution plan of a query in our database is:
+
+
+1. Apply each clause on an index (each predicate on its appropriate index level)
+2. Perform an AND operation between the above results 
+3. Return a structure that simplifies the reporting of the results
+
+The function *single-index-query-plan* implements this description, where the first two steps are done in *query-index*, and the last is handled in *bind-variables-to-query*
 
 ````clojure
 (defn single-index-query-plan [query indx db]
