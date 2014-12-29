@@ -964,7 +964,7 @@ Having the query plan to be a function that accepts a database as an argument is
 In general, the execution plan of a query in our database is:
 
 
-1. Apply each clause on an index (each predicate on its appropriate index level)
+1. Apply each predicate clause on an index (each predicate on its appropriate index level)
 2. Perform an AND operation between the above results 
 3. Return a structure that simplifies the reporting of the results
 
@@ -975,7 +975,7 @@ The function *single-index-query-plan* implements this description, where the fi
    (let [q-res (query-index (ind-at db indx) query)]
      (bind-variables-to-query q-res (ind-at db indx))))
 ````
-Let’s start go deeper and take a look at the *query-index* function, where query and data give birth to results. 
+Let’s go deeper into the rabbit's hole and take a look at the *query-index* function, where a query and data give birth to results. 
 
 ````clojure
 (defn query-index [index pred-clauses]
@@ -986,7 +986,13 @@ Let’s start go deeper and take a look at the *query-index* function, where que
                                      result-clauses)] 
      (filter #(not-empty (last %)) cleaned-result-clauses)))
 ````
-This function starts by applying the predicate clauses on the index. Each application of a predicate clause on an index returns a result clause. A result clause is built of three items, each from a different level of the index, each passed its respective predicate. The result clause, unlike the predicate clause, is structured in a the index structure and not in an EAV structure. The metadata of the predicate clause is attached to the result clause. All this is done in the function *filter-index*
+This function starts by applying the predicate clauses on the index previously chosen. Each application of a predicate clause on an index returns a result clause. 
+The main characteristics of a result clause are:
+1. Its built of three items, each from a different level of the index, each passed its respective predicate. 
+2. The items' order follows the index's levels structure (predicate clause are always inan EAV order). 
+3. The metadata of the predicate clause is attached to the result clause. 
+
+All this is done in the function *filter-index*
 
 ````clojure
 (defn filter-index [index predicate-clauses]
@@ -999,7 +1005,8 @@ This function starts by applying the predicate clauses on the index. Each applic
          :let [res (set (filter lvl3-prd l3-set))] ]
      (with-meta [k1 k2 res] (meta pred-clause))))
 ````
-Once we have all the result clauses, we need to perform an AND operation between them. This means that we need to find the elements that passed all the predicate clauses. This is done in the *items-that-answer-all-conditions* function:
+Once we have all the result clauses, we need to perform an *AND* operation between them. We do the *AND* operation by finding the elements that passed all the predicate clauses. 
+This is done in the *items-that-answer-all-conditions* function:
 
 ````clojure
 (defn items-that-answer-all-conditions [items-seq num-of-conditions]
@@ -1011,19 +1018,20 @@ Once we have all the result clauses, we need to perform an AND operation between
          (map first) ; take from the duos the items themselves
          (set))) ; return it as set
 ````
-The next thing to do after we know which items passed all of the conditions, is to remove from the result clauses all the items that didn’t pass all of the conditions, this is done at the *mask-path-leaf-with-items* function:
+The next thing to do after we know which items passed all of the conditions, is to remove from the result clauses all the items that didn’t pass all of the conditions. 
+This is done at the *mask-path-leaf-with-items* function:
 
 ````clojure
 (defn mask-path-leaf-with-items [relevant-items path]
      (update-in path [2] CS/intersection relevant-items))
 ````
-Last thing to be done is to weed out all the result clauses that are empty (or more precisely their last item is empty), this is done at the last line of the *query-index* function. 
+Last thing to be done is to weed out all the result clauses that are empty (or more precisely their last item is empty). We do that in the last line of the *query-index* function. 
 
 At this point we have found the results, and we start to work towards reporting them out. To do so we do another transformation. We transform the result clauses from a clauses structure to an index like structure (map of maps), with a significant twist. 
 
-To understand the twist we introduce the idea of binding pair, which is a pair of a variable name and its value. The variable name is the variable name used at the predicate clauses, and the value is the value found in the result clauses.
+To understand the twist we introduce the idea of a binding pair, which is a pair of a variable name and its value. The variable name is the variable name used at the predicate clauses, and the value is the value found in the result clauses.
 
-The twist to the index structure is that now, where in an index we held either an entity-id / attr-name / value, we hold now a binding pair of the entity-id / attr-name / value. This transformation is done at the *bind-variables-to-query* function, that is aided by the *combine-path-and-meta* function :
+The twist to the index structure is that now we hold a binding pair of the entity-id / attr-name / value in the location where we held an entity-id / attr-name / value in an index. This transformation is done at the *bind-variables-to-query* function, that is aided by the *combine-path-and-meta* function:
 
 ````clojure
 (defn bind-variables-to-query [q-res index]
