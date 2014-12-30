@@ -147,9 +147,9 @@ And here's our in-memory implementation of the protocol, which uses a map as the
 
 ### Querying our data
 
-Now that we've defined the basic elements of our database, we can start thinking about how we're going to query it. By virtue of how we've structured our data, any query is necessarily going to be interested in at least one of an entity's id, and the name and value of some of its attributes. This triplet of (entity-id, attribute-name, attribute-value) is important enough to our query process that we give it an explicit name -- a _datom_. In fact, these triplets are imporant enough that we decided to name the entire database after it!
+Now that we've defined the basic elements of our database, we can start thinking about how we're going to query it. By virtue of how we've structured our data, any query is necessarily going to be interested in at least one of an entity's id, and the name and value of some of its attributes. This triplet of (entity-id, attribute-name, attribute-value) is important enough to our query process that we give it an explicit name -- a _datom_. In fact, these triplets are imporant enough that we decided to name the entire database after them!
 
-The reason that datoms are so important is that they are the core component's in our database's _index_. 
+The reason that datoms are so important is that they are the core component's of our database's _index_. 
 
 If you've used a database system before, you are probably already familiar with the concept of an _index_, which is a supporting data structure that consumes extra space in order to decrease the average query time.  In our database, an index is a three-leveled structure, which stores the components of a datom in a specific order. Each index derives its name from the order it stores the datom's components.
 
