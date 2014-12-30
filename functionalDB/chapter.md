@@ -1047,11 +1047,10 @@ The twist to the index structure is that now we hold a binding pair of the entit
 ````
 #### Phase 4 - Unify and report
 
-At this point, we’ve turned a query and a database into a structure that holds all the information that the user had asked for, and a little more. The little more is information that took part in constructing the results, but hadn’t asked it to be reported out. 
+At this point, we’ve turned a query and a database into a structure holding all the information that the user asked for, and a little more. 
+This stage is about taking the complete results and extracting from them the specific values that the user had asked for. This process is usually referred to as unification, and here we unify the binding pairs structure with the vector of variable names that the user defined at the *:find* clause of the query.
 
-This stage is about taking the complete result and extracting from it the specific variables that the user had asked for. This process is usually referred to as unification, and here we unify the binding pairs structure with the vector of variable names that the user defined at the *:find* clause of the query.
-
-The unification process is handled by the *unify* function, which iterates over the results and unify each with the variables that the user specified.
+The unification process is starts at the *unify* function, which goes over the results and unify each with the variables that the user specified.
 
 ````clojure
 (defn unify [binded-res-col needed-vars]
@@ -1065,7 +1064,7 @@ Each unification step is handled at the *locate-vars-in-query-result* function
          e-res (resultify-bind-pair vars-set [] e-pair)]
      (map (partial resultify-av-pair vars-set e-res)  av-map)))
 ````
-This function takes a query result (formated as an index entry with binding pairs), and goes over its contents to detect all the variables and variable values that the user asked for. It does so by breaking this structure and looking at each of it’s binding pairs. 
+This function takes a query result (structured as an index entry, but with binding pairs), and goes over its contents to detect all the variables and values that the user asked for. It does so by breaking this structure and looking at each of it’s binding pairs. 
 
 This is done either directly using the *resultify-bind-pair* function or using another step that breaks the second/third level map into the binding pairs and found at the *resultify-av-pair* function.
 
@@ -1075,7 +1074,7 @@ This is done either directly using the *resultify-bind-pair* function or using a
       (if (contains? vars-set var-name) (conj accum pair) accum)))
 
 (defn resultify-av-pair [vars-set accum-res av-pair]
-   (reduce (partial resultify-bind-pair vars-set) accum-res  av-pair))
+   (reduce (partial resultify-bind-pair vars-set) accum-res av-pair))
 ````
 #### Running the show
 
