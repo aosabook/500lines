@@ -1,69 +1,58 @@
 #Designing a database like an archaeologist
 
-Software development is often viewed as a rigorous process, where the inputs are requirements and the output is the working product. However, software developers are people with their own perspectives and biases, which colors the outcome of their work. 
+Software development is often viewed as a rigorous process, where the inputs are requirements and the output is the working product. However, software developers are people with their own perspectives and biases which color the outcome of their work. 
 
-In this chapter, we will  explore how a change in a common perspective affects  the design and implementation of a well-studied type of software - - a database.
+In this chapter, we will explore how a change in a common perspective affects the design and implementation of a well-studied type of software -- a database.
 
 ## Introduction 
 
-Database systems are designed to store and query data. This is something that all information workers do; however, the systems themselves were  designed by computer scientists. As a result, modern database systems are highly influenced by what a computer scientist’s definition of data is, and what can be done with it. 
+Database systems are designed to store and query data. This is something that all information workers do; however, the systems themselves were designed by computer scientists. As a result, modern database systems are highly influenced by what a computer scientist’s definition of data is, and what can be done with it. 
 
-For example, most modern databases implement updates by overwriting old data with the new data instead of appending the new data and keeping the old. This mechanism, nicknamed "place oriented programming" by Rich Hickey [REF], saves storage space but makes it impossible to retrieve the entire history of a particular record.
+For example, most modern databases implement updates by overwriting old data in-place instead of appending the new data and keeping the old. This mechanism, nicknamed "place oriented programming" by Rich Hickey [REF], saves storage space but makes it impossible to retrieve the entire history of a particular record. This design decision reflects the computer scientist’s perspective that ‘history’ is less important than the price of its storage. 
 
- 
+If you were to instead ask an archaeologist what should be done with the old data, the answer would be "hopefully, it’s just buried underneath".
 
-The "overwrite-old-data" design decision reflects the computer scientist’s perspective that ‘history’ is less important than the price of its storage. 
+(Disclaimer: my understanding of a typical archaeologist is based on a few museum visits, several wikipedia articles, and watching the entire Indiana Jones series).
 
-If you were to ask an archaeologist's opinion regarding on how to handle this situation, and what they would expect to happen to old data when new data comes in, their answer would be "hopefully, it’s just buried underneath".
+### From archaeology to databases
 
- (Disclaimer: my understanding of a typical archaeologist is based on a few visits to museums, reading several wikipedia articles and watching the entire Indiana Jones series).
+If we were to ask our friendly archaeologist to design a database, we might expect the requirements to reflect what would be found at an *excavation site:*
 
-### From Archaeology to databases
-
-If you were to ask an archaeologist to design a database, what would the requirements look like? its a fair guess to assume that it would look a lot like an *excavation site:*
-
-* All the data is found and cataloged at the site
+* All data is found and catalogued at the site
+* Digging deeper will expose the state of things in times past 
 * Artefacts found at the same layer are from the same period
-* Going deeper means going back in time
-* Going deeper in a specific place mean looking at the state of that place at older times
+* Each artefact will consist of state that it accumulated in different periods 
 
-* Each artefact may have pieces of information attached, these pieces of information may originate from different periods.
-	* For example, a wall may have roman symbols drawn on it at on one layer, and in a lower layer there may be greek symbols. Both these observations are recorded
+For example, a wall may have roman symbols drawn on it at on one layer, and in a lower layer there may be greek symbols. Both these observations are recorded as part of the wall's state.
 
-Another way to explain this way of thinking is using the exemplary schematic visualization in  Figure 1, where:
+This analogy is visualized in Figure 1:
 
 * The entire circle is the excavation site
-* Each ring is a layer (here numbered from 0 to 4) 
-* Each slice is an artefect (entity Ids are ‘a’ through ‘e’
-* Each artefect has a ‘color’ attribute (white means no update was made)
-* Black arrows point from an attributed updated value to the attribute previous value (e.g., from c.color @t2 to c.color @t0)
-* Light blue arrows are arbitrary relationships between entities (e.g., from ‘b’ to ‘d’
+* Each ring is a _layer_ (here numbered from 0 to 4) 
+* Each slice is an labelled artefact (‘a’ through ‘e’)
+* Each artefact has a ‘color’ attribute (where white means that no update was made)
+* Black arrows denote a change in color between layers (e.g., from c.color @t2 to c.color @t0)
+* Light blue arrows are arbitrary relationships of interest between entities (e.g., from ‘b’ to ‘d’)
 
  ![image alt text](image_0.png)
 
 Figure 1
 
-When translating the archaeology terms to CS language, we'd get that:
-* An excavation site is a database
-* An artefact is an entity
-* Each entity may have several attributes
-	* The set of attributes may change throughout time
-* Each attribute, at a given time, has a specific value
-	* The value may change throughout time
+If we translate the archaeologist's language into terms a database designer would use:
+* The excavation site is a _database_
+* Each artefact is an _entity_ with a corresponding _id_
+* Each entity has a set of _attributes_, which may change over time
+* Each attribute has a specific _value_ at a specific time
 
 This may look very different than the kinds of databases you are used to working with. This design is sometimes referred to as "functional database", since it uses ideas from the domain of functional programming. The rest of the chapter describes how to implement such a database.
 
-### A meta discussion detour
-
-This project uses the Clojure programming language [ref w more details from below]. 
+Since we are building a functional database, we will be using a functional programming language called Clojure to do the job.
 
 There are several qualities of Clojure that make it a good implementation language for a functional database, such as out-of-the-box immutability, higher order functions, and metaprogramming facilities. Ultimately, the reason Clojure was chosen is its emphasis on clean, rigorous design which few programming languages possess. 
 
-## The building blocks
+## Laying the foundation
 
 Let’s start by declaring the core constructs that make up our database. 
-
-Defining each of these is done follows:
 
 ````clojure
 (defrecord Database [layers top-id curr-time])
@@ -81,15 +70,15 @@ A database consists of:
 ````
 Each layer consists of: 
 
-1. Data store for its entities
+1. A data store for entities
 
-2. Indices, which are used to quickly locate elements in the database. These indices and the meaning of their names is explained later in the chapter.
+2. Indices that are used to speed up queries to the database. (These indices and the meaning of their names will be explained later.) 
 
-In our design, a single conceptual ‘database’ may consist of many *Database* instances, each of which represents a snapshot of the database at *curr-time*. A *Layer* may share the exact same entity with another *Layer* if the entity’s state hasn’t changed between the times they represent.
+In our design, a single conceptual ‘database’ may consist of many *Database* instances, each of which represents a snapshot of the database at *curr-time*. A *Layer* may share the exact same entity with another *Layer* if the entity’s state hasn’t changed between the times that they represent.
 
 ### Entities
 
-Next, we define each of our records to be an *Entity*, which can be thought of as a row in a table (or a slice in Figure 1). An entity has an *id* and a list of *attributes*, it is defined by the *Entity* record and created using the *make-entity* function.
+Our database wouldn't be any use without entities to store, so we define those next. As discussed before, an entity has an *id* and a list of *attributes*; we create them using the *make-entity* function.
 
 ````clojure
 (defrecord Entity [id attrs])
@@ -98,19 +87,17 @@ Next, we define each of our records to be an *Entity*, which can be thought of a
    ([] (make-entity :db/no-id-yet))
    ([id] (Entity.  id {})))
 ````
-Note that if no id is given, the entity’s id is set to be *:db/no-id-yet*, which means that something else is responsible for assigning an id. We’ll see how that works later.
+Note that if no id is given, the entity’s id is set to be *:db/no-id-yet*, which means that something else is responsible for giving it an id. We’ll see how that works later.
 
 **Attributes**
 
-An entity is built from attributes, where each has these fields: name, value, recent update timestamp and previous update timestamp. An attribute is defined by the *Attr* record.
+Each attribute consists of its name, value, and the timestamps of its most recent and its previous update. In addition to these fields, each attribute has two fields that describe its *type* and *cardinality*. 
 
-In addition to these fields, each attribute keeps two metadata fields,to describe its  *type* and *cardinality*. 
+In the case that an attribute is used to represent a relationship to another entity, its *type* will be *:db/ref* and its value will be the id of the related entity. This simple type system also acts an extension point, as users are free to define their own types and leverage them to provide additional semantics for their data.
 
-The main usage of the *type* metadata is in the cases where an attribute acts as a reference to another entity. In that case, the *type* of the attribute is *:db/ref* and the value of the attribute is the referred entity id. Other than that, users are free to define their own types and leverage them to provide additional semantics for their data.
+An attribute's *cardinality* specifies whether the attribute represents a single value or a set of values. We use this field to determine the set of operations that are permitted on this attribute.
 
-The *cardinality* metadata specifies whether the attribute represents single value or a set of values. Cardinality determines what operations the database will permit on this attribute.
-
-Creating an attribute is done using the *make-attr* function 
+Similar to entities, creating an attribute is done using the *make-attr* function 
 
 ````clojure
 (defrecord Attr [name value ts prev-ts])
@@ -121,18 +108,21 @@ Creating an attribute is done using the *make-attr* function
      {:pre [(contains? #{:db/single :db/multiple} cardinality)]}
     (with-meta (Attr. name value -1 -1) {:type type :cardinality cardinality})))
 ````
-Few things to note about how the *make-attr* function handles the cardinality of an attribute:
+There are a couple of interesting patterns used in this constructor function: 
 
-* taking advantage of Clojure’s Design by Contract [ADD REF HERE] capabilities and sets preconditions to validate that the cardinality parameter is either *:db/single* or *:db/multiple* 
-* leveraging Clojure’s descruturing mechanism to provide default value (which is *:db/single*)  
+* We use Clojure’s _Design by Contract_ [ADD REF HERE] pattern to validate that the cardinality parameter is a permissible value
+* We also use Clojure’s destructuring mechanism to provide a default value of *:db/single* if one is not given
 
-The creation interplay between an entity and its attributes is finalized once an attribute is added to an entity, using the *add-attr* function. This function adds the given attribute to a map that holds the attributes within an entity. That map, called :attrs, maps the attribute’s name to the attribute itself - thus allowing fast lookup of an attribute within an entity. Note that instead of using directly the attribute’s name, we first convert it into a keyword, to adhere to Clojure’s idiomatic usage of maps.
+Attributes only have meaning if they are related to an entity. This is done with the *add-attr* function, which adds a given attribute to an entity's attribute map. This :attrs map associates the attribute’s name to the attribute itself to permit fast lookup of an attribute on an entity. 
+
+Note that instead of directly using the attribute’s name, we first convert it into a keyword to adhere to Clojure’s idiomatic usage of maps.
 
 ````clojure
 (defn add-attr [ent attr]
    (let [attr-id (keyword (:name attr))]
       (assoc-in ent [:attrs attr-id] attr)))
 ```
+
 ### Storage
 
 A crucial feature of a database is storing data. In this chapter, we resort to the simplest storage mechanism which is holding the data in memory. This is not a real storage, certainly not reliable and real databases use far better storage mechanisms, such as holding the data in local disks to cloud-based storage. Still, in order to have a sense of proper software and not an ad-hoc program, our database access the storage via predefined set of APIs, and thus eliminating the dependency on any specific storage mechanism.
