@@ -125,13 +125,9 @@ Note that instead of directly using the attribute’s name, we first convert it 
 
 ### Storage
 
-A crucial feature of a database is storing data. In this chapter, we resort to the simplest storage mechanism which is holding the data in memory. This is not a real storage, certainly not reliable and real databases use far better storage mechanisms, such as holding the data in local disks to cloud-based storage. Still, in order to have a sense of proper software and not an ad-hoc program, our database access the storage via predefined set of APIs, and thus eliminating the dependency on any specific storage mechanism.
+So far, we have talked a lot about _what_ we are going to store, without thinking about _where_ we are going to store it. In this chapter, we resort to the simplest storage mechanism, which is storing the data in memory. This is certainly not reliable, but it simplifies development and debugging and allows us to focus on more interesting parts of the program. 
 
-The APIs for accessing the storage are defined in the *Storage* protocol, and include functions for:
-
-* Reading an entity from the storage
-* Writing an entity to the storage
-* dropping an entity from the storage
+We will access the storage via a simple _protocol_ that will make it possible to add more durable storage providers in the future.
 
 ````clojure
 (defprotocol Storage
@@ -139,7 +135,8 @@ The APIs for accessing the storage are defined in the *Storage* protocol, and in
    (write-entity [storage entity])
    (drop-entity [storage entity]))
 ````
-In our database, as mentioned above, we’ll hold the data in memory, and use the following *InMemory* implementation of the *Storage* protocol:
+
+And here's our in-memory implementation of the protocol, which uses a map as the backing store:
 
 ````clojure
 (defrecord InMemory [] Storage
@@ -147,23 +144,19 @@ In our database, as mentioned above, we’ll hold the data in memory, and use th
    (write-entity [storage entity] (assoc storage (:id entity) entity))
    (drop-entity [storage entity] (dissoc storage (:id entity))))
 ````
-### Indices
 
-After describing how data is represented and stored, we move on to discuss the system that manages the data - the database. To do so, we need to understand that above all, a database’s *raison d'être* is to leverage data. This means that on top of acting as a storage mechanism, a database must allow users to ask predefined questions as well as design and execute queries on their data, all this while still providing performance guarantees. 
+### Querying our data
 
-The enabler of this performance requirement is the usage of an indexing system, and this is the focus of the next section.
+Now that we've defined the basic elements of our database, we can start thinking about how we're going to query it. By virtue of how we've structured our data, any query is necessarily going to be interested in at least one of an entity's id, and the name and value of some of its attributes. This triplet of (entity-id, attribute-name, attribute-value) is important enough to our query process that we give it an explicit name -- a _datom_. In fact, these triplets are imporant enough that we decided to name the entire database after it!
 
-#### The index structure
+The reason that datoms are so important is that they are the core component's in our database's _index_. 
 
-In our database, an index is a three leveled structure where each item in the top level points to a set of items in the second level, and each item in the second level points to a set of items in the third level. 
+If you've used a database system before, you are probably already familiar with the concept of an _index_, which is a supporting data structure that consumes extra space in order to decrease the average query time.  In our database, an index is a three-leveled structure, which stores the components of a datom in a specific order. Each index derives its name from the order it stores the datom's components.
 
-This is implemented as a map of maps, where the keys of the root map act as the first level, each such key points to a map whose keys act as the index’s second-level and the values are the index’s third level. Each element in the third level is a set, holding the leafs of the index (see Figure 2 and 3).
-
-This structure gains the semantics of an index by having in each level a specific kind of item: either an entity-id, an attribute-name or an attribute value.
-
-When we index a datom (a triplet of entity-id, attribute-name and value) we place each of the datom’s components in a specific level in the index structure. An index’s usage is derived from what kind of elements reside in which level. On top of that, and in order to reduce the mental burden inflicted by using the index, we also derive the index’s name from the order in which a datom components are distributed to levels.
-
-For example, let’s look at at the index sketched in Figure 2. In that index, the first level map holds entity-ids (the blue-ish area) that are mapped the second level maps. These hold attribute-names (attributes of the entity at the first level). In that second level map (the green-ish area), each key (an attribute-name) is mapped to the value held by that attribute (the pink-ish area). 
+For example, let’s look at at the index sketched in Figure 2:
+* the first level stores entity-ids (the blue-ish area) 
+* the second level stores the related attribute-names 
+* the third level stores the related value 
 
 This index is named EAVT, as the top level map holds (E) entity ids, the second level holds (A) attribute names, and the leaves hold (V) values. The (T) comes from the fact that each layer in the database has its own indices, hence the index itself is relevant for a specific (T) time. 
 
@@ -181,7 +174,7 @@ Figure 3 shows an index that would be called AVET since:
 
 Figure 3
 
-Note that a more correct naming of the indices would be TEAV and TAVE , but smurf-naming-convention (http://blog.codinghorror.com/new-programming-jargon/) should be avoided.
+Our indices are implemented as a map of maps, where the keys of the root map act as the first level, each such key points to a map whose keys act as the index’s second-level and the values are the index’s third level. Each element in the third level is a set, holding the leaves of the index.
 
 #### Index metadata
 
