@@ -103,9 +103,8 @@
 (defn single-index-query-plan
   "A query plan that is based on querying a single index"
   [query indx db]
-     (let [q-res (query-index (ind-at db indx) query)
-            binded-res (bind-variables-to-query q-res  (ind-at db indx))]
-          binded-res))
+     (let [q-res (query-index (ind-at db indx) query)]
+           (bind-variables-to-query q-res  (ind-at db indx))))
 
  (defn index-of-joining-variable
   "A joining variable is the variable that is found on all of the query clauses"
