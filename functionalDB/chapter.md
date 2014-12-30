@@ -111,7 +111,8 @@ Similar to entities, creating an attribute is done using the *make-attr* functio
 There are a couple of interesting patterns used in this constructor function: 
 
 * We use Clojure’s _Design by Contract_ [ADD REF HERE] pattern to validate that the cardinality parameter is a permissible value
-* We also use Clojure’s destructuring mechanism to provide a default value of *:db/single* if one is not given
+* We use Clojure’s destructuring mechanism to provide a default value of *:db/single* if one is not given
+* We use Clojure’s metadata capabilities to separate between an attribute's data (name, value and timestamps) and its metadata (type and cardinality). In Clojure, metadata handling is done using the *with-meta* (setting metadata) and *meta* (reading metadata) functions.
 
 Attributes only have meaning if they are part of an entity. This connection is done using the *add-attr* function, which adds a given attribute to an entity's attribute map (called *:attrs*). Permitting fast lookup of an attribute given its name was the the reason a map was chosen as the attributes container. 
 
@@ -178,9 +179,7 @@ Our indices are implemented as a map of maps, where the keys of the root map act
 
 #### Index metadata
 
-On top of having information about the data found in the database, an index should be accompanied with some metadata of its own, to allow proper management and usage of the index itself. 
-
-This additional information is held as as a metadata of the index, using Clojure’s metadata handling functions (i.e., *meta* and *with-meta*) and two utility functions. 
+On top of having information about the data found in the database, an index should be accompanied with some metadata of its own, to allow proper management and usage of the index itself, this is held as a metadata of the index.
 
 There are two main aspects of index handling that are used:
 
