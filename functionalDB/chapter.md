@@ -72,13 +72,13 @@ Each layer consists of:
 
 1. A data store for entities
 
-2. Indices that are used to speed up queries to the database. (These indices and the meaning of their names will be explained later.) 
+2. Indices that are used to speed up queries to the database (these indices and the meaning of their names will be explained later.) 
 
 In our design, a single conceptual ‘database’ may consist of many *Database* instances, each of which represents a snapshot of the database at *curr-time*. A *Layer* may share the exact same entity with another *Layer* if the entity’s state hasn’t changed between the times that they represent.
 
 ### Entities
 
-Our database wouldn't be any use without entities to store, so we define those next. As discussed before, an entity has an *id* and a list of *attributes*; we create them using the *make-entity* function.
+Our database wouldn't be of any use without entities to store, so we define those next. As discussed before, an entity has an *id* and a list of *attributes*; we create them using the *make-entity* function.
 
 ````clojure
 (defrecord Entity [id attrs])
@@ -91,9 +91,9 @@ Note that if no id is given, the entity’s id is set to be *:db/no-id-yet*, whi
 
 **Attributes**
 
-Each attribute consists of its name, value, and the timestamps of its most recent and its previous update. In addition to these fields, each attribute has two fields that describe its *type* and *cardinality*. 
+Each attribute consists of its name, value, and the timestamps of both its most recent and previous update. In addition to these fields, each attribute has two fields that describe its *type* and *cardinality*. 
 
-In the case that an attribute is used to represent a relationship to another entity, its *type* will be *:db/ref* and its value will be the id of the related entity. This simple type system also acts an extension point, as users are free to define their own types and leverage them to provide additional semantics for their data.
+In the case that an attribute is used to represent a relationship to another entity, its *type* will be *:db/ref* and its value will be the id of the related entity. This simple type system also acts as an extension point. Users are free to define their own types and leverage them to provide additional semantics for their data.
 
 An attribute's *cardinality* specifies whether the attribute represents a single value or a set of values. We use this field to determine the set of operations that are permitted on this attribute.
 
@@ -113,7 +113,7 @@ There are a couple of interesting patterns used in this constructor function:
 * We use Clojure’s _Design by Contract_ [ADD REF HERE] pattern to validate that the cardinality parameter is a permissible value
 * We also use Clojure’s destructuring mechanism to provide a default value of *:db/single* if one is not given
 
-Attributes only have meaning if they are related to an entity. This is done with the *add-attr* function, which adds a given attribute to an entity's attribute map. This :attrs map associates the attribute’s name to the attribute itself to permit fast lookup of an attribute on an entity. 
+Attributes only have meaning if they are part of an entity. This connection is done using the *add-attr* function, which adds a given attribute to an entity's attribute map (called *:attrs*). Permitting fast lookup of an attribute given its name was the the reason a map was chosen as the attributes container. 
 
 Note that instead of directly using the attribute’s name, we first convert it into a keyword to adhere to Clojure’s idiomatic usage of maps.
 
@@ -147,16 +147,16 @@ And here's our in-memory implementation of the protocol, which uses a map as the
 
 ### Querying our data
 
-Now that we've defined the basic elements of our database, we can start thinking about how we're going to query it. By virtue of how we've structured our data, any query is necessarily going to be interested in at least one of an entity's id, and the name and value of some of its attributes. This triplet of (entity-id, attribute-name, attribute-value) is important enough to our query process that we give it an explicit name -- a _datom_. In fact, these triplets are imporant enough that we decided to name the entire database after it!
+Now that we've defined the basic elements of our database, we can start thinking about how we're going to query it. By virtue of how we've structured our data, any query is necessarily going to be interested in at least one of an entity's id, and the name and value of some of its attributes. This triplet of (entity-id, attribute-name, attribute-value) is important enough to our query process that we give it an explicit name -- a _datom_.
 
-The reason that datoms are so important is that they are the core component's in our database's _index_. 
+The reason that datoms are so important is that they represent facts, and our database accumulates facts. 
 
 If you've used a database system before, you are probably already familiar with the concept of an _index_, which is a supporting data structure that consumes extra space in order to decrease the average query time.  In our database, an index is a three-leveled structure, which stores the components of a datom in a specific order. Each index derives its name from the order it stores the datom's components.
 
 For example, let’s look at at the index sketched in Figure 2:
 * the first level stores entity-ids (the blue-ish area) 
-* the second level stores the related attribute-names 
-* the third level stores the related value 
+* the second level stores the related attribute-names (the green-ish area)
+* the third level stores the related value (the pink-ish area)
 
 This index is named EAVT, as the top level map holds (E) entity ids, the second level holds (A) attribute names, and the leaves hold (V) values. The (T) comes from the fact that each layer in the database has its own indices, hence the index itself is relevant for a specific (T) time. 
 
