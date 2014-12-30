@@ -18,18 +18,18 @@ If you were to instead ask an archaeologist what should be done with the old dat
 
 If we were to ask our friendly archaeologist to design a database, we might expect the requirements to reflect what would be found at an *excavation site:*
 
-* All data is found and catalogued at the site
+* All data is found and cataloged at the site
 * Digging deeper will expose the state of things in times past 
 * Artefacts found at the same layer are from the same period
 * Each artefact will consist of state that it accumulated in different periods 
 
-For example, a wall may have roman symbols drawn on it at on one layer, and in a lower layer there may be greek symbols. Both these observations are recorded as part of the wall's state.
+For example, a wall may have Roman symbols drawn on it at on one layer, and in a lower layer there may be Greek symbols. Both these observations are recorded as part of the wall's state.
 
 This analogy is visualized in Figure 1:
 
 * The entire circle is the excavation site
 * Each ring is a _layer_ (here numbered from 0 to 4) 
-* Each slice is an labelled artefact (‘a’ through ‘e’)
+* Each slice is a labeled artefact (‘a’ through ‘e’)
 * Each artefact has a ‘color’ attribute (where white means that no update was made)
 * Black arrows denote a change in color between layers (e.g., from c.color @t2 to c.color @t0)
 * Light blue arrows are arbitrary relationships of interest between entities (e.g., from ‘b’ to ‘d’)
