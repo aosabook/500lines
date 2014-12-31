@@ -9,9 +9,9 @@ open script
 open origin
 
 sig CorsRequest in XmlHttpRequest {
-  -- "origin" header
+  -- "origin" header in request from client
   origin: Origin,
-  -- "access-control-allow-origin" header
+  -- "access-control-allow-origin" header in response from server
   allowedOrigins: set Origin
 }{
   from in Script
@@ -19,10 +19,9 @@ sig CorsRequest in XmlHttpRequest {
 
 fact corsRule {
   all r: CorsRequest |
-    -- "origin" header of every CORS request matches the script context and
+    -- the origin header of a CORS request matches the script context
     r.origin = origin[r.from.context.src] and
-    -- a CORS request is accepted iff it is allowed by the server, as indicated
-    -- in "access-control-allow-origin" header
+    -- the specified origin is one of the allowed origins
     r.origin in r.allowedOrigins
 }
 

@@ -166,7 +166,7 @@ one sig Dns {
 
 The keyword `one` in the signature declaration means that (for
 simplicity) we're going to assume exactly one domain name server,
-and there will be  single DNS mapping, given by the expression `Dns.map`.
+and there will be a single DNS mapping, given by the expression `Dns.map`.
 Again, as with the
 serving resources, this could be dynamic (and in fact there are known
 security attacks that rely on changing DNS bindings during an
@@ -331,7 +331,7 @@ Next, we will build on the HTTP and browser models to introduce *client-side scr
 ```alloy
 sig Script extends Client { context: Document }
 ```
-A script is a dynamic entity that can perform two different kinds of action: (1) it can make HTTP requests (i.e., Ajax requests) and (2) it can erform browser operations to manipulate the content and properties of a document. The flexibility of client-side scripts is one of the main catalysts behind the rapid development of Web 2.0, but is also the reason why the SOP was created in the first place. Without the SOP, scripts would be able to send arbitrary requests to servers, or freely modify  documents inside the browser -- which would be bad news if one or more of the scripts turned out to be malicious! 
+A script is a dynamic entity that can perform two different kinds of action: (1) it can make HTTP requests (i.e., Ajax requests) and (2) it can perform browser operations to manipulate the content and properties of a document. The flexibility of client-side scripts is one of the main catalysts behind the rapid development of Web 2.0, but is also the reason why the SOP was created in the first place. Without the SOP, scripts would be able to send arbitrary requests to servers, or freely modify documents inside the browser -- which would be bad news if one or more of the scripts turned out to be malicious! 
 
 A script can communicate to a server by sending an `XmlHttpRequest`:
 ```alloy
@@ -365,8 +365,8 @@ sig ReadDom extends BrowserOp { result: Resource }{
   result = doc.content.start
   noDocumentChange[start, end]
 }
-sig WriteDom extends BrowserOp { new_dom: Resource }{
-  content.end = content.start ++ doc -> new_dom
+sig WriteDom extends BrowserOp { newDom: Resource }{
+  content.end = content.start ++ doc -> newDom
   domain.end = domain.start
 }
 ```
@@ -801,7 +801,7 @@ HTML (i.e., `<script>`) are exempt from the SOP*; that is, you can
 include a script from _any_ URL, and the browser readily executes it
 in the current document:
 
-(\* Without this exemption, it would not be possible to load Javascript libraries, such as JQuery, from other domains.)
+(\* Without this exemption, it would not be possible to load JavaScript libraries, such as JQuery, from other domains.)
 
 ```html
 <script src="http://www.example.com/myscript.js"></script>

@@ -16,13 +16,12 @@ fact sameOriginPolicy {
 
 pred domSop {
   all c: ReadDom + WriteDom | 
-    -- A script can only access the DOM of a document with the same origin or
+    -- a script can access the DOM of a document with the same origin
     origin[c.doc.src] = origin[c.from.context.src] or
-    -- (relaxation) the domain property of both the script's context and the
-    -- target document has been set and
+    -- the domain property of both the script's context and target doc have been
+    -- set...
     (c.doc + c.from.context in (c.prevs <: SetDomain).doc and
-    -- they have the same origin (using the domain property as the host and not
-    -- the src host)
+    -- ...and they have the same origin (with the domain property as host)
     origin[c.doc.src, c.doc.domain.(c.start)] =
     origin[c.from.context.src, c.from.context.domain.(c.start)])
 }

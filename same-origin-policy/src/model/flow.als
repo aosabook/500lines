@@ -19,7 +19,7 @@ sig DataflowCall in Call {
   -- Two general constrains about dataflow calls
   -- (1) Any arguments must be accessible to the sender
   args in from.accesses.start + 
-  -- unless it's an Ajax call, in which case arguments could include browser cookies)
+  -- (unless it's an Ajax call, in which case arguments could include browser cookies)
 	(this in XmlHttpRequest implies from.browser[start].accesses.start & Cookie else none)
   
   -- (2) Any data returned from this call must be accessible to the receiver
