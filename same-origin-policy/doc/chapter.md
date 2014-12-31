@@ -365,8 +365,8 @@ sig ReadDom extends BrowserOp { result: Resource }{
   result = doc.content.start
   noDocumentChange[start, end]
 }
-sig WriteDom extends BrowserOp { new_dom: Resource }{
-  content.end = content.start ++ doc -> new_dom
+sig WriteDom extends BrowserOp { newDom: Resource }{
+  content.end = content.start ++ doc -> newDom
   domain.end = domain.start
 }
 ```
