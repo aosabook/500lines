@@ -18,18 +18,18 @@ If you were to instead ask an archaeologist what should be done with the old dat
 
 If we were to ask our friendly archaeologist to design a database, we might expect the requirements to reflect what would be found at an *excavation site:*
 
-* All data is found and catalogued at the site
+* All data is found and cataloged at the site
 * Digging deeper will expose the state of things in times past 
 * Artefacts found at the same layer are from the same period
 * Each artefact will consist of state that it accumulated in different periods 
 
-For example, a wall may have roman symbols drawn on it at on one layer, and in a lower layer there may be greek symbols. Both these observations are recorded as part of the wall's state.
+For example, a wall may have Roman symbols drawn on it at on one layer, and in a lower layer there may be Greek symbols. Both these observations are recorded as part of the wall's state.
 
 This analogy is visualized in Figure 1:
 
 * The entire circle is the excavation site
 * Each ring is a _layer_ (here numbered from 0 to 4) 
-* Each slice is an labelled artefact (‘a’ through ‘e’)
+* Each slice is a labeled artefact (‘a’ through ‘e’)
 * Each artefact has a ‘color’ attribute (where white means that no update was made)
 * Black arrows denote a change in color between layers (e.g., from c.color @t2 to c.color @t0)
 * Light blue arrows are arbitrary relationships of interest between entities (e.g., from ‘b’ to ‘d’)
@@ -72,13 +72,13 @@ Each layer consists of:
 
 1. A data store for entities
 
-2. Indices that are used to speed up queries to the database. (These indices and the meaning of their names will be explained later.) 
+2. Indices that are used to speed up queries to the database (these indices and the meaning of their names will be explained later.) 
 
 In our design, a single conceptual ‘database’ may consist of many *Database* instances, each of which represents a snapshot of the database at *curr-time*. A *Layer* may share the exact same entity with another *Layer* if the entity’s state hasn’t changed between the times that they represent.
 
 ### Entities
 
-Our database wouldn't be any use without entities to store, so we define those next. As discussed before, an entity has an *id* and a list of *attributes*; we create them using the *make-entity* function.
+Our database wouldn't be of any use without entities to store, so we define those next. As discussed before, an entity has an *id* and a list of *attributes*; we create them using the *make-entity* function.
 
 ````clojure
 (defrecord Entity [id attrs])
@@ -91,9 +91,9 @@ Note that if no id is given, the entity’s id is set to be *:db/no-id-yet*, whi
 
 **Attributes**
 
-Each attribute consists of its name, value, and the timestamps of its most recent and its previous update. In addition to these fields, each attribute has two fields that describe its *type* and *cardinality*. 
+Each attribute consists of its name, value, and the timestamps of both its most recent and previous update. In addition to these fields, each attribute has two fields that describe its *type* and *cardinality*. 
 
-In the case that an attribute is used to represent a relationship to another entity, its *type* will be *:db/ref* and its value will be the id of the related entity. This simple type system also acts an extension point, as users are free to define their own types and leverage them to provide additional semantics for their data.
+In the case that an attribute is used to represent a relationship to another entity, its *type* will be *:db/ref* and its value will be the id of the related entity. This simple type system also acts as an extension point. Users are free to define their own types and leverage them to provide additional semantics for their data.
 
 An attribute's *cardinality* specifies whether the attribute represents a single value or a set of values. We use this field to determine the set of operations that are permitted on this attribute.
 
@@ -111,9 +111,10 @@ Similar to entities, creating an attribute is done using the *make-attr* functio
 There are a couple of interesting patterns used in this constructor function: 
 
 * We use Clojure’s _Design by Contract_ [ADD REF HERE] pattern to validate that the cardinality parameter is a permissible value
-* We also use Clojure’s destructuring mechanism to provide a default value of *:db/single* if one is not given
+* We use Clojure’s destructuring mechanism to provide a default value of *:db/single* if one is not given
+* We use Clojure’s metadata capabilities to separate between an attribute's data (name, value and timestamps) and its metadata (type and cardinality). In Clojure, metadata handling is done using the *with-meta* (setting metadata) and *meta* (reading metadata) functions.
 
-Attributes only have meaning if they are related to an entity. This is done with the *add-attr* function, which adds a given attribute to an entity's attribute map. This :attrs map associates the attribute’s name to the attribute itself to permit fast lookup of an attribute on an entity. 
+Attributes only have meaning if they are part of an entity. We make this connection with the *add-attr* function, which adds a given attribute to an entity's attribute map (called *:attrs*). 
 
 Note that instead of directly using the attribute’s name, we first convert it into a keyword to adhere to Clojure’s idiomatic usage of maps.
 
@@ -147,16 +148,16 @@ And here's our in-memory implementation of the protocol, which uses a map as the
 
 ### Querying our data
 
-Now that we've defined the basic elements of our database, we can start thinking about how we're going to query it. By virtue of how we've structured our data, any query is necessarily going to be interested in at least one of an entity's id, and the name and value of some of its attributes. This triplet of (entity-id, attribute-name, attribute-value) is important enough to our query process that we give it an explicit name -- a _datom_. In fact, these triplets are imporant enough that we decided to name the entire database after them!
+Now that we've defined the basic elements of our database, we can start thinking about how we're going to query it. By virtue of how we've structured our data, any query is necessarily going to be interested in at least one of an entity's id, and the name and value of some of its attributes. This triplet of (entity-id, attribute-name, attribute-value) is important enough to our query process that we give it an explicit name -- a _datom_.
 
-The reason that datoms are so important is that they are the core component's of our database's _index_. 
+The reason that datoms are so important is that they represent facts, and our database accumulates facts. 
 
 If you've used a database system before, you are probably already familiar with the concept of an _index_, which is a supporting data structure that consumes extra space in order to decrease the average query time.  In our database, an index is a three-leveled structure, which stores the components of a datom in a specific order. Each index derives its name from the order it stores the datom's components.
 
 For example, let’s look at at the index sketched in Figure 2:
 * the first level stores entity-ids (the blue-ish area) 
-* the second level stores the related attribute-names 
-* the third level stores the related value 
+* the second level stores the related attribute-names (the green-ish area)
+* the third level stores the related value (the pink-ish area)
 
 This index is named EAVT, as the top level map holds (E) entity ids, the second level holds (A) attribute names, and the leaves hold (V) values. The (T) comes from the fact that each layer in the database has its own indices, hence the index itself is relevant for a specific (T) time. 
 
@@ -176,22 +177,9 @@ Figure 3
 
 Our indices are implemented as a map of maps, where the keys of the root map act as the first level, each such key points to a map whose keys act as the index’s second-level and the values are the index’s third level. Each element in the third level is a set, holding the leaves of the index.
 
-#### Index metadata
+Each index stores the components of a datom as some permutation of its canonical 'EAV' ordering (entity_id, attribute-name, attribute-value). However, when we are working with datoms _outside_ of the index, we expect them to be in canonical format. We thus provide each index with functions *from-eav* and *to-eav* to convert to and from these orderings.
 
-On top of having information about the data found in the database, an index should be accompanied with some metadata of its own, to allow proper management and usage of the index itself. 
-
-This additional information is held as as a metadata of the index, using Clojure’s metadata handling functions (i.e., *meta* and *with-meta*) and two utility functions. 
-
-There are two main aspects of index handling that are used:
-
-* Structure: The structure of a datom is entity ⇒ attribute ⇒ value (called an ‘eav’ structure). However, an index may be structured differently (each index with its own specific structure). To allow transition between the two different structures (natural and index specific), each index holds two functions, one for each specific transition:
-
-    * from the natural structure to the index specific, called *from-eav*, 
-    * from the index specific to the natural structure called *to-eav*. 
-
-These functions are read from the index using the utility functions *from-eav* and *to-eav*, both receive an index as an argument.
-
-* What to index: index maintenance has its costs, therefore, when defining an index, the user also provides a predicate that receives an attribute and decides whether that attribute should be indexed by the defined index. This predicate is read from an index using the *usage-pred* function that receives the relevant index as an argument.  
+In most database systems, indices are an optional component; for example, in an RDMBS like postgresql or mysql, you will choose to add indices only to certain columns in a table. We provide each index with a *usage-pred* function that determines whether an attribute and decides whether that attribute should be included in this index or not. 
 
 ````clojure
 (defn make-index [from-eav to-eav usage-pred]
@@ -201,12 +189,14 @@ These functions are read from the index using the utility functions *from-eav* a
  (defn to-eav [index] (:to-eav (meta index)))
  (defn usage-pred [index] (:usage-pred (meta index)))
 ````
-In our database there are four indices - EAVT (as depicted in Figure 2), AVET (as can be seen in Figure 3), VEAT and VAET, these names are held as a vector of values returned from the *indices* function.
+
+In our database there are four indices - EAVT (as depicted in Figure 2), AVET (as can be seen in Figure 3), VEAT and VAET. We can access these as a vector of values returned from the *indices* function.
 
 ````clojure
 (defn indices[] [:VAET :AVET :VEAT :EAVT])
 ````
-For example, the result of indexing the following five entities can be seen in the table below (the color coding follows the color coding of Figure 2 and Figure 3)
+
+To see how all of this comes together, the result of indexing the following five entities is visualized table below (the color coding follows the color coding of Figure 2 and Figure 3)
 
 1. <span style="background-color:lightblue">Julius Caesar</span> (also known as JC) <span style="background-color:lightgreen">lives in</span> <span style="background-color:pink">Rome</span> 
 2. <span style="background-color:lightblue">Brutus</span> (also known as B) <span style="background-color:lightgreen">lives in</span> <span style="background-color:pink">Rome</span> 
@@ -285,11 +275,11 @@ Table 2
 
 ### Database
 
-The last structural building block that we need to understand is the place where all previously discussed elements come together -  the database itself. 
+We now have all the components we need to construct our database! Initializing our database means:
 
-Constructing a database means to creating an initial empty layer with no data and a set of empty indices. as well as set its top-id to be 0 and its curr-time to be 0, as can be seen in the *make-db* function. 
-
-In Clojure, all the collections are immutable, thus this structure has a crucial downside from a databasing point of view, which is its lack of ability to perform write operations. To have this capability we wrap this structure with an **atom**, which is one of Clojure’s reference types and provides atomic writes to the element it wraps.
+* creating an initial empty layer with no data 
+* creating a set of empty indices
+* settings its top-id and curr-time to be 0 and its curr-time to be 0 
 
 ````clojure
 (defn ref? [attr] (= :db/ref (:type (meta attr))))
@@ -306,7 +296,10 @@ In Clojure, all the collections are immutable, thus this structure has a crucial
                    (make-index #(vector %1 %2 %3) #(vector %1 %2 %3) always); EAVT
                   )] 0 0)))
 ````
-Note that we use the *always* function for the AVET, VEAT and EAVT indices, and the *ref?* predicate for the VAET index. This is a result of the different usage scenario of the indices. We’ll explore this issue later when discussing the various querying operations of the database.
+
+There is one snag, though -- all collections in Clojure are immutable. Since write operations are pretty critical in a database, we call **atom** on our structure first. This is one of Clojure’s reference types, and it provides atomic writes to the element it wraps. 
+
+You may be wondering why we use the *always* function for the AVET, VEAT and EAVT indices, and the *ref?* predicate for the VAET index. This is because these indices are used in different scenarios, which we’ll see later when we explore queries in depth.
 
 ### Basic reads
 
@@ -323,7 +316,7 @@ The following functions do exactly that, and share some commonalities between th
 
 * Take an optional timestamp value to know from which time to fetched the needed element. This is an optional argument as it defaults to the current time. 
 
-The functions *entity-at* and *ind-at* find the right layer and within it find the needed element (*entity-at* looks at the storage, *ind-at* goes directly to the right index). The function *attr-at* first calls *entity-at* and then reads the attribute from the entity and *value-of-at* calls *attr-at* and then reads the value from the attribute.
+The functions *entity-at* and *ind-at* find the right layer and within it find the needed element ( *entity-at* looks at the storage, *ind-at* goes directly to the right index). The function *attr-at* first calls *entity-at* and then reads the attribute from the entity and *value-of-at* calls *attr-at* and then reads the value from the attribute.
 
 It is worth mentioning that while *entity-at*, *attr-at*, *value-of-at* and *ind-at* have a similar structure, and therefore are explained in this section, *ind-at* is to be used only by the database and not by the database users.
 
