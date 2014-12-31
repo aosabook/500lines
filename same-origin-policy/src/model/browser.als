@@ -39,7 +39,7 @@ sig BrowserHttpRequest extends HttpRequest {
 
   -- if there is no response, then no new document is opened
   some doc iff some response
-  -- browser creates a new document to display the content of the response
+  -- a new document is created to display the content of the response
   documents.end = documents.start + from -> doc
   -- the new document has the response as its contents
   content.end = content.start ++ doc -> response
