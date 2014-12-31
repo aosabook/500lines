@@ -353,7 +353,18 @@ Adding an entity requires us to do three things:
 * place the entity in storage 
 * update indices as necessary
 
-Preparing an entity is done by the *fix-new-entity* function and its auxiliary functions *next-id*, *next-ts* and *update-creation-ts*. These latter two helper functions are responsible for finding the next timestamp of the database, and updating the creation timestamp of the given entity. (This timestamp is actually the timestamp of the entity’s attributes.)
+These steps are happening in the *add-entity* function
+````clojure
+(defn add-entity [db ent]
+   (let [[fixed-ent next-top-id] (fix-new-entity db ent)
+         layer-with-updated-storage (update-in 
+                            (last (:layers db)) [:storage] write-entity fixed-ent)
+         add-fn (partial add-entity-to-index fixed-ent)
+         new-layer (reduce add-fn layer-with-updated-storage (indices))]
+    (assoc db :layers (conj (:layers db) new-layer) :top-id next-top-id)))
+````
+
+Preparing an entity is done calling the *fix-new-entity* function and its auxiliary functions *next-id*, *next-ts* and *update-creation-ts*. These latter two helper functions are responsible for finding the next timestamp of the database, and updating the creation timestamp of the given entity. (This timestamp is actually the timestamp of the entity’s attributes.)
 
 ````clojure
 (defn- next-ts [db] (inc (:curr-time db)))
@@ -375,7 +386,7 @@ Preparing an entity is done by the *fix-new-entity* function and its auxiliary f
        [(update-creation-ts (assoc ent :id ent-id) new-ts) next-top-id]))
 ````
 
-To add the entity to storage, we locate the most recent layer in the database and update the storage in that layer with a new layer. [TODO: Maybe we can factor this into its own function from the code below and list that code here?]
+To add the entity to storage, we locate the most recent layer in the database and update the storage in that layer with a new layer, the results of this operation are stored in the *layer-with-updated-storage* local variable.
 
 [TODO: Debo resume editing here] 
 
@@ -408,17 +419,8 @@ Last but not least phase in adding an entity to the database is updating the ind
          to-be-updated-set (get-in index update-path #{})]
      (assoc-in index update-path (conj to-be-updated-set update-value))))
 ````
-All that work is now added as a new layer to the database that we started with, and all that’s left is to update the database’s timestamp and top-id field to prepare ourselves for future interactions. That last step is done at the last line of the function *add-entity*
+All that work is now added as a new layer to the database that we started with, and all that’s left is to update the database’s timestamp and top-id fields to prepare ourselves for future interactions. That last step is done at the last line of *add-entity*, that also returns the updated database.
 
-````clojure
-(defn add-entity [db ent]
-   (let [[fixed-ent next-top-id] (fix-new-entity db ent)
-         new-layer (update-in 
-                            (last (:layers db)) [:storage] write-entity fixed-ent)
-         add-fn (partial add-entity-to-index fixed-ent)
-         new-layer (reduce add-fn new-layer  (indices))]
-    (assoc db :layers (conj (:layers db) new-layer) :top-id next-top-id)))
-````
 Note that it is possible to add several entities in one function call, simply by calling the *add-entities* functions, that all it does is going over the given collection of entities and add them one by one to the database.
 
 ````clojure

@@ -55,10 +55,10 @@
 
 (defn add-entity [db ent]
   (let [[fixed-ent next-top-id] (fix-new-entity db ent)
-        new-layer (update-in  (last (:layers db)) [:storage] write-entity fixed-ent)
+        layer-with-updated-storage (update-in  (last (:layers db)) [:storage] write-entity fixed-ent)
         add-fn (partial add-entity-to-index fixed-ent)
         new-layer (reduce add-fn new-layer  (indices))]
-    (assoc db :layers  (conj (:layers db) new-layer) :top-id next-top-id)))
+    (assoc db :layers  (conj (:layers db) layer-with-updated-storage) :top-id next-top-id)))
 
 (defn add-entities [db ents-seq] (reduce add-entity db ents-seq))
 
