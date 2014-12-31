@@ -364,7 +364,8 @@ These steps are happening in the *add-entity* function
     (assoc db :layers (conj (:layers db) new-layer) :top-id next-top-id)))
 ````
 
-Preparing an entity is done calling the *fix-new-entity* function and its auxiliary functions *next-id*, *next-ts* and *update-creation-ts*. These latter two helper functions are responsible for finding the next timestamp of the database, and updating the creation timestamp of the given entity. (This timestamp is actually the timestamp of the entity’s attributes.)
+Preparing an entity is done calling the *fix-new-entity* function and its auxiliary functions *next-id*, *next-ts* and *update-creation-ts*. 
+These latter two helper functions are responsible for finding the next timestamp of the database(done by *next-ts* function), and updating the creation timestamp of the given entity. Updating the creation timestamp of an entity means going over the attributes of the entity and update their *:ts* field (done by the *update-creation-ts* function).
 
 ````clojure
 (defn- next-ts [db] (inc (:curr-time db)))
@@ -463,6 +464,7 @@ It starts by locating the entities that refer to the removed entity, by calling 
          (for [[attr-name reffing-set] (e-id vaet)
                reffing reffing-set]
               [reffing attr-name e-id])))
+
 ````
  When the *remove-back-refs* function gets the triplets sequence, it just calls the *update-datom* function (which will be explain in the next part) to update the referencing entity to not hold the id of the removed entity (at the found attribute).
 
