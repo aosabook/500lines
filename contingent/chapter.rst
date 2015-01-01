@@ -399,7 +399,7 @@ This is one facet of the notion of “Pythonic” solutions that you may
 have read about: Pythonic solutions try to
 minimize syntactic overhead
 and leverage Python's powerful built-in tools
-like strings, lists, dicts, and sets.
+and extensive standard library.
 
 What does this say about how should we build the ``Graph`` class?
 The main purpose of ``Graph`` is to keep track of the relationships
@@ -742,6 +742,8 @@ from our little document format:
 ... the `tutorial.txt` first.
 ... """
 
+.. TODO: these next few paragraphs need some smoothing and redundancy removal.
+
 Now that we have some source material to work with,
 what functions would a Contingent-based blog builder
 need?
@@ -763,11 +765,16 @@ that injects itself into the middle of the build process,
 noting every time one task talks to another
 to construct a graph of the relationships between all the tasks.
 
->>> from contingent.projectlib import Project
+>>> from contingent.projectlib import Project, pack_task
 >>> project = Project()
 >>> task = project.task
 
-This simplified build system requires four basic functions:
+This simplified build system involves five basic steps:
+*reading* the raw contents of a file,
+*parsing* the contents to produce an in-memory document representation,
+*extracting* information from our document representation,
+*transforming* the document representation,
+and *rendering* the output document.
 
 * ``read()`` pretends to read the files from disk;
   since we defined the source text in variables,
@@ -780,7 +787,11 @@ This simplified build system requires four basic functions:
     ...             'tutorial.txt': tutorial,
     ...             'api.txt': api}[filename]
 
-* ``parse()`` splits the raw text into a title and a body:
+* ``parse()`` interprets the raw text of the file contents
+  according to the specification of our document format.
+  Our format is very simple:
+  the title of the document appears on the first line,
+  and the rest of the content is considered the document's body.
 
     >>> @task
     ... def parse(filename):
@@ -788,8 +799,9 @@ This simplified build system requires four basic functions:
     ...     title, body = text.split('\n', 1)
     ...     return title, body
 
-  This parser is a little silly, admittedly,
-  but it illustrates the interpretive and transformative responsibilities
+  Because the format is so simple,
+  the parser is a little silly, admittedly,
+  but it illustrates the interpretive responsibilities
   that parsers are required to carry out.
   Parsing in general is a very interesting subject
   and many books have been written
@@ -803,7 +815,7 @@ This simplified build system requires four basic functions:
   Notice the connection point between
   ``parse()`` and ``read()``:
   ``parse()``'s first task is to pass the filename it has been given
-  to ``read()``, which finds and returns the content
+  to ``read()``, which finds and returns the contents
   of that file.
 
 * ``title_of()``, given a source file name,
@@ -839,28 +851,242 @@ This simplified build system requires four basic functions:
   with regard to these differing design paradigms
   and supports either approach equally well.
 
-* ``render()``
+* A document processing system like Sphinx
+  defines many useful document *transforms*
+  that implement features like cross referencing,
+  formatting, and document assembly.
+  Our simplified document specification
+  includes only simple cross-referencing
+  implemented in this ``transform()`` function
 
     >>> import re
     >>> @task
-    ... def render(filename):
-    ...     title, body = parse(filename)
+    ... def transform(filename):
+    ...     title, raw_body = parse(filename)
     ...     body = re.sub(r'`([^`]+)`',
     ...         lambda match: repr(title_of(match.group(1))),
-    ...         body)
+    ...         raw_body)
+    ...     return title, body
+
+  which looks up
+  document titles enclosed in backticks (```tutorial.txt```)
+  and replaces them with the corresponding document's title.
+
+    .. TODO: how much explanation do we need here? If you don't already
+        know how this works, this implementation is pretty inscrutable.
+
+* ``render()``'s job is to turn the in-memory representation of a document
+  into an output form; it is, in effect, the inverse of ``parse()``.
+  ``parse()`` takes an input document
+  conforming to a specification
+  and converts it to an in-memory representation;
+  ``render()`` takes an in-memory representation
+  and produces an output document
+  conforming to some specification.
+  Both functions could, in fact,
+  work with the same document specification,
+  which isn't as weird as it might sound at first:
+  just because we are working from the same specification
+  doesn't mean we have to produce the same *document*.
+  Besides, in-memory representations can sometimes be easier to work with
+  than raw text if the document specification is complicated (think HTML).
+
+    >>> @task
+    ... def render(filename):
+    ...     title, body = transform(filename)
     ...     return title + '\n' + body
 
+
+Here's an example:
+rendering ``tutorial.txt``
+produces its output
+
+>>> project.start_tracing()
+>>> print(render('tutorial.txt'))
+Beginners Tutorial
+------------------
+Welcome to the tutorial!
+We hope you enjoy it.
+
+Figure 3 illustrates the task graph
+that transitively connects all the tasks
+required to produce the output,
+from reading the input file,
+parsing and transforming the document,
+and rendering the result:
+
 ..
- >>> render('tutorial.txt') and None
  >>> open('figure3.dot', 'w').write(as_graphviz(project.graph)) and None
 
 .. image:: figure3.png
 
 
+Wait, where did Figure 3 come from?
+It turns out that,
+like your nosy next-door neighbor,
+``Project`` spies on all of the interactions
+between its tasks.
+To see how this works,
+we need to look at what happens when
+one function calls another.
+When ``parse('tutorial.txt')`` calls ``read('tutorial.txt')``,
+Python can't simply transfer control
+from ``parse``'s code to ``read``'s,
+since that would lose track of what we were doing
+in ``parse`` when the call was made,
+leaving our program wandering around forgetting everything
+like Leonard from *Memento*.
+In order to keep track of things like
+*who* called ``read``,
+where we were in the code when the call was made,
+and what local variables were in play at the time,
+Python maintains a *call stack*
+with the information for the currently-executing function
+on top.
+Calling a function pushes its information to the top of the stack;
+returning from a function pops it off.
+This elegant structure allows each function
+to work within its own local context,
+with the stack maintaining the call chain from one function to another.
+For example,
+when ``read()`` returns and its information is popped off the stack,
+``parse()``, which called it,
+is now the top function,
+and control returns to it at the point the call was made.
+
+*But wait*, you're thinking,
+*we need to track* **tasks**,
+*not just any old function that comes along.*
+I like where your head's at,
+particularly if it's still attached to you.
+While Python provides introspection facilities
+that will let a program examine the stack,
+it's true that these facilities don't quite match our need:
+we care when one *task* invokes another,
+which will be difficult to tease out from
+the myriad function calls flying about as our program runs.
+Instead, we can maintain our own *task* stack,
+so when ``parse('tutorial.txt')`` calls ``read('tutorial.txt')``,
+``Project`` can jot that fact down in its task graph.
+
+Let's explore this idea by looking at
+expanded versions of ``parse`` and ``read``
+to see how they would work with a task stack.
+To maintain the stack of tasks,
+running a task needs to follow the sequence
+
+1. push the task onto the stack
+2. do its work, possibly calling other tasks
+3. pop the task off the stack
+4. return its result
+
+every time a task is invoked.
+Notice that if the task invokes another task at step 2,
+the calling task will be the one at the top of the stack
+when the call is made.
+
+Here is the expanded ``read_task``,
+using a simple Python list as the task stack:
+
+>>> task_stack = []
+>>> def read_task(filename):
+...     task = pack_task(read_task, (filename,))
+...     task_stack.append(task)
+...     print(task_stack)
+...     result = 'Witty Title\nEngaging content'
+...     task_stack.pop()
+...     return result
+
+
+Calling ``read_task`` prints out the task stack as it runs:
+
+>>> read_task('api.rst') and None
+[read_task('api.rst')]
+
+More interesting is to see what happens
+when we call ``parse_task``,
+since it will in turn call ``read_task``
+in the course of doing its work:
+
+>>> def parse_task(filename):
+...     task = pack_task(parse_task, (filename,))
+...     task_stack.append(task)
+...     print(task_stack)
+...     text = read_task(filename).strip('\n')
+...     title, body = text.split('\n', 1)
+...     task_stack.pop()
+...     return title, body
+
+This time, invoking the task shows the stack at two points,
+once inside ``parse_task`` and once in ``read_task``:
+
+>>> parse_task('api.rst') and None
+[parse_task('api.rst')]
+[parse_task('api.rst'), read_task('api.rst')]
+
+``Project``'s main purpose is to maintain a task stack like this,
+and, as one task calls another,
+to record the transaction in its consequences graph:
+
+>>> task = read, ('tutorial.txt',)
+>>> project.graph.immediate_consequences_of(task)
+[parse('tutorial.txt')]
+
+Of course writing all that task stack management code
+in each task function would be
+tedious, repetitive, error-prone, and repetitive,
+so ``Project`` leverages another Python feature
+to help out: *function decorators*.
+A function decorator packages a function
+inside another *wrapper* function,
+allowing clean separation of responsibilities.
+For our task decorator,
+the wrapper worries about graph and task stack management —
+of which the task function remains blissfully ignorant —
+while each task function can focus on
+the work needed to be done to perform the task.
+Here is what the ``task`` decorator looks like:
+
+.. code-block:: python
+
+    class Project:
+        # other stuff…
+
+        def task(self, task_function):
+            @wraps(task_function)
+            def wrapper(*args):
+                task = pack_task(wrapper, args)
+
+                if self.task_stack:
+                    self.graph.add_edge(task, self.task_stack[-1])
+
+                self.task_stack.append(task)
+                try:
+                    value = task_function(*args)
+                finally:
+                    self.task_stack.pop()
+
+                return value
+
+
+Notice that it follows the pattern set out above:
 
 
 
 
+
+Invoking each task could involve invoking other tasks,
+
+>>> print(project.stop_tracing())
+calling render('tutorial.txt')
+. calling transform('tutorial.txt')
+. . calling parse('tutorial.txt')
+. . . calling read('tutorial.txt')
+
+leading to a chain of consequences for each:
+
+>>> project.graph.recursive_consequences_of([task])
+[parse('tutorial.txt'), transform('tutorial.txt'), render('tutorial.txt')]
 
 
 
@@ -927,10 +1153,17 @@ Look!  All the tasks!
  render('index.txt'),
  render('tutorial.txt'),
  title_of('api.txt'),
- title_of('tutorial.txt')]
+ title_of('tutorial.txt'),
+ transform('api.txt'),
+ transform('index.txt'),
+ transform('tutorial.txt')]
 
 ..
  >>> open('figure4.dot', 'w').write(as_graphviz(project.graph)) and None
+
+
+Again, with tracing!
+
 
 .. image:: figure4.png
 
@@ -949,10 +1182,13 @@ if the tutorial source text is touched.
 >>> task = read, ('tutorial.txt',)
 >>> pprint(project.graph.recursive_consequences_of([task]))
 [parse('tutorial.txt'),
- render('tutorial.txt'),
  title_of('tutorial.txt'),
+ transform('api.txt'),
  render('api.txt'),
- render('index.txt')]
+ transform('index.txt'),
+ render('index.txt'),
+ transform('tutorial.txt'),
+ render('tutorial.txt')]
 
 But what if the title did not change?
 As you can see in Figure 3,
@@ -994,10 +1230,14 @@ because every document needs to change.
 >>> project.rebuild()
 >>> print(project.stop_tracing())
 calling parse('tutorial.txt')
-calling render('tutorial.txt')
 calling title_of('tutorial.txt')
+calling transform('api.txt')
 calling render('api.txt')
+calling transform('index.txt')
 calling render('index.txt')
+calling transform('tutorial.txt')
+calling render('tutorial.txt')
+
 
 But what if we edit it again,
 but this time leave the title the same?
@@ -1015,8 +1255,9 @@ This should have no effect on the other documents.
 >>> project.rebuild()
 >>> print(project.stop_tracing())
 calling parse('tutorial.txt')
-calling render('tutorial.txt')
 calling title_of('tutorial.txt')
+calling transform('tutorial.txt')
+calling render('tutorial.txt')
 
 Success!
 Only one document got rebuilt.

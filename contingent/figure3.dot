@@ -12,6 +12,7 @@ node [shape=rect penwidth=2 color="#708BA6"
 }
 node [shape=oval penwidth=0 style=filled fillcolor="#E8EED2"
       margin="0.05,0"]
-"parse('tutorial.txt')" -> "render('tutorial.txt')"
+"parse('tutorial.txt')" -> "transform('tutorial.txt')"
 "read('tutorial.txt')" -> "parse('tutorial.txt')"
+"transform('tutorial.txt')" -> "render('tutorial.txt')"
 }
