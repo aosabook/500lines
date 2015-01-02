@@ -72,7 +72,7 @@ Each layer consists of:
 
 1. A data store for entities
 
-2. Indices that are used to speed up queries to the database (these indices and the meaning of their names will be explained later.) 
+2. Indexes that are used to speed up queries to the database (these indexes and the meaning of their names will be explained later.) 
 
 In our design, a single conceptual ‘database’ may consist of many *Database* instances, each of which represents a snapshot of the database at *curr-time*. A *Layer* may share the exact same entity with another *Layer* if the entity’s state hasn’t changed between the times that they represent.
 
@@ -159,7 +159,7 @@ For example, let’s look at at the index sketched in Figure 2:
 * the second level stores the related attribute-names (the green-ish area)
 * the third level stores the related value (the pink-ish area)
 
-This index is named EAVT, as the top level map holds (E) entity ids, the second level holds (A) attribute names, and the leaves hold (V) values. The (T) comes from the fact that each layer in the database has its own indices, hence the index itself is relevant for a specific (T) time. 
+This index is named EAVT, as the top level map holds (E) entity ids, the second level holds (A) attribute names, and the leaves hold (V) values. The (T) comes from the fact that each layer in the database has its own indexes, hence the index itself is relevant for a specific (T) time. 
 
 ![image alt text](image_1.png)
 
@@ -175,11 +175,11 @@ Figure 3 shows an index that would be called AVET since:
 
 Figure 3
 
-Our indices are implemented as a map of maps, where the keys of the root map act as the first level, each such key points to a map whose keys act as the index’s second-level and the values are the index’s third level. Each element in the third level is a set, holding the leaves of the index.
+Our indexes are implemented as a map of maps, where the keys of the root map act as the first level, each such key points to a map whose keys act as the index’s second-level and the values are the index’s third level. Each element in the third level is a set, holding the leaves of the index.
 
 Each index stores the components of a datom as some permutation of its canonical 'EAV' ordering (entity_id, attribute-name, attribute-value). However, when we are working with datoms _outside_ of the index, we expect them to be in canonical format. We thus provide each index with functions *from-eav* and *to-eav* to convert to and from these orderings.
 
-In most database systems, indices are an optional component; for example, in an RDMBS like postgresql or mysql, you will choose to add indices only to certain columns in a table. We provide each index with a *usage-pred* function that determines whether an attribute and decides whether that attribute should be included in this index or not. 
+In most database systems, indexes are an optional component; for example, in an RDMBS like postgresql or mysql, you will choose to add indexes only to certain columns in a table. We provide each index with a *usage-pred* function that determines whether an attribute and decides whether that attribute should be included in this index or not. 
 
 ````clojure
 (defn make-index [from-eav to-eav usage-pred]
@@ -190,10 +190,10 @@ In most database systems, indices are an optional component; for example, in an 
  (defn usage-pred [index] (:usage-pred (meta index)))
 ````
 
-In our database there are four indices - EAVT (as depicted in Figure 2), AVET (as can be seen in Figure 3), VEAT and VAET. We can access these as a vector of values returned from the *indices* function.
+In our database there are four indexes - EAVT (as depicted in Figure 2), AVET (as can be seen in Figure 3), VEAT and VAET. We can access these as a vector of values returned from the *indexes* function.
 
 ````clojure
-(defn indices[] [:VAET :AVET :VEAT :EAVT])
+(defn indexes[] [:VAET :AVET :VEAT :EAVT])
 ````
 
 To see how all of this comes together, the result of indexing the following five entities is visualized table below (the color coding follows the color coding of Figure 2 and Figure 3)
@@ -278,7 +278,7 @@ Table 2
 We now have all the components we need to construct our database! Initializing our database means:
 
 * creating an initial empty layer with no data 
-* creating a set of empty indices
+* creating a set of empty indexes
 * settings its top-id and curr-time to be 0 and its curr-time to be 0 
 
 ````clojure
@@ -299,7 +299,7 @@ We now have all the components we need to construct our database! Initializing o
 
 There is one snag, though -- all collections in Clojure are immutable. Since write operations are pretty critical in a database, we call **atom** on our structure first. This is one of Clojure’s reference types, and it provides atomic writes to the element it wraps. 
 
-You may be wondering why we use the *always* function for the AVET, VEAT and EAVT indices, and the *ref?* predicate for the VAET index. This is because these indices are used in different scenarios, which we’ll see later when we explore queries in depth.
+You may be wondering why we use the *always* function for the AVET, VEAT and EAVT indexes, and the *ref?* predicate for the VAET index. This is because these indexes are used in different scenarios, which we’ll see later when we explore queries in depth.
 
 ### Basic accessors
 
@@ -351,16 +351,16 @@ Adding an entity requires us to do three things:
 
 * prepare the entity for addition (by giving it an id and a timestamp)
 * place the entity in storage 
-* update indices as necessary
+* update indexes as necessary
 
-These steps are happening in the *add-entity* function
+These steps are performed in the *add-entity* function
 ````clojure
 (defn add-entity [db ent]
    (let [[fixed-ent next-top-id] (fix-new-entity db ent)
          layer-with-updated-storage (update-in 
                             (last (:layers db)) [:storage] write-entity fixed-ent)
          add-fn (partial add-entity-to-index fixed-ent)
-         new-layer (reduce add-fn layer-with-updated-storage (indices))]
+         new-layer (reduce add-fn layer-with-updated-storage (indexes))]
     (assoc db :layers (conj (:layers db) new-layer) :top-id next-top-id)))
 ````
 
@@ -387,13 +387,11 @@ These latter two helper functions are responsible for finding the next timestamp
        [(update-creation-ts (assoc ent :id ent-id) new-ts) next-top-id]))
 ````
 
-To add the entity to storage, we locate the most recent layer in the database and update the storage in that layer with a new layer, the results of this operation are stored in the *layer-with-updated-storage* local variable.
+To add the entity to storage, we locate the most recent layer in the database and update the storage in that layer with a new layer. The results of this operation are assigned to the *layer-with-updated-storage* local variable.
 
-[TODO: Debo resume editing here] 
+Finally, we must update the indexes. This means:
 
-Last but not least phase in adding an entity to the database is updating the indices. This means that:
-
-1. For each of the indices (done by the combination of *reduce* and the *partial*-ed *add-entity-to-index* at the *add-entity* function)
+1. For each of the indexes (done by the combination of *reduce* and the *partial*-ed *add-entity-to-index* at the *add-entity* function)
 2. Find the attributes that should be indexed (see the combination of *filter* with the index’s *usage-pred* that operates on the attributes in *add-entity-to-index*) 
 3. build an index-path from the the entity’s id (see the combination of the *partial*-ed *update-entry-in-index* with *from-eav* at the *update-attr-in-index* function)
 4. Add that path to the index (see the *update-entry-in-index* function)
@@ -420,20 +418,22 @@ Last but not least phase in adding an entity to the database is updating the ind
          to-be-updated-set (get-in index update-path #{})]
      (assoc-in index update-path (conj to-be-updated-set update-value))))
 ````
-All that work is now added as a new layer to the database that we started with, and all that’s left is to update the database’s timestamp and top-id fields to prepare ourselves for future interactions. That last step is done at the last line of *add-entity*, that also returns the updated database.
+All of these components are added as a new layer to the given database; all that’s left is to update the database’s timestamp and top-id fields. That last step occurs on the last line of *add-entity*, which also returns the updated database.
 
-Note that it is possible to add several entities in one function call, simply by calling the *add-entities* functions, that all it does is going over the given collection of entities and add them one by one to the database.
+We also provide an *add-entities* convenience function that adds multiple entities to the database in one call by iteratively applying *add-entity*.
 
 ````clojure
 (defn add-entities [db ents-seq] (reduce add-entity db ents-seq))
 ````
 #### Removing an entity
 
-When an entity is removed from the database, it means that a new layer is constructed, one that does not have any trace of that entity. 
+Removing an entity from our database means adding a layer in which it does not exist. To do this, we need to:
 
-When removing an entity’s trace, we do not need only to remove the entity, but also affect other entities that refer to it, as well as clear that referencing from the indexing system.
+* remove the entity itself
+* update any attributes of other entities that reference it 
+* clear the entity from our indexes
 
-This entire cleanup process (or more correctly - a "construct without" process) is managed by the *remove-entity* function. In order not to tire the reader, we’ll skip the part where the entity itself is removed (this part is quite similar to the addition process described before), and we’ll focus on the reference removal part.
+This "construct-without" process is executed by the *remove-entity* function, which looks very similar to *add-entity*:
 
 ````clojure
 (defn remove-entity [db ent-id]
@@ -444,10 +444,11 @@ This entire cleanup process (or more correctly - a "construct without" process) 
                                    (drop-entity  
                                           (:storage no-ref-layer) ent))
          new-layer (reduce (partial remove-entity-from-index ent) 
-                                 no-ent-layer (indices))]
+                                 no-ent-layer (indexes))]
      (assoc db :layers (conj  (:layers db) new-layer))))
 ````
-The reference removal part is handled in the *remove-back-refs* function.
+
+Reference removal is done by the *remove-back-refs* function:
 
 ````clojure
 (defn- remove-back-refs [db e-id layer]
@@ -456,7 +457,7 @@ The reference removal part is handled in the *remove-back-refs* function.
          clean-db (reduce remove-fn db refing-datoms)]
      (last (:layers clean-db))))
 ````
-It starts by locating the entities that refer to the removed entity, by calling *reffing-datoms-to* that returns a sequence of triplets, each containing the id of the referencing entity, the attribute name and the id of the removed entity.
+We begin by using *reffing-datoms-to* to find all entities that reference ours in the given layer; it returns a sequence of triplets that contain the id of the referencing entity, as well as the attribute name and the id of the removed entity.
 
 ````clojure
 (defn- reffing-datoms-to [e-id layer]
@@ -466,25 +467,23 @@ It starts by locating the entities that refer to the removed entity, by calling 
               [reffing attr-name e-id])))
 
 ````
- When the *remove-back-refs* function gets the triplets sequence, it just calls the *update-datom* function (which will be explain in the next part) to update the referencing entity to not hold the id of the removed entity (at the found attribute).
+We then apply *update-datom* to each triplet to update the attributes that reference our removed entity. (We'll explore how *update-datom* works in the next section.)
 
-The reference removal process ends with clearing-up the removed entity’s id from the VAET index (the index that holds the references) at the *remove-entity* function.
+The last step of *remove-back-refs* is to clear the removed entity’s id from the VAET index, since it is the only index that stores references to entities. [TODO: My rewording of this might be wrong. I think we need a bit more explanation here as to why the other indexes don't need to be updated.]
 
 #### Updating an entity
 
-At its essence, an update is the modification of an entity’s attribute’s value. The modification itself depends on the cardinality of the attribute: an attribute whose cardinality is *:db/multiple* (meaning that the attribute holds a set of values) allows adding or removing items to/from it, or replacing the entire set with a new set. An attribute whose cardinality is *:db/single* (meaning that the attribute holds a single value) allows only to replace the value by another one.  
+At its essence, an update is the modification of an entity’s attribute’s value. The modification process itself depends on the cardinality of the attribute: an attribute with cardinality *:db/multiple* holds a set of values, so we must allow addition and removal of items to this set, or replacing the set entirely. An attribute with cardinality *:db/single* holds a single value, and thus only allows replacement.  
 
-Any modification of a value also needs to ripple throughout the database by modifying the various indices to reflect the change that occurred. 
+Since we also have indexes that provide lookups directly on attributes and their values, these will also have to be updated. 
 
-At this point It is important to keep in mind that the meaning of modifying here is not overwriting, but rather adding an additional layer that holds the updated database state. That updated attribute’s value in the new layer should point to the pre-update value, so we could track the changes in an entity throughout time.
-
-The update process is done at the function *update-datom*. It creates the new attribute and updates the relevant indices and ends with the creation of a new layer.
+As with *add-entity* and *remove-entity*, we won't actually be modifying our entity in-place, but will instead add a new layer which contains the updated entity.
 
 ````clojure
 (defn update-datom
    ([db ent-id attr-name new-val]
     (update-datom db ent-id attr-name new-val :db/reset-to ))
-   ([db ent-id attr-name  new-val operation]
+   ([db ent-id attr-name new-val operation]
       (let [update-ts (next-ts db)
             layer (last (:layers db))
             attr (attr-at db ent-id attr-name)
@@ -493,7 +492,8 @@ The update process is done at the function *update-datom*. It creates the new at
                                                           updated-attr new-val operation)]
         (update-in db [:layers] conj fully-updated-layer))))
 ````
-To update an attribute we first need to locate that attribute (using the call to *attr-at*), then send it to the function *update-attr* alongside all the information needed to make the update. 
+
+To update an attribute, we locate it with *attr-at* and then use *update-attr* to perform the actual update. 
 
 ````clojure
 (defn- update-attr [attr new-val new-ts operation]
@@ -504,9 +504,7 @@ To update an attribute we first need to locate that attribute (using the call to
        (update-attr-modification-time new-ts)
        (update-attr-value new-val operation)))
 ````
-The update itself has two parts:
-
-* Update the attribute’s modification time (to allow following changes in the attribute throughout time)  by "pushing" the recent modification timestamp to be at the previous modification timestamp and setting the recent modification timestamp to be now (seen at the *update-attr-modification-time* function). This is basically the creation of the black arrows in Figure 1
+We use two helper functions to perform the update. *update-attr-modification-time* updates timestamps to reflect the creation of the black arrows in Figure 1:
 
 ````clojure
 (defn- update-attr-modification-time  
@@ -514,7 +512,7 @@ The update itself has two parts:
        (assoc attr :ts new-ts :prev-ts (:ts attr)))
 ````
 
-* Performing the value change as requested by the user and supported by the attribute’s cardinality. This can be seen at the *update-attr-value* function.
+*update-attr-value* actually updates the value:
 
 ````clojure
 (defn- update-attr-value [attr value operation]
@@ -525,9 +523,9 @@ The update itself has two parts:
       (= :db/add operation) (assoc attr :value (CS/union (:value attr) value))
       (= :db/remove operation) (assoc attr :value (CS/difference (:value attr) value))))
 ````
-Once we have the updated attribute, all that is left is to remove the old value from the indices and add the new one to them, and then construct the new layer with the updated indices and storage. These two last steps are  just like is done when removing or adding an entity to the database.
+All that remains is to remove the old value from the indexes and to add the new one to them, and then construct to the new layer with all of our updated components. Luckily, we can leverage the code we wrote for adding and removing entities to do this!
 
-### Transacting
+### Transactions
 
 All the operations described before (add / remove / edit) do a single operation on a single entity. The return value from them is the database as it was before the operation  topped with an additional layer. Yet, a key requirement of any database is the ability to perform a transaction that includes several operations, possibly on several elements, while:
 
@@ -1069,7 +1067,7 @@ From the user's perspective, invoking a query is a call to the *q* macro, that a
 
 The approach used when designing and implementing followed to Clojure appoach of having a minimal core and provide additional capabilities via libraries. The basic functionallity of the database was defined to be its data maintenance - storage, lifecycle and indexing. These capabilities were implemented in these files:
 
-* constructs.clj - data structures - Database, Layer, Entity, Attr and indices.
+* constructs.clj - data structures - Database, Layer, Entity, Attr and indexes.
 * manage.clj - all things related to managing databases and connections to them
 * storage.clj - where the storage APIs are defined as well as providing the InMemory implementation
 * core.clj -  where data life cycle, indexing and transacting is handled
@@ -1088,7 +1086,7 @@ Our journey started with trying to take a different perspective on databasing, a
 * Supports ACI transactions (the durability was lost when we decided to have the data stored in-memory) 
 * Supports a "what-if" interactions
 * Answers time related questions 
-* Handle simple datalog queries that are optimized by using indices
+* Handle simple datalog queries that are optimized by using indexes
 * provides APIs for graph queries
 * Introduces and implemented the notion of evolutionary queries
 
