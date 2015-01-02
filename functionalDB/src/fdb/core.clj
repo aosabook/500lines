@@ -109,9 +109,9 @@
         new-layer (reduce (partial update-index  ent-id old-attr new-val operation) layer (indices))]
     (assoc new-layer :storage (write-entity storage (update-entity storage ent-id updated-attr)))))
 
-(defn update-datom
+(defn update-entity
   ([db ent-id attr-name new-val]
-   (update-datom db ent-id attr-name new-val :db/reset-to ))
+   (update-entity db ent-id attr-name new-val :db/reset-to ))
   ([db ent-id attr-name new-val operation]
      (let [update-ts (next-ts db)
            layer (last (:layers db))
@@ -136,7 +136,7 @@
 
 (defn- remove-back-refs [db e-id layer]
   (let [reffing-datoms (reffing-to e-id layer)
-        remove-fn (fn[d [e a]] (update-datom db e a e-id :db/remove))
+        remove-fn (fn[d [e a]] (update-entity db e a e-id :db/remove))
         clean-db (reduce remove-fn db reffing-datoms)]
     (last (:layers clean-db))))
 
