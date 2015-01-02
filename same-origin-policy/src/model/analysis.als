@@ -24,9 +24,9 @@ assert Integrity {
 
 fact  {
   -- no malicious module begins with critical data
-  no m: MaliciousModule | some CriticalData & m.accesses.first
+  no m: MaliciousModule | some CriticalData & m.accesses.init
   -- no trusted module begins with malicious data
-  no m: TrustedModule | some MaliciousData & m.accesses.first
+  no m: TrustedModule | some MaliciousData & m.accesses.init
   -- no module is both trusted and malicious
   no TrustedModule & MaliciousModule
   -- every module is either trusted or malicious

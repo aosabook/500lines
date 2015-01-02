@@ -21,8 +21,8 @@ fact Wellformedness {
   -- no two browsers can share documents
   no disj b1, b2: Browser, t: Time | some b1.documents.t & b2.documents.t
   -- documents already opened are well-formed
-  all b: Browser, d: b.documents.first |
-    d.src.host = d.domain.first
+  all b: Browser, d: b.documents.init |
+    d.src.host = d.domain.init
 }
 
 /* HTTP request sent from a browser to a server */
