@@ -341,9 +341,9 @@ The data lifecycle consists of three basic operations, which we will discuss her
 
 * adding an entity with the *add-entity* function
 * removing an entity with the *remove-entity* function
-* updating an entity with the *update-datom* function. 
+* updating an entity with the *update-entity* function. 
 
-The latter function is named differently because the update operation is done on a datom (the value of an attribute in an entity) and it is not an entire entity update. Remember that, even though these functions provide the illusion of mutability, all that we are really doing in each case is adding another layer to the data.
+Remember that, even though these functions provide the illusion of mutability, all that we are really doing in each case is adding another layer to the data. Also, since we use here Clojure's immutable data structures, we pay for such operations the price of an "in-place" change from the caller's perspective, while maintaining immutability for all other users of that data structure.
 
 #### Adding an entity
 
@@ -453,7 +453,7 @@ Reference removal is done by the *remove-back-refs* function:
 ````clojure
 (defn- remove-back-refs [db e-id layer]
    (let [reffing-datoms (reffing-to e-id layer)
-         remove-fn (fn[d [e a]] (update-datom db e a e-id :db/remove))
+         remove-fn (fn[d [e a]] (update-entity db e a e-id :db/remove))
          clean-db (reduce remove-fn db reffing-datoms)]
      (last (:layers clean-db))))
 ````
@@ -468,7 +468,7 @@ We begin by using *reffing-datoms-to* to find all entities that reference ours i
               [reffing attr-name])))
 
 ````
-We then apply *update-datom* to each triplet to update the attributes that reference our removed entity. (We'll explore how *update-datom* works in the next section.)
+We then apply *update-entity* to each triplet to update the attributes that reference our removed entity. (We'll explore how *update-entity* works in the next section.)
 
 The last step of *remove-back-refs* is to clear the removed entity’s id from the VAET index, since it is the only index that stores references to entities. [TODO: My rewording of this might be wrong. I think we need a bit more explanation here as to why the other indexes don't need to be updated.]
 
@@ -481,9 +481,9 @@ Since we also have indexes that provide lookups directly on attributes and their
 As with *add-entity* and *remove-entity*, we won't actually be modifying our entity in-place, but will instead add a new layer which contains the updated entity.
 
 ````clojure
-(defn update-datom
+(defn update-entity
    ([db ent-id attr-name new-val]
-    (update-datom db ent-id attr-name new-val :db/reset-to ))
+    (update-entity db ent-id attr-name new-val :db/reset-to ))
    ([db ent-id attr-name new-val operation]
       (let [update-ts (next-ts db)
             layer (last (:layers db))
@@ -597,15 +597,15 @@ Transaction:
 
 User call: 
 ````clojure
-(transact db-conn  (add-entity e1) (update-datom e2 atr2 val2 :db/add))  
+(transact db-conn  (add-entity e1) (update-entity e2 atr2 val2 :db/add))  
 ````
 Changes into: 
 ````clojure
-(_transact db-conn swap! (add-entity e1) (update-datom e2 atr2 val2 :db/add))
+(_transact db-conn swap! (add-entity e1) (update-entity e2 atr2 val2 :db/add))
 ````
 Becomes: 
 ````clojure
-(swap! db-conn transact-on-db [[add-entity e1][update-datom e2 atr2 val2 :db/add]])
+(swap! db-conn transact-on-db [[add-entity e1][update-entity e2 atr2 val2 :db/add]])
 ````
 What-if: 
 
