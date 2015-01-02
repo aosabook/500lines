@@ -302,10 +302,7 @@ multiple times, it always receives the same response back:
 check { all r1, r2: HttpRequest | r1.url = r2.url implies r1.response = r2.response } for 3 
 ```
 
-Given this `check` command, the analyzer explores every possible
-behavior of the system (up to the specified bound), and when it find
-one that violates the property, displays that instance as a
-*counterexample*:
+Given this `check` command, the analyzer explores every possible behavior of the system (up to the specified bound), and when it finds one that violates the property, displays that instance as a *counterexample*:
 
 ![http-instance-2a](fig-http-2a.png)
 ![http-instance-2b](fig-http-2b.png)
@@ -316,8 +313,8 @@ objects of the same type are distinguished by appending numeric
 suffixes to their names; if there is only one object of a given type,
 no suffix is added. Every name that appears in a snapshot diagram is
 the name of an object. So -- perhaps confusingly at first sight -- the
-names Domain, Path, Resource, Url all refer to individual objects, not
-to types!)
+names `Domain`, `Path`, `Resource`, `Url` all refer to individual
+objects, not to types!)
 
 Note that while the DNS server maps `Domain` to both `Server0` and
 `Server1` (in reality, this is a common practice for load balancing),
@@ -523,9 +520,7 @@ sig WriteDom extends BrowserOp { newDom: Resource }{
 }
 ```
 
-`ReadDom` returns the content the target document, but does not modify
-it; `WriteDom`, on the other hand, sets the new content of the target
-document to `new_dom`.
+`ReadDom` returns the content the target document, but does not modify it; `WriteDom`, on the other hand, sets the new content of the target document to `newDom`.
 
 In addition, a script can modify various properties of a document,
 such as its width, height, domain, and title. For our discussion of
@@ -538,8 +533,8 @@ As we've seen earlier, given a `run` or `check` command, the Alloy
 Analyzer generates a scenario (if it exists) that is consistent with
 the description of the system in the model. By default, the analyzer
 arbitrarily picks _any_ one of the possible system scenarios (up to
-the specified bound), and assign numeric identifiers to signature
-instances (`Server0`, `Browser1`, etc.,) in the scenario.
+the specified bound), and assigns numeric identifiers to signature
+instances (`Server0`, `Browser1`, etc.) in the scenario.
 
 Sometimes, we may wish to analyze the behavior of a _particular_ web
 application, instead of exploring scenarios with a random
