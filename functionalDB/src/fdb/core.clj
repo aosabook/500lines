@@ -57,8 +57,8 @@
   (let [[fixed-ent next-top-id] (fix-new-entity db ent)
         layer-with-updated-storage (update-in  (last (:layers db)) [:storage] write-entity fixed-ent)
         add-fn (partial add-entity-to-index fixed-ent)
-        new-layer (reduce add-fn new-layer  (indices))]
-    (assoc db :layers  (conj (:layers db) layer-with-updated-storage) :top-id next-top-id)))
+        new-layer (reduce add-fn layer-with-updated-storage  (indices))]
+    (assoc db :layers  (conj (:layers db) new-layer) :top-id next-top-id)))
 
 (defn add-entities [db ents-seq] (reduce add-entity db ents-seq))
 
@@ -128,16 +128,16 @@
         remove-from-index-fn (partial remove-entries-from-index  ent-id  :db/remove)]
     (assoc layer ind-name (reduce remove-from-index-fn index relevant-attrs))))
 
-(defn- reffing-datoms-to [e-id layer]
+(defn- reffing-to [e-id layer]
   (let [vaet (:VAET layer)]
         (for [[attr-name reffing-set] (e-id vaet)
               reffing reffing-set]
-             [reffing attr-name e-id])))
+             [reffing attr-name])))
 
 (defn- remove-back-refs [db e-id layer]
-  (let [refing-datoms (reffing-datoms-to e-id layer)
-        remove-fn (fn[d [e a v]] (update-datom db e a v :db/remove))
-        clean-db (reduce remove-fn db refing-datoms)]
+  (let [reffing-datoms (reffing-to e-id layer)
+        remove-fn (fn[d [e a]] (update-datom db e a e-id :db/remove))
+        clean-db (reduce remove-fn db reffing-datoms)]
     (last (:layers clean-db))))
 
 (defn remove-entity [db ent-id]

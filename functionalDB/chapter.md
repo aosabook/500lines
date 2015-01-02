@@ -451,19 +451,19 @@ The reference removal part is handled in the *remove-back-refs* function.
 
 ````clojure
 (defn- remove-back-refs [db e-id layer]
-   (let [refing-datoms (reffing-datoms-to e-id layer)
-         remove-fn (fn[d [e a v]] (update-datom db e a v :db/remove))
-         clean-db (reduce remove-fn db refing-datoms)]
+   (let [reffing-datoms (reffing-to e-id layer)
+         remove-fn (fn[d [e a]] (update-datom db e a e-id :db/remove))
+         clean-db (reduce remove-fn db reffing-datoms)]
      (last (:layers clean-db))))
 ````
-It starts by locating the entities that refer to the removed entity, by calling *reffing-datoms-to* that returns a sequence of triplets, each containing the id of the referencing entity, the attribute name and the id of the removed entity.
+It starts by locating the entities that refer to the removed entity, by calling *reffing-to* that returns a sequence of triplets, each containing the id of the referencing entity, the attribute name and the id of the removed entity.
 
 ````clojure
-(defn- reffing-datoms-to [e-id layer]
+(defn- reffing-to [e-id layer]
    (let [vaet (:VAET layer)]
          (for [[attr-name reffing-set] (e-id vaet)
                reffing reffing-set]
-              [reffing attr-name e-id])))
+              [reffing attr-name])))
 
 ````
  When the *remove-back-refs* function gets the triplets sequence, it just calls the *update-datom* function (which will be explain in the next part) to update the referencing entity to not hold the id of the removed entity (at the found attribute).
