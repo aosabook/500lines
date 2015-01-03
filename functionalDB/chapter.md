@@ -528,19 +528,17 @@ All that remains is to remove the old value from the indexes and to add the new 
 
 ### Transactions
 
-All the operations described before (add / remove / edit) do a single operation on a single entity. The return value from them is the database as it was before the operation  topped with an additional layer. Yet, a key requirement of any database is the ability to perform a transaction that includes several operations, possibly on several elements, while:
+The operations in our low-level API each act on a single entity. However, nearly all databases have a mechanism for allowing users to perform multiple operations as a single _transaction_. (TODO: Reference other chapters on transactional semantics here.) This means: 
 
-* Viewed from the outside as a single (i.e., atomic) operation, meaning either all operations succeed or all operations fails
-* Keep the database in a valid state at any given time 
-* Keep the update operations isolated from the outside at any point in time until they are completed. 
+* The batch of operations is viewed as a single atomic operation, meaning that either all of the operations succeed together fail together
+* The database in a valid state before, during, and after the transaction
+* The batch update appears to be _isolated_; other queries should never see a database state in which only some of the operations have been applied
 
-The way to answer these requirements is by using a mechanism that takes as an input input the database and a set of operations to be performed, and produces as an output a database whose state reflects the given changes. More than that, all the changes should be seen as an addition of a single layer. 
+We can fulfill these requirements through an interface that consumes a database and a set of operations to be performed, and which produces a database whose state reflects the given changes. All of the changes submitted in the batch should be applied through the addition of a _single_ layer. Clojure provides us with a tool to help with this -- the *Atom* element, which wraps a data structure and allows us to atomically invoke a single function on it. [TODO: this seems magical -- it might be worth linking to a reference that explains how this works.]
 
-Performing a transactional operation is done in Clojure using the *Atom* element (this is why we wrap a database with such an element). This element allow us to invoke a single function on it, and all changes to it happen in an atomic and isolated manner. 
+Between Clojure's *Atom* and our low-level API from the previous section, it sounds like we should have everything we need to perform transactional batch upates. However, we have one small problem: All of the functions we wrote in our low-level API add a new layer to the database. If we were to perform a batch with _n_ operations, we would thus see _n_ new layers added, when what we would really like is to have exactly 1 new layer.   
 
-As for the function that is to be executed, this function needs to perform all the operations that the user requested, while eventually adding one layer to the database.  To do so we would need to overcome the fact that each of the lifecycle functions adds a layer reflecting the change it inflicts. 
-
-Here we resort to the insight that changes on different attributes (that can be part of either the same or different entities) accumulate when stacking layers, thus a top layer holds all the changes that built the layers below it. Therefore, the solution is to execute each of the user’s operations one after another, each creating a new layer. While doing so, we do not update the databases’s timestamp field. When the last layer is completed, we take only that top layer and place it on the initial database  (leaving all the intermediate layers to pine for the fjords) and only then update the database’s timestamp. All this is happening in the *transact-on-db* function
+The key insight here is that the layer we want is the _top_ layer that would be produced by performing those updates in sequence. Therefore, the solution is to execute each of the user’s operations one after another, each of which will create a new layer. When the last layer is created, we take only that top layer and place it on the initial database. Only after we've done all this will we update the database's timestamp.
 
 ````clojure
 (defn transact-on-db [initial-db ops]
@@ -624,6 +622,8 @@ Becomes eventually:
 ````
 ## Connected data
 
+[TODO: Ideas here: In a relational database, you often think about connections between data. We can do that too. Additionally, though, we can think about the _evolution_ of data over time. We provide facilities for both.]
+
 Beyond having lifecycle, data can generate insights. However, extracting good insights is not an easy task. Therefore, a crucial role of a database to ease-up the search for insights process. 
 
 The first place to look for insights is in the connections between pieces of data. Such connection may be between an entity’s to itself at different times (an evolutionary connection). Another connection may be a reference between two entities. When such connection gets aggregated across the entities in the database, it forms a graph whose nodes are the entities and the edges are the references. In this section we’ll see how to utilizes these connection types and provide mechanisms to extract insights based them.
@@ -697,17 +697,18 @@ This function uses a helper function call *remove-explored* to help preventing r
 (defn- remove-explored [pendings explored structure-fn]
    (structure-fn (remove #(contains? explored %) pendings)))
 ````
+
 ## Querying the database
 
-Querying is what makes database a database. Without querying all we have is a storage backed data structure - a software component that provides predefined APIs with an abstraction level that is higher than writing and reading raw data.
+A database is very useful to its users without a powerful query mechanism. This feature is usually exposed to users through a _query language_ that is used to declaratively specify the set of data of interest. 
 
-To query a database, we first need to decide what querying language to use. The first and most important criteria for choosing a querying language is its fit for the database’s data model. For example, for the relational data model (i.e., data is described with predefined tables where the columns are the attribute and the rows are the entities), the best fit would be a language whose roots are in relational algebra, SQL is such language. 
+The first and most important criteria when designing a query language is its fit for the database’s data model. For example, relational data (i.e., data described by predefined tables where columns are attributes and rows are entities), the best fit is a language with roots in the relational algebra such as Structured Query Language (SQL). 
 
-Our data model is based on accumulation of facts (which we call datoms).The most distilled form of a fact is a triplet containing an entity id, attribute name and the attribute value (at a given time). For this model, a natural place to look for the right query language the domain of logic programming. In this domain, a commonly used query language is Datalog, that apart of being well suited for our data model, has a very elegant adaptation to Clojure’s syntax, which was defined as part of the Datomic database (see [http://docs.datomic.com/query.html](http://docs.datomic.com/query.html)). Our query engine will implement a subset of the that adaptation.
+Our data model is based on accumulation of facts (i.e. datoms) over time. For this model, a natural place to look for the right query language is _logic programming_. A commonly used query language influenced by logic programming is _Datalog_ which, in addition to being well-suited for our data model, has a very elegant adaptation to Clojure’s syntax. Our query engine will implement a subset of the *Datalog* language from the [Datatomic database](http://docs.datomic.com/query.html).
 
 ### Query language
 
-To have a clear definition of the structure of a query, let’s start with an exemplary one, understand it syntax and explain its semantics.
+Let's look at an example query in our proposed language. This query asks "what are the names and ages of people who like pizza, whose age is more than 20, and who have a birthday this week?"
 
 ````clojure
 {  :find [?nm ?ag ]
@@ -717,23 +718,15 @@ To have a clear definition of the structure of a query, let’s start with an ex
       [?e  :age (< ?ag 20)]
       [?e  :birthday (birthday-this-week? _)]]}
 ````
-#### The query’s syntax
+#### Syntax
 
-The query’s syntax is based on Clojure’s data literals. This simplifies the parsing of the query while still allows having a readable and familiar textual representation of it.
+We directly use the syntax of Clojure’s data literals to provide the basic syntax for our queries. This allows us to avoid having to write a specialized parser, while still providing a form that is familiar and easily readable to programmers familiar with Clojure.
 
-A query itself is a map containing two entries:
+A query is a map with two items:
 
-* An entry whose key is *:where* and its value is a rule (implemented as a vector) holding clauses. A clause is a vector composed of three predicates, each one to operate of a different part of a datom:
+* An item with *:where* as a key, and with a _rule_ as a value. A rule is a vector of _clauses_, and a clause is a vector composed of three _predicates_, each of which operates on a different component of a datom.  In the example above, *[?e  :likes "pizza"]* is a clause.  This *:where* item defines a rule that acts as a filter on datoms in our database (like the 'WHERE' clause in a SQL query.)
 
-    * Predicate to operate on the entity-id
-    * Predicate to operate on the attribute-name
-    * Predicate to operate on the value
-
-	In the example above *[?e  :likes "pizza"]* is a clause.  
-The role of the *:where* entry in the query is to define a rule that acts as a filter of the datoms in the database
-
-* An entry whose key is *:find* and its value is a vector. The vector defines which parts of a datoms that passed all the clauses should be reported and compose the answer of the query (think of a Select statement in an SQL query). 
-This does not include formatting of the answer - operations such as sorting or grouping are not supported.
+* An item with *:find* as a key, and with a vector as a value. The vector defines which components of the selected datom should be projected into the results (like the 'SELECT' clause in an SQL query.)
 
 The description above is missing a crucial part, which is how to make different clauses sync on a value (i.e., make a join operation between them), and how to transmit values found at the *:where* part to be reported by the *:find* part. 
 
@@ -836,7 +829,6 @@ Following the above explanation, we can now read and understand the different te
 
 Table 4
 
-To sum it up, in a spoken language, the exemplary query means "find the names and ages of the people who like pizza, their age is more than 20 and have birthday this week".
 
  
 
