@@ -528,19 +528,17 @@ All that remains is to remove the old value from the indexes and to add the new 
 
 ### Transactions
 
-All the operations described before (add / remove / edit) do a single operation on a single entity. The return value from them is the database as it was before the operation  topped with an additional layer. Yet, a key requirement of any database is the ability to perform a transaction that includes several operations, possibly on several elements, while:
+The operations in our low-level API each act on a single entity. However, nearly all databases have a mechanism for allowing users to perform multiple operations as a single _transaction_. (TODO: Reference other chapters on transactional semantics here.) This means: 
 
-* Viewed from the outside as a single (i.e., atomic) operation, meaning either all operations succeed or all operations fails
-* Keep the database in a valid state at any given time 
-* Keep the update operations isolated from the outside at any point in time until they are completed. 
+* The batch of operations is viewed as a single atomic operation, meaning that either all of the operations succeed together fail together
+* The database in a valid state before, during, and after the transaction
+* The batch update appears to be _isolated_; other queries should never see a database state in which only some of the operations have been applied
 
-The way to answer these requirements is by using a mechanism that takes as an input input the database and a set of operations to be performed, and produces as an output a database whose state reflects the given changes. More than that, all the changes should be seen as an addition of a single layer. 
+We can fulfill these requirements through an interface that consumes a database and a set of operations to be performed, and which produces a database whose state reflects the given changes. All of the changes submitted in the batch should be applied through the addition of a _single_ layer. Clojure provides us with a tool to help with this -- the *Atom* element, which wraps a data structure and allows us to atomically invoke a single function on it. [TODO: this seems magical -- it might be worth linking to a reference that explains how this works.]
 
-Performing a transactional operation is done in Clojure using the *Atom* element (this is why we wrap a database with such an element). This element allow us to invoke a single function on it, and all changes to it happen in an atomic and isolated manner. 
+Between Clojure's *Atom* and our low-level API from the previous section, it sounds like we should have everything we need to perform transactional batch upates. However, we have one small problem: All of the functions we wrote in our low-level API add a new layer to the database. If we were to perform a batch with _n_ operations, we would thus see _n_ new layers added, when what we would really like is to have exactly 1 new layer.   
 
-As for the function that is to be executed, this function needs to perform all the operations that the user requested, while eventually adding one layer to the database.  To do so we would need to overcome the fact that each of the lifecycle functions adds a layer reflecting the change it inflicts. 
-
-Here we resort to the insight that changes on different attributes (that can be part of either the same or different entities) accumulate when stacking layers, thus a top layer holds all the changes that built the layers below it. Therefore, the solution is to execute each of the user’s operations one after another, each creating a new layer. While doing so, we do not update the databases’s timestamp field. When the last layer is completed, we take only that top layer and place it on the initial database  (leaving all the intermediate layers to pine for the fjords) and only then update the database’s timestamp. All this is happening in the *transact-on-db* function
+The key insight here is that the layer we want is the _top_ layer that would be produced by performing those updates in sequence. Therefore, the solution is to execute each of the user’s operations one after another, each of which will create a new layer. When the last layer is created, we take only that top layer and place it on the initial database. Only after we've done all this will we update the database's timestamp.
 
 ````clojure
 (defn transact-on-db [initial-db txs]
