@@ -2,11 +2,12 @@
 
 import asyncio
 import cgi
-from http.client import BadStatusLine
 import logging
 import re
 import time
 import urllib.parse
+
+import aiohttp  # Install with "pip install aiohttp".
 
 logger = logging.getLogger(__name__)
 
@@ -17,248 +18,6 @@ def unescape(s):
     return s.replace('&amp;', '&')  # Must be last.
 
 
-class ConnectionPool:
-    """A connection pool.
-
-    To open a connection, use reserve().  To recycle it, use unreserve().
-
-    The pool is mostly just a mapping from (host, port, ssl) tuples to
-    lists of Connections.  The currently active connections are *not*
-    in the data structure; get_connection() takes the connection out,
-    and recycle_connection() puts it back in.  To recycle a
-    connection, call conn.close(recycle=True).
-
-    There are limits to both the overall pool and the per-key pool.
-    """
-
-    def __init__(self, max_pool=10, max_tasks=5):
-        self.max_pool = max_pool  # Overall limit.
-        self.max_tasks = max_tasks  # Per-key limit.
-        self.loop = asyncio.get_event_loop()
-        self.connections = {}  # {(host, port, ssl): [Connection, ...], ...}
-        self.queue = []  # [Connection, ...]
-
-    def close(self):
-        """Close all connections available for reuse."""
-        for conns in self.connections.values():
-            for conn in conns:
-                conn.close()
-        self.connections.clear()
-        self.queue.clear()
-
-    @asyncio.coroutine
-    def get_connection(self, host, port, ssl):
-        """Create or reuse a connection."""
-        port = port or (443 if ssl else 80)
-        try:
-            ipaddrs = yield from self.loop.getaddrinfo(host, port)
-        except Exception as exc:
-            logger.error('Exception %r for (%r, %r)', exc, host, port)
-            raise
-        logger.warn('* %s resolves to %s',
-                    host, ', '.join(ip[4][0] for ip in ipaddrs))
-
-        # Look for a reusable connection.
-        for _, _, _, _, (h, p, *_) in ipaddrs:
-            key = h, p, ssl
-            conn = None
-            conns = self.connections.get(key)
-            while conns:
-                conn = conns.pop(0)
-                self.queue.remove(conn)
-                if not conns:
-                    del self.connections[key]
-                if conn.stale():
-                    logger.warn('closing stale connection %r', key)
-                    conn.close()  # Just in case.
-                else:
-                    logger.warn('* Reusing pooled connection %r', key)
-                    return conn
-
-        # Create a new connection.
-        conn = Connection(self, host, port, ssl)
-        yield from conn.connect()
-        logger.warn('* New connection %r', conn.key)
-        return conn
-
-    def recycle_connection(self, conn):
-        """Make a connection available for reuse.
-
-        This also prunes the pool if it exceeds the size limits.
-        """
-        conns = self.connections.setdefault(conn.key, [])
-        conns.append(conn)
-        self.queue.append(conn)
-
-        if len(conns) > self.max_tasks:
-            victims = conns  # Prune one connection for this key.
-        elif len(self.queue) > self.max_pool:
-            victims = self.queue  # Prune one connection for any key.
-        else:
-            return
-
-        for victim in victims:
-            if victim.stale():  # Prefer pruning the oldest stale connection.
-                logger.warn('closing stale connection %r', victim.key)
-                break
-        else:
-            victim = victims[0]
-            logger.warn('closing oldest connection %r', victim.key)
-
-        conns = self.connections[victim.key]
-        conns.remove(victim)
-        if not conns:
-            del self.connections[victim.key]
-        self.queue.remove(victim)
-        victim.close()
-
-
-class Connection:
-    """A connection that can be recycled to the pool."""
-
-    def __init__(self, pool, host, port, ssl):
-        self.pool = pool
-        self.host = host
-        self.port = port
-        self.ssl = ssl
-        self.reader = None
-        self.writer = None
-        self.key = None
-
-    def stale(self):
-        return self.reader is None or self.reader.at_eof()
-
-    @asyncio.coroutine
-    def connect(self):
-        self.reader, self.writer = yield from asyncio.open_connection(
-            self.host, self.port, ssl=self.ssl)
-        peername = self.writer.get_extra_info('peername')
-        if peername:
-            self.host, self.port = peername[:2]
-        else:
-            logger.warn('NO PEERNAME %r %r %r', self.host, self.port, self.ssl)
-        self.key = self.host, self.port, self.ssl
-
-    def close(self, recycle=False):
-        if recycle and not self.stale():
-            self.pool.recycle_connection(self)
-        else:
-            self.writer.close()
-            self.pool = self.reader = self.writer = None
-
-
-@asyncio.coroutine
-def make_request(url, pool, *, method='GET', headers=None, version='1.1'):
-    """Start an HTTP request.  Return a Connection."""
-    parts = urllib.parse.urlparse(url)
-    assert parts.scheme in ('http', 'https'), repr(url)
-    ssl = parts.scheme == 'https'
-    port = parts.port or (443 if ssl else 80)
-    path = parts.path or '/'
-    path = '%s?%s' % (path, parts.query) if parts.query else path
-
-    logger.warn('* Connecting to %s:%s using %s for %s',
-                parts.hostname, port, 'ssl' if ssl else 'tcp', url)
-    conn = yield from pool.get_connection(parts.hostname, port, ssl)
-
-    headers = dict(headers) if headers else {}  # Must use Cap-Words.
-    headers.setdefault('User-Agent', 'asyncio-example-crawl/0.0')
-    headers.setdefault('Host', parts.netloc)
-    headers.setdefault('Accept', '*/*')
-    lines = ['%s %s HTTP/%s' % (method, path, version)]
-    lines.extend('%s: %s' % kv for kv in headers.items())
-    for line in lines + ['']:
-        logger.info('> %s', line)
-    # TODO: close conn if this fails.
-    conn.writer.write('\r\n'.join(lines + ['', '']).encode('latin-1'))
-
-    return conn  # Caller must send body if desired, then call read_response().
-
-
-@asyncio.coroutine
-def read_response(conn):
-    """Read an HTTP response from a connection."""
-
-    @asyncio.coroutine
-    def getline():
-        line = (yield from conn.reader.readline()).decode('latin-1').rstrip()
-        logger.info('< %s', line)
-        return line
-
-    status_line = yield from getline()
-    status_parts = status_line.split(None, 2)
-    if len(status_parts) != 3 or not status_parts[1].isdigit():
-        logger.error('bad status_line %r', status_line)
-        raise BadStatusLine(status_line)
-    http_version, status, reason = status_parts
-    status = int(status)
-
-    headers = {}
-    while True:
-        header_line = yield from getline()
-        if not header_line:
-            break
-        key, value = header_line.split(':', 1)
-        # TODO: Continuation lines; multiple header lines per key..
-        headers[key.lower()] = value.lstrip()
-
-    if 'content-length' in headers:
-        nbytes = int(headers['content-length'])
-        output = asyncio.StreamReader()
-        asyncio.async(length_handler(nbytes, conn.reader, output))
-    elif headers.get('transfer-encoding') == 'chunked':
-        output = asyncio.StreamReader()
-        asyncio.async(chunked_handler(conn.reader, output))
-    else:
-        output = conn.reader
-
-    return http_version[5:], status, reason, headers, output
-
-
-@asyncio.coroutine
-def length_handler(nbytes, input, output):
-    """Async handler for reading a body given a Content-Length header."""
-    while nbytes > 0:
-        buffer = yield from input.read(min(nbytes, 256*1024))
-        if not buffer:
-            logger.error('premature end for content-length')
-            output.set_exception(EOFError())
-            return
-        output.feed_data(buffer)
-        nbytes -= len(buffer)
-    output.feed_eof()
-
-
-@asyncio.coroutine
-def chunked_handler(input, output):
-    """Async handler for reading a body using Transfer-Encoding: chunked."""
-    logger.info('parsing chunked response')
-    nblocks = 0
-    nbytes = 0
-    while True:
-        size_header = yield from input.readline()
-        if not size_header:
-            logger.error('premature end of chunked response')
-            output.set_exception(EOFError())
-            return
-        logger.debug('size_header = %r', size_header)
-        parts = size_header.split(b';')
-        size = int(parts[0], 16)
-        nblocks += 1
-        nbytes += size
-        if size:
-            logger.debug('reading chunk of %r bytes', size)
-            block = yield from input.readexactly(size)
-            assert len(block) == size, (len(block), size)
-            output.feed_data(block)
-        crlf = yield from input.readline()
-        assert crlf == b'\r\n', repr(crlf)
-        if not size:
-            break
-    logger.warn('chunked response had %r bytes in %r blocks', nbytes, nblocks)
-    output.feed_eof()
-
-
 class Fetcher:
     """Logic and state for one URL.
 
@@ -267,7 +26,7 @@ class Fetcher:
     holds the results from fetching it.
 
     This is usually associated with a task.  This references the
-    crawler for the connection pool and to add more URLs to its todo
+    crawler for the TCP connector and to add more URLs to its todo
     list.
 
     Call fetch() to do the fetching; results are in instance variables.
@@ -285,9 +44,7 @@ class Fetcher:
         self.task = None
         self.exceptions = []
         self.tries = 0
-        self.conn = None
         self.status = None
-        self.headers = None
         self.body = None
         self.next_url = None
         self.ctype = None
@@ -305,33 +62,30 @@ class Fetcher:
         """
         while self.tries < self.max_tries:
             self.tries += 1
-            conn = None
             try:
-                conn = yield from make_request(self.url, self.crawler.pool)
-                _, status, _, headers, output = yield from read_response(conn)
-                self.status, self.headers = status, headers
-                self.body = yield from output.read()
-                h_conn = headers.get('connection', '').lower()
-                if h_conn != 'close':
-                    conn.close(recycle=True)
-                    conn = None
+                response = yield from aiohttp.request(
+                    'get',
+                    self.url,
+                    connector=self.crawler.connector,
+                    allow_redirects=False
+                    )
+
                 if self.tries > 1:
                     logger.warn('try %r for %r success', self.tries, self.url)
                 break
-            except (BadStatusLine, OSError) as exc:
+
+            except aiohttp.ClientError as exc:
                 self.exceptions.append(exc)
                 logger.warn('try %r for %r raised %r',
                             self.tries, self.url, exc)
-            finally:
-                if conn is not None:
-                    conn.close()
         else:
             # We never broke out of the while loop, i.e. all tries failed.
             logger.error('no success for %r in %r tries',
                          self.url, self.max_tries)
             return
-        if status in (300, 301, 302, 303, 307) and headers.get('location'):
-            next_url = headers['location']
+
+        if response.status in (300, 301, 302, 303, 307) and response.headers.get('location'):
+            next_url = response.headers['location']
             self.next_url = urllib.parse.urljoin(self.url, next_url)
             if self.max_redirect > 0:
                 logger.warn('redirect to %r from %r', self.next_url, self.url)
@@ -340,17 +94,23 @@ class Fetcher:
                 logger.error('redirect limit reached for %r from %r',
                              self.next_url, self.url)
         else:
-            if status == 200:
-                self.ctype = headers.get('content-type')
+            self.status = response.status
+            if self.status == 200:
+                self.ctype = response.headers.get('content-type')
                 self.pdict = {}
+
+                self.body = yield from response.read()
+
                 if self.ctype:
                     self.ctype, self.pdict = cgi.parse_header(self.ctype)
-                self.encoding = self.pdict.get('charset', 'utf-8')
-                if self.ctype == 'text/html':
-                    body = self.body.decode(self.encoding, 'replace')
+
+                self.encoding = self.pdict.get('charset')
+                if self.ctype in ('text/html', 'application/xml'):
+                    text = yield from response.text()
+
                     # Replace href with (?:href|src) to follow image links.
                     self.urls = set(re.findall(r'(?i)href=["\']?([^\s"\'<>]+)',
-                                               body))
+                                               text))
                     if self.urls:
                         logger.warn('got %r distinct urls from %r',
                                     len(self.urls), self.url)
@@ -374,7 +134,7 @@ class Crawler:
     def __init__(self, roots,
                  exclude=None, strict=True,  # What to crawl.
                  max_redirect=10, max_tries=4,  # Per-url limits.
-                 max_tasks=10, max_pool=10,  # Global limits.
+                 max_tasks=10,  # Global limits.
                  ):
         self.roots = roots
         self.exclude = exclude
@@ -382,11 +142,10 @@ class Crawler:
         self.max_redirect = max_redirect
         self.max_tries = max_tries
         self.max_tasks = max_tasks
-        self.max_pool = max_pool
         self.todo = {}
         self.busy = {}
         self.done = {}
-        self.pool = ConnectionPool(max_pool, max_tasks)
+        self.connector = aiohttp.TCPConnector()
         self.root_domains = set()
         for root in roots:
             parts = urllib.parse.urlparse(root)
@@ -410,8 +169,8 @@ class Crawler:
         self.t1 = None
 
     def close(self):
-        """Close resources (currently only the pool)."""
-        self.pool.close()
+        """Close resources."""
+        self.connector.close()
 
     def host_okay(self, host):
         """Check if a host should be crawled.

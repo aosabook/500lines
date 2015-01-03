@@ -34,9 +34,6 @@ ARGS.add_argument(
     '--max_tasks', action='store', type=int, metavar='N',
     default=100, help='Limit concurrent connections')
 ARGS.add_argument(
-    '--max_pool', action='store', type=int, metavar='N',
-    default=100, help='Limit connection pool size')
-ARGS.add_argument(
     '--exclude', action='store', metavar='REGEX',
     help='Exclude matching URLs')
 ARGS.add_argument(
@@ -91,7 +88,6 @@ def main():
                                max_redirect=args.max_redirect,
                                max_tries=args.max_tries,
                                max_tasks=args.max_tasks,
-                               max_pool=args.max_pool,
                                )
     try:
         loop.run_until_complete(crawler.crawl())  # Crawler gonna crawl.
