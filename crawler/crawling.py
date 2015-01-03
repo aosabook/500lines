@@ -71,12 +71,12 @@ class Fetcher:
                     )
 
                 if self.tries > 1:
-                    logger.warn('try %r for %r success', self.tries, self.url)
+                    logger.info('try %r for %r success', self.tries, self.url)
                 break
 
             except aiohttp.ClientError as exc:
                 self.exceptions.append(exc)
-                logger.warn('try %r for %r raised %r',
+                logger.info('try %r for %r raised %r',
                             self.tries, self.url, exc)
         else:
             # We never broke out of the while loop, i.e. all tries failed.
@@ -88,7 +88,7 @@ class Fetcher:
             next_url = response.headers['location']
             self.next_url = urllib.parse.urljoin(self.url, next_url)
             if self.max_redirect > 0:
-                logger.warn('redirect to %r from %r', self.next_url, self.url)
+                logger.info('redirect to %r from %r', self.next_url, self.url)
                 self.crawler.add_url(self.next_url, self.max_redirect-1)
             else:
                 logger.error('redirect limit reached for %r from %r',
@@ -112,7 +112,7 @@ class Fetcher:
                     self.urls = set(re.findall(r'(?i)href=["\']?([^\s"\'<>]+)',
                                                text))
                     if self.urls:
-                        logger.warn('got %r distinct urls from %r',
+                        logger.info('got %r distinct urls from %r',
                                     len(self.urls), self.url)
                     self.new_urls = set()
                     for url in self.urls:
@@ -221,7 +221,7 @@ class Crawler:
             max_redirect = self.max_redirect
         if url in self.todo or url in self.busy or url in self.done:
             return False
-        logger.warn('adding %r %r', url, max_redirect)
+        logger.info('adding %r %r', url, max_redirect)
         self.todo[url] = max_redirect
         return True
 

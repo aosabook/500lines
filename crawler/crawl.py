@@ -44,10 +44,10 @@ ARGS.add_argument(
     default=False, help='Lenient host matching')
 ARGS.add_argument(
     '-v', '--verbose', action='count', dest='level',
-    default=1, help='Verbose logging (repeat for more verbose)')
+    default=2, help='Verbose logging (repeat for more verbose)')
 ARGS.add_argument(
     '-q', '--quiet', action='store_const', const=0, dest='level',
-    default=1, help='Quiet logging (opposite of --verbose)')
+    default=2, help='Only log errors')
 
 
 def fix_url(url):
