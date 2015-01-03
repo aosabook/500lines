@@ -59,7 +59,7 @@ We're also not using the vertices at all. What does that tell us? It implies tha
 
 The same holds true for our edges: they contain an 'in' vertex and an 'out' vertex [footnote1], but no elegant way to incorporate additional information. We'll need that to answer questions like "How many stepparents did Loki have?" or "How many children did Odin have before Thor was born?"
 
-You don't have to squint very hard to tell that the code for our two selectors looks very similar, which suggests there's a deeper abstraction from which those spring [footnote: TODO diff eq]. 
+You don't have to squint very hard to tell that the code for our two selectors looks very similar, which suggests there's a deeper abstraction from which those spring. 
 
 Do you see any other issues?
 
@@ -157,17 +157,7 @@ Dagoba.G.addEdge = function(edge) {                     // accepts an edge-like 
 }
 ```
 
-We're using a function called 'findVertexById', which as you might guess finds a vertex by its id. If it can't find one it returns a false value. The definition is simple, since we have our handy vertexIndex:
-
-```javascript
-Dagoba.G.findVertexById = function(vertex_id) {
-  return this.vertexIndex[vertex_id] 
-}
-```
-
-Without vertexIndex we'd have to go through each vertex in our list one at a time to decide if it matched the id -- turning a constant time operation into a linear time one, and any O(n) operations that directly rely on it into O(n^2) operations. Ouch!
-
-Next we reject the edge if it's missing either vertex. We'll use a helper function to log an error. All errors flow through this helper function, so we can override its behavior on a per-application basis. [footnote: A fancier version might allow onError handlers to be registered, so the host application could link in its own callbacks without overwriting the helper. A fancier fancier version might allow per-graph error callbacks in addition to the global ones.]
+First we find both vertices the edge connects, then reject the edge if it's missing either vertex. We'll use a helper function to log an error on rejection. All errors flow through this helper function, so we can override its behavior on a per-application basis. [footnote: A fancy version might allow onError handlers to be registered, so the host application could link in its own callbacks without overwriting the helper. A fancier fancy version might allow per-graph error callbacks in addition to the global ones.]
 
 ```javascript
 Dagoba.error = function(msg) {
@@ -291,7 +281,7 @@ Dagoba.fauxPipetype = function(_, _, maybe_gremlin) {   // if you can't find a p
 }
 ```
 
-See those underscores? We use those to label params that won't be used in our function. Most other pipetypes will use all three parameters, and have all three parameter names. This allows us to distinguish at a glance which parameters a particular pipetype relies on [footnote: Actually, we only used this underscore technique here to make the comments line up nicely. No, seriously. If code is to be written primarily for humans and only incidentally for machines, then it immediately follows that our predominant concern should be making code pretty.].
+See those underscores? We use those to label params that won't be used in our function. Most other pipetypes will use all three parameters, and have all three parameter names. This allows us to distinguish at a glance which parameters a particular pipetype relies on [footnote: Actually, we only used this underscore technique here to make the comments line up nicely. No, seriously. If programs "must be written for people to read, and only incidentally for machines to execute", then it immediately follows that our predominant concern should be making code pretty.].
 
 
 #### Vertex
@@ -313,20 +303,15 @@ Dagoba.addPipetype('vertex', function(graph, args, gremlin, state) {
 })
 ```
 
-Note that we're directly mutating the state argument here, and not passing it back. An alternative would be to return an object instead of a gremlin or signal, and pass state back that way. If JS allowed multiple return values it would make this option more elegant. 
+We first check to see if we've already gathered matching vertices, otherwise we try to find some. If there are any vertices then we'll pop one off and return a new gremlin sitting on that vertex. Each gremlin can carry around its own state, like a journal of where it's been and what interesting thing it has seen on its journey through the graph. If we receive a gremlin as input to this step we'll copy its journal for the exiting gremlin.
 
-We would still need to find a way to deal with the mutations, though, as the call site still has a reference to the original variable. Linear types would solve this by automatically taking the reference out of scope when the pipetype is called. Then we would assign it again in the call site's scope once the pipetype function returned its new version of the state object. 
+Note that we're directly mutating the state argument here, and not passing it back. An alternative would be to return an object instead of a gremlin or signal, and pass state back that way. That complicates our return value, and creates some additional garbage. [footnote: Very short lived garbage though, which is the second best kind.] If JS allowed multiple return values it would make this option more elegant. 
+
+We would still need to find a way to deal with the mutations, though, as the call site maintains a reference to the original variable. Linear types would solve this by automatically taking the reference out of scope when the pipetype is called. Then we would assign it again in the call site's scope once the pipetype function returned its new version of the state object. 
 
 Linear types would allow us to avoid expensive copy-on-write schemes or complicated persistent data structures, while still retaining the benefits of immutability -- in this case, avoiding spooky action at a distance. Two references to the same mutable data structure act like a pair of walkie-talkies, allowing whoever holds them to communicate directly. Those walkie-talkies can be passed around from function to function, and cloned to create whole passel of walkie-talkies. This completely subverts the natural communication channels your code already possesses. In a system with no concurrency you can sometimes get away with it, but introduce multithreading or asynchronous behavior and all that walkie-talkie squawking can really be a drag.
 
 JS lacks linear types, but we can get the same effect if we're really, really disciplined. Which we will be. For now.
-
-TODO: discuss OPT note
-TODO: discuss incoming gremlins note and gremlin local state
-TODO: "The advantages are that we can simplify our return value and cut down on garbage created in the components. instrumentation & debugging & cloning"
-TODO: "We first check to see if we've already gathered matching vertices. If not then we use findVertices to try to find some."
-TODO: include all the findVertices functions -- maybe down below with gremlins and filters
-TODO: look for other missing code snippets
 
 
 #### In-N-Out
@@ -599,6 +584,64 @@ Note that this function actually returns a brand new gremlin -- a clone of the o
 As an example of possible enhancements, we could add a bit of state to keep track of every vertex the gremlin visits, and then add new pipetypes to take advantage of those paths.
 
 
+#### Finding 
+
+TODO: discuss OPT note:  The findVertices function usually takes a query as its argument, but args is false it returns the whole vertex set. It slices it because some call sites manipulate the returned list directly by popping items off as they work through them. We could optimize this use case by cloning at the call site, or by avoiding those manipulations (we could keep a counter in state instead of popping).
+
+
+TODO: work this in:
+We're using a function called 'findVertexById', which as you might guess finds a vertex by its id. If it can't find one it returns a false value. The definition is simple, since we have our handy vertexIndex:
+
+```javascript
+Dagoba.G.findVertexById = function(vertex_id) {
+  return this.vertexIndex[vertex_id] 
+}
+```
+
+Without vertexIndex we'd have to go through each vertex in our list one at a time to decide if it matched the id -- turning a constant time operation into a linear time one, and any O(n) operations that directly rely on it into O(n^2) operations. Ouch!
+
+
+
+```javascript
+Dagoba.G.findVertices = function(ids) {                           // our general vertex finding function
+  if(typeof ids[0] == 'object')
+    return this.searchVertices(ids[0])
+  else if(ids.length == 0)
+    return this.vertices.slice()                                  // OPT: slice is costly with lots of vertices
+  else
+    return this.findVerticesByIds(ids)
+}
+
+Dagoba.G.findVerticesByIds = function(ids) {
+  if(ids.length == 1) {
+    var maybe_vertex = this.findVertexById(ids[0])                // maybe_vertex is either a vertex or undefined
+    return maybe_vertex ? [maybe_vertex] : []
+  }
+  
+  return ids.map( this.findVertexById.bind(this) ).filter(Boolean) 
+}
+
+Dagoba.G.findVertexById = function(vertex_id) {
+  return this.vertexIndex[vertex_id] 
+}
+
+Dagoba.G.searchVertices = function(obj) {                         // find vertices that match obj's key-value pairs
+  return this.vertices.filter( function(vertex) {
+    return Object.keys(obj).reduce( function(acc, key) {
+      return acc && obj[key] == vertex[key] 
+    }, true)
+  }) 
+}
+
+Dagoba.G.findEdgeById = function(edge_id) {
+  for(var i = this.edges.length - 1; i >= 0; i--) {
+    var edge = this.edges[i]
+    if(edge._id == edge_id)
+      return edge
+  }
+}
+```
+
 #### Filtering
 
 We saw that simpleTraversal uses a filtering function on the edges it encounters. It's a simple function, but powerful enough for our purposes.
@@ -677,7 +720,7 @@ And finally we'll need a program counter to indicate the position of the read/wr
 
 Except... wait a second. How are we going to get lazy? The traditional way of building a lazy system out of an eager one is to store function calls as "thunks" instead of evaluating them. A thunk is a closure that wraps a function and its arguments into a single function call with no parameters. 
 
-[TODO consider making this a footnote. maybe more explanatory text also. simplify thunk_wrapper. maybe use ES6 syntax. maybe scheme-style.]
+[footnote (a long one): 
 
 ```javascript
 function sum() {
@@ -707,6 +750,8 @@ var thunk2 = sum2(1, 2, 3)
 thunk2()            // 6
 ```
 
+(end long footnote)]
+
 None of the thunks are invoked until one is actually "needed", which usually implies some type of output is required: in our case the result of a query. Because each new thunk takes all previous thunks as one of its input parameters (CPS) the AST gets rolled up backwards, and the first thing we actually evaluate is the innermost thing we need in order to produce the results. [TODO Maybe a footnote to clarify this further. Maybe use the "short-circuit evaluation plus xxx" explanation.]
 
 There are a couple of tradeoffs with this approach: one is that spacial performance becomes much more difficult to reason about, because of the potentially vast thunk trees that are created. Another is that our program is now expressed as a single outermost (innermost) thunk, which means we can't do much with it at that point. 
@@ -721,7 +766,7 @@ This is a pretty big setback, but we have an advantage that most languages don't
 
 Could it really be that easy? We just set our program counter to the *last* step instead of the first one and work our way backwards? 
 
-It turns out we can make this work with a little effort, most of which has already been baked in to the design of our pipetypes and the signals they send. In additional to allowing runtime optimizations this new style has many other benefits related to the ease of instrumentation: history, reversibility, stepwise debugging, query statistics -- all of these are easy to add dynamically because we control the interpreter and have left it as a virtual machine evaluator instead of a pile of thunks. 
+It turns out we can make this work with a little effort, most of which has already been baked in to the design of our pipetypes and the signals they send. In addition to allowing runtime optimizations this new style has many other benefits related to the ease of instrumentation: history, reversibility, stepwise debugging, query statistics -- all of these are easy to add dynamically because we control the interpreter and have left it as a virtual machine evaluator instead of a pile of thunks. 
 
 Let's see this all in context:
 
@@ -762,7 +807,7 @@ Calling the step's pipetype function with its arguments.
     }
 ```
 
-To handle the 'pull' case we first set ```maybe_gremlin``` to false. We're overloading our 'maybe' here by using it as a channel to pass the 'pull' and 'done' signals, but once one of those signals is sucked out we go back to thinking of this as a proper 'maybe'. [TODO footnote: maybe explain 'maybe']
+To handle the 'pull' case we first set ```maybe_gremlin``` to false. We're overloading our 'maybe' here by using it as a channel to pass the 'pull' and 'done' signals, but once one of those signals is sucked out we go back to thinking of this as a proper 'maybe'. [footnote: We call it ```maybe_gremlin``` to remind ourselves that it could be a gremlin, or it could be something else. Also because originally it was either a gremlin or Nothing.]
 
 If the step before us isn't 'done' [footnote: Recall that done starts at -1, so the first step's predecessor is always done.] we'll move the head backward and try again. Otherwise, we mark ourselves as 'done' and let the head naturally fall forward.
 
@@ -824,25 +869,27 @@ Graph databases sidestep this issue by making direct connections between vertice
 We can see this at work in the microcosm of Dagoba if we replace the functions for finding edges. Here's a naive version that searches through all the edges in linear time. It harkens back to our very first implementation, but uses all the structures we've since built.
 
 ```
-Dagoba.Graph.findOutEdges = function(vertex) { return this.edges.filter(function(edge) {return edge._out == vertex._id} ) }
-Dagoba.Graph.findInEdges  = function(vertex) { return this.edges.filter(function(edge) {return edge._in  == vertex._id} ) }
+Dagoba.G.findOutEdges = function(vertex) { return this.edges.filter(function(edge) {return edge._out == vertex._id} ) }
+Dagoba.G.findInEdges  = function(vertex) { return this.edges.filter(function(edge) {return edge._in  == vertex._id} ) }
 ```
 
 We can add an index for edges, which gets us most of the way there with small graphs but has all the classic indexing issues for large ones.
 
 ```
-Dagoba.Graph.findOutEdges = function(vertex) { return this.outEdgeIndex[vertex._id] }
-Dagoba.Graph.findInEdges  = function(vertex) { return this.inEdgeIndex[vertex._id]  }
+Dagoba.G.findOutEdges = function(vertex) { return this.outEdgeIndex[vertex._id] }
+Dagoba.G.findInEdges  = function(vertex) { return this.inEdgeIndex[vertex._id]  }
 ```
 
 And here we have our old friends back again: pure, sweet index-free adjacency.
 
 ```
-Dagoba.Graph.findOutEdges = function(vertex) { return vertex._out }
-Dagoba.Graph.findInEdges  = function(vertex) { return vertex._in  }
+Dagoba.G.findOutEdges = function(vertex) { return vertex._out }
+Dagoba.G.findInEdges  = function(vertex) { return vertex._in  }
 ```
 
 Run these yourself to experience the graph database difference.
+
+[TODO: test this]
 
 
 ## Orthogonal Optimization
@@ -899,7 +946,7 @@ We could glue these together into a single function, and even hit the whole grap
 
 ## Persistence
 
-Persistence is usually one of the trickier parts of a database: disks are dreadfully slow, but relatively safe. Batching writes, making them atomic, journaling -- all of these are difficult to get right. 
+Persistence is usually one of the trickier parts of a database: disks are relatively safe, but dreadfully slow. Batching writes, making them atomic, journaling -- all of these are difficult to make both fast and correct.
 
 Fortunately, we're building an *in-memory* database, so we don't have to worry about any of that! We may, though, occasionally want to save a copy of the database locally for fast restart on page load. We can use the serializer we just built to do exactly that.
 
@@ -917,6 +964,19 @@ Dagoba.depersist = function (name) {
   return Dagoba.graph(seedgraph.V, seedgraph.E)
 }
 ```
+
+TODO: include the following code:
+
+Dagoba.G.toString = function() { return Dagoba.jsonify(this) }    // serialization
+
+Dagoba.fromString = function(str) {                               // another graph constructor
+  var obj = JSON.parse(str)
+  return Dagoba.graph(obj.V, obj.E) 
+}
+
+
+
+TODO: test the above funs
 
 We preface the name with a faux namespace to avoid polluting the localStorage properties of the domain, as it can get quite crowded in there. [footnote: It also makes our closing parens all line up vertically, which is always a nice bonus.] There's usually a low storage limit also, so for larger graphs we'd probably want to use a Blob of some sort. 
 
