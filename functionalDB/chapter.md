@@ -543,16 +543,13 @@ As for the function that is to be executed, this function needs to perform all t
 Here we resort to the insight that changes on different attributes (that can be part of either the same or different entities) accumulate when stacking layers, thus a top layer holds all the changes that built the layers below it. Therefore, the solution is to execute each of the user’s operations one after another, each creating a new layer. While doing so, we do not update the databases’s timestamp field. When the last layer is completed, we take only that top layer and place it on the initial database  (leaving all the intermediate layers to pine for the fjords) and only then update the database’s timestamp. All this is happening in the *transact-on-db* function
 
 ````clojure
-(defn transact-on-db [initial-db txs]
-     (loop [[tx & rst-tx] txs transacted initial-db]
-       (if tx
-           (recur rst-tx (apply (first tx) transacted (rest tx)))
-           (let [initial-layer  (:layers initial-db)
-                 new-layer (last (:layers transacted))]
-             (assoc initial-db 
-                         :layers (conj  initial-layer new-layer) 
-                         :curr-time (next-ts initial-db) 
-                         :top-id (:top-id transacted))))))
+(defn transact-on-db [initial-db ops]
+    (loop [[op & rst-ops] ops transacted initial-db]
+      (if op
+          (recur rst-ops (apply (first op) transacted (rest op)))
+          (let [initial-layer  (:layers initial-db)
+                new-layer (last (:layers transacted))]
+            (assoc initial-db :layers (conj  initial-layer new-layer) :curr-time (next-ts initial-db) :top-id (:top-id transacted))))))
 ```` 
 This function is performed on the Atom that wraps the database (to modify the database state as seen by the user), but it can be used also to answer a *what-if* question - as it does not modify the given database, but rather produces a new database with the updated state. These two scenarios are supported by two execution paths that end up in the *transact-on-db* function:
 

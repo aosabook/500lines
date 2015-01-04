@@ -148,10 +148,10 @@
         new-layer (reduce (partial remove-entity-from-index ent) no-ent-layer (indices))]
     (assoc db :layers (conj  (:layers db) new-layer))))
 
-(defn transact-on-db [initial-db txs]
-    (loop [[tx & rst-tx] txs transacted initial-db]
-      (if tx
-          (recur rst-tx (apply (first tx) transacted (rest tx)))
+(defn transact-on-db [initial-db ops]
+    (loop [[op & rst-ops] ops transacted initial-db]
+      (if op
+          (recur rst-ops (apply (first op) transacted (rest op)))
           (let [initial-layer  (:layers initial-db)
                 new-layer (last (:layers transacted))]
             (assoc initial-db :layers (conj  initial-layer new-layer) :curr-time (next-ts initial-db) :top-id (:top-id transacted))))))
