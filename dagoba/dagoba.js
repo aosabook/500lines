@@ -83,13 +83,13 @@ Dagoba.G.addEdge = function(edge) {                               // accepts an 
 Dagoba.G.addVertices = function(vertices) { vertices.forEach(this.addVertex.bind(this)) }
 Dagoba.G.addEdges    = function(edges)    { edges   .forEach(this.addEdge  .bind(this)) }
 
-Dagoba.G.findVertices = function(ids) {                           // our general vertex finding function
-  if(typeof ids[0] == 'object')
-    return this.searchVertices(ids[0])
-  else if(ids.length == 0)
+Dagoba.G.findVertices = function(args) {                          // our general vertex finding function
+  if(typeof args[0] == 'object')
+    return this.searchVertices(args[0])
+  else if(args.length == 0)
     return this.vertices.slice()                                  // OPT: slice is costly with lots of vertices
   else
-    return this.findVerticesByIds(ids)
+    return this.findVerticesByIds(args)
 }
 
 Dagoba.G.findVerticesByIds = function(ids) {
@@ -105,20 +105,10 @@ Dagoba.G.findVertexById = function(vertex_id) {
   return this.vertexIndex[vertex_id] 
 }
 
-Dagoba.G.searchVertices = function(obj) {                         // find vertices that match obj's key-value pairs
-  return this.vertices.filter( function(vertex) {
-    return Object.keys(obj).reduce( function(acc, key) {
-      return acc && obj[key] == vertex[key] 
-    }, true)
-  }) 
-}
-
-Dagoba.G.findEdgeById = function(edge_id) {
-  for(var i = this.edges.length - 1; i >= 0; i--) {
-    var edge = this.edges[i]
-    if(edge._id == edge_id)
-      return edge
-  }
+Dagoba.G.searchVertices = function(filter) {                      // find vertices that match obj's key-value pairs
+  return this.vertices.filter(function(vertex) {
+    return Dagoba.objectFilter(vertex, filter)
+  })
 }
 
 Dagoba.G.findOutEdges = function(vertex) { return vertex._out; }
@@ -127,7 +117,7 @@ Dagoba.G.findInEdges  = function(vertex) { return vertex._in;  }
 Dagoba.G.toString = function() { return Dagoba.jsonify(this) }    // serialization
 
 Dagoba.fromString = function(str) {                               // another graph constructor
-  var obj = JSON.parse(str)
+  var obj = JSON.parse(str)                                       // this can throw
   return Dagoba.graph(obj.V, obj.E) 
 }
 
@@ -443,15 +433,13 @@ Dagoba.jsonify = function(graph) {                                // kids, don't
 
 Dagoba.persist = function(graph, name) {
   name = name || 'graph'
-  var flatgraph = Dagoba.jsonify(graph)
-  localStorage.setItem('DAGOBA::'+name, flatgraph)
+  localStorage.setItem('DAGOBA::'+name, graph)
 }
 
 Dagoba.depersist = function (name) {
   name = 'DAGOBA::' + (name || 'graph')
   var flatgraph = localStorage.getItem(name)
-  var seedgraph = JSON.parse(flatgraph)                           // this can throw
-  return Dagoba.graph(seedgraph.V, seedgraph.E)
+  return Dagoba.fromString(flatgraph)
 }
 
 Dagoba.error = function(msg) {

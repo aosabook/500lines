@@ -231,6 +231,15 @@
 
     GG = [] // global for console testing
     
+    // THINK: this should probably live elsewhere
+    Dagoba.G.findEdgeById = function(edge_id) {
+      for(var i = this.edges.length - 1; i >= 0; i--) {
+        var edge = this.edges[i]
+        if(edge._id == edge_id)
+          return edge
+      }
+    }
+
     cleanclone = function (results) { // remove all _-prefixed properties
       return results.map(function(item) {return JSON.parse(JSON.stringify(item, function(key, value) {return key[0]=='_' ? undefined : value}))})}
         
