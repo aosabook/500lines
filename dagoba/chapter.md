@@ -536,14 +536,21 @@ Here we're just checking whether the current vertex is equal to the one we store
 
 #### Back
 
-Some of the questions we might ask involve checking further into the graph, only to return later to our point of origin if the answer is in the affirmative. Suppose we wanted to know which of Freya's daughters had children with one of Odin's sons? 
+Some of the questions we might ask involve checking further into the graph, only to return later to our point of origin if the answer is in the affirmative. Suppose we wanted to know which of Fjörgynn's daughters had children with one of Bestla's sons? 
 
-```g.v('Freya').out('daughter').as('me').out().in('father').in('father').filter(function(asgardian) {return asgardian == 'Odin'}).back('me').unique().run()```
-[TODO Test this]
+```javascript
+g.v('Fjörgynn').in('daughter').as('me')                 // first gremlin's state.as is Frigg
+ .in()                                                  // first gremlin's vertex is now Baldr
+ .out().out()                                           // put copy of that gremlin on each grandparent
+ .filter(function(asgardian) {                          // only keep the gremlin on grandparent Bestla
+   return asgardian._id == 'Bestla'})
+ .back('me').unique().run()                             // jump the gremlin's vertex back to Frigg and exit
+```
 
 This is really all the pipetypes we need to do some pretty serious queries. 
 
 [TODO Add more examples here]
+
 
 ```javascript
 Dagoba.addPipetype('back', function(graph, args, gremlin, state) {
@@ -552,7 +559,7 @@ Dagoba.addPipetype('back', function(graph, args, gremlin, state) {
 })
 ```
 
-We're using the ```Dagoba.gotoVertex``` helper function to do all real work here. Let's check a look at that and some other helpers now.
+We're using the ```Dagoba.gotoVertex``` helper function to do all real work here. Let's take a look at that and some other helpers now.
 
 
 ## Helper functions
@@ -586,32 +593,26 @@ As an example of possible enhancements, we could add a bit of state to keep trac
 
 #### Finding 
 
-TODO: discuss OPT note:  The findVertices function usually takes a query as its argument, but args is false it returns the whole vertex set. It slices it because some call sites manipulate the returned list directly by popping items off as they work through them. We could optimize this use case by cloning at the call site, or by avoiding those manipulations (we could keep a counter in state instead of popping).
-
-
-TODO: work this in:
-We're using a function called 'findVertexById', which as you might guess finds a vertex by its id. If it can't find one it returns a false value. The definition is simple, since we have our handy vertexIndex:
+The ```vertex``` pipetype uses the findVertices function to collect a set of initial vertices from which to begin our query.
 
 ```javascript
-Dagoba.G.findVertexById = function(vertex_id) {
-  return this.vertexIndex[vertex_id] 
+Dagoba.G.findVertices = function(args) {                          // our general vertex finding function
+  if(typeof args[0] == 'object')
+    return this.searchVertices(args[0])
+  else if(args.length == 0)
+    return this.vertices.slice()                                  // OPT: slice is costly with lots of vertices
+  else
+    return this.findVerticesByIds(args)
 }
 ```
 
-Without vertexIndex we'd have to go through each vertex in our list one at a time to decide if it matched the id -- turning a constant time operation into a linear time one, and any O(n) operations that directly rely on it into O(n^2) operations. Ouch!
+This function receives its arguments as a list. If the first one is an object it passes it to searchVertices, allowing queries like ```g.v({_id:'Thor'}).run()``` or ```g.v([{species: "Aesir"}]).run()```. 
 
+Otherwise, if there are arguments it gets passed to findVerticesByIds, which handles queries like ```g.v('Thor', 'Odin').run()```.
 
+If there are no arguments at all, then our query looks like ```g.v().run()```. This isn't something you'll want to do frequently with large graphs, especially since we're slicing the vertex list before returning it. We slice because some call sites manipulate the returned list directly by popping items off as they work through them. We could optimize this use case by cloning at the call site, or by avoiding those manipulations (we could keep a counter in state instead of popping).
 
 ```javascript
-Dagoba.G.findVertices = function(ids) {                           // our general vertex finding function
-  if(typeof ids[0] == 'object')
-    return this.searchVertices(ids[0])
-  else if(ids.length == 0)
-    return this.vertices.slice()                                  // OPT: slice is costly with lots of vertices
-  else
-    return this.findVerticesByIds(ids)
-}
-
 Dagoba.G.findVerticesByIds = function(ids) {
   if(ids.length == 1) {
     var maybe_vertex = this.findVertexById(ids[0])                // maybe_vertex is either a vertex or undefined
@@ -624,23 +625,20 @@ Dagoba.G.findVerticesByIds = function(ids) {
 Dagoba.G.findVertexById = function(vertex_id) {
   return this.vertexIndex[vertex_id] 
 }
+```
 
-Dagoba.G.searchVertices = function(obj) {                         // find vertices that match obj's key-value pairs
-  return this.vertices.filter( function(vertex) {
-    return Object.keys(obj).reduce( function(acc, key) {
-      return acc && obj[key] == vertex[key] 
-    }, true)
-  }) 
-}
+Note the use of vertexIndex here. Without that index we'd have to go through each vertex in our list one at a time to decide if it matched the id -- turning a constant time operation into a linear time one, and any O(n) operations that directly rely on it into O(n^2) operations. 
 
-Dagoba.G.findEdgeById = function(edge_id) {
-  for(var i = this.edges.length - 1; i >= 0; i--) {
-    var edge = this.edges[i]
-    if(edge._id == edge_id)
-      return edge
-  }
+```javascript
+Dagoba.G.searchVertices = function(filter) {            // find vertices that match obj's key-value pairs
+  return this.vertices.filter(function(vertex) {
+    return Dagoba.objectFilter(vertex, filter)
+  })
 }
 ```
+
+The searchVertices function uses the objectFilter helper on every vertex in the graph. We'll look at objectFilter in the next section, but in the meantime can you think of with a way to search through the vertices lazily?
+
 
 #### Filtering
 
@@ -669,7 +667,7 @@ The second filters on the edge's label: ```g.v('Odin').out('son').run()``` trave
 
 The third case accepts an array of labels: ```g.v('Odin').out(['daughter', 'son']).run()``` traverses both son and daughter edges.
 
-And the fourth case uses another helper function:
+And the fourth case uses the objectFilter function we saw before:
 
 ```javascript
 Dagoba.objectFilter = function(thing, filter) {         // thing has to match all of filter's properties
@@ -681,7 +679,7 @@ Dagoba.objectFilter = function(thing, filter) {         // thing has to match al
 }
 ```
 
-This allows us to query the edge using a filter object: ```g.v('Odin').out({position: 2, _label: daughter}).run()``` finds Odin's second daughter, if position is genderized. [TODO test these queries]
+This allows us to query the edge using a filter object: ```g.v('Odin').out({position: 2, _label: daughter}).run()``` finds Odin's second daughter, if position is genderized.
 
 
 ## The interpreter itself
@@ -864,7 +862,7 @@ All production graph databases share a very particular performance characteristi
 
 To alleviate this dismal performance most databases index over oft-queried fields, which turns an O(n) search into an O(log n) search. This gives considerably better search performance, but at the cost of some write performance and a lot of space -- indices can easily double the size of a database. Careful balancing of the space/time tradeoffs of indices is part of the perpetual tuning process for most databases.
 
-Graph databases sidestep this issue by making direct connections between vertices and edges, so graph traversals are just pointer jumps: no need to read through everything, no need for indices. Now finding your friends has the same price regardless of total number of people in the graph, with no additional space cost or write time cost. One downside to this approach is that the pointers work best when the whole graph is in memory on the same machine. Sharding a graph across multiple machines is still an active area of research. [TODO footnote: point to a couple graph theory papers on NP-completeness of optimal splitting, but also some practical takes on this that mostly work ok]
+Graph databases sidestep this issue by making direct connections between vertices and edges, so graph traversals are just pointer jumps: no need to read through everything, no need for indices. Now finding your friends has the same price regardless of total number of people in the graph, with no additional space cost or write time cost. One downside to this approach is that the pointers work best when the whole graph is in memory on the same machine. Effectively sharding a graph database across multiple machines is still an active area of research. [footnote: Sharding a graph database requires partitioning the graph. Optimal graph partitioning is NP-hard, even for simple graphs like trees and grids, and even the approximation algorithms are in NP. [http://arxiv.org/pdf/1311.3144v2.pdf, http://dl.acm.org/citation.cfm?doid=1007912.1007931] ]
 
 We can see this at work in the microcosm of Dagoba if we replace the functions for finding edges. Here's a naive version that searches through all the edges in linear time. It harkens back to our very first implementation, but uses all the structures we've since built.
 
@@ -948,41 +946,41 @@ We could glue these together into a single function, and even hit the whole grap
 
 Persistence is usually one of the trickier parts of a database: disks are relatively safe, but dreadfully slow. Batching writes, making them atomic, journaling -- all of these are difficult to make both fast and correct.
 
-Fortunately, we're building an *in-memory* database, so we don't have to worry about any of that! We may, though, occasionally want to save a copy of the database locally for fast restart on page load. We can use the serializer we just built to do exactly that.
+Fortunately, we're building an *in-memory* database, so we don't have to worry about any of that! We may, though, occasionally want to save a copy of the database locally for fast restart on page load. We can use the serializer we just built to do exactly that. First let's wrap it in a helper function:
 
+```javascript
+Dagoba.G.toString = function() { return Dagoba.jsonify(this) }
 ```
-Dagoba.persist = function (graph, name) {
-  name = 'DAGOBA::' + (name || 'graph')
-  var flatgraph = Dagoba.jsonify(graph)
-  localStorage.setItem(name, flatgraph)
+
+In JavaScript an object's ```toString``` function is called whenever that object is coerced into a string. So if ```g``` is a graph, then ```g+''``` will be the graph's serialized JSON string.
+
+The ```fromString``` function isn't part of the language specification, but it's handy to have around.
+
+Dagoba.fromString = function(str) {                     // another graph constructor
+  var obj = JSON.parse(str)                             // this can throw
+  return Dagoba.graph(obj.V, obj.E) 
+}
+
+Now we'll use those in our persistence functions. The ```toString``` function is hiding -- can you spot it?
+
+```javascript
+Dagoba.persist = function(graph, name) {
+  name = name || 'graph'
+  localStorage.setItem('DAGOBA::'+name, graph)
 }
 
 Dagoba.depersist = function (name) {
   name = 'DAGOBA::' + (name || 'graph')
   var flatgraph = localStorage.getItem(name)
-  var seedgraph = JSON.parse(flatgraph)                 // this can throw
-  return Dagoba.graph(seedgraph.V, seedgraph.E)
+  return Dagoba.fromString(flatgraph)
 }
 ```
 
-TODO: include the following code:
-
-Dagoba.G.toString = function() { return Dagoba.jsonify(this) }    // serialization
-
-Dagoba.fromString = function(str) {                               // another graph constructor
-  var obj = JSON.parse(str)
-  return Dagoba.graph(obj.V, obj.E) 
-}
-
-
-
-TODO: test the above funs
-
-We preface the name with a faux namespace to avoid polluting the localStorage properties of the domain, as it can get quite crowded in there. [footnote: It also makes our closing parens all line up vertically, which is always a nice bonus.] There's usually a low storage limit also, so for larger graphs we'd probably want to use a Blob of some sort. 
+We preface the name with a faux namespace to avoid polluting the localStorage properties of the domain, as it can get quite crowded in there. There's usually a low storage limit also, so for larger graphs we'd probably want to use a Blob of some sort. 
 
 There are also potential issues if multiple browser windows from the same domain are persisting and depersisting simultaneously. The localStorage space is shared between those windows, and they're potentially on different event loops, so there's the possibility for one to carelessly overwrite the work of another. The spec says there should be a mutex required for read/write access to localStorage, but it's inconsistently implemented between different browsers, and even with it a naive implementation like ours could still encounter issues.
 
-If we wanted our persistence implementation to be multi-window concurrency aware we could use the storage events that are fired when changes are made to localStorage, and update our local graph accordingly. 
+If we wanted our persistence implementation to be multi-window concurrency aware we could make use of the storage events that are fired when localStorage is changed to update our local graph accordingly. 
 
 
 ## Updates
