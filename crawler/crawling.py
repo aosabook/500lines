@@ -211,17 +211,17 @@ class Crawler:
             return False
         parts = urllib.parse.urlparse(url)
         if parts.scheme not in ('http', 'https'):
-            logger.info('skipping non-http scheme in %r', url)
+            logger.debug('skipping non-http scheme in %r', url)
             return False
         host, port = urllib.parse.splitport(parts.netloc)
         if not self.host_okay(host):
-            logger.info('skipping non-root host in %r', url)
+            logger.debug('skipping non-root host in %r', url)
             return False
         if max_redirect is None:
             max_redirect = self.max_redirect
         if url in self.todo or url in self.busy or url in self.done:
             return False
-        logger.info('adding %r %r', url, max_redirect)
+        logger.debug('adding %r %r', url, max_redirect)
         self.todo[url] = max_redirect
         return True
 
