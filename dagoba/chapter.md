@@ -1058,6 +1058,24 @@ TODO
 
 ### Adverbs
 
+We saw one way of gathering ancestors earlier: ```g.v('Thor').out().as('parent').out().as('grandparent').out().as('great-grandparent').merge(['parent', 'grandparent', 'great-grandparent']).run()```
+
+This is pretty clumsy, and doesn't scale well -- what if we wanted six layers of ancestors? Or to look through an arbitrary number of ancestors until we found what we wanted?
+
+It'd be nice if we could say something like this instead: ```G.v('Thor').out().all().times(3).run()```. What we'd like to get out of this is something like the query above -- maybe ```g.v('Thor').out().as('a').out().as('b').out().as('c').merge(['a', 'b', 'c']).run()``` after the query transformers have all run.
+
+We could run the ```times``` transformer first, to produce ```G.v('Thor').out().all().out().all().out().all().run()```. Then run the ```all``` transformer and have it transform each ```all``` into a uniquely labeled ```as```, and put a ```merge``` after the last ```as```. 
+
+There's a few problems with this, though. For one, this as/merge technique only works if every pathway is present in the graph -- if we're missing an entry for one of Thor's great-grandparents that will limit our results. For another, what happens if we want to do this to just part of a query and not the whole thing? What if there's multiple ```all```s?  
+
+To solve that first problem we're going to have to treat ```all```s as something more than just as/merge. We need each parent gremlin to actually skip the intervening steps. We can think of this as a kind of teleportation -- jumping from one part of the pipeline directly to another -- or we can think of it as a certain kind of branching pipeline, but either way it complicates our model somewhat. Another approach would be to think of the gremlin as passing through the intervening pipes in a sort of suspended animation, until reawoken by a special pipe. Scoping the freezing/thawing pipes may be tricky, however.
+
+The next two problems are easier: to modify just part of a query we'll wrap that portion in special start/end steps, like ```g.v('Thor').out().start().in().out().end().times(4).run()```. Actually, if the interpreter knows about these special pipetypes we don't need the end step, because the end of a sequence is always a special pipetype. We'll call these special pipetypes 'adverbs', because they modify regular pipetypes like adverbs modify verbs. 
+
+To handle multiple alls we need to run all all transformers twice: once time before the times transformer, to mark all alls uniquely, and against after times' time to remark all marked alls uniquely all over.
+
+
+
 How do we find out which of Ymir's descendants are scheduled to survive Ragnarök? We could make individual queries like ```g.v('Ymir').in().filter({survives: true})``` and ```g.v('Ymir').in().in().in().in().filter({survives: true})``` and manually collect the results ourselves, but that's pretty awful.
 
 Let's start with an even simpler question: how do we collect Thor's parents, grandparents and great-grandparents? ```g.v('Thor').out().out().out().run()``` only gives us great-grandparents. We need some way to collect those interior results as well. 
@@ -1066,13 +1084,6 @@ A common way to do this is using something like .as('parent') and then merging t
 
 We can think of this as a kind of teleportation -- jumping from one part of the pipeline directly to another -- or we can think of it as a certain kind of branching pipe, but either way it complicates the explanation of our model somewhat.
 
-
-
- 
-g.v('Ymir').in().v({_id: Thor})
-
-
-TODO
 
 Another advantage is that we may be able to automate this process. This could be helpful if we create query components that serve to modify other query components: this is the 'adverbs' idea from that section of notes. So perhaps we could express the previous question as:
 
