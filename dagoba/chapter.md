@@ -351,7 +351,7 @@ Dagoba.simpleTraversal = function(dir) {
 
 The first couple lines handle the differences between the in version and the out version. Then we're ready to return our pipetype function, which looks quite a bit like the vertex pipetype we just saw. That's a little surprising, since this one takes in a gremlin whereas the vertex pipetype creates gremlins ex nihilo.
 
-But we can see the same beats being hit here, with the addition of a query initialization step. If there's no gremlin and we're out of available edges then we pull. If we have a gremlin but haven't yet set state then we find any edges going the appropriate direction and add them to our state [footnote on filtering]. If there's a gremlin but its current vertex has no appropriate edges then we pull. And finally we pop off an edge and return a freshly cloned gremlin on the vertex to which it points.
+But we can see the same beats being hit here, with the addition of a query initialization step. If there's no gremlin and we're out of available edges then we pull. If we have a gremlin but haven't yet set state then we find any edges going the appropriate direction and add them to our state [TODO footnote on filtering]. If there's a gremlin but its current vertex has no appropriate edges then we pull. And finally we pop off an edge and return a freshly cloned gremlin on the vertex to which it points.
 
 Glancing at this code we see ```!state.edges.length``` repeated in each of the three clauses. It's tempting to refactor this to reduce the complexity of those conditionals. There are two issues keeping us from doing so. One is relatively minor: the third ```!state.edges.length``` means something different than the first two, since ```state.edges``` has been changed between the second and third conditional. This actually encourages us to refactor, because having the same label mean two different things inside a single function usually isn't ideal.
 
@@ -362,7 +362,7 @@ In this case, with a dozen or so pipetypes, the right choice seems to be to styl
 
 #### Property
 
-Let's pause for a moment to consider an example query based on the three pipetypes we've seen. We can ask for Thor's grandfathers like this: ```g.v('Thor').in('father').in('father').run()```. But what if we wanted their names? [Have we mentioned run() yet?]
+Let's pause for a moment to consider an example query based on the three pipetypes we've seen. We can ask for Thor's grandfathers like this: ```g.v('Thor').in('father').in('father').run()```.[footnote: The ```run()``` at the end of the query invokes the interpreter and returns results.] But what if we wanted their names? 
 
 We could put a map on the end of that:
 ```g.v('Thor').in('father').in('father').run().map(function(vertex) {return vertex.name})```
@@ -495,9 +495,7 @@ We initialize ```state.taken``` to zero if it doesn't already exist. JavaScript 
 
 Then when ```state.taken``` reaches ```args[0]``` we return 'done', sealing off the pipes before us. We also reset the ```state.taken``` counter, allowing us to repeat the query later.
 
-We do those two steps before query initialization to handle the cases of ```take(0)``` and ```take()``` [footnoteQ]. Then we increment our counter and return the gremlin.
-
-[footnoteQ: What would you expect each of those to return? What do they actually return?]
+We do those two steps before query initialization to handle the cases of ```take(0)``` and ```take()``` [footnote: What would you expect each of those to return? What do they actually return?]. Then we increment our counter and return the gremlin.
 
 
 #### As
@@ -786,7 +784,7 @@ thunk2()            // 6
 
 (end long footnote)]
 
-None of the thunks are invoked until one is actually "needed", which usually implies some type of output is required: in our case the result of a query. Because each new thunk takes all previous thunks as one of its input parameters (CPS) the AST gets rolled up backwards, and the first thing we actually evaluate is the innermost thing we need in order to produce the results. [THINK Maybe a footnote to clarify this further. Maybe use the "short-circuit evaluation plus xxx" explanation.]
+None of the thunks are invoked until one is actually "needed", which usually implies some type of output is required: in our case the result of a query. Because each new thunk takes all previous thunks as one of its input parameters (CPS) the AST gets rolled up backwards, and the first thing we actually evaluate is the innermost thing we need in order to produce the results. [TODO Maybe a footnote to clarify this further. Maybe use the "short-circuit evaluation plus xxx" explanation.]
 
 There are a couple of tradeoffs with this approach: one is that spacial performance becomes much more difficult to reason about, because of the potentially vast thunk trees that are created. Another is that our program is now expressed as a single outermost (innermost) thunk, which means we can't do much with it at that point. 
 
@@ -938,7 +936,7 @@ How do we do that without sacrificing simplicity? By making the new compilation 
 // perf test it
 // cool it's faster
 
-Great, we're fast! Notice that by deliberately ignoring the chances we had to optimize early and by writing everything in as decomposed and simplistic a way as we possibly could that we've opened up opportunities for global optimizations. [more]
+Great, we're fast! Notice that by deliberately ignoring the chances we had to optimize early and by writing everything in as decomposed and simplistic a way as we possibly could that we've opened up opportunities for global optimizations. [TODO: more]
 
 We should probably confirm that our optimizations don't break anything. Maybe we can write a bunch of tests for each of these new pieces, like we did before. 
 
