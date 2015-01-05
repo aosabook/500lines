@@ -255,78 +255,6 @@ Dagoba.addPipetype('out', Dagoba.simpleTraversal('out'))
 Dagoba.addPipetype('in',  Dagoba.simpleTraversal('in'))
 
 
-Dagoba.addPipetype('outAllN', function(graph, args, gremlin, state) {
-
-  //// THIS PIPETYPE IS GOING AWAY DON'T READ IT
-
-  var filter = args[0]
-  var limit = args[1]-1
-  
-  if(!state.edgeList) {                                           // initialize
-    if(!gremlin) return 'pull'
-    state.edgeList = []
-    state.current = 0
-    state.edgeList[0] = graph.findOutEdges(gremlin.vertex).filter(Dagoba.filterEdges(filter))
-  }
-  
-  if(!state.edgeList[state.current].length) {                     // finished this round
-    if(state.current >= limit || !state.edgeList[state.current+1] // totally done, or the next round has no items
-                              || !state.edgeList[state.current+1].length) {
-      state.edgeList = false
-      return 'pull'
-    }
-    state.current++                                               // go to next round
-    state.edgeList[state.current+1] = [] 
-  }
-  
-  var vertex = state.edgeList[state.current].pop()._in
-  
-  if(state.current < limit) {                                     // add all our matching edges to the next level
-    if(!state.edgeList[state.current+1]) state.edgeList[state.current+1] = []
-    state.edgeList[state.current+1] = state.edgeList[state.current+1].concat(
-      graph.findOutEdges(vertex).filter(Dagoba.filterEdges(filter))
-    )
-  }
-  
-  return Dagoba.gotoVertex(gremlin, vertex)
-})
-  
-Dagoba.addPipetype('inAllN', function(graph, args, gremlin, state) {
-
-  //// THIS PIPETYPE IS GOING AWAY DON'T READ IT
-
-  var filter = args[0]
-  var limit = args[1]-1
-  
-  if(!state.edgeList) {                                           // initialize
-    if(!gremlin) return 'pull'
-    state.edgeList = []
-    state.current = 0
-    state.edgeList[0] = graph.findInEdges(gremlin.vertex).filter(Dagoba.filterEdges(filter))
-  }
-  
-  if(!state.edgeList[state.current].length) {                     // finished this round
-    if(state.current >= limit || !state.edgeList[state.current+1] // totally done, or the next round has no items
-                              || !state.edgeList[state.current+1].length) {
-      state.edgeList = false
-      return 'pull'
-    }
-    state.current++                                               // go to next round
-    state.edgeList[state.current+1] = [] 
-  }
-  
-  var vertex = state.edgeList[state.current].pop()._out
-  
-  if(state.current < limit) {                                     // add all our matching edges to the next level
-    if(!state.edgeList[state.current+1]) state.edgeList[state.current+1] = []
-    state.edgeList[state.current+1] = state.edgeList[state.current+1].concat(
-      graph.findInEdges(vertex).filter(Dagoba.filterEdges(filter))
-    )
-  }
-  
-  return Dagoba.gotoVertex(gremlin.state, vertex)
-})
-  
 Dagoba.addPipetype('property', function(graph, args, gremlin, state) {
   if(!gremlin) return 'pull'                                      // query initialization
   gremlin.result = gremlin.vertex[args[0]]
@@ -342,6 +270,10 @@ Dagoba.addPipetype('unique', function(graph, args, gremlin, state) {
   
 Dagoba.addPipetype('filter', function(graph, args, gremlin, state) {
   if(!gremlin) return 'pull'                                      // query initialization
+
+  if(typeof args[0] == 'object')                                  // filter by object
+    return Dagoba.objectFilter(gremlin.vertex, args[0]) 
+         ? gremlin : 'pull'
 
   if(typeof args[0] != 'function') {
     Dagoba.error('Filter arg is not a function: ' + args[0]) 
@@ -411,7 +343,7 @@ Dagoba.filterEdges = function(filter) {
 
 Dagoba.objectFilter = function(thing, filter) {                   // thing has to match all of filter's properties
   for(var key in filter)
-    if(thing[key] != filter[key])
+    if(thing[key] !== filter[key])
       return false
   
   return true 
