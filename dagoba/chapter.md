@@ -410,16 +410,28 @@ We initialize by trying to collect a gremlin. If the gremlin's current vertex is
 We've seen two simplistic ways of filtering, but sometimes we need more elaborate constraints. What if we wanted Thor's siblings whose weight in skippund is greater than their height in fathoms? This query would give us our answer: 
 
 ```javascript
-g.v('Thor').in().out().unique()
+g.v('Thor').out().in().unique()
  .filter(function(asgardian) { return asgardian.weight > asgardian.height })
  .run()
 ```
 
-[footnote: Depending on the density of Asgardian flesh this may return many results, or possibly just Volstagg [footnote: Provided we're allowing Shakespeare via Jack Kirby into our pantheon.].] 
+[footnote: Depending on the density of Asgardian flesh this may return many results, or possibly just Volstagg [footnote: Provided we're allowing Shakespeare by way of Jack Kirby into our pantheon.].] 
+
+If we wanted to know which of Thor's siblings survive Ragnarök we can pass filter an object:
+
+```javascript
+g.v('Thor').out().in().unique().filter({survives: true}).run()
+```
+
+Here's how it works:
 
 ```javascript
 Dagoba.addPipetype('filter', function(graph, args, gremlin, state) {
   if(!gremlin) return 'pull'                            // query initialization
+
+  if(typeof args[0] == 'object')                        // filter by object
+    return Dagoba.objectFilter(gremlin.vertex, args[0]) 
+         ? gremlin : 'pull'
 
   if(typeof args[0] != 'function') {
     Dagoba.error('Filter is not a function: ' + args[0]) 
@@ -431,7 +443,7 @@ Dagoba.addPipetype('filter', function(graph, args, gremlin, state) {
 })
 ```
 
-If the filter's first argument is not a function we trigger an error, and then pass the gremlin along. Pause for a minute, and consider the alternatives. Why would we decide to continue the query once an error is encountered?
+If the filter's first argument is not an object or function then we trigger an error, and pass the gremlin along. Pause for a minute, and consider the alternatives. Why would we decide to continue the query once an error is encountered?
 
 There are two possibilities for this error to arise. The first involves the user typing in queries, either in a REPL or in code they're actively working on. When that query is run it will produce results, but also generate an error. The user then corrects the error to filter down the set of results produced. The alternative approach for this use case would be to display the error produce and produce no results. Which of those you prefer is mostly personal preference.
 
@@ -490,7 +502,7 @@ We do those two steps before query initialization to handle the cases of ```take
 
 #### As
 
-These next three pipetypes work as a group to allow more advanced queries. This one just allows you to label the current vertex. We'll use that label with the next two pipetypes.
+These next four pipetypes work as a group to allow more advanced queries. This one just allows you to label the current vertex. We'll use that label with the next two pipetypes.
 
 ```javascript
 Dagoba.addPipetype('as', function(graph, args, gremlin, state) {
@@ -503,25 +515,53 @@ Dagoba.addPipetype('as', function(graph, args, gremlin, state) {
 
 After initializing the query, we then ensure the gremlin's local state has an 'as' parameter. Then we set a property of that parameter to the gremlin's current vertex.
 
+#### Merge
+
+Once we've labeled vertices we can then extract them using merge. If we want Thor's parents, grandparents and great-grandparents we can do something like this:
+
+```javascript
+g.v('Thor').out().as('parent').out().as('grandparent').out().as('great-grandparent')
+           .merge('parent', 'grandparent', 'great-grandparent').run()
+```
+
+Here's the merge pipetype:
+
+```javascript
+Dagoba.addPipetype('merge', function(graph, args, gremlin, state) {
+  if(!state.vertices && !gremlin) return 'pull'                   // query initialization
+
+  if(!state.vertices) {                                           // state initialization
+    var obj = (gremlin.state||{}).as || {}
+    state.vertices = args.map(function(id) {return obj[id]}).filter(Boolean)
+  }
+
+  if(!state.vertices.length) return 'pull'                        // done with this batch
+
+  var vertex = state.vertices.pop()
+  return Dagoba.makeGremlin(vertex, gremlin.state)
+})
+```
+
+We map over each argument, looking for it in the gremlin's list of labeled vertices. If we find it, we clone the gremlin to that vertex.  
+
 
 #### Except
 
 We've already seen cases where we would like to say "Give me all of Thor's siblings who are not Thor". We can do that with a filter:
 
-```g.v('Thor').in().out().unique().filter(function(asgardian) {return asgardian.name != 'Thor'}).run()```
-[Test this]
+```g.v('Thor').out().in().unique().filter(function(asgardian) {return asgardian._id != 'Thor'}).run()```
 
 It's more straightforward with 'as' and 'except':
 
 ```
-g.v('Thor').as('me').in().out().except('me').unique().run()
+g.v('Thor').as('me').out().in().except('me').unique().run()
 ```
 
 But there are also queries that would be very difficult to try to filter. What if we wanted Thor's uncles and aunts? How would we filter out his parents? It's easy with 'as' and 'except':
 
-```g.v('Thor').in().as('parent').in().out().out().except('parent').unique().run()```
-[Test this... it doesn't actually work quite like that. If DAG not tree then this breaks. Better example?]
-[How would you get 'pure' uncles and aunts instead of half-uncles and step-aunts? and the pure u/a's current SOs?]
+```g.v('Thor').out().as('parent').out().in().except('parent').unique().run()```
+
+[footnote: There are certain conditions under which this particular query might yield unexpected results. Can you think of any? How could you modify it to handle those cases?]
 
 ```javascript
 Dagoba.addPipetype('except', function(graph, args, gremlin, state) {
@@ -542,15 +582,16 @@ Some of the questions we might ask involve checking further into the graph, only
 g.v('Fjörgynn').in('daughter').as('me')                 // first gremlin's state.as is Frigg
  .in()                                                  // first gremlin's vertex is now Baldr
  .out().out()                                           // put copy of that gremlin on each grandparent
- .filter(function(asgardian) {                          // only keep the gremlin on grandparent Bestla
-   return asgardian._id == 'Bestla'})
+ .filter({_id: 'Bestla'})                               // only keep the gremlin on grandparent Bestla
  .back('me').unique().run()                             // jump the gremlin's vertex back to Frigg and exit
 ```
 
-This is really all the pipetypes we need to do some pretty serious queries. 
+Or say we'd like ...
 
 [TODO Add more examples here]
 
+
+These pipetypes are enough to allow us to ask some pretty interesting questions. Here's the definition for ```back```:
 
 ```javascript
 Dagoba.addPipetype('back', function(graph, args, gremlin, state) {
@@ -661,25 +702,25 @@ Dagoba.filterEdges = function(filter) {
 }
 ```
 
-The first case is no filter at all: ```g.v('Odin').out().run()``` traverses all out edges from Odin.
+The first case is no filter at all: ```g.v('Odin').in().run()``` traverses all out edges from Odin.
 
-The second filters on the edge's label: ```g.v('Odin').out('son').run()``` traverses all out edges with a label of 'son'.
+The second filters on the edge's label: ```g.v('Odin').in('son').run()``` traverses all out edges with a label of 'son'.
 
-The third case accepts an array of labels: ```g.v('Odin').out(['daughter', 'son']).run()``` traverses both son and daughter edges.
+The third case accepts an array of labels: ```g.v('Odin').in(['daughter', 'son']).run()``` traverses both son and daughter edges.
 
 And the fourth case uses the objectFilter function we saw before:
 
 ```javascript
 Dagoba.objectFilter = function(thing, filter) {         // thing has to match all of filter's properties
   for(var key in filter)
-    if(thing[key] != filter[key])
+    if(thing[key] !== filter[key])
       return false
   
   return true 
 }
 ```
 
-This allows us to query the edge using a filter object: ```g.v('Odin').out({position: 2, _label: daughter}).run()``` finds Odin's second daughter, if position is genderized.
+This allows us to query the edge using a filter object: ```g.v('Odin').in({position: 2, _label: daughter}).run()``` finds Odin's second daughter, if position is genderized.
 
 
 ## The interpreter itself
@@ -750,7 +791,7 @@ thunk2()            // 6
 
 (end long footnote)]
 
-None of the thunks are invoked until one is actually "needed", which usually implies some type of output is required: in our case the result of a query. Because each new thunk takes all previous thunks as one of its input parameters (CPS) the AST gets rolled up backwards, and the first thing we actually evaluate is the innermost thing we need in order to produce the results. [TODO Maybe a footnote to clarify this further. Maybe use the "short-circuit evaluation plus xxx" explanation.]
+None of the thunks are invoked until one is actually "needed", which usually implies some type of output is required: in our case the result of a query. Because each new thunk takes all previous thunks as one of its input parameters (CPS) the AST gets rolled up backwards, and the first thing we actually evaluate is the innermost thing we need in order to produce the results. [THINK Maybe a footnote to clarify this further. Maybe use the "short-circuit evaluation plus xxx" explanation.]
 
 There are a couple of tradeoffs with this approach: one is that spacial performance becomes much more difficult to reason about, because of the potentially vast thunk trees that are created. Another is that our program is now expressed as a single outermost (innermost) thunk, which means we can't do much with it at that point. 
 
@@ -867,27 +908,27 @@ Graph databases sidestep this issue by making direct connections between vertice
 We can see this at work in the microcosm of Dagoba if we replace the functions for finding edges. Here's a naive version that searches through all the edges in linear time. It harkens back to our very first implementation, but uses all the structures we've since built.
 
 ```
-Dagoba.G.findOutEdges = function(vertex) { return this.edges.filter(function(edge) {return edge._out == vertex._id} ) }
-Dagoba.G.findInEdges  = function(vertex) { return this.edges.filter(function(edge) {return edge._in  == vertex._id} ) }
+Dagoba.G.findInEdges  = function(vertex) { return this.edges.filter(function(edge) {return edge._in._id  == vertex._id} ) }
+Dagoba.G.findOutEdges = function(vertex) { return this.edges.filter(function(edge) {return edge._out._id == vertex._id} ) }
 ```
 
 We can add an index for edges, which gets us most of the way there with small graphs but has all the classic indexing issues for large ones.
 
 ```
+Dagoba.G.findInEdges  = function(vertex) { return this.inEdgeIndex [vertex._id]  }
 Dagoba.G.findOutEdges = function(vertex) { return this.outEdgeIndex[vertex._id] }
-Dagoba.G.findInEdges  = function(vertex) { return this.inEdgeIndex[vertex._id]  }
 ```
 
 And here we have our old friends back again: pure, sweet index-free adjacency.
 
 ```
-Dagoba.G.findOutEdges = function(vertex) { return vertex._out }
 Dagoba.G.findInEdges  = function(vertex) { return vertex._in  }
+Dagoba.G.findOutEdges = function(vertex) { return vertex._out }
 ```
 
 Run these yourself to experience the graph database difference.
 
-[TODO: test this]
+[footnote: In modern JavaScript engines filtering a list is quite fast -- for small graphs the naive version can actually be faster than the index-free version due to the way the code is JIT compiled and the underlying data structures. Try it with different sizes of graphs to see how the two approaches scale.]
 
 
 ## Orthogonal Optimization
@@ -1017,7 +1058,34 @@ TODO
 
 ### Adverbs
 
+How do we find out which of Ymir's descendants are scheduled to survive Ragnarök? We could make individual queries like ```g.v('Ymir').in().filter({survives: true})``` and ```g.v('Ymir').in().in().in().in().filter({survives: true})``` and manually collect the results ourselves, but that's pretty awful.
+
+Let's start with an even simpler question: how do we collect Thor's parents, grandparents and great-grandparents? ```g.v('Thor').out().out().out().run()``` only gives us great-grandparents. We need some way to collect those interior results as well. 
+
+A common way to do this is using something like .as('parent') and then merging the 'as' clause results later in the query. So our query might look something like ```g.v('Thor').out().as('parent').out().as('grandparent').out().as('great-grandparent').merge(['parent', 'grandparent', 'great-grandparent']).run()```
+
+We can think of this as a kind of teleportation -- jumping from one part of the pipeline directly to another -- or we can think of it as a certain kind of branching pipe, but either way it complicates the explanation of our model somewhat.
+
+
+
+ 
+g.v('Ymir').in().v({_id: Thor})
+
+
 TODO
+
+Another advantage is that we may be able to automate this process. This could be helpful if we create query components that serve to modify other query components: this is the 'adverbs' idea from that section of notes. So perhaps we could express the previous question as:
+
+G.v(1).out('parent').all().times(3).run()
+
+We'll also need a way to indicate how far back we want those adverbs to apply, so that we can have queries like this:
+
+q = G.v(1).in().start().out('parent').all().times(3).in('parent').unique().take(5)
+
+Which says something like "From all vertices pointing in to 1, take three generations of ancestors and then give me five of their children". Then every successive call to q.run() will yield five more results. You can nest adverbial clauses, because the parser can distinguish adverb components from regular traversal components.
+
+
+
 
 we need to get collect gremlins from 'all' steps without having them modified by interleaving traversal steps.
 so we need a way to get the gremlin from the current 'all' step up to the last 'all' step. 
@@ -1026,6 +1094,48 @@ we could teleport it there, but
 - marking the teleportation endpoint and the individual steps that can send to it causes a lot of cross-step connections, which reduces our compositional / transformational abilities
 so instead we could wrap the gremlin in a bubble and float it downstream until it hits an allbuster that's wired to pop it. do they pop everything? everything from the same type of step? or is it labeled? you could miss one then, which is weird. 
 and the gremlin actually does have to pass through everything eventually, triggering it as it goes -- so you really need two gremlins, a bubble one and a non-bubbled one after it. the 'all' could do that, though, by cloning it. how do you bubble? how do you pop? how do you bypass bubbles?
+
+So ultimately we can take any component (verb) and n-ize it (adverb) and any sequence of verbs (out-out-in) and 'all' them (or any other adverb, even n-ize) 
+
+```
+g.v(1).in().out().in().out().in().out()
+g.v(1).st().in().out().et().nize(3)
+g.v(1).st('a').in().out().et('a').nize(3)
+
+g.v(1)
+  .start()
+    .start('a')
+      .in()
+      .out()
+    .end('a')  <-- done three times
+    .nize(3)
+               <-- .all() inserted here, because st--et+adverb is a single verb clause
+    .out()     
+               <-- and inserted here, after the next verb clause
+  .end()
+  .all()
+
+so G.v(1).start().in().out().end().all().nize(2) becomes
+   G.v(1).in().all() .out().all() .in().all() .out().all() 
+because the all() adverb cracks open the start-end wrapper and injects all() inside it, then nize doubles the verb phrase
+
+but G.v(1).start().in().out().end().nize(2).all() becomes
+    G.v(1).in().out().all() .in().out().all() 
+because nize creates a new verb phrase wrapper like [[in,out], [in,out]] and the all is injected at the outermost level.
+
+actually since adverbs are always 'end' nodes, we really just need start nodes. and they don't actually need labels because the start always correlates with the closest unbound adverb. (like matched parens, with implicit matching at the beginning of the query for unmatched adverbs)
+
+G.v(1).s().in().out().nize(2).all()
+
+And then we can use orthopt to push .out().out().out() -> .outN(3) for efficiency (if it's actually more efficient)
+and likewise for .out().all().out().all() -> .outAllN(3)
+so we get to eat our cake and have it fast too.
+```
+
+
+
+
+
 
 
 ## Wrapping up
