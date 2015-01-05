@@ -8,4 +8,4 @@ using a Paxos-derived algorithm.
 Goals:
 
 Every programmer should know how consensus is achieved across a network of hosts.
-And very programmer ought to know how network protocols are implemented, tested, and debugged.
+And every programmer ought to know how network protocols are implemented, tested, and debugged.
