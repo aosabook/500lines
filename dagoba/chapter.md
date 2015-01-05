@@ -586,12 +586,7 @@ g.v('Fjörgynn').in('daughter').as('me')                 // first gremlin's stat
  .back('me').unique().run()                             // jump the gremlin's vertex back to Frigg and exit
 ```
 
-Or say we'd like ...
-
-[TODO Add more examples here]
-
-
-These pipetypes are enough to allow us to ask some pretty interesting questions. Here's the definition for ```back```:
+Here's the definition for ```back```:
 
 ```javascript
 Dagoba.addPipetype('back', function(graph, args, gremlin, state) {
@@ -1046,18 +1041,6 @@ TODO tie this part in to Future directions below. maybe this whole section becom
 
 ## Future directions
 
-TODO
-
-### Hooks & prefs (copy-in, copy-out, etc)
-
-### Generative testing
-
-### Graph algorithms
-
-### "history, reversibility, stepwise debugging, query statistics"
-
-### Adverbs
-
 We saw one way of gathering ancestors earlier: ```g.v('Thor').out().as('parent').out().as('grandparent').out().as('great-grandparent').merge(['parent', 'grandparent', 'great-grandparent']).run()```
 
 This is pretty clumsy, and doesn't scale well -- what if we wanted six layers of ancestors? Or to look through an arbitrary number of ancestors until we found what we wanted?
@@ -1074,84 +1057,12 @@ The next two problems are easier: to modify just part of a query we'll wrap that
 
 To handle multiple alls we need to run all all transformers twice: once time before the times transformer, to mark all alls uniquely, and against after times' time to remark all marked alls uniquely all over.
 
+There's still the issue of searching through an unbounded number of ancestors -- for example, how do we find out which of Ymir's descendants are scheduled to survive Ragnarök? We could make individual queries like ```g.v('Ymir').in().filter({survives: true})``` and ```g.v('Ymir').in().in().in().in().filter({survives: true})``` and manually collect the results ourselves, but that's pretty awful. 
 
-
-How do we find out which of Ymir's descendants are scheduled to survive Ragnarök? We could make individual queries like ```g.v('Ymir').in().filter({survives: true})``` and ```g.v('Ymir').in().in().in().in().filter({survives: true})``` and manually collect the results ourselves, but that's pretty awful.
-
-Let's start with an even simpler question: how do we collect Thor's parents, grandparents and great-grandparents? ```g.v('Thor').out().out().out().run()``` only gives us great-grandparents. We need some way to collect those interior results as well. 
-
-A common way to do this is using something like .as('parent') and then merging the 'as' clause results later in the query. So our query might look something like ```g.v('Thor').out().as('parent').out().as('grandparent').out().as('great-grandparent').merge(['parent', 'grandparent', 'great-grandparent']).run()```
-
-We can think of this as a kind of teleportation -- jumping from one part of the pipeline directly to another -- or we can think of it as a certain kind of branching pipe, but either way it complicates the explanation of our model somewhat.
-
-
-Another advantage is that we may be able to automate this process. This could be helpful if we create query components that serve to modify other query components: this is the 'adverbs' idea from that section of notes. So perhaps we could express the previous question as:
-
-G.v(1).out('parent').all().times(3).run()
-
-We'll also need a way to indicate how far back we want those adverbs to apply, so that we can have queries like this:
-
-q = G.v(1).in().start().out('parent').all().times(3).in('parent').unique().take(5)
-
-Which says something like "From all vertices pointing in to 1, take three generations of ancestors and then give me five of their children". Then every successive call to q.run() will yield five more results. You can nest adverbial clauses, because the parser can distinguish adverb components from regular traversal components.
-
-
-
-
-we need to get collect gremlins from 'all' steps without having them modified by interleaving traversal steps.
-so we need a way to get the gremlin from the current 'all' step up to the last 'all' step. 
-we could teleport it there, but 
-- can we only teleport forward in time? backwards makes loops, which really cranks up the complexity of our queries
-- marking the teleportation endpoint and the individual steps that can send to it causes a lot of cross-step connections, which reduces our compositional / transformational abilities
-so instead we could wrap the gremlin in a bubble and float it downstream until it hits an allbuster that's wired to pop it. do they pop everything? everything from the same type of step? or is it labeled? you could miss one then, which is weird. 
-and the gremlin actually does have to pass through everything eventually, triggering it as it goes -- so you really need two gremlins, a bubble one and a non-bubbled one after it. the 'all' could do that, though, by cloning it. how do you bubble? how do you pop? how do you bypass bubbles?
-
-So ultimately we can take any component (verb) and n-ize it (adverb) and any sequence of verbs (out-out-in) and 'all' them (or any other adverb, even n-ize) 
-
-```
-g.v(1).in().out().in().out().in().out()
-g.v(1).st().in().out().et().nize(3)
-g.v(1).st('a').in().out().et('a').nize(3)
-
-g.v(1)
-  .start()
-    .start('a')
-      .in()
-      .out()
-    .end('a')  <-- done three times
-    .nize(3)
-               <-- .all() inserted here, because st--et+adverb is a single verb clause
-    .out()     
-               <-- and inserted here, after the next verb clause
-  .end()
-  .all()
-
-so G.v(1).start().in().out().end().all().nize(2) becomes
-   G.v(1).in().all() .out().all() .in().all() .out().all() 
-because the all() adverb cracks open the start-end wrapper and injects all() inside it, then nize doubles the verb phrase
-
-but G.v(1).start().in().out().end().nize(2).all() becomes
-    G.v(1).in().out().all() .in().out().all() 
-because nize creates a new verb phrase wrapper like [[in,out], [in,out]] and the all is injected at the outermost level.
-
-actually since adverbs are always 'end' nodes, we really just need start nodes. and they don't actually need labels because the start always correlates with the closest unbound adverb. (like matched parens, with implicit matching at the beginning of the query for unmatched adverbs)
-
-G.v(1).s().in().out().nize(2).all()
-
-And then we can use orthopt to push .out().out().out() -> .outN(3) for efficiency (if it's actually more efficient)
-and likewise for .out().all().out().all() -> .outAllN(3)
-so we get to eat our cake and have it fast too.
-```
-
-
-
-
-
+We'd like to use an adverb like this: ```g.v('Ymir').in().filter({survives: true}).every()```, which would work like all+times but without enforcing a limit. We may want to impose a particular strategy on the traversal, though, like a stolid BFS or YOLO DFS, so ```g.v('Ymir').in().filter({survives: true}).bfs()``` would be more flexible. Phrasing it this way allows us to state complicated queries like "check for Ragnarök survivors, skipping every other generation" in a straightforward fashion: ```g.v('Ymir').in().filter({survives: true}).in().bfs()```.
 
 
 ## Wrapping up
-
-TODO make sure this is consistent with the new structure above -- probably requires some rewriting.
 
 So what have we learned? Graph databases are great for storing interconnected [footnote1337] data that you plan to query via graph traversals. Adding laziness allows for a fluent interface over queries you could never express in an eager system for performance reasons, and allows you to cross async boundaries. Time makes things complicated, and time from multiple perspectives (i.e. concurrency) makes things very complicated, so whenever we can avoid introducing a temporal dependency (e.g. state, measurable effects, etc) we make reasoning about our system easier. Building in a simple, decoupled and painfully unoptimized style leaves the door open for global optimizations later on, and using a driver loop allows for orthogonal optimizations -- each without introducing the brittleness and complexity into our code that is the hallmark of most optimization techniques. 
 
