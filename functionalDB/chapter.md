@@ -622,81 +622,7 @@ Becomes eventually:
 ````clojure
 (transact-on-db my-db  [[add-entity e3] [remove-entity e4]])
 ````
-## Connected data
 
-Beyond having lifecycle, data can generate insights. However, extracting good insights is not an easy task. Therefore, a crucial role of a database to ease-up the search for insights process. 
-
-The first place to look for insights is in the connections between pieces of data. Such connection may be between an entity’s to itself at different times (an evolutionary connection). Another connection may be a reference between two entities. When such connection gets aggregated across the entities in the database, it forms a graph whose nodes are the entities and the edges are the references. In this section we’ll see how to utilizes these connection types and provide mechanisms to extract insights based them.
-
-### Evolution
-
-In our database, an update operation is done by appending a new value to an attribute (as oppose to overwrite in standard databases). This opens up the possibility of linking two attribute values, in two different times. The way this linking is implemented in our database is by having the attribute hold the timestamp of the previous update. That timestamp points to a layer in which the attribute held the previous value. More than that, we can look at the attribute at that layer, and continue going back in time and look deeper into history, thus observing the how the attribute’s value evolved throughout time.  
-
-The function *evolution-of* does exactly that, and return a sequence of pairs - each consist of the timestamp and value of an attribute’s update.
-
-````clojure
-(defn evolution-of [db ent-id attr-name]
-   (loop [res [] ts (:curr-time db)]
-     (if (= -1 ts) (reverse res)
-         (let [attr (attr-at db ent-id attr-name ts)]
-           (recur (conj res {(:ts attr) (:value attr)})  (:prev-ts attr))))))
-````
-### Graph traversal
-
-A reference connection between entities is created when an entity’s attribute’s type is *:db/ref*, which means that the value of that attribute is an id of another entity. When a referring entity is added to the database, the reference is indexed at the VAET index. In that index, the top level items (the *V*'s) are ids of entities that are referenced to by other entities.The leaves of this index (the *E*'s) hold the referring entities’ ids. The *Attribute*'s name is captured in the second layer of that index (the *A*'s).  
-The information found in the VAET index can be leveraged to extract all the incoming links to an entity and is done in the function *incoming-refs*, which collects for the given entity all the leaves that are reachable from it at that index:
-
-````clojure
-(defn incoming-refs [db ts ent-id & ref-names]
-   (let [vaet (ind-at db :VAET ts)
-         all-attr-map (vaet ent-id)
-         filtered-map (if ref-names (select-keys ref-names all-attr-map) all-attr-map)]
-      (reduce into #{} (vals filtered-map))))
-````
-We can also, for a given entity, go through all of it’s attributes and collect all the values of attribute of type :db/ref, and by that extract all the outgoing references from that entity. This is done at the *outgoing-refs* function 
-
-````clojure
-(defn outgoing-refs [db ts ent-id & needed-keys]
-   (let [val-filter-fn (if ref-names #(vals (select-keys ref-names %)) vals)]
-   (if-not ent-id []
-     (->> (entity-at db ts ent-id)
-          (:attrs) (val-filter-fn) (filter ref?) (mapcat :value)))))
-````
-These two functions act as the basic building blocks for any graph traversal operation, as they are the ones that raise the level of abstraction from entities and attributes to nodes and links in a graph. These functions can provide either all the refs (either incoming or outgoing) of an entity or a subset of them. This is possible as each ref is an attribute (with a type of :db\ref), so to define a subset of the refs means to define a subset of the attribute names and provide it via the *ref-names* argument of these functions. 
-
-On top of providing these two building blocks of graph traversal, our database also provides the two classical graph traversing algorithms - breadth-first-search and depth-first-search, that start from a given node, and traverse the graph along either the incoming or outgoing references (using either *incoming-refs* or *outgoing-refs* appropriately).
-
-As these two algorithms have almost identical implementation, they are both implemented in the same function, called *traverse*, and the difference is mitigated by the function *traverse-db* that receives as an input which algorithm to use (either *:graph/bfs* or *:graph/dfs*) and along which references to walk (either *:graph/outgoing* or *:graph/incoming*). 
-
-````clojure
-(defn traverse-db 
-   ([start-ent-id db algo direction] (traverse-db start-ent-id db algo direction (:curr-time db)))
-   ([start-ent-id db algo direction ts]
-     (let [structure-fn (if (= :graph/bfs algo) vec list*)
-           explore-fn   (if (= :graph/outgoing direction) outgoing-refs incoming-refs)]
-       (traverse [start-ent-id] #{}  
-                (partial explore-fn db ts) (partial entity-at db ts) structure-fn))))
- ````
-The implementation itself of the algorithm is the classical implementation with a minor, yet important twist - laziness. The results of the traversal are computed lazily, meaning that the traversal would continue as long as its results are needed.
-
-This is done by having the combination of *cons* and *lazy-seq* wrapping the recursive call at the *traverse* function.
-
-````clojure
-(defn- traverse [pendings explored exploring-fn ent-at structure-fn]
-     (let [cleaned-pendings (remove-explored pendings explored structure-fn)
-           item (first cleaned-pendings)
-           all-next-items  (exploring-fn item)
-           next-pends (reduce conj (structure-fn (rest cleaned-pendings)) all-next-items)]
-       (when item (cons (ent-at item)
-                        (lazy-seq (traverse next-pends (conj explored item) 
-                                            exploring-fn ent-at structure-fn))))))
-````
-This function uses a helper function call *remove-explored* to help preventing re-visits to an already explored entities, its implementation is straightforward - remove from one list the items in another list and return the result in the right data structure that is required by the algorithm, as can be seen as follows:
-
-````clojure
-(defn- remove-explored [pendings explored structure-fn]
-   (structure-fn (remove #(contains? explored %) pendings)))
-````
 ## Querying the database
 
 Querying is what makes database a database. Without querying all we have is a storage backed data structure - a software component that provides predefined APIs with an abstraction level that is higher than writing and reading raw data.
@@ -1060,6 +986,82 @@ From the user's perspective, invoking a query is a call to the *q* macro, that a
            query-internal-res# (query-plan# ~db)] ;executing the plan on the database
      (unify query-internal-res# needed-vars#)));unifying the query result with the needed variables to report out what the user asked for
 ````  
+
+## Connected data
+
+Querying is the first mean of extracting insights from data, and it leverages the datom way of data modeling. However, there are other properties of our data modeling which allow insights extraction, and especially leverage the way entities are connected amongst themeselves. 
+One kind of connection may be between an entity’s to itself at different times (an evolutionary connection). Another may be reference between two entities, which forms a graph whose nodes are the entities and the edges are the references. 
+In this section we’ll see how to utilizes these connection types and provide mechanisms to extract insights based them.
+
+### Evolution
+
+In our database, an update operation is done by appending a new value to an attribute (as oppose to overwrite in standard databases). This opens up the possibility of linking two attribute values, in two different times. The way this linking is implemented in our database is by having the attribute hold the timestamp of the previous update. That timestamp points to a layer in which the attribute held the previous value. More than that, we can look at the attribute at that layer, and continue going back in time and look deeper into history, thus observing the how the attribute’s value evolved throughout time.  
+
+The function *evolution-of* does exactly that, and return a sequence of pairs - each consist of the timestamp and value of an attribute’s update.
+
+````clojure
+(defn evolution-of [db ent-id attr-name]
+   (loop [res [] ts (:curr-time db)]
+     (if (= -1 ts) (reverse res)
+         (let [attr (attr-at db ent-id attr-name ts)]
+           (recur (conj res {(:ts attr) (:value attr)})  (:prev-ts attr))))))
+````
+### Graph traversal
+
+A reference connection between entities is created when an entity’s attribute’s type is *:db/ref*, which means that the value of that attribute is an id of another entity. When a referring entity is added to the database, the reference is indexed at the VAET index. In that index, the top level items (the *V*'s) are ids of entities that are referenced to by other entities.The leaves of this index (the *E*'s) hold the referring entities’ ids. The *Attribute*'s name is captured in the second layer of that index (the *A*'s).  
+The information found in the VAET index can be leveraged to extract all the incoming links to an entity and is done in the function *incoming-refs*, which collects for the given entity all the leaves that are reachable from it at that index:
+
+````clojure
+(defn incoming-refs [db ts ent-id & ref-names]
+   (let [vaet (ind-at db :VAET ts)
+         all-attr-map (vaet ent-id)
+         filtered-map (if ref-names (select-keys ref-names all-attr-map) all-attr-map)]
+      (reduce into #{} (vals filtered-map))))
+````
+We can also, for a given entity, go through all of it’s attributes and collect all the values of attribute of type :db/ref, and by that extract all the outgoing references from that entity. This is done at the *outgoing-refs* function 
+
+````clojure
+(defn outgoing-refs [db ts ent-id & needed-keys]
+   (let [val-filter-fn (if ref-names #(vals (select-keys ref-names %)) vals)]
+   (if-not ent-id []
+     (->> (entity-at db ts ent-id)
+          (:attrs) (val-filter-fn) (filter ref?) (mapcat :value)))))
+````
+These two functions act as the basic building blocks for any graph traversal operation, as they are the ones that raise the level of abstraction from entities and attributes to nodes and links in a graph. These functions can provide either all the refs (either incoming or outgoing) of an entity or a subset of them. This is possible as each ref is an attribute (with a type of :db\ref), so to define a subset of the refs means to define a subset of the attribute names and provide it via the *ref-names* argument of these functions. 
+
+On top of providing these two building blocks of graph traversal, our database also provides the two classical graph traversing algorithms - breadth-first-search and depth-first-search, that start from a given node, and traverse the graph along either the incoming or outgoing references (using either *incoming-refs* or *outgoing-refs* appropriately).
+
+As these two algorithms have almost identical implementation, they are both implemented in the same function, called *traverse*, and the difference is mitigated by the function *traverse-db* that receives as an input which algorithm to use (either *:graph/bfs* or *:graph/dfs*) and along which references to walk (either *:graph/outgoing* or *:graph/incoming*). 
+
+````clojure
+(defn traverse-db 
+   ([start-ent-id db algo direction] (traverse-db start-ent-id db algo direction (:curr-time db)))
+   ([start-ent-id db algo direction ts]
+     (let [structure-fn (if (= :graph/bfs algo) vec list*)
+           explore-fn   (if (= :graph/outgoing direction) outgoing-refs incoming-refs)]
+       (traverse [start-ent-id] #{}  
+                (partial explore-fn db ts) (partial entity-at db ts) structure-fn))))
+ ````
+The implementation itself of the algorithm is the classical implementation with a minor, yet important twist - laziness. The results of the traversal are computed lazily, meaning that the traversal would continue as long as its results are needed.
+
+This is done by having the combination of *cons* and *lazy-seq* wrapping the recursive call at the *traverse* function.
+
+````clojure
+(defn- traverse [pendings explored exploring-fn ent-at structure-fn]
+     (let [cleaned-pendings (remove-explored pendings explored structure-fn)
+           item (first cleaned-pendings)
+           all-next-items  (exploring-fn item)
+           next-pends (reduce conj (structure-fn (rest cleaned-pendings)) all-next-items)]
+       (when item (cons (ent-at item)
+                        (lazy-seq (traverse next-pends (conj explored item) 
+                                            exploring-fn ent-at structure-fn))))))
+````
+This function uses a helper function call *remove-explored* to help preventing re-visits to an already explored entities, its implementation is straightforward - remove from one list the items in another list and return the result in the right data structure that is required by the algorithm, as can be seen as follows:
+
+````clojure
+(defn- remove-explored [pendings explored structure-fn]
+   (structure-fn (remove #(contains? explored %) pendings)))
+````
 
 ## Architectural notes
 
