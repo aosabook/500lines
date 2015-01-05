@@ -142,6 +142,7 @@ class Crawler:
         self.max_redirect = max_redirect
         self.max_tries = max_tries
         self.max_tasks = max_tasks
+        self.q = asyncio.JoinableQueue()
         self.todo = {}
         self.busy = {}
         self.done = {}
@@ -163,8 +164,6 @@ class Crawler:
                     self.root_domains.add(host)
         for root in roots:
             self.add_url(root)
-        self.governor = asyncio.Semaphore(max_tasks)
-        self.termination = asyncio.Condition()
         self.t0 = time.time()
         self.t1 = None
 
@@ -205,6 +204,22 @@ class Crawler:
         host = host.split('.')[-2:]
         return host in self.root_domains
 
+    @asyncio.coroutine
+    def _work(self):
+        while True:
+            fetcher = yield from self.q.get()
+            del self.todo[fetcher.url]
+            self.busy[fetcher.url] = fetcher
+            try:
+                yield from fetcher.fetch()
+            finally:
+                # Force GC of the task, so the error is logged.
+                fetcher.task = None
+
+            del self.busy[fetcher.url]
+            self.done[fetcher.url] = fetcher
+            self.q.task_done()
+
     def add_url(self, url, max_redirect=None):
         """Add a URL to the todo list if not seen before."""
         if self.exclude and re.search(self.exclude, url):
@@ -223,40 +238,18 @@ class Crawler:
             return False
         logger.debug('adding %r %r', url, max_redirect)
         self.todo[url] = max_redirect
+        self.q.put_nowait(Fetcher(url,
+                                  crawler=self,
+                                  max_redirect=max_redirect,
+                                  max_tries=self.max_tries))
         return True
 
     @asyncio.coroutine
     def crawl(self):
         """Run the crawler until all finished."""
-        with (yield from self.termination):
-            while self.todo or self.busy:
-                if self.todo:
-                    url, max_redirect = self.todo.popitem()
-                    fetcher = Fetcher(url,
-                                      crawler=self,
-                                      max_redirect=max_redirect,
-                                      max_tries=self.max_tries,
-                                      )
-                    self.busy[url] = fetcher
-                    fetcher.task = asyncio.Task(self.fetch(fetcher))
-                else:
-                    yield from self.termination.wait()
+        workers = [asyncio.Task(self._work()) for _ in range(self.max_tasks)]
+        self.t0 = time.time()
+        yield from self.q.join()
         self.t1 = time.time()
-
-    @asyncio.coroutine
-    def fetch(self, fetcher):
-        """Call the Fetcher's fetch(), with a limit on concurrency.
-
-        Once this returns, move the fetcher from busy to done.
-        """
-        url = fetcher.url
-        with (yield from self.governor):
-            try:
-                yield from fetcher.fetch()  # Fetcher gonna fetch.
-            finally:
-                # Force GC of the task, so the error is logged.
-                fetcher.task = None
-        with (yield from self.termination):
-            self.done[url] = fetcher
-            del self.busy[url]
-            self.termination.notify()
+        for w in workers:
+            w.cancel()
