@@ -528,17 +528,17 @@ All that remains is to remove the old value from the indexes and to add the new 
 
 ### Transactions
 
-The operations in our low-level API each act on a single entity. However, nearly all databases have a mechanism for allowing users to perform multiple operations as a single _transaction_. (TODO: Reference other chapters on transactional semantics here.) This means: 
+Each of the operations in our low-level API act on a single entity. However, nearly all databases have a mechanism for allowing users to perform multiple operations as a single _transaction_. (TODO: Reference other chapters on transactional semantics here.) This means: 
 
-* The batch of operations is viewed as a single atomic operation, meaning that either all of the operations succeed together fail together
-* The database in a valid state before, during, and after the transaction
+* The batch of operations is viewed as a single atomic operation, meaning that either all of the operations succeed together or fail together
+* The database is in a valid state before, and after the transaction
 * The batch update appears to be _isolated_; other queries should never see a database state in which only some of the operations have been applied
 
-We can fulfill these requirements through an interface that consumes a database and a set of operations to be performed, and which produces a database whose state reflects the given changes. All of the changes submitted in the batch should be applied through the addition of a _single_ layer. Clojure provides us with a tool to help with this -- the *Atom* element, which wraps a data structure and allows us to atomically invoke a single function on it. [TODO: this seems magical -- it might be worth linking to a reference that explains how this works.]
+We can fulfill these requirements through an interface that consumes a database and a set of operations to be performed, and which produces a database whose state reflects the given changes. All of the changes submitted in the batch should be applied through the addition of a _single_ layer. However, we have one small problem: All of the functions we wrote in our low-level API add a new layer to the database. If we were to perform a batch with _n_ operations, we would thus see _n_ new layers added, when what we would really like is to have exactly 1 new layer.   
 
-Between Clojure's *Atom* and our low-level API from the previous section, it sounds like we should have everything we need to perform transactional batch upates. However, we have one small problem: All of the functions we wrote in our low-level API add a new layer to the database. If we were to perform a batch with _n_ operations, we would thus see _n_ new layers added, when what we would really like is to have exactly 1 new layer.   
+The key insight here is that the layer we want is the _top_ layer that would be produced by performing those updates in sequence. Therefore, the solution is to execute each of the user’s operations one after another, each of which will create a new layer. When the last layer is created, we take only that top layer and place it on the initial database (leaving all the intermediate layers to pine for the fjords). Only after we've done all this will we update the database's timestamp.
+All this is done in the *transact-on-db* function, that receives the initial value of the database and the batch of operations to perform, and returns its updated value. 
 
-The key insight here is that the layer we want is the _top_ layer that would be produced by performing those updates in sequence. Therefore, the solution is to execute each of the user’s operations one after another, each of which will create a new layer. When the last layer is created, we take only that top layer and place it on the initial database. Only after we've done all this will we update the database's timestamp.
 
 ````clojure
 (defn transact-on-db [initial-db ops]
@@ -549,30 +549,25 @@ The key insight here is that the layer we want is the _top_ layer that would be 
                 new-layer (last (:layers transacted))]
             (assoc initial-db :layers (conj  initial-layer new-layer) :curr-time (next-ts initial-db) :top-id (:top-id transacted))))))
 ```` 
-This function is performed on the Atom that wraps the database (to modify the database state as seen by the user), but it can be used also to answer a *what-if* question - as it does not modify the given database, but rather produces a new database with the updated state. These two scenarios are supported by two execution paths that end up in the *transact-on-db* function:
 
-* The transaction call chain : transact →  _transact → swap! → transact-on-db
+Note here that we used the term _value_, this means that only the caller to this function is exposed to the updated state, and all other users of the database are unaware of this change (as a database is a value, and therefore cannot change). 
+In order to have a system where users can be exposed to state changes performed by others, users do not interact directly with the database, but rather refer to it using another level of indirection [REF HERE]. This additional level is implemented using Clojure's element called *Atom*, which is a one of Clojure's reference types. Here we leverage two key features of an *Atom*, which are:
+1. It references other elements
+2. Getting to the value of the referenced elements is done by dereferencing the *Atom*, which returns the state of that element at that time
+3. All updates to the value referenced by the *Atom* are done in a transactional manner (using Clojure's Software Transaction Memory capabilities), by providing to the transaction the *Atom* and a function that updates its state.
 
-    * When using this chain of calls, the user provides the operations and the connection to the database (i.e., the atom element)
-    * The output of this chain is the atom element pointing to a new database
-    * The *swap!* function updates the atom element
-* The what-if call chain : what-if → _transact →   _what-if → transact-on-db 
+In between Clojure's *Atom* and the work done in *transact-on-db*, there's still gap to be bridged, namely, to invoke the transaction with the right inputs. 
+To have the simplest and clearest APIs, we  would like users to just provide the *Atom* and the list of operations, and have database transform the user input into a proper transaction.
 
-    * When using this chain of calls, the user provides the operations and the database itself
-    * The output of this chain is a new database element
-    * The _what-if function acts as an adapter from this chain to transaction chain (especially using a database and not an atom and swap!)
+That transformation occurs in the following transaction call chain:
 
-As can be seen, this chains differs in the function called by the *_transact* function. This difference is injected into the chain by the function that the user called, either *transact* or *what-if* : 
+ transact →  _transact → swap! → transact-on-db
 
+* Users call *transact* with the *Atom* (i.e., the database connection) and the operations to perform, relays its input to *_transact*, adding to it the name of the function that updates the *Atom* (*swap!*)
 ````clojure
-(defmacro what-if [db & txs]  `(_transact ~db _what-if  ~@txs))
-
 (defmacro transact [db-conn & txs]  `(_transact ~db-conn swap! ~@txs))
 ````
-Note that these are not functions, but macros. The reason for using macros here is that arguments to macros do not get evaluated as the call happens, this allows us to offer a cleaner API design where the user provides the operations structured in the same way that any function call is structured in Clojure, and it is up to us to transform the user provided, readable, input to executable transaction / what-if question. 
-
-The main transformation in this process is done by the *_transact* macro. It takes the list of operations and the scenario specific usage function (either *swap!* for a transaction or  *_what-if* for a what-if question) and compose from it a function call to the given scenario specific function. Note that none of these gets evaluated before reaching the body of *transact-on-db.* This is due to the fact the _transact is a macro, and within it, the operations that were provided as function calls (parens wrapped element) are modified into vectors holding the elements of the call (at the *(vec frst-tx#)* call). 
-
+* *_transact* prepares the call to the transaction *swap!* by building its arguments from *transact-on-db*, the *Atom* and constructing a list out of the operations
 ````clojure
 (defmacro  _transact [db op & txs]
    (when txs
@@ -581,11 +576,27 @@ The main transformation in this process is done by the *_transact* macro. It tak
            (recur rst-tx# res#  (conj  accum-txs#  (vec frst-tx#)))
            (list* (conj res#  accum-txs#))))))
 ````
-The role of *_what-if* is to mimic  *swap!* but operate on a database instead of on an Atom.
+* *swap!* invokes *transact-on-db* within a transaction (with the previously prepared arguments)
+* *transact-on-db* creates the new state of the database and returns it
+
+At this point we can see that with few minor tweaks, we can also provide a way to ask a "what-if" questions, but skipping the *swap!* stage and just operating on the database itself. This is done via the "what-if" call chain:
+
+what-if → _transact →   _what-if → transact-on-db
+
+* Users call *what-if* with the database value and the operations to perform, that relays its input to *_transact*, adding to it the name of the function that adapts the output of *_transact* to *transact-on-db*, it is called *_what-if*
+* 
+````clojure
+(defmacro what-if [db & ops]  `(_transact ~db _what-if  ~@ops))
+````
+* *_transact* prepares the call to *_what-if* by building its arguments from *transact-on-db*, the database and constructing a list out of the operations
+* *_what-if* invokes *transact-on-db* with the properer arguments order
 
 ````clojure
 (defn- _what-if [db f txs]  (f db txs))
 ````
+ 
+Note that we are not using functions, but macros. The reason for using macros here is that arguments to macros do not get evaluated as the call happens, this allows us to offer a cleaner API design where the user provides the operations structured in the same way that any function call is structured in Clojure. 
+
 The above described process can be seen in the following examples:
 
 Transaction: 

@@ -109,9 +109,9 @@
         new-layer (reduce (partial update-index  ent-id old-attr new-val operation) layer (indices))]
     (assoc new-layer :storage (write-entity storage (update-entity storage ent-id updated-attr)))))
 
-(defn update-entity
+(defn update-datom
   ([db ent-id attr-name new-val]
-   (update-entity db ent-id attr-name new-val :db/reset-to ))
+   (update-datom db ent-id attr-name new-val :db/reset-to ))
   ([db ent-id attr-name new-val operation]
      (let [update-ts (next-ts db)
            layer (last (:layers db))
@@ -136,7 +136,7 @@
 
 (defn- remove-back-refs [db e-id layer]
   (let [reffing-datoms (reffing-to e-id layer)
-        remove-fn (fn[d [e a]] (update-entity db e a e-id :db/remove))
+        remove-fn (fn[d [e a]] (update-datom db e a e-id :db/remove))
         clean-db (reduce remove-fn db reffing-datoms)]
     (last (:layers clean-db))))
 
@@ -156,16 +156,16 @@
                 new-layer (last (:layers transacted))]
             (assoc initial-db :layers (conj  initial-layer new-layer) :curr-time (next-ts initial-db) :top-id (:top-id transacted))))))
 
-(defmacro  _transact [db op & txs]
-  (when txs
-    (loop [[frst-tx# & rst-tx#] txs  res#  [op db `transact-on-db] accum-txs# []]
-      (if frst-tx#
-          (recur rst-tx# res#  (conj accum-txs# (vec frst-tx#)))
-          (list* (conj res#  accum-txs#))))))
+(defmacro  _transact [db exec-fn & ops]
+    (when ops
+      (loop [[frst-op# & rst-ops#] ops  res#  [exec-fn db `transact-on-db]  accum-ops# []]
+        (if frst-op#
+           (recur rst-ops# res#  (conj  accum-ops#  (vec frst-op#)))
+           (list* (conj res#  accum-ops#))))))
 
 (defn- _what-if
   "Operates on the db with the given transactions, but without eventually updating it"
-  [db f txs] (f db txs))
+  [db f ops] (f db ops))
 
-(defmacro what-if [db & txs]  `(_transact ~db _what-if  ~@txs))
-(defmacro transact [db-conn & txs]  `(_transact ~db-conn swap! ~@txs))
+(defmacro what-if [db & ops]  `(_transact ~db _what-if  ~@ops))
+(defmacro transact [db-conn & ops]  `(_transact ~db-conn swap! ~@ops))
