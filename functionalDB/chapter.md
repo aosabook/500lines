@@ -634,15 +634,12 @@ Becomes eventually:
 
 ## Querying the database
 
-Querying is what makes database a database. Without querying all we have is a storage backed data structure - a software component that provides predefined APIs with an abstraction level that is higher than writing and reading raw data.
-
-To query a database, we first need to decide what querying language to use. The first and most important criteria for choosing a querying language is its fit for the database’s data model. For example, for the relational data model (i.e., data is described with predefined tables where the columns are the attribute and the rows are the entities), the best fit would be a language whose roots are in relational algebra, SQL is such language. 
-
-Our data model is based on accumulation of facts (which we call datoms).The most distilled form of a fact is a triplet containing an entity id, attribute name and the attribute value (at a given time). For this model, a natural place to look for the right query language the domain of logic programming. In this domain, a commonly used query language is Datalog, that apart of being well suited for our data model, has a very elegant adaptation to Clojure’s syntax, which was defined as part of the Datomic database (see [http://docs.datomic.com/query.html](http://docs.datomic.com/query.html)). Our query engine will implement a subset of the that adaptation.
+A database is not very useful to its users without a powerful query mechanism. This feature is usually exposed to users through a _query language_ that is used to declaratively specify the set of data of interest. 
+Our data model is based on accumulation of facts (i.e. datoms) over time. For this model, a natural place to look for the right query language is _logic programming_. A commonly used query language influenced by logic programming is _Datalog_ which, in addition to being well-suited for our data model, has a very elegant adaptation to Clojure’s syntax. Our query engine will implement a subset of the *Datalog* language from the [Datatomic database](http://docs.datomic.com/query.html).
 
 ### Query language
 
-To have a clear definition of the structure of a query, let’s start with an exemplary one, understand it syntax and explain its semantics.
+Let's look at an example query in our proposed language. This query asks "what are the names and ages of people who like pizza, whose age is more than 20, and who have a birthday this week?"
 
 ````clojure
 {  :find [?nm ?ag ]
@@ -654,21 +651,12 @@ To have a clear definition of the structure of a query, let’s start with an ex
 ````
 #### The query’s syntax
 
-The query’s syntax is based on Clojure’s data literals. This simplifies the parsing of the query while still allows having a readable and familiar textual representation of it.
-
-A query itself is a map containing two entries:
-
-* An entry whose key is *:where* and its value is a rule (implemented as a vector) holding clauses. A clause is a vector composed of three predicates, each one to operate of a different part of a datom:
-
-    * Predicate to operate on the entity-id
-    * Predicate to operate on the attribute-name
-    * Predicate to operate on the value
-
-	In the example above *[?e  :likes "pizza"]* is a clause.  
-The role of the *:where* entry in the query is to define a rule that acts as a filter of the datoms in the database
-
-* An entry whose key is *:find* and its value is a vector. The vector defines which parts of a datoms that passed all the clauses should be reported and compose the answer of the query (think of a Select statement in an SQL query). 
-This does not include formatting of the answer - operations such as sorting or grouping are not supported.
+We directly use the syntax of Clojure’s data literals to provide the basic syntax for our queries. This allows us to avoid having to write a specialized parser, while still providing a form that is familiar and easily readable to programmers familiar with Clojure.
+ 		 
+A query is a map with two items:
+* An item with *:where* as a key, and with a _rule_ as a value. A rule is a vector of _clauses_, and a clause is a vector composed of three _predicates_, each of which operates on a different component of a datom.  In the example above, *[?e  :likes "pizza"]* is a clause.  This *:where* item defines a rule that acts as a filter on datoms in our database (like the 'WHERE' clause in a SQL query.)		
+ 		 
+* An item with *:find* as a key, and with a vector as a value. The vector defines which components of the selected datom should be projected into the results (like the 'SELECT' clause in an SQL query.)
 
 The description above is missing a crucial part, which is how to make different clauses sync on a value (i.e., make a join operation between them), and how to transmit values found at the *:where* part to be reported by the *:find* part. 
 
@@ -769,11 +757,7 @@ Following the above explanation, we can now read and understand the different te
 </table>
 
 
-Table 4
-
-To sum it up, in a spoken language, the exemplary query means "find the names and ages of the people who like pizza, their age is more than 20 and have birthday this week".
-
- 
+Table 4 
 
 ### Query engine design
 
