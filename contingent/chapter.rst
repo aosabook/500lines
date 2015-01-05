@@ -781,11 +781,11 @@ and *rendering* the output document.
   all it actually needs to do is convert from a filename
   to the corresponding text:
 
+    >>> filesystem = {'index.txt': index, 'tutorial.txt': tutorial,
+    ...               'api.txt': api}
     >>> @task
     ... def read(filename):
-    ...     return {'index.txt': index,
-    ...             'tutorial.txt': tutorial,
-    ...             'api.txt': api}[filename]
+    ...     return filesystem[filename]
 
 * ``parse()`` interprets the raw text of the file contents
   according to the specification of our document format.
@@ -934,7 +934,8 @@ from ``parse``'s code to ``read``'s,
 since that would lose track of what we were doing
 in ``parse`` when the call was made,
 leaving our program wandering around forgetting everything
-like Leonard from *Memento*.
+like Leonard from *Memento*,
+with equally disastrous consequences.
 In order to keep track of things like
 *who* called ``read``,
 where we were in the code when the call was made,
@@ -1230,7 +1231,7 @@ should not need to touch the other documents.
 
 What can we do?
 
-Caching consequences
+Caching Consequences
 ====================
 
 So far, we have built a system that avoids rebuilding too little:
@@ -1241,37 +1242,50 @@ and can force each affected task to be recomputed.
 Our second challenge, however,
 is to avoid rebuilding too *much*:
 we want to avoid rebuilding all the documents
-if tutorial.rst is touched but its title has not changed,
+if ``tutorial.txt`` is touched but its title has not changed,
 since we know that the tutorial's body
 has no effect on the other documents.
 
 How? Caching, my boy, caching!
 
-That is why we _get_from_cache()
+First, though, we need to be more precise about what we mean.
+That is, we need to express the idea
+“``tutorial.txt`` is touched but its title has not changed”
+in terms of Contingent's model concepts of
+tasks, values, and consequences.
+What we need is a way to compare a task's output
+with the value produced by the previous run:
+we say that a task has changed if
+its current value is different from the value it produced last time.
+For example, the current value of this task is:
 
-So show rest of stuff from the listing?
+>>> title_of('tutorial.txt')
+'Beginners Tutorial'
 
-Show how awesome Python is:
-again, because functions are both 1st class objects
-and are also hashable, we can use them as part of keys:
-(f, args) is a completely natural key.
+Suppose you edit ``tutorial.txt``,
+change both the title and the body content,
+and save your work to the file system:
 
-So what if title and body both change?
-
->>> task = read, ('tutorial.txt',)
->>> project.set(task, """
+>>> filesystem['tutorial.txt'] = """
 ... The Coder Tutorial
 ... ------------------
 ... This is a new and improved
 ... introductory paragraph.
-... """)
+... """
 
-No surprise: everything gets rebuilt,
+Since the contents have changed,
+the task responsible for reading the file in is now invalid:
+
+>>> task = read, ('tutorial.txt',)
+>>> project.invalidate(task)
+
+which means that everything gets rebuilt,
 because every document needs to change.
 
 >>> project.start_tracing()
 >>> project.rebuild()
 >>> print(project.stop_tracing())
+calling read('tutorial.txt')
 calling parse('tutorial.txt')
 calling title_of('tutorial.txt')
 calling transform('api.txt')
@@ -1281,22 +1295,64 @@ calling render('index.txt')
 calling transform('tutorial.txt')
 calling render('tutorial.txt')
 
+Looking back at Figure 4,
+you can see that, as expected,
+this is every task that is an immediate or downstream consequence
+of ``read('tutorial.txt')``; also unsurprisingly,
+the tutorial title task exhibits the updated value:
+
+>>> title_of('tutorial.txt')
+'The Coder Tutorial'
 
 But what if we edit it again,
 but this time leave the title the same?
 
->>> project.set(task, """
+>>> filesystem['tutorial.txt'] = """
 ... The Coder Tutorial
 ... ------------------
 ... Welcome to the coder tutorial!
 ... It should be read top to bottom.
-... """)
+... """
+>>> project.invalidate(task)
+
+
+
+.. include:: contingent/projectlib.py
+    :code: python
+    :start-line: 78
+    :end-line: 96
+
+
+.. include:: contingent/graphlib.py
+    :code: python
+    :start-line: 50
+    :end-line: 55
+
+
+.. include:: contingent/projectlib.py
+    :code: python
+    :start-line: 110
+    :end-line: 123
+
+
+
+So show rest of stuff from the listing?
+
+Show how awesome Python is:
+again, because functions are both 1st class objects
+and are also hashable, we can use them as part of keys:
+(f, args) is a completely natural key.
+
+
+
+
 
 This should have no effect on the other documents.
 
 >>> project.start_tracing()
 >>> project.rebuild()
 >>> print(project.stop_tracing())
+calling read('tutorial.txt')
 calling parse('tutorial.txt')
 calling title_of('tutorial.txt')
 calling transform('tutorial.txt')
