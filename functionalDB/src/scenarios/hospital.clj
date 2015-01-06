@@ -58,8 +58,8 @@
                                                {:test/bp-systolic 140 :test/bp-diastolic 80 :test/machine :2machine2}
                                                {:test/machine :db/ref} ))
 
-(transact hospital-db  (update-datom :pat1 :patient/symptoms #{"cold sweat" "sneeze"} :db/reset-to))
-(transact hospital-db  (update-datom :pat1 :patient/tests #{:t2-pat1} :db/remove))
+(transact hospital-db  (update-entity :pat1 :patient/symptoms #{"cold sweat" "sneeze"} :db/reset-to))
+(transact hospital-db  (update-entity :pat1 :patient/tests #{:t2-pat1} :db/add))
  ;  (transact hospital-db (remove-entity :t2-pat1))
 
  (defn keep-on-equals [a b](if (= a b) a nil ))

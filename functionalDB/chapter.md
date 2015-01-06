@@ -528,17 +528,17 @@ All that remains is to remove the old value from the indexes and to add the new 
 
 ### Transactions
 
-The operations in our low-level API each act on a single entity. However, nearly all databases have a mechanism for allowing users to perform multiple operations as a single _transaction_. (TODO: Reference other chapters on transactional semantics here.) This means: 
 
-* The batch of operations is viewed as a single atomic operation, meaning that either all of the operations succeed together fail together
-* The database in a valid state before, during, and after the transaction
+Each of the operations in our low-level API act on a single entity. However, nearly all databases have a mechanism for allowing users to perform multiple operations as a single _transaction_. (TODO: Reference other chapters on transactional semantics here.) This means: 
+
+* The batch of operations is viewed as a single atomic operation, meaning that either all of the operations succeed together or fail together
+* The database is in a valid state before, and after the transaction
 * The batch update appears to be _isolated_; other queries should never see a database state in which only some of the operations have been applied
 
-We can fulfill these requirements through an interface that consumes a database and a set of operations to be performed, and which produces a database whose state reflects the given changes. All of the changes submitted in the batch should be applied through the addition of a _single_ layer. Clojure provides us with a tool to help with this -- the *Atom* element, which wraps a data structure and allows us to atomically invoke a single function on it. [TODO: this seems magical -- it might be worth linking to a reference that explains how this works.]
+We can fulfill these requirements through an interface that consumes a database and a set of operations to be performed, and which produces a database whose state reflects the given changes. All of the changes submitted in the batch should be applied through the addition of a _single_ layer. However, we have one small problem: All of the functions we wrote in our low-level API add a new layer to the database. If we were to perform a batch with _n_ operations, we would thus see _n_ new layers added, when what we would really like is to have exactly 1 new layer.   
 
-Between Clojure's *Atom* and our low-level API from the previous section, it sounds like we should have everything we need to perform transactional batch upates. However, we have one small problem: All of the functions we wrote in our low-level API add a new layer to the database. If we were to perform a batch with _n_ operations, we would thus see _n_ new layers added, when what we would really like is to have exactly 1 new layer.   
-
-The key insight here is that the layer we want is the _top_ layer that would be produced by performing those updates in sequence. Therefore, the solution is to execute each of the user’s operations one after another, each of which will create a new layer. When the last layer is created, we take only that top layer and place it on the initial database. Only after we've done all this will we update the database's timestamp.
+The key insight here is that the layer we want is the _top_ layer that would be produced by performing those updates in sequence. Therefore, the solution is to execute each of the user’s operations one after another, each of which will create a new layer. When the last layer is created, we take only that top layer and place it on the initial database (leaving all the intermediate layers to pine for the fjords). Only after we've done all this will we update the database's timestamp.
+All this is done in the *transact-on-db* function, that receives the initial value of the database and the batch of operations to perform, and returns its updated value. 
 
 ````clojure
 (defn transact-on-db [initial-db ops]
@@ -549,30 +549,25 @@ The key insight here is that the layer we want is the _top_ layer that would be 
                 new-layer (last (:layers transacted))]
             (assoc initial-db :layers (conj  initial-layer new-layer) :curr-time (next-ts initial-db) :top-id (:top-id transacted))))))
 ```` 
-This function is performed on the Atom that wraps the database (to modify the database state as seen by the user), but it can be used also to answer a *what-if* question - as it does not modify the given database, but rather produces a new database with the updated state. These two scenarios are supported by two execution paths that end up in the *transact-on-db* function:
 
-* The transaction call chain : transact →  _transact → swap! → transact-on-db
+Note here that we used the term _value_, this means that only the caller to this function is exposed to the updated state, and all other users of the database are unaware of this change (as a database is a value, and therefore cannot change). 
+In order to have a system where users can be exposed to state changes performed by others, users do not interact directly with the database, but rather refer to it using another level of indirection [REF HERE]. This additional level is implemented using Clojure's element called *Atom*, which is a one of Clojure's reference types. Here we leverage two key features of an *Atom*, which are:
+1. It references other elements
+2. Getting to the value of the referenced elements is done by dereferencing the *Atom*, which returns the state of that element at that time
+3. All updates to the value referenced by the *Atom* are done in a transactional manner (using Clojure's Software Transaction Memory capabilities), by providing to the transaction the *Atom* and a function that updates its state.
 
-    * When using this chain of calls, the user provides the operations and the connection to the database (i.e., the atom element)
-    * The output of this chain is the atom element pointing to a new database
-    * The *swap!* function updates the atom element
-* The what-if call chain : what-if → _transact →   _what-if → transact-on-db 
+In between Clojure's *Atom* and the work done in *transact-on-db*, there's still gap to be bridged, namely, to invoke the transaction with the right inputs. 
+To have the simplest and clearest APIs, we  would like users to just provide the *Atom* and the list of operations, and have database transform the user input into a proper transaction.
 
-    * When using this chain of calls, the user provides the operations and the database itself
-    * The output of this chain is a new database element
-    * The _what-if function acts as an adapter from this chain to transaction chain (especially using a database and not an atom and swap!)
+That transformation occurs in the following transaction call chain:
 
-As can be seen, this chains differs in the function called by the *_transact* function. This difference is injected into the chain by the function that the user called, either *transact* or *what-if* : 
+ transact →  _transact → swap! → transact-on-db
 
+* Users call *transact* with the *Atom* (i.e., the database connection) and the operations to perform, relays its input to *_transact*, adding to it the name of the function that updates the *Atom* (*swap!*)
 ````clojure
-(defmacro what-if [db & txs]  `(_transact ~db _what-if  ~@txs))
-
 (defmacro transact [db-conn & txs]  `(_transact ~db-conn swap! ~@txs))
 ````
-Note that these are not functions, but macros. The reason for using macros here is that arguments to macros do not get evaluated as the call happens, this allows us to offer a cleaner API design where the user provides the operations structured in the same way that any function call is structured in Clojure, and it is up to us to transform the user provided, readable, input to executable transaction / what-if question. 
-
-The main transformation in this process is done by the *_transact* macro. It takes the list of operations and the scenario specific usage function (either *swap!* for a transaction or  *_what-if* for a what-if question) and compose from it a function call to the given scenario specific function. Note that none of these gets evaluated before reaching the body of *transact-on-db.* This is due to the fact the _transact is a macro, and within it, the operations that were provided as function calls (parens wrapped element) are modified into vectors holding the elements of the call (at the *(vec frst-tx#)* call). 
-
+* *_transact* prepares the call to *swap!*. It does so by creating a list that begins with *swap!*, followed by the db-connection (the *Atom*), then the *transact-on-db* symbol and the batch of operations.
 ````clojure
 (defmacro  _transact [db op & txs]
    (when txs
@@ -581,11 +576,26 @@ The main transformation in this process is done by the *_transact* macro. It tak
            (recur rst-tx# res#  (conj  accum-txs#  (vec frst-tx#)))
            (list* (conj res#  accum-txs#))))))
 ````
-The role of *_what-if* is to mimic  *swap!* but operate on a database instead of on an Atom.
+* *swap!* invokes *transact-on-db* within a transaction (with the previously prepared arguments)
+* *transact-on-db* creates the new state of the database and returns it
+
+At this point we can see that with few minor tweaks, we can also provide a way to ask "what-if" questions. It can be done by replacing *swap!* with a function that would not impose any change to the system. This scenario is implemented with the "what-if" call chain:
+
+what-if → _transact →   _what-if → transact-on-db
+
+* The user calls *what-if* with the database value and the operations to perform. It then relays these inputs to *_transact*, adding to them a function that mimics *swap!*'s APIs, without its effect (callled *_what-if*).  
+````clojure
+(defmacro what-if [db & ops]  `(_transact ~db _what-if  ~@ops))
+````
+* *_transact* prepares the call to *_what-if*. It does so by creating a list that begins with *_what-if*, followed by the database, then the *transact-on-db* symbol and the batch of operations.
+* *_what-if* invokes *transact-on-db*, just like *swap!* does in the transaction scenario, but does not inflict any change on the system.
 
 ````clojure
 (defn- _what-if [db f txs]  (f db txs))
 ````
+ 
+Note that we are not using functions, but macros. The reason for using macros here is that arguments to macros do not get evaluated as the call happens, this allows us to offer a cleaner API design where the user provides the operations structured in the same way that any function call is structured in Clojure. 
+
 The above described process can be seen in the following examples:
 
 Transaction: 
@@ -620,89 +630,10 @@ Becomes eventually:
 ````clojure
 (transact-on-db my-db  [[add-entity e3] [remove-entity e4]])
 ````
-## Connected data
-
-[TODO: Ideas here: In a relational database, you often think about connections between data. We can do that too. Additionally, though, we can think about the _evolution_ of data over time. We provide facilities for both.]
-
-Beyond having lifecycle, data can generate insights. However, extracting good insights is not an easy task. Therefore, a crucial role of a database to ease-up the search for insights process. 
-
-The first place to look for insights is in the connections between pieces of data. Such connection may be between an entity’s to itself at different times (an evolutionary connection). Another connection may be a reference between two entities. When such connection gets aggregated across the entities in the database, it forms a graph whose nodes are the entities and the edges are the references. In this section we’ll see how to utilizes these connection types and provide mechanisms to extract insights based them.
-
-### Evolution
-
-In our database, an update operation is done by appending a new value to an attribute (as oppose to overwrite in standard databases). This opens up the possibility of linking two attribute values, in two different times. The way this linking is implemented in our database is by having the attribute hold the timestamp of the previous update. That timestamp points to a layer in which the attribute held the previous value. More than that, we can look at the attribute at that layer, and continue going back in time and look deeper into history, thus observing the how the attribute’s value evolved throughout time.  
-
-The function *evolution-of* does exactly that, and return a sequence of pairs - each consist of the timestamp and value of an attribute’s update.
-
-````clojure
-(defn evolution-of [db ent-id attr-name]
-   (loop [res [] ts (:curr-time db)]
-     (if (= -1 ts) (reverse res)
-         (let [attr (attr-at db ent-id attr-name ts)]
-           (recur (conj res {(:ts attr) (:value attr)})  (:prev-ts attr))))))
-````
-### Graph traversal
-
-A reference connection between entities is created when an entity’s attribute’s type is *:db/ref*, which means that the value of that attribute is an id of another entity. When a referring entity is added to the database, the reference is indexed at the VAET index. In that index, the top level items (the *V*'s) are ids of entities that are referenced to by other entities.The leaves of this index (the *E*'s) hold the referring entities’ ids. The *Attribute*'s name is captured in the second layer of that index (the *A*'s).  
-The information found in the VAET index can be leveraged to extract all the incoming links to an entity and is done in the function *incoming-refs*, which collects for the given entity all the leaves that are reachable from it at that index:
-
-````clojure
-(defn incoming-refs [db ts ent-id & ref-names]
-   (let [vaet (ind-at db :VAET ts)
-         all-attr-map (vaet ent-id)
-         filtered-map (if ref-names (select-keys ref-names all-attr-map) all-attr-map)]
-      (reduce into #{} (vals filtered-map))))
-````
-We can also, for a given entity, go through all of it’s attributes and collect all the values of attribute of type :db/ref, and by that extract all the outgoing references from that entity. This is done at the *outgoing-refs* function 
-
-````clojure
-(defn outgoing-refs [db ts ent-id & needed-keys]
-   (let [val-filter-fn (if ref-names #(vals (select-keys ref-names %)) vals)]
-   (if-not ent-id []
-     (->> (entity-at db ts ent-id)
-          (:attrs) (val-filter-fn) (filter ref?) (mapcat :value)))))
-````
-These two functions act as the basic building blocks for any graph traversal operation, as they are the ones that raise the level of abstraction from entities and attributes to nodes and links in a graph. These functions can provide either all the refs (either incoming or outgoing) of an entity or a subset of them. This is possible as each ref is an attribute (with a type of :db\ref), so to define a subset of the refs means to define a subset of the attribute names and provide it via the *ref-names* argument of these functions. 
-
-On top of providing these two building blocks of graph traversal, our database also provides the two classical graph traversing algorithms - breadth-first-search and depth-first-search, that start from a given node, and traverse the graph along either the incoming or outgoing references (using either *incoming-refs* or *outgoing-refs* appropriately).
-
-As these two algorithms have almost identical implementation, they are both implemented in the same function, called *traverse*, and the difference is mitigated by the function *traverse-db* that receives as an input which algorithm to use (either *:graph/bfs* or *:graph/dfs*) and along which references to walk (either *:graph/outgoing* or *:graph/incoming*). 
-
-````clojure
-(defn traverse-db 
-   ([start-ent-id db algo direction] (traverse-db start-ent-id db algo direction (:curr-time db)))
-   ([start-ent-id db algo direction ts]
-     (let [structure-fn (if (= :graph/bfs algo) vec list*)
-           explore-fn   (if (= :graph/outgoing direction) outgoing-refs incoming-refs)]
-       (traverse [start-ent-id] #{}  
-                (partial explore-fn db ts) (partial entity-at db ts) structure-fn))))
- ````
-The implementation itself of the algorithm is the classical implementation with a minor, yet important twist - laziness. The results of the traversal are computed lazily, meaning that the traversal would continue as long as its results are needed.
-
-This is done by having the combination of *cons* and *lazy-seq* wrapping the recursive call at the *traverse* function.
-
-````clojure
-(defn- traverse [pendings explored exploring-fn ent-at structure-fn]
-     (let [cleaned-pendings (remove-explored pendings explored structure-fn)
-           item (first cleaned-pendings)
-           all-next-items  (exploring-fn item)
-           next-pends (reduce conj (structure-fn (rest cleaned-pendings)) all-next-items)]
-       (when item (cons (ent-at item)
-                        (lazy-seq (traverse next-pends (conj explored item) 
-                                            exploring-fn ent-at structure-fn))))))
-````
-This function uses a helper function call *remove-explored* to help preventing re-visits to an already explored entities, its implementation is straightforward - remove from one list the items in another list and return the result in the right data structure that is required by the algorithm, as can be seen as follows:
-
-````clojure
-(defn- remove-explored [pendings explored structure-fn]
-   (structure-fn (remove #(contains? explored %) pendings)))
-````
 
 ## Querying the database
 
-A database is very useful to its users without a powerful query mechanism. This feature is usually exposed to users through a _query language_ that is used to declaratively specify the set of data of interest. 
-
-The first and most important criteria when designing a query language is its fit for the database’s data model. For example, relational data (i.e., data described by predefined tables where columns are attributes and rows are entities), the best fit is a language with roots in the relational algebra such as Structured Query Language (SQL). 
+A database is not very useful to its users without a powerful query mechanism. This feature is usually exposed to users through a _query language_ that is used to declaratively specify the set of data of interest. 
 
 Our data model is based on accumulation of facts (i.e. datoms) over time. For this model, a natural place to look for the right query language is _logic programming_. A commonly used query language influenced by logic programming is _Datalog_ which, in addition to being well-suited for our data model, has a very elegant adaptation to Clojure’s syntax. Our query engine will implement a subset of the *Datalog* language from the [Datatomic database](http://docs.datomic.com/query.html).
 
@@ -718,6 +649,7 @@ Let's look at an example query in our proposed language. This query asks "what a
       [?e  :age (< ?ag 20)]
       [?e  :birthday (birthday-this-week? _)]]}
 ````
+
 #### Syntax
 
 We directly use the syntax of Clojure’s data literals to provide the basic syntax for our queries. This allows us to avoid having to write a specialized parser, while still providing a form that is familiar and easily readable to programmers familiar with Clojure.
@@ -825,12 +757,6 @@ Following the above explanation, we can now read and understand the different te
     <td>that entity had birthday this week</td>
   </tr>
 </table>
-
-
-Table 4
-
-
- 
 
 ### Query engine design
 
@@ -1052,6 +978,82 @@ From the user's perspective, invoking a query is a call to the *q* macro, that a
            query-internal-res# (query-plan# ~db)] ;executing the plan on the database
      (unify query-internal-res# needed-vars#)));unifying the query result with the needed variables to report out what the user asked for
 ````  
+
+## Connected data
+
+Querying is the first mean of extracting insights from data, and it leverages the datom way of data modeling. However, there are other properties of our data modeling which allow insights extraction, and especially leverage the way entities are connected amongst themeselves. 
+One kind of connection may be between an entity’s to itself at different times (an evolutionary connection). Another may be reference between two entities, which forms a graph whose nodes are the entities and the edges are the references. 
+In this section we’ll see how to utilizes these connection types and provide mechanisms to extract insights based them.
+
+### Evolution
+
+In our database, an update operation is done by appending a new value to an attribute (as oppose to overwrite in standard databases). This opens up the possibility of linking two attribute values, in two different times. The way this linking is implemented in our database is by having the attribute hold the timestamp of the previous update. That timestamp points to a layer in which the attribute held the previous value. More than that, we can look at the attribute at that layer, and continue going back in time and look deeper into history, thus observing the how the attribute’s value evolved throughout time.  
+
+The function *evolution-of* does exactly that, and return a sequence of pairs - each consist of the timestamp and value of an attribute’s update.
+
+````clojure
+(defn evolution-of [db ent-id attr-name]
+   (loop [res [] ts (:curr-time db)]
+     (if (= -1 ts) (reverse res)
+         (let [attr (attr-at db ent-id attr-name ts)]
+           (recur (conj res {(:ts attr) (:value attr)})  (:prev-ts attr))))))
+````
+### Graph traversal
+
+A reference connection between entities is created when an entity’s attribute’s type is *:db/ref*, which means that the value of that attribute is an id of another entity. When a referring entity is added to the database, the reference is indexed at the VAET index. In that index, the top level items (the *V*'s) are ids of entities that are referenced to by other entities.The leaves of this index (the *E*'s) hold the referring entities’ ids. The *Attribute*'s name is captured in the second layer of that index (the *A*'s).  
+The information found in the VAET index can be leveraged to extract all the incoming links to an entity and is done in the function *incoming-refs*, which collects for the given entity all the leaves that are reachable from it at that index:
+
+````clojure
+(defn incoming-refs [db ts ent-id & ref-names]
+   (let [vaet (ind-at db :VAET ts)
+         all-attr-map (vaet ent-id)
+         filtered-map (if ref-names (select-keys ref-names all-attr-map) all-attr-map)]
+      (reduce into #{} (vals filtered-map))))
+````
+We can also, for a given entity, go through all of it’s attributes and collect all the values of attribute of type :db/ref, and by that extract all the outgoing references from that entity. This is done at the *outgoing-refs* function 
+
+````clojure
+(defn outgoing-refs [db ts ent-id & needed-keys]
+   (let [val-filter-fn (if ref-names #(vals (select-keys ref-names %)) vals)]
+   (if-not ent-id []
+     (->> (entity-at db ts ent-id)
+          (:attrs) (val-filter-fn) (filter ref?) (mapcat :value)))))
+````
+These two functions act as the basic building blocks for any graph traversal operation, as they are the ones that raise the level of abstraction from entities and attributes to nodes and links in a graph. These functions can provide either all the refs (either incoming or outgoing) of an entity or a subset of them. This is possible as each ref is an attribute (with a type of :db\ref), so to define a subset of the refs means to define a subset of the attribute names and provide it via the *ref-names* argument of these functions. 
+
+On top of providing these two building blocks of graph traversal, our database also provides the two classical graph traversing algorithms - breadth-first-search and depth-first-search, that start from a given node, and traverse the graph along either the incoming or outgoing references (using either *incoming-refs* or *outgoing-refs* appropriately).
+
+As these two algorithms have almost identical implementation, they are both implemented in the same function, called *traverse*, and the difference is mitigated by the function *traverse-db* that receives as an input which algorithm to use (either *:graph/bfs* or *:graph/dfs*) and along which references to walk (either *:graph/outgoing* or *:graph/incoming*). 
+
+````clojure
+(defn traverse-db 
+   ([start-ent-id db algo direction] (traverse-db start-ent-id db algo direction (:curr-time db)))
+   ([start-ent-id db algo direction ts]
+     (let [structure-fn (if (= :graph/bfs algo) vec list*)
+           explore-fn   (if (= :graph/outgoing direction) outgoing-refs incoming-refs)]
+       (traverse [start-ent-id] #{}  
+                (partial explore-fn db ts) (partial entity-at db ts) structure-fn))))
+ ````
+The implementation itself of the algorithm is the classical implementation with a minor, yet important twist - laziness. The results of the traversal are computed lazily, meaning that the traversal would continue as long as its results are needed.
+
+This is done by having the combination of *cons* and *lazy-seq* wrapping the recursive call at the *traverse* function.
+
+````clojure
+(defn- traverse [pendings explored exploring-fn ent-at structure-fn]
+     (let [cleaned-pendings (remove-explored pendings explored structure-fn)
+           item (first cleaned-pendings)
+           all-next-items  (exploring-fn item)
+           next-pends (reduce conj (structure-fn (rest cleaned-pendings)) all-next-items)]
+       (when item (cons (ent-at item)
+                        (lazy-seq (traverse next-pends (conj explored item) 
+                                            exploring-fn ent-at structure-fn))))))
+````
+This function uses a helper function call *remove-explored* to help preventing re-visits to an already explored entities, its implementation is straightforward - remove from one list the items in another list and return the result in the right data structure that is required by the algorithm, as can be seen as follows:
+
+````clojure
+(defn- remove-explored [pendings explored structure-fn]
+   (structure-fn (remove #(contains? explored %) pendings)))
+````
 
 ## Architectural notes
 
