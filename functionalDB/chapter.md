@@ -579,7 +579,7 @@ That transformation occurs in the following transaction call chain:
 * *swap!* invokes *transact-on-db* within a transaction (with the previously prepared arguments)
 * *transact-on-db* creates the new state of the database and returns it
 
-At this point we can see that with few minor tweaks, we can also provide a way to ask a "what-if" questions. It can be done by replacing *swap!* with a function that would not impose any change to the system. This scenario is implemented with the "what-if" call chain:
+At this point we can see that with few minor tweaks, we can also provide a way to ask "what-if" questions. It can be done by replacing *swap!* with a function that would not impose any change to the system. This scenario is implemented with the "what-if" call chain:
 
 what-if → _transact →   _what-if → transact-on-db
 
