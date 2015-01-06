@@ -583,8 +583,7 @@ At this point we can see that with few minor tweaks, we can also provide a way t
 
 what-if → _transact →   _what-if → transact-on-db
 
-* Users call *what-if* with the database value and the operations to perform, that relays its input to *_transact*, adding to it the name of the function that adapts the output of *_transact* to *transact-on-db*, it is called *_what-if*
-* 
+* The user calls *what-if* with the database value and the operations to perform. It then relays these inputs to *_transact*, adding to them the function that adapts the output of *_transact* to *transact-on-db* (which is called *_what-if*)
 ````clojure
 (defmacro what-if [db & ops]  `(_transact ~db _what-if  ~@ops))
 ````
