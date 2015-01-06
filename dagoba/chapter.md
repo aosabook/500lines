@@ -351,7 +351,7 @@ Dagoba.simpleTraversal = function(dir) {
 
 The first couple lines handle the differences between the in version and the out version. Then we're ready to return our pipetype function, which looks quite a bit like the vertex pipetype we just saw. That's a little surprising, since this one takes in a gremlin whereas the vertex pipetype creates gremlins ex nihilo.
 
-But we can see the same beats being hit here, with the addition of a query initialization step. If there's no gremlin and we're out of available edges then we pull. If we have a gremlin but haven't yet set state then we find any edges going the appropriate direction and add them to our state [TODO footnote on filtering]. If there's a gremlin but its current vertex has no appropriate edges then we pull. And finally we pop off an edge and return a freshly cloned gremlin on the vertex to which it points.
+But we can see the same beats being hit here, with the addition of a query initialization step. If there's no gremlin and we're out of available edges then we pull. If we have a gremlin but haven't yet set state then we find any edges going the appropriate direction and add them to our state. If there's a gremlin but its current vertex has no appropriate edges then we pull. And finally we pop off an edge and return a freshly cloned gremlin on the vertex to which it points.
 
 Glancing at this code we see ```!state.edges.length``` repeated in each of the three clauses. It's tempting to refactor this to reduce the complexity of those conditionals. There are two issues keeping us from doing so. One is relatively minor: the third ```!state.edges.length``` means something different than the first two, since ```state.edges``` has been changed between the second and third conditional. This actually encourages us to refactor, because having the same label mean two different things inside a single function usually isn't ideal.
 
@@ -926,7 +926,7 @@ Run these yourself to experience the graph database difference.
 
 ## Orthogonal Optimization
 
-TODO
+TODO: rewrite this section to fit with above. also, talk more about making room for global optimizations.
 
 We've just improved our performance for large graphs by several dozen orders of magnitude. That's pretty good, but we can do better. Each step in our query has a fixed cost for building the gremlins and making the function calls, as well as a per-step cost. Because we're splitting each step out into its own separate unit, those per-step costs can be quite high compared to what they could be if we could combine some steps. We've sacrificed performance for code simplicity. 
 Many will argue that this sacrifice is acceptable, and that simplicity should trump performance whenever possible, but this is a false dichotomy. We can have our simple, easily understood model and also gain the performance benefits of combining steps -- we just have to beef up our compiler a little. 
@@ -936,7 +936,7 @@ How do we do that without sacrificing simplicity? By making the new compilation 
 // perf test it
 // cool it's faster
 
-Great, we're fast! Notice that by deliberately ignoring the chances we had to optimize early and by writing everything in as decomposed and simplistic a way as we possibly could that we've opened up opportunities for global optimizations. [TODO: more]
+Great, we're fast! Notice that by deliberately ignoring the chances we had to optimize early and by writing everything in as decomposed and simplistic a way as we possibly could that we've opened up opportunities for global optimizations.
 
 We should probably confirm that our optimizations don't break anything. Maybe we can write a bunch of tests for each of these new pieces, like we did before. 
 
@@ -1019,22 +1019,17 @@ If we wanted our persistence implementation to be multi-window concurrency aware
 
 ## Updates
 
-TODO rewrite this to follow the new structure up above (most of it isn't relevant)
+TODO rewrite this to follow the new structure up above (most of it isn't relevant). also: new 'out' query component (and friends). also: tie this part in to Future directions below. maybe this whole section becomes split between future directions and the 'out' pipetype explanation.
 
 There's a problem with our 'out' pipetype: if someone deletes an edge we've visited while we're in the middle of a query, we'll skip a different edge because our counter is off. We could lock the vertices in our query, but one of the strengths of this approach is driving the iteration through the query space from code, so our query object might be long-lived. Even though we're in a single-threaded event loop, our queries can span multiple asynchronous re-entries, which means concurrency concerns like this are a very real problem. 
 
 So instead we'll slice and pop the edge list each time we reach a new vertex. This burns some extra CPU and pushes more work onto the GC, so we'll stick a note here so we know what to do if this shows up as a hotspot during our profiling.
-
-// TODO new 'out' query component (and friends)
 
 One concern with doing our queries this new way is that we're still not seeing a completely consistent chronology. Skipping random edges, like we did before, leaves us with an entirely inconsistent view of the universe, where things that have always existed may appear to be gone. This is generally undesirable, though many modern systems for storing very large amounts of data have exactly this property. [footnote: google, facebook, kayak, etc -- often queries over heavily sharded datasets or multiple apis with pagination or timeouts have this property]
 
 The change we just made means we will always traverse every edge a particular vertex had _at the moment we visited it_. That means that as we begin traversing edges, we may see new vertices at different points in the graph chronology, and may even see the same vertex at different points in the chronology at different points in our query. Depending on the relationships we're storing, this may provide a view of the universe that seemingly defies the laws of physics, even though no laws have actually been broken. 
 
 If we need to see the world as it exists at a particular moment in time (e.g. 'now', where now is the moment our query begins) we can change our driver loop and the update handlers to add versioning to the data, and pass a pointer to that particular version into the query system. Doing this also opens the door to true transactions, and automated rollback/retries in an STM-like fashion. 
-
-TODO tie this part in to Future directions below. maybe this whole section becomes split between future directions and the 'out' pipetype explanation.
-
 
 
 ## Future directions
