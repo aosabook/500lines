@@ -660,20 +660,24 @@ A query is a map with two items:
 
 * An item with *:find* as a key, and with a vector as a value. The vector defines which components of the selected datom should be projected into the results (like the 'SELECT' clause in an SQL query.)
 
-The description above is missing a crucial part, which is how to make different clauses sync on a value (i.e., make a join operation between them), and how to transmit values found at the *:where* part to be reported by the *:find* part. 
+The description above omits a crucial requirement, which is how to make different clauses sync on a value (i.e., make a join operation between them), and how to structure the found values in the output (specified by the *:find* part.) 
 
-These two kinds of agreements (between clauses and between *:where* and *:find* parts) are done using variables. 
+We fulfill both of these requirements using _variables_, which are denoted with a leading *?* in their names. The only exception to this definition is the "don't-care" variable *‘_’*  (underscore). 
 
-A variable is any symbol that starts with *‘?’* (e.g., *?e* in the example above). The only exception to this definition is the "don't-care" variable and its symbol is *‘_’*  (underscore). To understand whether something is a variable or not we have our *variable?* predicate.  
+[TODO: I think we can omit this tangent on parsing and detecting variables. The section moves more smoothly without it.]
+To detect variables in our queries, we use the *variable?* predicate.  
+
 ````clojure
 (defn variable?
    ([x] (variable? x true))
    ([x accept_?]  
    (or (and accept_? (= x "_")) (= (first x) \?))))
 ````
-A common usage of a predicate is when it acts as an argument to *filter* (i.e., the predicate is a higher order function). Since functions evaluate their arguments, it is not possible to implement the predicate as a function that receives the user entered symbol (as the evaluation of that symbol would fail). Instead, it is a function that receives a string (thus callers to it would need to "stringify" the symbols they wish to check). It may seem cleaner to implement this predicate as a macro that can receive the user entered symbol (as macros do not evaluate their arguments), however, Clojure does not allow macros to be used as a higher order functions.
+Predicates are often used as an argument to *filter*. Since functions evaluate their arguments, it is not possible to implement the predicate as a function that receives the user entered symbol (as the evaluation of that symbol would fail). 
 
-A clause in a query is composed of three predicates, the following table defines what can act as a predicate in our query language:
+This should sound familiar, as we were confronted with this problem earlier when specifying a list of operations to be executed in *transact-on-db*. Our solution there was to use a macro. Unfortunately, that is not possible in this case, as Clojure does not permit macros to be used as a higher order functions. We are thus forced to use a less elegant solution, which is to force callers to "stringify" the symbols they wish to check before passing them to *variable?*. 
+
+A clause in a query is composed of three predicates. The following table defines what can act as a predicate in our query language:
 
 <table>
   <tr>
@@ -683,7 +687,7 @@ A clause in a query is composed of three predicates, the following table defines
   </tr>
   <tr>
     <td>Constant</td>
-    <td>Is the value of the item in the datom equals to the constant.</td>
+    <td>Is the value of the item in the datom equal to the constant?</td>
     <td>:likes</td>
   </tr>
   <tr>
@@ -693,12 +697,12 @@ A clause in a query is composed of three predicates, the following table defines
   </tr>
   <tr>
     <td>Don’t-care</td>
-    <td>The predicate always returns true.</td>
+    <td>Always returns true.</td>
     <td>_</td>
   </tr>
   <tr>
     <td>Unary operator</td>
-    <td>Unary operation that its operand is a variable.<br/>
+    <td>Unary operation that takes a variable as its operand.<br/>
         Bind the datom's item's value to the variable (unless it's an '_').<br/>
         Replace the variable with the value of the item in the datom.<br/>
         Return the application of the operation.</td>
@@ -706,7 +710,7 @@ A clause in a query is composed of three predicates, the following table defines
   </tr>
   <tr>
     <td>Binary operator</td>
-    <td>A binary operation, must have a variable as one of its operands.<br/>
+    <td>A binary operation that must have a variable as one of its operands.<br/>
         Bind the datom's item's value to the variable (unless it's an '_').<br/>        
         Replace the variable with the value of the item in the datom.<br/>
         Return the result of the operation.</td>
@@ -714,58 +718,30 @@ A clause in a query is composed of three predicates, the following table defines
   </tr>
 </table>
 
-
 Table 3
 
-#### Limitations
+#### Limitations of our query language 
 
-Engineering is all about managing tradeoff, and when designing the query engine, there were tradeoff to tackle. In our case, the first tradeoff is the "feature-richness vs complexity". Resolving this tradeoff starts by deciding what are the acceptable limitations of the system. In our database, the decision was to build A query engine with the following limitations:
+Engineering is all about managing tradeoffs, and designing our query engine is no different. In our case, the first tradeoff we must make is feature-richness versus complexity. Resolving this tradeoff requires us to look at common use-cases of the system, and from there deciding on what limitations would be acceptable. 
 
-* Logic operations between clauses: user cannot define any logical operations between the clauses, they are always ‘ANDed’. Users can mitigate this restriction by providing their own functions to act as predicates (as long as they can act as unary or binary operators)
-* Joining: If there's more than one clause in a query, there must be one variable that is found in all of the clauses of that query. This variable acts as a joining variable. This limitation helps in having a simple query optimizer.
-* A query is executed on a single database. 
+In our database, the decision was to build a query engine with the following limitations:
 
-The bottom line of this decision is even when imposing these restrictions on the richness provided by Datalog, we still support most of the happy-path, simple yet useful, queries.
+* Users cannot define logical operations between the clauses; they are always ‘ANDed’ together. (This can be worked around by using unary or binary predicates.)
+* If there is more than one clause in a query, there must be one variable that is found in all of the clauses of that query. This variable acts as a joining variable. This limitation simplifies the query optimizer.
+* A query is only executed on a single database. 
 
-#### Reading the example
-
-Following the above explanation, we can now read and understand the different terms within the exemplary query, which are:
-
-<table>
-  <tr>
-    <td>Term</td>
-    <td>Interpretation</td>
-  </tr>
-  <tr>
-    <td>:find ?nm ?ag</td>
-    <td>find the name and age of all the entities that answer the following conditions:</td>
-  </tr>
-  <tr>
-    <td>?e :likes "pizza"</td>
-    <td>the entity like pizza </td>
-  </tr>
-  <tr>
-    <td>?e :name ?nm</td>
-    <td>that entity has a name (remember that name)</td>
-  </tr>
-  <tr>
-    <td>?e :age (&gt; ?ag 20) </td>
-    <td>that entity’s age is above 20 (remember that age)</td>
-  </tr>
-  <tr>
-    <td>?e :birthday (birthday-this-week? _)</td>
-    <td>that entity had birthday this week</td>
-  </tr>
-</table>
+While these design decisions result in a query language that is less rich than Datalog, we are still able to support many types of simple-but-useful queries.
 
 ### Query engine design
 
-A query engine is the component within a database that is responsible for answering user’s queries. When a query engine receives a query, it operates along the lines of the following four phases:
+While our query language allows the user to specify _what_ they want to access, it hides the details of _how_ this will be accomplished. The *query engine* is the database component responsible for yielding the data for a given query. 
 
-1. Transformation to internal representation: this phase focuses on transforming the query from its textual form (i.e., in its query syntax) as the user entered it, to its in-memory form, which is kept in a specifically devised data structure. 
-2. Building a query plan: this phase analyzes what’s the best course of action to get to the needed results of the query. Based on that analysis this phase outputs a query plan. In our case a query plan is a function to be invoked.
-3. Executing the function: this phase is responsible for executing the plan and send its results to the next phase.
-4. Unification and reporting: this phase receives the query results, extracts from it only the part that needs to be reported (a unification of the user’s input with the query results) and formats it to be in the way that the user requested.
+This involves four steps:
+
+1. Transformation to internal representation: transform the query from its textual form into a data structure that is consumed by the query planner.
+2. Building a query plan: Determine an efficient _plan_ for yielding the results of the given query. In our case, a query plan is a function to be invoked.
+3. Executing the plan: Execute the plan and send its results to the next phase.
+4. Unification and reporting: Extract only the results that need to be reported and format them as specified.
 
 #### Phase 1 - Transformation
 
