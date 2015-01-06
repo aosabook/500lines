@@ -567,7 +567,7 @@ That transformation occurs in the following transaction call chain:
 ````clojure
 (defmacro transact [db-conn & txs]  `(_transact ~db-conn swap! ~@txs))
 ````
-* *_transact* prepares the call to the transaction *swap!* by building its arguments from *transact-on-db*, the *Atom* and constructing a list out of the operations
+* *_transact* prepares the call to *swap!*. It does so by creating a list that begins with *swap!*, followed by the db-connection (the *Atom*), then the *transact-on-db* symbol and the batch of operations.
 ````clojure
 (defmacro  _transact [db op & txs]
    (when txs
@@ -579,16 +579,16 @@ That transformation occurs in the following transaction call chain:
 * *swap!* invokes *transact-on-db* within a transaction (with the previously prepared arguments)
 * *transact-on-db* creates the new state of the database and returns it
 
-At this point we can see that with few minor tweaks, we can also provide a way to ask a "what-if" questions, but skipping the *swap!* stage and just operating on the database itself. This is done via the "what-if" call chain:
+At this point we can see that with few minor tweaks, we can also provide a way to ask a "what-if" questions. It can be done by replacing *swap!* with a function that would not impose any change to the system. This scenario is implemented with the "what-if" call chain:
 
 what-if → _transact →   _what-if → transact-on-db
 
-* The user calls *what-if* with the database value and the operations to perform. It then relays these inputs to *_transact*, adding to them the function that adapts the output of *_transact* to *transact-on-db* (which is called *_what-if*)
+* The user calls *what-if* with the database value and the operations to perform. It then relays these inputs to *_transact*, adding to them a function that mimics *swap!*'s APIs, without its effect (callled *_what-if*).  
 ````clojure
 (defmacro what-if [db & ops]  `(_transact ~db _what-if  ~@ops))
 ````
-* *_transact* prepares the call to *_what-if* by building its arguments from *transact-on-db*, the database and constructing a list out of the operations
-* *_what-if* invokes *transact-on-db* with the properer arguments order
+* *_transact* prepares the call to *_what-if*. It does so by creating a list that begins with *_what-if*, followed by the database, then the *transact-on-db* symbol and the batch of operations.
+* *_what-if* invokes *transact-on-db*, just like *swap!* does in the transaction scenario, but does not inflict any change on the system.
 
 ````clojure
 (defn- _what-if [db f txs]  (f db txs))
