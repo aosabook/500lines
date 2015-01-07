@@ -1,7 +1,8 @@
-"""A simple web crawler -- classes implementing crawling logic."""
+"""A simple web crawler -- class implementing crawling logic."""
 
 import asyncio
 import cgi
+from collections import namedtuple
 import logging
 import re
 import time
@@ -18,118 +19,23 @@ def unescape(s):
     return s.replace('&amp;', '&')  # Must be last.
 
 
-class Fetcher:
-    """Logic and state for one URL.
-
-    When found in crawler.busy, this represents a URL to be fetched or
-    in the process of being fetched; when found in crawler.done, this
-    holds the results from fetching it.
-
-    This is usually associated with a task.  This references the
-    crawler for the TCP connector and to add more URLs to its todo
-    list.
-
-    Call fetch() to do the fetching; results are in instance variables.
-    """
-
-    def __init__(self, url, crawler, max_redirect=10, max_tries=4):
-        self.url = url
-        self.crawler = crawler
-        # We don't loop resolving redirects here -- we just use this
-        # to decide whether to add the redirect URL to crawler.todo.
-        self.max_redirect = max_redirect
-        # But we do loop to retry on errors a few times.
-        self.max_tries = max_tries
-        # Everything we collect from the response goes here.
-        self.task = None
-        self.exceptions = []
-        self.tries = 0
-        self.status = None
-        self.body = None
-        self.next_url = None
-        self.ctype = None
-        self.pdict = None
-        self.encoding = None
-        self.urls = None
-        self.new_urls = None
-
-    @asyncio.coroutine
-    def fetch(self):
-        """Attempt to fetch the contents of the URL.
-
-        If successful, and the data is HTML, extract further links and
-        add them to the crawler.  Redirects are also added back there.
-        """
-        while self.tries < self.max_tries:
-            self.tries += 1
-            try:
-                response = yield from aiohttp.request(
-                    'get',
-                    self.url,
-                    connector=self.crawler.connector,
-                    allow_redirects=False
-                    )
-
-                if self.tries > 1:
-                    logger.info('try %r for %r success', self.tries, self.url)
-                break
-
-            except aiohttp.ClientError as exc:
-                self.exceptions.append(exc)
-                logger.info('try %r for %r raised %r',
-                            self.tries, self.url, exc)
-        else:
-            # We never broke out of the while loop, i.e. all tries failed.
-            logger.error('no success for %r in %r tries',
-                         self.url, self.max_tries)
-            return
-
-        if response.status in (300, 301, 302, 303, 307) and response.headers.get('location'):
-            next_url = response.headers['location']
-            self.next_url = urllib.parse.urljoin(self.url, next_url)
-            if self.max_redirect > 0:
-                logger.info('redirect to %r from %r', self.next_url, self.url)
-                self.crawler.add_url(self.next_url, self.max_redirect-1)
-            else:
-                logger.error('redirect limit reached for %r from %r',
-                             self.next_url, self.url)
-        else:
-            self.status = response.status
-            if self.status == 200:
-                self.ctype = response.headers.get('content-type')
-                self.pdict = {}
-
-                self.body = yield from response.read()
-
-                if self.ctype:
-                    self.ctype, self.pdict = cgi.parse_header(self.ctype)
-
-                self.encoding = self.pdict.get('charset')
-                if self.ctype in ('text/html', 'application/xml'):
-                    text = yield from response.text()
-
-                    # Replace href with (?:href|src) to follow image links.
-                    self.urls = set(re.findall(r'(?i)href=["\']?([^\s"\'<>]+)',
-                                               text))
-                    if self.urls:
-                        logger.info('got %r distinct urls from %r',
-                                    len(self.urls), self.url)
-                    self.new_urls = set()
-                    for url in self.urls:
-                        url = unescape(url)
-                        url = urllib.parse.urljoin(self.url, url)
-                        url, frag = urllib.parse.urldefrag(url)
-                        if self.crawler.add_url(url):
-                            self.new_urls.add(url)
+FetchStatistic = namedtuple('FetchStatistic',
+                            ['url',
+                             'next_url',
+                             'status',
+                             'exception',
+                             'size',
+                             'content_type',
+                             'encoding',
+                             'num_urls',
+                             'num_new_urls'])
 
 
 class Crawler:
     """Crawl a set of URLs.
 
-    This manages three disjoint sets of URLs (todo, busy, done).  The
-    data structures actually store dicts -- the values in todo give
-    the redirect limit, while the values in busy and done are Fetcher
-    instances.
+    This manages two sets of URLs: 'urls' and 'done'.  'urls' is a set of
+    URLs seen, and 'done' is a list of FetchStatistics.
     """
     def __init__(self, roots,
                  exclude=None, strict=True,  # What to crawl.
@@ -143,9 +49,8 @@ class Crawler:
         self.max_tries = max_tries
         self.max_tasks = max_tasks
         self.q = asyncio.JoinableQueue()
-        self.todo = {}
-        self.busy = {}
-        self.done = {}
+        self.urls = set()
+        self.done = []
         self.connector = aiohttp.TCPConnector()
         self.root_domains = set()
         for root in roots:
@@ -204,24 +109,113 @@ class Crawler:
         host = host.split('.')[-2:]
         return host in self.root_domains
 
+    def record_statistic(self, fetch_statistic):
+        self.done.append(fetch_statistic)
+
+    @asyncio.coroutine
+    def fetch(self, url, max_redirect):
+        tries = 0
+        exc = None
+        while tries < self.max_tries:
+            try:
+                response = yield from aiohttp.request(
+                    'get', url,
+                    connector=self.connector,
+                    allow_redirects=False)
+
+                if tries > 1:
+                    logger.info('try %r for %r success', tries, url)
+                break
+            except aiohttp.ClientError as exc:
+                logger.info('try %r for %r raised %r', tries, url, exc)
+        else:
+            # We never broke out of the loop: all tries failed.
+            logger.error('%r failed after %r tries',
+                         url, self.max_tries)
+            self.record_statistic(FetchStatistic(url=url,
+                                                 next_url=None,
+                                                 status=None,
+                                                 exception=exc,
+                                                 size=0,
+                                                 content_type=None,
+                                                 encoding=None,
+                                                 num_urls=0,
+                                                 num_new_urls=0))
+            return
+
+        if response.status in (300, 301, 302, 303, 307):
+            location = response.headers['location']
+            next_url = urllib.parse.urljoin(url, location)
+            self.record_statistic(FetchStatistic(url=url,
+                                                 next_url=next_url,
+                                                 status=response.status,
+                                                 exception=None,
+                                                 size=0,
+                                                 content_type=None,
+                                                 encoding=None,
+                                                 num_urls=0,
+                                                 num_new_urls=0))
+
+            if max_redirect > 0:
+                logger.info('redirect to %r from %r', next_url, url)
+                self.add_url(next_url, max_redirect - 1)
+            else:
+                logger.error('redirect limit reached for %r from %r',
+                             next_url, url)
+        else:
+            urls = set()
+            new_urls = set()
+            content_type = None
+            encoding = None
+            body = yield from response.read()
+
+            if response.status == 200:
+                content_type = response.headers.get('content-type')
+                pdict = {}
+
+                if content_type:
+                    content_type, pdict = cgi.parse_header(content_type)
+
+                encoding = pdict.get('charset', 'utf-8')
+                if content_type in ('text/html', 'application/xml'):
+                    text = yield from response.text()
+
+                    # Replace href with (?:href|src) to follow image links.
+                    urls = set(re.findall(r'(?i)href=["\']?([^\s"\'<>]+)',
+                                          text))
+                    if urls:
+                        logger.info('got %r distinct urls from %r',
+                                    len(urls), url)
+                    new_urls = set()
+                    for u in urls:
+                        normalized = urllib.parse.urljoin(url, unescape(u))
+                        defragmented, frag = urllib.parse.urldefrag(normalized)
+                        if self.add_url(defragmented):
+                            new_urls.add(defragmented)
+
+            self.record_statistic(FetchStatistic(
+                url=url,
+                next_url=None,
+                status=response.status,
+                exception=None,
+                size=len(body),
+                content_type=content_type,
+                encoding=encoding,
+                num_urls=len(urls),
+                num_new_urls=len(new_urls)))
+
     @asyncio.coroutine
     def _work(self):
         while True:
-            fetcher = yield from self.q.get()
-            del self.todo[fetcher.url]
-            self.busy[fetcher.url] = fetcher
-            try:
-                yield from fetcher.fetch()
-            finally:
-                # Force GC of the task, so the error is logged.
-                fetcher.task = None
-
-            del self.busy[fetcher.url]
-            self.done[fetcher.url] = fetcher
+            url, max_redirect = yield from self.q.get()
+            assert url in self.urls
+            yield from self.fetch(url, max_redirect)
             self.q.task_done()
 
     def add_url(self, url, max_redirect=None):
-        """Add a URL to the todo list if not seen before."""
+        """Add a URL to the queue if not seen before."""
+        if url in self.urls:
+            return False
         if self.exclude and re.search(self.exclude, url):
             return False
         parts = urllib.parse.urlparse(url)
@@ -234,14 +228,9 @@ class Crawler:
             return False
         if max_redirect is None:
             max_redirect = self.max_redirect
-        if url in self.todo or url in self.busy or url in self.done:
-            return False
         logger.debug('adding %r %r', url, max_redirect)
-        self.todo[url] = max_redirect
-        self.q.put_nowait(Fetcher(url,
-                                  crawler=self,
-                                  max_redirect=max_redirect,
-                                  max_tries=self.max_tries))
+        self.urls.add(url)
+        self.q.put_nowait((url, max_redirect))
         return True
 
     @asyncio.coroutine
@@ -250,6 +239,7 @@ class Crawler:
         workers = [asyncio.Task(self._work()) for _ in range(self.max_tasks)]
         self.t0 = time.time()
         yield from self.q.join()
+        assert self.urls == set(stat.url for stat in self.done)
         self.t1 = time.time()
         for w in workers:
             w.cancel()
