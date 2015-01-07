@@ -745,18 +745,15 @@ This involves four steps:
 
 #### Phase 1 - Transformation
 
-This phase’s purpose is to receive the query from the user and transform it into a structure that the query engine can use in an efficient way. Efficiency is gained by having the engine use data structures that were designed with the engine's computations in mind (as oppose to using the raw query, which is designed for user’s ease of use). 
+In this phase, we transform the given query from a representation that is easy for the user to understand into a representation that can be consumed efficiently by the query planner. 
 
-Each of a query’s parts has its tailored data structure:
-
-* The *:find* part of the query is transformed into a set that holds all the names of the variables that needs to be reported. These names are held as strings, and the transformation itself is done in the macro *symbol-col-to-set*
+The *:find* part of the query is transformed into a set of the given variable names:
 
 ````clojure
 (defmacro symbol-col-to-set [coll] (set (map str coll)))
 ````
 
-* The *:where* part of the query keeps its nested vector structure. However, each of the terms in each of the clauses is replaced with a predicate according to the description in Table 3. Also, for each clause, a vector with the names of the variables used in that clause is set as its metadata. 
-The transformation from term to a predicate is implemented in the macro *clause-term-expr* and the detection of the variable in each term is done in the macro *clause-term-meta*
+The *:where* part of the query retains its nested vector structure. However, each of the terms in each of the clauses is replaced with a predicate according from Table 3. 
 
 ````clojure
 (defmacro clause-term-expr [clause-term]
@@ -766,14 +763,19 @@ The transformation from term to a predicate is implemented in the macro *clause-
     (= 2 (count clause-term)) `#(~(first clause-term) %) ; unary operator
     (variable? (str (second clause-term))) `#(~(first clause-term) % ~(last clause-term)) ; binary operator, first operand is a variable
     (variable? (str (last clause-term))) `#(~(first clause-term) ~(second clause-term) %))) ; binary operator, second operand is variable
+````
 
+Also, for each clause, a vector with the names of the variables used in that clause is set as its metadata. 
+
+````clojure
 (defmacro clause-term-meta [clause-term]
    (cond
    (coll? clause-term)  (first (filter variable?  (map str clause-term))) 
    (variable? (str clause-term)) (str clause-term) 
    :no-variable-in-clause nil))
 ````
-The iteration on the terms in each clause is done at the *pred-clause* macro and the iteration over the clauses is done at the *q-clauses-to-pred-clauses* macro.
+
+We use *pred-clause* to iterate over the terms in each clause: 
 
 ````clojure
 (defmacro pred-clause [clause]
@@ -782,28 +784,37 @@ The iteration on the terms in each clause is done at the *pred-clause* macro and
           (recur rst-trm# (conj exprs# `(clause-term-expr ~ trm#)) 
                        (conj metas#`(clause-term-meta ~ trm#)))
           (with-meta exprs# {:db/variable metas#}))))
+````
+
+Iterating over the clauses themselves happens in *q-clauses-to-pred-clauses*:
           
+````clojure
 (defmacro  q-clauses-to-pred-clauses [clauses]
      (loop [[frst# & rst#] clauses preds-vecs# []]
        (if-not frst#  preds-vecs#
          (recur rst# `(conj ~preds-vecs# (pred-clause ~frst#))))))
 ````
-You may ask why the entire transformation process uses macros and not functions. This is the result of a decision to simplify the query APIs by allowing users to enter the variable names as symbols and not as strings (e.g., allowing ?name and not requiring the user to enter "?name"). Macros allow us to do it as they do not evaluate their arguments when they get called. 
+We are once again relying on the fact that macros do not eagerly evaluate their arguments here. This allows us to provide variable names as symbols, without forcing the evaluation of those symbols at call-time.
+
+[TODO: I am not sure how messy it would be, but it might be useful here to show the instance of the data structure that would be produced from our example query by this phase.]
 
 #### Phase 2 - Making a plan
 
-Once there is an engine-friendly representation of the 	query, it is up to the engine to decide what's the best way to execute the query and construct a plan for such execution. 
+In this phase, we inspect the query representation produced in phase 1 to determine a good _plan_ that will produce the result it describes.
 
-From a bird's eye's view, The general execution plan in our database is to choose an index, apply on it the predicate clauses, merge the results and return it. 
+In general, this will involve choosing the appropriate index, applying on it the predicate clauses and merging the results. 
 
-The plan is constructed at the *build-query-plan* function. The right index is chosen based on the joining variable, where we use our assumption (and limitation) that there’s at most one such variable. There are three options for it:
+We choose the index based on the joining variable. We assume that there is at most one such variable, which yields three possibilities: 
 
-* Joining variable that operates on entity-ids means that it is best to execute the query on the AVET index
-* Joining variable that operates on attribute-names means it is best to execute the query on the VEAT index
-* Joining variable that operates on the attribute values means it is best to execute the query on the EAVT index.
+[TODO: This should probably be a 2-column table]
 
-Locating the index of the joining variable is done at the *index-of-joining-variable* function.
-This function starts by extracting the metadata of each clause in the query (where the metadata is a 3 items vector, each is a variable name or *nil*) and goes to reduce them into one. That reduced sequence is built of either *nil* or a variable name that is appears in all of the metadata vectors at the same index (this is the joining variable), and return that index (as there's only one such variable).
+* Variable operates on entity ids -> use the AVET index
+* Variable operates on attribute names -> use the VEAT index
+* Variable operates on attribute values -> use the EAVT index
+
+The reasoning behind this mapping will become clearer in the next section, where we actually execute the plan produced here.
+
+Locating the index of the joining variable is done by *index-of-joining-variable*:
 
 ````clojure
 (defn index-of-joining-variable [query-clauses]
@@ -812,11 +823,9 @@ This function starts by extracting the metadata of each clause in the query (whe
          collapsed (reduce collapsing-fn metas-seq)] 
      (first (keep-indexed #(when (variable? %2 false) %1)  collapsed)))) 
 ````
-(The rationale behind this mapping between the joining variable and index would be clear in the next section, where the execution of the plan is described). 
+We begin by extracting the metadata of each clause in the query. This metadata is a 3-element vector, each of which is a variable name or *nil*, and reduces them to produce a single variable name or *nil*. If a variable name is produced, this means it appears in all of the metadata vectors at the same index -- i.e. this is the joining variable. We can thus choose the appropriate index by using the mapping described above. 
 
-Once the index is chosen, we construct and return a function that closes over the query and the index name, executes the plan, and return its results.
-
-Having the query plan to be a function that accepts a database as an argument is a design decision that keeps open the future possibility of considering several plans, and all we know at this stage of the design is that surely any query plan would need a database to work on.
+Once the index is chosen, we construct our plan, which is a function that closes over the query and the index name and executes the operations necessary to return the query results. 
 
 ````clojure
 (defn build-query-plan [query]
