@@ -113,6 +113,51 @@ class Crawler:
         self.done.append(fetch_statistic)
 
     @asyncio.coroutine
+    def process_response(self, response):
+        """Return a FetchStatistic for a successful fetch."""
+        urls = set()
+        new_urls = set()
+        content_type = None
+        encoding = None
+        body = yield from response.read()
+
+        if response.status == 200:
+            content_type = response.headers.get('content-type')
+            pdict = {}
+
+            if content_type:
+                content_type, pdict = cgi.parse_header(content_type)
+
+            encoding = pdict.get('charset', 'utf-8')
+            if content_type in ('text/html', 'application/xml'):
+                text = yield from response.text()
+
+                # Replace href with (?:href|src) to follow image links.
+                urls = set(re.findall(r'(?i)href=["\']?([^\s"\'<>]+)',
+                                      text))
+                if urls:
+                    LOGGER.info('got %r distinct urls from %r',
+                                len(urls), response.url)
+                new_urls = set()
+                for url in urls:
+                    normalized = urllib.parse.urljoin(response.url,
+                                                      unescape(url))
+                    defragmented, frag = urllib.parse.urldefrag(normalized)
+                    if self.add_url(defragmented):
+                        new_urls.add(defragmented)
+
+        return FetchStatistic(
+            url=response.url,
+            next_url=None,
+            status=response.status,
+            exception=None,
+            size=len(body),
+            content_type=content_type,
+            encoding=encoding,
+            num_urls=len(urls),
+            num_new_urls=len(new_urls))
+
+    @asyncio.coroutine
     def fetch(self, url, max_redirect):
         """Fetch one URL, following redirects."""
         tries = 0
@@ -164,56 +209,11 @@ class Crawler:
                 LOGGER.error('redirect limit reached for %r from %r',
                              next_url, url)
         else:
-            stat = yield from self._process_response(response)
+            stat = yield from self.process_response(response)
             self.record_statistic(stat)
 
     @asyncio.coroutine
-    def _process_response(self, response):
-        """Return a FetchStatistic for a successful fetch."""
-        urls = set()
-        new_urls = set()
-        content_type = None
-        encoding = None
-        body = yield from response.read()
-
-        if response.status == 200:
-            content_type = response.headers.get('content-type')
-            pdict = {}
-
-            if content_type:
-                content_type, pdict = cgi.parse_header(content_type)
-
-            encoding = pdict.get('charset', 'utf-8')
-            if content_type in ('text/html', 'application/xml'):
-                text = yield from response.text()
-
-                # Replace href with (?:href|src) to follow image links.
-                urls = set(re.findall(r'(?i)href=["\']?([^\s"\'<>]+)',
-                                      text))
-                if urls:
-                    LOGGER.info('got %r distinct urls from %r',
-                                len(urls), response.url)
-                new_urls = set()
-                for url in urls:
-                    normalized = urllib.parse.urljoin(response.url,
-                                                      unescape(url))
-                    defragmented, frag = urllib.parse.urldefrag(normalized)
-                    if self.add_url(defragmented):
-                        new_urls.add(defragmented)
-
-        return FetchStatistic(
-            url=response.url,
-            next_url=None,
-            status=response.status,
-            exception=None,
-            size=len(body),
-            content_type=content_type,
-            encoding=encoding,
-            num_urls=len(urls),
-            num_new_urls=len(new_urls))
-
-    @asyncio.coroutine
-    def _work(self):
+    def work(self):
         """Process queue items forever."""
         while True:
             url, max_redirect = yield from self.q.get()
@@ -245,7 +245,7 @@ class Crawler:
     @asyncio.coroutine
     def crawl(self):
         """Run the crawler until all finished."""
-        workers = [asyncio.Task(self._work()) for _ in range(self.max_tasks)]
+        workers = [asyncio.Task(self.work()) for _ in range(self.max_tasks)]
         self.t0 = time.time()
         yield from self.q.join()
         assert self.urls == set(stat.url for stat in self.done)
