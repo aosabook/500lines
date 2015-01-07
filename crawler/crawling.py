@@ -10,7 +10,7 @@ import urllib.parse
 
 import aiohttp  # Install with "pip install aiohttp".
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 def unescape(s):
@@ -40,8 +40,7 @@ class Crawler:
     def __init__(self, roots,
                  exclude=None, strict=True,  # What to crawl.
                  max_redirect=10, max_tries=4,  # Per-url limits.
-                 max_tasks=10,  # Global limits.
-                 ):
+                 max_tasks=10):
         self.roots = roots
         self.exclude = exclude
         self.strict = strict
@@ -110,10 +109,12 @@ class Crawler:
         return host in self.root_domains
 
     def record_statistic(self, fetch_statistic):
+        """Record the FetchStatistic for completed / failed URL."""
         self.done.append(fetch_statistic)
 
     @asyncio.coroutine
     def fetch(self, url, max_redirect):
+        """Fetch one URL, following redirects."""
         tries = 0
         exc = None
         while tries < self.max_tries:
@@ -124,13 +125,13 @@ class Crawler:
                     allow_redirects=False)
 
                 if tries > 1:
-                    logger.info('try %r for %r success', tries, url)
+                    LOGGER.info('try %r for %r success', tries, url)
                 break
             except aiohttp.ClientError as exc:
-                logger.info('try %r for %r raised %r', tries, url, exc)
+                LOGGER.info('try %r for %r raised %r', tries, url, exc)
         else:
             # We never broke out of the loop: all tries failed.
-            logger.error('%r failed after %r tries',
+            LOGGER.error('%r failed after %r tries',
                          url, self.max_tries)
             self.record_statistic(FetchStatistic(url=url,
                                                  next_url=None,
@@ -157,55 +158,63 @@ class Crawler:
                                                  num_new_urls=0))
 
             if max_redirect > 0:
-                logger.info('redirect to %r from %r', next_url, url)
+                LOGGER.info('redirect to %r from %r', next_url, url)
                 self.add_url(next_url, max_redirect - 1)
             else:
-                logger.error('redirect limit reached for %r from %r',
+                LOGGER.error('redirect limit reached for %r from %r',
                              next_url, url)
         else:
-            urls = set()
-            new_urls = set()
-            content_type = None
-            encoding = None
-            body = yield from response.read()
+            stat = yield from self._process_response(response)
+            self.record_statistic(stat)
 
-            if response.status == 200:
-                content_type = response.headers.get('content-type')
-                pdict = {}
+    @asyncio.coroutine
+    def _process_response(self, response):
+        """Return a FetchStatistic for a successful fetch."""
+        urls = set()
+        new_urls = set()
+        content_type = None
+        encoding = None
+        body = yield from response.read()
 
-                if content_type:
-                    content_type, pdict = cgi.parse_header(content_type)
+        if response.status == 200:
+            content_type = response.headers.get('content-type')
+            pdict = {}
 
-                encoding = pdict.get('charset', 'utf-8')
-                if content_type in ('text/html', 'application/xml'):
-                    text = yield from response.text()
+            if content_type:
+                content_type, pdict = cgi.parse_header(content_type)
 
-                    # Replace href with (?:href|src) to follow image links.
-                    urls = set(re.findall(r'(?i)href=["\']?([^\s"\'<>]+)',
-                                          text))
-                    if urls:
-                        logger.info('got %r distinct urls from %r',
-                                    len(urls), url)
-                    new_urls = set()
-                    for u in urls:
-                        normalized = urllib.parse.urljoin(url, unescape(u))
-                        defragmented, frag = urllib.parse.urldefrag(normalized)
-                        if self.add_url(defragmented):
-                            new_urls.add(defragmented)
+            encoding = pdict.get('charset', 'utf-8')
+            if content_type in ('text/html', 'application/xml'):
+                text = yield from response.text()
 
-            self.record_statistic(FetchStatistic(
-                url=url,
-                next_url=None,
-                status=response.status,
-                exception=None,
-                size=len(body),
-                content_type=content_type,
-                encoding=encoding,
-                num_urls=len(urls),
-                num_new_urls=len(new_urls)))
+                # Replace href with (?:href|src) to follow image links.
+                urls = set(re.findall(r'(?i)href=["\']?([^\s"\'<>]+)',
+                                      text))
+                if urls:
+                    LOGGER.info('got %r distinct urls from %r',
+                                len(urls), response.url)
+                new_urls = set()
+                for url in urls:
+                    normalized = urllib.parse.urljoin(response.url,
+                                                      unescape(url))
+                    defragmented, frag = urllib.parse.urldefrag(normalized)
+                    if self.add_url(defragmented):
+                        new_urls.add(defragmented)
+
+        return FetchStatistic(
+            url=response.url,
+            next_url=None,
+            status=response.status,
+            exception=None,
+            size=len(body),
+            content_type=content_type,
+            encoding=encoding,
+            num_urls=len(urls),
+            num_new_urls=len(new_urls))
 
     @asyncio.coroutine
     def _work(self):
+        """Process queue items forever."""
         while True:
             url, max_redirect = yield from self.q.get()
             assert url in self.urls
@@ -220,15 +229,15 @@ class Crawler:
             return False
         parts = urllib.parse.urlparse(url)
         if parts.scheme not in ('http', 'https'):
-            logger.debug('skipping non-http scheme in %r', url)
+            LOGGER.debug('skipping non-http scheme in %r', url)
             return False
         host, port = urllib.parse.splitport(parts.netloc)
         if not self.host_okay(host):
-            logger.debug('skipping non-root host in %r', url)
+            LOGGER.debug('skipping non-root host in %r', url)
             return False
         if max_redirect is None:
             max_redirect = self.max_redirect
-        logger.debug('adding %r %r', url, max_redirect)
+        LOGGER.debug('adding %r %r', url, max_redirect)
         self.urls.add(url)
         self.q.put_nowait((url, max_redirect))
         return True
