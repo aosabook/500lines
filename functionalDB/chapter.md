@@ -794,7 +794,7 @@ Iterating over the clauses themselves happens in *q-clauses-to-pred-clauses*:
        (if-not frst#  preds-vecs#
          (recur rst# `(conj ~preds-vecs# (pred-clause ~frst#))))))
 ````
-We are once again relying on the fact that macros do not eagerly evaluate their arguments here. This allows us to provide variable names as symbols, without forcing the evaluation of those symbols at call-time.
+We are once again relying on the fact that macros do not eagerly evaluate their arguments. This allows us to provide variable names as symbols, without forcing the evaluation of those symbols at call-time.
 
 [TODO: I am not sure how messy it would be, but it might be useful here to show the instance of the data structure that would be produced from our example query by this phase.]
 
@@ -835,21 +835,18 @@ Once the index is chosen, we construct our plan, which is a function that closes
 ````
 #### Phase 3 - Execution of the plan
 
-In general, the execution plan of a query in our database is:
-
+We saw in the previous phase that the query plan we construct ends by calling *single-index-query-plan*. This function will:
 
 1. Apply each predicate clause on an index (each predicate on its appropriate index level)
-2. Perform an AND operation between the above results 
-3. Return a structure that simplifies the reporting of the results
-
-The function *single-index-query-plan* implements this description, where the first two steps are done in *query-index*, and the last is handled in *bind-variables-to-query*
+2. Perform an AND operation across the results 
+3. Merge the results into a simpler data structure
 
 ````clojure
 (defn single-index-query-plan [query indx db]
    (let [q-res (query-index (ind-at db indx) query)]
      (bind-variables-to-query q-res (ind-at db indx))))
 ````
-Let’s go deeper into the rabbit's hole and take a look at the *query-index* function, where a query and data give birth to results. 
+Let’s go deeper into the rabbit's hole and take a look at the *query-index* function, where our query finally begins to yield some data:
 
 ````clojure
 (defn query-index [index pred-clauses]
@@ -860,13 +857,14 @@ Let’s go deeper into the rabbit's hole and take a look at the *query-index* fu
                                      result-clauses)] 
      (filter #(not-empty (last %)) cleaned-result-clauses)))
 ````
-This function starts by applying the predicate clauses on the index previously chosen. Each application of a predicate clause on an index returns a result clause. 
-The main characteristics of a result clause are:
-1. Its built of three items, each from a different level of the index, each passed its respective predicate. 
-2. The items' order follows the index's levels structure (predicate clause are always inan EAV order). 
-3. The metadata of the predicate clause is attached to the result clause. 
+This function starts by applying the predicate clauses on the previously-chosed index. Each application of a predicate clause on an index returns a _result clause_. 
 
-All this is done in the function *filter-index*
+The main characteristics of a result are:
+1. It is built of three items, each from a different level of the index, and each passed its respective predicate. 
+2. The order of items matches the index's levels structure (predicate clause are always in EAV order). 
+3. The metadata of the predicate clause is attached 
+
+All of this is done in the function *filter-index*
 
 ````clojure
 (defn filter-index [index predicate-clauses]
@@ -879,8 +877,7 @@ All this is done in the function *filter-index*
          :let [res (set (filter lvl3-prd l3-set))] ]
      (with-meta [k1 k2 res] (meta pred-clause))))
 ````
-Once we have all the result clauses, we need to perform an *AND* operation between them. We do the *AND* operation by finding the elements that passed all the predicate clauses. 
-This is done in the *items-that-answer-all-conditions* function:
+Once we have produced all of the result clauses, we need to perform an *AND* operation between them. This is done by finding all of the elements that passed all the predicate clauses:
 
 ````clojure
 (defn items-that-answer-all-conditions [items-seq num-of-conditions]
@@ -892,20 +889,21 @@ This is done in the *items-that-answer-all-conditions* function:
          (map first) ; take from the duos the items themselves
          (set))) ; return it as set
 ````
-The next thing to do after we know which items passed all of the conditions, is to remove from the result clauses all the items that didn’t pass all of the conditions. 
-This is done at the *mask-path-leaf-with-items* function:
+
+We now have to remove the items that didn’t pass all of the conditions:
 
 ````clojure
 (defn mask-path-leaf-with-items [relevant-items path]
      (update-in path [2] CS/intersection relevant-items))
 ````
-Last thing to be done is to weed out all the result clauses that are empty (or more precisely their last item is empty). We do that in the last line of the *query-index* function. 
 
-At this point we have found the results, and we start to work towards reporting them out. To do so we do another transformation. We transform the result clauses from a clauses structure to an index like structure (map of maps), with a significant twist. 
+Finally, we remove all of the result clauses that are 'empty' (i.e. their last item is empty.) We do this in the last line of the *query-index* function. 
 
-To understand the twist we introduce the idea of a binding pair, which is a pair of a variable name and its value. The variable name is the variable name used at the predicate clauses, and the value is the value found in the result clauses.
+We are now ready to being reporting the results. The result clause structure is unwieldy for this purposes, so we will convert it into an an index-like structure (map of maps) -- with a significant twist. 
 
-The twist to the index structure is that now we hold a binding pair of the entity-id / attr-name / value in the location where we held an entity-id / attr-name / value in an index. This transformation is done at the *bind-variables-to-query* function, that is aided by the *combine-path-and-meta* function:
+To understand the twist, we must first introduce the idea of a _binding pair_, which is a pair that matches a variable name to its value. The variable name is the one used at the predicate clauses, and the value is the value found in the result clauses.
+
+The twist to the index structure is that now we hold a binding pair of the entity-id / attr-name / value in the location where we held an entity-id / attr-name / value in an index: 
 
 ````clojure
 (defn bind-variables-to-query [q-res index]
@@ -919,30 +917,24 @@ The twist to the index structure is that now we hold a binding pair of the entit
           combined-data-and-meta-path (interleave meta-of-path expanded-path)]
        (apply (partial map vector) combined-data-and-meta-path)))
 ````
+
 #### Phase 4 - Unify and report
 
-At this point, we’ve turned a query and a database into a structure holding all the information that the user asked for, and a little more. 
-This stage is about taking the complete results and extracting from them the specific values that the user had asked for. This process is usually referred to as unification, and here we unify the binding pairs structure with the vector of variable names that the user defined at the *:find* clause of the query.
-
-The unification process is starts at the *unify* function, which goes over the results and unify each with the variables that the user specified.
+At this point, we’ve produced a superset of the results that the user initially asked for. In this phase, we extract the specific values that the user has expressed interest in. This process is called _unification_ -- it is here that we will unify the binding pairs structure with the vector of variable names that the user defined in the *:find* clause of the query. 
 
 ````clojure
 (defn unify [binded-res-col needed-vars]
    (map (partial locate-vars-in-query-res needed-vars) binded-res-col))
 ````  
-Each unification step is handled at the *locate-vars-in-query-result* function 
+
+Each unification step is handled by *locate-vars-in-query-result*, which iterates over a query result (structured as an index entry, but with binding pairs) to detect all the variables and values that the user asked for.
 
 ````clojure
 (defn locate-vars-in-query-res [vars-set q-res]
    (let [[e-pair av-map]  q-res
          e-res (resultify-bind-pair vars-set [] e-pair)]
      (map (partial resultify-av-pair vars-set e-res)  av-map)))
-````
-This function takes a query result (structured as an index entry, but with binding pairs), and goes over its contents to detect all the variables and values that the user asked for. It does so by breaking this structure and looking at each of it’s binding pairs. 
 
-This is done either directly using the *resultify-bind-pair* function or using another step that breaks the second/third level map into the binding pairs and found at the *resultify-av-pair* function.
-
-````clojure
 (defn resultify-bind-pair [vars-set accum pair]
    (let [[ var-name _] pair]
       (if (contains? vars-set var-name) (conj accum pair) accum)))
@@ -950,9 +942,10 @@ This is done either directly using the *resultify-bind-pair* function or using a
 (defn resultify-av-pair [vars-set accum-res av-pair]
    (reduce (partial resultify-bind-pair vars-set) accum-res av-pair))
 ````
+
 #### Running the show
 
-From the user's perspective, invoking a query is a call to the *q* macro, that accepts the query and returns the results. This macro is responsible for managing the calls for each of the engine's phases, provide them with the right input and send onward their output. 
+We've finally built all of the components we need to to build our user-facing query mechanism, the *q* macro. [TODO: I think it would be useful to have an early black-box example of this macro is invoked, so that readers know what they are building towards:
 
 ````clojure
 (defmacro q
@@ -1042,6 +1035,8 @@ This function uses a helper function call *remove-explored* to help preventing r
 
 ## Architectural notes
 
+[TODO: I think we can probably remove this section as well, and discuss how the query engine is implemented as a library in its dedicated section.]
+
 The approach used when designing and implementing followed to Clojure appoach of having a minimal core and provide additional capabilities via libraries. The basic functionallity of the database was defined to be its data maintenance - storage, lifecycle and indexing. These capabilities were implemented in these files:
 
 * constructs.clj - data structures - Database, Layer, Entity, Attr and indexes.
@@ -1058,16 +1053,15 @@ Having the graph APIs and query engine provided as libraries allows in the futur
 
 ## Summary
 
-Our journey started with trying to take a different perspective on databasing, and adopt a point of view whose voice is rarely heard in the software design world. It ended with database that its main capabilities are:
+Our journey started with a conception of a different kind of database, and ended with one that:
 
-* Supports ACI transactions (the durability was lost when we decided to have the data stored in-memory) 
-* Supports a "what-if" interactions
-* Answers time related questions 
+* Supports ACI transactions (durability was lost when we decided to have the data stored in-memory) 
+* Supports "what-if" interactions
+* Answers time-related questions 
 * Handle simple datalog queries that are optimized by using indexes
 * provides APIs for graph queries
 * Introduces and implemented the notion of evolutionary queries
 
-There are still things to be done if we want to make it a better database. We can sprinkle caching all over the place to improve performance, extend the functionality by supporting stronger queries - both datalog and graph queries and add real storage support to provide data durability to name a few.
+There are still many things that we could improve: We could add caching to several components to improve performance; support richer queries; and add real storage support to provide data durability, to name a few.
 
-All this was implemented in a code base whose size is 488 lines of code, of which 73 are blank and 55 are docstrings, which brings us to a database implementation done in 360 lines of Clojure code.
- 
+However, our final product can do a great many things, and was implemented in X lines of Clojure source code, Y of which are blank lines and Z of which are docstrings. [Some final sentence.]
