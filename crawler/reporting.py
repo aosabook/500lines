@@ -28,12 +28,10 @@ def report(crawler, file=None):
     stats = Stats()
     print('*** Report ***', file=file)
     try:
-        show = []
-        show.extend(crawler.done.items())
-        show.extend(crawler.busy.items())
-        show.sort()
-        for url, fetcher in show:
-            fetcher_report(fetcher, stats, file=file)
+        show = list(crawler.done)
+        show.sort(key=lambda _stat: _stat.url)
+        for stat in show:
+            url_report(stat, stats, file=file)
     except KeyboardInterrupt:
         print('\nInterrupted', file=file)
     print('Finished', len(crawler.done),
@@ -42,60 +40,41 @@ def report(crawler, file=None):
           '(%.3f urls/sec/task)' % speed,
           file=file)
     stats.report(file=file)
-    print('Todo:', len(crawler.todo), file=file)
-    print('Busy:', len(crawler.busy), file=file)
+    print('Todo:', crawler.q.qsize(), file=file)
     print('Done:', len(crawler.done), file=file)
     print('Date:', time.ctime(), 'local time', file=file)
 
 
-def fetcher_report(fetcher, stats, file=None):
+def url_report(stat, stats, file=None):
     """Print a report on the state for this URL.
 
     Also update the Stats instance.
     """
-    if fetcher.task is not None:
-        if not fetcher.task.done():
-            stats.add('pending')
-            print(fetcher.url, 'pending', file=file)
-            return
-        elif fetcher.task.cancelled():
-            stats.add('cancelled')
-            print(fetcher.url, 'cancelled', file=file)
-            return
-        elif fetcher.task.exception():
-            stats.add('exception')
-            exc = fetcher.task.exception()
-            stats.add('exception_' + exc.__class__.__name__)
-            print(fetcher.url, exc, file=file)
-            return
-    if len(fetcher.exceptions) == fetcher.tries:
+    if stat.exception:
         stats.add('fail')
-        exc = fetcher.exceptions[-1]
-        stats.add('fail_' + str(exc.__class__.__name__))
-        print(fetcher.url, 'error', exc, file=file)
-    elif fetcher.next_url:
+        stats.add('fail_' + str(stat.exception.__class__.__name__))
+        print(stat.url, 'error', stat.exception, file=file)
+    elif stat.next_url:
         stats.add('redirect')
-        print(fetcher.url, fetcher.status, 'redirect', fetcher.next_url,
+        print(stat.url, stat.status, 'redirect', stat.next_url,
               file=file)
-    elif fetcher.ctype == 'text/html':
+    elif stat.content_type == 'text/html':
         stats.add('html')
-        size = len(fetcher.body or b'')
-        stats.add('html_bytes', size)
-        print(fetcher.url, fetcher.status,
-              fetcher.ctype, fetcher.encoding,
-              size,
-              '%d/%d' % (len(fetcher.new_urls or ()), len(fetcher.urls or ())),
+        stats.add('html_bytes', stat.size)
+        print(stat.url, stat.status,
+              stat.content_type, stat.encoding,
+              stat.size,
+              '%d/%d' % (stat.num_new_urls, stat.num_urls),
               file=file)
     else:
-        size = len(fetcher.body or b'')
-        if fetcher.status == 200:
+        if stat.status == 200:
             stats.add('other')
-            stats.add('other_bytes', size)
+            stats.add('other_bytes', stat.size)
         else:
             stats.add('error')
-            stats.add('error_bytes', size)
-            stats.add('status_%s' % fetcher.status)
-        print(fetcher.url, fetcher.status,
-              fetcher.ctype, fetcher.encoding,
-              size,
+            stats.add('error_bytes', stat.size)
+            stats.add('status_%s' % stat.status)
+        print(stat.url, stat.status,
+              stat.content_type, stat.encoding,
+              stat.size,
               file=file)
