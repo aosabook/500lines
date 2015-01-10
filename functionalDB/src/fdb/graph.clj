@@ -30,11 +30,3 @@
    (let [structure-fn (if (= :graph/bfs algo) vec list*)
           explore-fn (if (= :graph/outgoing direction) outgoing-refs incoming-refs)]
      (traverse [start-ent-id] #{}  (partial explore-fn db ts) (partial entity-at db ts) structure-fn))))
-
-(defn evolution-of
-  "The sequence of the values of an entity's attribute, as changed through time"
-  [db ent-id attr-name]
-  (loop [res [] ts (:curr-time db)]
-    (if (= -1 ts) (reverse res)
-        (let [attr (attr-at db ent-id attr-name ts)]
-          (recur (conj res {(:ts attr) (:value attr)})  (:prev-ts attr))))))

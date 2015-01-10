@@ -169,3 +169,11 @@
 
 (defmacro what-if [db & ops]  `(_transact ~db _what-if  ~@ops))
 (defmacro transact [db-conn & ops]  `(_transact ~db-conn swap! ~@ops))
+
+(defn evolution-of
+  "The sequence of the values of an entity's attribute, as changed through time"
+  [db ent-id attr-name]
+  (loop [res [] ts (:curr-time db)]
+    (if (= -1 ts) (reverse res)
+        (let [attr (attr-at db ent-id attr-name ts)]
+          (recur (conj res {(:ts attr) (:value attr)})  (:prev-ts attr))))))
