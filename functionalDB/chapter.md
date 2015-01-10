@@ -528,6 +528,7 @@ All that remains is to remove the old value from the indexes and to add the new 
 
 ### Transactions
 
+
 Each of the operations in our low-level API act on a single entity. However, nearly all databases have a mechanism for allowing users to perform multiple operations as a single _transaction_. (TODO: Reference other chapters on transactional semantics here.) This means: 
 
 * The batch of operations is viewed as a single atomic operation, meaning that either all of the operations succeed together or fail together
@@ -538,7 +539,6 @@ We can fulfill these requirements through an interface that consumes a database 
 
 The key insight here is that the layer we want is the _top_ layer that would be produced by performing those updates in sequence. Therefore, the solution is to execute each of the user’s operations one after another, each of which will create a new layer. When the last layer is created, we take only that top layer and place it on the initial database (leaving all the intermediate layers to pine for the fjords). Only after we've done all this will we update the database's timestamp.
 All this is done in the *transact-on-db* function, that receives the initial value of the database and the batch of operations to perform, and returns its updated value. 
-
 
 ````clojure
 (defn transact-on-db [initial-db ops]
@@ -634,6 +634,7 @@ Becomes eventually:
 ## Querying the database
 
 A database is not very useful to its users without a powerful query mechanism. This feature is usually exposed to users through a _query language_ that is used to declaratively specify the set of data of interest. 
+
 Our data model is based on accumulation of facts (i.e. datoms) over time. For this model, a natural place to look for the right query language is _logic programming_. A commonly used query language influenced by logic programming is _Datalog_ which, in addition to being well-suited for our data model, has a very elegant adaptation to Clojure’s syntax. Our query engine will implement a subset of the *Datalog* language from the [Datatomic database](http://docs.datomic.com/query.html).
 
 ### Query language
@@ -648,29 +649,35 @@ Let's look at an example query in our proposed language. This query asks "what a
       [?e  :age (< ?ag 20)]
       [?e  :birthday (birthday-this-week? _)]]}
 ````
-#### The query’s syntax
+
+#### Syntax
 
 We directly use the syntax of Clojure’s data literals to provide the basic syntax for our queries. This allows us to avoid having to write a specialized parser, while still providing a form that is familiar and easily readable to programmers familiar with Clojure.
- 		 
+
 A query is a map with two items:
-* An item with *:where* as a key, and with a _rule_ as a value. A rule is a vector of _clauses_, and a clause is a vector composed of three _predicates_, each of which operates on a different component of a datom.  In the example above, *[?e  :likes "pizza"]* is a clause.  This *:where* item defines a rule that acts as a filter on datoms in our database (like the 'WHERE' clause in a SQL query.)		
- 		 
+
+* An item with *:where* as a key, and with a _rule_ as a value. A rule is a vector of _clauses_, and a clause is a vector composed of three _predicates_, each of which operates on a different component of a datom.  In the example above, *[?e  :likes "pizza"]* is a clause.  This *:where* item defines a rule that acts as a filter on datoms in our database (like the 'WHERE' clause in a SQL query.)
+
 * An item with *:find* as a key, and with a vector as a value. The vector defines which components of the selected datom should be projected into the results (like the 'SELECT' clause in an SQL query.)
 
-The description above is missing a crucial part, which is how to make different clauses sync on a value (i.e., make a join operation between them), and how to transmit values found at the *:where* part to be reported by the *:find* part. 
+The description above omits a crucial requirement, which is how to make different clauses sync on a value (i.e., make a join operation between them), and how to structure the found values in the output (specified by the *:find* part.) 
 
-These two kinds of agreements (between clauses and between *:where* and *:find* parts) are done using variables. 
+We fulfill both of these requirements using _variables_, which are denoted with a leading *?* in their names. The only exception to this definition is the "don't-care" variable *‘_’*  (underscore). 
 
-A variable is any symbol that starts with *‘?’* (e.g., *?e* in the example above). The only exception to this definition is the "don't-care" variable and its symbol is *‘_’*  (underscore). To understand whether something is a variable or not we have our *variable?* predicate.  
+[TODO: I think we can omit this tangent on parsing and detecting variables. The section moves more smoothly without it.]
+To detect variables in our queries, we use the *variable?* predicate.  
+
 ````clojure
 (defn variable?
    ([x] (variable? x true))
    ([x accept_?]  
    (or (and accept_? (= x "_")) (= (first x) \?))))
 ````
-A common usage of a predicate is when it acts as an argument to *filter* (i.e., the predicate is a higher order function). Since functions evaluate their arguments, it is not possible to implement the predicate as a function that receives the user entered symbol (as the evaluation of that symbol would fail). Instead, it is a function that receives a string (thus callers to it would need to "stringify" the symbols they wish to check). It may seem cleaner to implement this predicate as a macro that can receive the user entered symbol (as macros do not evaluate their arguments), however, Clojure does not allow macros to be used as a higher order functions.
+Predicates are often used as an argument to *filter*. Since functions evaluate their arguments, it is not possible to implement the predicate as a function that receives the user entered symbol (as the evaluation of that symbol would fail). 
 
-A clause in a query is composed of three predicates, the following table defines what can act as a predicate in our query language:
+This should sound familiar, as we were confronted with this problem earlier when specifying a list of operations to be executed in *transact-on-db*. Our solution there was to use a macro. Unfortunately, that is not possible in this case, as Clojure does not permit macros to be used as a higher order functions. We are thus forced to use a less elegant solution, which is to force callers to "stringify" the symbols they wish to check before passing them to *variable?*. 
+
+A clause in a query is composed of three predicates. The following table defines what can act as a predicate in our query language:
 
 <table>
   <tr>
@@ -680,7 +687,7 @@ A clause in a query is composed of three predicates, the following table defines
   </tr>
   <tr>
     <td>Constant</td>
-    <td>Is the value of the item in the datom equals to the constant.</td>
+    <td>Is the value of the item in the datom equal to the constant?</td>
     <td>:likes</td>
   </tr>
   <tr>
@@ -690,12 +697,12 @@ A clause in a query is composed of three predicates, the following table defines
   </tr>
   <tr>
     <td>Don’t-care</td>
-    <td>The predicate always returns true.</td>
+    <td>Always returns true.</td>
     <td>_</td>
   </tr>
   <tr>
     <td>Unary operator</td>
-    <td>Unary operation that its operand is a variable.<br/>
+    <td>Unary operation that takes a variable as its operand.<br/>
         Bind the datom's item's value to the variable (unless it's an '_').<br/>
         Replace the variable with the value of the item in the datom.<br/>
         Return the application of the operation.</td>
@@ -703,7 +710,7 @@ A clause in a query is composed of three predicates, the following table defines
   </tr>
   <tr>
     <td>Binary operator</td>
-    <td>A binary operation, must have a variable as one of its operands.<br/>
+    <td>A binary operation that must have a variable as one of its operands.<br/>
         Bind the datom's item's value to the variable (unless it's an '_').<br/>        
         Replace the variable with the value of the item in the datom.<br/>
         Return the result of the operation.</td>
@@ -711,76 +718,42 @@ A clause in a query is composed of three predicates, the following table defines
   </tr>
 </table>
 
-
 Table 3
 
-#### Limitations
+#### Limitations of our query language 
 
-Engineering is all about managing tradeoff, and when designing the query engine, there were tradeoff to tackle. In our case, the first tradeoff is the "feature-richness vs complexity". Resolving this tradeoff starts by deciding what are the acceptable limitations of the system. In our database, the decision was to build A query engine with the following limitations:
+Engineering is all about managing tradeoffs, and designing our query engine is no different. In our case, the first tradeoff we must make is feature-richness versus complexity. Resolving this tradeoff requires us to look at common use-cases of the system, and from there deciding on what limitations would be acceptable. 
 
-* Logic operations between clauses: user cannot define any logical operations between the clauses, they are always ‘ANDed’. Users can mitigate this restriction by providing their own functions to act as predicates (as long as they can act as unary or binary operators)
-* Joining: If there's more than one clause in a query, there must be one variable that is found in all of the clauses of that query. This variable acts as a joining variable. This limitation helps in having a simple query optimizer.
-* A query is executed on a single database. 
+In our database, the decision was to build a query engine with the following limitations:
 
-The bottom line of this decision is even when imposing these restrictions on the richness provided by Datalog, we still support most of the happy-path, simple yet useful, queries.
+* Users cannot define logical operations between the clauses; they are always ‘ANDed’ together. (This can be worked around by using unary or binary predicates.)
+* If there is more than one clause in a query, there must be one variable that is found in all of the clauses of that query. This variable acts as a joining variable. This limitation simplifies the query optimizer.
+* A query is only executed on a single database. 
 
-#### Reading the example
-
-Following the above explanation, we can now read and understand the different terms within the exemplary query, which are:
-
-<table>
-  <tr>
-    <td>Term</td>
-    <td>Interpretation</td>
-  </tr>
-  <tr>
-    <td>:find ?nm ?ag</td>
-    <td>find the name and age of all the entities that answer the following conditions:</td>
-  </tr>
-  <tr>
-    <td>?e :likes "pizza"</td>
-    <td>the entity like pizza </td>
-  </tr>
-  <tr>
-    <td>?e :name ?nm</td>
-    <td>that entity has a name (remember that name)</td>
-  </tr>
-  <tr>
-    <td>?e :age (&gt; ?ag 20) </td>
-    <td>that entity’s age is above 20 (remember that age)</td>
-  </tr>
-  <tr>
-    <td>?e :birthday (birthday-this-week? _)</td>
-    <td>that entity had birthday this week</td>
-  </tr>
-</table>
-
-
-Table 4 
+While these design decisions result in a query language that is less rich than Datalog, we are still able to support many types of simple-but-useful queries.
 
 ### Query engine design
 
-A query engine is the component within a database that is responsible for answering user’s queries. When a query engine receives a query, it operates along the lines of the following four phases:
+While our query language allows the user to specify _what_ they want to access, it hides the details of _how_ this will be accomplished. The *query engine* is the database component responsible for yielding the data for a given query. 
 
-1. Transformation to internal representation: this phase focuses on transforming the query from its textual form (i.e., in its query syntax) as the user entered it, to its in-memory form, which is kept in a specifically devised data structure. 
-2. Building a query plan: this phase analyzes what’s the best course of action to get to the needed results of the query. Based on that analysis this phase outputs a query plan. In our case a query plan is a function to be invoked.
-3. Executing the function: this phase is responsible for executing the plan and send its results to the next phase.
-4. Unification and reporting: this phase receives the query results, extracts from it only the part that needs to be reported (a unification of the user’s input with the query results) and formats it to be in the way that the user requested.
+This involves four steps:
+
+1. Transformation to internal representation: transform the query from its textual form into a data structure that is consumed by the query planner.
+2. Building a query plan: Determine an efficient _plan_ for yielding the results of the given query. In our case, a query plan is a function to be invoked.
+3. Executing the plan: Execute the plan and send its results to the next phase.
+4. Unification and reporting: Extract only the results that need to be reported and format them as specified.
 
 #### Phase 1 - Transformation
 
-This phase’s purpose is to receive the query from the user and transform it into a structure that the query engine can use in an efficient way. Efficiency is gained by having the engine use data structures that were designed with the engine's computations in mind (as oppose to using the raw query, which is designed for user’s ease of use). 
+In this phase, we transform the given query from a representation that is easy for the user to understand into a representation that can be consumed efficiently by the query planner. 
 
-Each of a query’s parts has its tailored data structure:
-
-* The *:find* part of the query is transformed into a set that holds all the names of the variables that needs to be reported. These names are held as strings, and the transformation itself is done in the macro *symbol-col-to-set*
+The *:find* part of the query is transformed into a set of the given variable names:
 
 ````clojure
 (defmacro symbol-col-to-set [coll] (set (map str coll)))
 ````
 
-* The *:where* part of the query keeps its nested vector structure. However, each of the terms in each of the clauses is replaced with a predicate according to the description in Table 3. Also, for each clause, a vector with the names of the variables used in that clause is set as its metadata. 
-The transformation from term to a predicate is implemented in the macro *clause-term-expr* and the detection of the variable in each term is done in the macro *clause-term-meta*
+The *:where* part of the query retains its nested vector structure. However, each of the terms in each of the clauses is replaced with a predicate according from Table 3. 
 
 ````clojure
 (defmacro clause-term-expr [clause-term]
@@ -790,14 +763,19 @@ The transformation from term to a predicate is implemented in the macro *clause-
     (= 2 (count clause-term)) `#(~(first clause-term) %) ; unary operator
     (variable? (str (second clause-term))) `#(~(first clause-term) % ~(last clause-term)) ; binary operator, first operand is a variable
     (variable? (str (last clause-term))) `#(~(first clause-term) ~(second clause-term) %))) ; binary operator, second operand is variable
+````
 
+Also, for each clause, a vector with the names of the variables used in that clause is set as its metadata. 
+
+````clojure
 (defmacro clause-term-meta [clause-term]
    (cond
    (coll? clause-term)  (first (filter variable?  (map str clause-term))) 
    (variable? (str clause-term)) (str clause-term) 
    :no-variable-in-clause nil))
 ````
-The iteration on the terms in each clause is done at the *pred-clause* macro and the iteration over the clauses is done at the *q-clauses-to-pred-clauses* macro.
+
+We use *pred-clause* to iterate over the terms in each clause: 
 
 ````clojure
 (defmacro pred-clause [clause]
@@ -806,28 +784,37 @@ The iteration on the terms in each clause is done at the *pred-clause* macro and
           (recur rst-trm# (conj exprs# `(clause-term-expr ~ trm#)) 
                        (conj metas#`(clause-term-meta ~ trm#)))
           (with-meta exprs# {:db/variable metas#}))))
+````
+
+Iterating over the clauses themselves happens in *q-clauses-to-pred-clauses*:
           
+````clojure
 (defmacro  q-clauses-to-pred-clauses [clauses]
      (loop [[frst# & rst#] clauses preds-vecs# []]
        (if-not frst#  preds-vecs#
          (recur rst# `(conj ~preds-vecs# (pred-clause ~frst#))))))
 ````
-You may ask why the entire transformation process uses macros and not functions. This is the result of a decision to simplify the query APIs by allowing users to enter the variable names as symbols and not as strings (e.g., allowing ?name and not requiring the user to enter "?name"). Macros allow us to do it as they do not evaluate their arguments when they get called. 
+We are once again relying on the fact that macros do not eagerly evaluate their arguments. This allows us to provide variable names as symbols, without forcing the evaluation of those symbols at call-time.
+
+[TODO: I am not sure how messy it would be, but it might be useful here to show the instance of the data structure that would be produced from our example query by this phase.]
 
 #### Phase 2 - Making a plan
 
-Once there is an engine-friendly representation of the 	query, it is up to the engine to decide what's the best way to execute the query and construct a plan for such execution. 
+In this phase, we inspect the query representation produced in phase 1 to determine a good _plan_ that will produce the result it describes.
 
-From a bird's eye's view, The general execution plan in our database is to choose an index, apply on it the predicate clauses, merge the results and return it. 
+In general, this will involve choosing the appropriate index, applying on it the predicate clauses and merging the results. 
 
-The plan is constructed at the *build-query-plan* function. The right index is chosen based on the joining variable, where we use our assumption (and limitation) that there’s at most one such variable. There are three options for it:
+We choose the index based on the joining variable. We assume that there is at most one such variable, which yields three possibilities: 
 
-* Joining variable that operates on entity-ids means that it is best to execute the query on the AVET index
-* Joining variable that operates on attribute-names means it is best to execute the query on the VEAT index
-* Joining variable that operates on the attribute values means it is best to execute the query on the EAVT index.
+[TODO: This should probably be a 2-column table]
 
-Locating the index of the joining variable is done at the *index-of-joining-variable* function.
-This function starts by extracting the metadata of each clause in the query (where the metadata is a 3 items vector, each is a variable name or *nil*) and goes to reduce them into one. That reduced sequence is built of either *nil* or a variable name that is appears in all of the metadata vectors at the same index (this is the joining variable), and return that index (as there's only one such variable).
+* Variable operates on entity ids -> use the AVET index
+* Variable operates on attribute names -> use the VEAT index
+* Variable operates on attribute values -> use the EAVT index
+
+The reasoning behind this mapping will become clearer in the next section, where we actually execute the plan produced here.
+
+Locating the index of the joining variable is done by *index-of-joining-variable*:
 
 ````clojure
 (defn index-of-joining-variable [query-clauses]
@@ -836,11 +823,9 @@ This function starts by extracting the metadata of each clause in the query (whe
          collapsed (reduce collapsing-fn metas-seq)] 
      (first (keep-indexed #(when (variable? %2 false) %1)  collapsed)))) 
 ````
-(The rationale behind this mapping between the joining variable and index would be clear in the next section, where the execution of the plan is described). 
+We begin by extracting the metadata of each clause in the query. This metadata is a 3-element vector, each of which is a variable name or *nil*, and reduces them to produce a single variable name or *nil*. If a variable name is produced, this means it appears in all of the metadata vectors at the same index -- i.e. this is the joining variable. We can thus choose the appropriate index by using the mapping described above. 
 
-Once the index is chosen, we construct and return a function that closes over the query and the index name, executes the plan, and return its results.
-
-Having the query plan to be a function that accepts a database as an argument is a design decision that keeps open the future possibility of considering several plans, and all we know at this stage of the design is that surely any query plan would need a database to work on.
+Once the index is chosen, we construct our plan, which is a function that closes over the query and the index name and executes the operations necessary to return the query results. 
 
 ````clojure
 (defn build-query-plan [query]
@@ -850,21 +835,18 @@ Having the query plan to be a function that accepts a database as an argument is
 ````
 #### Phase 3 - Execution of the plan
 
-In general, the execution plan of a query in our database is:
-
+We saw in the previous phase that the query plan we construct ends by calling *single-index-query-plan*. This function will:
 
 1. Apply each predicate clause on an index (each predicate on its appropriate index level)
-2. Perform an AND operation between the above results 
-3. Return a structure that simplifies the reporting of the results
-
-The function *single-index-query-plan* implements this description, where the first two steps are done in *query-index*, and the last is handled in *bind-variables-to-query*
+2. Perform an AND operation across the results 
+3. Merge the results into a simpler data structure
 
 ````clojure
 (defn single-index-query-plan [query indx db]
    (let [q-res (query-index (ind-at db indx) query)]
      (bind-variables-to-query q-res (ind-at db indx))))
 ````
-Let’s go deeper into the rabbit's hole and take a look at the *query-index* function, where a query and data give birth to results. 
+Let’s go deeper into the rabbit's hole and take a look at the *query-index* function, where our query finally begins to yield some data:
 
 ````clojure
 (defn query-index [index pred-clauses]
@@ -875,13 +857,14 @@ Let’s go deeper into the rabbit's hole and take a look at the *query-index* fu
                                      result-clauses)] 
      (filter #(not-empty (last %)) cleaned-result-clauses)))
 ````
-This function starts by applying the predicate clauses on the index previously chosen. Each application of a predicate clause on an index returns a result clause. 
-The main characteristics of a result clause are:
-1. Its built of three items, each from a different level of the index, each passed its respective predicate. 
-2. The items' order follows the index's levels structure (predicate clause are always inan EAV order). 
-3. The metadata of the predicate clause is attached to the result clause. 
+This function starts by applying the predicate clauses on the previously-chosed index. Each application of a predicate clause on an index returns a _result clause_. 
 
-All this is done in the function *filter-index*
+The main characteristics of a result are:
+1. It is built of three items, each from a different level of the index, and each passed its respective predicate. 
+2. The order of items matches the index's levels structure (predicate clause are always in EAV order). 
+3. The metadata of the predicate clause is attached 
+
+All of this is done in the function *filter-index*
 
 ````clojure
 (defn filter-index [index predicate-clauses]
@@ -894,8 +877,7 @@ All this is done in the function *filter-index*
          :let [res (set (filter lvl3-prd l3-set))] ]
      (with-meta [k1 k2 res] (meta pred-clause))))
 ````
-Once we have all the result clauses, we need to perform an *AND* operation between them. We do the *AND* operation by finding the elements that passed all the predicate clauses. 
-This is done in the *items-that-answer-all-conditions* function:
+Once we have produced all of the result clauses, we need to perform an *AND* operation between them. This is done by finding all of the elements that passed all the predicate clauses:
 
 ````clojure
 (defn items-that-answer-all-conditions [items-seq num-of-conditions]
@@ -907,20 +889,21 @@ This is done in the *items-that-answer-all-conditions* function:
          (map first) ; take from the duos the items themselves
          (set))) ; return it as set
 ````
-The next thing to do after we know which items passed all of the conditions, is to remove from the result clauses all the items that didn’t pass all of the conditions. 
-This is done at the *mask-path-leaf-with-items* function:
+
+We now have to remove the items that didn’t pass all of the conditions:
 
 ````clojure
 (defn mask-path-leaf-with-items [relevant-items path]
      (update-in path [2] CS/intersection relevant-items))
 ````
-Last thing to be done is to weed out all the result clauses that are empty (or more precisely their last item is empty). We do that in the last line of the *query-index* function. 
 
-At this point we have found the results, and we start to work towards reporting them out. To do so we do another transformation. We transform the result clauses from a clauses structure to an index like structure (map of maps), with a significant twist. 
+Finally, we remove all of the result clauses that are 'empty' (i.e. their last item is empty.) We do this in the last line of the *query-index* function. 
 
-To understand the twist we introduce the idea of a binding pair, which is a pair of a variable name and its value. The variable name is the variable name used at the predicate clauses, and the value is the value found in the result clauses.
+We are now ready to being reporting the results. The result clause structure is unwieldy for this purposes, so we will convert it into an an index-like structure (map of maps) -- with a significant twist. 
 
-The twist to the index structure is that now we hold a binding pair of the entity-id / attr-name / value in the location where we held an entity-id / attr-name / value in an index. This transformation is done at the *bind-variables-to-query* function, that is aided by the *combine-path-and-meta* function:
+To understand the twist, we must first introduce the idea of a _binding pair_, which is a pair that matches a variable name to its value. The variable name is the one used at the predicate clauses, and the value is the value found in the result clauses.
+
+The twist to the index structure is that now we hold a binding pair of the entity-id / attr-name / value in the location where we held an entity-id / attr-name / value in an index: 
 
 ````clojure
 (defn bind-variables-to-query [q-res index]
@@ -934,30 +917,24 @@ The twist to the index structure is that now we hold a binding pair of the entit
           combined-data-and-meta-path (interleave meta-of-path expanded-path)]
        (apply (partial map vector) combined-data-and-meta-path)))
 ````
+
 #### Phase 4 - Unify and report
 
-At this point, we’ve turned a query and a database into a structure holding all the information that the user asked for, and a little more. 
-This stage is about taking the complete results and extracting from them the specific values that the user had asked for. This process is usually referred to as unification, and here we unify the binding pairs structure with the vector of variable names that the user defined at the *:find* clause of the query.
-
-The unification process is starts at the *unify* function, which goes over the results and unify each with the variables that the user specified.
+At this point, we’ve produced a superset of the results that the user initially asked for. In this phase, we extract the specific values that the user has expressed interest in. This process is called _unification_ -- it is here that we will unify the binding pairs structure with the vector of variable names that the user defined in the *:find* clause of the query. 
 
 ````clojure
 (defn unify [binded-res-col needed-vars]
    (map (partial locate-vars-in-query-res needed-vars) binded-res-col))
 ````  
-Each unification step is handled at the *locate-vars-in-query-result* function 
+
+Each unification step is handled by *locate-vars-in-query-result*, which iterates over a query result (structured as an index entry, but with binding pairs) to detect all the variables and values that the user asked for.
 
 ````clojure
 (defn locate-vars-in-query-res [vars-set q-res]
    (let [[e-pair av-map]  q-res
          e-res (resultify-bind-pair vars-set [] e-pair)]
      (map (partial resultify-av-pair vars-set e-res)  av-map)))
-````
-This function takes a query result (structured as an index entry, but with binding pairs), and goes over its contents to detect all the variables and values that the user asked for. It does so by breaking this structure and looking at each of it’s binding pairs. 
 
-This is done either directly using the *resultify-bind-pair* function or using another step that breaks the second/third level map into the binding pairs and found at the *resultify-av-pair* function.
-
-````clojure
 (defn resultify-bind-pair [vars-set accum pair]
    (let [[ var-name _] pair]
       (if (contains? vars-set var-name) (conj accum pair) accum)))
@@ -965,9 +942,10 @@ This is done either directly using the *resultify-bind-pair* function or using a
 (defn resultify-av-pair [vars-set accum-res av-pair]
    (reduce (partial resultify-bind-pair vars-set) accum-res av-pair))
 ````
+
 #### Running the show
 
-From the user's perspective, invoking a query is a call to the *q* macro, that accepts the query and returns the results. This macro is responsible for managing the calls for each of the engine's phases, provide them with the right input and send onward their output. 
+We've finally built all of the components we need to to build our user-facing query mechanism, the *q* macro. [TODO: I think it would be useful to have an early black-box example of this macro is invoked, so that readers know what they are building towards:
 
 ````clojure
 (defmacro q
@@ -1057,6 +1035,8 @@ This function uses a helper function call *remove-explored* to help preventing r
 
 ## Architectural notes
 
+[TODO: I think we can probably remove this section as well, and discuss how the query engine is implemented as a library in its dedicated section.]
+
 The approach used when designing and implementing followed to Clojure appoach of having a minimal core and provide additional capabilities via libraries. The basic functionallity of the database was defined to be its data maintenance - storage, lifecycle and indexing. These capabilities were implemented in these files:
 
 * constructs.clj - data structures - Database, Layer, Entity, Attr and indexes.
@@ -1073,16 +1053,15 @@ Having the graph APIs and query engine provided as libraries allows in the futur
 
 ## Summary
 
-Our journey started with trying to take a different perspective on databasing, and adopt a point of view whose voice is rarely heard in the software design world. It ended with database that its main capabilities are:
+Our journey started with a conception of a different kind of database, and ended with one that:
 
-* Supports ACI transactions (the durability was lost when we decided to have the data stored in-memory) 
-* Supports a "what-if" interactions
-* Answers time related questions 
+* Supports ACI transactions (durability was lost when we decided to have the data stored in-memory) 
+* Supports "what-if" interactions
+* Answers time-related questions 
 * Handle simple datalog queries that are optimized by using indexes
 * provides APIs for graph queries
 * Introduces and implemented the notion of evolutionary queries
 
-There are still things to be done if we want to make it a better database. We can sprinkle caching all over the place to improve performance, extend the functionality by supporting stronger queries - both datalog and graph queries and add real storage support to provide data durability to name a few.
+There are still many things that we could improve: We could add caching to several components to improve performance; support richer queries; and add real storage support to provide data durability, to name a few.
 
-All this was implemented in a code base whose size is 488 lines of code, of which 73 are blank and 55 are docstrings, which brings us to a database implementation done in 360 lines of Clojure code.
- 
+However, our final product can do a great many things, and was implemented in X lines of Clojure source code, Y of which are blank lines and Z of which are docstrings. [Some final sentence.]
