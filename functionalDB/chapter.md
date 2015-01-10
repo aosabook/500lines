@@ -303,7 +303,7 @@ You may be wondering why we use the *always* function for the AVET, VEAT and EAV
 
 ### Basic accessors
 
-Before we can build complex querying facilities for our database, we need to provide a lower-level API that different parts of the system can use to retrieve the components we've built thus far by their associated identifiers from any point in time. Consumers of the database can also use this API; however, it is more likely that they will be using the more fully-featured componets built on top of it.
+Before we can build complex querying facilities for our database, we need to provide a lower-level API that different parts of the system can use to retrieve the components we've built thus far by their associated identifiers from any point in time. Consumers of the database can also use this API; however, it is more likely that they will be using the more fully-featured components built on top of it.
 
 This lower-level API is composed of the following four accessor functions:
 
@@ -326,6 +326,20 @@ This lower-level API is composed of the following four accessor functions:
 ````
 
 Since we treat our database just like any other value, each of these functions take a database as an argument. Each element is retrieved by its associated identifier, and optionally the timestamp of interest. This timestamp is used in each case to find the corresponding layer that our lookup should be applied to.
+
+#### Evolution
+
+A first usage of the basic accessors is to provide a "read-into-the-past" API. This is possible as in our database, an update operation is done by appending a new layer (as oppose to overwriting). Therefore we can use the *prev-ts* property of an attribute look at the attribute at that layer, and continue going back in time looking deeper into history, thus observing the how the attribute’s value evolved throughout time.  
+
+The function *evolution-of* does exactly that, and return a sequence of pairs - each consist of the timestamp and value of an attribute’s update.
+
+````clojure
+(defn evolution-of [db ent-id attr-name]
+   (loop [res [] ts (:curr-time db)]
+     (if (= -1 ts) (reverse res)
+         (let [attr (attr-at db ent-id attr-name ts)]
+           (recur (conj res {(:ts attr) (:value attr)})  (:prev-ts attr))))))
+````
 
 ## Data behavior and life cycle
 
@@ -470,7 +484,7 @@ We begin by using *reffing-datoms-to* to find all entities that reference ours i
 ````
 We then apply *update-entity* to each triplet to update the attributes that reference our removed entity. (We'll explore how *update-entity* works in the next section.)
 
-The last step of *remove-back-refs* is to clear the removed entity’s id from the VAET index, since it is the only index that stores references to entities. [TODO: My rewording of this might be wrong. I think we need a bit more explanation here as to why the other indexes don't need to be updated.]
+The last step of *remove-back-refs* is to clear the reference it self from our indexes, and more specifically - from the VAET index, since it is the only index that stores references information. 
 
 #### Updating an entity
 
@@ -631,8 +645,37 @@ Becomes eventually:
 (transact-on-db my-db  [[add-entity e3] [remove-entity e4]])
 ````
 
+## Insight extraction as libraries
+
+At this point, we have the core functionality of the database in place, and it is time to add to it its raison d'être - insights extraction. The architecture approach we used here is to allow adding these capabilities as libraries, as different usages of the database would need different such mechanisms. 
+
+### Graph traversal
+
+A reference connection between entities is created when an entity’s attribute’s type is *:db/ref*, which means that the value of that attribute is an id of another entity. When a referring entity is added to the database, the reference is indexed at the VAET index.  
+The information found in the VAET index can be leveraged to extract all the incoming links to an entity and is done in the function *incoming-refs*, which collects for the given entity all the leaves that are reachable from it at that index:
+
+````clojure
+(defn incoming-refs [db ts ent-id & ref-names]
+   (let [vaet (ind-at db :VAET ts)
+         all-attr-map (vaet ent-id)
+         filtered-map (if ref-names (select-keys ref-names all-attr-map) all-attr-map)]
+      (reduce into #{} (vals filtered-map))))
+````
+We can also, for a given entity, go through all of it’s attributes and collect all the values of attribute of type :db/ref, and by that extract all the outgoing references from that entity. This is done at the *outgoing-refs* function 
+
+````clojure
+(defn outgoing-refs [db ts ent-id & needed-keys]
+   (let [val-filter-fn (if ref-names #(vals (select-keys ref-names %)) vals)]
+   (if-not ent-id []
+     (->> (entity-at db ts ent-id)
+          (:attrs) (val-filter-fn) (filter ref?) (mapcat :value)))))
+````
+These two functions act as the basic building blocks for any graph traversal operation, as they are the ones that raise the level of abstraction from entities and attributes to nodes and links in a graph. Once we have the ability to look at our database as a graph, we can provide various graph traversing and querying APIs. We leave this as a solved exercise to the reader - one solution can be found in the chapter's source code (see graph.clj).   
+
+
 ## Querying the database
 
+A second library we present here provides querying capabilities, which is the main issue of this section. 
 A database is not very useful to its users without a powerful query mechanism. This feature is usually exposed to users through a _query language_ that is used to declaratively specify the set of data of interest. 
 
 Our data model is based on accumulation of facts (i.e. datoms) over time. For this model, a natural place to look for the right query language is _logic programming_. A commonly used query language influenced by logic programming is _Datalog_ which, in addition to being well-suited for our data model, has a very elegant adaptation to Clojure’s syntax. Our query engine will implement a subset of the *Datalog* language from the [Datatomic database](http://docs.datomic.com/query.html).
@@ -662,20 +705,7 @@ A query is a map with two items:
 
 The description above omits a crucial requirement, which is how to make different clauses sync on a value (i.e., make a join operation between them), and how to structure the found values in the output (specified by the *:find* part.) 
 
-We fulfill both of these requirements using _variables_, which are denoted with a leading *?* in their names. The only exception to this definition is the "don't-care" variable *‘_’*  (underscore). 
-
-[TODO: I think we can omit this tangent on parsing and detecting variables. The section moves more smoothly without it.]
-To detect variables in our queries, we use the *variable?* predicate.  
-
-````clojure
-(defn variable?
-   ([x] (variable? x true))
-   ([x accept_?]  
-   (or (and accept_? (= x "_")) (= (first x) \?))))
-````
-Predicates are often used as an argument to *filter*. Since functions evaluate their arguments, it is not possible to implement the predicate as a function that receives the user entered symbol (as the evaluation of that symbol would fail). 
-
-This should sound familiar, as we were confronted with this problem earlier when specifying a list of operations to be executed in *transact-on-db*. Our solution there was to use a macro. Unfortunately, that is not possible in this case, as Clojure does not permit macros to be used as a higher order functions. We are thus forced to use a less elegant solution, which is to force callers to "stringify" the symbols they wish to check before passing them to *variable?*. 
+We fulfill both of these requirements using _variables_, which are denoted with a leading *?* in their names. The only exception to this definition is the "don't-care" variable *‘_’*  (underscore).  
 
 A clause in a query is composed of three predicates. The following table defines what can act as a predicate in our query language:
 
@@ -753,7 +783,7 @@ The *:find* part of the query is transformed into a set of the given variable na
 (defmacro symbol-col-to-set [coll] (set (map str coll)))
 ````
 
-The *:where* part of the query retains its nested vector structure. However, each of the terms in each of the clauses is replaced with a predicate according from Table 3. 
+The *:where* part of the query retains its nested vector structure. However, each of the terms in each of the clauses is replaced with a predicate according to Table 3. 
 
 ````clojure
 (defmacro clause-term-expr [clause-term]
@@ -794,7 +824,7 @@ Iterating over the clauses themselves happens in *q-clauses-to-pred-clauses*:
        (if-not frst#  preds-vecs#
          (recur rst# `(conj ~preds-vecs# (pred-clause ~frst#))))))
 ````
-We are once again relying on the fact that macros do not eagerly evaluate their arguments. This allows us to provide variable names as symbols, without forcing the evaluation of those symbols at call-time.
+We are once again relying on the fact that macros do not eagerly evaluate their arguments. This allows us to define a simpler API where uers provide variable names as symbols e.g., ?name instead of "?name" (stringifying the variable) or even worse - '?name (asking the user to use some of Clojure's dark magic).
 
 [TODO: I am not sure how messy it would be, but it might be useful here to show the instance of the data structure that would be produced from our example query by this phase.]
 
@@ -806,13 +836,22 @@ In general, this will involve choosing the appropriate index, applying on it the
 
 We choose the index based on the joining variable. We assume that there is at most one such variable, which yields three possibilities: 
 
-[TODO: This should probably be a 2-column table]
+<table>
+	<tr>
+		<td>Joining variable operates on</td><td>Index to use</td>
+	</tr>
+	<tr>
+		<td>Entity ids</td><td>AVET</td>
+	</tr>
+	<tr>
+		<td>Attribute names</td><td>VEAT</td>
+	</tr>
+	<tr>
+		<td>Attribute values</td><td>EAVT</td>
+	</tr>
+</table>
 
-* Variable operates on entity ids -> use the AVET index
-* Variable operates on attribute names -> use the VEAT index
-* Variable operates on attribute values -> use the EAVT index
-
-The reasoning behind this mapping will become clearer in the next section, where we actually execute the plan produced here.
+The reasoning behind this mapping will become clearer in the next section, where we actually execute the plan produced here, just for now note that the key insight here is to select an index whose leaves hold the elements that the joining variable operates on.
 
 Locating the index of the joining variable is done by *index-of-joining-variable*:
 
@@ -846,7 +885,7 @@ We saw in the previous phase that the query plan we construct ends by calling *s
    (let [q-res (query-index (ind-at db indx) query)]
      (bind-variables-to-query q-res (ind-at db indx))))
 ````
-Let’s go deeper into the rabbit's hole and take a look at the *query-index* function, where our query finally begins to yield some data:
+Let’s go deeper into the rabbit's hole and take a look at the *query-index* function, where our query finally begins to yield some results:
 
 ````clojure
 (defn query-index [index pred-clauses]
@@ -956,101 +995,6 @@ We've finally built all of the components we need to to build our user-facing qu
            query-internal-res# (query-plan# ~db)] ;executing the plan on the database
      (unify query-internal-res# needed-vars#)));unifying the query result with the needed variables to report out what the user asked for
 ````  
-
-## Connected data
-
-Querying is the first mean of extracting insights from data, and it leverages the datom way of data modeling. However, there are other properties of our data modeling which allow insights extraction, and especially leverage the way entities are connected amongst themeselves. 
-One kind of connection may be between an entity’s to itself at different times (an evolutionary connection). Another may be reference between two entities, which forms a graph whose nodes are the entities and the edges are the references. 
-In this section we’ll see how to utilizes these connection types and provide mechanisms to extract insights based them.
-
-### Evolution
-
-In our database, an update operation is done by appending a new value to an attribute (as oppose to overwrite in standard databases). This opens up the possibility of linking two attribute values, in two different times. The way this linking is implemented in our database is by having the attribute hold the timestamp of the previous update. That timestamp points to a layer in which the attribute held the previous value. More than that, we can look at the attribute at that layer, and continue going back in time and look deeper into history, thus observing the how the attribute’s value evolved throughout time.  
-
-The function *evolution-of* does exactly that, and return a sequence of pairs - each consist of the timestamp and value of an attribute’s update.
-
-````clojure
-(defn evolution-of [db ent-id attr-name]
-   (loop [res [] ts (:curr-time db)]
-     (if (= -1 ts) (reverse res)
-         (let [attr (attr-at db ent-id attr-name ts)]
-           (recur (conj res {(:ts attr) (:value attr)})  (:prev-ts attr))))))
-````
-### Graph traversal
-
-A reference connection between entities is created when an entity’s attribute’s type is *:db/ref*, which means that the value of that attribute is an id of another entity. When a referring entity is added to the database, the reference is indexed at the VAET index. In that index, the top level items (the *V*'s) are ids of entities that are referenced to by other entities.The leaves of this index (the *E*'s) hold the referring entities’ ids. The *Attribute*'s name is captured in the second layer of that index (the *A*'s).  
-The information found in the VAET index can be leveraged to extract all the incoming links to an entity and is done in the function *incoming-refs*, which collects for the given entity all the leaves that are reachable from it at that index:
-
-````clojure
-(defn incoming-refs [db ts ent-id & ref-names]
-   (let [vaet (ind-at db :VAET ts)
-         all-attr-map (vaet ent-id)
-         filtered-map (if ref-names (select-keys ref-names all-attr-map) all-attr-map)]
-      (reduce into #{} (vals filtered-map))))
-````
-We can also, for a given entity, go through all of it’s attributes and collect all the values of attribute of type :db/ref, and by that extract all the outgoing references from that entity. This is done at the *outgoing-refs* function 
-
-````clojure
-(defn outgoing-refs [db ts ent-id & needed-keys]
-   (let [val-filter-fn (if ref-names #(vals (select-keys ref-names %)) vals)]
-   (if-not ent-id []
-     (->> (entity-at db ts ent-id)
-          (:attrs) (val-filter-fn) (filter ref?) (mapcat :value)))))
-````
-These two functions act as the basic building blocks for any graph traversal operation, as they are the ones that raise the level of abstraction from entities and attributes to nodes and links in a graph. These functions can provide either all the refs (either incoming or outgoing) of an entity or a subset of them. This is possible as each ref is an attribute (with a type of :db\ref), so to define a subset of the refs means to define a subset of the attribute names and provide it via the *ref-names* argument of these functions. 
-
-On top of providing these two building blocks of graph traversal, our database also provides the two classical graph traversing algorithms - breadth-first-search and depth-first-search, that start from a given node, and traverse the graph along either the incoming or outgoing references (using either *incoming-refs* or *outgoing-refs* appropriately).
-
-As these two algorithms have almost identical implementation, they are both implemented in the same function, called *traverse*, and the difference is mitigated by the function *traverse-db* that receives as an input which algorithm to use (either *:graph/bfs* or *:graph/dfs*) and along which references to walk (either *:graph/outgoing* or *:graph/incoming*). 
-
-````clojure
-(defn traverse-db 
-   ([start-ent-id db algo direction] (traverse-db start-ent-id db algo direction (:curr-time db)))
-   ([start-ent-id db algo direction ts]
-     (let [structure-fn (if (= :graph/bfs algo) vec list*)
-           explore-fn   (if (= :graph/outgoing direction) outgoing-refs incoming-refs)]
-       (traverse [start-ent-id] #{}  
-                (partial explore-fn db ts) (partial entity-at db ts) structure-fn))))
- ````
-The implementation itself of the algorithm is the classical implementation with a minor, yet important twist - laziness. The results of the traversal are computed lazily, meaning that the traversal would continue as long as its results are needed.
-
-This is done by having the combination of *cons* and *lazy-seq* wrapping the recursive call at the *traverse* function.
-
-````clojure
-(defn- traverse [pendings explored exploring-fn ent-at structure-fn]
-     (let [cleaned-pendings (remove-explored pendings explored structure-fn)
-           item (first cleaned-pendings)
-           all-next-items  (exploring-fn item)
-           next-pends (reduce conj (structure-fn (rest cleaned-pendings)) all-next-items)]
-       (when item (cons (ent-at item)
-                        (lazy-seq (traverse next-pends (conj explored item) 
-                                            exploring-fn ent-at structure-fn))))))
-````
-This function uses a helper function call *remove-explored* to help preventing re-visits to an already explored entities, its implementation is straightforward - remove from one list the items in another list and return the result in the right data structure that is required by the algorithm, as can be seen as follows:
-
-````clojure
-(defn- remove-explored [pendings explored structure-fn]
-   (structure-fn (remove #(contains? explored %) pendings)))
-````
-
-## Architectural notes
-
-[TODO: I think we can probably remove this section as well, and discuss how the query engine is implemented as a library in its dedicated section.]
-
-The approach used when designing and implementing followed to Clojure appoach of having a minimal core and provide additional capabilities via libraries. The basic functionallity of the database was defined to be its data maintenance - storage, lifecycle and indexing. These capabilities were implemented in these files:
-
-* constructs.clj - data structures - Database, Layer, Entity, Attr and indexes.
-* manage.clj - all things related to managing databases and connections to them
-* storage.clj - where the storage APIs are defined as well as providing the InMemory implementation
-* core.clj -  where data life cycle, indexing and transacting is handled
-
-These capabilities are extended by the two mini-libraries:
-
-* graph.clj - where graph and evolution APIs are implemented 
-* query.clj - where the query engine is implemented
-
-Having the graph APIs and query engine provided as libraries allows in the future to replace any of them, and shows the how it is possible to extend the database with more capabilities.
-
 ## Summary
 
 Our journey started with a conception of a different kind of database, and ended with one that:
