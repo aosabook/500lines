@@ -1008,4 +1008,6 @@ Our journey started with a conception of a different kind of database, and ended
 
 There are still many things that we could improve: We could add caching to several components to improve performance; support richer queries; and add real storage support to provide data durability, to name a few.
 
-However, our final product can do a great many things, and was implemented in X lines of Clojure source code, Y of which are blank lines and Z of which are docstrings. [Some final sentence.]
+However, our final product can do a great many things, and was implemented in 488 lines of Clojure source code, 73 of which are blank lines and 55 of which are docstrings. 
+
+This brings us to an in memory, index optimized, query supporting, library developer friendly database implementation done in 360 lines of Clojure code.
