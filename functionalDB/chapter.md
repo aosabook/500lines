@@ -1011,4 +1011,4 @@ There are still many things that we could improve: We could add caching to sever
 However, our final product can do a great many things, and was implemented in 488 lines of Clojure source code, 73 of which are blank lines and 55 of which are docstrings. 
 
 Finally, there's one thing that is still missing - a Name. 
-The only sensible option for an in-memory, index optimized, query supporting, library developer friendly database that is implemented in 360 lines of Clojure code is CircleDB.
+The only sensible option for an in-memory, index optimized, query supporting, library developer friendly, time aware functional database implemented in 360 lines of Clojure code is CircleDB.
