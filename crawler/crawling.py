@@ -40,17 +40,18 @@ class Crawler:
     def __init__(self, roots,
                  exclude=None, strict=True,  # What to crawl.
                  max_redirect=10, max_tries=4,  # Per-url limits.
-                 max_tasks=10):
+                 max_tasks=10, *, loop=None):
+        self.loop = loop or asyncio.get_event_loop()
         self.roots = roots
         self.exclude = exclude
         self.strict = strict
         self.max_redirect = max_redirect
         self.max_tries = max_tries
         self.max_tasks = max_tasks
-        self.q = asyncio.JoinableQueue()
+        self.q = asyncio.JoinableQueue(loop=self.loop)
         self.urls = set()
         self.done = []
-        self.connector = aiohttp.TCPConnector()
+        self.connector = aiohttp.TCPConnector(loop=self.loop)
         self.root_domains = set()
         for root in roots:
             parts = urllib.parse.urlparse(root)
@@ -167,8 +168,8 @@ class Crawler:
                 response = yield from aiohttp.request(
                     'get', url,
                     connector=self.connector,
-                    allow_redirects=False)
-
+                    allow_redirects=False,
+                    loop=self.loop)
                 if tries > 1:
                     LOGGER.info('try %r for %r success', tries, url)
                 break
@@ -245,7 +246,8 @@ class Crawler:
     @asyncio.coroutine
     def crawl(self):
         """Run the crawler until all finished."""
-        workers = [asyncio.Task(self.work()) for _ in range(self.max_tasks)]
+        workers = [asyncio.Task(self.work(), loop=self.loop)
+                   for _ in range(self.max_tasks)]
         self.t0 = time.time()
         yield from self.q.join()
         assert self.urls == set(stat.url for stat in self.done)
