@@ -784,7 +784,7 @@ thunk2()            // 6
 
 (end long footnote)]
 
-None of the thunks are invoked until one is actually "needed", which usually implies some type of output is required: in our case the result of a query. Because each new thunk takes all previous thunks as one of its input parameters (CPS) the AST gets rolled up backwards, and the first thing we actually evaluate is the innermost thing we need in order to produce the results. [TODO Maybe a footnote to clarify this further. Maybe use the "short-circuit evaluation plus xxx" explanation.]
+None of the thunks are invoked until one is actually "needed", which usually implies some type of output is required: in our case the result of a query. Because each new thunk takes all previous thunks as one of its input parameters (CPS) the AST gets rolled up backwards, and the first thing we actually evaluate is the innermost thing we need in order to produce the results. [TODO Maybe a footnote to clarify this further. Maybe use the "short-circuit evaluation plus sharing of results" explanation. Maybe show delay and force in the thunk code. Maybe drop the CSP and AST bits and go with a more classic explanation.]
 
 There are a couple of tradeoffs with this approach: one is that spacial performance becomes much more difficult to reason about, because of the potentially vast thunk trees that are created. Another is that our program is now expressed as a single outermost (innermost) thunk, which means we can't do much with it at that point. 
 
