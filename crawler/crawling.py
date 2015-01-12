@@ -19,6 +19,11 @@ def unescape(s):
     return s.replace('&amp;', '&')  # Must be last.
 
 
+def lenient_host(host):
+    parts = host.split('.')[-2:]
+    return ''.join(parts)
+
+
 FetchStatistic = namedtuple('FetchStatistic',
                             ['url',
                              'next_url',
@@ -65,8 +70,7 @@ class Crawler:
                 if self.strict:
                     self.root_domains.add(host)
                 else:
-                    host = host.split('.')[-2:]
-                    self.root_domains.add(host)
+                    self.root_domains.add(lenient_host(host))
         for root in roots:
             self.add_url(root)
         self.t0 = time.time()
@@ -106,8 +110,7 @@ class Crawler:
 
         This compares the last two components of the host.
         """
-        host = host.split('.')[-2:]
-        return host in self.root_domains
+        return lenient_host(host) in self.root_domains
 
     def record_statistic(self, fetch_statistic):
         """Record the FetchStatistic for completed / failed URL."""

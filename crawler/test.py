@@ -92,8 +92,18 @@ class TestCrawler(unittest.TestCase):
         crawler = self.crawl([url])
         self.assertStat(crawler.done[0], num_urls=0)
 
+    def test_strict_host_checking(self):
+        crawler = crawling.Crawler(['http://example.com'], loop=self.loop)
+        self.assertTrue(crawler.url_allowed("http://www.example.com"))
+        self.assertFalse(crawler.url_allowed("http://foo.example.com"))
+
+    def test_lenient_host_checking(self):
+        crawler = crawling.Crawler(['http://example.com'], strict=False,
+                                   loop=self.loop)
+        self.assertTrue(crawler.url_allowed("http://www.example.com"))
+        self.assertTrue(crawler.url_allowed("http://foo.example.com"))
+
     # TODO:
-    # * test strict / lenient host checking, test www.-prefixed URLs
     # * test multiple roots
     # * test redirects, max_redirect
     # * test max_tasks
