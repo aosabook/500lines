@@ -116,7 +116,7 @@ class Crawler:
     @asyncio.coroutine
     def process_response(self, response):
         """Return a FetchStatistic for a successful fetch."""
-        urls = set()
+        allowed_urls = set()
         new_urls = set()
         content_type = None
         encoding = None
@@ -144,8 +144,11 @@ class Crawler:
                     normalized = urllib.parse.urljoin(response.url,
                                                       unescape(url))
                     defragmented, frag = urllib.parse.urldefrag(normalized)
-                    if self.add_url(defragmented):
-                        new_urls.add(defragmented)
+                    if self.url_allowed(defragmented):
+                        allowed_urls.add(defragmented)
+                        if defragmented not in self.urls:
+                            new_urls.add(defragmented)
+                            self.add_url(defragmented)
 
         return FetchStatistic(
             url=response.url,
@@ -155,7 +158,7 @@ class Crawler:
             size=len(body),
             content_type=content_type,
             encoding=encoding,
-            num_urls=len(urls),
+            num_urls=len(allowed_urls),
             num_new_urls=len(new_urls))
 
     @asyncio.coroutine
@@ -222,10 +225,7 @@ class Crawler:
             yield from self.fetch(url, max_redirect)
             self.q.task_done()
 
-    def add_url(self, url, max_redirect=None):
-        """Add a URL to the queue if not seen before."""
-        if url in self.urls:
-            return False
+    def url_allowed(self, url):
         if self.exclude and re.search(self.exclude, url):
             return False
         parts = urllib.parse.urlparse(url)
@@ -236,12 +236,15 @@ class Crawler:
         if not self.host_okay(host):
             LOGGER.debug('skipping non-root host in %r', url)
             return False
+        return True
+
+    def add_url(self, url, max_redirect=None):
+        """Add a URL to the queue if not seen before."""
         if max_redirect is None:
             max_redirect = self.max_redirect
         LOGGER.debug('adding %r %r', url, max_redirect)
         self.urls.add(url)
         self.q.put_nowait((url, max_redirect))
-        return True
 
     @asyncio.coroutine
     def crawl(self):
