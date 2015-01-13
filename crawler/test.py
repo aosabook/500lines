@@ -137,11 +137,24 @@ class TestCrawler(unittest.TestCase):
         self.assertTrue(crawler.url_allowed("http://www.example.com"))
         self.assertTrue(crawler.url_allowed("http://foo.example.com"))
 
+    def test_exclude(self):
+        crawler = crawling.Crawler(['http://example.com'],
+                                   exclude=r'.*pattern', loop=self.loop)
+        self.assertTrue(crawler.url_allowed("http://example.com"))
+        self.assertFalse(crawler.url_allowed("http://example.com/pattern"))
+
     def test_roots(self):
-        crawler = crawling.Crawler(['http://a', 'http://b'], loop=self.loop)
+        crawler = crawling.Crawler(['http://a', 'http://b', 'not-a-host'],
+                                   loop=self.loop)
         self.assertTrue(crawler.url_allowed("http://a/a"))
         self.assertTrue(crawler.url_allowed("http://b/b"))
         self.assertFalse(crawler.url_allowed("http://c/c"))
+        self.assertFalse(crawler.url_allowed("http://127.0.0.1"))
+
+    def test_deep_root(self):
+        # Make sure 'a' is a root domain if the root is a link deep in 'a'.
+        crawler = crawling.Crawler(['http://a/a#fragment'], loop=self.loop)
+        self.assertTrue(crawler.url_allowed("http://a/b"))
 
     def test_redirect(self):
         # "/" redirects to "/foo", and "/foo" redirects to "/bar".
@@ -211,12 +224,64 @@ class TestCrawler(unittest.TestCase):
         self.assertIsInstance(stat.exception, ClientError)
         self.assertIn('failed after 1 tries', messages)
 
-    # * test that hosts are properly parsed from deep roots
-    # * test default and custom encoding
-    # * test content-types
-    # * test that content-types html and xml are followed, not others
-    # * test non-http URLs
-    # * test 'exclude'
+    def test_encoding(self):
+        def test_charset(charset, encoding):
+            @asyncio.coroutine
+            def handler(_):
+                if charset:
+                    content_type = 'text/html; charset={}'.format(charset)
+                else:
+                    content_type = 'text/html'
+                return web.Response(headers=[('CONTENT-TYPE', content_type)])
+            url = '/' + charset
+            self.app.router.add_route('GET', url, handler)
+            crawler = self.crawl([self.app_url + url])
+            self.assertStat(crawler.done[0], encoding=encoding)
+
+        test_charset('', 'utf-8')
+        test_charset('utf-8', 'utf-8')
+        test_charset('ascii', 'ascii')
+
+    def test_content_type(self):
+        @asyncio.coroutine
+        def handler(_):
+            return web.Response(headers=[('CONTENT-TYPE', 'foo')])
+        self.app.router.add_route('GET', '/', handler)
+        crawler = self.crawl([self.app_url])
+        self.assertStat(crawler.done[0], content_type='foo')
+
+    def test_non_html(self):
+        # Should search only XML and HTML for links, not other content types.
+        body = ('<a href="{}">'.format(self.app_url)).encode('utf-8')
+
+        @asyncio.coroutine
+        def xml_handler(_):
+            return web.Response(body=body,
+                                headers=[('CONTENT-TYPE', 'application/xml')])
+        self.app.router.add_route('GET', '/xml', xml_handler)
+        crawler = self.crawl([self.app_url + '/xml'])
+        self.assertStat(crawler.done[0],
+                        content_type='application/xml', num_urls=1)
+        self.assertStat(crawler.done[1], url=self.app_url)
+
+        @asyncio.coroutine
+        def foo_handler(_):
+            return web.Response(body=body, headers=[('CONTENT-TYPE', 'image')])
+        self.app.router.add_route('GET', '/image', foo_handler)
+        crawler = self.crawl([self.app_url + '/image'])
+        self.assertStat(crawler.done[0], content_type='image', num_urls=0)
+
+    def test_non_http(self):
+        body = '<a href="ftp://example.com">'.encode('utf-8')
+
+        @asyncio.coroutine
+        def handler(_):
+            return web.Response(body=body, headers=[
+                ('CONTENT-TYPE', 'text/html; charset=utf-8')])
+        self.app.router.add_route('GET', '/', handler)
+        crawler = self.crawl([self.app_url])
+        self.assertStat(crawler.done[0], num_urls=0)
+
 
 if __name__ == '__main__':
     unittest.main()
