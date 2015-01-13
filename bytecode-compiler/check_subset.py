@@ -1,5 +1,6 @@
 """
 Check if a program conforms to our Python subset.
+XXX rule out Break and Set nodes -- bytecompile2 doesn't implement them
 """
 
 import ast
