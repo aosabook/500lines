@@ -168,7 +168,7 @@ class Crawler:
     def fetch(self, url, max_redirect):
         """Fetch one URL, following redirects."""
         tries = 0
-        exc = None
+        exception = None
         while tries < self.max_tries:
             try:
                 response = yield from aiohttp.request(
@@ -179,8 +179,11 @@ class Crawler:
                 if tries > 1:
                     LOGGER.info('try %r for %r success', tries, url)
                 break
-            except aiohttp.ClientError as exc:
-                LOGGER.info('try %r for %r raised %r', tries, url, exc)
+            except aiohttp.ClientError as client_error:
+                LOGGER.info('try %r for %r raised %r', tries, url, client_error)
+                exception = client_error
+
+            tries += 1
         else:
             # We never broke out of the loop: all tries failed.
             LOGGER.error('%r failed after %r tries',
@@ -188,7 +191,7 @@ class Crawler:
             self.record_statistic(FetchStatistic(url=url,
                                                  next_url=None,
                                                  status=None,
-                                                 exception=exc,
+                                                 exception=exception,
                                                  size=0,
                                                  content_type=None,
                                                  encoding=None,

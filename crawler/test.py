@@ -5,7 +5,7 @@ import logging
 import socket
 import unittest
 
-from aiohttp import web
+from aiohttp import ClientError, web
 
 import crawling
 
@@ -137,7 +137,6 @@ class TestCrawler(unittest.TestCase):
         self.assertTrue(crawler.url_allowed("http://www.example.com"))
         self.assertTrue(crawler.url_allowed("http://foo.example.com"))
 
-    # * test max_tries
     def test_roots(self):
         crawler = crawling.Crawler(['http://a', 'http://b'], loop=self.loop)
         self.assertTrue(crawler.url_allowed("http://a/a"))
@@ -183,6 +182,34 @@ class TestCrawler(unittest.TestCase):
         crawler = self.crawl([home], max_tasks=2)
         self.assertEqual(2, max_tasks)
         self.assertEqual(4, len(crawler.done))
+
+    def test_max_tries(self):
+        n_tries = 0
+
+        @asyncio.coroutine
+        def handler(req):
+            nonlocal n_tries
+            n_tries += 1
+            if n_tries <= 2:
+                req.transport.close()  # Network failure.
+            return web.Response(body=b'')
+
+        self.app.router.add_route('GET', '/', handler)
+        with capture_logging() as messages:
+            crawler = self.crawl([self.app_url])
+        self.assertEqual(1, len(crawler.done))
+        self.assertStat(crawler.done[0], status=200)
+        self.assertIn('try 1', messages)
+        self.assertIn('try 2', messages)
+
+        n_tries = 0
+        with capture_logging() as messages:
+            crawler = self.crawl([self.app_url], max_tries=1)
+        self.assertEqual(1, len(crawler.done))
+        stat = crawler.done[0]
+        self.assertStat(stat, status=None)
+        self.assertIsInstance(stat.exception, ClientError)
+        self.assertIn('failed after 1 tries', messages)
 
     # * test that hosts are properly parsed from deep roots
     # * test default and custom encoding
