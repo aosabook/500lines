@@ -43,6 +43,7 @@ class TestCrawler(unittest.TestCase):
         self.port = self._find_unused_port()
         self.app_url = "http://127.0.0.1:{}".format(self.port)
         self.app = self.loop.run_until_complete(self._create_server())
+        self.crawler = None
 
     def _find_unused_port(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -60,16 +61,25 @@ class TestCrawler(unittest.TestCase):
         self.addCleanup(srv.close)
         return app
 
-    def add_page(self, url, links):
+    def add_handler(self, url, handler):
+        self.app.router.add_route('GET', url, handler)
+
+    def add_page(self, url='/', links=None, body=None, content_type=None):
+        if not body:
+            text = ''.join('<a href="{}"></a>'.format(link)
+                           for link in links or [])
+            body = text.encode('utf-8')
+
+        if content_type is None:
+            content_type = 'text/html; charset=utf-8'
+
         @asyncio.coroutine
         def handler(req):
             yield from req.read()
-            text = ''.join('<a href="{}"></a>'.format(link) for link in links)
-            body = text.encode('utf-8')
             return web.Response(body=body, headers=[
-                ('CONTENT-TYPE', 'text/html; charset=utf-8')])
+                ('CONTENT-TYPE', content_type)])
 
-        self.app.router.add_route('GET', url, handler)
+        self.add_handler(url, handler)
         return self.app_url + url
 
     def add_redirect(self, url, link):
@@ -77,54 +87,57 @@ class TestCrawler(unittest.TestCase):
         def handler(_):
             raise web.HTTPFound(link)
 
-        self.app.router.add_route('GET', url, handler)
+        self.add_handler(url, handler)
         return self.app_url + url
 
-    def assertStat(self, stat, **kwargs):
+    def assertDoneCount(self, n):
+        self.assertEqual(n, len(self.crawler.done),
+                         "Expected {} URLs done, got {}".format(
+                             n, len(self.crawler.done)))
+
+    def assertStat(self, stat_index=0, **kwargs):
+        stat = self.crawler.done[stat_index]
         for name, value in kwargs.items():
             msg = '{}.{} not equal to {!r}'.format(stat, name, value)
             self.assertEqual(getattr(stat, name), value, msg)
 
-    def crawl(self, *args, **kwargs):
-        crawler = crawling.Crawler(*args, loop=self.loop, **kwargs)
-        self.loop.run_until_complete(crawler.crawl())
-        return crawler
+    def crawl(self, urls=None, *args, **kwargs):
+        if urls is None:
+            urls = [self.app_url]
+        self.crawler = crawling.Crawler(urls, *args, loop=self.loop, **kwargs)
+        self.loop.run_until_complete(self.crawler.crawl())
 
     def test_link(self):
-        # foo links to bar, which is missing.
-        url = self.add_page('/foo', [self.app_url + '/bar'])
-        crawler = self.crawl([url])
-        self.assertEqual(2, len(crawler.done))
-        self.assertStat(crawler.done[0],
-                        url=self.app_url + '/foo',
+        # "/" links to foo, which is missing.
+        self.add_page('/', ['/foo'])
+        self.crawl()
+        self.assertDoneCount(2)
+        self.assertStat(url=self.app_url,
                         num_urls=1,
                         num_new_urls=1)
 
-        self.assertStat(crawler.done[1],
-                        url=self.app_url + '/bar',
-                        status=404)
+        self.assertStat(1, url=self.app_url + '/foo', status=404)
 
     def test_link_cycle(self):
         # foo and bar link to each other.
-        url = self.add_page('/foo', [self.app_url + '/bar'])
-        self.add_page('/bar', [self.app_url + '/foo'])
-        crawler = self.crawl([url])
-        self.assertEqual(2, len(crawler.done))
-        self.assertStat(crawler.done[0],
-                        url=self.app_url + '/foo',
+        url = self.add_page('/foo', ['/bar'])
+        self.add_page('/bar', ['/foo'])
+        self.crawl([url])
+        self.assertDoneCount(2)
+        self.assertStat(url=self.app_url + '/foo',
                         num_urls=1,
                         num_new_urls=1)
 
-        self.assertStat(crawler.done[1],
+        self.assertStat(1,
                         url=self.app_url + '/bar',
                         num_urls=1,
                         num_new_urls=0)
 
     def test_prohibited_host(self):
         # Link to example.com.
-        url = self.add_page('/', ['http://example.com'])
-        crawler = self.crawl([url])
-        self.assertStat(crawler.done[0], num_urls=0)
+        self.add_page('/', ['http://example.com'])
+        self.crawl()
+        self.assertStat(num_urls=0)
 
     def test_strict_host_checking(self):
         crawler = crawling.Crawler(['http://example.com'], loop=self.loop)
@@ -163,15 +176,15 @@ class TestCrawler(unittest.TestCase):
 
         url = self.add_redirect('/', foo)
         self.add_redirect('/foo', bar)
-        crawler = self.crawl([url])
-        self.assertStat(crawler.done[0], status=302, next_url=foo)
-        self.assertStat(crawler.done[1], status=302, next_url=bar)
-        self.assertStat(crawler.done[2], status=404)
+        self.crawl([url])
+        self.assertStat(0, status=302, next_url=foo)
+        self.assertStat(1, status=302, next_url=bar)
+        self.assertStat(2, status=404)
 
         with capture_logging() as messages:
-            crawler2 = self.crawl([url], max_redirect=1)
-            self.assertEqual(2, len(crawler2.done))
-            self.assertStat(crawler.done[0], status=302, next_url=foo)
+            self.crawl([url], max_redirect=1)
+            self.assertDoneCount(2)
+            self.assertStat(status=302, next_url=foo)
 
         self.assertIn('redirect limit reached', messages)
 
@@ -190,11 +203,11 @@ class TestCrawler(unittest.TestCase):
 
         urls = ['/0', '/1', '/2']
         for url in urls:
-            self.app.router.add_route('GET', url, handler)
+            self.add_handler(url, handler)
         home = self.add_page('/', urls)
-        crawler = self.crawl([home], max_tasks=2)
+        self.crawl([home], max_tasks=2)
         self.assertEqual(2, max_tasks)
-        self.assertEqual(4, len(crawler.done))
+        self.assertDoneCount(4)
 
     def test_max_tries(self):
         n_tries = 0
@@ -207,80 +220,61 @@ class TestCrawler(unittest.TestCase):
                 req.transport.close()  # Network failure.
             return web.Response(body=b'')
 
-        self.app.router.add_route('GET', '/', handler)
+        self.add_handler('/', handler)
         with capture_logging() as messages:
-            crawler = self.crawl([self.app_url])
-        self.assertEqual(1, len(crawler.done))
-        self.assertStat(crawler.done[0], status=200)
+            self.crawl([self.app_url])
+        self.assertDoneCount(1)
+        self.assertStat(status=200)
         self.assertIn('try 1', messages)
         self.assertIn('try 2', messages)
 
         n_tries = 0
         with capture_logging() as messages:
-            crawler = self.crawl([self.app_url], max_tries=1)
-        self.assertEqual(1, len(crawler.done))
-        stat = crawler.done[0]
-        self.assertStat(stat, status=None)
+            self.crawl([self.app_url], max_tries=1)
+        self.assertDoneCount(1)
+        self.assertStat(status=None)
+        stat = self.crawler.done[0]
         self.assertIsInstance(stat.exception, ClientError)
         self.assertIn('failed after 1 tries', messages)
 
     def test_encoding(self):
         def test_charset(charset, encoding):
-            @asyncio.coroutine
-            def handler(_):
-                if charset:
-                    content_type = 'text/html; charset={}'.format(charset)
-                else:
-                    content_type = 'text/html'
-                return web.Response(headers=[('CONTENT-TYPE', content_type)])
+            if charset:
+                content_type = 'text/html; charset={}'.format(charset)
+            else:
+                content_type = 'text/html'
             url = '/' + charset
-            self.app.router.add_route('GET', url, handler)
-            crawler = self.crawl([self.app_url + url])
-            self.assertStat(crawler.done[0], encoding=encoding)
+            self.add_page(url, content_type=content_type)
+            self.crawl([self.app_url + url])
+            self.assertStat(encoding=encoding)
 
         test_charset('', 'utf-8')
         test_charset('utf-8', 'utf-8')
         test_charset('ascii', 'ascii')
 
     def test_content_type(self):
-        @asyncio.coroutine
-        def handler(_):
-            return web.Response(headers=[('CONTENT-TYPE', 'foo')])
-        self.app.router.add_route('GET', '/', handler)
-        crawler = self.crawl([self.app_url])
-        self.assertStat(crawler.done[0], content_type='foo')
+        self.add_page(content_type='foo')
+        self.crawl([self.app_url])
+        self.assertStat(content_type='foo')
 
     def test_non_html(self):
         # Should search only XML and HTML for links, not other content types.
         body = ('<a href="{}">'.format(self.app_url)).encode('utf-8')
 
-        @asyncio.coroutine
-        def xml_handler(_):
-            return web.Response(body=body,
-                                headers=[('CONTENT-TYPE', 'application/xml')])
-        self.app.router.add_route('GET', '/xml', xml_handler)
-        crawler = self.crawl([self.app_url + '/xml'])
-        self.assertStat(crawler.done[0],
-                        content_type='application/xml', num_urls=1)
-        self.assertStat(crawler.done[1], url=self.app_url)
+        self.add_page('/xml', body=body, content_type='application/xml')
+        self.crawl([self.app_url + '/xml'])
+        self.assertStat(0, content_type='application/xml', num_urls=1)
+        self.assertStat(1, url=self.app_url)
 
-        @asyncio.coroutine
-        def foo_handler(_):
-            return web.Response(body=body, headers=[('CONTENT-TYPE', 'image')])
-        self.app.router.add_route('GET', '/image', foo_handler)
-        crawler = self.crawl([self.app_url + '/image'])
-        self.assertStat(crawler.done[0], content_type='image', num_urls=0)
+        self.add_page('/image', content_type='image')
+        self.crawl([self.app_url + '/image'])
+        self.assertStat(content_type='image', num_urls=0)
 
     def test_non_http(self):
         body = '<a href="ftp://example.com">'.encode('utf-8')
-
-        @asyncio.coroutine
-        def handler(_):
-            return web.Response(body=body, headers=[
-                ('CONTENT-TYPE', 'text/html; charset=utf-8')])
-        self.app.router.add_route('GET', '/', handler)
-        crawler = self.crawl([self.app_url])
-        self.assertStat(crawler.done[0], num_urls=0)
+        self.add_page(body=body)
+        self.crawl()
+        self.assertStat(num_urls=0)
 
 
 if __name__ == '__main__':
