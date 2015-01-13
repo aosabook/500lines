@@ -102,9 +102,12 @@ class TestCrawler(unittest.TestCase):
             self.assertEqual(getattr(stat, name), value, msg)
 
     def crawl(self, urls=None, *args, **kwargs):
+        if self.crawler:
+            self.crawler.close()
         if urls is None:
             urls = [self.app_url]
         self.crawler = crawling.Crawler(urls, *args, loop=self.loop, **kwargs)
+        self.addCleanup(self.crawler.close)
         self.loop.run_until_complete(self.crawler.crawl())
 
     def test_link(self):
