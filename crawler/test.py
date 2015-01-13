@@ -1,10 +1,36 @@
 import asyncio
+from contextlib import contextmanager
+import io
+import logging
 import socket
 import unittest
 
 from aiohttp import web
 
 import crawling
+
+
+@contextmanager
+def capture_logging():
+    """See test_redirect for usage."""
+    logger = logging.getLogger('crawling')
+    level = logger.level
+    logger.setLevel(logging.DEBUG)
+    handler = logging.StreamHandler(io.StringIO())
+    logger.addHandler(handler)
+
+    class Messages:
+        def __contains__(self, item):
+            return item in handler.stream.getvalue()
+
+        def __repr__(self):
+            return repr(handler.stream.getvalue())
+
+    try:
+        yield Messages()
+    finally:
+        logger.removeHandler(handler)
+        logger.setLevel(level)
 
 
 class TestCrawler(unittest.TestCase):
@@ -42,6 +68,14 @@ class TestCrawler(unittest.TestCase):
             body = text.encode('utf-8')
             return web.Response(body=body, headers=[
                 ('CONTENT-TYPE', 'text/html; charset=utf-8')])
+
+        self.app.router.add_route('GET', url, handler)
+        return self.app_url + url
+
+    def add_redirect(self, url, link):
+        @asyncio.coroutine
+        def handler(_):
+            raise web.HTTPFound(link)
 
         self.app.router.add_route('GET', url, handler)
         return self.app_url + url
@@ -103,11 +137,53 @@ class TestCrawler(unittest.TestCase):
         self.assertTrue(crawler.url_allowed("http://www.example.com"))
         self.assertTrue(crawler.url_allowed("http://foo.example.com"))
 
-    # TODO:
-    # * test multiple roots
-    # * test redirects, max_redirect
-    # * test max_tasks
     # * test max_tries
+    def test_roots(self):
+        crawler = crawling.Crawler(['http://a', 'http://b'], loop=self.loop)
+        self.assertTrue(crawler.url_allowed("http://a/a"))
+        self.assertTrue(crawler.url_allowed("http://b/b"))
+        self.assertFalse(crawler.url_allowed("http://c/c"))
+
+    def test_redirect(self):
+        # "/" redirects to "/foo", and "/foo" redirects to "/bar".
+        foo = self.app_url + '/foo'
+        bar = self.app_url + '/bar'
+
+        url = self.add_redirect('/', foo)
+        self.add_redirect('/foo', bar)
+        crawler = self.crawl([url])
+        self.assertStat(crawler.done[0], status=302, next_url=foo)
+        self.assertStat(crawler.done[1], status=302, next_url=bar)
+        self.assertStat(crawler.done[2], status=404)
+
+        with capture_logging() as messages:
+            crawler2 = self.crawl([url], max_redirect=1)
+            self.assertEqual(2, len(crawler2.done))
+            self.assertStat(crawler.done[0], status=302, next_url=foo)
+
+        self.assertIn('redirect limit reached', messages)
+
+    def test_max_tasks(self):
+        n_tasks = 0
+        max_tasks = 0
+
+        @asyncio.coroutine
+        def handler(_):
+            nonlocal n_tasks, max_tasks
+            n_tasks += 1
+            max_tasks = max(n_tasks, max_tasks)
+            yield from asyncio.sleep(0.01, loop=self.loop)
+            n_tasks -= 1
+            return web.Response(body=b'')
+
+        urls = ['/0', '/1', '/2']
+        for url in urls:
+            self.app.router.add_route('GET', url, handler)
+        home = self.add_page('/', urls)
+        crawler = self.crawl([home], max_tasks=2)
+        self.assertEqual(2, max_tasks)
+        self.assertEqual(4, len(crawler.done))
+
     # * test that hosts are properly parsed from deep roots
     # * test default and custom encoding
     # * test content-types
