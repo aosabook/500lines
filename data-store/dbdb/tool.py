@@ -17,11 +17,11 @@ def usage():
     print("\tpython -m dbdb.tool DBNAME delete KEY", file=sys.stderr)
 
 
-def main():
-    if not (4 <= len(sys.argv) <= 5):
+def main(argv):
+    if not (4 <= len(argv) <= 5):
         usage()
         return BAD_ARGS
-    dbname, verb, key, value = (sys.argv[1:] + [None])[:4]
+    dbname, verb, key, value = (argv[1:] + [None])[:4]
     if verb not in {'get', 'set', 'delete'}:
         usage()
         return BAD_VERB
@@ -42,4 +42,4 @@ def main():
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    sys.exit(main(sys.argv))
