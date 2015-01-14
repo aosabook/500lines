@@ -13,12 +13,6 @@ import aiohttp  # Install with "pip install aiohttp".
 LOGGER = logging.getLogger(__name__)
 
 
-def unescape(s):
-    """The inverse of cgi.escape()."""
-    s = s.replace('&quot;', '"').replace('&gt;', '>').replace('&lt;', '<')
-    return s.replace('&amp;', '&')  # Must be last.
-
-
 def lenient_host(host):
     parts = host.split('.')[-2:]
     return ''.join(parts)
@@ -144,8 +138,7 @@ class Crawler:
                                 len(urls), response.url)
                 new_urls = set()
                 for url in urls:
-                    normalized = urllib.parse.urljoin(response.url,
-                                                      unescape(url))
+                    normalized = urllib.parse.urljoin(response.url, url)
                     defragmented, frag = urllib.parse.urldefrag(normalized)
                     if self.url_allowed(defragmented):
                         allowed_urls.add(defragmented)
