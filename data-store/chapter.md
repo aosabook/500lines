@@ -65,7 +65,7 @@ and it turned out to be relatively straightforward.
 
 I learned that it's easier to reason about things that don't change.
 
-So starts the story. ``:)``
+So starts the story.
 
 
 [^PEng]: From the [The Association of Professional Engineers and Geoscientists
@@ -113,7 +113,7 @@ and isolation is not guaranteed[^isolation].
 Application code can, of course, impose its own consistency guarantees,
 but proper isolation requires a transaction manager.
 That could be its own 500 lines;
-maybe you should write it for the 2nd edition!.
+maybe you should write it for the 2nd edition! ``:)``
 
 [^isolation]: Given key:values ``{a:1, b:1}``,
    and two transactions ``a = b + 1`` and ``b = a + 1``,
