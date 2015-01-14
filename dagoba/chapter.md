@@ -880,15 +880,94 @@ This is also the initialization state, since ```pc``` starts as ```max```. So we
 We're out of the driver loop now: the query has ended, the results are in, and we just need to process and return them. If any gremlin has its result set we'll return that, otherwise we'll return the gremlin's final vertex. Are there other things we might want to return? What are the tradeoffs here? 
 
 
-## Aliases
-
-TODO
-
-Pipes that transform to other pipes (really just query transformers)
-
 ## Query transformers
 
-TODO
+So we have this nice compact little interpreter for our query programs now, but we're still missing something. Every modern DBMS comes with a query optimizer as an essential part of the system. For non-relational databases optimizing our query plan rarely yields the exponential speedups seen in their relational cousins [footnote: Or, put more succinctly, a poorly phrased query is less likely to yield exponential time slowdowns over an alternate phrasing of the same query. As an end-user of an RDBMS the aesthetics of query quality can often be quite opaque.], but it's still an important aspect of database design.
+
+What's the simplest thing we could do that could reasonably be called a query optimizer? Well, we could write little functions for transforming our query programs before we run them. We'll pass a program in as input and get a different program back out as output. 
+
+```javascript
+Dagoba.T = []                                                     // transformers (more than meets the eye)
+
+Dagoba.addTransformer = function(fun, priority) {
+  if(typeof fun != 'function')
+    return Dagoba.error('Invalid transformer function') 
+  
+  for(var i = 0; i < Dagoba.T.length; i++)                        // OPT: binary search
+    if(priority > Dagoba.T[i].priority) break
+  
+  Dagoba.T.splice(i, 0, {priority: priority, fun: fun})
+}
+```
+
+Now we can add query transformers to our system. A query transformer is a program->program function, plus a priority level. Higher priority transformers are placed closer to the front of the list. We're ensuring fun is a function, because we're going to evaluate it later. [footnote: An astute reader will also notice that we're keeping the domain of the priority parameter open, so it can be an integer, a rational, a negative number, or even things like Infinity or NaN.]
+
+We'll assume there won't be an enormous number of transformer additions, and walk the list linearly to add a new one. We'll leave a note in case this assumption turns out to be false -- a binary search is much more time optimal for long lists, but doesn't speed up short lists and adds a little complexity.
+
+To run these transformers we're going to inject a single line of code in to the top of our interpreter:
+
+```javascript
+Dagoba.Q.run = function() {                                       // our virtual machine for query processing
+  this.program = Dagoba.transform(this.program)                   // activate the transformers
+```
+
+And use that to call this function, which just passes our program through each transformer in turn.
+
+```javascript
+Dagoba.transform = function(program) {
+  return Dagoba.T.reduce(function(acc, transformer) {
+    return transformer.fun(acc)
+  }, program)
+}
+```
+
+Our engine up until this point has traded simplicity for performance, but one of the nice things about this strategy is that it leaves doors open for global optimizations that may have been unavailable if we had opted to locally optimize as we designed the system. 
+
+Optimizing a program frequently increases complexity and reduces the elegance of the system, making it harder to reason about and maintain the system. Breaking abstraction barriers for performance reasons is one of the more painful ways this occurs, but even something seemingly innocuous like embedding performance-oriented code into a business logic function makes maintenance more difficult.
+
+In light of that, this type of "orthogonal optimization" is particularly appealing. We can add optimizers in modules or even user code, instead of having them tightly coupled to the engine. We can test them in isolation, or in groups, and with the addition of generative testing we could even automate that process, ensuring the our available optimizers play nicely together.
+
+We can also use this transformer system to add new functionality unrelated to optimization. Let's look at one of those now.
+
+
+## Aliases
+
+Making a query like ```g.v('Thor').out().out()``` is really compact, but does 'out' refer to parents or children? Neither way is fully satisfying. It'd be nicer to say ```g.v('Thor').parents().parents()``` and ```g.v('Thor').children().children()```.
+
+We can use transformers to make aliases with just a couple extra helper functions.
+
+```javascript
+Dagoba.addAlias = function(oldname, newstep) {
+  newstep[1] = newstep[1] || []
+  Dagoba.addPipetype(oldname, function() {})                      // because there's no method catchall in js
+  Dagoba.addTransformer(function(program) {
+    return program.map(function(step) {
+      if(step[0] != oldname) return step
+      return [newstep[0], Dagoba.extend(step[1], newstep[1])]
+    })
+  }, 100)                                                         // these need to run early, so they get a high priority
+}
+
+Dagoba.extend = function(list, defaults) {
+  return Object.keys(defaults).reduce(function(acc, key) {
+    if(typeof list[key] != 'undefined') return acc
+    acc[key] = defaults[key]
+    return acc
+  }, list)
+}
+```
+
+[TODO: explain this]
+
+Now we can make those aliases:
+
+```javascript
+Dagoba.addAlias('parents', ['out'])
+Dagoba.addAlias('children', ['in'])
+```
+
+[TODO: more aliases, expanded data model (spouses, step-parents, siblings, etc)]
+
 
 ## Performance
 
@@ -896,7 +975,7 @@ All production graph databases share a very particular performance characteristi
 
 To alleviate this dismal performance most databases index over oft-queried fields, which turns an O(n) search into an O(log n) search. This gives considerably better search performance, but at the cost of some write performance and a lot of space -- indices can easily double the size of a database. Careful balancing of the space/time tradeoffs of indices is part of the perpetual tuning process for most databases.
 
-Graph databases sidestep this issue by making direct connections between vertices and edges, so graph traversals are just pointer jumps: no need to read through everything, no need for indices. Now finding your friends has the same price regardless of total number of people in the graph, with no additional space cost or write time cost. One downside to this approach is that the pointers work best when the whole graph is in memory on the same machine. Effectively sharding a graph database across multiple machines is still an active area of research. [footnote: Sharding a graph database requires partitioning the graph. Optimal graph partitioning is NP-hard, even for simple graphs like trees and grids, and even the approximation algorithms are in NP. [http://arxiv.org/pdf/1311.3144v2.pdf, http://dl.acm.org/citation.cfm?doid=1007912.1007931] ]
+Graph databases sidestep this issue by making direct connections between vertices and edges, so graph traversals are just pointer jumps: no need to read through everything, no need for indices. Now finding your friends has the same price regardless of total number of people in the graph, with no additional space cost or write time cost. One downside to this approach is that the pointers work best when the whole graph is in memory on the same machine. Effectively sharding a graph database across multiple machines is still an active area of research. [footnote: Sharding a graph database requires partitioning the graph. Optimal graph partitioning is NP-hard, even for simple graphs like trees and grids, and even good approximations have exponential asymptotic complexity. [http://arxiv.org/pdf/1311.3144v2.pdf, http://dl.acm.org/citation.cfm?doid=1007912.1007931] ]
 
 We can see this at work in the microcosm of Dagoba if we replace the functions for finding edges. Here's a naive version that searches through all the edges in linear time. It harkens back to our very first implementation, but uses all the structures we've since built.
 
@@ -922,23 +1001,6 @@ Dagoba.G.findOutEdges = function(vertex) { return vertex._out }
 Run these yourself to experience the graph database difference.
 
 [footnote: In modern JavaScript engines filtering a list is quite fast -- for small graphs the naive version can actually be faster than the index-free version due to the way the code is JIT compiled and the underlying data structures. Try it with different sizes of graphs to see how the two approaches scale.]
-
-
-## Orthogonal Optimization
-
-TODO: rewrite this section to fit with above. also, talk more about making room for global optimizations.
-
-We've just improved our performance for large graphs by several dozen orders of magnitude. That's pretty good, but we can do better. Each step in our query has a fixed cost for building the gremlins and making the function calls, as well as a per-step cost. Because we're splitting each step out into its own separate unit, those per-step costs can be quite high compared to what they could be if we could combine some steps. We've sacrificed performance for code simplicity. 
-Many will argue that this sacrifice is acceptable, and that simplicity should trump performance whenever possible, but this is a false dichotomy. We can have our simple, easily understood model and also gain the performance benefits of combining steps -- we just have to beef up our compiler a little. 
-How do we do that without sacrificing simplicity? By making the new compilation steps orthogonal to our existing model. We already have a working system, so keep that in place. But let's add some new pipetypes, and some new preprocessors that we can turn on to pull those pipetypes in to our pipeline. We'll tag the preprocessors so we can turn them all on or off easily. 
-
-// ok build that
-// perf test it
-// cool it's faster
-
-Great, we're fast! Notice that by deliberately ignoring the chances we had to optimize early and by writing everything in as decomposed and simplistic a way as we possibly could that we've opened up opportunities for global optimizations.
-
-We should probably confirm that our optimizations don't break anything. Maybe we can write a bunch of tests for each of these new pieces, like we did before. 
 
 
 ## Serialization
