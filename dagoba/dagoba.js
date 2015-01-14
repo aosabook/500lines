@@ -137,6 +137,7 @@ Dagoba.query = function(graph) {                                  // factory (on
 }
 
 Dagoba.Q.run = function() {                                       // our virtual machine for query processing
+  this.program = Dagoba.transform(this.program)                   // activate the transformers
 
   var max = this.program.length - 1                               // last step in the program
   var maybe_gremlin = false                                       // a gremlin, a signal string, or false
@@ -391,6 +392,45 @@ Dagoba.depersist = function (name) {
 Dagoba.error = function(msg) {
   console.log(msg)
   return false 
+}
+
+
+Dagoba.T = []                                                     // transformers (more than meets the eye)
+
+Dagoba.addTransformer = function(fun, priority) {
+  if(typeof fun != 'function')
+    return Dagoba.error('Invalid transformer function') 
+  
+  for(var i = 0; i < Dagoba.T.length; i++)                        // OPT: binary search
+    if(priority > Dagoba.T[i].priority) break
+  
+  Dagoba.T.splice(i, 0, {priority: priority, fun: fun})
+}
+
+Dagoba.transform = function(program) {
+  return Dagoba.T.reduce(function(acc, transformer) {
+    return transformer.fun(acc)
+  }, program)
+}
+
+
+Dagoba.addAlias = function(oldname, newstep) {
+  newstep[1] = newstep[1] || []
+  Dagoba.addPipetype(oldname, function() {})                      // because there's no method catchall in js
+  Dagoba.addTransformer(function(program) {
+    return program.map(function(step) {
+      if(step[0] != oldname) return step
+      return [newstep[0], Dagoba.extend(step[1], newstep[1])]
+    })
+  }, 100)                                                         // these need to run early, so they get a high priority
+}
+
+Dagoba.extend = function(list, defaults) {
+  return Object.keys(defaults).reduce(function(acc, key) {
+    if(typeof list[key] != 'undefined') return acc
+    acc[key] = defaults[key]
+    return acc
+  }, list)
 }
 
 
