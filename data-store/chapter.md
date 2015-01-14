@@ -105,11 +105,14 @@ and durability[^durability] perspectives.
 Simplifications
 ---------------
 
-DBDB is not [ACID](http://en.wikipedia.org/wiki/ACID).
-While updates are atomic and durable,
-consistency is not covered
-(there are no constraints on the data stored)
-and isolation is not guaranteed[^isolation].
+DBDB's operations are not fully [ACID](http://en.wikipedia.org/wiki/ACID).
+ACID refers to four important attributes of databases:
+atomicity, consistency, isolation, and durability.
+Updates in DBDB are atomic and durable,
+two attributes which are described later in the chapter.
+There are no consistency guarantees provided by DBDB
+as there are no constraints on the data stored.
+Isolation is likewise not implemented[^isolation].
 Application code can, of course, impose its own consistency guarantees,
 but proper isolation requires a transaction manager.
 That could be its own 500 lines;
