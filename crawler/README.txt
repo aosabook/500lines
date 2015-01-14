@@ -22,6 +22,14 @@ backport named Trollius exists on PyPI that substitutes 'yield'.)  The
 example uses an HTTP client implementation for asyncio called "aiohttp",
 by Andrew Svetlov, Nikolay Kim, and others.
 
+If you are using Python 3.3, install the crawler's requirements like:
+
+    pip install -r requirements-py33.txt
+
+If you are using Python 3.4:
+
+    pip install -r requirements-py34.txt
+
 In order to be fast and efficient, the program opens multiple parallel
 connections to the server and reuses connections for multiple
 requests.
@@ -37,6 +45,3 @@ Example command line (the -q reduces log output):
     python3.4 crawl.py -q xkcd.com
 
 Use --help to see all options.
-
-You can also use Python 3.3, after installing the asyncio package
-from PyPI.  It should work on Windows too.
