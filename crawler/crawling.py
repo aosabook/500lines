@@ -19,6 +19,11 @@ def unescape(s):
     return s.replace('&amp;', '&')  # Must be last.
 
 
+def lenient_host(host):
+    parts = host.split('.')[-2:]
+    return ''.join(parts)
+
+
 FetchStatistic = namedtuple('FetchStatistic',
                             ['url',
                              'next_url',
@@ -40,17 +45,18 @@ class Crawler:
     def __init__(self, roots,
                  exclude=None, strict=True,  # What to crawl.
                  max_redirect=10, max_tries=4,  # Per-url limits.
-                 max_tasks=10):
+                 max_tasks=10, *, loop=None):
+        self.loop = loop or asyncio.get_event_loop()
         self.roots = roots
         self.exclude = exclude
         self.strict = strict
         self.max_redirect = max_redirect
         self.max_tries = max_tries
         self.max_tasks = max_tasks
-        self.q = asyncio.JoinableQueue()
+        self.q = asyncio.JoinableQueue(loop=self.loop)
         self.urls = set()
         self.done = []
-        self.connector = aiohttp.TCPConnector()
+        self.connector = aiohttp.TCPConnector(loop=self.loop)
         self.root_domains = set()
         for root in roots:
             parts = urllib.parse.urlparse(root)
@@ -64,8 +70,7 @@ class Crawler:
                 if self.strict:
                     self.root_domains.add(host)
                 else:
-                    host = host.split('.')[-2:]
-                    self.root_domains.add(host)
+                    self.root_domains.add(lenient_host(host))
         for root in roots:
             self.add_url(root)
         self.t0 = time.time()
@@ -105,8 +110,7 @@ class Crawler:
 
         This compares the last two components of the host.
         """
-        host = host.split('.')[-2:]
-        return host in self.root_domains
+        return lenient_host(host) in self.root_domains
 
     def record_statistic(self, fetch_statistic):
         """Record the FetchStatistic for completed / failed URL."""
@@ -115,7 +119,7 @@ class Crawler:
     @asyncio.coroutine
     def process_response(self, response):
         """Return a FetchStatistic for a successful fetch."""
-        urls = set()
+        allowed_urls = set()
         new_urls = set()
         content_type = None
         encoding = None
@@ -143,8 +147,11 @@ class Crawler:
                     normalized = urllib.parse.urljoin(response.url,
                                                       unescape(url))
                     defragmented, frag = urllib.parse.urldefrag(normalized)
-                    if self.add_url(defragmented):
-                        new_urls.add(defragmented)
+                    if self.url_allowed(defragmented):
+                        allowed_urls.add(defragmented)
+                        if defragmented not in self.urls:
+                            new_urls.add(defragmented)
+                            self.add_url(defragmented)
 
         return FetchStatistic(
             url=response.url,
@@ -154,26 +161,29 @@ class Crawler:
             size=len(body),
             content_type=content_type,
             encoding=encoding,
-            num_urls=len(urls),
+            num_urls=len(allowed_urls),
             num_new_urls=len(new_urls))
 
     @asyncio.coroutine
     def fetch(self, url, max_redirect):
         """Fetch one URL, following redirects."""
         tries = 0
-        exc = None
+        exception = None
         while tries < self.max_tries:
             try:
                 response = yield from aiohttp.request(
                     'get', url,
                     connector=self.connector,
-                    allow_redirects=False)
-
+                    allow_redirects=False,
+                    loop=self.loop)
                 if tries > 1:
                     LOGGER.info('try %r for %r success', tries, url)
                 break
-            except aiohttp.ClientError as exc:
-                LOGGER.info('try %r for %r raised %r', tries, url, exc)
+            except aiohttp.ClientError as client_error:
+                LOGGER.info('try %r for %r raised %r', tries, url, client_error)
+                exception = client_error
+
+            tries += 1
         else:
             # We never broke out of the loop: all tries failed.
             LOGGER.error('%r failed after %r tries',
@@ -181,7 +191,7 @@ class Crawler:
             self.record_statistic(FetchStatistic(url=url,
                                                  next_url=None,
                                                  status=None,
-                                                 exception=exc,
+                                                 exception=exception,
                                                  size=0,
                                                  content_type=None,
                                                  encoding=None,
@@ -221,10 +231,7 @@ class Crawler:
             yield from self.fetch(url, max_redirect)
             self.q.task_done()
 
-    def add_url(self, url, max_redirect=None):
-        """Add a URL to the queue if not seen before."""
-        if url in self.urls:
-            return False
+    def url_allowed(self, url):
         if self.exclude and re.search(self.exclude, url):
             return False
         parts = urllib.parse.urlparse(url)
@@ -235,17 +242,21 @@ class Crawler:
         if not self.host_okay(host):
             LOGGER.debug('skipping non-root host in %r', url)
             return False
+        return True
+
+    def add_url(self, url, max_redirect=None):
+        """Add a URL to the queue if not seen before."""
         if max_redirect is None:
             max_redirect = self.max_redirect
         LOGGER.debug('adding %r %r', url, max_redirect)
         self.urls.add(url)
         self.q.put_nowait((url, max_redirect))
-        return True
 
     @asyncio.coroutine
     def crawl(self):
         """Run the crawler until all finished."""
-        workers = [asyncio.Task(self.work()) for _ in range(self.max_tasks)]
+        workers = [asyncio.Task(self.work(), loop=self.loop)
+                   for _ in range(self.max_tasks)]
         self.t0 = time.time()
         yield from self.q.join()
         assert self.urls == set(stat.url for stat in self.done)
