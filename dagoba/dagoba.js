@@ -414,13 +414,13 @@ Dagoba.transform = function(program) {
 }
 
 
-Dagoba.addAlias = function(oldname, newstep) {
-  newstep[1] = newstep[1] || []
-  Dagoba.addPipetype(oldname, function() {})                      // because there's no method catchall in js
+Dagoba.addAlias = function(newname, oldname, defaults) {
+  defaults = defaults || []                                       // default arguments for the alias
+  Dagoba.addPipetype(newname, function() {})                      // because there's no method catchall in js
   Dagoba.addTransformer(function(program) {
     return program.map(function(step) {
-      if(step[0] != oldname) return step
-      return [newstep[0], Dagoba.extend(step[1], newstep[1])]
+      if(step[0] != newname) return step
+      return [oldname, Dagoba.extend(step[1], defaults)]
     })
   }, 100)                                                         // these need to run early, so they get a high priority
 }
