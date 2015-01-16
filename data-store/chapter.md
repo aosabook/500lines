@@ -307,6 +307,30 @@ Accessing children and their values
 requires one extra function call to `NodeRef.get()`
 to dereference ("really get") the data.
 
+All we need to construct a ``NodeRef`` is an address:
+
+    +---------+
+    | NodeRef |
+    | ------- |
+    | addr=3  |
+    | get()   |
+    +---------+
+
+Calling ``get()`` on it will return the concrete node,
+along with that node's references as ``NodeRef``s:
+
+    +---------+     +---------+     +---------+
+    | NodeRef |     | Node    |     | NodeRef |
+    | ------- |     | ------- | +-> | ------- |
+    | addr=3  |     | key=A   | |   | addr=1  |
+    | get() ------> | value=B | |   +---------+
+    +---------+     | left  ----+
+                    | right ----+   +---------+
+                    +---------+ |   | NodeRef |
+                                +-> | ------- |
+                                    | addr=2  |
+                                    +---------+
+
 When changes to the tree are not committed,
 they exist in memory
 with references from the root down to the changed leaves.
