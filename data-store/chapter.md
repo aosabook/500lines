@@ -348,6 +348,9 @@ until the new root node address is written to disk.
 Concurrent updates are blocked by a lockfile on disk.
 The lock is acquired on first-update, and released after commit.
 
+(TODO: Picture of uncommitted, modified tree nodes;
+picture of the same, during the commit process;
+picture of the same, once the commit is complete)
 
 
 ### Exercises for the reader
@@ -416,3 +419,9 @@ That's not strictly the case with DBDB,
 but there are multiple avenues of extension
 with only localised changes required.
 Refactoring as I added features was a pleasure!
+
+
+### Summary
+
+(Discussion of the concrete: this data store, data stores in general;
+and of the abstract: immutable data on disk and in memory)
