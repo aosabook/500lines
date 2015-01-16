@@ -682,15 +682,15 @@ Our data model is based on accumulation of facts (i.e. datoms) over time. For th
 
 ### Query language
 
-Let's look at an example query in our proposed language. This query asks "what are the names and ages of people who like pizza, whose age is more than 20, and who have a birthday this week?"
+Let's look at an example query in our proposed language. This query asks "what are the names and birthday of entities who like pizza, speak English, and who have a birthday this month?"
 
 ````clojure
-{  :find [?nm ?ag ]
+{  :find [?nm ?bd ]
    :where [
       [?e  :likes "pizza"]
       [?e  :name  ?nm] 
-      [?e  :age (< ?ag 20)]
-      [?e  :birthday (birthday-this-week? _)]]}
+      [?e  :speak "English"]
+      [?e  :birthday (birthday-this-month? ?bd)]]}
 ````
 
 #### Syntax
@@ -736,7 +736,7 @@ A clause in a query is composed of three predicates. The following table defines
         Bind the datom's item's value to the variable (unless it's an '_').<br/>
         Replace the variable with the value of the item in the datom.<br/>
         Return the application of the operation.</td>
-    <td>(birthday-this-week? _)</td>
+    <td>(birthday-this-month? _)</td>
   </tr>
   <tr>
     <td>Binary operator</td>
@@ -744,7 +744,7 @@ A clause in a query is composed of three predicates. The following table defines
         Bind the datom's item's value to the variable (unless it's an '_').<br/>        
         Replace the variable with the value of the item in the datom.<br/>
         Return the result of the operation.</td>
-    <td>(&gt; :ag 20)</td>
+    <td>(&gt; ?age 20)</td>
   </tr>
 </table>
 
@@ -800,8 +800,8 @@ Also, for each clause, a vector with the names of the variables used in that cla
 ````clojure
 (defmacro clause-term-meta [clause-term]
    (cond
-   (coll? clause-term)  (first (filter variable?  (map str clause-term))) 
-   (variable? (str clause-term)) (str clause-term) 
+   (coll? clause-term)  (first (filter #(variable? % false) (map str clause-term))) 
+   (variable? (str clause-term) false) (str clause-term) 
    :no-variable-in-clause nil))
 ````
 
@@ -826,8 +826,41 @@ Iterating over the clauses themselves happens in *q-clauses-to-pred-clauses*:
 ````
 We are once again relying on the fact that macros do not eagerly evaluate their arguments. This allows us to define a simpler API where uers provide variable names as symbols e.g., ?name instead of "?name" (stringifying the variable) or even worse - '?name (asking the user to use some of Clojure's dark magic).
 
-[TODO: I am not sure how messy it would be, but it might be useful here to show the instance of the data structure that would be produced from our example query by this phase.]
+At the end of this phase, our example would yield the following set for the *:find* part: 
+````clojure
+ #{"?nm" "?bd"}
+```` 
+Our example's *:where* part would yield this structure (each cell in the _Predidcate Clause_ column holds the metadata found in its neighbor at the _Meta Clause_ column):
 
+<table>
+<tr>
+	<td>Query Clause</td>
+	<td>Predicate Clause</td>
+	<td>Meta Clause</td>
+</tr>
+<tr>
+	<td>[?e  :likes "pizza"]</td>
+	<td>[#(= % %)  #(= % :likes)  #(= % "pizza")]</td>
+	<td>["?e" nil nil]</td>
+</tr>
+<tr>
+	<td>[?e  :name  ?nm]</td>
+	<td>[#(= % %)  #(= % :name) #(= % %)]</td>
+	<td>["?e" nil "?nm"]</td>
+</tr>
+<tr>
+	<td>[?e  :speak "English"]</td>
+	<td>[#(= % %) #(= % :speak) #(= % "English")]</td>
+	<td>["?e" nil nil]</td>
+</tr>
+<tr>
+	<td>[?e  :birthday (birthday-this-month? ?bd)]</td>
+	<td>[#(= % %) #(= % :birthday) #(birthday-this-month? %)]</td>
+	<td>["?e" nil "?bd"]
+</td>
+</tr>
+</table>
+This structure acts as the query that is executed in a later phase, after first the engine decides on the right plan of execution.
 #### Phase 2 - Making a plan
 
 In this phase, we inspect the query representation produced in phase 1 to determine a good _plan_ that will produce the result it describes.
@@ -864,7 +897,8 @@ Locating the index of the joining variable is done by *index-of-joining-variable
 ````
 We begin by extracting the metadata of each clause in the query. This metadata is a 3-element vector, each of which is a variable name or *nil*, and reduces them to produce a single variable name or *nil*. If a variable name is produced, this means it appears in all of the metadata vectors at the same index -- i.e. this is the joining variable. We can thus choose the appropriate index by using the mapping described above. 
 
-Once the index is chosen, we construct our plan, which is a function that closes over the query and the index name and executes the operations necessary to return the query results. 
+Once the index is chosen, we construct our plan, which is a function that closes over the query and the index name and executes the operations necessary to return the query results.
+ 
 
 ````clojure
 (defn build-query-plan [query]
@@ -872,6 +906,9 @@ Once the index is chosen, we construct our plan, which is a function that closes
          ind-to-use (case term-ind 0 :AVET 1 :VEAT 2 :EAVT)]
       (partial single-index-query-plan query ind-to-use)))
 ````
+
+For our example, the chosen index is the *AVET* index, as the joining variable acts on the entity Ids.
+
 #### Phase 3 - Execution of the plan
 
 We saw in the previous phase that the query plan we construct ends by calling *single-index-query-plan*. This function will:
@@ -885,7 +922,56 @@ We saw in the previous phase that the query plan we construct ends by calling *s
    (let [q-res (query-index (ind-at db indx) query)]
      (bind-variables-to-query q-res (ind-at db indx))))
 ````
-Let’s go deeper into the rabbit's hole and take a look at the *query-index* function, where our query finally begins to yield some results:
+To have a better understanding of this process, alongside explaining it, we also demonstrate it using our exemplary query and assume that our database holds these entities:
+
+<table>
+<tr>
+	<td>Entity id</td>
+	<td>Attribute Name</td>
+	<td>Attribute Value</td>
+</tr>
+<tr>
+	<td>1</td>
+	<td>:name </br>
+		:likes</br>
+		:speak</br>
+		:birthday 
+	</td>
+	<td>USA</br>
+		Pizza</br>
+		English</br>
+		July 4, 1776
+	</td>
+</tr>
+<tr>
+	<td>2</td>
+	<td>:name </br>
+		:likes</br>
+		:speak</br>
+		:birthday 
+	</td>
+	<td>France</br>
+		Red wine</br>
+		French</br>
+		July 14, 1789
+	</td>
+</tr>
+<tr>
+	<td>3</td>
+	<td>:name </br>
+		:likes</br>
+		:speak</br>
+		:birthday 
+	</td>
+	<td>Canada</br>
+		Snow</br>
+		English</br>
+		July 1, 1867
+	</td>
+</tr>
+</table>
+
+Now it is time to go deeper into the rabbit's hole and take a look at the *query-index* function, where our query finally begins to yield some results:
 
 ````clojure
 (defn query-index [index pred-clauses]
@@ -896,12 +982,13 @@ Let’s go deeper into the rabbit's hole and take a look at the *query-index* fu
                                      result-clauses)] 
      (filter #(not-empty (last %)) cleaned-result-clauses)))
 ````
-This function starts by applying the predicate clauses on the previously-chosed index. Each application of a predicate clause on an index returns a _result clause_. 
+This function starts by applying the predicate clauses on the previously-chosen index. Each application of a predicate clause on an index returns a _result clause_. 
 
 The main characteristics of a result are:
+
 1. It is built of three items, each from a different level of the index, and each passed its respective predicate. 
-2. The order of items matches the index's levels structure (predicate clause are always in EAV order). 
-3. The metadata of the predicate clause is attached 
+2. The order of items matches the index's levels structure (predicate clause are always in EAV order). The re-ordering is done when applying the index's *from-eav* on the predicate clause. 
+3. The metadata of the predicate clause is attached to it. 
 
 All of this is done in the function *filter-index*
 
@@ -916,6 +1003,36 @@ All of this is done in the function *filter-index*
          :let [res (set (filter lvl3-prd l3-set))] ]
      (with-meta [k1 k2 res] (meta pred-clause))))
 ````
+Assuming the query was executed on July 4th, the results of executing it on the above data are:
+<table>
+<tr>
+<td>Result Clause</td><td>Result Meta</td>
+</tr>
+<tr>
+<td>[:likes Pizza #{1}]</td><td>["?e" nil nil]</td>
+</tr>
+<tr>
+<td>[:name USA #{1}]</td><td>["?e" nil "?nm"]</td>
+</tr>
+<tr>
+<td>[:speak "English" #{1, 3}]</td><td>["?e" nil nil]</td>
+</tr>
+<tr>
+<td>[:birthday "July 4, 1776" #{1}]</td><td>["?e" nil "?bd"]</td>
+</tr>
+<tr>
+<td>[:name France #{2}]</td><td>["?e" nil "?nm"]</td>
+</tr>
+<tr>
+<td>[:birthday "July 14, 1789" #{2}]</td><td>["?e" nil "?bd"]</td>
+</tr>
+<tr>
+<td>[:name Canada #{3}]</td><td>["?e" nil "?nm"]</td>
+</tr>
+<tr>
+<td>[:birthday "July 1, 1867" {3}]</td><td>["?e" nil "?bd"]</td>
+</tr>
+</table>
 Once we have produced all of the result clauses, we need to perform an *AND* operation between them. This is done by finding all of the elements that passed all the predicate clauses:
 
 ````clojure
@@ -929,6 +1046,8 @@ Once we have produced all of the result clauses, we need to perform an *AND* ope
          (set))) ; return it as set
 ````
 
+In our example, the result of this step is a set that holds the value *1*. 
+
 We now have to remove the items that didn’t pass all of the conditions:
 
 ````clojure
@@ -936,8 +1055,25 @@ We now have to remove the items that didn’t pass all of the conditions:
      (update-in path [2] CS/intersection relevant-items))
 ````
 
-Finally, we remove all of the result clauses that are 'empty' (i.e. their last item is empty.) We do this in the last line of the *query-index* function. 
+Finally, we remove all of the result clauses that are 'empty' (i.e. their last item is empty.) We do this in the last line of the *query-index* function. Our example leaves us with the following items:
 
+<table>
+<tr>
+<td>Result Clause</td><td>Result Meta</td>
+</tr>
+<tr>
+<td>[:likes Pizza #{1}]</td><td>["?e" nil nil]</td>
+</tr>
+<tr>
+<td>[:name USA #{1}]</td><td>["?e" nil "?nm"]</td>
+</tr>
+<tr>
+<td>[:birthday "July 4, 1776" #{1}]</td><td>["?e" nil "?bd"]</td>
+</tr>
+<tr>
+<td>[:speak "English" #{1}]</td><td>["?e" nil nil]</td>
+</tr>
+</table>
 We are now ready to being reporting the results. The result clause structure is unwieldy for this purposes, so we will convert it into an an index-like structure (map of maps) -- with a significant twist. 
 
 To understand the twist, we must first introduce the idea of a _binding pair_, which is a pair that matches a variable name to its value. The variable name is the one used at the predicate clauses, and the value is the value found in the result clauses.
@@ -952,9 +1088,19 @@ The twist to the index structure is that now we hold a binding pair of the entit
      
 (defn combine-path-and-meta [from-eav-fn path]
     (let [expanded-path [(repeat (first path)) (repeat (second path)) (last path)] 
-          meta-of-path(apply from-eav-fn (map repeat (:db/variable (meta path))))
+          meta-of-path (apply from-eav-fn (map repeat (:db/variable (meta path))))
           combined-data-and-meta-path (interleave meta-of-path expanded-path)]
        (apply (partial map vector) combined-data-and-meta-path)))
+````
+
+At the end of phase 3 of our example execution, we have the following structure at hand:
+````clojure
+ {[1 "?e"] {
+		[:likes nil]    ["Pizza" nil]
+        [:name nil]     ["USA" "?nm"]
+        [:speaks nil]   ["English" nil] 
+		[:birthday nil] ["July 4, 1776" "?bd"]} 
+	}}
 ````
 
 #### Phase 4 - Unify and report
@@ -981,10 +1127,12 @@ Each unification step is handled by *locate-vars-in-query-result*, which iterate
 (defn resultify-av-pair [vars-set accum-res av-pair]
    (reduce (partial resultify-bind-pair vars-set) accum-res av-pair))
 ````
+The end of this phase, the results for our example are:
+[("?nm" "USA") ("?bd" "July 4, 1776")]
 
 #### Running the show
 
-We've finally built all of the components we need to to build our user-facing query mechanism, the *q* macro. [TODO: I think it would be useful to have an early black-box example of this macro is invoked, so that readers know what they are building towards:
+We've finally built all of the components we need to to build our user-facing query mechanism, the *q* macro, which receives as arguments a database and a query:
 
 ````clojure
 (defmacro q

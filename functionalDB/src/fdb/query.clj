@@ -12,8 +12,8 @@
   "Finds the name of the variable at an item of a datalog clause element. If no variable, returning nil"
   [clause-term]
   (cond
-   (coll? clause-term)  (first (filter variable?  (map str clause-term))) ; the item is an s-expression, need to treat it as a coll, by going over it and returning the name of the variable
-   (variable? (str clause-term)) (str clause-term) ; the item is a simple variable
+   (coll? clause-term)  (first (filter #(variable? % false)  (map str clause-term))) ; the item is an s-expression, need to treat it as a coll, by going over it and returning the name of the variable
+   (variable? (str clause-term) false) (str clause-term) ; the item is a simple variable
    :no-variable-in-clause nil)) ; the item is a value and not a variable
 
 (defmacro clause-term-expr
@@ -53,7 +53,7 @@
         [k2  l3-set] l2map  ; keys and values of the second level
         :when (try (lvl2-prd k2) (catch Exception e false)) ; filtering to keep only the keys and vals of keys that passed the second level predicate
         :let [res (set (filter lvl3-prd l3-set))] ]; keep from the set at the third level only the items that passed the predicate on them
-          (with-meta [k1 k2 res] (meta pred-clause)))) ; constructed to resemble the EAV structure, while keeping the meta of the query to use it later when extracting variables
+          (with-meta [k1 k2  res] (meta pred-clause)))) ; constructed result clause, while keeping the meta of the query to use it later when extracting variables
 
  (defn items-that-answer-all-conditions
    "takes the sequence of all the items collection, each such collection answered one condition, we test here what are the items that answered all of the conditions
@@ -77,7 +77,7 @@
    is followed by its variable name as was inserted in the query (which was kept at the metadata of the (result) path."
    [from-eav-fn path]
    (let [expanded-path [(repeat (first path)) (repeat (second path)) (last path)] ; there may be several leaves in each path, so repeating the first and second elements
-         meta-of-path(apply from-eav-fn (map repeat (:db/variable (meta path)))) ; re-ordering the path's meta to be in the order of the index
+         meta-of-path (apply from-eav-fn (map repeat (:db/variable (meta path)))) ; re-ordering the path's meta to be in the order of the index
          combined-data-and-meta-path (interleave meta-of-path expanded-path)]
      (apply (partial map vector) combined-data-and-meta-path))) ; returning a seq of vectors, each one is a single result with its meta
 
@@ -97,7 +97,7 @@
    [index pred-clauses]
    (let [result-clauses (filter-index index pred-clauses) ; the predicate clauses from the root of the index to the leaves (a leaf of an index is a set)
          relevant-items (items-that-answer-all-conditions (map last result-clauses) (count pred-clauses)) ; the set of elements, each answers all the pred-clauses
-         cleaned-result-clauses (map (partial mask-path-leaf-with-items relevant-items) result-clauses)] ; the result clauses, now their leaves are filtered to have only the items that fulfilled the predicates
+         cleaned-result-clauses (map (partial mask-path-leaf-with-items relevant-items)  result-clauses)] ; the result clauses, now their leaves are filtered to have only the items that fulfilled the predicates
      (filter #(not-empty (last %)) cleaned-result-clauses))) ; of these, we'll build a subset of the index that contains the clauses with the leaves (sets), and these leaves contain only the valid items
 
 (defn single-index-query-plan
