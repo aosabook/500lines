@@ -247,6 +247,214 @@ In other words,
 each class should have only one reason to change.
 
 
+### A debugger's-eye view
+
+Let's walk through a run of the code to see how it works in practice.
+In this case, we'll set key ``foo`` to value ``bar`` in ``example.db``:
+```bash
+$ python -m dbdb.tool example.db set foo bar
+```
+
+This runs the ``main()`` function from module ``dbdb.tool``:
+**QUESTION: Is it useful to have the whole function, or should I elide the bits we're not focusing on?**
+```python
+# dbdb/tool.py
+def main(argv):
+    if not (4 <= len(argv) <= 5):
+        usage()
+        return BAD_ARGS
+    dbname, verb, key, value = (argv[1:] + [None])[:4]
+    if verb not in {'get', 'set', 'delete'}:
+        usage()
+        return BAD_VERB
+    db = dbdb.connect(dbname)          # CONNECT
+    try:
+        if verb == 'get':
+            sys.stdout.write(db[key])
+        elif verb == 'set':
+            db[key] = value            # SET VALUE
+            db.commit()                # COMMIT
+        else:
+            del db[key]
+            db.commit()
+    except KeyError:
+        print("Key not found", file=sys.stderr)
+        return BAD_KEY
+    return OK
+```
+
+The ``connect()`` function
+opens the database file
+(possibly creating it,
+but never overwriting it)
+and returns an instance of ``DBDB``:
+```python
+# dbdb/__init__.py
+def connect(dbname):
+    try:
+        f = open(dbname, 'r+b')
+    except IOError:
+        fd = os.open(dbname, os.O_RDWR | os.O_CREAT)
+        f = os.fdopen(fd, 'r+b')
+    return DBDB(f)
+```
+
+DBDB implements the Python API
+by coordinating ``Storage`` and a ``BinaryTree``:
+```python
+# dbdb/interface.py
+class DBDB(object):
+
+    def __init__(self, f):
+        self._storage = Storage(f)
+        self._tree = BinaryTree(self._storage)
+```
+
+Setting the value with ``db[key] = value``
+calls ``DBDB.__setitem__()``.
+```python
+# dbdb/interface.py
+class DBDB(object):
+# ...
+    def __setitem__(self, key, value):
+        self._assert_not_closed()
+        return self._tree.set(key, value)
+```
+
+``__setitem__`` ensures that the database is still open
+and then stores the association from ``key`` to ``value``
+on the internal ``_tree`` by calling ``_tree.set()``.
+
+``_tree.set()`` is provided by ``LogicalBase``:
+```python
+# dbdb/logical.py
+class LogicalBase(object):
+# ...
+    def set(self, key, value):
+        if self._storage.lock():
+            self._refresh_tree_ref()
+        self._tree_ref = self._insert(
+            self._follow(self._tree_ref), key, self.value_ref_class(value))
+```
+
+It ensures that the tree is locked,
+and that we have them most recent root node reference
+so we don't lose any updates.
+Then it replaces the root tree node
+with a new tree containing the inserted (or updated) key/value.
+
+The tree as a whole
+is represented by a mutable ``BinaryTree`` object.
+Inside the ``BinaryTree``,
+``Node``s and ``NodeRef``s are value objects:
+they are immutable and their contents never change
+(from the user's point of view; we'll get into that later).
+The content of the whole ``BinaryTree`` only visibly changes
+when then root node is replaced,
+since nodes themselves are never changed.
+Inserting or updating the tree doesn't mutate any nodes,
+because it returns a new tree
+which shares unchanged parts with the previous tree.
+It's natural to implement this recursively:
+```python
+# dbdb/binary_tree.py
+class BinaryTree(LogicalBase):
+# ...
+    def _insert(self, node, key, value_ref):
+        if node is None:
+            new_node = BinaryNode(
+                self.node_ref_class(), key, value_ref, self.node_ref_class(), 1)
+        elif key < node.key:
+            new_node = BinaryNode.from_node(
+                node,
+                left_ref=self._insert(
+                    self._follow(node.left_ref), key, value_ref))
+        elif node.key < key:
+            new_node = BinaryNode.from_node(
+                node,
+                right_ref=self._insert(
+                    self._follow(node.right_ref), key, value_ref))
+        else:
+            new_node = BinaryNode.from_node(node, value_ref=value_ref)
+        return self.node_ref_class(referent=new_node)
+```
+
+Committing involves writing out all of the dirty state in memory,
+and then saving the address of the tree's new root node..
+Starting from the API:
+```python
+# dbdb/interface.py
+class DBDB(object):
+# ...
+    def commit(self):
+        self._assert_not_closed()
+        self._tree.commit()
+```
+
+```python
+# dbdb/logical.py
+class LogicalBase(object)
+# ...
+    def commit(self):
+        self._tree_ref.store(self._storage)
+        self._storage.commit_root_address(self._tree_ref.address)
+```
+
+``NodeRef``s know how to serialise themselves to disk
+by first asking their children to serialise via ``prepare_to_store()``:
+```python
+# dbdb/logical.py
+class ValueRef(object):
+# ...
+    def store(self, storage):
+        if self._referent is not None and not self._address:
+            self.prepare_to_store(storage)
+            self._address = storage.write(self.referent_to_string(self._referent))
+```
+
+```python
+# dbdb/binary_tree.py
+class BinaryNodeRef(ValueRef):
+    def prepare_to_store(self, storage):
+        if self._referent:
+            self._referent.store_refs(storage)
+```
+
+Then the ``NodeRef``'s ``referent`` is guaranteed to have addresses
+so we can create a bytestring representing this node:
+```python
+# dbdb/binary_tree.py
+class BinaryNodeRef(ValueRef):
+# ...
+    @staticmethod
+    def referent_to_string(referent):
+        return pickle.dumps({
+            'left': referent.left_ref.address,
+            'key': referent.key,
+            'value': referent.value_ref.address,
+            'right': referent.right_ref.address,
+            'length': referent.length,
+        })
+```
+
+In the end, we know that all of the data are written to disk
+and just have to commit the root address:
+```python
+# dbdb/physical.py
+class Storage(object):
+# ...
+    def commit_root_address(self, root_address):
+        self.lock()
+        self._f.flush()
+        self._seek_superblock()
+        self._write_integer(root_address)
+        self._f.flush()
+        self.unlock()
+```
+
+Rinse, and repeat!
+
+
 ### How it works
 
 DBDB's data structures are immutable from the API consumer's perspective.
