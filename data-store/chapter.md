@@ -338,7 +338,7 @@ class LogicalBase(object):
 ```
 
 It ensures that the tree is locked,
-and that we have them most recent root node reference
+and that we have the most recent root node reference
 so we don't lose any updates.
 Then it replaces the root tree node
 with a new tree containing the inserted (or updated) key/value.
