@@ -1,31 +1,28 @@
 import sys
 import numpy
-from node import Sphere, Cube
+from node import Sphere, Cube, SnowFigure
 
 
 class Scene(object):
-    """ Base class for scene nodes.
-        Scene nodes currently only include primitives """
 
     # the default depth from the camera to place an object at
     PLACE_DEPTH = 15.0
 
     def __init__(self):
-        """ Initialize the Scene """
         # The scene keeps a list of nodes that are displayed
         self.node_list = list()
         # Keep track of the currently selected node.
         # Actions may depend on whether or not something is selected
         self.selected_node = None
 
+    def add_node(self, node):
+        """ Add a new node to the scene """
+        self.node_list.append(node)
+
     def render(self):
         """ Render the scene. This function simply calls the render function for each node. """
         for node in self.node_list:
             node.render()
-
-    def add_node(self, node):
-        """ Add a new node to the scene """
-        self.node_list.append(node)
 
     def pick(self, start, direction, mat):
         """ Execute selection.
@@ -36,7 +33,8 @@ class Scene(object):
             self.selected_node = None
 
         # Keep track of the closest hit.
-        mindist, closest_node = sys.maxint, None
+        mindist = sys.maxint
+        closest_node = None
         for node in self.node_list:
             hit, distance = node.pick(start, direction, mat)
             if hit and distance < mindist:
@@ -49,10 +47,10 @@ class Scene(object):
             closest_node.selected_loc = start + direction * mindist
             self.selected_node = closest_node
 
-    def move(self, start, direction, inv_modelview):
+    def move_selected(self, start, direction, inv_modelview):
         """ Move the selected node, if there is one.
             Consume:  start, direction  describes the Ray to move to
-                      mat               is the modelview matrix for the scene """
+                      inv_modelview     is the inverse modelview matrix for the scene """
         if self.selected_node is None: return
 
         # Find the current depth and location of the selected node
@@ -76,10 +74,11 @@ class Scene(object):
         """ Place a new node.
             Consume:  shape             the shape to add
                       start, direction  describes the Ray to move to
-                      mat               is the modelview matrix for the scene """
+                      inv_modelview     is the inverse modelview matrix for the scene """
         new_node = None
         if shape == 'sphere': new_node = Sphere()
         elif shape == 'cube': new_node = Cube()
+        elif shape == 'figure': new_node = SnowFigure()
 
         self.add_node(new_node)
 
@@ -92,12 +91,12 @@ class Scene(object):
 
         new_node.translate(translation[0], translation[1], translation[2])
 
-    def rotate_color(self, forwards):
+    def rotate_selected_color(self, forwards):
         """ Rotate the color of the currently selected node """
         if self.selected_node is None: return
         self.selected_node.rotate_color(forwards)
 
-    def scale(self, up):
+    def scale_selected(self, up):
         """ Scale the current selection """
         if self.selected_node is None: return
         self.selected_node.scale(up)

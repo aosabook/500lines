@@ -3,7 +3,7 @@ import difflib
 
 currdir = os.path.dirname(os.path.abspath(__file__))
 
-dirs = [p for p in os.listdir(currdir) if os.path.isdir(p)]
+dirs = [p for p in os.listdir(currdir) if os.path.isdir(p) and "0" in p]
 dirs.sort()
 
 total = 0
@@ -27,7 +27,7 @@ for d in dirs[1:]:
         fulln = os.path.join(d, fn)
         with file(fulln) as f:
             lines = f.readlines()
-        diffsize = len(list(difflib.unified_diff(prevlines, lines)))
+        diffsize = len(list(difflib.unified_diff(prevlines, lines, n=1)))
         print diffsize, fn
         #print "".join(difflib.unified_diff(prevlines, lines))
         prev[fn] = lines

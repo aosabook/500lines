@@ -1,0 +1,42 @@
+table.summary {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  width: 50%;
+  display: inline;
+  margin: 0% 10%;
+}
+
+tr, th {
+  text-align: left;
+  font-size: 14px;
+  height: 30px;
+}
+
+td { border-top: solid 1px rgb(221, 221, 221); }
+
+form {
+  display: inline-table;
+  width: 20%;
+}
+
+h3.upload-header {
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+input { width: 200px; }
+
+a.nav { 
+  float: right;
+  margin: 20px 150px 0 0;
+}
+
+.error { 
+  text-align: center;
+  color: red;
+}
+
+.graph {
+  min-width: 310px;
+  height: 400px;
+  margin: 0 auto;
+}

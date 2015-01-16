@@ -1,0 +1,28 @@
+<table class="summary">
+  <th>Name</th>
+  <th>Actual</th>
+  <th>Calculated</th>
+  <th>Delta</th>
+  <th>User</th>
+  <% unless detail_hidden %>
+    <th>Distance</th>
+    <th>Time</th>
+  <% end %>
+  <% pipelines.each do |pipeline| %>
+    <tr>
+      <td><%= pipeline.trial.name %></td>
+      <td><%= pipeline.trial.steps %></td>
+      <td><%= pipeline.analyzer.steps %></td>
+      <td><%= pipeline.analyzer.delta %></td>
+      <td><%= pipeline.user.gender %></td>
+      <% if detail_hidden %>
+        <td>
+          <a href=<%= "upload/" + Upload.generate_file_path(pipeline.user, pipeline.trial) %>>Detail</a>
+        </td>
+      <% else %>
+        <td><%= format_distance(pipeline.analyzer.distance) %></td>
+        <td><%= format_time(pipeline.analyzer.time) %></td>
+      <% end %>
+    </tr>
+  <% end %>
+</table>
