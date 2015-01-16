@@ -887,13 +887,13 @@ So we have this nice compact little interpreter for our query programs now, but 
 What's the simplest thing we could do that could reasonably be called a query optimizer? Well, we could write little functions for transforming our query programs before we run them. We'll pass a program in as input and get a different program back out as output. 
 
 ```javascript
-Dagoba.T = []                                                     // transformers (more than meets the eye)
+Dagoba.T = []                                           // transformers (more than meets the eye)
 
 Dagoba.addTransformer = function(fun, priority) {
   if(typeof fun != 'function')
     return Dagoba.error('Invalid transformer function') 
   
-  for(var i = 0; i < Dagoba.T.length; i++)                        // OPT: binary search
+  for(var i = 0; i < Dagoba.T.length; i++)              // OPT: binary search
     if(priority > Dagoba.T[i].priority) break
   
   Dagoba.T.splice(i, 0, {priority: priority, fun: fun})
@@ -907,8 +907,8 @@ We'll assume there won't be an enormous number of transformer additions, and wal
 To run these transformers we're going to inject a single line of code in to the top of our interpreter:
 
 ```javascript
-Dagoba.Q.run = function() {                                       // our virtual machine for query processing
-  this.program = Dagoba.transform(this.program)                   // activate the transformers
+Dagoba.Q.run = function() {                             // our virtual machine for query processing
+  this.program = Dagoba.transform(this.program)         // activate the transformers
 ```
 
 And use that to call this function, which just passes our program through each transformer in turn.
@@ -932,22 +932,29 @@ We can also use this transformer system to add new functionality unrelated to op
 
 ## Aliases
 
-Making a query like ```g.v('Thor').out().out()``` is really compact, but does 'out' refer to parents or children? Neither way is fully satisfying. It'd be nicer to say ```g.v('Thor').parents().parents()``` and ```g.v('Thor').children().children()```.
+Making a query like ```g.v('Thor').out().in()``` is really compact, but is this my siblings or my mates? Neither way is fully satisfying. It'd be nicer to really say what mean: either ```g.v('Thor').parents().children()``` or ```g.v('Thor').children().parents()```.
 
-We can use transformers to make aliases with just a couple extra helper functions.
+We can use query transformers to make aliases with just a couple extra helper functions:
 
 ```javascript
-Dagoba.addAlias = function(oldname, newstep) {
-  newstep[1] = newstep[1] || []
-  Dagoba.addPipetype(oldname, function() {})                      // because there's no method catchall in js
+Dagoba.addAlias = function(newname, oldname, defaults) {
+  defaults = defaults || []                             // default arguments for the alias
   Dagoba.addTransformer(function(program) {
     return program.map(function(step) {
-      if(step[0] != oldname) return step
-      return [newstep[0], Dagoba.extend(step[1], newstep[1])]
+      if(step[0] != newname) return step
+      return [oldname, Dagoba.extend(step[1], defaults)]
     })
-  }, 100)                                                         // these need to run early, so they get a high priority
+  }, 100)                                               // these need to run early, so they get a high priority
+  Dagoba.addPipetype(newname, function() {})            // because there's no method catchall in js
 }
 
+```
+
+We're adding a new name for an existing step, so we'll need to create a query transformer that converts the new name to the old name whenever it's encountered. We'll also need to add the new name as a method on the main query object, so it can be pulled in to the query program.
+
+We call another helper function to merge the incoming step's arguments with the alias's default arguments. Whenever the incoming step is missing an argument that the alias provides we take the alias's argument for that slot.
+
+```javascript
 Dagoba.extend = function(list, defaults) {
   return Object.keys(defaults).reduce(function(acc, key) {
     if(typeof list[key] != 'undefined') return acc
@@ -957,16 +964,41 @@ Dagoba.extend = function(list, defaults) {
 }
 ```
 
-[TODO: explain this]
-
-Now we can make those aliases:
+Now we can make those aliases we wanted:
 
 ```javascript
-Dagoba.addAlias('parents', ['out'])
-Dagoba.addAlias('children', ['in'])
+Dagoba.addAlias('parents', 'out')
+Dagoba.addAlias('children', 'in')
 ```
 
-[TODO: more aliases, expanded data model (spouses, step-parents, siblings, etc)]
+We can also start to specialize our data model a little more, by labeling each edges between a parent and child as a 'parent' edge. Then our aliases would look like this:
+
+```javascript
+Dagoba.addAlias('parents', 'out', ['parent'])
+Dagoba.addAlias('children', 'in', ['parent'])
+```
+
+Now we can start adding edges for spouses, step-parents, or even jilted ex-lovers. If we enhance our addAlias function a little we can introduce new aliases for siblings, grandparents, or even cousins:
+
+```javascript
+Dagoba.addAlias('siblings', [['out', 'parent'], ['in', 'parent']])
+Dagoba.addAlias('grandparents', [['out', 'parent'], ['out', 'parent']])
+Dagoba.addAlias('cousins', [['out', 'parent'], ['as', 'folks'], ['out', 'parent'], ['in', 'parent'], ['except', 'folks'], ['in', 'parents'], ['unique']])
+```
+
+That ```cousins``` alias is a little cumbersome. Maybe we can educate our addAlias function even more, and allow ourselves to use other aliases in our aliases.
+
+```javascript
+Dagoba.addAlias('cousins', ['parents', ['as', 'folks'], 'parents', 'children', ['except', 'folks'], 'children', 'unique'])
+```
+
+Now instead of ```g.v('Forseti').parents().as('parents').parents().children().except('parents').children().unique()``` we can just say ```g.v('Forseti').cousins()```.
+
+We've introduced a bit of a pickle, though: while our addAlias function is resolving an alias it also has to resolve other aliases. What if ```parents``` called some other alias, and while we were resolving ```cousins``` we then had to stop to resolve ```parents``` and then resolve its aliases and so on? What if one of ```parents``` aliases ultimately called ```cousins```?
+
+This bring us in to the realm of dependency resolution, a core component of modern package managers. There are a lot of fancy tricks for choosing ideal versions, tree shaking, general optimizations and the like, but the basic idea is fairly simple. We're going to make a graph of all the dependencies and their relationships, and then try to find a way to line all of the vertices up while making the arrows go from left to right. If we can then this particular sorting of the vertices is called a topological ordering, and we've proven that our dependency graph has no cycle: it is a Direct Acyclic Graph. If we fail to do so then we have at least one cycle. [footnote: Seeing as we're building a graph database, could we use Dagoba itself to manage its own aliases?]
+
+On the other hand, we expect that our queries will generally be rather short (100 steps would be a very long query) and that we'll have a reasonably low number of transformers. Instead of fiddling around with DAGs and dependency management we could add a 'did_something' return value to the transform function and run it until it stops doing anything. This requires that all transformers be idempotent, but that's a helpful property to insist on anyway. What are the pros and cons of these two pathways?
 
 
 ## Performance
