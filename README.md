@@ -111,7 +111,7 @@ Contributors
     <td>data-store</td>
     <td>@taavi</td>
     <td>@jaaaarel</td>
-    <td>taavi.burns@points.com</td>
+    <td>taavi.burns@gmail.com</td>
   </tr>
   <tr>
     <td>Guido van Rossum</td>
