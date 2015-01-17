@@ -145,11 +145,11 @@ If the vertex doesn't already have an _id property we assign it one using our au
 
 In a traditional object-oriented system we would expect to find a vertex class, which all vertices would be an instance of. We're going to take a different approach and consider as a vertex any object containing the three properties _id, _in and _out. Why is that? Ultimately, it comes down to giving Dagoba control over which data is shared with the host application.
 
-If we create a Dagoba.Vertex instance inside the addVertex function, our internal data will never be shared with the host application. If we accept a Dagoba.Vertex instance as the argument to our addVertex function, the host application can retain a pointer to that vertex object, which the application could manipulate at runtime, breaking our invariants.
+If we create some Dagoba.Vertex instance inside the addVertex function, our internal data will never be shared with the host application. If we accept a Dagoba.Vertex instance as the argument to our addVertex function, the host application could retain a pointer to that vertex object and manipulate it at runtime, breaking our invariants.
 
-So if we create a vertex instance object, we're forced to decide up front whether we will always copy the provided data in to a new object -- potentially doubling our space usage -- or allow the host application unfettered access to the database objects. There's a tension here between performance and protection, and the right balance depends on your specific use case.
+So if we create a vertex instance object, we're forced to decide up front whether we will always copy the provided data into a new object -- potentially doubling our space usage -- or allow the host application unfettered access to the database objects. There's a tension here between performance and protection, and the right balance depends on your specific use case.
 
-Duck typing on the vertices properties allows us to make that decision at run time, by either deep copying* the incoming data or using it directly as a vertex*. We don't always want to put the responsibility for balancing safety / performance tradeoffs in the hands of the user, but because these two sets of use cases diverge so wildly the extra flexibility is necessary here.
+Duck typing on the vertex's properties allows us to make that decision at run time, by either deep copying* the incoming data or using it directly as a vertex*. We don't always want to put the responsibility for balancing safety vs performance tradeoffs in the hands of the user, but because these two sets of use cases diverge so wildly the extra flexibility is necessary here.
 
 Okay, now that we've got our new vertex we'll add it in to our graph's list of vertices, add it to the vertexIndex for efficient lookup by _id, and add two additional properties to it: _out and _in, which will both become lists of edges*. 
 
