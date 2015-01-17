@@ -111,7 +111,12 @@ Dagoba.graph = function(V, E) {                         // the factory
 }
 ```
 
-We'll accept two optional arguments: a list of vertices and a list of edges. Then we create a new object that has all of our prototype's abilities and none of its weaknesses. We build a brand new array (one of the other basic JS data structures) for our edges, another for the vertices, a new object called vertexIndex and an id counter -- more on those latter two later [footnote: Why can't we just put all of these in the prototype?].
+We'll accept two optional arguments: a list of vertices and a list of edges. JavaScript is very lax about parameters, so all named parameters are optional and default to 'undefined' if not supplied*. We will often have the vertices and edges before building the graph and use the V and E parameters, but it's also common to not have those at creation time and build the graph up programmatically*.
+[footnote on supplied: It's also lax the other direction: all functions are variadic*, and all arguments are available by position via the 'arguments' object, which is almost like an array but not quite.] 
+[footnote on variadic: This is just a fancy way of saying a function has indefinite arity, which is a fancy way of saying it takes a variable number of variables.]
+[footnote on programmatically: The ```Array.isArray``` checks here are to distinguish our two different use cases, but in general we won't be doing many of the validations one would expect of production code in order to focus on the architecture instead of the trash bins.]
+
+Then we create a new object that has all of our prototype's abilities and none of its weaknesses. We build a brand new array (one of the other basic JS data structures) for our edges, another for the vertices, a new object called vertexIndex and an id counter -- more on those latter two later [footnote: Why can't we just put all of these in the prototype?].
 
 Then we call addVertices and addEdges from inside our factory, so let's define those now.
 
@@ -136,11 +141,23 @@ Dagoba.G.addVertex = function(vertex) {                 // accepts a vertex-like
 }
 ```
 
-If the vertex doesn't already have an _id property we assign it one using our autoid [footnote: Why can't we just use vertex.length here?]. If the _id already exists on a vertex in our graph we reject the new vertex. 
+If the vertex doesn't already have an _id property we assign it one using our autoid [footnote: Why can't we just use this.vertices.length here?]. If the _id already exists on a vertex in our graph we reject the new vertex. Wait, when would that happen? And what exactly is a vertex?
 
-Then we add the new vertex into our graph's list of vertices, add it to the vertexIndex for efficient lookup by _id, and add two additional properties to it: _out and _in, which will both become lists of edges. [footnote: We use the term 'list' to refer to the abstract data structure requiring push and iterate operations. We use JavaScript's 'array' concrete data structure to fulfill the API required by the list abstraction. Technically both "list of edges" and "array of edges" are correct, so which we use at a given moment depends on context: if we are relying on the specific details of JavaScript arrays, like the ```.length``` property, we will say "array of edges". Otherwise we say "list of edges", as an indication that any list implementation would suffice.]
+In a traditional object-oriented system we would expect to find a vertex class, which all vertices would be an instance of. We're going to take a different approach and consider as a vertex any object containing the three properties _id, _in and _out. Why is that? Ultimately, it comes down to giving Dagoba control over which data is shared with the host application.
 
-Note that we are using the object we're handed as a vertex instead of creating a new object of our own. If the entity invoking the addVertex function retains a pointer to the vertex they can manipulate it at runtime and break our invariants. On the other hand, while doing a deep copy would give us some protection from outside tampering it would also double our space usage [footnote: Often when faced with space leaks due to deep copying the solution is to use a persistent data structure, which allows mutation-free changes for only log(N) extra space. But the problem remains: if the host application retains a pointer to the vertex data then it can mutate that data any time, regardless of what strictures we impose in our database. The only practical solution is deep copying vertices, which doubles our space usage. Dagoba's original use case involves vertices that are treated as immutable by the host application, which allows us to avoid this issue, but requires a certain amount of discipline on the part of the user.]. There's a tension here between performance and protection, and the right balance depends on your use cases.
+If we create a Dagoba.Vertex instance inside the addVertex function, our internal data will never be shared with the host application. If we accept a Dagoba.Vertex instance as the argument to our addVertex function, the host application can retain a pointer to that vertex object, which the application could manipulate at runtime, breaking our invariants.
+
+So if we create a vertex instance object, we're forced to decide up front whether we will always copy the provided data in to a new object -- potentially doubling our space usage -- or allow the host application unfettered access to the database objects. There's a tension here between performance and protection, and the right balance depends on your specific use case.
+
+Duck typing on the vertices properties allows us to make that decision at run time, by either deep copying* the incoming data or using it directly as a vertex*. We don't always want to put the responsibility for balancing safety / performance tradeoffs in the hands of the user, but because these two sets of use cases diverge so wildly the extra flexibility is necessary here.
+
+Okay, now that we've got our new vertex we'll add it in to our graph's list of vertices, add it to the vertexIndex for efficient lookup by _id, and add two additional properties to it: _out and _in, which will both become lists of edges*. 
+
+[footnote on deep copying: Often when faced with space leaks due to deep copying the solution is to use a path copying persistent data structure, which allows mutation-free changes for only log(N) extra space. But the problem remains: if the host application retains a pointer to the vertex data then it can mutate that data any time, regardless of what strictures we impose in our database. The only practical solution is deep copying vertices, which doubles our space usage. Dagoba's original use case involves vertices that are treated as immutable by the host application, which allows us to avoid this issue, but requires a certain amount of discipline on the part of the user.]
+
+[footnote on vertex: We could make this decision based on a Dagoba-level configuration parameter, a graph-specific configuration, or possibly some type of heuristic.]
+
+[footnote on edges: We use the term 'list' to refer to the abstract data structure requiring push and iterate operations. We use JavaScript's 'array' concrete data structure to fulfill the API required by the list abstraction. Technically both "list of edges" and "array of edges" are correct, so which we use at a given moment depends on context: if we are relying on the specific details of JavaScript arrays, like the ```.length``` property, we will say "array of edges". Otherwise we say "list of edges", as an indication that any list implementation would suffice.]
 
 ```javascript
 Dagoba.G.addEdge = function(edge) {                     // accepts an edge-like object, with properties
@@ -198,7 +215,7 @@ A *program* is a series of *steps*. Each step is like a pipe in a pipeline -- a 
 
 Each step in our program can have *state*, and ```query.state``` is a list of per-step state that index correlates with the list of steps in query.program. 
 
-A *gremlin* is a creature that travels through the graph doing our bidding. They trace their heritage back to Tinkerpop's Blueprints, and the Gremlin and Pacer query languages. They remember where they've been and allow us to find answers to interesting questions. 
+A *gremlin* is a creature that travels through the graph doing our bidding. They trace their heritage back to Tinkerpop's Blueprints, and the Gremlin and Pacer query languages. They remember where they've been and allow us to find answers to interesting questions. [TODO: rephrase to express surprise]
  
 Remember that query we wanted to answer? The one about Thor's second cousins once removed? We decided ```Thor.parents.parents.parents.children.children.children``` was a pretty good way of expressing that. Each ```parents``` or ```children``` instance is a step in our program. Each of those steps contains a reference to its *pipetype*, which is the function that performs that step's operation. 
 
