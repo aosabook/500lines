@@ -219,7 +219,7 @@ A *gremlin* is a creature that travels through the graph doing our bidding. A gr
 [1: http://euranova.eu/upl_docs/publications/an-empirical-comparison-of-graph-databases.pdf]
 [2: http://edbt.org/Proceedings/2013-Genova/papers/workshops/a29-holzschuher.pdf]
 
-Remember that query we wanted to answer? The one about Thor's second cousins once removed? We decided ```Thor.parents.parents.parents.children.children.children``` was a pretty good way of expressing that. Each ```parents``` or ```children``` instance is a step in our program. Each of those steps contains a reference to its *pipetype*, which is the function that performs that step's operation. 
+Remember that question we wanted to answer? The one about Thor's second cousins once removed? We decided ```Thor.parents.parents.parents.children.children.children``` was a pretty good way of expressing that. Each ```parents``` or ```children``` instance is a step in our program. Each of those steps contains a reference to its *pipetype*, which is the function that performs that step's operation. 
 
 That query in our actual system might look like ```g.v('Thor').out().out().out().in().in().in()```. Each of the steps is a function call, and so they can take *arguments*. The interpreter passes the step's arguments and state in to the step's pipetype function, along with a gremlin from the previous step, if there was one.
 
@@ -769,16 +769,18 @@ And finally we'll need a program counter to indicate the position of the read/wr
   var pc = 0
 ```
 
-Except... wait a second. How are we going to get lazy? The traditional way of building a lazy system out of an eager one is to store function calls as "thunks" instead of evaluating them. A thunk is a closure that wraps a function and its arguments into a single function call with no parameters. 
+Except... wait a second. How are we going to get lazy*? The traditional way of building a lazy system out of an eager one is to store parameters to function calls as "thunks" instead of evaluating them. You can think of a thunk as an unevaluated expression. In JS, which has first-class functions and closures, we can create a thunk by wrapping a function and its arguments in a new anonymous function which takes no arguments*.
 
-[footnote (a long one): 
+[footnote on lazy: Technically we need to implement an interpreter with non-strict semantics, which means it will only evaluate when forced to do so. Lazy evaluation is a technique used for implementing non-strictness.]
+
+[footnote on parameters (a long one): 
 
 ```javascript
 function sum() {
   return [].slice.call(arguments).reduce(function(acc, n) { return acc + (n|0) }, 0)
 }
 
-function thunked_sum_1_2_3() { return sum(1, 2, 3) }
+function thunk_of_sum_1_2_3() { return sum(1, 2, 3) }
 
 function thunker(fun, args) {
   return function() {return fun.apply(fun, args)}
@@ -790,26 +792,26 @@ function thunk_wrapper(fun) {
   }
 }
 
-sum(1, 2, 3)        // 6
-thunked_sum_1_2_3() // 6
-
-var thunk = thunker(sum, [1, 2, 3])
-thunk()             // 6
+sum(1, 2, 3)              // -> 6
+thunk_of_sum_1_2_3()      // -> 6
+thunker(sum, [1, 2, 3])() // -> 6
 
 var sum2 = thunk_wrapper(sum)
-var thunk2 = sum2(1, 2, 3)
-thunk2()            // 6
+var thunk = sum2(1, 2, 3)
+thunk()                   // -> 6
 ```
 
 (end long footnote)]
 
-None of the thunks are invoked until one is actually "needed", which usually implies some type of output is required: in our case the result of a query. Because each new thunk takes all previous thunks as one of its input parameters (CPS) the AST gets rolled up backwards, and the first thing we actually evaluate is the innermost thing we need in order to produce the results. [TODO Maybe a footnote to clarify this further. Maybe use the "short-circuit evaluation plus sharing of results" explanation. Maybe show delay and force in the thunk code. Maybe drop the CSP and AST bits and go with a more classic explanation.]
+None of the thunks are invoked until one is actually needed, which usually implies some type of output is required: in our case the result of a query. Each time the interpreter encounters a new function call, we wrap it in a thunk. Recall our original formulation of a query: ```children(children(children(parents(parents(parents([8]))))))```. Each of those layers would be a thunk, wrapped up like an onion.
 
-There are a couple of tradeoffs with this approach: one is that spacial performance becomes much more difficult to reason about, because of the potentially vast thunk trees that are created. Another is that our program is now expressed as a single outermost (innermost) thunk, which means we can't do much with it at that point. 
+There are a couple of tradeoffs with this approach: one is that spacial performance becomes more difficult to reason about, because of the potentially vast thunk graphs that can be created. Another is that our program is now expressed as a single thunk, and we can't do much with it at that point.
 
-This second point isn't usually an issue, because of the phase separation between when our compiler runs its optimizations and when all the thunking occurs during runtime. But in our case we don't have that advantage: because we're using method chaining to implement a fluent interface [footnote: Method chaining lets us write ```g.v('Thor').in().out().run()``` instead of ```var query = g.query(); query.add('vertex', 'Thor'); query.add('in'); query.add('out'); query.run()```] if we are using thunks to get our laziness we would have to thunk each new method as it is called, which means by the time we get to ```run()``` we have only a single thunk as our input, and no way to optimize our query.
+This second point isn't usually an issue, because of the phase separation between when our compiler runs its optimizations and when all the thunking occurs during runtime. But in our case we don't have that advantage: because we're using method chaining to implement a fluent interface* if we also thunks to get our laziness we would have to thunk each new method as it is called, which means by the time we get to ```run()``` we have only a single thunk as our input, and no way to optimize our query.
 
-This is a pretty big setback, but we have an advantage that most languages don't -- our queries are linear. They don't have any branches. Maybe there's a clever way of using that property to get our laziness but still be able to optimize our query?
+[footnote on interface: Method chaining lets us write ```g.v('Thor').in().out().run()``` instead of ```var query = g.query(); query.add('vertex', 'Thor'); query.add('in'); query.add('out'); query.run()```]
+
+This is a pretty big setback, but we have an advantage that most languages don't -- our queries are linear. They don't have any branches. Maybe there's a clever way of using that property to get our non-strictness but still be able to optimize our query?
 
 ```javascript
   var pc = this.program.length - 1
