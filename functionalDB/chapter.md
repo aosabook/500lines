@@ -279,8 +279,7 @@ We now have all the components we need to construct our database! Initializing o
 
 * creating an initial empty layer with no data 
 * creating a set of empty indexes
-* settings its top-id and curr-time to be 0 and its curr-time to be 0 
-
+* settings its top-id and curr-time to be 0
 ````clojure
 (defn ref? [attr] (= :db/ref (:type (meta attr))))
 
@@ -296,7 +295,6 @@ We now have all the components we need to construct our database! Initializing o
                    (make-index #(vector %1 %2 %3) #(vector %1 %2 %3) always); EAVT
                   )] 0 0)))
 ````
-
 There is one snag, though -- all collections in Clojure are immutable. Since write operations are pretty critical in a database, we call **atom** on our structure first. This is one of Clojure’s reference types, and it provides atomic writes to the element it wraps. 
 
 You may be wondering why we use the *always* function for the AVET, VEAT and EAVT indexes, and the *ref?* predicate for the VAET index. This is because these indexes are used in different scenarios, which we’ll see later when we explore queries in depth.
@@ -332,7 +330,6 @@ Since we treat our database just like any other value, each of these functions t
 A first usage of the basic accessors is to provide a "read-into-the-past" API. This is possible as in our database, an update operation is done by appending a new layer (as oppose to overwriting). Therefore we can use the *prev-ts* property of an attribute look at the attribute at that layer, and continue going back in time looking deeper into history, thus observing the how the attribute’s value evolved throughout time.  
 
 The function *evolution-of* does exactly that, and return a sequence of pairs - each consist of the timestamp and value of an attribute’s update.
-
 ````clojure
 (defn evolution-of [db ent-id attr-name]
    (loop [res [] ts (:curr-time db)]
@@ -340,7 +337,6 @@ The function *evolution-of* does exactly that, and return a sequence of pairs - 
          (let [attr (attr-at db ent-id attr-name ts)]
            (recur (conj res {(:ts attr) (:value attr)})  (:prev-ts attr))))))
 ````
-
 ## Data behavior and life cycle
 
 So far, our discussion has focused on the structure of our data -- what the core components are, and how they are aggregated together. It's time now to explore the dynamics of our system; how data is changed over time through the _data lifecycle_ (add => update => remove). 
@@ -377,10 +373,8 @@ These steps are performed in the *add-entity* function
          new-layer (reduce add-fn layer-with-updated-storage (indexes))]
     (assoc db :layers (conj (:layers db) new-layer) :top-id next-top-id)))
 ````
-
 Preparing an entity is done calling the *fix-new-entity* function and its auxiliary functions *next-id*, *next-ts* and *update-creation-ts*. 
 These latter two helper functions are responsible for finding the next timestamp of the database(done by *next-ts* function), and updating the creation timestamp of the given entity. Updating the creation timestamp of an entity means going over the attributes of the entity and update their *:ts* field (done by the *update-creation-ts* function).
-
 ````clojure
 (defn- next-ts [db] (inc (:curr-time db)))
 
@@ -400,7 +394,6 @@ These latter two helper functions are responsible for finding the next timestamp
          new-ts               (next-ts db)]
        [(update-creation-ts (assoc ent :id ent-id) new-ts) next-top-id]))
 ````
-
 To add the entity to storage, we locate the most recent layer in the database and update the storage in that layer with a new layer. The results of this operation are assigned to the *layer-with-updated-storage* local variable.
 
 Finally, we must update the indexes. This means:
@@ -409,7 +402,6 @@ Finally, we must update the indexes. This means:
 2. Find the attributes that should be indexed (see the combination of *filter* with the index’s *usage-pred* that operates on the attributes in *add-entity-to-index*) 
 3. build an index-path from the the entity’s id (see the combination of the *partial*-ed *update-entry-in-index* with *from-eav* at the *update-attr-in-index* function)
 4. Add that path to the index (see the *update-entry-in-index* function)
-
 ````clojure
 (defn- add-entity-to-index [ent layer ind-name]
    (let [ent-id (:id ent)
@@ -448,7 +440,6 @@ Removing an entity from our database means adding a layer in which it does not e
 * clear the entity from our indexes
 
 This "construct-without" process is executed by the *remove-entity* function, which looks very similar to *add-entity*:
-
 ````clojure
 (defn remove-entity [db ent-id]
    (let [ent (entity-at db ent-id)
@@ -461,9 +452,7 @@ This "construct-without" process is executed by the *remove-entity* function, wh
                                  no-ent-layer (indexes))]
      (assoc db :layers (conj  (:layers db) new-layer))))
 ````
-
 Reference removal is done by the *remove-back-refs* function:
-
 ````clojure
 (defn- remove-back-refs [db e-id layer]
    (let [reffing-datoms (reffing-to e-id layer)
@@ -471,9 +460,7 @@ Reference removal is done by the *remove-back-refs* function:
          clean-db (reduce remove-fn db reffing-datoms)]
      (last (:layers clean-db))))
 ````
-
 We begin by using *reffing-datoms-to* to find all entities that reference ours in the given layer; it returns a sequence of triplets that contain the id of the referencing entity, as well as the attribute name and the id of the removed entity.
-
 ````clojure
 (defn- reffing-to [e-id layer]
    (let [vaet (:VAET layer)]
@@ -507,9 +494,7 @@ As with *add-entity* and *remove-entity*, we won't actually be modifying our ent
                                                           updated-attr new-val operation)]
         (update-in db [:layers] conj fully-updated-layer))))
 ````
-
 To update an attribute, we locate it with *attr-at* and then use *update-attr* to perform the actual update. 
-
 ````clojure
 (defn- update-attr [attr new-val new-ts operation]
     {:pre  [(if (single? attr)
@@ -520,15 +505,12 @@ To update an attribute, we locate it with *attr-at* and then use *update-attr* t
        (update-attr-value new-val operation)))
 ````
 We use two helper functions to perform the update. *update-attr-modification-time* updates timestamps to reflect the creation of the black arrows in Figure 1:
-
 ````clojure
 (defn- update-attr-modification-time  
   [attr new-ts]
        (assoc attr :ts new-ts :prev-ts (:ts attr)))
 ````
-
 *update-attr-value* actually updates the value:
-
 ````clojure
 (defn- update-attr-value [attr value operation]
    (cond
@@ -541,7 +523,6 @@ We use two helper functions to perform the update. *update-attr-modification-tim
 All that remains is to remove the old value from the indexes and to add the new one to them, and then construct to the new layer with all of our updated components. Luckily, we can leverage the code we wrote for adding and removing entities to do this!
 
 ### Transactions
-
 
 Each of the operations in our low-level API act on a single entity. However, nearly all databases have a mechanism for allowing users to perform multiple operations as a single _transaction_. (TODO: Reference other chapters on transactional semantics here.) This means: 
 
@@ -563,7 +544,6 @@ All this is done in the *transact-on-db* function, that receives the initial val
                 new-layer (last (:layers transacted))]
             (assoc initial-db :layers (conj  initial-layer new-layer) :curr-time (next-ts initial-db) :top-id (:top-id transacted))))))
 ```` 
-
 Note here that we used the term _value_, this means that only the caller to this function is exposed to the updated state, and all other users of the database are unaware of this change (as a database is a value, and therefore cannot change). 
 In order to have a system where users can be exposed to state changes performed by others, users do not interact directly with the database, but rather refer to it using another level of indirection [REF HERE]. This additional level is implemented using Clojure's element called *Atom*, which is a one of Clojure's reference types. Here we leverage two key features of an *Atom*, which are:
 1. It references other elements
@@ -683,7 +663,6 @@ Our data model is based on accumulation of facts (i.e. datoms) over time. For th
 ### Query language
 
 Let's look at an example query in our proposed language. This query asks "what are the names and birthday of entities who like pizza, speak English, and who have a birthday this month?"
-
 ````clojure
 {  :find [?nm ?bd ]
    :where [
@@ -692,7 +671,6 @@ Let's look at an example query in our proposed language. This query asks "what a
       [?e  :speak "English"]
       [?e  :birthday (birthday-this-month? ?bd)]]}
 ````
-
 #### Syntax
 
 We directly use the syntax of Clojure’s data literals to provide the basic syntax for our queries. This allows us to avoid having to write a specialized parser, while still providing a form that is familiar and easily readable to programmers familiar with Clojure.
@@ -958,7 +936,7 @@ To have a better understanding of this process, alongside explaining it, we also
 </tr>
 <tr>
 	<td>3</td>
-	<td>:name </br>
+	<td><>:name </br>
 		:likes</br>
 		:speak</br>
 		:birthday 
