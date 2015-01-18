@@ -215,8 +215,10 @@ A *program* is a series of *steps*. Each step is like a pipe in a pipeline -- a 
 
 Each step in our program can have *state*, and ```query.state``` is a list of per-step state that index correlates with the list of steps in query.program. 
 
-A *gremlin* is a creature that travels through the graph doing our bidding. They trace their heritage back to Tinkerpop's Blueprints, and the Gremlin and Pacer query languages. They remember where they've been and allow us to find answers to interesting questions. [TODO: rephrase to express surprise]
- 
+A *gremlin* is a creature that travels through the graph doing our bidding. A gremlin is a surprising thing to find in a database, but they trace their heritage back to Tinkerpop's Blueprints[1], and the Gremlin and Pacer query languages[2]. They remember where they've been and allow us to find answers to interesting questions. 
+[1: http://euranova.eu/upl_docs/publications/an-empirical-comparison-of-graph-databases.pdf]
+[2: http://edbt.org/Proceedings/2013-Genova/papers/workshops/a29-holzschuher.pdf]
+
 Remember that query we wanted to answer? The one about Thor's second cousins once removed? We decided ```Thor.parents.parents.parents.children.children.children``` was a pretty good way of expressing that. Each ```parents``` or ```children``` instance is a step in our program. Each of those steps contains a reference to its *pipetype*, which is the function that performs that step's operation. 
 
 That query in our actual system might look like ```g.v('Thor').out().out().out().in().in().in()```. Each of the steps is a function call, and so they can take *arguments*. The interpreter passes the step's arguments and state in to the step's pipetype function, along with a gremlin from the previous step, if there was one.
