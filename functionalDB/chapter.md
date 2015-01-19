@@ -804,11 +804,8 @@ Iterating over the clauses themselves happens in *q-clauses-to-pred-clauses*:
 ````
 We are once again relying on the fact that macros do not eagerly evaluate their arguments. This allows us to define a simpler API where users provide variable names as symbols (e.g., ````?name````) instead of asking the user to understand the internals of the engine by providing variable names as strings ( e.g., ````"?name"````), or even worse - quoting the variable name (e.g., ````'?name````) and by that ask users to understand mechanisms that are taught in Clojure's class of defense against  the dark arts.
 
-At the end of this phase, our example would yield the following set for the *:find* part: 
-````clojure
- #{"?nm" "?bd"}
-```` 
-Our example's *:where* part would yield this structure (each cell in the _Predicate Clause_ column holds the metadata found in its neighbor at the _Meta Clause_ column):
+At the end of this phase, our example yields the following set for the *:find* part: 
+````clojure #{"?nm" "?bd"} ```` and this structure for the *:where* part (each cell in the _Predicate Clause_ column holds the metadata found in its neighbor at the _Meta Clause_ column):
 
 <table>
 <tr>
@@ -838,14 +835,15 @@ Our example's *:where* part would yield this structure (each cell in the _Predic
 </td>
 </tr>
 </table>
-This structure acts as the query that is executed in a later phase, after first the engine decides on the right plan of execution.
+
+This structure acts as the query that is executed in a later phase, once the engine decides on the right plan of execution.
+
 #### Phase 2 - Making a plan
+In this phase, we inspect the query to determine a good plan that will produce the result it describes.
 
-In this phase, we inspect the query representation produced in phase 1 to determine a good _plan_ that will produce the result it describes.
+In general, this will involve choosing the appropriate index and constructing a plan in the form of a function.
 
-In general, this will involve choosing the appropriate index, applying on it the predicate clauses and merging the results. 
-
-We choose the index based on the joining variable. We assume that there is at most one such variable, which yields three possibilities: 
+We choose the index based on the _single_ joining variable (that can operate on only one kind of elements) 
 
 <table>
 	<tr>
