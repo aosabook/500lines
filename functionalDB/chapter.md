@@ -1,4 +1,4 @@
-#Designing a database like an archaeologist
+# Designing a database like an archaeologist
 
 Software development is often viewed as a rigorous process, where the inputs are requirements and the output is the working product. However, software developers are people with their own perspectives and biases which color the outcome of their work. 
 
@@ -122,7 +122,7 @@ Note that instead of directly using the attribute’s name, we first convert it 
 (defn add-attr [ent attr]
    (let [attr-id (keyword (:name attr))]
       (assoc-in ent [:attrs attr-id] attr)))
-```
+````
 
 ### Storage
 
@@ -658,7 +658,7 @@ These two functions act as the basic building blocks for any graph traversal ope
 A second library we present here provides querying capabilities, which is the main issue of this section. 
 A database is not very useful to its users without a powerful query mechanism. This feature is usually exposed to users through a _query language_ that is used to declaratively specify the set of data of interest. 
 
-Our data model is based on accumulation of facts (i.e. datoms) over time. For this model, a natural place to look for the right query language is _logic programming_. A commonly used query language influenced by logic programming is _Datalog_ which, in addition to being well-suited for our data model, has a very elegant adaptation to Clojure’s syntax. Our query engine will implement a subset of the *Datalog* language from the [Datatomic database](http://docs.datomic.com/query.html).
+Our data model is based on accumulation of facts (i.e. datoms) over time. For this model, a natural place to look for the right query language is _logic programming_. A commonly used query language influenced by logic programming is _Datalog_ which, in addition to being well-suited for our data model, has a very elegant adaptation to Clojure’s syntax. Our query engine will implement a subset of the *Datalog* language from the [Datomic database](http://docs.datomic.com/query.html).
 
 ### Query language
 
@@ -679,7 +679,7 @@ A query is a map with two items:
 
 * An item with *:where* as a key, and with a _rule_ as a value. A rule is a vector of _clauses_, and a clause is a vector composed of three _predicates_, each of which operates on a different component of a datom.  In the example above, *[?e  :likes "pizza"]* is a clause.  This *:where* item defines a rule that acts as a filter on datoms in our database (like the 'WHERE' clause in a SQL query.)
 
-* An item with *:find* as a key, and with a vector as a value. The vector defines which components of the selected datom should be projected into the results (like the 'SELECT' clause in an SQL query.)
+* An item with *:find* as a key, and with a vector as a value. The vector defines which components of the selected datom should be projected into the results (like the 'SELECT' clause in a SQL query.)
 
 The description above omits a crucial requirement, which is how to make different clauses sync on a value (i.e., make a join operation between them), and how to structure the found values in the output (specified by the *:find* part.) 
 
@@ -808,7 +808,7 @@ At the end of this phase, our example would yield the following set for the *:fi
 ````clojure
  #{"?nm" "?bd"}
 ```` 
-Our example's *:where* part would yield this structure (each cell in the _Predidcate Clause_ column holds the metadata found in its neighbor at the _Meta Clause_ column):
+Our example's *:where* part would yield this structure (each cell in the _Predicate Clause_ column holds the metadata found in its neighbor at the _Meta Clause_ column):
 
 <table>
 <tr>
