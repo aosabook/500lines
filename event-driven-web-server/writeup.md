@@ -32,13 +32,16 @@ That's basically it. I mean there used to be things called "Forever Frames" that
 
 These approaches are pretty different from each other under the covers, as you can hopefully see now that you understand them in the abstract, but they have one important point in common. They all depend on long-lived connections. Longpolling depends on the server keeping requests around until new data is available (thus keeping a connection open until new data arrives, or the client gives up in frustration), SSEs keep an open stream between client and server to which data is periodically written, and Websockets change the protocol a particular connection is speaking, but leave it open (and bi-directional, which complicates matters slightly; you basically need to chuck websockets back into the main listen/read loop *and keep them there* until they're closed).
 
-The consequence of keeping long-lived connections around is that you're going to want one of
+The consequence of keeping long-lived connections around is that you're going to want either
 
 a) A server that can service many connections with a single thread
-b) A thread-per-request server that passes long-lived connections off to a separate subsystem, which must handle those long lived connections using a minimal number of threads
-c) A thread-per-request server on top of a platform where threads are cheap enough that you can afford having a few hundred thousand of them around.
+b) A thread-per-request server on top of a platform where threads are cheap enough that you can afford having a few hundred thousand of them around.
 
-I maintain that Option b) is ridiculous. The main reason you want a thread-per-request model is to simplify implementation, but having to implement a threaded core _as well as_ a separate event-driven system just for server pushing would almost by definition be more complicated than using either model in isolation. In the absence of a [really](http://racket-lang.org/) REALLY [cheap](http://www.erlang.org/) thread [system](http://hackage.haskell.org/package/base-4.7.0.1/docs/Control-Concurrent.html), the simplest solution is resorting to Option a). I could have switched languages, or maybe hacked some just-good-enough support into Hunchentoot. What I chose to do was write a Common Lisp server that could service many connections on a single thread.
+If you have a [really](http://racket-lang.org/) REALLY [cheap](http://www.erlang.org/) thread [system](http://hackage.haskell.org/package/base-4.7.0.1/docs/Control-Concurrent.html) b) is a pretty good option, though it may force you to deal with all the synchronization issues you'd expect from a multi-threaded system. Specifically, if you have some sort of central data shared by several users simltaneously, you'll need to coordinate writes and/or reads in some way. How hard that is depends on your data model as well as your thread system, but it tends to be non-trivial.
+
+If you *don't* have cheap threads at your disposal, you're forced to deal with a world where a thread services many requests. That slightly complicates your server model, since you can't pretend that a request owns the entire world even if you don't need to share state across requests, *but* it does make state sharing sort of fall out naturally as a consequence of the server structure. Rather than synchronization, your big problem with event-driven servers tends to be blocking. Which you can *never ever do*. This is mildly complicated by the fact that many languages assume a blocking model of IO, so it's typically very easy to block somewhere by accident. 
+
+At the time I started thinking about this project, Common Lisp didn't have a complete green-thread implementation, and the [default threading library](bordeaux-threads) doesn't qualify as "really REALLY cheap". So my options amounted to either picking a different language, or building an event-driven web server for my purpose.
 
 In other words, `:house` started out as the yak-shaving project from hell, and I'm about to regale you with the tale.
 
@@ -106,6 +109,8 @@ Which, as you may have suspected, does something different. This is the method t
 4. Otherwise, we check if the buffer is one of `complete?`, `too-big?`, `too-old?` or `too-needy?`. If it's any of them, we remove it from the connections table and send out the appropriate HTTP response.
 
 Now, firstly, you'll have to take my word for it that most of these things happen correctly until we get to their implementations later. But more importantly, it might not be entirely apparent why we're going through this rigmarole. Because we're trying to serve up content with a single thread, we can't afford to block on any particular connection. Because if we _did_, we'd block the entire server, rather than just a single request. As a result, we have to do work to make sure that we never block on an incoming stream _and_ that if a particular stream is dragging its feet, we can move on to the next one without throwing out our work so far. That means a system of buffers to keep track of intermediate results, and a buffering process that stops if it runs out of available input before getting to a complete request. Most importantly, it means non-blocking IO. Here's ours:
+
+[[TODO: Because threads are so prevalent, many languages and their frameworks assume you can block on IO. It turns out we can't really do that here.]]
 
 	(defmethod buffer! ((buffer buffer))
 	  (handler-case
