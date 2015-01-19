@@ -802,7 +802,7 @@ Iterating over the clauses themselves happens in *q-clauses-to-pred-clauses*:
        (if-not frst#  preds-vecs#
          (recur rst# `(conj ~preds-vecs# (pred-clause ~frst#))))))
 ````
-We are once again relying on the fact that macros do not eagerly evaluate their arguments. This allows us to define a simpler API where uers provide variable names as symbols e.g., ?name instead of "?name" (stringifying the variable) or even worse - '?name (asking the user to use some of Clojure's dark magic).
+We are once again relying on the fact that macros do not eagerly evaluate their arguments. This allows us to define a simpler API where users provide variable names as symbols (e.g., ````?name````) instead of asking the user to understand the internals of the engine by providing variable names as strings ( e.g., ````"?name"````), or even worse - quoting the variable name (e.g., ````'?name````) and by that ask users to understand mechanisms that are taught in Clojure's class of defense against  the dark arts.
 
 At the end of this phase, our example would yield the following set for the *:find* part: 
 ````clojure
