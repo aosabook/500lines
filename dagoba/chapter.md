@@ -116,7 +116,9 @@ We'll accept two optional arguments: a list of vertices and a list of edges. Jav
 [footnote on variadic: This is just a fancy way of saying a function has indefinite arity, which is a fancy way of saying it takes a variable number of variables.]
 [footnote on programmatically: The ```Array.isArray``` checks here are to distinguish our two different use cases, but in general we won't be doing many of the validations one would expect of production code in order to focus on the architecture instead of the trash bins.]
 
-Then we create a new object that has all of our prototype's abilities and none of its weaknesses. We build a brand new array (one of the other basic JS data structures) for our edges, another for the vertices, a new object called vertexIndex and an id counter -- more on those latter two later [footnote: Why can't we just put all of these in the prototype?].
+Then we create a new object that has all of our prototype's strengths and none of its weaknesses*. We build a brand new array (one of the other basic JS data structures) for our edges, another for the vertices, a new object called vertexIndex and an id counter -- more on those latter two later [footnote: Why can't we just put all of these in the prototype?].
+
+[footnote on weaknesses: Always bet on JS.]
 
 Then we call addVertices and addEdges from inside our factory, so let's define those now.
 
@@ -401,7 +403,7 @@ Dagoba.addPipetype('property', function(graph, args, gremlin, state) {
 
 Our query initialization here is trivial: if there's no gremlin, we pull. If there is a gremlin, we'll set its result to the property's value. Then the gremlin can continue onward. If it makes it through the last pipe its result will be collected and returned from the query. Not all gremlins have a ```result``` property. Those that don't return their most recently visited vertex.
 
-Note that if the property doesn't exit we return false instead of the gremlin, so property pipes also act as a type of filter. Can you think of a use for this? What are the tradeoffs in this design decision? 
+Note that if the property doesn't exist we return false instead of the gremlin, so property pipes also act as a type of filter. Can you think of a use for this? What are the tradeoffs in this design decision? 
 
 
 #### Unique
@@ -807,7 +809,7 @@ None of the thunks are invoked until one is actually needed, which usually impli
 
 There are a couple of tradeoffs with this approach: one is that spacial performance becomes more difficult to reason about, because of the potentially vast thunk graphs that can be created. Another is that our program is now expressed as a single thunk, and we can't do much with it at that point.
 
-This second point isn't usually an issue, because of the phase separation between when our compiler runs its optimizations and when all the thunking occurs during runtime. But in our case we don't have that advantage: because we're using method chaining to implement a fluent interface* if we also thunks to get our laziness we would have to thunk each new method as it is called, which means by the time we get to ```run()``` we have only a single thunk as our input, and no way to optimize our query.
+This second point isn't usually an issue, because of the phase separation between when our compiler runs its optimizations and when all the thunking occurs during runtime. But in our case we don't have that advantage: because we're using method chaining to implement a fluent interface* if we also use thunks to get our laziness we would have to thunk each new method as it is called, which means by the time we get to ```run()``` we have only a single thunk as our input, and no way to optimize our query.
 
 [footnote on interface: Method chaining lets us write ```g.v('Thor').in().out().run()``` instead of ```var query = g.query(); query.add('vertex', 'Thor'); query.add('in'); query.add('out'); query.run()```]
 
@@ -1007,7 +1009,7 @@ Dagoba.addAlias('grandparents', [['out', 'parent'], ['out', 'parent']])
 Dagoba.addAlias('cousins', [['out', 'parent'], ['as', 'folks'], ['out', 'parent'], ['in', 'parent'], ['except', 'folks'], ['in', 'parents'], ['unique']])
 ```
 
-That ```cousins``` alias is a little cumbersome. Maybe we can educate our addAlias function even more, and allow ourselves to use other aliases in our aliases.
+That ```cousins``` alias is a little cumbersome. Maybe we could expand our addAlias function to allow ourselves to use other aliases in our aliases, and then call it like this:
 
 ```javascript
 Dagoba.addAlias('cousins', ['parents', ['as', 'folks'], 'parents', 'children', ['except', 'folks'], 'children', 'unique'])
@@ -1105,10 +1107,12 @@ In JavaScript an object's ```toString``` function is called whenever that object
 
 The ```fromString``` function isn't part of the language specification, but it's handy to have around.
 
+```javascript
 Dagoba.fromString = function(str) {                     // another graph constructor
   var obj = JSON.parse(str)                             // this can throw
   return Dagoba.graph(obj.V, obj.E) 
 }
+```
 
 Now we'll use those in our persistence functions. The ```toString``` function is hiding -- can you spot it?
 
