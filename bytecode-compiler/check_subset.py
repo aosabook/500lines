@@ -50,6 +50,7 @@ class Checker(ast.NodeVisitor):
             self(t.value)
 
     def visit_Assign(self, t):
+        assert t.targets, "At least one target required"
         self(t.targets)
         self(t.value)
 
