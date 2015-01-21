@@ -765,7 +765,7 @@ that injects itself into the middle of the build process,
 noting every time one task talks to another
 to construct a graph of the relationships between all the tasks.
 
->>> from contingent.projectlib import Project, pack_task
+>>> from contingent.projectlib import Project, Task
 >>> project = Project()
 >>> task = project.task
 
@@ -992,7 +992,7 @@ using a simple Python list as the task stack:
 
 >>> task_stack = []
 >>> def read_task(filename):
-...     task = pack_task(read_task, (filename,))
+...     task = Task(read_task, (filename,))
 ...     task_stack.append(task)
 ...     print(task_stack)
 ...     result = 'Witty Title\nEngaging content'
@@ -1018,7 +1018,7 @@ our stack will be two tasks deep
 when ``read_task`` is called:
 
 >>> def parse_task(filename):
-...     task = pack_task(parse_task, (filename,))
+...     task = Task(parse_task, (filename,))
 ...     task_stack.append(task)
 ...     print(task_stack)
 ...     text = read_task(filename).strip('\n')
@@ -1076,7 +1076,7 @@ The body of the wrapper function
 
 .. code-block:: python
 
-    task = pack_task(wrapper, args)
+    task = Task(wrapper, args)
 
     if self.task_stack:
         self.graph.add_edge(task, self.task_stack[-1])
@@ -1159,7 +1159,7 @@ So when we called ``parse('tutorial.txt')`` earlier,
 ``Project``'s ``task`` decorator learned
 the connection between ``parse`` and ``read``:
 
->>> task = pack_task(read, ('tutorial.txt',))
+>>> task = Task(read, ('tutorial.txt',))
 >>> print(task)
 read('tutorial.txt')
 >>> project.graph.immediate_consequences_of(task)

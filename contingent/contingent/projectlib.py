@@ -5,7 +5,7 @@ from collections import namedtuple
 from functools import wraps
 from .graphlib import Graph
 
-_not_available = object()
+_unavailable = object()
 
 class Project:
     """A collection of tasks that are related as inputs and consequences."""
@@ -23,31 +23,33 @@ class Project:
         self.trace = []
 
     def stop_tracing(self, verbose=False):
-        """Stop recording task invocations, and return the trace as text."""
+        """Stop recording task invocations, and return the trace as text.
 
+        By default, the trace only shows those tasks that were invoked,
+        because no up-to-date return value was available for them in the
+        cache.  But if the optional argument `verbose` is true then the
+        trace will also include tasks which experienced a cache hit, not
+        of a miss, and therefore did not need to be re-invoked.
+
+        """
         text = '\n'.join(
             '{}{} {}'.format(
                 '. ' * depth,
                 'calling' if not_available else 'returning cached',
-                task
-            ) for (depth, not_available, task) in self.trace
+                task)
+            for (depth, not_available, task) in self.trace
             if verbose or not_available)
 
         self.trace = None
         return text
 
-    def _trace_task(self, task, value):
-        """Add a task to the currently running task trace.
-
-        Does nothing if no trace is running.
-
-        """
-        if self.trace is not None:
-            tup = (len(self.task_stack), value is _not_available, task)
-            self.trace.append(tup)
-            if len(self.trace) > 30:
-                print(self.stop_output())
-                raise RuntimeError()
+    def _add_task_to_trace(self, task, return_value):
+        """Add a task to the currently running task trace."""
+        tup = (len(self.task_stack), return_value is _unavailable, task)
+        self.trace.append(tup)
+        if len(self.trace) > 30:
+            print(self.stop_output())
+            raise RuntimeError()
 
     def task(self, task_function):
         """Decorate a function that defines one of the tasks for this project.
@@ -67,33 +69,33 @@ class Project:
 
         If it must invoke the `task_function`, then the wrapper places
         the task atop the current stack of executing tasks.  This makes
-        sure that if `task_function` invokes any further tasks that we
-        can remember that it used their return values, and that it will
-        need to be re-invoked again in the future if any of those other
-        tasks change their return value.
+        sure that if `task_function` invokes any further tasks, we can
+        remember that it used their return values and that it will need
+        to be re-invoked again in the future if any of those other tasks
+        change their return value.
 
         """
-
         @wraps(task_function)
         def wrapper(*args):
-            task = pack_task(wrapper, args)
+            task = Task(wrapper, args)
 
             if self.task_stack:
                 self.graph.add_edge(task, self.task_stack[-1])
 
-            value = self._get_from_cache(task)
-            self._trace_task(task, value)
+            return_value = self._get_from_cache(task)
+            if self.trace is not None:
+                self._add_task_to_trace(task, return_value)
 
-            if value is _not_available:
+            if return_value is _unavailable:
                 self.graph.clear_inputs_of(task)
                 self.task_stack.append(task)
                 try:
-                    value = task_function(*args)
+                    return_value = task_function(*args)
                 finally:
                     self.task_stack.pop()
-                self.set(task, value)
+                self.set(task, return_value)
 
-            return value
+            return return_value
 
         return wrapper
 
@@ -101,29 +103,29 @@ class Project:
         """Return the output of the given `task`.
 
         If we do not have a current, valid cached value for `task`,
-        returns the singleton `_not_available` instead.
+        returns the singleton `_unavailable` instead.
 
         """
         if task in self.todo_list:
-            return _not_available
-        return self.cache.get(task, _not_available)
+            return _unavailable
+        return self.cache.get(task, _unavailable)
 
-    def set(self, task, value):
-        """Add the output `value` of `task` to our cache of outputs.
+    def set(self, task, return_value):
+        """Add the `return_value` of `task` to our cache of return values.
 
         This gives us the opportunity to compare the new value against
         the old one that had previously been returned by the task, to
-        determine whether the tasks that use `task` as input must be
-        added to the to-do list for re-computation.
+        determine whether the tasks that themselves use `task` as input
+        must be added to the to-do list for re-computation.
 
         """
         self.todo_list.discard(task)
-        if (task not in self.cache) or (self.cache[task] != value):
-            self.cache[task] = value
+        if (task not in self.cache) or (self.cache[task] != return_value):
+            self.cache[task] = return_value
             self.todo_list.update(self.graph.immediate_consequences_of(task))
 
     def invalidate(self, task):
-        """Mark `task` as requiring re-computation on the next `rebuild()`.
+        """Mark `task` as requiring recomputation on the next `rebuild()`.
 
         There are two ways that code preparing for a call to `rebuild()`
         can signal that the value we have cached for a given task is no
@@ -162,7 +164,7 @@ def task_key(task):
     function, args = task
     return function.__name__, args
 
-class pack_task(namedtuple('Task', ('task_function', 'args'))):
+class Task(namedtuple('Task', ('task_function', 'args'))):
     """Turn a call to a function into a task 2-tuple.
 
     Given a task function and an argument list, returns a task 2-tuple
