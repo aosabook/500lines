@@ -49,7 +49,7 @@ This table of contents is a mash-up
 of information from four different files.
 While its basic order and structure come from ``index.rst``,
 the actual title of each chapter and section
-is pulled from your chapter source files themselves.
+is pulled from the three chapter source files themselves.
 
 If you later reconsider the tutorial’s chapter title —
 after all, the word “newcomer” sounds so antique,
@@ -69,8 +69,9 @@ Sphinx will do exactly the right thing!
 It will rebuild both the tutorial chapter itself,
 and also rebuild the index.
 (Piping the output into ``cat`` makes Sphinx
-display each rebuilt file on its own line,
-instead of overwriting a single line with its progress updates.)
+announce each rebuilt file on a separate line,
+instead of using bare carriage returns
+to repeatedly overwrite a single line with these progress updates.)
 ::
 
    $ make html | cat
@@ -80,7 +81,7 @@ instead of overwriting a single line with its progress updates.)
 
 Sphinx chose to rebuild both documents.
 Not only will the top of ``tutorial.html`` now feature its new title,
-but the output ``index.html`` will display the updated title
+but the output ``index.html`` will display the updated chapter title
 in the table of contents.
 Sphinx has rebuilt everything so that the output is consistent.
 
@@ -117,8 +118,8 @@ But the delay to your workflow can become significant
 when you are making frequent tweaks and edits
 to documents that are long, complex, or that involve the generation
 of multimedia like plots or animations.
-While Sphinx is at least making an effort here
-by not rebuilding every chapter in your project —
+While Sphinx is at least making an effort
+to not rebuild every chapter when you make a single change —
 it has not, for example, rebuilt ``install.html`` or ``api.html``
 in response to your ``tutorial.rst`` edit —
 it is doing more than is necessary.
@@ -127,18 +128,18 @@ But it turns out that Sphinx does something even worse:
 it sometimes does too little.
 
 To see one of Sphinx’s simplest failure modes,
-add a cross reference to the top of your API documentation::
+first add a cross reference to the top of your API documentation::
 
    API Reference
    =============
 
   +Before reading this, try reading our :doc:`tutorial`!
-
+  +
    The sections below list every function
    and every single class and method offered...
 
 With its usual caution as regards the table of contents,
-Sphinx will rebuild both this API reference document
+Sphinx will dutifully rebuild both this API reference document
 as well as the ``index.html`` home page of your project::
 
    writing output... [ 50%] api
@@ -155,22 +156,31 @@ of the tutorial chapter into the cross reference’s anchor tag::
 
 What if you now make another edit
 to the title at the top of the ``tutorial.rst`` file?
-You will have invalidated three output files.
-The change needs to be reflected
-at the top of ``tutorial.html`` itself,
-in the table of contents in ``index.rst``,
-and in this embedded cross reference
-in the first paragraph of ``api.html``.
+You will have invalidated *three* output files:
+
+1. The title at the top of ``tutorial.html`` is now out of date,
+   so the file needs to be rebuilt.
+
+2. The table of contents in ``index.html`` still has the old title,
+   so that document needs to be rebuilt.
+
+3. The embedded cross reference in the first paragraph of ``api.html``
+   still has the old chapter title,
+   so this chapter also needs to be rebuilt.
+
 What does Sphinx do? ::
 
    writing output... [ 50%] index
    writing output... [100%] tutorial
 
+Whoops.
+Only two files were rebuilt, not three.
+
 Sphinx has failed to correctly rebuild your documentation.
 If you now push your HTML to the web,
-users will see one title in the cross reference
+users will see the old title in the cross reference
 at the top of ``api.html``
-but then a different title
+but then a different title — the new one —
 once the link has carried them to ``tutorial.html`` itself.
 This can happen for many kinds of cross reference that Sphinx supports:
 chapter titles, section titles, paragraphs,
@@ -178,24 +188,25 @@ classes, methods, and functions.
 
 Experienced Sphinx users have a time-honored solution
 to the cross-reference problem.
-The solution has been honed and practiced for decades,
-and in various forms it goes all the way back
-to the original habits of users of the Document Workbench
-with which Unix was originally marketed. ::
+The solution extends far beyond Sphinx, in fact,
+and has been honed and practiced since partial rebuilding
+was first invented in the early days of computing. ::
 
-   $ rm -r _build
+   $ rm -r _build/
    $ make html
 
+By removing all previously generated output,
+the user forces the build system to perform a complete rebuild.
 This certainly solves the problem
-of guaranteeing consistency before publishing your documentation.
-Everything gets rebuilt from scratch before going to the publisher!
+of guaranteeing consistency before publishing your documentation!
 
-But could we construct a better approach?
+But could we develop a better approach?
 
 What if your build system were a persistent process
-that remembered every title, every section, and every cross reference
-that passed from the source code of one document
-to the text of another?
+that noticed every chapter title, every section title,
+and every cross referenced phrase
+as it passed from the source code of one document
+into the text of another?
 Its decisions about whether to rebuild other documents
 after a change to a single source file could be precise,
 instead of mere guesses,
@@ -220,7 +231,7 @@ Linking Tasks To Make a Graph
 The Contingent system needs a way to remember
 that the output of a task like
 “get the title of the API chapter”
-is then needed as an input of tasks like
+is then needed as an input of a task like
 “build the ``index.html`` output file.”
 And this relationship between tasks might be transitive.
 The task “get the title of the API chapter” that we just mentioned
@@ -243,26 +254,6 @@ for a collection of boxes and arrows —
 or, as mathematicians say, *nodes* and *edges* —
 like those in Figure 1.
 
-.. OKAY, DAN!
-
-.. Time to go to town!  Everything from here down is (a) great code that I
-.. have just edited, with (b) rough notes for you to work from.  Turn on
-.. your CS prof superpowers and explain everything clearly, concisely, and
-.. whimsically.
-
-.. Also, edit any of my stuff above that you'd like.  And I can edit you
-.. when you have turned the notes that follow into text, and after our
-.. mutual edits hopefully it will read fairly clearly.
-
-.. I have adjusted the code below so that it shows what Graph() does more
-.. simply than before, so we can work on explaining the implementation.
-.. Put words around these code samples, talking about the following points
-.. (based on Debo's email to us) (these do not need to be long parts each,
-.. by the way, you just need to make each point clearly, along with other
-.. points that I'm sure will occur to you as you quote sections of
-.. graphlib.py and discuss them (try to include them with RST file-line
-.. inclusion, not by cutting and pasting):
-
 .. * A graph needs to store edges.
 .. * You might need to do lookup either way: what edges arrive here?  What
 ..   edges go away from this node?  And for each question, outline a
@@ -283,11 +274,6 @@ like those in Figure 1.
 .. * Another step back: note that our API hides the data structures
 ..   COMPLETELY! We could change to a stupid Node class and Edge class
 ..   any time we wanted, because only task IDs pass our API border.
-
-.. There's probably more great points we can make about Python and our
-.. wonderful API, but those are the ones that come to mind right now that I
-.. wanted to get down before I forgot them. :)
-
 
 How could we represent such a graph in Contingent?
 Neither the core Python language nor the standard library
