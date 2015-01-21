@@ -5,10 +5,11 @@ from collections import defaultdict
 class Graph:
     """A directed graph of the relationships among build tasks.
 
-    A task can be identified by any hashable value that is eligible for
-    use as a Python dictionary key.  If the user has a preferred order
-    for tasks when the graph is otherwise agnostic about order, they may
-    set the ``sort_key`` attribute to a ``sorted()`` key function.
+    A task can be identified by any hashable value that is eligible to
+    act as a Python dictionary key.  If the user has a preferred order
+    for tasks when the graph is otherwise agnostic about output order,
+    they may set the ``sort_key`` attribute of their ``Graph`` instance
+    to a ``sorted()`` key function.
 
     """
     sort_key = None
@@ -20,11 +21,14 @@ class Graph:
     def sorted(self, nodes, reverse=False):
         """Try sorting `nodes`, else return them in iteration order.
 
-        When possible, many graph methods try to return nodes in a
-        stable order to make printing and testing more pleasant.  They
-        apply this method, which tries to use this object's ``sort_key``
-        to order the nodes.  If sorting does not succeed, then the nodes
-        are returned in their natural iteration order instead.
+        Graph methods that return a list of tasks but do not care about
+        their order can use this method to impose a user-selected order
+        instead.  In particular, doctests benefit from the imposition of
+        a gratuitous stable order on sequences that otherwise lack any
+        stable order from one run to the next.  This method tries to use
+        this Graph's ``sort_key`` function to order the given `nodes`.
+        If sorting does not succeed, then the nodes are returned in
+        their natural iteration order instead.
 
         """
         nodes = list(nodes)  # grab nodes in one pass, in case it's a generator
@@ -46,7 +50,7 @@ class Graph:
 
     def inputs_of(self, task):
         """Return the tasks that are inputs to `task`."""
-        return self.sorted(set(self._inputs_of[task]))
+        return self.sorted(self._inputs_of[task])
 
     def clear_inputs_of(self, task):
         """Remove all edges leading to `task` from its previous inputs."""
@@ -56,7 +60,7 @@ class Graph:
 
     def tasks(self):
         """Return all task identifiers."""
-        return self.sorted(set(self._inputs_of) | set(self._consequences_of))
+        return self.sorted(set(self._inputs_of).union(self._consequences_of))
 
     def edges(self):
         """Return all edges as ``(input_task, consequence_task)`` tuples."""
@@ -65,7 +69,7 @@ class Graph:
 
     def immediate_consequences_of(self, task):
         """Return the tasks that use `task` as an input."""
-        return self.sorted(set(self._consequences_of[task]))
+        return self.sorted(self._consequences_of[task])
 
     def recursive_consequences_of(self, tasks, include=False):
         """Return the topologically-sorted consequences of the given `tasks`.
@@ -82,11 +86,6 @@ class Graph:
         If the flag `include` is true, then the `tasks` themselves will
         be correctly sorted into the resulting sequence.  Otherwise they
         will be omitted.
-
-        If the caller has a preferred order in which nodes should appear
-        when the graph itself is agnostic about order (to stabilize the
-        output for a doctest or a human reader, for example), then they
-        may provide a `sort()` callable.
 
         """
         def visit(task):
