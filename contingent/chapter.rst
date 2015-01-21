@@ -1417,7 +1417,12 @@ current value of each node and builds the resulting consequences?
 Python gives us many possible approaches.  [Show various ways of
 registering routines?]
 
+.. raw:: html
 
+   <style>
+     body {font-size: 1.3em; margin: 1em}
+     pre {background-color: #eee; padding: 0.6em;}
+   </style>
 
 .. Links
 .. _Sphinx: http://sphinx-doc.org/
