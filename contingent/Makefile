@@ -12,3 +12,7 @@ all: .up-to-date~ $(PNGS)
 
 $(PNGS): %.png: %.dot
 	dot -Tpng $< > $@
+
+html: chapter.html
+chapter.html: chapter.rst
+	rst2html chapter.rst chapter.html
