@@ -13,7 +13,9 @@
 ## Online Demo
 
 * ES6 (gh-pages): <http://audreyt.github.io/500lines/spreadsheet/>
-* ES5 (jsFiddle): <http://jsfiddle.net/audreyt/LtDyP/>
+* ES5 (AngularJS): <http://jsfiddle.net/audreyt/LtDyP/>
+* LiveScript (AngularJS): <http://codepen.io/audreyt/pen/GgEZBg>
+* LiveScript (ReactJS): <http://codepen.io/audreyt/pen/emRzdQ>
 
 ## Local Demo
 
