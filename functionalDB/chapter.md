@@ -20,8 +20,8 @@ If we were to ask our friendly archaeologist to design a database, we might expe
 
 * All data is found and cataloged at the site
 * Digging deeper will expose the state of things in times past 
-* Artefacts found at the same layer are from the same period
-* Each artefact will consist of state that it accumulated in different periods 
+* Artifacts found at the same layer are from the same period
+* Each artifact will consist of state that it accumulated in different periods 
 
 For example, a wall may have Roman symbols drawn on it at on one layer, and in a lower layer there may be Greek symbols. Both these observations are recorded as part of the wall's state.
 
@@ -29,8 +29,8 @@ This analogy is visualized in Figure 1:
 
 * The entire circle is the excavation site
 * Each ring is a _layer_ (here numbered from 0 to 4) 
-* Each slice is a labeled artefact (‘a’ through ‘e’)
-* Each artefact has a ‘color’ attribute (where white means that no update was made)
+* Each slice is a labeled artifact (‘a’ through ‘e’)
+* Each artifact has a ‘color’ attribute (where white means that no update was made)
 * Black arrows denote a change in color between layers (e.g., from c.color @t2 to c.color @t0)
 * Light blue arrows are arbitrary relationships of interest between entities (e.g., from ‘b’ to ‘d’)
 
@@ -40,7 +40,7 @@ Figure 1
 
 If we translate the archaeologist's language into terms a database designer would use:
 * The excavation site is a _database_
-* Each artefact is an _entity_ with a corresponding _id_
+* Each artifact is an _entity_ with a corresponding _id_
 * Each entity has a set of _attributes_, which may change over time
 * Each attribute has a specific _value_ at a specific time
 
@@ -91,7 +91,7 @@ Note that if no id is given, the entity’s id is set to be *:db/no-id-yet*, whi
 
 **Attributes**
 
-Each attribute consists of its name, value, and the timestamps of both its most recent and previous update. In addition to these fields, each attribute has two fields that describe its *type* and *cardinality*. 
+Each attribute consists of its name, value, and the timestamps of both its most recent and previous update. In addition to these fields, each attribute has two fields that describe its *type* and *cardinality*.
 
 In the case that an attribute is used to represent a relationship to another entity, its *type* will be *:db/ref* and its value will be the id of the related entity. This simple type system also acts as an extension point. Users are free to define their own types and leverage them to provide additional semantics for their data.
 
