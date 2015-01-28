@@ -27,3 +27,12 @@ Some of the bytecode instructions have arguments. If an instruction has argument
 
 There are three kinds of stacks that the Python interpreter uses.  The first is the _call stack_, made up of frames. A frame is a collection of information and context for a chunk of code, typically a single function call. Each frame has two more stacks associated with it: the data stack, which contains data and objects, and a block stack, used for certain kinds of (control flow such as exception handling and looping).  The primary work of the interpreter is manipulating these three kinds of stacks.
 
+
+The interpreter needs to keep track of a few things beyond the call stack, like the exception state, the current frame, and the values to be passed between frames.
+
+Information on the frame includes the the code object for the frame, the global and local namespaces, a reference to the calling frame, and the last bytecode instruction executed.
+
+
+#### cruft / possible footnotes
+. [footnote? You may have heard of PyPy, a prominent Python interpreter written in Python. The structure of PyPy is covered in volume 2 of AOSA, by Benjamin Peterson. Before optimzations, PyPy is four times slower than the CPython interpreter.] One advantage of writing our Python interpreter in Python is that we don't have to also implement an object system - we can seamlessly fall back to the "real" Python's object system.
+

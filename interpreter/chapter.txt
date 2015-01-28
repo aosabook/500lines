@@ -21,7 +21,9 @@ Executing code via Byterun is much slower than executing it in CPython. However,
 
 
 ### Building an interpreter
-With that background, let's begin examining the structure of Byterun. The Python interpreter is a virtual machine, meaning that it is software that emulates a physical computer. This particular virtual machine is a stack machine: it manipulates several stacks to perform its operations (as contrasted with a register machine, that writes and reads values from particular memory locations). In our interpreter, we'll implement a stack using a Python list.
+Before we start to look at the code of Byterun, we need some context on the goals and constraints of the problem. To begin with, how does the Python interpreter work?
+
+The Python interpreter is a virtual machine, meaning that it is software that emulates a physical computer. This particular virtual machine is a stack machine: it manipulates several stacks to perform its operations (as contrasted with a register machine, that writes and reads values from particular memory locations).
 
 The Python interpreter is a _bytecode interpreter_, which means that its input is instruction sets called _bytecode_. When you write Python code, the lexer, parser, and compiler generate bytecode for the interpreter to operate on. Bytecode is called an _intermediate representation_ of Python code: it expresses the source code that you wrote in a way the interpreter can understand. It's analogous to the way that assembly language serves as a representation between C code and a piece of hardware.
 
@@ -31,8 +33,9 @@ To make this concrete, let's start with a very minimal interpreter. This interpr
 - ADD_TWO_VALUES
 - PRINT_ANSWER
 
-Since we're not concerned with the lexer, parser, and compiler in this chapter, it doesn't matter how the instruction sets are produced.  You can imagine writing `1 + 1` and having a compiler emit a combination of these three instructions. Or, if you have the right compiler, you can write lisp syntax that's turned into the same combination of instructions. The interpreter doesn't care. All that matters is that our interpreter is given an arrangement of these three instructions in a way that makes sense to it.
+Since we're not concerned with the lexer, parser, and compiler in this chapter, it doesn't matter how the instruction sets are produced.  You can imagine writing `1 + 1` and having a compiler emit a combination of these three instructions. Or, if you have the right compiler, you can write lisp syntax that's turned into the same combination of instructions. The interpreter doesn't care. All that matters is that our interpreter is given a well-formed arrangement of these three instructions.
 
+Suppose that
 ~~~~
 7 + 5
 ~~~~
@@ -45,7 +48,7 @@ produces this instruction set:
  "PRINT_ANSWER"]
 ~~~~
 
-Remember that our interpreter is a _stack machine_. To add two numbers, the interpreter will begin by pushing the first number onto the stack, then pushing the second number onto the stack. Next it will pop both numbers off, add them together, and push the result onto the stack. Finally, it will pop the answer back off the stack and return it.
+Our interpreter is a _stack machine_. To add two numbers, the interpreter will begin by pushing the first number onto the stack, then pushing the second number onto the stack. Next it will pop both numbers off, add them together, and push the result onto the stack. Finally, it will pop the answer back off the stack and return it.
 
 ~~~
        1.                2.                 3.               4.                5.
@@ -56,9 +59,11 @@ Remember that our interpreter is a _stack machine_. To add two numbers, the inte
   --------------  --------------      --------------    --------------     --------------
 ~~~
 
-Before the interpreter can add numbers for you, it needs a little more information. The instructions tell it to push a number on to the stack, but they don't say which number. Each instruction needs an extra piece of information, telling the interpreter where to find the number if one is required. Why not just put the numbers directly in the bytecode? Imagine if we were adding strings together instead of numbers. We wouldn't want to have the strings stuffed in with the instructions, since they could be arbitrarily large. Instead, the instructions include a "pointer" to the object to be used.
+Before the interpreter can add numbers for you, it needs a little more information. The instructions tell it to push a number on to the stack, but they don't say which number. Each instruction needs an extra piece of information, telling the interpreter where to find the number if one is required.  The instructions include a "pointer" to the object to be used.
 
-We'll also pass the numbers themselves to the interpreter. We'll wrap up these two pieces, the instructions and the numbers, into a dictionary. In Python, what we're calling "instructions" is the bytecode, and the entire "what to execute" object is a called a _code object_.
+Why not just put the numbers directly in the bytecode? Imagine if we were adding strings together instead of numbers. We wouldn't want to have the strings stuffed in with the instructions, since they could be arbitrarily large.
+
+Now our instruction set has two pieces: the instructions themselves, and the numbers to be added. We'll wrap up these two pieces into a dictionary. In Python, what we're calling "instructions" is the bytecode, and the entire "what to execute" object is a called a _code object_.
 
 ~~~~
 what_to_execute = {
@@ -90,10 +95,10 @@ class Interpreter(object):
         self.stack.append(total)
 ~~~~
 
-The interpreter needs one more piece: a way to tie everything together and start executing. This method takes the "what_to_execute" dictionary defined above as an argument. It loops over each instruction, processes the arguments to that instruction if there are any, and then calls the corresponding method on the interpreter object.
+These three functions implement the three instructions our interpreter understands. The interpreter needs one more piece: a way to tie everything together and start executing. This method takes the "what_to_execute" dictionary defined above as an argument. It loops over each instruction, processes the arguments to that instruction if there are any, and then calls the corresponding method on the interpreter object.
 
 ~~~~.py
-    def execute(self, what_to_execute):
+    def run_code(self, what_to_execute):
         instructions = what_to_execute["instructions"]
         numbers = what_to_execute["numbers"]
         for each_step in instructions:
@@ -107,11 +112,11 @@ The interpreter needs one more piece: a way to tie everything together and start
                 self.PRINT_ANSWER()
 ~~~~
 
-Let's test it out:
+To test it out, we can create an instance of the object and then call the `run_code` method with the instruction set for adding 7 + 5 defined above.
 
 ~~~~
     interpreter = Interpreter()
-    interpreter.execute(what_to_execute)
+    interpreter.run_code(what_to_execute)
 ~~~~
 
 Sure enough, it prints the answer - 12.
@@ -133,7 +138,7 @@ Given valid instruction sets, without any changes to our interpreter, we can add
         "numbers": [7, 5, 8] }
 ~~~~
 
-So far our interpreter that can only do simple arithmetic. However, we can begin to see how this structure is extensible - we can add methods on the object that describe many more operations (as long as we have a compiler to hand us well-formed instruction sets).
+So far our interpreter can only do simple arithmetic. However, we can begin to see how this structure is extensible - we can add methods on the object that describe many more operations (as long as we have a compiler to hand us well-formed instruction sets).
 
 # Variables
 Adding variables to our interpreter requires three main pieces: two instructions for storing and retrieving the values, plus a dictionary mapping names to values, stored on the interpreter object.
@@ -143,7 +148,7 @@ Adding variables to our interpreter requires three main pieces: two instructions
 ...     a = 1
 ...     b = 2
 ...     return a + b
-<< compiler works here >>
+# a friendly compiler transforms `s` into:
     what_to_execute = {
         "instructions": [("LOAD_VALUE", 0),
                          ("STORE_NAME", 0),
@@ -188,7 +193,7 @@ The arguments to an instruction can now mean two different things. It can either
 
         return argument
 
-    def execute(self, what_to_execute):
+    def run_code(self, what_to_execute):
         instructions = what_to_execute["instructions"]
         for each_step in instructions:
             instruction, argument = each_step
@@ -206,7 +211,7 @@ The arguments to an instruction can now mean two different things. It can either
                 self.LOAD_NAME(argument)
 
 # Real Python bytecode
-At this point, we'll switch from our toy instruction sets to real Python bytecode. The structure of bytecode is similar to our toy interpreter's verbose instruction sets, except that it uses one byte instead of a long strings to describe each instruction. To understand this structure, we'll walk through the bytecode of a short function. Consider the example below:
+At this point, we'll abandon our toy instruction sets and switch to real Python bytecode. The structure of bytecode is similar to our toy interpreter's verbose instruction sets, except that it uses one byte instead of a long strings to describe each instruction. To understand this structure, we'll walk through the bytecode of a short function. Consider the example below:
 
 ``` python
 >>> def cond():
@@ -222,7 +227,9 @@ b'd\x01\x00}\x00\x00|\x00\x00d\x02\x00k\x00\x00r\x16\x00d\x03\x00Sd\x04\x00Sd\x0
 [100, 1, 0, 125, 0, 0, 124, 0, 0, 100, 2, 0, 107, 0, 0, 114, 22, 0, 100, 3, 0, 83, 100, 4, 0, 83, 100, 0, 0, 83]
 ```
 
-This looks uninteligible, but there's a powerful tool we can use to understand it. The Python standard library has a module called `dis`, a bytecode disassembler. A disassembler takes low-level code (like assembly code or bytecode) that is written for machines, and prints it in a way that's human readable. `dis` outputs an explanation of the bytecode it's passed.
+Python exposes a boatload of it internals at runtime, and we can access them right from the REPL. `cond.__code__` is the code object associated with `cond`, and `cond.__code__.co_code` is the bytecode.
+
+When we just print the bytecode, it looks uninteligible. Luckily, there's a powerful tool we can use to understand it: the `dis` module, in the Python standard library. `dis is a bytecode disassembler. A disassembler takes low-level code (like assembly code or bytecode) that is written for machines, and prints it in a way that's human readable. When we run `dis.dis`, it outputs an explanation of the bytecode it's passed.
 
 ~~~ python
 >>> dis.dis(cond)
@@ -245,7 +252,7 @@ This looks uninteligible, but there's a powerful tool we can use to understand i
 
 The first column shows the line numbers in our Python source code. The second column is an index into the bytecode, telling us that the `LOAD_FAST` instruction appears at position zero.  The third column is the instruction itself, mapped to its human-readable name. The fourth column, when present, is the argument to that instruction.  The fifth column, when present, is a hint about what the argument means.
 
-Let's look more closely at the first few bytes of this bytecode: [100, 1, 0, 125, 0, 0]. These six bytes represent two instructions + their two sets of arguments. We can use the `dis.opname` list to find out what instructions 100 and 125 map to:
+Consider the first few bytes of this bytecode: [100, 1, 0, 125, 0, 0]. These six bytes represent two instructions with their arguments. We can use `dis.opname` to find out what instructions 100 and 125 map to:
 
 ~~~
 >>> dis.opname[100]
@@ -254,7 +261,7 @@ Let's look more closely at the first few bytes of this bytecode: [100, 1, 0, 125
 'STORE_FAST'
 ~~~
 
-The extra bytes - 1, 0 and 0, 0 - are the arguments to these instructions. Just like in our toy example, LOAD_CONST needs to know where to find its constant to load, and STORE_FAST needs to find the name to store. (Python's LOAD_CONST is the same as our toy interpreter's LOAD_VALUE, and LOAD_FAST is the same as LOAD_NAME.) So these six bytes represent the first line of code, `x = 3`. (Why two byte? If Python used just one byte to locate constants and names instead of two, you could only have 256 names/constants associated with a single code object. Using two bytes, you can have up to 256 squared, or 65536.)
+The extra bytes - 1, 0 and 0, 0 - are the arguments to these instructions. Just like in our toy example, LOAD_CONST needs to know where to find its constant to load, and STORE_FAST needs to find the name to store. (Python's LOAD_CONST is the same as our toy interpreter's LOAD_VALUE, and LOAD_FAST is the same as LOAD_NAME.) So these six bytes represent the first line of code, `x = 3`. (Why do arguments take up two bytes? If Python used just one byte to locate constants and names instead of two, you could only have 256 names/constants associated with a single code object. Using two bytes, you can have up to 256 squared, or 65536.)
 
 # Conditionals
 So far, the interpreter has executed code simply by stepping through the instructions one by one. This is a problem: often, we want to execute certain instructions many times, or skip them under certain conditions. To allow us to write loops and if statements in our code, the interpreter must be able to jump around in the instruction set. In a sense, the Python handles loops and conditionals with GOTO statements in the bytecode! Look at the disassembly of the function `cond` again:
@@ -353,41 +360,28 @@ I encourage you to try running `dis.dis` on simple functions. Some interesting q
 
 
 
-# Functions
+# Functions & Frames
 So far we've covered that the Python virtual machine is a stack machine. It steps and jumps through instructions, pushing and popping values on and off of a stack. There are still some gaps in our mental model, though. In the `mod` example above, the last instruction is `RETURN VALUE`, which corresponds to the `return` statement in the code. But where does the instruction return to?
 
-To answer this question, we must add one additional layer of complexity: the frame. A frame is a collection of information and context for a chunk of code. Each frame has one code object associated with it. Frames are created and destroyed on the fly as your Python code executes - there's one frame corresponding to each *call* of a function. (So, if you had a function that called itself recursively ten times, you'd have eleven frames - one for each level of recursion and one for the module you started from.)
+To answer this question, we must add one additional layer of complexity: the frame. A frame is a collection of information and context for a chunk of code. Frames are created and destroyed on the fly as your Python code executes. There's one frame corresponding to each *call* of a function - so while each frame has one code object associated with it, a code object can have many frames. (If you had a function that called itself recursively ten times, you'd have eleven frames - one for each level of recursion and one for the module you started from.) In general, there's a frame for each scope in a Python program: for example, each module, each function call, and each class definition has a frame.
 
 Frames live on the _call stack_, a completely different stack from the one we've been discussing so far. The stack we've been examining - the one the interpreter is manipulating while it executes bytecode - we'll call the _data stack_. There's also a third stack, called the _block stack_. Blocks are used for certain kinds of control flow, particularly looping and exception handling. Each frame on the call stack has its own data stack and block stack.
 
-Let's make this concrete with an example. Suppose the Python interpreter is currently executing the line marked #3 below.  Below is a schematic of the call stack of frames, the block stacks, and the data stacks.
-
-At this point, the interpreter is in the middle of the nested function call to `bar`. There are three frames on the call stack: one for the module level, one for the function `foo`, and one for `bar`. Once `bar` returns, the frame associated with it is popped off of the call stack and discarded. In general, there will be a frame for each module, each function call, and each class definition.
-
-Each frame has its own data stack and block stack. Keeping separate data and block stacks enables the interpreter to pause and resume frames, as with a generator.
-
+Let's make this concrete with an example. Suppose the Python interpreter is currently executing the line marked #3 below.  The diagram shows a schematic of the call stack of frames, the block stacks, and the data stacks.
 
 ```python main.py
 #TODO: visualize this and check it.
 
 >>> def bar(y):
-...     z = y + 2  # <--- (3) ... and the interpreter is here.
+...     z = y + 2     # <--- (3) ... and the interpreter is here.
 ...     return z
 ...
 >>> def foo():
 ...     x = 1
 ...     return bar(x) # <--- (2) ... which is returning a call to bar ...
 ...
->>> foo()          # <--- (1) We're in the middle of a call to foo ...
+>>> foo()             # <--- (1) We're in the middle of a call to foo ...
 3
-
-def foo():
-    x = 1
-    def bar(y):
-        z = y + 2  # <--- (3) ... and the interpreter is here.
-        return z
-    return bar(x)  # <--- (2) ... which is returning a call to bar ...
-foo()              # <--- (1) We're in the middle of a call to foo ...
 ```
 
 ```
@@ -403,28 +397,21 @@ c  |       (oldest)      | -> data stack: []
 k   ---------------------
 ```
 
+At this point, the interpreter is in the middle of the function call to `bar`. There are three frames on the call stack: one for the module level, one for the function `foo`, and one for `bar`. Once `bar` returns, the frame associated with it is popped off of the call stack and discarded.
 
+Why does each frame have a separate data stack and block stack - why can't these be shared across frames? By keeping a data and a block stack on each frame, the interpreter can pause and resume execution of a frames, a crucial feature for generators.
 
+The bytecode instruction `RETURN_VALUE` tells the interpreter to pass a value between frames. First it will pop the top value off the data stack of the top frame on the call stack. Then it pops the entire frame off the call stack and throws it away. Finally, the value is pushed onto the data stack on the next frame down.
 
-
-# Exceptions ?
-
-
-The interpreter needs to keep track of a few things beyond the call stack, like the exception state, the current frame, and the values to be passed between frames.
-
-Information on the frame includes the the code object for the frame, the global and local namespaces, a reference to the calling frame, and the last bytecode instruction executed.
-
-
-
-### Byterun's objects
-There are 4 kinds of objects in Byterun:
+# Byterun
+We now have enough context about the Python interpreter to begin examining Byterun. There are 4 kinds of objects in Byterun:
 - A `VirtualMachine` class, which manages the highest-level structure, particularly the call stack of frames, and contains a mapping of instructions to operations.
-- A `Frame` class.  Every `Frame` instance has one code object and manages a few other necessary bits of state.
-- A `Function` class, which will be used in place of real Python functions. Calling a function creates a new frame in the interpreter. We implement Function so that we control the creation of new Frames.
-- A `Block` class, implemented as a named tuple, which just wraps the three attributes of blocks.
+- A `Frame` class.  Every `Frame` instance has one code object and manages a few other necessary bits of state, particularly the global and local namespaces, a reference to the calling frame, and the last bytecode instruction executed.
+- A `Function` class, which will be used in place of real Python functions. Recall that calling a function creates a new frame in the interpreter. We implement Function so that we control the creation of new Frames.
+- A `Block` class, which just wraps the three attributes of blocks.
 
-With that context, we're now ready to write a Python interpreter. We'll begin at the top level with the VirtualMachine object. Only one instance of the VirtualMachine will ever be created. The object stores the call stack and other attributes discussed above. The entry point for executing code is the method `run_code`. This method takes a compiled code object as an argument. It sets up and runs a frame until the frame somehow returns. We'll implement `make_frame` and `run_frame` momentarily.
-
+# The VirtualMachine class
+Only one instance of the VirtualMachine will be created each time the program is run: we only have one Python interpreter. The VirtualMachine stores the call stack, the exception state, and return values while they're being passed between frames. The entry point for executing code is the method `run_code`, which takes a compiled code object as an argument. It starts by seting up and running a frame. This frame may create other frames - the call stack will grow and shrink as the program executes. When the first frame somehow returns, execution is finished.
 
 ``` python
 class VirtualMachineError(Exception):
@@ -440,10 +427,12 @@ class VirtualMachine(object):
     def run_code(self, code, f_globals=None, f_locals=None):
         """ An entry point to execute code using the virtual machine."""
         frame = self.make_frame(code, f_globals=f_globals, f_locals=f_locals)
-        val = self.run_frame(frame)
+        self.run_frame(frame)
 ```
 
-Next we'll write the Frame object. The frame is a very simple class - just a collection of attributes with no methods. As mentioned above, the attributes include the code object (created by the compiler) corresponding to the frame, the local, global, and builtin namespaces, a reference to the previous frame, a data stack, a block stack, and the last instruction executed. (We have to do a little extra work to get to the builtin namespace because Python treats this namespace differently in different modules; this detail is not important to the virtual machine.)
+Next we'll write the Frame object. The frame is a collection of attributes with no methods. As mentioned above, the attributes include `f_code`, the code object (created by the compiler) corresponding to the frame; the local, global, and builtin namespaces (`f_globals`, `f_locals`, and `f_builtins`); a reference to the previous frame, `f_back`; a data stack, a block stack, and the last instruction executed (`f_lasti`). (We have to do a little extra work to get to the builtin namespace because Python treats this namespace differently in different modules; this detail is not important to the virtual machine.)
+
+The `f_whatever` naming convention isn't idiomatic for Python code. This unusual naming is exactly how these  C code in CPython is like so you can go look it up in frameobject.c. TODO: probably don't do this, fix the naming instead.
 
 ``` python
 class Frame(object):
@@ -466,7 +455,7 @@ class Frame(object):
         self.f_lasti = 0       # Last executed bytecode instruction
 ```
 
-Next, we'll add frame manipulation to the virtual machine. There are three helper functions for frames: one to create new frames (which is responsible for sorting out the new frame's namespacing) and one each to push and pop frames from the frame stack.
+Next, we'll add frame manipulation to the virtual machine. There are three helper functions for frames: one to create new frames (which is responsible for sorting out the new frame's namespacing) and one each to push and pop frames from the frame stack. We'll come back to `run_frame` momentarily.
 
 ``` python
 class VirtualMachine(object):
@@ -500,9 +489,13 @@ class VirtualMachine(object):
             self.frame = self.frames[-1]
         else:
             self.frame = None
+
+    def run_frame(self):
+        pass
+        # we'll come back to this shortly
 ```
 
-The Function object appears below.  The important thing to notice here is that calling a function - in this case, invoking the `__call__` method - spawns a new Frame object.
+The Function object appears below.  The implementation is somewhat twisty, and most of the details aren't critical to understanding the interpreter. The important thing to notice is that calling a function - invoking the `__call__` method - creates a new Frame object and starts running it.
 
 ```
     class Function(object):
@@ -514,6 +507,7 @@ The Function object appears below.  The important thing to notice here is that c
     ]
 
     def __init__(self, name, code, globs, defaults, closure, vm):
+        """You don't need to follow this closely to understand the interpreter."""
         self._vm = vm
         self.func_code = code
         self.func_name = self.__name__ = name or code.co_name
@@ -540,7 +534,7 @@ The Function object appears below.  The important thing to notice here is that c
         return self._vm.run_frame(frame)
 ```
 
-Next, we'll add some helper methods for stack manipulation. The bytecodes that manipulate the stack always operate on the current frame's data stack. This will make our implementation of `POP_TOP`, `LOAD_FAST`, and all the other instructions that touch the stack slightly more readable.
+Next, back on the VirtualMachine object, we'll add some helper methods for (data) stack manipulation. The bytecodes that manipulate the stack always operate on the current frame's data stack. This will make our implementation of `POP_TOP`, `LOAD_FAST`, and all the other instructions that touch the stack more readable.
 
 ```
 class VirtualMachine(object):
@@ -548,6 +542,7 @@ class VirtualMachine(object):
 
     # Data stack manipulation
     def top(self):
+        # TODO: do we actually need this?
         return self.frame.stack[-1]
 
     def pop(self):
@@ -566,75 +561,6 @@ class VirtualMachine(object):
             return ret
         else:
             return []
-```
-
-Next we'll briefly discuss blocks. A block is used for certain kinds of flow control, specifically exception handling and looping. The block is reponsible for making sure that the data stack is in the appropriate state when the operation is finished.  For example, in a loop, the iterator object should remain on the stack until the loop is finished, but then be popped off.  In an exception handler, the stack may have an exception on it that the handler will deal with and pop off the stack.
-
-When managing the block stack on a frame, the interpreter sets a flag to indicate its state.  We implement this flag as either `None` or one of the strings `"continue"`, `"break"`, `"exception"`, or `"return"`. This indicates what kind of manipulation of the block stack and data stack should happen.  For example, if the top of the block stack is a `loop` block and the `why` code is `continue`, the looping block should remain on the stack, but if the `why` code is `break`, it should be popped off. The precise details of block manipulation are rather fiddly, and we won't spend more time on this, but interested readers are encouraged to take a careful look.
-
-```
-Block = collections.namedtuple("Block", "type, handler, level")
-
-class VirtualMachine(object):
-    [... snip ...]
-
-    # Block stack manipulation
-    def push_block(self, b_type, handler=None):
-        level = len(self.frame.stack)
-        self.frame.block_stack.append(Block(b_type, handler, level))
-
-    def pop_block(self):
-        return self.frame.block_stack.pop()
-
-    def unwind_block(self, block):
-        """Unwind the values on the data stack corresponding to a given block."""
-        if block.type == 'except-handler':
-            offset = 3  # The exception itself is on the stack as type, value, and traceback.
-        else:
-            offset = 0
-
-        while len(self.frame.stack) > block.level + offset:
-            self.pop()
-
-        if block.type == 'except-handler':
-            traceback, value, exctype = self.popn(3)
-            self.last_exception = exctype, value, traceback
-
-    def manage_block_stack(self, why):
-        frame = self.frame
-        block = frame.block_stack[-1]
-        if block.type == 'loop' and why == 'continue':
-            self.jump(self.return_value)
-            why = None
-            return why
-
-        self.pop_block()
-        self.unwind_block(block)
-
-        if block.type == 'loop' and why == 'break':
-            why = None
-            self.jump(block.handler)
-            return why
-
-        if (block.type in ['setup-except', 'finally'] and why == 'exception'):
-            self.push_block('except-handler')
-            exctype, value, tb = self.last_exception
-            self.push(tb, value, exctype)
-            self.push(tb, value, exctype) # yes, twice
-            why = None
-            self.jump(block.handler)
-            return why
-
-        elif block.type == 'finally':
-            if why in ('return', 'continue'):
-                self.push(self.return_value)
-
-            self.push(why)
-
-            why = None
-            self.jump(block.handler)
-            return why
-        return why
 ```
 
 Before we get to running a frame, we need two more methods. The first, `parse_byte_and_args` takes a bytecode, checks if it has arguments, and parses the arguments if so. This method also updates the frame's attribute `f_lasti`, which tracks the  last instruction executed.
@@ -746,7 +672,77 @@ class VirtualMachine(object):
         return self.return_value
 ```
 
-Now all we need to do is implement the methods we need for the `dispatch` method to work - `byte_LOAD_FAST`, `byte_BINARY_MODULO`, and so on. The methods below implement sixty of the actual 72 bytecodes. [TODO: check these numbers.] [footnote? This implementation excludes a handful of bytecodes for brevity, but the full implementation is available at github.com/nedbat/byterun.]
+Before we implement the methods for each bytecode instruction, we'll briefly discuss blocks. A block is used for certain kinds of flow control, specifically exception handling and looping. The block is reponsible for making sure that the data stack is in the appropriate state when the operation is finished.  For example, in a loop, a special iterator object remains on the stack until the loop is finished, but then be popped off.
+
+When managing the block stack on a frame, the interpreter sets a flag to indicate its state.  We implement this flag as a variable called `why`, which can be `None` or one of the strings `"continue"`, `"break"`, `"exception"`, or `"return"`. This indicates what kind of manipulation of the block stack and data stack should happen.  To return to the iterator example, if the top of the block stack is a `loop` block and the `why` code is `continue`, the iterator should remain on the stack, but if the `why` code is `break`, it should be popped off. The precise details of block manipulation are rather fiddly, and we won't spend more time on this, but interested readers are encouraged to take a careful look.
+
+```
+Block = collections.namedtuple("Block", "type, handler, level")
+
+class VirtualMachine(object):
+    [... snip ...]
+
+    # Block stack manipulation
+    def push_block(self, b_type, handler=None):
+        level = len(self.frame.stack)
+        self.frame.block_stack.append(Block(b_type, handler, level))
+
+    def pop_block(self):
+        return self.frame.block_stack.pop()
+
+    def unwind_block(self, block):
+        """Unwind the values on the data stack corresponding to a given block."""
+        if block.type == 'except-handler':
+            offset = 3  # The exception itself is on the stack as type, value, and traceback.
+        else:
+            offset = 0
+
+        while len(self.frame.stack) > block.level + offset:
+            self.pop()
+
+        if block.type == 'except-handler':
+            traceback, value, exctype = self.popn(3)
+            self.last_exception = exctype, value, traceback
+
+    def manage_block_stack(self, why):
+        # TODO: refactor this to be more clear
+        frame = self.frame
+        block = frame.block_stack[-1]
+        if block.type == 'loop' and why == 'continue':
+            self.jump(self.return_value)
+            why = None
+            return why
+
+        self.pop_block()
+        self.unwind_block(block)
+
+        if block.type == 'loop' and why == 'break':
+            why = None
+            self.jump(block.handler)
+            return why
+
+        if (block.type in ['setup-except', 'finally'] and why == 'exception'):
+            self.push_block('except-handler')
+            exctype, value, tb = self.last_exception
+            self.push(tb, value, exctype)
+            self.push(tb, value, exctype) # yes, twice
+            why = None
+            self.jump(block.handler)
+            return why
+
+        elif block.type == 'finally':
+            if why in ('return', 'continue'):
+                self.push(self.return_value)
+
+            self.push(why)
+
+            why = None
+            self.jump(block.handler)
+            return why
+        return why
+```
+
+All that's left is to implement the dozens of methods for instructions - `byte_LOAD_FAST`, `byte_BINARY_MODULO`, and so on. The methods below implement sixty of the actual 72 bytecodes. [TODO: check these numbers.] [footnote? This implementation excludes a handful of bytecodes for brevity, but the full implementation is available at github.com/nedbat/byterun.]
 
 ``` python
 class VirtualMachine(object):
@@ -1054,12 +1050,11 @@ class VirtualMachine(object):
         self.frame.f_locals = self.pop()
 ```
 
-### Walk through example of "three" again
+### What can we actually do with this? Pick an interesting example and scope the code to just those bytecode instructions, maybe?
 
 ### Somehow conclude
 
+# Exceptions ?
 
 
 
-#### cruft / possible footnotes
-. [footnote? You may have heard of PyPy, a prominent Python interpreter written in Python. The structure of PyPy is covered in volume 2 of AOSA, by Benjamin Peterson. Before optimzations, PyPy is four times slower than the CPython interpreter.] One advantage of writing our Python interpreter in Python is that we don't have to also implement an object system - we can seamlessly fall back to the "real" Python's object system.
