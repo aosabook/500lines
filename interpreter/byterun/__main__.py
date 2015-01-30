@@ -20,7 +20,7 @@ def run_python_file(filename):
     code = compile(source, filename, "exec")
 
     vm = VirtualMachine()
-    vm.run_code(code, f_globals=main_mod.__dict__)
+    vm.run_code(code, global_names=main_mod.__dict__)
 
 if __name__ == '__main__':
     run_python_file(sys.argv[1])

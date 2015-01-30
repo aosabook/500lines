@@ -6,24 +6,23 @@
 import dis, operator, sys, collections, inspect, types
 
 class Frame(object):
-    def __init__(self, f_code, f_globals, f_locals, f_back):
-        self.f_code = f_code
-        self.f_globals = f_globals
-        self.f_locals = f_locals
-        self.f_back = f_back
+    def __init__(self, code_obj, global_names, local_names, prev_frame):
+        self.code_obj = code_obj
+        self.global_names = global_names
+        self.local_names = local_names
+        self.prev_frame = prev_frame
         self.stack = []
-        if f_back:
-            self.f_builtins = f_back.f_builtins
+        if prev_frame:
+            self.builtin_names = prev_frame.builtin_names
         else:
-            self.f_builtins = f_locals['__builtins__']
-            if hasattr(self.f_builtins, '__dict__'):
-                self.f_builtins = self.f_builtins.__dict__
+            self.builtin_names = local_names['__builtins__']
+            if hasattr(self.builtin_names, '__dict__'):
+                self.builtin_names = self.builtin_names.__dict__
 
-        self.f_lineno = f_code.co_firstlineno
-        self.f_lasti = 0
+        self.last_instruction = 0
         self.block_stack = []
 
-Block = collections.namedtuple("Block", "type, handler, level")
+Block = collections.namedtuple("Block", "type, handler, stack_height")
 
 class Function(object):
     __slots__ = [
@@ -39,7 +38,7 @@ class Function(object):
         self.func_name = self.__name__ = name or code.co_name
         self.func_defaults = tuple(defaults)
         self.func_globals = globs
-        self.func_locals = self._vm.frame.f_locals
+        self.func_locals = self._vm.frame.local_names
         self.__dict__ = {}
         self.func_closure = closure
         self.__doc__ = code.co_consts[0] if code.co_consts else None
@@ -59,6 +58,13 @@ class Function(object):
         )
         return self._vm.run_frame(frame)
 
+def make_cell(value):
+    # Thanks to Alex Gaynor for help with this bit of twistiness.
+    fn = (lambda x: lambda: x)(value)
+    return fn.__closure__[0]
+
+
+
 class VirtualMachineError(Exception):
     pass
 
@@ -70,21 +76,21 @@ class VirtualMachine(object):
         self.last_exception = None
 
     # Frame manipulation
-    def make_frame(self, code, callargs={}, f_globals=None, f_locals=None):
-        if f_globals is not None and f_locals is not None:
-            f_locals = f_globals
+    def make_frame(self, code, callargs={}, global_names=None, local_names=None):
+        if global_names is not None and local_names is not None:
+            local_names = global_names
         elif self.frames:
-            f_globals = self.frame.f_globals
-            f_locals = {}
+            global_names = self.frame.global_names
+            local_names = {}
         else:
-            f_globals = f_locals = {
+            global_names = local_names = {
                 '__builtins__': __builtins__,
                 '__name__': '__main__',
                 '__doc__': None,
                 '__package__': None,
             }
-        f_locals.update(callargs)
-        frame = Frame(code, f_globals, f_locals, self.frame)
+        local_names.update(callargs)
+        frame = Frame(code, global_names, local_names, self.frame)
         return frame
 
     def push_frame(self, frame):
@@ -121,20 +127,20 @@ class VirtualMachine(object):
 
     # Block stack manipulation
     def push_block(self, b_type, handler=None):
-        level = len(self.frame.stack)
-        self.frame.block_stack.append(Block(b_type, handler, level))
+        stack_height = len(self.frame.stack)
+        self.frame.block_stack.append(Block(b_type, handler, stack_height))
 
     def pop_block(self):
         return self.frame.block_stack.pop()
 
     def unwind_block(self, block):
-        """Unwind the values on the data stack corresponding to a given block."""
+        """Unwind the values on the data stack when a given block is finished."""
         if block.type == 'except-handler':
             offset = 3
         else:
             offset = 0
 
-        while len(self.frame.stack) > block.level + offset:
+        while len(self.frame.stack) > block.stack_height + offset:
             self.pop()
 
         if block.type == 'except-handler':
@@ -144,42 +150,44 @@ class VirtualMachine(object):
     # Jumping through bytecode
     def jump(self, jump):
         """Move the bytecode pointer to `jump`, so it will execute next."""
-        self.frame.f_lasti = jump
+        self.frame.last_instruction = jump
 
-    def run_code(self, code, f_globals=None, f_locals=None):
+    def run_code(self, code, global_names=None, local_names=None):
         """ An entry point to execute code using the virtual machine."""
-        frame = self.make_frame(code, f_globals=f_globals, f_locals=f_locals)
-        val = self.run_frame(frame)
+        frame = self.make_frame(code, global_names=global_names, local_names=local_names)
+
+        self.run_frame(frame)
         # Check some invariants
         # if self.frames:
         #     raise VirtualMachineError("Frames left over!")
         # if self.frame and self.frame.stack:
         #     raise VirtualMachineError("Data left on stack! %r" % self.frame.stack)
 
-        return val # for testing - will be removed
+        # for testing, was val = self.run_frame(frame)
+        # return val # for testing
 
     def parse_byte_and_args(self):
         f = self.frame
-        opoffset = f.f_lasti
-        byteCode = f.f_code.co_code[opoffset]
-        f.f_lasti += 1
+        opoffset = f.last_instruction
+        byteCode = f.code_obj.co_code[opoffset]
+        f.last_instruction += 1
         byteName = dis.opname[byteCode]
         arg = None
         arguments = []
         if byteCode >= dis.HAVE_ARGUMENT:
-            arg = f.f_code.co_code[f.f_lasti:f.f_lasti+2]
-            f.f_lasti += 2
-            intArg = arg[0] + (arg[1] << 8)
+            arg = f.code_obj.co_code[f.last_instruction:f.last_instruction+2]  # index into the bytecode
+            f.last_instruction += 2   # advance the instruction pointer
+            arg_val = arg[0] + (arg[1] << 8)
             if byteCode in dis.hasconst:   # Look up a constant
-                arg = f.f_code.co_consts[intArg]
+                arg = f.code_obj.co_consts[arg_val]
             elif byteCode in dis.hasname:  # Look up a name
-                arg = f.f_code.co_names[intArg]
+                arg = f.code_obj.co_names[arg_val]
             elif byteCode in dis.haslocal: # Look up a local name
-                arg = f.f_code.co_varnames[intArg]
+                arg = f.code_obj.co_varnames[arg_val]
             elif byteCode in dis.hasjrel:  # Calculate a relative jump
-                arg = f.f_lasti + intArg
+                arg = f.last_instruction + arg_val
             else:
-                arg = intArg
+                arg = arg_val
             arguments = [arg]
 
         return byteName, arguments
@@ -192,17 +200,17 @@ class VirtualMachine(object):
         # we need to keep track of why we are doing it.
         why = None
         try:
-            if byteName.startswith('UNARY_'):
-                self.unaryOperator(byteName[6:])
-            elif byteName.startswith('BINARY_'):
-                self.binaryOperator(byteName[7:])
-            else:
-                # main dispatch
-                bytecode_fn = getattr(self, 'byte_%s' % byteName, None)
-                if not bytecode_fn:            # pragma: no cover
+            bytecode_fn = getattr(self, 'byte_%s' % byteName, None)
+            if bytecode_fn is None:
+                if byteName.startswith('UNARY_'):
+                    self.unaryOperator(byteName[6:])
+                elif byteName.startswith('BINARY_'):
+                    self.binaryOperator(byteName[7:])
+                else:
                     raise VirtualMachineError(
                         "unsupported bytecode type: %s" % byteName
                     )
+            else:
                 why = bytecode_fn(*arguments)
         except:
             # deal with exceptions encountered while executing the op.
@@ -223,28 +231,24 @@ class VirtualMachine(object):
         self.unwind_block(block)
 
         if block.type == 'loop' and why == 'break':
-            why = None
             self.jump(block.handler)
-            return why
+            why = None
 
-        if (block.type in ['setup-except', 'finally'] and why == 'exception'):
+        elif (block.type in ['setup-except', 'finally'] and why == 'exception'):
             self.push_block('except-handler')
             exctype, value, tb = self.last_exception
             self.push(tb, value, exctype)
             self.push(tb, value, exctype) # yes, twice
-            why = None
             self.jump(block.handler)
-            return why
+            why = None
 
         elif block.type == 'finally':
             if why in ('return', 'continue'):
                 self.push(self.return_value)
-
             self.push(why)
-
-            why = None
             self.jump(block.handler)
-            return why
+            why = None
+
         return why
 
 
@@ -289,25 +293,25 @@ class VirtualMachine(object):
     ## Names
     def byte_LOAD_NAME(self, name):
         frame = self.frame
-        if name in frame.f_locals:
-            val = frame.f_locals[name]
-        elif name in frame.f_globals:
-            val = frame.f_globals[name]
-        elif name in frame.f_builtins:
-            val = frame.f_builtins[name]
+        if name in frame.local_names:
+            val = frame.local_names[name]
+        elif name in frame.global_names:
+            val = frame.global_names[name]
+        elif name in frame.builtin_names:
+            val = frame.builtin_names[name]
         else:
             raise NameError("name '%s' is not defined" % name)
         self.push(val)
 
     def byte_STORE_NAME(self, name):
-        self.frame.f_locals[name] = self.pop()
+        self.frame.local_names[name] = self.pop()
 
     def byte_DELETE_NAME(self, name):
-        del self.frame.f_locals[name]
+        del self.frame.local_names[name]
 
     def byte_LOAD_FAST(self, name):
-        if name in self.frame.f_locals:
-            val = self.frame.f_locals[name]
+        if name in self.frame.local_names:
+            val = self.frame.local_names[name]
         else:
             raise UnboundLocalError(
                 "local variable '%s' referenced before assignment" % name
@@ -315,14 +319,14 @@ class VirtualMachine(object):
         self.push(val)
 
     def byte_STORE_FAST(self, name):
-        self.frame.f_locals[name] = self.pop()
+        self.frame.local_names[name] = self.pop()
 
     def byte_LOAD_GLOBAL(self, name):
         f = self.frame
-        if name in f.f_globals:
-            val = f.f_globals[name]
-        elif name in f.f_builtins:
-            val = f.f_builtins[name]
+        if name in f.global_names:
+            val = f.global_names[name]
+        elif name in f.builtin_names:
+            val = f.builtin_names[name]
         else:
             raise NameError("global name '%s' is not defined" % name)
         self.push(val)
@@ -541,12 +545,13 @@ class VirtualMachine(object):
         name = self.pop()
         code = self.pop()
         defaults = self.popn(argc)
-        globs = self.frame.f_globals
+        globs = self.frame.global_names
+        #TODO: if we're not supporting kwargs, do we need the defaults?
         fn = Function(name, code, globs, defaults, None, self)
         self.push(fn)
 
     def byte_CALL_FUNCTION(self, arg):
-        lenKw, lenPos = divmod(arg, 256) # KWargs not supported here
+        lenKw, lenPos = divmod(arg, 256) # KWargs not supported in byterun
         posargs = self.popn(lenPos)
 
         func = self.pop()
@@ -563,7 +568,7 @@ class VirtualMachine(object):
     def byte_IMPORT_NAME(self, name):
         level, fromlist = self.popn(2)
         frame = self.frame
-        self.push(__import__(name, frame.f_globals, frame.f_locals, fromlist, level))
+        self.push(__import__(name, frame.global_names, frame.local_names, fromlist, level))
 
     def byte_IMPORT_FROM(self, name):
         mod = self.top()
@@ -574,9 +579,6 @@ class VirtualMachine(object):
         self.push(__build_class__)
 
     def byte_STORE_LOCALS(self):
-        self.frame.f_locals = self.pop()
+        self.frame.local_names = self.pop()
 
-def make_cell(value):
-    # Thanks to Alex Gaynor for help with this bit of twistiness.
-    fn = (lambda x: lambda: x)(value)
-    return fn.__closure__[0]
+
