@@ -30,7 +30,7 @@ There are three kinds of stacks that the Python interpreter uses.  The first is 
 
 The interpreter needs to keep track of a few things beyond the call stack, like the exception state, the current frame, and the values to be passed between frames.
 
-Information on the frame includes the the code object for the frame, the global and local namespaces, a reference to the calling frame, and the last bytecode instruction executed.
+Information on the frame includes the the code object for the frame, .
 
 
 #### cruft / possible footnotes

@@ -1,12 +1,8 @@
 A Python interpreter written in Python
 
-[ What: A Python interpreter ]
-[ Why: interpreters ]
-[ How: stack machines ]
+Byterun is a Python interpreter written in Python, written by Ned Batchelder and myself, building on the work of Paul Swartz. Its structure is similar to the primary version of Python, CPython. At less than 500 lines, it's capable of running most simple Python programs. In this chapter, we'll walk through the structure of the interpreter and run real Python code using the same information that's available to the CPython interpreter.
 
-Byterun is a Python interpreter written in Python.
-
-The word "interpreter" is used in a variety of different ways when discussing Python. Sometimes "interpreter" refers to the Python REPL, the interactive prompt you get by typing just "python" from the command line. Sometimes people use "the Python interpreter" more or less interchangeably with "Python" to talk about executing Python code from start to finish. In this chapter, "interpreter" has a more narrow meaning: it's the last step in the process of running a Python program.
+The word interpreter is used in a variety of different ways when discussing Python. Sometimes "interpreter" refers to the Python REPL, the interactive prompt you get by typing just "python" from the command line. Sometimes people use "the Python interpreter" more or less interchangeably with "Python" to talk about executing Python code from start to finish. In this chapter, "interpreter" has a more narrow meaning: it's the last step in the process of running a Python program.
 
 Before the interpreter takes over, Python performs three other steps: lexing, parsing, and compiling. Together, they turn the programmer's source code from lines of text into structured _code objects_ that the interpreter knows how to understand. Each code object contains a set of instructions that the interpreter will execute, plus other information necessary to execute those instructions. The interpreter's job is to take these code objects and perform the operations detailed there.
 
@@ -227,7 +223,7 @@ b'd\x01\x00}\x00\x00|\x00\x00d\x02\x00k\x00\x00r\x16\x00d\x03\x00Sd\x04\x00Sd\x0
 [100, 1, 0, 125, 0, 0, 124, 0, 0, 100, 2, 0, 107, 0, 0, 114, 22, 0, 100, 3, 0, 83, 100, 4, 0, 83, 100, 0, 0, 83]
 ```
 
-Python exposes a boatload of it internals at runtime, and we can access them right from the REPL. `cond.__code__` is the code object associated with `cond`, and `cond.__code__.co_code` is the bytecode.
+Python exposes a boatload of its internals at runtime, and we can access them right from the REPL. `cond.__code__` is the code object associated with `cond`, and `cond.__code__.co_code` is the bytecode.
 
 When we just print the bytecode, it looks uninteligible. Luckily, there's a powerful tool we can use to understand it: the `dis` module, in the Python standard library. `dis is a bytecode disassembler. A disassembler takes low-level code (like assembly code or bytecode) that is written for machines, and prints it in a way that's human readable. When we run `dis.dis`, it outputs an explanation of the bytecode it's passed.
 
@@ -404,14 +400,14 @@ Why does each frame have a separate data stack and block stack - why can't these
 The bytecode instruction `RETURN_VALUE` tells the interpreter to pass a value between frames. First it will pop the top value off the data stack of the top frame on the call stack. Then it pops the entire frame off the call stack and throws it away. Finally, the value is pushed onto the data stack on the next frame down.
 
 # Byterun
-We now have enough context about the Python interpreter to begin examining Byterun. There are 4 kinds of objects in Byterun:
+We now have enough context about the Python interpreter to begin examining Byterun. There are four kinds of objects in Byterun:
 - A `VirtualMachine` class, which manages the highest-level structure, particularly the call stack of frames, and contains a mapping of instructions to operations.
 - A `Frame` class.  Every `Frame` instance has one code object and manages a few other necessary bits of state, particularly the global and local namespaces, a reference to the calling frame, and the last bytecode instruction executed.
 - A `Function` class, which will be used in place of real Python functions. Recall that calling a function creates a new frame in the interpreter. We implement Function so that we control the creation of new Frames.
 - A `Block` class, which just wraps the three attributes of blocks.
 
 # The VirtualMachine class
-Only one instance of the VirtualMachine will be created each time the program is run: we only have one Python interpreter. The VirtualMachine stores the call stack, the exception state, and return values while they're being passed between frames. The entry point for executing code is the method `run_code`, which takes a compiled code object as an argument. It starts by seting up and running a frame. This frame may create other frames - the call stack will grow and shrink as the program executes. When the first frame somehow returns, execution is finished.
+Only one instance of the VirtualMachine will be created each time the program is run, because we only have one Python interpreter. The VirtualMachine stores the call stack, the exception state, and return values while they're being passed between frames. The entry point for executing code is the method `run_code`, which takes a compiled code object as an argument. It starts by setting up and running a frame. This frame may create other frames - the call stack will grow and shrink as the program executes. When the first frame somehow returns, execution is finished.
 
 ``` python
 class VirtualMachineError(Exception):
@@ -430,9 +426,9 @@ class VirtualMachine(object):
         self.run_frame(frame)
 ```
 
-Next we'll write the Frame object. The frame is a collection of attributes with no methods. As mentioned above, the attributes include `f_code`, the code object (created by the compiler) corresponding to the frame; the local, global, and builtin namespaces (`f_globals`, `f_locals`, and `f_builtins`); a reference to the previous frame, `f_back`; a data stack, a block stack, and the last instruction executed (`f_lasti`). (We have to do a little extra work to get to the builtin namespace because Python treats this namespace differently in different modules; this detail is not important to the virtual machine.)
 
-The `f_whatever` naming convention isn't idiomatic for Python code. This unusual naming is exactly how these  C code in CPython is like so you can go look it up in frameobject.c. TODO: probably don't do this, fix the naming instead.
+Next we'll write the Frame object. The frame is a collection of attributes with no methods. As mentioned above, the attributes include `f_code`, the code object (created by the compiler) corresponding to the frame; the local, global, and builtin namespaces (`f_globals`, `f_locals`, and `f_builtins`); a reference to the previous frame, `f_back`; a data stack, a block stack, and the last instruction executed (`f_lasti`). (We have to do a little extra work to get to the builtin namespace because Python treats this namespace differently in different modules; this detail is not important to the virtual machine.)
+#TODO: fix the naming here
 
 ``` python
 class Frame(object):
@@ -455,7 +451,7 @@ class Frame(object):
         self.f_lasti = 0       # Last executed bytecode instruction
 ```
 
-Next, we'll add frame manipulation to the virtual machine. There are three helper functions for frames: one to create new frames (which is responsible for sorting out the new frame's namespacing) and one each to push and pop frames from the frame stack. We'll come back to `run_frame` momentarily.
+Next, we'll add frame manipulation to the virtual machine. There are three helper functions for frames: one to create new frames (which is responsible for sorting out the new frame's namespacing) and one each to push and pop frames from the frame stack. A fourth function, `run_frame`, does the main work of executing a frame. We'll come back to this momentarily.
 
 ``` python
 class VirtualMachine(object):
@@ -495,7 +491,8 @@ class VirtualMachine(object):
         # we'll come back to this shortly
 ```
 
-The Function object appears below.  The implementation is somewhat twisty, and most of the details aren't critical to understanding the interpreter. The important thing to notice is that calling a function - invoking the `__call__` method - creates a new Frame object and starts running it.
+The Function object appears below.  The implementation is somewhat twisty, and most of the details aren't critical to understanding the interpreter. The important thing to notice is that calling a function - invoking the `__call__` method - creates a new Frame object and starts running it. (The implementation is twisty because this is one place where our Python interpreter interacts with the real Python compiler
+TODO: TRUE?.)
 
 ```
     class Function(object):
@@ -527,11 +524,18 @@ The Function object appears below.  The implementation is somewhat twisty, and m
         self._func = types.FunctionType(code, globs, **kw)
 
     def __call__(self, *args, **kwargs):
+        """When calling a Function, make a new frame and run it."""
         callargs = inspect.getcallargs(self._func, *args, **kwargs)
         frame = self._vm.make_frame(
             self.func_code, callargs, self.func_globals, {}
         )
         return self._vm.run_frame(frame)
+
+def make_cell(value):
+    """Create a real Python closure and grab it."""
+    # Thanks to Alex Gaynor for help with this bit of twistiness.
+    fn = (lambda x: lambda: x)(value)
+    return fn.__closure__[0]
 ```
 
 Next, back on the VirtualMachine object, we'll add some helper methods for (data) stack manipulation. The bytecodes that manipulate the stack always operate on the current frame's data stack. This will make our implementation of `POP_TOP`, `LOAD_FAST`, and all the other instructions that touch the stack more readable.
@@ -542,7 +546,6 @@ class VirtualMachine(object):
 
     # Data stack manipulation
     def top(self):
-        # TODO: do we actually need this?
         return self.frame.stack[-1]
 
     def pop(self):
@@ -563,12 +566,14 @@ class VirtualMachine(object):
             return []
 ```
 
-Before we get to running a frame, we need two more methods. The first, `parse_byte_and_args` takes a bytecode, checks if it has arguments, and parses the arguments if so. This method also updates the frame's attribute `f_lasti`, which tracks the  last instruction executed.
+Before we get to running a frame, we need two more methods. The first, `parse_byte_and_args` takes a bytecode, checks if it has arguments, and parses the arguments if so. This method also updates the frame's attribute `last_instruction` reference.
 
-A single instruction is one byte long if it doesn't have an argument or three bytes if it does have an argument, where the last two bytes are the argument.  The meaning of the argument to each instruction depends on which instruction it is. For example, as mentioned above, for `POP_JUMP_IF_FALSE`, the argument to the instruction is an index into the bytecode representing the jump target.  For `BUILD_LIST`, the argument is the number of elements in the list.
+A single instruction is one byte long if it doesn't have an argument, or three bytes if it does have an argument, where the last two bytes are the argument.  The meaning of the argument to each instruction depends on which instruction it is. For example, as mentioned above, for `POP_JUMP_IF_FALSE`, the argument to the instruction is the jump target.  For `BUILD_LIST`, the argument is the number of elements in the list. For `LOAD_CONST`, it's an index into the list of constants.
 
 Some instructions use simple numbers as their arguments. For others, the virtual machine has to do a little work to discover what the arguments mean.  The `dis` module in the standard library exposes a cheatsheet to what arguments have what meaning, which makes our code more compact.  For example, the list `dis.hasname` tells us that the arguments to `LOAD_NAME`, `IMPORT_NAME`, `LOAD_GLOBAL`, and nine other instructions have the same meaing: in each case, the argument represents an index into the list of names on the code object.
 
+
+TODO: fix frame naming
 ``` python
 class VirtualMachine(object):
     [... snip ...]
@@ -586,25 +591,23 @@ class VirtualMachine(object):
         if byteCode >= dis.HAVE_ARGUMENT:
             arg = f.f_code.co_code[f.f_lasti:f.f_lasti+2]
             f.f_lasti += 2
-            intArg = arg[0] + (arg[1] << 8)
+            arg_val = arg[0] + (arg[1] << 8)
             if byteCode in dis.hasconst:   # Look up a constant
-                arg = f.f_code.co_consts[intArg]
+                arg = f.f_code.co_consts[arg_val]
             elif byteCode in dis.hasname:  # Look up a name
-                arg = f.f_code.co_names[intArg]
+                arg = f.f_code.co_names[arg_val]
             elif byteCode in dis.haslocal: # Look up a local name
-                arg = f.f_code.co_varnames[intArg]
+                arg = f.f_code.co_varnames[arg_val]
             elif byteCode in dis.hasjrel:  # Calculate a relative jump
-                arg = f.f_lasti + intArg
+                arg = f.f_lasti + arg_val
             else:
-                arg = intArg
+                arg = arg_val
             arguments = [arg]
 
         return byteName, arguments
 ```
 
-The next method is `dispatch`, which looks up the operations for a given instruction and executes them. In the CPython interpreter, this dispatch is done with a giant switch statemnt spanning 1,500 lines.  Since we're writing Python, we can be more compact.  We'll define a method for each byte name and then use `getattr` to look it up. If our bytecode was named `FOO_BAR`, the corresponding method would be named `byte_FOO_BAR`. For the moment, we'll leave the content of these methods as a black box.  Each bytecode method will return either `None` or a `why` string to be passed to block management.
-
-The return values of the individual bytecode methods are used only as internal indicators of interpreter state. They are totally distinct from the return values in the code being executed.  Return values in the target code are handled by the bytecode `RETURN_VALUE`, which sets the value to be returned as an attribute on the virtual machine itself.  This value is then retrieved by the calling frame.
+The next method is `dispatch`, which looks up the operations for a given instruction and executes them. In the CPython interpreter, this dispatch is done with a giant switch statement that spans 1,500 lines!  Luckily, since we're writing Python, we can be more compact.  We'll define a method for each byte name and then use `getattr` to look it up. If our bytecode was named `FOO_BAR`, the corresponding method would be named `byte_FOO_BAR`. For the moment, we'll leave the content of these methods as a black box.  Each bytecode method will return either `None` or a `why` string to be passed to block management. The return values of the individual bytecode methods are used only as internal indicators of interpreter state - don't confuse these with return values from executing frames.
 
 
 ``` python

@@ -1,3 +1,5 @@
+# Abandoned this because calculating jump targets by hand is *so tedious*
+
 class SimpleInterpreter(object):
     def __init__(self):
         self.stack = []
