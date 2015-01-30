@@ -32,6 +32,7 @@ class Function(object):
         '_vm', '_func',
     ]
 
+
     def __init__(self, name, code, globs, defaults, closure, vm):
         self._vm = vm
         self.func_code = code
@@ -171,9 +172,7 @@ class VirtualMachine(object):
         opoffset = f.last_instruction
         byteCode = f.code_obj.co_code[opoffset]
         f.last_instruction += 1
-        byteName = dis.opname[byteCode]
-        arg = None
-        arguments = []
+        byte_name = dis.opname[byteCode]
         if byteCode >= dis.HAVE_ARGUMENT:
             arg = f.code_obj.co_code[f.last_instruction:f.last_instruction+2]  # index into the bytecode
             f.last_instruction += 2   # advance the instruction pointer
@@ -188,11 +187,13 @@ class VirtualMachine(object):
                 arg = f.last_instruction + arg_val
             else:
                 arg = arg_val
-            arguments = [arg]
+            argument = [arg]
+        else:
+            argument = []
 
-        return byteName, arguments
+        return byte_name, argument
 
-    def dispatch(self, byteName, arguments):
+    def dispatch(self, byte_name, argument):
         """ Dispatch by bytename to the corresponding methods.
         Exceptions are caught and set on the virtual machine."""
 
@@ -200,18 +201,18 @@ class VirtualMachine(object):
         # we need to keep track of why we are doing it.
         why = None
         try:
-            bytecode_fn = getattr(self, 'byte_%s' % byteName, None)
+            bytecode_fn = getattr(self, 'byte_%s' % byte_name, None)
             if bytecode_fn is None:
-                if byteName.startswith('UNARY_'):
-                    self.unaryOperator(byteName[6:])
-                elif byteName.startswith('BINARY_'):
-                    self.binaryOperator(byteName[7:])
+                if byte_name.startswith('UNARY_'):
+                    self.unaryOperator(byte_name[6:])
+                elif byte_name.startswith('BINARY_'):
+                    self.binaryOperator(byte_name[7:])
                 else:
                     raise VirtualMachineError(
-                        "unsupported bytecode type: %s" % byteName
+                        "unsupported bytecode type: %s" % byte_name
                     )
             else:
-                why = bytecode_fn(*arguments)
+                why = bytecode_fn(*argument)
         except:
             # deal with exceptions encountered while executing the op.
             self.last_exception = sys.exc_info()[:2] + (None,)
@@ -258,9 +259,9 @@ class VirtualMachine(object):
         """
         self.push_frame(frame)
         while True:
-            byteName, arguments = self.parse_byte_and_args()
+            byte_name, argument = self.parse_byte_and_args()
 
-            why = self.dispatch(byteName, arguments)
+            why = self.dispatch(byte_name, argument)
 
             # Deal with any block management we need to do
             while why and frame.block_stack:

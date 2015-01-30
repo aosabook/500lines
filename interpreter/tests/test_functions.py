@@ -94,6 +94,14 @@ class TestFunctions(vmtest.VmTestCase):
             assert four == 4
             """)
 
+    # def test_weird_splatting(self):
+    #     self.assert_ok("""\
+    #         def foo(arg):
+    #             pass
+    #         li = [[]]
+    #         foo(*li)
+    #         """)
+
     # def test_partial_with_kwargs(self):
     #     """ KW args not suppoted"""
     #     self.assert_ok("""\

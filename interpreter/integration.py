@@ -1,3 +1,6 @@
 # A file to test if pyvm works from the command line.
 
-print("Success!")
+def it_works():
+    print("Success!")
+
+it_works()

@@ -420,35 +420,32 @@ class VirtualMachine(object):
         self.return_value = None
         self.last_exception = None
 
-    def run_code(self, code, f_globals=None, f_locals=None):
+    def run_code(self, code, global_names=None, local_names=None):
         """ An entry point to execute code using the virtual machine."""
-        frame = self.make_frame(code, f_globals=f_globals, f_locals=f_locals)
+        frame = self.make_frame(code, global_names=global_names, local_names=local_names)
         self.run_frame(frame)
+
 ```
 
-
-Next we'll write the Frame object. The frame is a collection of attributes with no methods. As mentioned above, the attributes include `f_code`, the code object (created by the compiler) corresponding to the frame; the local, global, and builtin namespaces (`f_globals`, `f_locals`, and `f_builtins`); a reference to the previous frame, `f_back`; a data stack, a block stack, and the last instruction executed (`f_lasti`). (We have to do a little extra work to get to the builtin namespace because Python treats this namespace differently in different modules; this detail is not important to the virtual machine.)
-#TODO: fix the naming here
+Next we'll write the Frame object. The frame is a collection of attributes with no methods. As mentioned above, the attributes include the code object created by the compiler; the local, global, and builtin namespaces; a reference to the previous frame; a data stack, a block stack, and the last instruction executed. (We have to do a little extra work to get to the builtin namespace because Python treats this namespace differently in different modules; this detail is not important to the virtual machine.)
 
 ``` python
 class Frame(object):
-    def __init__(self, f_code, f_globals, f_locals, f_back):
-        self.f_code = f_code        # The code object
-        self.f_globals = f_globals  # Global namespace
-        self.f_locals = f_locals    # Local namespace
-        if f_back:
-            self.f_builtins = f_back.f_builtins  # Builtin namespace
+    def __init__(self, code_obj, global_names, local_names, prev_frame):
+        self.code_obj = code_obj
+        self.global_names = global_names
+        self.local_names = local_names
+        self.prev_frame = prev_frame
+        self.stack = []
+        if prev_frame:
+            self.builtin_names = prev_frame.builtin_names
         else:
-            self.f_builtins = f_locals['__builtins__']
-            if hasattr(self.f_builtins, '__dict__'):
-                self.f_builtins = self.f_builtins.__dict__
+            self.builtin_names = local_names['__builtins__']
+            if hasattr(self.builtin_names, '__dict__'):
+                self.builtin_names = self.builtin_names.__dict__
 
-        self.f_back = f_back   # Reference to previous frame
-        self.stack = []        # Data stack
-        self.block_stack = []  # Block stack
-
-        self.f_lineno = f_code.co_firstlineno  # First line number in original source code
-        self.f_lasti = 0       # Last executed bytecode instruction
+        self.last_instruction = 0
+        self.block_stack = []
 ```
 
 Next, we'll add frame manipulation to the virtual machine. There are three helper functions for frames: one to create new frames (which is responsible for sorting out the new frame's namespacing) and one each to push and pop frames from the frame stack. A fourth function, `run_frame`, does the main work of executing a frame. We'll come back to this momentarily.
@@ -458,26 +455,26 @@ class VirtualMachine(object):
     [... snip ...]
 
     # Frame manipulation
-    def make_frame(self, code, callargs={}, f_globals=None, f_locals=None):
-        if f_globals is not None and f_locals is None::
-            f_locals = f_globals
+    def make_frame(self, code, callargs={}, global_names=None, local_names=None):
+        if global_names is not None and local_names is not None:
+            local_names = global_names
         elif self.frames:
-            f_globals = self.frame.f_globals
-            f_locals = {}
+            global_names = self.frame.global_names
+            local_names = {}
         else:
-            f_globals = f_locals = {
+            global_names = local_names = {
                 '__builtins__': __builtins__,
                 '__name__': '__main__',
                 '__doc__': None,
                 '__package__': None,
             }
-        f_locals.update(callargs)
-        frame = Frame(code, f_globals, f_locals, self.frame)
+        local_names.update(callargs)
+        frame = Frame(code, global_names, local_names, self.frame)
         return frame
 
     def push_frame(self, frame):
         self.frames.append(frame)
-        self.frame = frame    # Update current frame in VM
+        self.frame = frame
 
     def pop_frame(self):
         self.frames.pop()
@@ -491,8 +488,7 @@ class VirtualMachine(object):
         # we'll come back to this shortly
 ```
 
-The Function object appears below.  The implementation is somewhat twisty, and most of the details aren't critical to understanding the interpreter. The important thing to notice is that calling a function - invoking the `__call__` method - creates a new Frame object and starts running it. (The implementation is twisty because this is one place where our Python interpreter interacts with the real Python compiler
-TODO: TRUE?.)
+The Function object appears below.  The implementation is somewhat twisty, and most of the details aren't critical to understanding the interpreter. The important thing to notice is that calling a function - invoking the `__call__` method - creates a new Frame object and starts running it. (The implementation is twisty because TODO: why? Ask Ned.)
 
 ```
     class Function(object):
@@ -570,7 +566,7 @@ Before we get to running a frame, we need two more methods. The first, `parse_by
 
 A single instruction is one byte long if it doesn't have an argument, or three bytes if it does have an argument, where the last two bytes are the argument.  The meaning of the argument to each instruction depends on which instruction it is. For example, as mentioned above, for `POP_JUMP_IF_FALSE`, the argument to the instruction is the jump target.  For `BUILD_LIST`, the argument is the number of elements in the list. For `LOAD_CONST`, it's an index into the list of constants.
 
-Some instructions use simple numbers as their arguments. For others, the virtual machine has to do a little work to discover what the arguments mean.  The `dis` module in the standard library exposes a cheatsheet to what arguments have what meaning, which makes our code more compact.  For example, the list `dis.hasname` tells us that the arguments to `LOAD_NAME`, `IMPORT_NAME`, `LOAD_GLOBAL`, and nine other instructions have the same meaing: in each case, the argument represents an index into the list of names on the code object.
+Some instructions use simple numbers as their arguments. For others, the virtual machine has to do a little work to discover what the arguments mean.  The `dis` module in the standard library exposes a cheatsheet to what arguments have what meaning, which makes our code more compact.  For example, the list `dis.hasname` tells us that the arguments to `LOAD_NAME`, `IMPORT_NAME`, `LOAD_GLOBAL`, and nine other instructions have the same meaing: for these twelve instructions, the argument represents an index into the list of names on the code object.
 
 
 TODO: fix frame naming
@@ -579,32 +575,30 @@ class VirtualMachine(object):
     [... snip ...]
 
     def parse_byte_and_args(self):
-        """ Parse 1 - 3 bytes of bytecode into
-            an instruction and maybe arguments."""
         f = self.frame
-        opoffset = f.f_lasti
-        byteCode = f.f_code.co_code[opoffset]
-        f.f_lasti += 1
-        byteName = dis.opname[byteCode]
-        arg = None
-        arguments = []
+        opoffset = f.last_instruction
+        byteCode = f.code_obj.co_code[opoffset]
+        f.last_instruction += 1
+        byte_name = dis.opname[byteCode]
         if byteCode >= dis.HAVE_ARGUMENT:
-            arg = f.f_code.co_code[f.f_lasti:f.f_lasti+2]
-            f.f_lasti += 2
+            arg = f.code_obj.co_code[f.last_instruction:f.last_instruction+2]  # index into the bytecode
+            f.last_instruction += 2   # advance the instruction pointer
             arg_val = arg[0] + (arg[1] << 8)
             if byteCode in dis.hasconst:   # Look up a constant
-                arg = f.f_code.co_consts[arg_val]
+                arg = f.code_obj.co_consts[arg_val]
             elif byteCode in dis.hasname:  # Look up a name
-                arg = f.f_code.co_names[arg_val]
+                arg = f.code_obj.co_names[arg_val]
             elif byteCode in dis.haslocal: # Look up a local name
-                arg = f.f_code.co_varnames[arg_val]
+                arg = f.code_obj.co_varnames[arg_val]
             elif byteCode in dis.hasjrel:  # Calculate a relative jump
-                arg = f.f_lasti + arg_val
+                arg = f.last_instruction + arg_val
             else:
                 arg = arg_val
-            arguments = [arg]
+            argument = [arg]
+        else:
+            argument = []
 
-        return byteName, arguments
+        return byte_name, argument
 ```
 
 The next method is `dispatch`, which looks up the operations for a given instruction and executes them. In the CPython interpreter, this dispatch is done with a giant switch statement that spans 1,500 lines!  Luckily, since we're writing Python, we can be more compact.  We'll define a method for each byte name and then use `getattr` to look it up. If our bytecode was named `FOO_BAR`, the corresponding method would be named `byte_FOO_BAR`. For the moment, we'll leave the content of these methods as a black box.  Each bytecode method will return either `None` or a `why` string to be passed to block management. The return values of the individual bytecode methods are used only as internal indicators of interpreter state - don't confuse these with return values from executing frames.
@@ -614,27 +608,26 @@ The next method is `dispatch`, which looks up the operations for a given instruc
 class VirtualMachine(object):
     [... snip ...]
 
-    def dispatch(self, byteName, arguments):
-        """ Dispatch by bytename to the corresponding method and call it.
-            Exceptions are caught and set on the virtual machine."""
+    def dispatch(self, byte_name, argument):
+        """ Dispatch by bytename to the corresponding methods.
+        Exceptions are caught and set on the virtual machine."""
+
         # When later unwinding the block stack,
         # we need to keep track of why we are doing it.
         why = None
-
         try:
-            if byteName.startswith('UNARY_'):
-                self.unaryOperator(byteName[6:])
-            elif byteName.startswith('BINARY_'):
-                self.binaryOperator(byteName[7:])
-            else:
-                # primary dispatch
-                bytecode_fn = getattr(self, 'byte_%s' % byteName, None)
-                if not bytecode_fn:  # Not all bytecodes are supported in 500 lines
+            bytecode_fn = getattr(self, 'byte_%s' % byte_name, None)
+            if bytecode_fn is None:
+                if byte_name.startswith('UNARY_'):
+                    self.unaryOperator(byte_name[6:])
+                elif byte_name.startswith('BINARY_'):
+                    self.binaryOperator(byte_name[7:])
+                else:
                     raise VirtualMachineError(
-                        "unsupported bytecode type: %s" % byteName
+                        "unsupported bytecode type: %s" % byte_name
                     )
-                why = bytecode_fn(*arguments)
-
+            else:
+                why = bytecode_fn(*argument)
         except:
             # deal with exceptions encountered while executing the op.
             self.last_exception = sys.exc_info()[:2] + (None,)
@@ -653,9 +646,9 @@ class VirtualMachine(object):
         """
         self.push_frame(frame)
         while True:
-            byteName, arguments = self.parse_byte_and_args()
+            byte_name, arguments = self.parse_byte_and_args()
 
-            why = self.dispatch(byteName, arguments)
+            why = self.dispatch(byte_name, arguments)
 
             # Deal with any block management we need to do
             while why and frame.block_stack:
@@ -907,7 +900,6 @@ class VirtualMachine(object):
         the_list = self.frame.stack[-count] # peek
         the_list.append(val)
 
-
     ## Jumps
 
     def byte_JUMP_FORWARD(self, jump):
@@ -1055,7 +1047,7 @@ class VirtualMachine(object):
 
 ### What can we actually do with this? Pick an interesting example and scope the code to just those bytecode instructions, maybe?
 
-### Somehow conclude
+### With byterun, you have a compact Python interpreter that's easier to understand than CPython. I encourage you to disassemble your own programs and run them using Byterun. (You'll eventually run into instructions that this shorter version of Byterun doesn't implement. The full implementation can be found at github.com/nedbat/byterun. )
 
 # Exceptions ?
 
