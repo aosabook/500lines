@@ -1,3 +1,6 @@
+
+
+
 ### Bytecode
 In Python, the set of instructions that the interpreter interprets is called _bytecode_. Bytecode is a series of bytes that the interpreter maps to different operations that it should perform. Bytecode is called an _intermediate representation_ of Python code: it expresses the source code that you wrote in a way the interpreter can understand, analogous to the way that assembly language serves as a representation between C code and a piece of hardware.
 
@@ -36,3 +39,7 @@ Information on the frame includes the the code object for the frame, .
 #### cruft / possible footnotes
 . [footnote? You may have heard of PyPy, a prominent Python interpreter written in Python. The structure of PyPy is covered in volume 2 of AOSA, by Benjamin Peterson. Before optimzations, PyPy is four times slower than the CPython interpreter.] One advantage of writing our Python interpreter in Python is that we don't have to also implement an object system - we can seamlessly fall back to the "real" Python's object system.
 
+
+
+
+### What can we actually do with this? Pick an interesting example and scope the code to just those bytecode instructions, maybe?

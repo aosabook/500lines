@@ -51,31 +51,42 @@ class SimpleInterpreter(object):
         return argument
 
 
+    # def execute(self, what_to_execute):
+    #     instructions = what_to_execute["instructions"]
+    #     self.next_i = 0
+    #     while True:
+    #         if self.next_i >= len(instructions) or self.should_stop:
+    #             break
+    #         instruction, argument = instructions[self.next_i]
+    #         argument = self.parse_argument(instruction, argument, what_to_execute)
+
+    #         if instruction == "LOAD_VALUE":
+    #             self.LOAD_VALUE(argument)
+    #         elif instruction == "ADD_TWO_VALUES":
+    #             self.ADD_TWO_VALUES()
+    #         elif instruction == "PRINT_ANSWER":
+    #             self.PRINT_ANSWER()
+    #         elif instruction == "STORE_NAME":
+    #             self.STORE_NAME(argument)
+    #         elif instruction == "LOAD_NAME":
+    #             self.LOAD_NAME(argument)
+    #         elif instruction == "JUMP_IF_FALSE":
+    #             self.JUMP_IF_FALSE(argument)
+    #         elif instruction == "STOP":
+    #             self.STOP()
+
+    #         self.next_i += 1
+
     def execute(self, what_to_execute):
         instructions = what_to_execute["instructions"]
-        self.next_i = 0
-        while True:
-            if self.next_i >= len(instructions) or self.should_stop:
-                break
-            instruction, argument = instructions[self.next_i]
+        for each_step in instructions:
+            instruction, argument = each_step
             argument = self.parse_argument(instruction, argument, what_to_execute)
-
-            if instruction == "LOAD_VALUE":
-                self.LOAD_VALUE(argument)
-            elif instruction == "ADD_TWO_VALUES":
-                self.ADD_TWO_VALUES()
-            elif instruction == "PRINT_ANSWER":
-                self.PRINT_ANSWER()
-            elif instruction == "STORE_NAME":
-                self.STORE_NAME(argument)
-            elif instruction == "LOAD_NAME":
-                self.LOAD_NAME(argument)
-            elif instruction == "JUMP_IF_FALSE":
-                self.JUMP_IF_FALSE(argument)
-            elif instruction == "STOP":
-                self.STOP()
-
-            self.next_i += 1
+            bytecode_method = getattr(self, instruction)
+            if argument is None:
+                bytecode_method()
+            else:
+                bytecode_method(argument)
 
 def test_simple_interpreter():
     simple = SimpleInterpreter()
@@ -120,7 +131,7 @@ def test_simple_interpreter():
                         ("PRINT_ANSWER", None),
                         ("LOAD_VALUE", 2),  # the second number
                         ("PRINT_ANSWER", None)],
-        "values": [True, 'yes', 'no'] }}
+        "values": [True, 'yes', 'no'] }
 
 
 if __name__ == '__main__':

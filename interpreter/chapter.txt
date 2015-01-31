@@ -1,12 +1,12 @@
 A Python interpreter written in Python
 
-Byterun is a Python interpreter written in Python, written by Ned Batchelder and myself, building on the work of Paul Swartz. Its structure is similar to the primary version of Python, CPython. At less than 500 lines, it's capable of running most simple Python programs. In this chapter, we'll walk through the structure of the interpreter and run real Python code using the same information that's available to the CPython interpreter.
+Byterun is a Python interpreter implemented in Python, written by Ned Batchelder and myself, building on the work of Paul Swartz. Its structure is similar to the primary implementation of Python, CPython. At less than 500 lines, it's capable of running most simple Python programs. In this chapter, we'll walk through the structure of the interpreter and run real Python code.
 
 The word interpreter is used in a variety of different ways when discussing Python. Sometimes "interpreter" refers to the Python REPL, the interactive prompt you get by typing just "python" from the command line. Sometimes people use "the Python interpreter" more or less interchangeably with "Python" to talk about executing Python code from start to finish. In this chapter, "interpreter" has a more narrow meaning: it's the last step in the process of running a Python program.
 
-Before the interpreter takes over, Python performs three other steps: lexing, parsing, and compiling. Together, they turn the programmer's source code from lines of text into structured _code objects_ that the interpreter knows how to understand. Each code object contains a set of instructions that the interpreter will execute, plus other information necessary to execute those instructions. The interpreter's job is to take these code objects and perform the operations detailed there.
+Before the interpreter takes over, Python performs three other steps: lexing, parsing, and compiling. Together, these steps transform the programmer's source code from lines of text into structured _code objects_ containing instructions that the interpreter knows how to understand. The interpreter's job is then to take these code objects and follow the instructions.
 
-You may be surprised to hear that Python code is compiled. Python is often called an "interpreted" language, like Ruby or Java, in contrast with a "compiled" language like C or Rust. This terminology isn't as precise as it seems.  Most interpreted languages, including Python, do involve a compilation step. However, in an interpreted language, the compilation does relatively less work (and the interpreter does relatively more) than in a compiled language.  As we'll see later in the chapter, the Python compiler has much less information about the behavior of a program than a C compiler does.
+You may be surprised to hear that compiling is a step in executing Python code. Python is often called an "interpreted" language, like Ruby or Java, as opposed to a "compiled" language like C or Rust. However, this terminology isn't as precise as it may seem.  Most interpreted languages, including Python, do involve a compilation step. The reason Python is called "interpreterd" is that the compilation step does relatively less work (and the interpreter does relatively more) than in a compiled language.  As we'll see later in the chapter, the Python compiler has much less information about the behavior of a program than a C compiler does.
 
 ### A Python Python interpreter
 Byterun is a Python interpreter written in Python.  This may strike you as odd, but it's no more odd than writing a C compiler in C. (Indeed, the widely-used C compiler gcc is written in C.) We could write a Python interpreter in almost any language.
@@ -15,21 +15,20 @@ Byterun's structure very closely mirrors the structure of the "real" interpreter
 
 Executing code via Byterun is much slower than executing it in CPython. However, Byterun is much easier to understand. It is simplified relative to CPython: not all instructions are included, no optimizations for speed are present, and it's written in a higher-level language (Python!) that many people find easier to read. Since our goal is understanding the system, not speed of execution, writing Byterun in Python is an easy decision.
 
-
 ### Building an interpreter
 Before we start to look at the code of Byterun, we need some context on the goals and constraints of the problem. To begin with, how does the Python interpreter work?
 
-The Python interpreter is a virtual machine, meaning that it is software that emulates a physical computer. This particular virtual machine is a stack machine: it manipulates several stacks to perform its operations (as contrasted with a register machine, that writes and reads values from particular memory locations).
+The Python interpreter is a virtual machine, meaning that it is software that emulates a physical computer. This particular virtual machine is a stack machine: it manipulates several stacks to perform its operations (as contrasted with a register machine, that writes to and reads from particular memory locations).
 
-The Python interpreter is a _bytecode interpreter_, which means that its input is instruction sets called _bytecode_. When you write Python code, the lexer, parser, and compiler generate bytecode for the interpreter to operate on. Bytecode is called an _intermediate representation_ of Python code: it expresses the source code that you wrote in a way the interpreter can understand. It's analogous to the way that assembly language serves as a representation between C code and a piece of hardware.
+The Python interpreter is a _bytecode interpreter_: its input is instruction sets called _bytecode_. When you write Python, the lexer, parser, and compiler generate code objects for the interpreter to operate on. Each code object contains a set of instructions to be executed - that's the bytecode - plus other information the interpreter will need. Bytecode is called an _intermediate representation_ of Python code: it expresses the source code that you wrote in a way the interpreter can understand. It's analogous to the way that assembly language serves as a representation between C code and a piece of hardware.
 
-To make this concrete, let's start with a very minimal interpreter. This interpreter can only add numbers, and it understands just three instructions. All code it can execute consists of these three instructions in different combinations.
+To make this concrete, let's start with a very minimal interpreter. This interpreter can only add numbers, and it understands just three instructions. All code it can execute consists of these three instructions in different combinations. The three instructions are these:
 
 - LOAD_VALUE
 - ADD_TWO_VALUES
 - PRINT_ANSWER
 
-Since we're not concerned with the lexer, parser, and compiler in this chapter, it doesn't matter how the instruction sets are produced.  You can imagine writing `1 + 1` and having a compiler emit a combination of these three instructions. Or, if you have the right compiler, you can write lisp syntax that's turned into the same combination of instructions. The interpreter doesn't care. All that matters is that our interpreter is given a well-formed arrangement of these three instructions.
+Since we're not concerned with the lexer, parser, and compiler in this chapter, it doesn't matter how the instruction sets are produced.  You can imagine writing `7 + 5` and having a compiler emit a combination of these three instructions. Or, if you have the right compiler, you can write lisp syntax that's turned into the same combination of instructions. The interpreter doesn't care. All that matters is that our interpreter is given a well-formed arrangement of the instructions.
 
 Suppose that
 ~~~~
@@ -40,11 +39,11 @@ produces this instruction set:
 ~~~~
 ["LOAD_VALUE",
  "LOAD_VALUE",
- "ADD_TWO_VALUES",
+ "ADD_TWO_THINGS",
  "PRINT_ANSWER"]
 ~~~~
 
-Our interpreter is a _stack machine_. To add two numbers, the interpreter will begin by pushing the first number onto the stack, then pushing the second number onto the stack. Next it will pop both numbers off, add them together, and push the result onto the stack. Finally, it will pop the answer back off the stack and return it.
+The Python interpreter is a _stack machine_, so it must manipulate stacks to add two numbers. The interpreter will begin by executing the first instruction, `LOAD_VALUE`, and pushing the first number onto the stack. Next it will push the second number onto the stack. For the third instruction, `ADD_TWO_THINGS`, it will pop both numbers off, add them together, and push the result onto the stack. Finally, it will pop the answer back off the stack and return it.
 
 ~~~
        1.                2.                 3.               4.                5.
@@ -55,11 +54,9 @@ Our interpreter is a _stack machine_. To add two numbers, the interpreter will b
   --------------  --------------      --------------    --------------     --------------
 ~~~
 
-Before the interpreter can add numbers for you, it needs a little more information. The instructions tell it to push a number on to the stack, but they don't say which number. Each instruction needs an extra piece of information, telling the interpreter where to find the number if one is required.  The instructions include a "pointer" to the object to be used.
+You may be wondering why instructions other than `ADD_TWO_THINGS` were needed at all. Indeed, for the simple case of adding two numbers, the example is a little contrived. However, this instruction is a building block for more complex programs. For example, with just the instructions we've defined so far, we can already add together three values - or any number of values - given the right set of these instructions. The stack provides a clean way to keep track of the state of the interpreter, and it will support lots more complexity as we go along.
 
-Why not just put the numbers directly in the bytecode? Imagine if we were adding strings together instead of numbers. We wouldn't want to have the strings stuffed in with the instructions, since they could be arbitrarily large.
-
-Now our instruction set has two pieces: the instructions themselves, and the numbers to be added. We'll wrap up these two pieces into a dictionary. In Python, what we're calling "instructions" is the bytecode, and the entire "what to execute" object is a called a _code object_.
+So where do the numbers come from? The instructions tell the interpreter to push a number on to the stack, but they don't say which number. Each instruction needs an extra piece of information, telling the interpreter where to find the number if one is required. Now our instruction set has two pieces: the instructions themselves, plus a list of constants the instructions will need. (In Python, what we're calling "instructions" is the bytecode, and the entire "what to execute" object is the _code object_.)
 
 ~~~~
 what_to_execute = {
@@ -70,7 +67,9 @@ what_to_execute = {
     "numbers": [7, 5] }
 ~~~~
 
-Now let's start to write the interpreter itself. The interpreter object has a stack, represented by a list. Each instruction is defined as a method on the object.
+Why not just put the numbers directly in the instructions? Imagine if we were adding strings together instead of numbers. We wouldn't want to have the strings stuffed in with the instructions, since they could be arbitrarily large. This design also means we can have just one copy of each object that we need - so to add `7 + 7`, `"numbers"` could be just `[7]`.
+
+Now let's start to write the interpreter itself. The interpreter object has a stack, which we'll represent with a list. The object also has a method describing how to execute each instruction. For example, for `LOAD_VALUE`, the interpreter will push the value onto the stack.
 
 ~~~~
 class Interpreter(object):
@@ -91,7 +90,7 @@ class Interpreter(object):
         self.stack.append(total)
 ~~~~
 
-These three functions implement the three instructions our interpreter understands. The interpreter needs one more piece: a way to tie everything together and start executing. This method takes the "what_to_execute" dictionary defined above as an argument. It loops over each instruction, processes the arguments to that instruction if there are any, and then calls the corresponding method on the interpreter object.
+These three functions implement the three instructions our interpreter understands. The interpreter needs one more piece: a way to tie everything together and actually execute it. This method, `run_code`, takes the "what_to_execute" dictionary defined above as an argument. It loops over each instruction, processes the arguments to that instruction if there are any, and then calls the corresponding method on the interpreter object.
 
 ~~~~.py
     def run_code(self, what_to_execute):
@@ -121,6 +120,7 @@ Although this interpreter is quite limited, this process is almost exactly how t
 
 Second, notice that the instruction for `ADD_TWO_VALUES` did not require any arguments. Instead, the values to be added together were popped off of the interpreter's stack. This is a key feature of a stack-based interpreter.
 
+TODO: you already talked about this
 Given valid instruction sets, without any changes to our interpreter, we can add more than two numbers at at time. Consider the instruction set below. What do you expect to happen? If you had a friendly compiler, what code could you write to generate this instruction set?
 
 ~~~~
@@ -134,10 +134,10 @@ Given valid instruction sets, without any changes to our interpreter, we can add
         "numbers": [7, 5, 8] }
 ~~~~
 
-So far our interpreter can only do simple arithmetic. However, we can begin to see how this structure is extensible - we can add methods on the object that describe many more operations (as long as we have a compiler to hand us well-formed instruction sets).
+At this point, we can begin to see how this structure is extensible - we can add methods on the object that describe many more operations (as long as we have a compiler to hand us well-formed instruction sets).
 
 # Variables
-Adding variables to our interpreter requires three main pieces: two instructions for storing and retrieving the values, plus a dictionary mapping names to values, stored on the interpreter object.
+Next let's add variables to our interpreter. Variables require four pieces: an instruction for stroing the value of a variable, `STORE_NAME`; one for retrieving it, `LOAD_NAME`; and a mapping from variable names to values. For now, we'll ignore namespaces and scope, so we can store the variable mapping on the interpreter object itself. Finally, we'll have to make sure that `what_to_execute` has a list of the variable names, in addition to its list of constants.
 
 ~~~~
 >>> def s():
@@ -158,9 +158,9 @@ Adding variables to our interpreter requires three main pieces: two instructions
         "names":   ["a", "b"] }
 ~~~
 
-The interpreter now needs to keep track of what names are bound to what values, so we'll add an "environment" dictionary to the __init__ method. We'll also add STORE_NAME and LOAD_NAME methods that are analogous to the STORE_VALUE and LOAD_VALUE methods we defined earlier.
+Our new implementation is below. To keep track of what names are bound to what values, we'll add an "environment" dictionary to the __init__ method. We'll also add STORE_NAME and LOAD_NAME. These methods first look up the variable name in question and then use the dictionary to store or retrieve the its value.
 
-The arguments to an instruction can now mean two different things. It can either be an index into the "numbers" list, or it can be an index into the "names" list. The interpreter knows which is should be by checking what the instruction should do. We'll break out this logic - and the mapping of instructions to what their arguments mean - into a separate method.
+The arguments to an instruction can now mean two different things. It can either be an index into the "numbers" list, or it can be an index into the "names" list. The interpreter knows which is should be by checking what the instruction it's executing. We'll break out this logic - and the mapping of instructions to what their arguments mean - into a separate method.
 
 ~~~~
     def __init__(self):
@@ -176,9 +176,7 @@ The arguments to an instruction can now mean two different things. It can either
         self.stack.append(val)
 
     def parse_argument(self, instruction, argument, what_to_execute):
-        """ Understand what the argument to each instruction means.
-        # TODO: add example.
-        """
+        """ Understand what the argument to each instruction means."""
         numbers = ["LOAD_VALUE"]
         names = ["LOAD_NAME", "STORE_NAME"]
 
@@ -205,9 +203,25 @@ The arguments to an instruction can now mean two different things. It can either
                 self.STORE_NAME(argument)
             elif instruction == "LOAD_NAME":
                 self.LOAD_NAME(argument)
+```
+
+Even with just five instructions, the `run_code` method is starting to get tedious. We'll always define a method called `FOO` to execute the instruction called `FOO`, so we can use Python's `getattr` function to look up the method on the fly instead of using the big `if` statement. The `run_code` method then looks like this:
+
+```
+    def execute(self, what_to_execute):
+        instructions = what_to_execute["instructions"]
+        for each_step in instructions:
+            instruction, argument = each_step
+            argument = self.parse_argument(instruction, argument, what_to_execute)
+            bytecode_method = getattr(self, instruction)
+            if argument is None:
+                bytecode_method()
+            else:
+                bytecode_method(argument)
+```
 
 # Real Python bytecode
-At this point, we'll abandon our toy instruction sets and switch to real Python bytecode. The structure of bytecode is similar to our toy interpreter's verbose instruction sets, except that it uses one byte instead of a long strings to describe each instruction. To understand this structure, we'll walk through the bytecode of a short function. Consider the example below:
+At this point, we'll abandon our toy instruction sets and switch to real Python bytecode. The structure of bytecode is similar to our toy interpreter's verbose instruction sets, except that it uses one byte instead of a long string to describe each instruction. To understand this structure, we'll walk through the bytecode of a short function. Consider the example below:
 
 ``` python
 >>> def cond():
@@ -217,15 +231,18 @@ At this point, we'll abandon our toy instruction sets and switch to real Python 
 ...     else:
 ...         return 'no'
 ...
+```
+
+Python exposes a boatload of its internals at runtime, and we can access them right from the REPL. `cond.__code__` is the code object associated with `cond`, and `cond.__code__.co_code` is the bytecode.
+
+```
 >>> cond.__code__.co_code  # the bytecode as raw bytes
 b'd\x01\x00}\x00\x00|\x00\x00d\x02\x00k\x00\x00r\x16\x00d\x03\x00Sd\x04\x00Sd\x00\x00S'
 >>> [byte for byte in cond.__code__.co_code]  # the bytecode as numbers
 [100, 1, 0, 125, 0, 0, 124, 0, 0, 100, 2, 0, 107, 0, 0, 114, 22, 0, 100, 3, 0, 83, 100, 4, 0, 83, 100, 0, 0, 83]
 ```
 
-Python exposes a boatload of its internals at runtime, and we can access them right from the REPL. `cond.__code__` is the code object associated with `cond`, and `cond.__code__.co_code` is the bytecode.
-
-When we just print the bytecode, it looks uninteligible. Luckily, there's a powerful tool we can use to understand it: the `dis` module, in the Python standard library. `dis is a bytecode disassembler. A disassembler takes low-level code (like assembly code or bytecode) that is written for machines, and prints it in a way that's human readable. When we run `dis.dis`, it outputs an explanation of the bytecode it's passed.
+When we just print the bytecode, it looks uninteligible - all we can tell is that it's a series of bytes. Luckily, there's a powerful tool we can use to understand it: the `dis` module, in the Python standard library. `dis is a bytecode disassembler. A disassembler takes low-level code (like assembly code or bytecode) that is written for machines, and prints it in a human-readable way. When we run `dis.dis`, it outputs an explanation of the bytecode it's passed.
 
 ~~~ python
 >>> dis.dis(cond)
@@ -248,7 +265,7 @@ When we just print the bytecode, it looks uninteligible. Luckily, there's a powe
 
 The first column shows the line numbers in our Python source code. The second column is an index into the bytecode, telling us that the `LOAD_FAST` instruction appears at position zero.  The third column is the instruction itself, mapped to its human-readable name. The fourth column, when present, is the argument to that instruction.  The fifth column, when present, is a hint about what the argument means.
 
-Consider the first few bytes of this bytecode: [100, 1, 0, 125, 0, 0]. These six bytes represent two instructions with their arguments. We can use `dis.opname` to find out what instructions 100 and 125 map to:
+Consider the first few bytes of this bytecode: [100, 1, 0, 125, 0, 0]. These six bytes represent two instructions with their arguments. We can use `dis.opname`, a mapping from bytes to inteligible strings, to find out what instructions 100 and 125 map to:
 
 ~~~
 >>> dis.opname[100]
@@ -257,10 +274,10 @@ Consider the first few bytes of this bytecode: [100, 1, 0, 125, 0, 0]. These six
 'STORE_FAST'
 ~~~
 
-The extra bytes - 1, 0 and 0, 0 - are the arguments to these instructions. Just like in our toy example, LOAD_CONST needs to know where to find its constant to load, and STORE_FAST needs to find the name to store. (Python's LOAD_CONST is the same as our toy interpreter's LOAD_VALUE, and LOAD_FAST is the same as LOAD_NAME.) So these six bytes represent the first line of code, `x = 3`. (Why do arguments take up two bytes? If Python used just one byte to locate constants and names instead of two, you could only have 256 names/constants associated with a single code object. Using two bytes, you can have up to 256 squared, or 65536.)
+The second, third, fith, and sixth bytes - 1, 0 and 0, 0 - are the arguments to these two instructions. Just like in our toy example, LOAD_CONST needs to know where to find its constant to load, and STORE_FAST needs to find the name to store. (Python's LOAD_CONST is the same as our toy interpreter's LOAD_VALUE, and LOAD_FAST is the same as LOAD_NAME.) So these six bytes represent the first line of code, `x = 3`. (Why do arguments take up two bytes? If Python used just one byte to locate constants and names instead of two, you could only have 256 names/constants associated with a single code object. Using two bytes, you can have up to 256 squared, or 65,536.)
 
 # Conditionals
-So far, the interpreter has executed code simply by stepping through the instructions one by one. This is a problem: often, we want to execute certain instructions many times, or skip them under certain conditions. To allow us to write loops and if statements in our code, the interpreter must be able to jump around in the instruction set. In a sense, the Python handles loops and conditionals with GOTO statements in the bytecode! Look at the disassembly of the function `cond` again:
+So far, the interpreter has executed code simply by stepping through the instructions one by one. This is a problem: often, we want to execute certain instructions many times, or skip them under certain conditions. To allow us to write loops and if statements in our code, the interpreter must be able to jump around in the instruction set. In a sense, Python handles loops and conditionals with GOTO statements in the bytecode! Look at the disassembly of the function `cond` again:
 
 ~~~ python
 >>> dis.dis(cond)
@@ -281,12 +298,12 @@ So far, the interpreter has executed code simply by stepping through the instruc
              29 RETURN_VALUE
 ~~~
 
-There are four instructions associated with line 3 of the code, `if x < 5`: LOAD_FAST, LOAD_CONST, COMPARE_OP, and POP_JUMP_IF_FALSE. `x < 5` generates code to load x, load 5, and compare the two values. The instruction POP_JUMP_IF_FALSE is responsible for implementing the `if`. This instruction will pop the top value off of the interpreter's stack. If it's true, nothing happens. If it's false, then the interpreter will jump to another instruction.
+The conditional, `if x < 5` on line 3 of the code, is compiled into four instructions: LOAD_FAST, LOAD_CONST, COMPARE_OP, and POP_JUMP_IF_FALSE. `x < 5` generates code to load x, load 5, and compare the two values. The instruction POP_JUMP_IF_FALSE is responsible for implementing the `if`. This instruction will pop the top value off of the interpreter's stack. If the value is true, then nothing happens. (The value can be "truthy" - it doesn't have to be the literal `True` object.) If the value is false, then the interpreter will jump to another instruction.
 
-The instruction to land on is called the jump target, and it's provided as the argument to the POP_JUMP instruction. Here, the jump target is 22. The instruction at index 22 is LOAD_CONST on line 6. (`dis` marks jump targets with `>>`.) If the result of `x < 5` is False, then the intepreter will jump straight to line six (`return "no"`), skipping line 4 (`return "yes"`).
+The instruction to land on is called the jump target, and it's provided as the argument to the POP_JUMP instruction. Here, the jump target is 22. The instruction at index 22 is LOAD_CONST on line 6. (`dis` marks jump targets with `>>`.) If the result of `x < 5` is False, then the intepreter will jump straight to line six (`return "no"`), skipping line 4 (`return "yes"`). Thus, the interpreter uses jump instruction to selectively skip over parts of the instruction set.
 
 # Loops
-Python loops also rely on jumping through bytecode. In the bytecode below, notice that the line `while x < 10` generates almost identical bytecode to `if x < 10`: in both cases, the comparison is done and then `POP_JUMP_IF_FALSE` controls which instruction is executed next. At the end of line 4 - the end of the loop's body - the instruction `JUMP_ABSOLUTE` always sends the interpreter back to instruction 9 at the top of the loop. When x < 10 becomes false, then POP_JUMP_IF_FALSE jumps the interpreter past the end of the loop, to instruction 34. (We'll return later to the two bytecodes associated with setting up and cleaning up loops, `SETUP_LOOP` and `POP_BLOCK`.)
+Python loops also rely on jumping. In the bytecode below, notice that the line `while x < 10` generates almost identical bytecode to `if x < 10`: in both cases, the comparison is done and then `POP_JUMP_IF_FALSE` controls which instruction is executed next. At the end of line 4 - the end of the loop's body - the instruction `JUMP_ABSOLUTE` always sends the interpreter back to instruction 9 at the top of the loop. When x < 10 becomes false, then POP_JUMP_IF_FALSE jumps the interpreter past the end of the loop, to instruction 34. (The instructions `SETUP_LOOP` and `POP_BLOCK` are responsible for setting up and cleaning up the loop, and we'll touch on them later when we discuss blocks.)
 
 ~~~~
 >>> def loop():
@@ -315,46 +332,11 @@ Python loops also rely on jumping through bytecode. In the bytecode below, notic
   5     >>   35 LOAD_FAST                0 (x)
              38 RETURN_VALUE
 
-# Dynamic typing - what the compiler doesn't know
-Consider another short function, `mod`. Mod takes two arguments and returns the modulus of one against the other. In the bytecode, we see the variables `a` and `b` are loaded, and then the bytecode `BINARY_MODULO` performs the modulo itself.
-
-```
->>> def mod(a, b):
-...    return a % b
->>> dis.dis(mod)
-  2           0 LOAD_FAST                0 (a)
-              3 LOAD_FAST                1 (b)
-              6 BINARY_MODULO
-              7 RETURN_VALUE
->>> mod(19, 5)
-4
-```
-Calculating 19 % 5 yields 4 - no surprise there. What happens if we call it with different kinds of arguments?
-```
->>> mod("by%sde", "teco")
-'bytecode'
-```
-What just happened? You've probably seen this syntax before, but in a different context - printing.
-```
->>> print("by%sde" % "teco")
-bytecode
-```
-
-Under the hood, using the symbol `%` to format a string for printing means invoking the instruction `BINARY_MODULO`. This instruction mods together the top two values on the stack when the instruction executes - regardless of whether they're strings, integers, or instances of a class you defined yourself. The bytecode was generated when the function was compiled (effectively, when it was defined) and the same bytecode is used with different types of arguments.
-
-The Python compiler knows relatively little about the effect the bytecode will have. Thus, the interpreter must work relatively harder. It's up to the interpreter to determine the type of the object that `BINARY_MODULO` is operating on and do the right thing for that type. This is why Python is described at _dynamically typed_: you don't know the types of the arguments to this function until you actually run it. By constrast, in a language that's statically typed, the programmer tells the compiler up front what type the arguments will be (or the compiler figures them out for itself).
-
-The compiler's ignorance is one of the challenges to optimizing Python - just looking at the bytecode (without actually running the code), you don't know what each instruction will do! In a class you define, you can implement a method named `__mod__` that will be called when you use `%` on your objects. In their paper "How fast can we make interpreted Python?", Russell Power and Alex Rubensteyn note, "In the general absence of type information, each instruction must be treated as `INVOKE_ARBITRARY_METHOD`." It's hard to optimize a function when you don't know what it does.
-
 # Explore bytecode
-I encourage you to try running `dis.dis` on simple functions. Some interesting questions to explore:
+I encourage you to try running `dis.dis` on function you write. Some interesting questions to explore:
 - What's the difference between a for loop and a while loop to the Python interpreter?
-- You can write different functions that generate identical bytecode. How?
-- something something Scopes, although we haven't talked about this yet
-- How does `elif` work?
-- How do list comprehensions work? [this kind of gives away the identical bytecode part]
-
-
+- How can you write different functions that generate identical bytecode?
+- How does `elif` work? What about list comprehensions?
 
 # Functions & Frames
 So far we've covered that the Python virtual machine is a stack machine. It steps and jumps through instructions, pushing and popping values on and off of a stack. There are still some gaps in our mental model, though. In the `mod` example above, the last instruction is `RETURN VALUE`, which corresponds to the `return` statement in the code. But where does the instruction return to?
@@ -401,7 +383,7 @@ The bytecode instruction `RETURN_VALUE` tells the interpreter to pass a value be
 
 # Byterun
 We now have enough context about the Python interpreter to begin examining Byterun. There are four kinds of objects in Byterun:
-- A `VirtualMachine` class, which manages the highest-level structure, particularly the call stack of frames, and contains a mapping of instructions to operations.
+- A `VirtualMachine` class, which manages the highest-level structure, particularly the call stack of frames, and contains a mapping of instructions to operations. This is a more complex version of the `Intepreter` object above.
 - A `Frame` class.  Every `Frame` instance has one code object and manages a few other necessary bits of state, particularly the global and local namespaces, a reference to the calling frame, and the last bytecode instruction executed.
 - A `Function` class, which will be used in place of real Python functions. Recall that calling a function creates a new frame in the interpreter. We implement Function so that we control the creation of new Frames.
 - A `Block` class, which just wraps the three attributes of blocks.
@@ -673,7 +655,7 @@ Before we implement the methods for each bytecode instruction, we'll briefly dis
 When managing the block stack on a frame, the interpreter sets a flag to indicate its state.  We implement this flag as a variable called `why`, which can be `None` or one of the strings `"continue"`, `"break"`, `"exception"`, or `"return"`. This indicates what kind of manipulation of the block stack and data stack should happen.  To return to the iterator example, if the top of the block stack is a `loop` block and the `why` code is `continue`, the iterator should remain on the stack, but if the `why` code is `break`, it should be popped off. The precise details of block manipulation are rather fiddly, and we won't spend more time on this, but interested readers are encouraged to take a careful look.
 
 ```
-Block = collections.namedtuple("Block", "type, handler, level")
+Block = collections.namedtuple("Block", "type, handler, stack_height")
 
 class VirtualMachine(object):
     [... snip ...]
@@ -681,7 +663,7 @@ class VirtualMachine(object):
     # Block stack manipulation
     def push_block(self, b_type, handler=None):
         level = len(self.frame.stack)
-        self.frame.block_stack.append(Block(b_type, handler, level))
+        self.frame.block_stack.append(Block(b_type, handler, stack_height))
 
     def pop_block(self):
         return self.frame.block_stack.pop()
@@ -1045,11 +1027,35 @@ class VirtualMachine(object):
         self.frame.f_locals = self.pop()
 ```
 
-### What can we actually do with this? Pick an interesting example and scope the code to just those bytecode instructions, maybe?
+### Dynamic typing - what the compiler doesn't know
+I mentioned earlier that the Python compiler doesn't have much information about what the code actually does. To see why, consider another short function, `mod`. Mod takes two arguments and returns the modulus of one against the other. In the bytecode, we see the variables `a` and `b` are loaded, and then the bytecode `BINARY_MODULO` performs the modulo itself.
+
+```
+>>> def mod(a, b):
+...    return a % b
+>>> dis.dis(mod)
+  2           0 LOAD_FAST                0 (a)
+              3 LOAD_FAST                1 (b)
+              6 BINARY_MODULO
+              7 RETURN_VALUE
+>>> mod(19, 5)
+4
+```
+Calculating 19 % 5 yields 4 - no surprise there. What happens if we call it with different kinds of arguments?
+```
+>>> mod("by%sde", "teco")
+'bytecode'
+```
+What just happened? You've probably seen this syntax before, but in a different context - printing.
+```
+>>> print("by%sde" % "teco")
+bytecode
+```
+
+Under the hood, using the symbol `%` to format a string for printing means invoking the instruction `BINARY_MODULO`. This instruction mods together the top two values on the stack when the instruction executes - regardless of whether they're strings, integers, or instances of a class you defined yourself. The bytecode was generated when the function was compiled (effectively, when it was defined) and the same bytecode is used with different types of arguments.
+
+The Python compiler knows relatively little about the effect the bytecode will have. Thus, the interpreter must work relatively harder. It's up to the interpreter to determine the type of the object that `BINARY_MODULO` is operating on and do the right thing for that type. This is why Python is described at _dynamically typed_: you don't know the types of the arguments to this function until you actually run it. By constrast, in a language that's statically typed, the programmer tells the compiler up front what type the arguments will be (or the compiler figures them out for itself).
+
+The compiler's ignorance is one of the challenges to optimizing Python - just looking at the bytecode (without actually running the code), you don't know what each instruction will do! In a class you define, you can implement a method named `__mod__` that will be called when you use `%` on your objects. In their paper "How fast can we make interpreted Python?", Russell Power and Alex Rubensteyn note, "In the general absence of type information, each instruction must be treated as `INVOKE_ARBITRARY_METHOD`." It's hard to optimize a function when you don't know what it does.
 
 ### With byterun, you have a compact Python interpreter that's easier to understand than CPython. I encourage you to disassemble your own programs and run them using Byterun. (You'll eventually run into instructions that this shorter version of Byterun doesn't implement. The full implementation can be found at github.com/nedbat/byterun. )
-
-# Exceptions ?
-
-
-
