@@ -5,6 +5,7 @@
 
 Systems to rebuild formatted documents from source texts
 always seem to do too much work, or too little.
+
 They do too much work
 when they respond to a minor edit
 by making you wait for unrelated chapters
@@ -14,8 +15,8 @@ leaving you with an inconsistent final product.
 
 Consider Sphinx 1.2.3, the current version
 of the document builder
-used for both the Python language official documentation
-as well as for a number of other projects in the Python community.
+that is used for both the official Python language documentation
+and many other projects in the Python community.
 Your project’s ``index.rst`` will usually include a table of contents::
 
    Table of Contents
@@ -31,7 +32,8 @@ This list of chapter filenames
 tells Sphinx to include a link to each chapter
 when it builds the ``index.html`` output file.
 It will also include links to any sections within each chapter.
-Stripped of its markup, the result might look like::
+Stripped of its markup,
+the text that results from the above ``toctree`` command might be::
 
   Table of Contents
 
@@ -80,7 +82,7 @@ to repeatedly overwrite a single line with these progress updates.)
    writing output... [100%] tutorial
 
 Sphinx chose to rebuild both documents.
-Not only will the top of ``tutorial.html`` now feature its new title,
+Not only will ``tutorial.html`` now feature its new title up at the top,
 but the output ``index.html`` will display the updated chapter title
 in the table of contents.
 Sphinx has rebuilt everything so that the output is consistent.
@@ -91,16 +93,15 @@ What if your edit to ``tutorial.rst`` is more minor? ::
    ==================
 
   -Welcome to the tutorial!
-  +Welcome to our tutorial!
+  +Welcome to our project tutorial!
    This text will take you through the basics of...
 
 In this case there is no need to rebuild ``index.html``
 because this minor edit to the interior of a paragraph
 does not change any of the information in the table of contents.
 But it turns out that Sphinx is not quite as clever
-as it might have at first appeared.
-Just in case the chapter title or a section title has changed,
-it goes ahead and does the redundant work of rebuilding
+as it might have at first appeared!
+It goes ahead and does the redundant work of rebuilding
 ``index.html`` even though it will come out exactly the same. ::
 
    writing output... [ 50%] index
@@ -166,7 +167,7 @@ You will have invalidated *three* output files:
 
 3. The embedded cross reference in the first paragraph of ``api.html``
    still has the old chapter title,
-   so this chapter also needs to be rebuilt.
+   and also needs to be rebuilt.
 
 What does Sphinx do? ::
 
@@ -174,9 +175,10 @@ What does Sphinx do? ::
    writing output... [100%] tutorial
 
 Whoops.
-Only two files were rebuilt, not three.
 
+Only two files were rebuilt, not three.
 Sphinx has failed to correctly rebuild your documentation.
+
 If you now push your HTML to the web,
 users will see the old title in the cross reference
 at the top of ``api.html``
@@ -186,19 +188,30 @@ This can happen for many kinds of cross reference that Sphinx supports:
 chapter titles, section titles, paragraphs,
 classes, methods, and functions.
 
-Experienced Sphinx users have a time-honored solution
-to the cross-reference problem.
-The solution extends far beyond Sphinx, in fact,
-and has been honed and practiced since partial rebuilding
-was first invented in the early days of computing. ::
+Build Systems and Consistency
+=============================
+
+The problem outlined above is not specific to Sphinx.
+Not only can happen to other document systems, like LaTeX,
+but it can even plague projects
+that are simply trying to script compilation steps
+with the venerable “make” utility,
+if their assets happen to cross-reference in interesting ways.
+
+The problem is ancient and universal,
+and its solution is of equally long lineage:
 
    $ rm -r _build/
    $ make html
 
-By removing all previously generated output,
-the user forces the build system to perform a complete rebuild.
-This certainly solves the problem
-of guaranteeing consistency before publishing your documentation!
+You remove all of the output.
+
+By eliminating every copy of every intermediate or output asset,
+the build is forced to start over again completely
+with nothing cached — with no memory of its earlier states
+that could possibly lead to a stale product.
+A hefty ``rm`` ``-r`` solves the problem
+of guaranteeing consistency before publishing your Sphinx documentation!
 
 But could we develop a better approach?
 
