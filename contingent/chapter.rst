@@ -420,57 +420,70 @@ You may have been surprised
 by the absence of classes in the above discussion
 of Python data structures.
 After all, they are a frequent mechanism for organizing data
-that receive direct support through their own special Python syntax.
+and get defined through a dedicated Python syntax.
 
-The key insight here is that classes are utterly irrelevant
+But it turns out that classes are often
 to the question of data structure design.
-They simply repeat two data structures we have already seen:
+Classes simply repeat data structures that we have already seen:
 
 * A class instance is *implemented* as a dict.
-* A class instance is *used* like a tuple.
+* A class instance is *used* like a mutable tuple.
 
-Each class instance is backed by a dict,
-with key lookup offered through a prettier syntax.
-You get to say ``graph.incoming`` instead of ``graph["incoming"]``.
+The class offers key lookup into its attribute dictionary
+through a prettier syntax,
+where you get to say ``graph.incoming``
+instead of ``graph["incoming"]``.
 But, in practice, class instances are almost never used
 as generic key-value stores.
 Instead, they are used to organize heterogeneous data
-by attribute name instead of by position in a tuple.
+by attribute name instead of by an index into a tuple.
 
 So instead of putting a hostname and a port number together in a tuple
 and having to remember later which came first and which came second,
-you create an ``Address`` class with a ``host`` and a ``port``
-pass it around where otherwise you would have had anonymous tuples.
-Code becomes easier to read, easier to write,
-and the data is mutable instead of frozen in place in a tuple.
-But substituting in a class instance does not really change
+you create an ``Address`` class
+whose instances each have a ``host`` and a ``port`` attribute,
+pass an ``Address`` around
+where otherwise you would have had anonymous tuples.
+Code becomes easier to read and easier to write.
+But using a class instance does not really change
 any of the questions we faced above when doing data design:
-the class just offers a better and more flexible alternative
-for one of the data types you already had.
+it just provides a prettier and less anonymous container.
 
-The true value of classes
+The true value of classes, then,
 is not that they change the science of data design.
+The value of classes
+is that they let you *hide* your data design from the rest of a program!
 
-Instead, the value of classes
-is that they let you hide your data design from the rest of a program.
-
-Contingent code could easily become littered
-with dict and set operations as our graph data structure
-is traversed and modified.
-This would produce code that is difficult to read,
-frequently redundant, and that would all need rewriting
-the next time we switch how edges are stored.
-
-The glory of a class
-is that we can define each graph operation as a method,
-and insist that all code outside the class
-use only those named methods to interact with our data structure.
-Our other code will therefore come to speak naturally
-in the conceptual language of graphs and nodes and edges,
-instead of being littered with low-level operations on dicts and sets.
+From the outside, code can simply ask for a new ``Graph`` instance:
 
 >>> from contingent import graphlib
 >>> g = graphlib.Graph()
+
+Behind the scenes, a pair of dictionaries has already been built
+to store edges using the logic we outlined in the previous section:
+
+.. include:: contingent/graphlib.py
+    :code: python
+    :start-line: 16
+    :end-line: 19
+
+The leading underscores
+in front of the attribute names ``_inputs_of`` and ``_consequences_of``
+is a common convention in the Python community
+to signal that an attribute is private.
+This convention is one way the community suggests
+that programmers pass messages and warnings
+through spacetime to each other.
+Recognizing the need to signal differences among
+public versus internal object attributes,
+the community adopted the single leading underscore
+as a concise and fairly consistent indicator
+to other programmers,
+including our future selves,
+that the attribute is best treated
+as part of the internal invisible machinery of the class.
+
+
 
 >>> g.edges()
 []
@@ -640,33 +653,6 @@ more importantly, it would be much more difficult
 to read its purpose and behavior from the resulting code.
 This implementation demonstrates a Pythonic
 approach to problems: simple, direct, concise.
-
-At this point you might be wondering:
-“what's up with the ‘``_``’ at the beginning of the ``Graph``
-attribute names ``_inputs_of`` and ``_consequences_of``?”
-This is a Python convention —
-a rule generally followed by the community
-but not enforced by the language itself.
-You can read it as a marker on the attribute indicating
-“this attribute is an implementation detail; don't depend on it.”
-Python's open philosophy and powerful introspection
-mean that anyone will be able to see and manipulate these attributes:
-
->>> '_inputs_of' in dir(g)
-True
-
-This convention is one way the community has developed
-to allow programmers to pass messages and warnings
-through spacetime to each other.
-Recognizing the need to signal differences among
-public-facing, internal, and other types of object attributes,
-the community adopted single leading underscores
-as a way to provide
-a concise and fairly consistent indicator
-to other programmers,
-including our future selves,
-that the original authors intended these attributes
-to be viewed as part of the internal machinery of the class.
 
 The implementation of ``remove_edge()`` is,
 unsurprisingly, the inverse of ``add_edge()``:
