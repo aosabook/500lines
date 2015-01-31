@@ -413,8 +413,8 @@ and again as an incoming edge to another node.
 But in return for this redundancy,
 it supports the fast lookup that Contingent needs.
 
-The Real Purpose of Classes
-===========================
+The Proper Use of Classes
+=========================
 
 You may have been surprised
 by the absence of classes in the above discussion
@@ -460,37 +460,17 @@ is traversed and modified.
 This would produce code that is difficult to read,
 frequently redundant, and that would all need rewriting
 the next time we switch how edges are stored.
-The glory of classes is that we can instead
-define each graph operation as a class method,
+
+The glory of a class
+is that we can define each graph operation as a method,
 and insist that all code outside the class
 use only those named methods to interact with our data structure.
-
-
-
-Since Python doesn't contain exactly what we need,
-we'll have to construct something ourselves.
-At the core of Contingent is a ``Graph`` library,
-which is just such an extension to Python
-that gives us a convenient way to keep
-all the nodes and edges of a graph organized.
+Our other code will therefore come to speak naturally
+in the conceptual language of graphs and nodes and edges,
+instead of being littered with low-level operations on dicts and sets.
 
 >>> from contingent import graphlib
 >>> g = graphlib.Graph()
-
-A class like ``Graph`` defines a useful *abstraction*
-that gives up some generality
-in exchange for closer proximity to whatever problem we're working on.
-``Graph`` allows us to write our program using
-names drawn from the language of *graphs*,
-rather than having to express everything
-in terms of lists and dicts.
-While they don't really matter to the computer,
-good names are vitally important to the *programmer*,
-and the ability to work with names that closely match the problem is an
-important feature of modern programming languages.
-
-When we create a new ``Graph`` object,
-it won't have any nodes or edges:
 
 >>> g.edges()
 []
@@ -556,74 +536,6 @@ have read about: Pythonic solutions try to
 minimize syntactic overhead
 and leverage Python's powerful built-in tools
 and extensive standard library.
-
-What does this say about how should we build the ``Graph`` class?
-The main purpose of ``Graph`` is to keep track of the relationships
-between all the various nodes by maintaining a collection of all the
-edges between them.
-This will allow Contingent,
-when looking at a node,
-to determine which nodes are consequences of it.
-We also need to be sure that two edges
-pointing to something called ``index.html``
-actually point to the same node.
-But, since we want to push as much work as possible to Python itself,
-we need to examine the facilitites that it offers
-that might be of use to solve this problem.
-
-Python provides a number of data structures that might work:
-
-* ``tuples`` are immutable sequences of objects:
-  duplicate object references are allowed but,
-  once created,
-  tuple instances cannot be changed.
-
-* ``lists`` are mutable sequences of objects: new objects can be added
-  and existing objects removed or rearranged.
-  As with tuples,
-  lists can have duplicate references to the same object.
-
-* ``dicts`` are mutable mappings from one object (the “key”)
-  to another object (the “value”).
-  A typical use for dicts is to track collections of complex objects
-  by a name or other convenient identifier.
-  dict values can be duplicated but keys must be unique.
-
-* ``sets`` are mutable, unordered collections of *unique* objects.
-
-Looking at our requirements,
-it seems like we need bits from both ``dict`` and ``set``:
-tracking the consequences of a node in a ``set`` would make sure we
-never duplicate edges,
-while ``dict`` would give us a way to track the *adjacent* nodes
-to each node in our graph.
-This leads us to a dict-of-sets approach:
-the dict's keys are the nodes in the graph,
-while the values are the set of nodes adjacent to each key node:
-
->>> consequences_of = {
-...     'index.rst': set(['index.html']),
-...     'api.rst': set(['api.html']),
-... }
->>> 'index.html' in consequences_of['index.rst']
-True
-
-If we happen to record a connection between two nodes more than once,
-``set`` ensures that we remember that we've already seen
-this edge and therefore don't need to record it again:
-
->>> consequences_of['api.rst'].add('api.html')
->>> consequences_of['api.rst'] == set(['api.html'])
-True
-
-``Graph`` maintains two of these dict-of-sets structures,
-one recording the consequences of each node
-and a second recording its inputs —
-the nodes *it* depends on.
-This duplication is a tradeoff of space for convenience:
-while either data structure represents the entire graph unambiguously,
-having both makes asking questions in either direction
-a symmetric operation.
 
 Here is ``Graph``'s constructor:
 
