@@ -1,3 +1,10 @@
+.. raw:: html
+
+   <style>
+     body {font-size: 1.3em; margin: 1em;}
+     div.document {margin: 0em auto; max-width: 40em;}
+     pre {background-color: #eee; padding: 0.6em;}
+   </style>
 
 ==========================================
  Contingent: A Fully Dynamic Build System
@@ -192,14 +199,14 @@ Build Systems and Consistency
 =============================
 
 The problem outlined above is not specific to Sphinx.
-Not only can happen to other document systems, like LaTeX,
+Not only does it haunt other document systems, like LaTeX,
 but it can even plague projects
-that are simply trying to script compilation steps
+that are simply trying to direct compilation steps
 with the venerable “make” utility,
 if their assets happen to cross-reference in interesting ways.
 
-The problem is ancient and universal,
-and its solution is of equally long lineage:
+As the problem is ancient and universal,
+its solution is of equally long lineage::
 
    $ rm -r _build/
    $ make html
@@ -241,41 +248,17 @@ we will run it against a small version of the problem outlined above.
 Linking Tasks To Make a Graph
 =============================
 
-The Contingent system needs a way to remember
-that the output of a task like
-“get the title of the API chapter”
-is then needed as an input of a task like
-“build the ``index.html`` output file.”
-And this relationship between tasks might be transitive.
-The task “get the title of the API chapter” that we just mentioned
-might itself need another task to run as its input,
-like “parse the ``api.rst`` source text file.”
-
-When you represent input tasks and their consequences on paper,
-you probably use arrows to connect them,
-as shown in Figure 1.
+Any build system needs a way to link inputs and outputs.
+The three markup texts in our discussion above,
+for example,
+each produce a corresponding HTML output file.
+The most natural way to express these relationships
+is as a collection of boxes and arrows —
+or, in mathematician terminology, *nodes* and *edges*
+to form a graph:
 
 .. image:: figure1.png
 
-Mathematicians call this kind of diagram a *graph,*
-which is an unfortunate name — to most people,
-*graph* means a rectangular plot that uses a jagged line
-to display the unemployment rate or the stock market.
-But computer programming was born as a discipline of mathematics,
-and so Contingent also uses the term *graph*
-for a collection of boxes and arrows —
-or, as mathematicians say, *nodes* and *edges* —
-like those in Figure 1.
-
-.. * A graph needs to store edges.
-.. * You might need to do lookup either way: what edges arrive here?  What
-..   edges go away from this node?  And for each question, outline a
-..   situation in which Contingent will need to answer a question.
-.. * Talk about how we solve problems in Python: not with a Node class and an
-..   Edge class and an OutgoingEdgesCollection class, but with simple
-..   generic data structures.
-.. * Do four bullet points with a sentence each: tuple, list, dict, set
-.. * Discover that we should use a dict-of-sets pointing in each direction.
 .. * Show __init__() and talk about defaultdict
 .. * Then add_edge() then remove_edge()
 .. * Contingent will sometimes need to rebuild, in case ``api.rst``
@@ -288,27 +271,201 @@ like those in Figure 1.
 ..   COMPLETELY! We could change to a stupid Node class and Edge class
 ..   any time we wanted, because only task IDs pass our API border.
 
-How could we represent such a graph in Contingent?
-Neither the core Python language nor the standard library
-provide a direct equivalent to a graph data structure,
-which isn't really surprising:
-while a language like Python provides many useful data structures like
-lists, sets, and dictionaries,
-when solving problems we inevitably need structures or functions that
-the language authors didn't put in.
-Rather than trying to anticipate every possible need a user might
-have — which is impossible anyway — good language designers try to
-provide two things:
+How could we represent such a graph in Python?
 
-1. flexible, general purpose data structures and functions, and
-2. language features that let users build entirely *new* functions and
-   data structures that fit the problem at hand.
+The language gives priority to four generic data structures
+by giving them direct support in the language syntax.
+You can create new instances of the big-four data structures
+by simply typing them into your source code.
 
-This is a lot of the fun and challenge of language design,
-since different users have different opinions about what constitutes a
-“flexible” system,
-what features merit being called “general purpose,”
-and what kinds of facilities the language should offer for extension.
+* The **tuple** is a read-only sequence
+  whose syntax is parentheses around comma-separated items.
+  Tuples are used to hold heterogeneous data —
+  each slot in a tuple typically means something different.
+  Here, a tuple holds together a hostname and port number,
+  and would lose its meaning if the elements were re-ordered::
+
+    ('dropbox.com', 443)
+
+* The **list** is a mutable sequence
+  whose syntax is square brackets around comma-separated items.
+  Lists are used to hold homogenous data —
+  each item usually has the same structure and meaning as its peers.
+  Lists can be used either to preserve data’s original input order,
+  or can be rearranged or sorted
+  to establish a new and more useful order. ::
+
+    ['JavaScript', 'Java', 'PHP', 'Python', 'C#']
+
+* The **set** does not preserve order.
+  Instead, it compares its items by value.
+  The set remembers only whether a given value has been added,
+  not how many times,
+  and is therefore the go-to data structure
+  for removing duplicates from a data stream.
+  For example, the following two sets, once the language has built them,
+  will each have three elements::
+
+    {3, 4, 5}
+    {3, 4, 5, 4, 4, 3, 5, 4, 5, 3, 4, 5}
+
+* The **dict** lets the programmer chose the key
+  by which each value is indexed,
+  instead of using automatic integer indexing like the tuple and list.
+  The lookup is backed by a hash table,
+  which means that dict key lookup runs at the same speed
+  whether the dict has a dozen or a million keys! ::
+
+    {'ssh': 22, 'telnet': 23, 'domain': 53, 'http': 80}
+
+A key to Python’s flexibility
+is that these four data structures are composable.
+The programmer can arbitrarily nest them inside each other
+to produce more complex data stores
+whose rules and syntax remain the simple ones
+of the underlying tuples, lists, sets, and dicts.
+
+Given that each of our graph edges needs
+to know at least its origin node and its destination node,
+the simplest possible representation would be a tuple.
+The top edge in Figure 1 might look like::
+
+    ('tutorial.rst', 'tutorial.html')
+
+How can we store several edges?
+While our initial impulse might be
+to simply throw all of our edge tuples into a list,
+that would have disadvantages.
+A list is careful to maintain order,
+but it is not meaningful to talk about the order of separate edges.
+And a list would be perfectly happy to hold several copies
+of exactly the same edge,
+even though we only want it to be possible
+to draw a single arrow between ``tutorial.rst`` and ``tutorial.html``.
+The correct choice is thus the set,
+which would have us represent Figure 1 as::
+
+    {('tutorial.rst', 'tutorial.html'),
+     ('index.rst', 'index.html'),
+     ('api.rst', 'api.html')}
+
+This would allow quick iteration across all of our edges,
+fast insert and delete operations for a single edge,
+and a quick way to check whether a particular edge was present.
+
+Unfortunately, those are not the only operations we need.
+
+A build system like Contingent
+is going to focus its processing on nodes, not edges.
+When building a particular asset like ``api.html``
+it will need quick access to all of the incoming edges,
+so that it can adjust them as it learns which resources
+the build routine uses this time around,
+and will also need access to the outgoing edges
+so that any downstream tasks can be re-executed
+if the content of ``api.html`` is changed.
+Our set-of-tuples does not make this easy.
+The entire set would need to be traversed
+looking for edges that start or end at the ``api.html`` node.
+
+Python’s only associative data structure is the dict.
+We could use a dict to group edges for quick lookup by node::
+
+    {'tutorial.rst': {('tutorial.rst', 'tutorial.html')},
+     'tutorial.html': {('tutorial.rst', 'tutorial.html')},
+     'index.rst': {('index.rst', 'index.html')},
+     'index.html': {('index.rst', 'index.html')},
+     'api.rst': {('api.rst', 'api.html')},
+     'api.html': {('api.rst', 'api.html')}}
+
+Looking up the edges of a particular node would now be blazingly fast,
+at the cost of having to store every edge twice:
+once in a set of incoming edges,
+and once in a set of outgoing edges.
+But the edges in each set would have to be examined manually
+to see which are incoming and which are outgoing.
+It is also slightly redundant to keep naming the node
+over and over again in its set of edges.
+
+The solution to both of these objections
+is to segregate out incoming and outgoing edges
+into two different data structures.
+This will keep them separate automatically
+and absolve us of having to mention the node over and over again
+for every one of the edges in which it is involved! ::
+
+    incoming = {
+        'tutorial.html': {'tutorial.rst'},
+        'index.html': {'index.rst'},
+        'api.html': {'api.rst'},
+        }
+
+    outgoing = {
+        'tutorial.rst': {'tutorial.html'},
+        'index.rst': {'index.html'},
+        'api.rst': {'api.html'},
+        }
+
+Every edge in this dictionary-of-sets data structure
+does get represented twice,
+once as an outgoing edge from one node
+and again as an incoming edge to another node.
+But in return for this redundancy,
+it supports the fast lookup that Contingent needs.
+
+The Real Purpose of Classes
+===========================
+
+You may have been surprised
+by the absence of classes in the above discussion
+of Python data structures.
+After all, they are a frequent mechanism for organizing data
+that receive direct support through their own special Python syntax.
+
+The key insight here is that classes are utterly irrelevant
+to the question of data structure design.
+They simply repeat two data structures we have already seen:
+
+* A class instance is *implemented* as a dict.
+* A class instance is *used* like a tuple.
+
+Each class instance is backed by a dict,
+with key lookup offered through a prettier syntax.
+You get to say ``graph.incoming`` instead of ``graph["incoming"]``.
+But, in practice, class instances are almost never used
+as generic key-value stores.
+Instead, they are used to organize heterogeneous data
+by attribute name instead of by position in a tuple.
+
+So instead of putting a hostname and a port number together in a tuple
+and having to remember later which came first and which came second,
+you create an ``Address`` class with a ``host`` and a ``port``
+pass it around where otherwise you would have had anonymous tuples.
+Code becomes easier to read, easier to write,
+and the data is mutable instead of frozen in place in a tuple.
+But substituting in a class instance does not really change
+any of the questions we faced above when doing data design:
+the class just offers a better and more flexible alternative
+for one of the data types you already had.
+
+The true value of classes
+is not that they change the science of data design.
+
+Instead, the value of classes
+is that they let you hide your data design from the rest of a program.
+
+Contingent code could easily become littered
+with dict and set operations as our graph data structure
+is traversed and modified.
+This would produce code that is difficult to read,
+frequently redundant, and that would all need rewriting
+the next time we switch how edges are stored.
+The glory of classes is that we can instead
+define each graph operation as a class method,
+and insist that all code outside the class
+use only those named methods to interact with our data structure.
+
+
 
 Since Python doesn't contain exactly what we need,
 we'll have to construct something ourselves.
@@ -1429,13 +1586,6 @@ How can this mechanism be connected to actual code that takes the
 current value of each node and builds the resulting consequences?
 Python gives us many possible approaches.  [Show various ways of
 registering routines?]
-
-.. raw:: html
-
-   <style>
-     body {font-size: 1.3em; margin: 1em}
-     pre {background-color: #eee; padding: 0.6em;}
-   </style>
 
 .. Links
 .. _Sphinx: http://sphinx-doc.org/
