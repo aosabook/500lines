@@ -540,16 +540,48 @@ First, we need a way to add edges between nodes:
 This method hides the fact that two, not one,
 storage steps are required for each new edge
 so that we know about it in both directions.
-Code using the graph sees only a single step for each edge:
+And notice how ``add_edge()`` does not know or care
+whether either node has been seen before.
+Because the inputs and consequences data structures
+are each a ``defaultdict(set)``,
+``add_edge()`` remains blissfully ignorant
+as to the novelty of a node,
+while ``defaultdict`` takes care of the difference
+by creating new ``set`` objects on the fly as needed.
+As we saw above, ``add_edge()`` would be
+three times longer had we not used ``defaultdict``.
+More importantly, it would be much more difficult
+to read its purpose and behavior from the resulting code.
+This implementation demonstrates a Pythonic
+approach to problems: simple, direct, and concise.
+
+All of these considerations disappear
+as soon as we turn away from the code inside of the class.
+Code that is simply using the graph
+sees only a single verb — the method call —
+each time an edge is added:
 
 >>> g.add_edge('index.rst', 'index.html')
 >>> g.add_edge('tutorial.rst', 'tutorial.html')
 >>> g.add_edge('api.rst', 'api.html')
 
+Callers should also be given a simple way to visit every edge
+without having to learn how to traverse our data structure:
 
+.. include:: contingent/graphlib.py
+    :code: python
+    :start-line: 65
+    :end-line: 69
 
-We can see that, following our three “add” method calls,
-``g`` represents the same graph that we saw in Figure 1.
+The ``Graph.sorted()`` method, if you want to examine it later,
+makes an attempt to sort the nodes
+in case they have a natural sort order
+(alphabetical, in this case)
+that can provide a stable output order for the user.
+
+By using this traversal method we can see that,
+following our three “add” method calls earlier,
+``g`` now represents the same graph that we saw in Figure 1.
 
 >>> from pprint import pprint
 >>> pprint(g.edges())
@@ -557,7 +589,8 @@ We can see that, following our three “add” method calls,
  ('index.rst', 'index.html'),
  ('tutorial.rst', 'tutorial.html')]
 
-but, since it is a real live Python object and not just a pretty picture,
+Since we now have a real live Python object,
+and not just a figure,
 we can ask it interesting questions!
 For example, when Contingent is building a blog from source files,
 it will need to know things like “What depends on ``api.rst``?” when
@@ -566,7 +599,7 @@ the content of ``api.rst`` changes:
 >>> g.immediate_consequences_of('api.rst')
 ['api.html']
 
-``Graph`` is telling Contingent that,
+This ``Graph`` is telling Contingent that,
 when ``api.rst`` changes,
 ``api.html`` is now stale and must be rebuilt.
 How about ``index.html``?
@@ -574,16 +607,24 @@ How about ``index.html``?
 >>> g.immediate_consequences_of('index.html')
 []
 
-Since ``index.html`` is at the end of the graph ­— it is what
-graph folks call a *leaf node* — nothing depends on it and so nothing
-needs to be rebuilt if it changes.
+An empty list has been returned,
+signalling that ``index.html`` is at the right edge of the graph
+and so nothing further needs to be rebuilt if it changes.
+This query can be expressed very simply
+thanks to the work that has already gone in to laying out our data:
 
-How can we implement a method like ``add_edges``?
+.. include:: contingent/graphlib.py
+    :code: python
+    :start-line: 69
+    :end-line: 72
+
 Careful readers will have noticed that we added edges to our graph
-without explicitly creating node and edge objects,
-and that the nodes themselves are simply strings.
+without explicitly creating “node” and “edge” objects,
+and that the nodes themselves in these early examples
+are simply strings.
 Coming from other languages and traditions,
-one might have expected to see something more like::
+one might have expected to see
+user-defined classes and interfaces for everything in the system::
 
     Graph g = new ConcreteGraph();
     Node indexRstNode = new StringNode("index.rst");
@@ -591,10 +632,9 @@ one might have expected to see something more like::
     Edge indexEdge = new DirectedEdge(indexRstNode, indexHtmlNode);
     g.addEdge(indexEdge);
 
-with user-defined classes and interfaces for everything in the system.
 The Python language and community explicitly and intentionally emphasize
 using simple, generic data structures to solve problems,
-rather than creating custom classes for every minute detail
+instead of creating custom classes for every minute detail
 of the problem we want to tackle.
 This is one facet of the notion of “Pythonic” solutions that you may
 have read about: Pythonic solutions try to
@@ -606,12 +646,7 @@ and extensive standard library.
  >>> from contingent.rendering import as_graphviz
  >>> open('figure1.dot', 'w').write(as_graphviz(g)) and None
 
-And now we're ready to look at ``add_edge()``:
 
-.. include:: contingent/graphlib.py
-    :code: python
-    :start-line: 36
-    :end-line: 41
 
 Adding an edge means updating both the
 inputs and consequences structures;
@@ -621,40 +656,6 @@ also adds an input of ``'tutorial-title'``:
 >>> g.add_edge('tutorial.rst', 'tutorial-title')
 >>> g.inputs_of('tutorial-title')
 ['tutorial.rst']
-
-Since we chose to represent the graph in both directions
-we need to update ``_inputs_of`` and ``_consequences_of``
-whenever we add a new edge.
-This makes it easy to ask about either
-a node's inputs or its consequences
-but requires ``Graph`` to keep the two structures
-carefully synchronized.
-An alternative implementation might choose
-to represent one side directly
-and derive the other via computation,
-thereby choosing to reduce space consumption by
-increasing code complexity.
-Unless your graph is enormous or your hardware peculiar, however,
-you are unlikely to notice the performance difference;
-you certainly *will* notice
-if your code is awkward or complicated,
-particularly if you stare at it at 2 in the morning.
-
-Speaking of uncomplicated code,
-notice how ``add_edge()`` doesn't know or care
-whether either node has been seen before:
-because the inputs and consequences data structures
-are defined as ``defaultdict(set)``,
-``add_edge()`` remains blissfully ignorant
-as to the novelty of a node,
-while ``defaultdict`` takes care of the difference
-by creating new ``set`` objects on the fly as needed.
-As we saw above, ``add_edge()`` would be
-3 times as long without ``defaultdict``;
-more importantly, it would be much more difficult
-to read its purpose and behavior from the resulting code.
-This implementation demonstrates a Pythonic
-approach to problems: simple, direct, concise.
 
 The implementation of ``remove_edge()`` is,
 unsurprisingly, the inverse of ``add_edge()``:
