@@ -664,7 +664,7 @@ in the opening of this chapter.
 .. figure:: figure2.png
 
    **Figure 2.** Being prepared to rebuild ``index.html``
-   when any text that it imports gets changed.
+   whenever any title that it mentions gets changed.
 
 This manual walk-through illustrates what we
 will eventually have Contingent do for us:
@@ -683,32 +683,35 @@ If we look more closely at Figure 2, however,
 we see that it is actually a little hand wavy and vague:
 what does it mean to say that
 ``index.rst``, ``api-title``, and ``tutorial.html`` are “tasks?”
+
 Our intuitive notion of these ideas
 served when we were constructing consequences graphs by hand,
 but unfortunately computers are not terribly intuitive,
-so we'll need to be more precise about what we want.
+so we will need to be more precise about what we want.
 What are tasks?
 How are they defined and executed?
 And how can Contingent know the connections between them?
 
-In Contingent, tasks are modeled as functions plus arguments,
-where the functions define actions the particular project
-understands how to perform with the arguments providing
+In Contingent, tasks are modeled as functions plus arguments.
+The functions define actions that the particular project
+understands how to perform.
+The arguments provide
 the specifics: *which* source document should be read,
 *which* blog title is needed.
 As they are running,
 these functions may in turn invoke *other* task functions,
 passing whatever arguments they need answers for.
 
-To see how this works we'll continue with our blog building example.
+To see how this works we will actually now implement
+the documentation builder described at the beginning of the chapter.
 In order to prevent ourselves from wallowing around in a bog of details,
 for this illustration we will work with
 simplified input and output document formats.
 Our input documents will consist of a title on the first line,
 with the remainder of the text forming the body.
-Cross references are simply source file names
-enclosed in back ticks (`````),
-which are replaced with the title
+Cross references will simply be source file names
+enclosed in back ticks,
+which on output are replaced with the title
 from the corresponding document in the output.
 
 Here is the content of our example
@@ -742,6 +745,7 @@ from our little document format:
 Now that we have some source material to work with,
 what functions would a Contingent-based blog builder
 need?
+
 In the simplistic examples above,
 the HTML output files proceed directly from the source,
 but in a realistic system,
@@ -764,25 +768,27 @@ to construct a graph of the relationships between all the tasks.
 >>> project = Project()
 >>> task = project.task
 
-This simplified build system involves five basic steps:
+A build system for the example given at the beginning of the chapter
+might involve five basic steps:
 *reading* the raw contents of a file,
 *parsing* the contents to produce an in-memory document representation,
 *extracting* information from our document representation,
 *transforming* the document representation,
 and *rendering* the output document.
 
-* ``read()`` pretends to read the files from disk;
-  since we defined the source text in variables,
-  all it actually needs to do is convert from a filename
-  to the corresponding text:
+* Our ``read()`` task will pretend to read the files from disk.
+  Since we really defined the source text in variables,
+  all it needs to do is convert from a filename
+  to the corresponding text.
 
     >>> filesystem = {'index.txt': index, 'tutorial.txt': tutorial,
     ...               'api.txt': api}
+    ...
     >>> @task
     ... def read(filename):
     ...     return filesystem[filename]
 
-* ``parse()`` interprets the raw text of the file contents
+* The ``parse()`` task interprets the raw text of the file contents
   according to the specification of our document format.
   Our format is very simple:
   the title of the document appears on the first line,
@@ -790,8 +796,9 @@ and *rendering* the output document.
 
     >>> @task
     ... def parse(filename):
-    ...     text = read(filename).strip('\n')
-    ...     title, body = text.split('\n', 1)
+    ...     lines = read(filename).strip().splitlines()
+    ...     title = lines[0]
+    ...     body = '\n'.join(lines[2:])
     ...     return title, body
 
   Because the format is so simple,
@@ -809,11 +816,10 @@ and *rendering* the output document.
 
   Notice the connection point between
   ``parse()`` and ``read()``:
-  ``parse()``'s first task is to pass the filename it has been given
-  to ``read()``, which finds and returns the contents
-  of that file.
+  the first task in parsing is to pass the filename it has been given
+  to ``read()``, which finds and returns the contents of that file.
 
-* ``title_of()``, given a source file name,
+* The ``title_of()`` task, given a source file name,
   returns the document's title:
 
     >>> @task
@@ -828,33 +834,36 @@ and *rendering* the output document.
   in this case a tuple,
   rather than *itself* having to sift the chaos of bits
   in the input file looking for a document title.
-  ``parse()``'s job is to produce the in-memory representation,
+  Its job is to produce the in-memory representation,
   in accordance with the contract of the system specification,
   that the rest of the blog builder processing functions
   like ``title_of()``
-  expect to be able to use.
+  will expect to be able to use.
 
   If you are coming from an orthodox object-oriented tradition,
   this function-oriented design may look a little weird.
   In an OO solution,
   ``parse()`` would return some sort of ``Document`` object
   that has ``title_of()`` as a method or property.
-  In fact, Sphinx works exactly this way,
-  its ``Parser`` subsystem producing a “Docutils document tree” object
+  In fact, Sphinx works exactly this way.
+  Its ``Parser`` subsystem producing a “Docutils document tree” object
   for the other parts of the system.
+
   Contingent is not opinionated
   with regard to these differing design paradigms
   and supports either approach equally well.
+  For this chapter we are keeping things simple.
 
 * A document processing system like Sphinx
   defines many useful document *transforms*
   that implement features like cross referencing,
   formatting, and document assembly.
   Our simplified document specification
-  includes only simple cross-referencing
-  implemented in this ``transform()`` function
+  includes only simple cross-referencing,
+  implemented in this ``transform()`` task:
 
     >>> import re
+    >>>
     >>> @task
     ... def transform(filename):
     ...     title, raw_body = parse(filename)
@@ -863,44 +872,38 @@ and *rendering* the output document.
     ...         raw_body)
     ...     return title, body
 
-  which looks up
-  document titles enclosed in backticks (```tutorial.txt```)
+  This task searches the document source text
+  for document filenames enclosed in backticks,
   and replaces them with the corresponding document's title.
 
-    .. TODO: how much explanation do we need here? If you don't already
-        know how this works, this implementation is pretty inscrutable.
-
-* ``render()``'s job is to turn the in-memory representation of a document
-  into an output form; it is, in effect, the inverse of ``parse()``.
-  ``parse()`` takes an input document
+* The final task,
+  ``render()``,
+  turns the in-memory representation of a document
+  into an output form.
+  It is, in effect, the inverse of ``parse()``.
+  Whereas ``parse()`` takes an input document
   conforming to a specification
-  and converts it to an in-memory representation;
+  and converts it to an in-memory representation,
   ``render()`` takes an in-memory representation
   and produces an output document
   conforming to some specification.
-  Both functions could, in fact,
-  work with the same document specification,
-  which isn't as weird as it might sound at first:
-  just because we are working from the same specification
-  doesn't mean we have to produce the same *document*.
-  Besides, in-memory representations can sometimes be easier to work with
-  than raw text if the document specification is complicated (think HTML).
 
     >>> @task
     ... def render(filename):
     ...     title, body = transform(filename)
-    ...     return title + '\n' + body
+    ...     html = '<h1>{}</h1>\n<p>\n{}\n<p>'
+    ...     return html.format(title, body)
 
-
-Here's an example:
-rendering ``tutorial.txt``
-produces its output
+Here is an example run
+that will invoke every stage of the above logic —
+rendering ``tutorial.txt`` to produce its output:
 
 >>> print(render('tutorial.txt'))
-Beginners Tutorial
-------------------
+<h1>Beginners Tutorial</h1>
+<p>
 Welcome to the tutorial!
 We hope you enjoy it.
+<p>
 
 Figure 3 illustrates the task graph
 that transitively connects all the tasks
@@ -1165,20 +1168,23 @@ What happens if we render the entire set of documents?
 >>> for filename in 'index.txt', 'tutorial.txt', 'api.txt':
 ...     print(render(filename))
 ...     print('=' * 30)
-Table of Contents
------------------
+<h1>Table of Contents</h1>
+<p>
 * 'Beginners Tutorial'
 * 'API Reference'
+<p>
 ==============================
-Beginners Tutorial
-------------------
+<h1>Beginners Tutorial</h1>
+<p>
 Welcome to the tutorial!
 We hope you enjoy it.
+<p>
 ==============================
-API Reference
--------------
+<h1>API Reference</h1>
+<p>
 You might want to read
 the 'Beginners Tutorial' first.
+<p>
 ==============================
 
 It worked!
