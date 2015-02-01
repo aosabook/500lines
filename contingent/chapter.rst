@@ -1280,7 +1280,62 @@ and did not get re-invoked.
 Conclusion
 ==========
 
+There exist languages and programming methodologies
+under which Contingent would be a suffocating forest of tiny classes
+giving useless and verbose names to every concept in the problem domain.
 
+When programming Contingent in Python, however,
+we skipped the creation of a dozen classes that could have existed,
+like ``TaskArgument`` and ``CachedResult`` and ``ConsequenceList``.
+We instead drew upon Python’s strong tradition
+of solving generic problems with generic data structures,
+resulting in code that repeatedly uses a small set of ideas
+from the core data structures tuple, list, set, and dict.
+
+But does this not cause a problem?
+
+Generic data structures are also, by their nature, anonymous.
+Our ``project._cache`` is a set.
+So is every collection of upstream and downstream nodes
+inside the ``Graph``.
+Are we in danger of seeing generic ``set`` error messages
+and not knowing whether to look in the project or the graph
+implementation for the error?
+
+In fact, we are not in danger!
+
+Thanks to the careful discipline of encapsulation —
+of only allowing ``Graph`` code to touch the graph’s sets,
+and ``Project`` code to touch the project’s set —
+there will never be ambiguity if a set operation
+returns an error during a later phase of the project.
+The name of the innermost executing method at the moment of the error
+will necessarily direct us to exactly the class, and set,
+involved in the mistake.
+There is no need to create a subclass of ``set``
+for every possible application of the data type,
+so long as we put that conventional underscore in front of data
+structure attributes and then are careful not to touch them
+from code outside of the class.
+
+Contingent demonstrates how crucial the Facade pattern,
+from the epochal *Design Patterns* book,
+is for a well-designed Python program.
+Not every data structure and fragment of data in a Python program
+gets to be its own class.
+Instead, classes are used sparingly,
+at conceptual pivots in the code where a big idea —
+like the idea of a dependency graph —
+can be wrapped up into a Facade
+that hides the details of the simple generic data structures
+that lie beneath it.
+
+Code outside of the Facade
+names the big concepts that it needs
+and the operations that it wants to perform.
+Inside of the Facade,
+the programmer manipulates the small and convenient moving parts
+of the Python programming language to make the operations happen.
 
 .. Links
 .. _Sphinx: http://sphinx-doc.org/
