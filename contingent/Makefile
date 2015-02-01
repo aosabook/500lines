@@ -8,7 +8,7 @@ all: chapter.html $(PNGS)
 
 chapter.html: chapter.rst $(PYS)
 	python3 -m doctest -o ELLIPSIS -f chapter.rst
-	rst2html chapter.rst chapter.html
+	rst2html.py chapter.rst chapter.html
 
 $(PNGS): %.png: %.dot
 	dot -Tpng $< > $@
