@@ -142,15 +142,15 @@
         // ctx.save();
         var width = PI - PI/6;
         var length = 20;
-        var nosex = cos(this.facing.rad) * length + this.position.x;
-        var nosey = sin(this.facing.rad) * length + this.position.y;
+        var frontX = cos(this.facing.rad) * length + this.position.x;
+        var frontY = sin(this.facing.rad) * length + this.position.y;
         ctx.strokeStyle = this.color;
         ctx.lineWidth = 4;
         ctx.beginPath();
-        ctx.moveTo(nosex, nosey);
+        ctx.moveTo(frontX, frontY);
         ctx.lineTo(cos(this.facing.rad - width) * length + this.position.x,
                    sin(this.facing.rad - width) * length + this.position.y);
-        ctx.moveTo(nosex, nosey);
+        ctx.moveTo(frontX, frontY);
         ctx.lineTo(cos(this.facing.rad + width) * length + this.position.x,
                    sin(this.facing.rad + width) * length + this.position.y);
         ctx.stroke();
