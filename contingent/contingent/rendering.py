@@ -1,7 +1,5 @@
 """Output routines related to the graph type."""
 
-from types import FunctionType
-
 def as_graphviz(graph):
     """Render this ``contingent.Graph`` object as graphviz code.
 

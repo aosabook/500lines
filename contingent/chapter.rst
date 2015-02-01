@@ -895,135 +895,38 @@ parsing and transforming the document,
 and rendering the result:
 
 ..
- >>> open('figure3.dot', 'w').write(as_graphviz(project.graph)) and None
+ >>> open('figure3.dot', 'w').write(as_graphviz(project._graph)) and None
 
 .. image:: figure3.png
 
+It turns out that Figure 3 was not hand-drawn for this chapter,
+but has been generated directly from Contingent!
+Building this graph is possible for the ``Project`` object
+because it maintains its own call stack,
+similar to the stack of live execution frames
+that Python maintains to remember which function to continue running
+when the current one returns.
 
-Wait, where did Figure 3 come from?
-It turns out that,
-like your nosy next-door neighbor,
-``Project`` spies on all of the interactions
-between its tasks.
-To see how this works,
-we need to look at what happens when
-one function calls another.
-When ``parse('tutorial.txt')`` calls ``read('tutorial.txt')``,
-Python can't simply jump
-from ``parse``'s code to ``read``'s,
-since that would lose track of what we were doing
-in ``parse`` when the call was made,
-leaving our program wandering around forgetting everything
-like Leonard from *Memento*,
-with equally disastrous consequences.
-In order to keep track of things like
-*who* called ``read``,
-where we were in the code when the call was made,
-and what local variables were in play at the time,
-Python maintains a *call stack*
-with the information for the currently-executing function
-on top.
-Calling a function pushes its information to the top of the stack;
-returning from a function pops it off.
-This elegant structure allows each function
-to work within its own local context,
-with the stack maintaining the call chain from one function to another.
-For example,
-when ``read()`` returns and its information is popped off the stack,
-``parse()``, which called it,
-is now the top function,
-and control returns to it at the point the call was made.
+Every time that a new task is invoked,
+Contingent can assume that it has been called —
+and that its output will be used —
+by the task currently at the top of the stack.
+Maintaining the stack will require that several extra steps
+surround the invocation of a task T:
 
-*But wait*, you're thinking,
-*we need to track* **tasks**,
-*not just any old function that comes along.*
-I like where your head's at,
-particularly if it's still attached to you.
-While Python provides introspection facilities
-that will let a program examine the real function call stack,
-it's true that these facilities don't quite match our need:
-we care when one *task* invokes another,
-which will be difficult to tease out from
-the myriad function calls flying about as our program runs.
-Instead, we can maintain our own *task* stack,
-so when ``parse('tutorial.txt')`` calls ``read('tutorial.txt')``,
-``Project`` can jot that fact down in its task graph.
+1. Push T onto the stack.
+2. Execute T, letting it call any other tasks it needs.
+3. Pop T off the stack.
+4. Return its result.
 
-Let's explore this idea by looking at
-expanded versions of ``parse`` and ``read``
-to see how they would work with a task stack.
-To maintain the stack as we run our tasks,
-we need to ensure that tasks are pushed on as they begin
-and popped off as they complete,
-just like the call stack does for function calls.
-Each time a task runs,
-we need to
-
-1. push the task onto the stack
-2. execute the task, which may involve calling other tasks
-3. pop the task off the stack
-4. return its result
-
-For example, here is an expanded version of the ``read`` task function,
-cleverly called ``read_task``,
-which handles both ``read``'s actual responsibilities
-and task stack management
-using a simple Python list as the task stack:
-
->>> task_stack = []
->>> def read_task(filename):
-...     task = Task(read_task, (filename,))
-...     task_stack.append(task)
-...     print(task_stack)
-...     result = 'Witty Title\nEngaging content'
-...     task_stack.pop()
-...     return result
-
-
-Calling ``read_task`` prints out the task stack as it runs:
-
->>> read_task('api.rst') and None
-[read_task('api.rst')]
-
-More interesting is to see what happens
-when we call ``parse_task``,
-the task function version of ``parse``.
-Notice that if one task invokes another task
-while it is doing its work (step 2 above),
-the calling task will be the one at the top of the stack
-when the call is made.
-Since ``parse_task`` will call ``read_task``
-to get the contents of the file it needs to parse,
-our stack will be two tasks deep
-when ``read_task`` is called:
-
->>> def parse_task(filename):
-...     task = Task(parse_task, (filename,))
-...     task_stack.append(task)
-...     print(task_stack)
-...     text = read_task(filename).strip('\n')
-...     title, body = text.split('\n', 1)
-...     task_stack.pop()
-...     return title, body
-
->>> parse_task('api.rst') and None
-[parse_task('api.rst')]
-[parse_task('api.rst'), read_task('api.rst')]
-
-Contingent's ``Project`` class,
-which we looked at briefly above,
-exists primarily to maintain a task stack like this,
-and, as one task calls another,
-to record the interaction in its consequences graph.
-Of course writing all that task stack management code
-in each task function would be
-tedious, repetitive, error-prone, and repetitive,
-so ``Project`` leverages another Python feature
-to help out: *function decorators*.
-A function decorator packages a function
-inside another function, a *wrapper*,
-allowing clean separation of responsibilities:
-the wrapper worries about graph and task stack management —
+To intercept task calls,
+the ``Project`` leverages a key Python: *function decorators*.
+A decorator is allowed to process or transform a function
+at the moment that it is being defined.
+The ``Project.task`` decorator uses this opportunity
+to package every task inside another function, a *wrapper*,
+allowing a quite clean separation of responsibilities.
+The wrapper worries about graph and stack management —
 of which the task function remains blissfully ignorant —
 while each task function can focus on
 the work needed to be done to perform the task.
@@ -1031,15 +934,18 @@ Here is what the ``task`` decorator boilerplate looks like:
 
 .. code-block:: python
 
-        def task(self, task_function):
-            @wraps(task_function)
-            def wrapper(*args):
-                # wrapper body
+        from functools import wraps
 
+        def task(function):
+            @wraps(function)
+            def wrapper(*args):
+                # wrapper body, that will call function()
             return wrapper
 
-which is a fairly typical Python decorator declaration.
-When the decorator is used, like this:
+This is an entirely typical Python decorator declaration.
+It can then be applied to a function
+by naming it after a ``@`` character atop the ``def``
+that creates the function:
 
 .. code-block:: python
 
@@ -1048,65 +954,63 @@ When the decorator is used, like this:
         title, body = parse(filename)
         return title
 
-Python replaces ``title_of`` with the wrapper function,
-which can access the original version of the function
-via the name ``task_function``,
+Python assigns the wrapper function to the name ``title_of``.
+The wrapper which can access the original version of the function
+via the name ``function``,
 calling it at the appropriate time.
-The body of the wrapper function
+The body of the Contingent wrapper
+runs something like this:
 
 .. code-block:: python
 
     task = Task(wrapper, args)
 
     if self.task_stack:
-        self.graph.add_edge(task, self.task_stack[-1])
+        self._graph.add_edge(task, self.task_stack[-1])
 
-    self.task_stack.append(task)
+    self._task_stack.append(task)
     try:
-        value = task_function(*args)
+        value = function(*args)
     finally:
-        self.task_stack.pop()
+        self._task_stack.pop()
 
     return value
 
+This wrapper performs several crucial maintenance steps:
 
-performs
-these maintenance steps:
+1. Packages the task —
+   a function plus its arguments —
+   into a small object for convenience.
+   The ``wrapper`` here names the wrapped version of the task function.
 
-1. package the task — which Contingent models
-   as a task function plus its arguments —
-   into a task tuple for convenience.
-   ``wrapper`` here means the wrapped version
-   of the task function.
-
-2. if this task was invoked by a previous task,
+2. If this task has been invoked
+   by a current task that is already underway,
    add an edge capturing the fact that
-   this task has the previous one as a consequence
+   this task is an input to the already-running task.
 
-3. push this task to the top of the task stack
+3. Push this task onto the top of the task stack
+   in case it should, in its turn, invoke further tasks
+   in the course of doing its work.
 
-4. invoke the task, capturing its return value.
-   The ``try...finally`` block ensures
-   we correctly maintain the task stack
-   even if a task raises an exception
+4. Invoke the task
+   inside of a ``try...finally`` block
+   that ensures we correctly remove the finished task from the stack
+   even if a task dies by raising an exception.
 
-5. pop this task off the top of the task stack
+5. Return the task’s return value,
+   so that callers of this wrapper
+   will not be able to tell that they have not simply invoked
+   the plain task function itself.
 
-6. return the result of executing the task
+Steps 3 and 4 maintain the task stack itself,
+which is then used by step 2 to perform the consequences tracking
+that is our whole reason for building a task stack in the first place.
 
-Notice that steps 3–6 correspond
-to the pattern we set out above
-for managing a task stack,
-and step 2 adds the consequences tracking
-that was our whole reason for
-endeavoring to build a task stack in the first place.
-Since each task gets its own copy of the wrapper function,
-we can do this as many times as we need to,
-allowing each task to automatically maintain
-the task stack and consequences graph
-without itself having to know anything about them.
-With this task decorator in place,
-we can now see that our original task definitions
+Since each task gets surrounded by its own copy of the wrapper function,
+the mere invocation and execution of the normal stack of tasks
+will produce a graph of relationships as an invisible side effect.
+That is why we were careful to use the wrapper
+around every one of the processing steps we defined:
 
 .. code-block:: python
 
@@ -1123,33 +1027,34 @@ we can now see that our original task definitions
         # body of title_of
 
     @task
-    def transform(filename):
-        # body of transform
-
-    @task
     def render(filename):
         # body of render
 
-are in fact wrapped task functions that,
-as each task is called,
-maintain the task stack and
-dynamically learn the connections between the tasks
-as one invokes another.
-So when we called ``parse('tutorial.txt')`` earlier,
-``Project``'s ``task`` decorator learned
-the connection between ``parse`` and ``read``:
+Thanks to these wrappers,
+when we called ``parse('tutorial.txt')``
+the decorator learned
+the connection between ``parse`` and ``read``.
+We can ask about the relationship by building another ``Task`` tuple
+and asking what the consequences would be
+if its output value changed:
 
 >>> task = Task(read, ('tutorial.txt',))
 >>> print(task)
 read('tutorial.txt')
->>> project.graph.immediate_consequences_of(task)
+>>> project._graph.immediate_consequences_of(task)
 [parse('tutorial.txt')]
 
+The consequence of re-reading the ``tutorial.txt`` file
+and finding its contents have changed
+is that we need to re-execute the ``parse()`` routine for that document.
 What happens if we render the entire set of documents?
+Will Contingent be able to learn the entire build process
+with its interrelationships?
 
 >>> for filename in 'index.txt', 'tutorial.txt', 'api.txt':
 ...     print(render(filename))
 ...     print('=' * 30)
+...
 <h1>Table of Contents</h1>
 <p>
 * <a href="tutorial.txt">Beginners Tutorial</a>
@@ -1175,13 +1080,15 @@ our transform substited the docuent titles
 for the directives in our source docuents,
 indicating that Contingent was able to
 discover the connections between the various tasks
-needed to build our documents,
-as shown by Figure 4:
+needed to build our documents.
 
 ..
- >>> open('figure4.dot', 'w').write(as_graphviz(project.graph)) and None
+ >>> open('figure4.dot', 'w').write(as_graphviz(project._graph)) and None
 
-.. image:: figure4.png
+.. figure:: figure4.png
+
+   **Figure 4.** The complete set of relationships
+   between our input files and our HTML outputs.
 
 By watching one task invoke another
 through the ``task`` wrapper machinery,
@@ -1197,7 +1104,7 @@ Look at all the things that *might* need to be rebuilt
 if the tutorial source text is touched.
 
 >>> task = read, ('tutorial.txt',)
->>> pprint(project.graph.recursive_consequences_of([task]))
+>>> pprint(project._graph.recursive_consequences_of([task]))
 [parse('tutorial.txt'),
  render('tutorial.txt'),
  title_of('tutorial.txt'),
@@ -1214,37 +1121,34 @@ What can we do?
 Caching Consequences
 ====================
 
-So far, we have built a system that avoids rebuilding too little:
-by maintaining a complete consequences graph,
+So far, we have built a system that avoids rebuilding too little.
+By maintaining a complete consequences graph,
 Contingent knows every task that is a downstream consequence
 of the tutorial's source text
 and can force each affected task to be recomputed.
+
 Our second challenge, however,
-is to avoid rebuilding too *much*:
-we want to avoid rebuilding all the documents
+is to avoid rebuilding too much.
+We want to avoid rebuilding all the documents
 if ``tutorial.txt`` is touched but its title has not changed,
 since we know that the tutorial's body
 has no effect on the other documents.
 
-How? Caching, my boy, caching!
+The solution is caching.
 
-First, though, we need to be more precise about what we mean.
-That is, we need to express the idea
-“``tutorial.txt`` is touched but its title has not changed”
-in terms of Contingent's model concepts of
-tasks, values, and consequences.
-What we need is a way to compare a task's output
-with the value produced by the previous run:
-we say that a task has changed if
-its current value is different from the value it produced last time.
-For example, the current value of this task is:
+First, though, we need a way to compare a task’s current output
+with the value produced by the previous run.
+We say that a task has *changed* if
+its new return value is different from the value it produced last time.
+For example, the current value of the tutorial title is:
 
 >>> title_of('tutorial.txt')
 'Beginners Tutorial'
 
-Suppose you edit ``tutorial.txt``,
-change both the title and the body content,
-and save your work to the file system:
+Suppose you edit ``tutorial.txt``
+and change both the title and the body content.
+We can simulate this by modifying the value
+in our ``filesystem`` dict:
 
 >>> filesystem['tutorial.txt'] = """
 ... The Coder Tutorial
@@ -1406,6 +1310,7 @@ How can this mechanism be connected to actual code that takes the
 current value of each node and builds the resulting consequences?
 Python gives us many possible approaches.  [Show various ways of
 registering routines?]
+
 
 .. Links
 .. _Sphinx: http://sphinx-doc.org/

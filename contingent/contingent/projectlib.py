@@ -11,16 +11,16 @@ class Project:
     """A collection of tasks that are related as inputs and consequences."""
 
     def __init__(self):
-        self.graph = Graph()
-        self.graph.sort_key = task_key
-        self.cache = {}
-        self.task_stack = []
-        self.todo_list = set()
-        self.trace = None
+        self._graph = Graph()
+        self._graph.sort_key = task_key
+        self._cache = {}
+        self._task_stack = []
+        self._todo_list = set()
+        self._trace = None
 
     def start_tracing(self):
         """Start recording every task that is invoked by this project."""
-        self.trace = []
+        self._trace = []
 
     def stop_tracing(self, verbose=False):
         """Stop recording task invocations, and return the trace as text.
@@ -37,17 +37,17 @@ class Project:
                 '. ' * depth,
                 'calling' if not_available else 'returning cached',
                 task)
-            for (depth, not_available, task) in self.trace
+            for (depth, not_available, task) in self._trace
             if verbose or not_available)
 
-        self.trace = None
+        self._trace = None
         return text
 
     def _add_task_to_trace(self, task, return_value):
         """Add a task to the currently running task trace."""
-        tup = (len(self.task_stack), return_value is _unavailable, task)
-        self.trace.append(tup)
-        if len(self.trace) > 30:
+        tup = (len(self._task_stack), return_value is _unavailable, task)
+        self._trace.append(tup)
+        if len(self._trace) > 30:
             print(self.stop_output())
             raise RuntimeError()
 
@@ -79,20 +79,20 @@ class Project:
         def wrapper(*args):
             task = Task(wrapper, args)
 
-            if self.task_stack:
-                self.graph.add_edge(task, self.task_stack[-1])
+            if self._task_stack:
+                self._graph.add_edge(task, self._task_stack[-1])
 
             return_value = self._get_from_cache(task)
-            if self.trace is not None:
+            if self._trace is not None:
                 self._add_task_to_trace(task, return_value)
 
             if return_value is _unavailable:
-                self.graph.clear_inputs_of(task)
-                self.task_stack.append(task)
+                self._graph.clear_inputs_of(task)
+                self._task_stack.append(task)
                 try:
                     return_value = task_function(*args)
                 finally:
-                    self.task_stack.pop()
+                    self._task_stack.pop()
                 self.set(task, return_value)
 
             return return_value
@@ -106,9 +106,9 @@ class Project:
         returns the singleton `_unavailable` instead.
 
         """
-        if task in self.todo_list:
+        if task in self._todo_list:
             return _unavailable
-        return self.cache.get(task, _unavailable)
+        return self._cache.get(task, _unavailable)
 
     def set(self, task, return_value):
         """Add the `return_value` of `task` to our cache of return values.
@@ -119,10 +119,10 @@ class Project:
         must be added to the to-do list for re-computation.
 
         """
-        self.todo_list.discard(task)
-        if (task not in self.cache) or (self.cache[task] != return_value):
-            self.cache[task] = return_value
-            self.todo_list.update(self.graph.immediate_consequences_of(task))
+        self._todo_list.discard(task)
+        if (task not in self._cache) or (self._cache[task] != return_value):
+            self._cache[task] = return_value
+            self._todo_list.update(self._graph.immediate_consequences_of(task))
 
     def invalidate(self, task):
         """Mark `task` as requiring recomputation on the next `rebuild()`.
@@ -135,7 +135,7 @@ class Project:
         and let `rebuild()` itself call it when it next runs.
 
         """
-        self.todo_list.add(task)
+        self._todo_list.add(task)
 
     def rebuild(self):
         """Repeatedly rebuild every out-of-date task until all are current.
@@ -152,8 +152,8 @@ class Project:
         return.
 
         """
-        while self.todo_list:
-            tasks = self.graph.recursive_consequences_of(self.todo_list, True)
+        while self._todo_list:
+            tasks = self._graph.recursive_consequences_of(self._todo_list, True)
             for function, args in tasks:
                 function(*args)
 
