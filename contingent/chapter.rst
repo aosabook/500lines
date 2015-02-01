@@ -769,12 +769,7 @@ to construct a graph of the relationships between all the tasks.
 >>> task = project.task
 
 A build system for the example given at the beginning of the chapter
-might involve five basic steps:
-*reading* the raw contents of a file,
-*parsing* the contents to produce an in-memory document representation,
-*extracting* information from our document representation,
-*transforming* the document representation,
-and *rendering* the output document.
+might involve a few basic tasks.
 
 * Our ``read()`` task will pretend to read the files from disk.
   Since we really defined the source text in variables,
@@ -854,28 +849,6 @@ and *rendering* the output document.
   and supports either approach equally well.
   For this chapter we are keeping things simple.
 
-* A document processing system like Sphinx
-  defines many useful document *transforms*
-  that implement features like cross referencing,
-  formatting, and document assembly.
-  Our simplified document specification
-  includes only simple cross-referencing,
-  implemented in this ``transform()`` task:
-
-    >>> import re
-    >>>
-    >>> @task
-    ... def transform(filename):
-    ...     title, raw_body = parse(filename)
-    ...     body = re.sub(r'`([^`]+)`',
-    ...         lambda match: repr(title_of(match.group(1))),
-    ...         raw_body)
-    ...     return title, body
-
-  This task searches the document source text
-  for document filenames enclosed in backticks,
-  and replaces them with the corresponding document's title.
-
 * The final task,
   ``render()``,
   turns the in-memory representation of a document
@@ -888,11 +861,20 @@ and *rendering* the output document.
   and produces an output document
   conforming to some specification.
 
+    >>> import re
+    >>>
+    >>> LINK = '<a href="{}">{}</a>'
+    >>> PAGE = '<h1>{}</h1>\n<p>\n{}\n<p>'
+    >>>
+    >>> def make_link(match):
+    ...     filename = match.group(1)
+    ...     return LINK.format(filename, title_of(filename))
+    ...
     >>> @task
     ... def render(filename):
-    ...     title, body = transform(filename)
-    ...     html = '<h1>{}</h1>\n<p>\n{}\n<p>'
-    ...     return html.format(title, body)
+    ...     title, body = parse(filename)
+    ...     body = re.sub(r'`([^`]+)`', make_link, body)
+    ...     return PAGE.format(title, body)
 
 Here is an example run
 that will invoke every stage of the above logic —
@@ -1170,8 +1152,8 @@ What happens if we render the entire set of documents?
 ...     print('=' * 30)
 <h1>Table of Contents</h1>
 <p>
-* 'Beginners Tutorial'
-* 'API Reference'
+* <a href="tutorial.txt">Beginners Tutorial</a>
+* <a href="api.txt">API Reference</a>
 <p>
 ==============================
 <h1>Beginners Tutorial</h1>
@@ -1183,7 +1165,7 @@ We hope you enjoy it.
 <h1>API Reference</h1>
 <p>
 You might want to read
-the 'Beginners Tutorial' first.
+the <a href="tutorial.txt">Beginners Tutorial</a> first.
 <p>
 ==============================
 
@@ -1211,19 +1193,16 @@ Contingent knows all the things to rebuild
 if the inputs to any tasks change.
 
 But can it avoid rebuilding them?
-Look at all the things that MIGHT need to be rebuilt
+Look at all the things that *might* need to be rebuilt
 if the tutorial source text is touched.
 
 >>> task = read, ('tutorial.txt',)
 >>> pprint(project.graph.recursive_consequences_of([task]))
 [parse('tutorial.txt'),
+ render('tutorial.txt'),
  title_of('tutorial.txt'),
- transform('api.txt'),
  render('api.txt'),
- transform('index.txt'),
- render('index.txt'),
- transform('tutorial.txt'),
- render('tutorial.txt')]
+ render('index.txt')]
 
 But what if the tutorial's title did not change?
 As you can see in Figure 4,
@@ -1288,13 +1267,10 @@ because every document needs to change.
 >>> print(project.stop_tracing())
 calling read('tutorial.txt')
 calling parse('tutorial.txt')
-calling title_of('tutorial.txt')
-calling transform('api.txt')
-calling render('api.txt')
-calling transform('index.txt')
-calling render('index.txt')
-calling transform('tutorial.txt')
 calling render('tutorial.txt')
+calling title_of('tutorial.txt')
+calling render('api.txt')
+calling render('index.txt')
 
 Looking back at Figure 4,
 you can see that, as expected,
@@ -1355,9 +1331,8 @@ This should have no effect on the other documents.
 >>> print(project.stop_tracing())
 calling read('tutorial.txt')
 calling parse('tutorial.txt')
-calling title_of('tutorial.txt')
-calling transform('tutorial.txt')
 calling render('tutorial.txt')
+calling title_of('tutorial.txt')
 
 Success!
 Only one document got rebuilt.
