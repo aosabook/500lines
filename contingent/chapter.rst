@@ -968,6 +968,7 @@ runs something like this:
     if self.task_stack:
         self._graph.add_edge(task, self.task_stack[-1])
 
+    self._graph.clear_inputs_of(task)
     self._task_stack.append(task)
     try:
         value = function(*args)
@@ -988,21 +989,27 @@ This wrapper performs several crucial maintenance steps:
    add an edge capturing the fact that
    this task is an input to the already-running task.
 
-3. Push this task onto the top of the task stack
+3. Forget whatever we might have learned last time about the task,
+   since it might make new decisions this time —
+   if the source text of the API guide no longer mentions the Tutorial,
+   for example, then its ``render()`` will no longer ask
+   for the ``title_of()`` the Tutorial document.
+
+4. Push this task onto the top of the task stack
    in case it should, in its turn, invoke further tasks
    in the course of doing its work.
 
-4. Invoke the task
+5. Invoke the task
    inside of a ``try...finally`` block
    that ensures we correctly remove the finished task from the stack
    even if a task dies by raising an exception.
 
-5. Return the task’s return value,
+6. Return the task’s return value,
    so that callers of this wrapper
    will not be able to tell that they have not simply invoked
    the plain task function itself.
 
-Steps 3 and 4 maintain the task stack itself,
+Steps 4 and 5 maintain the task stack itself,
 which is then used by step 2 to perform the consequences tracking
 that is our whole reason for building a task stack in the first place.
 
@@ -1099,51 +1106,107 @@ at its disposal,
 Contingent knows all the things to rebuild
 if the inputs to any tasks change.
 
-But can it avoid rebuilding them?
-Look at all the things that *might* need to be rebuilt
-if the tutorial source text is touched.
-
->>> task = read, ('tutorial.txt',)
->>> pprint(project._graph.recursive_consequences_of([task]))
-[parse('tutorial.txt'),
- render('tutorial.txt'),
- title_of('tutorial.txt'),
- render('api.txt'),
- render('index.txt')]
-
-But what if the tutorial's title did not change?
-As you can see in Figure 4,
-changes to the tutorial that do not affect the title
-should not need to touch the other documents.
-
-What can we do?
-
-Caching Consequences
+Chasing Consequences
 ====================
 
-So far, we have built a system that avoids rebuilding too little.
-By maintaining a complete consequences graph,
-Contingent knows every task that is a downstream consequence
-of the tutorial's source text
-and can force each affected task to be recomputed.
+Once the initial build has run to completion,
+Contingent needs to monitor the input files for changes.
+When the user finishes a new edit and runs “Save,”
+both the ``read()`` method and its consequences need to be invoked.
 
+This will requires us to walk the graph in the opposite order
+from the one in which it was created.
+It was built, you will recall, by calling
+``render()`` for the API Reference and having that call ``parse()``
+which finally invoked the ``read()`` task.
+Now we go in the other direction:
+we know that ``read()`` will now return new content,
+and we need to figure out what consequences lie downstream.
+
+The process of compiling consequences is a recursive one,
+as each consequence can itself have further tasks that depended on it.
+We could perform this recursion manually
+through repeated calls to the graph:
+
+>>> task = Task(read, ('api.txt',))
+>>> project._graph.immediate_consequences_of(task)
+[parse('api.txt')]
+>>> t1, = _
+>>> project._graph.immediate_consequences_of(t1)
+[render('api.txt'), title_of('api.txt')]
+>>> t2, t3 = _
+>>> project._graph.immediate_consequences_of(t2)
+[]
+>>> project._graph.immediate_consequences_of(t3)
+[render('index.txt')]
+>>> t4, = _
+>>> project._graph.immediate_consequences_of(t4)
+[]
+
+Note that we are here taking advantage
+of the fact that the Python prompt saves the last value displayed
+under the name ``_`` for use in the subsequent expression.
+
+This recursive task of looking repeatedly for immediate consequences
+and only stopping when we arrive at tasks with no further consequences
+a basic enough graph operation that it is supported directly
+by a method on the ``Graph`` class:
+
+>>> project._graph.recursive_consequences_of([task])
+[parse('api.txt'), render('api.txt'), title_of('api.txt'), render('index.txt')]
+
+In fact, ``recursive_consequences_of()`` tries to be a bit clever.
+If a particular task appears repeatedly as a downstream consequence
+of several other tasks,
+then it is careful to only mention it only once in the output list
+while moving it close to the end
+so that it appears only after the tasks that are its inputs.
+This intelligence is powered by the classic depth-first implementation
+of a topological sort,
+an algorithm which winds up being fairly easy to write in Python
+through a hidden a recursive helper function.
+Check out the ``graphlib.py`` source code for the details
+if graph algorithms interest you!
+
+If upon detecting a change
+we are careful to re-run every task in the recursive consequences,
+then Contingent will be able to avoid rebuilding too little.
 Our second challenge, however,
-is to avoid rebuilding too much.
-We want to avoid rebuilding all the documents
-if ``tutorial.txt`` is touched but its title has not changed,
-since we know that the tutorial's body
-has no effect on the other documents.
+was to avoid rebuilding too much.
+We want to avoid rebuilding all three documents
+every time that ``tutorial.txt`` is changed,
+since most edits will probably not affect its title but only its body?
 
-The solution is caching.
+The solution is to make graph recomputation dependent on caching.
+When stepping forward through the recursive consequences of a change,
+we will only invoke tasks whose inputs are different than last time.
 
-First, though, we need a way to compare a task’s current output
-with the value produced by the previous run.
-We say that a task has *changed* if
-its new return value is different from the value it produced last time.
-For example, the current value of the tutorial title is:
+This optimization will involve a final data structure:
 
->>> title_of('tutorial.txt')
-'Beginners Tutorial'
+* We will give the ``Project`` a ``_todo_list`` of tasks
+  that have had at least one input change
+  and that therefore require re-execution.
+
+* If we reach a task in the recursive consequences
+  but do not find it listed in the ``_todo_list``
+  then we will run the task to generate a new value.
+
+* After running the task we will compare its new output value
+  to the one that it returned last time.
+  If they are different, then every immediate consequence
+  of the task gets added to the ``_todo_list``.
+
+* Once the ``_todo_list`` is empty,
+  Contingent knows that all task outputs are now up to date.
+
+Again, Python’s convenient and unified design
+makes these features very easy to code.
+Because task objects are hashable,
+the ``_todo_list`` can simply be a set
+that remembers task items by identity —
+guaranteeing that a task never appears twice —
+and the ``_cache`` of return values from previous runs
+can be a dict with tasks as keys.
 
 Suppose you edit ``tutorial.txt``
 and change both the title and the body content.
@@ -1158,13 +1221,17 @@ in our ``filesystem`` dict:
 ... """
 
 Since the contents have changed,
-the task responsible for reading the file in is now invalid:
+we need to tell the Project that the task needs to be re-run:
 
->>> task = read, ('tutorial.txt',)
+>>> task = Task(read, ('tutorial.txt',))
 >>> project.invalidate(task)
 
-which means that everything gets rebuilt,
-because every document needs to change.
+The ``Project`` class supports a simple tracing facility
+that will tell us which tasks are executed in the course
+of a rebuild.
+Since the above change to ``tutorial.txt``
+affect both its body and its title,
+everything downstream will need to be re-computed:
 
 >>> project.start_tracing()
 >>> project.rebuild()
@@ -1176,14 +1243,10 @@ calling title_of('tutorial.txt')
 calling render('api.txt')
 calling render('index.txt')
 
-Looking back at Figure 4,
+Looking back at Figure 4,
 you can see that, as expected,
 this is every task that is an immediate or downstream consequence
-of ``read('tutorial.txt')``; also unsurprisingly,
-the tutorial title task exhibits the updated value:
-
->>> title_of('tutorial.txt')
-'The Coder Tutorial'
+of ``read('tutorial.txt')``.
 
 But what if we edit it again,
 but this time leave the title the same?
@@ -1196,39 +1259,8 @@ but this time leave the title the same?
 ... """
 >>> project.invalidate(task)
 
-
-
-.. include:: contingent/projectlib.py
-    :code: python
-    :start-line: 78
-    :end-line: 96
-
-
-.. include:: contingent/graphlib.py
-    :code: python
-    :start-line: 50
-    :end-line: 55
-
-
-.. include:: contingent/projectlib.py
-    :code: python
-    :start-line: 110
-    :end-line: 123
-
-
-
-So show rest of stuff from the listing?
-
-Show how awesome Python is:
-again, because functions are both 1st class objects
-and are also hashable, we can use them as part of keys:
-(f, args) is a completely natural key.
-
-
-
-
-
-This should have no effect on the other documents.
+This small, limited change
+should have no effect on the other documents.
 
 >>> project.start_tracing()
 >>> project.rebuild()
@@ -1240,11 +1272,13 @@ calling title_of('tutorial.txt')
 
 Success!
 Only one document got rebuilt.
+The fact that ``title_of()``, given a new input document,
+nevertheless returned the same value means that all further
+downstream tasks were insulated from the change
+and did not get re-invoked.
 
-The fact that the newly computed return value
-of ``title_of('tutorial.txt')`` is exactly equal to the old one
-stopped the build process from having to recompute
-any of the consequences downstream of it.
+Conclusion
+==========
 
 
 
