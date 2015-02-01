@@ -39,11 +39,11 @@ produces this instruction set:
 ~~~~
 ["LOAD_VALUE",
  "LOAD_VALUE",
- "ADD_TWO_THINGS",
+ "ADD_TWO_VALUES",
  "PRINT_ANSWER"]
 ~~~~
 
-The Python interpreter is a _stack machine_, so it must manipulate stacks to add two numbers. The interpreter will begin by executing the first instruction, `LOAD_VALUE`, and pushing the first number onto the stack. Next it will push the second number onto the stack. For the third instruction, `ADD_TWO_THINGS`, it will pop both numbers off, add them together, and push the result onto the stack. Finally, it will pop the answer back off the stack and return it.
+The Python interpreter is a _stack machine_, so it must manipulate stacks to add two numbers. The interpreter will begin by executing the first instruction, `LOAD_VALUE`, and pushing the first number onto the stack. Next it will push the second number onto the stack. For the third instruction, `ADD_TWO_VALUES`, it will pop both numbers off, add them together, and push the result onto the stack. Finally, it will pop the answer back off the stack and return it.
 
 ~~~
        1.                2.                 3.               4.                5.
@@ -54,7 +54,7 @@ The Python interpreter is a _stack machine_, so it must manipulate stacks to add
   --------------  --------------      --------------    --------------     --------------
 ~~~
 
-You may be wondering why instructions other than `ADD_TWO_THINGS` were needed at all. Indeed, for the simple case of adding two numbers, the example is a little contrived. However, this instruction is a building block for more complex programs. For example, with just the instructions we've defined so far, we can already add together three values - or any number of values - given the right set of these instructions. The stack provides a clean way to keep track of the state of the interpreter, and it will support lots more complexity as we go along.
+You may be wondering why instructions other than `ADD_TWO_VALUES` were needed at all. Indeed, for the simple case of adding two numbers, the example is a little contrived. However, this instruction is a building block for more complex programs. For example, with just the instructions we've defined so far, we can already add together three values - or any number of values - given the right set of these instructions. The stack provides a clean way to keep track of the state of the interpreter, and it will support lots more complexity as we go along.
 
 So where do the numbers come from? The instructions tell the interpreter to push a number on to the stack, but they don't say which number. Each instruction needs an extra piece of information, telling the interpreter where to find the number if one is required. Now our instruction set has two pieces: the instructions themselves, plus a list of constants the instructions will need. (In Python, what we're calling "instructions" is the bytecode, and the entire "what to execute" object is the _code object_.)
 
@@ -338,12 +338,12 @@ I encourage you to try running `dis.dis` on function you write. Some interesting
 - How can you write different functions that generate identical bytecode?
 - How does `elif` work? What about list comprehensions?
 
-# Functions & Frames
+# Frames
 So far we've covered that the Python virtual machine is a stack machine. It steps and jumps through instructions, pushing and popping values on and off of a stack. There are still some gaps in our mental model, though. In the `mod` example above, the last instruction is `RETURN VALUE`, which corresponds to the `return` statement in the code. But where does the instruction return to?
 
 To answer this question, we must add one additional layer of complexity: the frame. A frame is a collection of information and context for a chunk of code. Frames are created and destroyed on the fly as your Python code executes. There's one frame corresponding to each *call* of a function - so while each frame has one code object associated with it, a code object can have many frames. (If you had a function that called itself recursively ten times, you'd have eleven frames - one for each level of recursion and one for the module you started from.) In general, there's a frame for each scope in a Python program: for example, each module, each function call, and each class definition has a frame.
 
-Frames live on the _call stack_, a completely different stack from the one we've been discussing so far. The stack we've been examining - the one the interpreter is manipulating while it executes bytecode - we'll call the _data stack_. There's also a third stack, called the _block stack_. Blocks are used for certain kinds of control flow, particularly looping and exception handling. Each frame on the call stack has its own data stack and block stack.
+Frames live on the _call stack_, a completely different stack from the one we've been discussing so far. (The call stack is the stack you're most familiar with already - you've seen it printed out in the tracebacks of exceptions. Each line in a traceback starting with "File "program.py", line N" corresponds to one frame on the call stack.) The stack we've been examining - the one the interpreter is manipulating while it executes bytecode - we'll call the _data stack_. There's also a third stack, called the _block stack_. Blocks are used for certain kinds of control flow, particularly looping and exception handling. Each frame on the call stack has its own data stack and block stack.
 
 Let's make this concrete with an example. Suppose the Python interpreter is currently executing the line marked #3 below.  The diagram shows a schematic of the call stack of frames, the block stacks, and the data stacks.
 
@@ -1028,7 +1028,7 @@ class VirtualMachine(object):
 ```
 
 ### Dynamic typing - what the compiler doesn't know
-I mentioned earlier that the Python compiler doesn't have much information about what the code actually does. To see why, consider another short function, `mod`. Mod takes two arguments and returns the modulus of one against the other. In the bytecode, we see the variables `a` and `b` are loaded, and then the bytecode `BINARY_MODULO` performs the modulo itself.
+I mentioned earlier that the Python compiler doesn't have much information about what the code actually does. To see why, consider the short function below, `mod`. Mod takes two arguments and returns the modulus of one against the other. In the bytecode, we see the variables `a` and `b` are loaded, and then the bytecode `BINARY_MODULO` performs the modulo itself.
 
 ```
 >>> def mod(a, b):
@@ -1056,6 +1056,18 @@ Under the hood, using the symbol `%` to format a string for printing means invok
 
 The Python compiler knows relatively little about the effect the bytecode will have. Thus, the interpreter must work relatively harder. It's up to the interpreter to determine the type of the object that `BINARY_MODULO` is operating on and do the right thing for that type. This is why Python is described at _dynamically typed_: you don't know the types of the arguments to this function until you actually run it. By constrast, in a language that's statically typed, the programmer tells the compiler up front what type the arguments will be (or the compiler figures them out for itself).
 
-The compiler's ignorance is one of the challenges to optimizing Python - just looking at the bytecode (without actually running the code), you don't know what each instruction will do! In a class you define, you can implement a method named `__mod__` that will be called when you use `%` on your objects. In their paper "How fast can we make interpreted Python?", Russell Power and Alex Rubensteyn note, "In the general absence of type information, each instruction must be treated as `INVOKE_ARBITRARY_METHOD`." It's hard to optimize a function when you don't know what it does.
+The compiler's ignorance is one of the challenges to optimizing Python - just looking at the bytecode, without actually running the code, you don't know what each instruction will do! In fact, you could define a class that implements the `__mod__` method, and Python would invoke that method if you use `%` on your objects. So `BINARY_MODULO` could actually run any code at all!
 
-### With byterun, you have a compact Python interpreter that's easier to understand than CPython. I encourage you to disassemble your own programs and run them using Byterun. (You'll eventually run into instructions that this shorter version of Byterun doesn't implement. The full implementation can be found at github.com/nedbat/byterun. )
+It's hard to optimize a function when you don't know what it does. Just looking at the following code, the first calculation of `a % b` seems wasteful.
+
+```
+def mod(a,b):
+    a % b
+    return a %b
+```
+
+Unfortunately, a static analysis of this code - the kind of you can do without running it - can't be certain that the first `a % b` really does nothing. `__mod__` might write to a file, or interact with another part of your program.
+
+Russell Power and Alex Rubensteyn discuss this problem in their paper "How fast can we make interpreted Python?" They note, "In the general absence of type information, each instruction must be treated as `INVOKE_ARBITRARY_METHOD`."
+
+### With byterun, you have a compact Python interpreter that's easier to understand than CPython. I encourage you to disassemble your own programs and run them using Byterun. (You'll eventually run into instructions that this shorter version of Byterun doesn't implement. The full implementation can be found at github.com/nedbat/byterun.)
