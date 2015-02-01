@@ -102,14 +102,14 @@ Sprite language: Draw sprite, turn sprite, turn sprite vector, forward, slow, sp
 
 ## Lessons Learned
 
-[What works about this, what would change in a larger system]
-[How valuable this is as an exercise, to make a small simple system from your larger more complex one, and how doing this has influenced Waterbear. Benefits include: being able to test ideas without drastic changes to the more complex system (i.e., HTML5 drag-and-drop works fine on desktop, but is useless on mobile), try different layouts and looks, refactor bits from the bigger system to be more re-usable and have fewer assumptions, handling live coding, moving all code out of blocks and pointing to it.]
+Building a small, tightly scoped version of the larger system I work on has been an interesting exercise. Sometimes in a large system there are things you want to change, even experimentally, but the changes would effect too many different parts, so you don't get around to it. In a tiny, toy version you can experiment freely and learn things which you can then take back to the larger system. For me, the larger system is Waterbear and this project has had a huge impact on the way Waterbear is structured.
 
-* Dragging does not work on mobile
-* Need options for multiple arguments to blocks
-* Ability to create new blocks from existing ones
-* Undo/redo
-* Online sharing
+Some of the experiments I was able to do for this stripped-down block language were: using HTML5 drag and drop, running blocks directly by iterating through the dom calling associated functions, separating the code that runs cleanly from the HTML DOM, simplified hit testing while dragging, building our own tiny vector and sprite libraries (for the game blocks), and "live coding" where the results are shown whenever you change the block script. The important thing about experiments is that they do not have to succeed. We tend to gloss over failures and dead ends in our work (and school, where failures are punished instead of treated as important vehicles for learning), but failures are essential if you are going to push forward. While I did get the HTML5 drag-and-drop working, the fact that it isn't supported at all on any mobile browser means it is a non-starter for Waterbear. Separating the code out and running code by iterating through the blocks worked so well that I've already begun bringing those ideas to Waterbear, with excellent improvements for testing and debugging. The simplified hit testing, with some modifications, is also coming back to Waterbear, as are the tiny vector and sprite libraries. Live coding hasn't made it to Waterbear yet, but once the current round of changes stabilizes I may introduce it there as well.
+
+
+Building a small version of a bigger system also gives a really sharp focus to see what the important parts really are. Are there bits left over for historical reasons that serve no purpose (or worse, distract from the purpose)? Are there features no-one uses but you have to pay the cost of maintaining? Could the user interface be streamlined? All these are great questions to ask while making a tiny version. Making drastic changes, like re-organizing the layout, can be made without worrying about the ramifications cascading through a more complex system, and can even guide refactoring the complex system so you have fewer places to worry about things cascading like that.
+
+There are things I wasn't able to experiment in the scope of this project that I may use the blocklib codebase to test out in the future. It would be interesting to be able to create "function" blocks which create new blocks out of existing blocks. Implementing undo/redo would be simpler in a constrained environment. Making blocks accept multiple arguments without radically expanding the complexity would be useful. And finding various ways to share block scripts online would bring the webbiness of the tool full circle.
 
 ## References
 
