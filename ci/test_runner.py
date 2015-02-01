@@ -3,7 +3,7 @@ This is the test runner.
 
 It registers itself with the dispatcher when it first starts up, and then waits
 for notification from the dispatcher. When the dispatcher sends it a 'runtest'
-command with a commit hash, it updates its repository clone and checks out the
+command with a commit id, it updates its repository clone and checks out the
 given commit. It will then run tests against this version and will send back the
 results to the dispatcher. It will then wait for further instruction from the
 dispatcher.
@@ -55,18 +55,18 @@ class TestHandler(SocketServer.BaseRequestHandler):
             else:
                 self.request.sendall("OK")
                 print "running"
-                commit_hash = command_groups.group(2)[1:]
+                commit_id = command_groups.group(2)[1:]
                 self.server.busy = True
-                self.run_tests(commit_hash,
+                self.run_tests(commit_id,
                                self.server.repo_folder)
                 self.server.busy = False
         else:
             self.request.sendall("Invalid command")
 
-    def run_tests(self, commit_hash, repo_folder):
+    def run_tests(self, commit_id, repo_folder):
         # update repo
         output = subprocess.check_output(["./test_runner_script.sh",
-                                        repo_folder, commit_hash])
+                                        repo_folder, commit_id])
         print output
         # run the tests
         test_folder = os.path.join(repo_folder, "tests")
@@ -79,7 +79,7 @@ class TestHandler(SocketServer.BaseRequestHandler):
         output = result_file.read()
         helpers.communicate(self.server.dispatcher_server["host"],
                             int(self.server.dispatcher_server["port"]),
-                            "results:%s:%s:%s" % (commit_hash, len(output), output))
+                            "results:%s:%s:%s" % (commit_id, len(output), output))
 
 
 def serve():

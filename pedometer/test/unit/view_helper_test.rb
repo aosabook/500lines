@@ -22,19 +22,23 @@ class ViewHelperTest < Test::Unit::TestCase
     assert_equal '1.99 km', format_distance(199000)
   end
 
-  def test_format_seconds
+  def test_format_time_nil
+    assert_equal '', format_time(nil)
+  end
+
+  def test_format_time_seconds
     assert_equal '0 hr, 0 min, 1 sec',  format_time(1)
     assert_equal '0 hr, 0 min, 59 sec', format_time(59.4)
     assert_equal '0 hr, 1 min, 0 sec',  format_time(59.9)
   end
 
-  def test_format_minutes
+  def test_format_time_minutes
     assert_equal '0 hr, 1 min, 0 sec',   format_time(60)
     assert_equal '0 hr, 59 min, 59 sec', format_time(3599.4)
     assert_equal '1 hr, 0 min, 0 sec',   format_time(3599.9)
   end
 
-  def test_format_hours
+  def test_format_time_hours
     assert_equal '1 hr, 0 min, 0 sec',    format_time(3600)
     assert_equal '1 hr, 5 min, 0 sec',    format_time(3900)
     assert_equal '17 hr, 46 min, 39 sec', format_time(9999999999)

@@ -1,3 +1,4 @@
+
 # A Perfect World
 
 Many software engineers reflecting on their training will remember having the pleasure of living in a very perfect world. We were taught to solve discrete problems, with defined parameters, in an ideal domain. 
@@ -14,15 +15,9 @@ The rise of the mobile device brought with it a trend to collect more and more d
 
 ## What's an Accelerometer, You Ask?
 
-An accelerometer is a piece of hardware that measures acceleration in the x, y, and z directions. In today's mobile world, many people carry an accelerometer with them wherever they go, as it's built into almost all smartphones currently on the market.
+An accelerometer is a piece of hardware that measures acceleration in the x, y, and z directions. In today's mobile world, many people carry an accelerometer with them wherever they go, as it's built into almost all smartphones currently on the market. The x, y, and z directions are relative to the phone.
 
-The x, y, and z directions are relative to the phone.
-
-TODO: This diagram is a direct copy from Apple. Problem? 
-
-![](chapter-figures/figure-iphone-accelerometer.png)\
-
-An accelerometer returns a **signal** in 3-dimensional space. A signal is a set of data points recorded over time. Each component of the signal is a time series representing acceleration in one of the x, y, or z directions. Each point in a time series is the acceleration in that direction at a specific point in time. For simplicity, we'll assume that all smartphone accelerometers return acceleration in units of g-force. One *g* is equal to $9.8 m/s^2$, which is the gravitational acceleration on Earth.
+An accelerometer returns a **signal** in 3-dimensional space. A signal is a set of data points recorded over time. Each component of the signal is a time series representing acceleration in one of the x, y, or z directions. Each point in a time series is the acceleration in that direction at a specific point in time. Acceleration is measured in units of g-force. One *g* is equal to $9.8 m/s^2$, which is the gravitational acceleration on Earth.
 
 The diagram below shows an example acceleration signal from an accelerometer with the three time series.
 
@@ -32,7 +27,7 @@ The **sampling rate** of the accelerometer, which can often be calibrated, deter
 
 ## Let's Talk About a Walk
 
-When a person walks, they bounce slightly with each step. Just watch the top of a person's head as they walk away from you. Their head, torso, and hips are synchronized in a smooth bouncing motion. While people don't bounce very far, only one or two inches, it is one of the clearest, most constant, and most recognizable parts of a person's walking acceleration signal!
+When a person walks, they bounce slightly with each step. Just watch the top of a person's head as they walk away from you. Their head, torso, and hips are synchronized in a smooth bouncing motion. While people don't bounce very far, only one or two centimeters, it is one of the clearest, most constant, and most recognizable parts of a person's walking acceleration signal.
 
 A person bounces up and down, in the vertical direction, with each step. If you are walking on Earth, or another big ball of mass floating in space, the bounce is conveniently in the same direction as gravity. 
 
@@ -40,7 +35,7 @@ A person bounces up and down, in the vertical direction, with each step. If you 
 
 Let's look at a person walking with a smartphone containing an accelerometer, in his or her shirt pocket, as depicted below.
 
-![](chapter-figures/figure-xyz-normal.png)\
+![](chapter-figures/walk-1.png)\
 
 For the sake of simplicity, we'll assume that the stick person:
 
@@ -48,11 +43,7 @@ For the sake of simplicity, we'll assume that the stick person:
 * bounces with each step in the y direction;
 * maintains the phone in the same orientation throughout the entire walk;
 
-In our perfect world, acceleration from step bounces will form a perfect sine wave in the y direction.
-
-![](chapter-figures/figure-sine-wave-1.png)\
-
-Each peak in the sine wave is exactly one step. Step counting becomes a matter of counting these perfect peaks. 
+In our perfect world, acceleration from step bounces will form a perfect sine wave in the y direction. Each peak in the sine wave is exactly one step. Step counting becomes a matter of counting these perfect peaks. 
 
 Ah, the joys of a perfect world, which we only ever experience in texts like this. Don't fret, things are about to get a little messier, and a lot more exciting. Let's add a little more reality to our world. 
 
@@ -68,44 +59,36 @@ Note that the $x(t)$ and $y(t)$ remain constant at 0, while $z(t)$ is constant a
 
 Each component of the acceleration signal measures the **total acceleration** in that direction. Total acceleration is a result of **user acceleration** and **gravitational acceleration**. 
 
-User acceleration is the acceleration of the device due to the movement of the user. User acceleration is constant at 0 when the phone is perfectly still. However, when the user is moving with the device, user acceleration is rarely constant, since it's difficult for a person to move with a constant acceleration. 
+User acceleration is the acceleration of the device due to the movement of the user, and is constant at 0 when the phone is perfectly still. However, when the user is moving with the device, user acceleration is rarely constant, since it's difficult for a person to move with a constant acceleration. 
 
-Gravitational acceleration is, as discussed, due to gravity.
-
-Our total acceleration is the sum of user acceleration and gravitational acceleration.
-
-![](chapter-figures/component-signals-1.png)\
-
-In order to count steps, we're interested in the step bounces created by the user in the direction of gravity. That means we're interested in **user acceleration in the direction of gravity**. User acceleration in the direction of gravity is a 1-dimensional time series, because, well, it's only in one direction. To count steps, we'll have to take our 3-dimensional acceleration signal and isolate just the 1-dimensional time series that represents user acceleration in the direction of gravity. 
-
-In our example above with the stick person walking with step bounces only in the y direction, gravitational acceleration is zero in $x(t)$ and $z(t)$, and constant at $9.8 m/s^2$, or $1g$, in $y(t)$. This is because the phone is held such that y is the only direction experiencing the force of gravity. This means that the user acceleration time series in the y component, $y_{u}(t)$, is always in the direction of gravity. Meanwhile, user acceleration in x, $x_{u}(t)$, and z, $z_{u}(t)$, are never in the direction of gravity. This is evident in the total acceleration plot above. Note that $y(t)$ fluctuates around $-1g$, while $x(t)$ and $z(t)$ fluctuate around 0. Also note the obvious peaks in $y(t)$. Those are due to our bounces! Looking at the user acceleration plot next, we notice that when we remove gravitational acceleration from the time series, all three time series fluctuate around 0. In our last plot, gravitational acceleration, we see the $-1g$ gravitational acceleration in y, $y_{g}(t)$, and the 0 gravitational accelerations in both x and z, $x_{g}(t)$ and $z_{g}(t)$, respectively. 
-
-User acceleration in the direction of gravity, in our simple case, is $y_{u}(t)$.
+Our total acceleration is the sum of user acceleration and gravitational acceleration. 
 
 ![](chapter-figures/component-signals-2.png)\
 
-Although $y_{u}(t)$ isn't as smooth and perfect as our perfect sine wave, we can definitely pick out the peaks, and use those peaks to count steps. So far, so good. Now, let's add a little more reality to our world. 
+To count steps, we're interested in the bounces created by the user in the direction of gravity. That means we're interested in isolating the 1-dimensional time series **user acceleration in the direction of gravity** from our 3-dimensional acceleration signal. 
+
+When our stick person is walking with step bounces in the y direction, gravitational acceleration is zero in $x(t)$ and $z(t)$ and constant at $9.8 m/s^2$ in $y(t)$, so $x(t)$ and $z(t)$ fluctuate around 0 while $y(t)$ fluctuates around $-1g$. Note the obvious peaks in $y(t)$. Those are due to step bounces! Looking at the user acceleration plots next, we notice that when we remove gravitational acceleration from the time series, all three time series fluctuate around 0. In our last plot, gravitational acceleration, $y_{g}(t)$ is near-constant at $-1g$, $x_{g}(t)$ and $z_{g}(t)$ are near-constant at 0.
+
+So, in our simple case, the 1-dimensional user acceleration in the direction of gravity time series we're interested in is $y_{u}(t)$. Although $y_{u}(t)$ isn't as smooth as our perfect sine wave, we can identify the peaks, and use those peaks to count steps. So far, so good. Now, let's add a little more reality to our world. 
 
 ## People Are Complicated Creatures
 
 Let's see what happens when we introduce real people into the mix. What if a person carries the phone in a bag on their shoulder, with the phone in a more wonky position? To make matters worse, what if the phone rotates in the bag part way through the walk?
 
-![](chapter-figures/figure-xyz-wonky.png)\
+![](chapter-figures/walk-2.png)\
 
-Yikes. Now all three of our components have a non-zero gravitational acceleration, so the user acceleration in the direction of gravity is now split amongst all three x, y, and z time series. 
-
-To determine user acceleration in the direction of gravity when it's split amongst all three time series, we have to first determine which direction gravity is in. To do this, we have to first split total acceleration in each of the three time series into a user acceleration time series and a gravitational acceleration time series. 
+Yikes. Now all three of our components have a non-zero gravitational acceleration, so the user acceleration in the direction of gravity is now split amongst all three x, y, and z time series. To determine user acceleration in the direction of gravity, we have to first determine which direction gravity is in. To do this, we have to split total acceleration in each of the three time series into a user acceleration time series and a gravitational acceleration time series. 
 
 ![](chapter-figures/component-signals-3.png)\
 
-Once we've done that, we can isolate the portion of user acceleration in each component that is in the direction of gravity, resulting in the user acceleration time series in the direction of gravity, and ignoring user acceleration due to any other user movement not in the direction of gravity. 
+Then, we can isolate the portion of user acceleration in each component that is in the direction of gravity, resulting in just the user acceleration in the direction of gravity time series. 
 
 Let's define this as two steps below:
 
 1. Splitting total acceleration into user acceleration and gravitational acceleration. 
 2. Isolating user acceleration in the direction of gravity. 
 
-Every problem has a solution. Let's look at each problem separately, and put on our mathematician hats. 
+Let's look at each problem separately, and put on our mathematician hats. 
 
 ## 1. Splitting Total Acceleration Into User Acceleration and Gravitational Acceleration
 
@@ -114,21 +97,13 @@ We can use a tool called a **filter** to split our total acceleration time serie
 ### Low-pass and High-pass Filters
 A **filter** is a tool used in signal processing to remove an unwanted component from a signal. 
 
-A **low-pass filter** allows low-frequency signals through, while attenuating signals higher than a set threshold. Conversely, a **high-pass filter** allows high-frequency signals through, while attenuating signals below a set threshold. 
+A **low-pass filter** allows low-frequency signals through, while attenuating signals higher than a set threshold. Conversely, a **high-pass filter** allows high-frequency signals through, while attenuating signals below a set threshold. Using music as an analogy, a low-pass filter can be used to get rid of the treble, while and a high-pass filter can be used to get rid of the bass. 
 
-Using music as an analogy, a low-pass filter can be used to get rid of the treble, while and a high-pass filter can be used to get rid of the bass. 
+In our situation, the frequency, measured in Hz, indicates how quickly the acceleration is changing. A constant acceleration has a frequency of 0 Hz, while a non-constant acceleration has a non-zero frequency. This means that our constant gravitational acceleration is a 0 Hz signal, while user acceleration is not. 
 
-In our situation, the frequency, measured in Hz, depends on how quickly the acceleration is changing. A constant acceleration has a frequency of 0 Hz, while a non-constant acceleration has a non-zero frequency. This means that our constant gravitational acceleration is a 0 Hz signal, while user acceleration is not. 
-
-For each component, we can pass total acceleration through a low-pass filter, and we'll be left with just the gravitational acceleration time series.
+For each component, we can pass total acceleration through a low-pass filter, and we'll be left with just the gravitational acceleration time series. Then, we can subtract gravitational acceleration from total acceleration, and we'll have the user acceleration time series. 
 
 ![](chapter-figures/low-pass-filter-a.png)\ 
-
-Then, we can subtract gravitational acceleration from total acceleration, and we'll have the user acceleration time series. 
-
-$x_{u}(t) = x(t) - x_{g}(t)$\
-$y_{u}(t) = y(t) - y_{g}(t)$\
-$z_{u}(t) = z(t) - z_{g}(t)$
 
 There are numerous varieties of filters. The one we'll use is called a Chebyshev filter. We've chosen a Chebyshev filter because it has a steep cutoff, which means that it very quickly attenuates frequencies beyond our chosen threshold.
 
@@ -140,18 +115,15 @@ We want to cancel all frequencies except for our constant gravitational accelera
 
 ### Implementing a Low-pass Filter
 
-Let's work through a low-pass filter implementation using our earlier example. We'll split 
+Let's work through a low-pass filter implementation using our earlier example. We'll split: 
 
 * $x(t)$ into $x_{g}(t)$ and $x_{u}(t)$, 
 * $y(t)$ into $y_{g}(t)$ and $y_{u}(t)$,
 * $z(t)$ into $z_{g}(t)$ and $z_{u}(t)$.
 
-![](chapter-figures/acceleration-total.png)\ 
-
 We'll initialize the first two values of gravitational acceleration to 0, so that the formula has initial value to work with.
 
 $x_{g}(0) = x_{g}(1) = y_{g}(0) = y_{g}(1) = z_{g}(0) = z_{g}(1) = 0$\
-
 
 Then, we'll implement the filter formula for each time series.
 
@@ -160,7 +132,6 @@ $x_{g}(t) = \alpha_{0} * (x(t) * \beta_{0} + x(t-1) * \beta_{1} + x(t-2) * \beta
 $y_{g}(t) = \alpha_{0} * (y(t) * \beta_{0} + y(t-1) * \beta_{1} + y(t-2) * \beta_{2} - y_{g}(t-1) * \alpha_{1} - y_{g}(t-2) * \alpha_{2})$\
 
 $z_{g}(t) = \alpha_{0} * (z(t) * \beta_{0} + z(t-1) * \beta_{1} + z(t-2) * \beta_{2} - z_{g}(t-1) * \alpha_{1} - z_{g}(t-2) * \alpha_{2})$\
-
 
 The resulting time series after low-pass filtering are below. 
 
@@ -190,74 +161,51 @@ Let's get to it. First, some liner algebra 101. Don't take that mathematician ha
 
 When working with coordinates, you won't get very far before being introduced to the **dot product**, one of the fundamental tools used in comparing the magnitude and direction of x, y, z coordinates.
 
-The dot product will take us from 3-dimensional space to 1-dimensional space, returning a single time series. We'll jump right in with an example.
+The dot product will take us from 3-dimensional space to 1-dimensional space. 
+When we take the dot product of the time series user acceleration and gravitational acceleration, both of which are in 3-dimensional space, we'll be left with a single time series in 1-dimensional space representing the portion of user acceleration in the direction of gravity. We'll arbitrarily call this new time series $a(t)$, because, well, every important time series deserves a name. 
 
 ![](chapter-figures/dot-product-explanation.png)\ 
-
-Taking the dot product of user acceleration and gravitational acceleration at time *t* will give us the portion of user acceleration in the direction of gravity at that time. When we do this for every *t* in our time series, we'll get a single time series representing user acceleration in the direction of gravity. Exactly what we need! We'll arbitrarily call this new time series $a(t)$, because, well, every important time series deserves a name. 
 
 ### Implementing the Dot Product
 We can implement the dot product for our earlier example using the formula
 
-$a(t) = x_{u}(t) * x_{g}(t) + y_{u}(t) * y_{g}(t) + z_{u}(t) * z_{g}(t)$,
+$a(t) = x_{u}(t)x_{g}(t) + y_{u}(t)y_{g}(t) + z_{u}(t)z_{g}(t)$,
 
 leaving us with $a(t)$, in 1-dimensional space. 
 
 ![](chapter-figures/acceleration-dotproduct.png)\ 
 
-The dot product is very powerful, yet beautifully simple. 
+We can now visually pick out where the steps are. The dot product is very powerful, yet beautifully simple. 
 
 ## Solutions in the Real World 
 
-We saw how quickly our seemingly simple problem turned a little more complex when we threw in the challenges of the real world and real people. However, we're getting a lot closer to counting steps. 
+We saw how quickly our seemingly simple problem turned more complex when we threw in the challenges of the real world and real people. However, we're getting a lot closer to counting steps, and we can see how $a(t)$ is starting to resemble our ideal sine wave. But, only "kinda, sorta" starting to. We still need to make our messy $a(t)$ time series smoother. There are four main issues with $a(t)$ in its current state. Let's examine each one.
 
-Using the two mathematical tools from above, a low-pass filter and the dot product, we were able to bring our real world, complex signal a lot closer to our ideal one. We're even able to see pick out where the steps bounces are. We can see how $a(t)$ is starting to resemble our ideal sine wave. But, only "kinda, sorta" starting to. 
-
-We need to make our messy $a(t)$ time series smoother, so that it looks more like our ideal sine wave, allowing us to count steps. There are four main issues with $a(t)$ in its current state. Let's look at each one.
+![](chapter-figures/jumpy-slow-short-bumpy.png)\ 
 
 ### 1. Jumpy Peaks
 
-$a(t)$ is very "jumpy". An imperfect real world means that as the phone accelerates with each step, it can also jiggle up and down due to where and how it's being held. These real-life issues cause the jumpiness in our time series, which we call **noise**. Noise is a high-frequency component in our time series that causes some very skinny peaks along with each peak due to a step. These can be miscounted as additional steps.  
-
-![](chapter-figures/acceleration-dotproduct-jumpy.png)\ 
-
-The real world is noisy and messy, and won't give us perfect peaks, but we can do a lot to smooth out the noise and get close to perfection. A low-pass filter can be used once again to eliminate the "jumpy", high frequency portions. This time, we'll pick our $\alpha$ and $\beta$ coefficients such that we attenuate all signals above 5 Hz. By studying numerous data sets, we've determine that an acceleration due to a step is at a maximum frequency of 5 Hz, and anything above that is noise. 
-
-Passing our messy time series through another low-pass filter, we get a cleaner $a(t)$ below.
-
-![](chapter-figures/acceleration-dotproduct-lowpass.png)\ 
+$a(t)$ is very "jumpy", because a phone can jiggle with each step, adding a high-frequency component to our time series. By studying numerous data sets, we've determined that a step acceleration is at maximum 5 Hz. We can again use a low-pass Chebyshev filter, picking $\alpha$ and $\beta$ to attenuate all signals above 5 Hz, to remove the "jumpiness".
 
 ### 2. Slow Peaks
 
-Examining our cleaner $a(t)$, we see a very "slow" peak at the very start. Given that our sampling rate is 100, we see that this peak, from 0 crossing to 0 crossing, took over one and a half seconds to complete. That's incredibly slow for a step, so we know that it must be due to another, slower acceleration in the direction of gravity. This slow acceleration is a low-frequency component, that we can cancel our using a high-pass filter. We'll use our Chebyshev filter formula again, only this time we'll use it to cancel all frequencies below 1 Hz. In studying enough samples of data, we've determined that the slowest step we can take is at a 1 Hz frequency. 
-
-Passing $a(t)$ through a high-pass filter, we see the even cleaner time series below. Note that the slow accelerations are gone. 
-
-![](chapter-figures/acceleration-filtered.png)\ 
+With a sampling rate of 100, the slow peak displayed in $a(t)$ spans 1.5 seconds, which is too slow to be a step. In studying enough samples of data, we've determined that the slowest step we can take is at a 1 Hz frequency. Slower accelerations are due to a low-frequency component, that we can again remove using a high-pass Chebyshev filter, setting $\alpha$ and $\beta$ to cancel all signals below 1 Hz. 
 
 ### 3. Short Peaks
 
-Since a phone is used for more than just an accelerometer, we're always going to have peaks in the direction of gravity that aren't due to a step. For instance, as a person is using an app or making a call, but not walking while doing it, the accelerometer will register smaller movements in the direction of gravity. These movements will present themselves as shorter peaks in our time series. 
-
-![](chapter-figures/acceleration-filtered-threshold.png)\ 
-
-The easiest way to deal with these peaks is to set a minimum threshold value, and use that to disqualify peaks. We can now count steps by counting every single time $a(t)$ crosses the threshold in the positive direction.
+As a person is using an app or making a call, the accelerometer registers small movements in the direction of gravity, presenting themselves as short peaks in our time series. We can eliminate these short peaks by setting a minimum threshold, and counting a step every time $a(t)$ crosses that threshold in the positive direction.
 
 ### 4. Bumpy Peaks
 
-When smoothing out the time series for the purposes of building a step counter, we have to accommodate many types of people with different walks. While it's reasonable to get a near-perfect sine wave for a specific walk done by a specific person, we do need to set minimum and maximum threshold frequencies to filter out based on a large sample size of people and walks. This means that we may sometimes filter a little too much, or slightly less than necessary. While we'll often have fairly smooth peaks, we can, once in a while, get a "bumpier" peak. Let's zoom in on one such peak.
+Our pedometer should accommodate many people with different walks, so we set minimum and maximum step frequencies based on a large sample size of people and walks. This means that we may sometimes filter slightly too much or too little. While we'll often have fairly smooth peaks, we can, once in a while, get a "bumpier" peak. The diagram above zooms in on one such peak. 
 
-![](chapter-figures/bumpy-peak.png)\ 
-
-Assuming that we've set our threshold to $0.1g$, in this situation, the bumpiness happens to be exactly at the threshold. If we're counting all instances where the time series crossed the threshold in the positive direction, we would count two steps for this one peak, even though only one step was actually taken. 
-
-We can use a method called **hysteresis** to address this. Hysteresis refers to the dependence of an output on past inputs. In our case, we can count every time we cross not only the threshold in the positive direction, but we can also count every time we cross the x-axis at 0 in the negative direction. We only count steps where a threshold cross occurs after a 0 crossing. That way, we'll never double-count steps for a single peak.
-
-![](chapter-figures/bumpy-peak-fixed.png)\ 
+When bumpiness occurs at our threshold, we can mistakenly count too many steps for one peak. We can use a method called **hysteresis** to address this. Hysteresis refers to the dependence of an output on past inputs. We can count threshold crossings in the positive direction, as well as 0 crossings in the negative direction. Then, we only count steps where a threshold crossing occurs after a 0 crossing, ensuring we count each step only once. 
 
 ### Peaks That Are Juuuust Right
 
-In accounting for these four scenarios, we've managed to take our messy $a(t)$ and get it fairly close to our ideal sine wave, allowing us to count steps. 
+![](chapter-figures/acceleration-filtered.png)\ 
+
+In accounting for these four scenarios, we've managed to bring our messy $a(t)$ fairly close to our ideal sine wave, allowing us to count steps. 
 
 ## Recap
 
@@ -271,30 +219,79 @@ The problem, at first glance, looked straightforward. However, the real world an
 6. We set a threshold to ignore short peaks.
 7. We used hysteresis to avoid double-counting steps with bumpy peaks.
 
-As software developers in a training or academic setting, we may have been presented with a perfect signal and asked to write code to count the steps in that signal. While that may have been an interesting coding challenge, it wouldn't have been something we could apply in a live situation. We saw that in a reality with gravity and people thrown into the mix, the problem was a little more complex. We used mathematical tools to address the complexities, and were able to solve a real-world problem. Now it's time to translate our solution into code. 
+As software developers in a training or academic setting, we may have been presented with a perfect signal and asked to write code to count the steps in that signal. While that may have been an interesting coding challenge, it wouldn't have been something we could apply in a live situation. We saw that in a reality with gravity and people thrown into the mix, the problem was a little more complex. We used mathematical tools to address the complexities, and were able to solve a real-world problem. It's time to translate our solution into code. 
 
 # Diving Into Code
 
-Our goal for this chapter is to create a web application that counts steps from a set of different walks recorded with mobile devices containing accelerometers. 
+Our goal for this chapter is to create a web application in Ruby that accepts accelerometer data, parses, processes, and analyzes it, and returns the number of steps taken, the distance traveled, and the elapsed time. 
 
-We'll write our web app in Ruby. Rather than selling you on why Ruby is good choice, I'll leave you with a quote from its creator, Yukihiro Matsumoto: "I hope to see Ruby help every programmer in the world to be productive, and to enjoy programming, and to be happy. That is the primary purpose of Ruby language."
+# Preliminary Work
 
-Our web app will:
+Our solution requires us to filter our time series several times. Rather than peppering filtering code throughout our program, it makes sense to create a class that takes care of the filtering, and if we ever need to enhance or modify it, we'll only ever need to change that one class. This strategy is called *separation of concerns*, a commonly-used design principle which promotes splitting a program into numerous distinct pieces, where every piece has one primary concern. It's a beautiful way to write clean, maintainable code that's easily extensible. We'll revisit this idea several times throughout the chapter.
 
-1. Allow a user to upload a text file containing acceleration data.
-2. Provide input fields for the user to enter some basic information about the data set such as the sampling rate, actual step count, gender, height, and stride.
-3. Parse, process, and analyze our data, calculating the number of steps taken, distance traveled, and time elapsed.
-4. Output charts representing the data in different processing stages.
+Let's dive into the filtering code, contained in, logically, a `Filter` class.
 
-The meat and potatoes of our program is in step 3, where we parse, process, and analyze the input data. It makes sense, then, to start with that, and build the web app and interface afterward.
+~~~~~~~
+class Filter
 
-## Processing Input Data
+  COEFFICIENTS_LOW_0_HZ = {
+    alpha: [1, -1.979133761292768, 0.979521463540373],
+    beta:  [0.000086384997973502, 0.000172769995947004, 0.000086384997973502]
+  }
+  COEFFICIENTS_LOW_5_HZ = {
+    alpha: [1, -1.80898117793047, 0.827224480562408], 
+    beta:  [0.095465967120306, -0.172688631608676, 0.095465967120306]
+  }
+  COEFFICIENTS_HIGH_1_HZ = {
+    alpha: [1, -1.905384612118461, 0.910092542787947], 
+    beta:  [0.953986986993339, -1.907503180919730, 0.953986986993339]
+  }
 
-The input data we'll be processing is coming from mobile devices such as Android phones and iPhones. Most iPhone and Android devices on the market today have accelerometers built in. This means that both device types are able to record total acceleration. Let's call the input data format that records total acceleration the *combined format*. Many, but not all, devices can also record user acceleration and gravitational acceleration separately. Let's call this format the *separated format*. A device that has the ability to return data in the separated format necessarily has the ability to return data in the combined format. However, the inverse is not necessarily true. Some devices on the market today can only record data in the combined format. Input data in the combined format will need to be passed through a low-pass filter to turn it into the separated format. 
+  def self.low_0_hz(data)
+    chebyshev_filter(data, COEFFICIENTS_LOW_0_HZ)
+  end
 
-We want our program to handle all mobile devices on the market with accelerometers, regardless of whether or not they are able to record data in both the combined and separated format, or only in the combined format. This means that we'll need to accept data in both formats. 
+  def self.low_5_hz(data)
+    chebyshev_filter(data, COEFFICIENTS_LOW_5_HZ)
+  end
 
-Let's look at each of the formats we'll be accepting individually.
+  def self.high_1_hz(data)
+    chebyshev_filter(data, COEFFICIENTS_HIGH_1_HZ)
+  end
+
+private
+
+  def self.chebyshev_filter(data, coefficients)
+    filtered_data = [0,0]
+    (2..data.length-1).each do |i|
+      filtered_data << coefficients[:alpha][0] * 
+                      (data[i]            * coefficients[:beta][0] +
+                       data[i-1]          * coefficients[:beta][1] +
+                       data[i-2]          * coefficients[:beta][2] -
+                       filtered_data[i-1] * coefficients[:alpha][1] -
+                       filtered_data[i-2] * coefficients[:alpha][2])
+    end
+    filtered_data
+  end
+
+end
+~~~~~~~
+
+Anytime our program needs to filter a time series, we can call one of the class methods in `Filter` with the data we need filtered: 
+
+* `low_0_hz` is used to low-pass filter signals near 0 Hz
+* `low_5_hz` is used to low-pass filter signals at or below 5 Hz
+* `high_1_hz` is used to high-pass filter signals above 1 Hz
+
+Each class method calls `chebyshev_filter`, which implements the Chebyshev filter and returns the result. If we wish to add more filters in the future, we only need to change this one class. 
+
+One important thing to note is that all magic numbers are defined at the top. This makes our class easier to read and understand. The formula in `chebyshev_filter` is much more obvious using the `coefficients` parameter than it would have been with numerical values directly inserted.
+
+# Input Formats
+
+Our input data is coming from mobile devices such as Android phones and iPhones. Most mobile phones on the market today have accelerometers built in, that are able to record total acceleration. Let's call the input data format that records total acceleration the *combined format*. Many, but not all, devices can also record user acceleration and gravitational acceleration separately. Let's call this format the *separated format*. A device that has the ability to return data in the separated format necessarily has the ability to return data in the combined format. However, the inverse is not always true. Some devices can only record data in the combined format. Input data in the combined format will need to be passed through a low-pass filter to turn it into the separated format. 
+
+We want our program to handle all mobile devices on the market with accelerometers, so we'll need to accept data in both formats. Let's look at the two formats we'll be accepting individually.
 
 ### Combined Format
 
@@ -304,39 +301,17 @@ $"x1,y1,z1; ... xn,yn,zn;"$
 
 ### Separated Format
 
-The separated format returns user acceleration in the x, y, z directions as well as gravitational acceleration in the x, y, z directions, over time. Again, x, y, and z values will be separated by a comma, and samples will be separated by a semi-colon. User acceleration values will be separated from gravitational acceleration values by a pipe.
+The separated format returns user acceleration in the x, y, z directions as well as gravitational acceleration in the x, y, z directions, over time. User acceleration values will be separated from gravitational acceleration values by a pipe.
 
 $"x_{u}1,y_{u}1,z_{u}1|x_{g}1,y_{g}1,z_{g}1; ... x_{u}n,y_{u}n,z_{u}n|x_{g}n,y_{g}n,z_{g}n;"$
 
 ## I Got Multiple Input Formats But a Standard Ain't One
 
-Dealing with multiple input formats is a common programming problem. If we want our entire program to work with both formats, every single piece of code dealing with the data would need to know how to handle both formats. This can become very messy, very quickly, especially if a third (or a fourth, or a fifth, or a hundredth) input format is added in the future. 
+Dealing with multiple input formats is a common programming problem. If we want our entire program to work with both formats, every single piece of code dealing with the data would need to know how to handle both formats. This can become very messy, very quickly, especially if a third (or a fourth, or a fifth, or a hundredth) input format is added.
 
-The cleanest way for us to deal with this is to take our two input formats and determine a standard format to fit them both into as soon as possible, allowing the rest of the program to work with this new standard format. This means that the remaining parts of the program don't need to be concerned with, or even know about, multiple formats. 
+### Standard Format
 
-The diagram below outlines the basic idea. 
-
-![](chapter-figures/input-format-to-standard-format.png)\
-
-We'll write a small parser to a standard format that is contained in only one section of code, that allows us to take our two known input formats and convert them to a single standard output format. In the future, if we ever have to add another input format, the only code we'll have to touch is this small parser. Once the data is in a standard format, the program can have any number of processors that process the data from the standard format, without ever being concerned about the original format that the data was in. 
-
-Converting multiple input formats into one common format is an example of *separation of concerns*, a commonly-used design principle, which promotes splitting a program into numerous distinct pieces, where every piece has one primary concern. It's a beautiful way to write clean, maintainable code that's easily extensible. We'll revisit this idea several times throughout the chapter.
-
-## Applying Our Step Counting Solution
-
-Based on the solution we defined, and our two input formats, we'll need our code to do three things to our input data before we can count steps:
-
-1. Parse our input formats into a standard format. 
-2. Isolate movement in the direction of gravity using the dot product.
-3. Apply a low-pass filter and a high-pass filter to remove low-frequency and high-frequency components.
-
-The diagram below shows each of these three steps.
-
-![](chapter-figures/input-data-workflow.png)\
-
-We know we'll need to work with user acceleration and gravitational acceleration separately in order to follow our solution, so our standard format will need to split out the two accelerations. This means that if our data is in the combined format, we'll need to first pass it through a low-pass filter in step 1 to convert it to the standard format.
-
-Take note of the standard format:
+The cleanest way for us to deal with this is to take our two input formats and determine a standard format to fit them both into as soon as possible, allowing the rest of the program to work with this new standard format. We'll need to work with user acceleration and gravitational acceleration separately in order to follow our solution, so our standard format will need to split out the two accelerations:
 
 ![](chapter-figures/standard-format.png)\
 
@@ -346,52 +321,50 @@ Our standard format allows us to store a time series, as each element represents
 * The second set of arrays contains one array per data sample taken. If our sampling rate is 100 and we sample data for 10 seconds, we'll have $10 * 100$, or 1000, arrays in this second set. 
 * The third set of arrays is the pair of arrays enclosed within the second set. They both contain acceleration data in the x, y, and z directions; the first representing user acceleration and the second gravitational acceleration.
 
-These three tasks - parse, dot product, and filter - are all related to taking input data, and parsing and processing it to get it to a state where our resulting data set is clean enough for us to count steps. Due to this relationship, it makes sense to combine these tasks into one class. We'll call it a **Processor**. 
+# The Pipeline
 
-## The Processor Class
+Our system takes, as input, data from an accelerometer along with information on the user taking the walk (gender, stride, etc.) and information on the trial walk itself (sampling rate, actual steps taken, etc.). Given the input, our signal processing solution is applied, and our system returns as output the number of steps calculated, the delta between the actual steps and calculated steps, the distance traveled, and the elapsed time. The entire process from input to output can be viewed as a pipeline. 
+
+![](chapter-figures/pipeline.png)\
+
+In the spirit of separation of concerns, we'll write the code for each distinct component of the pipeline - parsing, processing, and analyzing - individually.
+
+# Parsing
+
+Given that we want our data in the standard format as early as possible, it makes sense to write a parser that allows us to take our two known input formats and convert them to a standard output format as the first component of our pipeline. Our standard format splits out user acceleration and gravitatinal acceleration, which means that if our data is in the combined format, out parser will need to first pass it through a low-pass filter to convert it to the standard format. 
+
+![](chapter-figures/input-data-workflow-1.png)\
+
+In the future, if we ever have to add another input format, the only code we'll have to touch is this parser. Let's separate concerns once more, and create a `Parser` class to handle the parsing.
 
 ~~~~~~~
-class Processor
+require_relative 'filter'
 
-  GRAVITY = {
-    alpha: [1, -1.979133761292768, 0.979521463540373],
-    beta:  [0.000086384997973502, 0.000172769995947004, 0.000086384997973502]
-  }
-  
-  SMOOTHING = {
-    alpha: [1, -1.80898117793047, 0.827224480562408], 
-    beta:  [0.095465967120306, -0.172688631608676, 0.095465967120306]
-  }  
+class Parser
 
-  HIGHPASS = {
-    alpha: [1, -1.905384612118461, 0.910092542787947], 
-    beta:  [0.953986986993339, -1.907503180919730, 0.953986986993339]
-  }
+  attr_reader :parsed_data
 
-  FORMAT_COMBINED  = 'combined'
-  FORMAT_SEPARATED = 'separated'
-
-  attr_reader :data, :format, :parsed_data, :dot_product_data, :filtered_data
+  def self.run(data)
+    parser = Parser.new(data)
+    parser.parse
+    parser
+  end
 
   def initialize(data)
     @data = data
-
-    parse
-    dot_product
-    filter
   end
 
   def parse
-    @parsed_data = @data.to_s.split(';').map { |i| i.split('|') }
-                   .map { |i| i.map { |i| i.split(',').map(&:to_f) } }
+    @parsed_data = @data.to_s.split(';').map { |x| x.split('|') }
+                   .map { |x| x.map { |x| x.split(',').map(&:to_f) } }
 
-    unless @parsed_data.map { |data| data.map(&:length).uniq }.uniq == [[3]]
+    unless @parsed_data.map { |x| x.map(&:length).uniq }.uniq == [[3]]
       raise 'Bad Input. Ensure data is properly formatted.'
     end
 
-    @format = if @parsed_data.first.count == 1
+    if @parsed_data.first.count == 1
       filtered_accl = @parsed_data.map(&:flatten).transpose.map do |total_accl|
-        grav = chebyshev_filter(total_accl, GRAVITY)
+        grav = Filter.low_0_hz(total_accl)
         user = total_accl.zip(grav).map { |a, b| a - b }
         [user, grav]
       end
@@ -401,198 +374,103 @@ class Processor
         grav = filtered_accl.map(&:last).map { |elem| elem[i] }
         [user, grav]
       end
-      
-      FORMAT_COMBINED
-    else
-      FORMAT_SEPARATED
     end
-  end
-
-  def dot_product
-    @dot_product_data = @parsed_data.map do |data|
-      data[0][0] * data[1][0] + 
-      data[0][1] * data[1][1] + 
-      data[0][2] * data[1][2]
-    end
-  end
-
-  def filter
-    low_pass_filtered_data = chebyshev_filter(@dot_product_data, SMOOTHING)
-    @filtered_data = chebyshev_filter(low_pass_filtered_data, HIGHPASS)
-  end
-
-  def chebyshev_filter(input_data, coefficients)
-    output_data = [0,0]
-    (2..input_data.length-1).each do |i|
-      output_data << coefficients[:alpha][0] * 
-                     (input_data[i]   * coefficients[:beta][0] +
-                     input_data[i-1]  * coefficients[:beta][1] +
-                     input_data[i-2]  * coefficients[:beta][2] -
-                     output_data[i-1] * coefficients[:alpha][1] -
-                     output_data[i-2] * coefficients[:alpha][2])
-    end
-    output_data
   end
 
 end
 ~~~~~~~
 
-### Filtering
+`Parser` has a class-level `run` method as well as an initializer. This is a pattern we'll use several times, so it's worth a discussion. Initializers should generally be used for setting up an object, and shouldn't do a lot of work. `Parser`'s initializer simply takes `data` in the combined or separated format and stores it in the instance variable `@data`. The `parse` instance method uses `@data` internally, and does the heavy lifting of parsing and setting the result in the standard format to `@parsed_data`. In our case, we'll never need to instantiate a `Parser` instance without having to immediately call `parse`. Therefore, we add a convenient class-level `run` method, that instantiates an instance of `Parser`, calls `parse` on it, and returns the instance of the object. We can now pass our input data to `run`, knowing we'll receive an instance of `Parser` with `@parsed_data` already set.
 
-Let's start with the last method in our class, `chebyshev_filter`. This method implements the low-pass and high-pass Chebyshev filters. We'll see it used three times in this class, the first time when we low-pass filter the combined input format during the parsing to the standard format, the second time when we low-pass filter the dot product output to smooth out our time series, and the third time immediately after the second, when we high-pass our time series to remove slow accelerations. 
-
-`chebyshev_filter` takes two parameters: `input_data` and `coefficients`. `input_data` is an array containing the time series we want passed through the filter. `coefficients` is a hash with two keys, `alpha` and `beta`, each containing an array with three numerical data points. Note the constants `GRAVITY`, `SMOOTHING`, and `HIGHPASS` at the top of the class. These will be the hashes we'll pass to the `coefficients` parameter. `GRAVITY` contains coefficients for the first low-pass filter splitting out gravitational and user acceleration, `SMOOTHING` for the second low-pass smoothing filter, and `HIGHPASS` for the only high-pass filter we use. 
-
-The `chebyshev_filter` method returns an array containing the resulting time series. 
-
-We implement the low-pass filter in code by first instantiating an `output_data` array with zeros at index 0 and 1, so that the equation has initial values to work with. Then, we loop through the remaining indices of the `input_data` time series, apply the formula at each turn, and append the result to `output_data`, returning `output_data` when the loop is complete. 
-
-The `chebyshev_filter` method is another example of *separation of concerns*. Since we know we'll need to implement a low-pass filter more than once in our code, we leave the knowledge of how to do that in one method only. The rest of our code need only know how to call the method and pass in the appropriate `coefficients` for the `input_data` it needs filtered. If there is ever a bug in the filtering code, we only need to fix it in the `chebyshev_filter` method.
-
-## The Inner Workings of the Processor Class
-
-Let's take a look at how the rest of the class works, and how it uses `chebyshev_filter`, starting with the `initialize` method. Our processor class takes string data as input and stores it in the `@data` instance variable. It then calls three methods in sequence: `parse`, `dot_product`, and `filter`. 
-
-Each method accomplishes one of our three steps. Let's look at each method individually. 
-
-### Step 1: Parse Our Input Formats Into a Standard Format (parse)
-
-The goal of `parse` is to convert string data in either the combined or separated format to numerical data, and store it in `@parsed_data` in our new standard format.
-
-The first step in the process is to take string data and convert it to numerical data. The first operation sets `@parsed_data` after performing three tasks in sequence:
-
-* splitting the string by semicolon into as many arrays as samples taken, 
-* splitting each individual array by the pipe into another array, and,
-* splitting the resulting array string elements by the comma and converting them to floats.
-
-This gives us an array of arrays of arrays. Sound familiar? The next thing we do is ensure that the format is as expected. Unless we have exactly three elements per the innermost arrays, we throw an exception. Otherwise, we continue on.
+Let's take a look at our hard-working `parse` method. The first step in the process is to take string data and convert it to numerical data, giving us an array of arrays of arrays. Sound familiar? The next thing we do is ensure that the format is as expected. Unless we have exactly three elements per the innermost arrays, we throw an exception. Otherwise, we continue on.
 
 Note the differences in `@parsed_data` between the two formats at this stage:
 
 * `@parsed_data` in the *combined format* contains arrays with exactly **one** array: $[[[x1, y1, z1]], ... [[xn, yn, zn]]$
 * `@parsed_data` in the *separated format* contains arrays with exactly **two** arrays: $[[[x_{u}1,y_{u}1,z_{u}1], [x_{g}1,y_{g}1,z_{g}1]], ... [[x_{u}n,y_{u}n,z_{u}n], [x_{g}n,y_{g}n,z_{g}n]]]$
 
-We see here that the separated format is already in our desired standard format after this operation. Amazing. 
+The separated format is already in our desired standard format after this operation. Amazing. However, if the data is combined (or, equivalently, has exactly one array where the separated format would have two), then we proceed with two loops. The first loop splits total acceleration into gravitational and user, using `Filter` with a `:low_0_hz` type, and the second loop reorganizes the data into the standard format.
 
-To get the combined format into the standard format, we'll need to low-pass filter it to split the acceleration into user and gravitational first, and ensure it ends up in the same standard format afterward. We'll do this in the `parse` method, so that it's the only one concerned with the two formats, as per our separation of concerns pattern. In order to do that, we use the difference in `@parsed_data` at this stage to determine whether the format is combined or separated in the `if` statement in the next portion of the code. If it's combined (or, equivalently, has exactly one array where the separated format would have two), then we proceed with:
+`parse` leaves us with `@parsed_data` holding data in the standard format, regardless of whether we started off with combined or separated data. What a relief!
 
-1. passing the data through the `chebyshev_filter` method to low-pass filter it and split out the accelerations, and,
-2. formatting the data into the standard format. 
+As our program becomes more sophisticated, one area for improvement is to make our users' lives easier by throwing exceptions with more specific messages than "Bad Input. Ensure data is properly formatted.", allowing them to more quickly track down common input formatting problems. 
 
-We accomplish each of these steps with a loop. The first loop uses our array after calling `flatten` on each element, followed by `transpose` on the result, so that it can work with x, y, and z total acceleration components individually. The array after `flatten` and `transpose` and before looping is structured as follows:
+# Processing
 
-$[[[x1, ... xn]], [[y1, ... yn]], [[z1, ... zn]]]$
+Based on the solution we defined, we'll need our code to do a couple of things to our parsed data before we can count steps:
 
-Then, we use `map` to loop through each of the three components. In the first line of the loop, we call `chebyshev_filter` with `GRAVITY_COEFF` to split out gravitational acceleration, storing the resulting array in `grav`. In the second line, we isolate user acceleration by using `zip` to subtract gravitational acceleration from total acceleration, storing the resulting array in `user`. In the last line, we return an array with `user` and `grav` as the two elements. 
+1. Isolate movement in the direction of gravity using the dot product.
+2. Remove jumpy (high-frequency) and slow (low-frequency) peaks with a low-pass filter followed by a high-pass filter.
 
-This loop runs exactly three times, once for each component, and stores the final result in `filtered_accl`:
+The removal of short and bumpy peaks can be handled during step counting. 
 
-$[[[x_{u}1, x_{u}2, ..., x_{u}n], [x_{g}1, x_{g}2, ..., x_{g}n]], $\
-$[[y_{u}1, y_{u}2, ..., y_{u}n], [y_{g}1, y_{g}2, ..., y_{g}n]], $\
-$[[z_{u}1, z_{u}2, ..., z_{u}n], [z_{g}1, z_{g}2, ..., z_{g}n]]]$
+Now that we have our data in the standard format, we can process it to get in into a state where we can analyze it to count steps. 
 
-We're almost there. We've split total acceleration into user and gravitational. All that's left is to format `filtered_accl` to our standard format. We do this in the second loop. 
+![](chapter-figures/input-data-workflow-2.png)\
 
-The second loop sets `@parsed_data` to the standard format. We use `map` to loop once for each index in `@parsed_data`, which represents a data sample at a point in time. The first line in the loop stores an array with the x, y, and z user acceleration at that point in time in `user` by grabbing the acceleration values using `map` once again. The second line stores the equivalent values for gravitational acceleration in `grav`. The last line returns an array with `user` and `grav` as the elements. 
-
-The last thing the `if` statement does, for each branch, is set the `@format` variable to either `FORMAT_COMBINED` or `FORMAT_SEPARATED`, both of which are constants that indicate the type of format the original data was passed in as. These are used predominantly for display purposes in the web app. Otherwise, the remainder of the program is no longer concerned with these two formats. 
-
-At the end of the `if` statement, we're left with the `@parsed_data` variable holding data in the standard format, regardless of whether we started off with combined or separated data. As we add more and more input formats, we might decide that a cleaner solution would be to split out the `parse` code into a `Parser` class to deal with these formats. For now, however, two formats are a small number to work with, so it's simpler to leave this code as a single method in our `Processor` class.
-
-Great. We can now move on without worrying about our two formats again, and with the peace of mind that the changes required if we choose to add a third or fourth or hundredth format will be isolated to just the `parse` code. What a relief!
-
-### Step 2: Isolate Movement in the Direction of Gravity Using the Dot Product (dot_product)
-
-Taking the dot product in our `Processor` class is a matter of using the data in our standard format, `@parsed_data`, and applying the dot product formula to it. We add a `@dot_product_data` instance variable, and a method, `dot_product`, to set that variable. The `dot_product` method is called immediately after `parse` in the initializer. It iterates through our standard format, `@parsed_data`, using `map`, calculating the dot product for each index and setting the final result to `@dot_product_data`. 
-
-![](chapter-figures/dot-product-code.png)\ 
-
-### Step 3: Apply Filters to Remove Low-Frequency and High-Frequency Components (filter)
-
-Following the pattern from steps one and two, we add another instance variable, `@filtered_data`, to store the filtered time series, and a method, `filter`, that we call from the initializer.
-
-We use our filtering method, `chebyshev_filter`, twice in `filter`. First, we pass `@dot_product_data` in as our time series, and `SMOOTHING` as the `coefficients` constant. The result is our time series without the high frequency component, which we store in `low_pass_filtered_data`. Next, we call `chebyshev_filter` once more, this time passing in `low_pass_filtered_data` as the time series, and `HIGHPASS` as the `coefficients` constant. This resulting time series is the clean one we can use to count steps, stored in `@filtered_data`. 
-
-## Our Processor Class in the Wild
-
-Our Processor now takes string data in both the separated and combined formats, converts it into a more useable format, isolates user acceleration in the direction of gravity, and filters the time series to smooth it out. 
-
-Our processor class is useable on its own as is. An example with combined data:
+The purpose of processing is to take our data in the standard format and incrementally clean it up to get it to a state as close as possible to our ideal side wave. Our two processing operations, taking the dot product and filtering, are quite distinct, but both are intended to process our data, so we'll create one class, called a **Processor**. 
 
 ~~~~~~~
-> data = '0.123,-0.123,5;0.456,-0.789,0.111;-0.212,0.001,1;'
-> processor = Processor.new(data)
+require_relative 'filter'
 
-> processor.format
-=> 'combined'
-> processor.parsed_data
-=> [
-    [[0.123, -0.123, 5.0], [0, 0, 0]], 
-    [[0.456, -0.789, 0.111], [0, 0, 0]], 
-    [
-     [-0.2120710948533322, 0.0011468544965549535, 0.9994625125426089], 
-     [7.109485333219216e-05, -0.00014685449655495343, 0.0005374874573911294]
-    ]
-   ]
-> processor.dot_product_data
-=> [0.0, 0.0, 0.0005219529804999682]
-> processor.filtered_data
-=> [0, 0, 4.753597533351234e-05]
+class Processor
+
+  attr_reader :dot_product_data, :filtered_data
+
+  def self.run(data)
+    processor = Processor.new(data)
+    processor.dot_product
+    processor.filter
+    processor
+  end
+
+  def initialize(data)
+    @data = data
+  end
+
+  def dot_product
+    @dot_product_data = @data.map do |x|
+      x[0][0] * x[1][0] + x[0][1] * x[1][1] + x[0][2] * x[1][2]
+    end
+  end
+
+  def filter
+    @filtered_data = Filter.low_5_hz(@dot_product_data)
+    @filtered_data = Filter.high_1_hz(@filtered_data)
+  end
+
+end
 ~~~~~~~
 
-An example with separated data:
+Again, we see the `run` and `initialize` methods pattern. `run` calls our two processor methods, `dot_product` and `filter`, directly. Each method accomplishes one of our two processing operations. `dot_product` isolates movement in the direction of gravity, and filter applies the low-pass and high-pass filters in sequence to remove jumpy and slow peaks. 
 
-~~~~~~~
-> data = '0.028,-0.072,5|0.129,-0.945,-5;0,-0.07,0.06|0.123,-0.947,5;0.2,-1,2|0.1,-0.9,3;'
-> processor = Processor.new(data)
+# Pedometer Functionality
 
-> processor.format
-=> 'separated'
-> processor.parsed_data
-=> [
-    [[0.028, -0.072, 5.0], [0.129, -0.945, -5.0]], 
-    [[0.0, -0.07, 0.06], [0.123, -0.947, 5.0]], 
-    [[0.2, -1.0, 2.0], [0.1, -0.9, 3.0]]
-   ]
-> processor.dot_product_data
-=> [-24.928348, 0.36629, 6.92]
-> processor.filtered_data
-=> [0, 0, -1.7004231121083724]
-~~~~~~~
-
-## Where to Improve
-* Exception handling in `parse` can be enhanced
-
-TODO: Is the section above needed? If so, I can expand.
-
-## Pedometer Functionality
-
-Our pedometer will measure three metrics:
-
-1. Distance traveled
-2. Time traveled
-3. Steps taken
-
-Let's discuss the information we'll need to calculate each of these metrics. We're intentionally leaving the exciting, step counting part of our program to the end.
+Provided information about the person using the pedometer is available, we can measure more than just steps. Our pedometer will measure **distance traveled** and **elapsed time**, as well as **steps taken**. 
 
 ## Distance Traveled
-A mobile pedometer app is generally used by one person. Total distance travelled during a walk is calculated by multiplying the steps taken by the person's stride length. If the stride length is provided, we can use it directly. If it's unknown, we can allow other optional information to be provided for the user, such as gender and height. We can do the best we can with what's provided to calculate the stride and, ultimately, the distance travelled. 
 
-Information like stride length, gender, and height is related to the user, so it makes sense to create a `User` class. 
+A mobile pedometer is generally used by one person. Distance traveled during a walk is calculated by multiplying the steps taken by the person's stride length. If the stride length is unknown, we can use optional user information like gender and height to approximate it. Let's create a `User` class to encapsulate this related information. 
 
 ~~~~~~~
 class User
 
   GENDER      = ['male', 'female']
   MULTIPLIERS = {'female' => 0.413, 'male' => 0.415}
-  AVERAGES    = {'female' => 70,    'male' => 78}
+  AVERAGES    = {'female' => 70.0,  'male' => 78.0}
   
   attr_reader :gender, :height, :stride
 
   def initialize(gender = nil, height = nil, stride = nil)
-    @gender = gender.to_s.downcase if GENDER.include? gender.to_s.downcase
-    @height = height.to_f if height.to_f > 0
-    @stride = (stride.to_f > 0) ? stride.to_f : calculate_stride
+    @gender = gender.to_s.downcase unless gender.to_s.empty?
+    @height = Float(height) unless height.to_s.empty?
+    @stride = Float(stride) unless stride.to_s.empty?
+
+    raise 'Invalid gender' if @gender && !GENDER.include?(@gender)
+    raise 'Invalid height' if @height && (@height <= 0)
+    raise 'Invalid stride' if @stride && (@stride <= 0)
+
+    @stride ||= calculate_stride
   end
 
 private
@@ -612,96 +490,52 @@ private
 end
 ~~~~~~~
 
-Looking at our initializer, we notice that we're accepting `gender`, `height`, and `stride` all as optional parameters. Handling optional information is a common programming problem. The diagram below captures how we calculate stride using the optional parameters:
+At the top of our class, we define constants to avoid hardcoding magic numbers and strings throughout. Our initializer accepts `gender`, `height`, and `stride` all as optional arguments. Handling optional information is a common programming problem. If the optional parameters are passed in, our initializer sets instance variables of the same names, after some data formatting. We raise an exception for invalid values.
 
-![](chapter-figures/optional-parameters.png)\
+Even when all optional parameters are provided, the input stride takes precedence. If it's not provided, the `calculate_stride` method determines the most accurate stride length it can for the user. This is done with an `if` statement:
 
-Our initializer accepts the optional parameters, and sets instance variables of the same names, after some data formatting in the initializer to allow for a case insensitive gender parameter to be passed in, and prevent a height and stride that is non-numerical or less than 0.
-
-* We set `@gender` to the stringified, downcased version of the passed in `gender` parameter, as long as it's included in the `GENDER` constant. If it's not, our `@gender` instance variable will be `nil`.
-* `@height` is set to the `height` parameter converted to a float, as long as it's greater than 0. If not, then `@height` will also be `nil`.
-* If `stride` converted to a float is greater than 0, then we set that value to `@stride`. If not, we call `calculate_stride`.
-
-At the top of our class, we define the following constants:
-
-* The `GENDER` array stores gender values.
-* The `MULTIPLIERS` hash stores the multiplier values for a male and female that we can multiply height by to calculate stride.
-* The `AVERAGES` hash stores the average stride values for a male and female.
-
-If a stride is provided, we're all set. Even when all optional parameters are provided, the input stride takes precedence. If not, our `calculate_stride` method will determine the most accurate stride length it can for the user, using the optional information provided. This is done with an `if` statement. 
-
-* The most accurate way to calculate stride beyond it being provided directly is to use a person's height and a multiplier based on gender. If we have a valid gender and height, we can calculate stride by multiplying the height by the value in `MULTIPLIERS` which corresponds to the gender provided. We use a multiplier of 0.413 for a female, and 0.415 for a male. 
-* A person's height is a better predictor of stride than their gender is. Therefore, if we don't have both gender and height, but we do have a valid height, we can multiply the height by the average of the two values in `MULTIPLIERS`. 
-* If all we have is a gender, we can use the average stride length from `AVERAGES`, which gives us 70 cm for a female, and 78 cm for a male.
+* The most accurate way to calculate stride beyond it being given directly is to use a person's height and a multiplier based on gender, provided we have a valid gender and height.
+* A person's height is a better predictor of stride than their gender is. If we have a height but not a gender, we can multiply the height by the average of the two values in `MULTIPLIERS`. 
+* If all we have is a gender, we can use the average stride length from `AVERAGES`.
 * Finally, if we don't have anything, we can take the average of the two values in `AVERAGES` and use that as our stride. 
 
-TODO: Do I need to add references for multipliers and averages above? Can we just say some basic research turned up these numbers, but we're free to change them if more accurate ones are uncovered?
+For the purposes of this discussion, let's assume that the values in `MULTIPLIERS` and `AVERAGES` have been determined from a large sample size of diverse people. Note that the further down the chain we get, the less accurate our stride length becomes. In any case, our `User` class determines the stride length as best as it can.
 
-Note that the further down the chain we get, the less accurate our stride length becomes. In any case, our `User` class does determines the stride length as best as it can.
+## Time Traveled
 
-### The User Class in the Wild
-
-Below are examples of users created with the least specific to the most specific data:
-
-* Without any parameters
-* A gender parameter
-* A height parameter
-* Gender and height parameters
-* A stride parameter
-* All parameters
-
-~~~~~~~
-> User.new.stride
-=> 74
-> User.new('Female').stride
-=> 70
-> User.new(nil, '167.5').stride
-=> 69.345
-> User.new('male', 191).stride
-=> 79.265
-> User.new(nil, nil, '80').stride
-=> 80.0
-> User.new('female', 1, '72').stride
-=> 72.0
-~~~~~~~
-
-### Time Traveled
-
-The time traveled is measured by dividing the number of data samples in our `Processor`'s `@parsed_data` set by the sampling rate of the device. Since the rate has more to do with the trial walk itself than the user, and the `User` class in fact does not have to be aware of the sampling rate, this is a good time to create a `Trial` class.
+The time traveled is measured by dividing the number of data samples in our `Processor`'s `@parsed_data` by the sampling rate of the device, if we have it. Since the rate has more to do with the trial walk itself than the user, and the `User` class in fact does not have to be aware of the sampling rate, this is a good time to create a very small `Trial` class.
 
 ~~~~~~~
 class Trial
 
-  attr_reader :name, :rate, :steps, :method
+  attr_reader :name, :rate, :steps
 
-  def initialize(name = nil, rate = nil, steps = nil, method = nil)
-    @name   = name
-    @rate   = (rate.to_f.round > 0) ? rate.to_f.round : 100
-    @steps  = steps.to_f.round if steps.to_s != '' && steps.to_f.round >= 0
-    @method = method
+  def initialize(name, rate = nil, steps = nil)
+    @name  = name.to_s.delete(' ')
+    @rate  = Integer(rate.to_s) unless rate.to_s.empty?
+    @steps = Integer(steps.to_s) unless steps.to_s.empty?
+
+    raise 'Invalid name'  if @name.empty?
+    raise 'Invalid rate'  if @rate && (@rate <= 0)
+    raise 'Invalid steps' if @steps && (@steps < 0)
   end
 
 end
 ~~~~~~~
 
-Our `Trial` class is quite short. Note that all of the attribute readers are set in the initializer based on optional parameters passed in:
+All of the attribute readers in `Trial` are set in the initializer based on parameters passed in:
 
 * `name` is a name for the specific trial, to help differentiate between the different trials.
 * `rate` is the sampling rate of the accelerometer during the trial.
 * `steps` is used to set the actual steps taken, so that we can record the difference between the actual steps the user took and the ones our program counted.
-* `method` is used to set the type of walk that is taken. Types of walks include walking with the device in a pocket, walking with the device in a bag, jogging with the device in a pocket, jogging with the device in a bag, etc.
 
-Much like our `User` class, information is optional. We're given the opportunity to input details of the trial, if we have it, for more accurate end results. If we don't have those details, our program makes assumptions and is still able to produce results, albeit with a higher margin of error. Another similarity to our `User` class is the basic input data formatting in the initializer. This ensures that `@rate` and `@steps` are always numerical values, where `@rate` is greater than or equal to 0, and `@steps` is greater than 0. 
+Much like our `User` class, some information is optional. We're given the opportunity to input details of the trial, if we have it. If we don't have those details, our program bypasses calculating the additional results, such as time traveled. Another similarity to our `User` class is the prevention of invalid values.
 
-Our `Trial` class is straightforward to use, so we won't bore you with the details of showing it in the wild. 
+## Steps Taken
 
-### Steps Taken
-We decided that we could count steps by counting the number of peaks in our time series. To do this, we chose a threshold value, and we can count the number of times our clean time series, `@filtered_data`, crosses the threshold, using hysteresis to avoid counting extra steps in a single, imperfect peak. 
-
-Let's implement this strategy in code. So far, we have a `Processor` class that contains `@filtered_data`, which is our processed, smooth time series representing user acceleration in the direction of gravity. We also have classes that give us the necessary information about the user and the trial. What we're missing is a way to analyze `@filtered_data` with the information from `User` and `Trial`, and count steps, measure distance, and measure time. The analysis portion of our program is different from the data manipulation of the `Processor`, and different from the information collection and aggregation of the `User` and `Trial` classes. Let's create a new class called `Analyzer` to perform this data analysis.
+It's time to implement our step counting strategy in code. So far, we have a `Processor` class that contains `@filtered_data`, which is our clean time series representing user acceleration in the direction of gravity. We also have classes that give us the necessary information about the user and the trial. What we're missing is a way to analyze `@filtered_data` with the information from `User` and `Trial`, and count steps, measure distance, and measure time. The analysis portion of our program is different from the data manipulation of the `Processor`, and different from the information collection and aggregation of the `User` and `Trial` classes. Let's create a new class called `Analyzer` to perform this data analysis.
 
 ~~~~~~~
-require_relative 'processor'
 require_relative 'user'
 require_relative 'trial'
 
@@ -709,40 +543,41 @@ class Analyzer
 
   THRESHOLD = 0.09
 
-  attr_reader :processor, :user, :trial, :steps, :distance, :time
+  attr_reader :steps, :delta, :distance, :time
 
-  def initialize(processor, user = User.new, trial = Trial.new)
-    raise 'Processor invalid.' unless processor.kind_of? Processor
-    raise 'User invalid.'      unless user.kind_of? User
-    raise 'Trial invalid.'     unless trial.kind_of? Trial
-
-    @processor = processor
-    @user      = user
-    @trial     = trial
+  def self.run(data, user, trial)
+    analyzer = Analyzer.new(data, user, trial)
+    analyzer.measure_steps
+    analyzer.measure_delta
+    analyzer.measure_distance
+    analyzer.measure_time
+    analyzer
   end
 
-  def measure
-    measure_steps
-    measure_distance
-    measure_time
+  def initialize(data, user, trial)
+    @data  = data
+    @user  = user
+    @trial = trial
   end
-
-private
 
   def measure_steps
     @steps = 0
     count_steps = true
 
-    @processor.filtered_data.each_with_index do |data, i|
-      if (data >= THRESHOLD) && (@processor.filtered_data[i-1] < THRESHOLD)
+    @data.each_with_index do |data, i|
+      if (data >= THRESHOLD) && (@data[i-1] < THRESHOLD)
         next unless count_steps
 
         @steps += 1
         count_steps = false
       end
 
-      count_steps = true if (data < 0) && (@processor.filtered_data[i-1] >= 0)
+      count_steps = true if (data < 0) && (@data[i-1] >= 0)
     end
+  end
+
+  def measure_delta
+    @delta = @steps - @trial.steps if @trial.steps
   end
 
   def measure_distance
@@ -750,36 +585,30 @@ private
   end
 
   def measure_time
-    @time = @processor.filtered_data.count/@trial.rate
+    @time = @data.count/@trial.rate if @trial.rate
   end
 
 end
 ~~~~~~~
 
-Where our `Processor` class did all of the work of the input data formatting and processing, our `Analyzer` class does the work of analyzing the processed data.
+The first thing we do in `Analyzer` is define a `THRESHOLD` constant. For the purposes of this discussion, let's assume we've analyzed numerous diverse data sets and determined a threshold value that accommodated the largest number of those data sets. The threshold can eventually become dynamic and vary with different users, based on the calculated versus actual steps they've taken. A learning algorithm, if you will.
 
-The first thing we do in our `Analyzer` class is pull in our `Processor`, `Trial`, and `User` classes. Then, we define a `THRESHOLD` constant. For the purposes of this discussion, let's assume we've analyzed numerous diverse data sets and determined a threshold value that accommodated the largest number of those data sets. The threshold can eventually become dynamic and vary with different users, based on the calculated versus actual steps they've taken. A learning algorithm, if you will.
-
-Our `Analyzer`'s initializer take a mandatory `Processor` instance because we necessarily need a data set to work with because, well, otherwise we have nothing to analyze. The initializer also optionally takes a `User` and `Trial` instance. Note that the default values for the `user` and `trial` parameters is a new instance of each. Remember how those classes both had default values and could handle zero input parameters? That functionality comes in handy here. The initializer raises exceptions if classes other than those expected are passed in, since we can't work with incorrect class types. Following that, it sets the instance variables `@processor`, `@user`, and `@trial` to the passed in parameters. 
+Our `Analyzer`'s initializer take a `data` parameter and instances of `User` and `Trial`, and sets the instance variables `@data`, `@user`, and `@trial` to the passed in parameters. 
 
 Aside from the initializer, the only other public method in `Analyzer` is `measure`, which calls `measure_steps`, `measure_distance`, and `measure_time`, in that order. All three methods are kept private so that an outside class can't call them out of order. Let's take a look at each.
 
 ### measure_steps
 
-Finally! The step counting portion of our step counting app. 
+Finally! The step counting portion of our step counting app. The first thing we do in `measure_steps` is initialize two variables:
 
-The first thing we do in `measure_steps` is initialize two variables:
+* `@steps` is used to count the number of steps.
+* `count_steps` is used for hysteresis to determine if we're allowed to count steps at a point in time.
 
-* `@steps` is used to count the number of steps, and is, naturally, initialized to 0 before we begin counting.
-* `count_steps` is used for hysteresis to determine if we're allowed to count steps at a point in time, and is initialized to `true`. 
-
-After initializing the variables, we iterate through each value in `@processor.filtered_data`. If the current value is greater than or equal to `THRESHOLD`, and the previous value was less than `THRESHOLD`, then we've crossed the threshold in the positive direction, and our `if` statement evaluates to true. Then, we check if we're allowed to count steps. The `unless` statement skips ahead to the next data point if `count_steps` is `false`. If we're allowed to count steps, we increment `@steps` by 1, and set `count_steps` to `false`. The next `if` statement sets `count_steps` to true when our time series has crossed the x-axis in the negative direction. Only then is `count_steps` reset back to `true`. This prevents us from counting steps two or more times for a single peak. 
+We then iterate through `@processor.filtered_data`. If the current value is greater than or equal to `THRESHOLD`, and the previous value was less than `THRESHOLD`, then we've crossed the threshold in the positive direction, which could indicate a step. The `unless` statement skips ahead to the next data point if `count_steps` is `false`, indicating that we've already counted a step for that peak. If we haven't, we increment `@steps` by 1, and set `count_steps` to `false` to prevent any more steps from being counted for that peak. The next `if` statement sets `count_steps` to true once our time series has crossed the x-axis in the negative direction, and we're on to the next peak. 
 
 There we have it, the step counting portion of our program! Our `Processor` class did a lot of work to clean up the time series and remove frequencies that would result in counting false steps, so our actual step counting implementation is not overly complex. 
 
-It's worth noting that we store the entire time series for the walk in memory. Our trials are all short walks, so that's not currently a problem, but we'd like to eventually be able to analyze long walks with large amounts of data. We'd ideally want to stream data in, only storing very small portions of the time series in memory. Keeping this future direction in mind, we've put in the work to ensure that we only need the current data point we're analyzing and the data point before it. Additionally, we've implemented hysteresis using a boolean value, so we don't need to look backward in the time series to ensure we've crossed the x-axis at 0, avoiding having to store more than two data points in memory at a time. 
-
-There's a fine balance between accounting for likely future iterations of the product, and over engineering a solution for every conceivable product direction under the sun. In this case, it's reasonable to assume that we'll have to handle longer walks in the near future, and the costs of accounting for that in step counting are fairly low, so we've decided to keep it in mind for our implementation.
+It's worth noting that we store the entire time series for the walk in memory. Our trials are all short walks, so that's not currently a problem, but we'd like to eventually analyze long walks with large amounts of data. We'd ideally want to stream data in, only storing very small portions of the time series in memory. Keeping this future direction in mind, we've put in the work to ensure that we only need the current data point we're analyzing and the data point before it. Additionally, we've implemented hysteresis using a boolean value, so we don't need to look backward in the time series to ensure we've crossed the x-axis at 0, avoiding having to store more than two data points in memory at a time. There's a fine balance between accounting for likely future iterations of the product, and over engineering a solution for every conceivable product direction under the sun. In this case, it's reasonable to assume that we'll have to handle longer walks in the near future, and the costs of accounting for that in step counting are fairly low, so we've decided to include it in our implementation.
 
 ### measure_distance
 
@@ -787,7 +616,44 @@ The distance is measured by multiplying our user's stride by the number of steps
 
 ### measure_time
 
-Time is calculated by dividing the total number of samples in `filtered_data` by the sampling rate. It follows, then, that time is calculated in numbers of seconds. 
+As long as we have a sampling rate, time is calculated by dividing the total number of samples in `filtered_data` by the sampling rate. It follows, then, that time is calculated in numbers of seconds. 
+
+# Tying It All Together With the Pipeline
+
+Our Parser, Processor, and Analyzer classes, while useful individually, are definitey better together. Our program will often use them to run through the pipeline we introduced earlier. Since the pipeline will need to be run frequently, we'll create a `Pipeline` class to run it for us.
+
+~~~~~~~
+require_relative 'parser'
+require_relative 'processor'
+require_relative 'analyzer'
+
+class Pipeline
+
+  attr_reader :data, :user, :trial, :parser, :processor, :analyzer
+
+  def self.run(data, user, trial)
+    pipeline = Pipeline.new(data, user, trial)
+    pipeline.feed
+    pipeline
+  end
+
+  def initialize(data, user, trial)
+    @data  = data
+    @user  = user
+    @trial = trial
+  end
+
+  def feed
+    @parser    = Parser.run(@data)
+    @processor = Processor.run(@parser.parsed_data)
+    @analyzer  = Analyzer.run(@processor.filtered_data, @user, @trial)
+  end
+
+end
+~~~~~~~
+
+We use our now familiar `run` pattern and supply `Pipeline` with accelerometer data, and instances of `User` and `Trial`. The `feed` method implements the pipeline, which entails running `Parser` with the accelerometer data, then using the parser's parsed data to run `Processor`, and finally using the processor's filtered data to run `Analyzer`. The `Pipeline` keeps `@parser`, `@processor`, and `@analyzer` instance variables, so that the program has access to information from those objects for display purposes through the app. 
+TODO: Add note on stateful versus stateless?
 
 # Adding Some Friendly
 
@@ -795,195 +661,44 @@ We're through the most labour intensive part of our program. Next, we'll build a
 
 ## A User Scenario
 
-When a user first enters the app, they see an empty table of uploads, and an upload form. The upload form has fields for the user to enter trial info and user info.
+When a user first enters the app by navigating to /uploads, they see a table of existing data, and a form to submit new data by uploading an accelerometer output file and trial and user information. 
 
-![](chapter-figures/app1.png)\ 
+![](chapter-figures/graffles/app1.png)\ 
 
-Suppose the user uses the upload form to submit data of a walk with a phone in their pocket. 
+Submitting the form stores the data to the file system, parses, processes, and analyzes it, and redirect back to /uploads with a new entry in the table. 
 
-![](chapter-figures/app2.png)\ 
+Clicking the **Detail** link for an entry presents the user with the following view:
 
-Note that the user has entered everything but their stride. The user has two text files of the exact same walk, one in each of our formats. In the screenshot below, they've chosen to upload one of the files. Hitting **submit** presents them with the following view:
+![](chapter-figures/graffles/app3.png)\ 
 
-![](chapter-figures/app3.png)\ 
-
-Our program has parsed, processed, and analyzed the input file, and presented information at the very top for the user. Our programs outputs several pieces of information.
-
-* **Name**: the name of the trial, if provided.
-* **Method**: the type of walk taken, if provided.
-* **Format**: the format of the input file, which can be either *combined* or *separated*.
-* **Actual**: the actual number of steps the user took, if provided.
-* **Calculated**: the number of steps taken as calculated by our step counting algorithm.
-* **Delta**: the difference between the calculated steps and actual steps taken, if actual steps taken is provided.
-* **User**: the gender if the user, if provided.
-* **Distance**: the distance traveled.
-* **Time**: the time duration of the walk.
-* **User Acceleration in the Direction of Gravity**: a graph of the first 1000 points of the signal after the dot product has been computed.
-* **User Acceleration in the Direction of Gravity - Filtered**: a graph of the first 1000 points of the signal after it has been low-pass filtered and high-pass filtered, in sequence.
-
-The user can navigate back to uploads using the *Back to Uploads* link, and upload the second file.
-
-![](chapter-figures/app4.png)\ 
-
-Hitting **submit** again outputs the following:
-
-![](chapter-figures/app5.png)
-
-This time, the data is in the separated format. Note that the separated format is slightly more accurate than the combined format, with a delta of 2 versus 3. Some hardware manufacturers use additional sensors to measure rotational changes, resulting in a slightly higher degree of accuracy in their separated data, versus our strategy of splitting total acceleration into gravitational and user. Don't worry, we're still quite close. The discrepancy is only due to the hardware having more information at the time of measurement than we have with the combined input.
+The information presented includes values input by the user through the upload form, values calculated by our program, and graphs of the time series following the dot product operation, and again following filtering. The user can navigate back to uploads using the *Back to Uploads* link. 
 
 Let's look at what the outlined functionality above implies for us, technically. We'll need two major components that we don't yet have:
 
-1. A way to store data that a user inputs, and retrieve data that has been stored.
+1. A way to store and retrieve user input data.
 2. A web application with a basic interface.
 
 Let's examine each of these two requirements.
 
 ## 1. Storing and Retrieving Data
 
-Looking at the requirements, we see that we need a way to store the text file containing the data samples, as well as the user and trial inputs associated with it. All of these pieces in combination - the raw text data as well as the input fields - is related to an upload. Let's create an `Upload` class to keep track of, store, and load this data. 
+Our app needs to store input data to, and retrieve data from, the file system. We'll create an `Upload` class to do this. We'll store the text file containing the data samples directly to the file system, with the file path accessed through the `@file_path` instance variable. The information on the user and trial will be stored in the file name, and we'll have access to those objects through `@user` and `@trial` instance variables. Our `Upload` class has three class-level methods for file system access and retrieval, all of which return one of more instances of `Upload`:
 
-~~~~~~~
-require 'fileutils'
-require_relative 'analyzer'
-
-include FileUtils::Verbose
-
-class Upload
-
-  UPLOAD_DIRECTORY = 'public/uploads/'
-
-  attr_reader :file_path, :processor, :user, :trial, :analyzer
-  attr_reader :user_params, :trial_params
-
-  def initialize(file_path = nil, input_data = nil, user_params = nil, trial_params = nil)
-    if file_path
-      @file_path = file_path
-    elsif input_data
-      @processor = Processor.new(File.read(input_data))
-      @user      = User.new(*user_params)
-      @trial     = Trial.new(*trial_params)
-
-      @file_path = UPLOAD_DIRECTORY + 
-                   "#{user.gender}-#{user.height}-#{user.stride}_" +
-                   "#{trial.name.to_s.gsub(/\s+/, '')}-" + 
-                   "#{trial.rate}-" + 
-                   "#{trial.steps}-" +
-                   "#{trial.method}-#{processor.format[0]}.txt"
-    else 
-      raise 'File name or input data must be passed in.'
-    end
-  end
-
-  # -- Class Methods --------------------------------------------------------
-
-  def self.create(input_data, user_params, trial_params)
-    upload = self.new(nil, input_data, user_params, trial_params)
-    cp(input_data, upload.file_path)
-    upload
-  end
-
-  def self.find(file_path)
-    self.new(file_path)
-  end
-
-  def self.all
-    file_paths = Dir.glob(File.join(UPLOAD_DIRECTORY, "*"))
-    file_paths.map { |file_path| self.new(file_path) }
-  end
-
-  # -- Instance Methods -----------------------------------------------------
-
-  def processor
-    @processor ||= Processor.new(File.read(file_path))
-  end
-
-  def user
-    @user ||= User.new(*file_name.first.split('-'))
-  end
-
-  def trial
-    @trial ||= Trial.new(*file_name.last.split('-')[0...-1])
-  end
-
-  def analyzer
-    unless @analyzer
-      @analyzer = Analyzer.new(processor, user, trial)
-      @analyzer.measure
-    end
-    @analyzer
-  end
-
-private
-
-  def file_name
-    @file_name ||= file_path.split('/').last.split('_')
-  end
-
-end
-~~~~~~~
-
-Our `Upload` class has three class-level methods used to store data to, and retrieve data from, the file system. 
-
-### Storing Data
-
-The `create` method stores a file that a user uploads using the browser upload field. The details of the user and trial information passed in through the browser input fields and dropdown boxes are stored in the filename. When using the browser upload field, the browser creates a temporary file that our app has access to. The first parameter passed in to `create`, `input_data`, is the location of the temporary file. The next two parameters, `user_params` and `trial_params`, are arrays of the values for a user and a trial, respectively.
-
-~~~~~~~
-> Upload.create('test/data/upload-1.txt', ['female', '168', '71'], ['1', 100', '10', 'run'])
-cp test/data/upload-1.txt public/uploads/female-168.0-71.0_1-100-10-run-c.txt
-=> #<Upload:0x007fa25b8be8b8>
-~~~~~~~
-
-The `create` method calls the initializer to create a new instance of `Upload`, passing in `nil` for the `file_path` parameter, and passing forward the remaining three parameters, `input_data`, `user_params`, and `trial_params`, unchanged. The initializer then creates and sets `Processor`, `User`, and `Trial` objects, and generates a filename using the attributes from these objects. Finally, the `create` method copies the temporary file to the file system under `public/uploads`, using the `file_path`. The `Upload` instance is returned. 
-
-### Retrieving Data
-
-Now the we have our data saved to the file system, we need a way to retrieve it. We do that with the `find` and `all` class methods. 
-
-Like the `create` method, `find` returns an instance of `Upload`. It calls into the initializer, passing in the `file_path`. All the initializer does if it's passed a `file_path` is set the `@file_path` instance variable. 
-
-~~~~~~~
-> upload = Upload.find('public/uploads/female-168.0-70.0_1-100-100-walk-c.txt')
-=> #<Upload:0x007fa25b8dec80>
-~~~~~~~
-
-The `all` class method grabs all of the files in our `public/uploads` folder, and returns an array of `Upload` objects.
-
-~~~~~~~
-> Upload.all
-=> [#<Upload:0x007f8a8a03b2b0>, #<Upload:0x007f8a8a03b288>, #<Upload:0x007f8a8a03b238>, #<Upload:0x007f8a8a03b210>, #<Upload:0x007f8a8a03b148>]
-~~~~~~~
-
-### Working With an Instance of Upload
-
-Our `Upload` class contains instance methods to access the `Processor`, `User`, `Trial`, or `Analyzer` objects directly. Notice that all of these objects are lazy loaded, to prevent creation and parsing until necessary. The `user` and `trial` instance methods use the `file_name` method to parse the file path to isolate the file name, and retrieve the necessary parameters from the file name to create `User` and `Trial` objects. The `processor` method reads the data from the file itself. Finally, the `analyzer` method uses `processor`, `user`, and `trial` to instantiate an `Analyzer` object and call `measure` on it, before returning the instance.
+* `create` takes a file along with user and trial information. It stores the file to the file system, under a file name containing the user and trial information.
+* `find` takes a file path and returns an instance of `Upload`.
+* `all` returns an array of `Upload` instances, one for each accelerometer data file in the file system.
 
 ## Separation of Concerns in Upload
 
 Once again, we've been wise to separate concerns in our program. All code related to storage and retrieval is contained in the `Upload` class. As our application grows, we'll likely want to use a database rather than saving everything to the file system. When the time comes for that, all we have to do it change the `Upload` class. This makes our refactoring simple and clean. 
 
-In the future, we can also start saving `User` and `Trial` objects to the database. The `create`, `find`, and `all` methods in `Upload` will then be relevant to `User` and `Trial` as well. That means we'd likely refactor those out into their own class to deal with data storage and retrieval in general, and each of our `User`, `Trial`, and `Upload` classes would inherit from that class. We might eventually add helper query methods to that class, and continue building it up from there. 
+In the future, we can save `User` and `Trial` objects to the database. The `create`, `find`, and `all` methods in `Upload` will then be relevant to `User` and `Trial` as well. That means we'd likely refactor those out into their own class to deal with data storage and retrieval in general, and each of our `User`, `Trial`, and `Upload` classes would inherit from that class. We might eventually add helper query methods to that class, and continue building it up from there. 
 
-Let's move on to the web application side of our program to see how `Upload` will be helpful.
+Since the `Upload` class deals only with the file system and doesn't relate directly to the implementation of the pedometer, we've left it out for brevity. Let's move on to the web application side of our program.
 
 ## 2. Building a Web Application
 
-Web apps have been built many times over, so we may as well use a framework to do the boring plumbing work for us. The Sinatra framework does just that. In the tool's own words, Sinatra is "a DSL for quickly creating web applications in Ruby". Perfect. 
-
-Since we're building a web app, we'll need a web server. We'll use the Thin web server, which is simple and certainly fast enough for our purposes. 
-
-The last tool we'll be including is a JavaScript library called Highcharts, used for creating interactive charts. What's the point of interesting data if we can't display it in interesting ways? 
-
-We'll start by creating a Gemfile with the following lines:
-
-~~~~~~~
-source 'https://rubygems.org'
-
-gem 'sinatra'
-gem 'thin'
-~~~~~~~
-
-Once we run bundle install, we'll have Sinatra, as well as the Thin web server.
+Web apps have been built many times over, so we'll leverage the important work of the open source community and use an existing framework to do the boring plumbing work for us. The Sinatra framework does just that. In the tool's own words, Sinatra is "a DSL for quickly creating web applications in Ruby". Perfect. 
 
 Our web app will need to respond to HTTP requests, so we'll need a file that defines a route for each combination of HTTP method and URL. Let's call it `pedometer.rb`.
 
@@ -995,278 +710,48 @@ Dir['./models/*', './helpers/*'].each {|file| require_relative file }
 include ViewHelper
 
 get '/uploads' do
-  @uploads = Upload.all
   @error = "A #{params[:error]} error has occurred." if params[:error]
+  @pipelines = Upload.all.inject([]) do |a, upload|
+    a << Pipeline.run(File.read(upload.file_path), upload.user, upload.trial) 
+    a
+  end
 
   erb :uploads
 end
 
 get '/upload/*' do |file_path|
-  @upload = Upload.find(file_path)
+  upload = Upload.find(file_path)
+  @pipeline = Pipeline.run(File.read(file_path), upload.user, upload.trial)
   
   erb :upload
 end
 
 post '/create' do
   begin
-    @upload = Upload.create(
-      params[:processor][:file_upload][:tempfile], 
-      params[:user].values,
-      params[:trial].values
-    )
+    Upload.create(params[:data][:tempfile], params[:user], params[:trial])
 
-    erb :upload
+    redirect '/uploads'
   rescue Exception => e
     redirect '/uploads?error=creation'
   end
 end
 ~~~~~~~
 
-Our `pedometer.rb` file is responsible for responding to each of the routes defined within it, running the code within each route's associated block, and rendering a view or handling an error.
+`pedometer.rb` allows our app to respond to HTTP requests for each of our routes. Each route either retrieves data from, or stores data to, the file system through `Upload`, and then renders a view or redirects. Our views use erb, an emplementation of Embedded Ruby, which allows us to embed Ruby into HTML. The instance variables instantiated in our routes will be used directly in our views. The views simply display the data and aren't the focus of our app, so we we'll leave the code for them out of this chapter. 
 
-The first thing our `pedometer.rb` file does is load in all models and helpers. It then includes a `ViewHelper` module. Let's take a closer look at it.
-
-### ViewHelper
-
-~~~~~~~
-module ViewHelper
-
-  DISTANCE = { cm_per_m: 100, cm_per_km: 100000, m_per_km: 1000 }
-  DECIMAL_PLACES = 2
-
-  def format_distance(distance_cm)
-    distance_cm = distance_cm.round(DECIMAL_PLACES)
-    if distance_cm >= DISTANCE[:cm_per_km]
-      "#{(distance_cm/DISTANCE[:cm_per_km]).round(DECIMAL_PLACES)} km"
-    elsif distance_cm >= DISTANCE[:cm_per_m]
-      distance = (distance_cm/DISTANCE[:cm_per_m]).round(DECIMAL_PLACES)
-      (distance == DISTANCE[:m_per_km]) ? "1.0 km" : "#{distance} m"
-    else
-      (distance_cm == DISTANCE[:cm_per_m]) ? "1.0 m" : "#{distance_cm} cm"
-    end
-  end
-
-  def format_time(time_sec)
-    Time.at(time_sec.round).utc.strftime("%-H hr, %-M min, %-S sec")
-  end
-
-  def limit_1000(series)
-    series.to_a[0..999]
-  end
-
-end
-~~~~~~~
-
-`ViewHelper` contains methods that present numerical data in a more visually pleasing way. `ViewHelper` contains three class methods. 
-
-`format_distance` takes a distance in cm, converts it to the most reasonable unit of measurement, and outputs a string. Note that all "magic numbers" are defined at the top of the class as class-level variables. Let's take a look at three use cases, that show how rounding is handled.
-
-~~~~~~~
-> format_distance(99.987)
-=> "99.99 cm"
-> format_distance(99999)
-=> "999.99 m"
-> format_distance(99999.99)
-=> "1.0 km"
-~~~~~~~
-
-Similarly, `format_time` takes a time in seconds and formats it using Ruby's `strftime`.
-
-~~~~~~~
-> format_time(7198.9)
-=> "1 hr, 59 min, 59 sec"
-~~~~~~~
-
-The final method, `limit_1000`, takes a time series, and returns the first 1000 points. We'll see this used in the `upload` view shortly. 
-
-Here we once again see separation of concerns. To keep as much logic as possible out of the view, we use `ViewHelper` to format the data. The view's responsibility is to display data, not format it, so we split out the formatting into a separate class.
-
-Helpers are helpful (see what we did there?) when grouping methods that have a similar purpose. In our case, all of the methods in the `ViewHelper` module are for the purpose of formatting data used in a view. It's sometimes tempting to jam all miscellaneous methods of a program into one helper, making a helper a dumping ground for code we don't know what to do with. If you find yourself doing this, always question where that method should belong, and which one of your classes or modules is responsible for the functionality of that method. It's wise to resist the temptation to put outcast code into helpers, as it often allows you to mask a problem of a poorly structured app.
-
-## Back to Our App
-
-Running `ruby pedometer.rb` from our app's directory starts the web server, and our app can now respond to HTTP requests for each of our routes. For instance, hitting `http://localhost:4567/uploads` takes us to an index of all of our uploads. 
-
-Let's look at each of our routes individually. 
+Let's look at each of the routes in `pedometer.rb` individually. 
 
 ### get '/uploads'
 
-The `get '/uploads'` route sets `@uploads` through `Upload.all`, and `@error` if an `:error` key is present in the params hash. The `uploads` view is then rendered. Let's take a look at the `uploads` view, below. 
-
-~~~~~~~
-<link href="/styles.css" rel="stylesheet" type="text/css" />
-
-<html>
-  <div class="error"><%= @error %></div>
-  <%= erb :summary, locals: { uploads: @uploads, detail_hidden: true } %>
-  <form method="post" action="/create" enctype="multipart/form-data">
-    <h3 class="upload-header">Trial Info</h3>
-    <input name="processor[file_upload]" type="file">
-    <input name="trial[name]" class="params" placeholder="Name">
-    <input name="trial[rate]" type="number" class="params" placeholder="Sampling Rate">
-    <input name="trial[steps]" type="number" class="params" placeholder="Actual Step Count">
-    <select name="trial[method]" class="params">
-      <option value="">(Select a method)</option>
-      <option value="walk">Walking</option>
-      <option value="run">Running</option>
-      <option value="bagwalk">Walking, phone in bag</option>
-      <option value="bagrun">Running, phone in bag</option>
-    </select>
-    <h3 class="upload-header">User Info</h3>
-    <select class="params" name="user[gender]">
-      <option value="">(Select a gender)</option>
-      <option value="female">Female</option>
-      <option value="male">Male</option>
-    </select>
-    <input class="params" type="number" name="user[height]" placeholder="Height (cm)">
-    <input class="params" type="number" name="user[stride]" placeholder="Stride (cm)">
-    <div class="controls"><input type="submit" value="submit"></div>
-  </form>
-</html>
-~~~~~~~
-
-The `uploads` view first pulls in a style sheet file, `styles.css`. The style sheet, below, uses basic css for some minimal styling of our views.
-
-~~~~~~~
-table.summary {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  width: 50%;
-  display: inline;
-  margin: 0% 10%;
-}
-
-tr, th {
-  text-align: left;
-  font-size: 14px;
-  height: 30px;
-}
-
-td { border-top: solid 1px rgb(221, 221, 221); }
-
-form {
-  display: inline-table;
-  width: 20%;
-}
-
-h3.upload-header {
-  font-size: 14px;
-  margin-bottom: 6px;
-}
-
-input { width: 200px; }
-
-a.nav { 
-  float: right;
-  margin: 20px 150px 0 0;
-}
-
-.error { 
-  text-align: center;
-  color: red;
-}
-
-.graph {
-  min-width: 310px;
-  height: 400px;
-  margin: 0 auto;
-}
-~~~~~~~
-
-The `uploads` view also renders the `summary` view. We place it in its own file, because we reuse it again in another view, which we'll examine next.
-
-~~~~~~~
-<table class="summary">
-  <th>Name</th>
-  <th>Method</th>
-  <th>Format</th>
-  <th>Actual</th>
-  <th>Calculated</th>
-  <th>Delta</th>
-  <th>User</th>
-  <% unless detail_hidden %>
-    <th>Distance</th>
-    <th>Time</th>
-  <% end %>
-  <% uploads.each do |upload| %>
-    <% analyzer = upload.analyzer %>
-    <tr>
-      <td><%= analyzer.trial.name %></td>
-      <td><%= analyzer.trial.method %></td>
-      <td><%= analyzer.processor.format %></td>
-      <td><%= analyzer.trial.steps %></td>
-      <td><%= analyzer.steps %></td>
-      <td><%= analyzer.trial.steps ? (analyzer.steps - analyzer.trial.steps) : '' %></td>
-      <td><%= analyzer.user.gender %></td>
-      <% if detail_hidden %>
-        <td><a href=<%= "upload/" + upload.file_path %>>Detail</a></td>
-      <% else %>
-        <td><%= format_distance(analyzer.distance) %></td>
-        <td><%= format_time(analyzer.time) %></td>
-      <% end %>
-    </tr>
-  <% end %>
-</table>
-~~~~~~~
-
-Note the use of the `ViewHelper` methods in the `summary` view.
-
-Back to the `uploads` view. The `uploads` view renders an error if one exists, renders `summary` with all uploads to present the table of upload data, and then creates the input form for user and trial info. 
-
-The last and largest portion of the `uploads` view is the layout of the form that allows a user to input data. Note that the form, on submission, performs an HTTP POST to `/create`, which we'll discuss as our last route. All input fields either have placeholder text to indicate the data needed, or, in the case of select fields, a placeholder field. The fields that require numerical data are of type `number` so that the browser doesn't allow submission of the form unless proper data is passed in. This type of front-end validation prevents us from making an unnecessary HTTP request when we know that the data is incorrect before having to pass it to the server to determine that.
+Navigating to `http://localhost:4567/uploads` sends an HTTP GET request to our app, triggering our `get '/uploads'` code. The route runs the pipeline for all of the uploads in the file system and renders the `uploads` view, which displays a list of the uploads, and a form to submit new uploads. If an error parameter is included, the route will create an error string, and the `uploads` view will display the error.
 
 ### get '/upload/*'
 
-The `get '/upload/*'` route is called with a file path. For example: `http://localhost:4567/upload/public/uploads/female-168.0-70.0_100-100-1-walk-c.txt`. It sets `@upload` through `Upload.find`, passing in the `file_path` from the URL. It then renders the `upload` view. 
-
-~~~~~~~
-<script src="/jquery.min.js"></script>
-<script src="/highcharts.js"></script>
-<link href="/styles.css" rel="stylesheet" type="text/css" />
-
-<html>
-    <a class="nav" href='/uploads'>Back to Uploads</a>
-    <%= erb :summary, locals: { uploads: [@upload], detail_hidden: false } %>
-
-    <div id="container-dot-product"></div>
-    <div id="container-filtered"></div>
-</html>
-
-<script>
-  $(function () {
-        $('#container-dot-product').highcharts({
-            title: { text: 'User Acceleration in the Direction of Gravity' },
-            series: [{
-                name: 'a(t)',
-                data: <%= limit_1000(@upload.analyzer.processor.dot_product_data) %>
-            }],
-            xAxis: { title: { text: 'Time' } },
-            yAxis: { title: { text: 'Acceleration' } }
-        });
-
-        $('#container-filtered').highcharts({
-            title: { text: 'User Acceleration in the Direction of Gravity - Filtered' },
-            series: [{
-                name: 'a(t)',
-                data: <%= limit_1000(@upload.analyzer.processor.filtered_data) %>
-            }],
-            xAxis: { title: { text: 'Time' } },
-            yAxis: { title: { text: 'Acceleration' } }
-        });
-    });
-</script>
-~~~~~~~
-
-The `upload` view has both HTML and JavaScript. As our application grows, we would likely split out JavaScript code in the views into separate files. For simplicity, we've kept it all together. Note that the `upload` view, like the `uploads` view, also uses the `styles.css` style sheet.
-
-We're using a tool called Highcharts to generate all of the charts in our view, which requires jQuery and other additional JavaScript files. Note that both are included at the top of the view. 
-
-In the HTML portion, we create a link to return to `/uploads`, for ease of navigation purposes. Then, we render `summary` once more. Since both summary tables are quite similar, we've chosen to extract the HTML for the summary table into one view and reuse it from both `uploads` and `upload`. This ensures that the format of the tables remains consistent, and avoids code duplication. In this case, we pass in false for `detail_hidden`, since we want to see time and distance data, whereas in the uploads view, we wanted those fields replaced with a link to this view. This is another example of separation of concerns. Following the summary table, we create containers for the charts. 
-
-The JavaScript portion uses the Highcharts API to create two charts: dot product data, and filtered data. Each chart is limited to 1000 points, to make it easy on our eyes, using the `limit_1000` method in `ViewHelper`.
+Clicking the **Detail** link for each upload sends an HTTP GET to `/upload` with the file path for that upload. The route code runs the pipeline and renders the `upload` view. The view displays the details of the upload, including the charts, which are creating using a JavaScript library called HighCharts. 
 
 ### post '/create'
 
-Our final route, an HTTP POST to `create`, is called when a user submits the form in the `uploads` view. The action sets an `@upload` instance variable to a new `Upload` record, created by passing in values from the params hash. It then renders the `upload` view. If an error occurs in the creation process, the `uploads` view is rendered, with the an error parameter passed in. 
+Our final route, an HTTP POST to `create`, is called when a user submits the form in the `uploads` view. The route creates a new `Upload`, using the `params` hash to grab the values input by the user through the form, and redirects back to `/uploads`. If an error occurs in the creation process, the redirect to `/uploads` includes an error parameter to let the user know that something went wrong. 
 
 # A Fully Functional App
 

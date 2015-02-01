@@ -2,8 +2,8 @@
 
 source run_or_fail.sh
 
-# delete previous hash
-rm -f .commit_hash
+# delete previous id 
+rm -f .commit_id
 
 # go to repo and update it to given commit
 run_or_fail "Repository folder not found!" pushd $1 1> /dev/null
@@ -15,8 +15,8 @@ if [ $? != 0 ]; then
   echo "Could not call 'git log' on repository"
   exit 1
 fi
-# get its hash
-HASH=`echo $COMMIT | awk '{ print $2 }'`
+# get its id
+COMMIT_ID=`echo $COMMIT | awk '{ print $2 }'`
 
 # update the repo
 run_or_fail "Could not pull from repository" git pull
@@ -27,11 +27,11 @@ if [ $? != 0 ]; then
   echo "Could not call 'git log' on repository"
   exit 1
 fi
-# get its hash
-NEWHASH=`echo $COMMIT | awk '{ print $2 }'`
+# get its id
+NEW_COMMIT_ID=`echo $COMMIT | awk '{ print $2 }'`
 
-# if the hash changed, then write it to a file
-if [ $NEWHASH != $HASH ]; then
+# if the id changed, then write it to a file
+if [ $NEW_COMMIT_ID != $COMMIT_ID ]; then
   popd 1> /dev/null
-  echo $NEWHASH > .commit_hash
+  echo $NEW_COMMIT_ID > .commit_id
 fi

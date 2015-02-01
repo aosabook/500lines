@@ -266,4 +266,30 @@ Contributors
     <td><a href="https://github.com/dessy">dessy</a></td>
     <td>dessy.daskalov@gmail.com</td>
   </tr>
+  <tr>
+    <td>Carl Friedrich Bolz</td>
+    <td>King's College London</td>
+    <td>object model</td>
+    <td>
+        <ul>
+            <li><a href="https://cfbolz.de">cfbolz.de</a></li>
+            <li><a href="https://twitter.com/cfbolz">@cfbolz</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/cfbolz">cfbolz</a></td>
+    <td>cfbolz@gmx.de</td>
+  </tr>
+  <tr>
+    <td>Jessica Hamrick</td>
+    <td>University of California, Berkeley</td>
+    <td>sampler</td>
+    <td>
+        <ul>
+            <li><a href="http://www.jesshamrick.com">www.jesshamrick.com</a></li>
+            <li><a href="https://twitter.com/jhamrick">@jhamrick</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/jhamrick">jhamrick</a></td>
+    <td>jhamrick@berkeley.edu</td>
+  </tr>
 </table>

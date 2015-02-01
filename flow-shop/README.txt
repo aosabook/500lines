@@ -1,4 +1,4 @@
-Author: Christian Muise and Christina Burt
+Author: Christian Muise
 Project: Flow Shop Scheduler
 Requirements: Python
 
@@ -58,6 +58,6 @@ strategies that have worked well in the past.
 A wonderful website to visually see how flow shop scheduling works:
 * http://posh-wolf.herokuapp.com/
 
-More information on the flow shop schedulling (and related) problems
+More information on the flow shop scheduling (and related) problems
 can be found on wikipedia:
 * http://en.wikipedia.org/wiki/Flow_shop_scheduling

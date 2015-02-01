@@ -34,9 +34,6 @@ ARGS.add_argument(
     '--max_tasks', action='store', type=int, metavar='N',
     default=100, help='Limit concurrent connections')
 ARGS.add_argument(
-    '--max_pool', action='store', type=int, metavar='N',
-    default=100, help='Limit connection pool size')
-ARGS.add_argument(
     '--exclude', action='store', metavar='REGEX',
     help='Exclude matching URLs')
 ARGS.add_argument(
@@ -47,10 +44,10 @@ ARGS.add_argument(
     default=False, help='Lenient host matching')
 ARGS.add_argument(
     '-v', '--verbose', action='count', dest='level',
-    default=1, help='Verbose logging (repeat for more verbose)')
+    default=2, help='Verbose logging (repeat for more verbose)')
 ARGS.add_argument(
     '-q', '--quiet', action='store_const', const=0, dest='level',
-    default=1, help='Quiet logging (opposite of --verbose)')
+    default=2, help='Only log errors')
 
 
 def fix_url(url):
@@ -91,7 +88,6 @@ def main():
                                max_redirect=args.max_redirect,
                                max_tries=args.max_tries,
                                max_tasks=args.max_tasks,
-                               max_pool=args.max_pool,
                                )
     try:
         loop.run_until_complete(crawler.crawl())  # Crawler gonna crawl.

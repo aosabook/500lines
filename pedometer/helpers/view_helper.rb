@@ -16,6 +16,7 @@ module ViewHelper
   end
 
   def format_time(time_sec)
+    return '' if time_sec.nil?
     Time.at(time_sec.round).utc.strftime("%-H hr, %-M min, %-S sec")
   end
 
