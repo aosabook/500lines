@@ -259,7 +259,6 @@ to form a graph:
 
 .. image:: figure1.png
 
-.. * Show __init__() and talk about defaultdict
 .. * Then add_edge() then remove_edge()
 .. * Contingent will sometimes need to rebuild, in case ``api.rst``
 ..   is edited to add or remove a cross reference: clear_inputs_of()
@@ -388,11 +387,11 @@ It is also slightly redundant to keep naming the node
 over and over again in its set of edges.
 
 The solution to both of these objections
-is to segregate out incoming and outgoing edges
-into two different data structures.
-This will keep them separate automatically
-and absolve us of having to mention the node over and over again
-for every one of the edges in which it is involved! ::
+is to place incoming and outgoing edges
+in their own separate data structures,
+which will also absolve us
+of having to mention the node over and over again
+for every one of the edges in which it is involved. ::
 
     incoming = {
         'tutorial.html': {'tutorial.rst'},
@@ -464,10 +463,15 @@ to store edges using the logic we outlined in the previous section:
 
 .. include:: contingent/graphlib.py
     :code: python
+    :start-line: 4
+    :end-line: 6
+
+.. include:: contingent/graphlib.py
+    :code: python
     :start-line: 16
     :end-line: 19
 
-The leading underscores
+The leading underscore
 in front of the attribute names ``_inputs_of`` and ``_consequences_of``
 is a common convention in the Python community
 to signal that an attribute is private.
@@ -483,21 +487,69 @@ including our future selves,
 that the attribute is best treated
 as part of the internal invisible machinery of the class.
 
+Why are we using a “defaultdict” instead of a standard dict?
+It automatically handles the special case of a missing key.
+With a normal dict,
+retrieving a key that does not exist raises a ``KeyError``:
 
+>>> consequences_of = {}
+>>> consequences_of['index.rst'].add('index.html')
+Traceback (most recent call last):
+     ...
+KeyError: 'index.rst'
 
->>> g.edges()
-[]
+This usually requires special checks throughout the code
+that uses a dict:
 
-Let's see if we can build the graph for our Sphinx example by hand.
-First,
-we need a way to add edges between nodes:
+.. code:: python
+
+    # Special case to handle “we have not seen this task yet”:
+
+    if input_task not in self._consequences_of:
+        self._consequences_of[input_task] = set()
+
+    self._consequences_of[input_task].add(consequence_task)
+
+The defaultdict lets you provide a function
+that returns a value for absent keys.
+When we ask about an edge that the ``Graph`` hasn't yet seen,
+we will get back an empty ``set`` instead of an exception:
+
+>>> from collections import defaultdict
+>>> consequences_of = defaultdict(set)
+>>> consequences_of['api.rst']
+set()
+
+Structuring our implementation this way means that
+each key’s first use can look identical
+to second-and-subsequent-times that a particular key is used:
+
+>>> consequences_of['index.rst'].add('index.html')
+>>> 'index.html' in consequences_of['index.rst']
+True
+
+Given these techniques, let’s build the graph for Figure 1.
+
+First, we need a way to add edges between nodes:
+
+.. include:: contingent/graphlib.py
+    :code: python
+    :start-line: 40
+    :end-line: 44
+
+This method hides the fact that two, not one,
+storage steps are required for each new edge
+so that we know about it in both directions.
+Code using the graph sees only a single step for each edge:
 
 >>> g.add_edge('index.rst', 'index.html')
 >>> g.add_edge('tutorial.rst', 'tutorial.html')
 >>> g.add_edge('api.rst', 'api.html')
 
-And just like that,
-``g`` represents the same graph that we saw in Figure 1,
+
+
+We can see that, following our three “add” method calls,
+``g`` represents the same graph that we saw in Figure 1.
 
 >>> from pprint import pprint
 >>> pprint(g.edges())
@@ -549,56 +601,6 @@ have read about: Pythonic solutions try to
 minimize syntactic overhead
 and leverage Python's powerful built-in tools
 and extensive standard library.
-
-Here is ``Graph``'s constructor:
-
-.. include:: contingent/graphlib.py
-    :code: python
-    :start-line: 15
-    :end-line: 18
-
-Whoa now, what's this ``defaultdict``?
-It turns out that handling the “key doesn't exist yet” case is so common
-that Python includes a special utility to make dealing with it easier.
-With a normal ``dict``,
-if you try to retrieve a key that does not exist you get a ``KeyError``:
-
->>> consequences_of = {}
->>> consequences_of['index.rst'].add('index.html')
-Traceback (most recent call last):
-     ...
-KeyError: 'index.rst'
-
-Rather than having to gum up your code with ugly special cases all over
-the place, like this:
-
-.. code:: python
-
-    # ugly special case to handle “we haven't seen this task yet”
-    if input_task not in self._consequences_of:
-        self._consequences_of[input_task] = set()
-
-    self._consequences_of[input_task].add(consequence_task)
-
-``defaultdict`` simplifies things by allowing you to provide a
-function that returns a value for absent keys.
-In this case,
-when we ask about an edge that the ``Graph`` hasn't yet seen,
-we want to get back an empty ``set`` rather than an exception:
-
->>> from collections import defaultdict
->>> consequences_of = defaultdict(set)
->>> consequences_of['api.rst']
-set()
-
-Structuring our implementation this way means that,
-for operations that need to work with this data structure,
-the first-time case is identical to
-the second-and-subsequent-times case:
-
->>> consequences_of['index.rst'].add('index.html')
->>> 'index.html' in consequences_of['index.rst']
-True
 
 ..
  >>> from contingent.rendering import as_graphviz
