@@ -189,11 +189,58 @@ This is useful, especially when an architecture is under development. My theory 
 We keep around references to `menu` and `script` because we use them a lot, no point hunting through the DOM for them over and over. We'll also use `scriptRegistry`, where we store the scripts of blocks in the menu. We use a very simple name -> script mapping, which does not support either multiple menu blocks with the same name, or renaming blocks. A more complex scripting environment would need something more robust.
 We use `scriptDirty` to keep track of whether the script has been modified since the last time it was run, so we don't keep trying to run it constantly.
 
-When we want to notify the system to run the assembled script during the next frame handler, we call `runSoon()` which just sets teh `scriptDirty` flag to `true`. The system calls `run()` on every frame, but returns immediately unless `scriptDirty` is set, when it actually runs all the script blocks, and also triggers events to let the specific language handle any tasks it needs before and after the script is run. This decouples the blocks-as-toolkit from the turtle language to make the blocks re-usable (or the language pluggable, depending how you look at it). As part of running the script, we iterate over each block, calling `runEach(evt)` on it, which sets a class on the block, then finds and executes its associated function. If we slow things down, you should be able to watch the code execute as each block highlights to show when it is running.
+    var menu = document.querySelector('.menu');
+    var script = document.querySelector('.script');
+    var scriptRegistry = {};
+    var scriptDirty = false;
 
-We add blocks to the menu using `menuItem(name, fn, value, contents)` which takes a normal block,  associates it with a function, and and puts in the menu column.
+When we want to notify the system to run the assembled script during the next frame handler, we call `runSoon()` which just sets the `scriptDirty` flag to `true`. The system calls `run()` on every frame, but returns immediately unless `scriptDirty` is set, when it actually runs all the script blocks, and also triggers events to let the specific language handle any tasks it needs before and after the script is run. This decouples the blocks-as-toolkit from the turtle language to make the blocks re-usable (or the language pluggable, depending how you look at it). As part of running the script, we iterate over each block, calling `runEach(evt)` on it, which sets a class on the block, then finds and executes its associated function. If we slow things down, you should be able to watch the code execute as each block highlights to show when it is running.
+
+    function runSoon(){ scriptDirty = true; }
+
+    function run(){
+        if (scriptDirty){
+            scriptDirty = false;
+            Block.trigger('beforeRun', script);
+            var blocks = [].slice.call(document.querySelectorAll('.script > .block'));
+            Block.run(blocks);
+            Block.trigger('afterRun', script);
+        }else{
+            Block.trigger('everyFrame', script);
+        }
+        requestAnimationFrame(run);
+    }
+    requestAnimationFrame(run);
+
+    function runEach(evt){
+        var elem = evt.target;
+        if (!matches(elem, '.script .block')) return;
+        if (elem.dataset.name === 'Define block') return;
+        elem.classList.add('running');
+        scriptRegistry[elem.dataset.name](elem);
+        elem.classList.remove('running');
+    }
+
+We add blocks to the menu using `menuItem(name, fn, value, contents)` which takes a normal block,  associates it with a function, and and puts in the menu column. This must be the most important block in the file, since the file is named for it.
+
+    function menuItem(name, fn, value, units){
+        var item = Block.create(name, value, units);
+        scriptRegistry[name] = fn;
+        menu.appendChild(item);
+        return item;
+    }
 
 We define one block here, outside of the turtle language, because `repeat(block)` is generally useful in different potential languages. If we had blocks for conditionals and reading and writing variables they could also go here, or into a separate trans-language module, but right now we only have one of these general purpose blocks defined.
+
+    function repeat(block){
+        var count = Block.value(block);
+        var children = Block.contents(block);
+        for (var i = 0; i < count; i++){
+            Block.run(children);
+        }
+    }
+    menuItem('Repeat', repeat, 10, []);
+
 
 ### file.js
 
