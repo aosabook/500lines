@@ -244,27 +244,269 @@ We define one block here, outside of the turtle language, because `repeat(block)
 
 ### file.js
 
-This module handles saving and restoring scripts, both to actual files and also to temporary storage in the browser's `localStorage` key-value database. Scripts are stored as simple JSON-formatted files to make things simple, since they are not intended to be human-readable (or human-writable). The `scriptToJSON()` and `jsonToScript(json)` functions handle converting between DOM blocks and strings suitable for storing.
+This module handles saving and restoring scripts, both to actual files and also to temporary storage in the browser's `localStorage` key-value database. Scripts are stored as simple JSON-formatted files to make things simple, since they are not intended to be human-readable (or human-writable). We keep a couple of variables around we'll use later, a reference to the script element and a string from the page title that we can use to separate different apps in localStorage (we'll use this when we implement a new language based on the same blocks). `The `scriptToJSON()` and `jsonToScript(json)` functions handle converting between DOM blocks and strings suitable for storing.
 
+    var scriptElem = document.querySelector('.script');
+    var title = '__' + document.querySelector('title').textContent.toLowerCase().replace(' ', '_');
 
+    function scriptToJson(){
+        var blocks = [].slice.call(document.querySelectorAll('.script > .block'));
+        return blocks.length ? JSON.stringify(blocks.map(Block.script)) : null;
+    }
+
+    function jsonToScript(json){
+        clearScript();
+        JSON.parse(json).forEach(function(block){
+            scriptElem.appendChild(Block.create.apply(null, block));
+        });
+        Menu.runSoon();
+    }
 
 The `saveLocal()` function is a handler to save the current script in localStorage on when navigating away,  closing the window, or refreshing the page so we don't lose the work in progress and `restoreLocal()` handler is called on page load to restore the script. For files we have three functions, `saveFile()` which does some background work to convince HTML to make a link downloadable, where the contents of the link is our script (rendered on the fly), creates a temporary link, and calls `click()` on it to start the download. The inverse, loading the script uses `readFile(file)` as a callback to load in the script, but `loadFile()` to initiate the async file reading. Reading a file like this can easily be triggered from a button or by dropping a suitable file onto a target, using the same callback either way.
 
+    function saveLocal(){
+        var script = scriptToJson();
+        if (script){
+            localStorage[title] = script;
+        }else{
+            delete localStorage[title];
+        }
+    }
+
+    function restoreLocal(){ jsonToScript(localStorage[title] || '[]' ); }
+
+    function saveFile(evt){
+        var title = prompt("Save file as: ");
+        if (!title){ return; }
+        var file = new Blob([scriptToJson()], {type: 'application/json'});
+        var reader = new FileReader();
+        var a = document.createElement('a');
+        reader.onloadend = function(){
+            var a = elem('a', {'href': reader.result, 'download': title + '.json'});
+            a.click();
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function readFile(file){
+        var fileName = file.name;
+        if (fileName.indexOf('.json', fileName.length - 5) === -1) {
+            return alert('Not a JSON file');
+        }
+        var reader = new FileReader();
+        reader.readAsText( file );
+        reader.onload = function (evt){ jsonToScript(evt.target.result); };
+    }
+
+    function loadFile(){
+        var input = elem('input', {'type': 'file', 'accept': 'application/json'});
+        if (!input){ return; }
+        input.addEventListener('change', function(evt){ readFile(input.files[0]); });
+        input.click();
+    }
+
+The `loadExamples()` function deserves some discussion. We pre-load the examples (by linking to them in `index.html`), because there are a limited number of them, they're small, and we want to keep things simple. In a real system you could load them using AJAX, but the important thing is, once you have JSON back you would just call `jsonToScript`, the same as `readFile` or `restoreLocal` do.
+
+    function loadExample(evt){
+        var exampleName = evt.target.value;
+        if (exampleName === ''){ return; }
+        clearScript();
+        file.examples[exampleName].forEach(function(block){
+            scriptElem.appendChild(Block.create.apply(null, block));
+        });
+        Menu.runSoon();
+    }
+
 As the odd function out, we also have `clearScript()`, a handler to clear the current script when the user wants a fresh start.
+
+    function clearScript(){
+        [].slice.call(document.querySelectorAll('.script > .block')).forEach(function(block){
+            block.parentElement.removeChild(block);
+        });
+        Menu.runSoon();
+    }
 
 ### turtle.js
 
 This is the implmentation of the turtle block language. It exposes no globals of its own., but it does define local variables for managing the canvas and saves some handier references to frequently-used parts of Math.
 
-The `reset()` function clears all the state variables to their defaults. If we wanted to support multiple turtles, these variables should be encapsulated in an object.  We also have a utility, `deg2rad(deg)`, because we work in degrees in the UI, but we draw in radians. Finally, `drawTurtle()` draws the turtle itself. The default turtle is simply a triangle, but you could override this to get a more "turtle-looking" turtle.
+    var PIXEL_RATIO = window.devicePixelRatio || 1;
+    var canvasPlaceholder = document.querySelector('.canvas-placeholder');
+    var canvas = document.querySelector('.canvas');
+    var script = document.querySelector('.script');
+    var ctx = canvas.getContext('2d');
+    var cos = Math.cos, sin = Math.sin, sqrt = Math.sqrt, PI = Math.PI;
+    var DEGREE = PI / 180;
+    var WIDTH, HEIGHT, position, direction, visible, pen, color;
+
+The `reset()` function clears all the state variables to their defaults. If we wanted to support multiple turtles, these variables should be encapsulated in an object.  We also have a utility, `deg2rad(deg)`, because we work in degrees in the UI, but we draw in radians. Finally, `drawTurtle()` draws the turtle itself. The default turtle is simply a triangle, but you could override this to get a more "turtle-looking" turtle. Note that the drawTurtle is using the same primitive operations that we define to implement the turtle drawing. Sometimes you don't want to re-use code at different abstraction layers, but when the meaning is clear it can be a big win for code size and performance.
+
+    function reset(){
+        recenter();
+        direction = deg2rad(90); // facing "up"
+        visible = true;
+        pen = true; // when pen is true we draw, otherwise we move without drawing
+        color = 'black';
+    }
+
+    function deg2rad(degrees){ return DEGREE * degrees; }
+
+    function drawTurtle(){
+        var userPen = pen; // save pen state
+        if (visible){
+            penUp(); _moveForward(5); penDown();
+            _turn(-150); _moveForward(12);
+            _turn(-120); _moveForward(12);
+            _turn(-120); _moveForward(12);
+            _turn(30);
+            penUp(); _moveForward(-5);
+            if (userPen){
+                penDown(); // restore pen state
+            }
+        }
+    }
+
+Generally turtle graphics consist of tell the turtle to move a certain number of steps forward, or turn a certain number of degrees. That, repetition, and pen-up/pen-down give an amazing amount of flexibility to create complex drawings. We special-case `drawCircle` because, while you can certainly draw a circle by repeating `MOVE 1 RIGHT 1` 360 times, controlling the size of the circle is very difficult that way. So we have a special block to draw a circle with a given radius at the current mouse position.
+
+    function drawCircle(radius){
+        // Math for this is from http://www.mathopenref.com/polygonradius.html
+        var userPen = pen; // save pen state
+        if (visible){
+            penUp(); _moveForward(-radius); penDown();
+            _turn(-90);
+            var steps = Math.min(Math.max(6, Math.floor(radius / 2)), 360);
+            var theta = 360 / steps;
+            var side = radius * 2 * Math.sin(Math.PI / steps);
+            _moveForward(side / 2);
+            for (var i = 1; i < steps; i++){
+                _turn(theta); _moveForward(side);
+            }
+            _turn(theta); _moveForward(side / 2);
+            _turn(90);
+            penUp(); _moveForward(radius); penDown();
+            if (userPen){
+                penDown(); // restore pen state
+            }
+        }
+
+    }
+
+Our main primitive is `moveForward` which has to handle some elementary trigonometry and check whether the pen is up or down.
+
+    function _moveForward(distance){
+        var start = position;
+        position = {
+            x: cos(direction) * distance * PIXEL_RATIO + start.x,
+            y: -sin(direction) * distance * PIXEL_RATIO + start.y
+        };
+        if (pen){
+            ctx.lineStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(start.x, start.y);
+            ctx.lineTo(position.x, position.y);
+            ctx.stroke();
+        }
+    }
+
+Most of the rest of the turtle commands can be easily defined in terms of what we've built above.
+
+    function penUp(){ pen = false; }
+    function penDown(){ pen = true; }
+    function hideTurtle(){ visible = false; }
+    function showTurtle(){ visible = true; }
+    function forward(block){ _moveForward(Block.value(block)); }
+    function back(block){ _moveForward(-Block.value(block)); }
+    function circle(block){ drawCircle(Block.value(block)); }
+    function _turn(degrees){ direction += deg2rad(degrees); }
+    function left(block){ _turn(Block.value(block)); }
+    function right(block){ _turn(-Block.value(block)); }
+    function recenter(){ position = {x: WIDTH/2, y: HEIGHT/2}; }
+
+When we want a fresh slate, the `clear` function restores everything back to where we started.
+
+    function clear(){
+        ctx.save();
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0,0,WIDTH,HEIGHT);
+        ctx.restore();
+        reset();
+        ctx.moveTo(position.x, position.y);
+    }
+
+When this script first loads and runs, we use our `reset` and `clear` to initialize everything and draw the mouse.
+
+    onResize();
+    clear();
+    drawTurtle();
+
+Now we can use the functions above, with the `Menu.item` function from `menu.js` to make blocks for the user to build scripts from. These will be what get dragged into place to make the user's programs.
+
+    Menu.item('Left', left, 5, 'degrees');
+    Menu.item('Right', right, 5, 'degrees');
+    Menu.item('Forward', forward, 10, 'steps');
+    Menu.item('Back', back, 10, 'steps');
+    Menu.item('Circle', circle, 20, 'radius');
+    Menu.item('Pen up', penUp);
+    Menu.item('Pen down', penDown);
+    Menu.item('Back to center', recenter);
+    Menu.item('Hide turtle', hideTurtle);
+    Menu.item('Show turtle', showTurtle);
+
 
 ### util.js
 
 This code may not belong in the count of 500 lines since it is just support functions and polyfills for things that should be native to the browser.
 
-The shorthand function `elem(name, attrs, children)` saves us from typing out a lot of repetitive DOM code to create elements, while allowing us to simultaneously set their attributes and add child elements. Modern browsers already implement the useful `matches(elem, selector)` function, but using a "namespace", so this code just removes the namespaces. And we need `matches` so we can implement `closest(elem, selector)`, which is one of the handiest methods in all of jQuery that hasn't been built into the browser yet.
+The shorthand function `elem(name, attrs, children)` saves us from typing out a lot of repetitive DOM code to create elements, while allowing us to simultaneously set their attributes and add child elements.
+
+    global.elem = function elem(name, attrs, children){
+        attrs = attrs || {};
+        children = children || [];
+        var e = document.createElement(name);
+        Object.keys(attrs).forEach(function(key){
+            e.setAttribute(key, attrs[key]);
+        });
+        children.forEach(function(child){
+            if (typeof child === 'string'){
+                child = document.createTextNode(child);
+            }
+            e.appendChild(child);
+        });
+        return e;
+    };
+
+Modern browsers already implement the useful `matches(elem, selector)` function, but using a "namespace", so this code just removes the namespaces. And we need `matches` so we can implement `closest(elem, selector)`, which is one of the handiest methods in all of jQuery that hasn't been built into the browser yet (although it is coming).
+
+    if (document.body.matches){
+        global.matches = function matches(elem, selector){ return elem.matches(selector); };
+    }else if(document.body.mozMatchesSelector){
+        global.matches = function matches(elem, selector){ return elem.mozMatchesSelector(selector); };
+    }else if (document.body.webkitMatchesSelector){
+        global.matches = function matches(elem, selector){ return elem.webkitMatchesSelector(selector); };
+    }else if (document.body.msMatchesSelector){
+        global.matches = function matches(elem, selector){ return elem.msMatchesSelector(selector); };
+    }else if(document.body.oMatchesSelector){
+        global.matches = function matches(elem, selector){ return elem.oMatchesSelector(selector); };
+    }
+
+    global.closest = function closest(elem, selector){
+        while(elem){
+            if (matches(elem, selector)){ return elem };
+            elem = elem.parentElement;
+        }
+        return null;
+    };
+
 
 The `requestAnimationFrame(fn)` is another polyfill for built-in functionality, just to get rid of namespaces in older browsers, or to emulate it for browsers that don't have requestAnimationFrame yet. And for sending custom events to elements we define the shorthand function `trigger(name, target)`.
+
+    global.requestAnimationFrame = global.requestAnimationFrame || global.mozRequestAnimationFrame || global.msRequestAnimationFrame || global.webkitRequestAnimationFrame || function(fn){
+        setTimeout(fn, 20);
+    };
+
+    global.trigger = function trigger(name, target){
+        target.dispatchEvent(new CustomEvent(name, {bubbles: true, cancelable: false}));
+    };
 
 ### index.html
 
