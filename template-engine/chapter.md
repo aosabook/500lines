@@ -30,7 +30,7 @@ For purposes of illustration, let's imagine we want to produce this toy HTML:
 <ul>
     <li>Apple: $1.00</li>
     <li>Fig: $1.50</li>
-    <li>Pomegranite: $3.25</li>
+    <li>Pomegranate: $3.25</li>
 </ul>
 ```
 
@@ -42,7 +42,7 @@ One simple way to make this HTML would be to have string constants in our code,
 and join them together to produce the page.  Dynamic data would be inserted
 with string substitution of some sort.  Some of our dynamic data is repetitive,
 like our lists of products.  This means we'll have chunks of HTML that repeat,
-so those would have to be handled separately and combined with the rest of the
+so those will have to be handled separately and combined with the rest of the
 page.
 
 Producing our toy page in this way might look like this:
@@ -74,14 +74,14 @@ see because the static text is broken into separate pieces. The details of
 how data is formatted is lost in the Python code.  In order to modify the HTML
 page, our front-end designer would need to be able to edit Python code to make
 HTML changes.  Imagine what the code would look like if the page were ten (or
-one hundred!) times more complicated; it would quickly become unworkable.
+one hundred) times more complicated; it would quickly become unworkable.
 
 
 ## Templates
 
-The better way to produce HTML pages is with templates.  The HTML page is
+The better way to produce HTML pages is with *templates*.  The HTML page is
 authored as a template, meaning that the file is mostly static HTML, with
-dynamic pieces embedded in it with special notation.  Our toy page above could
+dynamic pieces embedded in it using special notation.  Our toy page above could
 look like this as a template:
 
 ```
@@ -133,13 +133,13 @@ will be substituted into the output.
 String formatting functions such as Python's `"foo = {foo}!".format(foo=17)`
 are examples of mini-languages used to create text from a string literal and the data
 to be inserted.  Templates extend this idea to include logic constructs like
-conditionals and loops, but are really just a difference of degree.
+conditionals and loops, but the difference is only of degree.
 
 These files are called templates because they are used to produce many
-different pages with similar structure but differing details.
+pages with similar structure but differing details.
 
-To use HTML templates in our programs, we need a template engine: a function
-that takes a static *template* describing the structure and static content of
+To use HTML templates in our programs, we need a *template engine*: a function
+that takes a static template describing the structure and static content of
 the page, and a dynamic *context* that provides the dynamic data to plug into
 the template.  The template engine combines the template and the context to
 produce a complete string of HTML.  The job of a template engine is to
@@ -153,8 +153,8 @@ makes it possible to insert values into the HTML without worrying about which
 characters are special in HTML.
 
 Templates are also not always the best choice for producing large chunks of text,
-even if they do follow a common pattern.  Very data-heavy outputs might just be
-easier to do the logic-centric way rather than a document-centric template way.
+even if they do follow a common pattern.  Very data-heavy outputs might be
+easier to do the logic-centric way rather than the document-centric template way.
 
 
 ## Supported Syntax
@@ -250,14 +250,14 @@ In broad strokes, the template engine will have two main phases:
 
 * Parse the template
 * Render the template to assemble the text result, which involves:
-  - Manage the dynamic context, the source of the data
-  - Execute the logic elements
-  - Implement dot access and filter execution
+  - Managing the dynamic context, the source of the data
+  - Executing the logic elements
+  - Implementing dot access and filter execution
 
-A key decision in the implementation is what will be passed from the parsing
-phase to the rendering phase.  What does parsing produce that can be rendered?
-There are two main options here.  We'll call them interpretation and
-compilation, using the terms loosely from other language implementations.
+The question of what to pass from the parsing
+phase to the rendering phase is key.  What does parsing produce that can be rendered?
+There are two main options; we'll call them *interpretation* and
+*compilation*, using the terms loosely from other language implementations.
 
 In an interpretation model, parsing produces a data structure representing the
 structure of the template. The rendering phase walks that data structure,
@@ -357,7 +357,7 @@ to this list, we capture its `append` and `extend` methods in the local names
 `result_append` and `result_extend`.  The last local we create is a `to_str`
 shorthand for the `str` built-in.
 
-These kinds of shortcuts are unusual, let's look at them more closely.  In
+These kinds of shortcuts are unusual. Let's look at them more closely.  In
 Python, a method call on an object like `result.append("hello")` is executed in
 two steps.  First, the append attribute is fetched from the result object:
 `result.append`.  Then the value fetched is invoked as a function, passing it
@@ -377,14 +377,14 @@ append_result("hello")
 
 In the template engine code, we've split it out this way so that we only do the
 first step once, no matter how many times we do the second step.  This saves us
-a small amount of time, because we avoid the time to look up the append attribute.
+a small amount of time, because we avoid taking the time to look up the append attribute.
 
 This is an example of a micro-optimization: an unusual coding technique that
-gains us tiny improvements in speed.  They can be less readable, or more
+gains us tiny improvements in speed.  Micro-optimizations can be less readable, or more
 confusing, so they are only justified for code that is a proven performance
 bottleneck.  Developers disagree on how much micro-optimization is justified,
 and some beginners overdo it.  The optimizations here were added only after
-timing experiments showed that they improved the speed, even if only a little
+timing experiments showed that they improved performance, even if only a little
 bit.  Micro-optimizations can be instructive, as they make use of some exotic
 aspects of Python, but don't over-use them in your own code.
 
@@ -398,10 +398,10 @@ another small slice of time because locals are faster than builtins.
 Once those shortcuts are defined, we're ready for the Python lines created from
 our particular template. Strings will be added to the result list using the
 `append_result` or `extend_result` shorthands, depending on whether we have one
-string to add or more than one.  Literal text in the template becomes a simple
+string to add, or more than one.  Literal text in the template becomes a simple
 string literal.
 
-Having both append and extend is extra complexity, but remember we're aiming
+Having both append and extend adds complexity, but remember we're aiming
 for the fastest execution of the template, and using extend for one item means
 making a new list of one item so that we can pass it to extend.
 
@@ -409,7 +409,8 @@ Expressions in `{{ ... }}` are computed, converted to strings, and added to the
 result.  Dots in the expression are handled by the `do_dots` function passed
 into our function, because the meaning of the dotted expressions depends on the
 data in the context: it could be attribute access or item access, and it could
-be a callable.
+be a callable. ((FIXME: Query "a callable" -- would "a callable function" be better?
+Is "callable" commonly understood to be used as a noun? --ARB ))
 
 The logical structures `{% if ... %}` and `{% for ... %}` are converted into
 Python conditionals and loops.  The expression in the `{% if/for ... %}` tag
@@ -432,7 +433,7 @@ implementation.
 The heart of the template engine is the Templite class.  (Get it? It's a
 template, but it's lite!)
 
-The Templite class has a small interface.  You construct one with the
+The Templite class has a small interface.  You construct one ((FIXME: Query: construct one what? class? template? object? This might be clear to our typical reader but I thought I should check. --ARB )) with the
 text of the template, then later you can use the `render` method on it to
 render a particular context, the dictionary of data, through the template:
 
@@ -603,13 +604,13 @@ easier to understand.
 
 CodeBuilder lets us create a chunk of Python source code, and has no specific
 knowledge about our template engine at all.  We could use it in such a way that
-three different functions were defined in the Python, and then `get_globals`
+three different functions would be defined in the Python, and then `get_globals`
 would return a dict of three values, the three functions.  As it happens, our
 template engine only needs to define one function.  But it's better software
 design to keep that implementation detail in the template engine code, and out
 of our CodeBuilder class.
 
-Even as we're actually using it, to define a single function, having `get_globals`
+Even as we're actually using it --- to define a single function --- having `get_globals`
 return the dictionary keeps the code more modular because it doesn't need to
 know the name of the function we've defined.  Whatever function name we define
 in our Python source, we can retrieve that name from the dict returned by
@@ -657,7 +658,7 @@ t = Templite(template_text, context1)
 t = Templite(template_text, context1, context2)
 ```
 
-The context arguments (if any) are supplied to the constructor as a tuple of
+XXX STOPPED HERE The context arguments (if any) are supplied to the constructor as a tuple of
 contexts.  We can then iterate over the `contexts` tuple, dealing with each of
 them in turn.  We simply create one combined dictionary called `self.context`
 which has the contents of all of the supplied contexts.  If duplicate names are
