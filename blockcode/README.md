@@ -244,7 +244,9 @@ We define one block here, outside of the turtle language, because `repeat(block)
 
 ### file.js
 
-This module handles saving and restoring scripts, both to actual files and also to temporary storage in the browser's `locacalStorage` key-value database. Scripts are stored as simple JSON-formatted files to make things simple, since they are not intended to be human-readable (or human-writable). The `scriptToJSON()` and `jsonToScript(json)` functions handle converting between DOM blocks and strings suitable for storing.
+This module handles saving and restoring scripts, both to actual files and also to temporary storage in the browser's `localStorage` key-value database. Scripts are stored as simple JSON-formatted files to make things simple, since they are not intended to be human-readable (or human-writable). The `scriptToJSON()` and `jsonToScript(json)` functions handle converting between DOM blocks and strings suitable for storing.
+
+
 
 The `saveLocal()` function is a handler to save the current script in localStorage on when navigating away,  closing the window, or refreshing the page so we don't lose the work in progress and `restoreLocal()` handler is called on page load to restore the script. For files we have three functions, `saveFile()` which does some background work to convince HTML to make a link downloadable, where the contents of the link is our script (rendered on the fly), creates a temporary link, and calls `click()` on it to start the download. The inverse, loading the script uses `readFile(file)` as a callback to load in the script, but `loadFile()` to initiate the async file reading. Reading a file like this can easily be triggered from a button or by dropping a suitable file onto a target, using the same callback either way.
 
