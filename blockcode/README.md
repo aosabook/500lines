@@ -34,15 +34,66 @@ Each block consists of a few HTML elements, styled with CSS, with some JavaScrip
 
 The entry point for a block is the `createBlock(name, value, contents)` function, which returns a DOM element representing the block, which can be appended to the document. This can be used to create blocks for the menu, or for restoring script blocks saved in files or localStorage. While it is flexible this way, it is built specifically for the Blockcode "language" and makes assumptions about it, so if there is a value it assumes the value represents a numeric argument and creates an input of type "number". Since this is a limitation of the blockcode as used here, this is fine, but if we were to extend the blocks to support other types of arguments, or more than one argument, the code would have to change extensively.
 
+    function createBlock(name, value, contents){
+        var item = elem('div', {'class': 'block', draggable: true, 'data-name': name}, [name]);
+        if (value !== undefined && value !== null){
+            item.appendChild(elem('input', {type: 'number', value: value}));
+        }
+        if (Array.isArray(contents)){
+            item.appendChild(elem('div', {'class': 'container'}, contents.map(function(block){
+                return createBlock.apply(null, block);
+            })));
+        }else if (typeof contents === 'string'){ // Add units specifier
+            item.appendChild(document.createTextNode(' ' + contents));
+        }
+        return item;
+    }
+
 We have some utilities for handling blocks as DOM elements, `blockContents(block)` simply retrieve the child blocks of a container block. it always returns a list if called on a container block, always returns null on a simple block. The `blockValue(block)` function returns the numerical value of the input on a block, if the block has an input field of type number, or string for other input type, null if there is no input element for the block. To retrieve the script from a block `blockScript(block)` will return a structure suitable for stringifying with JSON. This is used for saving blocks in a form they can easily be restored from. Finally, `runBlocks(blocks)` is a handler to run an array of blocks by sending each block the "run" event.
+
+    function blockContents(block){
+        var container = block.querySelector('.container');
+        return container ? [].slice.call(container.children) : null;
+    }
+
+    function blockValue(block){
+        var input = block.querySelector('input');
+        return input ? Number(input.value) : null;
+    }
+
+    function blockUnits(block){
+        if (block.children.length > 1 && block.lastChild.nodeType === Node.TEXT_NODE && block.lastChild.textContent){
+            return block.lastChild.textContent.slice(1);
+        }
+    }
+
+    function blockScript(block){
+        var script = [block.dataset.name];
+        var value = blockValue(block);
+        if (value !== null){
+            script.push(blockValue(block));
+        }
+        var contents = blockContents(block);
+        var units = blockUnits(block);
+        if (contents){script.push(contents.map(blockScript));}
+        if (units){script.push(units);}
+        return script.filter(function(notNull){ return notNull !== null; });
+    }
+
+    function runBlocks(blocks){
+        blocks.forEach(function(block){ trigger('run', block); });
+    }
+
 
 ### drag.js
 
 We're using HTML5 drag and drop, which requires some specific JavaScript event handlers to be defined, and those are defined here. For more information on using HTML5 drag and drop, see Eric Bidleman's article here: http://www.html5rocks.com/en/tutorials/dnd/basics/. While it is nice to have built-in support for drag and drop, it does have some oddities when using it, and some pretty major limitations (like not being implemented in any mobile browser at the time of this writing).
 
-We define a bunch of variables at the top of the file. When we're dragging, we'll need to reference these from different stages of the dragging callback dance. There's also a utility function, `findPosition(evt)`, which returns the block we should insert the dragged block before, if any.
+We define some variables at the top of the file. When we're dragging, we'll need to reference these from different stages of the dragging callback dance.
 
-The `findPosition` function is called from `drop(evt)` rather than on drag because of bug in Firefox drag events (no clientX, etc). This should also improve drag performance, but doesn't give us an opportunity to provide user feedback during dragging. Ideally we'd like to highlight potential drop targets while the user is dragging, to show where a block can legally be placed and to provide some feedback that it will be dropped where they expect.
+    var dragTarget = null; // Block we're dragging
+    var dragType = null; // Are we dragging from the menu or from the script?
+    var scriptBlocks = []; // Blocks in the script, sorted by position
 
 Depending on where the drag starts from and ends, `drop` will have different effects:
 
@@ -51,7 +102,83 @@ Depending on where the drag starts from and ends, `drop` will have different eff
 * If dragging from menu to script, copy dragTarget (insert new block in script).
 * If dragging from menu to menu, do nothing.
 
-The `dragEnd(evt)` is called when we mouse up. Based on the repetitive nature of this code, this might be a good place for a helper function to clean things up.
+During the `dragStart(evt)` handler we start tracking whether this block is being copied from the menu or moved from (or within) the script. We also grab a list of all the blocks in the script which are not being dragged, to use later. The `evt.dataTransfer.setData` call is used for dragging between the browser and other applications (or the desktop), which we're not using, but have to call anyway to work around a bug.
+
+    function dragStart(evt){
+        if (!matches(evt.target, '.block')) return;
+        if (matches(evt.target, '.menu .block')){
+            dragType = 'menu';
+        }else{
+            dragType = 'script';
+        }
+        evt.target.classList.add('dragging');
+        dragTarget = evt.target;
+        scriptBlocks = [].slice.call(document.querySelectorAll('.script .block:not(.dragging)'));
+        // For dragging to take place in Firefox, we have to set this, even if we don't use it
+        evt.dataTransfer.setData('text/html', evt.target.outerHTML);
+        if (matches(evt.target, '.menu .block')){
+            evt.dataTransfer.effectAllowed = 'copy';
+        }else{
+            evt.dataTransfer.effectAllowed = 'move';
+        }
+    }
+
+While we are dragging, the `dragenter`, `dragover`, and `dragout` events give us opportunities to change add visual cues while dragging by highlighting valid drop targets, etc. Of these, we only make use of `dragover`.
+
+    function dragOver(evt){
+        if (!matches(evt.target, '.menu, .menu *, .script, .script *, .content')) return;
+        if (evt.preventDefault) { evt.preventDefault(); } // Necessary. Allows us to drop.
+        if (dragType === 'menu'){
+            evt.dataTransfer.dropEffect = 'copy';  // See the section on the DataTransfer object.
+        }else{
+            evt.dataTransfer.dropEffect = 'move';
+        }
+        return false;
+    }
+
+When we release the mouse, we get a `drop` event. This is where the magic happens. We have to check where we are dragging from (that we set back in `dragStart` and where we have dragged to, then we either copy the block, move the block, or delete the block as needed. We fire off some custom events using `trigger()` (defined in `util.js`) for our own use in the block logic, so we can refresh the script when it changes.
+
+    function drop(evt){
+        if (!matches(evt.target, '.menu, .menu *, .script, .script *')) return;
+        var dropTarget = closest(evt.target, '.script .container, .script .block, .menu, .script');
+        var dropType = 'script';
+        if (matches(dropTarget, '.menu')){ dropType = 'menu'; }
+        if (evt.stopPropagation) { evt.stopPropagation(); } // stops the browser from redirecting.
+        if (dragType === 'script' && dropType === 'menu'){
+            trigger('blockRemoved', dragTarget.parentElement, dragTarget);
+            dragTarget.parentElement.removeChild(dragTarget);
+        }else if (dragType ==='script' && dropType === 'script'){
+            if (matches(dropTarget, '.block')){
+                dropTarget.parentElement.insertBefore(dragTarget, dropTarget.nextSibling);
+            }else{
+                dropTarget.insertBefore(dragTarget, dropTarget.firstChildElement);
+            }
+            trigger('blockMoved', dropTarget, dragTarget);
+        }else if (dragType === 'menu' && dropType === 'script'){
+            var newNode = dragTarget.cloneNode(true);
+            newNode.classList.remove('dragging');
+            if (matches(dropTarget, '.block')){
+                dropTarget.parentElement.insertBefore(newNode, dropTarget.nextSibling);
+            }else{
+                dropTarget.insertBefore(newNode, dropTarget.firstChildElement);
+            }
+            trigger('blockAdded', dropTarget, newNode);
+        }
+    }
+
+
+The `dragEnd(evt)` is called when we mouse up, but after we handle the `drop` event. This is where we can clean up, remove classes form elements, and reset things for the next drag.
+
+    function _findAndRemoveClass(klass){
+        var elem = document.querySelector('.' + klass);
+        if (elem){ elem.classList.remove(klass); }
+    }
+
+    function dragEnd(evt){
+        _findAndRemoveClass('dragging');
+        _findAndRemoveClass('over');
+        _findAndRemoveClass('next');
+    }
 
 ### menu.js
 
