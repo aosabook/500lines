@@ -1,7 +1,7 @@
 -*- text -*-
 
 > "Python is about having the simplest, dumbest compiler imaginable."
-> -- Guido von Rossum, *Masterminds of Programming*
+> -- Guido von Rossum in *Masterminds of Programming*
 
 People write source code, machines run machine code. A compiler turns
 one into the other -- how? The whiff of magic to this hasn't quite
@@ -35,7 +35,7 @@ Chapter XXX explains how to parse it into an abstract syntax tree
 (AST); in this chapter we use `ast.parse` from Python's library.
 
     # in transcripts:
-    >>> import ast, dis, astpp      # pip install astpp (by Alex Leone)
+    >>> import ast, dis, astpp # (You can find astpp, by Alex Leone, on the web)
     >>> with open('greet.py') as f: module_text = f.read()
     ... 
     >>> module_ast = ast.parse(module_text)
@@ -165,8 +165,9 @@ instructions are compiled from; `op.LOAD_GLOBAL(0)` and the rest are
 symbolic instructions. These instructions and pseudo-instructions are
 all represented as Python objects which can be concatenated with
 `+`. The result of `+` is *also* an object representing assembly code
-(as in the Gang of Four 'composite' pattern). In generating the code
-we'll build it in pieces to be strung together, more like
+(as in the Gang of Four 'composite' pattern, or a monoid if that's how
+you were raised). In generating the code we'll build it in pieces to
+be strung together, more like
 
     # in examples.py:
     stmt1 = op.LOAD_CONST(0) + op.STORE_NAME(0)
@@ -181,7 +182,7 @@ which produces the same bytecode: it doesn't matter how we chunk the
 assembly.
 
 A higher-level assembly language could've been made where instead of
-`op.LOAD_CONST(0)` this example would have `op.LOAD_CONST('Monty')`,
+`op.LOAD_CONST(0)` this example would say `op.LOAD_CONST('Monty')`,
 leaving it to the assembler to turn `'Monty'` into an index into
 `co_consts`. Likewise `op.STORE_NAME` would take a string argument,
 and so on. Such a design would better suit a general-purpose bytecode
@@ -202,9 +203,9 @@ disassembling examples out of the real Python compiler, and reading
 the compiler's source. (The bytecode interpreter's source `ceval.c`
 was too complex to clarify everything on its own.) I would rather have
 coded this without peeking until I was done, on the grounds that you
-learn more that way; but that way I bogged down in crashes that turned
-out to hinge on mysteries like just what values must go into
-`co_flags` under what conditions.
+learn more that way; but I'd bog down in crashes that turned out to
+hinge on mysteries like just what values must go into `co_flags` under
+what conditions.
 
 To face these uncertainties and start learning, let's make a complete
 working system for a tiny core subset of the problem: just enough to
@@ -276,7 +277,7 @@ Throughout the compiler, `t` (for 'tree') names an AST node. These
 ### Visitors
 
 An AST is a recursive data structure, for which we're going to write a
-couple of recursive functions. We might code one like
+few recursive functions. We might code one like
 
     # in examples.py:
     def example(t):
@@ -382,9 +383,7 @@ This code object is littered with fields:
 
   * Redundant info too costly to compute at runtime, like `stacksize`.
 
-  * Metadata like `lnotab`. `lnotab` tells what line number in the
-    source file produced what part of the bytecode. (The name's not my
-    fault!)
+  * Metadata like `lnotab`. `lnotab` tells what line number in the source file produced what part of the bytecode. (The name's not my fault!)
 
   * The above-mentioned tables for constants and names.
 
@@ -421,9 +420,10 @@ called to make sure the input program is in our subset.)
 
 ### Expressions and the stack
 
-Our first tiny subset holds only assignment and expression statements,
-where expressions include only names, simple constants, and function
-calls. A constant expression turns into just a `LOAD_CONST`:
+Our first tiny subset has nothing but assignment and expression
+statements, where expressions include only names, simple constants,
+and function calls. A constant expression turns into just a
+`LOAD_CONST`:
 
     # in code generation 0:
         def visit_NameConstant(self, t): return self.load_const(t.value)
@@ -526,8 +526,8 @@ The recursive visits like `self(t.func)` and `self(t.args)` (and
             assembly = self.visit(t)
             return SetLineNo(t.lineno) + assembly if hasattr(t, 'lineno') else assembly
 
-It takes an AST node or a list of such nodes; for a list we get back
-all the results concatenated. (Python's AST and bytecodes were
+It takes an AST node or a list of such nodes; when it's a list we get
+back all the results concatenated. (Python's AST and bytecodes were
 designed to make that simple chaining the right thing to do in most
 cases, as we just saw for compiling the arguments of a call.) We
 could've defined separate methods for visiting a list vs. a node, but
@@ -552,8 +552,10 @@ during development, of course, sometimes it did. Before I overrode
 `generic_visit`, the default implementation would succeed silently,
 making my mistakes harder to see.
 
-    <<code generation 0>>   # XXX I think we can get rid of these
-    <<code generation 1>>   # 'noise' lines; come back to this.
+    # XXX I think we can get rid of these
+    # 'noise' lines; come back to this.
+    <<code generation 0>>
+    <<code generation 1>>
     <<code generation 2>>
 
 
@@ -638,11 +640,15 @@ We fill in `op` so that `op.LOAD_NAME` and all the rest work.
 
 And now it'll compile `greet.py`, the example we started with. Hurray!
 
+    # in transcripts:
+    $ python3 bytecompile0.py greet.py 
+    Hello, Monty
+
 
 ## Fleshing it out
 
 As we fill out this compiler with more visit methods for more AST node
-types, we'll hit a new problem compiling control flow like
+types, we'll hit a new problem compiling control-flow constructs like
 `if`-`else`. They reduce to jumping around in the bytecode. The
 expression statement
 
@@ -692,7 +698,7 @@ different encodings. I considered handling this with a design more
 like a 'linker' than an assembler, but decided to stick closer to
 CPython's design: it's less likely to get borked by their changes.)
 
-    # in code generation 1:
+    # in code generation 1 v1:
         def visit_If(self, t):
             orelse, after = Label(), Label()
             return (           self(t.test) + op.POP_JUMP_IF_FALSE(orelse)
@@ -732,19 +738,17 @@ For the max stack depth, we ask `plumb` to compute the depth after
 every instruction, appending them all to `depths`. (This uses more
 space than needed, but turns out to be simple.)
 
-Computing the line-number table calls on a `line_nos` method for pairs
-of (bytecode address, source-code line-number). `make_lnotab` consumes
-them and encodes them into a bytestring in a format imposed by the VM
-interpreter. Each successive pair of encoded bytes represents an
-(address, line_number) pair as the differences from the previous
-pair. Since a byte is between 0 and 255, there are two problems:
+Computing the line-number table calls on a `line_nos` method yielding
+pairs of (bytecode address, source-code line-number). `make_lnotab`
+consumes them and encodes them into a bytestring in a format imposed
+by the VM interpreter. Each successive pair of encoded bytes
+represents an (address, line_number) pair as the differences from the
+previous pair. Since a byte is between 0 and 255, there are two
+problems:
 
   * The difference could be negative. This can happen [XXX example]
     
-  * The difference could exceed 255. In this case the entry must take
-    up multiple successive byte-pairs, first increasing only the
-    address part in each, and then increasing the line number.
-    [XXX say something -- a tiny bit? -- about why]
+  * The difference could exceed 255. In this case the entry must take up multiple successive byte-pairs, first increasing only the address part in each, and then increasing the line number. [XXX say something -- a tiny bit? -- about why]
 
 [XXX this line just for Markdown formatting, to make the snippet below
 be code. sheesh.]
@@ -767,7 +771,7 @@ be code. sheesh.]
                     byte, line = next_byte, next_line
         return firstlineno or 1, bytes(lnotab)
 
-And `concat` can't be just `b''.join()` anymore:
+And `concat` can't be just `b''.join` anymore:
 
     def concat(assemblies):
         return sum(assemblies, no_op)
@@ -796,15 +800,15 @@ The simplest type of assembly fragment is the no-op:
 
     no_op = Assembly()
 
-For `resolve`'s use all our assembly objects get a `length` counting
-how many bytes of bytecode they'll take. In this compiler it's
-constant, since we don't support the extended-length argument
-format. (Suppose there were a relative jump to an address over 65535
-bytes away. The jump instruction would need to occupy more than the
-usual 3 bytes; if we'd assumed 3 bytes, this would imply cascading
-changes.) [XXX can you in fact have extended jumps?]
+For `resolve`'s use, all our assembly objects hold a `length` counting
+how many bytes of bytecode they'll become. In this compiler the
+lengths are constant, since we don't support the extended-length
+argument format. (Suppose there were a relative jump to an address
+over 65535 bytes away. The jump instruction would need to occupy more
+than the usual 3 bytes; if we'd assumed 3 bytes, this would imply
+cascading changes.) [XXX can you in fact have extended jumps?]
 
-A `Label` is just like `no_op` except for resolving to an address.
+A `Label` is just like `no_op`, except resolving to an address.
 
     class Label(Assembly):
         def resolve(self, start):
@@ -847,7 +851,7 @@ depth from there instead. In this compiler, though, it happens that
 the straight-line stack depths are always right.
 
 A `Chain` catenates two assembly-code fragments in sequence. It uses
-`itertools.chain` to catenate the label resolutions, bytecodes, or
+`itertools.chain` to catenate the label resolutions, bytecodes, and
 `lnotab` entries produced in the different methods.
 
     class Chain(Assembly):
@@ -897,14 +901,15 @@ so:
 The argument to `BUILD_MAP` gives the runtime a hint of the dict's
 size. It's allowed to be wrong, since dicts can grow and shrink -- but
 not to overflow the two bytes allotted to an argument in
-bytecode. Thus the `min`. (A dict literal big enough to get clipped by
-this `min` would likely use so many constants that references into the
-constants table would overflow *their* two-byte encoding. Python
-bytecode does have a means for extended-size arguments, which again I
-didn't implement; you'll get a runtime error during compiling
-instead. So why bother with the `min`? Because we may fix the
-extended-size encoding issue later, and it's easier to make
-`BUILD_MAP` correct now than to document the problem for later.)
+bytecode. Thus the `min`. ([XXX I think this digression should go,
+too:] A dict literal big enough to get clipped by this `min` would
+likely use so many constants that references into the constants table
+would overflow *their* two-byte encoding. Python bytecode does have a
+means for extended-size arguments, which again I didn't implement;
+you'll get a runtime error during compiling instead. So why bother
+with the `min`? Because we may fix the extended-size encoding issue
+later, and it's easier to make `BUILD_MAP` correct now than to
+document the problem for later.)
 
 A simple subscript expression, `a[x]`, becomes
 
@@ -944,6 +949,7 @@ load, `['a', 'b']` becomes
 where 2 is the length of the list. Unlike with `BUILD_MAP` the length
 must be exact.
 
+    # in code generation 1 v1:
         def visit_List(self, t):  return self.visit_sequence(t, op.BUILD_LIST)
         def visit_Tuple(self, t): return self.visit_sequence(t, op.BUILD_TUPLE)
 
@@ -965,6 +971,7 @@ own instruction, for efficiency. `not -x` gets compiled to
 
 so:
 
+    # in code generation 1 v1:
         def visit_UnaryOp(self, t):
             return self(t.operand) + self.ops1[type(t.op)]
         ops1 = {ast.UAdd: op.UNARY_POSITIVE,  ast.Invert: op.UNARY_INVERT,
@@ -994,6 +1001,7 @@ single expression as a single AST node holding a list of operators and
 a list of their right operands. Our subset of Python doesn't cover
 this case, only binary comparisons like `x<2`.
 
+    # in code generation 1 v1:
         def visit_Compare(self, t):
             [operator], [right] = t.ops, t.comparators
             cmp_index = dis.cmp_op.index(self.ops_cmp[type(operator)])
@@ -1016,6 +1024,7 @@ consistent across different branches of control. `print(x or y)` compiles to
 falsey. At index 12, whichever way execution got there, the stack has
 the same height: two entries.
 
+    # in code generation 1 v1:
         def visit_BoolOp(self, t):
             op_jump = self.ops_bool[type(t.op)]
             def compose(left, right):
@@ -1095,35 +1104,35 @@ compiler.
 
 Our finished compiler will need more passes:
 
-  * Given an AST, we first 'desugar' it, replacing some of the nodes
-    with equivalent code in terms of simpler node types. (The language
-    minus certain features is less sweet but equally nutritious.)
-    CPython doesn't have this pass, though some have suggested it
-    should: optimizations would be easier to express as AST rewrites
-    than bytecode rewrites. (For example: rewrite `2+3` to `5`.) I
-    don't do optimizations, but wrote it this way because some node
-    types are a little simpler and substantially more readable to
-    compile to other node types than to bytecode.
+* Given an AST, we first 'desugar' it, replacing some of the nodes
+  with equivalent code in terms of simpler node types. (The language
+  minus certain features is less sweet but equally nutritious.)
+  CPython doesn't have this pass, though some have suggested it
+  should: optimizations would be easier to express as AST rewrites
+  than bytecode rewrites. (For example: rewrite `2+3` to `5`.) I
+  don't do optimizations, but wrote it this way because some node
+  types are a little simpler and substantially more readable to
+  compile to other node types than to bytecode.
 
-  * We complain if the AST departs from the subset of Python we're
-    going to implement. CPython lacks this pass, of course, and this
-    chapter won't examine it. It's valuable in two ways: documenting
-    what we claim to compile correctly, and keeping the user/developer
-    from wasting time on apparent bugs on input it was never meant to
-    support. [XXX add a call-out box with the ASDL grammar of Python
-    ASTs, with our subset's omissions italicized or something]
+* We complain if the AST departs from the subset of Python we're
+  going to implement. CPython lacks this pass, of course, and this
+  chapter won't examine it. It's valuable in two ways: documenting
+  what we claim to compile correctly, and keeping the user/developer
+  from wasting time on apparent bugs on input it was never meant to
+  support. [XXX add a call-out box with the ASDL grammar of Python
+  ASTs, with our subset's omissions italicized or something]
 
-  * Then we analyze the scope of variables: their definitions and uses
-    in classes, functions, and function-like scopes such as lambda
-    expressions. Python's built-in `symtable` module can do this, but
-    we can't use it! It requires a source-code string instead of an
-    AST, and ASTs don't come with a method to give us back source
-    code. In the early development of this compiler I used `symtable`
-    anyway, as scaffolding; the compiler then also had to take source
-    code instead of an AST as input. (I would've wanted to write my
-    own scope analyzer anyway, to make the compiler self-contained.)
+* Then we analyze the scope of variables: their definitions and uses
+  in classes, functions, and function-like scopes such as lambda
+  expressions. Python's built-in `symtable` module can do this, but
+  we can't use it! It requires a source-code string instead of an
+  AST, and ASTs don't come with a method to give us back source
+  code. In the early development of this compiler I used `symtable`
+  anyway, as scaffolding; the compiler then also had to take source
+  code instead of an AST as input. (I would've wanted to write my
+  own scope analyzer anyway, to make the compiler self-contained.)
 
-  * With this info in hand we generate bytecode as before.
+* With this info in hand we generate bytecode as before.
 
     # in compile to code v2:
     def compile_to_code(module_name, filename, t):
@@ -1135,15 +1144,15 @@ Our finished compiler will need more passes:
 ### Desugaring
 
     def desugar(t):
-        return ast.fix_missing_locations(Expander().visit(t))
+        return ast.fix_missing_locations(Desugarer().visit(t))
 
 Python's `ast` module defines another visitor class for *transforming*
 trees. Here each visit method is expected to return an AST node, which
-will be taken to replace the node that was the argument. The default,
-if the sub-nodes weren't changed, returns the same node
+will be taken to replace the node that was the argument. The default
+behavior, if the sub-nodes weren't changed, returns the same node
 unchanged. Desugaring uses such a transformer:
 
-    class Expander(ast.NodeTransformer):  # XXX rename to Desugarer?
+    class Desugarer(ast.NodeTransformer):
 
 For a start, we rewrite statements like `assert cookie, "Want
 cookie!"` into `if not cookie: raise AssertionError("Want cookie!")`.
@@ -1225,13 +1234,12 @@ polluting the current scope as they did in Python 2.
                               [], [], None, None)
             return ast.copy_location(result, t)
 
-The variable name `.result` can't clash with any name in the source
-code (they never include a dot). `[n for n in numbers if n]` becomes a
-call to a locally-defined function with the following body, except
-that `result` has a name `.result` which can't occur in Python source
-code, and thus can't clash with variables from the source:
+For instance, `[n for n in numbers if n]` becomes a call to a
+locally-defined function having the following body, except that
+`result` actually gets the name `.result` which can't occur in Python
+source code, and thus can't clash with variables from the source:
 
-    !!example.py
+    # in example.py:
     result = []
     for n in numbers:
         if n:
@@ -1245,8 +1253,9 @@ CPython generates more-efficient bytecode directly from the
 comprehension, in a hairier way. Generator comprehensions would add
 hair too; we won't need them.
 
-`Expander` uses these helpers:
+`Desugarer` uses these helpers:
 
+    # in compile to code v2:
     class Function(ast.FunctionDef): # from FunctionDef so that ast.get_docstring works.
         _fields = ('name', 'args', 'body')
 
@@ -1267,7 +1276,7 @@ Scope analysis decides the runtime representation of variables:
 `f` is a local variable used only locally within `fn`. It's 'fast': it
 gets a numbered slot among the locals.
 
-`d` is similar, but it also appears in a nested subscope, the `lambda`
+`d` is similar, but it also appears in a nested subscope, the lambda
 expression. In the scope of `fn`, `d` is a 'deref' instead of fast. In
 the lambda-expression scope, `d` is also a *free variable*: a deref
 whose definition is at an enclosing scope. For code generation we need
@@ -1289,6 +1298,7 @@ declarations.
 
 Scope analysis takes two subpasses:
 
+    # in compile to code v2:
     def top_scope(t):
         top = Scope(t, ())
         top.visit(t)
@@ -1299,15 +1309,15 @@ The first creates subscopes for classes and functions and records the
 *local* uses and definitions of variables. We must walk the AST to
 collect this information, another job for an AST visitor. Unlike the
 `NodeTransformer` last time, we'll leave the AST alone: our visit
-methods should return `None` and fill out attributes of the `Scope`
-instead. That's the protocol for a `NodeVisitor`:
+methods should instead fill out attributes of the `Scope`. That's the
+protocol for a `NodeVisitor` again:
 
     class Scope(ast.NodeVisitor):
         def __init__(self, t, defs):
             self.t = t
-            self.children = []
-            self.defs = set(defs)
-            self.uses = set()
+            self.children = []       # Enclosed scopes
+            self.defs = set(defs)    # Variables defined
+            self.uses = set()        # Variables referenced
 
         def visit_ClassDef(self, t):
             self.defs.add(t.name)
@@ -1379,13 +1389,18 @@ as used by:
             elif access == 'name':  return op.STORE_NAME(self.names[name])
             else: assert False
 
+        def cell_index(self, name):
+            return self.scope.derefvars.index(name)
+
+[XXX move the access/load/store stuff to near the top of the scope
+code section, to make it that much clearer, from the start, what we
+*do* with scopes. The other uses of scopes are in CodeGen.make_code
+and .cell_index.]
+
 
 ### Back to code generation
 
     # in code generation 2 v2:
-        def cell_index(self, name):
-            return self.scope.derefvars.index(name)
-
         def visit_Return(self, t):
             return ((self(t.value) if t.value else self.load_const(None))
                     + op.RETURN_VALUE)
@@ -1441,7 +1456,7 @@ function's nonlocals to be in the current scope as 'cell variables'.
 that the nested function can mutate the variable.]
 
 Back to compiling a function down to a code object: on a new `CodeGen`
-we called `compile_function`:
+instance, we called `compile_function`:
 
         def compile_function(self, t):
             self.load_const(ast.get_docstring(t))
@@ -1450,18 +1465,19 @@ we called `compile_function`:
             assembly = self(t.body) + self.load_const(None) + op.RETURN_VALUE
             return self.make_code(assembly, t.name, len(t.args.args))
 
-The docstring goes in the code object's constants table as the first
-entry -- `None` if no docstring. This logic relies on this
-`load_const` happening first, before any code generation, and on our
-table preserving the order we add to it. (The actual `LOAD_CONST`
-instruction is discarded, here.)
+A function's docstring is to go in the code object's constants table
+as the first entry -- `None` if no docstring. (That's where CPython
+looks for it.) Our logic relies on this `load_const` happening first,
+before any code generation, and on our table preserving the order we
+add to it. (The actual `LOAD_CONST` instruction is discarded, here.)
 
 As with the docstring, the parameter names become the first elements
 of the `varnames` table. (Remember they're `defaultdict`s: fetching
 adds to them as necessary.)
 
-We generate assembly that will run the module's body and return
-`None`; then we assemble that into a code object.
+We generate assembly that will run the function's body and return
+`None` (in case the body had no `return` of its own); then we assemble
+it all into a code object.
 
 On to class definitions. Like functions, they sprout a new `CodeGen`
 to compile down to a code object; but the assembly that will build the
