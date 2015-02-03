@@ -658,7 +658,7 @@ t = Templite(template_text, context1)
 t = Templite(template_text, context1, context2)
 ```
 
-XXX STOPPED HERE The context arguments (if any) are supplied to the constructor as a tuple of
+The context arguments (if any) are supplied to the constructor as a tuple of
 contexts.  We can then iterate over the `contexts` tuple, dealing with each of
 them in turn.  We simply create one combined dictionary called `self.context`
 which has the contents of all of the supplied contexts.  If duplicate names are
@@ -752,12 +752,13 @@ points, like if statements, or the beginning or ends of loops.
 The `flush_output` function is a *closure*, which is a fancy word for a function
 that refers to variables outside of itself. Here `flush_output` refers to
 `buffered` and `code`. This simplifies our calls to the function:  we don't
-have to tell `flush_output` what buffer to flush, or where to flush it to, it
+have to tell `flush_output` what buffer to flush, or where to flush it; it
 knows all that implicitly.
 
 If only one string has been buffered, then the `append_result` shortcut is used
-to append it to the result. If more than one is buffered, then all of them are
-used with the `extend_result` shortcut to add them to the result.
+to append it to the result. If more than one is buffered, then the 
+`extend_result` shortcut is used, with all of them,
+to add them to the result.
 Then the buffered list is cleared so more strings can be buffered.
 
 The rest of the compiling code will add lines to the function by appending them
@@ -777,12 +778,15 @@ which will mean that our compiled Python function will have this line:
 append_result('hello')
 ```
 
-which will add the string `hello` to the rendered output of the template.  The
+which will add the string `hello` to the rendered output of the template.  With
 multiple levels of abstraction here, it's important to keep them straight as we
-read the code.
+read the code. ((FIXME: Query: This is kind of an odd sentence at this point -- 
+it's a bit discouraging because the author doesn't offer any advice as to how to
+keep them straight. If it's just meant to be an acknowledgment that this is tricky,
+perhaps reword to "it's difficult to keep them straight"?))
 
 
-Back to our Templite class: as we parse control structures, we want to check
+Back to our Templite class. As we parse control structures, we want to check
 that they are properly nested.  The `ops_stack` list is a stack of strings:
 
 <!-- [[[cog include("templite.py", first="ops_stack", numblanks=1, dedent=False) ]]] -->
@@ -793,10 +797,10 @@ that they are properly nested.  The `ops_stack` list is a stack of strings:
 
 When we encounter an `{% if .. %}` tag (for example), we'll push `'if'` onto
 the stack.  When we find an `{% endif %}` tag, we can pop the stack and report
-an error if it wasn't `'if'` at the top of the stack.
+an error if there was no `'if'` at the top of the stack.
 
 Now the real parsing begins.  We split the template text into a number of
-tokens using a regular expression, or regex.  Regexes can be
+tokens using a regular expression, or *regex*.  Regexes can be
 daunting: they are a very compact notation for complex pattern matching.  They
 are also very efficient, since the complexity of matching the pattern is
 implemented in C in the regular expression engine, rather than in your own
@@ -808,14 +812,16 @@ Python code.  Here's our regex:
 ```
 <!-- [[[end]]] -->
 
-This looks complicated, let's break it down.  The `re.split` function will
+This looks complicated; let's break it down.  
+
+The `re.split` function will
 split a string using a regex.  Our pattern is parenthesized,
 so the matches will be used to split the string, and will also be returned as
 pieces in the split list.  Our pattern will match our tag syntaxes, but we've
 parenthesized it so that the string will be split at the tags, and the tags
 will also be returned.
 
-The `(?s)` flag in the regex means that a dot should match even a newline. Then
+The `(?s)` flag in the regex means that a dot should match even a newline. Next
 we have our parenthesized group of three alternatives: `{{.*?}}` matches an
 expression, `{%.*?%}` matches a tag, and `{#.*?#}` matches a comment.  In all
 of these, we use `.*?` to match any number of characters, but the shortest
@@ -917,9 +923,9 @@ only two elements in it.  If it doesn't, we use the `_syntax_error` helper
 method to raise a syntax error exception.  We push `'if'` onto `ops_stack` so
 that we can check the `endif` tag.  The expression part of the `if` tag is compiled
 to a Python expression with `_expr_code`, and is used as the conditional
-expression in a Python if statement.
+expression in a Python `if` statement.
 
-The second tag type is `for`, which will be compiled to a Python for statement:
+The second tag type is `for`, which will be compiled to a Python `for` statement:
 
 <!-- [[[cog include("templite.py", first="elif words[0] == 'for'", numlines=13, dedent=False) ]]] -->
 ```
@@ -947,15 +953,15 @@ where we'll unpack all the variable names we get from the context.  To do that
 correctly, we need to know the names of all the variables we encountered,
 `self.all_vars`, and the names of all the variables defined by loops, `self.loop_vars`.
 
-We add one line to our function source, a for statement.  All of our template
-variables are turned into Python variables by prepending `c_` to them so that
+We add one line to our function source, a `for` statement.  All of our template
+variables are turned into Python variables by prepending `c_` to them, so that
 we know they won't collide with other names we're using in our Python function.
 We use `_expr_code` to compile the iteration expression from the template into
 an iteration expression in Python.
 
-The last kind of tag we handle is and end tag, either `{% endif %}` or
+The last kind of tag we handle is an `end` tag; either `{% endif %}` or
 `{% endfor %}`.  The effect on our compiled function source is the same: simply
-unindent to end the if statement or for statement that was started earlier:
+unindent to end the `if` or `for` statement that was started earlier:
 
 <!-- [[[cog include("templite.py", first="elif words[0].startswith('end')", numlines=11, dedent=False) ]]] -->
 ```
@@ -978,7 +984,7 @@ function source.  The rest of this clause is all error checking to make sure
 that the template is properly formed.  This isn't unusual in program
 translation code.
 
-Speaking of error handling, if the tag isn't an `if`, a `for`, or an end, then
+Speaking of error handling, if the tag isn't an `if`, a `for`, or an `end`, then
 we don't know what it is, so raise a syntax error:
 
 <!-- [[[cog include("templite.py", first="else:", numlines=2, dedent=False) ]]] -->
@@ -989,7 +995,7 @@ we don't know what it is, so raise a syntax error:
 <!-- [[[end]]] -->
 
 We're done with the three different special syntaxes (`{{...}}`, `{#...#}`, and
-`{%...%}`), what's left is literal content.  We'll add the literal string to
+`{%...%}`). What's left is literal content.  We'll add the literal string to
 the buffered output, using the `repr` built-in function to produce a Python
 string literal for the token:
 
@@ -1022,7 +1028,7 @@ provides backslashes where needed:
 append_result('"Don\'t you like my hat?" he asked.')
 ```
 
-Notice that we check first if the token is an empty string with `if token:`,
+Notice that we first check if the token is an empty string with `if token:`,
 since there's no point adding an empty string to the output.  Empty tokens
 happen if two template tags are adjacent.  Because our regex is splitting on
 tag syntax, adjacent tags will have an empty string between them.  The check
@@ -1079,8 +1085,8 @@ loops.  So we need to unpack any name in `all_vars` that isn't in `loop_vars`:
 ```
 <!-- [[[end]]] -->
 
-Each name becomes a line in the function's prologue unpacking the context
-variable into a suitably-named local variable.
+Each name becomes a line in the function's prologue, unpacking the context
+variable into a suitably named local variable.
 
 We're almost done compiling the template into a Python function.  Our function
 has been appending strings to `result`, so the last line of the function is
@@ -1093,10 +1099,10 @@ simply to join them all together and return them:
 ```
 <!-- [[[end]]] -->
 
-Now that we've completed writing the source for our compiled Python function,
+Now that we've finished writing the source for our compiled Python function,
 we need to get the function itself from our CodeBuilder object.  The
 `get_globals` method executes the Python code we've been assembling.  Remember
-that our code is a function defintion (starting with `def render_function(..):`),
+that our code is a function definition (starting with `def render_function(..):`),
 so executing the code will define `render_function`, but not execute the body
 of `render_function`.
 
@@ -1110,7 +1116,7 @@ Templite object:
 ```
 <!-- [[[end]]] -->
 
-Now `self._render_function` is a callable Python function. We'll use it later
+Now `self._render_function` is a callable Python function. We'll use it later,
 during the rendering phase.
 
 
@@ -1124,7 +1130,7 @@ expression.  Our template expressions can be as simple as a single name:
 {{user_name}}
 ```
 
-or can be a complex sequence of attribute access and filters:
+or can be a complex sequence of attribute accesses and filters:
 
 ```
 {{user.name.localized|upper|escape}}
@@ -1178,7 +1184,7 @@ expression, then each dot name is handled in turn:
 <!-- [[[end]]] -->
 
 To understand how dots get compiled, remember that `x.y` in the template could
-mean either `x['y']` or `x.y` in Python, depending on which works, and if the
+mean either `x['y']` or `x.y` in Python, depending on which works;  if the
 result is callable, it's called.  This uncertainty means that we have to try
 those possibilities at run time, not compile time.  So we compile `x.y.z` into
 a function call, `do_dots(x, 'y', 'z')`.  The dot function will try the
@@ -1215,7 +1221,7 @@ simply puts together a nice error message and raises the exception:
 ```
 <!-- [[[end]]] -->
 
-The `_variable` method helped us with validating variable names and adding them
+The `_variable` method helps us with validating variable names and adding them
 to the sets of names we collected during compilation.  We use a
 regex to check that the name is a valid Python identifier, then add the name to
 the set:
@@ -1276,9 +1282,9 @@ constants, and the context passed to `render` has specific data for that one
 rendering.
 
 Then we simply call our compiled `render_function`.  The first argument is the
-complete data context, the second argument is the function that will implement
-the dot semantics.  We use the same implementation every time, our own
-`_do_dots` method, which is the last piece of code to look at:
+complete data context, and the second argument is the function that will implement
+the dot semantics.  We use the same implementation every time: our own
+`_do_dots` method, which is the last piece of code to look at.
 
 <!-- [[[cog include("templite.py", first="def _do_dots", numblanks=1, dedent=False) ]]] -->
 ```
@@ -1315,14 +1321,12 @@ how templates work, not part of the details of a particular template.  It feels
 cleaner to implement it like this than to have that code be part of the
 compiled template.
 
-
 ## Testing
 
 Provided with the template engine is a suite of tests that cover all of the
 behavior and edge cases.  I'm actually a little bit over my 500-line limit:
 the template engine is 252 lines, and the tests are 275 lines.  This is typical
 of well-tested code: you have more code in your tests than in your product.
-
 
 ## What's Left Out
 
