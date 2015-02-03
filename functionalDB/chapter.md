@@ -179,7 +179,7 @@ Our indexes are implemented as a map of maps, where the keys of the root map act
 
 Each index stores the components of a datom as some permutation of its canonical 'EAV' ordering (entity_id, attribute-name, attribute-value). However, when we are working with datoms _outside_ of the index, we expect them to be in canonical format. We thus provide each index with functions *from-eav* and *to-eav* to convert to and from these orderings.
 
-In most database systems, indexes are an optional component; for example, in an RDMBS like postgresql or mysql, you will choose to add indexes only to certain columns in a table. We provide each index with a *usage-pred* function that determines whether an attribute and decides whether that attribute should be included in this index or not. 
+In most database systems, indexes are an optional component; for example, in an RDMBS like postgresql or mysql, you will choose to add indexes only to certain columns in a table. We provide each index with a *usage-pred* function that determines for an attribute whether it should be included in this index or not. 
 
 ````clojure
 (defn make-index [from-eav to-eav usage-pred]
@@ -196,7 +196,7 @@ In our database there are four indexes - EAVT (as depicted in Figure 2), AVET (a
 (defn indexes[] [:VAET :AVET :VEAT :EAVT])
 ````
 
-To see how all of this comes together, the result of indexing the following five entities is visualized table below (the color coding follows the color coding of Figure 2 and Figure 3)
+To see how all of this comes together, the result of indexing the following five entities is visualized in the table below (the color coding follows the color coding of Figure 2 and Figure 3)
 
 1. <span style="background-color:lightblue">Julius Caesar</span> (also known as JC) <span style="background-color:lightgreen">lives in</span> <span style="background-color:pink">Rome</span> 
 2. <span style="background-color:lightblue">Brutus</span> (also known as B) <span style="background-color:lightgreen">lives in</span> <span style="background-color:pink">Rome</span> 
@@ -295,7 +295,7 @@ We now have all the components we need to construct our database! Initializing o
                    (make-index #(vector %1 %2 %3) #(vector %1 %2 %3) always); EAVT
                   )] 0 0)))
 ````
-There is one snag, though -- all collections in Clojure are immutable. Since write operations are pretty critical in a database, we call **atom** on our structure first. This is one of Clojure’s reference types, and it provides atomic writes to the element it wraps. 
+There is one snag, though -- all collections in Clojure are immutable. Since write operations are pretty critical in a database, we define our structure to be ab **Atom**, which is is one of Clojure’s reference types, one that provides the capability of atomic writes. 
 
 You may be wondering why we use the *always* function for the AVET, VEAT and EAVT indexes, and the *ref?* predicate for the VAET index. This is because these indexes are used in different scenarios, which we’ll see later when we explore queries in depth.
 
@@ -318,8 +318,8 @@ This lower-level API is composed of the following four accessor functions:
    ([db ent-id attr-name]  (:value (attr-at db ent-id attr-name)))
    ([db ent-id attr-name ts] (:value (attr-at db ent-id attr-name ts))))
 
-(defn ind-at
-   ([db kind] (ind-at db kind (:curr-time db)))
+(defn indx-at
+   ([db kind] (indx-at db kind (:curr-time db)))
    ([db kind ts] (kind ((:layers db) ts))))
 ````
 
@@ -327,7 +327,7 @@ Since we treat our database just like any other value, each of these functions t
 
 #### Evolution
 
-A first usage of the basic accessors is to provide a "read-into-the-past" API. This is possible as in our database, an update operation is done by appending a new layer (as oppose to overwriting). Therefore we can use the *prev-ts* property of an attribute look at the attribute at that layer, and continue going back in time looking deeper into history, thus observing the how the attribute’s value evolved throughout time.  
+A first usage of the basic accessors is to provide a "read-into-the-past" API. This is possible as in our database, an update operation is done by appending a new layer (as oppose to overwriting). Therefore we can use the *prev-ts* property of an attribute look at the attribute at that layer, and continue going back in time looking deeper into history, thus observing how the attribute’s value evolved throughout time.  
 
 The function *evolution-of* does exactly that, and return a sequence of pairs - each consist of the timestamp and value of an attribute’s update.
 ````clojure
@@ -636,7 +636,7 @@ The information found in the VAET index can be leveraged to extract all the inco
 
 ````clojure
 (defn incoming-refs [db ts ent-id & ref-names]
-   (let [vaet (ind-at db :VAET ts)
+   (let [vaet (indx-at db :VAET ts)
          all-attr-map (vaet ent-id)
          filtered-map (if ref-names (select-keys ref-names all-attr-map) all-attr-map)]
       (reduce into #{} (vals filtered-map))))
@@ -895,8 +895,8 @@ We saw in the previous phase that the query plan we construct ends by calling *s
 
 ````clojure
 (defn single-index-query-plan [query indx db]
-   (let [q-res (query-index (ind-at db indx) query)]
-     (bind-variables-to-query q-res (ind-at db indx))))
+   (let [q-res (query-index (indx-at db indx) query)]
+     (bind-variables-to-query q-res (indx-at db indx))))
 ````
 To have a better understanding of this process, alongside explaining it, we also demonstrate it using our exemplary query and assume that our database holds these entities:
 
@@ -934,7 +934,7 @@ To have a better understanding of this process, alongside explaining it, we also
 </tr>
 <tr>
 	<td>3</td>
-	<td><>:name </br>
+	<td>:name </br>
 		:likes</br>
 		:speak</br>
 		:birthday 
@@ -1022,7 +1022,7 @@ Once we have produced all of the result clauses, we need to perform an *AND* ope
          (set))) ; return it as set
 ````
 
-In our example, the result of this step is a set that holds the value *1*. 
+In our example, the result of this step is a set that holds the value *1* (which is the entity Id of USA). 
 
 We now have to remove the items that didn’t pass all of the conditions:
 
