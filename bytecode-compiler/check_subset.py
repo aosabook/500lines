@@ -1,6 +1,8 @@
 """
 Check if a program conforms to our Python subset.
 XXX rule out Break and Set nodes -- bytecompile2 doesn't implement them
+XXX check that names are legal Python identifiers, since our
+    bytecompile assumes it can add illegal ones without clashing
 """
 
 import ast
