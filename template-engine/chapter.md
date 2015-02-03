@@ -783,7 +783,7 @@ multiple levels of abstraction here, it's important to keep them straight as we
 read the code. ((FIXME: Query: This is kind of an odd sentence at this point -- 
 it's a bit discouraging because the author doesn't offer any advice as to how to
 keep them straight. If it's just meant to be an acknowledgment that this is tricky,
-perhaps reword to "it's difficult to keep them straight"?))
+perhaps reword to "it's difficult to keep them straight"? --ARB))
 
 
 Back to our Templite class. As we parse control structures, we want to check
