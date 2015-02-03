@@ -91,7 +91,7 @@ Note that if no id is given, the entity’s id is set to be *:db/no-id-yet*, whi
 
 **Attributes**
 
-Each attribute consists of its name, value, and the timestamps of both its most recent and previous update. In addition to these fields, each attribute has two fields that describe its *type* and *cardinality*.
+Each attribute consists of its name, value, and the timestamps of its recent update as well as the one before that. In addition to these fields, each attribute has two fields that describe its *type* and *cardinality*.
 
 In the case that an attribute is used to represent a relationship to another entity, its *type* will be *:db/ref* and its value will be the id of the related entity. This simple type system also acts as an extension point. Users are free to define their own types and leverage them to provide additional semantics for their data.
 
@@ -128,7 +128,7 @@ Note that instead of directly using the attribute’s name, we first convert it 
 
 So far, we have talked a lot about _what_ we are going to store, without thinking about _where_ we are going to store it. In this chapter, we resort to the simplest storage mechanism, which is storing the data in memory. This is certainly not reliable, but it simplifies development and debugging and allows us to focus on more interesting parts of the program. 
 
-We will access the storage via a simple _protocol_ that will make it possible to add more durable storage providers in the future.
+We will access the storage via a simple _protocol_ that will make it possible in the future to define additional storage providers for a database owner to select from.
 
 ````clojure
 (defprotocol Storage
