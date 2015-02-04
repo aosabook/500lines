@@ -839,9 +839,6 @@ purposes means any instruction taking an address argument.)
         def plumb(self, depths):
             depths.append(depths[-1] + stack_effect(self.opcode, self.arg))
 
-[XXX deal with stack-effect exceptions where the standard module is
-'wrong'. show the `stack_effect()` code.]
-
 The depth of the stack after the instruction depends on the depth
 before it: for example, a `LOAD_CONST` increases it by one. This logic
 disregards jumps: after an unconditional jump, the next instruction,
