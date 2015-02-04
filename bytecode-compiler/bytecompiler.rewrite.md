@@ -753,9 +753,6 @@ problems:
   part in each, and then increasing the line number. [XXX say
   something -- a tiny bit? -- about why]
 
-[XXX this line just for Markdown formatting, to make the snippet below
-be code. sheesh.]
-
     def make_lnotab(assembly):
         firstlineno, lnotab = None, []
         byte, line = 0, None
