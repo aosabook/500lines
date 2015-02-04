@@ -409,8 +409,7 @@ Expressions in `{{ ... }}` are computed, converted to strings, and added to the
 result.  Dots in the expression are handled by the `do_dots` function passed
 into our function, because the meaning of the dotted expressions depends on the
 data in the context: it could be attribute access or item access, and it could
-be a callable. ((FIXME: Query "a callable" -- would "a callable function" be better?
-Is "callable" commonly understood to be used as a noun? --ARB ))
+be a callable. 
 
 The logical structures `{% if ... %}` and `{% for ... %}` are converted into
 Python conditionals and loops.  The expression in the `{% if/for ... %}` tag
@@ -433,7 +432,7 @@ implementation.
 The heart of the template engine is the Templite class.  (Get it? It's a
 template, but it's lite!)
 
-The Templite class has a small interface.  You construct one ((FIXME: Query: construct one what? class? template? object? This might be clear to our typical reader but I thought I should check. --ARB )) with the
+The Templite class has a small interface.  You construct a Templite object with the
 text of the template, then later you can use the `render` method on it to
 render a particular context, the dictionary of data, through the template:
 
@@ -778,13 +777,7 @@ which will mean that our compiled Python function will have this line:
 append_result('hello')
 ```
 
-which will add the string `hello` to the rendered output of the template.  With
-multiple levels of abstraction here, it's important to keep them straight as we
-read the code. ((FIXME: Query: This is kind of an odd sentence at this point -- 
-it's a bit discouraging because the author doesn't offer any advice as to how to
-keep them straight. If it's just meant to be an acknowledgment that this is tricky,
-perhaps reword to "it's difficult to keep them straight"? --ARB))
-
+which will add the string `hello` to the rendered output of the template. We have multiple levels of abstraction here which can be difficult to keep straight. The compiler uses `buffered.append("'hello'")`, which creates `append_result('hello')` in the compiled Python function, which when run, appends `hello` to the template result.
 
 Back to our Templite class. As we parse control structures, we want to check
 that they are properly nested.  The `ops_stack` list is a stack of strings:
@@ -1321,12 +1314,14 @@ how templates work, not part of the details of a particular template.  It feels
 cleaner to implement it like this than to have that code be part of the
 compiled template.
 
+
 ## Testing
 
 Provided with the template engine is a suite of tests that cover all of the
 behavior and edge cases.  I'm actually a little bit over my 500-line limit:
 the template engine is 252 lines, and the tests are 275 lines.  This is typical
 of well-tested code: you have more code in your tests than in your product.
+
 
 ## What's Left Out
 
