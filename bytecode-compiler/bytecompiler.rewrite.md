@@ -215,7 +215,6 @@ run our example.
     import ast, collections, dis, types, sys
     from functools import reduce
     from itertools import chain
-    from stack_effect import stack_effect
     from check_subset import check_conformity
 
     <<the assembler>>
@@ -848,7 +847,30 @@ before it: for example, a `LOAD_CONST` increases it by one. This logic
 disregards jumps: after an unconditional jump, the next instruction,
 which must be the target of some *other* jump, should get its stack
 depth from there instead. In this compiler, though, it happens that
-the straight-line stack depths are always right.
+the straight-line stack depths are always right. (CPython's compiler,
+less lucky or less trusting, has to trace through the jumps
+propagating depths along every path, making sure they're consistent.)
+
+The `dis` module supplies a `stack_effect` which *almost* does our
+job: we want the effect as seen by the instruction following, but for
+two type of jumps it perversely gives us the effect at *the jump
+target*. For general use I'd design `stack_effect` to return a list of
+effects, usually of length 1; but we can just wrap their function to
+patch it for this case:
+
+    or_pop_ops = (dis.opmap['JUMP_IF_TRUE_OR_POP'],
+                  dis.opmap['JUMP_IF_FALSE_OR_POP'])
+
+    def stack_effect(opcode, oparg):
+        if opcode in or_pop_ops:
+            return -1
+        else:
+            if isinstance(oparg, Label): oparg = 0
+            return dis.stack_effect(opcode, oparg)
+
+(The resolved target of a label argument won't affect the result, for
+the ops we use. `dis.stack_effect` requires `oparg` to be `None` or
+an `int`.)
 
 A `Chain` catenates two assembly-code fragments in sequence. It uses
 `itertools.chain` to catenate the label resolutions, bytecodes, and
@@ -1541,4 +1563,3 @@ ideas behind fancier optimizing compilers.
 CPython 2 has a `compiler` module in 4500 lines of Python, seemingly
 included just for fun. For the compiler that's normally run see
 `compile.c` and `symtable.c`; there's also the optimizer `peephole.c`.
-
