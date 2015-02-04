@@ -746,9 +746,12 @@ represents an (address, line_number) pair as the differences from the
 previous pair. Since a byte is between 0 and 255, there are two
 problems:
 
-  * The difference could be negative. This can happen [XXX example]
+* The difference could be negative. This can happen [XXX example]
     
-  * The difference could exceed 255. In this case the entry must take up multiple successive byte-pairs, first increasing only the address part in each, and then increasing the line number. [XXX say something -- a tiny bit? -- about why]
+* The difference could exceed 255. In this case the entry must take up
+  multiple successive byte-pairs, first increasing only the address
+  part in each, and then increasing the line number. [XXX say
+  something -- a tiny bit? -- about why]
 
 [XXX this line just for Markdown formatting, to make the snippet below
 be code. sheesh.]
