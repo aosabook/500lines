@@ -1596,10 +1596,10 @@ pushed off to the side? The code generator could look vaguely like
 numeric offset into an array such as this method returns: so the
 `t.test` passed in here becomes a subarray starting at index `3`,
 `t.body` then starts at `3+array[1]`, and so on. This form could be
-nearly as compact as bytecode (once we use bytes and not the general
-integers which were quicker to explain), but viewable as just another
-form of AST, making the compiler and surrounding tools all simpler. In
-numbers, how good is the bytecode virtual machine?
+nearly as tight as bytecode (once we use bytes and not the general
+integers which were quicker to explain), but still viewable as just
+another form of AST, making the compiler and surrounding tools all
+simpler. In numbers, how good is the bytecode virtual machine?
 
 [XXX more, plumb maximum depth and profundity here]
 
