@@ -752,6 +752,8 @@ problems:
   part in each, and then increasing the line number. [XXX say
   something -- a tiny bit? -- about why]
 
+[XXX stupid markdown formatting line, ignore me]
+
     def make_lnotab(assembly):
         firstlineno, lnotab = None, []
         byte, line = 0, None
@@ -1152,6 +1154,8 @@ Our finished compiler will need more passes:
   own scope analyzer anyway, to make the compiler self-contained.)
 
 * With this info in hand we generate bytecode as before.
+
+[XXX stupid markdown formatting line, ignore me]
 
     # in compile to code v2:
     def compile_to_code(module_name, filename, t):
