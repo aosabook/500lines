@@ -1575,10 +1575,10 @@ to translating source code to binary? Aren't there are independent
 source- and machine-code optimizers? Yes, but: dealing in source code
 only, many machine operations can't be seen, making the choice of how
 they're to be done inexpressible (or only by some extra convention);
-while in machine code, the reasons and constraints behind the choices
-are erased, loading an optimizer with a sometimes-impossible job
-reconstructing them. A compiler lives on the happy peak between, both
-sources of power exposed.
+then, over in machine code, the reasons and constraints behind the
+choices are erased, sticking the optimizer with a sometimes-impossible
+job reconstructing them. A compiler lives on the happy peak between,
+both sources of power exposed.
 
 Well, that sounds compelling. Maybe. But CPython doesn't optimize, to
 first order. (PyPy's another story.) What if we ran the scope analysis
