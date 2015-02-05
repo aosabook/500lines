@@ -1614,7 +1614,7 @@ uninviting.
 
 An optimizer's still to be written. I can imagine it prototyping a
 replacement for CPython's peephole optimizer, someday. And how fast
-can we compile? Faster than I did, that can't be any trouble.
+can we compile? Faster than I did, that can't be hard.
 
 Peter Norvig's _Paradigms of Artificial Intelligence Programming_,
 despite the title, presents short compilers for Scheme, Prolog, and a
