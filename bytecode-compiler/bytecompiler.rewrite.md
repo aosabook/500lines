@@ -1546,11 +1546,11 @@ OK, so! Wind it all up and watch the tail-eating:
 ## But why compile?
 
 We've taken considerable trouble to convert from one fairly-arbitrary
-representation to another. Why not interpret programs directly in the
-first form, the AST? We've cost ourselves not just the work and
+representation to another. We've cost ourselves not just the work and
 complexity of translating, but also translating *back*: debuggers and
 profilers must map what happens in bytecode to terms meaningful in the
-source. So why?
+source. Why not interpret programs directly in the first form, the
+AST?
 
 First, for the compact linear form of bytecode. An AST is fatter and
 distributed in memory, interlinked by pointers; the size and the
@@ -1595,11 +1595,12 @@ pushed off to the side? The code generator could look vaguely like
 'compact AST' you'd point to an AST node's representation via a
 numeric offset into an array such as this method returns: so the
 `t.test` passed in here becomes a subarray starting at index `3`,
-`t.body` then starts at `3+array[1]`, and so on. This form could be
-nearly as tight as bytecode (once we use bytes and not the general
-integers which were quicker to explain), while still viewable as just
-another form of AST, making the compiler and surrounding tools all
-simpler. In numbers, how much better is the bytecode virtual machine?
+`t.body` then follows starting from `3+array[1]`, and so on. This form
+could be nearly as tight as bytecode (once we use bytes and not the
+general integers which were quicker to explain), while still viewable
+as just another form of AST, making the compiler and surrounding tools
+all simpler. In numbers, how much better is the bytecode virtual
+machine?
 
 [XXX can we give a rough number?]
 
