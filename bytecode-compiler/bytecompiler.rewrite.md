@@ -1554,12 +1554,12 @@ source.
 
 First, for the compact linear form of bytecode. An AST is fatter and
 distributed in memory, interlinked by pointers; the size and the
-pointer-chasing both would slow an interpreter down. So one core job
-was mere rearrangement: taking a data structure (the AST) meant for
-arbitrary viewing and changing, and laying it out just right for the
-interpreter, who'll find each element ready to hand at the moment it's
-needed -- like, for us, reading a recipe and starting by laying the
-ingredients and pans onto the counter in a sensible order.
+pointer-chasing both would slow an interpreter down. One core job,
+then, was mere rearrangement: taking a data structure (the AST) meant
+for arbitrary viewing and changing, and laying it out just right for
+the interpreter, who'll find each element ready to hand at the moment
+it's needed -- like, for us, reading a recipe and starting by laying
+the ingredients and pans onto the counter in a sensible order.
 
 Second, to precompute. We analyzed the scopes and how they used
 variables, for the sake of finding, ahead of time, the place in the
@@ -1577,7 +1577,7 @@ only, many machine operations can't be seen, making the choice of how
 they're to be done inexpressible (or only by some extra convention);
 then, over in machine code, the reasons and constraints behind the
 choices are erased, sticking the optimizer with a sometimes-impossible
-job reconstructing them. A compiler lives on the happy peak between,
+job of reinferring them. A compiler lives on the happy peak between,
 both sources of power exposed.
 
 Well, that sounds compelling. Maybe. But CPython doesn't optimize, to
