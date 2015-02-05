@@ -92,8 +92,8 @@ It has a bunch of attributes named starting with `co_`:
 [XXX redo this in Py3.4]
 
 What happened to our program? Mostly it's encoded into `co_code`: a
-sequence of bytecodes in a bytestring. We can render it more readable
-by disassembly, using `dis.dis`:
+sequence of bytecodes in a bytestring. Disassembly renders the
+meaning, using `dis.dis`:
 
     # in transcripts:
     >>> dis.dis(module_code)
