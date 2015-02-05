@@ -1556,10 +1556,10 @@ First, bytecode is compact and mostly linear; an AST is fatter and
 distributed in memory, interlinked by pointers. The size and the
 pointer-chasing both would slow an interpreter down. So one core job
 was mere rearrangement: taking a data structure (the AST) meant for
-arbitrary inspection and rearrangement, and laying it out just right
-for the interpreter, who'll find each element ready to hand at the
-moment it's needed -- like, for us, reading a recipe and starting by
-laying the ingredients and pans onto the counter in a sensible order.
+arbitrary viewing and changing, and laying it out just right for the
+interpreter, who'll find each element ready to hand at the moment it's
+needed -- like, for us, reading a recipe and starting by laying the
+ingredients and pans onto the counter in a sensible order.
 
 Second, to precompute. We analyzed the scopes and how they used
 variables, for the sake of finding, ahead of time, the place in the
