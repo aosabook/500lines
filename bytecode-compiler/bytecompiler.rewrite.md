@@ -1614,7 +1614,7 @@ they eat each other). I hope they needn't balloon too much. Add the
 parser, and a life like Robinson Crusoe's starts to look attainable,
 if still not quite inviting.
 
-An optimizer's still to be written. I can imagine one prototyping a
+An optimizer's yet to be written. I can imagine one prototyping a
 replacement for CPython's peephole optimizer, someday. And how fast
 can we compile? Faster than I did, that can't be hard.
 
