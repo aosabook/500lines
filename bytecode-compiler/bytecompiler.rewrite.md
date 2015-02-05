@@ -5,16 +5,16 @@
 
 People write source code, machines run machine code. A compiler turns
 one into the other -- how? The whiff of magic to this hasn't quite
-gone away: you might spend a semester building one compiler for a much
-simpler language than the one you wrote it in. Did you just call on a
-big genie to make a small one?
+gone away: you might spend a semester building one compiler, for a
+much simpler language than the one you wrote it in. Did you just call
+on a big genie to make a small one?
 
 To dispel the mystery, there are some great short compilers to
-read. This chapter will add another toy example compiler to the
-literature, this time trying to keep it real in an unusual way: being
-able to compile itself, and not omitting the practical details of
-features like debug support. Since something's gotta go, we'll skip
-the whole topic of optimization.
+read. This chapter will add another toy example one to the literature,
+this time trying to keep it real in an unusual way: being able to
+compile itself, and not omitting the practical details of features
+like debug support. Since something has to go, we'll skip the whole
+topic of optimization.
 
 Our source language and implementation language -- the language we
 compile from, and the one we code the compiler in -- are a subset of
@@ -1516,11 +1516,11 @@ class object is a little fancier.
 
 The class definition's code object resembles an ordinary function's
 with some magic local-variable definitions prepended. (The docstring
-*doesn't* need to go first in the constants table for these.) Python's
-class builder (`LOAD_BUILD_CLASS`) will populate the new class's
-attributes from the locals dictionary as of the point this function
-returns. This is why scope analysis must not classify the locals of a
-class definition as 'fast'.
+*doesn't* start the constants table, for these.) Python's class
+builder (`LOAD_BUILD_CLASS`) will populate the new class's attributes
+from the locals dictionary as of the point this function returns. This
+is why scope analysis must not classify the locals of a class
+definition as 'fast'.
 
         def compile_class(self, t):
             docstring = ast.get_docstring(t)
@@ -1608,11 +1608,11 @@ numbers, how good is the bytecode virtual machine?
 
 Where next? It could be fun to grow this to take the code for a
 CPython VM subset, like the one in this book (and reciprocally). I
-hope they needn't balloon *too* much. Add the parser and a life like
+hope they needn't balloon too much. Add the parser, and a life like
 Robinson Crusoe's starts to look attainable, if still maybe
 uninviting.
 
-An optimizer's still to be written. I can imagine it prototyping a
+An optimizer's still to be written. I can imagine one prototyping a
 replacement for CPython's peephole optimizer, someday. And how fast
 can we compile? Faster than I did, that can't be hard.
 
