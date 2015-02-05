@@ -1555,11 +1555,11 @@ source.
 First, bytecode is compact and mostly linear; an AST is fatter and
 spread out in memory, interlinked by pointers. The size and the
 pointer-chasing both would slow an interpreter down. So one core job
-was simple rearrangement: taking a data structure (the AST) designed
-for arbitrary inspection and rearrangement, and laying it out with
-each element right where the interpreter can pick it up next when the
-time comes -- like reading a recipe and starting by laying the
-ingredients and pans onto the counter in a sensible order.
+was mere rearrangement: taking a data structure (the AST) meant for
+arbitrary inspection and rearrangement, and laying it out just right
+for the interpreter, who'll find each element ready to hand at the
+moment it's needed -- like, for us, reading a recipe and starting by
+laying the ingredients and pans onto the counter in a sensible order.
 
 Second, to precompute. We analyzed the scopes and how they used
 variables, for the sake of finding, ahead of time, the place in the
@@ -1572,34 +1572,34 @@ i in range(10)]` would go faster as `list(range(0, 20, 2))`. This is
 precomputation in an broader, open-ended sense (sometimes called the
 Full Employment Theorem for Compiler Writers). But isn't it orthogonal
 to translating source code to binary? Aren't there are independent
-source- and machine-code optimizers? Yes, but a compiler stands at an
-especially convenient place to address the problem: in source code,
-many machine operations can't be seen, making the choice of how
+source- and machine-code optimizers? Yes, but: dealing in source code
+only, many machine operations can't be seen, making the choice of how
 they're to be done inexpressible (or only by some extra convention);
-in machine code, the reasons and constraints behind the choices are
-erased, loading an optimizer with a sometimes-impossible job
-reconstructing them. A compiler lives on the happy peak between.
+while in machine code, the reasons and constraints behind the choices
+are erased, loading an optimizer with a sometimes-impossible job
+reconstructing them. A compiler lives on the happy peak between, both
+sources of power exposed.
 
-Well, that sounds compelling. Maybe. But CPython doesn't really
-optimize. (PyPy's another story.) What if we ran the scope analysis
-and then re-represented the AST in a compact and linear form, with the
-debug info pushed off to the side? The code generator would look
-vaguely like
+Well, that sounds compelling. Maybe. But CPython doesn't optimize, to
+first order. (PyPy's another story.) What if we ran the scope analysis
+and then performed a *generic* kind of rearrangement: that is,
+re-represented the AST in a tight linear form, with the debug info
+pushed off to the side? The code generator could look vaguely like
 
     # in bluesky.py:
     def visit_If(self, t):
         test, body, orelse = self(t.test), self(t.body), self(t.orelse)
         return [compact_ast.IF, len(test), len(body)] + test + body + orelse
 
-In this 'compact AST' form you'd point to an AST node's representation
-via a numeric offset into an array like this method returns: for
-instance, the `t.test` passed in becomes a subarray starting at index
-3, `t.body` then starts at `3+array[1]`, and so on. This form could be
-nearly as tight and sequential as bytecode (once we use bytes and not
-the general integers which were quicker to explain), but viewable as
-just an alternative form of AST, making the compiler and surrounding
-tools all simpler. So, in numbers, how good is the bytecode virtual
-machine?
+(But generic: such stereotyped logic could be data-driven.) With this
+'compact AST' you'd point to an AST node's representation via a
+numeric offset into an array such as this method returns: so the
+`t.test` passed in here becomes a subarray starting at index 3,
+`t.body` then starts at `3+array[1]`, and so on. This form could be
+nearly as compact as bytecode (once we use bytes and not the general
+integers which were quicker to explain), but viewable as just another
+form of AST, making the compiler and surrounding tools all simpler. In
+numbers, how good is the bytecode virtual machine?
 
 [XXX more, plumb maximum depth and profundity here]
 
