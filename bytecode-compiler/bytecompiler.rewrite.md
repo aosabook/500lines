@@ -852,10 +852,10 @@ propagating depths along every path, making sure they're consistent.)
 
 The `dis` module supplies a `stack_effect` which *almost* does our
 job: we want the effect as seen by the instruction following, but for
-two type of jumps it perversely gives us the effect at *the jump
+two types of jumps it perversely gives us the effect at the *jump
 target*. For general use I'd design `stack_effect` to return a list of
-effects, usually of length 1; but we can just wrap their function to
-patch it for this case:
+the possible effects, usually of length 1; but we can just wrap their
+function to patch it for this case:
 
     or_pop_ops = (dis.opmap['JUMP_IF_TRUE_OR_POP'],
                   dis.opmap['JUMP_IF_FALSE_OR_POP'])
