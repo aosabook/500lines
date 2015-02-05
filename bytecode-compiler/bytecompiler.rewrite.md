@@ -1550,7 +1550,7 @@ representation to another. Why not interpret programs directly in the
 first form, the AST? We've cost ourselves not just the work and
 complexity of translating, but also translating *back*: debuggers and
 profilers must map what happens in bytecode to terms meaningful in the
-source.
+source. So why?
 
 First, for the compact linear form of bytecode. An AST is fatter and
 distributed in memory, interlinked by pointers; the size and the
