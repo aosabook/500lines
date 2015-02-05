@@ -1553,7 +1553,7 @@ profilers must map what happens in bytecode to terms meaningful in the
 source.
 
 First, bytecode is compact and mostly linear; an AST is fatter and
-spread out in memory, interlinked by pointers. The size and the
+distributed in memory, interlinked by pointers. The size and the
 pointer-chasing both would slow an interpreter down. So one core job
 was mere rearrangement: taking a data structure (the AST) meant for
 arbitrary inspection and rearrangement, and laying it out just right
