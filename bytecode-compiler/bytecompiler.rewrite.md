@@ -1606,11 +1606,11 @@ simpler. In numbers, how good is the bytecode virtual machine?
 
 ## Continuations
 
-Where next? It could be fun to grow this to take the code for a
-CPython VM subset, like the one in this book (and reciprocally). I
-hope they needn't balloon too much. Add the parser, and a life like
-Robinson Crusoe's starts to look attainable, if still maybe
-uninviting.
+Where next? It could be fun to grow this to take in the code for a
+CPython VM subset, like the one in this book (and reciprocally, till
+they eat each other). I hope they needn't balloon too much. Add the
+parser, and a life like Robinson Crusoe's starts to look attainable,
+if still maybe uninviting.
 
 An optimizer's still to be written. I can imagine one prototyping a
 replacement for CPython's peephole optimizer, someday. And how fast
