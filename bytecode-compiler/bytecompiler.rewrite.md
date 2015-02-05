@@ -1637,6 +1637,6 @@ CPython 2 has a `compiler` module in 4500 lines of Python, seemingly
 included just for fun. For the compiler that's normally run, see
 `compile.c` and `symtable.c`; there's also the optimizer `peephole.c`.
 
-For much tighter tail-swallowing, one good start is John McCarthy's
+For much tighter tail-swallowing, try for a start John McCarthy's
 classic one-page self-interpreter, in "A Micro-Manual for LISP -- Not
 the Whole Truth".
