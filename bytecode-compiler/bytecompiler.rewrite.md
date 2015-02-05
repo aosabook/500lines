@@ -1552,8 +1552,8 @@ complexity of translating, but also translating *back*: debuggers and
 profilers must map what happens in bytecode to terms meaningful in the
 source.
 
-First, bytecode is compact and mostly linear; an AST is fatter and
-distributed in memory, interlinked by pointers. The size and the
+First, for the compact linear form of bytecode. An AST is fatter and
+distributed in memory, interlinked by pointers; the size and the
 pointer-chasing both would slow an interpreter down. So one core job
 was mere rearrangement: taking a data structure (the AST) meant for
 arbitrary viewing and changing, and laying it out just right for the
@@ -1564,9 +1564,9 @@ ingredients and pans onto the counter in a sensible order.
 Second, to precompute. We analyzed the scopes and how they used
 variables, for the sake of finding, ahead of time, the place in the
 runtime environment where a variable will live -- letting the
-interpreter fetch it without looking up the name.
+interpreter skip looking up the name.
 
-There's a third potential win in rewriting the program as we compile
+There's a third potential win, in rewriting the program as we compile
 it -- 'optimization'. Perhaps the compiler could notice that `[i*2 for
 i in range(10)]` would go faster as `list(range(0, 20, 2))`. This is
 precomputation in a broader, open-ended sense (sometimes called the
@@ -1599,9 +1599,11 @@ numeric offset into an array such as this method returns: so the
 nearly as tight as bytecode (once we use bytes and not the general
 integers which were quicker to explain), while still viewable as just
 another form of AST, making the compiler and surrounding tools all
-simpler. In numbers, how good is the bytecode virtual machine?
+simpler. In numbers, how much better is the bytecode virtual machine?
 
-[XXX more, plumb maximum depth and profundity here]
+[XXX can we give a rough number?]
+
+Exploring that question exceeds my scope here -- but maybe not yours.
 
 
 ## Continuations
@@ -1610,7 +1612,7 @@ Where next? It could be fun to grow this to take in the code for a
 CPython VM subset, like the one in this book (and reciprocally, till
 they eat each other). I hope they needn't balloon too much. Add the
 parser, and a life like Robinson Crusoe's starts to look attainable,
-if still maybe uninviting.
+if still not quite inviting.
 
 An optimizer's still to be written. I can imagine one prototyping a
 replacement for CPython's peephole optimizer, someday. And how fast
