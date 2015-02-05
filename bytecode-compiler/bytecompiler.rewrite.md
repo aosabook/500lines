@@ -1582,7 +1582,7 @@ both sources of power exposed.
 
 Well, that sounds compelling. Maybe. But CPython doesn't optimize, to
 first order. (PyPy's another story.) What if we ran the scope analysis
-and then performed a *generic* kind of rearrangement: that is,
+and performed a *generic* kind of rearrangement: that is,
 re-represented the AST in a tight linear form, with the debug info
 pushed off to the side? The code generator could look vaguely like
 
