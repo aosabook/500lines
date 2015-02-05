@@ -179,7 +179,7 @@ Our indexes are implemented as a map of maps, where the keys of the root map act
 
 Each index stores the components of a datom as some permutation of its canonical 'EAV' ordering (entity_id, attribute-name, attribute-value). However, when we are working with datoms _outside_ of the index, we expect them to be in canonical format. We thus provide each index with functions *from-eav* and *to-eav* to convert to and from these orderings.
 
-In most database systems, indexes are an optional component; for example, in an RDMBS like postgresql or mysql, you will choose to add indexes only to certain columns in a table. We provide each index with a *usage-pred* function that determines for an attribute whether it should be included in this index or not. 
+In most database systems, indexes are an optional component; for example, in an RDBMS (Relational Database Management System) like PostgreSQL or MySQL, you will choose to add indexes only to certain columns in a table. We provide each index with a *usage-pred* function that determines for an attribute whether it should be included in this index or not. 
 
 ````clojure
 (defn make-index [from-eav to-eav usage-pred]
@@ -353,7 +353,7 @@ The data lifecycle consists of three basic operations, which we will discuss her
 * removing an entity with the *remove-entity* function
 * updating an entity with the *update-entity* function. 
 
-Remember that, even though these functions provide the illusion of mutability, all that we are really doing in each case is adding another layer to the data. Also, since we use here Clojure's immutable data structures, we pay for such operations the price of an "in-place" change from the caller's perspective, while maintaining immutability for all other users of that data structure.
+Remember that, even though these functions provide the illusion of mutability, all that we are really doing in each case is adding another layer to the data. Also, since we use here Clojure's persistent data structures, we pay for such operations the price of an "in-place" change from the caller's perspective (i.e., negligible performance overhead), while maintaining immutability for all other users of that data structure.
 
 #### Adding an entity
 
