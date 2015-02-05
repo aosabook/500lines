@@ -1569,7 +1569,7 @@ interpreter fetch it without looking up the name.
 There's a third potential win in rewriting the program as we compile
 it -- 'optimization'. Perhaps the compiler could notice that `[i*2 for
 i in range(10)]` would go faster as `list(range(0, 20, 2))`. This is
-precomputation in an broader, open-ended sense (sometimes called the
+precomputation in a broader, open-ended sense (sometimes called the
 Full Employment Theorem for Compiler Writers). But isn't it orthogonal
 to translating source code to binary? Aren't there are independent
 source- and machine-code optimizers? Yes, but: dealing in source code
