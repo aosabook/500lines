@@ -1571,9 +1571,9 @@ it -- 'optimization'. Perhaps the compiler could notice that `[i*2 for
 i in range(10)]` would go faster as `list(range(0, 20, 2))`. This is
 precomputation in a broader, open-ended sense (sometimes called the
 Full Employment Theorem for Compiler Writers). But isn't it orthogonal
-to translating source code to binary? Aren't there are independent
-source- and machine-code optimizers? Yes, but: dealing in source code
-only, many machine operations can't be seen, making the choice of how
+to translating source code to binary? Aren't there independent source-
+and machine-code optimizers? Yes, but: dealing in source code only,
+many machine operations can't be seen, making the choice of how
 they're to be done inexpressible (or only by some extra convention);
 then, over in machine code, the reasons and constraints behind the
 choices are erased, sticking the optimizer with a sometimes-impossible
