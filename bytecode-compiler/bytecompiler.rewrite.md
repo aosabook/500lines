@@ -1615,9 +1615,9 @@ they eat each other). I hope they needn't balloon too much. Add the
 parser, and a life like Robinson Crusoe's starts to look attainable,
 if still not quite to be envied.
 
-An optimizer's yet to be written. I can imagine one prototyping a
-replacement for CPython's peephole optimizer, someday. And how fast
-can we compile? Faster than I did, that can't be hard.
+An optimizer's yet unwritten. I can imagine one serving to prototype a
+successor for CPython's peephole optimizer, someday. And how fast can
+we compile? Faster than I did, that can't be hard.
 
 Peter Norvig's _Paradigms of Artificial Intelligence Programming_,
 despite the title, presents short compilers for Scheme, Prolog, and a
