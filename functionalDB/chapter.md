@@ -61,7 +61,7 @@ Let’s start by declaring the core constructs that make up our database.
 A database consists of:
 
 1. Layers of entities, each with its own unique timestamp (rings in Figure 1)
-2. A top-id value which is used to generate unique ids
+2. A top-id value which is the next available unique id
 3. The time at which this database was last updated
 
 
@@ -295,7 +295,7 @@ We now have all the components we need to construct our database! Initializing o
                    (make-index #(vector %1 %2 %3) #(vector %1 %2 %3) always); EAVT
                   )] 0 0)))
 ````
-There is one snag, though -- all collections in Clojure are immutable. Since write operations are pretty critical in a database, we define our structure to be ab **Atom**, which is is one of Clojure’s reference types, one that provides the capability of atomic writes. 
+There is one snag, though -- all collections in Clojure are immutable. Since write operations are pretty critical in a database, we define our structure to be an **Atom**, which is is one of Clojure’s reference types, one that provides the capability of atomic writes. 
 
 You may be wondering why we use the *always* function for the AVET, VEAT and EAVT indexes, and the *ref?* predicate for the VAET index. This is because these indexes are used in different scenarios, which we’ll see later when we explore queries in depth.
 
@@ -545,10 +545,10 @@ All this is done in the *transact-on-db* function, that receives the initial val
             (assoc initial-db :layers (conj  initial-layer new-layer) :curr-time (next-ts initial-db) :top-id (:top-id transacted))))))
 ```` 
 Note here that we used the term _value_, this means that only the caller to this function is exposed to the updated state, and all other users of the database are unaware of this change (as a database is a value, and therefore cannot change). 
-In order to have a system where users can be exposed to state changes performed by others, users do not interact directly with the database, but rather refer to it using another level of indirection [REF HERE]. This additional level is implemented using Clojure's element called *Atom*, which is a one of Clojure's reference types. Here we leverage two key features of an *Atom*, which are:
-1. It references other elements
-2. Getting to the value of the referenced elements is done by dereferencing the *Atom*, which returns the state of that element at that time
-3. All updates to the value referenced by the *Atom* are done in a transactional manner (using Clojure's Software Transaction Memory capabilities), by providing to the transaction the *Atom* and a function that updates its state.
+In order to have a system where users can be exposed to state changes performed by others, users do not interact directly with the database, but rather refer to it using another level of indirection [REF HERE]. This additional level is implemented using Clojure's *Atom*, which is a one of Clojure's reference types. Here we leverage the main three key features of an *Atom*, which are:
+1. It references a value
+2. It is possible to update the referencing of the *Atom* to another value by executing a transaction (using Clojure's Software Transaction Memory capabilities). The transaction accepts an *Atom* and a function. That function operates on the value of the *atom* and returns a new value. After the execution of the transaction, the *Atom* references the value that was returned from the function.
+3. Getting to the value that is referenced by the *Atom* is done by dereferencing the *Atom*, which returns the state of that *Atom* at that time.
 
 In between Clojure's *Atom* and the work done in *transact-on-db*, there's still gap to be bridged, namely, to invoke the transaction with the right inputs. 
 To have the simplest and clearest APIs, we  would like users to just provide the *Atom* and the list of operations, and have database transform the user input into a proper transaction.
@@ -843,7 +843,7 @@ In this phase, we inspect the query to determine a good plan that will produce t
 
 In general, this will involve choosing the appropriate index and constructing a plan in the form of a function.
 
-We choose the index based on the _single_ joining variable (that can operate on only one kind of elements) 
+We choose the index based on the _single_ joining variable (that can operate on only single kind of elements) 
 
 <table>
 	<tr>
@@ -1050,7 +1050,7 @@ Finally, we remove all of the result clauses that are 'empty' (i.e. their last i
 <td>[:speak "English" #{1}]</td><td>["?e" nil nil]</td>
 </tr>
 </table>
-We are now ready to being reporting the results. The result clause structure is unwieldy for this purposes, so we will convert it into an an index-like structure (map of maps) -- with a significant twist. 
+We are now ready to report the results. The result clause structure is unwieldy for this purpose, so we will convert it into an an index-like structure (map of maps) -- with a significant twist. 
 
 To understand the twist, we must first introduce the idea of a _binding pair_, which is a pair that matches a variable name to its value. The variable name is the one used at the predicate clauses, and the value is the value found in the result clauses.
 
