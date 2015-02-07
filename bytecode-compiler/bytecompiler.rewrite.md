@@ -1,5 +1,3 @@
--*- text -*-
-
 > "Python is about having the simplest, dumbest compiler imaginable."
 > -- Guido von Rossum in *Masterminds of Programming*
 
@@ -780,9 +778,9 @@ been seeing like `assembly + op.POP_TOP`. Python's `sum()` calls the
 same method.
 
 
-### Assembly classes
+### Assembly types
 
-The simplest type of assembly fragment is the no-op:
+The simplest assembly fragment is the no-op:
 
     class Assembly:
         def __add__(self, other):
