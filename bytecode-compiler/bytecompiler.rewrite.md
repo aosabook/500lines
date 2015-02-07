@@ -1,8 +1,8 @@
 > "Python is about having the simplest, dumbest compiler imaginable."
-> -- Guido von Rossum in *Masterminds of Programming*
+> --- Guido von Rossum in *Masterminds of Programming*
 
 People write source code, machines run machine code. A compiler turns
-one into the other -- how? The whiff of magic to this hasn't quite
+one into the other---how? The whiff of magic to this hasn't quite
 gone away: you might spend a semester building one compiler, for a
 much simpler language than the one you wrote it in. Did you just call
 on a big genie to make a small one?
@@ -14,8 +14,8 @@ compile itself, and not omitting the practical details of features
 like debug support. Since something has to go, we'll skip the whole
 topic of optimization.
 
-Our source language and implementation language -- the language we
-compile from, and the one we code the compiler in -- are a subset of
+Our source language and implementation language---the language we
+compile from, and the one we code the compiler in---are a subset of
 Python 3.4. (Deciding just what subset took some exploring.) The
 target machine is the CPython bytecode virtual machine, also version
 3.4.
@@ -542,7 +542,7 @@ We've been using the default, superclass implementation of the `visit`
 method: it looks at the type of the node visited and calls the right
 `visit_Whatever` method. But if there is no such method,
 `generic_visit` gets called. Since `check_conformity` will make sure
-we never see an unexpected node type, that "can't happen" -- but
+we never see an unexpected node type, that "can't happen"---but
 during development, of course, sometimes it did. Before I overrode
 `generic_visit`, the default implementation would succeed silently,
 making my mistakes harder to see.
@@ -597,12 +597,12 @@ and
 
 ### Just enough assembly
 
-We still need to create assembly code -- instructions, `SetLineNo`
-pseudo-instructions, and concatenations -- and to compute three
+We still need to create assembly code---instructions, `SetLineNo`
+pseudo-instructions, and concatenations---and to compute three
 functions of it: the maximum stack depth, the line-number table, and
 the encoded bytecode. The most direct and minimal stub represents an
 assembly instruction as its final bytecode sequence, makes the
-line-number table empty, and pretends the stack depth is 10 -- don't
+line-number table empty, and pretends the stack depth is 10---don't
 try it with too-complex nested calls.
 
     # in assembly types and functions v0:
@@ -746,7 +746,7 @@ problems:
 * The difference could exceed 255. In this case the entry must take up
   multiple successive byte-pairs, first increasing only the address
   part in each, and then increasing the line number. [XXX say
-  something -- a tiny bit? -- about why]
+  something---a tiny bit?---about why]
 
 [XXX stupid markdown formatting line, ignore me]
 
@@ -916,7 +916,7 @@ so:
                               for k, v in zip(t.keys, t.values)]))
 
 The argument to `BUILD_MAP` gives the runtime a hint of the dict's
-size. It's allowed to be wrong, since dicts can grow and shrink -- but
+size. It's allowed to be wrong, since dicts can grow and shrink---but
 not to overflow the two bytes allotted to an argument in
 bytecode. Thus the `min`. ([XXX I think this digression should go,
 too:] A dict literal big enough to get clipped by this `min` would
@@ -1111,8 +1111,8 @@ won't explain what `SETUP_LOOP` and friends do at runtime.)
 
 At this point we have a runnable program again, that can compile
 nontrivial computations. We could flesh it out further with more node
-types -- `break` and `continue`, for example. But the biggest gain in
-usefulness -- compiling functions and classes -- requires bigger
+types---`break` and `continue`, for example. But the biggest gain in
+usefulness---compiling functions and classes---requires bigger
 changes. With them implemented, we'll be able to compile this
 compiler.
 
@@ -1197,7 +1197,7 @@ compiled redefines `AssertionError`? But `assert` itself at runtime
 uses whatever `AssertionError` is bound to.
 
 What was the point of this visitor? Without it, we'd need to define a
-`visit_Assert` in the code generator instead -- OK, fine. This would
+`visit_Assert` in the code generator instead---OK, fine. This would
 then need to generate code to perform a test, a call, and a raise. To
 do this without duplicating logic within the compiler, we'd define
 code-generation functions for each of those, to be invoked by both the
@@ -1306,10 +1306,10 @@ outside. [XXX expand?]
 'g' has no local definition, and in fact no global one we can see
 either. So it's neither fast nor deref. (CPython's compiler will
 generate different instructions for variables known to be global --
-instructions like `LOAD_GLOBAL` -- but our compiler won't. This should
+instructions like `LOAD_GLOBAL`---but our compiler won't. This should
 be an easy improvement to make.)
 
-A `class` scope doesn't get fast or deref variables -- only its
+A `class` scope doesn't get fast or deref variables---only its
 function-type subscopes do, such as its method definitions. Nested
 classes are forbidden in this compiler, to avoid some of Python's dark
 corners. So are `del` statements and explicit `nonlocal` and `global`
@@ -1438,7 +1438,7 @@ object out of this code object. [XXX disassembled example needed]
             return self.make_closure(code, t.name)
 
 The new `CodeGen` for this new code object requires a subscope of the
-current scope -- previously computed by the scope analyzer, recovered
+current scope---previously computed by the scope analyzer, recovered
 by `self.scope.get_child(t)`.
 
         def sprout(self, t):
@@ -1470,7 +1470,7 @@ will collect the values of all the nonlocals into a tuple, then push
 the code object and the name as before; then `MAKE_CLOSURE` expects
 the tuple. The scope analyzer already arranged for the nested
 function's nonlocals to be in the current scope as 'cell variables'.
-[TODO review the docs/source on LOAD_CLOSURE -- IIRC it loads the
+[TODO review the docs/source on LOAD_CLOSURE---IIRC it loads the
 *mutable cell holding the variable's value*, instead of the value, so
 that the nested function can mutate the variable.]
 
@@ -1485,7 +1485,7 @@ instance, we called `compile_function`:
             return self.make_code(assembly, t.name, len(t.args.args))
 
 A function's docstring is to go in the code object's constants table
-as the first entry -- `None` if no docstring. (That's where CPython
+as the first entry---`None` if no docstring. (That's where CPython
 looks for it.) Our logic relies on this `load_const` happening first,
 before any code generation, and on our table preserving the order we
 add to it. (The actual `LOAD_CONST` instruction is discarded, here.)
@@ -1527,7 +1527,7 @@ definition as 'fast'.
             return self.make_code(assembly, t.name, 0)
 
 I was a little tempted to leave classes out. Python stopped needing
-them once it gained proper nested functions -- in terms of expressive
+them once it gained proper nested functions---in terms of expressive
 power, if not familiarity and legacy. As it worked out, most of the
 simplicity we'd gain by chopping out `class` we can get by forbidding
 nested classes (nested in a `class` or a `def`).
@@ -1554,16 +1554,16 @@ pointer-chasing both would slow an interpreter down. One core job,
 then, was mere rearrangement: taking a data structure (the AST) meant
 for arbitrary viewing and changing, and laying it out just right for
 the interpreter, who'll find each element ready to hand at the moment
-it's needed -- like, for us, reading a recipe and starting by laying
+it's needed---like, for us, reading a recipe and starting by laying
 the ingredients and pans onto the counter in a sensible order.
 
 Second, to precompute. We analyzed the scopes and how they used
 variables, for the sake of finding, ahead of time, the place in the
-runtime environment where a variable will live -- letting the
+runtime environment where a variable will live---letting the
 interpreter skip looking up the name.
 
 There's a third potential win, in rewriting the program as we compile
-it -- 'optimization'. Perhaps the compiler could notice that `[i*2 for
+it---'optimization'. Perhaps the compiler could notice that `[i*2 for
 i in range(10)]` would go faster as `list(range(0, 20, 2))`. This is
 precomputation in a broader, open-ended sense (sometimes called the
 Full Employment Theorem for Compiler Writers). But isn't it orthogonal
@@ -1600,7 +1600,7 @@ machine?
 
 [XXX can we give a rough number?]
 
-Exploring that question exceeds my scope here -- but maybe not yours.
+Exploring that question exceeds my scope here---but maybe not yours.
 
 
 ## Continuations
@@ -1637,5 +1637,5 @@ included just for fun. For the compiler that's normally run, see
 `compile.c` and `symtable.c`; there's also the optimizer `peephole.c`.
 
 For much tighter tail-swallowing, try for a start John McCarthy's
-classic one-page self-interpreter, in "A Micro-Manual for LISP -- Not
+classic one-page self-interpreter, in "A Micro-Manual for LISP---Not
 the Whole Truth".
