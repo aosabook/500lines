@@ -89,8 +89,6 @@ It has a bunch of attributes named starting with `co_`:
     co_stacksize      3
     co_varnames       ()
 
-[XXX redo this in Py3.4]
-
 What happened to our program? Mostly it's encoded into `co_code`: a
 sequence of bytecodes in a bytestring. Disassembly renders the
 meaning, using `dis.dis`:
