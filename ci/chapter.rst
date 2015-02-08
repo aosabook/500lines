@@ -100,13 +100,133 @@ In order for the observer to run, it must know which repository to observe. We p
 
 We must also give it the dispatcher address, so it may send it messages. When you start the repository observer, you can pass in the dispatcher's server address using the '--dispatcher-server' command line argument. If you do not pass it in, it will assume the default address of 'localhost:8888'. 
 
-Once the repository observer file is invoked, it starts periodically checking the repository by invoking the poll() function. This function parses the command line arguments, and then kicks off an infinite while loop. The while loop is used to periodically check the repository for changes. The first thing it does is call the 'update_repo.sh' Bash file. Bash is used because we need to check file existence, create files, and use git, and using a shell script is the most direct and easy way to achieve this. Alternatively, there are cross-platform python packages you can use, like python's 'os' built-in module can be used for accessing the file system, and GitPython from PyPI can be used for git access, but they perform actions in a more roundabout way. 
+````python
+def poll():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dispatcher-server",
+                        help="dispatcher host:port, " \
+                        "by default it uses localhost:8888",
+                        default="localhost:8888",
+                        action="store")
+    parser.add_argument("repo", metavar="REPO", type=str,
+                        help="path to the repository this will observe")
+    args = parser.parse_args()
+    dispatcher_host, dispatcher_port = args.dispatcher_server.split(":")
+
+````
+
+Once the repository observer file is invoked, it starts periodically checking the repository in the `poll()` function. This function parses the command line arguments, and then kicks off an infinite while loop. The while loop is used to periodically check the repository for changes. The first thing it does is call the 'update_repo.sh' Bash file. Bash is used because we need to check file existence, create files, and use git, and using a shell script is the most direct and easy way to achieve this. Alternatively, there are cross-platform python packages you can use, like python's 'os' built-in module can be used for accessing the file system, and GitPython from PyPI can be used for git access, but they perform actions in a more roundabout way. 
+
+````python
+    while True:
+        try:
+            # call the bash script that will update the repo and check
+            # for changes. If there's a change, it will drop a .commit_id file
+            # with the latest commit in the current working directory
+            subprocess.check_output(["./update_repo.sh", args.repo])
+        except subprocess.CalledProcessError as e:
+            raise Exception("Could not update and check repository. Reason: %s" % e.output)
+
+````
 
 The 'update_repo.sh' file is used to identify any new commits and let the repository observer know. It does this by noting what commit ID we are currently aware of, then pulls the repository, and checks the latest commit ID. If they match, no changes are made, so the repository observer doesn't need to do anything, but if there is a difference in the commit ID, then we know a new commit has been made. In this case, 'update_repo.sh' will create a file called .commit_id with the latest commit ID stored in it.
 
-A step-by-step breakdown of update_repo.sh is as follows. First, the script sources the run_or_fail.sh file, which provides the run_or_fail helper method used by all our shell scripts. This method is used to run the given command, or fail with the given error message. Next, the script tries to remove a file named .commit_id. Since 'updaterepo.sh' is called infinitely by the repo_observer.py file, if we previously had a new commit, then .commit_id file was created, but holds a commit we already tested. Therefore, we want to remove that file, and create a new one only if a new commit is found. After it removes the file if it existed, it verifies that the repository we are observing exists, and then resets it to the most recent commit, in case anything caused it to get out of sync. It then calls 'git log' and parses the output, looking for the most recent commit ID. Then it pulls the repository, getting any recent changes, then gets the most recent commit ID. Lastly, if the commit ID doesn't match the previous ID, then we know we have new commits to check, so the script stores the latest commit ID in a .commit_id file.
+A step-by-step breakdown of update_repo.sh is as follows. First, the script sources the run_or_fail.sh file, which provides the run_or_fail helper method used by all our shell scripts. This method is used to run the given command, or fail with the given error message. 
 
-When 'update_repo.sh' file finishes running in 'repo_observer.py', the repository observer checks for the existence of the .commit_id file. If it doesn't exist, then the repository observer will sleep for 5 seconds and repeat the process. If the file does exist, then we know we have a new commit, and we need to notify the dispatcher so it can kick off the tests. The repository will try to communicate with the dispatcher server by checking its status first by connecting to it and sending a 'status' request, to make sure there are no problems with the dispatcher server and to make sure it is ready for instruction. If it responds with 'OK', then the repository observer opens the .commit_id file, reads the latest commit ID and sends that ID to the dispatcher, using a 'dispatch:<commit ID>' request. It will then sleep for 5 seconds and repeat the process.
+````bash
+#!/bin/bash
+
+source run_or_fail.sh
+
+```
+
+Next, the script tries to remove a file named .commit_id. Since 'updaterepo.sh' is called infinitely by the repo_observer.py file, if we previously had a new commit, then .commit_id file was created, but holds a commit we already tested. Therefore, we want to remove that file, and create a new one only if a new commit is found. 
+
+````bash
+rm -f .commit_id
+
+```
+
+After it removes the file if it existed, it verifies that the repository we are observing exists, and then resets it to the most recent commit, in case anything caused it to get out of sync. 
+
+````bash
+run_or_fail "Repository folder not found!" pushd $1 1> /dev/null
+run_or_fail "Could not reset git" git reset --hard HEAD
+
+````
+
+It then calls 'git log' and parses the output, looking for the most recent commit ID. 
+
+````bash
+COMMIT=$(run_or_fail "Could not call 'git log' on repository" git log -n1)
+if [ $? != 0 ]; then
+  echo "Could not call 'git log' on repository"
+  exit 1
+fi
+
+COMMIT_ID=`echo $COMMIT | awk '{ print $2 }'`
+
+````
+
+Then it pulls the repository, getting any recent changes, then gets the most recent commit ID. 
+
+````bash
+run_or_fail "Could not pull from repository" git pull
+
+COMMIT=$(run_or_fail "Could not call 'git log' on repository" git log -n1)
+if [ $? != 0 ]; then
+  echo "Could not call 'git log' on repository"
+  exit 1
+fi
+
+NEW_COMMIT_ID=`echo $COMMIT | awk '{ print $2 }'`
+
+````
+
+Lastly, if the commit ID doesn't match the previous ID, then we know we have new commits to check, so the script stores the latest commit ID in a .commit_id file.
+
+````bash
+# if the id changed, then write it to a file
+if [ $NEW_COMMIT_ID != $COMMIT_ID ]; then
+  popd 1> /dev/null
+  echo $NEW_COMMIT_ID > .commit_id
+fi
+
+````
+
+When 'update_repo.sh' file finishes running in 'repo_observer.py', the repository observer checks for the existence of the .commit_id file. If the file does exist, then we know we have a new commit, and we need to notify the dispatcher so it can kick off the tests. The repository will try to communicate with the dispatcher server by checking its status first by connecting to it and sending a 'status' request, to make sure there are no problems with the dispatcher server and to make sure it is ready for instruction. 
+
+````python
+        if os.path.isfile(".commit_id"):
+            try:
+                response = helpers.communicate(dispatcher_host,
+                                               int(dispatcher_port),
+                                               "status")
+            except socket.error as e:
+                raise Exception("Could not communicate with dispatcher server: %s" % e)
+
+````
+
+If it responds with 'OK', then the repository observer opens the .commit_id file, reads the latest commit ID and sends that ID to the dispatcher, using a 'dispatch:<commit ID>' request. It will then sleep for 5 seconds and repeat the process. We'll also try again in 5 seconds if anything went wrong along the way.
+
+````python
+            if response == "OK":
+                commit = ""
+                with open(".commit_id", "r") as f:
+                    commit = f.readline()
+                response = helpers.communicate(dispatcher_host,
+                                               int(dispatcher_port),
+                                               "dispatch:%s" % commit)
+                if response != "OK":
+                    raise Exception("Could not dispatch the test: %s" %
+                    response)
+                print "dispatched!"
+            else:
+                raise Exception("Could not dispatch the test: %s" %
+                response)
+        time.sleep(5)
+
+````
 
 The repository observer will repeat this process forever, until you kill the process via a KeyboardInterrupt (ctrl+C), or by sending it a kill signal.
 
