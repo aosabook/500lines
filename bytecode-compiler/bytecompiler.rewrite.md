@@ -1131,13 +1131,12 @@ Our finished compiler will need more passes:
   types are a little simpler and substantially more readable to
   compile to other node types than to bytecode.
 
-* We complain if the AST departs from the subset of Python we're
-  going to implement. CPython lacks this pass, of course, and this
-  chapter won't examine it. It's valuable in two ways: documenting
-  what we claim to compile correctly, and keeping the user/developer
-  from wasting time on apparent bugs on input it was never meant to
-  support. [XXX add a call-out box with the ASDL grammar of Python
-  ASTs, with our subset's omissions italicized or something]
+* We complain if the AST departs from our subset of Python. CPython
+  lacks this pass, of course, and this chapter won't examine it. It's
+  valuable in two ways: documenting what we claim to compile
+  correctly, and keeping the user/developer from wasting time on
+  apparent bugs on input it was never meant to
+  support. [XXX add a call-out box with the ASDL grammar of Python ASTs, with our subset's omissions italicized or something]
 
 * Then we analyze the scope of variables: their definitions and uses
   in classes, functions, and function-like scopes such as lambda
