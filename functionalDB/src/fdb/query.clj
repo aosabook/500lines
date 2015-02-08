@@ -12,8 +12,8 @@
   "Finds the name of the variable at an item of a datalog clause element. If no variable, returning nil"
   [clause-term]
   (cond
-   (coll? clause-term)  (first (filter variable?  (map str clause-term))) ; the item is an s-expression, need to treat it as a coll, by going over it and returning the name of the variable
-   (variable? (str clause-term)) (str clause-term) ; the item is a simple variable
+   (coll? clause-term)  (first (filter #(variable? % false)  (map str clause-term))) ; the item is an s-expression, need to treat it as a coll, by going over it and returning the name of the variable
+   (variable? (str clause-term) false) (str clause-term) ; the item is a simple variable
    :no-variable-in-clause nil)) ; the item is a value and not a variable
 
 (defmacro clause-term-expr
@@ -27,7 +27,7 @@
    (variable? (str (last clause-term))) `#(~(first clause-term) ~(second clause-term) %))) ; a binary predicate, the variable is the second argument, e.g.,  (> ?a 42)
 
 (defmacro  pred-clause
-  "Builds a predicate-clause from a query clause (a vector with three elements describing EAV). Apredicate clause is a vector of predicates that would operate on
+  "Builds a predicate-clause from a query clause (a vector with three elements describing EAV). A predicate clause is a vector of predicates that would operate on
     an index, and set for that vector's metadata to be the names of the variables that the user assigned for each item in the clause"
   [clause]
   (loop [[trm# & rst-trm#] clause exprs# [] metas# [] ]
@@ -53,7 +53,7 @@
         [k2  l3-set] l2map  ; keys and values of the second level
         :when (try (lvl2-prd k2) (catch Exception e false)) ; filtering to keep only the keys and vals of keys that passed the second level predicate
         :let [res (set (filter lvl3-prd l3-set))] ]; keep from the set at the third level only the items that passed the predicate on them
-          (with-meta [k1 k2 res] (meta pred-clause)))) ; constructed to resemble the EAV structure, while keeping the meta of the query to use it later when extracting variables
+          (with-meta [k1 k2  res] (meta pred-clause)))) ; constructed result clause, while keeping the meta of the query to use it later when extracting variables
 
  (defn items-that-answer-all-conditions
    "takes the sequence of all the items collection, each such collection answered one condition, we test here what are the items that answered all of the conditions
@@ -77,7 +77,7 @@
    is followed by its variable name as was inserted in the query (which was kept at the metadata of the (result) path."
    [from-eav-fn path]
    (let [expanded-path [(repeat (first path)) (repeat (second path)) (last path)] ; there may be several leaves in each path, so repeating the first and second elements
-         meta-of-path(apply from-eav-fn (map repeat (:db/variable (meta path)))) ; re-ordering the path's meta to be in the order of the index
+         meta-of-path (apply from-eav-fn (map repeat (:db/variable (meta path)))) ; re-ordering the path's meta to be in the order of the index
          combined-data-and-meta-path (interleave meta-of-path expanded-path)]
      (apply (partial map vector) combined-data-and-meta-path))) ; returning a seq of vectors, each one is a single result with its meta
 
@@ -96,24 +96,23 @@
   only the last-level-items that are part of all the result-clauses."
    [index pred-clauses]
    (let [result-clauses (filter-index index pred-clauses) ; the predicate clauses from the root of the index to the leaves (a leaf of an index is a set)
-         relevant-items (items-that-answer-all-conditions (map last result-clauses) (count clause-preds)) ; the set of elements, each answers all the pred-clauses
-         cleaned-result-clauses (map (partial mask-path-leaf-with-items relevant-items) result-clauses)] ; the result clauses, now their leaves are filtered to have only the items that fulfilled the predicates
+         relevant-items (items-that-answer-all-conditions (map last result-clauses) (count pred-clauses)) ; the set of elements, each answers all the pred-clauses
+         cleaned-result-clauses (map (partial mask-path-leaf-with-items relevant-items)  result-clauses)] ; the result clauses, now their leaves are filtered to have only the items that fulfilled the predicates
      (filter #(not-empty (last %)) cleaned-result-clauses))) ; of these, we'll build a subset of the index that contains the clauses with the leaves (sets), and these leaves contain only the valid items
 
 (defn single-index-query-plan
   "A query plan that is based on querying a single index"
   [query indx db]
-     (let [q-res (query-index (ind-at db indx) query)
-            binded-res (bind-variables-to-query q-res  (ind-at db indx))]
-          binded-res))
+     (let [q-res (query-index (indx-at db indx) query)]
+           (bind-variables-to-query q-res  (indx-at db indx))))
 
  (defn index-of-joining-variable
   "A joining variable is the variable that is found on all of the query clauses"
   [query-clauses]
-  (let [metas-seq  (map #(:db/variable (meta %)) query-clauses)
-        collapse-seqs (fn [s1 s2] (map #(when (= %1 %2) %1) s1 s2))
-        collapsed (reduce collapse-seqs metas-seq)]
-    (first (keep-indexed #(when (variable? %2 false) %1)  collapsed))))
+  (let [metas-seq  (map #(:db/variable (meta %)) query-clauses) ; all the metas (which are vectors) for the query
+        collapsing-fn (fn [accV v] (map #(when (= %1 %2) %1) accV v)) ; going over the vectors, collapsing each onto another, term by term, keeping a term only if the two terms are equal
+        collapsed (reduce collapsing-fn metas-seq)] ; using the above fn on the metas, eventually get a seq with one item who is not null, this is the joining variable
+    (first (keep-indexed #(when (variable? %2 false) %1)  collapsed)))) ; returning the index of the first element that is a variable (there's only one)
 
   (defn build-query-plan
    "Upon receiving a database and query clauses, this function responsible to deduce on which index in the db it is best to perform the query clauses, and then return
@@ -148,3 +147,13 @@
   (map (partial locate-vars-in-query-res needed-vars) binded-res-col))
 
 (defmacro symbol-col-to-set [coll] (set (map str coll)))
+
+(defmacro q
+  "querying the database using datalog queries built in a map structure ({:find [variables*] :where [ [e a v]* ]}). (after the where there are clauses)
+  At the moment support only filtering queries, no joins is also assumed."
+  [db query]
+  `(let [pred-clauses#  (q-clauses-to-pred-clauses ~(:where query)) ; transforming the clauses of the query to an internal representation structure called query-clauses
+           needed-vars# (symbol-col-to-set  ~(:find query))  ; extracting from the query the variables that needs to be reported out as a set
+           query-plan# (build-query-plan pred-clauses#) ; extracting a query plan based on the query-clauses
+           query-internal-res# (query-plan# ~db)] ;executing the plan on the database
+     (unify query-internal-res# needed-vars#)));unifying the query result with the needed variables to report out what the user asked for
