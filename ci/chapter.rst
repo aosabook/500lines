@@ -233,33 +233,210 @@ The repository observer will repeat this process forever, until you kill the pro
 The Dispatcher (dispatcher.py)
 ------------------------------------------
 
-When the dispatcher.py file is invoked, you have the option of passing in a --host or a --port which will let this server listen on a custom address. By default, it will run on localhost, port 8888.
-
 The dispatcher is a separate service used to delegate testing tasks. It listens on a port for requests from test runners and from the repository observer. It allows test runners to register themselves, and when given a commit ID from the repository observer, it will dispatch a test runner against the new commit. It also gracefully handles any problems with the test runners and will redistribute the commit ID to a new test runner if anything goes wrong.
 
-When dispatch.py is executed, the 'serve' function is called. This starts the dispatcher server, and two other threads. One thread runs the 'runner_checker' function, and other thread runs the 'redistribute' function. The 'runner_checker' function is used to periodically ping each registered test runner to make sure they are still responsive. If they become unresponsive, then that runner will be removed from the pool, and its commit ID will be dispatched to the next available runner. It will log the commit ID in the 'pending_commits' variable. The 'redistribute' function is used to dispatch any of those commit IDs logged in 'pending commits'. When 'redistribute' runs, it checks if there are any commit IDs in 'pending_commits'. If so, it calls the 'dispatch_tests' function with the commit ID. The 'dispatch_tests' function is used to find an available test runner from the pool of registered runners. If one is available, it will send a 'runtest' message to it with the commit ID. If none are currently available, it will wait 2 seconds and repeat this process. Once dispatched, it logs which commit ID is being tested by which test runner in the 'dispatched_commits' variable. If this commit ID is in the 'pending_commits' variable, then it will remove it from this list, since it was successfully re-dispatched.
+When dispatch.py is executed, the 'serve' function is called. It first parses the arguments that allow you to specify the dispatcher's host and port:
 
-The dispatcher server uses the SocketServer module, which is a very simple server that is part of the standard library. There are four basic server types in the SocketServer module, TCP, UDP, UnixStreamServer and UnixDatagramServer. We will be using a TCP based socket server so we can ensure continuous , ordered streams of data to between servers, as UDP does not ensure this.
+````python
+def serve():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--host",
+                        help="dispatcher's host, by default it uses localhost",
+                        default="localhost",
+                        action="store")
+    parser.add_argument("--port",
+                        help="dispatcher's port, by default it uses 8888",
+                        default=8888,
+                        action="store")
+    args = parser.parse_args()
+
+````
+
+This starts the dispatcher server, and two other threads. One thread runs the 'runner_checker' function, and other thread runs the 'redistribute' function. 
+
+````
+    server = ThreadingTCPServer((args.host, int(args.port)), DispatcherHandler)
+    print 'serving on %s:%s' % (args.host, int(args.port))
+
+    ...
+
+    runner_heartbeat = threading.Thread(target=runner_checker, args=(server,))
+    redistributor = threading.Thread(target=redistribute, args=(server,))
+    try:
+        runner_heartbeat.start()
+        redistributor.start()
+        # Activate the server; this will keep running until you
+        # interrupt the program with Ctrl+C or Cmd+C
+        server.serve_forever()
+    except (KeyboardInterrupt, Exception):
+        # if any exception occurs, kill the thread
+        server.dead = True
+        runner_heartbeat.join()
+        redistributor.join()
+
+````
+
+The 'runner_checker' function is used to periodically ping each registered test runner to make sure they are still responsive. If they become unresponsive, then that runner will be removed from the pool, and its commit ID will be dispatched to the next available runner. It will log the commit ID in the 'pending_commits' variable. 
+
+````python
+    def runner_checker(server):
+        def manage_commit_lists(runner):
+            for commit, assigned_runner in server.dispatched_commits.iteritems():
+                if assigned_runner == runner:
+                    del server.dispatched_commits[commit]
+                    server.pending_commits.append(commit)
+                    break
+            server.runners.remove(runner)
+
+        while not server.dead:
+            time.sleep(1)
+            for runner in server.runners:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                try:
+                    response = helpers.communicate(runner["host"],
+                                                   int(runner["port"]),
+                                                   "ping")
+                    if response != "pong":
+                        print "removing runner %s" % runner
+                        manage_commit_lists(runner)
+                except socket.error as e:
+                    manage_commit_lists(runner)
+
+````
+
+The 'redistribute' function is used to dispatch any of those commit IDs logged in 'pending commits'. When 'redistribute' runs, it checks if there are any commit IDs in 'pending_commits'. If so, it calls the 'dispatch_tests' function with the commit ID. 
+
+````python
+    def redistribute(server):
+        while not server.dead:
+            for commit in server.pending_commits:
+                print "running redistribute"
+                print server.pending_commits
+                dispatch_tests(server, commit)
+                time.sleep(5)
+
+````
+
+The 'dispatch_tests' function is used to find an available test runner from the pool of registered runners. If one is available, it will send a 'runtest' message to it with the commit ID. If none are currently available, it will wait 2 seconds and repeat this process. Once dispatched, it logs which commit ID is being tested by which test runner in the 'dispatched_commits' variable. If this commit ID is in the 'pending_commits' variable, then it will remove it from this list, since it was successfully re-dispatched.
+
+````python
+def dispatch_tests(server, commit_id):
+    # NOTE: usually we don't run this forever
+    while True:
+        print "trying to dispatch to runners"
+        for runner in server.runners:
+            response = helpers.communicate(runner["host"],
+                                           int(runner["port"]),
+                                           "runtest:%s" % commit_id)
+            if response == "OK":
+                print "adding id %s" % commit_id
+                server.dispatched_commits[commit_id] = runner
+                if commit_id in server.pending_commits:
+                    server.pending_commits.remove(commit_id)
+                return
+        time.sleep(2)
+
+````
+
+The dispatcher server uses the SocketServer module, which is a very simple server that is part of the standard library. There are four basic server types in the SocketServer module, TCP, UDP, UnixStreamServer and UnixDatagramServer. We will be using a TCP based socket server so we can ensure continuous, ordered streams of data to between servers, as UDP does not ensure this.
 
 The default TCPServer provided by SocketServer can only handle one request at a time, and therefore cannot handle the case where the dispatcher is talking to one connection, say from a test runner, and then a new connection comes in, say from the repository observer. If this happens, the repository observer will have to wait for the first connection to complete and disconnect before it will be serviced. This is not ideal for our case, since the dispatcher server must be able to directly and swiftly communicate with all test runners and the repository observer.
 
 In order for the dispatcher server to handle simultaneous connections, it uses the ThreadingTCPServer custom class, which adds threading ability to the default SocketServer. This means that anytime the dispatcher receives a connection request, it spins off a new process just for that connection. This allows the dispatcher to handle multiple requests at the same time.
 
-The dispatcher server works by defining handlers for each request. This is defined by the DispatcherHandler class, which inherits from SocketServer's BaseRequestHandler. This base class just needs us to define the 'handle' function, which will be invoked whenever a connection is requested. The 'handle' function defined in DispatcherHandler is our custom handler, and it will be called on each connection. It looks at the incoming connection request (self.request holds the request information), and parses out what command is being requested of it. It handles four commands: 'status', 'register', 'dispatch', and 'results':
+````python
+class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
+    runners = [] # Keeps track of test runner pool
+    dead = False # Indicate to other threads that we are no longer running
+    dispatched_commits = {} # Keeps track of commits we dispatched
+    pending_commits = [] # Keeps track of commits we have yet to dispatch
 
-- 'status' is used to check if the dispatcher server is up and running.
+````
 
-- 'register' is used by a test runner to register itself with the dispatcher. The format of this command is register:<host>:<port>. The dispatcher then records the test runner's address so it can communicate with it later when it needs to give it a commit ID to run tests against.
+The dispatcher server works by defining handlers for each request. This is defined by the DispatcherHandler class, which inherits from SocketServer's BaseRequestHandler. This base class just needs us to define the 'handle' function, which will be invoked whenever a connection is requested. The 'handle' function defined in DispatcherHandler is our custom handler, and it will be called on each connection. It looks at the incoming connection request (self.request holds the request information), and parses out what command is being requested of it. 
 
-- 'dispatch' is used by the repository observer to dispatch a test runner against a commit. The format of this command is dispatch:<commit ID>. The dispatcher parses out the commit ID from this message and sends it to the test runner. 
+````python
+class DispatcherHandler(SocketServer.BaseRequestHandler):
+    """
+    The RequestHandler class for our dispatcher.
+    This will dispatch test runners against the incoming commit
+    and handle their requests and test results
+    """
 
-- 'results' is used by a test runner when it has finished a test run and needs to report its results. The format of this command is results:<commit ID>:<length of results data in bytes>:<results>. The <commit ID> is used to identify which commit ID the tests were run against. The <length of results data in bytes> is used to figure out how big a buffer is needed to read the results data into. Lastly, <results> holds the actual result output.
+    command_re = re.compile(r"(\w+)(:.+)*")
+    BUF_SIZE = 1024
 
-In order for the dispatcher to do anything useful, it needs to have at least one test runner registered. When 'register' is called, it stores the runner's information in a list (the 'runners' object attached to the ThreadingTCPServer object).
+    def handle(self):
+        self.data = self.request.recv(self.BUF_SIZE).strip()
+        command_groups = self.command_re.match(self.data)
+        if not command_groups:
+            self.request.sendall("Invalid command")
+            return
+        command = command_groups.group(1)
 
-When 'dispatch' is called, if the dispatcher has test runners registered with it, it will send back an 'OK' response, and will call the 'dispatch_tests' function. 
+````
 
-When 'results' is called, the dispatcher parses out the commit ID and the test results from the message, and stores the test results in a file within the 'test_results' folder, using the commit ID as the filename.
+It handles four commands: 'status', 'register', 'dispatch', and 'results':
+
+'status' is used to check if the dispatcher server is up and running.
+
+````python
+        if command == "status":
+            print "in status"
+            self.request.sendall("OK")
+````
+
+In order for the dispatcher to do anything useful, it needs to have at least one test runner registered. When 'register' is called on a host:port pair, it stores the runner's information in a list (the 'runners' object attached to the ThreadingTCPServer object) so it can communicate with it later when it needs to give it a commit ID to run tests against.
+
+````
+        elif command == "register":
+            # Add this test runner to our pool
+            print "register"
+            address = command_groups.group(2)
+            host, port = re.findall(r":(\w*)", address)
+            runner = {"host": host, "port":port}
+            self.server.runners.append(runner)
+            self.request.sendall("OK")
+````
+
+'dispatch' is used by the repository observer to dispatch a test runner against a commit. The format of this command is dispatch:<commit ID>. The dispatcher parses out the commit ID from this message and sends it to the test runner. 
+
+````python
+        elif command == "dispatch":
+            print "going to dispatch"
+            commit_id = command_groups.group(2)[1:]
+            if not self.server.runners:
+                self.request.sendall("No runners are registered")
+            else:
+                # The coordinator can trust us to dispatch the test
+                self.request.sendall("OK")
+                dispatch_tests(self.server, commit_id)
+
+````
+
+'results' is used by a test runner when it has finished a test run and needs to report its results. The format of this command is results:<commit ID>:<length of results data in bytes>:<results>. The <commit ID> is used to identify which commit ID the tests were run against. The <length of results data in bytes> is used to figure out how big a buffer is needed to read the results data into. Lastly, <results> holds the actual result output.
+
+````python
+        elif command == "results":
+            print "got test results"
+            results = command_groups.group(2)[1:]
+            results = results.split(":")
+            commit_id = results[0]
+            length_msg = int(results[1])
+            # 3 is the number of ":" in the sent command
+            remaining_buffer = self.BUF_SIZE - (len(command) + len(commit_id) + len(results[1]) + 3)
+            if length_msg > remaining_buffer:
+                self.data += self.request.recv(length_msg - remaining_buffer).strip()
+            del self.server.dispatched_commits[commit_id]
+            if not os.path.exists("test_results"):
+                os.makedirs("test_results")
+            with open("test_results/%s" % commit_id, "w") as f:
+                data = self.data.split(":")[3:]
+                data = "\n".join(data)
+                f.write(data)
+            self.request.sendall("OK")
+
+````
 
 The Test Runner (test_runner.py)
 ------------------------------------------
