@@ -440,20 +440,120 @@ In order for the dispatcher to do anything useful, it needs to have at least one
 
 The Test Runner (test_runner.py)
 ------------------------------------------
-The test runner is responsible for running tests against a given commit ID and reporting back the results. It communicates only with the dispatcher server, which is responsible for giving it the commit IDs to run against, and which will receive the test results.
+The test runner is responsible for running tests against a given commit ID and reporting back the results. It communicates only with the dispatcher server, which is responsible for giving it the commit IDs to run against, and which will receive the test results. 
 
-The test runner is a ThreadingTCPServer, like the dispatcher server. It requires threading because not only will the dispatcher be giving it a commit ID to run, but the dispatcher will be pinging the runner periodically to verify that it is still up while it is running tests. The communication flow starts with the dispatcher requesting that the runner accept a commit ID to run. If the test runner is ready to run the job, it responds with acknowledgement to the dispatcher server, which then closes the connection. In order for the test runner server to both run tests and accept more requests from the dispatcher, it starts the requested test job on a new thread. This means that when the dispatcher server makes requests (pings, in this case) and expects responses, it will be done on a separate thread, while the test runner is busy running tests on its own thread. This allows the test runner server to handle multiple tasks simultaneously. Instead of this threaded design, it is possible to have the dispatcher server hold onto a connection with each test runner, but this would increase the dispatcher server's memory needs, and is vulnerable to network problems, like accidentally dropped connections.
+When the test_runner.py file is invoked, it calls the 'serve' function, which will start the test runner server and will also start a thread to run the 'dispatcher_checker' function. Since this startup process is very similar to the ones described in `repo_observer.py` and `dispatcher.py`, we omit it here. 
+
+The 'dispatcher_checker' function pings the dispatcher server every 5 seconds to make sure it is still up and running. This is important for resource management. If the dispatcher goes down, then the test runner will shut down since it won't be able to do any meaningful work if there is no dispatcher to give it work or to report to.
+
+````python
+    def dispatcher_checker(server):
+        while not server.dead:
+            time.sleep(5)
+            if (time.time() - server.last_communication) > 10:
+                try:
+                    response = helpers.communicate(
+                                       server.dispatcher_server["host"],
+                                       int(server.dispatcher_server["port"]),
+                                       "status")
+                    if response != "OK":
+                        print "Dispatcher is no longer functional"
+                        server.shutdown()
+                        return
+                except socket.error as e:
+                    print "Can't communicate with dispatcher: %s" % e
+                    server.shutdown()
+                    return
+
+````
+
+The test runner is a ThreadingTCPServer, like the dispatcher server. It requires threading because not only will the dispatcher be giving it a commit ID to run, but the dispatcher will be pinging the runner periodically to verify that it is still up while it is running tests. 
+
+````python
+class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
+    dispatcher_server = None # Holds the dispatcher server host/port information
+    last_communication = None # Keeps track of last communication from dispatcher
+    busy = False # Status flag
+    dead = False # Status flag
+
+````
+
+The communication flow starts with the dispatcher requesting that the runner accept a commit ID to run. If the test runner is ready to run the job, it responds with acknowledgement to the dispatcher server, which then closes the connection. In order for the test runner server to both run tests and accept more requests from the dispatcher, it starts the requested test job on a new thread. 
+
+This means that when the dispatcher server makes requests (pings, in this case) and expects responses, it will be done on a separate thread, while the test runner is busy running tests on its own thread. This allows the test runner server to handle multiple tasks simultaneously. Instead of this threaded design, it is possible to have the dispatcher server hold onto a connection with each test runner, but this would increase the dispatcher server's memory needs, and is vulnerable to network problems, like accidentally dropped connections.
 
 The test runner server responds to two messages from the dispatcher:
 
-- 'ping', which is used by the dispatcher server to verify that the runner is still active
-- 'runtest', which accepts messages of the form 'runtest:<commit ID>', and is used to kick off tests on the given commit
+'ping', which is used by the dispatcher server to verify that the runner is still active
 
-When 'runtest' is called, the test runner will check to see if it is already running a test, and if so, it will return a 'BUSY' response to the dispatcher. If it is available, it will respond to the server with an 'OK' message, set its status as busy and will run its 'run_tests' function. This function calls the shell script 'test_runner_script.sh' which is used to update the repository to the given commit ID. Once the script returns, if it was successful at updating the repository, we run the tests using unittest, and gather the results in a file. When the tests are done running, the test runner reads in the results file and sends it in a 'results' message to the dispatcher. As soon as the 'run_tests' function is complete, the test runner will mark itself as no longer busy, so it can take on new test jobs.
+````
+class TestHandler(SocketServer.BaseRequestHandler):
+    ...
 
+    def handle(self):
+        ....
+        if command == "ping":
+            print "pinged"
+            self.server.last_communication = time.time()
+            self.request.sendall("pong")
+````
+
+'runtest', which accepts messages of the form 'runtest:<commit ID>', and is used to kick off tests on the given commit. When 'runtest' is called, the test runner will check to see if it is already running a test, and if so, it will return a 'BUSY' response to the dispatcher. If it is available, it will respond to the server with an 'OK' message, set its status as busy and will run its 'run_tests' function. 
+
+````
+        elif command == "runtest":
+            print "got runtest command: am I busy? %s" % self.server.busy
+            if self.server.busy:
+                self.request.sendall("BUSY")
+            else:
+                self.request.sendall("OK")
+                print "running"
+                commit_id = command_groups.group(2)[1:]
+                self.server.busy = True
+                self.run_tests(commit_id,
+                               self.server.repo_folder)
+                self.server.busy = False
+
+````
+
+This function calls the shell script 'test_runner_script.sh' which is used to update the repository to the given commit ID. Once the script returns, if it was successful at updating the repository, we run the tests using unittest, and gather the results in a file. When the tests are done running, the test runner reads in the results file and sends it in a 'results' message to the dispatcher. 
+
+````python
+    def run_tests(self, commit_id, repo_folder):
+        # update repo
+        output = subprocess.check_output(["./test_runner_script.sh",
+                                        repo_folder, commit_id])
+        print output
+        # run the tests
+        test_folder = os.path.join(repo_folder, "tests")
+        suite = unittest.TestLoader().discover(test_folder)
+        result_file = open("results", "w")
+        unittest.TextTestRunner(result_file).run(suite)
+        result_file.close()
+        result_file = open("results", "r")
+        # give the dispatcher the results
+        output = result_file.read()
+        helpers.communicate(self.server.dispatcher_server["host"],
+                            int(self.server.dispatcher_server["port"]),
+                            "results:%s:%s:%s" % (commit_id, len(output), output))
+````
+
+Here's `test_runner_script.sh`:
+
+````bash
+#!/bin/bash
+REPO=$1
+COMMIT=$2
+
+source run_or_fail.sh
+
+run_or_fail "Repository folder not found" pushd "$REPO" 1> /dev/null
+run_or_fail "Could not clean repository" git clean -d -f -x
+run_or_fail "Could not call git pull" git pull
+run_or_fail "Could not update to given commit hash" git reset --hard "$COMMIT"
+````
 In order to run the the test_runner.py file, you must point it to a clone of the repository, so it may use this clone to run tests against. In this case, you can use the previously created "/path/to/test_repo test_repo_clone_runner" clone as the argument. By default, the test_runner.py file will start its own server on localhost using a port between the range 8900-9000, and will try to connect to the dispatcher server at localhost:8888. You may pass it optional arguments to change these values. The '--host' and '--port' arguments are to designate a specific address to run the test runner server on, and the '--dispatcher-server' argument will have it connect to a different address than localhost:8888 to communicate with the dispatcher.
 
-When the test_runner.py file is invoked, it calls the 'serve' function, which will start the test runner server and will also start a thread to run the 'dispatcher_checker' function. The 'dispatcher_checker' function pings the dispatcher server every 5 seconds to make sure it is still up and running. This is important for resource management. If the dispatcher goes down, then the test runner will shut down since it won't be able to do any meaningful work if there is no dispatcher to give it work or to report to.
 
 Control Flow Diagram
 --------------------
