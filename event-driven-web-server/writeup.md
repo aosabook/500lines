@@ -39,7 +39,7 @@ b) A thread-per-request server on top of a platform where threads are cheap enou
 
 If you have a [really](http://racket-lang.org/) REALLY [cheap](http://www.erlang.org/) thread [system](http://hackage.haskell.org/package/base-4.7.0.1/docs/Control-Concurrent.html) b) is a pretty good option, though it may force you to deal with all the synchronization issues you'd expect from a multi-threaded system. Specifically, if you have some sort of central data shared by several users simltaneously, you'll need to coordinate writes and/or reads in some way. How hard that is depends on your data model as well as your thread system, but it tends to be non-trivial.
 
-If you *don't* have cheap threads at your disposal, you're forced to deal with a world where a thread services many requests. That slightly complicates your server model, since you can't pretend that a request owns the entire world even if you don't need to share state across requests, *but* it does make state sharing sort of fall out naturally as a consequence of the server structure. Rather than synchronization, your big problem with event-driven servers tends to be blocking. Which you can *never ever do*. This is mildly complicated by the fact that many languages assume a blocking model of IO, so it's typically very easy to block somewhere by accident. 
+If you *don't* have cheap threads at your disposal, you're forced to deal with a world where a thread services many requests. That slightly complicates your server model, since you can't pretend that a request owns the entire world even if you don't need to share state across requests, *but* it does make state sharing sort of fall out naturally as a consequence of the server structure. Rather than synchronization, your big problem with event-driven servers tends to be blocking. Which you can *never ever do*. This is mildly complicated by the fact that many languages assume a blocking model of IO, so it's typically very easy to block somewhere *by accident*. Essentially, because we're dealing with a single thread, blocking on any one connection blocks the entire server. Which means that we have to be able to move on to another client if the current one is dragging its feet, and we need to be able to do so in a manner that doesn't throw out all the work done so far. Most importantly, it means non-blocking IO. And that tends to be a bit of an issue. Because threads are so prevalent, many languages and their frameworks assume that blocking on IO is just fine. If you write mostly [node.js](TODO link), I understand you don't suffer this particular affliction. Common Lisp does believe in non-blocking IO, but has a couple eccentricities about it. I've spilt enough ink about this, so I'll leave the whining out, but feel free to ask me about it sometime.
 
 At the time I started thinking about this project, Common Lisp didn't have a complete green-thread implementation, and the [standard portable threading library](http://common-lisp.net/project/bordeaux-threads/) doesn't qualify as "really REALLY cheap". So my options amounted to either picking a different language, or building an event-driven web server for my purpose. And the use-case I mentioned would naturally have the usage profile of frequent updates to each client, but relatively sparse requests *from* each client, which fits pretty well with the SSE approach to pushing updates. There are one or two other requirements, related to the server/programmer conversations that'll have to happen before any server/*client* interactions can take place, but we'll get to those once we have a working server core.
 
@@ -66,7 +66,9 @@ That's the event loop that drives the rest. Its relevant characteristics are
 - an infinite loop waiting for new handshakes or incoming data
 - and finally some cleanup clauses to make sure it doesn't leave around dangling socket if it's killed by an interrupt or something.
 
-The specifics are going to be revealed in our `process-ready` methods.
+Before we move on, a note for the non-Lispers. What we're looking at is a `method` `def`inition. It may or may not surprise you that Common Lisp has an object system, but it does. It's a generic-function-based system called CLOS (variously pronounced "KLOS", "see-loss" or "see-lows", depending on who you talk to). The key thing to note about it is that methods don't *belong* to classes, they *specialize on* classes. The `start` method we just saw is a one-argument function whose first and only argument, `port`, is *specialized on* the class `integer`. We'll talk a bit more about it after we see our first `class`, but do note that we're talking about `method`s here.
+
+The specifics of our event loops' behavior are going to be revealed in our `process-ready` methods.
 
 	(defmethod process-ready ((ready stream-server-usocket) (conns hash-table))
 	  (setf (gethash (socket-accept ready :element-type 'octet) conns) nil))
@@ -94,23 +96,21 @@ The specifics are going to be revealed in our `process-ready` methods.
 		     	               (not simple-error)) (e)
 		     	          (error! +500+ ready e))))))))))
 
-What you're looking at above is the filled in version of
+More method declarations, though these specialize on more than one argument. When a `method` is called, what's actually happening behind the scenes is
 
-    (defmethod <name> ((<arg-name> <arg-type>)...)
-	  <body>)
+- a dispatch on the type of its arguments to figure out which method body should be run
+- followed by running the appropriate body.
 
-It looks _almost_ like a `defun`, except that each of the mandatory arguments have an extra symbol packed along with them that specify what types this particular method body will be called for. This is the Common Lisp multiple dispatch system at work. We're `def`ining a `method` of two arguments, as well as implicitly defining its generic function. That generic function will dispatch on its two arguments and pick the specific `method` appropriate to their types. The second is a `hash-table` in both cases, but the first can either be a `stream-server-socket` or a `stream-usocket`. The two socket types will be "`ready`" under slightly different conditions, and need to be handled differently. If a `stream-server-socket` is `ready`, that means there's a new client socket waiting to start a conversation. In that case, we need to call `socket-accept`, and put the result in our connection table so that the our event loop can take it into account.
+In this case, the second argument doesn't matter, because there are only two methods associated with the `process-ready` generic function, and they both expect a `hash-table` as the second argument. But the first arg might be a `stream-server-socket` or a `stream-usocket`, and `process-ready` will behave differently based on which it is. If a `stream-server-socket` is `ready`, that means there's a new client socket waiting to start a conversation. In that case, we need to call `socket-accept`, and put the result in our connection table so that the our event loop can take it into account.
 
-When a `stream-usocket` is `ready`, it means this particular client socket has some bytes ready for us to read (or can otherwise be profitably attended to). The high level view of what we do here is
+When a `stream-usocket` is `ready`, that means that it has some bytes ready for us to read (or possibly that the other party has terminated the connection). The high level view of what we do here is
 
 1. Get the buffer associated with this socket (create it if it doesn't exist yet)
 2. Read output into that buffer, which happens in the call to `buffer!`
-3. If that read got us an `:eof`, it means that the other side has hung up, so we just discard the socket *and* buffer
+3. If that read got us an `:eof`, the other side hung up, so we can discard the socket *and* buffer
 4. Otherwise, we check if the buffer is one of `complete?`, `too-big?`, `too-old?` or `too-needy?`. If it's any of them, we remove it from the connections table and send out the appropriate HTTP response.
 
-Now, firstly, you'll have to take my word for it that most of these things happen correctly until we get to their implementations later. But more importantly, it might not be entirely apparent why we're going through this rigmarole.
-
-Because we're trying to serve up content with a single thread, we can't afford to block on any particular connection. If we _did_, that would block the entire server, rather than just a single, slow request. As a result, we have to do work to make sure that we never block on an incoming stream _and_ that if a particular stream is dragging its feet, we need to be able to move on to the next one without throwing out our work so far. That means a system of buffers to keep track of intermediate results, and a buffering process that stops if it runs out of available input before getting to a complete request. Most importantly, it means non-blocking IO. And that tends to be a bit of an issue. Because threads are so prevalent, many languages and their frameworks assume that blocking on IO is just fine. If you do mostly [node.js](TODO link), I understand you don't suffer this particular affliction. Common Lisp does believe in non-blocking IO, but has a few eccentricities about it. I've spilt enough ink about this particular one, so I'll leave the whining out, but feel free to ask me about it sometime.
+This is where the non-blocking thing comes in. Remember, we're trying to do this in an event-driven manner, which means we must. Not. Block. Ever. And to that end, we have a system of buffers to keep track of intermediate input from clients, as well as a buffering process that lets us move on to the next client if we run out of available input before getting a complete request.
 
 So here's how we read without blocking:
 
@@ -142,11 +142,11 @@ The `buffer` class looks like
 	   (started :reader started :initform (get-universal-time))
 	   (bi-stream :reader bi-stream :initarg :bi-stream)))
 
-It's just a series of storage slots to track buffering state from the incoming socket; nothing interesting whatsoever, unless you're new to Common Lisp. If you _are_ just joining us from mainstream OO languages, you might notice the odd fact that these CLOS (Common Lisp Object System) `class` declarations only involve slots and related getters/setters, or `reader`s/`accessor`s in CL terms, and initial-value-related options (`:initform` specifies a default value, while `:initarg` specifies a hook for the caller of `make-instance` to provide a default value). This is because the Lisp object system is based on generic functions. We already briefly saw what a `method` looks like back when we discussed `process-ready`, and now that we've seen a `class`, it's worth taking a detour.
+It's just a series of storage slots to track buffering state from the incoming socket. If you're just joining us from mainstream OO languages, you might notice the fact that this CLOS (Common Lisp Object System) `class` declaration only involves slots and related getters/setters (`reader`s/`accessor`s), and initial-value-related options (`:initform` specifies a default value, while `:initarg` specifies a hook for the caller of `make-instance` to provide a default value). This is because, as I've noted before, the Lisp object system is based on generic functions. And now that we've seen a `class`, it's worth taking a detour.
 
 ## A Brief Detour through CLOS
 
-Basically, you need to think "Methods specialize on classes" rather than "classes have methods". That should get you most of the way to understanding.
+Remember: "methods specialize on classes", not "classes have methods".
 
 From a theoretical perspective, the class-focused approach and the function-focused approach can be seen as perpendicular approaches to the same problem. Namely
 
@@ -172,6 +172,8 @@ That's basically what you'll see in action in Common Lisp. You can think about i
 
 and each cell representing the implementation of that operation for that type. Class-focused OO says "Focus on the first column; the class is the important part", function-focused OO says "focus on the first row; the operation needs to be central". Consequently, CF-OO systems tend to group all methods related to a class in with that class' data, whereas FF-OO systems tend to isolate the data completely and group all implementations of an operation together. In the first system, it's difficult to ask "what classes implement method `foo`?" which is easy in the second, but the second has similar problems answering "what are all the methods that specialize on class `bar`?". In a way those questions don't make sense from within the systems we're asking them, and understanding why that is will give you some insight into where you want one or the other.
 
+## End of Detour in 4. 3. . 
+
 Bringing this back around to our `buffer`s, the class we defined earlier has six slots
 
 - `tries`, which keeps count of how many times we've tried reading into this buffer
@@ -180,10 +182,6 @@ Bringing this back around to our `buffer`s, the class we defined earlier has six
 - `found-crlf?`, which tracks whether we've seen a `\r\n\r\n` sequence go by
 - `started`, which a timestamp that tells us when we created this buffer
 - and `bi-stream`, which is a hack around some of those non-blocking-IO annoyances in Common Lisp.
-
-And on that note...
-
-## End of Detour in 4. 3. 2. 
 
 The next interesting part of `process-ready` comes after the edge-case handling of old/big/needy requests. It's wrapped in another layer of error handling because we might still crap out in different ways here. In particular, if the request is old/big/needy or if an `http-assertion-error` is raised, we want to send a `400` response; the client provided us with some bad or slow data. However, if any _other_ error happens here, it's because the programer made a mistake defining a handler, which should be treated as a `500` error. Something went wrong on the server side as a result of a potentially legitimate request.
 
