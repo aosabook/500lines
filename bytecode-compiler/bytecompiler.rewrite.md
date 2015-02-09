@@ -1164,8 +1164,8 @@ Our finished compiler will need more passes:
     def desugar(t):
         return ast.fix_missing_locations(Desugarer().visit(t))
 
-Python's `ast` module defines another visitor class for *transforming*
-trees. Here each visit method is expected to return an AST node, which
+Python's `ast` module defines another visitor class, for *transforming*
+trees. It expects each visit method to return an AST node, which
 will be taken to replace the node that was the argument. The default
 behavior, if the sub-nodes weren't changed, returns the same node
 unchanged. Desugaring uses such a transformer:
@@ -1174,7 +1174,7 @@ unchanged. Desugaring uses such a transformer:
 
 For a start, we rewrite statements like `assert cookie, "Want
 cookie!"` into `if not cookie: raise AssertionError("Want cookie!")`.
-(Rather, it makes an if-then-else with the `raise` in the `else`
+(Rather, into an if-then-else with the `raise` in the `else`
 clause: this is slightly simpler.)
 
         def visit_Assert(self, t):
@@ -1193,7 +1193,7 @@ interpolates a source-line number for any new nodes introduced.)
 
 You might wonder if this is quite correct: what if the code being
 compiled redefines `AssertionError`? But `assert` itself at runtime
-uses whatever `AssertionError` is bound to.
+calls whatever `AssertionError` is bound to.
 
 What was the point of this visitor? Without it, we'd need to define a
 `visit_Assert` in the code generator instead---OK, fine. This would
@@ -1229,7 +1229,7 @@ simpler expansion for list comprehensions. This adding of a new node
 type not in the official language, it feels like getting away with
 something.
 
-(The last lines implementing function decorators could've been left
+(The last lines, implementing function decorators, could be left
 out since we don't use decorators in this compiler.)
 
 List comprehensions also create a `Function` node, holding the loop,
@@ -1254,8 +1254,8 @@ polluting the current scope as they did in Python 2.
 
 For instance, `[n for n in numbers if n]` becomes a call to a
 locally-defined function having the following body, except that
-`result` actually gets the name `.result` which can't occur in Python
-source code, and thus can't clash with variables from the source:
+`result` actually gets the name `.result`, which can't occur in real Python
+source code and thus can't clash with variables from the source:
 
     # in example.py:
     result = []
@@ -1274,10 +1274,13 @@ hair too; we won't need them.
 `Desugarer` uses these helpers:
 
     # in compile to code v2:
-    class Function(ast.FunctionDef): # from FunctionDef so that ast.get_docstring works.
+    class Function(ast.FunctionDef):
         _fields = ('name', 'args', 'body')
 
     load, store = ast.Load(), ast.Store()
+
+(`Function` derives from `FunctionDef` for the sake of
+`ast.get_docstring` on it.)
 
 
 ### Analyzing scopes 
@@ -1287,34 +1290,65 @@ Scope analysis decides the runtime representation of variables:
 
     # in example.py:
     def fn():
-        f = "I'm fast"
-        d = "I'm derefed"
+        f = "I'm a fast one."
+        d = "I'm a deref."
         return g, f, d, lambda: d
 
 `f` is a local variable used only locally within `fn`. It's 'fast': it
-gets a numbered slot among the locals.
+gets a numbered slot among the locals. Once our `scope` determines
+this, our revised code generator can emit `LOAD_FAST` or `STORE_FAST`
+to access the variable at that known slot:
 
-`d` is similar, but it also appears in a nested subscope, the lambda
-expression. In the scope of `fn`, `d` is a 'deref' instead of fast. In
-the lambda-expression scope, `d` is also a *free variable*: a deref
-whose definition is at an enclosing scope. For code generation we need
-to know the free variables so that, when the time comes to create the
-lambda's function object, we'll pass it all the derefs it needs from
-outside. [XXX expand?]
+    # in generate variable accesses v2:
+        def load(self, name):
+            access = self.scope.access(name)
+            if   access == 'fast':  return op.LOAD_FAST(self.varnames[name])
+            elif access == 'deref': return op.LOAD_DEREF(self.cell_index(name))
+            elif access == 'name':  return op.LOAD_NAME(self.names[name])
+            else: assert False
 
-'g' has no local definition, and in fact no global one we can see
-either. So it's neither fast nor deref. (CPython's compiler will
-generate different instructions for variables known to be global --
-instructions like `LOAD_GLOBAL`---but our compiler won't. This should
-be an easy improvement to make.)
+        def store(self, name):
+            access = self.scope.access(name)
+            if   access == 'fast':  return op.STORE_FAST(self.varnames[name])
+            elif access == 'deref': return op.STORE_DEREF(self.cell_index(name))
+            elif access == 'name':  return op.STORE_NAME(self.names[name])
+            else: assert False
 
-A `class` scope doesn't get fast or deref variables---only its
-function-type subscopes do, such as its method definitions. Nested
-classes are forbidden in this compiler, to avoid some of Python's dark
-corners. So are `del` statements and explicit `nonlocal` and `global`
-declarations.
+        def cell_index(self, name):
+            return self.scope.derefvars.index(name)
 
-Scope analysis takes two subpasses:
+The 'deref' case is for variables like `d`, which is not global, yet
+'less local' than `f` in that it's used from another scope, the lambda
+expression's. `d` gets a numbered slot among `fn`'s locals as well,
+but at runtime its slot will not simply hold `d`'s value: instead it
+holds a *cell* holding the value. It's roughly as if we'd written
+
+    # in example.py:
+    def fn():
+        f = "I'm a fast one."
+        d = Cell("I'm a deref.")
+        return g, f, d.cell_contents, lambda d=d: d.cell_contents
+
+    class Cell:
+        def __init__(self, value): self.cell_contents = value
+
+after which every variable is local or global, never nonlocal. Now
+with both `fn` and the lambda expression sharing a reference to `d`'s
+cell, any *assignment* to `d` will change the value they both see.
+
+Back in our example, `g` has no local definition, and in fact no
+global one we can see either: `g` is neither fast nor
+deref. (CPython's compiler will generate different instructions for
+variables known to be global -- instructions like `LOAD_GLOBAL`---but
+our compiler won't. This should be an easy improvement to make.)
+
+Unlike a function scope, a class scope doesn't get fast or deref
+variables---only its function-type subscopes do, such as its method
+definitions. Nested classes are forbidden in this compiler, to avoid
+some of Python's dark corners. So are `del` statements and explicit
+`nonlocal` and `global` declarations.
+
+Analyzing the scopes in a module takes two passes:
 
     # in compile to code v2:
     def top_scope(t):
@@ -1328,12 +1362,12 @@ The first creates subscopes for classes and functions and records the
 collect this information, another job for an AST visitor. Unlike the
 `NodeTransformer` last time, we'll leave the AST alone: our visit
 methods should instead fill out attributes of the `Scope`. That's the
-protocol for a `NodeVisitor` again:
+protocol for a `NodeVisitor`:
 
     class Scope(ast.NodeVisitor):
         def __init__(self, t, defs):
             self.t = t
-            self.children = []       # Enclosed scopes
+            self.children = []       # Enclosed sub-scopes
             self.defs = set(defs)    # Variables defined
             self.uses = set()        # Variables referenced
 
@@ -1362,26 +1396,30 @@ protocol for a `NodeVisitor` again:
             elif isinstance(t.ctx, ast.Store): self.defs.add(t.id)
             else: assert False
 
-The `analyze` subpass then deduces the *nonlocal* uses of variables:
+The `analyze` pass can then deduce the *non*local uses of
+variables. It walks down accumulating the definitions from enclosing
+scopes, then back up accumulating the references from enclosed ones:
 
         def analyze(self, parent_defs):
-            self.fastvars = self.defs if isinstance(self.t, Function) else set()
+            self.local_defs = self.defs if isinstance(self.t, Function) else set()
             for child in self.children:
-                child.analyze(parent_defs | self.fastvars)
+                child.analyze(parent_defs | self.local_defs)
             child_uses = set([var for child in self.children for var in child.freevars])
             uses = self.uses | child_uses
-            self.cellvars = tuple(child_uses & self.fastvars)
-            self.freevars = tuple(parent_defs & (uses - self.fastvars))
+            self.cellvars = tuple(child_uses & self.local_defs)
+            self.freevars = tuple(parent_defs & (uses - self.local_defs))
             self.derefvars = self.cellvars + self.freevars
 
-[XXX some further explaining is needed, but the above intro gets us
-close, right? ...]
+A 'cell variable' is a deref defined in the current scope; a 'free
+variable' must be taken from the enclosing scope instead. (In our
+example, `d` is a free variable in the lambda expression but a cell
+variable in the rest of `fn`.)
 
-A scope object also provides the above info to the code generator:
+The code generator uses `cellvars` and `freevars`, plus these methods:
 
         def access(self, name):
             return ('deref' if name in self.derefvars else
-                    'fast'  if name in self.fastvars  else
+                    'fast'  if name in self.local_defs else
                     'name')
 
         def get_child(self, t):
@@ -1390,30 +1428,15 @@ A scope object also provides the above info to the code generator:
                     return child
             assert False
 
-as used by:
-
-    # in generate variable accesses v2:
-        def load(self, name):
-            access = self.scope.access(name)
-            if   access == 'fast':  return op.LOAD_FAST(self.varnames[name])
-            elif access == 'deref': return op.LOAD_DEREF(self.cell_index(name))
-            elif access == 'name':  return op.LOAD_NAME(self.names[name])
-            else: assert False
-
-        def store(self, name):
-            access = self.scope.access(name)
-            if   access == 'fast':  return op.STORE_FAST(self.varnames[name])
-            elif access == 'deref': return op.STORE_DEREF(self.cell_index(name))
-            elif access == 'name':  return op.STORE_NAME(self.names[name])
-            else: assert False
-
-        def cell_index(self, name):
-            return self.scope.derefvars.index(name)
-
-[XXX move the access/load/store stuff to near the top of the scope
-code section, to make it that much clearer, from the start, what we
-*do* with scopes. The other uses of scopes are in CodeGen.make_code
-and .cell_index.]
+Does scope analysis need to precede code generation? If we turned it
+around, first the code generator would generate symbolic assembly with
+named variables, then we'd analyze the uses of variables in *that*,
+and finally assemble bytecode, treating some of the `LOAD_NAME`s as
+`LOAD_FAST`, etc. This could be more useful as part of a bytecode
+rewriting system---disassembling, transforming, and reassembling, it'd
+be nice to transform without worrying about the mechanics of cell and
+free variables---and it might take roughly the same amount of
+code. Being different from CPython's approach, it's riskier.
 
 
 ### Back to code generation
