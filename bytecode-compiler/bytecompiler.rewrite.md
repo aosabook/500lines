@@ -663,14 +663,14 @@ becomes
 where `POP_JUMP_IF_FALSE` does what it says: pops the value left by
 `ok`, tests it, and if it's false jumps to index 12. Otherwise
 execution falls through to the usual next instruction, at 6.
-`JUMP_FORWARD` likewise jumps to index 15, to skip `no` if we chose
+`JUMP_FORWARD` likewise jumps to index 15[^1], to skip `no` if we chose
 `yes`.
 
-([XXX Footnote, I guess:] `POP_TOP` is not part of the code for the `if`
+[^1]: `POP_TOP` is not part of the code for the `if`
 expression itself, it's code for the expression statement containing
 the `if`. It's listed here because the `JUMP_FORWARD` jumps to
 it. Every `if` appears in a context where more bytecode will follow --
-a `RETURN_VALUE` instruction if nothing else.)
+a `RETURN_VALUE` instruction if nothing else.
 
 The new problem: during code generation the compiler may not yet know
 the bytecode index where a jump target will be. Our answer: it invents
