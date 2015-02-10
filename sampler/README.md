@@ -1,8 +1,9 @@
 <!-- to convert to HTML, run `pandoc --to html --mathjax -s README.md > README.html` -->
+<!-- NB: US spelling used -->
 
 # Sampling Methods
 
-Note: this chapter assumes some familiarity with statistics and
+Note: This chapter assumes some familiarity with statistics and
 probability theory.
 
 ## Introduction
@@ -71,7 +72,7 @@ influence the overall cleanliness, coherence, and correctness of your
 code. In this chapter, we will go through a simple example of how to
 sample random items in a computer game. In particular, we will focus
 on the design decisions which are specific to working with
-probabilities: including functions both for sampling and for
+probabilities, including functions both for sampling and for
 evaluating probabilities, working in "log-space", allowing
 reproducibility, and separating the process of generating samples from
 the specific application.
@@ -85,7 +86,8 @@ mathematical notation like $p(x)$ to indicate that $p$ is the
 function $p(x)$ such that $\int_{-\infty}^\infty p(x)\ \mathrm{d}x=1$,
 whereas a PMF is a *discrete* function $p(x)$ such that $\sum_{x\in
 \mathbb{Z}} p(x)=1$, where $\mathbb{Z}$ is the set of all integers.
-For example, the probability distribution in the case of the dart
+
+The probability distribution in the case of the dart
 board would be a continuous PDF, while the probability distribution in
 the case of a die would be a discrete PMF. In both cases, $p(x) \geq
 0$ for all $x$ (i.e., the probabilities have to be non-negative).
@@ -128,8 +130,8 @@ points distributed across different stats (e.g., +2 wisdom and +3
 intelligence) or concentrated within a single stat (e.g., +5
 charisma).
 
-How would we randomly sample these stats? The easiest way is probably
-to first sample the overall item bonus. Then, we sample the way the
+How would we randomly sample this distribution? The easiest way is probably
+to first sample the overall item bonus, then sample the way the
 bonus is distributed across the stats. Conveniently, the probability
 distributions of the bonus and the way that it is distributed are both
 instances of the *multinomial distribution*.
@@ -138,8 +140,8 @@ instances of the *multinomial distribution*.
 
 The multinomial distribution is used when you have several possible
 outcomes, and you want to characterize the probability of each of
-those outcomes occurring.  The classic example used to describe the
-multinomial distribution is the *ball and urn* example. The idea is
+those outcomes occurring.  The classic example used to explain the
+multinomial distribution is the *ball and urn*. The idea is
 that you have an urn with different colored balls in it (for example,
 30% red, 20% blue, and 50% green). You pull out a ball, record its
 color, put it back in the urn, and then repeat this multiple times. In
@@ -233,11 +235,11 @@ class MultinomialDistribution(object):
 
 The class takes as arguments the event probabilities, $p$, and a
 variable called `rso`. First, the constructor checks that the
-parameters are valid (i.e., that `p` sums to 1). Then, it then stores
+parameters are valid (i.e., that `p` sums to 1). Then it stores
 the arguments that were passed in, and uses the event probabilities to
-compute the event *log* probabilities (we'll go into why this is
+compute the event *log* probabilities. (We'll go into why this is
 necessary in a bit). The `rso` object is what we'll use later to
-produce random numbers (we'll talk more about what it is a bit later
+produce random numbers. (We'll talk more about what it is a bit later
 as well).
 
 Before we get into the rest of the class, I want to briefly go over
@@ -265,7 +267,7 @@ much information), but having more descriptive variable names can also
 make it harder to go back and forth between the the code and the
 equation.
 
-I am personally of the opinion that when you are writing code that
+I think that when you are writing code that
 directly implements an equation, then the same variable names should
 be used as those in the equation. This makes it easy to see which
 parts of the code are implementing which pieces of the equation. This,
@@ -281,11 +283,11 @@ You may have noticed that we imported the `numpy` module as `np`. This
 is standard practice in the world of numerical computing, because
 NumPy provides a huge number of useful functions, many of which might
 be used even in a single file. In the simple examples from this
-chapter, we only use 11 NumPy functions, but in other cases, the
-number can be much higher: it is not uncommon for me to use around 40
+chapter, we only use eleven NumPy functions, but the
+number can be much higher: it is not uncommon for me to use around forty
 different NumPy functions throughout a project!
 
-There are a few options for how to import NumPy. We could use `from
+There are a few options for importing NumPy. We could use `from
 numpy import *`, but that is generally poor style, because it makes it
 hard to determine where the functions came from. We could import the
 functions individually with `from numpy import array, log, ...`, but
@@ -303,7 +305,7 @@ than `numpy` is significantly clearer:
 
 Taking a sample from a multinomial distribution is actually fairly
 straightforward, because NumPy provides us with a function that
-already does it: `np.random.multinomial`.
+does it: `np.random.multinomial`.
 
 > *NumPy includes functions to draw samples from many different types
 > of distributions. For a full list, take a look at the
@@ -378,7 +380,7 @@ sampler from the `RandomState` object itself.
 Once we've decided whether to use `np.random.multinomial` or
 `rso.multinomial`, sampling is just a matter of calling the
 appropriate function. However, there is one other decision that we
-might consider: what counts as a parameter.
+might consider: What counts as a parameter?
 
 Earlier, I said that the outcome probabilities, $p$, were the
 parameters of the multinomial distribution. However, depending on who
@@ -437,11 +439,11 @@ with our sampling function, then they should approximate the exact PDF
 or PMF. If after many samples the approximation is poor or obviously
 wrong, then we know there is a bug in our code somewhere.
 
-Another reason to implement the PMF or PDF is because frequently, you
+Another reason to implement the PMF or PDF is that frequently, you
 will actually need it later down the line and simply don't realize it
 initially. For example, we might want to classify our randomly
 generated items as *common*, *uncommon*, and *rare*, depending on how
-likely it is to be generated. To determine this, we need to be able to
+likely they are to be generated. To determine this, we need to be able to
 compute the PMF.
 
 Finally, in many cases, your particular use case will dictate that you
@@ -494,7 +496,7 @@ by `tiny`) is:
 ```
 
 While that may seem very small, it is not unusual to encounter
-probabilities of this magnitude, or even smaller! Moreover, it is a
+probabilities of this magnitude, or even smaller. Moreover, it is a
 common operation to multiply probabilities, yet if we try to do this
 with very small probabilities, we encounter underflow problems:
 
@@ -616,7 +618,7 @@ but it is easier to understand, easier to code, and more
 computationally efficient if we use the gamma function already built
 in to SciPy.
 
-There is one edge case that we need to tackle, which is when one of
+There is one edge case that we need to tackle: when one of
 our probabilities is zero. When $p_i=0$, then $\log{p_i}=-\infty$.
 This would be fine, except for the following behavior when infinity is
 multiplied by zero:
@@ -662,8 +664,8 @@ def pmf(self, x):
     return pmf
 ```
 
-To further drive home the point of why working in log-space is so
-important, we can look at an example just with the multinomial:
+To further drive home the importance of working in log-space, 
+we can look at an example with just the multinomial:
 
 ```python
 >>> dist = MultinomialDistribution(np.array([0.25, 0.25, 0.25, 0.25]))
@@ -689,14 +691,14 @@ inf
 
 If we had tried to compute just the PMF using the `gamma` function, we
 would have ended up with `gamma(1000 + 1) / gamma(1000 + 1)`, which
-results in a `nan` value (even though we can analytically see that it
+results in a `nan` value (even though we can see that it
 should be 1). But, because we do the computation in log-space, it's
-not an issue, so we don't need to worry about it!
+not an issue and we don't need to worry about it!
 
 ## Sampling magical items, revisited
 
 Now that we have written our multinomial functions, we can put them to
-work to actually generate our magical items! To do this, we will
+work to generate our magical items. To do this, we will
 create a class called `MagicItemDistribution`, located in the file
 `rpg.py`:
 
@@ -734,6 +736,7 @@ class MagicItemDistribution(object):
         self.stats_dist = MultinomialDistribution(stats_probs, rso=rso)
 ```
 
+XXX STOPPED HERE
 The constructor to our `MagicItemDistribution` class takes parameters for
 the bonus probabilities, the stats probabilities, and the random
 number generator. Even though we specified above what we wanted the
