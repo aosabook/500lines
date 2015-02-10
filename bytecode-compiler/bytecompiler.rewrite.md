@@ -735,16 +735,20 @@ For the max stack depth, we ask `plumb` to compute the depth after
 every instruction, appending them all to `depths`. (This uses more
 space than needed, but turns out to be simple.)
 
-Computing the line-number table calls on a `line_nos` method yielding
-pairs of (bytecode address, source-code line-number). `make_lnotab`
-consumes them and encodes them into a bytestring in a format imposed
-by the VM interpreter. Each successive pair of encoded bytes
-represents an (address, line_number) pair as the differences from the
-previous pair. Since a byte is between 0 and 255, there are two
-problems:
+Computing the line-number table calls on a `line_nos` method which
+yields pairs of (bytecode address, source-code line-number), smaller
+addresses first. `make_lnotab` consumes them and encodes them into a
+bytestring in a format imposed by the VM interpreter. Each successive
+pair of encoded bytes represents an (address, line_number) pair as the
+differences from the previous pair. Since a byte is between 0 and 255,
+there are two problems:
 
-* The difference could be negative. This can happen [XXX example]
-    
+* The difference could be negative. Given `x = (`*two_line_expression*`)`,
+  for instance, the bytecode for the store to `x` goes after the
+  bytecode for the expression. As there's no way to express this
+  reversal in this format, we have to decide how to distort it. Like
+  CPython, we'll pretend the store's line number is the last one.
+
 * The difference could exceed 255. In this case the entry must take up
   multiple successive byte-pairs, first increasing only the address
   part in each, and then increasing the line number. (If we increased
