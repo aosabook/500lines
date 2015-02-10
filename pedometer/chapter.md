@@ -105,9 +105,9 @@ For each component, we can pass total acceleration through a low-pass filter, an
 
 ![](chapter-figures/low-pass-filter-a.png)\ 
 
-There are numerous varieties of filters. The one we'll use is called a Chebyshev filter. We've chosen a Chebyshev filter because it has a steep cutoff, which means that it very quickly attenuates frequencies beyond our chosen threshold.
+There are numerous varieties of filters. The one we'll use is called an infinite impulse response (IIR) filter. We've chosen an IIR filter because of its low overhead and ease of implementation. 
 
-The Chebyshev filter we've chosen is implemented using the formula $output_{i} = \alpha_{0} * (input_{i} * \beta_{0} + input_{i-1} * \beta_{1} + input_{i-2} * \beta_{2} - output_{i-1} * \alpha_{1} - output_{i-2} * \alpha_{2})$. 
+The IIR filter we've chosen is implemented using the formula $output_{i} = \alpha_{0} * (input_{i} * \beta_{0} + input_{i-1} * \beta_{1} + input_{i-2} * \beta_{2} - output_{i-1} * \alpha_{1} - output_{i-2} * \alpha_{2})$. 
 
 The design of digital filters is outside of the scope of this chapter, but a very short teaser discussion is warranted. It's a well-studied, fascinating topic, with numerous practical applications. A digital filter can be designed to cancel any frequency or range of frequencies desired. The $\alpha$ and $\beta$ values in the formula are coefficients, set based on the cutoff frequency, and the range of frequencies we want to preserve. 
 
@@ -185,11 +185,11 @@ We saw how quickly our seemingly simple problem turned more complex when we thre
 
 ### 1. Jumpy Peaks
 
-$a(t)$ is very "jumpy", because a phone can jiggle with each step, adding a high-frequency component to our time series. By studying numerous data sets, we've determined that a step acceleration is at maximum 5 Hz. We can again use a low-pass Chebyshev filter, picking $\alpha$ and $\beta$ to attenuate all signals above 5 Hz, to remove the "jumpiness".
+$a(t)$ is very "jumpy", because a phone can jiggle with each step, adding a high-frequency component to our time series. By studying numerous data sets, we've determined that a step acceleration is at maximum 5 Hz. We can again use a low-pass IIR filter, picking $\alpha$ and $\beta$ to attenuate all signals above 5 Hz, to remove the "jumpiness".
 
 ### 2. Slow Peaks
 
-With a sampling rate of 100, the slow peak displayed in $a(t)$ spans 1.5 seconds, which is too slow to be a step. In studying enough samples of data, we've determined that the slowest step we can take is at a 1 Hz frequency. Slower accelerations are due to a low-frequency component, that we can again remove using a high-pass Chebyshev filter, setting $\alpha$ and $\beta$ to cancel all signals below 1 Hz. 
+With a sampling rate of 100, the slow peak displayed in $a(t)$ spans 1.5 seconds, which is too slow to be a step. In studying enough samples of data, we've determined that the slowest step we can take is at a 1 Hz frequency. Slower accelerations are due to a low-frequency component, that we can again remove using a high-pass IIR filter, setting $\alpha$ and $\beta$ to cancel all signals below 1 Hz. 
 
 ### 3. Short Peaks
 
@@ -238,30 +238,30 @@ class Filter
     alpha: [1, -1.979133761292768, 0.979521463540373],
     beta:  [0.000086384997973502, 0.000172769995947004, 0.000086384997973502]
   }
-  COEFFICIENTS_LOW_5_HZ = {
+  COEFFICIENTS_LOW_5_HZ = { # Direct form I, Chebyshev II, type = low-pass, Astop = 2, Fstop = 5, Fs = 100, Direct Form I
     alpha: [1, -1.80898117793047, 0.827224480562408], 
     beta:  [0.095465967120306, -0.172688631608676, 0.095465967120306]
   }
-  COEFFICIENTS_HIGH_1_HZ = {
+  COEFFICIENTS_HIGH_1_HZ = { # Direct form I, Chebyshev II, type = high-pass, Fs = 100, Fstop = 0.5, Astop = 20, order = 2, 
     alpha: [1, -1.905384612118461, 0.910092542787947], 
     beta:  [0.953986986993339, -1.907503180919730, 0.953986986993339]
   }
 
   def self.low_0_hz(data)
-    chebyshev_filter(data, COEFFICIENTS_LOW_0_HZ)
+    filter(data, COEFFICIENTS_LOW_0_HZ)
   end
 
   def self.low_5_hz(data)
-    chebyshev_filter(data, COEFFICIENTS_LOW_5_HZ)
+    filter(data, COEFFICIENTS_LOW_5_HZ)
   end
 
   def self.high_1_hz(data)
-    chebyshev_filter(data, COEFFICIENTS_HIGH_1_HZ)
+    filter(data, COEFFICIENTS_HIGH_1_HZ)
   end
 
 private
 
-  def self.chebyshev_filter(data, coefficients)
+  def self.filter(data, coefficients)
     filtered_data = [0,0]
     (2..data.length-1).each do |i|
       filtered_data << coefficients[:alpha][0] * 
@@ -283,9 +283,9 @@ Anytime our program needs to filter a time series, we can call one of the class 
 * `low_5_hz` is used to low-pass filter signals at or below 5 Hz
 * `high_1_hz` is used to high-pass filter signals above 1 Hz
 
-Each class method calls `chebyshev_filter`, which implements the Chebyshev filter and returns the result. If we wish to add more filters in the future, we only need to change this one class. 
+Each class method calls `filter`, which implements the IIR filter and returns the result. If we wish to add more filters in the future, we only need to change this one class. 
 
-One important thing to note is that all magic numbers are defined at the top. This makes our class easier to read and understand. The formula in `chebyshev_filter` is much more obvious using the `coefficients` parameter than it would have been with numerical values directly inserted.
+One important thing to note is that all magic numbers are defined at the top. This makes our class easier to read and understand. The formula in `filter` is much more obvious using the `coefficients` parameter than it would have been with numerical values directly inserted.
 
 # Input Formats
 

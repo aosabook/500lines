@@ -14,20 +14,20 @@ class Filter
   }
 
   def self.low_0_hz(data)
-    chebyshev_filter(data, COEFFICIENTS_LOW_0_HZ)
+    filter(data, COEFFICIENTS_LOW_0_HZ)
   end
 
   def self.low_5_hz(data)
-    chebyshev_filter(data, COEFFICIENTS_LOW_5_HZ)
+    filter(data, COEFFICIENTS_LOW_5_HZ)
   end
 
   def self.high_1_hz(data)
-    chebyshev_filter(data, COEFFICIENTS_HIGH_1_HZ)
+    filter(data, COEFFICIENTS_HIGH_1_HZ)
   end
 
 private
 
-  def self.chebyshev_filter(data, coefficients)
+  def self.filter(data, coefficients)
     filtered_data = [0,0]
     (2..data.length-1).each do |i|
       filtered_data << coefficients[:alpha][0] * 
