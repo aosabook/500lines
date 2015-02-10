@@ -316,7 +316,7 @@ The `publish!` method will be called with a channel symbol and a message wheneve
 
 ## Defining Handlers
 
-We'll want to be able to write things like
+Ok. So, I've kind of been lying to you for a while. This isn't going to be a web server. It's going to be a web server, and associated mini-framework for defining handlers, and hence applications. Because, while I did start it with the aim of putting together a specific web application, I'm betting it won't be the only one that has the same construction pattern. So, to that end, what I want to be able to do is define handlers by writing things like
 
     (define-handler (source :close-socket? nil) (room)
        (subscribe! (intern room :keyword) sock))
@@ -333,7 +333,7 @@ We'll want to be able to write things like
 	              (:button :id "send" "Send")))))
 
 
-and have them mean the obvious. Actually, because we'd ostensibly be processing requests from untrusted sources, we'd want to write something more like
+And, actually, because any given application open to the greater internet will be processing data from untrusted sources, I'd want to write something more like
 
     (defun len-between (min thing max)
 	  (>= max (length thing) min))
@@ -355,9 +355,9 @@ and have them mean the obvious. Actually, because we'd ostensibly be processing 
 	              (:textarea :id "input")
 	              (:button :id "send" "Send")))))
 
-and get the validation out of the way in the same stroke. It's not *quite* strongly typed HTTP parameters, because I'm interested in enforcing more than type, but that's a good first approximation. You can imagine more or less this same thing being implemented in a mainstream class-based OO language using a class hierarchy. That is, you'd define a `handler` class, then subclass that for each handler you have, giving each `get`, `post`, `parse` and `validate` methods as needed. If you imagine this well enough, you'll also see the small but non-trivial pieces of boilerplate that the approach would get you, both in terms of setting up classes and methods themselves and in terms of doing the parsing/validation of your parameters. The Common Lisp approach, and I'd argue the right approach, is to write a DSL to handle the problem. In this case, it takes the form of a new piece of syntax that lets you declare certain properties of your handlers, and expands into the code you would have written by hand. Writing this way, your code ends up amounting to a set of instructions which a Lisp implementation can unfold into the much more verbose and extensive code that you want to run. The benefit here is that you don't have to maintain the intermediate code, as you would if you were using IDE/editor-provided code generation facilities, you have the comparably easy and straight-forward task of maintaining the unfolding instructions.
+and get the validation out of the way in the same stroke. It's not *quite* strongly typed HTTP parameters, because I'm interested in enforcing more than type, but that's a good first approximation. You can imagine more or less this same thing being implemented in a mainstream class-based OO language using a class hierarchy. That is, you'd define a `handler` class, then subclass that for each handler you have, giving each `get`, `post`, `parse` and `validate` methods as needed. If you imagine this well enough, you'll also see the small but non-trivial pieces of boilerplate that the approach would get you, both in terms of setting up classes and methods themselves and in terms of doing the parsing/validation of your parameters. The Common Lisp approach, and I'd argue the *right* approach, is to write a DSL to handle the problem. In this case, it takes the form of a new piece of syntax that lets you declare certain properties of your handlers, and expands into the code you would have written by hand. Writing this way, your code ends up amounting to a set of instructions which a Lisp implementation can unfold into the much more verbose and extensive code that you want to run. The benefit here is that you don't have to maintain the intermediate code, as you would if you were using IDE/editor-provided code generation facilities, you have the comparably easy and straight-forward task of maintaining the unfolding instructions. In Common Lisp, those unfolding instructions are called `macro`s.
 
-Lets step through the expansion for `send-message`, just so you understand what's going on. What I'm about to show you is the output of the SLIME macro-expander, which does a one-level expansion on the macro call you give it.
+Before we get to defining them, lets step through the expansion for `send-message`, just so you understand what's going on and what we ultimately want that `define-handler` form to *mean* when we write it. What I'm about to show you is the output of the SLIME macro-expander, which does a one-level expansion on the macro call you give it.
 
     (define-handler (send-message)
 	    ((room :string (len-between 0 room 16))
@@ -576,9 +576,7 @@ the evaluation looks like
 
 Lets take a short break here. At this point we're two levels deep into tree processing. And what we're doing will only make sense to you if you remember that Lisp code is itself represented as a tree. That's what the parentheses are for; they show you how leaves and branches fit together. If you step back, you'll realize we've got a macro definition, `make-closing-handler`, which calls a function, `arguments`, to generate part of the tree its constructing, which in turn calls some tree-manipulating helper functions, including `arg-exp`, to generate its return value. The tree that these functions have as input *happen* to represent Lisp code, and because there's no difference between Lisp code and a tree, you have a transparent syntax definition system. The input is a Lisp expression, and the output is a lisp expression that will be evaluated in its place. Possibly the simplest way of conceptualizing this is as a very simple and minimal Common Lisp to Common Lisp compiler.
 
-### Another Short Break -- Briefly Meditating on Anaphoric Macros
-
-A particularly widely used, and particularly simple group of such compilers are called *anaphoric macros*. You've seen `aif` already, and will later see `awhen` later on. Personally, I only tend to use those two with any frequency, but there's a fairly wide variety of them available in the [`anaphora` package](http://www.cliki.net/Anaphora). As far as I know, they were first defined by Paul Graham in an [OnLisp chapter](http://dunsmor.com/lisp/onlisp/onlisp_18.html). The use case he gives is a situation where you want to do some sort of expensive or semi-expensive check, then do something conditionally on the result. In the above context, we're using `aif` to do a check on the result of an `alist` traversal.
+A particularly widely used, and particularly simple group of such compilers are called *anaphoric macros*. You've already seen `aif` and `awhen`. Personally, I only tend to use those two with any frequency, but there's a fairly wide variety of them available in the [`anaphora` package](http://www.cliki.net/Anaphora). As far as I know, they were first defined by Paul Graham in an [OnLisp chapter](http://dunsmor.com/lisp/onlisp/onlisp_18.html). The use case he gives is a situation where you want to do some sort of expensive or semi-expensive check, then do something conditionally on the result. In the above context, we're using `aif` to do a check on the result of an `alist` traversal.
 
 	(aif (cdr (assoc :room parameters))
 	     (uri-decode it)
@@ -774,37 +772,3 @@ Once you fill in the `interface.js` piece, this will in fact start an HTTP chat 
 And you know exactly how it's happening, down to the sockets.
 
 [[TODO: Take a crack at putting together a light JS UI so that users can actually run this.]]
-
-## Bonus Stage
-
-I mentioned we'd get to the debug component, and figured I'd go over it in the epilogue. This article is probably going to be heavy going for people not already familiar with Lisp, so I didn't want to weigh it down further. Over the course of writing this server, I periodically had to diagnose various low-level problems, but definitely didn't want to have those debug statements make it out into a deployment. Because I wrote most of the functionality as methods, I was able to take advantage of a particular minor feature of CLOS to cluster all of my debugging-related `printf`s into the `debug!` procedure in `util.lisp`.
-
-	(defun debug! (&optional (stream *standard-output*))
-	  (flet ((dbg (label &rest msg) (format stream ">>>> ~a~%~{~s~%----------~%~}~%" label msg)))
-	    (defmethod process-ready :before ((sock stream-usocket) conns buffers)
-		       (dbg "Preparing to buffer..." sock
-			    "CONNECTIONS: " (alexandria:hash-table-keys conns)
-			    "BUFFERS: " (alexandria:hash-table-keys buffers)))
-	    (defmethod handle-request :before (sock req) 
-		       (dbg "Handling request..." sock req (resource req) (headers req) (parameters req)))
-	    (defmethod handle-request :after (sock req) 
-		       (dbg "Completed request..."))
-	    (defmethod buffer! :before (buf)
-		       (dbg "Buffering..." buf (tries buf)))
-	    (defmethod buffer! :after (buf)
-		       (when (> (tries buf) +max-buffer-tries+)
-			 (dbg "Needy buffer..." buf (tries buf) (coerce (reverse (contents buf)) 'string))))
-	    (defmethod write! :before ((res response) sock) 
-		       (dbg "Writing response..."))
-	    (defmethod error! :before (res sock &optional instance) 
-		       (dbg "Sending error response..."
-			    instance sock res (response-code res)))
-	    (defmethod subscribe! :before (chan sock) 
-		       (dbg "New subscriber" chan))
-	    (defmethod publish! :before (chan msg) 
-		       (dbg "Publishing to channel" chan msg))
-	    nil))
-
-The feature is `:before`/`:after` hooks. And I guess the built-in language feature of a `defmethod` that can be run somewhere other than the top-level, but I sort of take that for granted these days. Defining a `:before` hook on a particular method lets you specify a bit of code that'll be executed before every call to that method. `:after` is similar, except the stuff you specify happens after the main method is called. You can specialize these `:before`/`:after` hooks as arbitrarily as the main methods, and only the relevant one will actually run. One possible use for this is the above. If you take a closer look at the `error!` `:before` method, you'll see where we're using the `instance` optional argument. This is the only place, and its only use is making `:house` debug logs more easily readable.
-
-As I mentioned, most of the `:house` server is written using `defmethod`, which means I have plenty of places to hook up debugging/logging statements so I can see what's going on. Clustering all such print statements inside of the `debug!` procedures means that the rest of my code gets to stay unchanged when I need to add a `printf` somewhere, and it means that the `printf`s don't get run unless I specifically ask for them by calling `(debug!)` at some point in my session.
