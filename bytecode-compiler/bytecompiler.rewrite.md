@@ -751,7 +751,7 @@ problems:
   both at once, there'd be ambiguity about whether an intermediate
   line number covered part of the range.)
 
-[XXX stupid markdown formatting line, ignore me]
+<!-- XXX this line is for markdown formatting only XXX -->
 
     def make_lnotab(assembly):
         firstlineno, lnotab = None, []
@@ -1145,7 +1145,7 @@ Our finished compiler will need more passes:
 
 * With this info in hand we generate bytecode as before.
 
-[XXX stupid markdown formatting line, ignore me]
+<!-- XXX this line is for markdown formatting only XXX -->
 
     # in compile to code v2:
     def compile_to_code(module_name, filename, t):
