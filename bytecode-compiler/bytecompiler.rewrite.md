@@ -1633,8 +1633,6 @@ as just another form of AST, making the compiler and surrounding tools
 all simpler. In numbers, how much better is the bytecode virtual
 machine?
 
-[XXX can we give a rough number?]
-
 Exploring that question exceeds my scope here---but maybe not yours.
 
 
