@@ -16,11 +16,11 @@ class AnalyzerTest < Test::Unit::TestCase
   # -- Creation Tests -------------------------------------------------------
 
   def test_create
-    data = [0, 0, 3.0950446845522207e-05, 8.888784491236883e-05, 
-            0.00017675661757108235, 0.0003010710258273255, 
+    data = [0, 0, 3.0950446845522207e-05, 8.888784491236883e-05,
+            0.00017675661757108235, 0.0003010710258273255,
             0.0004670334044406543, 0.0006857659826903315]
     analyzer = Analyzer.run(data, User.new, Trial.new('walk1'))
-    
+
     assert_nil analyzer.delta
     assert_nil analyzer.time
     assert_equal 0, analyzer.steps

@@ -24,7 +24,7 @@ class UploadTest < Test::Unit::TestCase
     assert_equal user_params['gender'],      upload.user.gender
     assert_equal user_params['height'].to_f, upload.user.height
     assert_equal user_params['stride'].to_f, upload.user.stride
-    
+
     assert_equal trial_params['name'],       upload.trial.name
     assert_equal trial_params['rate'].to_i,  upload.trial.rate
     assert_equal trial_params['steps'].to_i, upload.trial.steps
@@ -37,7 +37,7 @@ class UploadTest < Test::Unit::TestCase
     upload = Upload.find(file_path)
 
     assert_equal file_path, upload.file_path
-    
+
     assert_equal 'female', upload.user.gender
     assert_equal 168.0,    upload.user.height
     assert_equal 70.0,     upload.user.stride
