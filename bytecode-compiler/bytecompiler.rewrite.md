@@ -745,8 +745,9 @@ problems:
     
 * The difference could exceed 255. In this case the entry must take up
   multiple successive byte-pairs, first increasing only the address
-  part in each, and then increasing the line number. [XXX say
-  something---a tiny bit?---about why]
+  part in each, and then increasing the line number. (If we increased
+  both at once, there'd be ambiguity about whether an intermediate
+  line number covered part of the range.)
 
 [XXX stupid markdown formatting line, ignore me]
 
