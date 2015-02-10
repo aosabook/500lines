@@ -172,7 +172,7 @@ That's basically what you'll see in action in Common Lisp. You can think about i
 
 and each cell representing the implementation of that operation for that type. Class-focused OO says "Focus on the first column; the class is the important part", function-focused OO says "focus on the first row; the operation needs to be central". Consequently, CF-OO systems tend to group all methods related to a class in with that class' data, whereas FF-OO systems tend to isolate the data completely and group all implementations of an operation together. In the first system, it's difficult to ask "what classes implement method `foo`?" which is easy in the second, but the second has similar problems answering "what are all the methods that specialize on class `bar`?". In a way those questions don't make sense from within the systems we're asking them, and understanding why that is will give you some insight into where you want one or the other.
 
-## End of Detour in 4. 3. . 
+## End of Detour in 4. 3. 2. 
 
 Bringing this back around to our `buffer`s, the class we defined earlier has six slots
 
