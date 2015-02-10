@@ -1,7 +1,4 @@
-/**
-  *  script.als
-  *    A model of a browser script
-  */
+/** A model of a browser script */
 module script
 
 open browser
@@ -19,9 +16,7 @@ fact Wellformedness {
 /* Calls initiated by a script */
 
 -- browser that script "s" is running in at time "t"
-fun browser[s : Script, t : Time] : Browser {
-	(documents.t).(s.context)
-}
+fun browser[s : Script, t : Time] : Browser { (documents.t).(s.context) }
 
 // HTTP requests sent by a script
 sig XmlHttpRequest extends HttpRequest {}{
@@ -31,7 +26,7 @@ sig XmlHttpRequest extends HttpRequest {}{
     sentCookies in b.cookies.start and
     -- every cookie sent must be scoped to the url of the request
     matchingScope[sentCookies, url]
-  noBrowserChange[start, end] and noDocumentChange[start, end]
+  noBrowserChange[start, end] and noDocumentChange[start, end] 
 }
 
 abstract sig BrowserOp extends Call { doc: Document }{

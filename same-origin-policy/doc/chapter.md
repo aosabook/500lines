@@ -797,7 +797,10 @@ fun origin[u: Url] : Origin {
 ```
 The SOP itself has two parts, restricting the ability of a script to (1) make DOM API calls and (2) send HTTP requests. The first part of the policy states that a script can only read from and write to a document that comes from the same origin as the script:
 ```alloy
-pred domSop { all c: ReadDom + WriteDom | origin[c.doc.src] = origin[c.from.context.src] }
+pred domSop {
+  all o: ReadDom + WriteDom |  let target = o.doc, caller = o.from.context |
+    origin[target] = origin[caller] 
+}
 ```
 An instance such as the first script scenario is not possible under `domSop`, since `Script` is not allowed to invoke `ReadDom` on a document from a different origin.
 
@@ -817,31 +820,54 @@ because these are all considered distinct hosts.
 In order to allow some form of cross-origin communication when
 necessary, browsers implemented a variety of mechanisms for relaxing
 the SOP. Some of these are more well-thought-out than others, and some
-have serious flaws that, when badly used, can undermine the security
+have pitfalls that, when badly used, can undermine the security
 benefits of the SOP. In the following sections, we will describe the
 most common of these mechanisms, and discuss their potential security
 pitfalls.
 
 ## Techniques for Bypassing the SOP
 
-The SOP is a classic example of the tension between functionality and security; we want to make sure our sites are secure, but the mechanism for ensuring security sometimes can get in the way. Indeed, when the SOP was initially introduced, developers ran into trouble building sites that made legitimate uses of cross-domain communication, e.g. for mashups.
+The SOP is a classic example of the tension between functionality and security; we want to make sure our sites are robust and functional, but the mechanism for securing it can sometimes get in the way. Indeed, when the SOP was initially introduced, developers ran into trouble building sites that made legitimate uses of cross-domain communication, e.g. for mashups.
 
-In this section, we will discuss four techniques that have been devised and frequently used by web developers to bypass the restrictions imposed by the SOP: (1) The "document.domain" property relaxation; (2) JSONP; (3) PostMessage; and (4) CORS. These are useful tools, but if used without caution may make a web application vulnerable to exactly the kinds of attacks SOP was designed to thwart.
+In this section, we will discuss four techniques that have been
+devised and frequently used by web developers to bypass the
+restrictions imposed by the SOP: (1) The "document.domain" property
+relaxation; (2) JSONP; (3) PostMessage; and (4) CORS. These are valuable
+tools, but if used without caution, may render a web application
+vulnerable to exactly the kinds of attacks that the SOP was designed
+to thwart in the first place.
 
-Each of these four techniques is surprisingly complex, and if described in full detail, would merit its own chapter. So here we just give a brief flavor of how they work, potential security problems that they introduce, and how to prevent these problems.
+Each of these four techniques is surprisingly complex, and if
+described in full detail, would merit its own chapter. So here we just
+give a brief flavor of how they work, potential security problems that
+they introduce, and how to prevent these problems. In particular, we
+will ask the Alloy Analyzer to check, for each technique, whether it
+could be abused by an attacker to undermine the two security
+properties that we defined earlier:
+
+```
+check Confidentiality for 5
+check Integrity for 5
+```
+
+Based on insights from the counterexamples that the analyzer
+generates, we will discuss guidelines for safely using these techniques
+without falling into security pitfalls.
 
 ### Domain Property
 
-The idea behind the domain property relaxation of the SOP, is to
-give two pages of the same site permission to read and write each other's DOM by
-setting the `document.domain` property to the same value -- thus bypassing the
-SOP restriction on DOM access. So, for example,
-a script in `foo.example.com` could read/write the DOM of `example.com` if both
-scripts set the `document.domain` property to `example.com` (assuming both
-source URLs have also the same protocol and port). 
+As the first technique on our list, we will look at the use of the
+"document.domain" property as a way of bypassing the SOP. The idea
+behind this technique is to allow two documents from different origins
+to access each other's DOM simply by setting the "document.domain"
+property to the same value. So, for example, a script from
+`email.example.com` could read or write the DOM of a document from
+`calendar.example.com` if the scripts in both documents set the
+`document.domain` property to `example.com` (assuming both source URLs
+have also the same protocol and port).
 
-We model the operation of setting the `document.domain` property by adding
-a `SetDomain` browser operation:
+We model the behavior of setting the `document.domain` property as a type
+of browser operation called `SetDomain`:
 
 ```alloy
 // Modify the document.domain property
@@ -856,14 +882,8 @@ sig SetDomain extends BrowserOp { newDomain: Domain }{
 The `newDomain` field represents the value to which the property should be set.
 There's a caveat, though: scripts can only set the domain property to 
 a right-hand, fully qualified fragment of its hostname.
-(i.e., `foo.example.com` can set it to `example.com` but not to
- `google.com`). \*
-
-(\* Wondering if it's possible to set the domain to just `com`? `foo.example.com` would
- be a subdomain of `com` after all, but browsers know that
- `com` is a top-level domain and disallow this.)
-
-We add a `fact` to capture this rule:
+(i.e., `email.example.com` can set it to `example.com` but not to
+ `google.com`). We use a fact to capture this rule about subdomains:
 
 ```alloy
 // Scripts can only set the domain property to only one that is a right-hand,
@@ -879,86 +899,94 @@ could set the domain property to your bank domain, load your bank
 account in an iframe, and (assuming the bank page has set its domain
 property) read the DOM of your bank page!
 
-Now we modify our original definition of the SOP for DOM accesses to
-reflect the domain property relaxation. If two scripts set the
-`document.domain` property to the same value, and they have the same
-protocol and port, then these two scripts can interact with each other
-(that is, read and write each other's DOM). They won't be allowed to
-do so if only one of the scripts sets the property while the other one
-doesn't, even if the resulting properties match.\*
-
-(\* At first sight, it's strange that browsers distinguish whether the
-property is explicitly set rather than just examining its
-value. Without this, various bad things can happen. For example, a
-site could be subject to a cross-site scripting attack from its
-subdomains: `foo.example.com`, say, might set the `document.domain`
-property to `example.com` and write to the parent domain's DOM, even
-if the parent domain never set the property.)
+Let us go back to our original definition of the SOP, and relax its
+restriction on DOM access in order to take into account the effect of
+the `document.domain` property. If two scripts set the property to the
+same value, and they have the same protocol and port, then these two
+scripts can interact with each other (that is, read and write each
+other's DOM). 
 
 ```alloy
 pred domSop {
-  all op: ReadDom + WriteDom | 
-    -- a script can access the DOM of a document with the same origin
-    origin[op.doc.src] = origin[op.from.context.src] or
-    -- the domain property of both script's context and target doc have been set...
-    (op.doc + op.from.context in (op.prevs <: SetDomain).doc and
-    -- ...and they have the same origin (with the domain property as host)
-    origin[op.doc.src, op.doc.domain.(op.start)] =
-    origin[op.from.context.src, op.from.context.domain.(op.start)])\*
+  -- For every successful read/write DOM operation,
+  all o: ReadDom + WriteDom |  let target = o.doc, caller = o.from.context |
+    -- (1) target and caller documents are from the same origin, or
+    origin[target] = origin[caller] or
+    -- (2) domain properties of both documents have been modified
+    (target + caller in (o.prevs <: SetDomain).doc and
+      -- ...and they have matching origin values.
+      currOrigin[target, o.start] = currOrigin[caller, o.start])
 }
 ```
 
-(\* In these constraints, `op.start` is the start time of the read or write operation, so the expression `op.doc.domain.(op.start)`, for example, refers to the domain of the operation's document as it was _before_ the operation occurred.)
+Here, `currOrigin[d, t]` is a function that returns the origin of document `d` with the `document.domain` property at time `t` as its hostname.
 
-To illustrate the purpose of this relaxation, we can ask the analyzer to give us an instance where two documents that are from different origins nevertheless communicate with each other:
+It is worth pointing out that the `document.domain` properties for
+_both_ documents must be _explictly_ set sometime after they
+are loaded into the browser. Let us say that document A is
+loaded from `example.com`, and document B from `calendar.example.com` has
+its domain property modified to `example.com`. Even though the two
+documents now have the same domain property, they will _not_ be able to
+interact with each other, unless document A also explictly sets its
+property to `example.com`. At first, this seems like a rather strange
+behavior. However, without this, various bad things can happen. For
+example, a site could be subject to a cross-site scripting attack from
+its subdomains: A malicious script in document B might modify
+its domain property to `example.com` and manipulate the DOM of
+document A, even though the latter never intended to interact with
+document B.
 
-```alloy
-// Can a script read or write the DOM of a document with another origin?
-run { some c: ReadDom + WriteDom | origin[c.doc.src] != origin[c.from.context.src] }
+**Security Analysis:** Now that we have relaxed the SOP to allow
+  cross-origin communication under certain circumstances, do the
+  security guarantees of the SOP still hold? Let us ask the Alloy
+  Analyzer to tell us whether the `document.domain` property could be
+  abused by an attacker to access or tamper with a user's sensitive data.
+
+Indeed, given the new, relaxed definition of the SOP, the analyzer
+generates a counterexample scenario to the `confidentiality` property:
+
+```
+check Confidentiality for 5
 ```
 
-The analyzer generates the following scenario, showing how two documents from distinct origins, `CalendarPage` and `InboxPage`, communicate by setting their domain properties to a common value (`ExampleDomain`):
-
-![setdomain-instance-1a](fig-setdomain-1a.png)
-![setdomain-instance-1b](fig-setdomain-1b.png)
-![setdomain-instance-1c](fig-setdomain-1c.png)
+This scenario consists of five steps; the first three steps show a typical use case of the `document.domain` property, where two documents from distinct origins, `CalendarPage` and `InboxPage`, communicate by setting their domain properties to a common value (`ExampleDomain`). The last two steps introduce another document, `BlogPage`, that has been compromised with a malicious script that attempts to access the content of the other two documents.
 
 At the beginning of the scenario, `InboxPage` and `CalendarPage` have
 domain properties with two distinct values (`EmailDomain` and
-`ExampleDomain`, respectively), so the browser will prevent
-them from accessing each other's DOM. The scripts running inside the
-documents (`InboxScript` and
-`CalendarScript`) each execute the `SetDomain` operation to modify their domain
-properties to `ExampleDomain` (which is allowed because
-`ExampleDomain` is a superdomain of the original domain). Having done this, 
-they can now access each other's DOM
-by executing `ReadDom` or `WriteDom` operations.
+`ExampleDomain`, respectively), so the browser will prevent them from
+accessing each other's DOM.  The scripts running inside the documents
+(`InboxScript` and `CalendarScript`) each execute the `SetDomain`
+operation to modify their domain properties to `ExampleDomain` (which
+is allowed because `ExampleDomain` is a superdomain of the original
+domain):
 
-While this method of cross-origin communication may seem simple and
-convenient, it is far from perfect.  First, this method is
-not general enough. In particular, it may be used enable cross-origin
-DOM access _only_ between documents that have a common superdomain,
-meaning it cannot be used by applications from completely
-different domains.
+![setdomain-instance-1a](fig-setdomain-1a.png)
+![setdomain-instance-1b](fig-setdomain-1b.png)
 
-Second, using the domain property mechanism can put the entire site
-at risk.  When you set the domain property of both "email.example.com"
+Having done this, they can now access each other's DOM by
+executing `ReadDom` or `WriteDom` operations:
+
+![setdomain-instance-1c](fig-setdomain-1c.png)
+
+<!---
+While this method is a quick and easy way of relaxing the SOP, it is
+rather limited; namely, it can enable cross-origin DOM access
+_only_ between documents that have a common superdomain, meaning it
+cannot be used by applications from completely different domains.
+-->
+
+Note that when you set the domain property of both "email.example.com"
 and "calendar.example.com" to "example.com", you are allowing not only
 these two pages to communicate between each other, but also _any_
 other page that has "example.com" as a superdomain
-(e.g. "blog.example.com"). This has significant security consequences;
-for example, if "blog.example.com" has a cross-site scripting vulnerability, an
-attacker can inject a malicious script into the blog page, modify its
-domain property to "example.com", and then use the DOM API functions to
-access the content of the other pages. 
-
-When prompted to check the confidentiality property of the example
-email application, the Alloy Analyzer generates the following
-scenario, which demonstrates how a malicious script, running inside
-`BlogPage`, may be able to read the content of the inbox page by
-setting its domain property to `ExampleDomain`:
+(e.g. "blog.example.com"). An attacker also realizes this, and
+constructs a special script (`EvilScript`) that runs inside the
+attacker's blog page (`BlogPage`). In the next step, the script executes `SetDomain` operation to modify the domain property of `BlogPage` to `ExampleDomain`:
 
 ![setdomain-instance-2a](fig-setdomain-2a.png)
+
+Now that `BlogPage` has the same domain property as the other two documents, it can successfully execute `ReadDOM` operation to access their content.
+
 ![setdomain-instance-2b](fig-setdomain-2b.png)
 
 This attack points out one crucial weakness of the domain property

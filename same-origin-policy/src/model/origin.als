@@ -19,8 +19,10 @@ fun origin[u: Url] : Origin {
   {o: Origin | o.protocol = u.protocol and o.host = u.host and o.port = u.port }
 }
 
-fun origin[u: Url, h: Domain] : Origin {
-  {o: Origin | o.protocol = u.protocol and o.host = h and o.port = u.port }
+fun origin[d: Document] : Origin { origin[d.src] }
+
+fun currOrigin[d : Document, t : Time] : Origin {
+  {o: Origin | let u = d.src | o.protocol = u.protocol and o.host = d.domain.t and o.port = u.port }
 }
 
 fact {

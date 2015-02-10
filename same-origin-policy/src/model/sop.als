@@ -15,15 +15,14 @@ fact sameOriginPolicy {
 }
 
 pred domSop {
-  all c: ReadDom + WriteDom | 
-    -- a script can access the DOM of a document with the same origin
-    origin[c.doc.src] = origin[c.from.context.src] or
-    -- the domain property of both the script's context and target doc have been
-    -- set...
-    (c.doc + c.from.context in (c.prevs <: SetDomain).doc and
-    -- ...and they have the same origin (with the domain property as host)
-    origin[c.doc.src, c.doc.domain.(c.start)] =
-    origin[c.from.context.src, c.from.context.domain.(c.start)])
+  -- For every successful read/write DOM operation,
+  all o: ReadDom + WriteDom |  let target = o.doc, caller = o.from.context |
+    -- the calling and target documents are from the same origin, or
+    origin[target] = origin[caller] or
+    -- domain properties of both documents have been modified
+    (target + caller in (o.prevs <: SetDomain).doc and
+      -- ...and they have matching origin values.
+      currOrigin[target, o.start] = currOrigin[caller, o.start])
 }
 
 pred xmlHttpReqSop {
@@ -38,4 +37,4 @@ pred xmlHttpReqSop {
 /* Commands */
 
 // Can a script read or write the DOM of a document with another origin?
-run { some c: ReadDom + WriteDom | origin[c.doc.src] != origin[c.from.context.src] }
+run { some c: ReadDom + WriteDom | origin[c.doc.src] != origin[c.from.context.src] } for 4
