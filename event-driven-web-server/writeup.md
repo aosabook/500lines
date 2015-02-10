@@ -170,6 +170,8 @@ That's basically what you'll see in action in Common Lisp. You can think about i
 
 and each cell representing the implementation of that operation for that type. Class-focused OO says "Focus on the first column; the class is the important part", function-focused OO says "focus on the first row; the operation needs to be central". Consequently, CF-OO systems tend to group all methods related to a class in with that class' data, whereas FF-OO systems tend to isolate the data completely and group all implementations of an operation together. In the first system, it's difficult to ask "what classes implement method `foo`?" which is easy in the second, but the second has similar problems answering "what are all the methods that specialize on class `bar`?". In a way those questions don't make sense from within the systems we're asking them, and understanding why that is will give you some insight into where you want one or the other.
 
+I assume you've already seen plenty of Class-focused OO systems. In FF-OO systems, classes proper contain only their state, and *not* their behavior. The generic functions (and associated methods) of such a system determine the behavior based on the specializations of the arguments they receive. An advantage of this arrangement is the ability to specialize on more than one arguments to a method. It's not something you'll want to use *all* the time, but there are situations that call for it.
+
 ## End of Detour in 4. 3. 2. 
 
 Bringing this back around to our `buffer`s, the class we defined earlier has six slots
@@ -179,9 +181,9 @@ Bringing this back around to our `buffer`s, the class we defined earlier has six
 - `content-size`, which is a count of chars we've read so far
 - `found-crlf?`, which tracks whether we've seen a `\r\n\r\n` sequence go by
 - `started`, which a timestamp that tells us when we created this buffer
-- and `bi-stream`, which is a hack around some of those non-blocking-IO annoyances in Common Lisp.
+- and `bi-stream`, which is a hack around some of those Common Lisp-specific, non-blocking-IO annoyances I mentioned.
 
-The next interesting part of `process-ready` comes after the edge-case handling of old/big/needy requests. It's wrapped in another layer of error handling because we might still crap out in different ways here. In particular, if the request is old/big/needy or if an `http-assertion-error` is raised, we want to send a `400` response; the client provided us with some bad or slow data. However, if any _other_ error happens here, it's because the programer made a mistake defining a handler, which should be treated as a `500` error. Something went wrong on the server side as a result of a potentially legitimate request.
+The next interesting part of the `stream-usocket`-specializing `process-ready` comes after the edge-case handling of old/big/needy requests. It's wrapped in another layer of error handling because we might still crap out in different ways here. In particular, if the request is old/big/needy or if an `http-assertion-error` is raised, we want to send a `400` response; the client provided us with some bad or slow data. However, if any _other_ error happens here, it's because the programer made a mistake defining a handler, which should be treated as a `500` error. Something went wrong on the server side as a result of a potentially legitimate request.
 
 Lets follow that trail for a while:
 
@@ -476,7 +478,7 @@ So making a closing-handler involves making a `lambda`, which is just what you c
 
 Welcome to the hard part. `arguments` takes the handlers' arguments, and generates that tree of parse attempts and assertions you saw in the full macro-expansion of `send-message`. In other words, it takes
 
-	(define-closing-handler (send-message)
+	(define-handler (send-message)
 	    ((room :string (>= 16 (length room)))           ;; < the arguments
 	     (name :string (>= 64 (length name) 1))         ;; <
 	     (message :string (>= 256 (length message) 5))) ;; <
@@ -533,7 +535,7 @@ that. Here's an evaluation from a REPL:
 
 The `match` clause inside `arguments` distinguishes between symbol arguments and list arguments, which lets you have untyped arguments in handlers. For instance, if you knew you could trust your users not to pick gigantic names, you could do this:
 
-    (define-closing-handler (send-message) ((room :string (>= 16 (length room))) name (message :string (>= 256 (length message) 5)))
+    (define-handler (send-message) ((room :string (>= 16 (length room))) name (message :string (>= 256 (length message) 5)))
        (publish! (intern room :keyword) (encode-json-to-string `((:name . ,name) (:message . ,message)))))
 
 The appropriate `arguments` call would then just check for the *presence* of a `name` parameter rather than asserting anything about its contents.
