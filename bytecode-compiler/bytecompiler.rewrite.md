@@ -805,8 +805,8 @@ how many bytes of bytecode they'll become. In this compiler the
 lengths are constant, since we don't support the extended-length
 argument format. (Suppose there were a relative jump to an address
 over 65535 bytes away. The jump instruction would need to occupy more
-than the usual 3 bytes; if we'd assumed 3 bytes, this would imply
-cascading changes.) [XXX can you in fact have extended jumps?]
+than the usual 3 bytes; if we'd assumed 3 bytes, this could imply
+cascading changes to other offsets.)
 
 A `Label` is just like `no_op`, except resolving to an address.
 
@@ -921,15 +921,7 @@ so:
 The argument to `BUILD_MAP` gives the runtime a hint of the dict's
 size. It's allowed to be wrong, since dicts can grow and shrink---but
 not to overflow the two bytes allotted to an argument in
-bytecode. Thus the `min`. ([XXX I think this digression should go,
-too:] A dict literal big enough to get clipped by this `min` would
-likely use so many constants that references into the constants table
-would overflow *their* two-byte encoding. Python bytecode does have a
-means for extended-size arguments, which again I didn't implement;
-you'll get a runtime error during compiling instead. So why bother
-with the `min`? Because we may fix the extended-size encoding issue
-later, and it's easier to make `BUILD_MAP` correct now than to
-document the problem for later.)
+bytecode. Thus the `min`.
 
 A simple subscript expression, `a[x]`, becomes
 
