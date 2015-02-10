@@ -1439,21 +1439,21 @@ free variables---and it might take roughly the same amount of
 code. Being different from CPython's approach, it's riskier.
 
 
-### Back to code generation
+### Code for functions
 
     # in code generation 2 v2:
         def visit_Return(self, t):
             return ((self(t.value) if t.value else self.load_const(None))
                     + op.RETURN_VALUE)
 
-We handle both `return` and `return foo`. (The no-argument `return` is
-never used by this compiler.)
+We handle both `return foo` and the no-argument `return`. (The latter
+is never used by this compiler.)
 
 A `Function` node is an expression desugared from a lambda expression,
 function definition, or list comprehension. Compiling one takes two
 steps: first, compile the whole nested scope into a separate code
 object. Second, generate assembly code that will build a function
-object out of this code object. [XXX disassembled example needed]
+object out of this code object.
 
         def visit_Function(self, t):
             code = self.sprout(t).compile_function(t)
@@ -1467,8 +1467,32 @@ by `self.scope.get_child(t)`.
             return CodeGen(self.filename, self.scope.get_child(t))
 
 Building a function out of a code object depends on whether it has
-free variables:
+free variables. `lambda x: lambda y: x + y` compiles to
 
+    # in examples:
+      1           0 LOAD_CONST               1 (<code object <lambda> at 0x7ff785c81930)
+                  3 LOAD_CONST               2 ('<lambda>')
+                  6 MAKE_FUNCTION            0
+
+where the first constant is the code object for `lambda y: x +
+y`, whose code in turn should be
+
+      1           0 LOAD_CLOSURE             0 (x)
+                  3 BUILD_TUPLE              1
+                  6 LOAD_CONST               1 (<code object <lambda> at 0x7ff785c81810)
+                  9 LOAD_CONST               2 ('<lambda>.<locals>.<lambda>')
+                 12 MAKE_CLOSURE             0
+                 15 RETURN_VALUE
+
+The outer lambda, with no free variables, becomes a `MAKE_FUNCTION`;
+the inner one becomes a `MAKE_CLOSURE` passed a tuple of deref
+cells. (`LOAD_CLOSURE` is to load `x`'s *cell*, instead of the
+contents of the cell as `LOAD_DEREF` would do. The scope analyzer
+already arranged for the needed cells to be among the current scope's
+`cellvars`.) The second `LOAD_CONST` in either case is the name of the
+new function.
+
+    # in code generation 2 v2:
         def make_closure(self, code, name):
             if code.co_freevars:
                 return (concat([op.LOAD_CLOSURE(self.cell_index(freevar))
@@ -1478,26 +1502,8 @@ free variables:
             else:
                 return self.load_const(code) + self.load_const(name) + op.MAKE_FUNCTION(0)
 
-We always add the function's code object to the constants table of our
-current code object (with `load_const`). In the simple case of a
-function whose variables are all local or global (no `co_freevars`),
-we emit assembly that will push that code object and the function's
-name on the stack and create a new function object, with
-`MAKE_FUNCTION`.
-
-[TODO: example disassembly again]
-
-For a function with free variables the assembly has more to do: it
-will collect the values of all the nonlocals into a tuple, then push
-the code object and the name as before; then `MAKE_CLOSURE` expects
-the tuple. The scope analyzer already arranged for the nested
-function's nonlocals to be in the current scope as 'cell variables'.
-[TODO review the docs/source on LOAD_CLOSURE---IIRC it loads the
-*mutable cell holding the variable's value*, instead of the value, so
-that the nested function can mutate the variable.]
-
-Back to compiling a function down to a code object: on a new `CodeGen`
-instance, we called `compile_function`:
+Recall that `visit_Function` wanted a code object for the function in
+question. On a new `CodeGen` instance, it called `compile_function`:
 
         def compile_function(self, t):
             self.load_const(ast.get_docstring(t))
@@ -1520,9 +1526,12 @@ We generate assembly that will run the function's body and return
 `None` (in case the body had no `return` of its own); then we assemble
 it all into a code object.
 
-On to class definitions. Like functions, they sprout a new `CodeGen`
-to compile down to a code object; but the assembly that will build the
-class object is a little fancier.
+
+### Code for classes
+
+Like functions, class definitions sprout a new `CodeGen` to compile
+down to a code object; but the assembly that will build the class
+object is a little fancier.
 
         def visit_ClassDef(self, t):
             code = self.sprout(t).compile_class(t)
