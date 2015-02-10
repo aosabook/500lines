@@ -1,3 +1,5 @@
+# From Python to Bytecode
+
 > "Python is about having the simplest, dumbest compiler imaginable."
 > --- Guido von Rossum in *Masterminds of Programming*
 
@@ -1481,7 +1483,7 @@ y`, whose code in turn should be
       1           0 LOAD_CLOSURE             0 (x)
                   3 BUILD_TUPLE              1
                   6 LOAD_CONST               1 (<code object <lambda> at 0x7ff785c81810)
-                  9 LOAD_CONST               2 ('<lambda>.<locals>.<lambda>')
+                  9 LOAD_CONST               2 ('<lambda>')
                  12 MAKE_CLOSURE             0
                  15 RETURN_VALUE
 
@@ -1490,8 +1492,9 @@ the inner one becomes a `MAKE_CLOSURE` passed a tuple of deref
 cells. (`LOAD_CLOSURE` is to load `x`'s *cell*, instead of the
 contents of the cell as `LOAD_DEREF` would do. The scope analyzer
 already arranged for the needed cells to be among the current scope's
-`cellvars`.) The second `LOAD_CONST` in either case is the name of the
-new function.
+`cellvars`.) The second `LOAD_CONST` in either case loads the name of
+the new function. (In 'real' Python the nested lambda's name would be
+`<lambda>.<locals>.<lambda>`, reflecting the nesting.)
 
     # in code generation 2 v2:
         def make_closure(self, code, name):
@@ -1553,7 +1556,7 @@ definition as 'fast'.
         def compile_class(self, t):
             docstring = ast.get_docstring(t)
             assembly = (  self.load('__name__')      + self.store('__module__')
-                        + self.load_const(t.name)    + self.store('__qualname__') # XXX need to mess with t.name?
+                        + self.load_const(t.name)    + self.store('__qualname__')
                         + self.load_const(docstring) + self.store('__doc__')
                         + self(t.body) + self.load_const(None) + op.RETURN_VALUE)
             return self.make_code(assembly, t.name, 0)
