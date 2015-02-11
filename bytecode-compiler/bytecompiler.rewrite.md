@@ -450,12 +450,12 @@ they're all global:
 Now for function calls. A call like `f(x, y, key=42)` compiles to
 
     # in examples:
-      1           0 LOAD_NAME                0 (f)
-                  3 LOAD_NAME                1 (x)
-                  6 LOAD_NAME                2 (y)
-                  9 LOAD_CONST               0 ('key')
-                 12 LOAD_CONST               1 (42)
-                 15 CALL_FUNCTION          258 (2 positional, 1 keyword pair)
+           0 LOAD_NAME                0 (f)
+           3 LOAD_NAME                1 (x)
+           6 LOAD_NAME                2 (y)
+           9 LOAD_CONST               0 ('key')
+          12 LOAD_CONST               1 (42)
+          15 CALL_FUNCTION          258 (2 positional, 1 keyword pair)
 
 Evidently the load instructions stash their values somewhere for
 `CALL_FUNCTION` to use at the end. That somewhere is the stack: a
@@ -466,14 +466,14 @@ more-complex expression like `f(g(1), h())` a place for the
 intermediate results to live:
 
     # in examples:
-                                                          (the stack afterwards)
-      1           0 LOAD_NAME                0 (f)        [f]
-                  3 LOAD_NAME                1 (g)        [f, g]
-                  6 LOAD_CONST               0 (1)        [f, g, 1]
-                  9 CALL_FUNCTION            1            [f, g(1)]
-                 12 LOAD_NAME                2 (h)        [f, g(1), h]
-                 15 CALL_FUNCTION            0            [f, g(1), h()]
-                 18 CALL_FUNCTION            2            [f(g(1), h())]
+                                                   (the stack afterwards)
+           0 LOAD_NAME                0 (f)        [f]
+           3 LOAD_NAME                1 (g)        [f, g]
+           6 LOAD_CONST               0 (1)        [f, g, 1]
+           9 CALL_FUNCTION            1            [f, g(1)]
+          12 LOAD_NAME                2 (h)        [f, g(1), h]
+          15 CALL_FUNCTION            0            [f, g(1), h()]
+          18 CALL_FUNCTION            2            [f(g(1), h())]
 
 The assembly code for the full, compound call is a concatenation of
 the assembly for its parts: if you compiled just `g(1)` or `h()`,
@@ -654,12 +654,12 @@ expression statement
 becomes
 
     # in examples:
-      1           0 LOAD_NAME                0 (ok)
-                  3 POP_JUMP_IF_FALSE       12
-                  6 LOAD_NAME                1 (yes)
-                  9 JUMP_FORWARD             3 (to 15)
-            >>   12 LOAD_NAME                2 (no)
-            >>   15 POP_TOP
+           0 LOAD_NAME                0 (ok)
+           3 POP_JUMP_IF_FALSE       12
+           6 LOAD_NAME                1 (yes)
+           9 JUMP_FORWARD             3 (to 15)
+     >>   12 LOAD_NAME                2 (no)
+     >>   15 POP_TOP
 
 where `POP_JUMP_IF_FALSE` does what it says: pops the value left by
 `ok`, tests it, and if it's false jumps to index 12. Otherwise
@@ -905,13 +905,13 @@ itself. I did not deliberately try to keep the chains balanced.)
 Dict literals like `{'a': 'x', 'b': 'y'}` turn into code like
 
     # in examples:
-      1           0 BUILD_MAP                2
-                  3 LOAD_CONST               0 ('x')
-                  6 LOAD_CONST               1 ('a')
-                  9 STORE_MAP           
-                 10 LOAD_CONST               2 ('y')
-                 13 LOAD_CONST               3 ('b')
-                 16 STORE_MAP           
+           0 BUILD_MAP                2
+           3 LOAD_CONST               0 ('x')
+           6 LOAD_CONST               1 ('a')
+           9 STORE_MAP           
+          10 LOAD_CONST               2 ('y')
+          13 LOAD_CONST               3 ('b')
+          16 STORE_MAP           
 
 so:
 
@@ -929,15 +929,15 @@ bytecode. Thus the `min`.
 A simple subscript expression, `a[x]`, becomes
 
     # in examples:
-      1           0 LOAD_NAME                0 (a)
-                  3 LOAD_NAME                1 (x)
-                  6 BINARY_SUBSCR
+           0 LOAD_NAME                0 (a)
+           3 LOAD_NAME                1 (x)
+           6 BINARY_SUBSCR
 
 Similarly, `a.x` becomes
 
     # in examples:
-      1           0 LOAD_NAME                0 (a)
-                  3 LOAD_ATTR                1 (x)
+           0 LOAD_NAME                0 (a)
+           3 LOAD_ATTR                1 (x)
 
 Like name nodes, subscript nodes can appear on the left-hand side of
 an assignment statement, like `a.x = 42`. They carry a `t.ctx` field
@@ -957,9 +957,9 @@ A list or tuple can also appear in both load and store contexts. As a
 load, `['a', 'b']` becomes
 
     # in examples:
-      1           0 LOAD_CONST               0 ('a')
-                  3 LOAD_CONST               1 ('b')
-                  6 BUILD_LIST               2
+           0 LOAD_CONST               0 ('a')
+           3 LOAD_CONST               1 ('b')
+           6 BUILD_LIST               2
 
 where 2 is the length of the list. Unlike with `BUILD_MAP` the length
 must be exact.
@@ -980,9 +980,9 @@ A unary operator works just like a function call except it gets its
 own instruction, for efficiency. `not -x` gets compiled to
 
     # in examples:
-      1           0 LOAD_NAME                0 (x) 
-                  3 UNARY_NEGATIVE       
-                  4 UNARY_NOT            
+           0 LOAD_NAME                0 (x) 
+           3 UNARY_NEGATIVE       
+           4 UNARY_NOT            
 
 so:
 
@@ -1006,9 +1006,9 @@ Binary operators get compiled the same way:
 compiling, for example, `x-1` to
 
     # in examples:
-      1           0 LOAD_NAME                0 (x) 
-                  3 LOAD_CONST               0 (1) 
-                  6 BINARY_SUBTRACT
+           0 LOAD_NAME                0 (x) 
+           3 LOAD_CONST               0 (1) 
+           6 BINARY_SUBTRACT
 
 Comparisons, like `x<2`, take a slightly different form in the AST,
 because Python treats a chain of comparisons specially: `1<x<2` is a
@@ -1029,11 +1029,11 @@ this case, only binary comparisons like `x<2`.
 consistent across different branches of control. `print(x or y)` compiles to
 
     # in examples:
-      1           0 LOAD_NAME                0 (print)
-                  3 LOAD_NAME                1 (x)
-                  6 JUMP_IF_TRUE_OR_POP     12
-                  9 LOAD_NAME                2 (y)
-            >>   12 CALL_FUNCTION            1 (1 positional, 0 keyword pair)
+           0 LOAD_NAME                0 (print)
+           3 LOAD_NAME                1 (x)
+           6 JUMP_IF_TRUE_OR_POP     12
+           9 LOAD_NAME                2 (y)
+     >>   12 CALL_FUNCTION            1 (1 positional, 0 keyword pair)
 
 `JUMP_IF_TRUE_OR_POP` only pops the tested value if it came out
 falsey. At index 12, whichever way execution got there, the stack has
@@ -1467,19 +1467,19 @@ Building a function out of a code object depends on whether it has
 free variables. `lambda x: lambda y: x + y` compiles to
 
     # in examples:
-      1           0 LOAD_CONST               1 (<code object <lambda> at 0x7ff785c81930)
-                  3 LOAD_CONST               2 ('<lambda>')
-                  6 MAKE_FUNCTION            0
+           0 LOAD_CONST               1 (<code object <lambda> at 0x7ff785c81930)
+           3 LOAD_CONST               2 ('<lambda>')
+           6 MAKE_FUNCTION            0
 
 where the first constant is the code object for `lambda y: x +
 y`, whose code in turn should be
 
-      1           0 LOAD_CLOSURE             0 (x)
-                  3 BUILD_TUPLE              1
-                  6 LOAD_CONST               1 (<code object <lambda> at 0x7ff785c81810)
-                  9 LOAD_CONST               2 ('<lambda>')
-                 12 MAKE_CLOSURE             0
-                 15 RETURN_VALUE
+           0 LOAD_CLOSURE             0 (x)
+           3 BUILD_TUPLE              1
+           6 LOAD_CONST               1 (<code object <lambda> at 0x7ff785c81810)
+           9 LOAD_CONST               2 ('<lambda>')
+          12 MAKE_CLOSURE             0
+          15 RETURN_VALUE
 
 The outer lambda, with no free variables, becomes a `MAKE_FUNCTION`;
 the inner one becomes a `MAKE_CLOSURE` passed a tuple of deref
