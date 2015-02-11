@@ -1,7 +1,7 @@
-# From Python to Bytecode
+# Tailbiter: from Python to Bytecode
 
-> "Python is about having the simplest, dumbest compiler imaginable."
-> --- Guido von Rossum in *Masterminds of Programming*
+> "Python is about having the simplest, dumbest compiler imaginable."  
+> ---Guido von Rossum in *Masterminds of Programming*
 
 People write source code, machines run machine code. A compiler turns
 one into the other---how? The whiff of magic to this hasn't quite
@@ -13,8 +13,8 @@ To dispel the mystery, there are some great short compilers to
 read. This chapter will add another toy example one to the literature,
 this time trying to keep it real in an unusual way: being able to
 compile itself, and not omitting the practical details of features
-like debug support. Since something has to go, we'll skip the whole
-topic of optimization.
+like debug support. Call it Tailbiter. Since something has to go,
+we'll skip the whole topic of optimization.
 
 Our source language and implementation language---the language we
 compile from, and the one we code the compiler in---are a subset of
@@ -132,10 +132,9 @@ Finally, the last two instructions (at 19 and 22) return from running
 the module.
 
 (What if you're not in Python 3.4? Even in 3.3, you'd see a slightly
-different disassembly even for this tiny example. If you run this
-chapter's compiler in 3.3, expect the generated code to crash the
-interpreter, unless you're unlucky and get some weirder result like a
-wrong answer.)
+different disassembly even for this tiny example. If you run Tailbiter
+in 3.3, expect the generated code to crash the interpreter, unless
+you're unlucky and get some weirder result like a wrong answer.)
 
 
 ### Assembly: the interface
@@ -184,7 +183,7 @@ A higher-level assembly language could've been made where instead of
 leaving it to the assembler to turn `'Monty'` into an index into
 `co_consts`. Likewise `op.STORE_NAME` would take a string argument,
 and so on. Such a design would better suit a general-purpose bytecode
-assembler; but this compiler will be ruthless in doing only what's
+assembler; but Tailbiter will be ruthless in doing only what's
 needed. (I wasn't sure it could fit readably in 500 lines at all.)
 It's simple for the code generator to encode the arguments into
 integers, more so than for the assembler.
@@ -209,7 +208,7 @@ To face these uncertainties and start learning, let's make a complete
 working system for a tiny core subset of the problem: just enough to
 run our example.
 
-    # in bytecompile.py:
+    # in tailbiter.py:
     import ast, collections, dis, types, sys
     from functools import reduce
     from itertools import chain
@@ -236,9 +235,9 @@ numbered versions right now]
 
 `pop` removes the initial `argv[0]` to leave the command-line
 arguments the same as if we'd run Python on the source program
-directly: thus (with this compiler in `bytecompile.py`) you can run
-`python greet.py`, or `python bytecompile.py greet.py`, or (not yet)
-`python bytecompile.py bytecompile.py greet.py`...
+directly: thus (with the compiler in `tailbiter.py`) you can run
+`python greet.py`, or `python tailbiter.py greet.py`, or (not yet)
+`python tailbiter.py tailbiter.py greet.py`...
 
     # in compile and run a file:
     def run(filename, module_name):
@@ -264,8 +263,8 @@ module's code, we call that function (with `()`). The logic was split
 into two further functions as alternative entry points for
 testing. (This chapter will leave out the automated tests.)
 
-Why doesn't `compile_file` use a `with` statement? Because this
-chapter's code will only use constructs implemented in this chapter.
+Why doesn't `compile_file` use a `with` statement? Because Tailbiter's
+code must keep to the constructs Tailbiter will implement.
 
 Throughout the compiler, `t` (for 'tree') names an AST node. These
 `t`'s appear everywhere.
@@ -638,13 +637,13 @@ We fill in `op` so that `op.LOAD_NAME` and all the rest work.
 And now it'll compile `greet.py`, the example we started with. Hurray!
 
     # in transcripts:
-    $ python3 bytecompile0.py greet.py 
+    $ python3 tailbiter0.py greet.py 
     Hello, Monty
 
 
 ## Fleshing it out
 
-As we fill out this compiler with more visit methods for more AST node
+As we fill out the skeleton with more visit methods for more AST node
 types, we'll hit a new problem compiling control-flow constructs like
 `if`-`else`. They reduce to jumping around in the bytecode. The
 expression statement
@@ -805,7 +804,7 @@ The simplest assembly fragment is the no-op:
     no_op = Assembly()
 
 For `resolve`'s use, all our assembly objects hold a `length` counting
-how many bytes of bytecode they'll become. In this compiler the
+how many bytes of bytecode they'll become. In Tailbiter the
 lengths are constant, since we don't support the extended-length
 argument format. (Suppose there were a relative jump to an address
 over 65535 bytes away. The jump instruction would need to occupy more
@@ -897,7 +896,7 @@ A `Chain` catenates two assembly-code fragments in sequence. It uses
             self.part2.plumb(depths)
 
 (I was a little surprised that no stack overflows bit me with this
-code, at least not in compiling a program the size of the compiler
+code, at least not in compiling a program the size of Tailbiter
 itself. I did not deliberately try to keep the chains balanced.)
 
 
@@ -1108,17 +1107,16 @@ code.
 Compiling `while` and `for`, for our subset, needs nothing new. (I
 won't explain what `SETUP_LOOP` and friends do at runtime.)
 
-At this point we have a runnable program again, that can compile
+Now we have a runnable program again, that can compile
 nontrivial computations. We could flesh it out further with more node
 types---`break` and `continue`, for example. But the biggest gain in
 usefulness---compiling functions and classes---requires bigger
-changes. With them implemented, we'll be able to compile this
-compiler.
+changes.
 
 
 ## Functions and classes
 
-Our finished compiler will need more passes:
+To finish, we'll need more passes:
 
 * Given an AST, we first 'desugar' it, replacing some of the nodes
   with equivalent code in terms of simpler node types. (The language
@@ -1131,7 +1129,7 @@ Our finished compiler will need more passes:
   compile to other node types than to bytecode.
 
 * We complain if the AST departs from our subset of Python. CPython
-  lacks this pass, of course, and this chapter won't examine it. It's
+  lacks this pass, of course, and we won't examine it. It's
   valuable in two ways: documenting what we claim to compile
   correctly, and keeping the user/developer from wasting time on
   apparent bugs on input it was never meant to
@@ -1139,13 +1137,13 @@ Our finished compiler will need more passes:
 
 * Then we analyze the scope of variables: their definitions and uses
   in classes, functions, and function-like scopes such as lambda
-  expressions. Python's built-in `symtable` module can do this, but
-  we can't use it! It requires a source-code string instead of an
-  AST, and ASTs don't come with a method to give us back source
-  code. In the early development of this compiler I used `symtable`
-  anyway, as scaffolding; the compiler then also had to take source
-  code instead of an AST as input. (I would've wanted to write my
-  own scope analyzer anyway, to make the compiler self-contained.)
+  expressions. Python's built-in `symtable` module can do this, but we
+  can't use it! It requires a source-code string instead of an AST,
+  and ASTs don't come with a method to give us back source code. In
+  Tailbiter's early development I used `symtable` anyway, as
+  scaffolding; this forced it to take textual source code instead of
+  an AST for its input. (I would've wanted to write a new scope
+  analyzer anyway, to make the compiler self-contained.)
 
 * With this info in hand we generate bytecode as before.
 
@@ -1229,7 +1227,7 @@ type not in the official language, it feels like getting away with
 something.
 
 (The last lines, implementing function decorators, could be left
-out since we don't use decorators in this compiler.)
+out since Tailbiter doesn't use decorators.)
 
 List comprehensions also create a `Function` node, holding the loop,
 because the loop variables must be defined in their own scope, not
@@ -1343,8 +1341,8 @@ our compiler won't. This should be an easy improvement to make.)
 
 Unlike a function scope, a class scope doesn't get fast or deref
 variables---only its function-type subscopes do, such as its method
-definitions. Nested classes are forbidden in this compiler, to avoid
-some of Python's dark corners. So are `del` statements and explicit
+definitions. Tailbiter forbids nested classes, to avoid some of
+Python's dark corners. Likewise for `del` statements and explicit
 `nonlocal` and `global` declarations.
 
 Analyzing the scopes in a module takes two passes:
@@ -1566,7 +1564,7 @@ nested classes (nested in a `class` or a `def`).
 OK, so! Wind it all up and watch the tail-eating:
 
     # in transcripts:
-    $ python3 bytecompile2.py bytecompile2.py bytecompile2.py greet.py 
+    $ python3 tailbiter2.py tailbiter2.py tailbiter2.py greet.py 
     Hello, Monty
 
 
@@ -1668,3 +1666,6 @@ included just for fun. For the compiler that's normally run, see
 For much tighter tail-swallowing, try for a start John McCarthy's
 classic one-page self-interpreter, in "A Micro-Manual for LISP---Not
 the Whole Truth".
+
+> So it came over him all of a sudden that he would take Tailbiter and go dragon-hunting.  
+> ---J.R.R. Tolkien, *Farmer Giles of Ham*
