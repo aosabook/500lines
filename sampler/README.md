@@ -34,7 +34,7 @@ as *Monte Carlo sampling* methods. In Monte Carlo methods, the key
 idea is to take many *samples*, which will then allow you to estimate
 the solution.
 
-### What, exactly, is sampling?
+### What is Sampling?
 
 The term *sampling* means generating random values from some
 probability distribution. For example, the value you get from rolling
@@ -64,7 +64,7 @@ under many different weather conditions, multiple times, which would
 allow you to see under which conditions the airplane is most likely to
 fail.
 
-### Programming with samples and probabilities
+### Programming with Samples and Probabilities
 
 As with most applications in computer science, you can make design
 decisions when programming with samples and probabilities that will
@@ -77,7 +77,7 @@ evaluating probabilities, working in "log-space", allowing
 reproducibility, and separating the process of generating samples from
 the specific application.
 
-#### A brief aside about notation
+#### A Brief Aside About Notation
 
 Typically when we talk about probability distributions, we will use
 mathematical notation like $p(x)$ to indicate that $p$ is the
@@ -104,7 +104,7 @@ to get a sample at places where the probability is higher). In
 mathematical notation, we would write this as $x\sim p$, to indicate
 that $x$ is sampled proportional to $p$.
 
-## Sampling magical items
+## Sampling Magical Items
 
 As a simple example to demonstrate the various design decisions
 involved with programming with probabilities, let's imagine we're
@@ -136,7 +136,7 @@ bonus is distributed across the stats. Conveniently, the probability
 distributions of the bonus and the way that it is distributed are both
 instances of the *multinomial distribution*.
 
-## The multinomial distribution
+## The Multinomial Distribution
 
 The multinomial distribution is used when you have several possible
 outcomes, and you want to characterize the probability of each of
@@ -156,7 +156,7 @@ green and one blue).
 Note: the code in this section is also located in the file
 `multinomial.py`.
 
-### The `MultinomialDistribution` class
+### The `MultinomialDistribution` Class
 
 In general, there are two use cases for a distribution: we might want
 to *sample* from that distribution, and we might want to *evaluate the
@@ -245,7 +245,7 @@ as well).
 Before we get into the rest of the class, I want to briefly go over
 two points related to the constructor.
 
-#### Descriptive vs. mathematic variable names
+#### Descriptive vs. Mathematic Variable Names
 
 Usually, programmers are encouraged to use descriptive variable names:
 for example, it would be considered better practice to use the names
@@ -301,7 +301,7 @@ than `numpy` is significantly clearer:
 >>> np.sqrt(np.sum(np.dot(np.array(a), np.array(b))))
 ```
 
-### Sampling from a multinomial distribution
+### Sampling from a Multinomial Distribution
 
 Taking a sample from a multinomial distribution is actually fairly
 straightforward, because NumPy provides us with a function that
@@ -314,7 +314,7 @@ does it: `np.random.multinomial`.
 Despite the fact that this function already exists, there are a few
 design decisions surrounding it that we can make.
 
-#### Seeding the random number generator
+#### Seeding the Random Number Generator
 
 Even though we do want to draw a *random* sample, we sometimes want
 our results to be reproducible: even though the numbers seem random,
@@ -375,7 +375,7 @@ sampler from the `RandomState` object itself.
 > is easier to find out whether there is nondeterminism coming from
 > somewhere other than your own code.*
 
-#### What's a parameter?
+#### What's a Parameter?
 
 Once we've decided whether to use `np.random.multinomial` or
 `rso.multinomial`, sampling is just a matter of calling the
@@ -427,7 +427,7 @@ def sample(self, n):
     return x
 ```
 
-### Evaluating the multinomial PMF
+### Evaluating the Multinomial PMF
 
 Although we don't explicitly need to compute the probability of the
 magical items that we generate, it is almost always a good idea to
@@ -449,7 +449,7 @@ compute the PMF.
 Finally, in many cases, your particular use case will dictate that you
 implement the PMF or PDF from the beginning, anyway.
 
-#### The multinomial PMF equation
+#### The Multinomial PMF Equation
 
 Formally, the multinomial distribution has the following equation:
 
@@ -473,7 +473,7 @@ $$
 p(\mathbf{x}; \mathbf{p}) = \frac{\Gamma((\sum_{i=1}^k x_i)+1)}{\Gamma(x_1+1)\cdots{}\Gamma(x_k+1)}p_1^{x_1}\cdots{}p_k^{x_k},
 $$
 
-#### Working in "log-space"
+#### Working in "Log-Space"
 
 Before getting into the actual code needed to implement the equation
 above, I want to emphasize one of the *the most important design
@@ -559,7 +559,7 @@ out of log-space, but we at least maintain *some* information about
 the probabilities---enough to compare them, for example---that would
 otherwise be lost.
 
-#### Writing the PMF code
+#### Writing the PMF Code
 
 Now that we have seen the importance of working in log-space, we can
 actually write our function to compute the log-PMF:
@@ -695,7 +695,7 @@ results in a `nan` value (even though we can see that it
 should be 1). But, because we do the computation in log-space, it's
 not an issue and we don't need to worry about it!
 
-## Sampling magical items, revisited
+## Sampling Magical Items, Revisited
 
 Now that we have written our multinomial functions, we can put them to
 work to generate our magical items. To do this, we will
@@ -972,7 +972,7 @@ And, if we want, we can evaluate the probability of a sampled item:
 0.0069444444444444441
 ```
 
-## Estimating attack damage
+## Estimating Attack Damage
 
 We've seen one application of sampling: generating
 random items that monsters drop. I mentioned earlier that sampling can
@@ -1002,7 +1002,7 @@ following scheme:
 4. Repeat steps 1-3 many times. This will result in an approximation
    to the distribution over damage.
 
-### Implementing a distribution over damage
+### Implementing a Distribution Over Damage
 
 The class `DamageDistribution` (also in `rpg.py`) shows an
 implementation of this scheme:
@@ -1085,7 +1085,7 @@ look at the strength stat of those items, and from that compute the
 number of dice to roll. Finally, we roll the dice (again relying on
 our trusty multinomial functions) and compute the damage from that.
 
-#### What happened to evaluating probabilities?
+#### What Happened to Evaluating Probabilities?
 
 You may have noticed that we didn't include a `log_pmf` or `pmf`
 function in our `DamageDistribution`. This is because we actually do
@@ -1105,7 +1105,7 @@ difficult to compute exactly). So, rather than having a method for the
 PMF, we'll show in the next section how we can approximate the
 distribution with many samples.
 
-### Approximating the distribution
+### Approximating the Distribution
 
 Now we have the machinery to answer our question from earlier: If the
 player has two items, and we want the player to be able to defeat the
@@ -1120,8 +1120,8 @@ and `rso` that we created earlier:
 >>> damage_dist = DamageDistribution(2, item_dist, num_hits=3, rso=rso)
 ```
 
-Now we can draw a bunch of samples, and compute the 50th percentile
-(that is, the damage value that is greater than 50% of the samples):
+Now we can draw a bunch of samples, and compute the 50th percentile 
+(the damage value that is greater than 50% of the samples):
 
 ```python
 >>> samples = np.array([damage_dist.sample() for i in xrange(100000)])
