@@ -579,7 +579,7 @@ def log_pmf(self, x):
     The evaluated log-PMF for draw `x`
 
     """
-    # Get the total number of events.
+    # Get the total number of events
     n = np.sum(x)
 
     # equivalent to log(n!)
@@ -596,7 +596,7 @@ def log_pmf(self, x):
     # equivalent to log(p1^x1 * ... * pk^xk)
     sum_log_pi_xi = np.sum(log_pi_xi)
 
-    # Put it all together.
+    # Put it all together
     log_pmf = log_n_factorial - sum_log_xi_factorial + sum_log_pi_xi
     return log_pmf
 ```
@@ -782,7 +782,7 @@ def _sample_stats(self):
         The number of bonus points for each stat
 
     """
-    # First we need to sample the overall bonus.
+    # First we need to sample the overall bonus
     bonus = self._sample_bonus()
 
     # Then, we use a different multinomial distribution to sample
