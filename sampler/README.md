@@ -268,13 +268,13 @@ make it harder to go back and forth between the the code and the
 equation.
 
 I think that when you are writing code that
-directly implements an equation, then the same variable names should
+directly implements an equation, the same variable names should
 be used as those in the equation. This makes it easy to see which
 parts of the code are implementing which pieces of the equation. This,
 of course, can make the code harder to understand in isolation, so it
-is especially important that comments then do a good job of explaining
+is especially important that the comments then do a good job of explaining
 what the goal of the various computations are. If the equation is
-listed in an academic paper, then the comments should reference the
+listed in an academic paper, the comments should reference the
 equation number so it can be easily looked up.
 
 #### Importing NumPy
