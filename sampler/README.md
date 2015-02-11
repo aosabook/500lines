@@ -90,7 +90,7 @@ whereas a PMF is a *discrete* function $p(x)$ such that $\sum_{x\in
 The probability distribution in the case of the dart
 board would be a continuous PDF, while the probability distribution in
 the case of a die would be a discrete PMF. In both cases, $p(x) \geq
-0$ for all $x$ (i.e., the probabilities have to be non-negative).
+0$ for all $x$; i.e., the probabilities have to be non-negative.
  
 There are two things that we might want to do with a probability
 distribution. Given a value (or location) $x$, we might want to
@@ -235,7 +235,7 @@ class MultinomialDistribution(object):
 
 The class takes as arguments the event probabilities, $p$, and a
 variable called `rso`. First, the constructor checks that the
-parameters are valid (i.e., that `p` sums to 1). Then it stores
+parameters are valid; i.e., that `p` sums to 1. Then it stores
 the arguments that were passed in, and uses the event probabilities to
 compute the event *log* probabilities. (We'll go into why this is
 necessary in a bit). The `rso` object is what we'll use later to
@@ -718,14 +718,14 @@ class MagicItemDistribution(object):
         ----------
         bonus_probs: numpy array of length m
             The probabilities of the overall bonuses. Each index in
-            the array corresponds to the bonus of that amount (e.g.
+            the array corresponds to the bonus of that amount (e.g.,
             index 0 is +0, index 1 is +1, etc.)
 
         stats_probs: numpy array of length 6
             The probabilities of how the overall bonus is distributed
             among the different stats. `stats_probs[i]` corresponds to
-            the probability of giving a bonus point to the ith stat,
-            i.e. the value at `MagicItemDistribution.stats_names[i]`.
+            the probability of giving a bonus point to the ith stat;
+            i.e., the value at `MagicItemDistribution.stats_names[i]`.
 
         rso: numpy RandomState object (default: np.random)
             The random number generator
@@ -763,7 +763,7 @@ def _sample_bonus(self):
 
     """
     # The bonus is essentially just a sample from a multinomial
-    # distribution with n=1, i.e., only one event occurs.
+    # distribution with n=1; i.e., only one event occurs.
     sample = self.bonus_dist.sample(1)
 
     # `sample` is an array of zeros and a single one at the
@@ -986,8 +986,8 @@ bonus, they can roll three dice. The damage dealt is then the sum of
 the dice.
 
 We might want to know how much damage a player might deal after
-finding some number of weapons (e.g., as a factor in setting the
-difficulty of monsters). Let's say that after collecting two items, we
+finding some number of weapons; e.g., as a factor in setting the
+difficulty of monsters. Let's say that after collecting two items, we
 want the player to be able to defeat monsters within three hits in
 about 50% of the battles. How many hit points should the monster have?
 
