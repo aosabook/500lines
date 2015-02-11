@@ -1467,7 +1467,7 @@ Building a function out of a code object depends on whether it has
 free variables. `lambda x: lambda y: x + y` compiles to
 
     # in examples:
-           0 LOAD_CONST               1 (<code object <lambda> at 0x7ff785c81930)
+           0 LOAD_CONST               1 (<code object <lambda> at ...)
            3 LOAD_CONST               2 ('<lambda>')
            6 MAKE_FUNCTION            0
 
@@ -1476,7 +1476,7 @@ y`, whose code in turn should be
 
            0 LOAD_CLOSURE             0 (x)
            3 BUILD_TUPLE              1
-           6 LOAD_CONST               1 (<code object <lambda> at 0x7ff785c81810)
+           6 LOAD_CONST               1 (<code object <lambda> at ...)
            9 LOAD_CONST               2 ('<lambda>')
           12 MAKE_CLOSURE             0
           15 RETURN_VALUE
