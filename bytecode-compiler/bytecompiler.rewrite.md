@@ -1401,7 +1401,8 @@ scopes, then back up accumulating the references from enclosed ones:
             self.local_defs = self.defs if isinstance(self.t, Function) else set()
             for child in self.children:
                 child.analyze(parent_defs | self.local_defs)
-            child_uses = set([var for child in self.children for var in child.freevars])
+            child_uses = set([var for child in self.children
+                                  for var in child.freevars])
             uses = self.uses | child_uses
             self.cellvars = tuple(child_uses & self.local_defs)
             self.freevars = tuple(parent_defs & (uses - self.local_defs))
@@ -1496,9 +1497,11 @@ the new function. (In 'real' Python the nested lambda's name would be
                 return (concat([op.LOAD_CLOSURE(self.cell_index(freevar))
                                 for freevar in code.co_freevars])
                         + op.BUILD_TUPLE(len(code.co_freevars))
-                        + self.load_const(code) + self.load_const(name) + op.MAKE_CLOSURE(0))
+                        + self.load_const(code) + self.load_const(name)
+                        + op.MAKE_CLOSURE(0))
             else:
-                return self.load_const(code) + self.load_const(name) + op.MAKE_FUNCTION(0)
+                return (self.load_const(code) + self.load_const(name)
+                        + op.MAKE_FUNCTION(0))
 
 Recall that `visit_Function` wanted a code object for the function in
 question. On a new `CodeGen` instance, it called `compile_function`:
