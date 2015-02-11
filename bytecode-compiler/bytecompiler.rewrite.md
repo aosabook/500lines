@@ -248,10 +248,10 @@ directly: thus (with this compiler in `bytecompile.py`) you can run
         f = open(filename)
         source = f.read()
         f.close()
-        return compile_to_callable(module_name, filename, ast.parse(source))
+        return function_for_module(module_name, filename, ast.parse(source))
 
-    def compile_to_callable(module_name, filename, t):
-        code = compile_to_code(module_name, filename, t)
+    def function_for_module(module_name, filename, t):
+        code = code_for_module(module_name, filename, t)
         f_globals = dict(__package__=None, __spec__=None, __name__=module_name,
                          __loader__=__loader__, __builtins__=__builtins__,
                          __doc__=ast.get_docstring(t))
@@ -330,7 +330,7 @@ constants by index. Finally it assembles the assembly code into a code
 object. Let's create this code-generation visitor and set it to work:
 
     # in compile to code v0:
-    def compile_to_code(module_name, filename, t):
+    def code_for_module(module_name, filename, t):
         return CodeGen(filename, StubScope()).compile_module(t, module_name)
 
     class StubScope: freevars, cellvars, derefvars = (), (), ()
@@ -747,7 +747,7 @@ there are two problems:
   for instance, the bytecode for the store to `x` goes after the
   bytecode for the expression. As there's no way to express this
   reversal in this format, we have to decide how to distort it. Like
-  CPython, we'll pretend the store's line number is the last one.
+  CPython, we'll pretend the store is on the last line.
 
 * The difference could exceed 255. In this case the entry must take up
   multiple successive byte-pairs, first increasing only the address
@@ -1152,7 +1152,7 @@ Our finished compiler will need more passes:
 <!-- XXX this line is for markdown formatting only XXX -->
 
     # in compile to code v2:
-    def compile_to_code(module_name, filename, t):
+    def code_for_module(module_name, filename, t):
         t = desugar(t)
         check_conformity(t)
         return CodeGen(filename, top_scope(t)).compile_module(t, module_name)
