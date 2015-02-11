@@ -1663,9 +1663,9 @@ CPython 2 has a `compiler` module in 4500 lines of Python, seemingly
 included just for fun. For the compiler that's normally run, see
 `compile.c` and `symtable.c`; there's also the optimizer `peephole.c`.
 
-For much tighter tail-swallowing, try for a start John McCarthy's
-classic one-page self-interpreter, in "A Micro-Manual for LISP---Not
-the Whole Truth".
+Our compiler compiled itself, but we stopped short of applying this
+ability to do anything special. Ken Thompson in "Reflections on
+Trusting Trust" shows one surprising direction to take it.
 
 > So it came over him all of a sudden that he would take Tailbiter and go dragon-hunting.  
 > ---J.R.R. Tolkien, *Farmer Giles of Ham*
