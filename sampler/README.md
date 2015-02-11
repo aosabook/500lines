@@ -736,15 +736,14 @@ class MagicItemDistribution(object):
         self.stats_dist = MultinomialDistribution(stats_probs, rso=rso)
 ```
 
-XXX STOPPED HERE
 The constructor to our `MagicItemDistribution` class takes parameters for
 the bonus probabilities, the stats probabilities, and the random
 number generator. Even though we specified above what we wanted the
 bonus probabilities to be, it is generally a good idea to encode
 parameters as arguments that are passed in. This leaves open the
-possibility of sampling items under different distributions (for
+possibility of sampling items under different distributions. (For
 example, maybe the bonus probabilities would change as the player's
-level increases). We encode the *names* of the stats as a class
+level increases.) We encode the *names* of the stats as a class
 variable, `stats_names`, though this could just as easily be another
 parameter to the constructor.
 
@@ -793,7 +792,7 @@ def _sample_stats(self):
     return stats
 ```
 
-We *could* have made these be just a single method---especially since
+We *could* have made these a single method---especially since
 `_sample_stats` is the only function that depends on
 `_sample_bonus`---but I have chosen to keep them separate, both
 because it makes the sampling routine easier to understand, and
@@ -821,10 +820,10 @@ def sample(self):
 ```
 
 The `sample` function does essentially the same thing as
-`_sample_stats`, except that it returns a dictionary with the stats
+`_sample_stats`, except that it returns a dictionary with the stats'
 names as keys. This provides a clean and understandable interface for
 sampling items---it is obvious which stats have how many bonus
-points---but it also keeps the option open for using just
+points---but it also keeps open the option of using just
 `_sample_stats` if one needs to take many samples and efficiency is
 required.
 
@@ -834,13 +833,13 @@ take dictionaries of the form produced by `sample`:
 
 ```python
 def log_pmf(self, item):
-    """Compute the log probability the given magical item.
+    """Compute the log probability of the given magical item.
 
     Parameters
     ----------
     item: dictionary
         The keys are the names of the stats, and the values are
-        the bonus conferred to the corresponding stat.
+        the bonuses conferred to the corresponding stat.
 
     Returns
     -------
@@ -927,7 +926,7 @@ def _bonus_log_pmf(self, bonus):
 
     """
     # Make sure the value that is passed in is within the
-    # appropriate bounds.
+    # appropriate bounds
     if bonus < 0 or bonus >= len(self.bonus_dist.p):
         return -np.inf
 
@@ -975,11 +974,11 @@ And, if we want, we can evaluate the probability of a sampled item:
 
 ## Estimating attack damage
 
-We've seen one example application of sampling: simply generating
+We've seen one application of sampling: generating
 random items that monsters drop. I mentioned earlier that sampling can
 also be used when you want to estimate something from the distribution
 as a whole, and there are certainly cases in which we could use our
-`MagicItemDistribution` to do this! For example, let's say that damage in
+`MagicItemDistribution` to do this. For example, let's say that damage in
 our RPG works by rolling some number of D12s (twelve-sided dice). The
 player gets to roll one die by default, and then add dice according to
 their strength bonus. So, for example, if they have a +2 strength
@@ -1033,9 +1032,11 @@ class DamageDistribution(object):
             The random number generator
 
         """
+
         # This is an array of integers corresponding to the sides of a
         # single die.
         self.dice_sides = np.arange(1, num_dice_sides + 1)
+
         # Create a multinomial distribution corresponding to one of
         # these dice.  Each side has equal probabilities.
         self.dice_dist = MultinomialDistribution(
@@ -1072,13 +1073,13 @@ The constructor takes as arguments the number of sides the dice have,
 how many hits we want to compute damage over, how many items the
 player has, a distribution over magic items (of type
 `MagicItemDistribution`) and a random state object. By default, we set
-`num_dice_sides` to `12` because, while it is technically a parameter,
-it is unlikely to change. Similarly, we set `num_hits` to `1` as a
+`num_dice_sides` to 12 because, while it is technically a parameter,
+it is unlikely to change. Similarly, we set `num_hits` to 1 as a
 default because a more likely use case is that we just want to take
 one sample of the damage for a single hit.
 
-We then implement the actual sampling logic in `sample` (note the
-structural similarity to `MagicItemDistribution`!).  First, we
+We then implement the actual sampling logic in `sample`. (Note the
+structural similarity to `MagicItemDistribution`.)  First, we
 generate a set of possible magic items that the player has. Then, we
 look at the strength stat of those items, and from that compute the
 number of dice to roll. Finally, we roll the dice (again relying on
@@ -1106,7 +1107,7 @@ distribution with many samples.
 
 ### Approximating the distribution
 
-Now we have the machinery to answer our question from earlier: if the
+Now we have the machinery to answer our question from earlier: If the
 player has two items, and we want the player to be able to defeat the
 monster within three hits 50% of the time, how many hit points should
 the monster have?
