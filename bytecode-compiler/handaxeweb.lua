@@ -1,4 +1,12 @@
 #!/usr/bin/lua
+
+-- chunk:     A {name, v, text} table.
+--   name:      string
+--   v:         natural number
+--   text:      a list of lines.
+-- chunks:    A table mapping name to list of chunks.
+--              (The chunk list is sometimes called 'contents'.)
+
 function register_chunk(chunks, new_chunk)
     if new_chunk.name == nil then return end
 
@@ -57,8 +65,10 @@ assert(parse_chunk_label("foo v32") == "foo")
 assert(({parse_chunk_label("foo v32")})[2] == 32)
 
 function parse_input()
-    local chunks, current_chunk, in_chunk = {}, {text={}}, false
-    local blank_lines = {}
+    local chunks = {}
+    local current_chunk = {text={}}
+    local in_chunk = false
+    local blank_lines = {}  -- a list of blank lines
 
     for line in io.lines() do
         if string.match(line, "^%s*$") then -- blank line
@@ -178,8 +188,9 @@ function tangle(chunks, chunkname, version, indent)
     
     local text = get_chunk_text(contents, version)
     if text == nil then 
-        error(string.format("chunk `%s` has no version `%d`",
-                            chunkname, version))
+        io.stderr:write(string.format("chunk `%s` has no version `%d`\n",
+                                      chunkname, version))
+        text = {}
     end
 
     for _, line in ipairs(text) do

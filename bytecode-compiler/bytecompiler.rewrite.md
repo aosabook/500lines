@@ -229,10 +229,6 @@ it starting with either `# in the assembler v0:` (to fill in the
 assembler, but only for version 0, this 'spike' version) or just
 `# in the assembler:` (for all versions).
 
-[XXX 'v0' would be more meaningful as 'the spike', and maybe
-preferable, but my literate-programming software can work with just
-numbered versions right now]
-
 `pop` removes the initial `argv[0]` to leave the command-line
 arguments the same as if we'd run Python on the source program
 directly: thus (with the compiler in `tailbiter.py`) you can run
@@ -582,18 +578,6 @@ reference to the value.
 
 (We've already covered generating the store instructions, because the
 targets are `Name` nodes, as we saw in `visit_Name`.)
-
-
-### XXX can't we skip this?:
-
-The literate-programming chunks <<code generation 1>> and <<code
-generation 2>> are empty until later versions of the compiler:
-
-    # in code generation 1:
-
-and
-
-    # in code generation 2:
 
 
 ### Just enough assembly
