@@ -2,30 +2,31 @@ _(Also available in [Traditional Chinese](https://github.com/audreyt/500lines/bl
 
 # [Web Spreadsheet](http://audreyt.github.io/500lines/spreadsheet/) in [99 lines](https://github.com/audreyt/500lines/tree/master/spreadsheet)
 
-This chapter introduces a Web spreadsheet written in 99 lines of the three languages natively supported by Web browsers: HTML, JS, and CSS.
+This chapter introduces a web spreadsheet written in 99 lines of the three languages natively supported by web browsers: HTML, JavaScript, and CSS.
 
 ## Introduction
 
-When Tim Berners-Lee invented the Web in 1990, _Web pages_ were written in HTML by marking up text with angle-bracketed _tags_, assigning a logical structure to the content. Text marked up within `<a>…</a>` became _hyperlinks_ that would refer the user to other pages on the Web.
+When Tim Berners-Lee invented the web in 1990, _web pages_ were written in HTML by marking up text with angle-bracketed _tags_, assigning a logical structure to the content. Text marked up within `<a>…</a>` became _hyperlinks_ that would refer the user to other pages on the web.
 
 In the 1990s, browsers added various presentational tags to the HTML vocabulary, including some notoriously nonstandard tags such as `<blink>…</blink>` from Netscape Navigator and `<marquee>…</marquee>` from Internet Explorer, causing widespread problems in usability and browser compatibility.
 
-In order to keep HTML to its original purpose—describing a document’s logical structure—browser makers eventually agreed to support two additional languages: CSS to describe presentational styles of a page, and JS to describe its dynamic interactions.
+In order to keep HTML to its original purpose—describing a document’s logical structure—browser makers eventually agreed to support two additional languages: CSS to describe presentational styles of a page, and JavaScript (JS) to describe its dynamic interactions.
 
-Since then, the three languages have become more concise and powerful through twenty years of co-evolution. In particular, improvements in [JS engines](https://en.wikipedia.org/wiki/JavaScript_engine) made it practical to deploy large-scale JS frameworks, such as [AngularJS](http://angularjs.org/).
+Since then, the three languages have become more concise and powerful through twenty years of co-evolution. In particular, improvements in JS engines made it practical to deploy large-scale JS frameworks, such as [AngularJS](http://angularjs.org/).
 
-Today, cross-platform _Web applications_ (such as Web Spreadsheets) are as ubiquitous and popular as platform-specific applications (such as VisiCalc, Lotus 1-2-3 and Excel) from the previous century.
+Today, cross-platform _web applications_ (such as web spreadsheets) are as ubiquitous and popular as platform-specific applications (such as VisiCalc, Lotus 1-2-3 and Excel) from the previous century.
 
-How many features can a Web application offer in 99 lines with AngularJS? Let’s see it in action!
+How many features can a web application offer in 99 lines with AngularJS? Let’s see it in action!
 
 ## Overview
 
-The [spreadsheet](https://github.com/audreyt/500lines/tree/master/spreadsheet) directory contains our showcase for late-2014 editions of the three web languages: [HTML5](http://www.w3.org/TR/html5/) for structure, [CSS3](http://www.w3.org/TR/css3-ui/) for presentation, and the JS [ES6 “Harmony”](http://git.io/es6features) standard for interaction. It also uses [Web Storage](http://www.whatwg.org/specs/web-apps/current-work/multipage/webstorage.html) for data persistence and [Web Worker](http://www.whatwg.org/specs/web-apps/current-work/multipage/workers.html) for running JS code in the background. As of this writing, these web standards are supported by Firefox, Chrome, and Internet Explorer 11+, as well as mobile browsers on iOS 5+ and Android 4+.
+The [spreadsheet](https://github.com/audreyt/500lines/tree/master/spreadsheet) directory contains our showcase for late-2014 editions of the three web languages: [HTML5](http://www.w3.org/TR/html5/) for structure, [CSS3](http://www.w3.org/TR/css3-ui/) for presentation, and the JS [ES6 “Harmony”](http://git.io/es6features) standard for interaction. It also uses [web storage](http://www.whatwg.org/specs/web-apps/current-work/multipage/webstorage.html) for data persistence and [web workers](http://www.whatwg.org/specs/web-apps/current-work/multipage/workers.html) for running JS code in the background. As of this writing, these web standards are supported by Firefox, Chrome, and Internet Explorer 11+, as well as mobile browsers on iOS 5+ and Android 4+.
 
 Now let’s open http://audreyt.github.io/500lines/spreadsheet/ in a browser:
 
 ![Initial Screen](./images/01-initial.png)
 
+XXX STOPPED HERE
 ### Basic Concepts
 
 The spreadsheet spans two dimensions, with _columns_ starting from **A**, and _rows_ starting from **1**. Each _cell_ has a unique _coordinate_ (such as **A1**) and _content_ (such as `1874`), which belongs to one of four _types_:
