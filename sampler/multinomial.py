@@ -64,7 +64,7 @@ class MultinomialDistribution(object):
         The evaluated log-PMF for draw `x`
 
         """
-        # Get the total number of events.
+        # Get the total number of events
         n = np.sum(x)
 
         # equivalent to log(n!)
@@ -81,7 +81,7 @@ class MultinomialDistribution(object):
         # equivalent to log(p1^x1 * ... * pk^xk)
         sum_log_pi_xi = np.sum(log_pi_xi)
 
-        # Put it all together.
+        # Put it all together
         log_pmf = log_n_factorial - sum_log_xi_factorial + sum_log_pi_xi
         return log_pmf
 
