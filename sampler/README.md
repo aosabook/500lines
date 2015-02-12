@@ -73,7 +73,7 @@ code. In this chapter, we will go through a simple example of how to
 sample random items in a computer game. In particular, we will focus
 on the design decisions which are specific to working with
 probabilities, including functions both for sampling and for
-evaluating probabilities, working in "log-space", allowing
+evaluating probabilities, working with logarithms, allowing
 reproducibility, and separating the process of generating samples from
 the specific application.
 
@@ -130,7 +130,7 @@ points distributed across different stats (e.g., +2 wisdom and +3
 intelligence) or concentrated within a single stat (e.g., +5
 charisma).
 
-How would we randomly sample this distribution? The easiest way is probably
+How would we randomly sample from this distribution? The easiest way is probably
 to first sample the overall item bonus, then sample the way the
 bonus is distributed across the stats. Conveniently, the probability
 distributions of the bonus and the way that it is distributed are both
@@ -473,12 +473,12 @@ $$
 p(\mathbf{x}; \mathbf{p}) = \frac{\Gamma((\sum_{i=1}^k x_i)+1)}{\Gamma(x_1+1)\cdots{}\Gamma(x_k+1)}p_1^{x_1}\cdots{}p_k^{x_k},
 $$
 
-#### Working in "Log-Space"
+#### Working with Log Values
 
 Before getting into the actual code needed to implement the equation
 above, I want to emphasize one of the *the most important design
-decisions* when writing code with probabilities: working in
-"log-space". What this means is that rather than working directly with
+decisions* when writing code with probabilities: working with
+log values. What this means is that rather than working directly with
 probabilities $p(x)$, we should be working with *log*-probabilities,
 $\log{p(x)}$. This is because probabilities can get very small very
 quickly, resulting in underflow errors.
@@ -508,9 +508,9 @@ with very small probabilities, we encounter underflow problems:
 ```
 
 However, taking the log can help alleviate this issue because we can
-represent a much wider range of numbers in log-space than we can
-normally. Officially, log-space ranges from $-\infty$ to zero. In
-practice, log-space ranges from the `min` value returned by `finfo`,
+represent a much wider range of numbers with logarithms than we can
+normally. Officially, log values range from $-\infty$ to zero. In
+practice, they range from the `min` value returned by `finfo`,
 which is the smallest number that can be represented, to zero. The
 `min` value is *much* smaller than the log of the `tiny` value (which
 would be our lower bound if we did not work in log space):
@@ -519,17 +519,17 @@ would be our lower bound if we did not work in log space):
 >>> # this is our lower bound normally
 >>> np.log(tiny)
 -708.39641853226408
->>> # this is our lower bound in log-space
+>>> # this is our lower bound when using logs
 >>> np.finfo(float).min
 -1.7976931348623157e+308
 ```
 
-So, by working in log-space, we can greatly expand our range of
+So, by working with log values, we can greatly expand our range of
 representable numbers.
 
-Moreover, we can perform multiplication in log-space using addition,
- because of the identity that $\log(x\cdot{}y) = \log(x) +
- \log(y)$. Thus, if we do the multiplication above in log-space, we do
+Moreover, we can perform multiplication with logs by using addition,
+ because $\log(x\cdot{}y) = \log(x) +
+ \log(y)$. Thus, if we do the multiplication above with logs, we do
  not have to worry (as much) about loss of precision due to underflow:
 
 ```python
@@ -541,8 +541,8 @@ Moreover, we can perform multiplication in log-space using addition,
 -1416.7928370645282
 ```
 
-Of course, this solution is not a magic bullet. If we need to bring
-the number *out* of log-space (for example, to add probabilities,
+Of course, this solution is not a magic bullet. If we need to derive
+the number from the logarithm (for example, to add probabilities,
 rather than multiply them), then we are back to the issue of
 underflow:
 
@@ -553,15 +553,15 @@ underflow:
 0.0
 ```
 
-Still, doing all our computations in log-space can save a lot of
+Still, doing all our computations with logs can save a lot of
 headache. We might be forced to lose that precision if we need to go
-out of log-space, but we at least maintain *some* information about
+back to the original numbers, but we at least maintain *some* information about
 the probabilities---enough to compare them, for example---that would
 otherwise be lost.
 
 #### Writing the PMF Code
 
-Now that we have seen the importance of working in log-space, we can
+Now that we have seen the importance of working with logs, we can
 actually write our function to compute the log-PMF:
 
 ```python
@@ -640,10 +640,10 @@ producing another `nan`, which is just not useful. To handle this, we
 check specifically for the case when $x_i=0$, and set the resulting
 $x_i\cdot{}\log(p_i)$ also to zero.
 
-Let's return for a moment to our discussion of log-space. Even if we
+Let's return for a moment to our discussion of using logs. Even if we
 really only need the PMF, and not the log-PMF, it is generally better
-to *first* compute it in log-space, and then exponentiate it if we
-need to take it out of log-space:
+to *first* compute it with logs, and then exponentiate it if we
+need to:
 
 ```python
 def pmf(self, x):
@@ -664,7 +664,7 @@ def pmf(self, x):
     return pmf
 ```
 
-To further drive home the importance of working in log-space, 
+To further drive home the importance of working with logs,
 we can look at an example with just the multinomial:
 
 ```python
@@ -692,7 +692,7 @@ inf
 If we had tried to compute just the PMF using the `gamma` function, we
 would have ended up with `gamma(1000 + 1) / gamma(1000 + 1)`, which
 results in a `nan` value (even though we can see that it
-should be 1). But, because we do the computation in log-space, it's
+should be 1). But, because we do the computation with logarithms, it's
 not an issue and we don't need to worry about it!
 
 ## Sampling Magical Items, Revisited
@@ -902,7 +902,7 @@ def _stats_log_pmf(self, stats):
     logp_stats = self.stats_dist.log_pmf(stats)
 
     # Then multiply them together (using addition, because we are
-    # working in log-space)
+    # working with logs)
     log_pmf = logp_bonus + logp_stats
     return log_pmf
 ```
@@ -1154,7 +1154,7 @@ the general case:
 
 1. Representing probability distributions using a class, and including
    functions both for sampling and for evaluating the PMF (or PDF).
-2. Computing the PMF (or PDF) in log-space.
+2. Computing the PMF (or PDF) using logarithms.
 3. Generating samples from a random number generator object to enable
    reproducible randomness.
 4. Writing functions whose inputs/outputs are clear and understandable
