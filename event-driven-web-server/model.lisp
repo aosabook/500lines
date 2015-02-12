@@ -14,9 +14,10 @@
   ((tries :accessor tries :initform 0)
    (contents :accessor contents :initform nil)
    (bi-stream :reader bi-stream :initarg :bi-stream)
-   (found-crlf? :accessor found-crlf? :initform nil)
-   (content-size :accessor content-size :initform 0)
-   (started :reader started :initform (get-universal-time))))
+   (total-buffered :accessor total-buffered :initform 0)
+   (started :reader started :initform (get-universal-time))
+   (request :accessor request :initform nil)
+   (expecting :accessor expecting :initform 0)))
 
 (defclass request ()
   ((resource :accessor resource :initarg :resource)

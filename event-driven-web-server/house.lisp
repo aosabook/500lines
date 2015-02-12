@@ -26,33 +26,45 @@
 	(ignore-errors 
 	  (remhash ready conns)
 	  (socket-close ready))
-	(let ((complete? (found-crlf? buf))
-	      (too-big? (> (content-size buf) +max-request-size+))
+	(let ((too-big? (> (total-buffered buf) +max-request-size+))
 	      (too-old? (> (- (get-universal-time) (started buf)) +max-request-age+))
 	      (too-needy? (> (tries buf) +max-buffer-tries+)))
-	  (when (or complete? too-big? too-old? too-needy?)
-	    (remhash ready conns)
-	    (cond (too-big? (error! +413+ ready))
-		  ((or too-old? too-needy?)
-		   (error! +400+ ready))
-		  (t (handler-case
-			 (handle-request ready (parse buf))
-		       (http-assertion-error () (error! +400+ ready))
-		       ((and (not warning)
-			 (not simple-error)) (e)
-			 (error! +500+ ready e))))))))))
+	  (cond (too-big?
+		 (error! +413+ ready)
+		 (remhash ready conns))
+		((or too-old? too-needy?)
+		 (error! +400+ ready)
+		 (remhash ready conns))
+		((and (request buf) (zerop (expecting buf)))
+		 (remhash ready conns)
+		 (when (contents buf)
+		   (setf (parameters (request buf))
+			 (nconc (parse buf) (parameters (request buf)))))	     
+		 (handler-case
+		     (handle-request ready (request buf))
+		   (http-assertion-error () (error! +400+ ready))
+		   ((and (not warning)
+		     (not simple-error)) (e)
+		     (error! +500+ ready e))))
+		(t
+		 (setf (contents buf) nil)))))))
 
 (defmethod buffer! ((buffer buffer))
   (handler-case
-      (let ((stream (bi-stream buffer))
-	    (partial-crlf (list #\return #\linefeed #\return)))
+      (let ((stream (bi-stream buffer)))
 	(incf (tries buffer))
-	(loop for char = (read-char-no-hang stream nil :eof)
-	   do (when (and (eql #\linefeed char)
-			 (starts-with-subseq partial-crlf (contents buffer)))
-		(setf (found-crlf? buffer) t))
-	   until (or (null char) (eql :eof char))
-	   do (push char (contents buffer)) do (incf (content-size buffer))
+	(loop for char = (read-char-no-hang stream) until (null char)
+	   do (push char (contents buffer))
+	   do (incf (total-buffered buffer))
+	   when (request buffer) do (decf (expecting buffer))
+	   when (starts-with-subseq 
+		 '(#\linefeed #\return #\linefeed #\return)
+		 (contents buffer))
+	   do (multiple-value-bind (parsed expecting) (parse buffer)
+		(setf (request buffer) parsed
+		      (expecting buffer) expecting)
+		(return char))
+	   when (> (total-buffered buffer) +max-request-size+) return char
 	   finally (return char)))
     (error () :eof)))
 
@@ -80,7 +92,10 @@
 	req))))
 
 (defmethod parse ((buf buffer))
-  (parse (coerce (reverse (contents buf)) 'string)))
+  (let ((str (coerce (reverse (contents buf)) 'string)))
+    (if (request buf)
+	(parse-params str)
+	(parse str))))
 
 ;;;;; Handling requests
 (defmethod handle-request ((socket usocket) (req request))

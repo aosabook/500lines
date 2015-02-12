@@ -73,26 +73,33 @@ The specifics of our event loops' behavior are going to be revealed in our `proc
 
 	(defmethod process-ready ((ready stream-usocket) (conns hash-table))
 	  (let ((buf (or (gethash ready conns)
-			         (setf (gethash ready conns) (make-instance 'buffer :bi-stream (flex-stream ready))))))
+			 (setf (gethash ready conns) (make-instance 'buffer :bi-stream (flex-stream ready))))))
 	    (if (eq :eof (buffer! buf))
-	      (ignore-errors
-		     (remhash ready conns)
-			 (socket-close ready))
-	      (let ((complete? (found-crlf? buf))
-		        (too-big? (> (content-size buf) +max-request-size+))
-		        (too-old? (> (- (get-universal-time) (started buf)) +max-request-age+))
-		        (too-needy? (> (tries buf) +max-buffer-tries+)))
-	        (when (or complete? too-big? too-old? too-needy?)
-		       (remhash ready conns)
-		       (cond (too-big? (error! +413+ ready))
-		             ((or too-old? too-needy?)
-		              (error! +400+ ready))
-		             (t (handler-case
-		     	           (handle-request ready (parse buf))
-		     	         (http-assertion-error () (error! +400+ ready))
-		     	         ((and (not warning)
-		     	               (not simple-error)) (e)
-		     	          (error! +500+ ready e))))))))))
+		(ignore-errors 
+		  (remhash ready conns)
+		  (socket-close ready))
+		(let ((too-big? (> (total-buffered buf) +max-request-size+))
+		      (too-old? (> (- (get-universal-time) (started buf)) +max-request-age+))
+		      (too-needy? (> (tries buf) +max-buffer-tries+)))
+		  (cond (too-big?
+			 (error! +413+ ready)
+			 (remhash ready conns))
+			((or too-old? too-needy?)
+			 (error! +400+ ready)
+			 (remhash ready conns))
+			((and (request buf) (zerop (expecting buf)))
+			 (remhash ready conns)
+			 (when (contents buf)
+			   (setf (parameters (request buf))
+				 (nconc (parse buf) (parameters (request buf)))))	     
+			 (handler-case
+			     (handle-request ready (request buf))
+			   (http-assertion-error () (error! +400+ ready))
+			   ((and (not warning)
+			     (not simple-error)) (e)
+			     (error! +500+ ready e))))
+			(t
+			 (setf (contents buf) nil)))))))
 
 More method declarations, though these specialize on more than one argument. When a `method` is called, what's actually happening behind the scenes is
 
@@ -112,33 +119,37 @@ This is where the non-blocking thing comes in. Remember, we're trying to do this
 
 So here's how we read without blocking:
 
-	(defmethod buffer! ((buffer buffer))
-	  (handler-case
-	      (let ((stream (bi-stream buffer))
-		        (partial-crlf (list #\return #\linefeed #\return)))
-		    (incf (tries buffer))
-		    (loop for char = (read-char-no-hang stream nil :eof)
-		          do (when (and (eql #\linefeed char)
-				                (starts-with-subseq partial-crlf (contents buffer)))
-			           (setf (found-crlf? buffer) t))
-		          until (or (null char) (eql :eof char))
-		          do (push char (contents buffer)) do (incf (content-size buffer))
-		          finally (return char)))
-	    (error () :eof)))
+    (defmethod buffer! ((buffer buffer))
+      (handler-case
+          (let ((stream (bi-stream buffer)))
+    	(incf (tries buffer))
+    	(loop for char = (read-char-no-hang stream) until (null char)
+    	   do (push char (contents buffer))
+    	   do (incf (total-buffered buffer))
+    	   when (request buffer) do (decf (expecting buffer))
+    	   when (line-terminated? (contents buffer))
+    	   do (multiple-value-bind (parsed expecting) (parse buffer)
+    		(setf (request buffer) parsed
+    		      (expecting buffer) expecting)
+    		(return char))
+    	   when (> (total-buffered buffer) +max-request-size+) return char
+    	   finally (return char)))
+        (error () :eof)))
 
-When you call `buffer!` on a `buffer`, it increments the `tries` count, then loops to read characters from the input stream. If it reaches the end of available input, or an `:eof`, it returns the last character it read. It also keeps track of whether its seen an `\r\n\r\n` go by during the reading (to make it easier to detect complete requests later) and how many times we've tried to read from this buffer (so that we can evict needy buffers further up). Finally, if it encounters any kind of error during the read process, it returns an `:eof` to signal that the caller should just throw out this particular socket.
+When you call `buffer!` on a `buffer`, it increments the `tries` count, then loops to read characters from the input stream. If it reaches the end of available input, it returns the last character it read. It also keeps track of whether its seen an `\r\n\r\n` go by during the reading (to make it easier to detect complete requests later) and how many times we've tried to read from this buffer (so that we can evict needy buffers further up). Finally, if it encounters any kind of error during the read process (including hitting the end-of-file marker), it returns an `:eof` to signal that the caller should just throw out this particular socket.
 
-The procedure `read-char-no-hang` is essential here; that's the thing that allows us to read without blocking, or "`hang`ing", when there are no further chars to read on the incoming stream. Instead of waiting on further input like plain `read-char`, `read-char-no-hang` just returns `nil` immediately. We've also passed two additional arguments that mean it'll return `:eof` rather than erroring at the end-of-file marker. That should explain why we were just throwing away buffers and sockets that came back with an `:eof` result; it's because an `:eof` here means that the client socket has closed its stream, so we couldn't send a reply back even if we hypothetically wanted to.
+The procedure `read-char-no-hang` is essential here; that's the thing that allows us to read without blocking, or "`hang`ing", when there are no further chars to read on the incoming stream. Instead of waiting on further input like plain `read-char`, `read-char-no-hang` just returns `nil` immediately. It'll also throw an error if it hits the end-of-file marker. We catch that error, returning `:eof` as the result of `buffer!`. That should explain why we were just throwing away buffers and sockets that came back with an `:eof` result; it's because an `:eof` here means that the client socket has closed its stream, so we couldn't send a reply back even if we hypothetically wanted to.
 
 The `buffer` class looks like
 
 	(defclass buffer ()
 	  ((tries :accessor tries :initform 0)
 	   (contents :accessor contents :initform nil)
-	   (content-size :accessor content-size :initform 0)
-	   (found-crlf? :accessor found-crlf? :initform nil)
+	   (bi-stream :reader bi-stream :initarg :bi-stream)
+	   (total-buffered :accessor total-buffered :initform 0)
 	   (started :reader started :initform (get-universal-time))
-	   (bi-stream :reader bi-stream :initarg :bi-stream)))
+	   (request :accessor request :initform nil)
+	   (expecting :accessor expecting :initform 0)))
 
 It's just a series of storage slots to track buffering state from the incoming socket. If you're just joining us from mainstream OO languages, you might notice the fact that this CLOS (Common Lisp Object System) `class` declaration only involves slots and related getters/setters (`reader`s/`accessor`s), and initial-value-related options (`:initform` specifies a default value, while `:initarg` specifies a hook for the caller of `make-instance` to provide a default value). This is because, as I've noted before, the Lisp object system is based on generic functions. And now that we've seen a `class`, it's worth taking a detour.
 
@@ -178,10 +189,11 @@ Bringing this back around to our `buffer`s, the class we defined earlier has six
 
 - `tries`, which keeps count of how many times we've tried reading into this buffer
 - `contents`, which contains what we've read so far
-- `content-size`, which is a count of chars we've read so far
-- `found-crlf?`, which tracks whether we've seen a `\r\n\r\n` sequence go by
-- `started`, which a timestamp that tells us when we created this buffer
-- and `bi-stream`, which is a hack around some of those Common Lisp-specific, non-blocking-IO annoyances I mentioned.
+- `bi-stream`, which is a hack around some of those Common Lisp-specific, non-blocking-IO annoyances I mentioned earlier
+- `total-buffered`, which is a count of chars we've read so far
+- `started`, which is a timestamp that tells us when we created this buffer
+- `request`, which will eventually contain the request we construct from buffered data
+- `expecting`, which will signal how many more chars we're expecting (if any) after we buffer the request headers
 
 The next interesting part of the `stream-usocket`-specializing `process-ready` comes after the edge-case handling of old/big/needy requests. It's wrapped in another layer of error handling because we might still crap out in different ways here. In particular, if the request is old/big/needy or if an `http-assertion-error` is raised, we want to send a `400` response; the client provided us with some bad or slow data. However, if any _other_ error happens here, it's because the programer made a mistake defining a handler, which should be treated as a `500` error. Something went wrong on the server side as a result of a potentially legitimate request.
 
@@ -207,13 +219,14 @@ Here's how we parse requests
 		         (req (make-instance 'request :resource resource)))
 		    (loop for header = (pop lines) for (name value) = (split ": " header)
 		          until (null name) do (push (cons (->keyword name) value) (headers req)))
-		    (setf (parameters req)
-		          (append (parse-params parameters)
-			              (parse-params (pop lines))))
+		    (setf (parameters req) (parse-params parameters))
 		    req))))
 
 	(defmethod parse ((buf buffer))
-	  (parse (coerce (reverse (contents buf)) 'string)))
+	  (let ((str (coerce (reverse (contents buf)) 'string)))
+	    (if (request buf)
+		    (parse-params str)
+		    (parse str))))
 
 	(defmethod parse-params ((params null)) nil)
 	(defmethod parse-params ((params string))
@@ -221,7 +234,7 @@ Here's how we parse requests
 	        for (name val) = (split "=" pair)
 	        collect (cons (->keyword name) (or val ""))))
 
-The top two methods handle parsing buffers or strings, while the bottom two handle parsing HTTP parameters. There are two places where we might expect something with the shape of ampersand-separated k/v pairs, so it seemed like a good idea to pull out the procedure that handles them. The `parse` method specializing on `buffer` just pulls out the `buffer`s contents, and recursively calls `parse` on its reversed, stringified `contents`. In the `parse` method specializing on `string`, we actually take apart the incoming content into usable pieces. The process is
+The top two methods handle parsing buffers or strings, while the bottom two handle parsing HTTP parameters. There are two places where we might expect something with the shape of ampersand-separated k/v pairs, so it seemed like a good idea to pull out the procedure that handles them. The `parse` method specializing on `buffer` just pulls out the `buffer`s contents, and either recursively calls `parse` on its reversed, stringified `contents`, *or* calls `parse-params` (the latter happens when we already have a partial `request` saved in the given `buffer`, at which point we're only looking to parse the request body). In the `parse` method specializing on `string`, we actually take apart the incoming content into usable pieces. The process is
 
 1. split on `"\\r?\\n"`
 2. split the first line of that on `" "` to get the request type (`POST`, `GET`, etc)/URI path/http-version
@@ -229,7 +242,7 @@ The top two methods handle parsing buffers or strings, while the bottom two hand
 4. split the URI path on `"?"`, which gives us plain resource separate from any potential `GET` parameters
 5. make a new `request` instance with the resource in place
 6. populate that `request` instance with each split header line
-7. set that `request`s parameters to the result of parsing our `GET` and `POST` parameters
+7. set that `request`s parameters to the result of parsing our `GET` parameters
 
 The `request` object from step five looks exactly how you'd expect after our CLOS detour.
 
