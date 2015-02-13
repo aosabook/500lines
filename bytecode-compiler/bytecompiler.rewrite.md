@@ -417,7 +417,7 @@ statements, where expressions include only names, simple constants,
 and function calls. A constant expression turns into just a
 `LOAD_CONST`:
 
-    # in code generation 0:
+    # in CodeGen methods v0+:
         def visit_NameConstant(self, t): return self.load_const(t.value)
         def visit_Num(self, t):          return self.load_const(t.n)
         def visit_Str(self, t):          return self.load_const(t.s)
@@ -481,7 +481,7 @@ Python list object, but by a low-level array of words in memory. It's
 conventionally vertical instead of horizontal: a stack with a top we
 'push' onto and 'pop' from, changing its 'depth'.)
 
-    # in code generation 0:
+    # in CodeGen methods v0+:
         def visit_Call(self, t):
             assert len(t.args) < 256 and len(t.keywords) < 256
             return (self(t.func) + self(t.args) + self(t.keywords)
@@ -544,11 +544,7 @@ during development, of course, sometimes it did. Before I overrode
 `generic_visit`, the default implementation would succeed silently,
 making my mistakes harder to see.
 
-    # XXX I think we can get rid of these
-    # 'noise' lines; come back to this.
-    <<code generation 0>>
-    <<code generation 1>>
-    <<code generation 2>>
+    <<CodeGen methods>>
 
 
 ### Statements
@@ -558,7 +554,7 @@ expression statement (consisting of just an expression, typically a
 call), we evaluate the expression and then remove its result from the
 stack:
 
-    # in code generation 0:
+    # in CodeGen methods v0+:
         def visit_Expr(self, t):
             return self(t.value) + op.POP_TOP
 
@@ -678,7 +674,7 @@ different encodings. I considered handling this with a design more
 like a 'linker' than an assembler, but decided to stick closer to
 CPython's design: it's less likely to get borked by their changes.)
 
-    # in code generation 1 v1:
+    # in CodeGen methods v1+:
         def visit_If(self, t):
             orelse, after = Label(), Label()
             return (           self(t.test) + op.POP_JUMP_IF_FALSE(orelse)
@@ -899,7 +895,7 @@ Dict literals like `{'a': 'x', 'b': 'y'}` turn into code like
 
 so:
 
-    # in code generation 1 v1:
+    # in CodeGen methods v1+:
         def visit_Dict(self, t):
             return (op.BUILD_MAP(min(0xFFFF, len(t.keys)))
                     + concat([self(v) + self(k) + op.STORE_MAP
@@ -927,7 +923,7 @@ Like name nodes, subscript nodes can appear on the left-hand side of
 an assignment statement, like `a.x = 42`. They carry a `t.ctx` field
 just like a name's.
 
-    # in code generation 1 v1:
+    # in CodeGen methods v1+:
         def visit_Subscript(self, t):
             return self(t.value) + self(t.slice.value) + self.subscr_ops[type(t.ctx)]
         subscr_ops = {ast.Load: op.BINARY_SUBSCR, ast.Store: op.STORE_SUBSCR}
@@ -948,7 +944,7 @@ load, `['a', 'b']` becomes
 where 2 is the length of the list. Unlike with `BUILD_MAP` the length
 must be exact.
 
-    # in code generation 1 v1:
+    # in CodeGen methods v1+:
         def visit_List(self, t):  return self.visit_sequence(t, op.BUILD_LIST)
         def visit_Tuple(self, t): return self.visit_sequence(t, op.BUILD_TUPLE)
 
@@ -970,7 +966,7 @@ own instruction, for efficiency. `not -x` gets compiled to
 
 so:
 
-    # in code generation 1 v1:
+    # in CodeGen methods v1+:
         def visit_UnaryOp(self, t):
             return self(t.operand) + self.ops1[type(t.op)]
         ops1 = {ast.UAdd: op.UNARY_POSITIVE,  ast.Invert: op.UNARY_INVERT,
@@ -1000,7 +996,7 @@ single expression as a single AST node holding a list of operators and
 a list of their right operands. Our subset of Python doesn't cover
 this case, only binary comparisons like `x<2`.
 
-    # in code generation 1 v1:
+    # in CodeGen methods v1+:
         def visit_Compare(self, t):
             [operator], [right] = t.ops, t.comparators
             cmp_index = dis.cmp_op.index(self.ops_cmp[type(operator)])
@@ -1023,7 +1019,7 @@ consistent across different branches of control. `print(x or y)` compiles to
 falsey. At index 12, whichever way execution got there, the stack has
 the same height: two entries.
 
-    # in code generation 1 v1:
+    # in CodeGen methods v1+:
         def visit_BoolOp(self, t):
             op_jump = self.ops_bool[type(t.op)]
             def compose(left, right):
@@ -1423,7 +1419,7 @@ code. Being different from CPython's approach, it's riskier.
 
 ### Code for functions
 
-    # in code generation 2 v2:
+    # in CodeGen methods v2:
         def visit_Return(self, t):
             return ((self(t.value) if t.value else self.load_const(None))
                     + op.RETURN_VALUE)
@@ -1475,7 +1471,7 @@ already arranged for the needed cells to be among the current scope's
 the new function. (In 'real' Python the nested lambda's name would be
 `<lambda>.<locals>.<lambda>`, reflecting the nesting.)
 
-    # in code generation 2 v2:
+    # in CodeGen methods v2:
         def make_closure(self, code, name):
             if code.co_freevars:
                 return (concat([op.LOAD_CLOSURE(self.cell_index(freevar))

@@ -1,8 +1,9 @@
 #!/usr/bin/lua
 
--- chunk:     A {name, v, text} table.
+-- chunk:     A {name, v, and_higher, text} table.
 --   name:      string
 --   v:         natural number
+--   and_higher: true if this chunk is to be incorporated in higher-numbered versions as well
 --   text:      a list of lines.
 -- chunks:    A table mapping name to list of chunks.
 --              (The chunk list is sometimes called 'contents'.)
@@ -53,10 +54,10 @@ assert(get_chunk_label("# in a minute: #\n") ==
        "a minute")
 
 function parse_chunk_label(label)
-    local name, version = 
-        string.match(label, "(.*) v(%d+)$")
-    if name then return name, tonumber(version)
-    else return label, 0 end
+    local name, version, plus = 
+        string.match(label, "(.*) v(%d+)(+?)$")
+    if name then return name, tonumber(version), (plus == "+")
+    else return label, 0, false end
 end
 
 assert(parse_chunk_label("foo") == "foo")
@@ -78,8 +79,8 @@ function parse_input()
             
             if label then  -- if that succeeded, change chunks
                 register_chunk(chunks, current_chunk)
-                local name, ver = parse_chunk_label(label)
-                current_chunk = {name = name, v = ver, text = {}}
+                local name, ver, ver_plus = parse_chunk_label(label)
+                current_chunk = {name = name, v = ver, and_higher = ver_plus, text = {}}
             else
                 -- incorporate any blank lines seen in between indented lines
                 for _, blank_line in ipairs(blank_lines) do
@@ -145,14 +146,28 @@ function list_chunk_names_and_versions(chunks)
 end
 
 function get_chunk_text(contents, version)
+    local lines = {}
+    local found = false
     local best
     for _, it in ipairs(contents) do
-        if it.v <= version and (not best or
-                                it.v > best.v) then
+        if it.v <= version and it.and_higher then
+            extend(lines, it.text)
+            found = true
+        elseif it.v <= version and (not best or it.v > best.v) then
             best = it
         end
     end
-    if best then return best.text else return nil end
+    if best then 
+        extend(lines, best.text)
+        found = true
+    end
+    if found then return lines else return nil end
+end
+
+function extend(xs, ys)
+    for i = 1, #ys do
+        table.insert(xs, ys[i])
+    end
 end
 
 do
