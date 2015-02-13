@@ -215,7 +215,6 @@ run our example.
     from check_subset import check_conformity
 
     <<the assembler>>
-    <<tables>>
     <<the code generator>>
     <<compile and run a file>>
 
@@ -346,13 +345,16 @@ the parts to be rewritten grouped in just a few definitions.)
             self.names     = make_table()
             self.varnames  = make_table()
 
-        def compile_module(self, t, name):
-            assembly = self(t.body) + self.load_const(None) + op.RETURN_VALUE
-            return self.make_code(assembly, name, 0)
+    <<CodeGen methods>>
 
 Recall the disassembly of a module, above: there was the body code,
 then `LOAD_CONST` of `None`, then `RETURN_VALUE`. We turn that
 assembly into a code object:
+
+    # in CodeGen methods v0+:
+        def compile_module(self, t, name):
+            assembly = self(t.body) + self.load_const(None) + op.RETURN_VALUE
+            return self.make_code(assembly, name, 0)
 
         def make_code(self, assembly, name, argcount):
             kwonlyargcount = 0
@@ -382,7 +384,7 @@ This code object is littered with fields:
 These tables are tuples in the code object, built from `defaultdict`s
 that grow as we walk the tree:
 
-    # in tables:
+    # in the code generator:
     def make_table():
         table = collections.defaultdict(lambda: len(table))
         return table
@@ -396,7 +398,7 @@ table, but 'equal' constants might not: for example, `5 == 5.0` is
 true, but `5` and `5.0` are nevertheless distinct. So we key on the
 type as well as the value of the constant:
 
-    # in the code generator:
+    # in CodeGen methods v0+:
         def load_const(self, constant):
             return op.LOAD_CONST(self.constants[constant, type(constant)])
 
@@ -417,7 +419,6 @@ statements, where expressions include only names, simple constants,
 and function calls. A constant expression turns into just a
 `LOAD_CONST`:
 
-    # in CodeGen methods v0+:
         def visit_NameConstant(self, t): return self.load_const(t.value)
         def visit_Num(self, t):          return self.load_const(t.n)
         def visit_Str(self, t):          return self.load_const(t.s)
@@ -512,7 +513,6 @@ without comment.)
 The recursive visits like `self(t.func)` and `self(t.args)` (and
 `self(t.body)` back in `compile_module`) call this:
 
-    # in the code generator:
         def __call__(self, t):
             if isinstance(t, list): return concat(map(self, t)) 
             assembly = self.visit(t)
@@ -544,8 +544,6 @@ during development, of course, sometimes it did. Before I overrode
 `generic_visit`, the default implementation would succeed silently,
 making my mistakes harder to see.
 
-    <<CodeGen methods>>
-
 
 ### Statements
 
@@ -554,7 +552,6 @@ expression statement (consisting of just an expression, typically a
 call), we evaluate the expression and then remove its result from the
 stack:
 
-    # in CodeGen methods v0+:
         def visit_Expr(self, t):
             return self(t.value) + op.POP_TOP
 
