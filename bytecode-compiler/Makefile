@@ -1,9 +1,9 @@
 all: tailbiter0.py tailbiter1.py tailbiter2.py
 
-doc: ~/Desktop/ch1.pdf
+doc: ~/Desktop/tailbiter.pdf
 
-~/Desktop/ch1.pdf: bytecompiler.rewrite.md
-	pandoc bytecompiler.rewrite.md -o ~/Desktop/ch1.pdf
+~/Desktop/tailbiter.pdf: bytecompiler.rewrite.md
+	pandoc bytecompiler.rewrite.md -o ~/Desktop/tailbiter.pdf
 
 tailbiter0.py: handaxeweb.lua bytecompiler.rewrite.md
 	./handaxeweb.lua <bytecompiler.rewrite.md tailbiter.py >tailbiter0.py

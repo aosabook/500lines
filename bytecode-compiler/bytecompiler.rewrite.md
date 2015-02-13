@@ -22,6 +22,11 @@ Python 3.4. (Deciding just what subset took some exploring.) The
 target machine is the CPython bytecode virtual machine, also version
 3.4.
 
+[XXX It'd be nice to have a figure with the ASDL grammar of Python
+ASTs, with our subset's omissions italicized or something. But since
+Parser/Python.asdl is about 115 lines, that's probably longer than we
+can afford.]
+
 
 ## Abstract syntax trees
 
@@ -1110,7 +1115,7 @@ To finish, we'll need more passes:
   valuable in two ways: documenting what we claim to compile
   correctly, and keeping the user/developer from wasting time on
   apparent bugs on input it was never meant to
-  support. [XXX add a call-out box with the ASDL grammar of Python ASTs, with our subset's omissions italicized or something]
+  support.
 
 * Then we analyze the scope of variables: their definitions and uses
   in classes, functions, and function-like scopes such as lambda
