@@ -8,6 +8,13 @@ import re
 import time
 import urllib.parse
 
+try:
+    # Python 3.4.
+    from asyncio import JoinableQueue as Queue
+except ImportError:
+    # Python 3.5.
+    from asyncio import Queue
+
 import aiohttp  # Install with "pip install aiohttp".
 
 LOGGER = logging.getLogger(__name__)
@@ -47,7 +54,7 @@ class Crawler:
         self.max_redirect = max_redirect
         self.max_tries = max_tries
         self.max_tasks = max_tasks
-        self.q = asyncio.JoinableQueue(loop=self.loop)
+        self.q = Queue(loop=self.loop)
         self.seen_urls = set()
         self.done = []
         self.connector = aiohttp.TCPConnector(loop=self.loop)
