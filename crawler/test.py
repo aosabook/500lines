@@ -55,8 +55,13 @@ class TestCrawler(unittest.TestCase):
     @asyncio.coroutine
     def _create_server(self):
         app = web.Application(loop=self.loop)
+        handler_factory = app.make_handler(debug=True)
         srv = yield from self.loop.create_server(
-            app.make_handler(debug=True), '127.0.0.1', self.port)
+            handler_factory, '127.0.0.1', self.port)
+
+        # Prevent "Task destroyed but it is pending" warnings.
+        self.addCleanup(lambda: self.loop.run_until_complete(
+            handler_factory.finish_connections()))
 
         self.addCleanup(srv.close)
         return app
