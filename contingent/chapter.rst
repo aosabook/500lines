@@ -109,7 +109,8 @@ does not change any of the information in the table of contents.
 But it turns out that Sphinx is not quite as clever
 as it might have at first appeared!
 It goes ahead and does the redundant work of rebuilding
-``index.html`` even though it will come out exactly the same. ::
+``index.html`` even though the resulting contents
+will be exactly the same. ::
 
    writing output... [ 50%] index
    writing output... [100%] tutorial
@@ -202,7 +203,7 @@ The problem outlined above is not specific to Sphinx.
 Not only does it haunt other document systems, like LaTeX,
 but it can even plague projects
 that are simply trying to direct compilation steps
-with the venerable “make” utility,
+with the venerable ``make`` utility,
 if their assets happen to cross-reference in interesting ways.
 
 As the problem is ancient and universal,
@@ -255,7 +256,7 @@ each produce a corresponding HTML output file.
 The most natural way to express these relationships
 is as a collection of boxes and arrows —
 or, in mathematician terminology, *nodes* and *edges*
-to form a graph:
+to form a *graph*:
 
 .. figure:: figure1.png
 
@@ -271,6 +272,12 @@ The language gives priority to four generic data structures
 by giving them direct support in the language syntax.
 You can create new instances of the big-four data structures
 by simply typing them into your source code.
+
+.. TODO: Only two of these four bullets describe the data structure's
+.. syntax. I suggest that we remove the description of the syntax since
+.. we immediately *demonstrate* it with examples. But if we want to keep
+.. the descriptions, we should probably be consistent and describe the
+.. syntax for all four.
 
 * The **tuple** is a read-only sequence
   whose syntax is parentheses around comma-separated items.
@@ -347,6 +354,8 @@ This would allow quick iteration across all of our edges,
 fast insert and delete operations for a single edge,
 and a quick way to check whether a particular edge was present.
 
+.. TODO: Perhaps demonstrate these operations here?
+
 Unfortunately, those are not the only operations we need.
 
 A build system like Contingent
@@ -410,13 +419,15 @@ it supports the fast lookup that Contingent needs.
 The Proper Use of Classes
 =========================
 
+.. TODO: rework this and following
+
 You may have been surprised
 by the absence of classes in the above discussion
 of Python data structures.
 After all, they are a frequent mechanism for organizing data
 and get defined through a dedicated Python syntax.
 
-But it turns out that classes are often
+But it turns out that classes are often orthogonal
 to the question of data structure design.
 Classes simply repeat data structures that we have already seen:
 
@@ -480,7 +491,7 @@ as a concise and fairly consistent indicator
 to other programmers,
 including our future selves,
 that the attribute is best treated
-as part of the internal invisible machinery of the class.
+as part of the invisible internal machinery of the class.
 
 Why are we using a “defaultdict” instead of a standard dict?
 It automatically handles the special case of a missing key.
@@ -565,7 +576,7 @@ without having to learn how to traverse our data structure:
 
 .. include:: contingent/graphlib.py
     :code: python
-    :start-line: 65
+    :start-line: 64
     :end-line: 69
 
 The ``Graph.sorted()`` method, if you want to examine it later,
@@ -822,6 +833,9 @@ might involve a few basic tasks.
     ...     title, body = parse(filename)
     ...     return title
 
+  .. TODO: something is wrong with the next paragraph; looks like a bad
+  .. edit
+
   This task nicely illustrates the
   separation of responsibilities between
   the parts of a document processing system:
@@ -840,9 +854,9 @@ might involve a few basic tasks.
   In an OO solution,
   ``parse()`` would return some sort of ``Document`` object
   that has ``title_of()`` as a method or property.
-  In fact, Sphinx works exactly this way.
-  Its ``Parser`` subsystem producing a “Docutils document tree” object
-  for the other parts of the system.
+  In fact, Sphinx works exactly this way:
+  its ``Parser`` subsystem produces a “Docutils document tree” object
+  for the other parts of the system to use.
 
   Contingent is not opinionated
   with regard to these differing design paradigms
@@ -920,12 +934,12 @@ surround the invocation of a task T:
 4. Return its result.
 
 To intercept task calls,
-the ``Project`` leverages a key Python: *function decorators*.
+the ``Project`` leverages a key Python feature: *function decorators*.
 A decorator is allowed to process or transform a function
 at the moment that it is being defined.
 The ``Project.task`` decorator uses this opportunity
 to package every task inside another function, a *wrapper*,
-allowing a quite clean separation of responsibilities.
+allowing a clean separation of responsibilities.
 The wrapper worries about graph and stack management —
 of which the task function remains blissfully ignorant —
 while each task function can focus on
@@ -1114,7 +1128,7 @@ Contingent needs to monitor the input files for changes.
 When the user finishes a new edit and runs “Save,”
 both the ``read()`` method and its consequences need to be invoked.
 
-This will requires us to walk the graph in the opposite order
+This will require us to walk the graph in the opposite order
 from the one in which it was created.
 It was built, you will recall, by calling
 ``render()`` for the API Reference and having that call ``parse()``
@@ -1149,7 +1163,7 @@ under the name ``_`` for use in the subsequent expression.
 
 This recursive task of looking repeatedly for immediate consequences
 and only stopping when we arrive at tasks with no further consequences
-a basic enough graph operation that it is supported directly
+is a basic enough graph operation that it is supported directly
 by a method on the ``Graph`` class:
 
 >>> project._graph.recursive_consequences_of([task])
@@ -1175,7 +1189,8 @@ Our second challenge, however,
 was to avoid rebuilding too much.
 We want to avoid rebuilding all three documents
 every time that ``tutorial.txt`` is changed,
-since most edits will probably not affect its title but only its body?
+since most edits will probably not affect its title but only its body.
+How can this be accomplished?
 
 The solution is to make graph recomputation dependent on caching.
 When stepping forward through the recursive consequences of a change,
@@ -1230,7 +1245,7 @@ The ``Project`` class supports a simple tracing facility
 that will tell us which tasks are executed in the course
 of a rebuild.
 Since the above change to ``tutorial.txt``
-affect both its body and its title,
+affects both its body and its title,
 everything downstream will need to be re-computed:
 
 >>> project.start_tracing()
