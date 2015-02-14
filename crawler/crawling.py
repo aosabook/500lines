@@ -48,7 +48,7 @@ class Crawler:
         self.max_tries = max_tries
         self.max_tasks = max_tasks
         self.q = asyncio.JoinableQueue(loop=self.loop)
-        self.urls = set()
+        self.seen_urls = set()
         self.done = []
         self.connector = aiohttp.TCPConnector(loop=self.loop)
         self.root_domains = set()
@@ -142,7 +142,7 @@ class Crawler:
                     defragmented, frag = urllib.parse.urldefrag(normalized)
                     if self.url_allowed(defragmented):
                         allowed_urls.add(defragmented)
-                        if defragmented not in self.urls:
+                        if defragmented not in self.seen_urls:
                             new_urls.add(defragmented)
                             self.add_url(defragmented)
 
@@ -220,7 +220,7 @@ class Crawler:
         """Process queue items forever."""
         while True:
             url, max_redirect = yield from self.q.get()
-            assert url in self.urls
+            assert url in self.seen_urls
             yield from self.fetch(url, max_redirect)
             self.q.task_done()
 
@@ -242,7 +242,7 @@ class Crawler:
         if max_redirect is None:
             max_redirect = self.max_redirect
         LOGGER.debug('adding %r %r', url, max_redirect)
-        self.urls.add(url)
+        self.seen_urls.add(url)
         self.q.put_nowait((url, max_redirect))
 
     @asyncio.coroutine
@@ -252,7 +252,7 @@ class Crawler:
                    for _ in range(self.max_tasks)]
         self.t0 = time.time()
         yield from self.q.join()
-        assert self.urls == set(stat.url for stat in self.done)
+        assert self.seen_urls == set(stat.url for stat in self.done)
         self.t1 = time.time()
         for w in workers:
             w.cancel()
