@@ -1657,7 +1657,7 @@ included just for fun. For the compiler that's normally run, see
 `compile.c` and `symtable.c`; there's also the optimizer `peephole.c`.
 
 Our compiler compiled itself, but we stopped short of applying this
-ability to do anything special. (Can you change the language yet?) Ken
+ability towards anything special. (Can you change the language yet?) Ken
 Thompson showed one surprising direction to go, in "Reflections on
 Trusting Trust".
 
