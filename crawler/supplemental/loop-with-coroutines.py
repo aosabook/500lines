@@ -29,6 +29,10 @@ class Future:
         for fn in self._callbacks:
             fn(self)
 
+    def __iter__(self):
+        yield self  # This tells Task to wait for completion.
+        return self.result
+
 urls_seen = set(['/'])
 urls_todo = set(['/'])
 concurrency_achieved = 0
@@ -49,7 +53,7 @@ def connect(sock, address):
         f.set_result(None)
 
     selector.register(sock.fileno(), EVENT_WRITE, on_connected)
-    yield f
+    yield from f
 
 
 def read(sock):
@@ -60,7 +64,7 @@ def read(sock):
         f.set_result(sock.recv(4096))  # Read 4k at a time.
 
     selector.register(sock.fileno(), EVENT_READ, on_readable)
-    chunk = yield f
+    chunk = yield from f
     return chunk
 
 
