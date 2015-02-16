@@ -692,18 +692,19 @@ We now have a way for Contingent
 to keep track of tasks and the relationships between them.
 If we look more closely at Figure 2, however,
 we see that it is actually a little hand wavy and vague:
-what does it mean to say that
-``index.rst``, ``api-title``, and ``tutorial.html`` are “tasks?”
+*how* is ``api.html`` produced from ``api.rst``?
+How do we know that ``index.html`` needs the title from the tutorial?
+And how is this dependency resolved?
 
 Our intuitive notion of these ideas
 served when we were constructing consequences graphs by hand,
 but unfortunately computers are not terribly intuitive,
 so we will need to be more precise about what we want.
-What are tasks?
-How are they defined and executed?
+What are the steps required to produce output from sources?
+How are these steps defined and executed?
 And how can Contingent know the connections between them?
 
-In Contingent, tasks are modeled as functions plus arguments.
+In Contingent, build tasks are modeled as functions plus arguments.
 The functions define actions that the particular project
 understands how to perform.
 The arguments provide
