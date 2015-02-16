@@ -352,20 +352,38 @@ and a quick way to check whether a particular edge was present.
 Unfortunately, those are not the only operations we need.
 
 A build system like Contingent
-is going to focus its processing on nodes, not edges.
-When building a particular asset like ``api.html``
-it will need quick access to all of the incoming edges,
-so that it can adjust them as it learns which resources
-the build routine uses this time around,
-and will also need access to the outgoing edges
-so that any downstream tasks can be re-executed
-if the content of ``api.html`` is changed.
-Our set-of-tuples does not make this easy.
-The entire set would need to be traversed
+needs to understand the relationship between a given node
+and all the nodes connected to it.
+For example, when ``api.rst`` changes,
+Contingent needs to know which assets
+are affected by that change, if any,
+in order to minimize the work performed
+while also ensuring a complete build.
+To answer this question —
+what nodes are downstream from ``api.rst``? —
+we need to examine the *outgoing* edges from ``api.rst``.
+But building the dependency graph requires that
+Contingent be concerned with a node's *inputs* as well:
+what inputs were used, for example,
+when the build system assembled the output document ``tutorial.html``?
+It is by watching the input to each node that
+Contingent can know that ``api.html`` depends on ``api.rst`` but
+that ``tutorial.html`` does not.
+As sources change and rebuilds occur,
+Contingent uses the incoming edges of each changed node
+to remove potentially stale edges and relearn which resources
+the build routine uses this time around.
+
+Our set-of-tuples does not make answering
+either of these questions easy.
+If we needed to know the relationship between ``api.html``
+and the rest of the graph,
+we would need to traverse the entire set
 looking for edges that start or end at the ``api.html`` node.
 
-Python’s only associative data structure is the dict.
-We could use a dict to group edges for quick lookup by node::
+An associative data structure like Python's dict
+would make these chores easier
+by allowing direct lookup of all the edges from a particular node::
 
     {'tutorial.rst': {('tutorial.rst', 'tutorial.html')},
      'tutorial.html': {('tutorial.rst', 'tutorial.html')},
@@ -402,12 +420,27 @@ for every one of the edges in which it is involved. ::
         'api.rst': {'api.html'},
         }
 
+Notice that ``outgoing`` represents directly in Python syntax
+exactly what we drew in Figure 1 earlier:
+the source documents on the left
+will be transformed by the build system into the
+output documents on the right.
+For this simple example each source points to only one output —
+all the output sets have only one element —
+but we will see examples shortly where a single input node
+has multiple downstream consequences.
+
 Every edge in this dictionary-of-sets data structure
 does get represented twice,
 once as an outgoing edge from one node
-and again as an incoming edge to another node.
+(``tutorial.rst`` → ``tutorial.html``)
+and again as an incoming edge to the other
+(``tutorial.html`` ← ``tutorial.rst``).
+These two representations capture precisely the same relationship,
+just from the opposite perspectives of the two nodes
+at either end of the edge.
 But in return for this redundancy,
-it supports the fast lookup that Contingent needs.
+the data structure supports the fast lookup that Contingent needs.
 
 The Proper Use of Classes
 =========================
