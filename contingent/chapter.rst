@@ -273,15 +273,8 @@ by giving them direct support in the language syntax.
 You can create new instances of the big-four data structures
 by simply typing them into your source code.
 
-.. TODO: Only two of these four bullets describe the data structure's
-.. syntax. I suggest that we remove the description of the syntax since
-.. we immediately *demonstrate* it with examples. But if we want to keep
-.. the descriptions, we should probably be consistent and describe the
-.. syntax for all four.
-
 * The **tuple** is a read-only sequence
-  whose syntax is parentheses around comma-separated items.
-  Tuples are used to hold heterogeneous data —
+  used to hold heterogeneous data —
   each slot in a tuple typically means something different.
   Here, a tuple holds together a hostname and port number,
   and would lose its meaning if the elements were re-ordered::
@@ -289,8 +282,7 @@ by simply typing them into your source code.
     ('dropbox.com', 443)
 
 * The **list** is a mutable sequence
-  whose syntax is square brackets around comma-separated items.
-  Lists are used to hold homogenous data —
+  used to hold homogenous data —
   each item usually has the same structure and meaning as its peers.
   Lists can be used either to preserve data’s original input order,
   or can be rearranged or sorted
@@ -299,10 +291,9 @@ by simply typing them into your source code.
     ['JavaScript', 'Java', 'PHP', 'Python', 'C#']
 
 * The **set** does not preserve order.
-  Instead, it compares its items by value.
-  The set remembers only whether a given value has been added,
+  Sets remember only whether a given value has been added,
   not how many times,
-  and is therefore the go-to data structure
+  and are therefore the go-to data structure
   for removing duplicates from a data stream.
   For example, the following two sets, once the language has built them,
   will each have three elements::
@@ -310,7 +301,9 @@ by simply typing them into your source code.
     {3, 4, 5}
     {3, 4, 5, 4, 4, 3, 5, 4, 5, 3, 4, 5}
 
-* The **dict** lets the programmer chose the key
+* The **dict** is an associative data structure for storing values
+  accessible by a key.
+  Dicts let the programmer chose the key
   by which each value is indexed,
   instead of using automatic integer indexing like the tuple and list.
   The lookup is backed by a hash table,
