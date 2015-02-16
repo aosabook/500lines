@@ -25,6 +25,10 @@ def lenient_host(host):
     return ''.join(parts)
 
 
+def is_redirect(response):
+    return response.status in (300, 301, 302, 303, 307)
+
+
 FetchStatistic = namedtuple('FetchStatistic',
                             ['url',
                              'next_url',
@@ -118,10 +122,9 @@ class Crawler:
         self.done.append(fetch_statistic)
 
     @asyncio.coroutine
-    def process_response(self, response):
-        """Return a FetchStatistic for a successful fetch."""
-        allowed_urls = set()
-        new_urls = set()
+    def parse_links(self, response):
+        """Return a FetchStatistic and list of links."""
+        links = set()
         content_type = None
         encoding = None
         body = yield from response.read()
@@ -143,17 +146,13 @@ class Crawler:
                 if urls:
                     LOGGER.info('got %r distinct urls from %r',
                                 len(urls), response.url)
-                new_urls = set()
                 for url in urls:
                     normalized = urllib.parse.urljoin(response.url, url)
                     defragmented, frag = urllib.parse.urldefrag(normalized)
                     if self.url_allowed(defragmented):
-                        allowed_urls.add(defragmented)
-                        if defragmented not in self.seen_urls:
-                            new_urls.add(defragmented)
-                            self.add_url(defragmented)
+                        links.add(defragmented)
 
-        return FetchStatistic(
+        stat = FetchStatistic(
             url=response.url,
             next_url=None,
             status=response.status,
@@ -161,8 +160,10 @@ class Crawler:
             size=len(body),
             content_type=content_type,
             encoding=encoding,
-            num_urls=len(allowed_urls),
-            num_new_urls=len(new_urls))
+            num_urls=len(links),
+            num_new_urls=len(links - self.seen_urls))
+
+        return stat, links
 
     @asyncio.coroutine
     def fetch(self, url, max_redirect):
@@ -199,7 +200,7 @@ class Crawler:
                                                  num_new_urls=0))
             return
 
-        if response.status in (300, 301, 302, 303, 307):
+        if is_redirect(response):
             location = response.headers['location']
             next_url = urllib.parse.urljoin(url, location)
             self.record_statistic(FetchStatistic(url=url,
@@ -219,8 +220,12 @@ class Crawler:
                 LOGGER.error('redirect limit reached for %r from %r',
                              next_url, url)
         else:
-            stat = yield from self.process_response(response)
+            stat, links = yield from self.parse_links(response)
             self.record_statistic(stat)
+            for link in links.difference(self.seen_urls):
+                self.q.put_nowait((link, self.max_redirect))
+            self.seen_urls.update(links)
+
 
     @asyncio.coroutine
     def work(self):
