@@ -10,7 +10,7 @@ When Tim Berners-Lee invented the web in 1990, _web pages_ were written in HTML 
 
 In the 1990s, browsers added various presentational tags to the HTML vocabulary, including some notoriously nonstandard tags such as `<blink>…</blink>` from Netscape Navigator and `<marquee>…</marquee>` from Internet Explorer, causing widespread problems in usability and browser compatibility.
 
-In order to keep HTML to its original purpose—describing a document’s logical structure—browser makers eventually agreed to support two additional languages: CSS to describe presentational styles of a page, and JavaScript (JS) to describe its dynamic interactions.
+In order to restrict HTML to its original purpose—describing a document’s logical structure—browser makers eventually agreed to support two additional languages: CSS to describe presentational styles of a page, and JavaScript (JS) to describe its dynamic interactions.
 
 Since then, the three languages have become more concise and powerful through twenty years of co-evolution. In particular, improvements in JS engines made it practical to deploy large-scale JS frameworks, such as [AngularJS](http://angularjs.org/).
 
@@ -26,21 +26,20 @@ Now let’s open http://audreyt.github.io/500lines/spreadsheet/ in a browser:
 
 ![Initial Screen](./images/01-initial.png)
 
-XXX STOPPED HERE
 ### Basic Concepts
 
-The spreadsheet spans two dimensions, with _columns_ starting from **A**, and _rows_ starting from **1**. Each _cell_ has a unique _coordinate_ (such as **A1**) and _content_ (such as `1874`), which belongs to one of four _types_:
+The spreadsheet spans two dimensions, with _columns_ starting from **A**, and _rows_ starting from **1**. Each _cell_ has a unique _coordinate_ (such as **A1**) and _content_ (such as "1874"), which belongs to one of four _types_:
 
-* Text: `+` in **B1** and `⇒` in **D1**, aligned to the left.
-* Number: `1874` in **A1** and `2046` in **C1**, aligned to the right.
-* Formula:  `=A1+C1` in **E1**, which _calculates_ to the _value_ `3920`, displayed with a light blue background.
+* Text: "+" in **B1** and "⇒" in **D1**, aligned to the left.
+* Number: "1874" in **A1** and "2046" in **C1**, aligned to the right.
+* Formula:  `=A1+C1` in **E1**, which _calculates_ to the _value_ "3920", displayed with a light blue background.
 * Empty: All cells in row **2** are currently empty.
 
-Click `3920` to set _focus_ on **E1**, revealing its formula in an _input box_:
+Click "3920" to set _focus_ on **E1**, revealing its formula in an _input box_:
 
 ![Input Box](./images/02-input.png)
 
-Now let’s set focus on **A1** and _change_ its content to `1`, causing **E1** to _recalculate_ its value to `2047`:
+Now let’s set focus on **A1** and _change_ its content to "1", causing **E1** to _recalculate_ its value to "2047":
 
 ![Changed Content](./images/03-changed.png)
 
@@ -48,7 +47,7 @@ Press **ENTER** to set focus to **A2** and change its content to `=Date()`, then
 
 ![Formula Error](./images/04-error.png)
 
-This shows that a formula may calculate to a number (`2047` in **E1**), a text (the current time in **A2**, aligned to the left), or an _error_ (red letters in **B2**, aligned to the center).
+This shows that a formula may calculate to a number ("2047" in **E1**), a text (the current time in **A2**, aligned to the left), or an _error_ (red letters in **B2**, aligned to the center).
 
 Next, let’s try entering `=for(;;){}`, the JS code for an infinite loop that never terminates. The spreadsheet will prevent this by automatically _restoring_ the content of **C2** after an attempted change.
 
@@ -98,7 +97,7 @@ The first line in `index.html` declares that it’s written in HTML5 (`<!DOCTYPE
 <!DOCTYPE html><html><head><meta charset="UTF-8">
 ```
 
-Without the `charset` declaration, the browser may display the reset button’s Unicode symbol `↻` as `â†»`, an example of _mojibake_ — garbled text caused by decoding issues.
+Without the `charset` declaration, the browser may display the reset button’s Unicode symbol `↻` as `â†»`, an example of _mojibake_: garbled text caused by decoding issues.
 
 The next three lines are JS declarations, placed within the `head` section as usual:
 
@@ -119,7 +118,7 @@ The next two lines load the CSS resource, close the `head` section, and begin th
 </head><body ng-app="500lines" ng-controller="Spreadsheet" ng-cloak>
 ```
 
-The `ng-app` and `ng-controller` attributes above tell [AngularJS](http://angularjs.org/) to call the `500lines` module’s `Spreadsheet` function, which would return a _model_: An object that provides _bindings_ on the document _view_. (The `ng-cloak` attribute hides the document from display until the bindings are in place.)
+The `ng-app` and `ng-controller` attributes above tell [AngularJS](http://angularjs.org/) to call the `500lines` module’s `Spreadsheet` function, which would return a _model_: an object that provides _bindings_ on the document _view_. (The `ng-cloak` attribute hides the document from display until the bindings are in place.)
 
 As a concrete example, when the user clicks the `<button>` defined in the next line, its `ng-click` attribute will trigger and call `reset()` and `calc()`, two named functions provided by the JS model:
 
@@ -191,9 +190,9 @@ Finally, we close the `ng-repeat` loop in the column level with `</td>`, close t
 
 The `main.js` file defines the `500lines` module and its `Spreadsheet` controller function, as required by the `<body>` element in `index.html`.
 
-As the bridge between the HTML view and the background worker, it has four purposes:
+As the bridge between the HTML view and the background worker, it has four tasks:
 
-* Define dimensions and labels of columns and rows.
+* Define the dimensions and labels of columns and rows.
 * Provide event handlers for keyboard navigation and the reset button.
 * When the user changes the spreadsheet, send its new content to the worker.
 * When computed results arrive from the worker, update the view and save the current state.
@@ -257,7 +256,7 @@ If it is, we use `$timeout` to schedule a change of cell focus after the current
 
 The `const` declarator means `direction` will not change during the function’s execution. The direction to move is either upward (`-1`, from **A2** to **A1**) if the key code is 38 (**UP**), or downward (`+1`, from **A2** to **A3**) otherwise.
 
-Next up, we retrieve the target element using the ID selector syntax (e.g. `"#A3"`), constructed with a [template string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/template_strings) written in a pair of back-quotes, concatenating the leading `#`, the current `col` and the target `row + direction`:
+Next up, we retrieve the target element using the ID selector syntax (e.g. `"#A3"`), constructed with a [template string](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/template_strings) written in a pair of backticks, concatenating the leading `#`, the current `col` and the target `row + direction`:
 
 ```js
       const cell = document.querySelector( `#${ col }${ row + direction }` );
@@ -268,14 +267,14 @@ Next up, we retrieve the target element using the ID selector syntax (e.g. `"#A3
 
 We put an extra check on the result of `querySelector` because moving upward from **A1** will produce the selector `#A0`, which has no corresponding element, and so will not trigger a focus change — the same goes for pressing **DOWN** at the bottom row.
 
-Next, we define the `reset()` function so the `↻` button can restore the `sheet` its initial contents:
+Next, we define the `reset()` function so the `↻` button can restore the initial contents of the `sheet`:
 
 ```js
   // Default sheet content, with some data cells and one formula cell.
   $scope.reset = ()=>{ $scope.sheet = { A1: 1874, B1: '+', C1: 2046, D1: '⇒', E1: '=A1+C1' }; }
 ```
 
-The `init()` function first tries restoring the `sheet` content from its previous state from the [localStorage](https://developer.mozilla.org/en-US/docs/Web/Guide/API/DOM/Storage#localStorage), or defaults to the initial content if it’s our first time running the application:
+The `init()` function tries restoring the `sheet` content from its previous state from the [localStorage](https://developer.mozilla.org/en-US/docs/Web/Guide/API/DOM/Storage#localStorage), and defaults to the initial content if it’s our first time running the application:
 
 ```js
   // Define the initializer, and immediately call it
@@ -291,7 +290,7 @@ A few things are worth nothing in the `init()` function above:
 
 * We use the `($scope.init = ()=>{…}).call()` syntax to define the function and immediately call it.
 * Because localStorage only stores strings, we _parse_ the `sheet` structure from its [JSON](https://developer.mozilla.org/en-US/docs/Glossary/JSON) representation using `angular.fromJson()`.
-* At the last step of `init()`, we create a new [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Worker) thread and assign it to the `worker` scope property. Although the worker is not directly used in the view, it’s customary to use `$scope` to share objects used across model functions, in this case between `init()` here and `calc()` below.
+* At the last step of `init()`, we create a new [web worker](https://developer.mozilla.org/en-US/docs/Web/API/Worker) thread and assign it to the `worker` scope property. Although the worker is not directly used in the view, it’s customary to use `$scope` to share objects used across model functions, in this case between `init()` here and `calc()` below.
 
 While `sheet` holds the user-editable cell content, `errs` and `vals` contain the results of calculations — errors and values — that are read-only to the user:
 
@@ -308,7 +307,7 @@ With these properties in place, we can define the `calc()` function that trigger
     const json = angular.toJson( $scope.sheet );
 ```
 
-Here we first snapshot the state of `sheet` into a JSON string, stored in the constant `json`.
+Here we first take a snapshot of the state of `sheet` and store it in the constant `json`, a JSON string.
 
 Next up, we construct a `promise` from [$timeout](https://docs.angularjs.org/api/ng/service/$timeout) that cancels the upcoming computation if it takes more than 99 milliseconds:
 
@@ -323,9 +322,9 @@ Next up, we construct a `promise` from [$timeout](https://docs.angularjs.org/api
     }, 99 );
 ```
 
-Since we made sure that  `calc()` is called at most once every 200 milliseconds via the `<input ng-model-options>` attribute in HTML, this arrangement leaves 101 milliseconds for `init()` to restore `sheet` to the last known-good state and make a new Worker.
+Since we made sure that  `calc()` is called at most once every 200 milliseconds via the `<input ng-model-options>` attribute in HTML, this arrangement leaves 101 milliseconds for `init()` to restore `sheet` to the last known-good state and make a new worker.
 
-The Worker’s task is to calculate `errs` and `vals` from the contents of`sheet`. Because **main.js** and **worker.js** communicate by message-passing, we need an `onmessage` handler to receive the results once they are ready:
+The worker’s task is to calculate `errs` and `vals` from the contents of`sheet`. Because **main.js** and **worker.js** communicate by message-passing, we need an `onmessage` handler to receive the results once they are ready:
 
 ```js
     // When the worker returns, apply its effect on the scope
@@ -336,7 +335,7 @@ The Worker’s task is to calculate `errs` and `vals` from the contents of`sheet
     };
 ```
 
-If `onmessage` is called,  we know that the `sheet` snapshot in `json` is stable (i.e. containing no infinite-looping formulas), so we cancel the 99-millisecond timeout, write the snapshot to localStorage, and schedule an UI update with a `$timeout` function that updates `errs` and `vals` to the user-visible view.
+If `onmessage` is called,  we know that the `sheet` snapshot in `json` is stable (i.e., containing no infinite-looping formulas), so we cancel the 99-millisecond timeout, write the snapshot to localStorage, and schedule a UI update with a `$timeout` function that updates `errs` and `vals` to the user-visible view.
 
 With the handler in place, we can post the state of `sheet` to the worker, starting its calculation in the background:
 
@@ -351,17 +350,18 @@ With the handler in place, we can post the state of `sheet` to the worker, start
 });
 ```
 
+XXX: STOPPED HERE
 ### JS: Background Worker
 
-There are three reasons for using a Web Worker to calculate formulas, instead of using the main JS thread for the task:
+There are three reasons for using a web worker to calculate formulas, instead of using the main JS thread for the task:
 
-* While the worker runs in the background, the user is free to continue interacting with the spreadsheet, without getting blocked by computation in the main thread. 
+* While the worker runs in the background, the user is free to continue interacting with the spreadsheet without getting blocked by computation in the main thread. 
 * Because we accept any JS expression in a formula, the worker provides a _sandbox_ that prevents formulas from interfering with the page that contains them, such as by popping out an `alert()` dialog.
-* A formula can refer to any coordinates as variables, which may contain yet another formula that possibly ends in a cyclic reference. To solve this problem, we use the Worker’s _global scope_ object `self`, and define these variables as _getter functions_ on `self` to implement the cycle-prevention logic.
+* A formula can refer to any coordinates as variables. The other coordinates may contain another formula that might end in a cyclic reference. To solve this problem, we use the worker’s _global scope_ object `self`, and define these variables as _getter functions_ on `self` to implement the cycle-prevention logic.
 
 With these in mind, let’s take a look at the worker’s code.
 
-The Worker’s sole purpose is defining its `onmessage` handler that takes `sheet`, calculates `errs` and `vals`, and posts them back to the main JS thread. We begin by re-initializing the three variables when we receive a message:
+The worker’s sole purpose is defining its `onmessage` handler that takes `sheet`, calculates `errs` and `vals`, and posts them back to the main JS thread. We begin by re-initializing the three variables when we receive a message:
 
 ```js
 let sheet, errs, vals;
@@ -440,7 +440,7 @@ If `eval` results in an error, the `catch` block tests if it’s because the for
           if (match && !( match[0] in self )) {
 ```
 
-In that case, we set the missing cell’s default value to `0`, clear `vals[coord]`, and re-run the current computation using `self[coord]`:
+In that case, we set the missing cell’s default value to "0", clear `vals[coord]`, and re-run the current computation using `self[coord]`:
 
 ```js
             // The formula refers to a uninitialized cell; set it to 0 and retry
