@@ -1,6 +1,7 @@
 """A simple web crawler -- class implementing crawling logic."""
 
 import asyncio
+from asyncio import Future
 import cgi
 from collections import namedtuple
 import logging
@@ -39,6 +40,27 @@ FetchStatistic = namedtuple('FetchStatistic',
                              'encoding',
                              'num_urls',
                              'num_new_urls'])
+
+
+class ExampleQueue(Queue):
+    """Simplified joinable queue that doesn't use Event.
+
+    Written to test out code examples in chapter.md. Not actually used below.
+    """
+    def __init__(self, maxsize=0, *, loop=None):
+        super().__init__(maxsize, loop=loop)
+        self._join_future = Future(loop=self._loop)
+
+    def task_done(self):
+        if self._unfinished_tasks <= 0:
+            raise ValueError('task_done() called too many times')
+        self._unfinished_tasks -= 1
+        if self._unfinished_tasks == 0:
+            self._join_future.set_result(None)
+
+    def join(self):
+        if self._unfinished_tasks > 0:
+            yield from self._join_future
 
 
 class Crawler:
