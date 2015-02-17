@@ -9,8 +9,8 @@ import urllib.parse
 import time
 
 
-urls_seen = set(['/'])
 urls_todo = set(['/'])
+seen_urls = set(['/'])
 concurrency_achieved = 0
 selector = DefaultSelector()
 stopped = False
@@ -43,12 +43,17 @@ class Fetcher:
     def read_response(self, key, mask):
         global stopped
 
-        chunk = self.sock.recv(4096)  # 4k buffer size.
+        chunk = self.sock.recv(4096)  # 4k chunk size.
         if chunk:
             self.response += chunk
         else:
             selector.unregister(key.fd)  # Done reading.
-            self._process_response()
+            links = self.parse_links()
+            for link in links.difference(seen_urls):
+                urls_todo.add(link)
+                Fetcher(link).fetch()
+
+            seen_urls.update(links)
             urls_todo.remove(self.url)
             if not urls_todo:
                 stopped = True
@@ -58,15 +63,16 @@ class Fetcher:
         body = self.response.split(b'\r\n\r\n', 1)[1]
         return body.decode('utf-8')
 
-    def _process_response(self):
+    def parse_links(self):
         if not self.response:
             print('error: {}'.format(self.url))
-            return
+            return set()
         if not self._is_html():
-            return
+            return set()
         urls = set(re.findall(r'''(?i)href=["']?([^\s"'<>]+)''',
                               self.body()))
 
+        links = set()
         for url in urls:
             normalized = urllib.parse.urljoin(self.url, url)
             parts = urllib.parse.urlparse(normalized)
@@ -76,10 +82,9 @@ class Fetcher:
             if host and host.lower() not in ('xkcd.com', 'www.xkcd.com'):
                 continue
             defragmented, frag = urllib.parse.urldefrag(parts.path)
-            if defragmented not in urls_seen:
-                urls_todo.add(defragmented)
-                urls_seen.add(defragmented)
-                Fetcher(defragmented).fetch()
+            links.add(defragmented)
+
+        return links
 
     def _is_html(self):
         head, body = self.response.split(b'\r\n\r\n', 1)
@@ -98,4 +103,4 @@ while not stopped:
         callback(event_key, event_mask)
 
 print('{} URLs fetched in {:.1f} seconds, achieved concurrency = {}'.format(
-    len(urls_seen), time.time() - start, concurrency_achieved))
+    len(seen_urls), time.time() - start, concurrency_achieved))
