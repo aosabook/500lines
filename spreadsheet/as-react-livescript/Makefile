@@ -1,8 +1,10 @@
 all ::
-	lsc -c *ls
+	lsc -c worker.ls
+	@webpack -h
 
 run ::
-	@node ../node_modules/static-here/bin/static-here
+	lsc -c worker.ls
+	@node ../node_modules/webpack-dev-server/bin/webpack-dev-server.js -h
 
 wc ::
 	@echo -n Lines:
