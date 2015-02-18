@@ -3,7 +3,7 @@
     Author: Audrey Tang
     Languages: JS (ES6), HTML5, CSS3
     Dependencies: AngularJS (1.3), Web Workers, Traceur Compiler
-    Alternatives: ReactJS (0.12), LiveScript (1.3), JS (ES5)
+    Alternatives: ReactJS (0.12), LiveScript (1.3), CoffeeScript (1.9), JS (ES5)
 
 ## Chapter Text
 
@@ -40,6 +40,8 @@ For people preferring a cleaner syntax, the [as-livescript-1.3.0](https://audrey
 Building on the LiveScript language, the [as-react-livescript](https://audreyt.github.io/500lines/spreadsheet/as-react-livescript/) directory uses the [ReactJS](https://facebook.github.io/react/) framework; the [source code](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-react-livescript) is 10 lines more than the AngularJS equivalent, but runs considerably faster.
 
 For the version without AngularJS version, using only basic ES5 and raw DOM APIs, the [source code](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-without-angularjs) still clocks at 99 lines, albeit with some short statements joined together.
+
+Thanks also to @dominicwong617 for contributing the [as-coffeescript-1.9.0](https://github.com/audreyt/500lines/tree/master/spreadsheet/as-coffeescript-1.9.0) version.
 
 # CC0 1.0 Universal
 
