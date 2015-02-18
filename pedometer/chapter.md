@@ -1,9 +1,10 @@
+<!-- to convert to HTML to view math notation, run `pandoc --to html --mathjax="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" -s chapter.md > chapter.html` -->
 
 # A Perfect World
 
 Many software engineers reflecting on their training will remember having the pleasure of living in a very perfect world. We were taught to solve discrete problems, with defined parameters, in an ideal domain.
 
-Then, we were thrown into the real world, with all of its complexities and challenges. It's messy, which makes it all the more exciting. When you can solve a real-life problem, with all of its quirks, you can build software that really helps people, every day.
+Then we were thrown into the real world, with all of its complexities and challenges. It's messy, which makes it all the more exciting. When you can solve a real-life problem, with all of its quirks, you can build software that really helps people, every day.
 
 In this chapter, we'll examine a problem that looks straightforward on the surface, and gets tangled very quickly when the real world, and real people, are thrown into it.
 
@@ -11,73 +12,76 @@ Let's roll up our sleeves, and prepare to untangle.
 
 # A Basic Pedometer
 
-The rise of the mobile device brought with it a trend to collect more and more data on our daily lives. One type of data many people today collect is the number of steps they've taken over a period of time. This data can be used for health tracking, training for sporting events, or, for those of us obsessed with collecting and analyzing data, just for kicks. Steps can be counted using a pedometer, which often uses data from a hardware accelerometer as input.
+The rise of the mobile device brought with it a trend to collect more and more data on our daily lives. One type of data many people collect is the number of steps they've taken over a period of time. This data can be used for health tracking, training for sporting events, or, for those of us obsessed with collecting and analyzing data, just for kicks. Steps can be counted using a pedometer, which often uses data from a hardware accelerometer as input.
 
-## What's an Accelerometer, You Ask?
+## What's an Accelerometer?
 
-An accelerometer is a piece of hardware that measures acceleration in the x, y, and z directions. In today's mobile world, many people carry an accelerometer with them wherever they go, as it's built into almost all smartphones currently on the market. The x, y, and z directions are relative to the phone.
+An accelerometer is a piece of hardware that measures acceleration in the $x$, $y$, and $z$ directions. In today's mobile world, many people carry an accelerometer with them wherever they go, as it's built into almost all smartphones currently on the market. The $x$, $y$, and $z$ directions are relative to the phone.
 
-An accelerometer returns a **signal** in 3-dimensional space. A signal is a set of data points recorded over time. Each component of the signal is a time series representing acceleration in one of the x, y, or z directions. Each point in a time series is the acceleration in that direction at a specific point in time. Acceleration is measured in units of g-force. One *g* is equal to $9.8 m/s^2$, which is the gravitational acceleration on Earth.
+An accelerometer returns a *signal* in 3-dimensional space. A signal is a set of data points recorded over time. Each component of the signal is a time series representing acceleration in one of the $x$, $y$, or $z$ directions. Each point in a time series is the acceleration in that direction at a specific point in time. Acceleration is measured in units of g-force, or *g*. One *g* is equal to 9.8 $m/s^2$, the average acceleration produced by gravity on Earth.
 
 The diagram below shows an example acceleration signal from an accelerometer with the three time series.
 
 ![](chapter-figures/acceleration-total.png)\
 
-The **sampling rate** of the accelerometer, which can often be calibrated, determines the number of measurements per second. For instance, an accelerometer with a sampling rate of 100 returns 100 data points for each x, y, and z time series each second.
+The **sampling rate** of the accelerometer, which can often be calibrated, determines the number of measurements per second. For instance, an accelerometer with a sampling rate of 100 returns 100 data points for each $x$, $y$, and $z$ time series every second.
 
 ## Let's Talk About a Walk
 
 When a person walks, they bounce slightly with each step. Just watch the top of a person's head as they walk away from you. Their head, torso, and hips are synchronized in a smooth bouncing motion. While people don't bounce very far, only one or two centimeters, it is one of the clearest, most constant, and most recognizable parts of a person's walking acceleration signal.
 
-A person bounces up and down, in the vertical direction, with each step. If you are walking on Earth, or another big ball of mass floating in space, the bounce is conveniently in the same direction as gravity.
+A person bounces up and down, in the vertical direction, with each step. If you are walking on Earth (or another big ball of mass floating in space) the bounce is conveniently in the same direction as gravity.
 
-**We are going to count steps by using the accelerometer to count bounces up and down. Because the phone can rotate in any direction, we will take advantage of gravity to know which direction down is. A pedometer can count steps by counting the number of bounces in the direction of gravity.**
+We are going to count steps by using the accelerometer to count bounces up and down. Because the phone can rotate in any direction, we will take advantage of gravity to know which direction down is. A pedometer can count steps by counting the number of bounces in the direction of gravity.
 
-Let's look at a person walking with a smartphone containing an accelerometer, in his or her shirt pocket, as depicted below.
+Let's look at a person walking with a smartphone equipped with an accelerometer, as depicted below.
 
-![](chapter-figures/walk-1.png)\
+![](chapter-figures/walk-1.png)
 
 For the sake of simplicity, we'll assume that the stick person:
 
-* is walking in the z direction;
-* bounces with each step in the y direction;
-* maintains the phone in the same orientation throughout the entire walk;
+* is walking in the $z$ direction;
+* bounces with each step in the $y$ direction; and
+* maintains the phone in the same orientation throughout the entire walk.
 
-In our perfect world, acceleration from step bounces will form a perfect sine wave in the y direction. Each peak in the sine wave is exactly one step. Step counting becomes a matter of counting these perfect peaks.
+In our perfect world, acceleration from step bounces will form a perfect sine wave in the $y$ direction. Each peak in the sine wave is exactly one step. Step counting becomes a matter of counting these perfect peaks.
 
 Ah, the joys of a perfect world, which we only ever experience in texts like this. Don't fret, things are about to get a little messier, and a lot more exciting. Let's add a little more reality to our world.
 
 ## Even Perfect Worlds Have Fundamental Forces of Nature
 
-The force of gravity causes an acceleration in the direction of gravity, which we refer to as gravitational acceleration. This acceleration is unique because it is always present, and is always constant at $9.8 m/s^2$.
+The force of gravity causes an acceleration in the direction of gravity, which we refer to as gravitational acceleration. This acceleration is unique because it is always present, and is always constant at 9.8 $m/s^2$.
 
-Suppose a smartphone is lying on a table screen-size up. In this orientation, our coordinate system is such that the negative z direction is the one in direction of gravity. Gravity will **pull** our phone in the negative z direction, so our accelerometer, **even when perfectly still**, will record an acceleration of $9.8 m/s^2$ in the negative z direction. Real accelerometer data from our phone in this orientation looks like the graph below.
+Suppose a smartphone is lying on a table screen-side up. In this orientation, our coordinate system is such that the negative $z$ direction is the one that gravity is acting on. Gravity will pull our phone in the negative $z$ direction, so our accelerometer, *even when perfectly still*, will record an acceleration of 9.8 $m/s^2$ in the negative $z$ direction. Accelerometer data from our phone in this orientation looks like the graph below.
 
-![](chapter-figures/acceleration-total-phone-still.png)\
+![](chapter-figures/acceleration-total-phone-still.png)
 
-Note that the $x(t)$ and $y(t)$ remain constant at 0, while $z(t)$ is constant at $-1g$. Our accelerometer records all acceleration, including gravitational acceleration.
+Note that $x(t)$ and $y(t)$ remain constant at 0, while $z(t)$ is constant at -1 *g*. Our accelerometer records all acceleration, including gravitational acceleration.
 
-Each component of the acceleration signal measures the **total acceleration** in that direction. Total acceleration is a result of **user acceleration** and **gravitational acceleration**.
+Each component of the acceleration signal measures the *total acceleration* in that direction. Total acceleration is a result of *user acceleration* and *gravitational acceleration*.
 
 User acceleration is the acceleration of the device due to the movement of the user, and is constant at 0 when the phone is perfectly still. However, when the user is moving with the device, user acceleration is rarely constant, since it's difficult for a person to move with a constant acceleration.
 
 Our total acceleration is the sum of user acceleration and gravitational acceleration.
 
-![](chapter-figures/component-signals-2.png)\
+![](chapter-figures/component-signals-2.png)
 
-To count steps, we're interested in the bounces created by the user in the direction of gravity. That means we're interested in isolating the 1-dimensional time series **user acceleration in the direction of gravity** from our 3-dimensional acceleration signal.
+To count steps, we're interested in the bounces created by the user in the direction of gravity. That means we're interested in isolating the 1-dimensional time series "user acceleration in the direction of gravity" from our 3-dimensional acceleration signal.
 
-When our stick person is walking with step bounces in the y direction, gravitational acceleration is zero in $x(t)$ and $z(t)$ and constant at $9.8 m/s^2$ in $y(t)$, so $x(t)$ and $z(t)$ fluctuate around 0 while $y(t)$ fluctuates around $-1g$. Note the obvious peaks in $y(t)$. Those are due to step bounces! Looking at the user acceleration plots next, we notice that when we remove gravitational acceleration from the time series, all three time series fluctuate around 0. In our last plot, gravitational acceleration, $y_{g}(t)$ is constant at $-1g$, $x_{g}(t)$ and $z_{g}(t)$ are constant at 0.
+When our stick person is walking with step bounces in the $y$ direction, gravitational acceleration is 0 in $x(t)$ and $z(t)$ and constant at 9.8 $m/s^2$ in $y(t)$, so $x(t)$ and $z(t)$ fluctuate around 0 while $y(t)$ fluctuates around -1 *g*. Note the obvious peaks in $y(t)$. Those are due to step bounces! 
+
+Looking at the user acceleration plots next, we notice that --- because we have removed gravitational acceleration --- all three time series fluctuate around 0. In our last plot, gravitational acceleration, $y_{g}(t)$ is constant at -1 *g*, and $x_{g}(t)$ and $z_{g}(t)$ are constant at 0.
 
 So, in our simple case, the 1-dimensional user acceleration in the direction of gravity time series we're interested in is $y_{u}(t)$. Although $y_{u}(t)$ isn't as smooth as our perfect sine wave, we can identify the peaks, and use those peaks to count steps. So far, so good. Now, let's add a little more reality to our world.
 
+XXX STOPPED HERE
 ## People Are Complicated Creatures
 
 Let's see what happens when we introduce real people into the mix. What if a person carries the phone in a bag on their shoulder, with the phone in a more wonky position? To make matters worse, what if the phone rotates in the bag part way through the walk?
 
 ![](chapter-figures/walk-2.png)\
 
-Yikes. Now all three of our components have a non-zero gravitational acceleration, so the user acceleration in the direction of gravity is now split amongst all three x, y, and z time series. To determine user acceleration in the direction of gravity, we have to first determine which direction gravity is in. To do this, we have to split total acceleration in each of the three time series into a user acceleration time series and a gravitational acceleration time series.
+Yikes. Now all three of our components have a non-zero gravitational acceleration, so the user acceleration in the direction of gravity is now split amongst all three $x$, $y$, and $z$ time series. To determine user acceleration in the direction of gravity, we have to first determine which direction gravity is in. To do this, we have to split total acceleration in each of the three time series into a user acceleration time series and a gravitational acceleration time series.
 
 ![](chapter-figures/component-signals-3.png)\
 
@@ -159,7 +163,7 @@ Let's get to it. First, some liner algebra 101. Don't take that mathematician ha
 
 ### The Dot Product
 
-When working with coordinates, you won't get very far before being introduced to the **dot product**, one of the fundamental tools used in comparing the magnitude and direction of x, y, z coordinates.
+When working with coordinates, you won't get very far before being introduced to the **dot product**, one of the fundamental tools used in comparing the magnitude and direction of $x$, $y$, $z$ coordinates.
 
 The dot product will take us from 3-dimensional space to 1-dimensional space.
 When we take the dot product of the time series user acceleration and gravitational acceleration, both of which are in 3-dimensional space, we'll be left with a single time series in 1-dimensional space representing the portion of user acceleration in the direction of gravity. We'll arbitrarily call this new time series $a(t)$, because, well, every important time series deserves a name.
@@ -295,13 +299,13 @@ We want our program to handle all mobile devices on the market with acceleromete
 
 ### Combined Format
 
-Data in the combined format is total acceleration in the x, y, z directions, over time. x, y, and z values will be separated by a comma, and samples per unit time will be separated by a semi-colon.
+Data in the combined format is total acceleration in the $x$, $y$, $z$ directions, over time. $x$, $y$, and $z$ values will be separated by a comma, and samples per unit time will be separated by a semi-colon.
 
 $"x1,y1,z1; ... xn,yn,zn;"$
 
 ### Separated Format
 
-The separated format returns user acceleration in the x, y, z directions as well as gravitational acceleration in the x, y, z directions, over time. User acceleration values will be separated from gravitational acceleration values by a pipe.
+The separated format returns user acceleration in the $x$, $y$, $z$ directions as well as gravitational acceleration in the $x$, $y$, $z$ directions, over time. User acceleration values will be separated from gravitational acceleration values by a pipe.
 
 $"x_{u}1,y_{u}1,z_{u}1|x_{g}1,y_{g}1,z_{g}1; ... x_{u}n,y_{u}n,z_{u}n|x_{g}n,y_{g}n,z_{g}n;"$
 
@@ -319,7 +323,7 @@ Our standard format allows us to store a time series, as each element represents
 
 * The first array is just a wrapper to hold the all of the data.
 * The second set of arrays contains one array per data sample taken. If our sampling rate is 100 and we sample data for 10 seconds, we'll have $10 * 100$, or 1000, arrays in this second set.
-* The third set of arrays is the pair of arrays enclosed within the second set. They both contain acceleration data in the x, y, and z directions; the first representing user acceleration and the second gravitational acceleration.
+* The third set of arrays is the pair of arrays enclosed within the second set. They both contain acceleration data in the $x$, $y$, and $z$ directions; the first representing user acceleration and the second gravitational acceleration.
 
 # The Pipeline
 
