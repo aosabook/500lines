@@ -350,7 +350,6 @@ With the handler in place, we can post the state of `sheet` to the worker, start
 });
 ```
 
-XXX: STOPPED HERE
 ### JS: Background Worker
 
 There are three reasons for using a web worker to calculate formulas, instead of using the main JS thread for the task:
@@ -361,7 +360,7 @@ There are three reasons for using a web worker to calculate formulas, instead of
 
 With these in mind, let’s take a look at the worker’s code.
 
-The worker’s sole purpose is defining its `onmessage` handler that takes `sheet`, calculates `errs` and `vals`, and posts them back to the main JS thread. We begin by re-initializing the three variables when we receive a message:
+The worker’s sole purpose is defining its `onmessage` handler. The handler takes `sheet`, calculates `errs` and `vals`, and posts them back to the main JS thread. We begin by re-initializing the three variables when we receive a message:
 
 ```js
 let sheet, errs, vals;
@@ -375,11 +374,11 @@ In order to turn coordinates into global variables, we first iterate over each p
   for (const coord in sheet) {
 ```
 
-ES6 introduces `const` and `let` declare _block scoped_ constants and variables; `const coord` above means that functions defined in the loop would capture the specific value of `coord` in each iteration.
+ES6 introduces `const` and `let` declares _block scoped_ constants and variables; `const coord` above means that functions defined in the loop would capture the specific value of `coord` in each iteration.
 
 In contrast, `var coord` in earlier versions of JS would declare a _function scoped_ variable, and functions defined in each loop iteration would end up pointing to the same `coord` variable.
 
-Customarily, formulas variables are case-insensitive and can optionally have a `$` prefix. Because JS variables are case-sensitive, we use two `map` calls to go over the four variable names for the same coordinate:
+Customarily, formula variables are case-insensitive and can optionally have a `$` prefix. Because JS variables are case-sensitive, we use two `map` calls to go over the four variable names for the same coordinate:
 
 ```js
     // Four variable names pointing to the same coordinate: A1, a1, $A1, $a1
@@ -387,9 +386,9 @@ Customarily, formulas variables are case-insensitive and can optionally have a `
       const name = p+c;
 ```
 
-Note the shorthand arrow function syntax above with `p => ...`, which is the same as `(p) => { ... }`.
+Note the shorthand arrow function syntax above: `p => ...` is the same as `(p) => { ... }`.
 
-For each variable name like `A1` and `$a1`, we define its [accessor property](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperty) on `self` that calculates `vals["A1"]` whenever they are evaluated in an expression:
+For each variable name, like `A1` and `$a1`, we define an [accessor property](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperty) on `self` that calculates `vals["A1"]` whenever they are evaluated in an expression:
 
 ```js
       // Worker is reused across calculations, so only define each variable once
@@ -452,7 +451,7 @@ In that case, we set the missing cell’s default value to "0", clear `vals[coor
 
  If the user gives the missing cell a content later on in `sheet[coord]`, then `Object.defineProperty` would take over and override the temporary value.
 
-Other kinds of errors are stored to `errs[coord]`:
+Other kinds of errors are stored in `errs[coord]`:
 
 ```js
           // Otherwise, stringify the caught exception in the errs object
@@ -462,10 +461,10 @@ Other kinds of errors are stored to `errs[coord]`:
 
 In case of errors, the value of `vals[coord]` will remain `NaN` because the assignment did not complete.
 
-Finally, the `get` accessor returns the calculated value stored in `vals[coord]`, which must be a number, a boolean value, or a string:
+Finally, the `get` accessor returns the calculated value stored in `vals[coord]`, which must be a number, a Boolean value, or a string:
 
 ```js
-        // Turn vals[coord] into a string if it's not a number or boolean
+        // Turn vals[coord] into a string if it's not a number or Boolean
         switch (typeof vals[coord]) { case 'function': case 'object': vals[coord]+=''; }
         return vals[coord];
       } } );
@@ -473,7 +472,7 @@ Finally, the `get` accessor returns the calculated value stored in `vals[coord]`
   }
 ```
 
-With accessors defined for all coordinates, the worker goes through the coordinates again, invoking each accessor by accessing `self[coord]`, then posts the resulting `errs` and `vals` back to the main JS thread:
+With accessors defined for all coordinates, the worker goes through the coordinates again, invoking each accessor with `self[coord]`, then posts the resulting `errs` and `vals` back to the main JS thread:
 
 ```js
   // For each coordinate in the sheet, call the property getter defined above
@@ -490,7 +489,7 @@ The **styles.css** file contains just a few selectors and their presentational s
 table { border-collapse: collapse; }
 ```
 
-Both the heading and data cells share the same border style, but we can tell them apart by their background colors: Heading cells are light-gray, data cells are white by default, and formula cells get a light-blue background:
+Both the heading and data cells share the same border style, but we can tell them apart by their background colors: heading cells are light gray, data cells are white by default, and formula cells get a light blue background:
 
 ```
 th, td { border: 1px solid #ccc; }
@@ -534,14 +533,14 @@ input:focus + div { white-space: nowrap; }
 
 ## Conclusion
 
-Since this book is _500 lines or less_, a web spreadsheet in 99 lines is just a minimal example — please feel free to experiment and extend it in any direction you’d like.
+Since this book is _500 Lines or Less_, a web spreadsheet in 99 lines is a minimal example — please feel free to experiment and extend it in any direction you’d like.
 
 Here are some ideas, all easily reachable in the remaining space of 401 lines:
 
 * A collaborative online editor using [ShareJS](http://sharejs.org/), [AngularFire](http://angularfire.com) or [GoAngular](http://goangular.org/).
 * Markdown syntax support for text cells, using [angular-marked](http://ngmodules.org/modules/angular-marked).
 * Common formula functions (`SUM`, `TRIM`, etc.) from the [OpenFormula standard](https://en.wikipedia.org/wiki/OpenFormula).
-* Interoperate with popular spreadsheet formats, such as CSV and SpreadsheetML via [SheetJS](http://sheetjs.com/)
+* Interoperate with popular spreadsheet formats, such as CSV and SpreadsheetML via [SheetJS](http://sheetjs.com/).
 * Import from and export to online spreadsheet services, such as Google Spreadsheet and [EtherCalc](http://ethercalc.net/).
 
 ### A Note on JS versions
