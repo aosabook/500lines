@@ -445,17 +445,21 @@ the data structure supports the fast lookup that Contingent needs.
 The Proper Use of Classes
 =========================
 
-.. TODO: rework this and following
-
 You may have been surprised
 by the absence of classes in the above discussion
 of Python data structures.
-After all, they are a frequent mechanism for organizing data
-and get defined through a dedicated Python syntax.
+After all, classes are a frequent mechanism for structuring applications
+and a hardly less frequent subject of heated debate
+among their adherents and detractors.
+Classes were once thought important enough that
+entire educational curricula were designed around them,
+and the majority of popular programming languanges
+include dedicated syntax for defining and using them.
 
 But it turns out that classes are often orthogonal
 to the question of data structure design.
-Classes simply repeat data structures that we have already seen:
+Rather than offering us an entirely alternative data modeling paradigm,
+classes simply repeat data structures that we have already seen:
 
 * A class instance is *implemented* as a dict.
 * A class instance is *used* like a mutable tuple.
@@ -466,14 +470,16 @@ where you get to say ``graph.incoming``
 instead of ``graph["incoming"]``.
 But, in practice, class instances are almost never used
 as generic key-value stores.
-Instead, they are used to organize heterogeneous data
-by attribute name instead of by an index into a tuple.
+Instead, they are used to organize related but heterogeneous data
+by attribute name,
+with implementation details encapsulated behind
+a consistent and memorable interface.
 
 So instead of putting a hostname and a port number together in a tuple
 and having to remember later which came first and which came second,
 you create an ``Address`` class
-whose instances each have a ``host`` and a ``port`` attribute,
-pass an ``Address`` around
+whose instances each have a ``host`` and a ``port`` attribute.
+You can then pass ``Address`` objects around
 where otherwise you would have had anonymous tuples.
 Code becomes easier to read and easier to write.
 But using a class instance does not really change
@@ -485,12 +491,74 @@ is not that they change the science of data design.
 The value of classes
 is that they let you *hide* your data design from the rest of a program!
 
-From the outside, code can simply ask for a new ``Graph`` instance:
+Successful application design, then,
+hinges upon our ability to exploit
+the powerful built-in data structures Python offers us
+while minimizing the volume of details we are required to
+keep in our heads at any one time.
+Classes provide the mechanism for resolving this apparent quandary:
+used effectively, a class provides a *facade*
+around some small subset of the system's overall design.
+When working within one subset — a ``Graph``, for example —
+we can forget the implementation details of other subsets
+as long as we can remember their interfaces.
+In this way, programmers often find themselves navigating
+among several levels of abstraction
+in the course of writing a system,
+now working with the specific data model details for a particular task,
+now connecting higher level concepts through their interfaces.
+
+For example, from the outside,
+code can simply ask for a new ``Graph`` instance:
 
 >>> from contingent import graphlib
 >>> g = graphlib.Graph()
 
-Behind the scenes, a pair of dictionaries has already been built
+without needing to understand the details of how ``Graph`` works.
+Code that is simply using the graph
+sees only interface verbs — the method calls —
+when manipulating a graph,
+i.e. each time an edge is added or some other operation performed:
+
+>>> g.add_edge('index.rst', 'index.html')
+>>> g.add_edge('tutorial.rst', 'tutorial.html')
+>>> g.add_edge('api.rst', 'api.html')
+
+Careful readers will have noticed that we added edges to our graph
+without explicitly creating “node” and “edge” objects,
+and that the nodes themselves in these early examples
+are simply strings.
+Coming from other languages and traditions,
+one might have expected to see
+user-defined classes and interfaces for everything in the system::
+
+    Graph g = new ConcreteGraph();
+    Node indexRstNode = new StringNode("index.rst");
+    Node indexHtmlNode = new StringNode("index.html");
+    Edge indexEdge = new DirectedEdge(indexRstNode, indexHtmlNode);
+    g.addEdge(indexEdge);
+
+The Python language and community explicitly and intentionally emphasize
+using simple, generic data structures to solve problems,
+instead of creating custom classes for every minute detail
+of the problem we want to tackle.
+This is one facet of the notion of “Pythonic” solutions that you may
+have read about: Pythonic solutions try to
+minimize syntactic overhead
+and leverage Python's powerful built-in tools
+and extensive standard library.
+
+Over the course of the rest of this chapter,
+we will navigate between these two viewpoints,
+examining the exterior facade of various classes Contingent defines
+and peeking at the behind-the-scenes view of how these classes are built.
+
+With these considerations in mind,
+lets return to the ``Graph`` class,
+examining its design and implmentation to see
+the interplay between data structures and class interfaces.
+When a new ``Graph`` instance is constructed,
+a pair of dictionaries has already been built
 to store edges using the logic we outlined in the previous section:
 
 .. include:: contingent/graphlib.py
@@ -560,9 +628,9 @@ to second-and-subsequent-times that a particular key is used:
 >>> 'index.html' in consequences_of['index.rst']
 True
 
-Given these techniques, let’s build the graph for Figure 1.
-
-First, we need a way to add edges between nodes:
+Given these techniques, let’s examine the implementation
+of ``add_edge``, which we earlier used
+to build the graph for Figure 1:
 
 .. include:: contingent/graphlib.py
     :code: python
@@ -586,16 +654,6 @@ More importantly, it would be much more difficult
 to read its purpose and behavior from the resulting code.
 This implementation demonstrates a Pythonic
 approach to problems: simple, direct, and concise.
-
-All of these considerations disappear
-as soon as we turn away from the code inside of the class.
-Code that is simply using the graph
-sees only a single verb — the method call —
-each time an edge is added:
-
->>> g.add_edge('index.rst', 'index.html')
->>> g.add_edge('tutorial.rst', 'tutorial.html')
->>> g.add_edge('api.rst', 'api.html')
 
 Callers should also be given a simple way to visit every edge
 without having to learn how to traverse our data structure:
@@ -649,30 +707,6 @@ thanks to the work that has already gone in to laying out our data:
     :code: python
     :start-line: 69
     :end-line: 72
-
-Careful readers will have noticed that we added edges to our graph
-without explicitly creating “node” and “edge” objects,
-and that the nodes themselves in these early examples
-are simply strings.
-Coming from other languages and traditions,
-one might have expected to see
-user-defined classes and interfaces for everything in the system::
-
-    Graph g = new ConcreteGraph();
-    Node indexRstNode = new StringNode("index.rst");
-    Node indexHtmlNode = new StringNode("index.html");
-    Edge indexEdge = new DirectedEdge(indexRstNode, indexHtmlNode);
-    g.addEdge(indexEdge);
-
-The Python language and community explicitly and intentionally emphasize
-using simple, generic data structures to solve problems,
-instead of creating custom classes for every minute detail
-of the problem we want to tackle.
-This is one facet of the notion of “Pythonic” solutions that you may
-have read about: Pythonic solutions try to
-minimize syntactic overhead
-and leverage Python's powerful built-in tools
-and extensive standard library.
 
 ..
  >>> from contingent.rendering import as_graphviz
