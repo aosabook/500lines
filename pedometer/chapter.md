@@ -22,7 +22,7 @@ An accelerometer returns a *signal* in 3-dimensional space. A signal is a set of
 
 The diagram below shows an example acceleration signal from an accelerometer with the three time series.
 
-![](chapter-figures/acceleration-total.png)\
+![](chapter-figures/acceleration-total.png)
 
 The **sampling rate** of the accelerometer, which can often be calibrated, determines the number of measurements per second. For instance, an accelerometer with a sampling rate of 100 returns 100 data points for each $x$, $y$, and $z$ time series every second.
 
@@ -34,7 +34,7 @@ A person bounces up and down, in the vertical direction, with each step. If you 
 
 We are going to count steps by using the accelerometer to count bounces up and down. Because the phone can rotate in any direction, we will take advantage of gravity to know which direction down is. A pedometer can count steps by counting the number of bounces in the direction of gravity.
 
-Let's look at a person walking with a smartphone equipped with an accelerometer, as depicted below.
+Let's look at a person walking with an accelerometer-equipped smartphone equipped in his or her shirt pocket, as depicted below.
 
 ![](chapter-figures/walk-1.png)
 
@@ -74,18 +74,17 @@ Looking at the user acceleration plots next, we notice that --- because we have 
 
 So, in our simple case, the 1-dimensional user acceleration in the direction of gravity time series we're interested in is $y_{u}(t)$. Although $y_{u}(t)$ isn't as smooth as our perfect sine wave, we can identify the peaks, and use those peaks to count steps. So far, so good. Now, let's add a little more reality to our world.
 
-XXX STOPPED HERE
 ## People Are Complicated Creatures
 
-Let's see what happens when we introduce real people into the mix. What if a person carries the phone in a bag on their shoulder, with the phone in a more wonky position? To make matters worse, what if the phone rotates in the bag part way through the walk?
+Let's see what happens when we introduce more complications. What if a person carries the phone in a bag on their shoulder, with the phone in a more wonky position? To make matters worse, what if the phone rotates in the bag part way through the walk?
 
-![](chapter-figures/walk-2.png)\
+![](chapter-figures/walk-2.png)
 
-Yikes. Now all three of our components have a non-zero gravitational acceleration, so the user acceleration in the direction of gravity is now split amongst all three $x$, $y$, and $z$ time series. To determine user acceleration in the direction of gravity, we have to first determine which direction gravity is in. To do this, we have to split total acceleration in each of the three time series into a user acceleration time series and a gravitational acceleration time series.
+Yikes. Now all three of our components have a non-zero gravitational acceleration, so the user acceleration in the direction of gravity is now split amongst all three $x$, $y$, and $z$ time series. To determine user acceleration in the direction of gravity, we first have to determine which direction gravity is acting in. To do this, we have to split total acceleration in each of the three time series into a user acceleration time series and a gravitational acceleration time series.
 
-![](chapter-figures/component-signals-3.png)\
+![](chapter-figures/component-signals-3.png)
 
-Then, we can isolate the portion of user acceleration in each component that is in the direction of gravity, resulting in just the user acceleration in the direction of gravity time series.
+Then we can isolate the portion of user acceleration in each component that is in the direction of gravity, resulting in just the user acceleration in the direction of gravity time series.
 
 Let's define this as two steps below:
 
@@ -96,18 +95,18 @@ Let's look at each problem separately, and put on our mathematician hats.
 
 ## 1. Splitting Total Acceleration Into User Acceleration and Gravitational Acceleration
 
-We can use a tool called a **filter** to split our total acceleration time series into a user acceleration time series and a gravitational acceleration time series.
+We can use a tool called a *filter* to split our total acceleration time series into a user acceleration time series and a gravitational acceleration time series.
 
-### Low-pass and High-pass Filters
-A **filter** is a tool used in signal processing to remove an unwanted component from a signal.
+### Low-Pass and High-Pass Filters
+A filter is a tool used in signal processing to remove an unwanted component from a signal.
 
-A **low-pass filter** allows low-frequency signals through, while attenuating signals higher than a set threshold. Conversely, a **high-pass filter** allows high-frequency signals through, while attenuating signals below a set threshold. Using music as an analogy, a low-pass filter can be used to eliminate the treble, while and a high-pass filter can be used to eliminate the bass.
+A *low-pass filter* allows low-frequency signals through, while attenuating signals higher than a set threshold. Conversely, a *high-pass filter* allows high-frequency signals through, while attenuating signals below a set threshold. Using music as an analogy, a low-pass filter can be used to eliminate treble, and a high-pass filter can be used to eliminate bass.
 
 In our situation, the frequency, measured in Hz, indicates how quickly the acceleration is changing. A constant acceleration has a frequency of 0 Hz, while a non-constant acceleration has a non-zero frequency. This means that our constant gravitational acceleration is a 0 Hz signal, while user acceleration is not.
 
-For each component, we can pass total acceleration through a low-pass filter, and we'll be left with just the gravitational acceleration time series. Then, we can subtract gravitational acceleration from total acceleration, and we'll have the user acceleration time series.
+For each component, we can pass total acceleration through a low-pass filter, and we'll be left with just the gravitational acceleration time series. Then we can subtract gravitational acceleration from total acceleration, and we'll have the user acceleration time series.
 
-![](chapter-figures/low-pass-filter-a.png)\
+![](chapter-figures/low-pass-filter-a.png)
 
 There are numerous varieties of filters. The one we'll use is called an infinite impulse response (IIR) filter. We've chosen an IIR filter because of its low overhead and ease of implementation.
 
@@ -117,75 +116,75 @@ The design of digital filters is outside of the scope of this chapter, but a ver
 
 We want to cancel all frequencies except for our constant gravitational acceleration, so we've chosen coefficients that attenuate frequencies higher than 0.2 Hz. Notice that we've set our threshold slightly higher than 0 Hz. While gravity does create a true 0 Hz acceleration, our real, imperfect world has real, imperfect accelerometers, so we're allowing for a slight margin of error in measurement.
 
-### Implementing a Low-pass Filter
+### Implementing a Low-Pass Filter
 
 Let's work through a low-pass filter implementation using our earlier example. We'll split:
 
 * $x(t)$ into $x_{g}(t)$ and $x_{u}(t)$,
-* $y(t)$ into $y_{g}(t)$ and $y_{u}(t)$,
+* $y(t)$ into $y_{g}(t)$ and $y_{u}(t)$, and
 * $z(t)$ into $z_{g}(t)$ and $z_{u}(t)$.
 
 We'll initialize the first two values of gravitational acceleration to 0, so that the formula has initial values to work with.
 
-$x_{g}(0) = x_{g}(1) = y_{g}(0) = y_{g}(1) = z_{g}(0) = z_{g}(1) = 0$\
+$x_{g}(0) = x_{g}(1) = y_{g}(0) = y_{g}(1) = z_{g}(0) = z_{g}(1) = 0$
 
-Then, we'll implement the filter formula for each time series.
+Then we'll implement the filter formula for each time series.
 
-$x_{g}(t) = \alpha_{0}(x(t)\beta_{0} + x(t-1)\beta_{1} + x(t-2)\beta_{2} - x_{g}(t-1)\alpha_{1} - x_{g}(t-2)\alpha_{2})$\
+$x_{g}(t) = \alpha_{0}(x(t)\beta_{0} + x(t-1)\beta_{1} + x(t-2)\beta_{2} - x_{g}(t-1)\alpha_{1} - x_{g}(t-2)\alpha_{2})$
 
-$y_{g}(t) = \alpha_{0}(y(t)\beta_{0} + y(t-1)\beta_{1} + y(t-2)\beta_{2} - y_{g}(t-1)\alpha_{1} - y_{g}(t-2)\alpha_{2})$\
+$y_{g}(t) = \alpha_{0}(y(t)\beta_{0} + y(t-1)\beta_{1} + y(t-2)\beta_{2} - y_{g}(t-1)\alpha_{1} - y_{g}(t-2)\alpha_{2})$
 
-$z_{g}(t) = \alpha_{0}(z(t)\beta_{0} + z(t-1)\beta_{1} + z(t-2)\beta_{2} - z_{g}(t-1)\alpha_{1} - z_{g}(t-2)\alpha_{2})$\
+$z_{g}(t) = \alpha_{0}(z(t)\beta_{0} + z(t-1)\beta_{1} + z(t-2)\beta_{2} - z_{g}(t-1)\alpha_{1} - z_{g}(t-2)\alpha_{2})$
 
 The resulting time series after low-pass filtering are below.
 
-![](chapter-figures/acceleration-gravitational.png)\
+![](chapter-figures/acceleration-gravitational.png)
 
 $x_{g}(t)$ and $z_{g}(t)$ hover around 0, and $y_{g}(t)$ very quickly drops to $-1g$. The initial 0 value in $y_{g}(t)$ is from the initialization of the formula.
 
-Now, to receive user acceleration, we can subtract gravitational acceleration from our total acceleration:
+Now, to calculate user acceleration, we can subtract gravitational acceleration from our total acceleration:
 
-$x_{u}(t) = x(t) - x_{g}(t)$\
-$y_{u}(t) = y(t) - y_{g}(t)$\
+$x_{u}(t) = x(t) - x_{g}(t)$\  
+$y_{u}(t) = y(t) - y_{g}(t)$\  
 $z_{u}(t) = z(t) - z_{g}(t)$
 
 When we do that, we receive the time series below:
 
-![](chapter-figures/acceleration-user.png)\
+![](chapter-figures/acceleration-user.png)
 
 We've successfully split our total acceleration into user acceleration and gravitational acceleration!
 
 ## 2. Isolating User Acceleration in the Direction of Gravity
 
-$x_{u}(t)$, $y_{u}(t)$, and $z_{u}(t)$ include all movements of the user, not just movements in the direction of gravity. Our goal here is to end up with a 1-dimensional time series representing **user acceleration in the direction of gravity**. This time series will include portions of user acceleration in each of our directions.
+$x_{u}(t)$, $y_{u}(t)$, and $z_{u}(t)$ include all movements of the user, not just movements in the direction of gravity. Our goal here is to end up with a 1-dimensional time series representing user acceleration in the direction of gravity. This time series will include portions of user acceleration in each of our directions.
 
-Let's get to it. First, some liner algebra 101. Don't take that mathematician hat off just yet!
+Let's get to it. First, some linear algebra 101. Don't take that mathematician hat off just yet!
 
 ### The Dot Product
 
-When working with coordinates, you won't get very far before being introduced to the **dot product**, one of the fundamental tools used in comparing the magnitude and direction of $x$, $y$, $z$ coordinates.
+When working with coordinates, you won't get very far before being introduced to the *dot product*, one of the fundamental tools used in comparing the magnitude and direction of $x$, $y$, $z$ coordinates.
 
 The dot product will take us from 3-dimensional space to 1-dimensional space.
-When we take the dot product of the time series user acceleration and gravitational acceleration, both of which are in 3-dimensional space, we'll be left with a single time series in 1-dimensional space representing the portion of user acceleration in the direction of gravity. We'll arbitrarily call this new time series $a(t)$, because, well, every important time series deserves a name.
+When we take the dot product of the of the two time series, user acceleration and gravitational acceleration, both of which are in 3-dimensional space, we'll be left with a single time series in 1-dimensional space representing the portion of user acceleration in the direction of gravity. We'll arbitrarily call this new time series $a(t)$, because, well, every important time series deserves a name.
 
-![](chapter-figures/dot-product-explanation.png)\
+![](chapter-figures/dot-product-explanation.png)
 
 ### Implementing the Dot Product
 We can implement the dot product for our earlier example using the formula
 
-$a(t) = x_{u}(t)x_{g}(t) + y_{u}(t)y_{g}(t) + z_{u}(t)z_{g}(t)$,
+$a(t) = x_{u}(t)x_{g}(t) + y_{u}(t)y_{g}(t) + z_{u}(t)z_{g}(t)$
 
 leaving us with $a(t)$, in 1-dimensional space.
 
-![](chapter-figures/acceleration-dotproduct.png)\
+![](chapter-figures/acceleration-dotproduct.png)
 
 We can now visually pick out where the steps are. The dot product is very powerful, yet beautifully simple.
 
 ## Solutions in the Real World
 
-We saw how quickly our seemingly simple problem turned more complex when we threw in the challenges of the real world and real people. However, we're getting a lot closer to counting steps, and we can see how $a(t)$ is starting to resemble our ideal sine wave. But, only "kinda, sorta" starting to. We still need to make our messy $a(t)$ time series smoother. There are four main issues with $a(t)$ in its current state. Let's examine each one.
+We saw how quickly our seemingly simple problem became more complex when we threw in the challenges of the real world and real people. However, we're getting a lot closer to counting steps, and we can see how $a(t)$ is starting to resemble our ideal sine wave. But, only "kinda, sorta" starting to. We still need to make our messy $a(t)$ time series smoother. There are four main issues with $a(t)$ in its current state. Let's examine each one.
 
-![](chapter-figures/jumpy-slow-short-bumpy.png)\
+![](chapter-figures/jumpy-slow-short-bumpy.png)
 
 ### 1. Jumpy Peaks
 
@@ -207,7 +206,7 @@ When bumpiness occurs at our threshold, we can mistakenly count too many steps f
 
 ### Peaks That Are Juuuust Right
 
-![](chapter-figures/acceleration-filtered.png)\
+![](chapter-figures/acceleration-filtered.png)
 
 In accounting for these four scenarios, we've managed to bring our messy $a(t)$ fairly close to our ideal sine wave, allowing us to count steps.
 
@@ -216,22 +215,23 @@ In accounting for these four scenarios, we've managed to bring our messy $a(t)$ 
 The problem, at first glance, looked straightforward. However, the real world and real people threw a few curve balls our way. Let's recap how we solved the problem:
 
 1. We started with total acceleration, $(x(t), y(t), z(t))$.
-2. We used a low-pass filter to split total acceleration into user acceleration, $(x_{u}(t), y_{u}(t), z_{u}(t))$, and gravitational acceleration, $(x_{g}(t), y_{g}(t), z_{g}(t))$.
+2. We used a low-pass filter to split total acceleration into user acceleration $(x_{u}(t), y_{u}(t), z_{u}(t))$ and gravitational acceleration $(x_{g}(t), y_{g}(t), z_{g}(t))$.
 3. We took the dot product of $(x_{u}(t), y_{u}(t), z_{u}(t))$ and $(x_{g}(t), y_{g}(t), z_{g}(t))$ to obtain the user acceleration in the direction of gravity, $a(t)$.
 4. We used a low-pass filter again to remove the high-frequency component of $a(t)$, removing noise.
 5. We used a high-pass filter to cancel the low-frequency component of $a(t)$, removing slow peaks.
 6. We set a threshold to ignore short peaks.
 7. We used hysteresis to avoid double-counting steps with bumpy peaks.
 
-As software developers in a training or academic setting, we may have been presented with a perfect signal and asked to write code to count the steps in that signal. While that may have been an interesting coding challenge, it wouldn't have been something we could apply in a live situation. We saw that in a reality with gravity and people thrown into the mix, the problem was a little more complex. We used mathematical tools to address the complexities, and were able to solve a real-world problem. It's time to translate our solution into code.
+As software developers in a training or academic setting, we may have been presented with a perfect signal and asked to write code to count the steps in that signal. While that may have been an interesting coding challenge, it wouldn't have been something we could apply in a live situation. We saw that in a reality, with gravity and people thrown into the mix, the problem was a little more complex. We used mathematical tools to address the complexities, and were able to solve a real-world problem. It's time to translate our solution into code.
 
+XXX STOPPED HERE
 # Diving Into Code
 
 Our goal for this chapter is to create a web application in Ruby that accepts accelerometer data, parses, processes, and analyzes it, and returns the number of steps taken, the distance traveled, and the elapsed time.
 
 # Preliminary Work
 
-Our solution requires us to filter our time series several times. Rather than peppering filtering code throughout our program, it makes sense to create a class that takes care of the filtering, and if we ever need to enhance or modify it, we'll only ever need to change that one class. This strategy is called *separation of concerns*, a commonly-used design principle which promotes splitting a program into numerous distinct pieces, where every piece has one primary concern. It's a beautiful way to write clean, maintainable code that's easily extensible. We'll revisit this idea several times throughout the chapter.
+Our solution requires us to filter our time series several times. Rather than peppering filtering code throughout our program, it makes sense to create a class that takes care of the filtering, and if we ever need to enhance or modify it, we'll only ever need to change that one class. This strategy is called *separation of concerns*, a commonly used design principle which promotes splitting a program into distinct pieces, where every piece has one primary concern. It's a beautiful way to write clean, maintainable code that's easily extensible. We'll revisit this idea several times throughout the chapter.
 
 Let's dive into the filtering code, contained in, logically, a `Filter` class.
 
@@ -315,29 +315,29 @@ Dealing with multiple input formats is a common programming problem. If we want 
 
 ### Standard Format
 
-The cleanest way for us to deal with this is to take our two input formats and determine a standard format to fit them both into as soon as possible, allowing the rest of the program to work with this new standard format. We'll need to work with user acceleration and gravitational acceleration separately in order to follow our solution, so our standard format will need to split out the two accelerations:
+The cleanest way for us to deal with this is to take our two input formats and fit them into a standard format as soon as possible, allowing the rest of the program to work with this new standard format. Our solution requires that we work with user acceleration and gravitational acceleration separately, so our standard format will need to be split into the two accelerations:
 
-![](chapter-figures/standard-format.png)\
+![](chapter-figures/standard-format.png)
 
-Our standard format allows us to store a time series, as each element represents acceleration at a point in time. We've defined it as an array of arrays of arrays. Let's peel back that onion.
+Our standard format allows us to store a time series, as each element represents acceleration at a point in time. We've defined it as an array of arrays of arrays. Let's peel that onion.
 
 * The first array is just a wrapper to hold the all of the data.
 * The second set of arrays contains one array per data sample taken. If our sampling rate is 100 and we sample data for 10 seconds, we'll have $10 * 100$, or 1000, arrays in this second set.
-* The third set of arrays is the pair of arrays enclosed within the second set. They both contain acceleration data in the $x$, $y$, and $z$ directions; the first representing user acceleration and the second gravitational acceleration.
+* The third set of arrays is the pair of arrays enclosed within the second set. They both contain acceleration data in the $x$, $y$, and $z$ directions; the first representing user acceleration and the second, gravitational acceleration.
 
 # The Pipeline
 
-Our system takes, as input, data from an accelerometer along with information on the user taking the walk (gender, stride, etc.) and information on the trial walk itself (sampling rate, actual steps taken, etc.). Given the input, our signal processing solution is applied, and our system returns as output the number of steps calculated, the delta between the actual steps and calculated steps, the distance traveled, and the elapsed time. The entire process from input to output can be viewed as a pipeline.
+Our system takes as input data from an accelerometer along with information on the user taking the walk (gender, stride, etc.) and information on the trial walk itself (sampling rate, actual steps taken, etc.). Given the input, our signal processing solution is applied, and our system returns as output the number of steps calculated, the delta between the actual steps and calculated steps, the distance traveled, and the elapsed time. The entire process from input to output can be viewed as a pipeline.
 
-![](chapter-figures/pipeline.png)\
+![](chapter-figures/pipeline.png)
 
-In the spirit of separation of concerns, we'll write the code for each distinct component of the pipeline - parsing, processing, and analyzing - individually.
+In the spirit of separation of concerns, we'll write the code for each distinct component of the pipeline --- parsing, processing, and analyzing --- individually.
 
 # Parsing
 
-Given that we want our data in the standard format as early as possible, it makes sense to write a parser that allows us to take our two known input formats and convert them to a standard output format as the first component of our pipeline. Our standard format splits out user acceleration and gravitatinal acceleration, which means that if our data is in the combined format, out parser will need to first pass it through a low-pass filter to convert it to the standard format.
+Given that we want our data in the standard format as early as possible, it makes sense to write a parser that allows us to take our two known input formats and convert them to a standard output format as the first component of our pipeline. Our standard format splits out user acceleration and gravitational acceleration, which means that if our data is in the combined format, our parser will need to first pass it through a low-pass filter to convert it to the standard format.
 
-![](chapter-figures/input-data-workflow-1.png)\
+![](chapter-figures/input-data-workflow-1.png)
 
 In the future, if we ever have to add another input format, the only code we'll have to touch is this parser. Let's separate concerns once more, and create a `Parser` class to handle the parsing.
 
@@ -384,7 +384,7 @@ class Parser
 end
 ~~~~~~~
 
-`Parser` has a class-level `run` method as well as an initializer. This is a pattern we'll use several times, so it's worth a discussion. Initializers should generally be used for setting up an object, and shouldn't do a lot of work. `Parser`'s initializer simply takes `data` in the combined or separated format and stores it in the instance variable `@data`. The `parse` instance method uses `@data` internally, and does the heavy lifting of parsing and setting the result in the standard format to `@parsed_data`. In our case, we'll never need to instantiate a `Parser` instance without having to immediately call `parse`. Therefore, we add a convenient class-level `run` method, that instantiates an instance of `Parser`, calls `parse` on it, and returns the instance of the object. We can now pass our input data to `run`, knowing we'll receive an instance of `Parser` with `@parsed_data` already set.
+`Parser` has a class-level `run` method as well as an initializer. This is a pattern we'll use several times, so it's worth a discussion. Initializers should generally be used for setting up an object, and shouldn't do a lot of work. `Parser`'s initializer simply takes `data` in the combined or separated format and stores it in the instance variable `@data`. The `parse` instance method uses `@data` internally, and does the heavy lifting of parsing and setting the result in the standard format to `@parsed_data`. In our case, we'll never need to instantiate a `Parser` instance without having to immediately call `parse`. Therefore, we add a convenient class-level `run` method that instantiates an instance of `Parser`, calls `parse` on it, and returns the instance of the object. We can now pass our input data to `run`, knowing we'll receive an instance of `Parser` with `@parsed_data` already set.
 
 Let's take a look at our hard-working `parse` method. The first step in the process is to take string data and convert it to numerical data, giving us an array of arrays of arrays. Sound familiar? The next thing we do is ensure that the format is as expected. Unless we have exactly three elements per the innermost arrays, we throw an exception. Otherwise, we continue on.
 
@@ -410,9 +410,9 @@ The removal of short and bumpy peaks can be handled during step counting.
 
 Now that we have our data in the standard format, we can process it to get in into a state where we can analyze it to count steps.
 
-![](chapter-figures/input-data-workflow-2.png)\
+![](chapter-figures/input-data-workflow-2.png)
 
-The purpose of processing is to take our data in the standard format and incrementally clean it up to get it to a state as close as possible to our ideal side wave. Our two processing operations, taking the dot product and filtering, are quite distinct, but both are intended to process our data, so we'll create one class, called a **Processor**.
+The purpose of processing is to take our data in the standard format and incrementally clean it up to get it to a state as close as possible to our ideal side wave. Our two processing operations, taking the dot product and filtering, are quite distinct, but both are intended to process our data, so we'll create one class called a *Processor*.
 
 ~~~~~~~
 require_relative 'filter'
@@ -448,6 +448,7 @@ end
 
 Again, we see the `run` and `initialize` methods pattern. `run` calls our two processor methods, `dot_product` and `filter`, directly. Each method accomplishes one of our two processing operations. `dot_product` isolates movement in the direction of gravity, and filter applies the low-pass and high-pass filters in sequence to remove jumpy and slow peaks.
 
+XXX STOPPED HERE
 # Pedometer Functionality
 
 Provided information about the person using the pedometer is available, we can measure more than just steps. Our pedometer will measure **distance traveled** and **elapsed time**, as well as **steps taken**.
@@ -667,13 +668,13 @@ We're through the most labour intensive part of our program. Next, we'll build a
 
 When a user first enters the app by navigating to /uploads, they see a table of existing data, and a form to submit new data by uploading an accelerometer output file and trial and user information.
 
-![](chapter-figures/graffles/app1.png)\
+![](chapter-figures/graffles/app1.png)
 
 Submitting the form stores the data to the file system, parses, processes, and analyzes it, and redirect back to /uploads with a new entry in the table.
 
 Clicking the **Detail** link for an entry presents the user with the following view:
 
-![](chapter-figures/graffles/app3.png)\
+![](chapter-figures/graffles/app3.png)
 
 The information presented includes values input by the user through the upload form, values calculated by our program, and graphs of the time series following the dot product operation, and again following filtering. The user can navigate back to uploads using the *Back to Uploads* link.
 
