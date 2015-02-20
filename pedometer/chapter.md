@@ -1,4 +1,5 @@
 <!-- to convert to HTML to view math notation, run `pandoc --to html --mathjax="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" -s chapter.md > chapter.html` -->
+<!-- American spelling: traveling etc. -->
 
 # A Perfect World
 
@@ -224,7 +225,6 @@ The problem, at first glance, looked straightforward. However, the real world an
 
 As software developers in a training or academic setting, we may have been presented with a perfect signal and asked to write code to count the steps in that signal. While that may have been an interesting coding challenge, it wouldn't have been something we could apply in a live situation. We saw that in a reality, with gravity and people thrown into the mix, the problem was a little more complex. We used mathematical tools to address the complexities, and were able to solve a real-world problem. It's time to translate our solution into code.
 
-XXX STOPPED HERE
 # Diving Into Code
 
 Our goal for this chapter is to create a web application in Ruby that accepts accelerometer data, parses, processes, and analyzes it, and returns the number of steps taken, the distance traveled, and the elapsed time.
@@ -448,7 +448,6 @@ end
 
 Again, we see the `run` and `initialize` methods pattern. `run` calls our two processor methods, `dot_product` and `filter`, directly. Each method accomplishes one of our two processing operations. `dot_product` isolates movement in the direction of gravity, and filter applies the low-pass and high-pass filters in sequence to remove jumpy and slow peaks.
 
-XXX STOPPED HERE
 # Pedometer Functionality
 
 Provided information about the person using the pedometer is available, we can measure more than just steps. Our pedometer will measure **distance traveled** and **elapsed time**, as well as **steps taken**.
@@ -495,20 +494,22 @@ private
 end
 ~~~~~~~
 
-At the top of our class, we define constants to avoid hardcoding magic numbers and strings throughout. Our initializer accepts `gender`, `height`, and `stride` all as optional arguments. Handling optional information is a common programming problem. If the optional parameters are passed in, our initializer sets instance variables of the same names, after some data formatting. We raise an exception for invalid values.
+For the purposes of this discussion, let's assume that the values in `MULTIPLIERS` and `AVERAGES` have been determined from a large sample size of diverse people.
 
-Even when all optional parameters are provided, the input stride takes precedence. If it's not provided, the `calculate_stride` method determines the most accurate stride length it can for the user. This is done with an `if` statement:
+At the top of our class, we define constants to avoid hardcoding magic numbers and strings throughout. Our initializer accepts `gender`, `height`, and `stride`  as optional arguments. If the optional parameters are passed in, our initializer sets instance variables of the same names, after some data formatting. We raise an exception for invalid values.
 
-* The most accurate way to calculate stride beyond it being given directly is to use a person's height and a multiplier based on gender, provided we have a valid gender and height.
-* A person's height is a better predictor of stride than their gender is. If we have a height but not a gender, we can multiply the height by the average of the two values in `MULTIPLIERS`.
+Even when all optional parameters are provided, the input stride takes precedence. If it's not provided, the `calculate_stride` method determines the most accurate stride length possible for the user. This is done with an `if` statement:
+
+* The most accurate way to calculate stride length is to use a person's height and a multiplier based on gender, provided we have a valid gender and height.
+* A person's height is a better predictor of stride than their gender is. If we have height but not gender, we can multiply the height by the average of the two values in `MULTIPLIERS`.
 * If all we have is a gender, we can use the average stride length from `AVERAGES`.
 * Finally, if we don't have anything, we can take the average of the two values in `AVERAGES` and use that as our stride.
 
-For the purposes of this discussion, let's assume that the values in `MULTIPLIERS` and `AVERAGES` have been determined from a large sample size of diverse people. Note that the further down the chain we get, the less accurate our stride length becomes. In any case, our `User` class determines the stride length as best as it can.
+ Note that the further down the chain we get, the less accurate our stride length becomes. In any case, our `User` class determines the stride length as best it can.
 
-## Time Traveled
+## Time Spent Traveling
 
-The time traveled is measured by dividing the number of data samples in our `Processor`'s `@parsed_data` by the sampling rate of the device, if we have it. Since the rate has more to do with the trial walk itself than the user, and the `User` class in fact does not have to be aware of the sampling rate, this is a good time to create a very small `Trial` class.
+The time spent traveling is measured by dividing the number of data samples in our `Processor`'s `@parsed_data` by the sampling rate of the device, if we have it. Since the rate has more to do with the trial walk itself than the user, and the `User` class in fact does not have to be aware of the sampling rate, this is a good time to create a very small `Trial` class.
 
 ~~~~~~~
 class Trial
@@ -528,17 +529,19 @@ class Trial
 end
 ~~~~~~~
 
-All of the attribute readers in `Trial` are set in the initializer based on parameters passed in:
+All of the attribute readers in `Trial` are set in the initializer based on parameters passed in, as follows:
 
 * `name` is a name for the specific trial, to help differentiate between the different trials.
 * `rate` is the sampling rate of the accelerometer during the trial.
 * `steps` is used to set the actual steps taken, so that we can record the difference between the actual steps the user took and the ones our program counted.
 
-Much like our `User` class, some information is optional. We're given the opportunity to input details of the trial, if we have it. If we don't have those details, our program bypasses calculating the additional results, such as time traveled. Another similarity to our `User` class is the prevention of invalid values.
+Much like our `User` class, some information is optional. We're given the opportunity to input details of the trial, if we have it. If we don't have those details, our program bypasses calculating the additional results, such as time spent traveling. Another similarity to our `User` class is the prevention of invalid values.
 
 ## Steps Taken
 
-It's time to implement our step counting strategy in code. So far, we have a `Processor` class that contains `@filtered_data`, which is our clean time series representing user acceleration in the direction of gravity. We also have classes that give us the necessary information about the user and the trial. What we're missing is a way to analyze `@filtered_data` with the information from `User` and `Trial`, and count steps, measure distance, and measure time. The analysis portion of our program is different from the data manipulation of the `Processor`, and different from the information collection and aggregation of the `User` and `Trial` classes. Let's create a new class called `Analyzer` to perform this data analysis.
+It's time to implement our step counting strategy in code. So far, we have a `Processor` class that contains `@filtered_data`, which is our clean time series representing user acceleration in the direction of gravity. We also have classes that give us the necessary information about the user and the trial. What we're missing is a way to analyze `@filtered_data` with the information from `User` and `Trial`, and count steps, measure distance, and measure time. 
+
+The analysis portion of our program is different from the data manipulation of the `Processor`, and different from the information collection and aggregation of the `User` and `Trial` classes. Let's create a new class called `Analyzer` to perform this data analysis.
 
 ~~~~~~~
 require_relative 'user'
@@ -596,9 +599,9 @@ class Analyzer
 end
 ~~~~~~~
 
-The first thing we do in `Analyzer` is define a `THRESHOLD` constant. For the purposes of this discussion, let's assume we've analyzed numerous diverse data sets and determined a threshold value that accommodated the largest number of those data sets. The threshold can eventually become dynamic and vary with different users, based on the calculated versus actual steps they've taken. A learning algorithm, if you will.
+The first thing we do in `Analyzer` is define a `THRESHOLD` constant. For the purposes of this discussion, let's assume we've analyzed numerous diverse data sets and determined a threshold value that accommodated the largest number of those data sets. The threshold can eventually become dynamic and vary with different users, based on the calculated versus actual steps they've taken; a learning algorithm, if you will.
 
-Our `Analyzer`'s initializer take a `data` parameter and instances of `User` and `Trial`, and sets the instance variables `@data`, `@user`, and `@trial` to the passed in parameters.
+Our `Analyzer`'s initializer takes a `data` parameter and instances of `User` and `Trial`, and sets the instance variables `@data`, `@user`, and `@trial` to the passed-in parameters.
 
 Aside from the initializer, the only other public method in `Analyzer` is `measure`, which calls `measure_steps`, `measure_distance`, and `measure_time`, in that order. All three methods are kept private so that an outside class can't call them out of order. Let's take a look at each.
 
