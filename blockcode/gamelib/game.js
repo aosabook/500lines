@@ -131,7 +131,7 @@
 
     Sprite.prototype.rotate = function(r){
         this.facing = rotatev(this.facing, r);
-        console.log('position: %s, velocity: %s, facing: %s', strv(this.position), strv(this.velocity), strv(this.facing));
+        // console.log('position: %s, velocity: %s, facing: %s', strv(this.position), strv(this.velocity), strv(this.facing));
     }
 
     Sprite.prototype.move = function(){
@@ -185,9 +185,46 @@
 
     var sprite1 = new Sprite('#00FF00');
 
-    function setWrap(){ /* set some global for wrapping */ }
-    function setBounce(){ /* set some global for bouncing */ }
-    function setLimit(){ /* set some global for limiting */ }
+    function wrap(){
+        if (sprite1.position.x > WIDTH){
+            sprite1.position = vectorAtPoint(sprite1.position.x - WIDTH, sprite1.position.y);
+        }else if (sprite1.position.x < 0){
+            sprite1.position = vectorAtPoint(WIDTH - sprite1.position.x, sprite1.position.y);
+        }
+        if (sprite1.position.y > HEIGHT){
+            sprite1.position = vectorAtPoint(sprite1.position.x, sprite1.position.y - HEIGHT);
+        }else if (sprite1.position.y < 0){
+            sprite1.position = vectorAtPoint(sprite1.position.x, HEIGHT - sprite1.position.y);
+        }
+    }
+    function bounce(){
+        if (sprite1.position.x > WIDTH && sprite1.velocity.x > 0){
+            sprite1.velocity = vectorAtPoint(-sprite1.velocity.x, sprite1.velocity.y);
+        }else if (sprite1.position.x < 0 && sprite1.velocity.x < 0){
+            sprite1.velocity = vectorAtPoint(-sprite1.velocity.x, sprite1.velocity.y);
+        }
+        if (sprite1.position.y > HEIGHT && sprite1.velocity.y > 0){
+            sprite1.velocity = vectorAtPoint(sprite1.velocity.x, -sprite1.velocity.y);
+        }else if (sprite1.position.y < 0 && sprite1.velocity.y < 0){
+            sprite1.velocity = vectorAtPoint(sprite1.velocity.x, -sprite1.velocity.y);
+        }
+    }
+    function limit(){
+        if (sprite1.position.x > WIDTH){
+            sprite1.position = vectorAtPoint(WIDTH, sprite1.position.y);
+            sprite1.velocity = vectorAtPoint(0, sprite1.velocity.y);
+        }else if (sprite1.position.x < 0){
+            sprite1.position = vectorAtPoint(0, sprite1.position.y);
+            sprite1.velocity = vectorAtPoint(0, sprite1.velocity.y);
+        }
+        if (sprite1.position.y > HEIGHT){
+            sprite1.position = vectorAtPoint(sprite1.position.x, HEIGHT);
+            sprite1.velocity = vectorAtPoint(sprite1.velocity.x, 0);
+        }else if (sprite1.position.y < 0){
+            sprite1.position = vectorAtPoint(sprite1.position.x, 0);
+            sprite1.velocity = vectorAtPoint(sprite1.velocity.x, 0);
+        }
+    }
     /* Move in the direction the sprite is facing */
     function accelerate(block){ sprite1.accelerate(Block.value(block)); }
     function rotate(block){ sprite1.rotate(Block.value(block)); }
@@ -274,9 +311,9 @@
     onResize();
     clear();
 
-    Menu.item('set screen to wrap-around', setWrap);
-    Menu.item('set screen to bounce', setBounce);
-    Menu.item('set screen to limit', setLimit);
+    Menu.item('wrap around edge', wrap);
+    Menu.item('bounce at edge', bounce);
+    Menu.item('stop at edge', limit);
     Menu.item('accelerate', accelerate, 1, 'unit');
     Menu.item('rotate by', rotate, 1, 'degrees');
     Menu.item('move x to', moveToX, 20);
