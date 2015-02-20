@@ -96,7 +96,7 @@ class MagicItemDistribution(object):
 
         """
         # The bonus is essentially just a sample from a multinomial
-        # distribution with n=1, i.e., only one event occurs.
+        # distribution with n=1; i.e., only one event occurs.
         sample = self.bonus_dist.sample(1)
 
         # `sample` is an array of zeros and a single one at the
@@ -115,7 +115,7 @@ class MagicItemDistribution(object):
             The number of bonus points for each stat
 
         """
-        # First we need to sample the overall bonus.
+        # First we need to sample the overall bonus
         bonus = self._sample_bonus()
 
         # Then, we use a different multinomial distribution to sample
@@ -139,7 +139,7 @@ class MagicItemDistribution(object):
 
         """
         # Make sure the value that is passed in is within the
-        # appropriate bounds.
+        # appropriate bounds
         if bonus < 0 or bonus >= len(self.bonus_dist.p):
             return -np.inf
 
@@ -176,7 +176,7 @@ class MagicItemDistribution(object):
         logp_stats = self.stats_dist.log_pmf(stats)
 
         # Then multiply them together (using addition, because we are
-        # working in log-space)
+        # working with logs)
         log_pmf = logp_bonus + logp_stats
         return log_pmf
 

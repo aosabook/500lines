@@ -14,7 +14,7 @@ class Upload
     if @file_path = file_path
       file_name = @file_path.split('/').last.split('.txt').first.split('_')
       @user     = User.new(*file_name.first.split('-'))
-      @trial    = Trial.new(*file_name.last.split('-'))      
+      @trial    = Trial.new(*file_name.last.split('-'))
     elsif user_params && trial_params
       @user      = User.new(*user_params.values)
       @trial     = Trial.new(*trial_params.values)
@@ -40,7 +40,7 @@ class Upload
   end
 
   def self.generate_file_path(user, trial)
-    UPLOAD_DIRECTORY + 
+    UPLOAD_DIRECTORY +
     "#{user.gender}-#{user.height}-#{user.stride}_" +
     "#{trial.name}-#{trial.rate}-#{trial.steps}.txt"
   end

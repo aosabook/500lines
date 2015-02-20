@@ -8,7 +8,7 @@
           (:attrs) (val-filter-fn) (filter ref?) (mapcat :value)))))
 
 (defn incoming-refs [db ts ent-id & ref-names]
-  (let [vaet (ind-at db :VAET ts)
+  (let [vaet (indx-at db :VAET ts)
           all-attr-map (vaet ent-id)
           filtered-map (if ref-names (select-keys ref-names all-attr-map) all-attr-map)]
       (reduce into #{} (vals filtered-map))))

@@ -49,10 +49,10 @@
   ([db ent-id attr-name]  (:value (attr-at db ent-id attr-name)))
   ([db ent-id attr-name ts] (:value (attr-at db ent-id attr-name ts))))
 
-(defn ind-at
+(defn indx-at
   "inspecting a specific index at a given time, defaults to current. The kind argument mayone of the index name (e.g., AVET)"
   ([db kind]
-   (ind-at db kind  (:curr-time db)))
+   (indx-at db kind  (:curr-time db)))
   ([db kind ts]
    (kind ((:layers db) ts))))
 
