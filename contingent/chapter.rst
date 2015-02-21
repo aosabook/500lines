@@ -505,7 +505,8 @@ as long as we can remember their interfaces.
 In this way, programmers often find themselves navigating
 among several levels of abstraction
 in the course of writing a system,
-now working with the specific data model details for a particular task,
+now working with the specific data model and implementation details
+for a particular subsystem,
 now connecting higher level concepts through their interfaces.
 
 For example, from the outside,
@@ -549,9 +550,11 @@ and leverage Python's powerful built-in tools
 and extensive standard library.
 
 Over the course of the rest of this chapter,
-we will navigate between these two viewpoints,
-examining the exterior facade of various classes Contingent defines
-and peeking at the behind-the-scenes view of how these classes are built.
+we will navigate between two viewpoints,
+both examining the exterior facades
+of various classes Contingent defines
+and peeking at the behind-the-scenes view
+of how these classes are built.
 
 With these considerations in mind,
 lets return to the ``Graph`` class,
@@ -588,7 +591,8 @@ that the attribute is best treated
 as part of the invisible internal machinery of the class.
 
 Why are we using a “defaultdict” instead of a standard dict?
-It automatically handles the special case of a missing key.
+A common problem when composing dicts
+with other data structures is handling missing keys.
 With a normal dict,
 retrieving a key that does not exist raises a ``KeyError``:
 
@@ -598,8 +602,11 @@ Traceback (most recent call last):
      ...
 KeyError: 'index.rst'
 
-This usually requires special checks throughout the code
-that uses a dict:
+But for our dict-of-sets data structures,
+we actually want missing keys to be represented
+with an empty set.
+Using a normal dict requires special checks throughout the code
+to handle this specific case, for example when adding a new edge:
 
 .. code:: python
 
@@ -610,7 +617,8 @@ that uses a dict:
 
     self._consequences_of[input_task].add(consequence_task)
 
-The defaultdict lets you provide a function
+This need is so common that Python includes a special utility,
+the defaultdict, which lets you provide a function
 that returns a value for absent keys.
 When we ask about an edge that the ``Graph`` hasn't yet seen,
 we will get back an empty ``set`` instead of an exception:
@@ -1002,7 +1010,7 @@ The ``Project.task`` decorator uses this opportunity
 to package every task inside another function, a *wrapper*,
 allowing a clean separation of responsibilities.
 The wrapper worries about graph and stack management —
-of which the task function remains blissfully ignorant —
+the details of which are entirely hidden from the task function  —
 while each task function can focus on
 the work needed to be done to perform the task.
 Here is what the ``task`` decorator boilerplate looks like:
@@ -1029,8 +1037,10 @@ that creates the function:
         title, body = parse(filename)
         return title
 
-Python assigns the wrapper function to the name ``title_of``.
-The wrapper which can access the original version of the function
+When this definition is complete,
+the name ``title_of`` will refer
+to the wrapped version of the function.
+The wrapper can access the original version of the function
 via the name ``function``,
 calling it at the appropriate time.
 The body of the Contingent wrapper
