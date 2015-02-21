@@ -249,14 +249,16 @@ each class should have only one reason to change.
 
 ### A debugger's-eye view
 
-Let's walk through a run of the code to see how it works in practice.
-In this case, we'll set key ``foo`` to value ``bar`` in ``example.db``:
+#### Reading a value
+
+For starters, let's see what happens
+when we try to get the value associated with key ``foo`` in ``example.db``:
 ```bash
-$ python -m dbdb.tool example.db set foo bar
+$ python -m dbdb.tool example.db get foo
 ```
 
 This runs the ``main()`` function from module ``dbdb.tool``:
-**QUESTION: Is it useful to have the whole function, or should I elide the bits we're not focusing on?**
+**QUESTION: Is it useful to have the whole function, or should I elide the bits we're not focusing on (mostly error checking)?**
 ```python
 # dbdb/tool.py
 def main(argv):
@@ -270,10 +272,10 @@ def main(argv):
     db = dbdb.connect(dbname)          # CONNECT
     try:
         if verb == 'get':
-            sys.stdout.write(db[key])
+            sys.stdout.write(db[key])  # GET VALUE
         elif verb == 'set':
-            db[key] = value            # SET VALUE
-            db.commit()                # COMMIT
+            db[key] = value
+            db.commit()
         else:
             del db[key]
             db.commit()
@@ -310,8 +312,122 @@ class DBDB(object):
         self._tree = BinaryTree(self._storage)
 ```
 
-Setting the value with ``db[key] = value``
-calls ``DBDB.__setitem__()``.
+Getting the value at ``key``
+is as simple as a dictionary lookup (``db[key]``)
+which calls ``DBDB.__getitem__()``.
+```python
+# dbdb/interface.py
+class DBDB(object):
+# ...
+    def __getitem__(self, key):
+        self._assert_not_closed()
+        return self._tree.get(key)
+```
+
+``__getitem__()`` ensures that the database is still open
+and then retrieves the value associated with ``key``
+on the internal ``_tree`` by calling ``_tree.get()``.
+
+``_tree.get()`` is provided by ``LogicalBase``:
+```python
+# dbdb/logical.py
+class LogicalBase(object):
+# ...
+    def get(self, key):
+        if not self._storage.locked:
+            self._refresh_tree_ref()
+        return self._get(self._follow(self._tree_ref), key)
+```
+
+It checks to see if we have the tree locked:
+if it is, then it cannot have changed;
+but if it isn't, then we update to the most recent data on disk.
+Because we don't lock the tree,
+any subsequent read might get different data.
+This is known as a "dirty read".
+Many different processes can do dirty reads at once with no locking
+because the root node address is updated atomically,
+only after all the data have been written to disk.
+Another way to look at it is that ``self._tree_ref``
+is only changed by ``_refresh_tree_ref()``.
+While a second read operation might use a different ``_tree_ref``
+(that points to different data),
+each read operation is guaranteed to succeed:
+to return a value that associated with the key in this tree,
+or find that they key isn't in this tree.
+
+The tree as a whole
+is represented by a mutable ``BinaryTree`` object.
+Inside the ``BinaryTree``,
+``Node``s and ``NodeRef``s are value objects:
+they are immutable and their contents never change
+(from the user's point of view at least;
+we'll get into that later).
+The content of the whole ``BinaryTree`` only visibly changes
+when then root node is replaced,
+since nodes themselves are never changed.
+We'll see this in more detail in the *Inserting/updating* section.
+
+Getting the actual data
+is just a matter of doing a binary search,
+following refs to their nodes:
+```python
+# dbdb/binary_tree.py
+class BinaryTree(LogicalBase):
+# ...
+    def _get(self, node, key):
+        while node is not None:
+            if key < node.key:
+                node = self._follow(node.left_ref)
+            elif node.key < key:
+                node = self._follow(node.right_ref)
+            else:
+                return self._follow(node.value_ref)
+        raise KeyError
+```
+
+The returned value is then written to ``stdout`` by ``main()``,
+without adding any extra newlines,
+to preserve the user's data exactly.
+
+
+#### Inserting/updating
+
+Now we'll set key ``foo`` to value ``bar`` in ``example.db``:
+```bash
+$ python -m dbdb.tool example.db set foo bar
+```
+
+Again, this runs the ``main()`` function from module ``dbdb.tool``:
+**QUESTION: Is it useful to have the whole function, or should I elide the bits we're not focusing on?**
+```python
+# dbdb/tool.py
+def main(argv):
+    if not (4 <= len(argv) <= 5):
+        usage()
+        return BAD_ARGS
+    dbname, verb, key, value = (argv[1:] + [None])[:4]
+    if verb not in {'get', 'set', 'delete'}:
+        usage()
+        return BAD_VERB
+    db = dbdb.connect(dbname)          # CONNECT
+    try:
+        if verb == 'get':
+            sys.stdout.write(db[key])
+        elif verb == 'set':
+            db[key] = value            # SET VALUE
+            db.commit()                # COMMIT
+        else:
+            del db[key]
+            db.commit()
+    except KeyError:
+        print("Key not found", file=sys.stderr)
+        return BAD_KEY
+    return OK
+```
+
+This time we set the value with ``db[key] = value``
+which calls ``DBDB.__setitem__()``.
 ```python
 # dbdb/interface.py
 class DBDB(object):
@@ -339,19 +455,10 @@ class LogicalBase(object):
 
 It ensures that the tree is locked,
 and that we have the most recent root node reference
-so we don't lose any updates.
+so we don't lose any unrelated updates.
 Then it replaces the root tree node
 with a new tree containing the inserted (or updated) key/value.
 
-The tree as a whole
-is represented by a mutable ``BinaryTree`` object.
-Inside the ``BinaryTree``,
-``Node``s and ``NodeRef``s are value objects:
-they are immutable and their contents never change
-(from the user's point of view; we'll get into that later).
-The content of the whole ``BinaryTree`` only visibly changes
-when then root node is replaced,
-since nodes themselves are never changed.
 Inserting or updating the tree doesn't mutate any nodes,
 because it returns a new tree
 which shares unchanged parts with the previous tree.
@@ -379,8 +486,14 @@ class BinaryTree(LogicalBase):
         return self.node_ref_class(referent=new_node)
 ```
 
+Notice how we always return a new node
+(wrapped in a ``NodeRef``).
+Instead of updating a node to point to a new subtree,
+we make a new node which shares the unchanged subtree.
+This is what makes this binary tree an immutable data structure.
+
 Committing involves writing out all of the dirty state in memory,
-and then saving the address of the tree's new root node..
+and then saving the address of the tree's new root node.
 Starting from the API:
 ```python
 # dbdb/interface.py
@@ -391,6 +504,7 @@ class DBDB(object):
         self._tree.commit()
 ```
 
+The implementation of ``_tree.commit()`` comes from ``LogicalBase``:
 ```python
 # dbdb/logical.py
 class LogicalBase(object)
@@ -400,7 +514,7 @@ class LogicalBase(object)
         self._storage.commit_root_address(self._tree_ref.address)
 ```
 
-``NodeRef``s know how to serialise themselves to disk
+All ``NodeRef``s know how to serialise themselves to disk
 by first asking their children to serialise via ``prepare_to_store()``:
 ```python
 # dbdb/logical.py
@@ -412,6 +526,8 @@ class ValueRef(object):
             self._address = storage.write(self.referent_to_string(self._referent))
 ```
 
+The ``_tree_ref`` is actually a ``BinaryNodeRef``,
+so ``prepare_to_store()`` is:
 ```python
 # dbdb/binary_tree.py
 class BinaryNodeRef(ValueRef):
@@ -420,7 +536,23 @@ class BinaryNodeRef(ValueRef):
             self._referent.store_refs(storage)
 ```
 
-Then the ``NodeRef``'s ``referent`` is guaranteed to have addresses
+The ``BinaryNode`` in question, ``_referent``,
+asks its refs to store themselves:
+```python
+# dbdb/binary_tree.py
+class BinaryNode(object):
+# ...
+    def store_refs(self, storage):
+        self.value_ref.store(storage)
+        self.left_ref.store(storage)
+        self.right_ref.store(storage)
+```
+
+This recurses all the way down for any ``NodeRef``
+which has unwritten changes (i.e. no ``_address``).
+
+At this point
+the ``NodeRef``'s ``_referent`` is guaranteed to have addresses available for all of its own refs,
 so we can create a bytestring representing this node:
 ```python
 # dbdb/binary_tree.py
@@ -452,7 +584,7 @@ class Storage(object):
         self.unlock()
 ```
 
-Rinse, and repeat!
+We're done!
 
 
 ### How it works
