@@ -74,6 +74,13 @@ class Project:
         to be re-invoked again in the future if any of those other tasks
         change their return value.
 
+        The wrapper also includes a convenience function,
+        `check_invalid`, that invokes the `task_function` and updates
+        the value in the cache if the cache and the current value do not
+        match. If the cached value is determined to be invalid, the
+        consequences of the task are added to the to-do list for
+        reevaluation.
+
         """
         @wraps(task_function)
         def wrapper(*args):
@@ -96,6 +103,15 @@ class Project:
                 self.set(task, return_value)
 
             return return_value
+
+        def check_invalid(*args):
+            task = Task(wrapper, args)
+            cached_value = self._get_from_cache(task)
+            current_value = task_function(*args)
+            if cached_value != current_value:
+                self.set(task, current_value)
+
+        wrapper.check_invalid = check_invalid
 
         return wrapper
 
