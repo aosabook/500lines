@@ -106,10 +106,8 @@ class Project:
 
         def check_invalid(*args):
             task = Task(wrapper, args)
-            cached_value = self._get_from_cache(task)
             current_value = task_function(*args)
-            if cached_value != current_value:
-                self.set(task, current_value)
+            self.set(task, current_value)
 
         wrapper.check_invalid = check_invalid
 
