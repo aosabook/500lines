@@ -17,8 +17,8 @@ one than usual for an introduction: besides the self-compiling, we'll
 include some details of debugging support. To make room for these
 emphases, we'll drop the whole topic of optimization---that is, of
 making the output code less stupid. The sort of realism I chose to set
-out towards, here, has been reasonably avoided in most examples meant
-to teach compiling, because it does not bring out any powerful new
+out towards, here, has been avoided for a good reason in most examples
+meant to teach compiling: it doesn't bring out any powerful new
 principles. But there's value too in studying a real system that's
 grown in decades of use; while Tailbiter can't be that, it can model
 it, the whole self-supporting system in miniature.
@@ -71,9 +71,9 @@ tree of them. Each object has fields proper to its type, plus a
 text it was parsed from. We'll sweat these details more when we get to
 them.
 
-You can find all the AST node types and their fields in
+You can find all the AST classes and their fields in
 `Parser/Python.asdl` in the CPython source distribution. As it's 100+
-lines long, with roughly one line per node type, if we'll handle a
+lines long, with roughly one line per class, if we'll handle a
 fair fraction of the types then we can forecast a budget of only a few
 lines of code per type.
 
@@ -144,17 +144,23 @@ interpreter will take the value it just loaded and store it in the
 variable listed at index 0 of `co_names`: in this case, `name`.)
 
 Those two bytecodes implemented the first line of source code (`name =
-'Monty'`). The second line's code follows at addresses 6 through 18,
-with some new wrinkles in instruction arguments: `CALL_FUNCTION` has
-two, each of one byte; and `POP_TOP` has no argument, making the whole
-instruction fit in a byte. (What `POP_TOP` does, we'll come back to.)
+'Monty'`). The second line's bytecode follows at addresses 6 through
+18, with some new wrinkles in instruction arguments: `CALL_FUNCTION`
+has two, each of one byte; and `POP_TOP` has no argument, making the
+whole instruction fit in a byte. (What `POP_TOP` does, we'll come back
+to; likewise the details of how `print`'s arguments get passed.)
 
 Finally, the last two instructions (at 19 and 22) return from running
 the module.
 
+Zooming back out, what did the compiler do? It converted a tree
+structure into a sequence of instructions to perform the operations in
+the right order. Each subtree of the parse tree turned into a
+subsequence of the instructions.
+
 The bytecode we just saw was specific to CPython 3.4; in other
 versions of Python the bytecode varies, maybe even for this tiny
-example. The code produced by Tailbiter will work on CPython 3.4 only,
+example. The code produced by Tailbiter is meant for CPython 3.4 only,
 and might crash other interpreters. (ASTs on the other hand are mostly
 compatible within a major version, like Python 3.*x*.)
 
@@ -223,14 +229,29 @@ that I try to replicate *before* reading. But the sketchy and
 occasionally outdated docs fell short, and the machine source
 `ceval.c` sometimes stumped me. I'd bog down in crashes hinging (it
 turned out) on mysteries like just what values go into `co_flags`
-under what conditions.
+under what conditions. [XXX this paragraph now repeats too much earlier setup]
+
+    # in Figure 1: AST types understood by Tailbiter version 0.
+    mod = Module(stmt* body)
+    stmt = Assign(expr* targets, expr value)
+         | Expr(expr value)
+    expr = Call(expr func, expr* args, keyword* keywords)
+         | Num(object n)
+         | Str(string s)
+         | Bytes(bytes s)
+         | NameConstant(singleton value)
+         | Name(identifier id, expr_context ctx)
+    expr_context = Load | Store
+    keyword = (identifier arg, expr value)
 
 To face these uncertainties and start learning, let's make a complete
 working system for a tiny core subset of the problem: just enough to
 run our first example. (This staging may shore up my explanations the
 same way it helped me learn: if it comes to clearing up doubtful
 points by poking at the actual running code, it's easiest when it's
-smallest.)
+smallest.) Figure 1 lists the AST classes we'll need to handle, and
+their fields. (In some of the cases, like `Call`, full Python includes
+more fields.)
 
     # in tailbiter.py:
     import ast, collections, dis, types, sys
@@ -288,8 +309,8 @@ testing. (We won't look into the tests.)
 Couldn't `compile_file` use a `with` statement? Actually, no,
 Tailbiter's code must keep to the constructs Tailbiter will implement.
 
-Throughout the compiler, `t` (for 'tree') names an AST node. These
-`t`'s appear everywhere.
+Throughout the compiler, `t` (for 'tree') names an AST object (also
+called a 'node'). These `t`'s appear everywhere.
 
 
 ### Visitors
@@ -488,7 +509,7 @@ shrinking list of values. Each load appends to it, and each call
 removes a function and its arguments from the end and replaces them
 with one value, the result of the call. This scheme gives a
 more-complex expression like `f(g(1), h())` a place for the
-intermediate results to live:
+partial results to live:
 
     # in examples:
                                                    (the stack afterwards)
@@ -524,8 +545,10 @@ keyword arguments (which in turn are built from the keyword name
 `t.arg` and the value expression), then chain them together with
 `CALL_FUNCTION` at the end.
 
-XXX wasn't I going to say a bit about how the stack makes code
-generation easy?
+XXX wasn't I going to say a bit more about how the stack makes code
+generation easy? Also, compact code. This is the kind of basic
+architectural choice this book probably wants analysis of, even though
+it's a human-lifetime-old design and forced on me by the CPython VM.
 
 As a technicality, the `CALL_FUNCTION` instruction's argument is a
 two-byte integer (like all instruction arguments, when present)
@@ -648,10 +671,10 @@ And at last `greet.py` works. Hurray!
 ## Fleshing it out
 
 We're in business, ready to fill out the skeleton with more visit
-methods for more AST node types. When we get to control-flow
-constructs like `if`-`else` we'll hit a new problem: they reduce to
-jumping around in the bytecode. The expression statement `yes if ok
-else no` becomes
+methods for more AST node types. (See Figure 2.) When we get to
+control-flow constructs like `if`-`else` we'll hit a new problem: they
+reduce to jumping around in the bytecode. The expression statement
+`yes if ok else no` becomes
 
     # in examples:
            0 LOAD_NAME                0 (ok)
@@ -666,6 +689,33 @@ where `POP_JUMP_IF_FALSE` does what it says: pops the value left by
 that the next instruction to execute. Otherwise execution continues to
 the usual next instruction, at 6. `JUMP_FORWARD` likewise jumps to
 index 15[^2], to skip `no` if we chose `yes`.
+
+    # in Figure 2: AST types added in Tailbiter version 1.
+    stmt = For(expr target, expr iter, stmt* body)
+         | While(expr test, stmt* body)
+         | If(expr test, stmt* body, stmt* orelse)
+         | Raise(expr exc)
+         | Import(alias* names)
+         | ImportFrom(identifier? module, alias* names, int? level)
+         | Pass
+    alias = (identifier name, identifier? asname)
+
+    expr = BoolOp(boolop op, expr* values)
+         | BinOp(expr left, operator op, expr right)
+         | UnaryOp(unaryop op, expr operand)
+         | IfExp(expr test, expr body, expr orelse)
+         | Dict(expr* keys, expr* values)
+         | Compare(expr left, cmpop* ops, expr* comparators)
+         | Attribute(expr value, identifier attr, expr_context ctx)
+         | Subscript(expr value, slice slice, expr_context ctx)
+         | List(expr* elts, expr_context ctx) 
+         | Tuple(expr* elts, expr_context ctx)
+    slice = Index(expr value) 
+    boolop = And | Or 
+    operator = Add | Sub | Mult | Div | Mod | Pow | LShift 
+             | RShift | BitOr | BitXor | BitAnd | FloorDiv
+    unaryop = Invert | Not | UAdd | USub
+    cmpop = Eq | NotEq | Lt | LtE | Gt | GtE | Is | IsNot | In | NotIn
 
 [^2]: `POP_TOP` is not part of the code for the `if`
 expression itself, it's code for the expression statement containing
@@ -1118,7 +1168,19 @@ changes.
 
 ## Functions and classes
 
-For these, we'll need more passes:
+For these (Figure 3), we'll need more passes:
+
+    # In Figure 3: ASTs added in Tailbiter version 2.
+    stmt = FunctionDef(identifier name, arguments args, stmt* body, expr* decorator_list)
+         | ClassDef(identifier name, expr* bases, stmt* body)
+         | Return(expr? value)
+         | Assert(expr test, expr? msg)
+    arguments = (arg* args)
+    arg = (identifier arg)
+
+    expr = Lambda(arguments args, expr body)
+         | ListComp(expr elt, comprehension* generators)
+    comprehension = (expr target, expr iter, expr* ifs)
 
 * First we 'desugar' the AST, replacing some of the nodes
   with equivalent code that uses only simpler node types. (The language
