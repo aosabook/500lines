@@ -9,35 +9,42 @@ left: you might spend a semester building one compiler, for a language
 much simpler than the one you wrote it in. Did you just call on a big
 genie to make a small one?
 
-To dispel the mystery, there are some great short compilers to
-read. In this chapter we'll write another toy one, this time aiming to
-keep it real in an unusual way: by being complete enough to compile
-itself and to include the practical details of debug support. Call it
-Tailbiter. Since something has to go, we'll skip the whole topic of
-optimization---that is, making the output code less stupid.
+To dispel the mystery, this chapter will work out a compiler that can
+compile itself. We'll write it in and for a small subset of Python,
+expressive enough for the job without demanding too much to
+implement. The result---call it Tailbiter---will be a toy, but less of
+one than usual for an introduction: besides the self-compiling, we'll
+include some details of debugging support. To make room for these
+emphases, we'll drop the whole topic of optimization---that is, of
+making the output code less stupid. The sort of realism I chose to set
+out towards, here, has been reasonably avoided in most examples meant
+to teach compiling, because it does not bring out any powerful new
+principles. But there's value too in studying a real system that's
+grown in decades of use; while Tailbiter can't be that, it can model
+it, the whole self-supporting system in miniature.
 
-Our source language and implementation language---the language we
-compile from, and the one we code the compiler in---will be a subset
-of Python 3.4. (Deciding just what subset took some exploring.) We'll
-target the CPython bytecode virtual machine, also version 3.4.
-
-[XXX It'd be nice to have a figure with the ASDL grammar of Python
-ASTs, with our subset's omissions italicized or something. But since
-Parser/Python.asdl is about 115 lines, that's probably longer than we
-can afford.]
+When I began, I knew about compilers but not the Python virtual
+machine which we're targeting. Right away I hit the first thing the
+textbooks don't show you: inadequate documentation. We'll deal with
+this by building in stages, from a seed just capable of turning the
+simplest source code into working bytecode, learning from each stage
+how to grow into the next. Let's start with a look at our input and
+our output: a trivial program, taken from source text to parsed syntax
+and then to runnable bytecode.
 
 
 ## Abstract syntax trees
 
-Let's start with an example: a module `greet.py` with this text:
+Say hello!
 
     # in greet.py:
     name = 'Monty'
     print('Hello,', name)
 
-Another chapter [XXX the previous one?] explains how to parse it into
-an abstract syntax tree (AST); in this chapter we use `ast.parse` from
-Python's library.
+Another chapter [XXX the previous one?] explains how to turn this text
+into data that makes the structure explicit: that is, how to parse
+it. The parsed form is called an abstract syntax tree (AST); in this
+chapter we call on `ast.parse` from Python's library.
 
     # in transcripts:
     >>> import ast, dis, astpp # (You can find astpp, by Alex Leone, on the web)
@@ -56,10 +63,13 @@ Python's library.
       ])
 
 So the module becomes an `ast.Module` whose `body` is a list of more
-`ast` objects---in this case two, an `ast.Assign` and an
-`ast.Expr`---and so on: a tree of objects. Each object has fields
-proper to its type, plus a `lineno` (line number) and `col_offset`
-telling where in the source text it was parsed from.
+of these `ast` objects---in this case two, an `ast.Assign`
+representing `name = 'Monty'` and an `ast.Expr` representing the call
+to `print`---each of these being built out of further `ast` objects: a
+tree of them. Each object has fields proper to its type, plus a
+`lineno` (line number) and `col_offset` telling where in the source
+text it was parsed from. We'll sweat these details more when we get to
+them.
 
 You can find all the AST node types and their fields in
 `Parser/Python.asdl` in the CPython source distribution. As it's 100+
@@ -142,10 +152,11 @@ instruction fit in a byte. (What `POP_TOP` does, we'll come back to.)
 Finally, the last two instructions (at 19 and 22) return from running
 the module.
 
-(What if you're not running Python 3.4? Even in 3.3, and even for this
-tiny example, you'd see a slightly different disassembly. Running
-Tailbiter there, expect the generated code to crash the interpreter,
-unless you're unlucky and just get a wrong answer.)
+The bytecode we just saw was specific to CPython 3.4; in other
+versions of Python the bytecode varies, maybe even for this tiny
+example. The code produced by Tailbiter will work on CPython 3.4 only,
+and might crash other interpreters. (ASTs on the other hand are mostly
+compatible within a major version, like Python 3.*x*.)
 
 
 ### Assembly: the interface

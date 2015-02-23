@@ -219,6 +219,7 @@ class Checker(ast.NodeVisitor):
     def check_identifier(self, name):
         assert isinstance(name, str)
         # Not a private, mangled name:
+        # XXX also make sure there's no '.' inside (the compiler will add some sometimes)
         assert len(name) <= 2 or not name.startswith('__') or name.endswith('__')
 
 def has_negzero(num):
