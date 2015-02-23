@@ -219,19 +219,16 @@ integers, more so than for the assembler.
 
 ## The spike: a working end-to-end model
 
-Our goal is another `compile`, producing an equivalent code
-object. We'll learn along the way the details I've left unexplained so
-far; this mirrors how I learned about Python bytecode through
-developing the program. I'd hoped to code it by the virtual machine
-documentation alone, eschewing the CPython compiler's source, for the
-sake of fuller learning: it's curious how much smarter the code is
-that I try to replicate *before* reading. But the sketchy and
-occasionally outdated docs fell short, and the machine source
-`ceval.c` sometimes stumped me. I'd bog down in crashes hinging (it
-turned out) on mysteries like just what values go into `co_flags`
-under what conditions. [XXX this paragraph now repeats too much earlier setup]
+We want to build a code object, but I haven't documented all the
+details that go into one. Neither did Python! We get to learn them by
+studying the system source code and trying things out. I would rather
+have read the source *after* writing my own, for the sake of fuller
+learning: it's curious how much smarter systems turn out when studied
+in that order. But I'd get stumped by the occasionally-outdated and
+more-often sketchy docs on the virtual machine and the code object, or
+by the code in `ceval.c`.
 
-    # in Figure 1: AST types understood by Tailbiter version 0.
+    # in figure 0: AST types understood by Tailbiter version 0.
     mod = Module(stmt* body)
     stmt = Assign(expr* targets, expr value)
          | Expr(expr value)
@@ -246,12 +243,18 @@ under what conditions. [XXX this paragraph now repeats too much earlier setup]
 
 To face these uncertainties and start learning, let's make a complete
 working system for a tiny core subset of the problem: just enough to
-run our first example. (This staging may shore up my explanations the
+run our `greet.py`. (This staging may shore up my explanations the
 same way it helped me learn: if it comes to clearing up doubtful
 points by poking at the actual running code, it's easiest when it's
-smallest.) Figure 1 lists the AST classes we'll need to handle, and
-their fields. (In some of the cases, like `Call`, full Python includes
-more fields.)
+smallest.) Figure 0 lists the AST classes we'll need to handle, and
+their fields. The second line, for instance, means that one type of
+statement is `ast.Assign`, which has a list of target expressions (the
+`*` means a list) and a value expression. This represents statements
+like `x = y = 2+3`, with `x` and `y` as targets. Python uses a tool to
+generate all of the AST classes from these declarations---it's another
+tiny compiler of a sort---though we're using them just as
+documentation. (In some of the cases, like `Call`, full Python
+includes more fields which I've left out.)
 
     # in tailbiter.py:
     import ast, collections, dis, types, sys
@@ -671,7 +674,7 @@ And at last `greet.py` works. Hurray!
 ## Fleshing it out
 
 We're in business, ready to fill out the skeleton with more visit
-methods for more AST node types. (See Figure 2.) When we get to
+methods for more AST node types. (See figure 1.) When we get to
 control-flow constructs like `if`-`else` we'll hit a new problem: they
 reduce to jumping around in the bytecode. The expression statement
 `yes if ok else no` becomes
@@ -690,7 +693,7 @@ that the next instruction to execute. Otherwise execution continues to
 the usual next instruction, at 6. `JUMP_FORWARD` likewise jumps to
 index 15[^2], to skip `no` if we chose `yes`.
 
-    # in Figure 2: AST types added in Tailbiter version 1.
+    # in figure 1: AST types added in Tailbiter version 1.
     stmt = For(expr target, expr iter, stmt* body)
          | While(expr test, stmt* body)
          | If(expr test, stmt* body, stmt* orelse)
@@ -1168,9 +1171,9 @@ changes.
 
 ## Functions and classes
 
-For these (Figure 3), we'll need more passes:
+For these (figure 2), we'll need more passes:
 
-    # In Figure 3: ASTs added in Tailbiter version 2.
+    # In figure 2: ASTs added in Tailbiter version 2.
     stmt = FunctionDef(identifier name, arguments args, stmt* body, expr* decorator_list)
          | ClassDef(identifier name, expr* bases, stmt* body)
          | Return(expr? value)
