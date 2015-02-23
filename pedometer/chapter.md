@@ -1,5 +1,5 @@
 <!-- to convert to HTML to view math notation, run `pandoc --to html --mathjax="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" -s chapter.md > chapter.html` -->
-<!-- American spelling: traveling etc. -->
+<!-- British spelling: travelling, labour, etc. -->
 
 # A Perfect World
 
@@ -227,7 +227,7 @@ As software developers in a training or academic setting, we may have been prese
 
 # Diving Into Code
 
-Our goal for this chapter is to create a web application in Ruby that accepts accelerometer data, parses, processes, and analyzes it, and returns the number of steps taken, the distance traveled, and the elapsed time.
+Our goal for this chapter is to create a web application in Ruby that accepts accelerometer data, parses, processes, and analyzes it, and returns the number of steps taken, the distance travelled, and the elapsed time.
 
 # Preliminary Work
 
@@ -327,7 +327,7 @@ Our standard format allows us to store a time series, as each element represents
 
 # The Pipeline
 
-Our system takes as input data from an accelerometer along with information on the user taking the walk (gender, stride, etc.) and information on the trial walk itself (sampling rate, actual steps taken, etc.). Given the input, our signal processing solution is applied, and our system returns as output the number of steps calculated, the delta between the actual steps and calculated steps, the distance traveled, and the elapsed time. The entire process from input to output can be viewed as a pipeline.
+Our system takes as input data from an accelerometer along with information on the user taking the walk (gender, stride, etc.) and information on the trial walk itself (sampling rate, actual steps taken, etc.). Given the input, our signal processing solution is applied, and our system returns as output the number of steps calculated, the delta between the actual steps and calculated steps, the distance travelled, and the elapsed time. The entire process from input to output can be viewed as a pipeline.
 
 ![](chapter-figures/pipeline.png)
 
@@ -450,11 +450,11 @@ Again, we see the `run` and `initialize` methods pattern. `run` calls our two pr
 
 # Pedometer Functionality
 
-Provided information about the person using the pedometer is available, we can measure more than just steps. Our pedometer will measure **distance traveled** and **elapsed time**, as well as **steps taken**.
+Provided information about the person using the pedometer is available, we can measure more than just steps. Our pedometer will measure **distance travelled** and **elapsed time**, as well as **steps taken**.
 
 ## Distance Traveled
 
-A mobile pedometer is generally used by one person. Distance traveled during a walk is calculated by multiplying the steps taken by the person's stride length. If the stride length is unknown, we can use optional user information like gender and height to approximate it. Let's create a `User` class to encapsulate this related information.
+A mobile pedometer is generally used by one person. Distance travelled during a walk is calculated by multiplying the steps taken by the person's stride length. If the stride length is unknown, we can use optional user information like gender and height to approximate it. Let's create a `User` class to encapsulate this related information.
 
 ~~~~~~~
 class User
@@ -509,7 +509,7 @@ Even when all optional parameters are provided, the input stride takes precedenc
 
 ## Time Spent Traveling
 
-The time spent traveling is measured by dividing the number of data samples in our `Processor`'s `@parsed_data` by the sampling rate of the device, if we have it. Since the rate has more to do with the trial walk itself than the user, and the `User` class in fact does not have to be aware of the sampling rate, this is a good time to create a very small `Trial` class.
+The time spent travelling is measured by dividing the number of data samples in our `Processor`'s `@parsed_data` by the sampling rate of the device, if we have it. Since the rate has more to do with the trial walk itself than the user, and the `User` class in fact does not have to be aware of the sampling rate, this is a good time to create a very small `Trial` class.
 
 ~~~~~~~
 class Trial
@@ -535,7 +535,7 @@ All of the attribute readers in `Trial` are set in the initializer based on para
 * `rate` is the sampling rate of the accelerometer during the trial.
 * `steps` is used to set the actual steps taken, so that we can record the difference between the actual steps the user took and the ones our program counted.
 
-Much like our `User` class, some information is optional. We're given the opportunity to input details of the trial, if we have it. If we don't have those details, our program bypasses calculating the additional results, such as time spent traveling. Another similarity to our `User` class is the prevention of invalid values.
+Much like our `User` class, some information is optional. We're given the opportunity to input details of the trial, if we have it. If we don't have those details, our program bypasses calculating the additional results, such as time spent travelling. Another similarity to our `User` class is the prevention of invalid values.
 
 ## Steps Taken
 
@@ -612,11 +612,13 @@ Finally! The step counting portion of our step counting app. The first thing we 
 * `@steps` is used to count the number of steps.
 * `count_steps` is used for hysteresis to determine if we're allowed to count steps at a point in time.
 
-We then iterate through `@processor.filtered_data`. If the current value is greater than or equal to `THRESHOLD`, and the previous value was less than `THRESHOLD`, then we've crossed the threshold in the positive direction, which could indicate a step. The `unless` statement skips ahead to the next data point if `count_steps` is `false`, indicating that we've already counted a step for that peak. If we haven't, we increment `@steps` by 1, and set `count_steps` to `false` to prevent any more steps from being counted for that peak. The next `if` statement sets `count_steps` to true once our time series has crossed the x-axis in the negative direction, and we're on to the next peak.
+We then iterate through `@processor.filtered_data`. If the current value is greater than or equal to `THRESHOLD`, and the previous value was less than `THRESHOLD`, then we've crossed the threshold in the positive direction, which could indicate a step. The `unless` statement skips ahead to the next data point if `count_steps` is `false`, indicating that we've already counted a step for that peak. If we haven't, we increment `@steps` by 1, and set `count_steps` to `false` to prevent any more steps from being counted for that peak. The next `if` statement sets `count_steps` to true once our time series has crossed the $x$-axis in the negative direction, and we're on to the next peak.
 
-There we have it, the step counting portion of our program! Our `Processor` class did a lot of work to clean up the time series and remove frequencies that would result in counting false steps, so our actual step counting implementation is not overly complex.
+There we have it, the step counting portion of our program! Our `Processor` class did a lot of work to clean up the time series and remove frequencies that would result in counting false steps, so our actual step counting implementation is not complex.
 
-It's worth noting that we store the entire time series for the walk in memory. Our trials are all short walks, so that's not currently a problem, but we'd like to eventually analyze long walks with large amounts of data. We'd ideally want to stream data in, only storing very small portions of the time series in memory. Keeping this future direction in mind, we've put in the work to ensure that we only need the current data point we're analyzing and the data point before it. Additionally, we've implemented hysteresis using a boolean value, so we don't need to look backward in the time series to ensure we've crossed the x-axis at 0, avoiding having to store more than two data points in memory at a time. There's a fine balance between accounting for likely future iterations of the product, and over engineering a solution for every conceivable product direction under the sun. In this case, it's reasonable to assume that we'll have to handle longer walks in the near future, and the costs of accounting for that in step counting are fairly low, so we've decided to include it in our implementation.
+It's worth noting that we store the entire time series for the walk in memory. Our trials are all short walks, so that's not currently a problem, but eventually we'd like to analyze long walks with large amounts of data. Ideally, we'd want to stream data in, only storing very small portions of the time series in memory. Keeping this in mind, we've put in the work to ensure that we only need the current data point and the data point before it. Additionally, we've implemented hysteresis using a Boolean value, so we don't need to look backward in the time series to ensure we've crossed the $x$-axis at 0. 
+
+There's a fine balance between accounting for likely future iterations of the product, and over-engineering a solution for every conceivable product direction under the sun. In this case, it's reasonable to assume that we'll have to handle longer walks in the near future, and the costs of accounting for that in step counting are fairly low.
 
 ### measure_distance
 
@@ -624,11 +626,11 @@ The distance is measured by multiplying our user's stride by the number of steps
 
 ### measure_time
 
-As long as we have a sampling rate, time is calculated by dividing the total number of samples in `filtered_data` by the sampling rate. It follows, then, that time is calculated in numbers of seconds.
+As long as we have a sampling rate, time is calculated by dividing the total number of samples in `filtered_data` by the sampling rate. It follows, then, that time is calculated in seconds.
 
 # Tying It All Together With the Pipeline
 
-Our Parser, Processor, and Analyzer classes, while useful individually, are definitey better together. Our program will often use them to run through the pipeline we introduced earlier. Since the pipeline will need to be run frequently, we'll create a `Pipeline` class to run it for us.
+Our `Parser`, `Processor`, and `Analyzer` classes, while useful individually, are definitely better together. Our program will often use them to run through the pipeline we introduced earlier. Since the pipeline will need to be run frequently, we'll create a `Pipeline` class to run it for us.
 
 ~~~~~~~
 require_relative 'parser'
@@ -660,8 +662,7 @@ class Pipeline
 end
 ~~~~~~~
 
-We use our now familiar `run` pattern and supply `Pipeline` with accelerometer data, and instances of `User` and `Trial`. The `feed` method implements the pipeline, which entails running `Parser` with the accelerometer data, then using the parser's parsed data to run `Processor`, and finally using the processor's filtered data to run `Analyzer`. The `Pipeline` keeps `@parser`, `@processor`, and `@analyzer` instance variables, so that the program has access to information from those objects for display purposes through the app.
-TODO: Add note on stateful versus stateless?
+We use our now-familiar `run` pattern and supply `Pipeline` with accelerometer data, and instances of `User` and `Trial`. The `feed` method implements the pipeline, which entails running `Parser` with the accelerometer data, then using the parser's parsed data to run `Processor`, and finally using the processor's filtered data to run `Analyzer`. The `Pipeline` keeps `@parser`, `@processor`, and `@analyzer` instance variables, so that the program has access to information from those objects for display purposes through the app.
 
 # Adding Some Friendly
 
@@ -669,17 +670,17 @@ We're through the most labour intensive part of our program. Next, we'll build a
 
 ## A User Scenario
 
-When a user first enters the app by navigating to /uploads, they see a table of existing data, and a form to submit new data by uploading an accelerometer output file and trial and user information.
+When a user first enters the app by navigating to `/uploads`, they see a table of existing data and a form to submit new data by uploading an accelerometer output file and trial and user information.
 
 ![](chapter-figures/graffles/app1.png)
 
-Submitting the form stores the data to the file system, parses, processes, and analyzes it, and redirect back to /uploads with a new entry in the table.
+Submitting the form stores the data to the file system, parses, processes, and analyzes it, and redirects back to `/uploads` with a new entry in the table.
 
 Clicking the **Detail** link for an entry presents the user with the following view:
 
 ![](chapter-figures/graffles/app3.png)
 
-The information presented includes values input by the user through the upload form, values calculated by our program, and graphs of the time series following the dot product operation, and again following filtering. The user can navigate back to uploads using the *Back to Uploads* link.
+The information presented includes values input by the user through the upload form, values calculated by our program, and graphs of the time series following the dot product operation, and again following filtering. The user can navigate back to `uploads` using the *Back to Uploads* link.
 
 Let's look at what the outlined functionality above implies for us, technically. We'll need two major components that we don't yet have:
 
@@ -690,10 +691,12 @@ Let's examine each of these two requirements.
 
 ## 1. Storing and Retrieving Data
 
-Our app needs to store input data to, and retrieve data from, the file system. We'll create an `Upload` class to do this. We'll store the text file containing the data samples directly to the file system, with the file path accessed through the `@file_path` instance variable. The information on the user and trial will be stored in the file name, and we'll have access to those objects through `@user` and `@trial` instance variables. Our `Upload` class has three class-level methods for file system access and retrieval, all of which return one of more instances of `Upload`:
+Our app needs to store input data to, and retrieve data from, the file system. We'll create an `Upload` class to do this. We'll store the text file containing the data samples directly in the file system, with the file path accessed through the `@file_path` instance variable. The information on the user and trial will be stored in the filename, and we'll have access to those objects through `@user` and `@trial` instance variables. 
 
-* `create` takes a file along with user and trial information. It stores the file to the file system, under a file name containing the user and trial information.
-* `find` takes a file path and returns an instance of `Upload`.
+Our `Upload` class has three class-level methods for file system access and retrieval, all of which return one or more instances of `Upload`:
+
+* `create` takes a file along with user and trial information. It stores the file to the file system, under a filename containing the user and trial information.
+* `find` takes a pathname and returns an instance of `Upload`.
 * `all` returns an array of `Upload` instances, one for each accelerometer data file in the file system.
 
 ## Separation of Concerns in Upload
