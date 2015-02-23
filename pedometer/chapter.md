@@ -51,7 +51,7 @@ Ah, the joys of a perfect world, which we only ever experience in texts like thi
 
 ## Even Perfect Worlds Have Fundamental Forces of Nature
 
-The force of gravity causes an acceleration in the direction of gravity, which we refer to as gravitational acceleration. This acceleration is unique because it is always present, and is always constant at 9.8 $m/s^2$.
+The force of gravity causes an acceleration in the direction of gravity, which we refer to as gravitational acceleration. This acceleration is unique because it is always present, and is constant at 9.8 $m/s^2$.
 
 Suppose a smartphone is lying on a table screen-side up. In this orientation, our coordinate system is such that the negative $z$ direction is the one that gravity is acting on. Gravity will pull our phone in the negative $z$ direction, so our accelerometer, *even when perfectly still*, will record an acceleration of 9.8 $m/s^2$ in the negative $z$ direction. Accelerometer data from our phone in this orientation looks like the graph below.
 
