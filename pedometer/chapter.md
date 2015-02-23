@@ -507,7 +507,7 @@ Even when all optional parameters are provided, the input stride takes precedenc
 
  Note that the further down the chain we get, the less accurate our stride length becomes. In any case, our `User` class determines the stride length as best it can.
 
-## Time Spent Traveling
+## Time Spent Travelling
 
 The time spent travelling is measured by dividing the number of data samples in our `Processor`'s `@parsed_data` by the sampling rate of the device, if we have it. Since the rate has more to do with the trial walk itself than the user, and the `User` class in fact does not have to be aware of the sampling rate, this is a good time to create a very small `Trial` class.
 
