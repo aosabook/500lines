@@ -699,7 +699,7 @@ Our `Upload` class has three class-level methods for file system access and retr
 * `find` takes a pathname and returns an instance of `Upload`.
 * `all` returns an array of `Upload` instances, one for each accelerometer data file in the file system.
 
-## Separation of Concerns in Upload
+### Separation of Concerns in Upload
 
 Once again, we've been wise to separate concerns in our program. All code related to storage and retrieval is contained in the `Upload` class. As our application grows, we'll likely want to use a database rather than saving everything to the file system. When the time comes for that, all we have to do it change the `Upload` class. This makes our refactoring simple and clean.
 
@@ -748,7 +748,7 @@ post '/create' do
 end
 ~~~~~~~
 
-`pedometer.rb` allows our app to respond to HTTP requests for each of our routes. Each route either retrieves data from, or stores data to, the file system through `Upload`, and then renders a view or redirects. Our views use erb, an emplementation of Embedded Ruby, which allows us to embed Ruby into HTML. The instance variables instantiated in our routes will be used directly in our views. The views simply display the data and aren't the focus of our app, so we we'll leave the code for them out of this chapter.
+`pedometer.rb` allows our app to respond to HTTP requests for each of our routes. Each route either retrieves data from, or stores data to, the file system through `Upload`, and then renders a view or redirects. Our views use *erb*, an implementation of Embedded Ruby which allows us to embed Ruby into HTML. The instance variables instantiated in our routes will be used directly in our views. The views simply display the data and aren't the focus of our app, so we we'll leave the code for them out of this chapter.
 
 Let's look at each of the routes in `pedometer.rb` individually.
 
@@ -768,6 +768,6 @@ Our final route, an HTTP POST to `create`, is called when a user submits the for
 
 Voilà! We've built a fully functional app, with true applicability.
 
-The real world presents us with intricate, complex challenges. Software is uniquely capable of addressing these challenges at scale with minimal resources. As software engineers, we have the power to create positive change in our homes, our communities, and our world. Our training, academic or otherwise, likely equipped us with the problem-solving skills to write code that solves isolated, well-defined problems. As we grow and hone our craft, it's up to us to extend that training to address practical problems, tangled in with all of the messy realities of our world. I hope that this chapter gave you a taste of breaking down a real problem into small, addressable parts, and writing beautiful, clean, extensible code to build a solution.
+The real world presents us with intricate, complex challenges. Software is uniquely capable of addressing these challenges at scale with minimal resources. As software engineers, we have the power to create positive change in our homes, our communities, and our world. Our training, academic or otherwise, likely equipped us with the problem-solving skills to write code that solves isolated, well-defined problems. As we grow and hone our craft, it's up to us to extend that training to address practical problems, tangled up with all of the messy realities of our world. I hope that this chapter gave you a taste of breaking down a real problem into small, addressable parts, and writing beautiful, clean, extensible code to build a solution.
 
 Here's to solving interesting problems in an endlessly exciting world.
