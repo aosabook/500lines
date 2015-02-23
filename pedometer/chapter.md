@@ -25,7 +25,7 @@ The diagram below shows an example acceleration signal from an accelerometer wit
 
 ![](chapter-figures/acceleration-total.png)
 
-The **sampling rate** of the accelerometer, which can often be calibrated, determines the number of measurements per second. For instance, an accelerometer with a sampling rate of 100 returns 100 data points for each $x$, $y$, and $z$ time series every second.
+The *sampling rate* of the accelerometer, which can often be calibrated, determines the number of measurements per second. For instance, an accelerometer with a sampling rate of 100 returns 100 data points for each $x$, $y$, and $z$ time series every second.
 
 ## Let's Talk About a Walk
 
@@ -203,7 +203,7 @@ As a person is using an app or making a call, the accelerometer registers small 
 
 Our pedometer should accommodate many people with different walks, so we set minimum and maximum step frequencies based on a large sample size of people and walks. This means that we may sometimes filter slightly too much or too little. While we'll often have fairly smooth peaks, we can, once in a while, get a "bumpier" peak. The diagram above zooms in on one such peak.
 
-When bumpiness occurs at our threshold, we can mistakenly count too many steps for one peak. We can use a method called **hysteresis** to address this. Hysteresis refers to the dependence of an output on past inputs. We can count threshold crossings in the positive direction, as well as 0 crossings in the negative direction. Then, we only count steps where a threshold crossing occurs after a 0 crossing, ensuring we count each step only once.
+When bumpiness occurs at our threshold, we can mistakenly count too many steps for one peak. We can use a method called *hysteresis* to address this. Hysteresis refers to the dependence of an output on past inputs. We can count threshold crossings in the positive direction, as well as 0 crossings in the negative direction. Then, we only count steps where a threshold crossing occurs after a 0 crossing, ensuring we count each step only once.
 
 ### Peaks That Are Juuuust Right
 
@@ -390,8 +390,8 @@ Let's take a look at our hard-working `parse` method. The first step in the proc
 
 Note the differences in `@parsed_data` between the two formats at this stage:
 
-* `@parsed_data` in the *combined format* contains arrays with exactly **one** array: $[[[x1, y1, z1]], ... [[xn, yn, zn]]$
-* `@parsed_data` in the *separated format* contains arrays with exactly **two** arrays: $[[[x_{u}1,y_{u}1,z_{u}1], [x_{g}1,y_{g}1,z_{g}1]], ... [[x_{u}n,y_{u}n,z_{u}n], [x_{g}n,y_{g}n,z_{g}n]]]$
+* `@parsed_data` in the *combined format* contains arrays with exactly *one* array: $[[[x1, y1, z1]], ... [[xn, yn, zn]]$
+* `@parsed_data` in the *separated format* contains arrays with exactly *two* arrays: $[[[x_{u}1,y_{u}1,z_{u}1], [x_{g}1,y_{g}1,z_{g}1]], ... [[x_{u}n,y_{u}n,z_{u}n], [x_{g}n,y_{g}n,z_{g}n]]]$
 
 The separated format is already in our desired standard format after this operation. Amazing. However, if the data is combined (or, equivalently, has exactly one array where the separated format would have two), then we proceed with two loops. The first loop splits total acceleration into gravitational and user, using `Filter` with a `:low_0_hz` type, and the second loop reorganizes the data into the standard format.
 
