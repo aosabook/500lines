@@ -1,12 +1,12 @@
 <!-- to convert to HTML to view math notation, run `pandoc --to html --mathjax="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" -s chapter.md > chapter.html` -->
-<!-- British English (fulfil, ) -->
+<!-- American English (color, ) -->
 ## Introduction
 Humans are innately creative. We continuously design and build novel, useful, and interesting things. In modern times, we write software to assist in the design and creation process. 
 Computer-aided design (CAD) software allows creators to design buildings, bridges, video game art, 
 film monsters, 3D printable objects, and many other things on a computer before building a physical version of the design. 
 
 At their core, CAD tools are a method of abstracting the 3-dimensional design into something that can be viewed and edited on a 2-dimensional screen. 
-To fulfil that definition, CAD tools must offer three basic pieces of functionality.
+To fulfill that definition, CAD tools must offer three basic pieces of functionality.
 Firstly, they must have a data structure to represent the object that's being designed: this is the computer's understanding of the 3-dimensional world that the user is building.
 Secondly, the CAD tool must offer some way to display the design on the user's screen. The user is designing a physical object with 3 dimensions, but the computer screen has only 2 dimensions. 
 The CAD tool must model how we perceive objects, and draw them to the screen in a way that the user can understand all 3 dimensions of the object.
@@ -40,7 +40,7 @@ OpenGL has two major variants: Legacy OpenGL and Modern OpenGL.
 Rendering in OpenGL is based on polygons defined by vertices and normals. For example, to render one side of a cube, we specify the 4 vertices and the normal of the side.
 
 Legacy OpenGL provides a "fixed function pipeline". By setting global variables, the programmer can enable and disable automated implementations of features such
-as lighting, colouring, face culling, etc. OpenGL then automatically renders the scene with the enabled functionality. This functionality is deprecated.
+as lighting, coloring, face culling, etc. OpenGL then automatically renders the scene with the enabled functionality. This functionality is deprecated.
 
 Modern OpenGL, on the other hand, features a programmable rendering pipeline where the programmer writes small programs called "shaders" that
 run on dedicated graphics hardware (GPUs). The programmable pipeline of Modern OpenGL has replaced Legacy OpenGL.
@@ -59,7 +59,7 @@ In the initialization process for `Viewer`, we create the GUI window and initial
 
 The function `init_interface` creates the window that the modeller will be rendered into and specifies the function to be called when the design needs to rendered. 
 The `init_opengl` function sets up the OpenGL state needed for the project. It sets the matrices, enables backface culling,
-registers a light to illuminate the scene, and tells OpenGL that we would like objects to be coloured.
+registers a light to illuminate the scene, and tells OpenGL that we would like objects to be colored.
 The `init_scene` function creates the `Scene` objects and places some initial nodes to get the user started. We will see more about the `Scene` data structure shortly.
 Finally, `init_interaction` registers callbacks for user interaction, as we'll discuss later.
 
@@ -155,20 +155,21 @@ In computer graphics, it is convenient to use multiple different coordinate spac
 To convert a vector $v$ from one coordinate space to another, we multiply by a transformation matrix $M: v' = M v$.
 Some common transformation matrices are translations (moves), scaling, and rotations.
 
-XXX STOPPED HERE
 ### Model, World, View, and Projection Coordinate Spaces
 To draw an item to the screen, we need to convert between a few different coordinate spaces.
 
 ![Transformation Pipeline](newtranspipe.png?raw=true)
 Thank you very much to Dr. Anton Gerdelan for the image. His OpenGL tutorial book is available [here](http://antongerdelan.net/opengl/).
+<!--FIXME: Note to self: if this stuff is explained later in the chapter, move this diagram. If it isn't, it should be. Require definitions for: mesh, all the different spaces; frustum, local and world origin -->
 
-We let specialized OpenGL functions handle the right hand side of the diagram: conversion from eye space to homogeneous clip space is handled by `gluPerspective`, conversion to Normalized Device Space and Viewport space is handled by `glViewport`. These matrices do not change during program execution.
-Points in the view space are converted into points in 2d using the projection matrix.
+We let specialized OpenGL functions handle the right hand side of the diagram: conversion from eye space to homogeneous clip space is handled by `gluPerspective`, and conversion to normalized device space and viewport space is handled by `glViewport`. These matrices do not change during program execution.
+Points in the view space are converted into points in 2D using the projection matrix.
+
 We need to manage the left hand side of the diagram ourselves. We define a matrix which converts points from the model spaces into the world space, called the Model matrix. We alse define the View matrix, which converts from the world space into the eye space.
 In this project, we combine these two matrices to obtain the ModelView matrix.
 
-### Rendering with the Viewer
-The `render` function begins by setting up any of the OpenGL state that needs to be done at render time. It initializes the projection matrix via `init_view` and uses data from the interaction member to initialize the ModelView matrix with the transformation matrix that converts from the scene space to world space. We will see more about the Interaction class below. It clears the screen with `glClear` and it tells the scene to render itself, and then renders the unit grid. 
+### Rendering With the Viewer
+The `render` function begins by setting up the parts of the OpenGL state that need to be set up at render time. It initializes the projection matrix via `init_view` and uses data from the `interaction` member to initialize the ModelView matrix with the transformation matrix that converts from the scene space to world space. (We will see more about the `Interaction` class below.) It clears the screen with `glClear` and it tells the scene to render itself, and then renders the unit grid. 
 
 We disable OpenGL's lighting before rendering the grid. With lighting disabled, OpenGL renders items with solid colors, rather than simulating a light source. This way, the grid has visual differentiation from the scene.
 Finally, `glFlush` signals to the graphics driver that we are ready for the buffer to be flushed and displayed to the screen.
@@ -228,7 +229,7 @@ Notice above that we call `self.scene.render()` from the Viewer's render loop. W
 The `Scene` class is the interface to the data structure we use to represent the design. It abstracts away details of the data structure and provides the 
 necessary interface functions required to interact with the design, including functions to render, add items, and manipulate items. There is one `Scene` object, owned by the Viewer.
 The `Scene` instance keeps a list of all of the items in the scene, called `node_list`. It also keeps track of the selected item.
-The `render` function on the scene simply calls render on each of the members of `node_list`.
+The `render` function on the scene simply calls `render` on each of the members of `node_list`.
 `````````````````````````````````````````` {.python}
 class Scene(object):
 
@@ -254,16 +255,18 @@ class Scene(object):
 
 ### Nodes
 In the Scene's `render` function, we call `render` on each of the items in the Scene's `node_list`. But what are the elements
-of that list? We call them Nodes. 
-Conceptually, a `Node` is anything that can be placed in the scene.
-In object oriented software, we write `Node` as an abstract base class. Any classes that represent objects to be placed in the `Scene` will inherit from `Node`. 
+of that list? We call them *nodes*. 
+Conceptually, a node is anything that can be placed in the scene.
+In object-oriented software, we write `Node` as an abstract base class. Any classes that represent objects to be placed in the `Scene` will inherit from `Node`. 
 This base class allows us to reason about the scene abstractly. 
-The rest of the code base doesn't need to know about the details of the objects it displays, it only needs to know that they are `Node`s. 
-Each type of `Node` defines its own behaviour for rendering itself and for any other necessary interactions.
-The `Node` keeps track of important data about itself: translation matrix, scale matrix, color, etc. Multiplying the Node's translation matrix by
-its scaling matrix gives the transformation matrix from the Node's model coordinate space to the world coordinate space.
-The Node also stores an Axis Aligned Bounding Box (AABB). We'll see more about AABBs when we discuss selection below.
-The simplest concrete implementation of Node is a Primitive. A Primitive is a single solid shape that can be added the scene. In this project, the primitives are Cube and Sphere. 
+The rest of the code base doesn't need to know about the details of the objects it displays; it only needs to know that they are of the class `Node`. 
+
+Each type of `Node` defines its own behavior for rendering itself and for any other necessary interactions.
+The `Node` keeps track of important data about itself: translation matrix, scale matrix, color, etc. Multiplying the node's translation matrix by
+its scaling matrix gives the transformation matrix from the node's model coordinate space to the world coordinate space.
+The node also stores an Axis Aligned Bounding Box (AABB). We'll see more about AABBs when we discuss selection below.
+
+The simplest concrete implementation of `Node` is a *primitive*. A primitive is a single solid shape that can be added the scene. In this project, the primitives are `Cube` and `Sphere`. 
 `````````````````````````````````````````` {.python}
 class Node(object):
     """ Base class for scene elements """
@@ -315,6 +318,8 @@ class Cube(Primitive):
         super(Cube, self).__init__()
         self.call_list = G_OBJ_CUBE
 ``````````````````````````````````````````
+XXX STOPPED HERE
+
 Rendering Nodes is based on the transformation matrices that each Node stores. The transformation matrix for a Node is the combination of its scaling matrix and its translation matrix. Regardless of the type of Node, the first step to rendering is to set the 
 OpenGL ModelView matrix to the transformation matrix converting from the model coordinate space to the view coordinate space.
 Once the OpenGL matrices are up to date, we call `render_self` function to tell the Node to make the necessary OpenGL calls to draw itself. Finally, 
@@ -538,7 +543,7 @@ place   | shape:string, x:number, y:number | Places a shape of the specified typ
 rotate_color   | forward:boolean | Rotates the color of the currently selected node through the list of colors, forwards or backwards.
 scale   | up:boolean | Scales the currently selected node up or down, according to parameter.
 
-This simple callback system provides all of the functionality we need for this project. In a production 3d modeller, however, user interface objects are often created and destroyed dynamically.
+This simple callback system provides all of the functionality we need for this project. In a production 3D modeller, however, user interface objects are often created and destroyed dynamically.
 In that case, we would need a more sophisticated event listening system, where objects can both register and un-register callbacks for events.
 
 ### Interfacing with the Scene
