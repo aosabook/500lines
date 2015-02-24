@@ -1,19 +1,21 @@
-## Intro
+<!-- to convert to HTML to view math notation, run `pandoc --to html --mathjax="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" -s chapter.md > chapter.html` -->
+<!-- British English (fulfil, ) -->
+## Introduction
 Humans are innately creative. We continuously design and build novel, useful, and interesting things. In modern times, we write software to assist in the design and creation process. 
-Computer Aided Design (CAD) software allows creators to design buildings, bridges, video game art, 
+Computer-aided design (CAD) software allows creators to design buildings, bridges, video game art, 
 film monsters, 3D printable objects, and many other things on a computer before building a physical version of the design. 
 
 At their core, CAD tools are a method of abstracting the 3-dimensional design into something that can be viewed and edited on a 2-dimensional screen. 
 To fulfil that definition, CAD tools must offer three basic pieces of functionality.
-Firstly, they must have a data structure to represent the object that's being designed. This is the computer's understanding of the 3-dimensional world that the user is building.
-Secondly, the CAD tool must offer some way to display the design onto the user's screen. The user is designing a physical object with 3 dimensions, but the computer screen has only 2 dimensions. 
+Firstly, they must have a data structure to represent the object that's being designed: this is the computer's understanding of the 3-dimensional world that the user is building.
+Secondly, the CAD tool must offer some way to display the design on the user's screen. The user is designing a physical object with 3 dimensions, but the computer screen has only 2 dimensions. 
 The CAD tool must model how we perceive objects, and draw them to the screen in a way that the user can understand all 3 dimensions of the object.
 Thirdly, the CAD tool must offer a way to interact with the object being designed. The user must be able to add to and modify the design in order to produce the desired result.
+Additionally, all tools would need a way to save and load designs from disk so that users can collaborate, share, and save their work.
 
-A domain specific CAD tool offers many additional features for the specific requirements of the domain. For example, an architecture CAD tool would offer physics simulations to test weather and climate stresses on the building, 
+A domain-specific CAD tool offers many additional features for the specific requirements of the domain. For example, an architecture CAD tool would offer physics simulations to test weather and climate stresses on the building, 
 a 3D printing tool would have features that check whether the object is actually valid to print, an electrical CAD tool would simulate the physics of electricity running through copper, and a film special effects suite would
 include features to accurately simulate pyrokinetics. 
-Additionally, all tools would need a way to save and load designs from disk so that users can collaborate, share, and save their work.
 
 However, all CAD tools must include at least the three features discussed above: a data structure to represent the design, the ability to display it to the screen, and a method to interact with the design.
 
@@ -26,17 +28,19 @@ Let us examine the rendering process, and explore the data structure for the des
 
 ### Managing Interfaces and the Main Loop
 Before we begin rendering, there are a few things we need to set up. First, we need to create a window to display our design in. 
-We use a library called 'GLUT' for this. Secondly, we want to communicate with graphics drivers to render to the screen.
-We would rather not communicate directly with graphics drivers, so we use a cross-platform abstraction layer called OpenGL.
+Secondly, we want to communicate with graphics drivers to render to the screen.
+We would rather not communicate directly with graphics drivers, so we use a cross-platform abstraction layer called OpenGL, and a 
+library called GLUT (the OpenGL Utility Toolkit) to manage our window.
 
-#### OpenGL: Side Note
+#### A Note About OpenGL
+<!-- @mikedebo: Are we going to have actual sidebars in the book? If so we can make this into a sidebar (together with the paragraph on GLUT). Keep in mind sidebars can be hard (but not impossible) to do in ebooks. I wouldn't do sidebars unless there are at least three chapters which use them. -->
 OpenGL is a graphical application programming interface for cross-platform development. It's the standard API for developing graphics applications across platforms.
-OpenGL has two major variants: "Legacy OpenGL" and "Modern OpenGL".
+OpenGL has two major variants: Legacy OpenGL and Modern OpenGL.
 
 Rendering in OpenGL is based on polygons defined by vertices and normals. For example, to render one side of a cube, we specify the 4 vertices and the normal of the side.
 
 Legacy OpenGL provides a "fixed function pipeline". By setting global variables, the programmer can enable and disable automated implementations of features such
-as lighting, coloring, face culling, etc. OpenGL then automatically renders the scene with the enabled functionality. This functionality is deprecated.
+as lighting, colouring, face culling, etc. OpenGL then automatically renders the scene with the enabled functionality. This functionality is deprecated.
 
 Modern OpenGL, on the other hand, features a programmable rendering pipeline where the programmer writes small programs called "shaders" that
 run on dedicated graphics hardware (GPUs). The programmable pipeline of Modern OpenGL has replaced Legacy OpenGL.
@@ -44,21 +48,23 @@ run on dedicated graphics hardware (GPUs). The programmable pipeline of Modern O
 In this project, despite the fact that it is deprecated, we use Legacy OpenGL. The fixed functionality provided by Legacy OpenGL is very useful
 for keeping code size small. It reduces the amount of linear algebra knowledge required, and it simplifies the code we will write.
 
-#### GLUT: Side Note
-GLUT is the OpenGL Utility Toolkit. Is is bundled with OpenGL and it allows us to create operating system windows and and to register user interface callbacks. This basic functionality
-is sufficient for our purposes. If we wanted a more full featured library for window management and user interaction, we would consider using a full windowing toolkit like GTK or Qt.
+#### About GLUT
+GLUT, which is bundled with OpenGL, allows us to create operating system windows and to register user interface callbacks. This basic functionality
+is sufficient for our purposes. If we wanted a more full-featured library for window management and user interaction, we would consider using a full windowing toolkit like GTK or Qt.
 
 #### The Viewer
-To manage the setting up GLUT and OpenGL, and to drive the rest of the modeller, we create a class called `Viewer`. 
-We use a single `Viewer` instance, which manages window creation, rendering, and contains the main loop for our program.
-In the initialization process for the Viewer, we create the GUI window and initialize OpenGL.
+To manage the setting up of GLUT and OpenGL, and to drive the rest of the modeller, we create a class called `Viewer`. 
+We use a single `Viewer` instance, which manages window creation and rendering, and contains the main loop for our program.
+In the initialization process for `Viewer`, we create the GUI window and initialize OpenGL.
+
 The function `init_interface` creates the window that the modeller will be rendered into and specifies the function to be called when the design needs to rendered. 
 The `init_opengl` function sets up the OpenGL state needed for the project. It sets the matrices, enables backface culling,
-registers a light to illuminate the scene, and tells OpenGL that we would like objects to be colored.
+registers a light to illuminate the scene, and tells OpenGL that we would like objects to be coloured.
 The `init_scene` function creates the `Scene` objects and places some initial nodes to get the user started. We will see more about the `Scene` data structure shortly.
 Finally, `init_interaction` registers callbacks for user interaction, as we'll discuss later.
-After initializing the Viewer, we call `glutMainLoop` to transfer program execution to glut. This function never returns. The callbacks we have registered
-on glut events will be called when those events occur.
+
+After initializing the Viewer, we call `glutMainLoop` to transfer program execution to GLUT. This function never returns. The callbacks we have registered
+on GLUT events will be called when those events occur.
 
 `````````````````````````````````````````` {.python}
 class Viewer(object):
@@ -135,20 +141,21 @@ if __name__ == "__main__":
 Before we dive into the `render` function, we should discuss a little bit of linear algebra.
 
 ### Coordinate Space
-For our purposes, a Coordinate Space is an origin point and a set of 3 basis vectors, usually the x, y, and z axes.
+For our purposes, a Coordinate Space is an origin point and a set of 3 basis vectors, usually the $x$, $y$, and $z$ axes.
 
 ### Point
-Any point in 3 dimensions can be represented as an offset in the x, y, and z directions from the origin point. The representation of a point is relative to the coordinate space that the point is in. The same point 
+Any point in 3 dimensions can be represented as an offset in the $x$, $y$, and $z$ directions from the origin point. The representation of a point is relative to the coordinate space that the point is in. The same point 
 has different representations in different coordinate spaces. Any point in 3 dimensions can be represented in any 3-dimensional coordinate space.
 
 ### Vector
-A vector is an x, y, and z value representing the difference between two points in the x, y and z axes, respectively.
+A vector is an $x$, $y$, and $z$ value representing the difference between two points in the $x$, $y$, and $z$ axes, respectively.
 
 ### Transformation Matrix
 In computer graphics, it is convenient to use multiple different coordinate spaces for different types of points. Transformation matrices convert points from one coordinate space to another coordinate space.
-To convert a vector `v` from one coordinate space to another, we multiply by a transformation matrix `M`: `v' = M v`.
+To convert a vector $v$ from one coordinate space to another, we multiply by a transformation matrix $M: v' = M v$.
 Some common transformation matrices are translations (moves), scaling, and rotations.
 
+XXX STOPPED HERE
 ### Model, World, View, and Projection Coordinate Spaces
 To draw an item to the screen, we need to convert between a few different coordinate spaces.
 
