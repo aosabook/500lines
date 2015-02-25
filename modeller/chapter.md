@@ -319,21 +319,20 @@ class Cube(Primitive):
         self.call_list = G_OBJ_CUBE
 ``````````````````````````````````````````
 
-XXX STOPPED HERE
 Rendering nodes is based on the transformation matrices that each node stores. The transformation matrix for a node is the combination of its scaling matrix and its translation matrix. Regardless of the type of node, the first step to rendering is to set the 
 OpenGL ModelView matrix to the transformation matrix to convert from the model coordinate space to the view coordinate space.
-Once the OpenGL matrices are up to date, we call `render_self` to tell the Node to make the necessary OpenGL calls to draw itself. Finally, 
-we undo any changes we made to the OpenGL state for this specific Node.  We usethe `glPushMatrix` and `glPopMatrix` functions in OpenGL to save and restore 
-the state of the ModelView matrix before and after we render the Node. 
+Once the OpenGL matrices are up to date, we call `render_self` to tell the node to make the necessary OpenGL calls to draw itself. Finally, 
+we undo any changes we made to the OpenGL state for this specific node.  We use the `glPushMatrix` and `glPopMatrix` functions in OpenGL to save and restore 
+the state of the ModelView matrix before and after we render the node. 
+Notice that the node stores its color, location, and scale, and applies these to the OpenGL state before rendering.
 
-Notice that the `Node` stores its color, location, and scale, and applies these to the OpenGL state before rendering.
 If the node is currently selected, we make it emit light. This way, the user has a visual indication of which node they have selected.
 
 To render primitives, we use the call lists feature from OpenGL. 
-An OpenGL Call List is a series of OpenGL calls that are defined once and bundled together under a single name.
+An OpenGL call list is a series of OpenGL calls that are defined once and bundled together under a single name.
 The calls can be dispatched with `glCallList(LIST_NAME)`. Each primitive (`Sphere` and `Cube`) defines the call list required to render it (not shown).
 
-For example, the call list for a Cube draws the 6 faces of the cube, with the center at the origin and the edges exactly 1 unit long.
+For example, the call list for a cube draws the 6 faces of the cube, with the center at the origin and the edges exactly 1 unit long.
 ``````````````````````````````````````````
 # Pseudocode Cube definition
 # Left face
@@ -350,19 +349,19 @@ For example, the call list for a Cube draws the 6 faces of the cube, with the ce
 ((-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), (0.5, 0.5, 0.5), (0.5, 0.5, -0.5))
 ``````````````````````````````````````````
 
-Only using primitives would be quite limiting for modelling applications. 3D models are generally made up of multiple primitives
+Using only primitives would be quite limiting for modelling applications. 3D models are generally made up of multiple primitives
 (or triangular meshes, which are outside the scope of this project). 
 Fortunately, our design of the `Node` class facilitates `Scene` nodes that are made up of multiple primitives. In fact, we can support arbitrary groupings
 of nodes with no added complexity.
 
-As motivation, let us consider a very basic figure, such as a typical snowman, or snow figure, made up of three spheres. Even though the figure is comprised of three separate primitives, we would like to be able to treat it as a single object.
+As motivation, let us consider a very basic figure: a typical snowman, or snow figure, made up of three spheres. Even though the figure is comprised of three separate primitives, we would like to be able to treat it as a single object.
 
 We create a class called `HierarchicalNode`, a node that contains other nodes. It manages a list of 'children'.
-The `render_self` function for hierarchical nodes is no more complicated than calling `render_self` on each of the child nodes.
-With the HierarchicalNode class, it is very easy to add figures to the scene.
-Now, defining the snow figure is as simple as specifying the shapes that comprise it and their relative positions and sizes.
+The `render_self` function for hierarchical nodes simply calls `render_self` on each of the child nodes.
+With the `HierarchicalNode` class, it is very easy to add figures to the scene.
+Now, defining the snow figure is as simple as specifying the shapes that comprise it, and their relative positions and sizes.
 
-![The hierarchy of Node subclasses.](nodes.jpg?raw=true)
+![The hierarchy of `Node` subclasses.](nodes.jpg?raw=true)
 
 `````````````````````````````````````````` {.python}
 class HierarchicalNode(Node):
@@ -388,26 +387,27 @@ class SnowFigure(HierarchicalNode):
             child_node.color_index = color.MIN_COLOR
         self.aabb = AABB([0.0, 0.0, 0.0], [0.5, 1.1, 0.5])
 ``````````````````````````````````````````
-You might observe that the Nodes form a tree data structure. The `render` function, through hierarchical nodes, does a depth-first traversal through the 
-tree. As it traverses, it keeps a stack of modelview matrices used for conversion into the world space.
-At each step, it pushes the current modelview matrix onto the stack, and when it completes rendering of all child nodes,
-it pops the matrix off the stack, leaving the parent node's modelview matrix at the top of the stack.
+You might observe that the `Node` objects form a tree data structure. The `render` function, through hierarchical nodes, does a depth-first traversal through the 
+tree. As it traverses, it keeps a stack of `ModelView` matrices, used for conversion into the world space.
+At each step, it pushes the current `ModelView` matrix onto the stack, and when it completes rendering of all child nodes,
+it pops the matrix off the stack, leaving the parent node's `ModelView` matrix at the top of the stack.
 
 
 By making the `Node` class extensible in this way, we can add new types of shapes to the scene without changing any of the other code for scene
-manipulation and rendering. Using `Node` concept to abstract away the fact that one `Scene` object may have many children is known as the Composite Design Pattern.
+manipulation and rendering. Using the node concept to abstract away the fact that one `Scene` object may have many children is known as the Composite Design Pattern.
 
 
 ### User Interaction
 Now that our modeller is capable of storing and displaying the scene, we need a way to interact with it. 
 There are two types of interactions that we need to facilitate.
-First, we need capabilities to change the viewing perspective of the scene. We want to be able to move the eye, or camera, around the scene.
-Secondly, we need to be able to add new Nodes and to modify Nodes in the scene.
+First, we need the capability of changing the viewing perspective of the scene. We want to be able to move the eye, or camera, around the scene.
+Second, we need to be able to add new nodes and to modify nodes in the scene.
 
-To enable user interaction, we need to know when the user presses keys or moves the mouse. Luckily, the Operating System already knows when these events happen. GLUT allows us to register a function to be called whenever a certain event occurs.
+To enable user interaction, we need to know when the user presses keys or moves the mouse. Luckily, the operating system already knows when these events happen. GLUT allows us to register a function to be called whenever a certain event occurs.
 We write functions to interpret key presses and mouse movement, and tell GLUT to call those functions when the corresponding keys are pressed.
-Once we know keys the user is pressing, we need to interpret the input and apply the intended actions to the scene.
-The logic for listening to operating system events and interpreting their meaning is encapsultated in the `Interaction` class.
+Once we know which keys the user is pressing, we need to interpret the input and apply the intended actions to the scene.
+
+The logic for listening to operating system events and interpreting their meaning is found in the `Interaction` class.
 The `Viewer` class we wrote earlier owns the single instance of `Interaction`.
 We will use the GLUT callback mechanism to register functions to be called when a mouse button is pressed (`glutMouseFunc`), when the mouse is moved (`glutMotionFunc`), when a keyboard button is pressed (`glutKeyboardFunc`), and when the arrow keys are pressed (`glutSpecialFunc`).
 We'll see the functions that handle input events shortly.
@@ -439,8 +439,8 @@ class Interaction(object):
 ``````````````````````````````````````````
 
 #### Operating System Callbacks
-In order to interpret user input as meaningful actions
-on the scene, we need to combine knowledge of the mouse position, mouse buttons, and keyboard. As you can see, because interpreting user input into meaningful actions requires many lines of code, we encapsulate it in a separate class, away from the main code path.
+In order to meaningfully interpret user input,
+we need to combine knowledge of the mouse position, mouse buttons, and keyboard. Because interpreting user input into meaningful actions requires many lines of code, we encapsulate it in a separate class, away from the main code path.
 The `Interaction` class hides unrelated complexity from the rest of the codebase and translates operating system events into application-level events.
 
 `````````````````````````````````````````` {.python}
@@ -510,8 +510,8 @@ The `Interaction` class hides unrelated complexity from the rest of the codebase
 ``````````````````````````````````````````
 
 #### Internal Callbacks
-In the code snippet above, you will notice that when the Interaction instance interprets a user action, it calls `self.trigger` with a string describing
-the action type. The `trigger` function on the Interaction class is part of a simple callback system that we will use for handling application-level
+In the code snippet above, you will notice that when the `Interaction` instance interprets a user action, it calls `self.trigger` with a string describing
+the action type. The `trigger` function on the `Interaction` class is part of a simple callback system that we will use for handling application-level
 events.
 Recall that the `init_interaction` function on the `Viewer` class registers callbacks on the `Interaction` instance by calling `register_callback`.
 
@@ -529,8 +529,8 @@ When user interface code needs to trigger an event on the scene, the `Interactio
             func(*args, **kwargs)
 ``````````````````````````````````````````
 
-This application-level callback system abstracts away the need for the rest of the system to know about Operating System input. Each application-level callback represents a meaningful request within the application.
-The `Interaction` class acts as a translator between Operating System events and application-level events.
+This application-level callback system abstracts away the need for the rest of the system to know about operating system input. Each application-level callback represents a meaningful request within the application.
+The `Interaction` class acts as a translator between operating system events and application-level events.
 This means that if we decided to port the modeller to another toolkit in addition to GLUT, we would only need to replace the `Interaction` class
 with a class that converts the input from the new toolkit into the same set of meaningful application-level callbacks.
 
@@ -547,6 +547,7 @@ scale   | up:boolean | Scales the currently selected node up or down, according 
 This simple callback system provides all of the functionality we need for this project. In a production 3D modeller, however, user interface objects are often created and destroyed dynamically.
 In that case, we would need a more sophisticated event listening system, where objects can both register and un-register callbacks for events.
 
+XXX STOPPED HERE
 ### Interfacing with the Scene
 With our callback mechanism, we can receive meaningful information about user input events from the `Interaction` class. We are ready to apply these actions to the `Scene`.
 
