@@ -318,18 +318,19 @@ class Cube(Primitive):
         super(Cube, self).__init__()
         self.call_list = G_OBJ_CUBE
 ``````````````````````````````````````````
-XXX STOPPED HERE
 
-Rendering Nodes is based on the transformation matrices that each Node stores. The transformation matrix for a Node is the combination of its scaling matrix and its translation matrix. Regardless of the type of Node, the first step to rendering is to set the 
-OpenGL ModelView matrix to the transformation matrix converting from the model coordinate space to the view coordinate space.
-Once the OpenGL matrices are up to date, we call `render_self` function to tell the Node to make the necessary OpenGL calls to draw itself. Finally, 
-we undo any changes we made to the OpenGL state for this specific Node.  We use `glPushMatrix` and `glPopMatrix` functions in OpenGL to save and restore 
+XXX STOPPED HERE
+Rendering nodes is based on the transformation matrices that each node stores. The transformation matrix for a node is the combination of its scaling matrix and its translation matrix. Regardless of the type of node, the first step to rendering is to set the 
+OpenGL ModelView matrix to the transformation matrix to convert from the model coordinate space to the view coordinate space.
+Once the OpenGL matrices are up to date, we call `render_self` to tell the Node to make the necessary OpenGL calls to draw itself. Finally, 
+we undo any changes we made to the OpenGL state for this specific Node.  We usethe `glPushMatrix` and `glPopMatrix` functions in OpenGL to save and restore 
 the state of the ModelView matrix before and after we render the Node. 
+
 Notice that the `Node` stores its color, location, and scale, and applies these to the OpenGL state before rendering.
 If the node is currently selected, we make it emit light. This way, the user has a visual indication of which node they have selected.
 
 To render primitives, we use the call lists feature from OpenGL. 
-An OpenGL Call List is a series of OpenGL calls that are defined once and bundled together under a name.
+An OpenGL Call List is a series of OpenGL calls that are defined once and bundled together under a single name.
 The calls can be dispatched with `glCallList(LIST_NAME)`. Each primitive (`Sphere` and `Cube`) defines the call list required to render it (not shown).
 
 For example, the call list for a Cube draws the 6 faces of the cube, with the center at the origin and the edges exactly 1 unit long.
@@ -347,17 +348,17 @@ For example, the call list for a Cube draws the 6 faces of the cube, with the ce
 ((-0.5, -0.5, 0.5), (-0.5, -0.5, -0.5), (0.5, -0.5, -0.5), (0.5, -0.5, 0.5)),
 # Top face
 ((-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), (0.5, 0.5, 0.5), (0.5, 0.5, -0.5))
-````````````````````````````````````````
+``````````````````````````````````````````
 
 Only using primitives would be quite limiting for modelling applications. 3D models are generally made up of multiple primitives
 (or triangular meshes, which are outside the scope of this project). 
-Fortunately, our design of the Node class facilitates Scene nodes that are made up of multiple primitives. In fact, we can support arbitrary groupings
-of Nodes with no added complexity.
+Fortunately, our design of the `Node` class facilitates `Scene` nodes that are made up of multiple primitives. In fact, we can support arbitrary groupings
+of nodes with no added complexity.
 
-As motivation, let us consider a very basic figure, such as a typical snow figure, made up of three spheres. Even though the figure is comprised of three separate primitives, we would like to be able to treat it as a single object.
+As motivation, let us consider a very basic figure, such as a typical snowman, or snow figure, made up of three spheres. Even though the figure is comprised of three separate primitives, we would like to be able to treat it as a single object.
 
-We create a class called HierarchicalNode, a Node that contains other nodes. It manages a list of 'children'.
-The `render_self` function for heirarchical nodes is no more complicated than calling render_self on each of the child nodes.
+We create a class called `HierarchicalNode`, a node that contains other nodes. It manages a list of 'children'.
+The `render_self` function for hierarchical nodes is no more complicated than calling `render_self` on each of the child nodes.
 With the HierarchicalNode class, it is very easy to add figures to the scene.
 Now, defining the snow figure is as simple as specifying the shapes that comprise it and their relative positions and sizes.
 
