@@ -9,6 +9,10 @@ left: you might spend a semester building one compiler, for a language
 much simpler than the one you wrote it in. Did you just call on a big
 genie to make a small one?
 
+[XXX maybe more about thinking in terms of homunculi, where do the
+homunculi bottom out?, following a chain of dictionary definitions...
+also, the following paragraph gets a bit stilted in the latter half:]
+
 To dispel the mystery, this chapter will work out a compiler that can
 compile itself. We'll write it in and for a small subset of Python,
 expressive enough for the job without demanding too much to
@@ -41,10 +45,10 @@ Say hello!
     name = 'Monty'
     print('Hello,', name)
 
-Another chapter [XXX the previous one?] explains how to turn this text
-into data that makes the structure explicit: that is, how to parse
+Another chapter [XXX the previous one?] explains how to dissect this
+text and expose its grammatical structure: that is, how to parse
 it. The parsed form is called an abstract syntax tree (AST); in this
-chapter we call on `ast.parse` from Python's library.
+chapter we let Python's `ast.parse` produce it for us.
 
     # in transcripts:
     >>> import ast, dis, astpp # (You can find astpp, by Alex Leone, on the web)
@@ -73,7 +77,7 @@ them.
 
 You can find all the AST classes and their fields in
 `Parser/Python.asdl` in the CPython source distribution. As it's 100+
-lines long, with roughly one line per class, if we'll handle a
+lines long, with roughly one line per class, if we'll need to handle a
 fair fraction of the types then we can forecast a budget of only a few
 lines of code per type.
 
@@ -81,7 +85,7 @@ lines of code per type.
 ## Bytecode
 
 Compiling the module (with Python's built-in compiler, for now)
-produces a code object, an internal Python type:
+gets us a code object, an internal Python type:
 
     # in transcripts:
     >>> module_code = compile(module_ast, 'greet.py', 'exec')
@@ -127,6 +131,11 @@ meaning, using `dis.dis`:
 [^1]: A Python bytestring, shown like `b'foo'`, is like a string, but
 of 8-bit bytes instead of Unicode characters.
 
+[XXX I think we're still just a little too abrupt in digging into
+it... Maybe say something like "We're going to need these details, but
+don't worry about making them stick; maybe you'll want to review if
+you dig into the code"?]
+
 On the left are source-code line numbers (1 and 2); down the middle go
 bytecode instructions, each labeled with the address it's encoded at;
 and on the right each instruction may get an optional argument. The
@@ -168,7 +177,7 @@ compatible within a major version, like Python 3.*x*.)
 ### Assembly: the interface
 
 To create the code object we saw above, it'd help to be able to write
-Python code that looks like the disassembly. Like this:
+Python code that resembles the disassembly. Like this:
 
     # in examples.py:
     assembly_for_greet = (  SetLineNo(1)
@@ -184,15 +193,15 @@ Python code that looks like the disassembly. Like this:
                           + op.RETURN_VALUE)
 
 Later we'll get to the support code that lets us write this; first
-let's see how it's used. `SetLineNo`, a pseudo-instruction that won't
-make it into the bytecode, tells which source-line the following
-instructions are compiled from; `op.LOAD_GLOBAL(0)` and the rest are
-symbolic instructions. These instructions and pseudo-instructions are
-all represented as Python objects which can be concatenated with
-`+`. The result of `+` is *also* an object representing assembly code
-(as in the Gang of Four 'composite' pattern, or a monoid if that's how
-you were raised). In generating the code we'll build it in pieces to
-be strung together, more like
+let's see how it's used. `SetLineNo` tells which source-line the
+following instructions derive from; it's a pseudo-instruction,
+supplying debug info to the code object, instead of joining
+`op.LOAD_GLOBAL(0)` and the rest in the bytecode proper. These
+symbolic instructions and pseudo-instructions are all Python objects
+that understand `+` to mean concatenation. Their 'sum' then is *also*
+an object representing assembly code (as in the Gang of Four
+'composite' pattern, or a monoid if that's how you were raised). Thus,
+we can build our code in pieces to be strung together, like
 
     # in examples.py:
     stmt1 = op.LOAD_CONST(0) + op.STORE_NAME(0)
@@ -218,6 +227,11 @@ integers, more so than for the assembler.
 
 
 ## The spike: a working end-to-end model
+
+[XXX it's never explained why it's called a 'spike' (driving through
+all the layers, I take it). Calling it a seed would make this question
+not raise itself. Perhaps I should find things to say about what makes
+a good spike/seed.]
 
 We want to build a code object, but I haven't documented all the
 details that go into one. Neither did Python! We get to learn them by
@@ -252,9 +266,9 @@ statement is `ast.Assign`, which has a list of target expressions (the
 `*` means a list) and a value expression. This represents statements
 like `x = y = 2+3`, with `x` and `y` as targets. Python uses a tool to
 generate all of the AST classes from these declarations---it's another
-tiny compiler of a sort---though we're using them just as
-documentation. (In some of the cases, like `Call`, full Python
-includes more fields which I've left out.)
+tiny compiler of a sort---though to us they're just documentation. (In
+some of the cases, like `Call`, full Python includes more fields which
+I've left out.)
 
     # in tailbiter.py:
     import ast, collections, dis, types, sys
@@ -279,7 +293,7 @@ version, `v0`) and `# in CodeGen methods v1+:` (appearing in `v1` and
 also `v2`; this permits `CodeGen methods v2` to add to and not replace
 `v1`).
 
-`pop` removes the initial `argv[0]` to leave the command-line
+In this code, `pop` removes the initial `argv[0]` to leave the command-line
 arguments the same as if we'd run Python on the source program
 directly: thus (with the compiler in `tailbiter.py`) you can run
 `python greet.py`, or `python tailbiter.py greet.py`, or (eventually)
@@ -1702,7 +1716,7 @@ Exploring that question exceeds my scope here---but maybe not yours.
 ## Continuations
 
 Where next? It could be fun to grow this to take in the code for a
-CPython VM subset, like the one in this book (and reciprocally, till
+bytecode interpreter, like the one in this book (and reciprocally, till
 they eat each other). I hope they needn't balloon too much. Add the
 parser, and a life like Robinson Crusoe's starts to look attainable,
 if still not quite to be envied.
