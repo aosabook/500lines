@@ -943,7 +943,7 @@ document B.
   abused by an attacker to access or tamper with a user's sensitive data.
 
 Indeed, given the new, relaxed definition of the SOP, the analyzer
-generates a counterexample scenario to the `confidentiality` property:
+generates a counterexample scenario to the confidentiality property:
 
 ```
 check Confidentiality for 5
@@ -1076,24 +1076,40 @@ the JSONP communication to work, the server is responsible for
 properly constructing a response that includes the original padding as
 the callback function (i.e., ensure that `JsonRequest.padding =
 JsonpResponse.cb`). In principle, the server can choose to include any
-callback function (or any piece of JavaScript), including one that has nothing
-to do with `padding` in the request. This highlights a potential
-risk of JSONP: the server that accepts the JSONP requests must be
-trustworthy and secure, because it has the
-ability to execute any piece of JavaScript code in the client document.
+callback function (or any piece of JavaScript), including one that has
+nothing to do with `padding` in the request. This highlights a
+potential risk of JSONP: the server that accepts the JSONP requests
+must be trustworthy and secure, because it has the ability to execute
+any piece of JavaScript code in the client document.
 
-Yet another risk with JSONP is its vulnerability to cross-site request
-forgery (CSRF) attacks.  Consider the following scenario from our Alloy model. Suppose that the calendar application (`CalenderServer`) makes its resources available to third-party sites using a JSONP endpoint (`GetSchedule`). To restrict access to the resources, `CalendarServer` only sends back a response with the schedule for a user if the request contains a cookie that correctly identifies that user. 
+**Security Analysis:** Checking the confidentiality property with
+ the Alloy Analyzer returns a counterexample that shows one potential
+ security risk of JSONP.  In this scenario, the calendar application
+ (`CalenderServer`) makes its resources available to third-party sites
+ using a JSONP endpoint (`GetSchedule`). To restrict access to the
+ resources, `CalendarServer` only sends back a response with the
+ schedule for a user if the request contains a cookie that correctly
+ identifies that user.
 
-Once a server provides an HTTP endpoint as a JSONP service, anyone can
-make a JSONP request to it, including malicious sites. In this
-scenario, the ad banner page from `EvilServer` includes a _script_ tag that causes a `GetSchedule` request, with a callback function called `Leak` as `padding`. Typically, the developer of `AdBanner` does not have direct access to the victim user's session cookie (`MyCookie`) for `CalendarServer`. However, because the JSONP request is being sent to `CalendarServer`, the browser automatically includes `MyCookie` as part of the request; `CalendarServer`, having received a JSONP request with `MyCookie`, will return the victim's resource (`MySchedule`) wrapped inside the padding `Leak`.
+Note that once a server provides an HTTP endpoint as a JSONP service,
+anyone can make a JSONP request to it, including malicious sites. In
+this scenario, the ad banner page from `EvilServer` includes a
+_script_ tag that causes a `GetSchedule` request, with a callback
+function called `Leak` as `padding`. Typically, the developer of
+`AdBanner` does not have direct access to the victim user's session
+cookie (`MyCookie`) for `CalendarServer`. However, because the JSONP
+request is being sent to `CalendarServer`, the browser automatically
+includes `MyCookie` as part of the request; `CalendarServer`, having
+received a JSONP request with `MyCookie`, will return the victim's
+resource (`MySchedule`) wrapped inside the padding `Leak`.
 
 ![jsonp-instance-1](fig-jsonp-1.png)
 
 In the next step, the browser interprets the JSONP response as a call to `Leak(MySchedule)`. The rest of the attack is simple; `Leak` can simply be programmed to forward the input argument to `EvilServer`, allowing the attacker to access the victim's sensitive information.
 
 ![jsonp-instance-2](fig-jsonp-2.png)
+
+This attack, an example of _cross-site request forgery_ (CSRF), shows an inherent weakness of JSOPN; _any_ site on the web can make a JSONP request simply by including a `<script>` tag and access the payload inside the padding. The risk can be mitigated in two ways: (1) ensure that a JSONP request never returns sensitive data, or (2) use another mechanism in place of cookies (e.g. secret tokens) to authorize the request.
 
 ### PostMessage
 
@@ -1129,7 +1145,7 @@ The browser passes two parameters to `ReceiveMessage`: a resource (`data`) that 
 
 By default, the `PostMessage` mechanism does not restrict who is allowed to send PostMessage; in other words, any document can send a message to another document as long as the latter has registered a `ReceiveMessage` handler. It is the responsibility of the receiving document to _additionally_ check the `srcOrigin` parameter to ensure that the message is coming from a trustworthy document. 
 
-Unfortunately, in practice, many sites omit this check, enabling a
+**Security Analysis:** Unfortunately, in practice, many sites omit this check, enabling a
 malicious document to inject bad content as part of a `PostMessage`
 [cite PostMessage study]. For example, in the following instance
 generated from Alloy, `EvilScript`, running inside `AdBanner`, sends a
@@ -1198,7 +1214,7 @@ fact corsRule {
 }
 ```
 
-One common mistake that developers make with CORS is to use the
+**Security Analysis:** One common mistake that developers make with CORS is to use the
 wildcard value "\*" as the value of "access-control-allow-origin"
 header, allowing any site to access a resource on the server. This
 access pattern is appropriate if the resource is considered public and
