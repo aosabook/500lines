@@ -240,6 +240,9 @@ from the contents of the key/value store
     This is atomic for all block devices
     (e.g. hard disks, SSDs, flash memory devices).
     A record is a length-delimited series of bytes.
+    In this implementation, a record's address on disk
+    is its location (in bytes) in the file,
+    but consumers make no assumptions about this.
 
 These modules grew from attempting
 to give each class a single responsibility.
@@ -251,7 +254,7 @@ each class should have only one reason to change.
 
 #### Reading a value
 
-For starters, let's see what happens
+Let's see what happens
 when we try to get the value associated with key ``foo`` in ``example.db``:
 ```bash
 $ python -m dbdb.tool example.db get foo
@@ -339,10 +342,10 @@ class LogicalBase(object):
         return self._get(self._follow(self._tree_ref), key)
 ```
 
-It checks to see if we have the tree locked:
-if it is, then it cannot have changed;
+``get()`` checks to see if we have the tree locked:
+if it is, then it cannot have changed since we last refreshed it;
 but if it isn't, then we update to the most recent data on disk.
-Because we don't lock the tree,
+Because we don't lock the tree at this point,
 any subsequent read might get different data.
 This is known as a "dirty read".
 Many different processes can do dirty reads at once with no locking
@@ -356,22 +359,38 @@ each read operation is guaranteed to succeed:
 to return a value that associated with the key in this tree,
 or find that they key isn't in this tree.
 
+If you needed to be able to read some data consistently
+(for example,
+reading a value and then updating it based on that value)
+you would have to lock the database before doing your first read.
+Other processes can continue to make dirty reads
+even if this process has locked the database,
+but none of the other processes can change any data.
+Implementing this function is left as an excercise for the reader.
+
 The tree as a whole
 is represented by a mutable ``BinaryTree`` object.
 Inside the ``BinaryTree``,
 ``Node``s and ``NodeRef``s are value objects:
 they are immutable and their contents never change
-(from the user's point of view at least;
-we'll get into that later).
+``Node``s are created
+with an associated key and value,
+and left and right children.
+Those associations never change.
 The content of the whole ``BinaryTree`` only visibly changes
-when then root node is replaced,
-since nodes themselves are never changed.
-We'll see this in more detail in the *Inserting/updating* section.
+when then root node is replaced.
+We'll see how these classes interact
+concretely in more detail
+in the *Inserting/updating* section.
 
-Getting the actual data
-is just a matter of doing a binary search,
+For now, getting the actual data
+is just a matter of doing a standard binary tree search,
 following refs to their nodes:
+**QUESTION: Is it helpful to show the stack by listing files at the beginning of each snippet? I'm not entirely sure how to represent it so that it's unambiguous and not distracting.**
 ```python
+# dbdb/tool.py
+# dbdb/interface.py
+# dbdb/logical.py
 # dbdb/binary_tree.py
 class BinaryTree(LogicalBase):
 # ...
@@ -453,15 +472,18 @@ class LogicalBase(object):
             self._follow(self._tree_ref), key, self.value_ref_class(value))
 ```
 
-It ensures that the tree is locked,
+``set()`` ensures that the tree is locked,
 and that we have the most recent root node reference
-so we don't lose any unrelated updates.
+so we don't lose any updates that another process has made
+since we last refreshed the tree from disk.
 Then it replaces the root tree node
 with a new tree containing the inserted (or updated) key/value.
+Note that there are no changes to anything on disk at this point.
 
 Inserting or updating the tree doesn't mutate any nodes,
-because it returns a new tree
-which shares unchanged parts with the previous tree.
+because ``_insert()`` returns a new tree.
+The new tree shares unchanged parts with the previous tree
+to save on memory and execution time.
 It's natural to implement this recursively:
 ```python
 # dbdb/binary_tree.py
@@ -493,7 +515,7 @@ we make a new node which shares the unchanged subtree.
 This is what makes this binary tree an immutable data structure.
 
 Committing involves writing out all of the dirty state in memory,
-and then saving the address of the tree's new root node.
+and then saving the disk address of the tree's new root node.
 Starting from the API:
 ```python
 # dbdb/interface.py
@@ -526,8 +548,9 @@ class ValueRef(object):
             self._address = storage.write(self.referent_to_string(self._referent))
 ```
 
-The ``_tree_ref`` is actually a ``BinaryNodeRef``,
-so ``prepare_to_store()`` is:
+``self._tree_ref`` in ``LogicalBase`` is actually a ``BinaryNodeRef``
+(a subclass of ``ValueRef``) in this case,
+so the concrete implementation of ``prepare_to_store()`` is:
 ```python
 # dbdb/binary_tree.py
 class BinaryNodeRef(ValueRef):
@@ -551,9 +574,22 @@ class BinaryNode(object):
 This recurses all the way down for any ``NodeRef``
 which has unwritten changes (i.e. no ``_address``).
 
+Back up the stack, I'll repeat this code snippet for context.
+The last step of ``store()`` is to serialise this node
+and save its storage address:
+```python
+# dbdb/logical.py
+class ValueRef(object):
+# ...
+    def store(self, storage):
+        if self._referent is not None and not self._address:
+            self.prepare_to_store(storage)
+            self._address = storage.write(self.referent_to_string(self._referent))
+```
+
 At this point
 the ``NodeRef``'s ``_referent`` is guaranteed to have addresses available for all of its own refs,
-so we can create a bytestring representing this node:
+so we can serialise it by creating a bytestring representing this node:
 ```python
 # dbdb/binary_tree.py
 class BinaryNodeRef(ValueRef):
@@ -569,8 +605,15 @@ class BinaryNodeRef(ValueRef):
         })
 ```
 
-In the end, we know that all of the data are written to disk
-and just have to commit the root address:
+Updating the address in the ``store()`` method
+is technically a mutation of the ``ValueRef``.
+Because it has no effect on the user-visible value though,
+we can consider it to be immutable.
+
+Once ``store()`` on the root ``_tree_ref`` is complete
+(in ``LogicalBase.commit()``),
+we know that all of the data are written to disk.
+We just have to commit the root address by calling:
 ```python
 # dbdb/physical.py
 class Storage(object):
@@ -584,35 +627,13 @@ class Storage(object):
         self.unlock()
 ```
 
-We're done!
-
-
-### How it works
-
-DBDB's data structures are immutable from the API consumer's perspective.
-``BinaryTree`` nodes are created
-with an associated key and value,
-and left and right children.
-Those associations never change.
-Updating a key/value pair involves creating new nodes
-from the inserted/modified/deleted leaf node
-all the way back up to the new root.
-Internally,
-a node's private attributes mutate
-to remember where its data were written
-(writing happens during the commit process).
-
-Update functions return a new root node,
-and the old root is garbage collected if it's no longer referenced
-(it could still be in use by a concurrent reader).
-When it's time to commit changes to disk,
-the tree is walked from the bottom-up
-("postfix" or "depth-first" traversal),
-and new nodes are serialised to disk.
-Finally, the disk address of the new root node is written atomically.
-We know it's atomic because we store the disk address on a sector boundary
-(it's the very first thing in the file, so this is true regardless of sector size),
-and single-sector disk writes are atomic.
+We ensure that the file handle is flushed
+(so that the OS knows we want all the data saved to stable storage like an SSD)
+and write out the address of the root node.
+We know this last write is atomic because we store the disk address on a sector boundary.
+It's the very first thing in the file,
+so this is true regardless of sector size,
+and single-sector disk writes are guaranteed atomic by the disk hardware.
 
 Because the root node address has either the old or new value
 (never a bit of old and a bit of new),
@@ -634,9 +655,10 @@ In this way, commits are also durable.
    Operating systems and drives don't usually write everything immediately
    in order to improve performance.
 
-![Tree nodes on disk before update](nodes_on_disk_1.svg)
+We're done!
 
-![Tree nodes on disk after update](nodes_on_disk_2.svg)
+
+### How NodeRefs save memory
 
 To avoid keeping the entire tree structure in memory at the same time,
 when a logical node is read in from disk,
@@ -644,7 +666,7 @@ the disk address of its left and right children
 (as well as its value)
 are loaded into memory.
 Accessing children and their values
-requires one extra function call to `NodeRef.get()`
+requires one extra function call to ``NodeRef.get()``
 to dereference ("really get") the data.
 
 All we need to construct a ``NodeRef`` is an address:
@@ -679,7 +701,7 @@ so the changed nodes contain concrete keys and values
 and no disk addresses.
 The process doing the writing can see uncommitted changes
 and can make more changes before issuing a commit,
-because `NodeRef.get()` will return the uncommitted value if it has one;
+because ``NodeRef.get()`` will return the uncommitted value if it has one;
 there is no difference between committed and uncommitted data
 when accessed through the API.
 All the updates will appear atomically to other readers
@@ -688,9 +710,16 @@ until the new root node address is written to disk.
 Concurrent updates are blocked by a lockfile on disk.
 The lock is acquired on first-update, and released after commit.
 
+
+### notes and odd ends
+
 (TODO: Picture of uncommitted, modified tree nodes;
 picture of the same, during the commit process;
 picture of the same, once the commit is complete)
+
+![Tree nodes on disk before update](nodes_on_disk_1.svg)
+
+![Tree nodes on disk after update](nodes_on_disk_2.svg)
 
 
 ### Exercises for the reader
