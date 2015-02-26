@@ -547,25 +547,24 @@ scale   | up:boolean | Scales the currently selected node up or down, according 
 This simple callback system provides all of the functionality we need for this project. In a production 3D modeller, however, user interface objects are often created and destroyed dynamically.
 In that case, we would need a more sophisticated event listening system, where objects can both register and un-register callbacks for events.
 
-XXX STOPPED HERE
 ### Interfacing with the Scene
 With our callback mechanism, we can receive meaningful information about user input events from the `Interaction` class. We are ready to apply these actions to the `Scene`.
 
 #### Moving the Scene
 In this project, we accomplish camera motion by transforming the scene. In other words, the
-camera is at a fixed location user input moves the scene instead of moving the camera. The camera is placed at `[0, 0, -15]` and
-faces the world space origin. We could alternatively change the perspective matrix to move the camera instead of the scene.
-This design decision has very little impact on the rest of the project.
+camera is at a fixed location and user input moves the scene instead of moving the camera. The camera is placed at `[0, 0, -15]` and
+faces the world space origin. (Alternatively, we could change the perspective matrix to move the camera instead of the scene.
+This design decision has very little impact on the rest of the project.)
 Revisiting the `render` function in the `Viewer`, we see that the `Interaction` state is used to transform the OpenGL matrix state before rendering the `Scene`.
 There are two types of interaction with the scene: rotation and translation.
 
 ##### Rotating the Scene with a Trackball
-We accomplish rotation of the scene by using a Trackball algorithm. The trackball is an intuitive interface for manipulating the scene in 3 dimensions.
+We accomplish rotation of the scene by using a *trackball* algorithm. The trackball is an intuitive interface for manipulating the scene in three dimensions.
 Conceptually, a trackball interface functions as if the scene was inside a transparent globe. Placing a hand on the surface of the globe and pushing it rotates the globe. Similarly, clicking the right mouse button and moving it on the screen rotates the scene.
 You can find out more about the theory of the trackball at the [OpenGL Wiki](http://www.opengl.org/wiki/Object_Mouse_Trackball).
 In this project, we use a trackball implementation provided as part of [Glumpy](https://code.google.com/p/glumpy/source/browse/glumpy/trackball.py).
 
-We interact with the trackball using the `drag_to` function with starting location of the mouse and the change in mouse location as parameters.
+We interact with the trackball using the `drag_to` function, with the current location of the mouse as the starting location and the change in mouse location as parameters.
 
 `````````````````````````````````````````` {.python}
 self.trackball.drag_to(self.mouse_loc[0], self.mouse_loc[1], dx, dy)
@@ -573,18 +572,20 @@ self.trackball.drag_to(self.mouse_loc[0], self.mouse_loc[1], dx, dy)
 The resulting rotation matrix is retrieved as `trackball.matrix` in the viewer when the scene is rendered.
 
 ##### Aside: Quaternions
-Rotations are traditionally represented in one of two ways. The first is a rotation value around each axis. You could store this as a 3-tuple of floating point numbers.
-The other common representation for rotations is a quaternion. Using quaternions has numerous benefits over per-axis rotation. In particular, they are more numerically stable. Using quaternions avoids some tricky problems like [Gimbal Lock](http://en.wikipedia.org/wiki/Gimbal_lock).
-The unfortunate downside of quaternions is that they are less intuitive to work with and harder to understand. If you are brave and would like to learn more about quaternions, you can refer to [this explanation](http://3dgep.com/?p=1815).
+Rotations are traditionally represented in one of two ways. The first is a rotation value around each axis; you could store this as a 3-tuple of floating point numbers.
+The other common representation for rotations is a quaternion, an element composed of a vector with $x$, $y$, and $z$ coordinates, and a $w$ rotation. Using quaternions has numerous benefits over per-axis rotation; in particular, they are more numerically stable. Using quaternions avoids problems like gimbal lock.
+The downside of quaternions is that they are less intuitive to work with and harder to understand. If you are brave and would like to learn more about quaternions, you can refer to [this explanation](http://3dgep.com/?p=1815).
 
-The trackball implementation avoids Gimbal Lock by using quaternions internally to store the rotation of the scene. Luckily, we do not need to work with quaternions directly, because the matrix member on the trackball
+The trackball implementation avoids gimbal lock by using quaternions internally to store the rotation of the scene. Luckily, we do not need to work with quaternions directly, because the matrix member on the trackball
 converts the rotation to a matrix.
 
-##### Moving the Scene
-Moving the Scene (i.e. translating it) is much simpler than scene rotation. Scene translations are provided with the mouse wheel and the left mouse button. The left mouse
-button translates the scene in the x and y coordinates. Scrolling the mouse wheel translates the scene in the z coordinate
+##### Translating the Scene
+Translating the scene (i.e., sliding it) is much simpler than rotating it. Scene translations are provided with the mouse wheel and the left mouse button. The left mouse
+button translates the scene in the $x$ and $y$ coordinates. Scrolling the mouse wheel translates the scene in the z coordinate
 (towards or away from the camera). The `Interaction` class stores the current scene translation and modifies it with the `translate` function.
 The viewer retrieves the `Interaction` camera location during rendering to use in a `glTranslated` call.
+
+XXX STOPPED HERE
 
 #### Selecting Scene Objects
 Now that the user can move and rotate the entire scene to get the perspective they want, the next step is to allow the user to modify and manipulate the objects that make up the scene.
