@@ -1,40 +1,74 @@
-# Tailbiter: from Python to Bytecode
+# Dragon-taming with Tailbiter, a Python compiler
 
 > "Python is about having the simplest, dumbest compiler imaginable."  
 > ---Guido van Rossum, *Masterminds of Programming*
 
 People write source code, machines run machine code. A compiler turns
-one into the other---how? The whiff of magic to this hasn't quite
-left: you might spend a semester building one compiler, for a language
-much simpler than the one you wrote it in. Did you just call on a big
-genie to make a small one?
+one into the other---how? Somehow stones, taught to read our commands,
+obey, and the compiler acts at the heart of this magic: it's the spell
+that interprets the spell.
 
-[XXX maybe more about thinking in terms of homunculi, where do the
-homunculi bottom out?, following a chain of dictionary definitions...
-also, the following paragraph gets a bit stilted in the latter half:]
+Take a course following one of the excellent traditional textbooks
+such as the Dragon Book---whose cover art acknowledges the aura of the
+fearsome and uncanny around the subject---and you might spend all
+semester building one compiler, for a language much simpler than the
+one you write it in. Did you just call on a big genie to make a small
+one?
 
-To dispel the mystery, this chapter will work out a compiler that can
-compile itself. We'll write it in and for a small subset of Python,
-expressive enough for the job without demanding too much to
+[XXX Maybe insert the dragon cover art here? I prefer the hand-drawn
+1st edition cover to the ugly computery new one, if we do this.
+http://en.wikipedia.org/wiki/Principles_of_Compiler_Design#mediaviewer/File:Green_Dragon_Book_%28front%29.jpg
+Of course, there's copyright, besides it being kind of a distraction.]
+
+To untangle this knot of circularity, let's lay out a small compiler
+able to compile itself. We'll write it in and for a subset of Python
+3, adequate to clear, direct coding without demanding too much to
 implement. The result---call it Tailbiter---will be a toy, but less of
-one than usual for an introduction: besides the self-compiling, we'll
+a toy than usual in an introduction: besides the self-compiling, it'll
 include some details of debugging support. To make room for these
-emphases, we'll drop the whole topic of optimization---that is, of
-making the output code less stupid. The sort of realism I chose to set
-out towards, here, has been avoided for a good reason in most examples
-meant to teach compiling: it doesn't bring out any powerful new
-principles. But there's value too in studying a real system that's
-grown in decades of use; while Tailbiter can't be that, it can model
-it, the whole self-supporting system in miniature.
+emphases, let's drop the whole topic of optimization---in plainer
+terms, of making the output code less stupid.
+
+When we're done we'll find it all to be done with no trick, no
+powerful new principle: you'll need to be comfortable with recursion
+over a tree, with nested functions, and with reading a program
+dependent on some built-in Python libraries and types that I'll survey
+but not delve into.
+
+[XXX Drop the mention of nested functions? I'm afraid it might scare
+people away who could get something out of this. But I don't want to
+overpromise accessibility either, not after the cries of despair over
+Udacity CS212. A similar potential hurdle is this being just generally
+more tightly coded than some are used to, like CS212 again. I'd like
+to acknowledge that reading code isn't easy---note how I already
+implied thinking my code is "clear and direct", how conceited---and
+encourage readers anyway. Implying it's clear and simple, when it's at
+least intricate and likely difficult, gets offputting. Warning that
+it's all elite and stuff is also offputting. Help? I guess the
+smallest change is from "adequate to clear, direct coding" to
+"adequate to code in". A pity to make it blander that way. Blah,
+overthinking!]
+
+This chapter's goal of self-hosting escapes a textbook's core concerns
+of generating smarter code, for more language features, with more
+useful errors. Thus it's understandable when most textbooks don't
+spell out a self-hosting compiler: instead you may get a smaller toy
+in the first chapter, then many intricate chapters on each piece of
+the full-scale ones used by hundreds of thousands of programmers. You
+might well start with the smaller toy; but in between such and the
+likes of Clang and GCC, there are engineering lessons to learn from a
+simple real compiler like Python's. I'll try to model some of them in
+miniature. Most of all, I want to show a real(ish) compiler as just
+another program you can read and mess with.
 
 When I began, I knew about compilers but not the Python virtual
-machine which we're targeting. Right away I hit the first thing the
-textbooks don't show you: inadequate documentation. We'll deal with
-this by building in stages, from a seed just capable of turning the
-simplest source code into working bytecode, learning from each stage
-how to grow into the next. Let's start with a look at our input and
-our output: a trivial program, taken from source text to parsed syntax
-and then to runnable bytecode.
+machine which we're targeting. Right away I hit the first snag the
+textbooks don't show you: inadequate documentation. We'll respond by
+building in stages, from a seed just capable of turning the simplest
+source code into working bytecode, learning from each stage how to
+grow into the next. Start with a look at our input and our output: a
+trivial program, from its source text to parsed syntax and then to
+runnable bytecode.
 
 
 ## Abstract syntax trees
@@ -43,7 +77,7 @@ Say hello!
 
     # in greet.py:
     name = 'Monty'
-    print('Hello,', name)
+    print('Hi,', name)
 
 Another chapter [XXX the previous one?] explains how to dissect this
 text and expose its grammatical structure: that is, how to parse
@@ -61,7 +95,7 @@ chapter we let Python's `ast.parse` produce it for us.
             Name(id='name', ctx=Store(), lineno=1, col_offset=0),
           ], value=Str(s='Monty', lineno=1, col_offset=7), lineno=1, col_offset=0),
         Expr(value=Call(func=Name(id='print', ctx=Load(), lineno=2, col_offset=0), args=[
-            Str(s='Hello,', lineno=2, col_offset=6),
+            Str(s='Hi,', lineno=2, col_offset=6),
             Name(id='name', ctx=Load(), lineno=2, col_offset=16),
           ], keywords=[], starargs=None, kwargs=None, lineno=2, col_offset=0), lineno=2, col_offset=0),
       ])
@@ -76,7 +110,7 @@ text it was parsed from. We'll sweat these details more when we get to
 them.
 
 You can find all the AST classes and their fields in
-`Parser/Python.asdl` in the CPython source distribution. As it's 100+
+`Parser/Python.asdl` in the Python 3 source distribution. As it's 100+
 lines long, with roughly one line per class, if we'll need to handle a
 fair fraction of the types then we can forecast a budget of only a few
 lines of code per type.
@@ -98,7 +132,7 @@ It has a bunch of attributes named starting with `co_`:
     co_argcount       0
     co_cellvars       ()
     co_code           b'd\x00\x00Z\x00\x00e\x01\x00d\x01\x00e\x00\x00\x83\x02\x00\x01d\x02\x00S'
-    co_consts         ('Monty', 'Hello,', None)
+    co_consts         ('Monty', 'Hi,', None)
     co_filename       greet.py
     co_firstlineno    1
     co_flags          64
@@ -121,7 +155,7 @@ meaning, using `dis.dis`:
                   3 STORE_NAME               0 (name)
 
       2           6 LOAD_NAME                1 (print)
-                  9 LOAD_CONST               1 ('Hello,')
+                  9 LOAD_CONST               1 ('Hi,')
                  12 LOAD_NAME                0 (name)
                  15 CALL_FUNCTION            2 (2 positional, 0 keyword pair)
                  18 POP_TOP
@@ -682,7 +716,7 @@ And at last `greet.py` works. Hurray!
 
     # in transcripts:
     $ python3 tailbiter0.py greet.py 
-    Hello, Monty
+    Hi, Monty
 
 
 ## Fleshing it out
@@ -1647,7 +1681,7 @@ OK, so! Wind it all up and watch the tail-eating:
 
     # in transcripts:
     $ python3 tailbiter2.py tailbiter2.py tailbiter2.py greet.py 
-    Hello, Monty
+    Hi, Monty
 
 
 ## But why compile?
@@ -1674,7 +1708,7 @@ variables, to find, ahead of time, the place in the runtime
 environment where a variable will live---letting the interpreter skip
 looking up the name.
 
-There's a third kind of win in rewriting the program as we compile
+A third kind of win is possible in rewriting the program as we compile
 it---'optimization'. Perhaps the compiler could notice that `[i*2 for
 i in range(10)]` would go faster as `list(range(0, 20, 2))`. This is
 precomputation in a broader, open-ended sense (sometimes called the
@@ -1682,7 +1716,7 @@ Full Employment Theorem for Compiler Writers). But isn't it orthogonal
 to translating source to binary? Aren't there independent source- and
 machine-code optimizers? Yes, but: dealing in source code only, many
 machine operations can't be seen, making the choice of how they're to
-be done inexpressible (or only by some extra convention); then, over
+be done inexpressible (or only by some extra convention); while, over
 in machine code, the reasons and constraints behind the choices are
 erased, sticking the optimizer with a sometimes-impossible job of
 reinferring them. A compiler lives on the happy peak between, both
@@ -1747,12 +1781,18 @@ included just for fun. For the compiler that's normally run, see
 `compile.c` and `symtable.c`; there's also the optimizer `peephole.c`.
 
 Our compiler compiled itself, but we stopped short of applying this
-ability towards anything special. (Can you change the language yet?) Ken
-Thompson showed one surprising direction to go, in "Reflections on
-Trusting Trust".
+ability towards anything remarkable. (Can you change the language
+yet?) Ken Thompson showed one surprising direction to take, in
+"Reflections on Trusting Trust".
 
 > So it came over him all of a sudden that he would take Tailbiter and go dragon-hunting.  
 > ---J.R.R. Tolkien, *Farmer Giles of Ham*
+
+[XXX If we're all into dragon illustrations, there's Pauline Baynes's
+for the first edition of Farmer Giles, which are *way* better than the
+Dragon Book cover:
+http://www.classicbooksandephemera.com/shop/classic/003041.html
+...though this is really asking for too much.]
 
 --------
 
