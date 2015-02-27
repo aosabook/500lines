@@ -264,7 +264,7 @@ The rest of the code base doesn't need to know about the details of the objects 
 Each type of `Node` defines its own behavior for rendering itself and for any other necessary interactions.
 The `Node` keeps track of important data about itself: translation matrix, scale matrix, color, etc. Multiplying the node's translation matrix by
 its scaling matrix gives the transformation matrix from the node's model coordinate space to the world coordinate space.
-The node also stores an Axis Aligned Bounding Box (AABB). We'll see more about AABBs when we discuss selection below.
+The node also stores an axis-aligned bounding box (AABB). We'll see more about AABBs when we discuss selection below.
 
 The simplest concrete implementation of `Node` is a *primitive*. A primitive is a single solid shape that can be added the scene. In this project, the primitives are `Cube` and `Sphere`. 
 `````````````````````````````````````````` {.python}
@@ -394,7 +394,7 @@ it pops the matrix off the stack, leaving the parent node's `ModelView` matrix a
 
 
 By making the `Node` class extensible in this way, we can add new types of shapes to the scene without changing any of the other code for scene
-manipulation and rendering. Using the node concept to abstract away the fact that one `Scene` object may have many children is known as the Composite Design Pattern.
+manipulation and rendering. Using the node concept to abstract away the fact that one `Scene` object may have many children is known as the Composite design pattern.
 
 
 ### User Interaction
@@ -585,25 +585,23 @@ button translates the scene in the $x$ and $y$ coordinates. Scrolling the mouse 
 (towards or away from the camera). The `Interaction` class stores the current scene translation and modifies it with the `translate` function.
 The viewer retrieves the `Interaction` camera location during rendering to use in a `glTranslated` call.
 
-XXX STOPPED HERE
-
 #### Selecting Scene Objects
 Now that the user can move and rotate the entire scene to get the perspective they want, the next step is to allow the user to modify and manipulate the objects that make up the scene.
 
-In order for the user to manipulate objects in the scene, they will first need to be able to select items.
+In order for the user to manipulate objects in the scene, they need to be able to select items.
 
 To select an item, we use the current projection matrix to generate a ray that represents the mouse click, as if the mouse pointer shoots a ray
 into the scene. The selected node is the closest node to the camera with which the ray intersects.
-Thus the problem of picking reduced to the problem of finding intersections between a ray and Nodes in the scene. So the question is: How do we tell if the ray hits a Node?
+Thus the problem of picking reduced to the problem of finding intersections between a ray and nodes in the scene. So the question is: How do we tell if the ray hits a node?
 
-Calculating exactly whether a ray intersects with a node is a challenging problem in terms of both complexity of code and of performance. We would need to write a ray-object intersection check for each type of Primitive.
+Calculating exactly whether a ray intersects with a node is a challenging problem in terms of both complexity of code and of performance. We would need to write a ray-object intersection check for each type of primitive.
 For scene nodes with complex mesh geometries with many faces, calculating exact ray-object intersection would require testing the ray against each face
 and would be computationally expensive.
 
-For the purposes if keeping the code compact and performance reasonable, we use a simple, fast approximation for the ray-object intersection test. 
-In our implementation, each node stores an Axis-Aligned Bounding Box (AABB) which is an approximation of the space it occupies.
-To test whether a ray intersects with a Node, we test whether the ray intersects with the Node's AABB. This implementation means that all Nodes share
-the same code for intersection tests, and it means that the performance cost is constant and small for all Node types.
+For the purposes of keeping the code compact and performance reasonable, we use a simple, fast approximation for the ray-object intersection test. 
+In our implementation, each node stores an axis-aligned bounding box (AABB), which is an approximation of the space it occupies.
+To test whether a ray intersects with a node, we test whether the ray intersects with the node's AABB. This implementation means that all nodes share
+the same code for intersection tests, and it means that the performance cost is constant and small for all node types.
 
 `````````````````````````````````````````` {.python}
     # class Viewer
@@ -632,7 +630,7 @@ the same code for intersection tests, and it means that the performance cost is 
         self.scene.pick(start, direction, self.modelView)
 ``````````````````````````````````````````
 
-To determine which Node was clicked on, we traverse the scene to test whether the ray hits any Nodes. We deselect the currently selected node and then choose the Node with the intersection closest to the ray origin.
+To determine which node was clicked on, we traverse the scene to test whether the ray hits any nodes. We deselect the currently selected node and then choose the node with the intersection closest to the ray origin.
 
 `````````````````````````````````````````` {.python}
     # class Scene
@@ -659,10 +657,10 @@ To determine which Node was clicked on, we traverse the scene to test whether th
             closest_node.selected_loc = start + direction * mindist
             self.selected_node = closest_node
 ``````````````````````````````````````````
-Within the Node class, the `pick` function tests whether the ray intersects with the Axis Aligned Bounding Box of the `Node`.
+Within the `Node` class, the `pick` function tests whether the ray intersects with the axis-aligned bounding box of the `Node`.
 If a node is selected, the `select` function toggles the selected state of the node.
-Notice that the Axis Aligned Bounding Box ray_hit function accepts the transformation matrix between the Box's coordinate space and the
-ray coordinate space as the third parameter. Each Node applies its own transformation to the matrix before making the `ray_hit` function call.
+Notice that the AABB's `ray_hit` function accepts the transformation matrix between the box's coordinate space and the
+ray's coordinate space as the third parameter. Each node applies its own transformation to the matrix before making the `ray_hit` function call.
 
 `````````````````````````````````````````` {.python}
     # class Node
@@ -685,18 +683,18 @@ ray coordinate space as the third parameter. Each Node applies its own transform
     
 ``````````````````````````````````````````
 
-The Ray-AABB selection approach is very simple to understand and implement. However, the results are wrong in certain situations.
+The ray-AABB selection approach is very simple to understand and implement. However, the results are wrong in certain situations.
 
-For example, in the case of the `Sphere` primitive, the sphere itself only touches the AABB in the centre of each of the AABBs faces.
+For example, in the case of the `Sphere` primitive, the sphere itself only touches the AABB in the centre of each of the AABB's faces.
 However if the user clicks on the corner of the Sphere's AABB, the collision will be detected with the Sphere, even if the user intended to click
 past the Sphere onto something behind it.
 ![AABB Error](AABBError.png?raw=true)
 
-This trade off between complexity, performance, and accuracy is common in computer graphics and in many areas of software engineering.
+This trade-off between complexity, performance, and accuracy is common in computer graphics and in many areas of software engineering.
 
 #### Modifying Scene Objects
-Next, we would like to allow the user to manipulate the selected nodes. They might want to change the color, move, or resize the selected node.
-When the user inputs a command to manipulate a node, the Interaction class converts the input into the action that the user intended, and calls the corresponding callback.
+Next, we would like to allow the user to manipulate the selected nodes. They might want to move, resize, or change the color of the selected node.
+When the user inputs a command to manipulate a node, the `Interaction` class converts the input into the action that the user intended, and calls the corresponding callback.
 
 When the `Viewer` receives a callback for one of these events, it calls the appropriate function on the `Scene`, which in turn applies the transformation to the currently selected `Node`.
 
@@ -717,7 +715,7 @@ When the `Viewer` receives a callback for one of these events, it calls the appr
 ``````````````````````````````````````````
 
 ##### Changing Color
-Colorization is accomplished with a list of possible colors. The user can cycle through the list with the arrow keys. The scene dispatches the color change command to
+Manipulating color is accomplished with a list of possible colors. The user can cycle through the list with the arrow keys. The scene dispatches the color change command to
 the currently selected node.
 
 `````````````````````````````````````````` {.python}
@@ -727,7 +725,7 @@ the currently selected node.
         if self.selected_node is None: return
         self.selected_node.rotate_color(forwards)
 ``````````````````````````````````````````
-Each node stores its current color. The `rotate_color` function simply modifies the current color of the node. The color is passed to OpenGL with `glColor` when the Node is rendered. 
+Each node stores its current color. The `rotate_color` function simply modifies the current color of the node. The color is passed to OpenGL with `glColor` when the node is rendered. 
 
 `````````````````````````````````````````` {.python}
     # class Node
@@ -749,11 +747,18 @@ As with color, the scene dispatches any scaling modifications to the selected no
         self.selected_node.scale(up)
     
 ``````````````````````````````````````````
-Each Node stores a current matrix that stores its scale. A matrix that scales by parameters `x`, `y` and `z` in those respective directions is:
+Each node stores a current matrix that stores its scale. A matrix that scales by parameters $x$, $y$ and $z$ in those respective directions is:
 
-![Scale Matrix](scale.png?raw=true)
+$$
+   \begin{bmatrix}
+   x & 0 & 0 & 0 \\
+   0 & y & 0 & 0 \\
+   0 & 0 & z & 0 \\
+   0 & 0 & 0 & 1 \\
+   \end{bmatrix}
+$$
 
-When the user modifies the scale of a Node, the resulting scaling matrix is multiplied into the current scaling matrix for the Node.
+When the user modifies the scale of a node, the resulting scaling matrix is multiplied into the current scaling matrix for the node.
 `````````````````````````````````````````` {.python}
     # class Node
     def scale(self, up):
@@ -761,7 +766,7 @@ When the user modifies the scale of a Node, the resulting scaling matrix is mult
         self.scaling_matrix = numpy.dot(self.scaling_matrix, scaling([s, s, s]))
         self.aabb.scale(s)
 ``````````````````````````````````````````
-The function `scaling` returns such a matrix, given a list representing the `x`, `y`, and `z` scaling factors.
+The function `scaling` returns such a matrix, given a list representing the $x$, $y$, and $z$ scaling factors.
 `````````````````````````````````````````` {.python}
 def scaling(scale):
     s = numpy.identity(4)
@@ -774,11 +779,11 @@ def scaling(scale):
 
 ##### Moving Nodes
 In order to translate a node, we use the same ray calculation we used for picking. We pass the ray that represents the current mouse location in to the scene's
-`move` function. The new location of the Node should be on the ray.
-In order to determine where on the ray to place the Node, we need to know the Node's distance from the camera. Since we stored the Node's location and distance
+`move` function. The new location of the node should be on the ray.
+In order to determine where on the ray to place the node, we need to know the node's distance from the camera. Since we stored the node's location and distance
 from the camera when it was selected (in the `pick` function), we can use that data here.
 We find the point that is the same distance from the camera along the target ray and we calculate the vector difference between the new and old locations.
-We then translate the `Node` by the resulting vector.
+We then translate the node by the resulting vector.
 
 `````````````````````````````````````````` {.python}
     # class Scene
@@ -810,9 +815,16 @@ Thus, we convert the camera space translation into a world space translation by 
 
 As with scale, each node stores a matrix which represents its translation. A translation matrix looks like:
 
-![Translation Matrix](translate.png?raw=true)
+$$
+   \begin{bmatrix}
+   1 & 0 & 0 & x \\
+   0 & 1 & 0 & y \\
+   0 & 0 & 1 & z \\
+   0 & 0 & 0 & 1 \\
+   \end{bmatrix}
+$$
 
-When the node is translated, we construct a new translation matrix for the current translation, and multiply it into the Node's
+When the node is translated, we construct a new translation matrix for the current translation, and multiply it into the node's
 translation matrix for use during rendering.
 
 `````````````````````````````````````````` {.python}
@@ -820,7 +832,7 @@ translation matrix for use during rendering.
     def translate(self, x, y, z):
         self.translation_matrix = numpy.dot(self.translation_matrix, translation([x, y, z]))
 ``````````````````````````````````````````
-The `translation` function returns a translation matrix given a list represting the `x`, `y`, and `z` translation distances.
+The `translation` function returns a translation matrix given a list representing the $x$, $y$, and $z$ translation distances.
 
 `````````````````````````````````````````` {.python}
 def translation(displacement):
@@ -840,8 +852,8 @@ Node placement uses techniques from both picking and translation. We use the sam
         start, direction = self.get_ray(x, y)
         self.scene.place(shape, start, direction, self.inverseModelView)
 ``````````````````````````````````````````
-To place a new node, we first create the new instance of the corresponding type of node and add it to the Scene.
-We want to place the node underneath the user's cursor, so we find a point on the ray, a fixed distance from the camera.
+To place a new node, we first create the new instance of the corresponding type of node and add it to the scene.
+We want to place the node underneath the user's cursor, so we find a point on the ray, at a fixed distance from the camera.
 Again, the ray is represented in camera space, so we convert the resulting translation vector into the world coordinate space by multiplying it by the inverse modelview matrix.
 Finally, we translate the new node by the calculated vector.
 `````````````````````````````````````````` {.python}
@@ -870,9 +882,11 @@ Finally, we translate the new node by the calculated vector.
 
 ## Summary
 Congratulations! We've successfully implemented a tiny 3D modeller!
+
 ![Sample Scene](StartScene.png?raw=true)
-We saw how to develop a exensible data structure to represent the objects in the scene. We noticed that using the Composite design pattern and a tree
-based data structure makes it easy to traverse the scene for rendering  and allows us to add new types of nodes with no added complexity.
+
+We saw how to develop an extensible data structure to represent the objects in the scene. We noticed that using the Composite design pattern and a tree-based 
+data structure makes it easy to traverse the scene for rendering  and allows us to add new types of nodes with no added complexity.
 We leveraged this data structure to render the design to the screen, and manipulated OpenGL matrices in the traversal of the scene graph.
 We built a very simple callback system for application-level events, and used it to encapsulate handling of operating system events.
 We discussed possible implementations for ray-object collision detection, and the trade-offs between correctness, complexity, and performance.
@@ -884,18 +898,19 @@ One major simplification in this project is in the user interface. A production 
 complete user interface, which would necessitate a much more sophisticated events system instead of our simple callback system.
 
 We could do further experimentation to add new features to this project. Try one of these:
-* Add a Node type to support triangle meshes for arbitrary shapes.
-* Add an Undo stack, to allow undo/redo of modeller actions.
-* Save/Load the design using a 3D file format like [DXF](http://en.wikipedia.org/wiki/AutoCAD_DXFhttp://en.wikipedia.org/wiki/AutoCAD_DXF).
+
+* Add a `Node` type to support triangle meshes for arbitrary shapes.
+* Add an undo stack, to allow undo/redo of modeller actions.
+* Save/load the design using a 3D file format like DXF.
 * Integrate a rendering engine: export the design for use in a photorealistic renderer.
 * Improve collision detection with accurate ray-object intersection.
 
 ## Further Exploration
-For further insight into real-world 3D modelling software, a few Open Source projects are interesting.
+For further insight into real-world 3D modelling software, a few open source projects are interesting.
 
-[Blender](http://www.blender.org/) is an Open Source full featured 3D animation suite. It provides a full 3D pipeline for building special effects in video, or for game creation. The modeller is a small part of this
+[Blender](http://www.blender.org/) is an open source full-featured 3D animation suite. It provides a full 3D pipeline for building special effects in video, or for game creation. The modeller is a small part of this
 project, and it is a good example of integrating a modeller into a large software suite.
 
-[OpenSCAD](http://www.openscad.org/) is an Open Source 3D modelling tool. It is not interactive, rather it reads a script file that specifies how to generate the scene. This gives the designer "full control over the modelling process".
+[OpenSCAD](http://www.openscad.org/) is an open source 3D modelling tool. It is not interactive; rather, it reads a script file that specifies how to generate the scene. This gives the designer "full control over the modelling process".
 
 For more information about algorithms and techniques in computer graphics, [Graphics Gems](http://tog.acm.org/resources/GraphicsGems/) is a great resource.
