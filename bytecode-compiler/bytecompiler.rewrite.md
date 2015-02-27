@@ -71,7 +71,7 @@ trivial program, from its source text to parsed syntax and then to
 runnable bytecode.
 
 
-## Abstract syntax trees
+## The input: an abstract syntax tree
 
 Say hello!
 
@@ -116,7 +116,7 @@ fair fraction of the types then we can forecast a budget of only a few
 lines of code per type.
 
 
-## Bytecode
+## The output: bytecode
 
 Compiling the module (with Python's built-in compiler, for now)
 gets us a code object, an internal Python type:
@@ -208,7 +208,7 @@ and might crash other interpreters. (ASTs on the other hand are mostly
 compatible within a major version, like Python 3.*x*.)
 
 
-### Assembly: the interface
+### A symbolic assembly form
 
 To create the code object we saw above, it'd help to be able to write
 Python code that resembles the disassembly. Like this:
@@ -260,12 +260,10 @@ It's simple for the code generator to encode the arguments into
 integers, more so than for the assembler.
 
 
-## The spike: a working end-to-end model
+## The seed: a 'hello world' compiler
 
-[XXX it's never explained why it's called a 'spike' (driving through
-all the layers, I take it). Calling it a seed would make this question
-not raise itself. Perhaps I should find things to say about what makes
-a good spike/seed.]
+[XXX Perhaps I should find things to say about what makes a good
+spike/seed.]
 
 We want to build a code object, but I haven't documented all the
 details that go into one. Neither did Python! We get to learn them by
@@ -364,7 +362,7 @@ Throughout the compiler, `t` (for 'tree') names an AST object (also
 called a 'node'). These `t`'s appear everywhere.
 
 
-### Visitors
+### A visitor walks over a tree
 
 An AST is a recursive data structure, for which we're going to write a
 few recursive functions. We might code one like
@@ -414,7 +412,7 @@ traversal ourselves. [XXX delete this paragraph? Probably doesn't add
 enough]
 
 
-### From a module AST to a code object
+### A module becomes a code object
 
 The compiler at its core is a visitor that returns assembly code. As
 it walks through the tree, it remembers the names and constants it's
@@ -431,7 +429,7 @@ work:
 
 (For the first time, we're seeing stub code that will be superseded
 later in this chapter in a fancier version of the compiler. All along,
-this code has been within waving distance of my actual first spike,
+this code has been within waving distance of my actual first seed,
 but more polished, but also distorted some by foreknowledge: keeping
 the parts to be rewritten grouped in just a few definitions.)
 
@@ -512,7 +510,7 @@ from the subset of the language we're going to handle. A
 called to make sure the input program is in our subset.)
 
 
-### Expressions and the stack
+### Expressions employ the stack
 
 Our first tiny mini-Python understands only assignment and expression
 statements, where the expressions may be names, simple constants,
@@ -650,7 +648,7 @@ the default implementation would succeed silently, making my mistakes
 harder to see.
 
 
-### Statements
+### Statements evaluate expressions
 
 Executing a statement should leave the stack unchanged. For an
 expression statement (consisting of just an expression, typically a
@@ -678,7 +676,7 @@ push a duplicate reference to the value.
 the `Name` nodes we saw in `visit_Name`.)
 
 
-### Just enough assembly
+### We fabricate an assembler
 
 We still need to create assembly code---instructions, `SetLineNo`
 pseudo-instructions, and concatenations---and to compute three
@@ -712,16 +710,16 @@ We fill in `op` so that `op.DUP_TOP` and all the rest work.
     op = type('op', (), dict([(name, denotation(opcode))
                               for name, opcode in dis.opmap.items()]))
 
-And at last `greet.py` works. Hurray!
+And at last `greet.py` works. Hurrah!
 
     # in transcripts:
     $ python3 tailbiter0.py greet.py 
     Hi, Chrysophylax
 
 
-## Fleshing it out
+## A compiler half-grown: assembling control flow
 
-We're in business, ready to fill out the skeleton with more visit
+We're in business, ready to fill out the code generator with more visit
 methods for more AST node types. (See figure 1.) When we get to
 control-flow constructs like `if`-`else` we'll hit a new problem: they
 reduce to jumping around in the bytecode. The expression statement
@@ -812,7 +810,7 @@ or a list of statement nodes when `t` is an if-statement, and `self()`
 can take either.)
 
 
-### Assembly
+### We analyze assembly code
 
 Let's make labels work, and unstub the rest of the assembler:
 computing stack depths and line-number tables. 
@@ -887,7 +885,7 @@ been seeing like `assembly + op.POP_TOP`. Python's `sum()` calls the
 same method.
 
 
-### Assembly types
+### Assembly comes in types
 
 The simplest assembly fragment is the no-op:
 
@@ -1003,7 +1001,7 @@ code, at least not in compiling a program the size of Tailbiter
 itself. I made no effort to keep the chains balanced.)
 
 
-### More code generation: expressions
+### Expression types proliferate: more code generation
 
 Dict literals like `{'a': 'x', 'b': 'y'}` turn into code like
 
@@ -1157,7 +1155,7 @@ like `a and b and c` (instead of Python representing this as a tree of
 binary `BoolOp`s), we must `reduce` over the list.
 
 
-### More statements
+### So do statements
 
         def visit_Pass(self, t):
             return no_op
@@ -1217,7 +1215,7 @@ usefulness---compiling functions and classes---requires bigger
 changes.
 
 
-## Functions and classes
+## A completed compiler: rendering functions and classes
 
 For these (figure 2), we'll need more passes:
 
@@ -1270,7 +1268,7 @@ For these (figure 2), we'll need more passes:
         return CodeGen(filename, top_scope(t)).compile_module(t, module_name)
 
 
-### Desugaring
+### Sugar delenda est
 
     def desugar(t):
         return ast.fix_missing_locations(Desugarer().visit(t))
@@ -1393,7 +1391,7 @@ hair too; we won't need them.
 `ast.get_docstring` on it.)
 
 
-### Analyzing scopes 
+### Scopes collate variables and sub-scopes
 
 Scope analysis decides the runtime representation of variables:
 'fast', 'deref', or neither. Consider:
@@ -1550,7 +1548,7 @@ free variables---and it might take roughly the same amount of
 code. In varying from CPython's approach, it's riskier.
 
 
-### Code for functions
+### We generate code for functions
 
     # in CodeGen methods v2:
         def visit_Return(self, t):
@@ -1641,7 +1639,7 @@ We generate assembly that will run the function's body and return
 it all into a code object.
 
 
-### Code for classes
+### Classes too
 
 Like functions, class definitions sprout a new `CodeGen` to compile
 down to a code object; but the assembly that will build the class
