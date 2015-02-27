@@ -12,6 +12,11 @@ Creative Commons - Attribution license, and all code by the MIT License: please
 see the [license description](LICENSE.md) for details.  In addition, all
 royalties from paid-for versions will all go to Amnesty International.
 
+The production of this book has been made possible by the financial support of
+[PagerDuty](http://www.pagerduty.com/company/work-with-us/).
+
+![PagerDuty Logo](resource/pagerduty_logo.png)
+
 Mission
 -------
 
@@ -121,7 +126,7 @@ Contributors
   </tr>
   <tr>
     <td>Taavi Burns</td>
-    <td>Points.com</td>
+    <td>PagerDuty</td>
     <td>data-store</td>
     <td>
         <ul>
@@ -129,7 +134,7 @@ Contributors
         </ul>
     </td>
     <td><a href="https://github.com/taavi">taavi</a></td>
-    <td>taavi.burns@points.com</td>
+    <td></td>
   </tr>
   <tr>
     <td>Guido van Rossum</td>
