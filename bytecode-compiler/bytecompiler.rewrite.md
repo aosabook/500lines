@@ -1,4 +1,4 @@
-# Dragon-taming with Tailbiter, a Python compiler
+# Dragon-taming with Tailbiter, a bytecode compiler
 
 > "Python is about having the simplest, dumbest compiler imaginable."  
 > ---Guido van Rossum, *Masterminds of Programming*
@@ -76,7 +76,7 @@ runnable bytecode.
 Say hello!
 
     # in greet.py:
-    name = 'Monty'
+    name = 'Chrysophylax'
     print('Hi,', name)
 
 Another chapter [XXX the previous one?] explains how to dissect this
@@ -93,7 +93,7 @@ chapter we let Python's `ast.parse` produce it for us.
     Module(body=[
         Assign(targets=[
             Name(id='name', ctx=Store(), lineno=1, col_offset=0),
-          ], value=Str(s='Monty', lineno=1, col_offset=7), lineno=1, col_offset=0),
+          ], value=Str(s='Chrysophylax', lineno=1, col_offset=7), lineno=1, col_offset=0),
         Expr(value=Call(func=Name(id='print', ctx=Load(), lineno=2, col_offset=0), args=[
             Str(s='Hi,', lineno=2, col_offset=6),
             Name(id='name', ctx=Load(), lineno=2, col_offset=16),
@@ -102,7 +102,7 @@ chapter we let Python's `ast.parse` produce it for us.
 
 So the module becomes an `ast.Module` whose `body` is a list of more
 of these `ast` objects---in this case two, an `ast.Assign`
-representing `name = 'Monty'` and an `ast.Expr` representing the call
+representing `name = 'Chrysophylax'` and an `ast.Expr` representing the call
 to `print`---each of these being built out of further `ast` objects: a
 tree of them. Each object has fields proper to its type, plus a
 `lineno` (line number) and `col_offset` telling where in the source
@@ -132,7 +132,7 @@ It has a bunch of attributes named starting with `co_`:
     co_argcount       0
     co_cellvars       ()
     co_code           b'd\x00\x00Z\x00\x00e\x01\x00d\x01\x00e\x00\x00\x83\x02\x00\x01d\x02\x00S'
-    co_consts         ('Monty', 'Hi,', None)
+    co_consts         ('Chrysophylax', 'Hi,', None)
     co_filename       greet.py
     co_firstlineno    1
     co_flags          64
@@ -151,7 +151,7 @@ meaning, using `dis.dis`:
 
     # in transcripts:
     >>> dis.dis(module_code)
-      1           0 LOAD_CONST               0 ('Monty')
+      1           0 LOAD_CONST               0 ('Chrysophylax')
                   3 STORE_NAME               0 (name)
 
       2           6 LOAD_NAME                1 (print)
@@ -176,7 +176,7 @@ and on the right each instruction may get an optional argument. The
 first line, then, shows us the instruction at address 0: a `LOAD_CONST`
 instruction, with 0 as an argument. (For a `LOAD_CONST` the argument
 means an index into the `co_consts` attribute, whose 0th entry, above,
-is indeed `'Monty'`.) This instruction appears in `co_code` as
+is indeed `'Chrysophylax'`.) This instruction appears in `co_code` as
 `d\x00\x00`: one byte `d` which happens to mean `LOAD_CONST`, followed
 by two bytes encoding the integer 0.
 
@@ -187,7 +187,7 @@ interpreter will take the value it just loaded and store it in the
 variable listed at index 0 of `co_names`: in this case, `name`.)
 
 Those two bytecodes implemented the first line of source code (`name =
-'Monty'`). The second line's bytecode follows at addresses 6 through
+'Chrysophylax'`). The second line's bytecode follows at addresses 6 through
 18, with some new wrinkles in instruction arguments: `CALL_FUNCTION`
 has two, each of one byte; and `POP_TOP` has no argument, making the
 whole instruction fit in a byte. (What `POP_TOP` does, we'll come back
@@ -250,8 +250,8 @@ which produces the same bytecode: it doesn't matter how we chunk the
 assembly.
 
 A higher-level assembly language could've been made where instead of
-`op.LOAD_CONST(0)` this example would say `op.LOAD_CONST('Monty')`,
-leaving it to the assembler to turn `'Monty'` into an index into
+`op.LOAD_CONST(0)` this example would say `op.LOAD_CONST('Chrysophylax')`,
+leaving it to the assembler to turn `'Chrysophylax'` into an index into
 `co_consts`. Likewise `op.STORE_NAME` would take a string argument,
 and so on. Such a design would better suit a general-purpose bytecode
 assembler; but Tailbiter will be ruthless in doing only what's
@@ -514,8 +514,8 @@ called to make sure the input program is in our subset.)
 
 ### Expressions and the stack
 
-Our first tiny mini-Python has nothing but assignment and expression
-statements, where expressions include only names, simple constants,
+Our first tiny mini-Python understands only assignment and expression
+statements, where the expressions may be names, simple constants,
 and function calls. A constant expression turns into a
 `LOAD_CONST` instruction:
 
@@ -716,7 +716,7 @@ And at last `greet.py` works. Hurray!
 
     # in transcripts:
     $ python3 tailbiter0.py greet.py 
-    Hi, Monty
+    Hi, Chrysophylax
 
 
 ## Fleshing it out
@@ -1681,7 +1681,7 @@ OK, so! Wind it all up and watch the tail-eating:
 
     # in transcripts:
     $ python3 tailbiter2.py tailbiter2.py tailbiter2.py greet.py 
-    Hi, Monty
+    Hi, Chrysophylax
 
 
 ## But why compile?
