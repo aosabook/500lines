@@ -13,8 +13,7 @@ see the [license description](LICENSE.md) for details.  In addition, all
 royalties from paid-for versions will all go to Amnesty International.
 
 The production of this book has been made possible by the financial support of
-[PagerDuty](http://www.pagerduty.com/company/work-with-us/).
-
+[PagerDuty](http://www.pagerduty.com/company/work-with-us/). 
 ![PagerDuty Logo](resource/pagerduty_logo.png)
 
 Mission
