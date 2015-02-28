@@ -70,7 +70,7 @@ Irritatingly, a non-blocking socket always throws an exception from `connect`. T
 
 We disregard the spurious error and call `register`, passing in the socket's file descriptor and a Python function to run when the socket becomes writable. This function--the callback--is stored as `event_key.data`, which we retrieve and execute in the event loop above.
 
-What have we demonstrated already? We showed how to begin an operation and execute a callback when it is ready. An async *framework* builds on the two features we have shown--non-blocking sockets and the event loop--to conveniently and efficiently run concurrent operations on a single thread.
+What have we demonstrated already? We showed how to begin an operation and execute a callback when it is ready. An async *framework* builds on the two features we have shown--non-blocking sockets and the event loop--to efficiently run concurrent operations on a single thread.
 
 ### Async's Problem
 
@@ -212,7 +212,22 @@ A method that runs on a thread uses basic features of the programming language: 
 
 But with a callback-based async framework, these language features are no help. While waiting for I/O, a callback must save its state explicitly, because it returns and loses its stack frame before I/O completes. In lieu of local variables, our callback-based example stores `sock` and `response` by setting attributes on `self`, the fetcher instance. And it register callbacks like `connected` and `read_response` in lieu of the instruction pointer. As the application's features grow, so does the complexity of the state that is manually saved across callbacks. Such onerous bookkeeping makes the programmer prone to migraines.
 
-Even worse, what happens if a callback throws an exception, before it calls the next callback in the chain? The chain is broken on both ends: we forgot where we were going and whence we came. The stack trace shows only that the event loop was running a callback. We do not remember what led to the error. Nor can we install an exception handler for a chain of callbacks, the way a "try / except" block wraps a function call and its tree of descendents.[^7]
+Even worse, what happens if a callback throws an exception, before it schedules the next callback in the chain? Say we did a poor job on the `parse_links` method and it throws an exception when it encounters misformatted HTML:
+
+```
+Traceback (most recent call last):
+  File "loop-with-callbacks.py", line 112, in <module>
+    callback(event_key, event_mask)
+  File "loop-with-callbacks.py", line 55, in read_response
+    links = self.parse_links()
+  File "loop-with-callbacks.py", line 82, in parse_links
+    raise ParseError
+__main__.ParseError
+```
+
+The stack trace shows only that the event loop was running a callback. We do not remember what led to the error. The chain is broken on both ends: we forgot where we were going and whence we came. This loss of context is called "stack ripping", and in many cases it confounds the investigator. Stack ripping also prevents us from installing an exception handler for a chain of callbacks, the way a "try / except" block wraps a function call and its tree of descendents.[^7]
+
+Even apart from the long debate about the relative efficiencies of multithreading and async, there is this other tension: threads are susceptible to data races if you make a mistake synchronizing them, but callbacks are stubborn to debug due to stack ripping. 
 
 ### Solution: Asynchronous Coroutines
 
@@ -619,7 +634,7 @@ loop = asyncio.get_event_loop()
 loop.run_until_complete(crawler.crawl())
 ```
 
-In the beginning, the crawler is configured with an initial URL and `max_redirect`, the number of redirects it is willing to follow to fetch any one URL. It puts the pair `(URL, max_redirect)` in the queue; stay tuned for the reason.
+In the beginning, the crawler is configured with an initial URL and `max_redirect`, the number of redirects it is willing to follow to fetch any one URL. It puts the pair `(URL, max_redirect)` in the queue. (For the reason why, stay tuned.)
 
 ```python
 class Crawler:
@@ -627,8 +642,10 @@ class Crawler:
         self.max_tasks = 10
         self.max_redirect = max_redirect
         self.q = Queue()
-        self.q.put((root_url, self.max_redirect))
         self.seen_urls = set()
+        
+        # Put (URL, max_redirect) in the queue.
+        self.q.put((root_url, self.max_redirect))
 ```
 
 The number of unfinished tasks in the queue is now one. Back in our main script, we launch the event loop and the `crawl` method:
@@ -652,7 +669,7 @@ The `crawl` coroutine kicks off the workers. It is like a main thread: it blocks
             w.cancel()
 ```
 
-It is interesting to note how we shut down the crawler. When the `join` future resolves, the worker tasks are alive but suspended: they await more work but none comes. The main coroutine cancels them before exiting. Otherwise, as the Python interpreter shuts down and calls all objects' destructors, living tasks cry out:
+It is interesting to note how we shut down the crawler. When the `join` future resolves, the worker tasks are alive but suspended: they wait for more URLs but none come. So, the main coroutine cancels them before exiting. Otherwise, as the Python interpreter shuts down and calls all objects' destructors, living tasks cry out:
 
 ```
 ERROR:asyncio:Task was destroyed but it is pending!
@@ -675,11 +692,11 @@ The `crawl` method comprises all that our main coroutine must do. It is the work
             self.q.task_done()
 ```
 
-Python sees that this code contains `yield from` statements, and compiles it into a generator function. So in `crawl`, when the main coroutine calls `self.work` ten times, it does not actually execute this method: it only creates ten generator objects with references to this code. It wraps each in a task, which receives each future the generator yields, and drives the generator by calling `send` with each future's result when the future resolves. Because the generators have their own stack frames, they run independently, with separate local variables and instruction pointers.
+Python sees that this code contains `yield from` statements, and compiles it into a generator function. So in `crawl`, when the main coroutine calls `self.work` ten times, it does not actually execute this method: it only creates ten generator objects with references to this code. It wraps each in a Task. The Task receives each future the generator yields, and drives the generator by calling `send` with each future's result when the future resolves. Because the generators have their own stack frames, they run independently, with separate local variables and instruction pointers.
 
 The worker coordinates with its fellows via the queue. It waits for new URLs with `yield from self.q.get()`. The queue's `get` method is itself a coroutine: it pauses until someone puts an item in the queue, then resumes and returns the item.
 
-When a worker fetches a page it parses the links and puts new ones in the queue, then calls `task_done` to decrement the counter. Eventually, a worker fetches a page whose URLs have all been fetched already, and there's no work left in the queue. Thus this worker's call to `task_done` decrements the counter to zero. Then `crawl`, which is waiting for the queue's `join` method, resumes and finishes.
+When a worker fetches a page it parses the links and puts new ones in the queue, then calls `task_done` to decrement the counter. Eventually, a worker fetches a page whose URLs have all been fetched already, and there is also no work left in the queue. Thus this worker's call to `task_done` decrements the counter to zero. Then `crawl`, which is waiting for the queue's `join` method, is unpaused and finishes.
 
 We promised to explain why the items in the queue are pairs, like:
 
@@ -696,6 +713,8 @@ New URLs have ten redirects remaining. Fetching this particular URL results in a
 ```
 
 The `aiohttp` library we use would follow redirects by default and give us the final response. We tell it not to, however, and handle redirects in the crawler, so it can coalesce redirect paths leading to the same destination: if we have already seen this URL, it is in ``self.seen_urls`` and we have already started on this path from a different entry point.
+
+TODO: diagram here.
 
 ```python
     @asyncio.coroutine

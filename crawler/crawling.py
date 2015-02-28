@@ -235,6 +235,8 @@ class Crawler:
                                                  num_urls=0,
                                                  num_new_urls=0))
 
+            if next_url in self.seen_urls:
+                return
             if max_redirect > 0:
                 LOGGER.info('redirect to %r from %r', next_url, url)
                 self.add_url(next_url, max_redirect - 1)
