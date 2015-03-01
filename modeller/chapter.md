@@ -63,7 +63,7 @@ registers a light to illuminate the scene, and tells OpenGL that we would like o
 The `init_scene` function creates the `Scene` objects and places some initial nodes to get the user started. We will see more about the `Scene` data structure shortly.
 Finally, `init_interaction` registers callbacks for user interaction, as we'll discuss later.
 
-After initializing the Viewer, we call `glutMainLoop` to transfer program execution to GLUT. This function never returns. The callbacks we have registered
+After initializing `Viewer`, we call `glutMainLoop` to transfer program execution to GLUT. This function never returns. The callbacks we have registered
 on GLUT events will be called when those events occur.
 
 `````````````````````````````````````````` {.python}
@@ -164,7 +164,7 @@ Thank you very much to Dr. Anton Gerdelan for the image. His OpenGL tutorial boo
 We let specialized OpenGL functions handle the right hand side of the diagram: conversion from eye space to homogeneous clip space is handled by `gluPerspective`, and conversion to normalized device space and viewport space is handled by `glViewport`. These matrices do not change during program execution.
 Points in the view space are converted into points in 2D using the projection matrix.
 
-We need to manage the left hand side of the diagram ourselves. We define a matrix which converts points from the model spaces into the world space, called the Model matrix. We alse define the View matrix, which converts from the world space into the eye space.
+We need to manage the left hand side of the diagram ourselves. We define a matrix which converts points from the model spaces into the world space, called the Model matrix. We alse define the view matrix, which converts from the world space into the eye space.
 In this project, we combine these two matrices to obtain the ModelView matrix.
 
 ### Rendering With the Viewer
@@ -223,10 +223,10 @@ Finally, `glFlush` signals to the graphics driver that we are ready for the buff
 ### What to Render: The Scene
 Now that we've initialized the rendering pipeline to handle drawing in the world coordinate space, what are we going to render? Recall that our goal is 
 to have a design consisting of 3D models. We need a data structure to contain the design, and we need use this data structure to render the design.
-Notice above that we call `self.scene.render()` from the Viewer's render loop. What exactly is the scene?
+Notice above that we call `self.scene.render()` from the viewer's render loop. What exactly is the scene?
 
 The `Scene` class is the interface to the data structure we use to represent the design. It abstracts away details of the data structure and provides the 
-necessary interface functions required to interact with the design, including functions to render, add items, and manipulate items. There is one `Scene` object, owned by the Viewer.
+necessary interface functions required to interact with the design, including functions to render, add items, and manipulate items. There is one `Scene` object, owned by the viewer.
 The `Scene` instance keeps a list of all of the items in the scene, called `node_list`. It also keeps track of the selected item.
 The `render` function on the scene simply calls `render` on each of the members of `node_list`.
 `````````````````````````````````````````` {.python}
