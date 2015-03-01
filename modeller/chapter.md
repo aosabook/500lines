@@ -160,7 +160,6 @@ To draw an item to the screen, we need to convert between a few different coordi
 
 ![Transformation Pipeline](newtranspipe.png?raw=true)
 Thank you very much to Dr. Anton Gerdelan for the image. His OpenGL tutorial book is available [here](http://antongerdelan.net/opengl/).
-<!--FIXME: Note to self: if this stuff is explained later in the chapter, move this diagram. If it isn't, it should be. Require definitions for: mesh, all the different spaces; frustum, local and world origin -->
 
 We let specialized OpenGL functions handle the right hand side of the diagram: conversion from eye space to homogeneous clip space is handled by `gluPerspective`, and conversion to normalized device space and viewport space is handled by `glViewport`. These matrices do not change during program execution.
 Points in the view space are converted into points in 2D using the projection matrix.
