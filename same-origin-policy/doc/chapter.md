@@ -827,7 +827,12 @@ pitfalls.
 
 ## Techniques for Bypassing the SOP
 
-The SOP is a classic example of the tension between functionality and security; we want to make sure our sites are robust and functional, but the mechanism for securing it can sometimes get in the way. Indeed, when the SOP was initially introduced, developers ran into trouble building sites that made legitimate uses of cross-domain communication, e.g. for mashups.
+The SOP is a classic example of the tension between functionality and
+security; we want to make sure our sites are robust and functional,
+but the mechanism for securing it can sometimes get in the
+way. Indeed, when the SOP was initially introduced, developers ran
+into trouble building sites that made legitimate uses of cross-domain
+communication, e.g. for mashups.
 
 In this section, we will discuss four techniques that have been
 devised and frequently used by web developers to bypass the
@@ -936,7 +941,7 @@ its domain property to `example.com` and manipulate the DOM of
 document A, even though the latter never intended to interact with
 document B.
 
-**Security Analysis:** Now that we have relaxed the SOP to allow
+**Analysis:** Now that we have relaxed the SOP to allow
   cross-origin communication under certain circumstances, do the
   security guarantees of the SOP still hold? Let us ask the Alloy
   Analyzer to tell us whether the `document.domain` property could be
@@ -1082,7 +1087,7 @@ potential risk of JSONP: the server that accepts the JSONP requests
 must be trustworthy and secure, because it has the ability to execute
 any piece of JavaScript code in the client document.
 
-**Security Analysis:** Checking the confidentiality property with
+**Analysis:** Checking the `Confidentiality` property with
  the Alloy Analyzer returns a counterexample that shows one potential
  security risk of JSONP.  In this scenario, the calendar application
  (`CalenderServer`) makes its resources available to third-party sites
@@ -1141,16 +1146,17 @@ sig ReceiveMessage extends EventHandler {
 }
 ```
 
-The browser passes two parameters to `ReceiveMessage`: a resource (`data`) that corresponds to the message being sent, and the origin of the sender document (`srcOrigin`). The signature fact contains four constraints to ensure that each `ReceiveMessage` is well-formed with respect to its corresponding `PostMessage`. 
+The browser passes two parameters to `ReceiveMessage`: a resource (`data`) that corresponds to the message being sent, and the origin of the sender document (`srcOrigin`). The signature fact contains four constraints to ensure that each `ReceiveMessage` is well-formed with respect to its corresponding `PostMessage`.
 
-By default, the `PostMessage` mechanism does not restrict who is allowed to send PostMessage; in other words, any document can send a message to another document as long as the latter has registered a `ReceiveMessage` handler. It is the responsibility of the receiving document to _additionally_ check the `srcOrigin` parameter to ensure that the message is coming from a trustworthy document. 
+**Analysis:** Again, let us ask the Alloy Analyzer whether `PostMessage` is a secure way of performing cross-origin communication. This time, the ananlyzer returns a counterexample for the `Integrity` property, meaning the attacker is able to exploit a weakness in `PostMessage` to introduce malicious data into a trusted application.
 
-**Security Analysis:** Unfortunately, in practice, many sites omit this check, enabling a
-malicious document to inject bad content as part of a `PostMessage`
-[cite PostMessage study]. For example, in the following instance
-generated from Alloy, `EvilScript`, running inside `AdBanner`, sends a
-malicious `PostMessage` to a document with the target origin of
-`EmailDomain`.
+Note that by default, the PostMessage mechanism does not restrict
+ who is allowed to send PostMessage; in other words, any document can
+ send a message to another document as long as the latter has
+ registered a `ReceiveMessage` handler. For example, in the following
+ instance generated from Alloy, `EvilScript`, running inside
+ `AdBanner`, sends a malicious `PostMessage` to a document with the
+ target origin of `EmailDomain`.
 
 ![postmessage-instance-1](fig-postmessage-1.png)
 
@@ -1163,7 +1169,23 @@ may embed a piece of JavaScript to carry out an XSS attack).
 
 ![postmessage-instance-2](fig-postmessage-2.png)
 
-Implementing an appropriate check on incoming PostMessage can be tricky; in some applications, it is hard to determine in advance the list of trusted origins from which messages are expected to be received (in some apps, this list may even change dynamically). So the omission of the origin check may not be the result of simple incompetence.
+As this example illustrates, `PostMessage` is not secure by default,
+and it is the responsibility of the receiving document to
+_additionally_ check the `srcOrigin` parameter to ensure that the
+message is coming from a trustworthy document. Unfortunately, in
+practice, many sites omit this check, enabling a malicious document to
+inject bad content as part of a `PostMessage` [cite PostMessage
+study].
+
+However, the omission of the origin check may not simply be the result
+of programmer ignorance. Implementing an appropriate check on incoming
+PostMessage can be tricky; in some applications, it is hard to
+determine in advance the list of trusted origins from which messages
+are expected to be received (in some apps, this list may even change
+dynamically). This, again, highlights the tension between security and
+functionality: PostMessage can be used for secure cross-origin
+communication, but only in the context where a whitelist of trusted
+origins is known.
 
 ### Cross-Origin Resource Sharing (CORS)
 
@@ -1214,36 +1236,36 @@ fact corsRule {
 }
 ```
 
-**Security Analysis:** One common mistake that developers make with CORS is to use the
-wildcard value "\*" as the value of "access-control-allow-origin"
-header, allowing any site to access a resource on the server. This
-access pattern is appropriate if the resource is considered public and
-accessible to anyone; however, it turns out that many sites use "\*"
-as the default value even for private resources, inadvertently
-allowing malicious scripts to access them through CORS requests [cite
-CORS study].
+**Analysis:** Can CORS be misused in a way that would allow the
+attacker to compromise the security of a trusted site? When prompted,
+the Alloy Analyzer returns asimple counterexample for the
+`Confidentiality` property. 
 
-In our model, the wildcard value is represented by assigning to
-`allowedOrigins` the set of all `Origin` objects:
-
-```alloy 
-some r: CorsRequest | r.allowedOrigins = Origin 
-```
-
-The developer of the calendar application decides to share some of its
-resources with other applications by using the CORS
-mechanism. Unfortunately, `CalendarServer` is configured to always
-return "\*" as the value of the `access-control-allow-origin` header
-in CORS responses, exposing sensitive information (`MySchedule`) to a
-larger part of the web than the developer might have intended:
+Here, the developer of the calendar application decides to share some
+of its resources with other applications by using the CORS
+mechanism. Unfortunately, `CalendarServer` is configured to return
+`Origin` (which represents the set of all origin values) for the
+`access-control-allow-origin` header in CORS responses. As a result, a
+script from any origin, including `EvilDomain`, is allowed to make
+a cross-site request to `CalendarServer` and read its response:
 
 ![cors-confidentiality](fig-cors.png) 
 
-You may wonder why a developer would ever use the wildcard.
-In practice, specifying the allowed origins can be tricky because it
-may not be clear at design time which origins should be granted access
-at runtime. A service may, for example, allow third party applications to
-subscribe dynamically to its resources.
+This example highlights one common mistake that developers make with
+CORS: Using the wildcard value "\*" as the value of
+"access-control-allow-origin" header, allowing any site to access a
+resource on the server. This access pattern is appropriate if the
+resource is considered public and accessible to anyone. However, it
+turns out that many sites use "\*" as the default value even for
+private resources, inadvertently allowing malicious scripts to access
+them through CORS requests [cite CORS study].
+
+You may wonder why a developer would ever use the wildcard.  Similar
+to the PostMessage issue discusssed above, specifying the allowed
+origins can be tricky because it may not be clear at design time which
+origins should be granted access at runtime. A service may, for
+example, allow third party applications to subscribe dynamically to
+its resources.
 
 ## Conclusion
 
