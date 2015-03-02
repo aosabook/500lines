@@ -168,7 +168,7 @@ class Crawler:
 
     @asyncio.coroutine
     def fetch(self, url, max_redirect):
-        """Fetch one URL, following redirects."""
+        """Fetch one URL."""
         tries = 0
         exception = None
         while tries < self.max_tries:
