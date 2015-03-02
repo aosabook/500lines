@@ -15,7 +15,9 @@ royalties from paid-for versions will all go to Amnesty International.
 The production of this book has been made possible by the financial support of
 [PagerDuty](http://www.pagerduty.com/company/work-with-us/). 
 
-![PagerDuty Logo](resource/pagerduty_logo.png)
+<div style="text-align:center">
+    ![PagerDuty Logo](resource/pagerduty_logo.png)
+</div>
 
 Mission
 -------
