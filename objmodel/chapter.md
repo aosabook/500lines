@@ -7,31 +7,33 @@ Introduction
 ----------------
 
 Object-oriented programming is one of the major programming paradigms in use
-today with a lot of languages providing some form of object-orientation. While on the
+today, with a lot of languages providing some form of object-orientation. While on the
 surface the mechanisms that different object-oriented programming languages
 provide to the programmer are very similar, the details can vary a lot.
 Commonalities of most languages are the presence of objects and some kind of
 inheritance mechanism. Classes, however, are a feature that not every language
-supports directly. For example in prototype based languages like Self or
-JavaScript the concept of class does not exist and objects instead inherit
+supports directly. For example, in prototype-based languages like Self or
+JavaScript, the concept of class does not exist and objects instead inherit
 directly from each other.
 
 Understanding the differences between different object models can be
 interesting. It often reveals the family resemblance between different
-languages. It can be useful to quickly understand the model of a new language by
-putting it into the context of the models of other languages and it can give a
+languages. 
+It can be useful to put the model of a new language into 
+the context of the models of other languages, 
+both to quickly understand the new model, and to get a
 better feeling of the programming language design space.
 
 This chapter explores the implementation of a series of very simple object
-models. It starts out with just having simple instances and classes and the
-possibilities to call methods on instances. This is the "classical"
+models. It starts out with simple instances and classes, and the
+ability to call methods on instances. This is the "classical"
 object-oriented approach that was started by early OO languages such as
-Simula-67 and Smalltalk. This model is then extended step by step, the first three
-steps exploring different language design choices, the last step to improve the
+Simula 67 and Smalltalk. This model is then extended step by step, the first three
+steps exploring different language design choices, and the last step improving the
 efficiency of the object model. The final model is not that of a real language,
-but an idealized, simplified version of that of Python.
+but an idealized, simplified version of Python's object model.
 
-
+STOPPED HERE XXX
 The object models presented in this chapter will also be implemented in Python.
 The code works on both Python 2.7 and 3.4. The tests can be run with either
 py.test or nose.
