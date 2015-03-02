@@ -33,6 +33,23 @@ class Future:
         yield self  # This tells Task to wait for completion.
         return self.result
 
+
+class Task:
+    def __init__(self, coro):
+        self.coro = coro
+        f = Future()
+        f.set_result(None)
+        self.step(f)
+
+    def step(self, future):
+        try:
+            next_future = self.coro.send(future.result)
+        except StopIteration:
+            return
+
+        next_future.add_done_callback(self.step)
+
+
 urls_seen = set(['/'])
 urls_todo = set(['/'])
 concurrency_achieved = 0
@@ -129,22 +146,6 @@ class Fetcher:
         head, body = self.response.split(b'\r\n\r\n', 1)
         headers = dict(h.split(': ') for h in head.decode().split('\r\n')[1:])
         return headers.get('Content-Type', '').startswith('text/html')
-
-
-class Task:
-    def __init__(self, coro):
-        self.coro = coro
-        f = Future()
-        f.set_result(None)
-        self.step(f)
-
-    def step(self, future):
-        try:
-            next_future = self.coro.send(future.result)
-        except StopIteration:
-            return
-
-        next_future.add_done_callback(self.step)
 
 
 start = time.time()
