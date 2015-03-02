@@ -66,22 +66,22 @@ def connect(sock, address):
         pass
 
     def on_connected():
-        selector.unregister(sock.fileno())
         f.set_result(None)
 
     selector.register(sock.fileno(), EVENT_WRITE, on_connected)
     yield from f
+    selector.unregister(sock.fileno())
 
 
 def read(sock):
     f = Future()
 
     def on_readable():
-        selector.unregister(sock.fileno())
         f.set_result(sock.recv(4096))  # Read 4k at a time.
 
     selector.register(sock.fileno(), EVENT_READ, on_readable)
     chunk = yield from f
+    selector.unregister(sock.fileno())
     return chunk
 
 
