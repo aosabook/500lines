@@ -15,7 +15,9 @@ royalties from paid-for versions will all go to Amnesty International.
 The production of this book has been made possible by the financial support of
 [PagerDuty](http://www.pagerduty.com/company/work-with-us/). 
 
-![PagerDuty Logo](resource/pagerduty_logo.png)
+<p align="center">
+    <img src="https://github.com/aosabook/500lines/raw/master/resource/pagerduty_logo.png" alt="PagerDuty Logo" />
+</p>
 
 
 Mission
