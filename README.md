@@ -161,6 +161,18 @@ Contributors
     <td>guido@python.org</td>
   </tr>
   <tr>
+    <td>A. Jesse Jiryu Davis</td>
+    <td>MongoDB</td>
+    <td>crawler</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/jessejiryudavis">@jessejiryudavis</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/ajdavis">ajdavis</a></td>
+    <td>jesse@emptysquare.net</td>
+  </tr>
+  <tr>
     <td>Erick Dransch</td>
     <td>Upverter</td>
     <td>Modeller</td>
