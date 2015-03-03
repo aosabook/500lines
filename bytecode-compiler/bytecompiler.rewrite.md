@@ -20,14 +20,15 @@ one?
 http://en.wikipedia.org/wiki/Principles_of_Compiler_Design#mediaviewer/File:Green_Dragon_Book_%28front%29.jpg
 Of course, there's copyright, besides it being kind of a distraction.]
 
-To untangle this knot of circularity, let's lay out a small compiler
-able to compile itself. We'll write it in and for a subset of Python
-3, adequate to clear, direct coding without demanding too much to
-implement. The result---call it Tailbiter---will be a toy, but less of
-a toy than usual in an introduction: besides the self-compiling, it'll
-include some details of debugging support. To make room for these
-emphases, let's drop the whole topic of optimization---in plainer
-terms, of making the output code less stupid.
+To resolve the riddle, let's make a self-reliant genie---I mean, a
+small compiler able to compile itself. We'll write it in and for a
+subset of Python 3, adequate to clear, direct coding without demanding
+too much to implement. The result---call it Tailbiter---will be a toy,
+but less of a toy than usual in an introduction: besides the
+self-compiling, it'll include some details of debugging support. To
+make room for these emphases, let's drop the whole topic of
+optimization---in plainer terms, of making the output code less
+stupid.
 
 When we're done we'll find it all to be done with no trick, no
 powerful new principle: you'll need to be comfortable with recursion
@@ -35,19 +36,19 @@ over a tree, with nested functions, and with reading a program
 dependent on some built-in Python libraries and types that I'll survey
 but not delve into.
 
-[XXX Drop the mention of nested functions? I'm afraid it might scare
-people away who could get something out of this. But I don't want to
-overpromise accessibility either, not after the cries of despair over
-Udacity CS212. A similar potential hurdle is this being just generally
-more tightly coded than some are used to, like CS212 again. I'd like
-to acknowledge that reading code isn't easy---note how I already
-implied thinking my code is "clear and direct", how conceited---and
-encourage readers anyway. Implying it's clear and simple, when it's at
-least intricate and likely difficult, gets offputting. Warning that
-it's all elite and stuff is also offputting. Help? I guess the
-smallest change is from "adequate to clear, direct coding" to
-"adequate to code in". A pity to make it blander that way. Blah,
-overthinking!]
+[XXX Just drop the above paragraph, I think. Older thoughts: Drop the
+mention of nested functions? I'm afraid it might scare people away who
+could get something out of this. But I don't want to overpromise
+accessibility either, not after the cries of despair over Udacity
+CS212. A similar potential hurdle is this being just generally more
+tightly coded than some are used to, like CS212 again. I'd like to
+acknowledge that reading code isn't easy---note how I already implied
+thinking my code is "clear and direct", how conceited---and encourage
+readers anyway. Implying it's clear and simple, when it's at least
+intricate and likely difficult, gets offputting. Warning that it's all
+elite and stuff is also offputting. Help? I guess the smallest change
+is from "adequate to clear, direct coding" to "adequate to code in". A
+pity to make it blander that way. Blah, overthinking!]
 
 This chapter's goal of self-hosting escapes a textbook's core concerns
 of generating smarter code, for more language features, with more
@@ -56,8 +57,8 @@ spell out a self-hosting compiler: instead you may get a smaller toy
 in the first chapter, then many intricate chapters on each piece of
 the full-scale ones used by hundreds of thousands of programmers. You
 might well start with the smaller toy; but in between such and the
-likes of Clang and GCC, there are engineering lessons to learn from a
-simple real compiler like Python's. I'll try to model some of them in
+likes of Clang and GCC, a simple real compiler like Python's can offer
+engineering lessons too---and I'll try to model some of them in
 miniature. Most of all, I want to show a real(ish) compiler as just
 another program you can read and mess with.
 
@@ -66,8 +67,8 @@ machine which we're targeting. Right away I hit the first snag the
 textbooks don't show you: inadequate documentation. We'll respond by
 building in stages, from a seed just capable of turning the simplest
 source code into working bytecode, learning from each stage how to
-grow into the next. Start with a look at our input and our output: a
-trivial program, from its source text to parsed syntax and then to
+grow into the next. Start with an example of our input and our output:
+a trivial program, from its source text to parsed syntax and then to
 runnable bytecode.
 
 
@@ -168,7 +169,33 @@ of 8-bit bytes instead of Unicode characters.
 [XXX I think we're still just a little too abrupt in digging into
 it... Maybe say something like "We're going to need these details, but
 don't worry about making them stick; maybe you'll want to review if
-you dig into the code"?]
+you dig into the code"? Or how about a diagram of the AST together
+with the disassembly, with the correspondence marked out? Something like
+
+    Module(
+     body=[
+      Assign(
+       value=Str(s='Chrysophylax'),           0 LOAD_CONST      0 ('Chrysophylax')
+       targets=[Name(id='name',ctx=Store())]  3 STORE_NAME      0 (name)
+      ),
+      Expr(
+       value=Call(
+        func=Name(id='print', ctx=Load()),    6 LOAD_NAME       1 (print)
+        args=[
+         Str(s='Hi,'),                        9 LOAD_CONST      1 ('Hi,')
+         Name(id='name', ctx=Load()),        12 LOAD_NAME       0 (name)
+        ]
+       )                                     15 CALL_FUNCTION   2 (2 positional, 0 keyword pair)
+      )                                      18 POP_TOP
+     ]                                       19 LOAD_CONST      2 (None)
+                                             22 RETURN_VALUE
+    )
+
+and maybe both this subsection and the preceding one could share this
+one figure, positioned between the sections? The figure's layout would
+need to make it very clear that it's showing two things with a mapping
+between them, not one complicated thing. Also, one brief mention of
+the line-number info left out of the figure. XXX end of note]
 
 On the left are source-code line numbers (1 and 2); down the middle go
 bytecode instructions, each labeled with the address it's encoded at;
@@ -261,9 +288,6 @@ integers, more so than for the assembler.
 
 
 ## The seed: a 'hello world' compiler
-
-[XXX Perhaps I should find things to say about what makes a good
-spike/seed.]
 
 We want to build a code object, but I haven't documented all the
 details that go into one. Neither did Python! We get to learn them by
@@ -360,6 +384,33 @@ Tailbiter's code must keep to the constructs Tailbiter will implement.
 
 Throughout the compiler, `t` (for 'tree') names an AST object (also
 called a 'node'). These `t`'s appear everywhere.
+
+[XXX Perhaps I should find things to say about what makes a good
+spike/seed. A spike is "driven through the layers"; it works end to
+end, but doesn't actually do anything more than needed to establish a
+foothold (and no this nasty stew of metaphors should not go into the
+chapter as is). It's like K&R starting with hello-world: mastering the
+mechanics before mixing in the difficulties of a 'real' problem. My
+actual start was pretty close to what we're going to see below, but
+the above code about reading in a file and setting up the global
+environment, that was skipped: what I did instead was
+
+    ast5 = ast.parse("print(2+3)")
+    code5 = CodeGen().compile(ast5)
+    dis.dis(code5)
+
+    f = types.Function(code5, globals())
+    f()   # It's alive!
+
+i.e. wiring in the source code to compile, writing out a disassembly
+to look over, and sleazily reusing the tailbiter module's globals() in
+place of a fresh new one. (The latter eventually caused a bit of a
+headscratcher of a bug when I put off replacing that scaffolding for
+too long.) It'd be possible to make the presented seed more honest in
+this way, moving the above code to the middle-stage section, though
+it'd mean more total code in the chapter. It might make more sense to
+promote this note into the actual chapter (rewritten just a bit).
+XXX end of note]
 
 
 ### A visitor walks over a tree
