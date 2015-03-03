@@ -1,4 +1,4 @@
-
+<!-- ??? spelling: see "behavior", line 39, "behaviour" line 46 -->
 A Simple Object Model
 ======================
 
@@ -27,18 +27,19 @@ better feeling of the programming language design space.
 This chapter explores the implementation of a series of very simple object
 models. It starts out with simple instances and classes, and the
 ability to call methods on instances. This is the "classical"
-object-oriented approach that was started by early OO languages such as
+object-oriented approach that was established in early OO languages such as
 Simula 67 and Smalltalk. This model is then extended step by step, the first three
 steps exploring different language design choices, and the last step improving the
 efficiency of the object model. The final model is not that of a real language,
 but an idealized, simplified version of Python's object model.
 
-STOPPED HERE XXX
 The object models presented in this chapter will also be implemented in Python.
 The code works on both Python 2.7 and 3.4. The tests can be run with either
 py.test or nose.
 To understand the behavior and the design choice better the chapter will also
-present tests for the object model. The choice of Python as an implementation
+present tests for the object model. 
+
+The choice of Python as an implementation
 language is quite unrealistic. A "real" VM is typically implemented in a
 low-level language like C/C++ and needs a lot of additional attention to
 engineering detail to make it efficient. However, the simpler implementation
@@ -52,37 +53,41 @@ Method based model
 
 The object model we will start out with is an extremely simplified version of
 that of Smalltalk. Smalltalk was an object-oriented programming language
-designed by Alan Kay's group at Xerox Parc in the 1970s. It popularized
+designed by Alan Kay's group at Xerox PARC in the 1970s. It popularized
 object-oriented programming and is the source of many features found in today's
 programming languages. One of the core tenets of Smalltalk's language design
 was "everything is an object". Smalltalk's most immediate successor in use
 today is Ruby, which uses a more C-like syntax but retains most of Smalltalk's
 object model.
 
+<!-- FIXME: Note to self: are their different object models in later sections? If not, rewrite this. ARB -->
 The object model of this section will have classes and instances of them, the
 ability to read
-and write attributes into objects, the ability to call methods on objects and
+and write attributes into objects, the ability to call methods on objects, and
 the ability for a class to be a subclass of another class. Right from the
-beginning, classes will be completely regular objects, that can themselves have
+beginning, classes will be regular objects that can themselves have
 attributes and methods.
-A note on terminology: In this chapter I will use the word "instance" to mean
+<!-- Note: I removed "completely" here because "regular" doesn't gain much from being modified by "completely". If "completely regular" has some specific meaning in Python (apart from the non-technical sense of "absolutely normal" then we should leave "completely" in. -->
+A note on terminology: in this chapter I will use the word "instance" to mean
 "an object that is not a class".
 
-To start the implementation a good approach is to write a test to think about
+To start the implementation a good approach is to write a test to specify
 what the to-be-implemented behaviour should be. All tests presented in this
-chapter will always consist of two parts: A bit of completely regular Python
+chapter will consist of two parts. First, a bit of regular Python
 code defining and using a few classes, making use of increasingly advanced
-features of the Python object model. The second half of each test is the
+features of the Python object model. Second, the
 corresponding test using the object model we will implement in this chapter,
-instead of normal Python classes. XXX in the final version these will maybe be
-typeset side by side.
+instead of normal Python classes. 
+<!-- FIXME: Note for @mikedebo: in the final version these will maybe be typeset side by side.-->
 
 The mapping between using normal Python classes and using our object model will
-be done manually in the tests. E.g. instead of writing ``obj.attribute`` in
+be done manually in the tests. For example, instead of writing ``obj.attribute`` in
 Python, in the object model we would use a method ``obj.read_attr("attribute")``.
-This mapping would in a real language implementation be done
-by the interpreter of the language, or a compiler. A further simplification in
-this chapter will be that we make no sharp distinction between the code that
+This mapping would, in a real language implementation, be done
+by the interpreter of the language, or a compiler. 
+
+A further simplification in
+this chapter is that we make no sharp distinction between the code that
 implements the object model and the code that is used to write the methods used
 in the objects. In a real system, the two would often be implemented in
 different programming languages.
@@ -121,10 +126,10 @@ def test_read_write_field():
     assert obj.read_attr("b") == 5
 ````
 
-The test uses three things that we will have to implement in this chapter. On
-the one hand the classes ``Class`` and ``Instance`` that represent classes and
-instances of our object model, respectively. On the other hand, there are two
-special instances of class, ``OBJECT`` and ``TYPE``. ``OBJECT`` corresponds to
+The test uses three things that we have to implement. 
+The classes ``Class`` and ``Instance`` represent classes and
+instances of our object model, respectively. There are two
+special instances of class: ``OBJECT`` and ``TYPE``. ``OBJECT`` corresponds to
 ``object`` in Python and is the ultimate base class of the inheritance
 hierarchy. ``TYPE`` corresponds to ``type`` in Python and is the type of all
 classes.
@@ -174,13 +179,13 @@ MISSING = object()
 The ``Base`` class implements storing the class of an object, and a dictionary
 containing the field values of the object.
 Now we need to implement ``Class`` and ``Instance``. The constructor of
-``Instance`` just takes the class to
-be instantiated, it initializes the fields dict as an empty dictionary.
+``Instance`` takes the class to
+be instantiated and initializes the `fields` dict as an empty dictionary.
 Otherwise ``Instance`` is just a very thin subclass around ``Base`` that does
 not add any extra functionality.
+
 The constructor of ``Class`` takes the name of the class,
-the base class, the dictionary of the class and the metaclass (what the
-metaclass is we will discuss a bit later).
+the base class, the dictionary of the class and the metaclass. 
 For classes, the fields are
 passed into the constructor by the user of the object model. The class
 constructor also takes a base class, which the tests so far don't need but
@@ -204,18 +209,19 @@ class Class(Base):
         self.base_class = base_class
 ````
 
-Now we can also see what a metaclass is. Since classes are also a kind of
+Since classes are also a kind of
 object, they (indirectly) inherit from ``Base``. Thus the class needs to be an instance of
 another class, its metaclass.
 
-Now our first test above almost passes. The only missing bit is the definition
+Now our first test almost passes. The only missing bit is the definition
 of the base classes ``TYPE`` and ``OBJECT``, which are both instances of
 ``Class``. For these we will make a major departure from the Smalltalk model,
 which has a fairly complex metaclass system. Instead we will use the model of ObjVlisp, which is
-also the one that Python adopted (footnote: P. Cointe, “Metaclasses are first
+the model that Python adopted (FIXME footnote: P. Cointe, “Metaclasses are first
 class: The ObjVlisp Model,” SIGPLAN Not, vol. 22, no. 12, pp. 156–162, 1987.)
 
-In the ObjVlisp model ``OBJECT`` and ``TYPE`` are intertwined. ``OBJECT`` is the base
+XXX STOPPED HERE
+In the ObjVlisp model, ``OBJECT`` and ``TYPE`` are intertwined. ``OBJECT`` is the base
 class of all classes, meaning it has no base class. ``TYPE`` is a subclass of
 ``OBJECT``.
 By default, every class is an instance of ``TYPE``. In particular, both
