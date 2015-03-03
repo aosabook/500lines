@@ -83,6 +83,15 @@ Contributors
     <td><a href="https://github.com/MichaelDiBernardo">MichaelDiBernardo</a></td>
     <td>mikedebo@gmail.com</td>
   </tr>
+   <tr>
+    <td>Amy Brown</td>
+    <td>indie</td>
+    <td>editorial</td>
+    <td><ul><li><a href="http://www.amyrbrown.ca/">amyrbrown.ca</a></li>
+        <li><a href="http://www.twitter.com/amyrbrown">@amyrbrown</a></li></ul></td>
+    <td><a href="https://github.com/amyrbrown">amyrbrown</a></td>
+    <td>amy@amyrbrown.ca</td>
+  </tr> 
   <tr>
     <td>Dustin Mitchell</td>
     <td>Mozilla</td>
