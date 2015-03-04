@@ -3,8 +3,7 @@ A Simple Object Model
 ======================
 
 
-Introduction
-----------------
+## Introduction
 
 Object-oriented programming is one of the major programming paradigms in use
 today, with a lot of languages providing some form of object-orientation. While on the
@@ -48,8 +47,7 @@ getting bogged down by implementation details.
 
 
 
-Method based model
-----------------------
+## Method-Based Model
 
 The object model we will start out with is an extremely simplified version of
 that of Smalltalk. Smalltalk was an object-oriented programming language
@@ -220,13 +218,12 @@ which has a fairly complex metaclass system. Instead we will use the model of Ob
 the model that Python adopted (FIXME footnote: P. Cointe, “Metaclasses are first
 class: The ObjVlisp Model,” SIGPLAN Not, vol. 22, no. 12, pp. 156–162, 1987.)
 
-XXX STOPPED HERE
 In the ObjVlisp model, ``OBJECT`` and ``TYPE`` are intertwined. ``OBJECT`` is the base
 class of all classes, meaning it has no base class. ``TYPE`` is a subclass of
 ``OBJECT``.
 By default, every class is an instance of ``TYPE``. In particular, both
 ``TYPE`` and ``OBJECT`` are instances of ``TYPE``. However, the programmer can
-also subclass ``TYPE`` to make a new metaclass
+also subclass ``TYPE`` to make a new metaclass:
 
 ````python
 # set up the base hierarchy like in Python (the ObjVLisp model)
@@ -240,15 +237,14 @@ TYPE.cls = TYPE
 OBJECT.cls = TYPE
 ````
 
-To define new metaclasses it is enough to subclass ``TYPE``. However, in the
-rest of this chapter we won't do that, and simply always use ``TYPE`` as the
+To define new metaclasses, it is enough to subclass ``TYPE``. However, in the
+rest of this chapter we won't do that; we'll simply always use ``TYPE`` as the
 metaclass of every class.
 
 XXX diagram: figures/inheritance.svg
 
-Now the first test passes. A second test that is easy to write and immediately
-passes is the following. It checks that reading and writing attributes works on
-classes as well.
+Now the first test passes. The second test checks that reading and writing attributes works on classes as well. It's easy to write, and immediately
+passes. 
 
 ````python
 def test_read_write_field_class():
@@ -268,12 +264,11 @@ def test_read_write_field_class():
     assert A.read_attr("a") == 5
 ````
 
-Isinstance checking
-++++++++++++++++++++++
+### `IsInstance` checking
 
-So far the fact that objects have classes is not really made use of. So the next
-test we are writing implements the ``isinstance`` machinery. The test for that
-looks as follows:
+
+So far we haven't taken advantage of the fact that objects have classes. The next
+test implements the ``isinstance`` machinery:
 
 ````python
 def test_isinstance():
@@ -298,12 +293,12 @@ def test_isinstance():
     assert not b.isinstance(TYPE)
 ````
 
-To check whether an object ``obj`` is an instance of a certain class ``cls`` it
+To check whether an object ``obj`` is an instance of a certain class ``cls``, it
 is enough to check whether ``cls`` is a superclass of the class of ``obj``, or
 the class itself.
-To check whether a class is a superclass of another class the chain of
+To check whether a class is a superclass of another class, the chain of
 superclasses of that class is walked. If and only if the other class is found in
-that chain it is a superclass. The chain of superclasses of a class with the
+that chain, it is a superclass. The chain of superclasses of a class with the
 class itself included is also
 called the "method resolution order" of that class. It can easily be
 computed recursively:
@@ -325,11 +320,10 @@ class Class(Base):
         return cls in self.method_resolution_order()
 ````
 
-With that code the test passes.
+With that code, the test passes.
 
 
-Calling methods
-++++++++++++++++++++
+### Calling methods
 
 The remaining missing feature for this first version of the object model is the
 ability to call methods on objects. In this chapter we will implement a simple
@@ -365,10 +359,10 @@ def test_callmethod_simple():
     assert obj.callmethod("f") == 3
 ````
 
-To find the correct implementation of a method that is sent to an object we walk
+To find the correct implementation of a method that is sent to an object, we walk
 the method resolution order of the class of the object. The first method that is
 found in the dictionary of one of the classes in the method resolution order is
-then called. The code for that looks as follows:
+then called:
 
 ````python
 class Class(Base):
@@ -426,14 +420,15 @@ def test_callmethod_subclassing_and_arguments():
 
 
 
-Attribute based model
-----------------------
+## Attribute-Based Model
 
-Now that we have the simplest version of our object model working we can now think of
+Now that we have the simplest version of our object model working, we can think of
 ways to change it. The change that this section will introduce is the
 distinction between a method-based model and an attribute-based model. This is
-one of the core differences between Smalltalk, Ruby, JavaScript on the one hand
-and Python, Lua on the other hand. The method-based model has the calling of
+one of the core differences between Smalltalk, Ruby, and JavaScript on the one hand
+and Python and Lua on the other hand. 
+
+The method-based model has the calling of
 methods as the primitive operation of program execution:
 
 ````python
@@ -441,7 +436,7 @@ result = obj.f(arg1, arg2)
 ````
 
 The attribute-based
-model splits up the method calling into two steps, looking up an attribute
+model splits up the method calling into two steps: looking up an attribute
 and then calling the result:
 
 ````python
@@ -485,7 +480,8 @@ def test_bound_method():
     assert m(10) == 12
 ````
 
-While the set up of the classes is the same as the corresponding test for
+XXX STOPPED HERE
+While the setup of the classes is the same as the corresponding test for
 method calls, the way that the methods are called is different. First, the
 attribute with the name of the method is looked up on the object. The result of
 that lookup operation is a *bound method*, an object that encapsulates both the
