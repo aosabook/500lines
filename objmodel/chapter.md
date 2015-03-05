@@ -1,4 +1,4 @@
-<!-- ??? spelling: see "behavior", line 39, "behaviour" line 46 -->
+<!-- English spelling: "behaviour" line 46 -->
 A Simple Object Model
 ======================
 
@@ -35,7 +35,7 @@ but an idealized, simplified version of Python's object model.
 The object models presented in this chapter will also be implemented in Python.
 The code works on both Python 2.7 and 3.4. The tests can be run with either
 py.test or nose.
-To understand the behavior and the design choice better the chapter will also
+To understand the behaviour and the design choice better the chapter will also
 present tests for the object model. 
 
 The choice of Python as an implementation
@@ -241,7 +241,7 @@ To define new metaclasses, it is enough to subclass ``TYPE``. However, in the
 rest of this chapter we won't do that; we'll simply always use ``TYPE`` as the
 metaclass of every class.
 
-XXX diagram: figures/inheritance.svg
+![](figures/inheritance.png)
 
 Now the first test passes. The second test checks that reading and writing attributes works on classes as well. It's easy to write, and immediately
 passes. 
@@ -480,13 +480,12 @@ def test_bound_method():
     assert m(10) == 12
 ````
 
-XXX STOPPED HERE
 While the setup of the classes is the same as the corresponding test for
 method calls, the way that the methods are called is different. First, the
 attribute with the name of the method is looked up on the object. The result of
 that lookup operation is a *bound method*, an object that encapsulates both the
 object as well as the function found in the class. Then that bound method is
-called with a call operation. (footnote: It seems that the attribute-based
+called with a call operation. (FIXME footnote: It seems that the attribute-based
 model is conceptually more complex, because it needs both method lookup and
 call. In practice, calling something is defined by looking up and calling a
 special attribute ``__call__``, so conceptual simplicity is regained. This won't
@@ -533,23 +532,22 @@ def _make_boundmethod(meth, self):
 The rest of the code does not need to be changed at all.
 
 
-Meta-object protocols
-----------------------
+## Meta-Object Protocols
 
 In addition to "normal" methods that are called directly by the program, many
 dynamic languages support *special methods*. These are methods that aren't meant
 to be called directly but will be called by the object system. In Python those
-special methods usually have names that start and end with two underscores, e.g.
+special methods usually have names that start and end with two underscores; e.g.,
 ``__init__``. Special methods can be used to override primitive operations and
 provide custom behaviour for them instead. Thus they are hooks that tell the
 object model machinery how exactly to do certain things. Python's object model
 has dozens of special methods
-(footnote: https://docs.python.org/2/reference/datamodel.html#special-method-names )
+(FIXME footnote: https://docs.python.org/2/reference/datamodel.html#special-method-names )
 
-Historically meta-object protocols have been introduced by Smalltalk but even
-more strongly by the object systems for Common Lisp, such as CLOS, which is also
-where the name *meta-object protocol* for collections of special methods was
-coined (footnote: G. Kiczales, J. des Rivieres, and D. G. Bobrow, The Art of
+Historically, meta-object protocols were introduced by Smalltalk but were used even
+more strongly by the object systems for Common Lisp, such as CLOS. That is also
+where the name *meta-object protocol*, for collections of special methods, was
+coined (FIXME footnote: G. Kiczales, J. des Rivieres, and D. G. Bobrow, The Art of
 the Metaobject Protocol. Cambridge, Mass: The MIT Press, 1991.).
 
 In this chapter we will add three such meta-hooks to our object model. They are
@@ -558,16 +556,15 @@ special methods we will add first are ``__getattr__`` and ``__setattr__``, which
 follow closely the behaviour of Python's namesakes.
 
 
-Customizing Reading and Writing and Attribute
-++++++++++++++++++++++++++++++++++++++++++++++
+### Customizing Reading and Writing and Attribute
 
 The method ``__getattr__`` is called by the object model when the attribute that
-is being looked up currently is not found by normal means, i.e. neither on the
+is being looked up is not found by normal means; i.e., neither on the
 instance nor on the class. It gets the name of the attribute being looked up as
 an argument. An equivalent of the ``__getattr__`` special method was part of
-early Smalltalk systems under the name ``doesNotUnderstand:`` (footnote: A.
+early Smalltalk systems under the name ``doesNotUnderstand:`` (FIXME footnote: A.
 Goldberg, Smalltalk-80: The Language and its Implementation. Addison-Wesley,
-1983, page 61.)
+1983, page 61.).
 
 The case of ``__setattr__`` is a bit different. Since setting an attribute
 always creates it, ``__setattr__`` is always called when setting an attribute.
@@ -630,7 +627,7 @@ def test_getattr():
 ````
 
 To pass these tests, the ``Base.read_attr`` and ``Base.write_attr`` methods
-needs to be changed as follows:
+need to be changed as follows:
 
 ```` python
 class Base(object):
@@ -658,11 +655,11 @@ class Base(object):
 ````
 
 Reading an attribute is changed to call the ``__getattr__`` method with the
-fieldname as an argument instead of raising an error, if the method exists. Note
+fieldname as an argument, if the method exists, instead of raising an error. Note
 that ``__getattr__`` (and indeed all special methods in Python) is looked up on
 the class only, instead of recursively calling
 ``self.read_attr("__getattr__")``. The reason for that is that the latter would
-lead to an infinite recursion of ``read_attr`` if ``__getattr__`` is not defined
+lead to an infinite recursion of ``read_attr`` if ``__getattr__`` were not defined
 on the object.
 
 Writing an attribute is fully deferred to the ``__setattr__`` method. To make
@@ -679,10 +676,9 @@ The behaviour of ``OBJECT__setattr__`` is like the previous behaviour of
 ``write_attr``. With these modifications, the new test passes.
 
 
-Descriptor Protocol
-+++++++++++++++++++++
+### Descriptor Protocol
 
-The test in the previous subsection to provide automatic conversion between
+The above test to provide automatic conversion between
 different temperature
 scales worked, but was slightly annoying to write, as the attribute name needed
 to be checked explicitly in the ``__getattr__`` and ``__setattr__`` methods. To
@@ -729,8 +725,8 @@ def test_get():
 
 The ``__get__`` method is called on the ``FahrenheitGetter`` instance after that
 has been looked up in the class of ``obj``. The arguments to ``__get__`` are the
-instance where the lookup was done. (footnote: In Python the second argument is
-the class where the attribute was found, though we will ignore this part here.)
+instance where the lookup was done. (FIXME footnote: In Python the second argument is
+the class where the attribute was found, though we will ignore that here.)
 
 Implementing this behaviour is easy. We simply need to change ``_is_bindable``
 and ``_make_boundmethod``:
@@ -743,8 +739,8 @@ def _make_boundmethod(meth, self):
     return meth.__get__(self, None)
 ````
 
-This makes the test pass. It also keeps the previous tests about bound methods
-passing, as Python's functions have a ``__get__`` method that return a bound
+This makes the test pass. The previous tests about bound methods also still
+pass, as Python's functions have a ``__get__`` method that return a bound
 method object.
 
 In practice, the descriptor protocol is quite a lot more complex. It also
@@ -757,14 +753,13 @@ having a representation for them that uses the object model. A more complete
 object model would have to solve this problem.
 
 
-Instance optimization
-----------------------
+## Instance Optimization
 
 While the first three variants of the object model were concerned with
 behavioural variation, in this last section we will look at an optimization
 without any behavioural impact. This optimization is called *maps* and was
-pioneered by the VM for the Self programming language (footnote:
-C. Chambers, D. Ungar, and E. Lee, “An efficient implementation of SELF a
+pioneered by the VM for the Self programming language (FIXME footnote:
+C. Chambers, D. Ungar, and E. Lee, “An efficient implementation of SELF, a
 dynamically-typed object-oriented language based on prototypes,” in OOPSLA,
 1989, vol. 24.). It is still one of the most important object model
 optimizations. It's used in PyPy and all all modern JavaScript VMs, such as V8
@@ -816,7 +811,7 @@ def test_maps():
     assert p3.map.attrs == {"x": 0, "z": 1}
 ````
 
-Note how this is a different flavour of test than the ones we've written
+Note that this is a different flavour of test than the ones we've written
 before. All previous tests just tested the behaviour of the classes via the
 exposed interfaces. This test instead checks the implementation details of the
 ``Instance`` class by reading internal attributes and comparing them to
@@ -829,7 +824,7 @@ and adding the same attributes in the same order to it will make it end up with
 the same map. If on the other hand a different attribute is added, the map can
 of course not be shared.
 
-The ``Map`` class looks as follows:
+The ``Map`` class looks like this:
 
 ````python
 class Map(object):
@@ -859,7 +854,7 @@ a different map, which ``next_map`` computes. The method uses the ``next_maps``
 dictionary to cache already created maps. That way, objects that have the same
 layout also end up using the same ``Map`` object.
 
-XXX diagram: figures/maptransitions.svg
+![](figures/maptransition.png)
 
 The changed ``Instance`` implementation that uses maps looks like this:
 
@@ -889,43 +884,43 @@ class Instance(Base):
             self.map = new_map
 ````
 
-The class now passes ``None`` as the fields dict to ``Base``, as ``Instance``
-will now store the content of the dict in another way. Therefore it now needs
+The class now passes ``None`` as the fields dictionary to ``Base``, as ``Instance``
+will now store the content of the dictionary in another way. Therefore it now needs
 to override the the ``_read_dict`` and ``_write_dict`` methods. In a real
 implementation, we would refactor the ``Base`` class to not be responsible for
-storing the field dictionary any more, but for this section having instances
+storing the fields dictionary any more, but for now having instances
 store ``None`` there is good enough.
 
-When creating a new instance it starts out with using the ``EMPTY_MAP``, which
-has no attributes, and an empty storage. To implement ``_read_dict``, the
+When creating a new instance, the class starts out using the ``EMPTY_MAP``, which
+has no attributes, and empty storage. To implement ``_read_dict``, the
 instance's map is asked for the index of the attribute name. Then the
 corresponding entry of the storage list is returned.
 
 Writing into the fields dictionary has two cases. On the one hand the value of
 an existing
 attribute can be changed. This is done by simply changing the storage at the
-corresponding index. If the attribute does not exist yet, a *map transition* is
+corresponding index. On the other hand, if the attribute does not exist yet, a *map transition* is
 needed using the ``next_map`` method. The value of the new attribute is appended
 to the storage list.
 
 
-What does this optimization achieve? It optimizes the memory use of the common
-case where many instances that have the same layout exist. It is not a universal
-optimization: Code that creates instances with wildly different sets of
-attributes will have a larger memory footprint than just using dictionaries.
+What does this optimization achieve? It optimizes use of memory in the common
+case where there are many instances with the same layout. It is not a universal
+optimization: code that creates instances with wildly different sets of
+attributes will have a larger memory footprint than if we just use dictionaries.
 
-This is a common approach for optimizing dynamic languages. It is often not
-possible to find optimizations that are faster or use less memory in *all*
-cases. To still speed up programs in practice, optimizations are chosen that
-should apply to how the language is typically used in practice, while potentially
+This is a common problem when optimizing dynamic languages. It is often not
+possible to find optimizations that are faster or use less memory in all
+cases. In practice, optimizations are chosen that
+apply to how the language is *typically* used, while potentially
 making the behaviour worse for programs that use extremely dynamic features.
 
-Another interesting aspect of maps is that while in this chapter they are only
-used as a memory optimization, in actual VMs that use a JIT compiler they also
+Another interesting aspect of maps is that, while in this chapter they are only
+used as a memory optimization, in actual VMs that use a just-in-time (JIT) compiler they also
 improve the performance of the program. To achieve that, the JIT uses the maps
 to compile attribute lookups to a lookup in the objects' storage
-at a fixed offset, getting rid of all dictionary lookups completely (footnote:
-How that works is quite a bit beyond the scope of this chapter. I've tried to
+at a fixed offset, getting rid of all dictionary lookups completely (FIXME footnote:
+How that works is quite a bit beyond the scope of this chapter. I tried to
 give a reasonably readable account of how a JIT can do that in a paper I wrote
 a few years ago. It uses an object model that is basically a variant of the one
 in this chapter: C. F. Bolz, A. Cuni, M. Fijałkowski, M. Leuschel, S. Pedroni,
@@ -934,10 +929,9 @@ languages,” in Proceedings of the 6th Workshop on Implementation, Compilation,
 Optimization of Object-Oriented Languages, Programs and Systems, New York, NY,
 USA, 2011, pp. 9:1–9:8.).
 
-Potential Extensions
-----------------------
+## Potential Extensions
 
-It is easy to extend the object model we have so far with various extensions and
+It is easy to extend the object model we have so far and
 to experiment with various language design choices. Here are some possibilities:
 
 - The easiest thing to do is to add further special methods. Some easy and
@@ -945,31 +939,30 @@ to experiment with various language design choices. Here are some possibilities:
 
 - The model can be very easily extended to support multiple inheritance. To do
   this, every class would get a list of base classes. Then, the ``Class.method_resolution_order``
-  method needs to be changed to support looking up methods. A simple method
-  resolution order can be computed using a depth first search with removal of
-  duplicates. A more complicated but better one is the C3 algorithm (footnote:
+  method would need to be changed to support looking up methods. A simple method
+  resolution order could be computed using a depth-first search with removal of
+  duplicates. A more complicated but better one is the C3 algorithm (FIXME footnote:
   https://www.python.org/download/releases/2.3/mro/ ) that adds
   better handling in the base of diamond-shaped multiple inheritance
   hierarchies and rejects insensible inheritance patterns.
 
-- A more radical change is to switch to a prototype model, which is the removal
+- A more radical change is to switch to a prototype model, which involves the removal
   of the distinction between classes and instances.
 
 
-Conclusions
---------------
+## Conclusions
 
-The details of its object model are one of the core aspects of the design of an
-object oriented programming language. Writing small object model prototypes is
-thus an easy and fun way to understand the inner workings of existing languages
-better and to get insights into the design space of object oriented languages.
+Some of the core aspects of the design of an
+object-oriented programming language are the details of its object model. Writing small object model prototypes is
+an easy and fun way to understand the inner workings of existing languages
+better and to get insights into the design space of object-oriented languages.
 Playing with object models is a good way to experiment with different language
-design ideas without having to care for the more boring parts of language
+design ideas without having to worry about the more boring parts of language
 implementation, such as parsing and executing code.
 
 Such object models can also be useful in practice, not just as vehicles for
-experimentation. They can be embedded and used from other languages. Examples
-of this approach are common, e.g. the GObject object model, written in C,
+experimentation. They can be embedded in and used from other languages. Examples
+of this approach are common: the GObject object model, written in C,
 that's used in GLib and other Gnome libraries; or the various class system
 implementations in JavaScript.
 
