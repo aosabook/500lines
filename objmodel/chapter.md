@@ -238,8 +238,7 @@ metaclass of every class.
 
 ![](figures/inheritance.png)
 
-Now the first test passes. The second test checks that reading and writing attributes works on classes as well. It's easy to write, and immediately
-passes. 
+Now the first test passes. The second test checks that reading and writing attributes works on classes as well. It's easy to write, and passes immediately. 
 
 ````python
 def test_read_write_field_class():
@@ -259,7 +258,7 @@ def test_read_write_field_class():
     assert A.read_attr("a") == 5
 ````
 
-### `IsInstance` Checking
+### `isinstance` Checking
 
 
 So far we haven't taken advantage of the fact that objects have classes. The next
@@ -293,8 +292,8 @@ is enough to check whether ``cls`` is a superclass of the class of ``obj``, or
 the class itself.
 To check whether a class is a superclass of another class, the chain of
 superclasses of that class is walked. If and only if the other class is found in
-that chain, it is a superclass. The chain of superclasses of a class with the
-class itself included is 
+that chain, it is a superclass. The chain of superclasses of a class, including the
+class itself, is 
 called the "method resolution order" of that class. It can easily be
 computed recursively:
 
@@ -417,7 +416,7 @@ def test_callmethod_subclassing_and_arguments():
 
 ## Attribute-Based Model
 
-Now that we have the simplest version of our object model working, we can think of
+Now that the simplest version of our object model is working, we can think of
 ways to change it. This section will introduce the
 distinction between a method-based model and an attribute-based model. This is
 one of the core differences between Smalltalk, Ruby, and JavaScript on the one hand
@@ -657,7 +656,7 @@ the class only, instead of recursively calling
 lead to an infinite recursion of ``read_attr`` if ``__getattr__`` were not defined
 on the object.
 
-The procedure for writing an attribute is fully deferred to the ``__setattr__`` method. To make
+Writing of attributes is fully deferred to the ``__setattr__`` method. To make
 this work, ``OBJECT`` needs to have a ``__setattr__`` method that calls the
 default behaviour, as follows:
 
