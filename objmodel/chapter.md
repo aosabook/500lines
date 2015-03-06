@@ -63,10 +63,6 @@ and write attributes into objects, the ability to call methods on objects, and
 the ability for a class to be a subclass of another class. Right from the
 beginning, classes will be regular objects that can themselves have
 attributes and methods.
-<!-- Note: I removed "completely" here because "regular" doesn't gain much from being modified by "completely". If "completely regular" has some specific meaning in Python (apart from the non-technical sense of "absolutely normal" then we should leave "completely" in. -->
-
-A note on terminology: in this chapter I will use the word "instance" to mean
-"an object that is not a class".
 
 A good approach to start with is to write a test to specify
 what the to-be-implemented behaviour should be. All tests presented in this
