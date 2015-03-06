@@ -152,7 +152,7 @@ A vector is an $x$, $y$, and $z$ value representing the difference between two p
 
 ### Transformation Matrix
 In computer graphics, it is convenient to use multiple different coordinate spaces for different types of points. Transformation matrices convert points from one coordinate space to another coordinate space.
-To convert a vector $v$ from one coordinate space to another, we multiply by a transformation matrix $M: v' = M v$.
+To convert a vector $v$ from one coordinate space to another, we multiply by a transformation matrix $M$: $v' = M v$.
 Some common transformation matrices are translations (moves), scaling, and rotations.
 
 ### Model, World, View, and Projection Coordinate Spaces
@@ -355,7 +355,7 @@ of nodes with no added complexity.
 
 As motivation, let us consider a very basic figure: a typical snowman, or snow figure, made up of three spheres. Even though the figure is comprised of three separate primitives, we would like to be able to treat it as a single object.
 
-We create a class called `HierarchicalNode`, a node that contains other nodes. It manages a list of 'children'.
+We create a class called `HierarchicalNode`, a `Node` that contains other nodes. It manages a list of "children".
 The `render_self` function for hierarchical nodes simply calls `render_self` on each of the child nodes.
 With the `HierarchicalNode` class, it is very easy to add figures to the scene.
 Now, defining the snow figure is as simple as specifying the shapes that comprise it, and their relative positions and sizes.
