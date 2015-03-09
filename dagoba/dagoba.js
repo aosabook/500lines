@@ -32,6 +32,10 @@
     There are some pipe types defined by default.
     There are also a few helper functions.
     That's all.
+
+
+    copyright dann toliver, 2015
+    version 0.3.3
 */
 
 
