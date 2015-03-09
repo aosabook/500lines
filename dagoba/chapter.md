@@ -6,7 +6,7 @@ A long time ago, when the world was still young, all data walked happily in sing
 
 Then came the random access revolution, and data grazed freely across the hillside. Herding data became a serious concern -- if you can access any piece of data at any time, how do you know which one to pick next? Techniques were developed for corralling the data by forming links between items [footnoteA], marshaling groups of units into formation through their linking assemblage. Questioning data meant picking a sheep and pulling along everything connected to it. 
 
-Later programmers departed from this tradition, imposing a set of rules on how data would be aggregated[footnoteB]. Rather than tying disparate data directly together they would cluster by content, decomposing data into bite-sized pieces, clustered in kennels and collared with a name tag. Questions were declaratively posited, resulting in accumulating pieces of partially decomposed data (a state the relationalists refer to as "normal") into a frankencollection returned to the programmer.
+Later programmers departed from this tradition, imposing a set of rules on how data would be aggregated[footnoteB]. Rather than tying disparate data directly together they would cluster by content, decomposing data into bite-sized pieces, collected in kennels and collared with a name tag. Questions were declaratively posited, resulting in accumulating pieces of partially decomposed data (a state the relationalists refer to as "normal") into a frankencollection returned to the programmer.
 
 For much of recorded history this relational model reigned supreme. Its dominance went unchallenged through two major language wars and countless skirmishes. It offered everything you could ask for in a model, for the small price of inefficiency, clumsiness and lack of scalability. For eons that was a price programmers were willing to pay. Then the internet happened.
 
@@ -14,7 +14,7 @@ The distributed revolution changed everything, again. Data broke free of spacial
 
 [footnoteA: One of the very first database designs was the hierarchical model, which grouped items into tree-shaped hierarchies and is still used as the basis of IBM's IMS product, a high-speed transaction processing system. It's influence can also been seen in XML, file systems and geographic information storage. The network model, invented by Charles Bachmann and standardized by CODASYL, generalized the hierarchical model by allowing multiple parents, forming a DAG instead of a tree. These navigational database models came in to vogue in the 1960s and continued their dominance until performance gains made relational databases usable in the 1980s.]
 
-[footnoteB: Codd developed relational database theory while working at IBM. Big Blue feared a new relational database would cannibalize the sales of IMS, and while they eventually built a research prototype called System R it was based on a new non-relational language (SEQUEL) instead of Codd's original Alpha language. The SEQUEL language was copied by Larry Ellison in his Oracle Database based on pre-launch conference papers, and the name changed to SQL to avoid trademark disputes. A nice model twisted into a half-baked prototype, which spawns a shoddy copy with a different name, which becomes wildly popular and wastes millions of programmer hours: this is the story of software engineering.]
+[footnoteB: Codd developed relational database theory while working at IBM, but Big Blue feared that a relational database would cannibalize the sales of IMS. While IBM eventually built a research prototype called System R, it was based around a new non-relational language called SEQUEL, instead of Codd's original Alpha language. The SEQUEL language was copied by Larry Ellison in his Oracle Database based on pre-launch conference papers, and the name changed to SQL to avoid trademark disputes. A nice model twisted into a half-baked prototype, which spawns a shoddy copy with a different name, which becomes wildly popular and wastes millions of programmer hours: this is the story of software engineering.]
 
 
 ## Definitions and introductions
@@ -23,7 +23,7 @@ This graph database we build will allow us to elegantly solve all kinds of inter
 
 Well, the dictionary defines "graph database" as a database for graphs. Thanks, dictionary! Let's break that down a little.
 
-A data base is like a fort for data. You can put data in it and get data back out of it.
+A "data base" is like a fort for data. You can put data in it and get data back out of it.
 
 A graph in this sense is a set of vertices and a set of edges. It's basically a bunch of dots connected by lines. 
 
@@ -44,14 +44,42 @@ Something like ```Thor.parents.parents.parents.children.children.children``` str
 What's the simplest thing we can build that gives us this kind of interface? We could make a list of entities and a list of edges, just like the relational schema, and then build some helper functions. It might look something like this:
 
 ```javascript
-  V = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
-  E = [ [1,2], [1,3], [2,4], [2,5], [3,6], [3,7], [4,8], [4,9], [5,10], [5,11], [6,12], [6,13], [7,14], [7,15] ]
-  
-  parents  = function(x) { return E.reduce( function(acc, e) { return ~x.indexOf(e[1]) ? acc.concat(e[0]) : acc }, [] )}
-  children = function(x) { return E.reduce( function(acc, e) { return ~x.indexOf(e[0]) ? acc.concat(e[1]) : acc }, [] )}
+V = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+E = [ [1,2], [1,3], [2,4], [2,5], [3,6], [3,7], [4,8], [4,9], [5,10], [5,11], [6,12], [6,13], [7,14], [7,15] ]
+
+// imperative style
+parents = function(vertices) {
+  var accumulator = []
+  for(var i=0; i < E.length; i++) {
+    var edge = E[i]
+    if(vertices.indexOf(edge[1]) !== -1)
+      accumulator.push(edge[0])
+  }
+  return accumulator
+}
 ```
 
-Now we can say something like ```children(children(children(parents(parents(parents([8]))))))```. It reads backwards and you get lost in silly parens, but is otherwise pretty close to what we wanted. Take a minute to look at the code. Can you see any ways to improve it?
+The essence of the above function is to iterate over a list, evaluating some code for each item and building up an accumulator of results. It's a little hard to see that though, because the looping construct introduces some unnecessary complexity. 
+
+It'd be nice if there was a more specific looping construct designed for this purpose. As it happens, the `reduce` function does exactly what we'd like: given a list and a function, it evaluates the function for each element of the list, threading the accumulator through each evaluation pass.
+
+Written in this more functional style, our functions are both shorter and clearer in intent:
+
+```javascript
+parents  = (vertices) => E.reduce( (acc, [parent, child]) => vertices.includes(child)  ? acc.concat(parent) : acc , [] )
+children = (vertices) => E.reduce( (acc, [parent, child]) => vertices.includes(parent) ? acc.concat(child)  : acc , [] )
+```
+
+Given a list of vertices we then reduce over the edges, adding an edge's parent to the accumulator if the edge's child is in our input list. The children function is identical, but it looks at the edge's parent to determine whether to add the edge's child.
+
+Those functions are valid JS, but use a few features browsers haven't implemented as of this writing. This translated version will work today:
+
+```javascript
+parents  = function(x) { return E.reduce( function(acc, e) { return ~x.indexOf(e[1]) ? acc.concat(e[0]) : acc }, [] )}
+children = function(x) { return E.reduce( function(acc, e) { return ~x.indexOf(e[0]) ? acc.concat(e[1]) : acc }, [] )}
+```
+
+Now we can say something like ```children(children(children(parents(parents(parents([8]))))))```. It reads backwards and gets us lost in silly parens, but is otherwise pretty close to what we wanted. Take a minute to look at the code. Can you see any ways to improve it?
 
 Well, we're treating the edges as a global variable, which means we can only ever have one database at a time using these helper functions. That's pretty limiting. 
 
@@ -59,7 +87,7 @@ We're also not using the vertices at all. What does that tell us? It implies tha
 
 The same holds true for our edges: they contain an 'in' vertex and an 'out' vertex [footnote1], but no elegant way to incorporate additional information. We'll need that to answer questions like "How many stepparents did Loki have?" or "How many children did Odin have before Thor was born?"
 
-You don't have to squint very hard to tell that the code for our two selectors looks very similar, which suggests there's a deeper abstraction from which those spring. 
+You don't have to squint very hard to tell that the code for our two selectors looks very similar, which suggests there may be a deeper abstraction from which those spring. 
 
 Do you see any other issues?
 
@@ -344,7 +372,7 @@ Dagoba.addPipetype('out', Dagoba.simpleTraversal('out'))
 Dagoba.addPipetype('in',  Dagoba.simpleTraversal('in'))
 ```
 
-The simpleTraversal function returns a pipetype handler that accepts a gremlin as its input, and then spawns a new gremlin each time it's queried. When it's out of gremlins it sending back a 'pull' request to get a new gremlin from its predecessor. 
+The simpleTraversal function returns a pipetype handler that accepts a gremlin as its input, and then spawns a new gremlin each time it's queried. Once those gremlins are gone it sends back a 'pull' request to get a new gremlin from its predecessor. 
 
 ```javascript
 Dagoba.simpleTraversal = function(dir) {
@@ -383,13 +411,19 @@ In this case, with a dozen or so pipetypes, the right choice seems to be to styl
 
 #### Property
 
-Let's pause for a moment to consider an example query based on the three pipetypes we've seen. We can ask for Thor's grandfathers like this: ```g.v('Thor').in('father').in('father').run()```.[footnote: The ```run()``` at the end of the query invokes the interpreter and returns results.] But what if we wanted their names? 
+Let's pause for a moment to consider an example query based on the three pipetypes we've seen. We can ask for Thor's grandfathers like this: `g.v('Thor').in('father').in('father').run()`. [footnote: The `run()` at the end of the query invokes the interpreter and returns results.] But what if we wanted their names? 
 
 We could put a map on the end of that:
-```g.v('Thor').in('father').in('father').run().map(function(vertex) {return vertex.name})```
+
+```javascript
+g.v('Thor').in('father').in('father').run().map(function(vertex) {return vertex.name})
+```
 
 But this is a common enough operation that we'd prefer to write something more like:
-```g.v('Thor').in('father').in('father').property('name').run()```
+
+```javascript
+g.v('Thor').in('father').in('father').property('name').run()
+```
 
 Plus this way the property pipe is an integral part of the query, instead of something appended after. This has some interesting benefits, as we'll soon see.
 
@@ -568,17 +602,21 @@ We map over each argument, looking for it in the gremlin's list of labeled verti
 
 We've already seen cases where we would like to say "Give me all of Thor's siblings who are not Thor". We can do that with a filter:
 
-```g.v('Thor').out().in().unique().filter(function(asgardian) {return asgardian._id != 'Thor'}).run()```
+```javascript
+g.v('Thor').out().in().unique().filter(function(asgardian) {return asgardian._id != 'Thor'}).run()
+```
 
 It's more straightforward with 'as' and 'except':
 
-```
+```javascript
 g.v('Thor').as('me').out().in().except('me').unique().run()
 ```
 
 But there are also queries that would be very difficult to try to filter. What if we wanted Thor's uncles and aunts? How would we filter out his parents? It's easy with 'as' and 'except':
 
-```g.v('Thor').out().as('parent').out().in().except('parent').unique().run()```
+```javascript
+g.v('Thor').out().as('parent').out().in().except('parent').unique().run()
+```
 
 [footnote: There are certain conditions under which this particular query might yield unexpected results. Can you think of any? How could you modify it to handle those cases?]
 
@@ -745,7 +783,7 @@ We compared programs to pipelines earlier, and that's a good mental model for wr
 
 Reading the step means evaluating the pipetype function. As we saw above, each of those functions accepts as input the entire graph, its own arguments, maybe a gremlin, and its own local state. As output it provides a gremlin, false, or a signal of 'pull' or 'done'. The output is what our quasi-Turing machine reads to change its own state.
 
-That state is comprised of just two variables: one to record steps that are ```done```, and another to record the ```results``` of the query. Those are potentially updated, and the machine head either moves left, moves right, or the query finishes and the result is returned.
+That state is comprised of just two variables: one to record steps that are `done`, and another to record the `results` of the query. Those are potentially updated, and the machine head either moves left, moves right, or the query finishes and the result is returned.
 
 So we've now described all the state in our machine. We'll have a list of results that starts empty:
 
@@ -753,13 +791,13 @@ So we've now described all the state in our machine. We'll have a list of result
   var results = []
 ```
 
-An index of the last ```done``` step that starts behind the first step:
+An index of the last `done` step that starts behind the first step:
 
 ```javascript
   var done = -1
 ```
 
-We need a place to store most recent step's output, which might be a gremlin -- or it might be nothing -- so we'll call it ```maybe_gremlin```:
+We need a place to store the most recent step's output, which might be a gremlin -- or it might be nothing -- so we'll call it `maybe_gremlin`:
 
 ```javascript
   var maybe_gremlin = false
@@ -807,7 +845,7 @@ thunk()                   // -> 6
 
 None of the thunks are invoked until one is actually needed, which usually implies some type of output is required: in our case the result of a query. Each time the interpreter encounters a new function call, we wrap it in a thunk. Recall our original formulation of a query: ```children(children(children(parents(parents(parents([8]))))))```. Each of those layers would be a thunk, wrapped up like an onion.
 
-There are a couple of tradeoffs with this approach: one is that spacial performance becomes more difficult to reason about, because of the potentially vast thunk graphs that can be created. Another is that our program is now expressed as a single thunk, and we can't do much with it at that point.
+There are a couple of tradeoffs with this approach: one is that spatial performance becomes more difficult to reason about, because of the potentially vast thunk graphs that can be created. Another is that our program is now expressed as a single thunk, and we can't do much with it at that point.
 
 This second point isn't usually an issue, because of the phase separation between when our compiler runs its optimizations and when all the thunking occurs during runtime. But in our case we don't have that advantage: because we're using method chaining to implement a fluent interface* if we also use thunks to get our laziness we would have to thunk each new method as it is called, which means by the time we get to ```run()``` we have only a single thunk as our input, and no way to optimize our query.
 
@@ -994,7 +1032,7 @@ Dagoba.addAlias('parents', 'out')
 Dagoba.addAlias('children', 'in')
 ```
 
-We can also start to specialize our data model a little more, by labeling each edges between a parent and child as a 'parent' edge. Then our aliases would look like this:
+We can also start to specialize our data model a little more, by labeling each edge between a parent and child as a 'parent' edge. Then our aliases would look like this:
 
 ```javascript
 Dagoba.addAlias('parents', 'out', ['parent'])
@@ -1030,7 +1068,7 @@ All production graph databases share a very particular performance characteristi
 
 To alleviate this dismal performance most databases index over oft-queried fields, which turns an O(n) search into an O(log n) search. This gives considerably better search performance, but at the cost of some write performance and a lot of space -- indices can easily double the size of a database. Careful balancing of the space/time tradeoffs of indices is part of the perpetual tuning process for most databases.
 
-Graph databases sidestep this issue by making direct connections between vertices and edges, so graph traversals are just pointer jumps: no need to read through everything, no need for indices. Now finding your friends has the same price regardless of total number of people in the graph, with no additional space cost or write time cost. One downside to this approach is that the pointers work best when the whole graph is in memory on the same machine. Effectively sharding a graph database across multiple machines is still an active area of research. [footnote: Sharding a graph database requires partitioning the graph. Optimal graph partitioning is NP-hard, even for simple graphs like trees and grids, and even good approximations have exponential asymptotic complexity. [http://arxiv.org/pdf/1311.3144v2.pdf, http://dl.acm.org/citation.cfm?doid=1007912.1007931] ]
+Graph databases sidestep this issue by making direct connections between vertices and edges, so graph traversals are just pointer jumps: no need to scan through every item, no need for indices, no extra work at all. Now finding your friends has the same price regardless of the total number of people in the graph, with no additional space cost or write time cost. One downside to this approach is that the pointers work best when the whole graph is in memory on the same machine. Effectively sharding a graph database across multiple machines is still an active area of research. [footnote: Sharding a graph database requires partitioning the graph. Optimal graph partitioning is NP-hard, even for simple graphs like trees and grids, and even good approximations have exponential asymptotic complexity. [http://arxiv.org/pdf/1311.3144v2.pdf, http://dl.acm.org/citation.cfm?doid=1007912.1007931] ]
 
 We can see this at work in the microcosm of Dagoba if we replace the functions for finding edges. Here's a naive version that searches through all the edges in linear time. It harkens back to our very first implementation, but uses all the structures we've since built.
 
@@ -1064,7 +1102,7 @@ Having a graph in memory is great, but how do we get it there in the first place
 
 Our natural inclination is to do something like ```JSON.stringify(graph)```, which produces the terribly helpful error ```TypeError: Converting circular structure to JSON```. What's happened is that our vertices were linked to their edges, and their edges to their vertices, and now everything refers to everything else. So how can we extract our nice neat lists again? JSON replacer functions to the rescue.
 
-The JSON.stringify function takes a value to stringify, but it also takes two additional parameters: a replacer function and a whitespace number [footnote: Pro tip: given a deep tree deep_tree, running JSON.stringify(deep_tree, 0, 2) in the JS console is a quick way to make it human readable]. The replacer allows you to customize how the stringify function operates. 
+The JSON.stringify function takes a value to stringify, but it also takes two additional parameters: a replacer function and a whitespace number [footnote: Pro tip: given a deep tree deep_tree, running `JSON.stringify(deep_tree, 0, 2)` in the JS console is a quick way to make it human readable]. The replacer allows you to customize how the stringify function operates. 
 
 In our case, we'd like to treat the vertices and edges differently, so we're going to manually merge the two sides into a single JSON string. Manually manipulating JSON like this isn't recommended, because the format is insufferably persnickety, but with only a dozen characters in our raw output we should be okay. [footnote: The first three attempts at this were botched in some browsers. It really is insufferable.]
 
@@ -1163,11 +1201,11 @@ To solve that first problem we're going to have to treat ```all```s as something
 
 The next two problems are easier: to modify just part of a query we'll wrap that portion in special start/end steps, like ```g.v('Thor').out().start().in().out().end().times(4).run()```. Actually, if the interpreter knows about these special pipetypes we don't need the end step, because the end of a sequence is always a special pipetype. We'll call these special pipetypes 'adverbs', because they modify regular pipetypes like adverbs modify verbs. 
 
-To handle multiple alls we need to run all all transformers twice: once time before the times transformer, to mark all alls uniquely, and against after times' time to remark all marked alls uniquely all over.
+To handle multiple `all`s we need to run all `all` transformers twice: one time before the times transformer, to mark all `all`s uniquely, and again after times' time to remark all marked `all`s uniquely all over.
 
 There's still the issue of searching through an unbounded number of ancestors -- for example, how do we find out which of Ymir's descendants are scheduled to survive Ragnarök? We could make individual queries like ```g.v('Ymir').in().filter({survives: true})``` and ```g.v('Ymir').in().in().in().in().filter({survives: true})``` and manually collect the results ourselves, but that's pretty awful. 
 
-We'd like to use an adverb like this: ```g.v('Ymir').in().filter({survives: true}).every()```, which would work like all+times but without enforcing a limit. We may want to impose a particular strategy on the traversal, though, like a stolid BFS or YOLO DFS, so ```g.v('Ymir').in().filter({survives: true}).bfs()``` would be more flexible. Phrasing it this way allows us to state complicated queries like "check for Ragnarök survivors, skipping every other generation" in a straightforward fashion: ```g.v('Ymir').in().filter({survives: true}).in().bfs()```.
+We'd like to use an adverb like this: ```g.v('Ymir').in().filter({survives: true}).every()```, which would work like `all`+`times` but without enforcing a limit. We may want to impose a particular strategy on the traversal, though, like a stolid BFS or YOLO DFS, so ```g.v('Ymir').in().filter({survives: true}).bfs()``` would be more flexible. Phrasing it this way allows us to state complicated queries like "check for Ragnarök survivors, skipping every other generation" in a straightforward fashion: ```g.v('Ymir').in().filter({survives: true}).in().bfs()```.
 
 
 ## Wrapping up
