@@ -247,7 +247,9 @@ A *program* is a series of *steps*. Each step is like a pipe in a pipeline -- a 
 Each step in our program can have *state*, and `query.state` is a list of per-step state that index correlates with the list of steps in query.program. 
 
 A *gremlin* is a creature that travels through the graph doing our bidding. A gremlin is a surprising thing to find in a database, but they trace their heritage back to Tinkerpop's Blueprints[1], and the Gremlin and Pacer query languages[2]. They remember where they've been and allow us to find answers to interesting questions. 
+
 [1: http://euranova.eu/upl_docs/publications/an-empirical-comparison-of-graph-databases.pdf]
+
 [2: http://edbt.org/Proceedings/2013-Genova/papers/workshops/a29-holzschuher.pdf]
 
 Remember that question we wanted to answer? The one about Thor's second cousins once removed? We decided `Thor.parents.parents.parents.children.children.children` was a pretty good way of expressing that. Each `parents` or `children` instance is a step in our program. Each of those steps contains a reference to its *pipetype*, which is the function that performs that step's operation. 
@@ -1217,3 +1219,8 @@ That last point can't be overstated: keep it simple. Eschew optimization in favo
 
 
 [footnote on interconnected: Not *too* interconnected, though -- you'd like the number of edges to grow in direct proportion to the number of vertices. In other words the average number of edges connected to a vertex shouldn't vary with the size of the graph. Most systems we'd consider putting in a graph database already have this property: if we add 100,000 Nigerian films to our movie database that doesn't increase the degree of the Kevin Bacon vertex.]
+
+
+### Acknowledgements
+
+Many thanks are due to Michael DiBernardo, Colin Lupton, Scott Rostrup, Michael Russo, Erin Toliver, and Leo Zovik for their invaluable contributions to this chapter.
