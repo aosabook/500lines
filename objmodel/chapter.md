@@ -64,6 +64,9 @@ the ability for a class to be a subclass of another class. Right from the
 beginning, classes will be regular objects that can themselves have
 attributes and methods.
 
+A note on terminology: In this chapter I will use the word "instance" to mean
+-"an object that is not a class".
+
 A good approach to start with is to write a test to specify
 what the to-be-implemented behaviour should be. All tests presented in this
 chapter will consist of two parts. First, a bit of regular Python
@@ -173,7 +176,7 @@ The ``Base`` class implements storing the class of an object, and a dictionary
 containing the field values of the object.
 Now we need to implement ``Class`` and ``Instance``. The constructor of
 ``Instance`` takes the class to
-be instantiated and initializes the `fields` dict as an empty dictionary.
+be instantiated and initializes the `fields` `dict` as an empty dictionary.
 Otherwise ``Instance`` is just a very thin subclass around ``Base`` that does
 not add any extra functionality.
 
@@ -209,7 +212,7 @@ another class: its metaclass.
 Now our first test almost passes. The only missing bit is the definition
 of the base classes ``TYPE`` and ``OBJECT``, which are both instances of
 ``Class``. For these we will make a major departure from the Smalltalk model,
-which has a fairly complex metaclass system. Instead we will use the model used by ObjVlisp, which 
+which has a fairly complex metaclass system. Instead we will use the model introduced in ObjVlisp, which 
 Python adopted (FIXME footnote: P. Cointe, “Metaclasses are first
 class: The ObjVlisp Model,” SIGPLAN Not, vol. 22, no. 12, pp. 156–162, 1987.)
 
@@ -904,7 +907,7 @@ attributes will have a larger memory footprint than if we just use dictionaries.
 
 This is a common problem when optimizing dynamic languages. It is often not
 possible to find optimizations that are faster or use less memory in all
-cases. In practice, optimizations are made that
+cases. In practice, the optimizations chosen 
 apply to how the language is *typically* used, while potentially
 making behaviour worse for programs that use extremely dynamic features.
 
