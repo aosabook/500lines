@@ -26,6 +26,7 @@ Well, the dictionary defines "graph database" as a database for graphs. Thanks, 
 A "data base" is like a fort for data. You can put data in it and get data back out of it.
 
 A graph in this sense is a set of vertices and a set of edges. It's basically a bunch of dots connected by lines. 
+[DIAGRAM: show a simple graph]
 
 What kinds of problems can it solve? Suppose that you are one of those who have discovered the unbridled joy of tracking ancestral trees: parents, children, all that kind of thing. You'd like to develop a system that allows you to make natural and elegant queries like "Who are Thor's second cousins once removed?" or "What is Freyja's connection to the Valkyries?".
 
@@ -35,13 +36,15 @@ A reasonable schema for this data structure would be to have a table of entities
 SELECT e.* FROM entities as e, relationships as r WHERE r.out = "Thor" AND r.type = "parent" AND r.in = e.id
 ```
 
+[DIAGRAM: show the two tables, and maybe the query in progress]
+
 But how do we extend that to grandparents? We need to do a subquery, or use some other type of vendor-specific extension to SQL. And by the time we get to second cousins once removed we're going to have ALOTTA SQL.
 
 What would we like to write? Something both concise and flexible; something that models our query in a natural way and extends to other queries like it. `second_cousins_once_removed('Thor')` is concise, but it doesn't give us any flexibility. The SQL above is flexible, but lacks concision.
 
 Something like `Thor.parents.parents.parents.children.children.children` strikes a reasonably good balance. The primitives give us flexibility to ask many similar questions, but the query is also very concise and natural. This particular phrasing gives us too many results, as it includes first cousins and siblings, but we're going for gestalt here.
 
-What's the simplest thing we can build that gives us this kind of interface? We could make a list of entities and a list of edges, just like the relational schema, and then build some helper functions. It might look something like this:
+What's the simplest thing we can build that gives us this kind of interface? We could make a list of vertices and a list of edges, just like the relational schema, and then build some helper functions. It might look something like this:
 
 ```javascript
 V = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
@@ -180,7 +183,7 @@ If we create some Dagoba.Vertex instance inside the addVertex function, our inte
 
 So if we create a vertex instance object, we're forced to decide up front whether we will always copy the provided data into a new object -- potentially doubling our space usage -- or allow the host application unfettered access to the database objects. There's a tension here between performance and protection, and the right balance depends on your specific use case.
 
-Duck typing on the vertex's properties allows us to make that decision at run time, by either deep copying* the incoming data or using it directly as a vertex*. We don't always want to put the responsibility for balancing safety vs performance tradeoffs in the hands of the user, but because these two sets of use cases diverge so wildly the extra flexibility is necessary here.
+Duck typing on the vertex's properties allows us to make that decision at run time, by either deep copying* the incoming data or using it directly as a vertex*. We don't always want to put the responsibility for balancing safety and performance in the hands of the user, but because these two sets of use cases diverge so widely the extra flexibility is important.
 
 Okay, now that we've got our new vertex we'll add it in to our graph's list of vertices, add it to the vertexIndex for efficient lookup by _id, and add two additional properties to it: _out and _in, which will both become lists of edges*. 
 
@@ -1101,13 +1104,13 @@ Run these yourself to experience the graph database difference.
 
 ## Serialization
 
-Having a graph in memory is great, but how do we get it there in the first place? We saw that our graph constructor can take a list of vertices and edges and create a graph for us, but once those structures have been built is there any way to get them back out?
+Having a graph in memory is great, but how do we get it there in the first place? We saw that our graph constructor can take a list of vertices and edges and create a graph for us, but once the graph has been built how do we get the vertices and edges back out?
 
-Our natural inclination is to do something like `JSON.stringify(graph)`, which produces the terribly helpful error `TypeError: Converting circular structure to JSON`. What's happened is that our vertices were linked to their edges, and their edges to their vertices, and now everything refers to everything else. So how can we extract our nice neat lists again? JSON replacer functions to the rescue.
+Our natural inclination is to do something like `JSON.stringify(graph)`, which produces the terribly helpful error `TypeError: Converting circular structure to JSON`. During the graph construction process the vertices were linked to their edges, and the edges are all linked to their vertices, so now everything refers to everything else. So how can we extract our nice neat lists again? JSON replacer functions to the rescue.
 
-The JSON.stringify function takes a value to stringify, but it also takes two additional parameters: a replacer function and a whitespace number [footnote: Pro tip: given a deep tree deep_tree, running `JSON.stringify(deep_tree, 0, 2)` in the JS console is a quick way to make it human readable]. The replacer allows you to customize how the stringify function operates. 
+The `JSON.stringify` function takes a value to stringify, but it also takes two additional parameters: a replacer function and a whitespace number [footnote: Pro tip: given a deep tree deep_tree, running `JSON.stringify(deep_tree, 0, 2)` in the JS console is a quick way to make it human readable]. The replacer allows you to customize how the stringification proceeds. 
 
-In our case, we'd like to treat the vertices and edges differently, so we're going to manually merge the two sides into a single JSON string. Manually manipulating JSON like this isn't recommended, because the format is insufferably persnickety, but with only a dozen characters in our raw output we should be okay. [footnote: The first three attempts at this were botched in some browsers. It really is insufferable.]
+We need to treat the vertices and edges a bit differently, so we're going to manually merge the two sides into a single JSON string.
 
 ```javascript
 Dagoba.jsonify = function(graph) {
@@ -1129,9 +1132,11 @@ Dagoba.cleanEdge = function(key, value) {
 }
 ```
 
-The only difference between them is what they do when a cycle is about to be formed: for vertices, we skip the edge list entirely. For edges, we make a list of each vertex's identifier. 
+The only difference between them is what they do when a cycle is about to be formed: for vertices, we skip the edge list entirely. For edges, we replace each vertex with its id. That gets rid of all the cycles we created while building the graph.
 
-We could glue these together into a single function, and even hit the whole graph with a single replacer to avoid having to manually massage the JSON output, but the result would probably be messier. Try it yourself and see if you can come up with a well-factored solution that avoids hand-coded JSON. [footnote: Bonus points if it fits in a tweet.]
+We're manually manipulating JSON in `Dagoba.jsonify`, which generally isn't recommended as the JSON format is insufferably persnickety. Even in a dose this small it's easy to miss something and hard to visually confirm correctness.
+
+We could merge the two replacer functions into a single function, and then use that new replacer function over the whole graph by doing `JSON.stringify(graph, my_cool_replacer)`. This frees us from having to manually massage the JSON output, but the resulting code may be quite a bit messier. Try it yourself and see if you can come up with a well-factored solution that avoids hand-coded JSON. (Bonus points if it fits in a tweet.)
 
 
 ## Persistence
