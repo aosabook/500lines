@@ -219,8 +219,7 @@ When `update_repo.sh` finishes running in `repo_observer.py`, the repository obs
 
 ````
 
-XXX STOPPED HERE
-If it responds with 'OK', then the repository observer opens the `.commit_id` file, reads the latest commit ID and sends that ID to the dispatcher, using a `dispatch:<commit ID>` request. It will then sleep for 5 seconds and repeat the process. We'll also try again in 5 seconds if anything went wrong along the way.
+If it responds with "OK", then the repository observer opens the `.commit_id` file, reads the latest commit ID and sends that ID to the dispatcher, using a `dispatch:<commit ID>` request. It will then sleep for five seconds and repeat the process. We'll also try again in five seconds if anything went wrong along the way.
 
 ````python
             if response == "OK":
@@ -243,12 +242,12 @@ If it responds with 'OK', then the repository observer opens the `.commit_id` fi
 
 The repository observer will repeat this process forever, until you kill the process via a KeyboardInterrupt (ctrl+C), or by sending it a kill signal.
 
-The Dispatcher (dispatcher.py)
+The Dispatcher (`dispatcher.py`)
 ------------------------------------------
 
 The dispatcher is a separate service used to delegate testing tasks. It listens on a port for requests from test runners and from the repository observer. It allows test runners to register themselves, and when given a commit ID from the repository observer, it will dispatch a test runner against the new commit. It also gracefully handles any problems with the test runners and will redistribute the commit ID to a new test runner if anything goes wrong.
 
-When dispatch.py is executed, the `serve` function is called. It first parses the arguments that allow you to specify the dispatcher's host and port:
+When `dispatch.py` is executed, the `serve` function is called. First it parses the arguments that allow you to specify the dispatcher's host and port:
 
 ````python
 def serve():
@@ -265,7 +264,7 @@ def serve():
 
 ````
 
-This starts the dispatcher server, and two other threads. One thread runs the `runner_checker` function, and other thread runs the `redistribute` function. 
+This starts the dispatcher server, and two other threads. One thread runs the `runner_checker` function, and other runs the `redistribute` function. 
 
 ````
     server = ThreadingTCPServer((args.host, int(args.port)), DispatcherHandler)
@@ -289,7 +288,7 @@ This starts the dispatcher server, and two other threads. One thread runs the `r
 
 ````
 
-The `runner_checker` function is used to periodically ping each registered test runner to make sure they are still responsive. If they become unresponsive, then that runner will be removed from the pool, and its commit ID will be dispatched to the next available runner. It will log the commit ID in the `pending_commits` variable. 
+The `runner_checker` function periodically pings each registered test runner to make sure they are still responsive. If they become unresponsive, then that runner will be removed from the pool and its commit ID will be dispatched to the next available runner. The function will log the commit ID in the `pending_commits` variable. 
 
 ````python
     def runner_checker(server):
@@ -317,7 +316,7 @@ The `runner_checker` function is used to periodically ping each registered test 
 
 ````
 
-The `redistribute` function is used to dispatch any of those commit IDs logged in 'pending commits'. When `redistribute` runs, it checks if there are any commit IDs in `pending_commits`. If so, it calls the `dispatch_tests` function with the commit ID. 
+The `redistribute` function is used to dispatch the commit IDs logged in `pending_commits`. When `redistribute` runs, it checks if there are any commit IDs in `pending_commits`. If so, it calls the `dispatch_tests` function with the commit ID. 
 
 ````python
     def redistribute(server):
@@ -330,7 +329,7 @@ The `redistribute` function is used to dispatch any of those commit IDs logged i
 
 ````
 
-The `dispatch_tests` function is used to find an available test runner from the pool of registered runners. If one is available, it will send a `runtest` message to it with the commit ID. If none are currently available, it will wait 2 seconds and repeat this process. Once dispatched, it logs which commit ID is being tested by which test runner in the `dispatched_commits` variable. If this commit ID is in the `pending_commits` variable, then it will remove it from this list, since it was successfully re-dispatched.
+The `dispatch_tests` function is used to find an available test runner from the pool of registered runners. If one is available, it will send a `runtest` message to it with the commit ID. If none are currently available, it will wait two seconds and repeat this process. Once dispatched, it logs which commit ID is being tested by which test runner in the `dispatched_commits` variable. If the commit ID is in the `pending_commits` variable, `dispatch_tests` will remove it since it was successfully re-dispatched.
 
 ````python
 def dispatch_tests(server, commit_id):
@@ -351,11 +350,11 @@ def dispatch_tests(server, commit_id):
 
 ````
 
-The dispatcher server uses the SocketServer module, which is a very simple server that is part of the standard library. There are four basic server types in the SocketServer module, TCP, UDP, UnixStreamServer and UnixDatagramServer. We will be using a TCP based socket server so we can ensure continuous, ordered streams of data to between servers, as UDP does not ensure this.
+The dispatcher server uses the SocketServer module, which is a very simple server that is part of the standard library. There are four basic server types in the SocketServer module: TCP, UDP, UnixStreamServer and UnixDatagramServer. We will be using a TCP-based socket server so we can ensure continuous, ordered streams of data between servers, as UDP does not ensure this.
 
-The default TCPServer provided by SocketServer can only handle one request at a time, and therefore cannot handle the case where the dispatcher is talking to one connection, say from a test runner, and then a new connection comes in, say from the repository observer. If this happens, the repository observer will have to wait for the first connection to complete and disconnect before it will be serviced. This is not ideal for our case, since the dispatcher server must be able to directly and swiftly communicate with all test runners and the repository observer.
+The default TCPServer provided by SocketServer can only handle one request at a time, so it cannot handle the case where the dispatcher is talking to one connection, say from a test runner, and then a new connection comes in, say from the repository observer. If this happens, the repository observer would have to wait for the first connection to complete and disconnect before it would be serviced. This is not ideal for our case, since the dispatcher server must be able to directly and swiftly communicate with all test runners and the repository observer.
 
-In order for the dispatcher server to handle simultaneous connections, it uses the ThreadingTCPServer custom class, which adds threading ability to the default SocketServer. This means that anytime the dispatcher receives a connection request, it spins off a new process just for that connection. This allows the dispatcher to handle multiple requests at the same time.
+In order for the dispatcher server to handle simultaneous connections, it uses the `ThreadingTCPServer` custom class, which adds threading ability to the default SocketServer. This means that any time the dispatcher receives a connection request, it spins off a new process just for that connection. This allows the dispatcher to handle multiple requests at the same time.
 
 ````python
 class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
@@ -366,7 +365,7 @@ class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
 ````
 
-The dispatcher server works by defining handlers for each request. This is defined by the DispatcherHandler class, which inherits from SocketServer's BaseRequestHandler. This base class just needs us to define the `handle` function, which will be invoked whenever a connection is requested. The `handle` function defined in DispatcherHandler is our custom handler, and it will be called on each connection. It looks at the incoming connection request (self.request holds the request information), and parses out what command is being requested of it. 
+The dispatcher server works by defining handlers for each request. This is defined by the `DispatcherHandler` class, which inherits from SocketServer's `BaseRequestHandler`. This base class just needs us to define the `handle` function, which will be invoked whenever a connection is requested. The `handle` function defined in `DispatcherHandler` is our custom handler, and it will be called on each connection. It looks at the incoming connection request (`self.request` holds the request information), and parses out what command is being requested of it. 
 
 ````python
 class DispatcherHandler(SocketServer.BaseRequestHandler):
@@ -389,7 +388,7 @@ class DispatcherHandler(SocketServer.BaseRequestHandler):
 
 ````
 
-It handles four commands: `status`, `register`, `dispatch`, and `results`:
+It handles four commands: `status`, `register`, `dispatch`, and `results`.
 
 `status` is used to check if the dispatcher server is up and running.
 
@@ -399,7 +398,7 @@ It handles four commands: `status`, `register`, `dispatch`, and `results`:
             self.request.sendall("OK")
 ````
 
-In order for the dispatcher to do anything useful, it needs to have at least one test runner registered. When `register` is called on a host:port pair, it stores the runner's information in a list (the `runners` object attached to the ThreadingTCPServer object) so it can communicate with it later when it needs to give it a commit ID to run tests against.
+In order for the dispatcher to do anything useful, it needs to have at least one test runner registered. When `register` is called on a host:port pair, it stores the runner's information in a list (the `runners` object attached to the `ThreadingTCPServer` object) so it can communicate with the runner later, when it needs to give it a commit ID to run tests against.
 
 ````
         elif command == "register":
@@ -412,7 +411,7 @@ In order for the dispatcher to do anything useful, it needs to have at least one
             self.request.sendall("OK")
 ````
 
-`dispatch` is used by the repository observer to dispatch a test runner against a commit. The format of this command is dispatch:<commit ID>. The dispatcher parses out the commit ID from this message and sends it to the test runner. 
+`dispatch` is used by the repository observer to dispatch a test runner against a commit. The format of this command is `dispatch:<commit ID>`. The dispatcher parses out the commit ID from this message and sends it to the test runner. 
 
 ````python
         elif command == "dispatch":
@@ -427,7 +426,7 @@ In order for the dispatcher to do anything useful, it needs to have at least one
 
 ````
 
-`results` is used by a test runner when it has finished a test run and needs to report its results. The format of this command is results:<commit ID>:<length of results data in bytes>:<results>. The <commit ID> is used to identify which commit ID the tests were run against. The <length of results data in bytes> is used to figure out how big a buffer is needed to read the results data into. Lastly, <results> holds the actual result output.
+`results` is used by a test runner to report the results of a finished test run. The format of this command is `results:<commit ID>:<length of results data in bytes>:<results>`. The `<commit ID>` is used to identify which commit ID the tests were run against. The `<length of results data in bytes>` is used to figure out how big a buffer is needed for the results data. Lastly, `<results>` holds the actual result output.
 
 ````python
         elif command == "results":
@@ -451,13 +450,13 @@ In order for the dispatcher to do anything useful, it needs to have at least one
 
 ````
 
-The Test Runner (test_runner.py)
+The Test Runner (`test_runner.py`)
 ------------------------------------------
-The test runner is responsible for running tests against a given commit ID and reporting back the results. It communicates only with the dispatcher server, which is responsible for giving it the commit IDs to run against, and which will receive the test results. 
+The test runner is responsible for running tests against a given commit ID and reporting the results. It communicates only with the dispatcher server, which is responsible for giving it the commit IDs to run against, and which will receive the test results. 
 
-When the test_runner.py file is invoked, it calls the `serve` function, which will start the test runner server and will also start a thread to run the `dispatcher_checker` function. Since this startup process is very similar to the ones described in `repo_observer.py` and `dispatcher.py`, we omit it here. 
+When the `test_runner.py` file is invoked, it calls the `serve` function which starts the test runner server, and also starts a thread to run the `dispatcher_checker` function. Since this startup process is very similar to the ones described in `repo_observer.py` and `dispatcher.py`, we omit the description here. 
 
-The `dispatcher_checker` function pings the dispatcher server every 5 seconds to make sure it is still up and running. This is important for resource management. If the dispatcher goes down, then the test runner will shut down since it won't be able to do any meaningful work if there is no dispatcher to give it work or to report to.
+The `dispatcher_checker` function pings the dispatcher server every five seconds to make sure it is still up and running. This is important for resource management. If the dispatcher goes down, then the test runner will shut down since it won't be able to do any meaningful work if there is no dispatcher to give it work or to report to.
 
 ````python
     def dispatcher_checker(server):
@@ -491,13 +490,13 @@ class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
 ````
 
-The communication flow starts with the dispatcher requesting that the runner accept a commit ID to run. If the test runner is ready to run the job, it responds with acknowledgement to the dispatcher server, which then closes the connection. In order for the test runner server to both run tests and accept more requests from the dispatcher, it starts the requested test job on a new thread. 
+The communication flow starts with the dispatcher requesting that the runner accept a commit ID to run. If the test runner is ready to run the job, it responds with an acknowledgement to the dispatcher server, which then closes the connection. In order for the test runner server to both run tests and accept more requests from the dispatcher, it starts the requested test job on a new thread. 
 
-This means that when the dispatcher server makes requests (pings, in this case) and expects responses, it will be done on a separate thread, while the test runner is busy running tests on its own thread. This allows the test runner server to handle multiple tasks simultaneously. Instead of this threaded design, it is possible to have the dispatcher server hold onto a connection with each test runner, but this would increase the dispatcher server's memory needs, and is vulnerable to network problems, like accidentally dropped connections.
+This means that when the dispatcher server makes a request (a ping, in this case) and expects a response, it will be done on a separate thread, while the test runner is busy running tests on its own thread. This allows the test runner server to handle multiple tasks simultaneously. Instead of this threaded design, it is possible to have the dispatcher server hold onto a connection with each test runner, but this would increase the dispatcher server's memory needs, and is vulnerable to network problems, like accidentally dropped connections.
 
 The test runner server responds to two messages from the dispatcher:
 
-`ping`, which is used by the dispatcher server to verify that the runner is still active
+`ping`, which is used by the dispatcher server to verify that the runner is still active.
 
 ````
 class TestHandler(SocketServer.BaseRequestHandler):
@@ -511,7 +510,7 @@ class TestHandler(SocketServer.BaseRequestHandler):
             self.request.sendall("pong")
 ````
 
-`runtest`, which accepts messages of the form `runtest:<commit ID>`, and is used to kick off tests on the given commit. When `runtest` is called, the test runner will check to see if it is already running a test, and if so, it will return a `BUSY` response to the dispatcher. If it is available, it will respond to the server with an `OK` message, set its status as busy and will run its `run_tests` function. 
+`runtest`, which accepts messages of the form `runtest:<commit ID>`, and is used to kick off tests on the given commit. When `runtest` is called, the test runner will check to see if it is already running a test, and if so, it will return a `BUSY` response to the dispatcher. If it is available, it will respond to the server with an `OK` message, set its status as busy and run its `run_tests` function. 
 
 ````
         elif command == "runtest":
@@ -529,7 +528,7 @@ class TestHandler(SocketServer.BaseRequestHandler):
 
 ````
 
-This function calls the shell script `test_runner_script.sh` which is used to update the repository to the given commit ID. Once the script returns, if it was successful at updating the repository, we run the tests using unittest, and gather the results in a file. When the tests are done running, the test runner reads in the results file and sends it in a `results` message to the dispatcher. 
+This function calls the shell script `test_runner_script.sh`, which updates the repository to the given commit ID. Once the script returns, if it was successful at updating the repository we run the tests using `unittest` and gather the results in a file. When the tests have finished running, the test runner reads in the results file and sends it in a `results` message to the dispatcher. 
 
 ````python
     def run_tests(self, commit_id, repo_folder):
@@ -565,7 +564,9 @@ run_or_fail "Could not clean repository" git clean -d -f -x
 run_or_fail "Could not call git pull" git pull
 run_or_fail "Could not update to given commit hash" git reset --hard "$COMMIT"
 ````
-In order to run the the test_runner.py file, you must point it to a clone of the repository, so it may use this clone to run tests against. In this case, you can use the previously created "/path/to/test_repo test_repo_clone_runner" clone as the argument. By default, the test_runner.py file will start its own server on localhost using a port between the range 8900-9000, and will try to connect to the dispatcher server at localhost:8888. You may pass it optional arguments to change these values. The `--host` and `--port` arguments are to designate a specific address to run the test runner server on, and the `--dispatcher-server` argument will have it connect to a different address than localhost:8888 to communicate with the dispatcher.
+
+STOPPED HERE XXX
+In order to run the the `test_runner.py` file, you must point it to a clone of the repository to run tests against. In this case, you can use the previously created "/path/to/test_repo test_repo_clone_runner" clone as the argument. By default, the test_runner.py file will start its own server on localhost using a port between the range 8900-9000, and will try to connect to the dispatcher server at localhost:8888. You may pass it optional arguments to change these values. The `--host` and `--port` arguments are to designate a specific address to run the test runner server on, and the `--dispatcher-server` argument will have it connect to a different address than localhost:8888 to communicate with the dispatcher.
 
 
 Control Flow Diagram
