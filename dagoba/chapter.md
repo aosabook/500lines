@@ -144,8 +144,11 @@ Dagoba.graph = function(V, E) {                         // the factory
 ```
 
 We'll accept two optional arguments: a list of vertices and a list of edges. JavaScript is very lax about parameters, so all named parameters are optional and default to 'undefined' if not supplied*. We will often have the vertices and edges before building the graph and use the V and E parameters, but it's also common to not have those at creation time and build the graph up programmatically*.
-[footnote on supplied: It's also lax the other direction: all functions are variadic*, and all arguments are available by position via the 'arguments' object, which is almost like an array but not quite.] 
+
+[footnote on supplied: It's also lax the other direction: all functions are variadic*, and all arguments are available by position via the `arguments` object, which is almost like an array but not quite.] 
+
 [footnote on variadic: This is just a fancy way of saying a function has indefinite arity, which is a fancy way of saying it takes a variable number of variables.]
+
 [footnote on programmatically: The `Array.isArray` checks here are to distinguish our two different use cases, but in general we won't be doing many of the validations one would expect of production code in order to focus on the architecture instead of the trash bins.]
 
 Then we create a new object that has all of our prototype's strengths and none of its weaknesses*. We build a brand new array (one of the other basic JS data structures) for our edges, another for the vertices, a new object called vertexIndex and an id counter -- more on those latter two later [footnote: Why can't we just put all of these in the prototype?].
@@ -208,7 +211,7 @@ Dagoba.G.addEdge = function(edge) {                     // accepts an edge-like 
 }
 ```
 
-First we find both vertices the edge connects, then reject the edge if it's missing either vertex. We'll use a helper function to log an error on rejection. All errors flow through this helper function, so we can override its behavior on a per-application basis. [footnote: A fancy version might allow onError handlers to be registered, so the host application could link in its own callbacks without overwriting the helper. A fancier fancy version might allow per-graph error callbacks in addition to the global ones.]
+First we find both vertices the edge connects, then reject the edge if it's missing either vertex. We'll use a helper function to log an error on rejection. All errors flow through this helper function, so we can override its behavior on a per-application basis. [footnote: A fancy version might allow onError handlers to be registered, so the host application could link in its own callbacks without overwriting the helper. A fancier fancy version might allow per-graph error callbacks in addition to the per-application ones.]
 
 ```javascript
 Dagoba.error = function(msg) {
@@ -281,6 +284,7 @@ Dagoba.G.v = function() {                                         // a query ini
 }
 ```
 
+Note that `[].slice.call(arguments)` is JS parlance for "Please pass me an array of the arguments to this function". You would be forgiven for supposing that `arguments` itself is already an array, since it behaves like one in many situations, but it is sadly lacking most of the functionality which modern JavaScript arrays have been granted.
 
 ## The problem with being eager
 
@@ -313,7 +317,7 @@ Dagoba.addPipetype = function(name, fun) {              // adds a new method to 
 
 The pipetype's function is added to the list of pipetypes, and then a new method is added to the query object. Every pipetype must have a corresponding query method. That method adds a new step to the query program, along with its arguments. 
 
-When we evaluate `g.v('Thor').in('father').out('brother')` the `v` call returns a query object, the `in` call adds a new step and returns the query object, and the `out` call does the same. This is what enables our method chaining API.
+When we evaluate `g.v('Thor').out('father').in('brother')` the `v` call returns a query object, the `out` call adds a new step and returns the query object, and the `in` call does the same. This is what enables our method chaining API.
 
 Note that adding a new pipetype with the same name replaces the existing one, which allows runtime modification of existing pipetypes. What's the cost of this decision? What are the alternatives?
 
@@ -362,11 +366,19 @@ We first check to see if we've already gathered matching vertices, otherwise we 
 
 Note that we're directly mutating the state argument here, and not passing it back. An alternative would be to return an object instead of a gremlin or signal, and pass state back that way. That complicates our return value, and creates some additional garbage. [footnote: Very short lived garbage though, which is the second best kind.] If JS allowed multiple return values it would make this option more elegant. 
 
-We would still need to find a way to deal with the mutations, though, as the call site maintains a reference to the original variable. Linear types would solve this by automatically taking the reference out of scope when the pipetype is called. Then we would assign it again in the call site's scope once the pipetype function returned its new version of the state object. 
+We would still need to find a way to deal with the mutations, though, as the call site maintains a reference to the original variable. What if we had some way to determine whether a particular reference is 'unique' -- that it is the only reference to that object? 
 
-Linear types would allow us to avoid expensive copy-on-write schemes or complicated persistent data structures, while still retaining the benefits of immutability -- in this case, avoiding spooky action at a distance. Two references to the same mutable data structure act like a pair of walkie-talkies, allowing whoever holds them to communicate directly. Those walkie-talkies can be passed around from function to function, and cloned to create whole passel of walkie-talkies. This completely subverts the natural communication channels your code already possesses. In a system with no concurrency you can sometimes get away with it, but introduce multithreading or asynchronous behavior and all that walkie-talkie squawking can really be a drag.
+If we know a reference is unique then we can get the benefits of immutability while avoiding expensive copy-on-write schemes or complicated persistent data structures. With only one reference we can't tell whether the object has been mutated or a new object has been returned with the changes we requested: "observed immutability" is maintained.*
 
-JS lacks linear types, but we can get the same effect if we're really, really disciplined. Which we will be. For now.
+There are a couple of common ways of determining this: in a statically typed system we might make use of uniqueness types* to guarantee at compile time that each object has only one reference. If we had a reference counter* -- even cheap two-bit sticky counter -- we could know at runtime that an object only has one reference and use that knowledge to our advantage.
+
+JavaScript doesn't have either of these facilities, but we can get almost the same effect if we're really, really disciplined. Which we will be. For now.
+
+[footnote on maintained: Two references to the same mutable data structure act like a pair of walkie-talkies, allowing whoever holds them to communicate directly. Those walkie-talkies can be passed around from function to function, and cloned to create whole passel of walkie-talkies. This completely subverts the natural communication channels your code already possesses. In a system with no concurrency you can sometimes get away with it, but introduce multithreading or asynchronous behavior and all that walkie-talkie squawking can really be a drag.]
+
+[footnote on uniqueness types: Uniqueness types were dusted off in the Clean language, and have a non-linear relationship with linear types, which are themselves a subtype of substructural types.]
+
+[footnote on reference counter: Most modern JS runtimes employ generational garbage collectors, and the language is intentionally kept at arm's length from the engine's memory management to curtail a source of programmatic non-determinism.]
 
 
 #### In-N-Out
@@ -417,18 +429,18 @@ In this case, with a dozen or so pipetypes, the right choice seems to be to styl
 
 #### Property
 
-Let's pause for a moment to consider an example query based on the three pipetypes we've seen. We can ask for Thor's grandfathers like this: `g.v('Thor').in('father').in('father').run()`. [footnote: The `run()` at the end of the query invokes the interpreter and returns results.] But what if we wanted their names? 
+Let's pause for a moment to consider an example query based on the three pipetypes we've seen. We can ask for Thor's grandfathers like this: `g.v('Thor').out('father').out('father').run()`. [footnote: The `run()` at the end of the query invokes the interpreter and returns results.] But what if we wanted their names? 
 
 We could put a map on the end of that:
 
 ```javascript
-g.v('Thor').in('father').in('father').run().map(function(vertex) {return vertex.name})
+g.v('Thor').out('father').out('father').run().map(function(vertex) {return vertex.name})
 ```
 
 But this is a common enough operation that we'd prefer to write something more like:
 
 ```javascript
-g.v('Thor').in('father').in('father').property('name').run()
+g.v('Thor').out('father').out('father').property('name').run()
 ```
 
 Plus this way the property pipe is an integral part of the query, instead of something appended after. This has some interesting benefits, as we'll soon see.
@@ -518,7 +530,7 @@ For those occasions when showing too few results is better than showing too many
 We don't always want all the results at once. Sometimes we only need a handful of results: we want a dozen of Thor's contemporaries, so we walk all the way back to the primeval cow Auðumbla: 
 
 ```javascript
-g.v('Thor').in().in().in().in().out().out().out().out().unique().take(12).run()
+g.v('Thor').out().out().out().out().in().in().in().in().unique().take(12).run()
 ```
 
 Without the take pipe that query could take quite a while to run, but thanks to our lazy evaluation strategy the query with the take pipe is very fast.
@@ -526,7 +538,7 @@ Without the take pipe that query could take quite a while to run, but thanks to 
 Sometimes we just want one at a time: we'll process the result, work with it, and then come back for another one. This pipetype allows us to do that as well.
 
 ```javascript
-q = g.v('Auðumbla').out().out().out().property('name').take(1)
+q = g.v('Auðumbla').in().in().in().property('name').take(1)
 
 q.run() // ["Odin"]
 q.run() // ["Vili"]
@@ -705,7 +717,7 @@ Dagoba.G.findVertices = function(args) {                          // our general
 }
 ```
 
-This function receives its arguments as a list. If the first one is an object it passes it to searchVertices, allowing queries like `g.v({_id:'Thor'}).run()` or `g.v([{species: "Aesir"}]).run()`. 
+This function receives its arguments as a list. If the first one is an object it passes it to searchVertices, allowing queries like `g.v({_id:'Thor'}).run()` or `g.v({species: 'Aesir'}).run()`. 
 
 Otherwise, if there are arguments it gets passed to findVerticesByIds, which handles queries like `g.v('Thor', 'Odin').run()`.
 
@@ -999,7 +1011,7 @@ We can also use this transformer system to add new functionality unrelated to op
 
 ## Aliases
 
-Making a query like `g.v('Thor').out().in()` is really compact, but is this my siblings or my mates? Neither way is fully satisfying. It'd be nicer to really say what mean: either `g.v('Thor').parents().children()` or `g.v('Thor').children().parents()`.
+Making a query like `g.v('Thor').out().in()` is really compact, but is this Thor's siblings or his mates? Neither way is fully satisfying. It'd be nicer to really say what mean: either `g.v('Thor').parents().children()` or `g.v('Thor').children().parents()`.
 
 We can use query transformers to make aliases with just a couple extra helper functions:
 
