@@ -565,8 +565,7 @@ run_or_fail "Could not call git pull" git pull
 run_or_fail "Could not update to given commit hash" git reset --hard "$COMMIT"
 ````
 
-STOPPED HERE XXX
-In order to run the the `test_runner.py` file, you must point it to a clone of the repository to run tests against. In this case, you can use the previously created "/path/to/test_repo test_repo_clone_runner" clone as the argument. By default, the test_runner.py file will start its own server on localhost using a port between the range 8900-9000, and will try to connect to the dispatcher server at localhost:8888. You may pass it optional arguments to change these values. The `--host` and `--port` arguments are to designate a specific address to run the test runner server on, and the `--dispatcher-server` argument will have it connect to a different address than localhost:8888 to communicate with the dispatcher.
+In order to run `test_runner.py`, you must point it to a clone of the repository to run tests against. In this case, you can use the previously created `/path/to/test_repo test_repo_clone_runner` clone as the argument. By default, `test_runner.py` will start its own server on localhost using a port in the range 8900-9000, and will try to connect to the dispatcher server at localhost:8888. You may pass it optional arguments to change these values. The `--host` and `--port` arguments are used to designate a specific address to run the test runner server on, and the `--dispatcher-server` argument will have it connect to a different address than localhost:8888 to communicate with the dispatcher.
 
 
 Control Flow Diagram
@@ -574,41 +573,50 @@ Control Flow Diagram
 
 This is an overview diagram of this system. This diagram assumes that all three files (repo_observer.py, dispatcher.py and test_runner.py) are already running, and describes the actions each process takes when a new commit is made.
 
-.. image:: diagram.svg
+<!--.. image:: diagram.svg-->
+![](diagram.svg)
 
 Running the Code
 ----------------
 
-We can run this simple CI system locally, using 3 different terminal shells for each process.
+We can run this simple CI system locally, using three different terminal shells for each process.
 
 We start the dispatcher first, running on port 8888:
 
-  python dispatcher.py
+````
+  $ python dispatcher.py
+````
 
-In a new shell, we start the test_runner (so it can register itself with the
+In a new shell, we start the test runner (so it can register itself with the
 dispatcher):
 
-  python test_runner.py <path/to/test_repo_clone_runner>
+````
+  $ python test_runner.py <path/to/test_repo_clone_runner>
+````
 
-The test runner will assign itself its own port, in the range 8900->9000. You
+The test runner will assign itself its own port, in the range 8900-9000. You
 may run as many test runners as you like.
 
-Lastly, in another new shell, let's start the repo_observer:
+Lastly, in another new shell, let's start the repo observer:
 
-  python repo_observer.py --dispatcher-server=localhost:8888 <path/to/test_repo_clone_obs>
+````
+  $ python repo_observer.py --dispatcher-server=localhost:8888 <path/to/test_repo_clone_obs>
+````
 
 Now that everything is set up, let's trigger some tests! To do that, we'll need
 to make a new commit. Go to your master repository and make an arbitrary change:
 
-  cd /path/to/test_repo
-  touch new_file
-  git add new_file
-  git commit -m"new file" new_file
+````
+  $ cd /path/to/test_repo
+  $ touch new_file
+  $ git add new_file
+  $ git commit -m"new file" new_file
+````
 
-then repo_observer.py will realize that there's a new commit and will notify
+Then `repo_observer.py` will realize that there's a new commit and notify
 the dispatcher. You can see the output in their respective shells, so you
 can monitor them. Once the dispatcher receives the test results, it stores them
-in a test_results/ folder in this code base, using the commit ID as the
+in a `test_results/` folder in this code base, using the commit ID as the
 filename.
 
 Error Handling
@@ -616,7 +624,7 @@ Error Handling
 
 This CI system includes some simple error handling.
 
-If you kill the test_runner.py process, dispatcher.py will figure out that
+If you kill the `test_runner.py` process, `dispatcher.py` will figure out that
 the runner is no longer available and will remove it from the pool.
 
 You can also kill the test runner, to simulate a 
@@ -625,15 +633,15 @@ runner went down and will give another test runner the job if one is available i
 or will wait for a new test runner to register itself in the pool.
 
 If you kill the dispatcher, the repository observer will figure out it went down
-and will throw an exception. The test runners will also notice, and will
+and will throw an exception. The test runners will also notice, and 
 shut down.
 
 Conclusion
 ==========
 
-By separating concerns into their own processes, we were able to build the fundamentals of a distributed continuous integration system. With processes communicating with each other via socket requests, we are able to distribute this system across multiple machines, helping to make our system more reliable and scalable.
+By separating concerns into their own processes, we were able to build the fundamentals of a distributed continuous integration system. With processes communicating with each other via socket requests, we are able to distribute the system across multiple machines, helping to make our system more reliable and scalable.
 
-Since the CI system is quite simple now, you can extend it yourself to be far more functional. A few suggestions for improvements are the following:
+Since the CI system is quite simple now, you can extend it yourself to be far more functional. Here are a few suggestions for improvements:
 
 Per-Commit Test Runs
 --------------------
@@ -643,20 +651,21 @@ The current system will periodically check to see if new commits are run and wil
 Smarter Test Runners
 --------------------
 
-If the test runner detects that the dispatcher is unresponsive, it stops running. This includes the case where the test runner was in the middle of running tests! It would be better if the test runner waits for a period of time (or indefinitely if you do not care for resource management) for the dispatcher to come back online. In this case, if the dispatcher goes down while the test runner is actively running a test, instead of shutting down, it will complete the test and wait for the dispatcher to come back online, and will report the results to it. This will ensure that we don't waste any effort the test runner makes, and ensures we will only run tests once per commit.
+If the test runner detects that the dispatcher is unresponsive, it stops running. This happens even when the test runner is in the middle of running tests! It would be better if the test runner waited for a period of time (or indefinitely, if you do not care about resource management) for the dispatcher to come back online. In this case, if the dispatcher goes down while the test runner is actively running a test, instead of shutting down it will complete the test and wait for the dispatcher to come back online, and will report the results to it. This will ensure that we don't waste any effort the test runner makes, and that we will only run tests once per commit.
 
 Real Reporting
 --------------
 
-In a real CI system, you would have the test results report to a reporter service, something that would gather the results, post them somewhere for people to review, and would notify a list of interested parties when a failure or other notable event occurs. You can extend this current simple CI system by creating a new process to get the reported results in lieu of the dispatcher gathering the results. This new process could be a web server (or can connect to a web server) which could post the results online for others to view, and may use a mail server to alert subscribers to any test failures.
+In a real CI system, you would have the test results report to a reporter service which would gather the results, post them somewhere for people to review, and notify a list of interested parties when a failure or other notable event occurs. You can extend our simple CI system by creating a new process to get the reported results, instead of the dispatcher gathering the results. This new process could be a web server (or can connect to a web server) which could post the results online, and may use a mail server to alert subscribers to any test failures.
 
 Test Runner Manager
 -------------------
 
-Right now, you have to manually kick off the test_runner.py file to start a test runner. You can instead create a test runner manager process which will assess the current load of test requests from the dispatcher, and will scale the number of active test runners. This process will receive the `runtest` messages and will start a test runner process for each request, and will kill unused processes when the load decreases.
+Right now, you have to manually launch the `test_runner.py` file to start a test runner. Instead, you could create a test runner manager process which would assess the current load of test requests from the dispatcher and scale the number of active test runners accordingly. This process will receive the `runtest` messages and will start a test runner process for each request, and will kill unused processes when the load decreases.
 
 Using these suggestions, you can make this simple CI system more robust and fault-tolerant, and you can integrate it with other systems, like a web-based test reporter.
 
-If you wish to see the level of flexibility continuous integration systems can achieve, I recommend looking into Jenkins (http://jenkins-ci.org/), a very robust, open-sourced CI system written in Java. It provides you a basic CI system, which you can extend using plugins. You may also access its source code through GitHub: https://github.com/jenkinsci/jenkins/. Another recommended project is Travis CI (https://travis-ci.org/), which is written in Ruby and whose source code is available through GitHub: https://github.com/travis-ci/travis-ci
+If you wish to see the level of flexibility continuous integration systems can achieve, I recommend looking into [Jenkins](http://jenkins-ci.org/), a very robust, open-source CI system written in Java. It provides you with a basic CI system which you can extend using plugins. You may also access its source code [through GitHub](https://github.com/jenkinsci/jenkins/). Another recommended project is [Travis CI](https://travis-ci.org/), which is written in Ruby and whose source code is also available [through GitHub](https://github.com/travis-ci/travis-ci).
 
-This has been an exercise in understanding how CI systems work, and how to build one yourself. You should now have a more solid understanding of what is needed to make a reliable, distributed system, and you can now use this knowledge to develop more complex solutions.
+This has been an exercise in understanding how CI systems work, and how to build one yourself. You should now have a more solid understanding of what is needed to make a reliable distributed system, and you can now use this knowledge to develop more complex solutions.
+
