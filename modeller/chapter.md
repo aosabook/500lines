@@ -153,12 +153,17 @@ Some common transformation matrices are translations (moves), scaling, and rotat
 To draw an item to the screen, we need to convert between a few different coordinate spaces.
 
 ![Transformation Pipeline](newtranspipe.png?raw=true)
-Thank you very much to Dr. Anton Gerdelan for the image. His OpenGL tutorial book is available [here](http://antongerdelan.net/opengl/).
+Thank you to Dr. Anton Gerdelan for the image. His OpenGL tutorial book is available at [http://antongerdelan.net/opengl/](http://antongerdelan.net/opengl/).
 
-We let specialized OpenGL functions handle the right hand side of the diagram: conversion from eye space to homogeneous clip space is handled by `gluPerspective`, conversion to Normalized Device Space and Viewport space is handled by `glViewport`. These matrices do not change during program execution.
-Points in the view space are converted into points in 2d using the projection matrix.
-We need to manage the left hand side of the diagram ourselves. We define a matrix which converts points from the model spaces into the world space, called the Model matrix. We alse define the View matrix, which converts from the world space into the eye space.
+The right hand side of the diagram, including all of the transformations from Eye Space to Viewport Space will all be handled for us by OpenGL.
+Conversion from eye space to homogeneous clip space is handled by `gluPerspective`, and conversion to normalized device space and viewport space is handled by `glViewport`.
+These two matrices are multiplied together and stored as the GL_PROJECTION matrix.
+We don't need to know the terminology or the details of how these matrices work for this project.
+
+We do, however, need to manage the left hand side of the diagram ourselves. We define a matrix which converts points in the model (also called a mesh) from the model spaces into the world space, called the model matrix. We alse define the view matrix, which converts from the world space into the eye space.
 In this project, we combine these two matrices to obtain the ModelView matrix.
+
+To learn more about the full graphics rendering pipeline, and the coordinate spaces involved, refer to chapter 2 of ["Real Time Rendering"](http://www.realtimerendering.com/), or another introductory computer graphics book.
 
 ### Rendering with the Viewer
 The `render` function begins by setting up any of the OpenGL state that needs to be done at render time. It initializes the projection matrix via `init_view` and uses data from the interaction member to initialize the ModelView matrix with the transformation matrix that converts from the scene space to world space. We will see more about the Interaction class below. It clears the screen with `glClear` and it tells the scene to render itself, and then renders the unit grid. 
