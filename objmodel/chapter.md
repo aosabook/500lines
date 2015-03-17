@@ -61,7 +61,7 @@ The object model in this section will have classes and instances of them, the
 ability to read
 and write attributes into objects, the ability to call methods on objects, and
 the ability for a class to be a subclass of another class. Right from the
-beginning, classes will be regular objects that can themselves have
+beginning, classes will be completely ordinary objects that can themselves have
 attributes and methods.
 
 A note on terminology: In this chapter I will use the word "instance" to mean
@@ -887,7 +887,7 @@ implementation, we would refactor the ``Base`` class so that it is no longer res
 storing the fields dictionary, but for now having instances
 store ``None`` there is good enough.
 
-When creating a new instance, the class starts out using the ``EMPTY_MAP``, which
+A newly created instance starts out using the ``EMPTY_MAP``, which
 has no attributes, and empty storage. To implement ``_read_dict``, the
 instance's map is asked for the index of the attribute name. Then the
 corresponding entry of the storage list is returned.
