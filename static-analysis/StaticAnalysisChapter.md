@@ -3,7 +3,7 @@ by Leah Hanson for *500 Lines or Less*
 
 You may be familiar with a fancy IDE that draws red-underlines under parts of your code that don't compile. You may have run a linter on your code to check for formatting or style problems. You might run your compiler in super-picky mode with all the warnings turned on. All of these tools are applications of static analysis.
 
-Static Analysis is a way to check for problems in your code without running it. "Static" means at compile-time, rather than at run-time, and "analysis" because we're analyzing the code. When you've used the tools I mentioned above, it may have felt like magic. But those tools are just programs -- they are made of source code that was written by a person, a programmer like you. In this chapter, we're going to talk about how to implement a couple static analysis checks. In order to do this, we need to now what we want the check to do and how we want to do it.
+Static Analysis is a way to check for problems in your code without running it. "Static" means at compile-time, rather than at run-time, and "analysis" because we're analyzing the code. When you've used the tools I mentioned above, it may have felt like magic. But those tools are just programs -- they are made of source code that was written by a person, a programmer like you. In this chapter, we're going to talk about how to implement a couple static analysis checks. In order to do this, we need to know what we want the check to do and how we want to do it.
 
 We can get more specific about what you need to know by describing the process as having three stages:
 
@@ -17,7 +17,7 @@ We can get more specific about what you need to know by describing the process a
 
 2. Deciding how exactly to check for it
 
-    While we could ask a friend to do one of the tasks listed above, they aren't specific enough to explain to a computer. To tackle "misspelled variable names", for example, we'd need to decide what misspelled means here. One option would be to claim variable names should be composed of English words from the dictionary; another option is to look for variables that are only used once (the one time you mis-typed it).
+    While we could ask a friend to do one of the tasks listed above, they aren't specific enough to explain to a computer. To tackle "misspelled variable names", for example, we'd need to decide what misspelled means here. One option would be to claim variable names should be composed of English words from the dictionary; another option is to look for variables that are only used once (the one time you mistyped it).
 
     Now that we know we're looking for variables that are only used once, we can talk about kinds of variable usages (having their value assigned vs. read) and what code would or would not trigger a warning.
 
@@ -29,7 +29,7 @@ We're going to work through these steps for each of the individual checks implem
 
 # A Very Brief Introduction to Julia
 
-Julia is a young language aimed at technical computing. It was released at version 0.1 in the Spring of 2012; as of the summer of 2014, it has reached version 0.3. In general, Julia looks a lot like Python, but with some optional type annotations and without any object-oriented stuff. The feature that most programmers will find novel in Julia is multiple dispatch, which has a pervasive impact on both API design and on other design choices in the language.
+Julia is a young language aimed at technical computing. It was released at version 0.1 in the Spring of 2012; as of the start of 2015, it has reached version 0.3. In general, Julia looks a lot like Python, but with some optional type annotations and without any object-oriented stuff. The feature that most programmers will find novel in Julia is multiple dispatch, which has a pervasive impact on both API design and on other design choices in the language.
 
 Here is a snippet of Julia code:
 
@@ -74,7 +74,7 @@ We haven't really seen the "multiple" part yet, but if you're curious about Juli
 
 # Checking the Types of Variables in Loops
 
-A feature of Julia that sets it apart from other high-level languages is its speed. As in most programming languages, writing very fast code in Julia involves an understanding of how the computer works and how Julia works. In Julia, an important part of helping the compiler create fast code for you is writing type-stable code. When the compiler can see that a variable in a section of code will always contain the same specific type, the compiler can do more optimizations than if it believes (correctly or not) that there are multiple possible types for that variable.
+As in most programming languages, writing very fast code in Julia involves an understanding of how the computer works and how Julia works. An important part of helping the compiler create fast code for you is writing type-stable code; this is important in Julia and Javascript, and is also helpful in other JIT’d languages. When the compiler can see that a variable in a section of code will always contain the same specific type, the compiler can do more optimizations than if it believes (correctly or not) that there are multiple possible types for that variable. You can read more about why type stability (also called “monomorphism”) is important for Javascript here: http://mrale.ph/blog/2015/01/11/whats-up-with-monomorphism.html .
 
 ## Why This is Important
 
@@ -143,7 +143,7 @@ The `@time` macro prints out how long the function took to run and how many byte
 
 If we wanted to get solid numbers for `stable` vs `unstable` we would need to make the loop much longer or run the functions many times. However, it looks like `unstable` is probably slower. More interestingly, we can see a large gap in the number of bytes allocated; `unstable` has allocated around 3kb of memory, where `stable` is using 64 bytes.
 
-Since we can see how simple `unstable` is, we might guess that this allocation is happening in the loop. To test this, we can make the loop longer and see if the allocations increase accordingly. Let's make the loop go from 1 to 10000, which is 100 times more iterations; we'll look for the number of bytes allocated to also increase about 100 times, to around 300kb.
+Since we can see how simple `unstable` is, we might guess that this allocation is happening in the loop. To test this, we can make the loop longer and see if the allocations increase accordingly. Let's make the loop go from 1 to 10000, which is 100 times more iterations; we'll look for the number of bytes allocated to also increase about 100 times, to around 300 kb.
 
 ~~~jl
 function unstable()
@@ -174,7 +174,7 @@ The difference comes from what optimizations the compiler can make. When a varia
 
 Immutable types are usually types that represent values, rather than collections of values. For example, most numeric types, including `Int64` and `Float64`, are immutable. (Numeric types in Julia are normal types, not special primitive types; you could define a new `MyInt64` that's the same as the provided one.) Because immutable types cannot be modified, you must make a new copy every time you want change one. For example `4 + 6` must make a new `Int64` to hold the result. In contrast, the members of a mutable type can be updated in-place; this means you don't have to make a copy of the whole thing to make a change.
 
-The idea of `x = x + 2` allocating memory probably sounds pretty weird; why would you make such a basic operation slow by making `Int64`s immutable? This is where those compiler optimizations come in: using immutable types doesn't (usually) slow this down. If `x` has a stable, concrete type (such as `Int64`), then the compiler is free to allocate `x` on the stack and mutate `x` in place. The problem is only when `x` has an unstable type (so the compiler doesn't know how big or what type it will be); once `x` is boxed and on the heap, the compiler isn't complete sure that some other piece of code isn't using the value, and thus can't edit it.
+The idea of `x = x + 2` allocating memory probably sounds pretty weird; why would you make such a basic operation slow by making `Int64`s immutable? This is where those compiler optimizations come in: using immutable types doesn't (usually) slow this down. If `x` has a stable, concrete type (such as `Int64`), then the compiler is free to allocate `x` on the stack and mutate `x` in place. The problem is only when `x` has an unstable type (so the compiler doesn't know how big or what type it will be); once `x` is boxed and on the heap, the compiler isn't completely sure that some other piece of code isn't using the value, and thus can't edit it.
 
 Because `sum` in `stable` has a concrete type (`Float64`), the compiler knows that it can store it unboxed locally in the function and mutate its value; `sum` will not be allocated on the heap and new copies don't have to be made every time we add `i/2`.
 
@@ -192,7 +192,7 @@ We'll need to find what variables are used inside of loops and we'll need to fin
 * How do we print the results?
 * How do we tell if the type is unstable?
 
-I'm going to tackle the last question first, since this whole endevour hinges on it. We've looked at an unstable function and seen as programmers how to identify an unstable variable, but we need our program to find them. This sounds like it would require simulating the function to look for variables whose values might change; this sounds like it would take some work. Luckily for us, Julia's type inference already traces through the function's execution to determine the types.
+I'm going to tackle the last question first, since this whole endeavour hinges on it. We've looked at an unstable function and seen as programmers how to identify an unstable variable, but we need our program to find them. This sounds like it would require simulating the function to look for variables whose values might change; this sounds like it would take some work. Luckily for us, Julia's type inference already traces through the function's execution to determine the types.
 
 The type of `sum` in `unstable` is `Union(Float64,Int64)`. This is a `UnionType`, a special type of type that indicates the variable may hold any of a set of types of values. A variable of type `Union(Float64,Int64)` can hold values of type `Int64` or `Float64`; a value can only have one of those types. A `UnionType` join any number of types (e.g. `UnionType(Float64, Int64, Int32)` joins three types). The specific thing that we're going to look for is `UnionType`d variables inside loops.
 Parsing code into a representative structure is a complicated business, and gets more complicated as the language grows. In this chapter, we'll be depending on internal data structures used by the compiler. This means that we don't have to worry about reading files or parsing them, but it does mean we have to work with data structures that are not in our control and that sometimes feel clumsy or ugly.
@@ -205,7 +205,7 @@ This process of examining Julia code from Julia code is called introspection. Wh
 
 ### Introspection in Julia
 
-Julia makes it easy to introspect. There are four functions built-in to let us see what that compiler is thinking: `code_lowered`, `code_typed`, `code_llvm`, and `code_native`. Those are listed in order of what step in the compilation process their output is from; the left-most one is closest to the code we'd type in and the right-most one is the closest to what the CPU runs. For this chapter, we'll focus on `code_typed`, which gives us the optimized, type-inferred abstract syntax tree (AST). [TODO: point to other 500 lines chapters that use ASTs]
+Julia makes it easy to introspect. There are four functions built-in to let us see what that compiler is thinking: `code_lowered`, `code_typed`, `code_llvm`, and `code_native`. Those are listed in order of what step in the compilation process their output is from; the leftmost one is closest to the code we'd type in and the right-most one is the closest to what the CPU runs. For this chapter, we'll focus on `code_typed`, which gives us the optimized, type-inferred abstract syntax tree (AST). [TODO: point to other 500 lines chapters that use ASTs]
 
 `code_typed` takes two arguments: the function of interest, and a tuple of argument types. For example, if we wanted to see the AST for a function `foo` when called with two `Int64`s, then we would call `code_typed(foo, (Int64,Int64))`.
 
@@ -273,7 +273,7 @@ julia> e.args
 
 We just saw some values printed out, but that doesn't tell us much about what they mean or how they're used.
 
-* `head` tells us what kind of expression this is; normally, you'd use separate types for this in Julia, but `Expr` is a type that models the structure used in the Lisp parser. `head` tells us how the rest of the `Expr` is structured and what it represents.
+* `head` tells us what kind of expression this is; normally, you'd use separate types for this in Julia, but `Expr` is a type that models the structure used in the parser. The parser is written in a dialect of Scheme, which structures everything as nested lists. `head` tells us how the rest of the `Expr` is organized and what kind of expression it represents.
 * `typ` is the inferred return type of the expression; when you evaluate any expression, it results in some value. `typ` is the type of the value that the expression will evaluate to. For nearly all `Expr`s, this value will be `Any` (which is always correct, since every possible type is a subtype of `Any`). Only the `body` of type-inferred methods and most expressions inside them will have their `typ`s set to something more specific. (Because `type` is a keyword, this field can't use that word as its name.)
 * `args` is the most complicated part of `Expr`; its structure varies based on the value of `head`. It's always an `Array{Any}` (an untyped array), but beyond that the structure changes.
 
@@ -366,9 +366,9 @@ julia> code_typed(lloop, (Int,))[1].args[3]
     end::Nothing)
 ~~~
 
-You'll notice there's no `for` or `while` loop in the body. Instead, the loop has been lowered to `label`s and `goto`s. The `goto` has a number in it; each `label` also has a number. The `goto` jumps to the the `label` with the same number.
+You'll notice there's no `for` or `while` loop in the body. As the compiler transforms the code from what we wrote to the binary instructions the CPU understands, features that useful to humans but that are not understood by the CPU (like loops) are removed. The loop has been rewritten as `label`s and `goto`s. The `goto` has a number in it; each `label` also has a number. The `goto` jumps to the the `label` with the same number.
 
-### Detecting & Extracting Loops
+### Detecting and Extracting Loops
 
 We're going to find loops by looking for `goto`s that jump backwards.
 
@@ -481,7 +481,7 @@ We can't just check each expression that `loopcontents` collected to see if it's
 
 ~~~.jl
 # given `lr`, a Vector of expressions (Expr + literals, etc)
-# try to find all occurances of a variables in `lr`
+# try to find all occurrences of a variables in `lr`
 # and determine their types
 function loosetypes(lr::Vector)
   symbols = SymbolNode[]
@@ -541,7 +541,7 @@ end
 
 ### Making This Usable
 
-Now that we can do the check on an expression, we should make it easier to call on a users's code. We'll create two ways to call `checklooptypes`:
+Now that we can do the check on an expression, we should make it easier to call on a user's code. We'll create two ways to call `checklooptypes`:
 
 1. On a whole function; this will check each method of the given function.
 
@@ -630,7 +630,7 @@ end
 
 # Looking For Unused Variables
 
-Sometimes, as you're typing in your program, you type a variable -- and sometimes, you mistype the name. When you mistype it, the program can't tell that you meant the same variable as the other times. It sees a variable used only one time, where you might see a variable name misspelled.
+Sometimes, as you're typing in your program, you type a variable -- and sometimes, you mistype the name. When you mistype it, the program can't tell that you meant the same variable as the other times. It sees a variable used only one time, where you might see a variable name misspelled. Languages that require variable declarations naturally catch these misspellings, but many dynamic languages don’t require declarations and thus need an extra layer of analysis to catch them.
 
 We can find misspelled variable names (and other unused variables) by looking for variables that are only used once -- or only used one way.
 
@@ -647,7 +647,7 @@ function foo(variable_name::Int)
 end
 ~~~
 
-This kind of mistake can cause problems in your code that are only discovered when it's run. Let's assume you miss-spell each variable name only once. We can separate variable usages into writes and reads. If the misspelling is a write (i.e. `worng = 5`), then no error will be thrown; you'll just be silently putting the value in the wrong variable -- and it could be frustrating to find the bug. If the misspelling is a read (i.e. `right = worng + 2`), then you'll get a run-time error when the code is run; we'd like to have a static warning for this, so that you can find this error sooner, but you will still have to wait until you run the code to see the problem.
+This kind of mistake can cause problems in your code that are only discovered when it's run. Let's assume you miss-spell each variable name only once. We can separate variable usages into writes and reads. If the misspelling is a write (i.e. `worng = 5`), then no error will be thrown; you'll just be silently putting the value in the wrong variable -- and it could be frustrating to find the bug. If the misspelling is a read (i.e. `right = worng + 2`), then you'll get a runtime error when the code is run; we'd like to have a static warning for this, so that you can find this error sooner, but you will still have to wait until you run the code to see the problem.
 
 As code becomes longer and more complicated, it becomes harder to spot the mistake -- unless you have the help of static analysis.
 
@@ -683,9 +683,7 @@ We'll look for all variable usages, but we'll look for LHS and RHS usages separa
 
 To be on the LHS, a variable needs to have an `=` sign to be to the left of. This means we can look for `=` signs in the AST, and then look to the left of them to find the relevant variable.
 
-In the AST, an `=` is an `Expr` with the head `:(=)`. (The parenthesises are there to make it clear that this is the symbol for `=` and not another operator, `:=`.) The first value in `args` will be the variable name on its LHS. Because we're looking at an AST that the compiler has already cleaned up, there will always be just a single symbol to the left of our `=` sign.
-
-//TODO fact check (on `a[5] = 10`)
+In the AST, an `=` is an `Expr` with the head `:(=)`. (The parentheses are there to make it clear that this is the symbol for `=` and not another operator, `:=`.) The first value in `args` will be the variable name on its LHS. Because we're looking at an AST that the compiler has already cleaned up, there will (nearly) always be just a single symbol to the left of our `=` sign.
 
 Let's see what that means in code:
 ~~~.jl
@@ -738,7 +736,8 @@ end
     end
   end
 ~~~
-    We aren't digging deeper into the expressions, because the code_typed AST is pretty flat; loops and ifs have been converted to flat statements with gotos for control flow. There won't be any assignments hiding inside function calls' arguments.
+    We aren't digging deeper into the expressions, because the code_typed AST is pretty flat; loops and ifs have been converted to flat statements with gotos for control flow. There won't be any assignments hiding inside function calls' arguments. This code while fail if anything more than a symbol is on the left of the equal sign; this misses two specific edge cases -- array accesses (like `a[5]`, which will be represented as a `:ref` expression) and properties (like `a.head`, which will be represented as a `:.` expression). These will still always have the relevant symbol as the first value in their `args`, it might just be buried a bit (as in `a.property.name.head.other_property`). This code doesn’t handle those cases, but a couple lines of code inside the `if` statement could fix that.
+
 3. ~~~.jl
       push!(output,ex.args[1])
 ~~~
@@ -836,7 +835,7 @@ The main structure of this function is a large if-else statement, where each cas
      union!(output,find_rhs_variables(ex))
    end
 ~~~
-    An `Expr` representing an if-statment has the `head` value `:if`. We want to get variable usages from all the expressions in the body of the if-statement, so we recurse on each element of `args`.
+    An `Expr` representing an if-statement has the `head` value `:if`. We want to get variable usages from all the expressions in the body of the if-statement, so we recurse on each element of `args`.
 
 * ~~~.jl
   elseif e.head == :(::)
@@ -882,5 +881,14 @@ check_locals(e::Expr) = isempty(unused_locals(e))
 ~~~
 
 # Conclusion
+We’ve done two static analyses of Julia code -- one based on types and one based on variable usages.
 
-We've just done two distinct analyses of Julia code by writing Julia code. Hopefully, your new understanding of how static analysis tools are written will help you understand the tools you use on your code, and maybe inspire your to write one of your own.
+Statically-typed languages already do the kind of work our type-based analysis did; additional type-based static analysis is mostly useful in dynamically typed languages. There have been (mostly research) projects to build static type inference systems for languages including Python, Ruby, and Lisp. These systems are usually built around optional type annotations; you can have static types when you want them, and fall back to dynamic typing when you don’t. This is especially helpful for integrating some static typing into existing code bases.
+
+Non-typed-based checks, like our variable-usage one, are applicable to both dynamically- and statically-typed languages. However, many statically-typed languages, like C++ and Java, require you to declare variables and already give basic warnings like the ones we created. There are still custom checks that can be written. For example, checks that are specific to your project’s style guide or extra safety precautions based on security policies.
+
+While Julia does have great tools for enabling static analysis, it’s not alone. Lisp, of course, is famous for having the code be a data structure of nested lists, so it tends to be easy to get at the AST. Java also exposes it’s AST, although the AST is much more complicated than Lisp’s. Some languages or language tool-chains are not designed to allow mere users to poke around at internal representations. For open-source tool chains (especially well-commented ones), one option is to add the hooks you want to pull out the AST.
+
+In cases where that won’t work, the final fall-back is writing a parser yourself; this is to be avoided when possible. It’s a lot of work to cover the full grammar of most programming languages, and you’ll have to update it yourself as new features are added to the language (rather than getting the updates automatically from upstream). Depending on the checks you want to do, you may be able to get away with parsing only some lines or a subset of language features, which would greatly decrease the cost of writing your own parser.
+
+Hopefully, your new understanding of how static analysis tools are written will help you understand the tools you use on your code, and maybe inspire you to write one of your own.
