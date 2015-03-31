@@ -1,20 +1,20 @@
-Clustering by Consensus
-***********************
+<!-- American spelling -->
+# Clustering by Consensus
+
 
 In this chapter, we'll explore implementation of a network protocol designed to support reliable distributed computation.
 Network protocols can be difficult to implement correctly, so we'll look at some techniques for minimizing bugs and for catching and fixing the remaining few.
 Building reliable software, too, requires some special development and debugging techniques.
 
-Motivating Example
-==================
+## Motivating Example
 
 The focus of this chapter is on the protocol implementation, but as a motivating example let's consider a simple bank account management service.
 In this service, each account has a current balance and is identified with an account number.
 Users access the accounts by requesting operations like "deposit", "transfer", or "get-balance".
 The "transfer" operation operates on two accounts at once -- the source and destination accounts -- and must be rejected if the source account's balance is too low.
 
-If the service is hosted on a single server, this is easy to implement: use a lock to make sure that transfer operations don't run in parallel, and verify the souce account's balance in that method.
-However, a bank cannot rely on a single server for its critical account balances!
+If the service is hosted on a single server, this is easy to implement: use a lock to make sure that transfer operations don't run in parallel, and verify the source account's balance in that method.
+However, a bank cannot rely on a single server for its critical account balances.
 Instead, the service is *distributed* over multiple servers, with each running a separate instance of exactly the same code.
 Users can then contact any server to perform an operation.
 
@@ -24,11 +24,10 @@ But this approach introduces a serious failure mode: if two servers process oper
 Even if the servers share operations with one another instead of balances, two simultaneous transfers out of an account might overdraw the account.
 
 Fundamentally, these failures occur when servers use their local state to perform operations, without first ensuring that the local state matches the state on other servers.
-For example, imagine that server A receives a transfer operation from account 101 to account 202, when server B has already processed another transfer account 101's full balance to account 202, but not yet informed server A.
+For example, imagine that server A receives a transfer operation from account 101 to account 202, when server B has already processed another transfer of account 101's full balance to account 202, but not yet informed server A.
 The local state on server A is different from that on server B, so server A incorrectly allows the transfer to complete, even though the result is an overdraft on account 101.
 
-Distributed State Machines
-==========================
+## Distributed State Machines
 
 The technique for avoiding such problems is called a "distributed state machine".
 The idea is that each server executes exactly the same deterministic state machine on exactly the same inputs.
@@ -37,7 +36,7 @@ Operations such as "transfer" or "get-balance", together with their parameters (
 
 The state machine for this application is simple:
 
-.. code-block:: python
+```python
 
     def execute_operation(state, operation):
         if operation.name == 'deposit':
@@ -53,9 +52,10 @@ The state machine for this application is simple:
             return state, True
         elif operation.name == 'get-balance':
             return state, state.accounts[operation.account]
+```
 
 Note that executing the "get-balance" operation does not modify the state, but is still implemented as a state transition.
-This guarantees that the returned balance is the latest information in the cluster of servers, not based on the (possibly stale) local state on a single server.
+This guarantees that the returned balance is the latest information in the cluster of servers, and is not based on the (possibly stale) local state on a single server.
 
 This may look different than the typical state machine you'd learn about in a computer science course.
 Rather than a finite set of named states with labeled transitions, this machine's state is the collection of account balances, so there are infinite possible states.
@@ -63,24 +63,22 @@ Still, the usual rules of deterministic state machines apply: starting with the 
 
 So, the distributed state machine technique ensures that the same operations occur on each host.
 But the problem remains of ensuring that every server agrees on the inputs to the state machine.
-This is a problem of *consensus*, and we'll address it with derivative of the Paxos algorithm.
+This is a problem of *consensus*, and we'll address it with a derivative of the Paxos algorithm.
 
-Consensus by Paxos
-==================
+## Consensus by Paxos
 
 Paxos was described by Leslie Lamport in a fanciful paper, first submitted in 1990 and eventually published in 1998, entitled "The Part-Time Parliament".
 Lamport's paper has a great deal more detail than we will get into here, and is a fun read.
 The references at the end of the chapter describe some extensions of the algorithm that we have adapted in this implementation.
 
 The simplest form of Paxos provides a way for a set of servers to agree on one value, for all time.
-MultiPaxos builds on this foundation by agreeing on a numbered sequence of facts, one at a time.
-To implement a distributed state machine, we use MultiPaxos to agree on each state-machine input, and execute them in sequence.
+Multi-Paxos builds on this foundation by agreeing on a numbered sequence of facts, one at a time.
+To implement a distributed state machine, we use Multi-Paxos to agree on each state-machine input, and execute them in sequence.
 
-Simple Paxos
-------------
+### Simple Paxos
 
 So let's start with "Simple Paxos", also known as the Synod protocol, which provides a way to agree on a single value that can never change.
-The name Paxos comes from the mythical island in "The Part-Time Parliament", where lawmakers vote on legislation through a process Lamport dubbed a Synod.
+The name Paxos comes from the mythical island in "The Part-Time Parliament", where lawmakers vote on legislation through a process Lamport dubbed the Synod protocol.
 
 The algorithm is a building block for more complex algorithms, as we'll see below.
 The single value we'll agree on in this example is the first transaction processed by our hypothetical bank.
@@ -92,7 +90,7 @@ The proposer's goal is to get a majority of cluster members, acting as acceptors
 
 A single ballot looks like this:
 
-.. code-block:: none
+```
 
     Proposer      -------------------------     Acceptor        Acceptor        Acceptor
        *--->>----/ Prepare(ballot_num=..) /--------+---------------+---------------+
@@ -120,6 +118,8 @@ A single ballot looks like this:
        +-----------------------/ Accepted(ballot_num=..) /-----------<<------------*
                                --------------------------      
 
+```
+
 The ballot begins with the proposer sending a ``Prepare`` message with the ballot number *N* to the acceptors and waiting to hear from a majority.
 
 The ``Prepare`` message is a request for the accepted value (if any) with the highest ballot number less than *N*.
@@ -127,7 +127,7 @@ Acceptors respond with a ``Promise`` containing any value they have already acce
 If the acceptor has already made a promise for a larger ballot number, it includes that number in the ``Promise``, indicating that the proposer has been pre-empted.
 In this case, the ballot is over, but the proposer is free to try again in another ballot (and with a larger ballot number).
 
-When the proposer has heard back from a majority of the acceptors, it sends an ``Accept`` message, including the ballot number and value to all acceptors.
+When the proposer has heard back from a majority of the acceptors, it sends an ``Accept`` message, including the ballot number and value, to all acceptors.
 If the proposer did not receive any existing value from any acceptor, then it sends its own desired value.
 Otherwise, it sends the value from the highest-numbered promise.
 
@@ -148,18 +148,18 @@ Both proposers then re-propose, and hopefully one wins, but the deadlock can con
 Consider the following sequence of events:
 
 * Proposer A performs the ``Prepare``/``Promise`` phase for ballot number 1.
-* Before proposer A manages to get its proposal accepted, proposer B performs a ``Prepare``/``Promise`` phase for ballot number 2.
-* When proposer A finally sends its ``Accept`` with ballot number 1, the acceptors reject it because they have already promised ballot number 2.
-* Proposer A reacts by immediately sending a ``Prepare`` with a higher ballot number (3), before proposer B can send its ``Accept`` message.
+* Before Proposer A manages to get its proposal accepted, Proposer B performs a ``Prepare``/``Promise`` phase for ballot number 2.
+* When Proposer A finally sends its ``Accept`` with ballot number 1, the acceptors reject it because they have already promised ballot number 2.
+* Proposer A reacts by immediately sending a ``Prepare`` with a higher ballot number (3), before Proposer B can send its ``Accept`` message.
 * Proposer B's subsequent ``Accept`` is rejected, and the process repeats.
 
 With unlucky timing -- more common over long-distance connections where the time between sending a message and getting a response is long -- this deadlock can continue for many rounds.
 
-Multi-Paxos
------------
+### Multi-Paxos
 
-Reaching consensus on a single, static value is not particularly useful on its own.
-Clustered systems such as the bank account service want to agree on a particular state (account balances) that evolves over time.
+
+Reaching consensus on a single static value is not particularly useful on its own.
+Clustered systems such as the bank account service want to agree on a particular state (account balances) that changes over time.
 We use Paxos to agree on each operation, treated as a state machine transition.
 
 Multi-Paxos is, in effect, a sequence of simple Paxos instances (slots), each numbered sequentially.
@@ -170,8 +170,7 @@ In concrete terms, this means adding a slot number to each message, with all of 
 Running Paxos for every slot, with its minimum of two round trips, would be too slow.
 Multi-Paxos optimizes by using the same set of ballot numbers for all slots, and performing the ``Prepare``/``Promise`` phase for all slots at once.
 
-Paxos Made .. Pretty Hard, Actually
------------------------------------
+### Paxos Made… Pretty Hard, Actually
 
 Implementing Multi-Paxos in practical software is notoriously difficult, spawning a number of papers mocking Lamport's "Paxos Made Simple" with titles like "Paxos Made Practical".
 
@@ -185,7 +184,7 @@ The leader is then free to execute the ``Accept``/``Accepted`` phase directly wi
 As we'll see below, leader elections are actually quite complex.
 
 Although simple Paxos guarantees that the cluster will not reach conflicting decisions, it cannot guarantee that any decision will be made.
-For example, if the initial ``Prepare`` message is lost and doesn't reach the acceptors, then the proposer will wait for ``Promise`` message that will never arive.
+For example, if the initial ``Prepare`` message is lost and doesn't reach the acceptors, then the proposer will wait for a ``Promise`` message that will never arrive.
 Fixing this requires carefully orchestrated re-transmissions: enough to eventually make progress, but not so many that the cluster buries itself in a packet storm.
 
 Another problem is the dissemination of decisions.
@@ -200,24 +199,22 @@ Furthermore, we need some way to initialize a new cluster.
 
 But enough talk of theory and algorithms -- let's have a look at the code.
 
-Introducing Cluster
-===================
+## Introducing Cluster
 
-The "Cluster" library in this chapter implements a simple form of Multi-Paxos.
+The *Cluster* library in this chapter implements a simple form of Multi-Paxos.
 It is designed as a library to provide a consensus service to a larger application.
 
-Users of this library will depend on its correctness, so it's important to structure the code so that we can see -- and test -- its correspondance to the specification.
-Complex protocols can exhibit complex failures, too, so we will build support for reproducing and debugging rare failures.
+Users of this library will depend on its correctness, so it's important to structure the code so that we can see -- and test -- its correspondence to the specification.
+Complex protocols can exhibit complex failures, so we will build support for reproducing and debugging rare failures.
 
 The implementation in this chapter is proof-of-concept code: enough to demonstrate that the core concept is practical, but without all of the mundane equipment required for use in production.
-However, the code is structured so that such equipment can be added later with minimal changes to the core implementation.
+The code is structured so that such equipment can be added later with minimal changes to the core implementation.
 
 Let's get started.
 
-Types and Constants
--------------------
+### Types and Constants
 
-Cluster's protocol uses 15 different message types, each defined as a Python ``namedtuple``.
+Cluster's protocol uses fifteen different message types, each defined as a Python ``namedtuple``.
 
 {{{ from_to cluster.py '# message types' '^$'
 .. code-block:: python
@@ -244,11 +241,11 @@ Using named tuples to describe each message type keeps the code clean and helps 
 The named tuple constructor will raise an exception if it is not given exactly the right attributes, making typos obvious.
 The tuples format themselves nicely in log messages, and as an added bonus don't use as much memory as a dictionary.
 
-Creating a message reads naturally::
+Creating a message reads naturally:
 
     msg = Accepted(slot=10, ballot_num=30)
 
-And the fields of that message are accessible with a minimum of extra typing::
+And the fields of that message are accessible with a minimum of extra typing:
 
     got_ballot_num = msg.ballot_num
 
@@ -269,7 +266,7 @@ The code also introduces a few constants, most of which define timeouts for vari
     
 }}}
 
-Finally, Cluster uses two named data types, named to correspond to the protocol description:
+Finally, Cluster uses two data types named to correspond to the protocol description:
 
 {{{ from_to cluster.py '# data types' '^$'
 .. code-block:: python
@@ -279,12 +276,11 @@ Finally, Cluster uses two named data types, named to correspond to the protocol 
     
 }}}
 
-Component Model
----------------
+### Component Model
 
 Humans are limited by what we can hold in our active memory.
-We can't reason about the entire Cluster implementation at once -- it's just too much, and too easy to miss details.
-For similar reasons, large monolithic codebases are harder to test: test cases must manipulate many moving pieces and are brittle, failing on almost any change to the code.
+We can't reason about the entire Cluster implementation at once -- it's just too much, so it's too easy to miss details.
+For similar reasons, large monolithic codebases are hard to test: test cases must manipulate many moving pieces and are brittle, failing on almost any change to the code.
 
 To encourage testability and keep the code readable, we break Cluster down into a handful of classes corresponding to the roles described in the protocol.
 Each is a subclass of ``Role``.
@@ -348,11 +344,7 @@ The ``Node`` class also provides a ``send`` method as a convenience, using ``fun
     
 }}}
 
-..
-    this comment helps vim highlight correctly**
-
-Application Interface
----------------------
+### Application Interface
 
 The application creates and starts a ``Member`` object on each cluster member, providing an application-specific state machine and a list of peers.
 The member object adds a bootstrap role to the node if it is joining an existing cluster, or seed if it is creating a new cluster.
@@ -360,7 +352,7 @@ It then runs the protocol (via ``Network.run``) in a separate thread.
 
 The application interacts with the cluster through the ``invoke`` method, which kicks off a proposal for a state transition.
 Once that proposal is decided and the state machine runs, ``invoke`` returns the machine's output.
-The method uses a simple synchronized Queue to wait for the result from the protocol thread.
+The method uses a simple synchronized `Queue` to wait for the result from the protocol thread.
 
 {{{ code_block cluster.py 'class Member'
 .. code-block:: python
@@ -394,19 +386,17 @@ The method uses a simple synchronized Queue to wait for the result from the prot
     
 }}}
 
-Role Classes
-------------
+### Role Classes
 
-Let's look at each of the role classes in the library, one by one.
+Let's look at each of the role classes in the library one by one.
 
-Acceptor
-........
+#### Acceptor
 
 The ``Acceptor`` implements the acceptor role in the protocol, so it must store the ballot number representing its most recent promise, along with the set of accepted proposals for each slot.
 It then responds to ``Prepare`` and ``Accept`` messages according to the protocol.
 The result is a short class that is easy to compare to the protocol.
 
-For acceptors, Multi Paxos looks a lot like simple paxos, with the addition of slot numbers to the messages.
+For acceptors, Multi-Paxos looks a lot like Simple Paxos, with the addition of slot numbers to the messages.
 
 {{{ code_block cluster.py 'class Acceptor'
 .. code-block:: python
@@ -438,8 +428,7 @@ For acceptors, Multi Paxos looks a lot like simple paxos, with the addition of s
     
 }}}
 
-Replica
-.......
+#### Replica
 
 The ``Replica`` class is the most complicated role class, as it has a few closely related responsibilities:
 
@@ -642,8 +631,7 @@ The replica responds with a ``Welcome`` message containing its most recent state
     
 }}}
 
-Leader, Scout, and Commander
-............................
+#### Leader, Scout, and Commander
 
 The leader's primary task is to take ``Propose`` messages requesting new ballots and produce decisions.
 A leader is "active" when it has successfully carried out the ``Prepare``/``Promise`` portion of the protocol.
@@ -846,7 +834,7 @@ It responds to the leader with either ``Decided`` or ``Preempted``.
     
 }}}
 
-.. note::
+.. note:
 
     A surprisingly subtle bug appeared here during development.
     At the time, the network simulator introduced packet loss even on messages within a node.
@@ -916,7 +904,7 @@ Network partitions are the most challenging failure case for clustered applicati
 In a network partition, all cluster members remain alive, but communication fails between some members.
 For example, if the network link joining a cluster with nodes in Berlin and Taipei fails, the network is partitioned.
 If both parts of a cluster continue to operate during a partition, then re-joining the parts after the network link is restored can be challenging.
-In the multi-paxos case, the healed network would be hosting two clusters with different decisions for the same slot numbers.
+In the Multi-Paxos case, the healed network would be hosting two clusters with different decisions for the same slot numbers.
 
 To avoid this outcome, creating a new cluster is a user-specified operation.
 Exactly one node in the cluster runs the seed role, with the others running bootstrap as usual.
@@ -998,16 +986,15 @@ See the "Replica" section, above, for this role's communication diagram.
     
 }}}
 
-Summary
-.......
+### Summary
 
 To recap, cluster's roles are:
 
  * Acceptor -- make promises and accept proposals
  * Replica -- manage the distributed state machine, submitting proposals, committing decisions, and responding to requesters
- * Leader -- lead rounds of the multi-paxos algorithm
- * Scout -- perform the ``Prepare``/``Promise`` portion of the mult-paxos algorithm for a leader
- * Commander -- perform the ``Accept``/``Accepted`` portion of the mult-paxos algorithm for a leader
+ * Leader -- lead rounds of the Multi-Paxos algorithm
+ * Scout -- perform the ``Prepare``/``Promise`` portion of the Multi-Paxos algorithm for a leader
+ * Commander -- perform the ``Accept``/``Accepted`` portion of the Multi-Paxos algorithm for a leader
  * Bootstrap -- introduce a new node to an existing cluster
  * Seed -- create a new cluster
  * Requester -- request a distributed state machine operation
@@ -1294,7 +1281,7 @@ Further Extensions
 Catching Up
 -----------
 
-In "pure" MultiPaxos, nodes which fail to receive messages can be many slots behind the rest of the cluster.
+In "pure" Multi-Paxos, nodes which fail to receive messages can be many slots behind the rest of the cluster.
 As long as the state of the distributed state machine is never accessed except via state machine transitions, this design is functional.
 To read from the state, the client requests a state-machine transition that does not actually alter the state, but which returns the desired value.
 This transition is executed cluster-wide, ensuring that it returns the same value everywhere, based on the state at the slot in which it is proposed.
@@ -1306,7 +1293,7 @@ But when the node receiving the request is lagging behind, the request delay is 
 A simple solution is to implement a gossip-style protocol, where each replica periodically contacts other replicas to share the highest slot it knows about and to request information on unknown slots.
 Then even when a ``Decision`` message was lost, the replica would quickly find out about the decision from one of its peers.
 
-Consistent memory usage
+Consistent Memory Usage
 -----------------------
 
 A cluster-management library provides reliability in the presence of unreliable components.
