@@ -24,8 +24,8 @@ But this approach introduces a serious failure mode: if two servers process oper
 Even if the servers share operations with one another instead of balances, two simultaneous transfers out of an account might overdraw the account.
 
 Fundamentally, these failures occur when servers use their local state to perform operations, without first ensuring that the local state matches the state on other servers.
-For example, imagine that server A receives a transfer operation from account 101 to account 202, when server B has already processed another transfer of account 101's full balance to account 202, but not yet informed server A.
-The local state on server A is different from that on server B, so server A incorrectly allows the transfer to complete, even though the result is an overdraft on account 101.
+For example, imagine that server A receives a transfer operation from Account 101 to Account 202, when server B has already processed another transfer of Account 101's full balance to Account 202, but not yet informed server A.
+The local state on server A is different from that on server B, so server A incorrectly allows the transfer to complete, even though the result is an overdraft on Account 101.
 
 ## Distributed State Machines
 
