@@ -5,13 +5,15 @@
 
 Many software engineers reflecting on their training will remember having the pleasure of living in a very perfect world. We were taught to solve discrete problems, with defined parameters, in an ideal domain.
 
-Then we were thrown into the real world, with all of its complexities and challenges. It's messy, which makes it all the more exciting. When you can solve a real-life problem, with all of its quirks, you can build software that really helps people, every day.
+Then we were thrown into the real world, with all of its complexities and challenges. It's messy, which makes it all the more exciting. When you can solve a real-life problem, with all of its quirks, you can build software that really helps people.
 
-In this chapter, we'll examine a problem that looks straightforward on the surface, and gets tangled very quickly when the real world, and real people, are thrown into it.
+In this chapter, we'll examine a problem that looks straightforward on the surface, and gets tangled very quickly when the real world, and real people, are thrown into the mix.
 
-Let's roll up our sleeves, and prepare to untangle.
+We'll work together to build a basic pedometer. We'll start by discussing the theory behind a pedometer and creating a step counting solution outside of code. Then, we'll implement our solution in code. Finally, we'll add a web layer to our code so that we have a friendly interface for a user to work with.
 
-# A Basic Pedometer
+Let's roll up our sleeves, and prepare to untangle a real-world problem.
+
+# Pedometer Theory
 
 The rise of the mobile device brought with it a trend to collect more and more data on our daily lives. One type of data many people collect is the number of steps they've taken over a period of time. This data can be used for health tracking, training for sporting events, or, for those of us obsessed with collecting and analyzing data, just for kicks. Steps can be counted using a pedometer, which often uses data from a hardware accelerometer as input.
 
@@ -23,7 +25,7 @@ An accelerometer returns a *signal* in 3-dimensional space. A signal is a set of
 
 The diagram below shows an example acceleration signal from an accelerometer with the three time series.
 
-![](chapter-figures/acceleration-total.png)
+![](chapter-figures/acceleration-total.png)\
 
 The *sampling rate* of the accelerometer, which can often be calibrated, determines the number of measurements per second. For instance, an accelerometer with a sampling rate of 100 returns 100 data points for each $x$, $y$, and $z$ time series every second.
 
@@ -33,13 +35,13 @@ When a person walks, they bounce slightly with each step. Just watch the top of 
 
 A person bounces up and down, in the vertical direction, with each step. If you are walking on Earth (or another big ball of mass floating in space) the bounce is conveniently in the same direction as gravity.
 
-**We are going to count steps by using the accelerometer to count bounces up and down. Because the phone can rotate in any direction, we will take advantage of gravity to know which direction down is. A pedometer can count steps by counting the number of bounces in the direction of gravity.**
+We are going to count steps by using the accelerometer to count bounces up and down. Because the phone can rotate in any direction, we will take advantage of gravity to know which direction down is. **A pedometer can count steps by counting the number of bounces in the direction of gravity.**
 
 Let's look at a person walking with an accelerometer-equipped smartphone in his or her shirt pocket, as depicted below.
 
-![](chapter-figures/walk-1.png)
+![](chapter-figures/walk-1.png)\
 
-For the sake of simplicity, we'll assume that the stick person:
+For the sake of simplicity, we'll assume that the person:
 
 * is walking in the $z$ direction;
 * bounces with each step in the $y$ direction; and
@@ -51,39 +53,35 @@ Ah, the joys of a perfect world, which we only ever experience in texts like thi
 
 ## Even Perfect Worlds Have Fundamental Forces of Nature
 
-The force of gravity causes an acceleration in the direction of gravity, which we refer to as gravitational acceleration. This acceleration is unique because it is always present, and is constant at 9.8 $m/s^2$.
+The force of gravity causes an acceleration in the direction of gravity, which we refer to as gravitational acceleration. This acceleration is unique because it is always present and, for the purposes of this chapter, is constant at 9.8 $m/s^2$.
 
 Suppose a smartphone is lying on a table screen-side up. In this orientation, our coordinate system is such that the negative $z$ direction is the one that gravity is acting on. Gravity will pull our phone in the negative $z$ direction, so our accelerometer, *even when perfectly still*, will record an acceleration of 9.8 $m/s^2$ in the negative $z$ direction. Accelerometer data from our phone in this orientation looks like the graph below.
 
-![](chapter-figures/acceleration-total-phone-still.png)
+![](chapter-figures/acceleration-total-phone-still.png)\
 
 Note that $x(t)$ and $y(t)$ remain constant at 0, while $z(t)$ is constant at -1 *g*. Our accelerometer records all acceleration, including gravitational acceleration.
 
-Each component of the acceleration signal measures the *total acceleration* in that direction. Total acceleration is a result of *user acceleration* and *gravitational acceleration*.
+Each time series measures the *total acceleration* in that direction. Total acceleration is the sum of *user acceleration* and *gravitational acceleration*.
 
 User acceleration is the acceleration of the device due to the movement of the user, and is constant at 0 when the phone is perfectly still. However, when the user is moving with the device, user acceleration is rarely constant, since it's difficult for a person to move with a constant acceleration.
 
-Our total acceleration is the sum of user acceleration and gravitational acceleration.
+![](chapter-figures/component-signals-2.png)\
 
-![](chapter-figures/component-signals-2.png)
+To count steps, we're interested in the bounces created by the user in the direction of gravity. That means we're interested in isolating the 1-dimensional time series which describes **user acceleration in the direction of gravity** from our 3-dimensional acceleration signal.
 
-To count steps, we're interested in the bounces created by the user in the direction of gravity. That means we're interested in isolating the 1-dimensional time series "user acceleration in the direction of gravity" from our 3-dimensional acceleration signal.
+In our simple example, gravitational acceleration is 0 in $x(t)$ and $z(t)$ and constant at 9.8 $m/s^2$ in $y(t)$. Therefore, in our total acceleration plot, $x(t)$ and $z(t)$ fluctuate around 0 while $y(t)$ fluctuates around -1 *g*. In our user acceleration plot, we notice that --- because we have removed gravitational acceleration --- all three time series fluctuate around 0. Note the obvious peaks in $y_{u}(t)$. Those are due to step bounces! In our last plot, gravitational acceleration, $y_{g}(t)$ is constant at -1 *g*, and $x_{g}(t)$ and $z_{g}(t)$ are constant at 0.
 
-When our stick person is walking with step bounces in the $y$ direction, gravitational acceleration is 0 in $x(t)$ and $z(t)$ and constant at 9.8 $m/s^2$ in $y(t)$, so $x(t)$ and $z(t)$ fluctuate around 0 while $y(t)$ fluctuates around -1 *g*. Note the obvious peaks in $y(t)$. Those are due to step bounces!
-
-Looking at the user acceleration plots next, we notice that --- because we have removed gravitational acceleration --- all three time series fluctuate around 0. In our last plot, gravitational acceleration, $y_{g}(t)$ is constant at -1 *g*, and $x_{g}(t)$ and $z_{g}(t)$ are constant at 0.
-
-So, in our simple case, the 1-dimensional user acceleration in the direction of gravity time series we're interested in is $y_{u}(t)$. Although $y_{u}(t)$ isn't as smooth as our perfect sine wave, we can identify the peaks, and use those peaks to count steps. So far, so good. Now, let's add a little more reality to our world.
+So, in our example, the 1-dimensional user acceleration in the direction of gravity time series we're interested in is $y_{u}(t)$. Although $y_{u}(t)$ isn't as smooth as our perfect sine wave, we can identify the peaks, and use those peaks to count steps. So far, so good. Now, let's add even more reality to our world.
 
 ## People Are Complicated Creatures
 
-Let's see what happens when we introduce more complications. What if a person carries the phone in a bag on their shoulder, with the phone in a more wonky position? To make matters worse, what if the phone rotates in the bag part way through the walk?
+What if a person carries the phone in a bag on their shoulder, with the phone in a more wonky position? To make matters worse, what if the phone rotates in the bag part way through the walk?
 
-![](chapter-figures/walk-2.png)
+![](chapter-figures/walk-2.png)\
 
-Yikes. Now all three of our components have a non-zero gravitational acceleration, so the user acceleration in the direction of gravity is now split amongst all three $x$, $y$, and $z$ time series. To determine user acceleration in the direction of gravity, we first have to determine which direction gravity is acting in. To do this, we have to split total acceleration in each of the three time series into a user acceleration time series and a gravitational acceleration time series.
+Yikes. Now all three of our components have a non-zero gravitational acceleration, so the user acceleration in the direction of gravity is now split amongst all three time series. To determine user acceleration in the direction of gravity, we first have to determine which direction gravity is acting in. To do this, we have to split total acceleration in each of the three time series into a user acceleration time series and a gravitational acceleration time series.
 
-![](chapter-figures/component-signals-3.png)
+![](chapter-figures/component-signals-3.png)\
 
 Then we can isolate the portion of user acceleration in each component that is in the direction of gravity, resulting in just the user acceleration in the direction of gravity time series.
 
@@ -92,26 +90,24 @@ Let's define this as two steps below:
 1. Splitting total acceleration into user acceleration and gravitational acceleration.
 2. Isolating user acceleration in the direction of gravity.
 
-Let's look at each problem separately, and put on our mathematician hats.
+We'll look at each step separately, and put on our mathematician hats.
 
 ## 1. Splitting Total Acceleration Into User Acceleration and Gravitational Acceleration
 
-We can use a tool called a *filter* to split our total acceleration time series into a user acceleration time series and a gravitational acceleration time series.
+We can use a tool called a *filter* to split a total acceleration time series into a user acceleration time series and a gravitational acceleration time series.
 
 ### Low-Pass and High-Pass Filters
 A filter is a tool used in signal processing to remove an unwanted component from a signal.
 
-A *low-pass filter* allows low-frequency signals through, while attenuating signals higher than a set threshold. Conversely, a *high-pass filter* allows high-frequency signals through, while attenuating signals below a set threshold. Using music as an analogy, a low-pass filter can be used to eliminate treble, and a high-pass filter can be used to eliminate bass.
+A *low-pass filter* allows low-frequency signals through, while attenuating signals higher than a set threshold. Conversely, a *high-pass filter* allows high-frequency signals through, while attenuating signals below a set threshold. Using music as an analogy, a low-pass filter can eliminate treble, and a high-pass filter can eliminate bass.
 
 In our situation, the frequency, measured in Hz, indicates how quickly the acceleration is changing. A constant acceleration has a frequency of 0 Hz, while a non-constant acceleration has a non-zero frequency. This means that our constant gravitational acceleration is a 0 Hz signal, while user acceleration is not.
 
 For each component, we can pass total acceleration through a low-pass filter, and we'll be left with just the gravitational acceleration time series. Then we can subtract gravitational acceleration from total acceleration, and we'll have the user acceleration time series.
 
-![](chapter-figures/low-pass-filter-a.png)
+![](chapter-figures/low-pass-filter-a.png)\
 
-There are numerous varieties of filters. The one we'll use is called an infinite impulse response (IIR) filter. We've chosen an IIR filter because of its low overhead and ease of implementation.
-
-The IIR filter we've chosen is implemented using the formula $output_{i} = \alpha_{0}(input_{i}\beta_{0} + input_{i-1}\beta_{1} + input_{i-2}\beta_{2} - output_{i-1}\alpha_{1} - output_{i-2}\alpha_{2})$.
+There are numerous varieties of filters. The one we'll use is called an infinite impulse response (IIR) filter. We've chosen an IIR filter because of its low overhead and ease of implementation. The IIR filter we've chosen is implemented using the formula $output_{i} = \alpha_{0}(input_{i}\beta_{0} + input_{i-1}\beta_{1} + input_{i-2}\beta_{2} - output_{i-1}\alpha_{1} - output_{i-2}\alpha_{2})$.
 
 The design of digital filters is outside of the scope of this chapter, but a very short teaser discussion is warranted. It's a well-studied, fascinating topic, with numerous practical applications. A digital filter can be designed to cancel any frequency or range of frequencies desired. The $\alpha$ and $\beta$ values in the formula are coefficients, set based on the cutoff frequency, and the range of frequencies we want to preserve.
 
@@ -139,7 +135,7 @@ $z_{g}(t) = \alpha_{0}(z(t)\beta_{0} + z(t-1)\beta_{1} + z(t-2)\beta_{2} - z_{g}
 
 The resulting time series after low-pass filtering are below.
 
-![](chapter-figures/acceleration-gravitational.png)
+![](chapter-figures/acceleration-gravitational.png)\
 
 $x_{g}(t)$ and $z_{g}(t)$ hover around 0, and $y_{g}(t)$ very quickly drops to $-1g$. The initial 0 value in $y_{g}(t)$ is from the initialization of the formula.
 
@@ -151,45 +147,44 @@ $z_{u}(t) = z(t) - z_{g}(t)$
 
 When we do that, we receive the time series below:
 
-![](chapter-figures/acceleration-user.png)
+![](chapter-figures/acceleration-user.png)\
 
 We've successfully split our total acceleration into user acceleration and gravitational acceleration!
 
 ## 2. Isolating User Acceleration in the Direction of Gravity
 
-$x_{u}(t)$, $y_{u}(t)$, and $z_{u}(t)$ include all movements of the user, not just movements in the direction of gravity. Our goal here is to end up with a 1-dimensional time series representing user acceleration in the direction of gravity. This time series will include portions of user acceleration in each of our directions.
+$x_{u}(t)$, $y_{u}(t)$, and $z_{u}(t)$ include all movements of the user, not just movements in the direction of gravity. Our goal here is to end up with a 1-dimensional time series representing user acceleration in the direction of gravity. This time series will include portions of user acceleration in each of the directions.
 
 Let's get to it. First, some linear algebra 101. Don't take that mathematician hat off just yet!
 
 ### The Dot Product
 
-When working with coordinates, you won't get very far before being introduced to the *dot product*, one of the fundamental tools used in comparing the magnitude and direction of $x$, $y$, $z$ coordinates.
+When working with coordinates, you won't get very far before being introduced to the *dot product*, one of the fundamental tools used in comparing the magnitude and direction of $x$, $y$, and $z$ coordinates.
 
 The dot product will take us from 3-dimensional space to 1-dimensional space.
 When we take the dot product of the two time series, user acceleration and gravitational acceleration, both of which are in 3-dimensional space, we'll be left with a single time series in 1-dimensional space representing the portion of user acceleration in the direction of gravity. We'll arbitrarily call this new time series $a(t)$, because, well, every important time series deserves a name.
 
-![](chapter-figures/dot-product-explanation.png)
+![](chapter-figures/dot-product-explanation.png)\
+
 
 ### Implementing the Dot Product
-We can implement the dot product for our earlier example using the formula
 
-$a(t) = x_{u}(t)x_{g}(t) + y_{u}(t)y_{g}(t) + z_{u}(t)z_{g}(t)$
+We can implement the dot product for our earlier example using the formula $a(t) = x_{u}(t)x_{g}(t) + y_{u}(t)y_{g}(t) + z_{u}(t)z_{g}(t)$, leaving us with $a(t)$ in 1-dimensional space.
 
-leaving us with $a(t)$, in 1-dimensional space.
+![](chapter-figures/acceleration-dotproduct.png)\
 
-![](chapter-figures/acceleration-dotproduct.png)
-
-We can now visually pick out where the steps are. The dot product is very powerful, yet beautifully simple.
+We can now visually pick out where the steps are in $a(t)$. The dot product is very powerful, yet beautifully simple.
 
 ## Solutions in the Real World
 
 We saw how quickly our seemingly simple problem became more complex when we threw in the challenges of the real world and real people. However, we're getting a lot closer to counting steps, and we can see how $a(t)$ is starting to resemble our ideal sine wave. But, only "kinda, sorta" starting to. We still need to make our messy $a(t)$ time series smoother. There are four main issues with $a(t)$ in its current state. Let's examine each one.
 
-![](chapter-figures/jumpy-slow-short-bumpy.png)
+![](chapter-figures/jumpy-slow-short-bumpy.png)\
+
 
 ### 1. Jumpy Peaks
 
-$a(t)$ is very "jumpy", because a phone can jiggle with each step, adding a high-frequency component to our time series. By studying numerous data sets, we've determined that a step acceleration is at maximum 5 Hz. We can again use a low-pass IIR filter, picking $\alpha$ and $\beta$ to attenuate all signals above 5 Hz, to remove the "jumpiness".
+$a(t)$ is very "jumpy", because a phone can jiggle with each step, adding a high-frequency component to our time series. This jumpiness is called noise. By studying numerous data sets, we've determined that a step acceleration is at maximum 5 Hz. We can use a low-pass IIR filter to remove the noise, picking $\alpha$ and $\beta$ to attenuate all signals above 5 Hz.
 
 ### 2. Slow Peaks
 
@@ -201,13 +196,13 @@ As a person is using an app or making a call, the accelerometer registers small 
 
 ### 4. Bumpy Peaks
 
-Our pedometer should accommodate many people with different walks, so we set minimum and maximum step frequencies based on a large sample size of people and walks. This means that we may sometimes filter slightly too much or too little. While we'll often have fairly smooth peaks, we can, once in a while, get a "bumpier" peak. The diagram above zooms in on one such peak.
+Our pedometer should accommodate many people with different walks, so we've set minimum and maximum step frequencies based on a large sample size of people and walks. This means that we may sometimes filter slightly too much or too little. While we'll often have fairly smooth peaks, we can, once in a while, get a "bumpier" peak. The diagram above zooms in on one such peak.
 
-When bumpiness occurs at our threshold, we can mistakenly count too many steps for one peak. We can use a method called *hysteresis* to address this. Hysteresis refers to the dependence of an output on past inputs. We can count threshold crossings in the positive direction, as well as 0 crossings in the negative direction. Then, we only count steps where a threshold crossing occurs after a 0 crossing, ensuring we count each step only once.
+When bumpiness occurs at our threshold, we can mistakenly count too many steps for one peak. We'll use a method called *hysteresis* to address this. Hysteresis refers to the dependence of an output on past inputs. We can count threshold crossings in the positive direction, as well as 0 crossings in the negative direction. Then, we only count steps where a threshold crossing occurs after a 0 crossing, ensuring we count each step only once.
 
 ### Peaks That Are Juuuust Right
 
-![](chapter-figures/acceleration-filtered.png)
+![](chapter-figures/acceleration-filtered.png)\
 
 In accounting for these four scenarios, we've managed to bring our messy $a(t)$ fairly close to our ideal sine wave, allowing us to count steps.
 
@@ -227,9 +222,9 @@ As software developers in a training or academic setting, we may have been prese
 
 # Diving Into Code
 
-Our goal for this chapter is to create a web application in Ruby that accepts accelerometer data, parses, processes, and analyzes it, and returns the number of steps taken, the distance travelled, and the elapsed time.
+Our goal for this chapter is to create a web application in Ruby that accepts accelerometer data, parses, processes, and analyzes the data, and returns the number of steps taken, the distance traveled, and the elapsed time.
 
-# Preliminary Work
+## Preliminary Work
 
 Our solution requires us to filter our time series several times. Rather than peppering filtering code throughout our program, it makes sense to create a class that takes care of the filtering, and if we ever need to enhance or modify it, we'll only ever need to change that one class. This strategy is called *separation of concerns*, a commonly used design principle which promotes splitting a program into distinct pieces, where every piece has one primary concern. It's a beautiful way to write clean, maintainable code that's easily extensible. We'll revisit this idea several times throughout the chapter.
 
@@ -242,11 +237,11 @@ class Filter
     alpha: [1, -1.979133761292768, 0.979521463540373],
     beta:  [0.000086384997973502, 0.000172769995947004, 0.000086384997973502]
   }
-  COEFFICIENTS_LOW_5_HZ = { # Direct form I, Chebyshev II, type = low-pass, Astop = 2, Fstop = 5, Fs = 100, Direct Form I
+  COEFFICIENTS_LOW_5_HZ = {
     alpha: [1, -1.80898117793047, 0.827224480562408],
     beta:  [0.095465967120306, -0.172688631608676, 0.095465967120306]
   }
-  COEFFICIENTS_HIGH_1_HZ = { # Direct form I, Chebyshev II, type = high-pass, Fs = 100, Fstop = 0.5, Astop = 20, order = 2,
+  COEFFICIENTS_HIGH_1_HZ = {
     alpha: [1, -1.905384612118461, 0.910092542787947],
     beta:  [0.953986986993339, -1.907503180919730, 0.953986986993339]
   }
@@ -287,11 +282,9 @@ Anytime our program needs to filter a time series, we can call one of the class 
 * `low_5_hz` is used to low-pass filter signals at or below 5 Hz
 * `high_1_hz` is used to high-pass filter signals above 1 Hz
 
-Each class method calls `filter`, which implements the IIR filter and returns the result. If we wish to add more filters in the future, we only need to change this one class.
+Each class method calls `filter`, which implements the IIR filter and returns the result. If we wish to add more filters in the future, we only need to change this one class. Note is that all magic numbers are defined at the top. This makes our class easier to read and understand.
 
-One important thing to note is that all magic numbers are defined at the top. This makes our class easier to read and understand. The formula in `filter` is much more obvious using the `coefficients` parameter than it would have been with numerical values directly inserted.
-
-# Input Formats
+## Input Formats
 
 Our input data is coming from mobile devices such as Android phones and iPhones. Most mobile phones on the market today have accelerometers built in, that are able to record total acceleration. Let's call the input data format that records total acceleration the *combined format*. Many, but not all, devices can also record user acceleration and gravitational acceleration separately. Let's call this format the *separated format*. A device that has the ability to return data in the separated format necessarily has the ability to return data in the combined format. However, the inverse is not always true. Some devices can only record data in the combined format. Input data in the combined format will need to be passed through a low-pass filter to turn it into the separated format.
 
@@ -299,13 +292,13 @@ We want our program to handle all mobile devices on the market with acceleromete
 
 ### Combined Format
 
-Data in the combined format is total acceleration in the $x$, $y$, $z$ directions, over time. $x$, $y$, and $z$ values will be separated by a comma, and samples per unit time will be separated by a semi-colon.
+Data in the combined format is total acceleration in the $x$, $y$, and $z$ directions, over time. $x$, $y$, and $z$ values will be separated by a comma, and samples per unit time will be separated by a semi-colon.
 
 $"x1,y1,z1; ... xn,yn,zn;"$
 
 ### Separated Format
 
-The separated format returns user acceleration in the $x$, $y$, $z$ directions as well as gravitational acceleration in the $x$, $y$, $z$ directions, over time. User acceleration values will be separated from gravitational acceleration values by a pipe.
+The separated format returns user acceleration and gravitational acceleration in the $x$, $y$, and $z$ directions, over time. User acceleration values will be separated from gravitational acceleration values by a pipe.
 
 $"x_{u}1,y_{u}1,z_{u}1|x_{g}1,y_{g}1,z_{g}1; ... x_{u}n,y_{u}n,z_{u}n|x_{g}n,y_{g}n,z_{g}n;"$
 
@@ -317,27 +310,27 @@ Dealing with multiple input formats is a common programming problem. If we want 
 
 The cleanest way for us to deal with this is to take our two input formats and fit them into a standard format as soon as possible, allowing the rest of the program to work with this new standard format. Our solution requires that we work with user acceleration and gravitational acceleration separately, so our standard format will need to be split into the two accelerations:
 
-![](chapter-figures/standard-format.png)
+![](chapter-figures/standard-format.png)\
 
 Our standard format allows us to store a time series, as each element represents acceleration at a point in time. We've defined it as an array of arrays of arrays. Let's peel that onion.
 
 * The first array is just a wrapper to hold the all of the data.
-* The second set of arrays contains one array per data sample taken. If our sampling rate is 100 and we sample data for 10 seconds, we'll have $10 * 100$, or 1000, arrays in this second set.
+* The second set of arrays contains one array per data sample taken. If our sampling rate is 100 and we sample data for 10 seconds, we'll have $100 * 10$, or 1000, arrays in this second set.
 * The third set of arrays is the pair of arrays enclosed within the second set. They both contain acceleration data in the $x$, $y$, and $z$ directions; the first representing user acceleration and the second, gravitational acceleration.
 
-# The Pipeline
+## The Pipeline
 
-Our system takes as input data from an accelerometer along with information on the user taking the walk (gender, stride, etc.) and information on the trial walk itself (sampling rate, actual steps taken, etc.). Given the input, our signal processing solution is applied, and our system returns as output the number of steps calculated, the delta between the actual steps and calculated steps, the distance travelled, and the elapsed time. The entire process from input to output can be viewed as a pipeline.
+The input into our system will be data from an accelerometer, information on the user taking the walk (gender, stride, etc.), and information on the trial walk itself (sampling rate, actual steps taken, etc.). Our system will apply the signal processing solution, and output the number of steps calculated, the delta between the actual steps and calculated steps, the distance traveled, and the elapsed time. The entire process from input to output can be viewed as a pipeline.
 
-![](chapter-figures/pipeline.png)
+![](chapter-figures/pipeline.png)\
 
 In the spirit of separation of concerns, we'll write the code for each distinct component of the pipeline --- parsing, processing, and analyzing --- individually.
 
-# Parsing
+## Parsing
 
 Given that we want our data in the standard format as early as possible, it makes sense to write a parser that allows us to take our two known input formats and convert them to a standard output format as the first component of our pipeline. Our standard format splits out user acceleration and gravitational acceleration, which means that if our data is in the combined format, our parser will need to first pass it through a low-pass filter to convert it to the standard format.
 
-![](chapter-figures/input-data-workflow-1.png)
+![](chapter-figures/input-data-workflow-1.png)\
 
 In the future, if we ever have to add another input format, the only code we'll have to touch is this parser. Let's separate concerns once more, and create a `Parser` class to handle the parsing.
 
@@ -395,22 +388,22 @@ The separated format is already in our desired standard format after this operat
 
 `parse` leaves us with `@parsed_data` holding data in the standard format, regardless of whether we started off with combined or separated data. What a relief!
 
-As our program becomes more sophisticated, one area for improvement is to make our users' lives easier by throwing exceptions with more specific messages than "Bad Input. Ensure data is properly formatted.", allowing them to more quickly track down common input formatting problems.
+As our program becomes more sophisticated, one area for improvement is to make our users' lives easier by throwing exceptions with more specific error messages, allowing them to more quickly track down common input formatting problems.
 
-# Processing
+## Processing
 
 Based on the solution we defined, we'll need our code to do a couple of things to our parsed data before we can count steps:
 
 1. Isolate movement in the direction of gravity using the dot product.
 2. Remove jumpy (high-frequency) and slow (low-frequency) peaks with a low-pass filter followed by a high-pass filter.
 
-The removal of short and bumpy peaks can be handled during step counting.
+We'll handle short and bumpy peaks by avoiding them during step counting.
 
 Now that we have our data in the standard format, we can process it to get in into a state where we can analyze it to count steps.
 
-![](chapter-figures/input-data-workflow-2.png)
+![](chapter-figures/input-data-workflow-2.png)\
 
-The purpose of processing is to take our data in the standard format and incrementally clean it up to get it to a state as close as possible to our ideal side wave. Our two processing operations, taking the dot product and filtering, are quite distinct, but both are intended to process our data, so we'll create one class called a `Processor`.
+The purpose of processing is to take our data in the standard format and incrementally clean it up to get it to a state as close as possible to our ideal sine wave. Our two processing operations, taking the dot product and filtering, are quite distinct, but both are intended to process our data, so we'll create one class called a `Processor`.
 
 ~~~~~~~
 class Processor
@@ -442,15 +435,15 @@ class Processor
 end
 ~~~~~~~
 
-Again, we see the `run` and `initialize` methods pattern. `run` calls our two processor methods, `dot_product` and `filter`, directly. Each method accomplishes one of our two processing operations. `dot_product` isolates movement in the direction of gravity, and filter applies the low-pass and high-pass filters in sequence to remove jumpy and slow peaks.
+Again, we see the `run` and `initialize` methods pattern. `run` calls our two processor methods, `dot_product` and `filter`, directly. Each method accomplishes one of our two processing operations. `dot_product` isolates movement in the direction of gravity, and `filter` applies the low-pass and high-pass filters in sequence to remove jumpy and slow peaks.
 
-# Pedometer Functionality
+## Pedometer Functionality
 
-Provided information about the person using the pedometer is available, we can measure more than just steps. Our pedometer will measure **distance travelled** and **elapsed time**, as well as **steps taken**.
+Provided information about the person using the pedometer is available, we can measure more than just steps. Our pedometer will measure **distance traveled** and **elapsed time**, as well as **steps taken**.
 
 ## Distance Traveled
 
-A mobile pedometer is generally used by one person. Distance travelled during a walk is calculated by multiplying the steps taken by the person's stride length. If the stride length is unknown, we can use optional user information like gender and height to approximate it. Let's create a `User` class to encapsulate this related information.
+A mobile pedometer is generally used by one person. Distance traveled during a walk is calculated by multiplying the steps taken by the person's stride length. If the stride length is unknown, we can use optional user information like gender and height to approximate it. Let's create a `User` class to encapsulate this related information.
 
 ~~~~~~~
 class User
@@ -501,9 +494,9 @@ Even when all optional parameters are provided, the input stride takes precedenc
 * If all we have is a gender, we can use the average stride length from `AVERAGES`.
 * Finally, if we don't have anything, we can take the average of the two values in `AVERAGES` and use that as our stride.
 
- Note that the further down the chain we get, the less accurate our stride length becomes. In any case, our `User` class determines the stride length as best it can.
+ Note that the further down the `if` statement we get, the less accurate our stride length becomes. In any case, our `User` class determines the stride length as best it can.
 
-## Time Spent Travelling
+## Elapsed Time
 
 The time spent travelling is measured by dividing the number of data samples in our `Processor`'s `@parsed_data` by the sampling rate of the device, if we have it. Since the rate has more to do with the trial walk itself than the user, and the `User` class in fact does not have to be aware of the sampling rate, this is a good time to create a very small `Trial` class.
 
@@ -592,11 +585,9 @@ class Analyzer
 end
 ~~~~~~~
 
-The first thing we do in `Analyzer` is define a `THRESHOLD` constant. For the purposes of this discussion, let's assume we've analyzed numerous diverse data sets and determined a threshold value that accommodated the largest number of those data sets. The threshold can eventually become dynamic and vary with different users, based on the calculated versus actual steps they've taken; a learning algorithm, if you will.
+The first thing we do in `Analyzer` is define a `THRESHOLD` constant, which we'll use to avoid counting short peaks as steps. For the purposes of this discussion, let's assume we've analyzed numerous diverse data sets and determined a threshold value that accommodated the largest number of those data sets. The threshold can eventually become dynamic and vary with different users, based on the calculated versus actual steps they've taken; a learning algorithm, if you will.
 
-Our `Analyzer`'s initializer takes a `data` parameter and instances of `User` and `Trial`, and sets the instance variables `@data`, `@user`, and `@trial` to the passed-in parameters.
-
-Aside from the initializer, the only other public method in `Analyzer` is `measure`, which calls `measure_steps`, `measure_distance`, and `measure_time`, in that order. All three methods are kept private so that an outside class can't call them out of order. Let's take a look at each.
+Our `Analyzer`'s initializer takes a `data` parameter and instances of `User` and `Trial`, and sets the instance variables `@data`, `@user`, and `@trial` to the passed-in parameters. The `run` method calls `measure_steps`, `measure_delta`, `measure_distance`, and `measure_time`. Let's take a look at each method.
 
 ### measure_steps
 
@@ -613,15 +604,19 @@ It's worth noting that we store the entire time series for the walk in memory. O
 
 There's a fine balance between accounting for likely future iterations of the product, and over-engineering a solution for every conceivable product direction under the sun. In this case, it's reasonable to assume that we'll have to handle longer walks in the near future, and the costs of accounting for that in step counting are fairly low.
 
+### measure_delta
+
+If the trial provides actual steps taken during the walk, `measure_delta` will return the difference between the calculated and actual steps.
+
 ### measure_distance
 
-The distance is measured by multiplying our user's stride by the number of steps. Since the distance depends on the step count, `measure_distance` is called after `measure_steps`.
+The distance is measured by multiplying our user's stride by the number of steps. Since the distance depends on the step count, `measure_steps` must be called before `measure_distance`.
 
 ### measure_time
 
 As long as we have a sampling rate, time is calculated by dividing the total number of samples in `filtered_data` by the sampling rate. It follows, then, that time is calculated in seconds.
 
-# Tying It All Together With the Pipeline
+## Tying It All Together With the Pipeline
 
 Our `Parser`, `Processor`, and `Analyzer` classes, while useful individually, are definitely better together. Our program will often use them to run through the pipeline we introduced earlier. Since the pipeline will need to be run frequently, we'll create a `Pipeline` class to run it for us.
 
@@ -661,15 +656,15 @@ We're through the most labour intensive part of our program. Next, we'll build a
 
 When a user first enters the app by navigating to `/uploads`, they see a table of existing data and a form to submit new data by uploading an accelerometer output file and trial and user information.
 
-![](chapter-figures/graffles/app1.png)
+![](chapter-figures/graffles/app1.png)\
 
-Submitting the form stores the data to the file system, parses, processes, and analyzes it, and redirects back to `/uploads` with a new entry in the table.
+Submitting the form stores the data to the file system, parses, processes, and analyzes it, and redirects back to `/uploads` with the new entry in the table.
 
 Clicking the **Detail** link for an entry presents the user with the following view:
 
-![](chapter-figures/graffles/app3.png)
+![](chapter-figures/graffles/app3.png)\
 
-The information presented includes values input by the user through the upload form, values calculated by our program, and graphs of the time series following the dot product operation, and again following filtering. The user can navigate back to `uploads` using the *Back to Uploads* link.
+The information presented includes values input by the user through the upload form, values calculated by our program, and graphs of the time series following the dot product operation, and again following filtering. The user can navigate back to `/uploads` using the *Back to Uploads* link.
 
 Let's look at what the outlined functionality above implies for us, technically. We'll need two major components that we don't yet have:
 
@@ -680,12 +675,10 @@ Let's examine each of these two requirements.
 
 ## 1. Storing and Retrieving Data
 
-Our app needs to store input data to, and retrieve data from, the file system. We'll create an `Upload` class to do this. We'll store the text file containing the data samples directly in the file system, with the file path accessed through the `@file_path` instance variable. The information on the user and trial will be stored in the filename, and we'll have access to those objects through `@user` and `@trial` instance variables.
+Our app needs to store input data to, and retrieve data from, the file system. We'll create an `Upload` class to do this. Since the class deals only with the file system and doesn't relate directly to the implementation of the pedometer, we've left it out for brevity, but it's worth discussing its basic functionality. Our `Upload` class has three class-level methods for file system access and retrieval, all of which return one or more instances of `Upload`:
 
-Our `Upload` class has three class-level methods for file system access and retrieval, all of which return one or more instances of `Upload`:
-
-* `create` takes a file along with user and trial information. It stores the file to the file system, under a filename containing the user and trial information.
-* `find` takes a pathname and returns an instance of `Upload`.
+* `create` takes a file along with user and trial information. It stores the file to the file system, under a filename it generates to contain the user and trial information. The `@file_path`, `@user`, and `@trial` instance variables allow access to the file path, user object, and trial object, respectively.
+* `find` takes a file path and returns an instance of `Upload`.
 * `all` returns an array of `Upload` instances, one for each accelerometer data file in the file system.
 
 ### Separation of Concerns in Upload
@@ -694,13 +687,11 @@ Once again, we've been wise to separate concerns in our program. All code relate
 
 In the future, we can save `User` and `Trial` objects to the database. The `create`, `find`, and `all` methods in `Upload` will then be relevant to `User` and `Trial` as well. That means we'd likely refactor those out into their own class to deal with data storage and retrieval in general, and each of our `User`, `Trial`, and `Upload` classes would inherit from that class. We might eventually add helper query methods to that class, and continue building it up from there.
 
-Since the `Upload` class deals only with the file system and doesn't relate directly to the implementation of the pedometer, we've left it out for brevity. Let's move on to the web application side of our program.
-
 ## 2. Building a Web Application
 
 Web apps have been built many times over, so we'll leverage the important work of the open source community and use an existing framework to do the boring plumbing work for us. The Sinatra framework does just that. In the tool's own words, Sinatra is "a DSL for quickly creating web applications in Ruby". Perfect.
 
-Our web app will need to respond to HTTP requests, so we'll need a file that defines a route for each combination of HTTP method and URL. Let's call it `pedometer.rb`.
+Our web app will need to respond to HTTP requests, so we'll need a file that defines a route and associated code block for each combination of HTTP method and URL. Let's call it `pedometer.rb`.
 
 ~~~~~~~
 get '/uploads' do
@@ -731,21 +722,21 @@ post '/create' do
 end
 ~~~~~~~
 
-`pedometer.rb` allows our app to respond to HTTP requests for each of our routes. Each route either retrieves data from, or stores data to, the file system through `Upload`, and then renders a view or redirects. The instance variables instantiated in our routes will be used directly in our views. The views simply display the data and aren't the focus of our app, so we we'll leave the code for them out of this chapter.
+`pedometer.rb` allows our app to respond to HTTP requests for each of our routes. Each route's code block either retrieves data from, or stores data to, the file system through `Upload`, and then renders a view or redirects. The instance variables instantiated will be used directly in our views. The views simply display the data and aren't the focus of our app, so we we'll leave the code for them out of this chapter.
 
 Let's look at each of the routes in `pedometer.rb` individually.
 
 ### get '/uploads'
 
-Navigating to `http://localhost:4567/uploads` sends an HTTP GET request to our app, triggering our `get '/uploads'` code. The route runs the pipeline for all of the uploads in the file system and renders the `uploads` view, which displays a list of the uploads, and a form to submit new uploads. If an error parameter is included, the route will create an error string, and the `uploads` view will display the error.
+Navigating to `http://localhost:4567/uploads` sends an HTTP GET request to our app, triggering our `get '/uploads'` code. The code runs the pipeline for all of the uploads in the file system and renders the `uploads` view, which displays a list of the uploads, and a form to submit new uploads. If an error parameter is included, an error string is created, and the `uploads` view will display the error.
 
 ### get '/upload/*'
 
-Clicking the **Detail** link for each upload sends an HTTP GET to `/upload` with the file path for that upload. The route code runs the pipeline and renders the `upload` view. The view displays the details of the upload, including the charts, which are creating using a JavaScript library called HighCharts.
+Clicking the **Detail** link for each upload sends an HTTP GET to `/upload` with the file path for that upload. The pipeline runs, and the `upload` view is rendered. The view displays the details of the upload, including the charts, which are created using a JavaScript library called HighCharts.
 
 ### post '/create'
 
-Our final route, an HTTP POST to `create`, is called when a user submits the form in the `uploads` view. The route creates a new `Upload`, using the `params` hash to grab the values input by the user through the form, and redirects back to `/uploads`. If an error occurs in the creation process, the redirect to `/uploads` includes an error parameter to let the user know that something went wrong.
+Our final route, an HTTP POST to `create`, is called when a user submits the form in the `uploads` view. The code block creates a new `Upload`, using the `params` hash to grab the values input by the user through the form, and redirects back to `/uploads`. If an error occurs in the creation process, the redirect to `/uploads` includes an error parameter to let the user know that something went wrong.
 
 # A Fully Functional App
 
