@@ -252,7 +252,7 @@ A *program* is a series of *steps*. Each step is like a pipe in a pipeline -- a 
 
 Each step in our program can have *state*, and `query.state` is a list of per-step state that index correlates with the list of steps in query.program. 
 
-A *gremlin* is a creature that travels through the graph doing our bidding. A gremlin is a surprising thing to find in a database, but they trace their heritage back to Tinkerpop's Blueprints[1], and the Gremlin and Pacer query languages[2]. They remember where they've been and allow us to find answers to interesting questions. 
+A *gremlin* is a creature that travels through the graph doing our bidding. A gremlin might be a surprising thing to find in a database, but they trace their heritage back to Tinkerpop's Blueprints[1], and the Gremlin and Pacer query languages[2]. They remember where they've been and allow us to find answers to interesting questions. 
 
 [1: http://euranova.eu/upl_docs/publications/an-empirical-comparison-of-graph-databases.pdf]
 
@@ -292,11 +292,48 @@ Before we look at the pipetypes themselves we're going to take a slight diversio
 
 JavaScript, being a strict language, will process each of our steps as they are called. We would then expect the evaluation of `g.v('Thor').out().in()` to first find the Thor vertex, then find all vertices connected to it by outgoing edges, and from each of those vertices finally return all vertices they are connected to by inbound edges.
 
-In a lazy language we would get the same result -- the execution strategy doesn't make much difference here. But what if we added a few additional calls? Given how well-connected Thor is, our `g.v('Thor').out().out().out().in().in().in()` query may produce many results -- in fact, because we're not limiting our vertex list to unique results, it may produce many more results than we have vertices in our total graph.
+In a non-strict language we would get the same result -- the execution strategy doesn't make much difference here. But what if we added a few additional calls? Given how well-connected Thor is, our `g.v('Thor').out().out().out().in().in().in()` query may produce many results -- in fact, because we're not limiting our vertex list to unique results, it may produce many more results than we have vertices in our total graph.
 
-We're probably only interested in getting a few unique results out, so we'll change the query a little: `g.v('Thor').out().out().out().in().in().in().unique().take(10)`. Now we'll only get at most 10 results out. What happens if we evaluate this strictly, though? We're still going to have to build up septillions of results before returning only the first 10.
+We're probably only interested in getting a few unique results out, so we'll change the query a little: `g.v('Thor').out().out().out().in().in().in().unique().take(10)`. Now our query produces at most 10 results. What happens if we evaluate this eagerly, though? We're still going to have to build up septillions of results before returning only the first 10.
 
-All graph databases have to support a mechanism for doing as little work as possible, and most choose some form of non-strict evaluation to do so. Since we're building our own interpreter, evaluating our program lazily is certainly within our purview. But the road to laziness is paved with good intentions and surprising consequences.
+All graph databases have to support a mechanism for doing as little work as possible, and most choose some form of non-strict evaluation to do so. Since we're building our own interpreter, evaluating our program lazily is certainly within our purview. [[]]
+
+But the road to laziness is paved with good intentions and surprising consequences.
+
+
+[[Insert new section: ramifications of lazy evaluation on our mental model]]
+
+Up until now our mental model for evaluation has looked like this:
+
+[[diagram]]
+
+We would like to retain that model for our users, because it's easier to reason about, but we're going to need a different model for implementation. Giving the users of your system a model that differs from the actual implementation is the source of much pain. A leaky abstraction is a small scale version of this; in the large it can lead to frustration, cognitive dissonance and ragequits. 
+
+Our case is nearly optimal for this deception, though: the answer to any query will be the same, regardless of execution model. The only difference is the performance. The tradeoff is between having all users learn a more complicated model prior to using the system, or forcing a subset of users to transfer from the simple model to the complicated model in order to better reason about query performance. 
+
+Some factors to consider when wrestling with this decision are: the relative cognitive difficulty of learning the simple model vs the more complex model; the additional cognitive load imposed by first using the simple model and then advancing to the complex one vs skipping the simple and learning only the complex; the subset of users required to make the transition, in terms of their proportional size, cognitive availability, available time, etc.
+
+In our case this tradeoff makes sense. Most queries will perform quickly enough that users won't need to be concerned with optimizing their query structure, and hence won't need to learn the deeper model. Those who will need to are the users making advanced queries over large datasets, and they are likely users with enough available time and headspace to make the transition. Additionally, our hope is that the difficulty imposed by first learning the simple model before learning the more complex one is small.
+
+Here is the exposed surface of the more complex model:
+
+[[diagram]]
+
+
+We'll dig deeper when we look at the implementation of the interpreter, but there are a few important points to keep in mind while we examine the pipetypes........
+
+[[move the "work backward revelation" up here]]
+
+- Remember those gremlins we mentioned before? In our simplistic model each pipe spits out the entire set of matching vertices, once per query. In the actual implementation each pipe returns a single gremlin, but does this potentially many times during the query.
+- If a pipe needs some input before it can produce gremlins, it returns a 'pull' signal, causing the head to move back one pipe
+- If a pipe has finished and will never produce another gremlin, it returns a 'done' signal, causing the head to move forward and the done blocker to move to its position.
+
+
+[[fix the below/above places]]
+
+[[change the places below where the interpreter is introduced. put a more advanced diagram there. use this "deeper model" bit as a jumping off point for the conversation.]]
+
+[[look for other gremlin mentions and bind them to this one]]
 
 
 ## Pipetypes
