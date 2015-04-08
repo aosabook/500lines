@@ -629,14 +629,16 @@ Before we get to the SOP itself, there is an important question that we
 have not discussed yet: What exactly do we mean when we say our system
 is _secure_?
 
-Not surprisingly, this is a tricky question to answer. For our purposes, we will
-turn to two well-studied concepts in information
-security -- _confidentiality_ and _integrity_. Both of these concepts talk
-about how information should be allowed to pass through the 
+Not surprisingly, this is a tricky question to answer. For our
+purposes, we will turn to two well-studied concepts in information
+security -- _confidentiality_ and _integrity_. Both of these concepts
+talk about how information should be allowed to pass through the
 various parts of the system. Roughly, _confidentiality_ means that a
 critical piece of data should only be accessible to parts that are
-deemed trusted, and _integrity_ means that trusted parts
-only rely on data that have not been maliciously tampered with.
+deemed trusted, and _integrity_ means that trusted parts only rely on
+data that have not been maliciously tampered with.
+
+### Dataflow Properties
 
 In order to specify these security properties more precisely, we first
 need to define what it means for a piece of data to _flow_ from one
@@ -741,13 +743,46 @@ assert Integrity {
 }
 ```
 
-When prompted with a `check` command, the Alloy Analyzer analyzes _all_ possible dataflow traces in the system and produces a counterexample (if one exists) that demonstrates how an assertion might be violated:
+### Threat Model
+
+A threat model describes a set of actions that an attacker may perform
+in an attempt to compromise a security property of a system. Building
+a threat model is an important step in any secure system design; it
+allows us to identify (possibly invalid) assumptions that we have
+about the system and its environment, and prioritize different types
+of risks that need to be mitigated. 
+
+In our model, we consider an attacker that can act as a server, a
+script or a client. As a server, the attacker may set up malicious web
+pages to solicit visits from unsuspecting users, who, in turn, may
+inadvertently send sensitive information to the attacker as part of a
+HTTP request. The attacker may create a malicious script that invokes
+DOM operations to read data from other pages and relays those data to
+the attacker's server. Finally, as a client, the attacker may
+impersonate a normal user and send malicious requests to a server in
+an attempt to access the user's data. We do not consider attackers
+that eavesdrop on the connection between different network endpoints;
+although it is a considerable threat in practice, the SOP is not
+designed to prevent it, and thus, lies outside the scope of our model.
+
+### Checking Properties
+
+Now that we have defined the security properties and the attacker's
+behavior, let us show how the Alloy Analyzer can be used to
+automatically check that those properties hold even in the presence of
+the attacker.  When prompted with a `check` command, the analyzer
+explores _all_ possible dataflow traces in the system and produces a
+counterexample (if one exists) that demonstrates how an assertion
+might be violated:
 
 ```
 check Confidentiality for 5
 ```
 
-For example, when checking the model of our example application against the confidentiality property, the analyzer generates the following scenario, which shows how `EvilScript` may access a piece of critical data (`MyInboxInfo`):
+For example, when checking the model of our example application
+against the confidentiality property, the analyzer generates the
+following scenario, which shows how `EvilScript` may access a piece of
+critical data (`MyInboxInfo`):
 
 ![attack-instance-1a](fig-attack-1a.png) 
 ![attack-instance-1b](fig-attack-1b.png) 
@@ -1260,12 +1295,12 @@ turns out that many sites use "\*" as the default value even for
 private resources, inadvertently allowing malicious scripts to access
 them through CORS requests [cite CORS study].
 
-You may wonder why a developer would ever use the wildcard.  Similar
-to the PostMessage issue discusssed above, specifying the allowed
-origins can be tricky because it may not be clear at design time which
-origins should be granted access at runtime. A service may, for
-example, allow third party applications to subscribe dynamically to
-its resources.
+Why would a developer ever use the wildcard? It turns out that
+specifying the allowed origins can be tricky, since it may not be
+clear at design time which origins should be granted access at runtime
+(similar to the PostMessage issue discusssed above). A service may,
+for example, allow third party applications to subscribe dynamically
+to its resources.
 
 ## Conclusion
 
