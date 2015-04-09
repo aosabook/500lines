@@ -1,18 +1,21 @@
+<!-- British spelling -->
 # A Flow Shop Scheduler
-*Flow shop scheduling* is one of the most challenging and well-studied problems in operations research. Like many challenging optimization problems, finding the best solution just is not possible for problems of a practical size. In this chapter we consider the implementation of a flow shop scheduling solver that uses a technique called *local search*; a technique that allows us to find a solution that is "pretty good" when finding the best solution just isn't possible. The solver will continue to try and find new solutions to the problem for a given amount of time, and finishes by returning the best solution found.
+*Flow shop scheduling* is one of the most challenging and well-studied problems in operations research. Like many challenging optimization problems, finding the best solution is just not possible for problems of a practical size. In this chapter we consider the implementation of a flow shop scheduling solver that uses a technique called *local search*. Local search allows us to find a solution that is "pretty good" when finding the best solution isn't possible. The solver will try and find new solutions to the problem for a given amount of time, and finish by returning the best solution found.
 
-The idea behind local search is to improve heuristically an existing solution by considering similar solutions that may be a little better. The solver uses a variety of strategies to (1) try and find similar solutions, and (2) choose one that is promising to explore next. The implementation is written in Python, and has no external requirements. By leveraging some of Python's lesser-known functionality, the solver dynamically changes its search strategy during the the solving process based on what strategies work well.
+The idea behind local search is to improve an existing solution heuristically by considering similar solutions that may be a little better. The solver uses a variety of strategies to (1) try and find similar solutions, and (2) choose one that is promising to explore next. The implementation is written in Python, and has no external requirements. By leveraging some of Python's lesser-known functionality, the solver dynamically changes its search strategy during the solving process based on which strategies work well.
 
-First, we provide some background material on the flow shop scheduling problem and local search techniques. We then look in detail at the general solver code and the various heuristics / neighbourhood selection strategies that we use. Next we consider the dynamic strategy selection that the solver uses to tie everything together. Finally, we conclude with a summary of the project and some lessons learned through the implementation process.
+First, we provide some background material on the flow shop scheduling problem and local search techniques. We then look in detail at the general solver code and the various heuristics and neighbourhood selection strategies that we use. Next we consider the dynamic strategy selection that the solver uses to tie everything together. Finally, we conclude with a summary of the project and some lessons learned through the implementation process.
 
 
 ## Background
 ### Flow Shop Scheduling
-The flow shop scheduling problem is a well-studied optimization problem in which we must determine the processing time for various tasks on a set of machines. Take for example a car manufacturer that has an assembly line where each part of the car is completed in sequence on different machines. Different orders, however, may have custom requirements making the task of painting the outside, for example, variable from one car to the next. In our example, each car is a new *job* and each part for the car is called a *task*. Every job will have the same sequence of tasks to complete.
+The flow shop scheduling problem is an optimization problem in which we must determine the processing time for various tasks in a job in order to schedule the tasks to minimize the total time it takes to complete the job. Take, for example, a car manufacturer with an assembly line where each part of the car is completed in sequence on different machines. Different orders may have custom requirements, making the task of painting the body, for example, vary from one car to the next. In our example, each car is a new *job* and each part for the car is called a *task*. Every job will have the same sequence of tasks to complete.
 
-The objective in flow shop scheduling is to minimize the total time it takes to process all of the tasks from every job to completion. Typically, this objective is referred to as the *makespan*. This general problem has many applications, but is most related to optimizing production facilities for the construction of various commercial products.
+<!-- FIXME: improve definition of makespan here? Is it actually the objective, or is it the total time to process an entire job? -->
+The objective in flow shop scheduling is to minimize the total time it takes to process all of the tasks from every job to completion. Typically, this objective is referred to as the *makespan*. This general problem has many applications, but is most related to optimizing production facilities.
 
-Every flow shop problem consists of *n* machines and *m* jobs. In our car example, there will be *n* stations to work on the car and *m* cars to make in total. Each job is made up of exactly *n* tasks, and we can assume that the *i*-th task of a job must use machine *i* and requires a predetermined amount of processing time: *p*(*j*,*i*) is the processing time for the *i*-th task of job *j*. Further, the order of the tasks for any given job should follow the order of the machines available -- for a given job, task *i* must be completed prior to the start of task *i*+1. In our car example, we wouldn't want to start painting the car before the frame was assembled. The final restriction is that no two tasks can be processed on a machine simultaneously.
+<!-- FIXME: Might as well make these italics into math symbols at some point-->
+Every flow shop problem consists of *n* machines and *m* jobs. In our car example, there will be *n* stations to work on the car and *m* cars to make in total. Each job is made up of exactly *n* tasks, and we can assume that the *i*-th task of a job must use machine *i* and requires a predetermined amount of processing time: *p*(*j*,*i*) is the processing time for the *i*-th task of job *j*. Further, the order of the tasks for any given job should follow the order of the machines available; for a given job, task *i* must be completed prior to the start of task *i+*1. In our car example, we wouldn't want to start painting the car before the frame was assembled. The final restriction is that no two tasks can be processed on a machine simultaneously.
 
 Because the order of tasks within a job is predetermined, a solution to the flow shop scheduling problem can be represented as a permutation of the jobs. The order of jobs processed on a machine will be the same for every machine, and given a permutation, a task for machine *i* in job *j* is scheduled to be the latest of the following two possibilities:
 
@@ -22,20 +25,20 @@ Because the order of tasks within a job is predetermined, a solution to the flow
 
 Because we select the maximum of these two values, idle time for either machine *i* or job *j* will be created. It is this idle time that we ultimately want to minimize, as it will push the total makespan to be larger.
 
-Due to the simple form of the problem, any permutation of jobs is a valid solution, and the optimal solution will correspond to *some* permutation. Thus, we search for improved solutions by changing the permutation of jobs and measuring the corresponding makespan. In what follows, we refer to a permutation of the jobs interchangeably as a *candidate*.
+Due to the simple form of the problem, any permutation of jobs is a valid solution, and the optimal solution will correspond to *some* permutation. Thus, we search for improved solutions by changing the permutation of jobs and measuring the corresponding makespan. In what follows, we refer to a permutation of the jobs as a *candidate*.
 
-Let's consider a simple example with two jobs and two machines. The first job has tasks **A** and **B**, which take 1 and 2 minutes to complete respectively. The second job has tasks **C** and **D**, which take 2 and 1 minutes to complete respectively. Recall that **A** must come before **B** and **C** must come before **D**. Because there are two jobs, we have just two permutations to consider. If we order job 2 before job 1, the makespan then is equal to 5:
+Let's consider a simple example with two jobs and two machines. The first job has tasks **A** and **B**, which take 1 and 2 minutes to complete respectively. The second job has tasks **C** and **D**, which take 2 and 1 minutes to complete respectively. Recall that **A** must come before **B** and **C** must come before **D**. Because there are two jobs, we have just two permutations to consider. If we order job 2 before job 1, the makespan is 5:
 
 ![Flow Shop Example 1](http://i.imgur.com/nhcozcS.png)
 
-On the other hand, if we order job 1 before job 2, the makespan then is only 4:
+On the other hand, if we order job 1 before job 2, the makespan is only 4:
 
 ![Flow Shop Example 2](http://i.imgur.com/UJUdTki.png)
 
-Notice that there is no budge room to push any of the tasks earlier. A guiding principle for finding a good permutation, is to try and minimize the time in which any machine is left without a task to process.
+Notice that there is no budge room to push any of the tasks earlier. A guiding principle for a good permutation is to minimize the time in which any machine is left without a task to process.
 
 ### Local Search
-Local search is a strategy that solves optimization problems when the optimal solution is too hard to compute. Intuitively, it moves from one solution that seems "pretty good", to another solution that looks even better. Rather than considering every possible solution as a candidate to focus on next, we define what is known as a *neighbourhood*: the set of solutions considered to be similar to the current solution. Because any permutation of jobs is a valid solution, we can view any mechanism that shuffles the jobs around as a local search procedure (this is in fact what we do below).
+Local search is a strategy for solving optimization problems when the optimal solution is too hard to compute. Intuitively, it moves from one solution that seems pretty good to another solution that seems even better. Rather than considering every possible solution as a candidate to focus on next, we define what is known as a *neighbourhood*: the set of solutions considered to be similar to the current solution. Because any permutation of jobs is a valid solution, we can view any mechanism that shuffles the jobs around as a local search procedure (this is in fact what we do below).
 
 To use local search formally, we must answer a few questions:
 
@@ -68,9 +71,9 @@ DEBUG_SWITCH = False # Displays intermediate heuristic info when True
 MAX_LNS_NEIGHBOURHOODS = 1000 # Maximum number of neighbours to explore in LNS
 ```
 
-There are two settings that should be explained further: (1) the TIME_INCREMENT setting will be used as part of the dynamic strategy selection and (2) the MAX_LNS_NEIGBOURHOODS setting will be used as part of the neighbourhood selection strategy. Both are described in more detail below.
+There are two settings that should be explained further. The TIME_INCREMENT setting will be used as part of the dynamic strategy selection, and the MAX_LNS_NEIGHBOURHOODS setting will be used as part of the neighbourhood selection strategy. Both are described in more detail below.
 
-These settings could be exposed to the user as command line parameters, but at this stage we instead focus on providing the input data as parameters to the program. The input problem is assumed to be in a standard format for flow shop scheduling -- a problem from the Taillard benchmark set. The following code is used as the \_\_main\_\_ method for the solver file, and calls the appropriate functions based on the number of parameters input to the program:
+These settings could be exposed to the user as command line parameters, but at this stage we instead provide the input data as parameters to the program. The input problem --- a problem from the Taillard benchmark set --- is assumed to be in a standard format for flow shop scheduling. The following code is used as the `__main__` method for the solver file, and calls the appropriate functions based on the number of parameters input to the program:
 
 ```python
 if __name__ == '__main__':
@@ -87,10 +90,9 @@ if __name__ == '__main__':
     print_solution(data, perm)
 ```
 
-We describe the parsing of Taillard problem files shorty, and the files themselves can be found at the following URL:
-* http://mistic.heig-vd.ch/taillard/problemes.dir/ordonnancement.dir/ordonnancement.html
+We will describe the parsing of Taillard problem files shortly, and the files themselves are [available online](http://mistic.heig-vd.ch/taillard/problemes.dir/ordonnancement.dir/ordonnancement.html).
 
-The solve method expects the ```data``` variable to be a list containing the activity durations for each job -- one list of integers for each job will be in ```data```. The ```solve``` method starts by initializing a global set of strategies (to be described below). The key aspect to consider here, is that we use ```strat_*``` variables to maintain statistics on each of the strategies. This aids in selecting the strategy dynamically during the solving process.
+The `solve` method expects the `data` variable to be a list of integers containing the activity durations for each job. The `solve` method starts by initializing a global set of strategies (to be described below). The key is that we use `strat_*` variables to maintain statistics on each of the strategies. This aids in selecting the strategy dynamically during the solving process.
 
 ```python
 def solve(data):
@@ -111,9 +113,9 @@ def solve(data):
     strat_usage = {strategy: 0 for strategy in STRATEGIES}
 ```
 
-One appealing feature of the flow shop scheduling problem is that *every* permutation is a valid solution. At least one will have the optimal makespan (though many permutations will have horrible makespans!), and every permutation is a solution. Thankfully, this allows us to forgo staying within the space of feasible solutions when going from one permutation to another (everything is feasible!).
+One appealing feature of the flow shop scheduling problem is that *every* permutation is a valid solution, and at least one will have the optimal makespan (though many will have horrible makespans). Thankfully, this allows us to forgo checking that we stay within the space of feasible solutions when going from one permutation to another --- everything is feasible!
 
-However, to start a local search in the space of permutations, we must have an initial permutation to begin with. To keep things simple, we seed our local search by shuffling the list of jobs randomly:
+However, to start a local search in the space of permutations, we must have an initial permutation. To keep things simple, we seed our local search by shuffling the list of jobs randomly:
 
 ```python
     # Start with a random permutation of the jobs
@@ -121,7 +123,7 @@ However, to start a local search in the space of permutations, we must have an i
     random.shuffle(perm)
 ```
 
-Next, we initialize the variables that allow us to keep track of the best permutation found so far, as well as the timing information for providing informative output.
+Next, we initialize the variables that allow us to keep track of the best permutation found so far, as well as the timing information for providing output.
 
 ```python
     # Keep track of the best solution
@@ -141,7 +143,7 @@ Next, we initialize the variables that allow us to keep track of the best permut
     print "\nSolving..."
 ```
 
-As this is a local search solver, we simply continue to try and improve solutions as long as the time limit has not been reached. We further provide output indicating the progress of the solver and keep track of the number of iterations we have computed:
+As this is a local search solver, we simply continue to try and improve solutions as long as the time limit has not been reached. We provide output indicating the progress of the solver and keep track of the number of iterations we have computed:
 
 ```python
     while time.time() < time_limit:
@@ -154,7 +156,7 @@ As this is a local search solver, we simply continue to try and improve solution
         iteration += 1
 ```
 
-Below we describe how the strategy is picked, but for now it is sufficient to know that the strategy provides a ```neighbourhood``` function and a ```heuristic``` function. The former gives us a set of *next candidates* to consider while the latter chooses the *best candidate* from the set. From these functions, we have a new permutation (```perm```) and a new makespan result (```res```):
+Below we describe how the strategy is picked, but for now it is sufficient to know that the strategy provides a `neighbourhood` function and a `heuristic` function. The former gives us a set of *next candidates* to consider while the latter chooses the *best candidate* from the set. From these functions, we have a new permutation (`perm`) and a new makespan result (`res`):
 
 ```python
         # Heuristically choose the best strategy
@@ -170,7 +172,7 @@ Below we describe how the strategy is picked, but for now it is sufficient to kn
         res = makespan(data, perm)
 ```
 
-The code for computing the makespan is quite simple -- we can compute it from a permutation by evaluating when the final job completes. We will see below how ```compile_solution``` works, but for now it suffices to know that a 2d array is returned and the element at ```[-1][-1]``` corresponds to the start time of the final job in the schedule:
+The code for computing the makespan is quite simple: we can compute it from a permutation by evaluating when the final job completes. We will see below how `compile_solution` works, but for now it suffices to know that a 2D array is returned and the element at `[-1][-1]` corresponds to the start time of the final job in the schedule:
 
 ```python
 def makespan(data, perm):
@@ -191,7 +193,7 @@ To help select a strategy, we keep statistics on (1) how much the strategy has i
             best_perm = perm[:]
 ```
 
-At regular intervals, the statistics for strategy use are updated. We removed the associated snippet for readability, and detail the code below. As a final step, once the while-loop is complete (i.e., the time limit is reached) we output some statistics about the solving process and return the best permutation (along with its makespan):
+At regular intervals, the statistics for strategy use are updated. We removed the associated snippet for readability, and detail the code below. As a final step, once the while loop is complete (i.e., the time limit is reached) we output some statistics about the solving process and return the best permutation along with its makespan:
 
 ```python
     print " %d %%\n" % percent_complete
@@ -208,7 +210,7 @@ At regular intervals, the statistics for strategy use are updated. We removed th
 
 
 ### Parsing Problems
-As input to the parsing procedure, we provide the file name where the input can be found and the example number that should be used from the file (each file contains a number of instances).
+As input to the parsing procedure, we provide the file name where the input can be found and the example number that should be used. (Each file contains a number of instances.)
 
 ```python
 def parse_problem(filename, k=1):
@@ -232,7 +234,7 @@ We start the parsing by reading in the file and identifying the line that separa
         lines = map(str.strip, f.readlines())
 ```
 
-To make locating the correct instance easier, we assume that every line will be separated by a '/' character. This allows us to split the file based on a common string that appears at the top of every instance, and adding a '/' character to the start of the first line allows the string processing below to work correctly regardless of the instance we choose. We also detect when an instance number is provided that is out of range given the collection of instances found in the file.
+To make locating the correct instance easier, we assume that lines will be separated by a '/' character. This allows us to split the file based on a common string that appears at the top of every instance, and adding a '/' character to the start of the first line allows the string processing below to work correctly regardless of the instance we choose. We also detect when a provided instance number is out of range given the collection of instances found in the file.
 
 ```python
         # We prep the first line for later
@@ -248,8 +250,9 @@ To make locating the correct instance easier, we assume that every line will be 
             sys.exit(0)
 ```
 
-Finally, we parse the data directly -- converting each of the tasks processing times to an integer and storing them in a list. As a final step, we zip the data to invert the rows and columns so that the format respects what is expected by the solving code above (i.e., every item in data should correspond to a particular job).
+Finally, we parse the data directly, converting each of the tasks' processing times to an integer and storing them in a list. Finally, we zip the data to invert the rows and columns so that the format respects what is expected by the solving code above. (That is, every item in `data` should correspond to a particular job.)
 
+<!-- QUERY Is the indentation below correct? -->
 ```python
         # Split every line based on spaces and convert each item to an int
         data = [map(int, line.split()) for line in lines]
@@ -261,7 +264,7 @@ Finally, we parse the data directly -- converting each of the tasks processing t
 
 
 ### Compiling Solutions
-A solution to the flow-shop scheduling problem consists of a precise timing for each of the tasks in every job. Because we represent a solution implicitly with a permutation of the jobs, we introduce the ```compile_solution``` function to convert a permutation to precise timings. As input, the function takes in the data for the problem (giving us the duration of every task) and a permutation of jobs.
+A solution to the flow shop scheduling problem consists of precise timing for each task in every job. Because we represent a solution implicitly with a permutation of the jobs, we introduce the `compile_solution` function to convert a permutation to precise times. As input, the function takes in the data for the problem (giving us the duration of every task) and a permutation of jobs.
 
 The function begins by initializing the data structure used to store the starting time for each task, and then including the tasks from the first job in the permutation.
 
@@ -283,7 +286,7 @@ def compile_solution(data, perm):
                                    data[perm[0]][mach-1])
 ```
 
-We then proceed to add all of the tasks for the remaining jobs. The first task in a job will always start as soon as the first task in the previous job completes. For the remaining tasks, we schedule the job as early as possible -- the maximum between the completion of the previous task in the same job versus the completion of the previous task on the same machine.
+We then add all the tasks for the remaining jobs. The first task in a job will always start as soon as the first task in the previous job completes. For the remaining tasks, we schedule the job as early as possible: the maximum out of the completion time of the previous task in the same job and the completion time of the previous task on the same machine.
 
 ```python
     # Assign the remaining jobs
@@ -302,7 +305,6 @@ We then proceed to add all of the tasks for the remaining jobs. The first task i
 
     return machine_times
 ```
-
 ### Printing Solutions
 When the solving process is complete, the program outputs information about the solution in a compact form. Rather than providing the precise timing of every task for every job, we output the following pieces of information:
 
@@ -311,7 +313,7 @@ When the solving process is complete, the program outputs information about the 
 3. The start time, finish time, and idle time for every machine
 4. The start time, finish time, and idle time for every job
 
-The start time for a job or machine corresponds to the start of the first task in the job or on the machine. Similarly, the finish time for a job or machine corresponds to the end of the final task in the job or on the machine. The idle time is the amount of slack in between tasks for a particular job or machine. Ideally we would like to reduce the amount of idle time, as it means the overall process will be reduced as well.
+The start time for a job or machine corresponds to the start of the first task in the job or on the machine. Similarly, the finish time for a job or machine corresponds to the end of the final task in the job or on the machine. The idle time is the amount of slack in between tasks for a particular job or machine. Ideally we would like to reduce the amount of idle time, as it means the overall process time will be reduced as well.
 
 The code to compile the solution (i.e., to compute the start times for every task) has already been discussed, and outputting the permutation and makespan are trivial:
 
@@ -326,7 +328,7 @@ def print_solution(data, perm):
     print "Makespan: %d\n" % makespan(data, perm)
 ```
 
-Next, we use the string formatting functionality in Python to print the table of start / end / idle times for each of the machines and jobs. Note that the idle time for a job is computed as the time from when the job started to its completion, minus the sum of the processing times for each task in the job. We compute the idle time for a machine in a similar fashion.
+Next, we use the string formatting functionality in Python to print the table of start, end, and idle times for each of the machines and jobs. Note that the idle time for a job is the time from when the job started to its completion, minus the sum of the processing times for each task in the job. We compute the idle time for a machine in a similar fashion.
 
 ```python
     row_format ="{:>15}" * 4
@@ -353,9 +355,9 @@ Next, we use the string formatting functionality in Python to print the table of
 
 ## Neighbourhoods
 
-The idea behind local search is to move from one solution *locally* to other solutions nearby. We refer to the *neighbourhood* of a given solution as the other solutions that are local to it. In this section, we detail four potential neighbourhoods, each of increasing complexity.
+The idea behind local search is to move *locally* from one solution to other solutions nearby. We refer to the *neighbourhood* of a given solution as the other solutions that are local to it. In this section, we detail four potential neighbourhoods, each of increasing complexity.
 
-The first neighbourhood produces a given number of random permutations. This neighbourhood does not even consider the solution that we begin with, and so the term neighbourhood stretches the truth somewhat. However, including some randomness in the search is good practice, as it promotes exploration of the search space.
+The first neighbourhood produces a given number of random permutations. This neighbourhood does not even consider the solution that we begin with, and so the term "neighbourhood" stretches the truth. However, including some randomness in the search is good practice, as it promotes exploration of the search space.
  
 ```python
 def neighbours_random(data, perm, num = 1):
@@ -368,7 +370,7 @@ def neighbours_random(data, perm, num = 1):
     return candidates
 ```
 
-For the next neighbourhood, we consider swapping any two jobs in the permutation. By using the ```combinations``` function from the ```itertools``` package, we can easily iterate through every pair of indices and create a new permutation that corresponds to swapping the jobs located at each index. In a sense, this neighbourhood creates permutations that are very similar to the one permutation we began with.
+For the next neighbourhood, we consider swapping any two jobs in the permutation. By using the `combinations` function from the `itertools` package, we can easily iterate through every pair of indices and create a new permutation that corresponds to swapping the jobs located at each index. In a sense, this neighbourhood creates permutations that are very similar to the permutation we began with.
 
 ```python
 def neighbours_swap(data, perm):
@@ -381,11 +383,11 @@ def neighbours_swap(data, perm):
     return candidates
 ```
 
-The next neighbourhood we consider uses information specific to the problem at hand. Given a size to restrict the number of jobs that we take into account, we find the jobs with the most idle time and consider swapping them in every way possible. The first step in the process is to compute the idle time for every job in the permutation:
+The next neighbourhood we consider uses information specific to the problem at hand. We find the jobs with the most idle time and consider swapping them in every way possible. We take in a value `size` which is the number of jobs we consider: the `size` most idle jobs. The first step in the process is to compute the idle time for every job in the permutation:
 
 ```python
 def neighbours_idle(data, perm, size=4):
-    # Returns the permutations of the most <size> idle jobs
+    # Returns the permutations of the <size> most idle jobs
     candidates = [perm]
 
     # Compute the idle time for each job
@@ -398,14 +400,14 @@ def neighbours_idle(data, perm, size=4):
         results.append((idle_time, i))
 ```
 
-Next, we compute the list of ```size``` jobs that have the most idle time.
+Next, we compute the list of `size` jobs that have the most idle time.
 
 ```python
     # Take the <size> most idle jobs
     subset = [job_ind for (idle, job_ind) in reversed(sorted(results))][:size]
 ```
 
-Finally, we construct the neighbourhood by considering every permutation of the most idle jobs that we have identified. To obtain the permutations, we make use of the ```permutations``` function from the ```itertools``` package.
+Finally, we construct the neighbourhood by considering every permutation of the most idle jobs that we have identified. To find the permutations, we make use of the `permutations` function from the `itertools` package.
 
 ```python
     # Enumerate the permutations of the idle jobs
@@ -418,7 +420,8 @@ Finally, we construct the neighbourhood by considering every permutation of the 
     return candidates
 ```
 
-The final neighbourhood that we consider is commonly referred to as *Large Neighbourhood Search* (LNS). Intuitively, LNS works by considering small subsets of the current permutation in isolation -- locating the best permutation of the subset of jobs gives us a single candidate for the LNS neighbourhood. By repeating this process for several (or all) subsets of a particular size, we can increase the number of candidates in the neighbourhood. We limit the number that are considered through the ```MAX_LNS_NEIGHBOURHOODS``` parameter, as the number of neighbours can grow quite quickly. The first step in the LNS computation is to compute the random list of job sets that we will consider swapping using the ```combinations``` function of the ```itertools``` package:
+XXX STOPPED HERE
+The final neighbourhood that we consider is commonly referred to as *Large Neighbourhood Search* (LNS). Intuitively, LNS works by considering small subsets of the current permutation in isolation --- locating the best permutation of the subset of jobs gives us a single candidate for the LNS neighbourhood. By repeating this process for several (or all) subsets of a particular size, we can increase the number of candidates in the neighbourhood. We limit the number that are considered through the `MAX_LNS_NEIGHBOURHOODS` parameter, as the number of neighbours can grow quite quickly. The first step in the LNS computation is to compute the random list of job sets that we will consider swapping using the `combinations` function of the `itertools` package:
 
 ```python
 def neighbours_LNS(data, perm, size = 2):
@@ -455,7 +458,7 @@ Next, we iterate through each of the subsets and for each one we find the best p
     return candidates
 ```
 
-If we were to set the ```size``` parameter to be equal to the number of jobs, then every permutation would be considered and the best one selected. In practice, however, we need to limit the size of the subset to around 3 or 4; anything larger would cause the ```neighbours_LNS``` function to take a prohibitive amount of time.
+If we were to set the `size` parameter to be equal to the number of jobs, then every permutation would be considered and the best one selected. In practice, however, we need to limit the size of the subset to around 3 or 4; anything larger would cause the `neighbours_LNS` function to take a prohibitive amount of time.
 
 
 ## Heuristics
@@ -470,7 +473,7 @@ def heur_random(data, candidates):
     return random.choice(candidates)
 ```
 
-The next heuristic uses the other extreme. Rather than randomly selecting a candidate, **heur_hillclimbing** selects the candidate that has the best makespan. Note that the list ```scores``` will contain tuples of the form *(make,perm)* where *make* is the makespan value for permutation *perm*. Sorting such a list will place the tuple with the best makespan at the start of the list, from which we return the permutation.
+The next heuristic uses the other extreme. Rather than randomly selecting a candidate, **heur_hillclimbing** selects the candidate that has the best makespan. Note that the list `scores` will contain tuples of the form *(make,perm)* where *make* is the makespan value for permutation *perm*. Sorting such a list will place the tuple with the best makespan at the start of the list, from which we return the permutation.
 
 ```python
 def heur_hillclimbing(data, candidates):
@@ -496,7 +499,7 @@ Because makespan is the criteria that we are trying to optimize, hillclimbing wi
 ## Dynamic Strategy Selection
 At the heart of the local search for a good permutation, we use a particular heuristic and neighbourhood function to jump from one solution to another. How do we choose one set of options over another? Frequently in practice, it pays off to *switch* strategies during the search. The dynamic strategy selection that we use will switch between the combinations of heuristic and neighbourhood functions to try and shift dynamically to those strategies that work best. For us, a *strategy* is a particular configuration of heuristic and neighbourhood functions (including the parameters that they use).
 
-To begin, our code constructs the range of strategies that we want to consider during solving. In the strategy initialization, we use the ```partial``` function from the ```functools``` package to partially assign the parameters for each of the neighbourhoods. Additionally we construct a list of the heuristic functions, and finally we use the product operator to add every combination of neighbourhood and heuristic function as a new strategy.
+To begin, our code constructs the range of strategies that we want to consider during solving. In the strategy initialization, we use the `partial` function from the `functools` package to partially assign the parameters for each of the neighbourhoods. Additionally we construct a list of the heuristic functions, and finally we use the product operator to add every combination of neighbourhood and heuristic function as a new strategy.
 
 ```python
 ################
@@ -541,7 +544,7 @@ def initialize_strategies():
         STRATEGIES.append(Strategy("%s / %s" % (n[0], h[0]), n[1], h[1]))
 ```
 
-Once the strategies are defined, we do not necessarily want to stick with a single option during search. Instead, we select randomly any one of the strategies, but *weight the selection* based on how well the strategy has performed. We describe the weighting below, but for the ```pick_strategy``` function, we need only a list of strategies and a corresponding list of relative weights (any number will do). To select a random strategy with the given weights, we pick a number uniformly between 0 and the sum of all weights. Subsequently, we find the lowest index **i** such that the sum of all of the weights for indices smaller than **i** is greater than the random number that we have chosen. This technique, sometimes referred to as *roulette wheel selection*, will randomly pick a strategy for us and give a greater chance to those strategies with higher weight.
+Once the strategies are defined, we do not necessarily want to stick with a single option during search. Instead, we select randomly any one of the strategies, but *weight the selection* based on how well the strategy has performed. We describe the weighting below, but for the `pick_strategy` function, we need only a list of strategies and a corresponding list of relative weights (any number will do). To select a random strategy with the given weights, we pick a number uniformly between 0 and the sum of all weights. Subsequently, we find the lowest index **i** such that the sum of all of the weights for indices smaller than **i** is greater than the random number that we have chosen. This technique, sometimes referred to as *roulette wheel selection*, will randomly pick a strategy for us and give a greater chance to those strategies with higher weight.
 
 ```python
 def pick_strategy(strategies, weights):
@@ -561,7 +564,7 @@ def pick_strategy(strategies, weights):
     return strategies[i]
 ```
 
-What remains is to describe how the weights are augmented during the search for a solution. This occurs in the main while-loop of the solver at regularly timed intervals (defined with the ```TIME_INCREMENT``` variable):
+What remains is to describe how the weights are augmented during the search for a solution. This occurs in the main while-loop of the solver at regularly timed intervals (defined with the `TIME_INCREMENT` variable):
 
 ```python
 
@@ -573,7 +576,7 @@ What remains is to describe how the weights are augmented during the search for 
             time_last_switch = time.time()
 ```
 
-Recall that ```strat_improvements``` stores the sum of all improvements that a strategy has made while ```strat_time_spent``` stores the time that the strategy has been given during the last interval. We normalize the improvements made by the total time spent for each strategy to get a metric of how well each strategy has performed in the last interval. Because a strategy may not have had a chance to run at all, we choose a small amount of time as a default value.
+Recall that `strat_improvements` stores the sum of all improvements that a strategy has made while `strat_time_spent` stores the time that the strategy has been given during the last interval. We normalize the improvements made by the total time spent for each strategy to get a metric of how well each strategy has performed in the last interval. Because a strategy may not have had a chance to run at all, we choose a small amount of time as a default value.
 
 ```python
             # Normalize the improvements made by the time it takes to make them
@@ -597,7 +600,7 @@ As an extra measure, we bump up artificially all of the strategies that were not
                     strat_weights[results[i][1]] += len(STRATEGIES)
 ```
 
-Finally, we output some information about the strategy ranking (if the ```DEBUG_SWITCH``` flag is set), and additionally we reset the ```strat_improvements``` and ```strat_time_spent``` variables for the next interval.
+Finally, we output some information about the strategy ranking (if the `DEBUG_SWITCH` flag is set), and additionally we reset the `strat_improvements` and `strat_time_spent` variables for the next interval.
 
 ```python
             if DEBUG_SWITCH:
