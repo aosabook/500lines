@@ -420,7 +420,6 @@ Finally, we construct the neighbourhood by considering every permutation of the 
     return candidates
 ```
 
-XXX STOPPED HERE
 The final neighbourhood that we consider is commonly referred to as *Large Neighbourhood Search* (LNS). Intuitively, LNS works by considering small subsets of the current permutation in isolation --- locating the best permutation of the subset of jobs gives us a single candidate for the LNS neighbourhood. By repeating this process for several (or all) subsets of a particular size, we can increase the number of candidates in the neighbourhood. We limit the number that are considered through the `MAX_LNS_NEIGHBOURHOODS` parameter, as the number of neighbours can grow quite quickly. The first step in the LNS computation is to compute the random list of job sets that we will consider swapping using the `combinations` function of the `itertools` package:
 
 ```python
@@ -433,7 +432,7 @@ def neighbours_LNS(data, perm, size = 2):
     random.shuffle(neighbourhoods)
 ```
 
-Next, we iterate through each of the subsets and for each one we find the best permutation of jobs in that subset. Already we have seen similar code above for iterating through all permutations of the most idle jobs. The key difference here is that we record only a single best permutation for the subset, as the larger neighbourhood is constructed by choosing one permutation for each subset of the considered jobs.
+Next, we iterate through each of the subsets and for each one we find the best permutation of jobs in that subset. We have seen similar code above for iterating through all permutations of the most idle jobs. The key difference here is that we record only a single best permutation for the subset, as the larger neighbourhood is constructed by choosing one permutation for each subset of the considered jobs.
 
 ```python
     for subset in neighbourhoods[:flow.MAX_LNS_NEIGHBOURHOODS]:
@@ -473,7 +472,7 @@ def heur_random(data, candidates):
     return random.choice(candidates)
 ```
 
-The next heuristic uses the other extreme. Rather than randomly selecting a candidate, **heur_hillclimbing** selects the candidate that has the best makespan. Note that the list `scores` will contain tuples of the form *(make,perm)* where *make* is the makespan value for permutation *perm*. Sorting such a list will place the tuple with the best makespan at the start of the list, from which we return the permutation.
+The next heuristic uses the other extreme. Rather than randomly selecting a candidate, **heur_hillclimbing** selects the candidate that has the best makespan. Note that the list `scores` will contain tuples of the form *(make,perm)* where *make* is the makespan value for permutation *perm*. Sorting such a list places the tuple with the best makespan at the start of the list; from this tuple we return the permutation.
 
 ```python
 def heur_hillclimbing(data, candidates):
@@ -494,12 +493,12 @@ def heur_random_hillclimbing(data, candidates):
     return sorted(scores)[i][1]
 ```
 
-Because makespan is the criteria that we are trying to optimize, hillclimbing will steer the local search process towards solutions with a better makespan. Introducing randomness allows us to explore the neighbourhood instead of going blindly towards the best looking solution at every step.
+Because makespan is the criteria that we are trying to optimize, hillclimbing will steer the local search process towards solutions with a better makespan. Introducing randomness allows us to explore the neighbourhood instead of going blindly towards the best-looking solution at every step.
 
 ## Dynamic Strategy Selection
-At the heart of the local search for a good permutation, we use a particular heuristic and neighbourhood function to jump from one solution to another. How do we choose one set of options over another? Frequently in practice, it pays off to *switch* strategies during the search. The dynamic strategy selection that we use will switch between the combinations of heuristic and neighbourhood functions to try and shift dynamically to those strategies that work best. For us, a *strategy* is a particular configuration of heuristic and neighbourhood functions (including the parameters that they use).
+At the heart of the local search for a good permutation is the use of a particular heuristic and neighbourhood function to jump from one solution to another. How do we choose one set of options over another? In practice, it frequently pays off to switch strategies during the search. The dynamic strategy selection that we use will switch between combinations of heuristic and neighbourhood functions to try and shift dynamically to those strategies that work best. For us, a *strategy* is a particular configuration of heuristic and neighbourhood functions (including the parameters that they use).
 
-To begin, our code constructs the range of strategies that we want to consider during solving. In the strategy initialization, we use the `partial` function from the `functools` package to partially assign the parameters for each of the neighbourhoods. Additionally we construct a list of the heuristic functions, and finally we use the product operator to add every combination of neighbourhood and heuristic function as a new strategy.
+To begin, our code constructs the range of strategies that we want to consider during solving. In the strategy initialization, we use the `partial` function from the `functools` package to partially assign the parameters for each of the neighbourhoods. Additionally, we construct a list of the heuristic functions, and finally we use the product operator to add every combination of neighbourhood and heuristic function as a new strategy.
 
 ```python
 ################
@@ -544,7 +543,7 @@ def initialize_strategies():
         STRATEGIES.append(Strategy("%s / %s" % (n[0], h[0]), n[1], h[1]))
 ```
 
-Once the strategies are defined, we do not necessarily want to stick with a single option during search. Instead, we select randomly any one of the strategies, but *weight the selection* based on how well the strategy has performed. We describe the weighting below, but for the `pick_strategy` function, we need only a list of strategies and a corresponding list of relative weights (any number will do). To select a random strategy with the given weights, we pick a number uniformly between 0 and the sum of all weights. Subsequently, we find the lowest index **i** such that the sum of all of the weights for indices smaller than **i** is greater than the random number that we have chosen. This technique, sometimes referred to as *roulette wheel selection*, will randomly pick a strategy for us and give a greater chance to those strategies with higher weight.
+Once the strategies are defined, we do not necessarily want to stick with a single option during search. Instead, we select randomly any one of the strategies, but *weight the selection* based on how well the strategy has performed. We describe the weighting below, but for the `pick_strategy` function, we need only a list of strategies and a corresponding list of relative weights (any number will do). To select a random strategy with the given weights, we pick a number uniformly between 0 and the sum of all weights. Subsequently, we find the lowest index *i* such that the sum of all of the weights for indices smaller than *i* is greater than the random number that we have chosen. This technique, sometimes referred to as *roulette wheel selection*, will randomly pick a strategy for us and give a greater chance to those strategies with higher weight.
 
 ```python
 def pick_strategy(strategies, weights):
@@ -564,7 +563,7 @@ def pick_strategy(strategies, weights):
     return strategies[i]
 ```
 
-What remains is to describe how the weights are augmented during the search for a solution. This occurs in the main while-loop of the solver at regularly timed intervals (defined with the `TIME_INCREMENT` variable):
+What remains is to describe how the weights are augmented during the search for a solution. This occurs in the main while loop of the solver at regularly timed intervals (defined with the `TIME_INCREMENT` variable):
 
 ```python
 
@@ -584,7 +583,7 @@ Recall that `strat_improvements` stores the sum of all improvements that a strat
                               for s in STRATEGIES])
 ```
 
-Now that we have a ranking of how well each strategy has performed, we add **k** to the weight of the best strategy (assuming we had **k** strategies), **k**-1 to the next best strategy, etc. Each strategy will have its weight increased, and the worst strategy in the list will see an increase of only 1.
+Now that we have a ranking of how well each strategy has performed, we add *k* to the weight of the best strategy (assuming we had *k* strategies), *k*-1 to the next best strategy, etc. Each strategy will have its weight increased, and the worst strategy in the list will see an increase of only 1.
 
 ```python
             # Boost the weight for the successful strategies
@@ -592,7 +591,7 @@ Now that we have a ranking of how well each strategy has performed, we add **k**
                 strat_weights[results[i][1]] += len(STRATEGIES) - i
 ```
 
-As an extra measure, we bump up artificially all of the strategies that were not used. This is done so that we do not forget about a strategy entirely. While one strategy may appear to perform badly in the beginning, later in the search it can prove quite useful.
+As an extra measure, we artificially bump up all of the strategies that were not used. This is done so that we do not forget about a strategy entirely. While one strategy may appear to perform badly in the beginning, later in the search it can prove quite useful.
 
 ```python
                 # Additionally boost the unused strategies to avoid starvation
@@ -600,7 +599,7 @@ As an extra measure, we bump up artificially all of the strategies that were not
                     strat_weights[results[i][1]] += len(STRATEGIES)
 ```
 
-Finally, we output some information about the strategy ranking (if the `DEBUG_SWITCH` flag is set), and additionally we reset the `strat_improvements` and `strat_time_spent` variables for the next interval.
+Finally, we output some information about the strategy ranking (if the `DEBUG_SWITCH` flag is set), and we reset the `strat_improvements` and `strat_time_spent` variables for the next interval.
 
 ```python
             if DEBUG_SWITCH:
@@ -615,6 +614,8 @@ Finally, we output some information about the strategy ranking (if the `DEBUG_SW
 ```
 
 ## Discussion
-In this chapter we have seen what can be accomplished with a relatively small amount of code in order to solve the complex optimization problem of flow shop scheduling. Finding the best quality solution to a large optimization problem such as the flow shop can be difficult. When this is the case, we can turn to approximation techniques, such as local search, to compute a solution that is *good enough*. With local search we can move from one solution to another, while aiming to find one of good quality. The general intuition behind local search can be applied to a wide range of problems. We focused on (1) generating a neighbourhood of related solutions to a problem from one candidate solution, and (2) establishing ways to evaluate and compare solutions. With these two components in hand, we can use the local search paradigm to find a valuable solution when the best option simply is too difficult to compute.
+In this chapter we have seen what can be accomplished with a relatively small amount of code to solve the complex optimization problem of flow shop scheduling. Finding the best solution to a large optimization problem such as the flow shop can be difficult. In a case like this, we can turn to approximation techniques such as local search to compute a solution that is *good enough*. With local search we can move from one solution to another, aiming to find one of good quality. 
+
+The general intuition behind local search can be applied to a wide range of problems. We focused on (1) generating a neighbourhood of related solutions to a problem from one candidate solution, and (2) establishing ways to evaluate and compare solutions. With these two components in hand, we can use the local search paradigm to find a valuable solution when the best option is simply too difficult to compute.
 
 Rather than using any one strategy to solve the problem, we saw how a strategy can be chosen dynamically to shift during the solving process. This simple and powerful technique gives the program the ability to mix and match partial strategies for the problem at hand, and it also means that the developer does not have to hand-tailor the strategy.
