@@ -1,8 +1,9 @@
+<!-- FIXME: We need a better title -- titles are usually just the name of the software, and this is too long. But I like this title -- keep it for a subtitle? -->
 # Designing a database like an archaeologist
 
 Software development is often viewed as a rigorous process, where the inputs are requirements and the output is the working product. However, software developers are people with their own perspectives and biases which color the outcome of their work. 
 
-In this chapter, we will explore how a change in a common perspective affects the design and implementation of a well-studied type of software -- a database.
+In this chapter, we will explore how a change in a common perspective affects the design and implementation of a well-studied type of software: a database.
 
 ## Introduction 
 
@@ -12,7 +13,7 @@ For example, most modern databases implement updates by overwriting old data in-
 
 If you were to instead ask an archaeologist what should be done with the old data, the answer would be "hopefully, it’s just buried underneath".
 
-(Disclaimer: my understanding of a typical archaeologist is based on a few museum visits, several wikipedia articles, and watching the entire Indiana Jones series).
+(Disclaimer: my understanding of a typical archaeologist is based on a few museum visits, several Wikipedia articles, and watching the entire Indiana Jones series).
 
 ### From archaeology to databases
 
