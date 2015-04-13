@@ -14,7 +14,7 @@ The distributed revolution changed everything, again. Data broke free of spacial
 
 [footnoteA: One of the very first database designs was the hierarchical model, which grouped items into tree-shaped hierarchies and is still used as the basis of IBM's IMS product, a high-speed transaction processing system. It's influence can also been seen in XML, file systems and geographic information storage. The network model, invented by Charles Bachmann and standardized by CODASYL, generalized the hierarchical model by allowing multiple parents, forming a DAG instead of a tree. These navigational database models came in to vogue in the 1960s and continued their dominance until performance gains made relational databases usable in the 1980s.]
 
-[footnoteB: Codd developed relational database theory while working at IBM, but Big Blue feared that a relational database would cannibalize the sales of IMS. While IBM eventually built a research prototype called System R, it was based around a new non-relational language called SEQUEL, instead of Codd's original Alpha language. The SEQUEL language was copied by Larry Ellison in his Oracle Database based on pre-launch conference papers, and the name changed to SQL to avoid trademark disputes. A nice model twisted into a half-baked prototype, which spawns a shoddy copy with a different name, which becomes wildly popular and wastes millions of programmer hours: this is the story of software engineering.]
+[footnoteB: Codd developed relational database theory while working at IBM, but Big Blue feared that a relational database would cannibalize the sales of IMS. While IBM eventually built a research prototype called System R, it was based around a new non-relational language called SEQUEL, instead of Codd's original Alpha language. The SEQUEL language was copied by Larry Ellison in his Oracle Database based on pre-launch conference papers, and the name changed to SQL to avoid trademark disputes.]
 
 
 ## Definitions and introductions
@@ -97,19 +97,8 @@ Do you see any other issues?
 
 [footnote1]
   Notice that we're modeling edges as a pair of vertices. Also notice that those pairs are ordered, because we're using arrays. That means we're modeling a *directed graph*, where every edge has a starting vertex and an ending vertex. Our "dots and lines" visual model becomes a "dots and arrows" model instead.
-  Doing it this way adds a little complexity to our model, because we have to keep track of the direction of edges, but it also allows us to ask more interesting questions, like "which vertices point in to vertex 3?" or "which vertex has the most outgoing edges?". [footnote2]
-
-[footnote2]
-  If we need to model an undirected graph, we can simply double each edge in our directed graph [footnote3]. For small graphs this works relatively well, and we can use a simple helper function to transform the edge list:
-
-```javascript
-function undirectMe (edges) 
-  { return edges.reduce( function(acc, edge)
-    { return acc.concat([[ edge[1], edge[0] ]]) }, edges.slice() )}
-```
-
-[footnote3]
-  It can be cumbersome to go the other direction, and simulate a directed graph from an undirected one. Can you think of a way to do it?
+  This adds complexity to our model, because we have to keep track of the direction of edges, but it also allows us to ask more interesting questions, like "which vertices point to vertex 3?" or "which vertex has the most outgoing edges?". 
+  If we need to model an undirected graph, we can simply double each edge in our directed graph.  It can be cumbersome to go the other direction, and simulate a directed graph from an undirected one. Can you think of a way to do it?
 
 
 ## Build a better graph
@@ -120,9 +109,9 @@ Let's solve a few of the problems we've discovered. Having our vertices and edge
 Dagoba = {}                                             // the namespace
 ```
 
-We'll use an object as our namespace. An object in JavaScript is mostly just an unordered set of key/value pairs. We only have four basic data structures to choose from in JS, so we'll be using this one a lot. [footnote: A fun question to ask people at parties is "What are the four basic data structures in JavaScript?"]
+We'll use an object as our namespace. An object in JavaScript is mostly just an unordered set of key/value pairs. We only have four basic data structures to choose from in JS, so we'll be using this one a lot. 
 
-Now we need some some graphs. We can build these using a classic OOP pattern, but JavaScript offers us prototypal inheritance, which means we can build up a prototype object -- we'll call it Dagoba.G -- and then instantiate copies of that using a factory function. An advantage of this approach is that we can return different types of objects from the factory, instead of binding the creation process to a single class constructor. So we get some extra flexibility for free. [footnote: There are more object creation techniques in JS than in all other programming languages combined. True story!]
+Now we need some some graphs. We can build these using a classic OOP pattern, but JavaScript offers us prototypal inheritance, which means we can build up a prototype object -- we'll call it Dagoba.G -- and then instantiate copies of that using a factory function. An advantage of this approach is that we can return different types of objects from the factory, instead of binding the creation process to a single class constructor. So we get some extra flexibility for free. 
 
 ```javascript
 Dagoba.G = {}                                           // the prototype
@@ -143,17 +132,11 @@ Dagoba.graph = function(V, E) {                         // the factory
 }
 ```
 
-We'll accept two optional arguments: a list of vertices and a list of edges. JavaScript is very lax about parameters, so all named parameters are optional and default to 'undefined' if not supplied*. We will often have the vertices and edges before building the graph and use the V and E parameters, but it's also common to not have those at creation time and build the graph up programmatically*.
+We'll accept two optional arguments: a list of vertices and a list of edges. JavaScript is very lax about parameters, so all named parameters are optional and default to 'undefined' if not supplied. We will often have the vertices and edges before building the graph and use the V and E parameters, but it's also common to not have those at creation time and build the graph up programmatically [footnote].
 
-[footnote on supplied: It's also lax the other direction: all functions are variadic*, and all arguments are available by position via the `arguments` object, which is almost like an array but not quite.] 
+[footnote: The `Array.isArray` checks here are to distinguish our two different use cases, but in general we won't be doing many of the validations one would expect of production code in order to focus on the architecture instead of the trash bins.]
 
-[footnote on variadic: This is just a fancy way of saying a function has indefinite arity, which is a fancy way of saying it takes a variable number of variables.]
-
-[footnote on programmatically: The `Array.isArray` checks here are to distinguish our two different use cases, but in general we won't be doing many of the validations one would expect of production code in order to focus on the architecture instead of the trash bins.]
-
-Then we create a new object that has all of our prototype's strengths and none of its weaknesses*. We build a brand new array (one of the other basic JS data structures) for our edges, another for the vertices, a new object called vertexIndex and an id counter -- more on those latter two later [footnote: Why can't we just put all of these in the prototype?].
-
-[footnote on weaknesses: Always bet on JS.]
+Then we create a new object that has all of our prototype's strengths and none of its weaknesses*. We build a brand new array (one of the other basic JS data structures) for our edges, another for the vertices, a new object called vertexIndex and an id counter -- more on those latter two later. (Why can't we just put all of these in the prototype?)
 
 Then we call addVertices and addEdges from inside our factory, so let's define those now.
 
@@ -211,7 +194,7 @@ Dagoba.G.addEdge = function(edge) {                     // accepts an edge-like 
 }
 ```
 
-First we find both vertices the edge connects, then reject the edge if it's missing either vertex. We'll use a helper function to log an error on rejection. All errors flow through this helper function, so we can override its behavior on a per-application basis. [footnote: A fancy version might allow onError handlers to be registered, so the host application could link in its own callbacks without overwriting the helper. A fancier fancy version might allow per-graph error callbacks in addition to the per-application ones.]
+First we find both vertices the edge connects, then reject the edge if it's missing either vertex. We'll use a helper function to log an error on rejection. All errors flow through this helper function, so we can override its behavior on a per-application basis. We could later extend this to allow onError handlers to be registered, so the host application could link in its own callbacks without overwriting the helper; this could be done per-graph and/or per-application.
 
 ```javascript
 Dagoba.error = function(msg) {
@@ -864,11 +847,7 @@ And finally we'll need a program counter to indicate the position of the read/wr
   var pc = 0
 ```
 
-Except... wait a second. How are we going to get lazy*? The traditional way of building a lazy system out of an eager one is to store parameters to function calls as "thunks" instead of evaluating them. You can think of a thunk as an unevaluated expression. In JS, which has first-class functions and closures, we can create a thunk by wrapping a function and its arguments in a new anonymous function which takes no arguments*.
-
-[footnote on lazy: Technically we need to implement an interpreter with non-strict semantics, which means it will only evaluate when forced to do so. Lazy evaluation is a technique used for implementing non-strictness.]
-
-[footnote on parameters (a long one): 
+Except... wait a second. How are we going to get lazy*? The traditional way of building a lazy system out of an eager one is to store parameters to function calls as "thunks" instead of evaluating them. You can think of a thunk as an unevaluated expression. In JS, which has first-class functions and closures, we can create a thunk by wrapping a function and its arguments in a new anonymous function which takes no arguments:
 
 ```javascript
 function sum() {
@@ -896,7 +875,7 @@ var thunk = sum2(1, 2, 3)
 thunk()                   // -> 6
 ```
 
-(end long footnote)]
+[footnote on lazy: Technically we need to implement an interpreter with non-strict semantics, which means it will only evaluate when forced to do so. Lazy evaluation is a technique used for implementing non-strictness.]
 
 None of the thunks are invoked until one is actually needed, which usually implies some type of output is required: in our case the result of a query. Each time the interpreter encounters a new function call, we wrap it in a thunk. Recall our original formulation of a query: `children(children(children(parents(parents(parents([8]))))))`. Each of those layers would be a thunk, wrapped up like an onion.
 
@@ -1112,7 +1091,7 @@ Now instead of `g.v('Forseti').parents().as('parents').parents().children().exce
 
 We've introduced a bit of a pickle, though: while our addAlias function is resolving an alias it also has to resolve other aliases. What if `parents` called some other alias, and while we were resolving `cousins` we then had to stop to resolve `parents` and then resolve its aliases and so on? What if one of `parents` aliases ultimately called `cousins`?
 
-This bring us in to the realm of dependency resolution, a core component of modern package managers. There are a lot of fancy tricks for choosing ideal versions, tree shaking, general optimizations and the like, but the basic idea is fairly simple. We're going to make a graph of all the dependencies and their relationships, and then try to find a way to line all of the vertices up while making the arrows go from left to right. If we can then this particular sorting of the vertices is called a topological ordering, and we've proven that our dependency graph has no cycle: it is a Direct Acyclic Graph. If we fail to do so then we have at least one cycle. [footnote: Seeing as we're building a graph database, could we use Dagoba itself to manage its own aliases?]
+This bring us in to the realm of dependency resolution, a core component of modern package managers. ( There are a lot of fancy tricks for choosing ideal versions, tree shaking, general optimizations and the like, but the basic idea is fairly simple. We're going to make a graph of all the dependencies and their relationships, and then try to find a way to line all of the vertices up while making the arrows go from left to right. If we can then this particular sorting of the vertices is called a topological ordering, and we've proven that our dependency graph has no cycle: it is a Direct Acyclic Graph. If we fail to do so then we have at least one cycle. [footnote: You can learn more about dependency resolution in the Contingent chapter in this book.]
 
 On the other hand, we expect that our queries will generally be rather short (100 steps would be a very long query) and that we'll have a reasonably low number of transformers. Instead of fiddling around with DAGs and dependency management we could add a 'did_something' return value to the transform function and run it until it stops doing anything. This requires that all transformers be idempotent, but that's a helpful property to insist on anyway. What are the pros and cons of these two pathways?
 
