@@ -1,13 +1,4 @@
-DBDB
-====
-
-Dog Bed Database (it's like a couch, but not as nice).
-
-
-What does it do?
-----------------
-
-DBDB is a Python library that implements a simple key/value database.
+DBDB (Dog Bed Database) is a Python library that implements a simple key/value database.
 It lets you associate a key with a value,
 and store that association on disk for later retrieval.
 
@@ -16,8 +7,6 @@ and error conditions.
 It also avoids holding all data in RAM at once
 so you can store more data than you have RAM.
 
-But first&hellip;
-
 
 Memory
 ------
@@ -25,56 +14,49 @@ Memory
 I remember the first time I had a bug I was really stuck on. When I finished
 typing in my BASIC program and ran it, weird sparkly pixels showed up on the
 screen, and the program aborted early. When I went back to look at the code,
-the last few lines of the program were gone! One of my mom's friends was a
-P.Eng.[^PEng] and she knew how to program, so my mom arranged a phone call so I could
-explain the problem and get some feedback. Within a few minutes of talking, I
-had figured out the problem: the program was too big, and had encroached into
-video memory. Clearing the screen truncated the program, and the sparkles were
-artifacts of Applesoft BASIC's behaviour of storing program state in RAM
-just beyond the end of the program.
+the last few lines of the program were gone! 
 
-I learned to care about memory allocation.
+One of my mom's friends knew how to program. Within a few minutes of speaking
+with her, I found the problem: the program was too big, and had
+encroached into video memory. Clearing the screen truncated the program, and
+the sparkles were artifacts of Applesoft BASIC's behaviour of storing program
+state in RAM just beyond the end of the program.
 
-I remember learning about pointers and how to allocate memory with malloc, to
-stick records of arbitrary-length strings into a struct so I could sort them
-by latitude and longitude.
+From that moment onwards, I learned to care a lot about memory allocation.  I
+learned about pointers and how to allocate memory with malloc. I learned how my
+data structures were laid out in memory. And I learned to be very, very careful
+about how I changed them.
 
-I learned how data strutures are laid out in memory.
+Some years later, while reading about a process-oriented language called
+Erlang, I learned that it didn't actually have to copy data to send messages
+between processes, because everything was immutable. I then discovered
+immutable data structures in Clojure, and it really began to sink in. 
 
-I understood that Erlang didn't have to copy data between processes, even
-though it was "strictly message-passing", because everything was immutable.
-I'm not sure that the utility of immutable data structures really sank in until
-I read about Clojure's data structures in 2009.
-When I read about CouchDB for my new job in 2013,
-I just smiled and nodded,
-recognising the structures and mechanisms for managing data as it changes.
+When I read about CouchDB for my new job in 2013, I just smiled and nodded,
+recognising the structures and mechanisms for managing complex data as it
+changes.
 
 I learned that you can design systems built around immutable data.
 
 Then I agreed to write a book chapter.
+
 I thought that describing the core data storage concepts of CouchDB
 (as I understood them)
 would be fun.
-In trying to write a binary tree
+
+While trying to write a binary tree
 algorithm that mutated the tree in place, I got frustrated with how complicated
 things were getting. The number of edge cases and trying to reason about how
-changes in one part of the tree affected others was making my head hurt.
-So I took a peek at a [recursive algorithm for
+changes in one part of the tree affected others was making my head hurt. I had
+no idea how I was going to explain all of this.
+
+Remember lessons learned, I took a peek at a [recursive algorithm for
 updating immutable binary trees](http://en.wikipedia.org/w/index.php?title=Binary_search_tree&oldid=628341612#Insertion),
 and it turned out to be relatively straightforward.
 
-I learned that it's easier to reason about things that don't change.
+I learned, once again, that it's easier to reason about things that don't change.
 
 So starts the story.
-
-
-[^PEng]: From the [The Association of Professional Engineers and Geoscientists
-    of Alberta](http://www.apega.ca/applicants/Engineers/peng_general.html):
-    &ldquo;What is a P.Eng.? The P.Eng. designation is a professional licence,
-    allowing you to practice engineering in Alberta and take responsibility for
-    that work.  Only engineers licensed with APEGA, or those practising under
-    the direct supervision of a P.Eng. licensed with APEGA, have a legal right
-    to practice engineering in Alberta.&rdquo;
 
 
 Why is it interesting?
