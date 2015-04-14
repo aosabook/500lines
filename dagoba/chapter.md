@@ -800,9 +800,9 @@ This allows us to query the edge using a filter object: `g.v('Odin').in({positio
 
 ## The interpreter's nature
 
-We've arrived at the top of the narrative mountain, ready to receive our prize: the much ballyhooed interpreter. It's actually a relatively simple beast, but it does require a bit of concentration to fully understand.
+We've arrived at the top of the narrative mountain, ready to receive our prize: the much ballyhooed interpreter. The code is actually fairly compact, but the model has a bit of subtlety.
 
-We compared programs to pipelines earlier, and that's a good mental model for writing queries. But the actual program evaluation is more akin to a Turing machine than a pipeline. There's a read/write head that sits over a particular step. It "reads" the step, changes its "state", and then moves either right or left.
+We compared programs to pipelines earlier, and that's a good mental model for writing queries. As we saw, though, we need a different model for the actual implementation. That model is more akin to a Turing machine than a pipeline. There's a read/write head that sits over a particular step. It "reads" the step, changes its "state", and then moves either right or left.
 
 Reading the step means evaluating the pipetype function. As we saw above, each of those functions accepts as input the entire graph, its own arguments, maybe a gremlin, and its own local state. As output it provides a gremlin, false, or a signal of 'pull' or 'done'. The output is what our quasi-Turing machine reads to change its own state.
 
