@@ -88,17 +88,16 @@ Well, we're treating the edges as a global variable, which means we can only eve
 
 We're also not using the vertices at all. What does that tell us? It implies that everything we need is in the edges array, which in this case is true: the vertex values are scalars, so they exist independently in the edges array. If we want to answer questions like "What is Freyja's connection to the Valkyries?" we'll need to add more information to the vertices, which means making them compound values, which means the edges array should reference vertices instead of copying their value.
 
-The same holds true for our edges: they contain an 'in' vertex and an 'out' vertex [footnote1], but no elegant way to incorporate additional information. We'll need that to answer questions like "How many stepparents did Loki have?" or "How many children did Odin have before Thor was born?"
+The same holds true for our edges: they contain an 'in' vertex and an 'out' vertex [footnote], but no elegant way to incorporate additional information. We'll need that to answer questions like "How many stepparents did Loki have?" or "How many children did Odin have before Thor was born?"
 
 You don't have to squint very hard to tell that the code for our two selectors looks very similar, which suggests there may be a deeper abstraction from which those spring. 
 
 Do you see any other issues?
 
-
-[footnote1]
+[footnote on vertex]
   Notice that we're modeling edges as a pair of vertices. Also notice that those pairs are ordered, because we're using arrays. That means we're modeling a *directed graph*, where every edge has a starting vertex and an ending vertex. Our "dots and lines" visual model becomes a "dots and arrows" model instead.
   This adds complexity to our model, because we have to keep track of the direction of edges, but it also allows us to ask more interesting questions, like "which vertices point to vertex 3?" or "which vertex has the most outgoing edges?". 
-  If we need to model an undirected graph, we could add a reversed edge for each existing edge in our directed graph.  It can be cumbersome to go the other direction, and simulate a directed graph from an undirected one. Can you think of a way to do it?
+  If we need to model an undirected graph we could add a reversed edge for each existing edge in our directed graph. It can be cumbersome to go the other direction, and simulate a directed graph from an undirected one. Can you think of a way to do it?
 
 
 ## Build a better graph
@@ -241,9 +240,9 @@ A *gremlin* is a creature that travels through the graph doing our bidding. A gr
 
 [2: http://edbt.org/Proceedings/2013-Genova/papers/workshops/a29-holzschuher.pdf]
 
-Remember that question we wanted to answer? The one about Thor's second cousins once removed? We decided `Thor.parents.parents.parents.children.children.children` was a pretty good way of expressing that. Each `parents` or `children` instance is a step in our program. Each of those steps contains a reference to its *pipetype*, which is the function that performs that step's operation. 
+Remember that question we wanted to answer? The one about Thor's second cousins once removed? We decided `Thor.parents.parents.parents.children.children.children` was a pretty good way of expressing that. Each `parents` or `children` instance is a step in our program. Each of those steps contains a reference to its *pipetype*, which is the function that performs that step's operation.
 
-That query in our actual system might look like `g.v('Thor').out().out().out().in().in().in()`. Each of the steps is a function call, and so they can take *arguments*. The interpreter passes the step's arguments and state in to the step's pipetype function, along with a gremlin from the previous step, if there was one.
+That query in our actual system might look like `g.v('Thor').out().out().out().in().in().in()`. Each of the steps is a function call, and so they can take *arguments*. The interpreter passes the step's arguments in to the step's pipetype function, so in the query `g.v('Thor').out(2, 3)` the `out` pipetype function would receive `[2, 3]` as its first parameter.
 
 We'll need a way to add steps to our query. Here's a helper function for that:
 
@@ -279,44 +278,32 @@ In a non-strict language we would get the same result -- the execution strategy 
 
 We're probably only interested in getting a few unique results out, so we'll change the query a little: `g.v('Thor').out().out().out().in().in().in().unique().take(10)`. Now our query produces at most 10 results. What happens if we evaluate this eagerly, though? We're still going to have to build up septillions of results before returning only the first 10.
 
-All graph databases have to support a mechanism for doing as little work as possible, and most choose some form of non-strict evaluation to do so. Since we're building our own interpreter, evaluating our program lazily is certainly within our purview. [[]]
-
-But the road to laziness is paved with good intentions and surprising consequences.
+All graph databases have to support a mechanism for doing as little work as possible, and most choose some form of non-strict evaluation to do so. Since we're building our own interpreter the lazy evaluation our program is certainly achievable, but we may have to contend with some unintended consequences.
 
 
-[[Insert new section: ramifications of lazy evaluation on our mental model]]
+## Ramifications of evaluation strategy on our mental model
 
 Up until now our mental model for evaluation has looked like this:
 
 [[diagram]]
 
-We would like to retain that model for our users, because it's easier to reason about, but we're going to need a different model for implementation. Giving the users of your system a model that differs from the actual implementation is the source of much pain. A leaky abstraction is a small scale version of this; in the large it can lead to frustration, cognitive dissonance and ragequits. 
+We would like to retain that model for our users, because it's easier to reason about, but as we've seen we can no longer use that model for the implementation. Having users think in a model that differs from the actual implementation is the source of much pain. A leaky abstraction is a small scale version of this; in the large it can lead to frustration, cognitive dissonance and ragequits. 
 
 Our case is nearly optimal for this deception, though: the answer to any query will be the same, regardless of execution model. The only difference is the performance. The tradeoff is between having all users learn a more complicated model prior to using the system, or forcing a subset of users to transfer from the simple model to the complicated model in order to better reason about query performance. 
 
-Some factors to consider when wrestling with this decision are: the relative cognitive difficulty of learning the simple model vs the more complex model; the additional cognitive load imposed by first using the simple model and then advancing to the complex one vs skipping the simple and learning only the complex; the subset of users required to make the transition, in terms of their proportional size, cognitive availability, available time, etc.
+Some factors to consider when wrestling with this decision are: the relative cognitive difficulty of learning the simple model vs the more complex model; the additional cognitive load imposed by first using the simple model and then advancing to the complex one vs skipping the simple and learning only the complex; the subset of users required to make the transition, in terms of their proportional size, cognitive availability, available time, and so on.
 
-In our case this tradeoff makes sense. Most queries will perform quickly enough that users won't need to be concerned with optimizing their query structure, and hence won't need to learn the deeper model. Those who will need to are the users making advanced queries over large datasets, and they are likely users with enough available time and headspace to make the transition. Additionally, our hope is that the difficulty imposed by first learning the simple model before learning the more complex one is small.
+In our case this tradeoff makes sense. For most uses queries will perform quickly enough that users needn't be concerned with optimizing their query structure or learning the deeper model. Those who will are the users writing advanced queries over large datasets, and they are also likely the users most well equipped to transition to a new model. Additionally, our hope is that there is only a small increase in difficulty imposed by using the simple model before learning the more complex one.
 
 Here is the exposed surface of the more complex model:
 
 [[diagram]]
 
 
-We'll dig deeper when we look at the implementation of the interpreter, but there are a few important points to keep in mind while we examine the pipetypes........
-
-[[move the "work backward revelation" up here]]
-
-- Remember those gremlins we mentioned before? In our simplistic model each pipe spits out the entire set of matching vertices, once per query. In the actual implementation each pipe returns a single gremlin, but does this potentially many times during the query.
-- If a pipe needs some input before it can produce gremlins, it returns a 'pull' signal, causing the head to move back one pipe
+We'll dig deeper when we look at the implementation of the interpreter, but there are a few important points to keep in mind while we examine the pipetypes:
+- Remember those gremlins we mentioned before? In our simplistic model each pipe spits out the entire set of matching vertices, once per query. In the actual implementation each pipe returns at most one gremlin, but does this potentially many times during the query. Each gremlin represents a potential query result, and they carry state with them through the pipes.
+- We process the query from back to front, so if a pipe needs some input before it can produce gremlins, it returns a 'pull' signal, causing the head to move back one pipe.
 - If a pipe has finished and will never produce another gremlin, it returns a 'done' signal, causing the head to move forward and the done blocker to move to its position.
-
-
-[[fix the below/above places]]
-
-[[change the places below where the interpreter is introduced. put a more advanced diagram there. use this "deeper model" bit as a jumping off point for the conversation.]]
-
-[[look for other gremlin mentions and bind them to this one]]
 
 
 ## Pipetypes
@@ -356,7 +343,7 @@ If we can't find a pipetype we generate an error and return the default pipetype
 
 ```javascript
 Dagoba.fauxPipetype = function(_, _, maybe_gremlin) {   // if you can't find a pipe type 
-  return maybe_gremlin || 'pull'                        // just keep things flowing along
+  return maybe_gremlin || 'pull'                        // then keep things flowing along
 }
 ```
 
@@ -365,9 +352,7 @@ See those underscores? We use those to label params that won't be used in our fu
 
 #### Vertex
 
-Most of the pipetypes we will meet take gremlins as their input, but this special pipetype generates new ones. Given a vertex id it will create a new gremlin on that vertex, if it exists. 
-
-You can also give it a query, and it will find all matching vertices. It creates one new gremlin at a time until it's worked through all of them.
+Most pipetypes we meet will take a gremlin and produce more gremlins, but this particular pipetype generates gremlins from just a string. Given an vertex id it returns a single new gremlin. Given a query it will find all matching vertices, and yield one new gremlin at a time until it's worked through them.
 
 ```javascript
 Dagoba.addPipetype('vertex', function(graph, args, gremlin, state) {
@@ -813,7 +798,7 @@ Dagoba.objectFilter = function(thing, filter) {         // thing has to match al
 This allows us to query the edge using a filter object: `g.v('Odin').in({position: 2, _label: daughter}).run()` finds Odin's second daughter, if position is genderized.
 
 
-## The interpreter itself
+## The interpreter's nature
 
 We've arrived at the top of the narrative mountain, ready to receive our prize: the much ballyhooed interpreter. It's actually a relatively simple beast, but it does require a bit of concentration to fully understand.
 
@@ -841,10 +826,10 @@ We need a place to store the most recent step's output, which might be a gremlin
   var maybe_gremlin = false
 ```
 
-And finally we'll need a program counter to indicate the position of the read/write head, which will start on the first step:
+And finally we'll need a program counter to indicate the position of the read/write head.
 
 ```javascript
-  var pc = 0
+  var pc = this.program.length - 1
 ```
 
 Except... wait a second. How are we going to get lazy*? The traditional way of building a lazy system out of an eager one is to store parameters to function calls as "thunks" instead of evaluating them. You can think of a thunk as an unevaluated expression. In JS, which has first-class functions and closures, we can create a thunk by wrapping a function and its arguments in a new anonymous function which takes no arguments:
@@ -881,21 +866,18 @@ None of the thunks are invoked until one is actually needed, which usually impli
 
 There are a couple of tradeoffs with this approach: one is that spatial performance becomes more difficult to reason about, because of the potentially vast thunk graphs that can be created. Another is that our program is now expressed as a single thunk, and we can't do much with it at that point.
 
-This second point isn't usually an issue, because of the phase separation between when our compiler runs its optimizations and when all the thunking occurs during runtime. But in our case we don't have that advantage: because we're using method chaining to implement a fluent interface* if we also use thunks to get our laziness we would have to thunk each new method as it is called, which means by the time we get to `run()` we have only a single thunk as our input, and no way to optimize our query.
+This second point isn't usually an issue, because of the phase separation between when our compiler runs its optimizations and when all the thunking occurs during runtime. In our case we don't have that advantage: because we're using method chaining to implement a fluent interface* if we also use thunks to achieve laziness we would thunk each new method as it is called, which means by the time we get to `run()` we have only a single thunk as our input, and no way to optimize our query.
 
 [footnote on interface: Method chaining lets us write `g.v('Thor').in().out().run()` instead of `var query = g.query(); query.add('vertex', 'Thor'); query.add('in'); query.add('out'); query.run()`]
 
-This is a pretty big setback, but we have an advantage that most languages don't -- our queries are linear. They don't have any branches. Maybe there's a clever way of using that property to get our non-strictness but still be able to optimize our query?
+Interestingly, our fluent interface hides another difference between our query language and regular programming languages. The query `g.v('Thor').in().out().run()` could be rewritten as `run(out(in(v(g, 'Thor'))))` if we weren't using method chaining. In JS we would first process `g` and `'Thor'`, then `v`, then `in`, `out` and `run`, working from the inside out. In a language with non-strict semantics we would work from the outside in, processing each consecutive nested layer of arguments only as needed.
 
-```javascript
-  var pc = this.program.length - 1
-```
+So if we start evaluating our query at the end of the statement, with `run`, and work our way back to `v('Thor')`, calculating results only as needed, then we've effectively achieved non-strictness. The secret is in the linearity of our queries. Branches complicate the process graph, and also introduce opportunities for duplicate calls, which require memoization to avoid wasted work. The simplicity of our query language means we can implement an equally simple interpreter based on our linear read/write head model.
 
-Could it really be that easy? We just set our program counter to the *last* step instead of the first one and work our way backwards? 
+In addition to allowing runtime optimizations this style has many other benefits related to the ease of instrumentation: history, reversibility, stepwise debugging, query statistics -- all of these are easy to add dynamically because we control the interpreter and have left it as a virtual machine evaluator instead of reducing the program to a single thunk.
 
-It turns out we can make this work with a little effort, most of which has already been baked in to the design of our pipetypes and the signals they send. In addition to allowing runtime optimizations this new style has many other benefits related to the ease of instrumentation: history, reversibility, stepwise debugging, query statistics -- all of these are easy to add dynamically because we control the interpreter and have left it as a virtual machine evaluator instead of a pile of thunks. 
 
-Let's see this all in context:
+## Interpreter, unveiled
 
 ```javascript
 Dagoba.Q.run = function() {                             // a machine for query processing
