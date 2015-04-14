@@ -131,9 +131,11 @@ Dagoba.graph = function(V, E) {                         // the factory
 }
 ```
 
-We'll accept two optional arguments: a list of vertices and a list of edges. JavaScript is very lax about parameters, so all named parameters are optional and default to 'undefined' if not supplied. We will often have the vertices and edges before building the graph and use the V and E parameters, but it's also common to not have those at creation time and to build the graph up programmatically [footnote].
+We'll accept two optional arguments: a list of vertices and a list of edges. JavaScript is very lax about parameters, so all named parameters are optional and default to 'undefined' if not supplied [footnote]. We will often have the vertices and edges before building the graph and use the V and E parameters, but it's also common to not have those at creation time and to build the graph up programmatically [footnote].
 
-[footnote: The `Array.isArray` checks here are to distinguish our two different use cases, but in general we won't be doing many of the validations one would expect of production code in order to focus on the architecture instead of the trash bins.]
+[footnote on supplied: It's also lax the other direction: all functions are variadic, and all arguments are available by position via the `arguments` object, which is almost like an array but not quite. ('Variadic' is just a fancy way of saying a function has indefinite arity. Which is a fancy way of saying it takes a variable number of variables.)]
+
+[footnote on programmatically: The `Array.isArray` checks here are to distinguish our two different use cases, but in general we won't be doing many of the validations one would expect of production code in order to focus on the architecture instead of the trash bins.]
 
 Then we create a new object that has all of our prototype's strengths and none of its weaknesses*. We build a brand new array (one of the other basic JS data structures) for our edges, another for the vertices, a new object called vertexIndex and an id counter -- more on those latter two later. (Think: why can't we just put all of these in the prototype?)
 
