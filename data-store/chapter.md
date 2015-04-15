@@ -22,7 +22,7 @@ encroached into video memory. Clearing the screen truncated the program, and
 the sparkles were artifacts of Applesoft BASIC's behaviour of storing program
 state in RAM just beyond the end of the program.
 
-From that moment onwards, I learned to care a lot about memory allocation.  I
+From that moment onwards, I learned to care about memory allocation.  I
 learned about pointers and how to allocate memory with malloc. I learned how my
 data structures were laid out in memory. And I learned to be very, very careful
 about how I changed them.
@@ -73,88 +73,53 @@ even if you're just writing JSON to disk:
   (unlikely for most applications on modern desktop computers&hellip;but
   not unlikely for a mobile device or server-side web application)
 
-DBDB provides a simple example
-of how a database works.
-It will help inform your use of other databases
-from performance,
-crash recovery,
-and durability[^durability] perspectives.
+However, if you want to _understand_ how a database handles all of these
+problems, writing one for yourself can be a good idea. 
 
-[^durability]: Data stored is said to be "durable"
-    if it is still readable after a power loss or crash.
+The techniques we discuss here should also be more universally applicable to
+any problem that need to have rational, predictable behaviour when faced with 
+failure.
+
+Speaking of failure...
 
 
-Simplifications
+Characterizing Failure
 ---------------
 
-DBDB's operations are not fully [ACID](http://en.wikipedia.org/wiki/ACID).
-ACID refers to four important attributes of databases:
+Databases are often characterized by how closely they adhere to
+[ACID](http://en.wikipedia.org/wiki/ACID) semantics:
 atomicity, consistency, isolation, and durability.
+
 Updates in DBDB are atomic and durable,
 two attributes which are described later in the chapter.
 There are no consistency guarantees provided by DBDB
 as there are no constraints on the data stored.
-Isolation is likewise not implemented[^isolation].
-Application code can, of course, impose its own consistency guarantees,
-but proper isolation requires a transaction manager.
-That could be its own 500 lines;
-maybe you should write it for the 2nd edition! ``:)``
+Isolation is likewise not implemented.
 
-[^isolation]: Given key:values ``{a:1, b:1}``,
-   and two transactions ``a = b + 1`` and ``b = a + 1``,
-   full isolation requires that even when running them concurrently,
-   the result is the same as if they had been run one after another (in some order).
-   Results of ``{a:2, b:3}`` or ``{a:3, b:2}`` are both possible with isolation.
-   Because DBDB doesn't provide this "serialisable" isolation property,
-   you could end up with ``{a:2, b:2}`` instead.
+Application code can, of course, impose its own consistency guarantees, but
+proper isolation requires a transaction manager. We won't attempt that here;
+however, you can learn more about transaction management in the [Datamic
+chapter.]
 
+There are other system-maintainance problems we have to think about, as well. 
 Stale data is not reclaimed in this implementation,
 so repeated updates
 (even to the same key)
-will eventually consume all disk space.
+will eventually consume all disk space. (You will shortly discover why this is the case.)
 [PostgreSQL](http://www.postgresql.org/) calls this reclamation "vacuuming"
 (which makes old row space available for re-use),
 and [CouchDB](http://couchdb.apache.org/) calls it "compaction"
 (by rewriting the "live" parts of the data store into a new file,
 and atomically moving it over the old one).
-DBDB can be enhanced to add a compaction feature,
-but it is left as an exercise for the reader.
-Bonus feature:
-you can ensure that the compacted tree structure is balanced,
-which helps maintain performance over time.
+
+DBDB could be enhanced to add a compaction feature,
+but it is left as an exercise for the reader. 
+[Footnote]: Bonus feature:
+Can you guarantee that the compacted tree structure is balanced?
+This helps maintain performance over time.
 
 
-Intro to the toolchain
-----------------------
-
-The code is written in the common subset of Python 2.7 and 3.4
-(tested via [``tox``](https://testrun.org/tox/latest/)).
-
-I recommend using [``virtualenv``](https://virtualenv.pypa.io/en/latest/)
-when installing dependencies:
-
-```bash
-500lines/data-store$ virtualenv env
-...
-500lines/data-store$ source env/bin/activate
-(env)500lines/data-store$ pip install -r requirements.txt
-...
-```
-
-Tests can be run using [``nosetests``](https://nose.readthedocs.org/en/latest/):
-
-```bash
-(env)500lines/data-store$ nosetests
-.....................
-----------------------------------------------------------------------
-Ran 21 tests in 0.102s
-
-OK
-
-```
-
-
-Exploring the code
+The Architecture of DBDB
 ------------------
 
 DBDB separates the concerns of "put this on disk somewhere"
@@ -166,6 +131,11 @@ from the contents of the key/value store
 
 
 ### Organisational units
+
+Units are ordered here by distance from the end-user; that is, the first module
+is the one that a user of this program would likely need to know the most
+about, while the last is something they should have very little interaction
+with at all.
 
 * ``tool.py`` defines
     a command-line tool
@@ -231,10 +201,27 @@ to give each class a single responsibility.
 In other words,
 each class should have only one reason to change.
 
+[TODO: Sentence or two about the common pattern of separating logical from
+physical, and why it's used in many database designs.]
 
-### A debugger's-eye view
 
-#### Reading a value
+Discovering the design
+----------------------
+
+Most of the chapters in this book describe how a program was built from
+inception to completion. However, that is not how most of us interact with the
+code we're working on. We are most often discovering code that was written by
+others, and figuring out how to modify or extend it to do something
+differently.
+
+In this chapter, we'll assume that DBDB is a completed project, and walk
+through it to learn how it works. 
+
+We'll start with what we would presume to be the simplest case; reading a value
+from the database.
+
+
+### Reading a value
 
 Let's see what happens
 when we try to get the value associated with key ``foo`` in ``example.db``:
@@ -243,7 +230,6 @@ $ python -m dbdb.tool example.db get foo
 ```
 
 This runs the ``main()`` function from module ``dbdb.tool``:
-**QUESTION: Is it useful to have the whole function, or should I elide the bits we're not focusing on (mostly error checking)?**
 ```python
 # dbdb/tool.py
 def main(argv):
@@ -286,8 +272,6 @@ def connect(dbname):
     return DBDB(f)
 ```
 
-DBDB implements the Python API
-by coordinating ``Storage`` and a ``BinaryTree``:
 ```python
 # dbdb/interface.py
 class DBDB(object):
@@ -297,9 +281,17 @@ class DBDB(object):
         self._tree = BinaryTree(self._storage)
 ```
 
-Getting the value at ``key``
-is as simple as a dictionary lookup (``db[key]``)
-which calls ``DBDB.__getitem__()``.
+We see right away that `DBDB` has a reference to an instance of `Storage`, but
+it also shares that reference with `self._tree`. Why? Can't `self._tree`
+completely manage access to the storage by itself? 
+
+The question of what objects 'own' a resource is often an important one in a
+design, because it gives us hints about what changes might be unsafe. Let's
+keep that question in mind as we move on.
+
+Once we have a DBDB instance, getting the value at ``key`` is done via a
+dictionary lookup (``db[key]``), which causes the Python interpreter to call
+``DBDB.__getitem__()``.
 ```python
 # dbdb/interface.py
 class DBDB(object):
@@ -307,11 +299,20 @@ class DBDB(object):
     def __getitem__(self, key):
         self._assert_not_closed()
         return self._tree.get(key)
+
+    def _assert_not_closed(self):
+        if self._storage.closed:
+            raise ValueError('Database closed.')
 ```
 
-``__getitem__()`` ensures that the database is still open
-and then retrieves the value associated with ``key``
-on the internal ``_tree`` by calling ``_tree.get()``.
+``__getitem__()`` ensures that the database is still open by calling
+`_assert_not_closed`. Aha! Here we see at least one reason why `DBDB` needs
+direct access to our `Storage` instance -- so it can enforce preconditions.
+(Do you agree with this design? Can you think of a different way that we could
+do this?)
+
+DBDB then retrieves the value associated with ``key``
+on the internal ``_tree`` by calling ``_tree.get()``. 
 
 ``_tree.get()`` is provided by ``LogicalBase``:
 ```python

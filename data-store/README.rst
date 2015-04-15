@@ -17,12 +17,20 @@ Concurrent (dirty) readers are supported. Serialized fully transactional
 updates are supported.
 
 
+
 Installing
 ----------
 
-::
+The code is written in the common subset of Python 2.7 and 3.4
+(tested via `tox <https://testrun.org/tox/latest/>`_).
 
-    pip install -r requirements.txt
+I recommend using `virtualenv <https://virtualenv.pypa.io/en/latest/>`_
+when installing dependencies:
+
+::
+    500lines/data-store$ virtualenv env
+    500lines/data-store$ source env/bin/activate
+    (env)500lines/data-store$ pip install -r requirements.txt
 
 
 Testing
