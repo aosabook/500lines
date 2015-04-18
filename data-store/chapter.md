@@ -16,11 +16,11 @@ typing in my BASIC program and ran it, weird sparkly pixels showed up on the
 screen, and the program aborted early. When I went back to look at the code,
 the last few lines of the program were gone! 
 
-One of my mom's friends knew how to program. Within a few minutes of speaking
-with her, I found the problem: the program was too big, and had
-encroached into video memory. Clearing the screen truncated the program, and
-the sparkles were artifacts of Applesoft BASIC's behaviour of storing program
-state in RAM just beyond the end of the program.
+One of my mom's friends knew how to program, so we set up a call. Within a few
+minutes of speaking with her, I found the problem: the program was too big, and
+had encroached into video memory. Clearing the screen truncated the program,
+and the sparkles were artifacts of Applesoft BASIC's behaviour of storing
+program state in RAM just beyond the end of the program.
 
 From that moment onwards, I learned to care about memory allocation.  I
 learned about pointers and how to allocate memory with malloc. I learned how my
@@ -32,7 +32,7 @@ Erlang, I learned that it didn't actually have to copy data to send messages
 between processes, because everything was immutable. I then discovered
 immutable data structures in Clojure, and it really began to sink in. 
 
-When I read about CouchDB for my new job in 2013, I just smiled and nodded,
+When I read about CouchDB for a new job in 2013, I just smiled and nodded,
 recognising the structures and mechanisms for managing complex data as it
 changes.
 
@@ -129,6 +129,9 @@ from the logical structure of the data
 from the contents of the key/value store
 (the association of key "a" to value "foo"; the public API).
 
+[TODO: Sentence or two about the common pattern of separating logical from
+physical, and why it's used in many database designs.]
+
 
 ### Organisational units
 
@@ -184,25 +187,12 @@ with at all.
 * ``physical.py`` defines
     physical layer.
     The ``Storage`` class
-    provides persistent, append-only record storage.
-    The only exception to the append-only policy
-    is the atomic "commit" operation
-    which updates the first few bytes of the file to point
-    at a new "root" record.
-    This is atomic for all block devices
-    (e.g. hard disks, SSDs, flash memory devices).
-    A record is a length-delimited series of bytes.
-    In this implementation, a record's address on disk
-    is its location (in bytes) in the file,
-    but consumers make no assumptions about this.
+    provides persistent, (mostly) append-only record storage.
 
 These modules grew from attempting
 to give each class a single responsibility.
 In other words,
 each class should have only one reason to change.
-
-[TODO: Sentence or two about the common pattern of separating logical from
-physical, and why it's used in many database designs.]
 
 
 Discovering the design
@@ -285,7 +275,7 @@ We see right away that `DBDB` has a reference to an instance of `Storage`, but
 it also shares that reference with `self._tree`. Why? Can't `self._tree`
 completely manage access to the storage by itself? 
 
-The question of what objects 'own' a resource is often an important one in a
+The question of which objects 'own' a resource is often an important one in a
 design, because it gives us hints about what changes might be unsafe. Let's
 keep that question in mind as we move on.
 
@@ -325,55 +315,31 @@ class LogicalBase(object):
         return self._get(self._follow(self._tree_ref), key)
 ```
 
-``get()`` checks to see if we have the tree locked:
-if it is, then it cannot have changed since we last refreshed it;
-but if it isn't, then we update to the most recent data on disk.
-Because we don't lock the tree at this point,
-any subsequent read might get different data.
-This is known as a "dirty read".
-Many different processes can do dirty reads at once with no locking
-because the root node address is updated atomically,
-only after all the data have been written to disk.
-Another way to look at it is that ``self._tree_ref``
-is only changed by ``_refresh_tree_ref()``.
-While a second read operation might use a different ``_tree_ref``
-(that points to different data),
-each read operation is guaranteed to succeed:
-to return a value that associated with the key in this tree,
-or find that they key isn't in this tree.
+``get()`` checks to see if we have the tree locked. We're not 100% sure _why_
+there might be a lock here, but we can guess that it probably exists to allow
+writers to serialize access to the data. What happens if the storage isn't locked?
 
-If you needed to be able to read some data consistently
-(for example,
-reading a value and then updating it based on that value)
-you would have to lock the database before doing your first read.
-Other processes can continue to make dirty reads
-even if this process has locked the database,
-but none of the other processes can change any data.
-Implementing this function is left as an excercise for the reader.
-
-The tree as a whole
-is represented by a mutable ``BinaryTree`` object.
-Inside the ``BinaryTree``,
-``Node``s and ``NodeRef``s are value objects:
-they are immutable and their contents never change
-``Node``s are created
-with an associated key and value,
-and left and right children.
-Those associations never change.
-The content of the whole ``BinaryTree`` only visibly changes
-when then root node is replaced.
-We'll see how these classes interact
-concretely in more detail
-in the *Inserting/updating* section.
-
-For now, getting the actual data
-is just a matter of doing a standard binary tree search,
-following refs to their nodes:
-**QUESTION: Is it helpful to show the stack by listing files at the beginning of each snippet? I'm not entirely sure how to represent it so that it's unambiguous and not distracting.**
 ```python
-# dbdb/tool.py
-# dbdb/interface.py
 # dbdb/logical.py
+class LogicalBase(object):
+# ...
+def _refresh_tree_ref(self):
+        self._tree_ref = self.node_ref_class(
+            address=self._storage.get_root_address())
+```
+
+`_refresh_tree_ref` resets the tree's 'view' of the data with what is currently
+on disk, allowing us to perform a completely up-to-date read.
+
+What if the tree _is_ locked when we attempt a read? This means that some other
+process is probably changing the data we want to read right now -- our read is
+not likely to be up-to-date with the current state of the data. This is
+generally known as a "dirty read". This pattern allows many readers to access
+data without ever worrying about blocking, at the expense of being slightly
+out-of-date.
+
+For now, let's take a look at how we actually retrieve the data:
+```python
 # dbdb/binary_tree.py
 class BinaryTree(LogicalBase):
 # ...
@@ -387,8 +353,20 @@ class BinaryTree(LogicalBase):
                 return self._follow(node.value_ref)
         raise KeyError
 ```
+This is a standard binary tree search, following refs to their nodes. We know
+from reading the ``BinaryTree`` documentation that 
+``Node``s and ``NodeRef``s are value objects:
+they are immutable and their contents never change.
+``Node``s are created
+with an associated key and value,
+and left and right children.
+Those associations also never change.
+The content of the whole ``BinaryTree`` only visibly changes
+when then root node is replaced.
+This means that we don't need to worry about the contents of our tree being changed while we are performing the search. 
 
-The returned value is then written to ``stdout`` by ``main()``,
+Once the associated value is found, 
+it is then written to ``stdout`` by ``main()``,
 without adding any extra newlines,
 to preserve the user's data exactly.
 
@@ -400,32 +378,21 @@ Now we'll set key ``foo`` to value ``bar`` in ``example.db``:
 $ python -m dbdb.tool example.db set foo bar
 ```
 
-Again, this runs the ``main()`` function from module ``dbdb.tool``:
-**QUESTION: Is it useful to have the whole function, or should I elide the bits we're not focusing on?**
+Again, this runs the ``main()`` function from module ``dbdb.tool``. Since we've
+seen this code before, we'll just highlight the important parts:
 ```python
 # dbdb/tool.py
 def main(argv):
-    if not (4 <= len(argv) <= 5):
-        usage()
-        return BAD_ARGS
-    dbname, verb, key, value = (argv[1:] + [None])[:4]
-    if verb not in {'get', 'set', 'delete'}:
-        usage()
-        return BAD_VERB
+    ...
     db = dbdb.connect(dbname)          # CONNECT
     try:
-        if verb == 'get':
-            sys.stdout.write(db[key])
+        ...
         elif verb == 'set':
             db[key] = value            # SET VALUE
             db.commit()                # COMMIT
-        else:
-            del db[key]
-            db.commit()
+        ...
     except KeyError:
-        print("Key not found", file=sys.stderr)
-        return BAD_KEY
-    return OK
+        ...
 ```
 
 This time we set the value with ``db[key] = value``
@@ -455,13 +422,32 @@ class LogicalBase(object):
             self._follow(self._tree_ref), key, self.value_ref_class(value))
 ```
 
-``set()`` ensures that the tree is locked,
-and that we have the most recent root node reference
+``set()`` first ensures that the tree is locked via our storage:
+
+```python
+# dbdb/storage.py
+class Storage(object):
+    ...
+    def lock(self):
+        if not self.locked:
+            portalocker.lock(self._f, portalocker.LOCK_EX)
+            self.locked = True
+            return True
+        else:
+            return False
+```
+
+There are two important things to note here: 
+ - our lock is provided by a 3rd-party file-locking library called [portalocker](https://pypi.python.org/pypi/portalocker)
+ - `lock()` returns `False` if the database was already locked, and `True` otherwise.
+
+Returning to `_tree.set()`, we can now understand why it was checking the
+return value of `lock()` in the first place; it lets us call
+`_refresh_tree_ref` for the most recent root node reference
 so we don't lose any updates that another process has made
 since we last refreshed the tree from disk.
 Then it replaces the root tree node
 with a new tree containing the inserted (or updated) key/value.
-Note that there are no changes to anything on disk at this point.
 
 Inserting or updating the tree doesn't mutate any nodes,
 because ``_insert()`` returns a new tree.
@@ -497,8 +483,16 @@ Instead of updating a node to point to a new subtree,
 we make a new node which shares the unchanged subtree.
 This is what makes this binary tree an immutable data structure.
 
+This is where we notice something strange -- we haven't made any changes to
+anything on disk yet. All we've done is manipulate tree nodes!
+
+This requires an
+explicit call to `commit()`, which we saw as the second part of our `set`
+operation in `tool.py` at the beginning of this section. 
+
 Committing involves writing out all of the dirty state in memory,
-and then saving the disk address of the tree's new root node.
+and then saving the disk address of the tree's new root node. 
+
 Starting from the API:
 ```python
 # dbdb/interface.py
@@ -557,7 +551,7 @@ class BinaryNode(object):
 This recurses all the way down for any ``NodeRef``
 which has unwritten changes (i.e. no ``_address``).
 
-Back up the stack, I'll repeat this code snippet for context.
+Now we're back up the stack in `ValueRef`'s `store` method again. 
 The last step of ``store()`` is to serialise this node
 and save its storage address:
 ```python
@@ -572,7 +566,7 @@ class ValueRef(object):
 
 At this point
 the ``NodeRef``'s ``_referent`` is guaranteed to have addresses available for all of its own refs,
-so we can serialise it by creating a bytestring representing this node:
+so we serialise it by creating a bytestring representing this node:
 ```python
 # dbdb/binary_tree.py
 class BinaryNodeRef(ValueRef):
@@ -596,7 +590,7 @@ we can consider it to be immutable.
 Once ``store()`` on the root ``_tree_ref`` is complete
 (in ``LogicalBase.commit()``),
 we know that all of the data are written to disk.
-We just have to commit the root address by calling:
+We can now commit the root address by calling:
 ```python
 # dbdb/physical.py
 class Storage(object):
@@ -694,18 +688,14 @@ Concurrent updates are blocked by a lockfile on disk.
 The lock is acquired on first-update, and released after commit.
 
 
-### notes and odd ends
-
-(TODO: Picture of uncommitted, modified tree nodes;
-picture of the same, during the commit process;
-picture of the same, once the commit is complete)
-
-![Tree nodes on disk before update](nodes_on_disk_1.svg)
-
-![Tree nodes on disk after update](nodes_on_disk_2.svg)
-
-
 ### Exercises for the reader
+
+DBDB allows many processes to read the same database at once without blocking;
+the tradeoff is that readers can sometimes retrieve stale data.  What if we
+needed to be able to read some data consistently?  For example, a common use
+case is reading a value and then updating it based on that value. How would you
+write a method on `DBDB` to do this? What tradeoffs would you have to incur to
+provide this functionality?
 
 The algorithm used to update the data store
 can be completely changed out
@@ -735,16 +725,15 @@ are just a sublcass of ``ValueRef``.
 Storing richer data
 (via [``json``](http://json.org)
 or [``msgpack``](http://msgpack.org))
-is just a matter of writing your own
+is a matter of writing your own
 and setting it as the ``value_ref_class``.
 ``BinaryNodeRef`` is an example of using
 [``pickle``](https://docs.python.org/3.4/library/pickle.html)
 to serialise data.
 
-Database compaction.
-Compacting should be as simple as
-doing an infix-of-median traversal of the tree
-writing things out as you go.
+Database compaction:
+Compacting can be done via an infix-of-median traversal of the tree writing
+things out as you go.
 It's probably best if the tree nodes all go together,
 since they're what's traversed
 to find any piece of data.
@@ -753,7 +742,7 @@ into a disk sector
 should improve read performance,
 at least right after compaction.
 
-### Patterns or principles that can be used elsewhere
+### Patterns and principles 
 
 Test interfaces, not implementation.
 As part of developing DBDB,
@@ -775,5 +764,9 @@ Refactoring as I added features was a pleasure!
 
 ### Summary
 
-(Discussion of the concrete: this data store, data stores in general;
-and of the abstract: immutable data on disk and in memory)
+DBDB is a simple database that makes simple guarantees, and yet
+things still became complicated in a hurry. The foremost technique we used to
+manage this complexity was implementing a ostensibly mutable object with an
+immutable data structure. We encourage you to consider this technique the next
+time you find yourself in the middle of a tricky problem that seemingly has
+more edge-cases than you can keep track of. 
