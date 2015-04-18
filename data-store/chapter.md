@@ -101,7 +101,7 @@ proper isolation requires a transaction manager. We won't attempt that here;
 however, you can learn more about transaction management in the [Datamic
 chapter.]
 
-There are other system-maintainance problems we have to think about, as well. 
+There are other system-maintenance problems we also have to think about. 
 Stale data is not reclaimed in this implementation,
 so repeated updates
 (even to the same key)
@@ -132,6 +132,18 @@ from the contents of the key/value store
 [TODO: Sentence or two about the common pattern of separating logical from
 physical, and why it's used in many database designs.]
 
+Discovering the design
+----------------------
+
+Most of the chapters in this book describe how a program was built from
+inception to completion. However, that is not how most of us interact with the
+code we're working on. We are most often discovering code that was written by
+others, and figuring out how to modify or extend it to do something
+differently.
+
+In this chapter, we'll assume that DBDB is a completed project, and walk
+through it to learn how it works. Let's explore the structure of the entire
+project first.
 
 ### Organisational units
 
@@ -195,23 +207,10 @@ In other words,
 each class should have only one reason to change.
 
 
-Discovering the design
-----------------------
-
-Most of the chapters in this book describe how a program was built from
-inception to completion. However, that is not how most of us interact with the
-code we're working on. We are most often discovering code that was written by
-others, and figuring out how to modify or extend it to do something
-differently.
-
-In this chapter, we'll assume that DBDB is a completed project, and walk
-through it to learn how it works. 
+### Reading a value
 
 We'll start with what we would presume to be the simplest case; reading a value
 from the database.
-
-
-### Reading a value
 
 Let's see what happens
 when we try to get the value associated with key ``foo`` in ``example.db``:
@@ -315,7 +314,7 @@ class LogicalBase(object):
         return self._get(self._follow(self._tree_ref), key)
 ```
 
-``get()`` checks to see if we have the tree locked. We're not 100% sure _why_
+``get()`` checks if we have the storage locked. We're not 100% sure _why_
 there might be a lock here, but we can guess that it probably exists to allow
 writers to serialize access to the data. What happens if the storage isn't locked?
 
@@ -331,7 +330,7 @@ def _refresh_tree_ref(self):
 `_refresh_tree_ref` resets the tree's 'view' of the data with what is currently
 on disk, allowing us to perform a completely up-to-date read.
 
-What if the tree _is_ locked when we attempt a read? This means that some other
+What if storage _is_ locked when we attempt a read? This means that some other
 process is probably changing the data we want to read right now -- our read is
 not likely to be up-to-date with the current state of the data. This is
 generally known as a "dirty read". This pattern allows many readers to access
@@ -363,7 +362,8 @@ and left and right children.
 Those associations also never change.
 The content of the whole ``BinaryTree`` only visibly changes
 when then root node is replaced.
-This means that we don't need to worry about the contents of our tree being changed while we are performing the search. 
+This means that we don't need to worry about the contents of our tree being
+changed while we are performing the search. 
 
 Once the associated value is found, 
 it is then written to ``stdout`` by ``main()``,
@@ -422,7 +422,7 @@ class LogicalBase(object):
             self._follow(self._tree_ref), key, self.value_ref_class(value))
 ```
 
-``set()`` first ensures that the tree is locked via our storage:
+``set()`` first checks the storage lock:
 
 ```python
 # dbdb/storage.py
@@ -438,8 +438,10 @@ class Storage(object):
 ```
 
 There are two important things to note here: 
- - our lock is provided by a 3rd-party file-locking library called [portalocker](https://pypi.python.org/pypi/portalocker)
- - `lock()` returns `False` if the database was already locked, and `True` otherwise.
+ - our lock is provided by a 3rd-party file-locking library called
+   [portalocker](https://pypi.python.org/pypi/portalocker)
+ - `lock()` returns `False` if the database was already locked, and `True`
+   otherwise.
 
 Returning to `_tree.set()`, we can now understand why it was checking the
 return value of `lock()` in the first place; it lets us call
@@ -484,7 +486,8 @@ we make a new node which shares the unchanged subtree.
 This is what makes this binary tree an immutable data structure.
 
 This is where we notice something strange -- we haven't made any changes to
-anything on disk yet. All we've done is manipulate tree nodes!
+anything on disk yet! All we've done is manipulate our view of the on-disk data
+by moving tree nodes around.
 
 This requires an
 explicit call to `commit()`, which we saw as the second part of our `set`
