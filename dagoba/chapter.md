@@ -26,7 +26,6 @@ Well, the dictionary defines "graph database" as a database for graphs. Thanks, 
 A "data base" is like a fort for data. You can put data in it and get data back out of it.
 
 A graph in this sense is a set of vertices and a set of edges. It's basically a bunch of dots connected by lines. 
-[DIAGRAM: show a simple graph]
 
 What kinds of problems can it solve? Suppose that you are one of those who have discovered the unbridled joy of tracking ancestral trees: parents, children, all that kind of thing. You'd like to develop a system that allows you to make natural and elegant queries like "Who are Thor's second cousins once removed?" or "What is Freyja's connection to the Valkyries?".
 
@@ -35,8 +34,6 @@ A reasonable schema for this data structure would be to have a table of entities
 ```javascript
 SELECT e.* FROM entities as e, relationships as r WHERE r.out = "Thor" AND r.type = "parent" AND r.in = e.id
 ```
-
-[DIAGRAM: show the two tables, and maybe the query in progress]
 
 But how do we extend that to grandparents? We need to do a subquery, or use some other type of vendor-specific extension to SQL. And by the time we get to second cousins once removed we're going to have ALOTTA SQL.
 
