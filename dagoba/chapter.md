@@ -298,10 +298,10 @@ Here is the exposed surface of the more complex model:
 
 [[diagram]]
 
-
+[[Referencing diagram, spell out that we're achieving lazy evaluation with a turing machine like model]]
 We'll dig deeper when we look at the implementation of the interpreter, but there are a few important points to keep in mind while we examine the pipetypes:
 - Remember those gremlins we mentioned before? In our simplistic model each pipe spits out the entire set of matching vertices, once per query. In the actual implementation each pipe returns at most one gremlin, but does this potentially many times during the query. Each gremlin represents a potential query result, and they carry state with them through the pipes.
-- We process the query from back to front, so if a pipe needs some input before it can produce gremlins, it returns a 'pull' signal, causing the head to move back one pipe.
+- We process the query from back to front, so if a pipe needs some input before it can produce gremlins, it returns a 'pull' signal, causing the head to move back one pipe. [[explain 'head' better here once diagram is in place]]
 - If a pipe has finished and will never produce another gremlin, it returns a 'done' signal, causing the head to move forward and the done blocker to move to its position.
 
 
