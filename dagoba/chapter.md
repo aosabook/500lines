@@ -323,7 +323,7 @@ Dagoba.addPipetype = function(name, fun) {              // adds a new method to 
 
 The pipetype's function is added to the list of pipetypes, and then a new method is added to the query object. Every pipetype must have a corresponding query method. That method adds a new step to the query program, along with its arguments. 
 
-When we evaluate `g.v('Thor').out('father').in('father')` the `v` call returns a query object, the `out` call adds a new step and returns the query object, and the `in` call does the same. This is what enables our method chaining API.
+When we evaluate `g.v('Thor').out('parent').in('parent')` the `v` call returns a query object, the `out` call adds a new step and returns the query object, and the `in` call does the same. This is what enables our method chaining API.
 
 Note that adding a new pipetype with the same name replaces the existing one, which allows runtime modification of existing pipetypes. What's the cost of this decision? What are the alternatives?
 
@@ -433,18 +433,18 @@ In this case, with a dozen or so pipetypes, the right choice seems to be to styl
 
 #### Property
 
-Let's pause for a moment to consider an example query based on the three pipetypes we've seen. We can ask for Thor's grandfathers like this: `g.v('Thor').out('father').out('father').run()`. [footnote: The `run()` at the end of the query invokes the interpreter and returns results.] But what if we wanted their names? 
+Let's pause for a moment to consider an example query based on the three pipetypes we've seen. We can ask for Thor's grandparents like this: `g.v('Thor').out('parent').out('parent').run()`. [footnote: The `run()` at the end of the query invokes the interpreter and returns results.] But what if we wanted their names? 
 
 We could put a map on the end of that:
 
 ```javascript
-g.v('Thor').out('father').out('father').run().map(function(vertex) {return vertex.name})
+g.v('Thor').out('parent').out('parent').run().map(function(vertex) {return vertex.name})
 ```
 
 But this is a common enough operation that we'd prefer to write something more like:
 
 ```javascript
-g.v('Thor').out('father').out('father').property('name').run()
+g.v('Thor').out('parent').out('parent').property('name').run()
 ```
 
 Plus this way the property pipe is an integral part of the query, instead of something appended after. This has some interesting benefits, as we'll soon see.
@@ -605,7 +605,7 @@ Here's the merge pipetype:
 Dagoba.addPipetype('merge', function(graph, args, gremlin, state) {
   if(!state.vertices && !gremlin) return 'pull'                   // query initialization
 
-  if(!state.vertices) {                                           // state initialization
+  if(!state.vertices || !state.vertices.length) {                 // state initialization
     var obj = (gremlin.state||{}).as || {}
     state.vertices = args.map(function(id) {return obj[id]}).filter(Boolean)
   }
@@ -617,7 +617,7 @@ Dagoba.addPipetype('merge', function(graph, args, gremlin, state) {
 })
 ```
 
-We map over each argument, looking for it in the gremlin's list of labeled vertices. If we find it, we clone the gremlin to that vertex.  
+We map over each argument, looking for it in the gremlin's list of labeled vertices. If we find it, we clone the gremlin to that vertex. Note that only gremlins that make it to this pipe are included in the merge -- if Thor's mother's parents aren't in the graph, she won't be in the result set.
 
 
 #### Except
@@ -658,10 +658,10 @@ Here we're just checking whether the current vertex is equal to the one we store
 Some of the questions we might ask involve checking further into the graph, only to return later to our point of origin if the answer is in the affirmative. Suppose we wanted to know which of Fjörgynn's daughters had children with one of Bestla's sons? 
 
 ```javascript
-g.v('Fjörgynn').in('daughter').as('me')                 // first gremlin's state.as is Frigg
+g.v('Fjörgynn').in().as('me')                           // first gremlin's state.as is Frigg
  .in()                                                  // first gremlin's vertex is now Baldr
- .out().out()                                           // put copy of that gremlin on each grandparent
- .filter({_id: 'Bestla'})                               // only keep the gremlin on grandparent Bestla
+ .out().out()                                           // make a clone of that gremlin for each grandparent
+ .filter({_id: 'Bestla'})                               // keep only the gremlin on grandparent Bestla
  .back('me').unique().run()                             // jump the gremlin's vertex back to Frigg and exit
 ```
 
@@ -776,11 +776,11 @@ Dagoba.filterEdges = function(filter) {
 }
 ```
 
-The first case is no filter at all: `g.v('Odin').in().run()` traverses all out edges from Odin.
+The first case is no filter at all: `g.v('Odin').in().run()` traverses all edges pointing in to Odin.
 
-The second filters on the edge's label: `g.v('Odin').in('son').run()` traverses all out edges with a label of 'son'.
+The second filters on the edge's label: `g.v('Odin').in('parent').run()` traverses those edges with a label of 'parent'.
 
-The third case accepts an array of labels: `g.v('Odin').in(['daughter', 'son']).run()` traverses both son and daughter edges.
+The third case accepts an array of labels: `g.v('Odin').in(['parent', 'spouse']).run()` traverses both parent and spouse edges.
 
 And the fourth case uses the objectFilter function we saw before:
 
@@ -794,7 +794,7 @@ Dagoba.objectFilter = function(thing, filter) {         // thing has to match al
 }
 ```
 
-This allows us to query the edge using a filter object: `g.v('Odin').in({position: 2, _label: daughter}).run()` finds Odin's second daughter, if position is genderized.
+This allows us to query the edge using a filter object: `g.v('Odin').in({_label: 'spouse', order: 2}).run()` finds Odin's second wife.
 
 
 ## The interpreter's nature
@@ -1054,12 +1054,12 @@ Dagoba.addAlias('parents', 'out', ['parent'])
 Dagoba.addAlias('children', 'in', ['parent'])
 ```
 
-Now we can start adding edges for spouses, step-parents, or even jilted ex-lovers. If we enhance our addAlias function a little we can introduce new aliases for siblings, grandparents, or even cousins:
+Now we can start adding edges for spouses, step-parents, or even jilted ex-lovers. If we enhance our addAlias function a little we can introduce new aliases for grandparents, siblings, or even cousins:
 
 ```javascript
-Dagoba.addAlias('siblings', [['out', 'parent'], ['in', 'parent']])
 Dagoba.addAlias('grandparents', [['out', 'parent'], ['out', 'parent']])
-Dagoba.addAlias('cousins', [['out', 'parent'], ['as', 'folks'], ['out', 'parent'], ['in', 'parent'], ['except', 'folks'], ['in', 'parents'], ['unique']])
+Dagoba.addAlias('siblings', [['as', 'me'], ['out', 'parent'], ['in', 'parent'], ['except', 'me']])
+Dagoba.addAlias('cousins', [['out', 'parent'], ['as', 'folks'], ['out', 'parent'], ['in', 'parent'], ['except', 'folks'], ['in', 'parent'], ['unique']])
 ```
 
 That `cousins` alias is a little cumbersome. Maybe we could expand our addAlias function to allow ourselves to use other aliases in our aliases, and then call it like this:
@@ -1074,7 +1074,7 @@ We've introduced a bit of a pickle, though: while our addAlias function is resol
 
 This bring us in to the realm of dependency resolution, a core component of modern package managers. There are a lot of fancy tricks for choosing ideal versions, tree shaking, general optimizations and the like, but the basic idea is fairly simple. We're going to make a graph of all the dependencies and their relationships, and then try to find a way to line all of the vertices up while making the arrows go from left to right. If we can, then this particular sorting of the vertices is called a 'topological ordering', and we've proven that our dependency graph has no cycles: it is a Directed Acyclic Graph (DAG). If we fail to do so then our graph has at least one cycle. [footnote: You can learn more about dependency resolution in the Contingent chapter of this book.]
 
-On the other hand, we expect that our queries will generally be rather short (100 steps would be a very long query) and that we'll have a reasonably low number of transformers. Instead of fiddling around with DAGs and dependency management we could add a 'did_something' return value to the transform function and run it until it stops doing anything. This requires that all transformers be idempotent, but that's a helpful property to insist on anyway. What are the pros and cons of these two pathways?
+On the other hand, we expect that our queries will generally be rather short (100 steps would be a very long query) and that we'll have a reasonably low number of transformers. Instead of fiddling around with DAGs and dependency management we could return 'true' from the transform function if anything changed, and then run it until it stops being productive. This requires each transformer to be idempotent, but that's a useful property for transformers to have. What are the pros and cons of these two pathways?
 
 
 ## Performance
@@ -1083,7 +1083,7 @@ All production graph databases share a very particular performance characteristi
 
 To alleviate this dismal performance most databases index over oft-queried fields, which turns an O(n) search into an O(log n) search. This gives considerably better search performance, but at the cost of some write performance and a lot of space -- indices can easily double the size of a database. Careful balancing of the space/time tradeoffs of indices is part of the perpetual tuning process for most databases.
 
-Graph databases sidestep this issue by making direct connections between vertices and edges, so graph traversals are just pointer jumps: no need to scan through every item, no need for indices, no extra work at all. Now finding your friends has the same price regardless of the total number of people in the graph, with no additional space cost or write time cost. One downside to this approach is that the pointers work best when the whole graph is in memory on the same machine. Effectively sharding a graph database across multiple machines is still an active area of research. [footnote: Sharding a graph database requires partitioning the graph. Optimal graph partitioning is NP-hard, even for simple graphs like trees and grids, and even good approximations have exponential asymptotic complexity. [http://arxiv.org/pdf/1311.3144v2.pdf, http://dl.acm.org/citation.cfm?doid=1007912.1007931] ]
+Graph databases sidestep this issue by making direct connections between vertices and edges, so graph traversals are just pointer jumps: no need to scan through every item, no need for indices, no extra work at all. Now finding your friends has the same price regardless of the total number of people in the graph, with no additional space cost or write time cost. One downside to this approach is that the pointers work best when the whole graph is in memory on the same machine. Effectively sharding a graph database across multiple machines is still an active area of research. [footnote: Sharding a graph database requires partitioning the graph. Optimal graph partitioning is NP-hard, even for simple graphs like trees and grids, and good approximations also have exponential asymptotic complexity. [http://arxiv.org/pdf/1311.3144v2.pdf, http://dl.acm.org/citation.cfm?doid=1007912.1007931] ]
 
 We can see this at work in the microcosm of Dagoba if we replace the functions for finding edges. Here's a naive version that searches through all the edges in linear time. It harkens back to our very first implementation, but uses all the structures we've since built.
 
@@ -1108,7 +1108,7 @@ Dagoba.G.findOutEdges = function(vertex) { return vertex._out }
 
 Run these yourself to experience the graph database difference.
 
-[footnote: In modern JavaScript engines filtering a list is quite fast -- for small graphs the naive version can actually be faster than the index-free version due to the way the code is JIT compiled and the underlying data structures. Try it with different sizes of graphs to see how the two approaches scale.]
+[footnote: In modern JavaScript engines filtering a list is quite fast -- for small graphs the naive version can actually be faster than the index-free version due to the underlying data structures and the way the code is JIT compiled. Try it with different sizes of graphs to see how the two approaches scale.]
 
 
 ## Serialization
@@ -1197,7 +1197,7 @@ Our 'out' pipetype copies the vertex's out-going edges and pops one off each tim
 
 Well, if someone deletes an edge we've visited while we're in the middle of a query, that would change the size of our edge list, and we'd then skip an edge because our counter is off. To solve this we could lock all of the vertices involved our query, but then we'd either lose our capacity to regularly update the graph or the ability to have long-lived query objects responding to requests for more results on-demand. Even though we're in a single-threaded event loop, our queries can span multiple asynchronous re-entries, which means concurrency concerns like this are a very real problem.
 
-So we'll pay the performance price to copy the edge list. There's still a problem, though, in that long-lived queries may not see a completely consistent chronology. We will traverse every edge a vertex had at the time we first visit it, but we may visit vertices at different clock times during our query. Suppose we save a query like `var q = g.v('Thor').children().children().take(2)` and then call `q.run()` to gather two of Thor's grandchildren. Some time later we need to pull another two grandchildren, so we call `q.run()` again. If Thor has had a new grandchild in the intervening time, we may or may not see it, depending on whether the parent vertex was visited the first time we ran the query.
+So we'll pay the performance price to copy the edge list. There's still a problem, though, in that long-lived queries may not see a completely consistent chronology. We will traverse every edge a vertex had at the time we first visit it, but we may visit vertices at different clock times during our query. Suppose we save a query like `var q = g.v('Odin').children().children().take(2)` and then call `q.run()` to gather two of Odin's grandchildren. Some time later we need to pull another two grandchildren, so we call `q.run()` again. If Odin has had a new grandchild in the intervening time, we may or may not see it, depending on whether the parent vertex was visited the first time we ran the query.
 
 One way to fix this non-determinism is to change the update handlers to add versioning to the data. We'll then change the driver loop to pass the graph's current version in to the query, so we're always seeing a consistent view of the world as it existed when the query was first initialized. Adding versioning to our database also opens the door to true transactions, and automated rollback/retries in an STM-like fashion. 
 
