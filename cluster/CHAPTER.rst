@@ -170,7 +170,7 @@ In concrete terms, this means adding a slot number to each message, with all of 
 Running Paxos for every slot, with its minimum of two round trips, would be too slow.
 Multi-Paxos optimizes by using the same set of ballot numbers for all slots, and performing the ``Prepare``/``Promise`` phase for all slots at once.
 
-### Paxos Made… Pretty Hard, Actually
+### Paxos Made Pretty Hard
 
 Implementing Multi-Paxos in practical software is notoriously difficult, spawning a number of papers mocking Lamport's "Paxos Made Simple" with titles like "Paxos Made Practical".
 
@@ -216,8 +216,7 @@ Let's get started.
 
 Cluster's protocol uses fifteen different message types, each defined as a Python ``namedtuple``.
 
-{{{ from_to cluster.py '# message types' '^$'
-.. code-block:: python
+```python
 
     Accepted = namedtuple('Accepted', ['slot', 'ballot_num'])
     Accept = namedtuple('Accept', ['slot', 'ballot_num', 'proposal'])
@@ -234,8 +233,8 @@ Cluster's protocol uses fifteen different message types, each defined as a Pytho
     Preempted = namedtuple('Preempted', ['slot', 'preempted_by'])
     Adopted = namedtuple('Adopted', ['ballot_num', 'accepted_proposals'])
     Accepting = namedtuple('Accepting', ['leader'])
-    
-}}}
+```    
+
 
 Using named tuples to describe each message type keeps the code clean and helps avoid some simple errors.
 The named tuple constructor will raise an exception if it is not given exactly the right attributes, making typos obvious.
@@ -243,18 +242,20 @@ The tuples format themselves nicely in log messages, and as an added bonus don't
 
 Creating a message reads naturally:
 
+```python
     msg = Accepted(slot=10, ballot_num=30)
+```
 
 And the fields of that message are accessible with a minimum of extra typing:
 
+```python
     got_ballot_num = msg.ballot_num
+```
 
 We'll see what these messages mean in the sections that follow.
 The code also introduces a few constants, most of which define timeouts for various messages:
 
-{{{ from_to cluster.py '# constants' '^$'
-.. code-block:: python
-
+```python
     JOIN_RETRANSMIT = 0.7
     CATCHUP_INTERVAL = 0.6
     ACCEPT_RETRANSMIT = 1.0
@@ -264,30 +265,27 @@ The code also introduces a few constants, most of which define timeouts for vari
     NULL_BALLOT = Ballot(-1, -1)  # sorts before all real ballots
     NOOP_PROPOSAL = Proposal(None, None, None)  # no-op to fill otherwise empty slots
     
-}}}
+```
 
 Finally, Cluster uses two data types named to correspond to the protocol description:
 
-{{{ from_to cluster.py '# data types' '^$'
-.. code-block:: python
+```python
 
     Proposal = namedtuple('Proposal', ['caller', 'client_id', 'input'])
     Ballot = namedtuple('Ballot', ['n', 'leader'])
     
-}}}
+```
 
 ### Component Model
 
 Humans are limited by what we can hold in our active memory.
-We can't reason about the entire Cluster implementation at once -- it's just too much, so it's too easy to miss details.
+We can't reason about the entire Cluster implementation at once -- it's just too much, so it's easy to miss details.
 For similar reasons, large monolithic codebases are hard to test: test cases must manipulate many moving pieces and are brittle, failing on almost any change to the code.
 
 To encourage testability and keep the code readable, we break Cluster down into a handful of classes corresponding to the roles described in the protocol.
 Each is a subclass of ``Role``.
 
-{{{ code_block cluster.py 'class Role'
-.. code-block:: python
-
+```python
     class Role(object):
     
         def __init__(self, node):
@@ -303,8 +301,7 @@ Each is a subclass of ``Role``.
         def stop(self):
             self.running = False
             self.node.unregister(self)
-    
-}}}
+```
 
 The roles that a cluster node has are glued together by the ``Node`` class, which represents a single node on the network.
 Roles are added to and removed from the node as execution proceeds.
@@ -312,8 +309,7 @@ Messages that arrive on the node are relayed to all active roles, calling a meth
 These ``do_`` methods receive the message's attributes as keyword arguments for easy access.
 The ``Node`` class also provides a ``send`` method as a convenience, using ``functools.partial`` to supply some arguments to the same methods of the ``Network`` class.
 
-{{{ code_block cluster.py 'class Node'
-.. code-block:: python
+```python
 
     class Node(object):
         unique_ids = itertools.count()
@@ -342,7 +338,7 @@ The ``Node`` class also provides a ``send`` method as a convenience, using ``fun
                 fn = getattr(comp, handler_name)
                 fn(sender=sender, **message._asdict())
     
-}}}
+```
 
 ### Application Interface
 
@@ -354,8 +350,8 @@ The application interacts with the cluster through the ``invoke`` method, which 
 Once that proposal is decided and the state machine runs, ``invoke`` returns the machine's output.
 The method uses a simple synchronized `Queue` to wait for the result from the protocol thread.
 
-{{{ code_block cluster.py 'class Member'
-.. code-block:: python
+
+```python
 
     class Member(object):
     
@@ -384,7 +380,7 @@ The method uses a simple synchronized `Queue` to wait for the result from the pr
             self.requester = None
             return output
     
-}}}
+```
 
 ### Role Classes
 
@@ -398,8 +394,7 @@ The result is a short class that is easy to compare to the protocol.
 
 For acceptors, Multi-Paxos looks a lot like Simple Paxos, with the addition of slot numbers to the messages.
 
-{{{ code_block cluster.py 'class Acceptor'
-.. code-block:: python
+```python
 
     class Acceptor(Role):
     
@@ -426,7 +421,7 @@ For acceptors, Multi-Paxos looks a lot like Simple Paxos, with the addition of s
             self.node.send([sender], Accepted(
                 slot=slot, ballot_num=self.ballot_num))
     
-}}}
+```
 
 #### Replica
 
@@ -440,7 +435,7 @@ The ``Replica`` class is the most complicated role class, as it has a few closel
 The replica creates new proposals in response to ``Invoke`` messages from clients, selecting what it believes to be an unused slot and sending a ``Propose`` message to the current leader.
 Furthermore, if the consensus for the selected slot is for a different proposal, the replica must re-propose with a new slot.
 
-.. code-block:: none
+```none
 
                                 Local
     Requester    ---------     Replica                  Current
@@ -454,6 +449,8 @@ Furthermore, if the consensus for the selected slot is for a different proposal,
                   ----------       :       -----------
         *--------/ Invoked /---<<--*
         :        ----------
+
+```
 
 ``Decision`` messages represent slots on which the cluster has come to consensus.
 Here, replicas store the new decision, then run the state machine until it reaches an undecided slot.
@@ -475,37 +472,40 @@ Each replica tracks the active leader using three sources of information:
 
 * When the leader role becomes active, it sends an ``Adopted`` message to the replica on the same node.
 
-  .. code-block:: None
+  ```
 
                                   Local 
       Leader      ----------     Replica
         *--->>---/ Adopted /--------+
                  ----------
+  ```
 
 * When the acceptor role sends a ``Promise`` to a new leader, it sends an ``Accepting`` message to its local replica.
 
-  .. code-block:: None
+  ```
 
                                     Local 
       Acceptor     ------------    Replica
           *--->>--/ Accepting /-------+
                   ------------
+  ```
 
 * The active leader sends ``Active`` messages as a heartbeat.
   If no such message arrives before the ``LEADER_TIMEOUT`` expires, the replica assumes the leader is dead and moves on to the next leader.
   In this case, it's important that all replicas choose the *same* new leader, which we accomplish by sorting the members and selecting the next one in the list.
 
-  .. code-block:: None
+  ```
 
       Leader      ---------    Replica   Replica   Replica
          *--->>--/ Active /-------+---------+---------+
                  ---------
 
+  ```
 
 Finally, when a node joins the network, the bootstrap role sends a ``Join`` message.
 The replica responds with a ``Welcome`` message containing its most recent state, allowing the new node to come up to speed quickly.
 
-.. code-block:: None
+```
 
     Bootstrap   -------    Replica   Replica   Replica
         *-->>--/ Join /-------+---------+---------+
@@ -520,9 +520,9 @@ The replica responds with a ``Welcome`` message containing its most recent state
         +--------------/ Welcome /------<<--------*
                        ----------
 
+```
 
-{{{ code_block cluster.py 'class Replica'
-.. code-block:: python
+```python
 
     class Replica(Role):
     
@@ -629,7 +629,7 @@ The replica responds with a ``Welcome`` message containing its most recent state
                 self.node.send([sender], Welcome(
                     state=self.state, slot=self.slot, decisions=self.decisions))
     
-}}}
+```
 
 #### Leader, Scout, and Commander
 
@@ -639,8 +639,7 @@ An active leader can immediately send an ``Accept`` message in response to a ``P
 
 In keeping with the class-per-role model, the leader delegates to the scout and commander roles to carry out each portion of the protocol.
 
-{{{ code_block cluster.py 'class Leader'
-.. code-block:: python
+```python
 
     class Leader(Role):
     
@@ -701,13 +700,13 @@ In keeping with the class-per-role model, the leader delegates to the scout and 
             else:
                 self.logger.info("got PROPOSE for a slot already being proposed")
     
-}}}
+```
 
 The leader creates a scout role when it wants to become active, in response to receiving a ``Propose`` when it is inactive.
 The scout sends (and re-sends, if necessary) a ``Prepare`` message, and collects ``Promise`` responses until it has heard from a majority of its peers or until it has been preempted.
 It communicates the result back to the leader with an ``Adopted`` or ``Preempted`` message, respectively.
 
-.. code-block:: None
+```
 
                              Scout        ----------     Acceptor        Acceptor        Acceptor
                                *--->>----/ Prepare /--------+---------------+---------------+
@@ -724,8 +723,9 @@ It communicates the result back to the leader with an ``Adopted`` or ``Preempted
       +------/ Adopted /---<<--*
              ----------   
 
-{{{ code_block cluster.py 'class Scout'
-.. code-block:: python
+```             
+
+```python
 
     class Scout(Role):
     
@@ -771,7 +771,7 @@ It communicates the result back to the leader with an ``Adopted`` or ``Preempted
                 self.node.send([self.node.address], Preempted(slot=None, preempted_by=ballot_num))
                 self.stop()
     
-}}}
+```
 
 The leader creates a commander role for each slot where it has an active proposal.
 Like a scout, a commander sends and re-sends ``Accept`` messages and waits for a majority of acceptors to reply with ``Accepted``, or for news of its preemption.
@@ -795,8 +795,7 @@ It responds to the leader with either ``Decided`` or ``Preempted``.
              ----------   
 ````
 
-{{{ code_block cluster.py 'class Commander'
-.. code-block:: python
+```python
 
     class Commander(Role):
     
@@ -833,7 +832,7 @@ It responds to the leader with either ``Decided`` or ``Preempted``.
             else:
                 self.finished(ballot_num, True)
     
-}}}
+```
 
 
 As an aside, a surprisingly subtle bug appeared here during development.
@@ -854,8 +853,7 @@ An early version of the implementation started each node with a full set of role
 This spread the initialization logic around every role, requiring separate testing of each one.
 The final design has the bootstrap role adding each of the other roles to the node once startup is complete, passing the initial state to their constructors.
 
-{{{ code_block cluster.py 'class Bootstrap'
-.. code-block:: python
+```python
 
     class Bootstrap(Role):
     
@@ -887,7 +885,7 @@ The final design has the bootstrap role adding each of the other roles to the no
                             scout_cls=self.scout_cls).start()
             self.stop()
     
-}}}
+```
 
 #### Seed
 
@@ -911,8 +909,7 @@ The seed role then stops itself and starts a bootstrap role to join the newly-se
 
 Seed emulates the ``Join``/``Welcome`` part of the bootstrap/replica interaction, so its communication diagram is the same as for the replica role.
 
-{{{ code_block cluster.py 'class Seed'
-.. code-block:: python
+```python
 
     class Seed(Role):
     
@@ -946,7 +943,7 @@ Seed emulates the ``Join``/``Welcome`` part of the bootstrap/replica interaction
             bs.start()
             self.stop()
     
-}}}
+```
 
 #### Requester
 
@@ -954,8 +951,7 @@ The requester role manages a request to the distributed state machine.
 The role class simply sends ``Invoke`` messages to the local replica until it receives a corresponding ``Invoked``.
 See the "Replica" section, above, for this role's communication diagram.
 
-{{{ code_block cluster.py 'class Requester'
-.. code-block:: python
+```python
 
     class Requester(Role):
     
@@ -981,7 +977,7 @@ See the "Replica" section, above, for this role's communication diagram.
             self.callback(output)
             self.stop()
     
-}}}
+```
 
 ### Summary
 
@@ -1014,8 +1010,7 @@ We again use ``functools.partial`` to set up a future call to the destination no
 
 Running the simulation just involves popping timers from the heap and executing them if they have not been cancelled and if the destination node is still active.
 
-{{{ code_block cluster.py 'class Timer'
-.. code-block:: python
+```python
 
     class Timer(object):
     
@@ -1031,10 +1026,9 @@ Running the simulation just involves popping timers from the heap and executing 
         def cancel(self):
             self.cancelled = True
     
-}}}
+```
 
-{{{ code_block cluster.py 'class Network'
-.. code-block:: python
+```python
 
     class Network(object):
         PROP_DELAY = 0.03
@@ -1082,7 +1076,7 @@ Running the simulation just involves popping timers from the heap and executing 
                     self.set_timer(dest, delay, functools.partial(self.nodes[dest].receive,
                                                                   sender.address, message))
     
-}}}
+```
 
 While it's not included in this implementation, the component model allows us to swap in a real-world network implementation, communicating between actual servers on a real network, with no changes to the other components.
 Testing and debugging can take place using the simulated network, with production use of the library operating over real network hardware.
@@ -1101,8 +1095,7 @@ This means that we can add additional debugging checks or output to the code and
 Of course, much of that detail is in the messages sent and received by the different nodes in the cluster, so those are automatically logged in their entirety.
 That logging includes the role class sending or receiving the message, as well as the simulated timestamp injected via the ``SimTimeLogger`` class.
 
-{{{ code_block cluster.py 'class SimTimeLogger'
-.. code-block:: python
+```python
 
     class SimTimeLogger(logging.LoggerAdapter):
     
@@ -1113,7 +1106,7 @@ That logging includes the role class sending or receiving the message, as well a
             return self.__class__(self.logger.getChild(name),
                                   {'network': self.extra['network']})
     
-}}}
+```
 
 A resilient protocol such as this one can often run for a long time after a bug has been triggered.
 For example, during development, a data aliasing error caused all replicas to share the same ``decisions`` dictionary.
@@ -1123,8 +1116,7 @@ Even with this serious bug, the cluster produced correct results for several tra
 Assertions are an important tool to catch this sort of error early.
 Assertions should include any invariants from the algorithm design, but when the code doesn't behave as we expect, asserting our expectations is a great way to see where things go astray.
 
-{{{ from_to cluster.py ' +def do_Decision' ' +return'
-.. code-block:: python
+```python
 
     assert not self.decisions.get(self.slot, None), \
             "next slot to commit is already decided"
@@ -1132,7 +1124,7 @@ Assertions should include any invariants from the algorithm design, but when the
         assert self.decisions[slot] == proposal, \
             "slot %d already decided with %r!" % (slot, self.decisions[slot])
     
-}}}
+```
 
 Identifying the right assumptions we make while reading code is a part of the art of debugging.
 In this code from ``Replica.do_Decision``, the problem was that the ``Decision`` for the next slot to commit was being ignored because it was already in ``self.decisions``.
@@ -1159,8 +1151,7 @@ For the most part, then, roles can be tested by sending messages to them and obs
 
 The unit tests for Cluster (all of which are availble in the book's Github repository) are simple and short:
 
-{{{ code_block test/test_leader.py 'class Tests' 'def test_propose_active'
-.. code-block:: python
+```python
 
     class Tests(utils.ComponentTestCase):
         def test_propose_active(self):
@@ -1169,7 +1160,7 @@ The unit tests for Cluster (all of which are availble in the book's Github repos
             self.node.fake_message(Propose(slot=10, proposal=PROPOSAL1))
             self.assertCommanderStarted(Ballot(0, 'F999'), 10, PROPOSAL1)
     
-}}}
+```
 
 This method tests a single behavior (commander spawning) of a single unit (the ``Leader`` class).
 It follows the well-known "arrange, act, assert" pattern: set up an active leader, send it a message, and check the result.
@@ -1180,8 +1171,7 @@ We use a technique called "dependency injection" to handle creation of new roles
 Each role class which adds other roles to the network takes a list of class objects as constructor arguments, defaulting to the actual classes.
 For example, the constructor for ``Leader`` looks like this:
 
-{{{ code_block cluster.py 'class Leader' 'def __init__'
-.. code-block:: python
+```python
 
     class Leader(Role):
         def __init__(self, node, peers, commander_cls=Commander, scout_cls=Scout):
@@ -1194,12 +1184,11 @@ For example, the constructor for ``Leader`` looks like this:
             self.scouting = False
             self.peers = peers
     
-}}}
+```
 
 The ``spawn_scout`` method (and similarly, ``spawn_commander``) creates the new role object with ``self.scout_cls``:
 
-{{{ code_block cluster.py 'class Leader' 'def spawn_scout'
-.. code-block:: python
+```python
 
     class Leader(Role):
         def spawn_scout(self):
@@ -1207,7 +1196,7 @@ The ``spawn_scout`` method (and similarly, ``spawn_commander``) creates the new 
             self.scouting = True
             self.scout_cls(self.node, self.ballot_num, self.peers).start()
     
-}}}
+```
 
 The magic of this technique is that, in testing, ``Leader`` can be given fake classes and thus tested separately from ``Scout`` and ``Commander``.
 
@@ -1248,9 +1237,8 @@ When something *does* break, all of the debugging support becomes critical: if t
 
 I performed some manual fuzz testing of cluster during development, but a full fuzz-testing infrastructure is beyond the scope of this project.
 
-## Implementation Challenges
+## Power Struggles
 
-### Follow the Leader
 
 A cluster with many active leaders is a very noisy place, with scouts sending ever-increasing ballot numbers to acceptors, and no ballots being decided.
 A cluster with no active leader is quiet, but equally nonfunctional.
