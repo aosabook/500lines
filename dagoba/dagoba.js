@@ -64,7 +64,7 @@ Dagoba.G.addVertex = function(vertex) {                           // accepts a v
   if(!vertex._id)
     vertex._id = this.autoid++
   else if(this.findVertexById(vertex._id))
-    return Dagoba.error('A vertex with that id already exists')
+    return Dagoba.error('A vertex with id ' + vertex._id + ' already exists')
     
   this.vertices.push(vertex)
   this.vertexIndex[vertex._id] = vertex
@@ -78,7 +78,7 @@ Dagoba.G.addEdge = function(edge) {                               // accepts an 
   
   if(!(edge._in && edge._out)) 
     return Dagoba.error("That edge's " + (edge._in ? 'out' : 'in') + " vertex wasn't found")
-    
+  
   edge._out._out.push(edge)                                       // add edge to the edge's out vertex's out edges
   edge._in._in.push(edge)                                         // vice versa
   this.edges.push(edge)
@@ -121,7 +121,7 @@ Dagoba.G.findInEdges  = function(vertex) { return vertex._in;  }
 Dagoba.G.toString = function() { return Dagoba.jsonify(this) }    // serialization
 
 Dagoba.fromString = function(str) {                               // another graph constructor
-  var obj = JSON.parse(str)                                       // this can throw
+  var obj = JSON.parse(str)                                       // this could throw
   return Dagoba.graph(obj.V, obj.E) 
 }
 
@@ -256,8 +256,8 @@ Dagoba.simpleTraversal = function(dir) {                          // handles bas
   }
 }
 
-Dagoba.addPipetype('out', Dagoba.simpleTraversal('out'))
 Dagoba.addPipetype('in',  Dagoba.simpleTraversal('in'))
+Dagoba.addPipetype('out', Dagoba.simpleTraversal('out'))
 
 
 Dagoba.addPipetype('property', function(graph, args, gremlin, state) {
@@ -323,7 +323,7 @@ Dagoba.addPipetype('except', function(graph, args, gremlin, state) {
 Dagoba.addPipetype('merge', function(graph, args, gremlin, state) {
   if(!state.vertices && !gremlin) return 'pull'                   // query initialization
 
-  if(!state.vertices) {                                           // state initialization
+  if(!state.vertices || !state.vertices.length) {                 // state initialization
     var obj = (gremlin.state||{}).as || {}
     state.vertices = args.map(function(id) {return obj[id]}).filter(Boolean)
   }
@@ -436,45 +436,3 @@ Dagoba.extend = function(list, defaults) {
     return acc
   }, list)
 }
-
-
-// more todos
-// - tune gremlins (collisions, history, etc)
-// - interface: show query pieces and params,
-// - interface: resumable queries
-// - generational queries
-// - intersections
-// - adverbs
-
-// TODO: show how to refactor 'out', 'outN', and 'outAllN' using adverbs. also the 'in' equivalents. also make adverbs.
-// TODO: deal with gremlin paths / history and gremlin "collisions"
-// THINK: the user may retain a pointer to vertex, which they might mutate later >.<
-// can take away user's ability to set _id and lose the index cache hash, because building it causes big rebalancing slowdowns and runs the GC hard. (or does it?) [this was with a million items, indexed by consecutive ints. generally we need settable _id because we need to grab vertices quickly by external key]
-
-
-/*
-        ---> no edge _id stuff
-        ---> simplify driver loop helpers
-        ---> refactor outAllN etc (mmm but adverbs?)
-        ---> leo's queries !
-*/
-
-
-// re: Dagoba.Q.addPipetype
-// TODO: accept string fun and allow extra params, for building quick aliases like
-//       Dagoba.addPipetype('children', 'out') <-- if all out edges are kids
-//       Dagoba.addPipetype('nthGGP', 'inN', 'parent')
-// var methods = ['out', 'in', 'take', 'property', 'outAllN', 'inAllN', 'unique', 'filter', 'outV', 'outE', 'inV', 'inE', 'both', 'bothV', 'bothE']
-
-
-// what if instead of mutating the query object for each new 'method' we create a new one? then you can have something like
-// x = G.v(1).out().out()
-// q = x.take(1)
-// y = x.take(10)
-// and it will do what you want instead of exploding.
-
-// or....
-// x = g.v(1).out().out()
-// y = D.clone(x).take(1)
-// x.take(1).run()
-// y.run() // same answer
