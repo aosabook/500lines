@@ -48,7 +48,7 @@ The entry point for a block is the `createBlock(name, value, contents)` function
         return item;
     }
 
-We have some utilities for handling blocks as DOM elements, `blockContents(block)` simply retrieve the child blocks of a container block. it always returns a list if called on a container block, always returns null on a simple block. The `blockValue(block)` function returns the numerical value of the input on a block, if the block has an input field of type number, or string for other input type, null if there is no input element for the block. To retrieve the script from a block `blockScript(block)` will return a structure suitable for stringifying with JSON. This is used for saving blocks in a form they can easily be restored from. Finally, `runBlocks(blocks)` is a handler to run an array of blocks by sending each block the "run" event.
+We have some utilities for handling blocks as DOM elements, `blockContents(block)` retrieves the child blocks of a container block. It always returns a list if called on a container block, always returns null on a simple block. The `blockValue(block)` function returns the numerical value of the input on a block, if the block has an input field of type number, or string for other input type, null if there is no input element for the block. The `blockScript(block)` will return a structure suitable for serializing with JSON, to save blocks in a form they can easily be restored from. Finally, `runBlocks(blocks)` is a handler to run an array of blocks by sending each block the "run" event.
 
     function blockContents(block){
         var container = block.querySelector('.container');
