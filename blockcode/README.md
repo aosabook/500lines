@@ -19,6 +19,14 @@ To do this, we encapsulate everything that is specific to the turtle language in
 
 One thing that struck me when writing a block language is that the language is its own IDE. You can't just code up blocks in your favourite text editor, the IDE has to be designed and developed in parallel with the block language. This has some pros and cons. On the plus side, everyone will use a consistent environment, there is no room for religious wars around what editor to use. On the downside, it can be a huge distraction from building the block language itself.
 
+### The Nature of Scripts
+
+A Blockcode script, like a script in any language (whether block or text-based) is a sequence of operations that will be followed and which make up the program. In the case of Blockcode the script consists of HTML elements which are iterated over and which are each associated with a particular JavaScript function to run when that block's turn comes. Some blocks can contain (and are responsible for running) other blocks, and some blocks can contain numeric values which are passed to the JavaScript functions as arguments.
+
+In most (text-based) languages, a script goes through several stages: a lexer converts the text into recognized tokens, a parser organizes the tokens into an abstract syntax tree, then depending on the language the program may be compiled into machine code or fed into an interpreter. That's a simplification, there can be more steps. For Blockcode, the layout of the blocks in the script area already represents our abstract syntax tree so we don't have to go through the lexing and parsing stages. We use the visitor pattern to iterate over those blocks and call predefined JavaScript functions associated with each block to run the program.
+
+There is nothing stopping us from adding additional stages to be more like a traditional language. Instead of simply calling associated JavaScript functions, we could replace `turtle.js` with a block language that emits byte codes for a different virtual machine, or even C++ code for a compiler. Block languages exist (as part of the Waterbear project) for generating Java robotics code, for programming Arduino, and for scripting Minecraft running on Raspberry Pi.
+
 ### Web Applications
 
 In order to make the resulting tool available to the widest possible audience, it is web-native. HTML, CSS, and JavaScript means it should work in most browsers and platforms. Wherever possible, if something about the implementation began to be too complex, I took that as a sign that I wasn't doing it "the web way" and tried to re-think how to leverage the tools built into the browser better. Modern web browsers are powerful platforms, with a rich set of tools for building great apps, worth exploring for projects large and small.
