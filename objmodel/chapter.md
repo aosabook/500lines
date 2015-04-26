@@ -1,86 +1,89 @@
-
+<!-- English spelling: "behaviour" line 46 -->
 A Simple Object Model
 ======================
 
 
-Introduction
-----------------
+## Introduction
 
 Object-oriented programming is one of the major programming paradigms in use
-today with a lot of languages providing some form of object-orientation. While on the
+today, with a lot of languages providing some form of object-orientation. While on the
 surface the mechanisms that different object-oriented programming languages
 provide to the programmer are very similar, the details can vary a lot.
 Commonalities of most languages are the presence of objects and some kind of
 inheritance mechanism. Classes, however, are a feature that not every language
-supports directly. For example in prototype based languages like Self or
-JavaScript the concept of class does not exist and objects instead inherit
+supports directly. For example, in prototype-based languages like Self or
+JavaScript, the concept of class does not exist and objects instead inherit
 directly from each other.
 
 Understanding the differences between different object models can be
-interesting. It often reveals the family resemblance between different
-languages. It can be useful to quickly understand the model of a new language by
-putting it into the context of the models of other languages and it can give a
-better feeling of the programming language design space.
+interesting. They often reveal the family resemblance between different
+languages. 
+It can be useful to put the model of a new language into 
+the context of the models of other languages, 
+both to quickly understand the new model, and to get a
+better feeling for the programming language design space.
 
 This chapter explores the implementation of a series of very simple object
-models. It starts out with just having simple instances and classes and the
-possibilities to call methods on instances. This is the "classical"
-object-oriented approach that was started by early OO languages such as
-Simula-67 and Smalltalk. This model is then extended step by step, the first three
-steps exploring different language design choices, the last step to improve the
+models. It starts out with simple instances and classes, and the
+ability to call methods on instances. This is the "classical"
+object-oriented approach that was established in early OO languages such as
+Simula 67 and Smalltalk. This model is then extended step by step, the next two
+steps exploring different language design choices, and the last step improving the
 efficiency of the object model. The final model is not that of a real language,
-but an idealized, simplified version of that of Python.
+but an idealized, simplified version of Python's object model.
 
+The object models presented in this chapter will be implemented in Python.
+The code works on both Python 2.7 and 3.4. 
+To understand the behaviour and the design choices better, the chapter will also
+present tests for the object model. The tests can be run with either py.test or nose.
 
-The object models presented in this chapter will also be implemented in Python.
-The code works on both Python 2.7 and 3.4. The tests can be run with either
-py.test or nose.
-To understand the behavior and the design choice better the chapter will also
-present tests for the object model. The choice of Python as an implementation
+The choice of Python as an implementation
 language is quite unrealistic. A "real" VM is typically implemented in a
-low-level language like C/C++ and needs a lot of additional attention to
+low-level language like C/C++ and needs a lot of attention to
 engineering detail to make it efficient. However, the simpler implementation
 language makes it easier to focus on actual behaviour differences instead of
 getting bogged down by implementation details.
 
 
 
-Method based model
-----------------------
+## Method-Based Model
 
 The object model we will start out with is an extremely simplified version of
 that of Smalltalk. Smalltalk was an object-oriented programming language
-designed by Alan Kay's group at Xerox Parc in the 1970s. It popularized
-object-oriented programming and is the source of many features found in today's
+designed by Alan Kay's group at Xerox PARC in the 1970s. It popularized
+object-oriented programming, and is the source of many features found in today's
 programming languages. One of the core tenets of Smalltalk's language design
 was "everything is an object". Smalltalk's most immediate successor in use
 today is Ruby, which uses a more C-like syntax but retains most of Smalltalk's
 object model.
 
-The object model of this section will have classes and instances of them, the
+The object model in this section will have classes and instances of them, the
 ability to read
-and write attributes into objects, the ability to call methods on objects and
+and write attributes into objects, the ability to call methods on objects, and
 the ability for a class to be a subclass of another class. Right from the
-beginning, classes will be completely regular objects, that can themselves have
+beginning, classes will be completely ordinary objects that can themselves have
 attributes and methods.
-A note on terminology: In this chapter I will use the word "instance" to mean
-"an object that is not a class".
 
-To start the implementation a good approach is to write a test to think about
+A note on terminology: In this chapter I will use the word "instance" to mean
+-"an object that is not a class".
+
+A good approach to start with is to write a test to specify
 what the to-be-implemented behaviour should be. All tests presented in this
-chapter will always consist of two parts: A bit of completely regular Python
-code defining and using a few classes, making use of increasingly advanced
-features of the Python object model. The second half of each test is the
+chapter will consist of two parts. First, a bit of regular Python
+code defining and using a few classes, and making use of increasingly advanced
+features of the Python object model. Second, the
 corresponding test using the object model we will implement in this chapter,
-instead of normal Python classes. XXX in the final version these will maybe be
-typeset side by side.
+instead of normal Python classes. 
+<!-- FIXME: Note for @mikedebo: in the final version these will maybe be typeset side by side.-->
 
 The mapping between using normal Python classes and using our object model will
-be done manually in the tests. E.g. instead of writing ``obj.attribute`` in
+be done manually in the tests. For example, instead of writing ``obj.attribute`` in
 Python, in the object model we would use a method ``obj.read_attr("attribute")``.
-This mapping would in a real language implementation be done
-by the interpreter of the language, or a compiler. A further simplification in
-this chapter will be that we make no sharp distinction between the code that
+This mapping would, in a real language implementation, be done
+by the interpreter of the language, or a compiler. 
+
+A further simplification in
+this chapter is that we make no sharp distinction between the code that
 implements the object model and the code that is used to write the methods used
 in the objects. In a real system, the two would often be implemented in
 different programming languages.
@@ -119,10 +122,10 @@ def test_read_write_field():
     assert obj.read_attr("b") == 5
 ````
 
-The test uses three things that we will have to implement in this chapter. On
-the one hand the classes ``Class`` and ``Instance`` that represent classes and
-instances of our object model, respectively. On the other hand, there are two
-special instances of class, ``OBJECT`` and ``TYPE``. ``OBJECT`` corresponds to
+The test uses three things that we have to implement. 
+The classes ``Class`` and ``Instance`` represent classes and
+instances of our object model, respectively. There are two
+special instances of class: ``OBJECT`` and ``TYPE``. ``OBJECT`` corresponds to
 ``object`` in Python and is the ultimate base class of the inheritance
 hierarchy. ``TYPE`` corresponds to ``type`` in Python and is the type of all
 classes.
@@ -172,13 +175,13 @@ MISSING = object()
 The ``Base`` class implements storing the class of an object, and a dictionary
 containing the field values of the object.
 Now we need to implement ``Class`` and ``Instance``. The constructor of
-``Instance`` just takes the class to
-be instantiated, it initializes the fields dict as an empty dictionary.
+``Instance`` takes the class to
+be instantiated and initializes the `fields` `dict` as an empty dictionary.
 Otherwise ``Instance`` is just a very thin subclass around ``Base`` that does
 not add any extra functionality.
+
 The constructor of ``Class`` takes the name of the class,
-the base class, the dictionary of the class and the metaclass (what the
-metaclass is we will discuss a bit later).
+the base class, the dictionary of the class and the metaclass. 
 For classes, the fields are
 passed into the constructor by the user of the object model. The class
 constructor also takes a base class, which the tests so far don't need but
@@ -202,26 +205,26 @@ class Class(Base):
         self.base_class = base_class
 ````
 
-Now we can also see what a metaclass is. Since classes are also a kind of
-object, they (indirectly) inherit from ``Base``. Thus the class needs to be an instance of
-another class, its metaclass.
+Since classes are also a kind of
+object, they (indirectly) inherit from ``Base``. Thus, the class needs to be an instance of
+another class: its metaclass.
 
-Now our first test above almost passes. The only missing bit is the definition
+Now our first test almost passes. The only missing bit is the definition
 of the base classes ``TYPE`` and ``OBJECT``, which are both instances of
 ``Class``. For these we will make a major departure from the Smalltalk model,
-which has a fairly complex metaclass system. Instead we will use the model of ObjVlisp, which is
-also the one that Python adopted (footnote: P. Cointe, “Metaclasses are first
+which has a fairly complex metaclass system. Instead we will use the model introduced in ObjVlisp, which 
+Python adopted (FIXME footnote: P. Cointe, “Metaclasses are first
 class: The ObjVlisp Model,” SIGPLAN Not, vol. 22, no. 12, pp. 156–162, 1987.)
 
-In the ObjVlisp model ``OBJECT`` and ``TYPE`` are intertwined. ``OBJECT`` is the base
+In the ObjVlisp model, ``OBJECT`` and ``TYPE`` are intertwined. ``OBJECT`` is the base
 class of all classes, meaning it has no base class. ``TYPE`` is a subclass of
 ``OBJECT``.
 By default, every class is an instance of ``TYPE``. In particular, both
 ``TYPE`` and ``OBJECT`` are instances of ``TYPE``. However, the programmer can
-also subclass ``TYPE`` to make a new metaclass
+also subclass ``TYPE`` to make a new metaclass:
 
 ````python
-# set up the base hierarchy like in Python (the ObjVLisp model)
+# set up the base hierarchy as in Python (the ObjVLisp model)
 # the ultimate base class is OBJECT
 OBJECT = Class(name="object", base_class=None, fields={}, metaclass=None)
 # TYPE is a subclass of OBJECT
@@ -232,15 +235,13 @@ TYPE.cls = TYPE
 OBJECT.cls = TYPE
 ````
 
-To define new metaclasses it is enough to subclass ``TYPE``. However, in the
-rest of this chapter we won't do that, and simply always use ``TYPE`` as the
+To define new metaclasses, it is enough to subclass ``TYPE``. However, in the
+rest of this chapter we won't do that; we'll simply always use ``TYPE`` as the
 metaclass of every class.
 
-XXX diagram: figures/inheritance.svg
+![](figures/inheritance.png)
 
-Now the first test passes. A second test that is easy to write and immediately
-passes is the following. It checks that reading and writing attributes works on
-classes as well.
+Now the first test passes. The second test checks that reading and writing attributes works on classes as well. It's easy to write, and passes immediately. 
 
 ````python
 def test_read_write_field_class():
@@ -260,12 +261,11 @@ def test_read_write_field_class():
     assert A.read_attr("a") == 5
 ````
 
-Isinstance checking
-++++++++++++++++++++++
+### `isinstance` Checking
 
-So far the fact that objects have classes is not really made use of. So the next
-test we are writing implements the ``isinstance`` machinery. The test for that
-looks as follows:
+
+So far we haven't taken advantage of the fact that objects have classes. The next
+test implements the ``isinstance`` machinery:
 
 ````python
 def test_isinstance():
@@ -290,13 +290,13 @@ def test_isinstance():
     assert not b.isinstance(TYPE)
 ````
 
-To check whether an object ``obj`` is an instance of a certain class ``cls`` it
+To check whether an object ``obj`` is an instance of a certain class ``cls``, it
 is enough to check whether ``cls`` is a superclass of the class of ``obj``, or
 the class itself.
-To check whether a class is a superclass of another class the chain of
+To check whether a class is a superclass of another class, the chain of
 superclasses of that class is walked. If and only if the other class is found in
-that chain it is a superclass. The chain of superclasses of a class with the
-class itself included is also
+that chain, it is a superclass. The chain of superclasses of a class, including the
+class itself, is 
 called the "method resolution order" of that class. It can easily be
 computed recursively:
 
@@ -317,11 +317,10 @@ class Class(Base):
         return cls in self.method_resolution_order()
 ````
 
-With that code the test passes.
+With that code, the test passes.
 
 
-Calling methods
-++++++++++++++++++++
+### Calling Methods
 
 The remaining missing feature for this first version of the object model is the
 ability to call methods on objects. In this chapter we will implement a simple
@@ -357,10 +356,10 @@ def test_callmethod_simple():
     assert obj.callmethod("f") == 3
 ````
 
-To find the correct implementation of a method that is sent to an object we walk
-the method resolution order of the class of the object. The first method that is
+To find the correct implementation of a method that is sent to an object, we walk
+the method resolution order of the class of the object. The first method 
 found in the dictionary of one of the classes in the method resolution order is
-then called. The code for that looks as follows:
+called:
 
 ````python
 class Class(Base):
@@ -418,14 +417,15 @@ def test_callmethod_subclassing_and_arguments():
 
 
 
-Attribute based model
-----------------------
+## Attribute-Based Model
 
-Now that we have the simplest version of our object model working we can now think of
-ways to change it. The change that this section will introduce is the
+Now that the simplest version of our object model is working, we can think of
+ways to change it. This section will introduce the
 distinction between a method-based model and an attribute-based model. This is
-one of the core differences between Smalltalk, Ruby, JavaScript on the one hand
-and Python, Lua on the other hand. The method-based model has the calling of
+one of the core differences between Smalltalk, Ruby, and JavaScript on the one hand
+and Python and Lua on the other hand. 
+
+The method-based model has the calling of
 methods as the primitive operation of program execution:
 
 ````python
@@ -433,8 +433,8 @@ result = obj.f(arg1, arg2)
 ````
 
 The attribute-based
-model splits up the method calling into two steps, looking up an attribute
-and then calling the result:
+model splits up method calling into two steps: looking up an attribute
+and calling the result:
 
 ````python
 method = obj.f
@@ -477,12 +477,12 @@ def test_bound_method():
     assert m(10) == 12
 ````
 
-While the set up of the classes is the same as the corresponding test for
+While the setup of the classes is the same as the corresponding test for
 method calls, the way that the methods are called is different. First, the
 attribute with the name of the method is looked up on the object. The result of
 that lookup operation is a *bound method*, an object that encapsulates both the
-object as well as the function found in the class. Then that bound method is
-called with a call operation. (footnote: It seems that the attribute-based
+object as well as the function found in the class. Next, that bound method is
+called with a call operation. (FIXME footnote: It seems that the attribute-based
 model is conceptually more complex, because it needs both method lookup and
 call. In practice, calling something is defined by looking up and calling a
 special attribute ``__call__``, so conceptual simplicity is regained. This won't
@@ -529,41 +529,39 @@ def _make_boundmethod(meth, self):
 The rest of the code does not need to be changed at all.
 
 
-Meta-object protocols
-----------------------
+## Meta-Object Protocols
 
 In addition to "normal" methods that are called directly by the program, many
 dynamic languages support *special methods*. These are methods that aren't meant
 to be called directly but will be called by the object system. In Python those
-special methods usually have names that start and end with two underscores, e.g.
+special methods usually have names that start and end with two underscores; e.g.,
 ``__init__``. Special methods can be used to override primitive operations and
-provide custom behaviour for them instead. Thus they are hooks that tell the
-object model machinery how exactly to do certain things. Python's object model
+provide custom behaviour for them instead. Thus, they are hooks that tell the
+object model machinery exactly how to do certain things. Python's object model
 has dozens of special methods
-(footnote: https://docs.python.org/2/reference/datamodel.html#special-method-names )
+(FIXME footnote: https://docs.python.org/2/reference/datamodel.html#special-method-names ).
 
-Historically meta-object protocols have been introduced by Smalltalk but even
-more strongly by the object systems for Common Lisp, such as CLOS, which is also
-where the name *meta-object protocol* for collections of special methods was
-coined (footnote: G. Kiczales, J. des Rivieres, and D. G. Bobrow, The Art of
+Meta-object protocols were introduced by Smalltalk, but were used even
+more by the object systems for Common Lisp, such as CLOS. That is also
+where the name *meta-object protocol*, for collections of special methods, was
+coined (FIXME footnote: G. Kiczales, J. des Rivieres, and D. G. Bobrow, The Art of
 the Metaobject Protocol. Cambridge, Mass: The MIT Press, 1991.).
 
 In this chapter we will add three such meta-hooks to our object model. They are
 used to fine-tune what exactly happens when reading and writing attributes. The
 special methods we will add first are ``__getattr__`` and ``__setattr__``, which
-follow closely the behaviour of Python's namesakes.
+closely follow the behaviour of Python's namesakes.
 
 
-Customizing Reading and Writing and Attribute
-++++++++++++++++++++++++++++++++++++++++++++++
+### Customizing Reading and Writing and Attribute
 
 The method ``__getattr__`` is called by the object model when the attribute that
-is being looked up currently is not found by normal means, i.e. neither on the
+is being looked up is not found by normal means; i.e., neither on the
 instance nor on the class. It gets the name of the attribute being looked up as
 an argument. An equivalent of the ``__getattr__`` special method was part of
-early Smalltalk systems under the name ``doesNotUnderstand:`` (footnote: A.
+early Smalltalk systems under the name ``doesNotUnderstand:`` (FIXME footnote: A.
 Goldberg, Smalltalk-80: The Language and its Implementation. Addison-Wesley,
-1983, page 61.)
+1983, page 61.).
 
 The case of ``__setattr__`` is a bit different. Since setting an attribute
 always creates it, ``__setattr__`` is always called when setting an attribute.
@@ -626,7 +624,7 @@ def test_getattr():
 ````
 
 To pass these tests, the ``Base.read_attr`` and ``Base.write_attr`` methods
-needs to be changed as follows:
+need to be changed as follows:
 
 ```` python
 class Base(object):
@@ -653,15 +651,15 @@ class Base(object):
         return meth(self, fieldname, value)
 ````
 
-Reading an attribute is changed to call the ``__getattr__`` method with the
-fieldname as an argument instead of raising an error, if the method exists. Note
+The procedure for reading an attribute is changed to call the ``__getattr__`` method with the
+fieldname as an argument, if the method exists, instead of raising an error. Note
 that ``__getattr__`` (and indeed all special methods in Python) is looked up on
 the class only, instead of recursively calling
-``self.read_attr("__getattr__")``. The reason for that is that the latter would
-lead to an infinite recursion of ``read_attr`` if ``__getattr__`` is not defined
+``self.read_attr("__getattr__")``. That is because the latter would
+lead to an infinite recursion of ``read_attr`` if ``__getattr__`` were not defined
 on the object.
 
-Writing an attribute is fully deferred to the ``__setattr__`` method. To make
+Writing of attributes is fully deferred to the ``__setattr__`` method. To make
 this work, ``OBJECT`` needs to have a ``__setattr__`` method that calls the
 default behaviour, as follows:
 
@@ -675,26 +673,24 @@ The behaviour of ``OBJECT__setattr__`` is like the previous behaviour of
 ``write_attr``. With these modifications, the new test passes.
 
 
-Descriptor Protocol
-+++++++++++++++++++++
+### Descriptor Protocol
 
-The test in the previous subsection to provide automatic conversion between
+The above test to provide automatic conversion between
 different temperature
-scales worked, but was slightly annoying to write, as the attribute name needed
+scales worked but was annoying to write, as the attribute name needed
 to be checked explicitly in the ``__getattr__`` and ``__setattr__`` methods. To
-get around that slight clumsiness, the *descriptor protocol* was introduced in
+get around that clumsiness, the *descriptor protocol* was introduced in
 Python.
 
 While ``__getattr__`` and ``__setattr__`` are called on the object the attribute
 is being read from, the descriptor protocol calls a special method on the
 *result* of getting an attribute from an object. It can be seen as the
 generalization of binding a method to an object – and indeed, binding a method to
-an object is done using the descriptor protocol. In addition to bound methods
+an object is done using the descriptor protocol. In addition to bound methods,
 the most important use case for the descriptor protocol in Python is the
 implementation of ``staticmethod``, ``classmethod`` and ``property``.
 
-In this subsection we will introduce a subset of the descriptor protocol, namely
-only the binding of objects. This is done using the special method ``__get__``,
+In this subsection we will introduce the subset of the descriptor protocol which deals with binding objects. This is done using the special method ``__get__``,
 and is best explained with an example as a test:
 
 ````python
@@ -725,8 +721,8 @@ def test_get():
 
 The ``__get__`` method is called on the ``FahrenheitGetter`` instance after that
 has been looked up in the class of ``obj``. The arguments to ``__get__`` are the
-instance where the lookup was done. (footnote: In Python the second argument is
-the class where the attribute was found, though we will ignore this part here.)
+instance where the lookup was done. (FIXME footnote: In Python the second argument is
+the class where the attribute was found, though we will ignore that here.)
 
 Implementing this behaviour is easy. We simply need to change ``_is_bindable``
 and ``_make_boundmethod``:
@@ -739,8 +735,8 @@ def _make_boundmethod(meth, self):
     return meth.__get__(self, None)
 ````
 
-This makes the test pass. It also keeps the previous tests about bound methods
-passing, as Python's functions have a ``__get__`` method that return a bound
+This makes the test pass. The previous tests about bound methods also still
+pass, as Python's functions have a ``__get__`` method that returns a bound
 method object.
 
 In practice, the descriptor protocol is quite a lot more complex. It also
@@ -753,20 +749,19 @@ having a representation for them that uses the object model. A more complete
 object model would have to solve this problem.
 
 
-Instance optimization
-----------------------
+## Instance Optimization
 
 While the first three variants of the object model were concerned with
 behavioural variation, in this last section we will look at an optimization
 without any behavioural impact. This optimization is called *maps* and was
-pioneered by the VM for the Self programming language (footnote:
-C. Chambers, D. Ungar, and E. Lee, “An efficient implementation of SELF a
+pioneered in the VM for the Self programming language (FIXME footnote:
+C. Chambers, D. Ungar, and E. Lee, “An efficient implementation of SELF, a
 dynamically-typed object-oriented language based on prototypes,” in OOPSLA,
 1989, vol. 24.). It is still one of the most important object model
-optimizations. It's used in PyPy and all all modern JavaScript VMs, such as V8
+optimizations: it's used in PyPy and all modern JavaScript VMs, such as V8
 (where the optimization is called *hidden classes*).
 
-The optimization starts from the following observation. In the object model as
+The optimization starts from the following observation: In the object model as
 implemented so far all instances use a full dictionary to store their
 attributes. A dictionary is implemented using a hash map, which takes a lot of
 memory. In addition, the dictionaries of instances of the same class typically
@@ -782,7 +777,7 @@ in a list (which is a lot more compact in memory than a dictionary). The map
 stores a mapping from
 attribute names to indexes into that list.
 
-A simple test for ``Instance`` of that behaviour looks like this:
+A simple test of that behaviour looks like this:
 
 ````python
 def test_maps():
@@ -812,7 +807,7 @@ def test_maps():
     assert p3.map.attrs == {"x": 0, "z": 1}
 ````
 
-Note how this is a different flavour of test than the ones we've written
+Note that this is a different flavour of test than the ones we've written
 before. All previous tests just tested the behaviour of the classes via the
 exposed interfaces. This test instead checks the implementation details of the
 ``Instance`` class by reading internal attributes and comparing them to
@@ -821,11 +816,11 @@ predefined values. Therefore this test can be called a *white-box* test.
 The ``attrs`` attribute of the map of ``p1`` describes the layout of the
 instance as having two attributes ``"x"`` and ``"y"`` which are stored at
 position 0 and 1 of the ``storage`` of ``p1``. Making a second instance ``p2``
-and adding the same attributes in the same order to it will make it end up with
-the same map. If on the other hand a different attribute is added, the map can
+and adding to it the same attributes in the same order will make it end up with
+the same map. If, on the other hand, a different attribute is added, the map can
 of course not be shared.
 
-The ``Map`` class looks as follows:
+The ``Map`` class looks like this:
 
 ````python
 class Map(object):
@@ -855,9 +850,9 @@ a different map, which ``next_map`` computes. The method uses the ``next_maps``
 dictionary to cache already created maps. That way, objects that have the same
 layout also end up using the same ``Map`` object.
 
-XXX diagram: figures/maptransitions.svg
+![](figures/maptransition.png)
 
-The changed ``Instance`` implementation that uses maps looks like this:
+The ``Instance`` implementation that uses maps looks like this:
 
 ````python
 class Instance(Base):
@@ -885,44 +880,44 @@ class Instance(Base):
             self.map = new_map
 ````
 
-The class now passes ``None`` as the fields dict to ``Base``, as ``Instance``
-will now store the content of the dict in another way. Therefore it now needs
-to override the the ``_read_dict`` and ``_write_dict`` methods. In a real
-implementation, we would refactor the ``Base`` class to not be responsible for
-storing the field dictionary any more, but for this section having instances
+The class now passes ``None`` as the fields dictionary to ``Base``, as ``Instance``
+will store the content of the dictionary in another way. Therefore it needs
+to override the ``_read_dict`` and ``_write_dict`` methods. In a real
+implementation, we would refactor the ``Base`` class so that it is no longer responsible for
+storing the fields dictionary, but for now having instances
 store ``None`` there is good enough.
 
-When creating a new instance it starts out with using the ``EMPTY_MAP``, which
-has no attributes, and an empty storage. To implement ``_read_dict``, the
+A newly created instance starts out using the ``EMPTY_MAP``, which
+has no attributes, and empty storage. To implement ``_read_dict``, the
 instance's map is asked for the index of the attribute name. Then the
 corresponding entry of the storage list is returned.
 
 Writing into the fields dictionary has two cases. On the one hand the value of
 an existing
 attribute can be changed. This is done by simply changing the storage at the
-corresponding index. If the attribute does not exist yet, a *map transition* is
+corresponding index. On the other hand, if the attribute does not exist yet, a *map transition* is
 needed using the ``next_map`` method. The value of the new attribute is appended
 to the storage list.
 
 
-What does this optimization achieve? It optimizes the memory use of the common
-case where many instances that have the same layout exist. It is not a universal
-optimization: Code that creates instances with wildly different sets of
-attributes will have a larger memory footprint than just using dictionaries.
+What does this optimization achieve? It optimizes use of memory in the common
+case where there are many instances with the same layout. It is not a universal
+optimization: code that creates instances with wildly different sets of
+attributes will have a larger memory footprint than if we just use dictionaries.
 
-This is a common approach for optimizing dynamic languages. It is often not
-possible to find optimizations that are faster or use less memory in *all*
-cases. To still speed up programs in practice, optimizations are chosen that
-should apply to how the language is typically used in practice, while potentially
-making the behaviour worse for programs that use extremely dynamic features.
+This is a common problem when optimizing dynamic languages. It is often not
+possible to find optimizations that are faster or use less memory in all
+cases. In practice, the optimizations chosen 
+apply to how the language is *typically* used, while potentially
+making behaviour worse for programs that use extremely dynamic features.
 
-Another interesting aspect of maps is that while in this chapter they are only
-used as a memory optimization, in actual VMs that use a JIT compiler they also
+Another interesting aspect of maps is that, while here they only
+optimize for memory use, in actual VMs that use a just-in-time (JIT) compiler they also
 improve the performance of the program. To achieve that, the JIT uses the maps
 to compile attribute lookups to a lookup in the objects' storage
-at a fixed offset, getting rid of all dictionary lookups completely (footnote:
-How that works is quite a bit beyond the scope of this chapter. I've tried to
-give a reasonably readable account of how a JIT can do that in a paper I wrote
+at a fixed offset, getting rid of all dictionary lookups completely (FIXME footnote:
+How that works is beyond the scope of this chapter. I tried to
+give a reasonably readable account of it in a paper I wrote
 a few years ago. It uses an object model that is basically a variant of the one
 in this chapter: C. F. Bolz, A. Cuni, M. Fijałkowski, M. Leuschel, S. Pedroni,
 and A. Rigo, “Runtime feedback in a meta-tracing JIT for efficient dynamic
@@ -930,42 +925,40 @@ languages,” in Proceedings of the 6th Workshop on Implementation, Compilation,
 Optimization of Object-Oriented Languages, Programs and Systems, New York, NY,
 USA, 2011, pp. 9:1–9:8.).
 
-Potential Extensions
-----------------------
+## Potential Extensions
 
-It is easy to extend the object model we have so far with various extensions and
-to experiment with various language design choices. Here are some possibilities:
+It is easy to extend our object model and
+experiment with various language design choices. Here are some possibilities:
 
 - The easiest thing to do is to add further special methods. Some easy and
   interesting ones to add are ``__init__``, ``__getattribute__``, ``__set__``.
 
 - The model can be very easily extended to support multiple inheritance. To do
-  this, every class would get a list of base classes. Then, the ``Class.method_resolution_order``
-  method needs to be changed to support looking up methods. A simple method
-  resolution order can be computed using a depth first search with removal of
-  duplicates. A more complicated but better one is the C3 algorithm (footnote:
-  https://www.python.org/download/releases/2.3/mro/ ) that adds
+  this, every class would get a list of base classes. Then the ``Class.method_resolution_order``
+  method would need to be changed to support looking up methods. A simple method
+  resolution order could be computed using a depth-first search with removal of
+  duplicates. A more complicated but better one is the C3 algorithm (FIXME footnote:
+  https://www.python.org/download/releases/2.3/mro/ ), which adds
   better handling in the base of diamond-shaped multiple inheritance
   hierarchies and rejects insensible inheritance patterns.
 
-- A more radical change is to switch to a prototype model, which is the removal
+- A more radical change is to switch to a prototype model, which involves the removal
   of the distinction between classes and instances.
 
 
-Conclusions
---------------
+## Conclusions
 
-The details of its object model are one of the core aspects of the design of an
-object oriented programming language. Writing small object model prototypes is
-thus an easy and fun way to understand the inner workings of existing languages
-better and to get insights into the design space of object oriented languages.
+Some of the core aspects of the design of an
+object-oriented programming language are the details of its object model. Writing small object model prototypes is
+an easy and fun way to understand the inner workings of existing languages
+better and to get insights into the design space of object-oriented languages.
 Playing with object models is a good way to experiment with different language
-design ideas without having to care for the more boring parts of language
+design ideas without having to worry about the more boring parts of language
 implementation, such as parsing and executing code.
 
 Such object models can also be useful in practice, not just as vehicles for
-experimentation. They can be embedded and used from other languages. Examples
-of this approach are common, e.g. the GObject object model, written in C,
+experimentation. They can be embedded in and used from other languages. Examples
+of this approach are common: the GObject object model, written in C,
 that's used in GLib and other Gnome libraries; or the various class system
 implementations in JavaScript.
 
