@@ -1,13 +1,15 @@
 # Blockcode - a simple visual programming toolkit
 
 
-A block-based language differs from programming language where you type in code as words because you drag blocks that represent code into place. Learning a programming language can be difficult because they are extremely sensitive to even the slightest of typos. Most programming languages are case-sensitive, have obscure syntax, and will refuse to run if you get so much as a semicolon in the wrong place, or worse, leave one out. Most of the programming languages in use today are also based on English and the language itself cannot be localized. In contrast, a well-done block language can eliminate syntax errors completely: you can still create a program which does the wrong thing, but you cannot create one with the wrong syntax, the blocks just won't fit that way. Block languages are more more discoverable: you can see all the constructs and libraries of the language right in the list of blocks. And blocks can be localized into any language without changing the programmatic meaning of the language.
+In block-based programming languages you write programs by dragging and connecting blocks that represent parts of the program. Block-based languages differ from more conventional programming languages where you type words and symbols.
+
+Learning a programming language can be difficult because they are extremely sensitive to even the slightest of typos. Most programming languages are case-sensitive, have obscure syntax, and will refuse to run if you get so much as a semicolon in the wrong place, or worse, leave one out. Most of the programming languages in use today are also based on English and the language itself cannot be localized. In contrast, a well-done block language can eliminate syntax errors completely: you can still create a program which does the wrong thing, but you cannot create one with the wrong syntax, the blocks just won't fit that way. Block languages are more more discoverable: you can see all the constructs and libraries of the language right in the list of blocks. Further, blocks can be localized into any human language without changing the meaning of the programming language.
 
 Block-based languages have a long history, with some of the prominent ones being Lego Mindstorms [Mindstorms], Alice3D [Alice], StarLogo [StarLogo], and especially Scratch [Scratch]. There are several tools for block-based programming on the web as well, such as Blockly [Blockly], AppInventor [AppInventor], Tynker [Tynker], and many more [Visual Programming].
 
 This particular code is loosely based on the open-source project Waterbear [Waterbear], which is not a language but a tool for wrapping existing languages with a block-based syntax. Advantages of such a wrapper include the ones noted above: Eliminating syntax errors, visual display of available components, blocks are more localizable than programming languages (you can translate the text on blocks more readily than translating a programming language). Additionally visual code can sometimes be easier to read/debug and blocks can be used by pre-typing children. We could even go further and put icons on the blocks, either in conjunction with the text names or instead of them, to allow pre-literate children to write programs, but we don't go that far in this example.
 
-The choice of turtle graphics for this language also goes back to the Logo language, which was created specifically for teaching programming to children. Several of the block-based languages above include turtle graphics, and it is a small enough domain to be able to capture in a tightly constrained project such as this. Later we will see how easy it can be to extend or replace the turtle graphics code with code for other types of programming.
+The choice of turtle graphics for this language also goes back to the Logo language, which was created specifically for teaching programming to children. Several of the block-based languages above include turtle graphics, and it is a small enough domain to be able to capture in a tightly constrained project such as this.
 
 ## Goals and Structure
 
@@ -15,19 +17,28 @@ There are a couple of things I want to accomplish with this code. First and fore
 
 To do this, we encapsulate everything that is specific to the turtle language into one file (turtle.js) that we can easily swap out with another file. Nothing else should be specific to the turtle language, the rest should just be about handling the blocks (`block.js` and `menu.js`) or generally useful web utilities (`util.js`, `drag.js`, `file.js`). That is the goal, although to maintain the small size of the project, some of those utilities are less general purpose and more specific to their use with the blocks.
 
-## Web Applications
+One thing that struck me when writing a block language is that the language is its own IDE. You can't just code up blocks in your favourite text editor, the IDE has to be designed and developed in parallel with the block language. This has some pros and cons. On the plus side, everyone will use a consistent environment, there is no room for religious wars around what editor to use. On the downside, it can be a huge distraction from building the block language itself.
+
+There are eight source files in this project, but `index.html` and `blocks.css` are basic structure and style for the app and won't be discussed. Two of the JavaScript files won't be discussed in any detail either, `util.js` contains some helpers and serves to bridge between different browser implementations in a way similar to a library like *jQuery* but in less than 50 lines of code and `file.js` is a similar utility used for loading and saving files and serializing scripts. For the remaining files:
+
+* `block.js` is the abstract representation of a block-based language.
+* `drag.js` implements the key interaction of the language: allowing the user to drag blocks from a list of available blocks (the "menu") to assemble them into a program (the "script").
+* `menu.js` has some helper code and is also responsible for actually running the user's program.
+* `turtle.js` defines the specifics of our block language (turtle graphics) and initializes its specific blocks. This is the file that would be replaced in order to create a different block language.
+
+### Web Applications
 
 In order to make the resulting tool available to the widest possible audience, it is web-native. HTML, CSS, and JavaScript means it should work in most browsers and platforms. Wherever possible, if something about the implementation began to be too complex, I took that as a sign that I wasn't doing it "the web way" and tried to re-think how to leverage the tools built into the browser better. Modern web browsers are powerful platforms, with a rich set of tools for building great apps, worth exploring for projects large and small.
 
 An important distinction between web applications and traditional desktop or server applications is the lack of a `main()` or other entry point. There is not explicit run loop because that is already built into the browser and implicit on every web page. All our code will be parsed and executed on load, at which point we can register for events we are interested in for interacting with the user. After the first run, all further interaction with our code will be through callbacks we set up and register, whether we register those for events (like mouse movement), timeouts (fired with the periodicity we specify) or frame handlers (called for each screen redraw, generally 60 frames per second). The browser does not expose full-featured threads (only shared-nothing Web Workers) either.
 
-## Why not use MVC?
+### Why not use MVC?
 
 Mode-View-Controller (MVC) was a good design choice for Smalltalk programs in the 80s and it can work in some variation or other for web apps, but it isn't the right tool for every problem. All the state (the model in MVC) is captured by the block elements in a block language anyway, so replicating it into Javascript has little benefit unless there is some other need for the model (if we were editing shared, distributed code, for instance). An early version of Waterbear went to great lengths to keep the model in JavaScript and sync it with the DOM until I noticed that more than half the code and 90% of the bugs were due to keeping the model matching the DOM. Eliminating the duplication allowed the code to be simpler and more robust, and with all the state on the DOM elements, many bugs could be found simply by looking at the DOM in the developer tools. So in this case there is little benefit to building further separation of MVC than we already have in HTML/CSS/JavaScript.
 
 ## Stepping through the code
 
-I've tried to follow some conventions and best practices throughout this project. Each JavaScript file is wrapped in a function to avoid leaking variables into the global environment. If it needs to expose variables to other files it will define a single global per file, based on the filename, with the exposed functions in it. This will be near the end of the file, followed by any event handlers set by that file, so you can always glance a the end of a file to see what events it handles.
+I've tried to follow some conventions and best practices throughout this project. Each JavaScript file is wrapped in a function to avoid leaking variables into the global environment. If it needs to expose variables to other files it will define a single global per file, based on the filename, with the exposed functions in it. This will be near the end of the file, followed by any event handlers set by that file, so you can always glance a the end of a file to see what events it handles and what functions it exposes.
 
 Aside from `blocks.css` which provides styling (and some help with functionality we'll also explore) and `index.html` to tie everything together, there are six JavaScript files: `blocks.js` defines the block objects and how they work, `drag.js` implements drag-and-drop using HTML5 native drag-and-drop, `file.js` handles loading and saving block scripts (as JSON) as well as loading the examples, `turtle.js` implements our little turtle graphics language and the blocks for it, and `util.js` removes namespaces from some useful browser methods and implements a couple of shortcuts to save us typing (this file has a similar purpose in the project that jQuery has in other projects, but in < 50 lines of code).
 
@@ -35,7 +46,9 @@ Aside from `blocks.css` which provides styling (and some help with functionality
 
 Each block consists of a few HTML elements, styled with CSS, with some JavaScript event handlers for drag-and-drop and modifying the input argument. This file helps to create and manage these grouping of elements as single objects. When a type of block is added to the block menu, it is also associated with a JavaScript function to run to implement the language, and so each block in the script has to be able to find its associated function and to call it when the script runs.
 
-The entry point for a block is the `createBlock(name, value, contents)` function, which returns a DOM element representing the block, which can be appended to the document. This can be used to create blocks for the menu, or for restoring script blocks saved in files or localStorage. While it is flexible this way, it is built specifically for the Blockcode "language" and makes assumptions about it, so if there is a value it assumes the value represents a numeric argument and creates an input of type "number". Since this is a limitation of the Blockcode as used here, this is fine, but if we were to extend the blocks to support other types of arguments, or more than one argument, the code would have to change extensively.
+It's important to note that there is no real distinction between blocks placed in the menu and blocks in the script. The dragging treats them slightly differently based on where they are being dragged from, and when we run a script it only looks at the blocks in the script area, but they are fundamentally the same structures, which means we can simply clone the blocks when creating dragging from the menu into the script.
+
+The `createBlock(name, value, contents)` function returns a block as a DOM element populated with all internal elements, ready to insert into the document. This can be used to create blocks for the menu, or for restoring script blocks saved in files or localStorage. While it is flexible this way, it is built specifically for the Blockcode "language" and makes assumptions about it, so if there is a value it assumes the value represents a numeric argument and creates an input of type "number". Since this is a limitation of the Blockcode as used here, this is fine, but if we were to extend the blocks to support other types of arguments, or more than one argument, the code would have to change.
 
     function createBlock(name, value, contents){
         var item = elem('div', {'class': 'block', draggable: true, 'data-name': name}, [name]);
@@ -46,7 +59,7 @@ The entry point for a block is the `createBlock(name, value, contents)` function
             item.appendChild(elem('div', {'class': 'container'}, contents.map(function(block){
                 return createBlock.apply(null, block);
             })));
-        }else if (typeof contents === 'string'){ // Add units specifier
+        }else if (typeof contents === 'string'){ // Add units (degrees, etc.) specifier
             item.appendChild(document.createTextNode(' ' + contents));
         }
         return item;
@@ -89,6 +102,8 @@ We have some utilities for handling blocks as DOM elements, `blockContents(block
 
 
 ### `drag.js`
+
+The purpose of `drag.js` is to turn static blocks of HTML into a dynamic programming language by implementing interactions between the menu section of the view and the script section. By dragging blocks from the menu into the script, the user builds their program, and by being in the script area the system determines which blocks to run as part of the program.
 
 We're using HTML5 drag and drop, which requires some specific JavaScript event handlers to be defined, and those are defined here. For more information on using HTML5 drag and drop, see Eric Bidleman's article here: http://www.html5rocks.com/en/tutorials/dnd/basics/. While it is nice to have built-in support for drag and drop, it does have some oddities when using it, and some pretty major limitations (like not being implemented in any mobile browser at the time of this writing).
 
@@ -185,11 +200,14 @@ The `dragEnd(evt)` is called when we mouse up, but after we handle the `drop` ev
 
 ### `menu.js`
 
-The file `menu.js` is a little bit weird: menu in this context is not like a drop-down (or pop-up) menu in most applications, but is the list of blocks you can choose for your script and this file sets that up and adds a looping block that is generally useful (and thus not part of the turtle language itself) as well as some code for actually running the scripts. So this is kind of an odds-and-ends file, for things that may not have fit anywhere else.
+The file `menu.js` is where blocks are associated with the functions that are called when they run, and contains the code for actually running the resulting script as the user builds it up. Every time the script is modified, it is re-run automatically.
 
-This is useful, especially when an architecture is under development. My theory of keeping a clean house is to have places for designed clutter, and building a program architecture has similar needs. You can have one file or module which is the catch-all for things that don't have a clear place to fit in yet. As this file grows it is important to watch for patterns that emerge: several related functions can be spun off into a separate module (or joined together into a more general function). You don't want the catch-all to grow indefinitely, but only to be a temporary place until you figure out the right way to organize the code.
+This file is a little bit weird: menu in this context is not like a drop-down (or pop-up) menu in most applications, but is the list of blocks you can choose for your script and this file sets that up, and starts the menu off with looping block that is generally useful (and thus not part of the turtle language itself). This is kind of an odds-and-ends file, for things that may not have fit anywhere else.
+
+Having a single file to gather random functions in is useful, especially when an architecture is under development. My theory of keeping a clean house is to have places for designated clutter, and building a program architecture has similar needs. You can have one file or module which is the catch-all for things that don't have a clear place to fit in yet. As this file grows it is important to watch for patterns that emerge: several related functions can be spun off into a separate module (or joined together into a more general function). You don't want the catch-all to grow indefinitely, but only to be a temporary place until you figure out the right way to organize the code.
 
 We keep around references to `menu` and `script` because we use them a lot, no point hunting through the DOM for them over and over. We'll also use `scriptRegistry`, where we store the scripts of blocks in the menu. We use a very simple name -> script mapping, which does not support either multiple menu blocks with the same name, or renaming blocks. A more complex scripting environment would need something more robust.
+
 We use `scriptDirty` to keep track of whether the script has been modified since the last time it was run, so we don't keep trying to run it constantly.
 
     var menu = document.querySelector('.menu');
@@ -224,7 +242,7 @@ When we want to notify the system to run the assembled script during the next fr
         elem.classList.remove('running');
     }
 
-We add blocks to the menu using `menuItem(name, fn, value, contents)` which takes a normal block,  associates it with a function, and and puts in the menu column. This must be the most important block in the file, since the file is named for it.
+We add blocks to the menu using `menuItem(name, fn, value, contents)` which takes a normal block,  associates it with a function, and and puts in the menu column.
 
     function menuItem(name, fn, value, units){
         var item = Block.create(name, value, units);
@@ -245,93 +263,9 @@ We define one block here, outside of the turtle language, because `repeat(block)
     menuItem('Repeat', repeat, 10, []);
 
 
-### `file.js`
-
-This module handles saving and restoring scripts, both to actual files and also to temporary storage in the browser's `localStorage` key-value database. Scripts are stored as simple JSON-formatted files to make things simple, since they are not intended to be human-readable (or human-writable). We keep a couple of variables around we'll use later, a reference to the script element and a string from the page title that we can use to separate different apps in localStorage (we'll use this when we implement a new language based on the same blocks). `The `scriptToJSON()` and `jsonToScript(json)` functions handle converting between DOM blocks and strings suitable for storing.
-
-    var scriptElem = document.querySelector('.script');
-    var title = '__' + document.querySelector('title').textContent.toLowerCase().replace(' ', '_');
-
-    function scriptToJson(){
-        var blocks = [].slice.call(document.querySelectorAll('.script > .block'));
-        return blocks.length ? JSON.stringify(blocks.map(Block.script)) : null;
-    }
-
-    function jsonToScript(json){
-        clearScript();
-        JSON.parse(json).forEach(function(block){
-            scriptElem.appendChild(Block.create.apply(null, block));
-        });
-        Menu.runSoon();
-    }
-
-The `saveLocal()` function is a handler to save the current script in localStorage on when navigating away,  closing the window, or refreshing the page so we don't lose the work in progress and `restoreLocal()` handler is called on page load to restore the script. For files we have three functions, `saveFile()` which does some background work to convince HTML to make a link downloadable, where the contents of the link is our script (rendered on the fly), creates a temporary link, and calls `click()` on it to start the download. The inverse, loading the script uses `readFile(file)` as a callback to load in the script, but `loadFile()` to initiate the async file reading. Reading a file like this can easily be triggered from a button or by dropping a suitable file onto a target, using the same callback either way.
-
-    function saveLocal(){
-        var script = scriptToJson();
-        if (script){
-            localStorage[title] = script;
-        }else{
-            delete localStorage[title];
-        }
-    }
-
-    function restoreLocal(){ jsonToScript(localStorage[title] || '[]' ); }
-
-    function saveFile(evt){
-        var title = prompt("Save file as: ");
-        if (!title){ return; }
-        var file = new Blob([scriptToJson()], {type: 'application/json'});
-        var reader = new FileReader();
-        var a = document.createElement('a');
-        reader.onloadend = function(){
-            var a = elem('a', {'href': reader.result, 'download': title + '.json'});
-            a.click();
-        };
-        reader.readAsDataURL(file);
-    }
-
-    function readFile(file){
-        var fileName = file.name;
-        if (fileName.indexOf('.json', fileName.length - 5) === -1) {
-            return alert('Not a JSON file');
-        }
-        var reader = new FileReader();
-        reader.readAsText( file );
-        reader.onload = function (evt){ jsonToScript(evt.target.result); };
-    }
-
-    function loadFile(){
-        var input = elem('input', {'type': 'file', 'accept': 'application/json'});
-        if (!input){ return; }
-        input.addEventListener('change', function(evt){ readFile(input.files[0]); });
-        input.click();
-    }
-
-The `loadExamples()` function deserves some discussion. We pre-load the examples (by linking to them in `index.html`), because there are a limited number of them, they're small, and we want to keep things simple. In a real system you could load them using AJAX, but the important thing is, once you have JSON back you would just call `jsonToScript`, the same as `readFile` or `restoreLocal` do.
-
-    function loadExample(evt){
-        var exampleName = evt.target.value;
-        if (exampleName === ''){ return; }
-        clearScript();
-        file.examples[exampleName].forEach(function(block){
-            scriptElem.appendChild(Block.create.apply(null, block));
-        });
-        Menu.runSoon();
-    }
-
-As the odd function out, we also have `clearScript()`, a handler to clear the current script when the user wants a fresh start.
-
-    function clearScript(){
-        [].slice.call(document.querySelectorAll('.script > .block')).forEach(function(block){
-            block.parentElement.removeChild(block);
-        });
-        Menu.runSoon();
-    }
-
 ### `turtle.js`
 
-This is the implmentation of the turtle block language. It exposes no globals of its own., but it does define local variables for managing the canvas and saves some handier references to frequently-used parts of Math.
+This is the implmentation of the turtle block language. It exposes no functions to the rest of the code, so nothing else can depend on it. This way we can swap out the one file to create a new block language and know nothing in the core will break.
 
     var PIXEL_RATIO = window.devicePixelRatio || 1;
     var canvasPlaceholder = document.querySelector('.canvas-placeholder');
@@ -455,12 +389,6 @@ Now we can use the functions above, with the `Menu.item` function from `menu.js`
     Menu.item('Hide turtle', hideTurtle);
     Menu.item('Show turtle', showTurtle);
 
-
-## Swapping out Turtles
-
-[Put info here about replacing the turtle language]
-[Sprite language where each sprite has an index so we only need integers]
-Sprite language: Draw sprite, turn sprite, turn sprite vector, forward, slow, sprite collides with [x].
 
 ## Lessons Learned
 
