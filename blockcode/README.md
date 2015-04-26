@@ -19,13 +19,6 @@ To do this, we encapsulate everything that is specific to the turtle language in
 
 One thing that struck me when writing a block language is that the language is its own IDE. You can't just code up blocks in your favourite text editor, the IDE has to be designed and developed in parallel with the block language. This has some pros and cons. On the plus side, everyone will use a consistent environment, there is no room for religious wars around what editor to use. On the downside, it can be a huge distraction from building the block language itself.
 
-There are eight source files in this project, but `index.html` and `blocks.css` are basic structure and style for the app and won't be discussed. Two of the JavaScript files won't be discussed in any detail either, `util.js` contains some helpers and serves to bridge between different browser implementations in a way similar to a library like *jQuery* but in less than 50 lines of code and `file.js` is a similar utility used for loading and saving files and serializing scripts. For the remaining files:
-
-* `block.js` is the abstract representation of a block-based language.
-* `drag.js` implements the key interaction of the language: allowing the user to drag blocks from a list of available blocks (the "menu") to assemble them into a program (the "script").
-* `menu.js` has some helper code and is also responsible for actually running the user's program.
-* `turtle.js` defines the specifics of our block language (turtle graphics) and initializes its specific blocks. This is the file that would be replaced in order to create a different block language.
-
 ### Web Applications
 
 In order to make the resulting tool available to the widest possible audience, it is web-native. HTML, CSS, and JavaScript means it should work in most browsers and platforms. Wherever possible, if something about the implementation began to be too complex, I took that as a sign that I wasn't doing it "the web way" and tried to re-think how to leverage the tools built into the browser better. Modern web browsers are powerful platforms, with a rich set of tools for building great apps, worth exploring for projects large and small.
@@ -40,7 +33,12 @@ Mode-View-Controller (MVC) was a good design choice for Smalltalk programs in th
 
 I've tried to follow some conventions and best practices throughout this project. Each JavaScript file is wrapped in a function to avoid leaking variables into the global environment. If it needs to expose variables to other files it will define a single global per file, based on the filename, with the exposed functions in it. This will be near the end of the file, followed by any event handlers set by that file, so you can always glance a the end of a file to see what events it handles and what functions it exposes.
 
-Aside from `blocks.css` which provides styling (and some help with functionality we'll also explore) and `index.html` to tie everything together, there are six JavaScript files: `blocks.js` defines the block objects and how they work, `drag.js` implements drag-and-drop using HTML5 native drag-and-drop, `file.js` handles loading and saving block scripts (as JSON) as well as loading the examples, `turtle.js` implements our little turtle graphics language and the blocks for it, and `util.js` removes namespaces from some useful browser methods and implements a couple of shortcuts to save us typing (this file has a similar purpose in the project that jQuery has in other projects, but in < 50 lines of code).
+There are eight source files in this project, but `index.html` and `blocks.css` are basic structure and style for the app and won't be discussed. Two of the JavaScript files won't be discussed in any detail either, `util.js` contains some helpers and serves to bridge between different browser implementations in a way similar to a library like *jQuery* but in less than 50 lines of code and `file.js` is a similar utility used for loading and saving files and serializing scripts. For the remaining files:
+
+* `block.js` is the abstract representation of a block-based language.
+* `drag.js` implements the key interaction of the language: allowing the user to drag blocks from a list of available blocks (the "menu") to assemble them into a program (the "script").
+* `menu.js` has some helper code and is also responsible for actually running the user's program.
+* `turtle.js` defines the specifics of our block language (turtle graphics) and initializes its specific blocks. This is the file that would be replaced in order to create a different block language.
 
 ### blocks.js
 
