@@ -1,6 +1,5 @@
 # Blockcode - a simple visual programming toolkit
 
-Block Code is an attempt to create a block-based programming tool in under 500 lines of code, including HTML, CSS, Javascript. The code itself is intended to be a live-coding environment for turtle graphics.
 
 A block-based language differs from programming language where you type in code as words because you drag blocks that represent code into place. Learning a programming language can be difficult because they are extremely sensitive to even the slightest of typos. Most programming languages are case-sensitive, have obscure syntax, and will refuse to run if you get so much as a semicolon in the wrong place, or worse, leave one out. Most of the programming languages in use today are also based on English and the language itself cannot be localized. In contrast, a well-done block language can eliminate syntax errors completely: you can still create a program which does the wrong thing, but you cannot create one with the wrong syntax, the blocks just won't fit that way. Block languages are more more discoverable: you can see all the constructs and libraries of the language right in the list of blocks. And blocks can be localized into any language without changing the programmatic meaning of the language.
 
@@ -14,7 +13,7 @@ The choice of turtle graphics for this language also goes back to the Logo langu
 
 There are a couple of things I want to accomplish with this code. First and foremost, to implement a block language for turtle graphics, where you can write code to create images through simple drag-and-drop of blocks, using as simple a structure of HTML, CSS, and JavaScript as possible. Second, but still important, is to show how the blocks themselves can serve as a framework for other languages besides our mini turtle language.
 
-To do this, we encapsulate everything that is specific to the turtle language into one file (turtle.js) that we can easily swap out with another file. Nothing else should be specific to the turtle language, the rest should just be about handling the blocks (block.js and menu.js) or generally useful web utilities (util.js, drag.js, file.js). That is the goal, although to maintain the small size of the project, some of those utilities are less general purpose and more specific to their use with the blocks.
+To do this, we encapsulate everything that is specific to the turtle language into one file (turtle.js) that we can easily swap out with another file. Nothing else should be specific to the turtle language, the rest should just be about handling the blocks (`block.js` and `menu.js`) or generally useful web utilities (`util.js`, `drag.js`, `file.js`). That is the goal, although to maintain the small size of the project, some of those utilities are less general purpose and more specific to their use with the blocks.
 
 In order to make the resulting tool available to the widest possible audience, it is web-native. Simple HTML, CSS, and JavaScript means it should work in the widest variety of browsers and platforms. Wherever possible, if something about the implementation began to be too complex, I took that as a sign that I wasn't doing it "the web way" and tried to re-think how to leverage the tools built into the browser better. Modern web browsers are powerful platforms, with a rich set of tools for building great apps, worth exploring for projects large and small.
 
@@ -32,7 +31,7 @@ Aside from `blocks.css` which provides styling (and some help with functionality
 
 Each block consists of a few HTML elements, styled with CSS, with some JavaScript event handlers for drag-and-drop and modifying the input argument. It's all standard web stuff, and this file just helps to create and manage these grouping of elements as single objects. When a type of block is added to the block menu, it is also associated with a JavaScript function to run to implement the language, and so each block in the script has to be able to find its associated function and to call it when the script runs.
 
-The entry point for a block is the `createBlock(name, value, contents)` function, which returns a DOM element representing the block, which can be appended to the document. This can be used to create blocks for the menu, or for restoring script blocks saved in files or localStorage. While it is flexible this way, it is built specifically for the Blockcode "language" and makes assumptions about it, so if there is a value it assumes the value represents a numeric argument and creates an input of type "number". Since this is a limitation of the blockcode as used here, this is fine, but if we were to extend the blocks to support other types of arguments, or more than one argument, the code would have to change extensively.
+The entry point for a block is the `createBlock(name, value, contents)` function, which returns a DOM element representing the block, which can be appended to the document. This can be used to create blocks for the menu, or for restoring script blocks saved in files or localStorage. While it is flexible this way, it is built specifically for the Blockcode "language" and makes assumptions about it, so if there is a value it assumes the value represents a numeric argument and creates an input of type "number". Since this is a limitation of the Blockcode as used here, this is fine, but if we were to extend the blocks to support other types of arguments, or more than one argument, the code would have to change extensively.
 
     function createBlock(name, value, contents){
         var item = elem('div', {'class': 'block', draggable: true, 'data-name': name}, [name]);
@@ -85,7 +84,7 @@ We have some utilities for handling blocks as DOM elements, `blockContents(block
     }
 
 
-### drag.js
+### `drag.js`
 
 We're using HTML5 drag and drop, which requires some specific JavaScript event handlers to be defined, and those are defined here. For more information on using HTML5 drag and drop, see Eric Bidleman's article here: http://www.html5rocks.com/en/tutorials/dnd/basics/. While it is nice to have built-in support for drag and drop, it does have some oddities when using it, and some pretty major limitations (like not being implemented in any mobile browser at the time of this writing).
 
@@ -180,7 +179,7 @@ The `dragEnd(evt)` is called when we mouse up, but after we handle the `drop` ev
         _findAndRemoveClass('next');
     }
 
-### menu.js
+### `menu.js`
 
 The file `menu.js` is a little bit weird: menu in this context is not like a drop-down (or pop-up) menu in most applications, but is the list of blocks you can choose for your script and this file sets that up and adds a looping block that is generally useful (and thus not part of the turtle language itself) as well as some code for actually running the scripts. So this is kind of an odds-and-ends file, for things that may not have fit anywhere else.
 
@@ -242,7 +241,7 @@ We define one block here, outside of the turtle language, because `repeat(block)
     menuItem('Repeat', repeat, 10, []);
 
 
-### file.js
+### `file.js`
 
 This module handles saving and restoring scripts, both to actual files and also to temporary storage in the browser's `localStorage` key-value database. Scripts are stored as simple JSON-formatted files to make things simple, since they are not intended to be human-readable (or human-writable). We keep a couple of variables around we'll use later, a reference to the script element and a string from the page title that we can use to separate different apps in localStorage (we'll use this when we implement a new language based on the same blocks). `The `scriptToJSON()` and `jsonToScript(json)` functions handle converting between DOM blocks and strings suitable for storing.
 
@@ -326,7 +325,7 @@ As the odd function out, we also have `clearScript()`, a handler to clear the cu
         Menu.runSoon();
     }
 
-### turtle.js
+### `turtle.js`
 
 This is the implmentation of the turtle block language. It exposes no globals of its own., but it does define local variables for managing the canvas and saves some handier references to frequently-used parts of Math.
 
@@ -452,65 +451,6 @@ Now we can use the functions above, with the `Menu.item` function from `menu.js`
     Menu.item('Hide turtle', hideTurtle);
     Menu.item('Show turtle', showTurtle);
 
-
-### util.js
-
-This code may not belong in the count of 500 lines since it is just support functions and polyfills for things that should be native to the browser.
-
-The shorthand function `elem(name, attrs, children)` saves us from typing out a lot of repetitive DOM code to create elements, while allowing us to simultaneously set their attributes and add child elements.
-
-    global.elem = function elem(name, attrs, children){
-        attrs = attrs || {};
-        children = children || [];
-        var e = document.createElement(name);
-        Object.keys(attrs).forEach(function(key){
-            e.setAttribute(key, attrs[key]);
-        });
-        children.forEach(function(child){
-            if (typeof child === 'string'){
-                child = document.createTextNode(child);
-            }
-            e.appendChild(child);
-        });
-        return e;
-    };
-
-Modern browsers already implement the useful `matches(elem, selector)` function, but using a "namespace", so this code just removes the namespaces. And we need `matches` so we can implement `closest(elem, selector)`, which is one of the handiest methods in all of jQuery that hasn't been built into the browser yet (although it is coming).
-
-    if (document.body.matches){
-        global.matches = function matches(elem, selector){ return elem.matches(selector); };
-    }else if(document.body.mozMatchesSelector){
-        global.matches = function matches(elem, selector){ return elem.mozMatchesSelector(selector); };
-    }else if (document.body.webkitMatchesSelector){
-        global.matches = function matches(elem, selector){ return elem.webkitMatchesSelector(selector); };
-    }else if (document.body.msMatchesSelector){
-        global.matches = function matches(elem, selector){ return elem.msMatchesSelector(selector); };
-    }else if(document.body.oMatchesSelector){
-        global.matches = function matches(elem, selector){ return elem.oMatchesSelector(selector); };
-    }
-
-    global.closest = function closest(elem, selector){
-        while(elem){
-            if (matches(elem, selector)){ return elem };
-            elem = elem.parentElement;
-        }
-        return null;
-    };
-
-
-The `requestAnimationFrame(fn)` is another polyfill for built-in functionality, just to get rid of namespaces in older browsers, or to emulate it for browsers that don't have requestAnimationFrame yet. And for sending custom events to elements we define the shorthand function `trigger(name, target)`.
-
-    global.requestAnimationFrame = global.requestAnimationFrame || global.mozRequestAnimationFrame || global.msRequestAnimationFrame || global.webkitRequestAnimationFrame || function(fn){
-        setTimeout(fn, 20);
-    };
-
-    global.trigger = function trigger(name, target){
-        target.dispatchEvent(new CustomEvent(name, {bubbles: true, cancelable: false}));
-    };
-
-### index.html
-
-Including the turtle.js file is the only thing specific to the turtle language, the rest can be re-used for other block languages.
 
 ## Swapping out Turtles
 
