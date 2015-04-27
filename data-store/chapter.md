@@ -50,7 +50,7 @@ things were getting. The number of edge cases and trying to reason about how
 changes in one part of the tree affected others was making my head hurt. I had
 no idea how I was going to explain all of this.
 
-Remember lessons learned, I took a peek at a [recursive algorithm for
+Remembering lessons learned, I took a peek at a [recursive algorithm for
 updating immutable binary trees](http://en.wikipedia.org/w/index.php?title=Binary_search_tree&oldid=628341612#Insertion),
 and it turned out to be relatively straightforward.
 
@@ -76,9 +76,10 @@ even if you're just writing JSON to disk:
 However, if you want to _understand_ how a database handles all of these
 problems, writing one for yourself can be a good idea. 
 
-The techniques we discuss here should also be more universally applicable to
-any problem that need to have rational, predictable behaviour when faced with 
-failure.
+The techniques and concepts we discuss here
+should be applicable to any problem
+that needs to have rational, predictable behaviour
+when faced with failure.
 
 Speaking of failure...
 
@@ -129,17 +130,20 @@ from the logical structure of the data
 from the contents of the key/value store
 (the association of key "a" to value "foo"; the public API).
 
-[TODO: Sentence or two about the common pattern of separating logical from
-physical, and why it's used in many database designs.]
+Many databases separate the logical and physical aspects
+as it is is often useful to provide alternative implementations of each
+to get different performance characteristics,
+e.g. DB2's SMS (files in a filesystem) vs DMS (raw block device) tablespaces,
+or MySQL's [alternative engine implementations](http://dev.mysql.com/doc/refman/5.7/en/storage-engines.html).
 
 Discovering the design
 ----------------------
 
 Most of the chapters in this book describe how a program was built from
 inception to completion. However, that is not how most of us interact with the
-code we're working on. We are most often discovering code that was written by
-others, and figuring out how to modify or extend it to do something
-differently.
+code we're working on.
+We most often discover code that was written by others,
+and figure out how to modify or extend it to do something different.
 
 In this chapter, we'll assume that DBDB is a completed project, and walk
 through it to learn how it works. Let's explore the structure of the entire
@@ -209,8 +213,8 @@ each class should have only one reason to change.
 
 ### Reading a value
 
-We'll start with what we would presume to be the simplest case; reading a value
-from the database.
+We'll start with the simplest case:
+reading a value from the database.
 
 Let's see what happens
 when we try to get the value associated with key ``foo`` in ``example.db``:
@@ -744,6 +748,12 @@ Packing as many intermediate nodes as possible
 into a disk sector
 should improve read performance,
 at least right after compaction.
+There are some subtleties here
+(for example, memory usage)
+if you try to implement this yourself.
+And remember:
+always benchmark performance enhancements before and after!
+You'll often be surprised by the results.
 
 ### Patterns and principles 
 
@@ -768,8 +778,8 @@ Refactoring as I added features was a pleasure!
 ### Summary
 
 DBDB is a simple database that makes simple guarantees, and yet
-things still became complicated in a hurry. The foremost technique we used to
+things still became complicated in a hurry. The foremost technique I used to
 manage this complexity was implementing a ostensibly mutable object with an
-immutable data structure. We encourage you to consider this technique the next
+immutable data structure. I encourage you to consider this technique the next
 time you find yourself in the middle of a tricky problem that seemingly has
 more edge-cases than you can keep track of. 
