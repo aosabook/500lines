@@ -120,21 +120,19 @@ There are a couple of interesting patterns used in this constructor function:
 
 Attributes only have meaning if they are part of an entity. We make this connection with the `add-attr` function, which adds a given attribute to an entity's attribute map (called `:attrs`). 
 
-XXX STOPPED HERE until I get back online to download dos2unix
+Note that instead of using the attribute’s name directly, we first convert it into a keyword to adhere to Clojure’s idiomatic usage of maps.
 
-Note that instead of directly using the attribute’s name, we first convert it into a keyword to adhere to Clojure’s idiomatic usage of maps.
-
-````clojure
+```clojure
 (defn add-attr [ent attr]
    (let [attr-id (keyword (:name attr))]
       (assoc-in ent [:attrs attr-id] attr)))
-````
+```
 
 ### Storage
 
-So far, we have talked a lot about _what_ we are going to store, without thinking about _where_ we are going to store it. In this chapter, we resort to the simplest storage mechanism, which is storing the data in memory. This is certainly not reliable, but it simplifies development and debugging and allows us to focus on more interesting parts of the program. 
+So far, we have talked a lot about _what_ we are going to store, without thinking about _where_ we are going to store it. In this chapter, we resort to the simplest storage mechanism: storing the data in memory. This is certainly not reliable, but it simplifies development and debugging and allows us to focus on more interesting parts of the program. 
 
-We will access the storage via a simple _protocol_ that will make it possible in the future to define additional storage providers for a database owner to select from.
+We will access the storage via a simple protocol that will make it possible to define additional storage providers for a database owner to select from.
 
 ````clojure
 (defprotocol Storage
