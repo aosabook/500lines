@@ -1,0 +1,335 @@
+<!doctype html>
+<html>
+<head>
+  <title>Dagoba</title>
+  <script type="text/javascript" src="dagoba.js"></script> 
+  <style type="text/css">
+    code {
+      display: block;
+      margin-left: 2em;
+    }
+    #tests div {
+      margin: 3px;
+      background-color: honeydew;
+    }
+    #tests div.error {
+      background-color: lavenderblush;
+    }
+    #tests header {
+      margin: 3px;
+      background-color: aliceblue;
+      font-size:0.1em;
+    }
+  </style> 
+</head>
+<body>
+  
+  <div id="totals"></div>
+  
+  <div id="tests"></div>
+  
+  
+  <script>
+    // practice makes perfect
+
+    triallist =
+    [ { vertices: [ {_id: 1, name: 'foo', type: 'banana'} 
+                  , {_id: 2, name: 'bar', type: 'orange'} 
+                  ]
+      , edges: [ { _out: 1, _in: 2, _label: 'fruitier'} ]
+      , tests: [ { fun: function(G, V, E) { return G.v(1).run() } 
+                 , got: function(G, V, E) { return [ V[1] ] } }
+               , { fun: function(G, V, E) { return G.v(1).out().run() } 
+                 , got: function(G, V, E) { return [ V[2] ] } }
+               , { fun: function(G, V, E) { return G.v(2).in().run() } 
+                 , got: function(G, V, E) { return [ V[1] ] } }
+               , { fun: function(G, V, E) { return G.v(2).out().run() } 
+                 , got: function(G, V, E) { return [ ] } }
+               ]
+      }
+      
+    , { vertices: [ {_id:1, name:"Fred"}
+                  , {_id:2, name:"Bob"}
+                  , {_id:3, name:"Tom"}
+                  , {_id:4, name:"Dick"}
+                  , {_id:5, name:"Harry"} 
+                  , {_id:6, name:"Lucy"} 
+                  ]
+      , edges: [ { _out: 1, _in: 2, _label: "son"}
+               , { _out: 2, _in: 3, _label: "son"}
+               , { _out: 2, _in: 4, _label: "son"}
+               , { _out: 2, _in: 5, _label: "son"} 
+               , { _out: 2, _in: 6, _label: "daughter"} 
+               , { _out: 3, _in: 4, _label: "brother"} 
+               , { _out: 4, _in: 5, _label: "brother"} 
+               , { _out: 5, _in: 3, _label: "brother"} 
+               , { _out: 3, _in: 5, _label: "brother"} 
+               , { _out: 4, _in: 3, _label: "brother"} 
+               , { _out: 5, _in: 4, _label: "brother"} 
+               , { _out: 3, _in: 6, _label: "sister"} 
+               , { _out: 4, _in: 6, _label: "sister"} 
+               , { _out: 5, _in: 6, _label: "sister"} 
+               , { _out: 6, _in: 3, _label: "brother"} 
+               , { _out: 6, _in: 4, _label: "brother"} 
+               , { _out: 6, _in: 5, _label: "brother"} 
+               ]
+      , tests: [ { fun: function(G, V, E) { return G.v(1).out().out().run()               /* all grandkids */ } 
+                 , got: function(G, V, E) { return [ V[6], V[5], V[4], V[3] ] } }
+
+               , { fun: function(G, V, E) { return G.v(1).out().in().out().run()          /* fred is his son's father */ } 
+                 , got: function(G, V, E) { return [ V[2] ] } }
+
+               , { fun: function(G, V, E) { return G.v(1).out().out('daughter').run()     /* granddaughter */ } 
+                 , got: function(G, V, E) { return [ V[6] ] } }
+
+               , { fun: function(G, V, E) { return G.v(3).out('sister').run()             /* who is tom's sister? */ } 
+                 , got: function(G, V, E) { return [ V[6] ] } }
+                 
+               , { fun: function(G, V, E) { return G.v(3).out().in('son').in('son').run() /* who is tom's brother's grandfather? */ } 
+                 , got: function(G, V, E) { return [ V[1], V[1] ] } }
+                 
+               , { fun: function(G, V, E) { return G.v(3).out().in('son').in('son').unique().run()  /* same, but unique */ } 
+                 , got: function(G, V, E) { return [ V[1] ] } }
+                 
+               , { fun: function(G, V, E) { return G.v(1).outAllN('son', 2).property('name').run()  /* all male hiers */ } 
+                 , got: function(G, V, E) { return ["Bob","Harry","Dick","Tom"] } }
+               ]
+      }
+      
+      
+      
+      // from https://github.com/entrendipity/helios.js/blob/master/tests/test.js
+      
+    , { vertices: [ {"_id":1,"name":"marko","age":29, "dow":["mon", "tue"], "dob":"1984-05-05", "active":true, "salary":"$120,000", "device":{"qty":3,"mobile":{"phone":["iphone", "samsung"], "tablet":["galaxy"]}}, "stars":0}
+                  , {"_id":2,"name":"vadas","age":27, "dow":["mon", "wed", "thu"], "dob":"1986-03-12", "active":false, "salary":"$100,000", "device":{"qty":1,"mobile":{"phone":["iphone"]}}}
+                  , {"_id":3,"name":"lop","lang":"java"}
+                  , {"_id":4,"name":"josh","age":32, "dow":["fri"], "dob":"1981-09-01T00:00:00.000Z", "active":true, "salary":"$80,000", "device":{"qty":2,"mobile":{"phone":["iphone"], "tablet":["ipad"]}}}
+                  , {"_id":5,"name":"ripple","lang":"java"}
+                  , {"_id":6,"name":"peter","age":35, "dow":["mon","fri"], "dob":"1978-12-13", "active":true, "salary":"$70,000", "device":{"qty":2,"mobile":{"phone":["iphone"], "tablet":["ipad"]}}}
+                  ]
+      , edges: [ {"_id":7 ,"_out":1,"_in":2,"weight":0.5,"_label":"knows"}
+               , {"_id":8 ,"_out":1,"_in":4,"weight":1.0,"_label":"knows"}
+               , {"_id":9 ,"_out":1,"_in":3,"weight":0.4,"_label":"created"}
+               , {"_id":10,"_out":4,"_in":5,"weight":1.0,"_label":"created"}
+               , {"_id":11,"_out":4,"_in":3,"weight":0.4,"_label":"created"}
+               , {"_id":12,"_out":6,"_in":3,"weight":0.2,"_label":"created"}
+               ]
+               
+      , tests: [ { fun: function(G, V, E) { return G.v(1).run()                       /* vertex one */ } 
+                 , got: function(G, V, E) { return [ V[1] ] } }
+               , { fun: function(G, V, E) { return G.v().run()                        /* all vertices */ }
+                 , got: function(G, V, E) { return [ V[6], V[5], V[4], V[3], V[2], V[1] ] } }
+               , { fun: function(G, V, E) { return G.v(1, 4).run()                    /* vertices 1 & 4 */ }
+                 , got: function(G, V, E) { return [ V[4], V[1] ] } }
+               , { fun: function(G, V, E) { return G.v({'lang':'java'}).run()         /* vertices 3 & 5 */ }
+                 , got: function(G, V, E) { return [ V[5], V[3] ] } }
+               , { fun: function(G, V, E) { return G.v({'lang':'asdf'}).run()         /* no matches */ }
+                 , got: function(G, V, E) { return [ ] } }
+                 
+               // edge out
+               
+               , { fun: function(G, V, E) { return G.v().out().unique().run()         /* unique vertices w/ inbound edges */ }
+                 , got: function(G, V, E) { return [ V[3], V[5], V[4], V[2] ] } }
+               , { fun: function(G, V, E) { return G.v().out('knows').run()           /* vertices with outbound 'knows' */ }
+                 , got: function(G, V, E) { return [ V[4], V[2] ] } }
+               , { fun: function(G, V, E) { return G.v().out(['knows']).run()         /* same, but using array style */ }
+                 , got: function(G, V, E) { return [ V[4], V[2] ] } }
+               , { fun: function(G, V, E) { return G.v().out(['knows', 'created']).unique().run()  /* double the fun */ }
+                 , got: function(G, V, E) { return [ V[3], V[5], V[4], V[2] ] } }
+               , { fun: function(G, V, E) { return G.v(1).out().run()                 /* out from vertex 1 */ }
+                 , got: function(G, V, E) { return [ V[3], V[4], V[2] ] } }
+               , { fun: function(G, V, E) { return G.v().out({weight: 1}).run()       /* match with object */ }
+                 , got: function(G, V, E) { return [ V[5], V[4] ] } }
+               , { fun: function(G, V, E) { return G.v().out({weight: 1, '_label':'knows'}).run() /* double the fun */ }
+                 , got: function(G, V, E) { return [ V[4] ] } }
+               
+               // edge out through many levels
+               
+               , { fun: function(G, V, E) { return G.v(1).outAllN('', 3).property('name').run()  /* 3 tiers of ancestor from vertex 1  */ }
+                 , got: function(G, V, E) { return ["lop","josh","vadas","lop","ripple"] } }
+               , { fun: function(G, V, E) { return G.v(1).outAllN('', 3).property('name').unique().run()  /* same but unique  */ }
+                 , got: function(G, V, E) { return ["lop","josh","vadas","ripple"] } }
+               
+               // resumable queries
+               
+               , { fun: function(G, V, E) { Q = G.v(1).out().property('name').take(1); return Q.run() /* run once  */ }
+                 , got: function(G, V, E) { return ["lop"] } }
+               , { fun: function(G, V, E) { return Q.run()                                            /* run again */ }
+                 , got: function(G, V, E) { return ["josh"] } }
+               , { fun: function(G, V, E) { return Q.run()                                            /* run amok  */ }
+                 , got: function(G, V, E) { return ["vadas"] } }
+               , { fun: function(G, V, E) { return Q.run()                                            /* run out   */ }
+                 , got: function(G, V, E) { return [] } }
+
+               // serialization + deserialization
+               
+               , { fun: function(G, V, E) { newG = Dagoba.fromString(G.toString()); return newG.v(1).out().property('name').run() /* serialization + deserialization */ }
+                 , got: function(G, V, E) { return G.v(1).out().property('name').run() } }
+               
+               // as, back and except
+               
+               , { fun: function(G, V, E) { return G.v({name: 'marko'}).as('x').out().back('x').property('name').run()          /* as and back */ }
+                 , got: function(G, V, E) { return ["marko","marko","marko"] } }
+                 
+               , { fun: function(G, V, E) { return G.v({name:'marko'}).as('x').out().back('x').unique().property('name').run() /* same but unique */ }
+                 , got: function(G, V, E) { return ["marko"] } }
+
+               , { fun: function(G, V, E) { return G.v({name: 'marko'}).out().in().unique().property('name').run() /* all my siblings */ }
+                 , got: function(G, V, E) { return ["peter","josh","marko"] } }
+               , { fun: function(G, V, E) { return G.v(1).as('x').out().in().unique().except('x').property('name').run() /* all my siblings, but not myself */ }
+                 , got: function(G, V, E) { return ["peter","josh"] } }
+               
+               // property pipe type
+               
+               , { fun: function(G, V, E) { return G.v(1).property('stars').run()    /* 0-valued property */ }
+                 , got: function(G, V, E) { return [0] } }
+               
+               , { fun: function(G, V, E) { return G.v().property('stars').run()    /* undefined properties */ }
+                 , got: function(G, V, E) { return [0] } }
+               
+               
+               
+                 
+               /*
+               
+               it("should return out vertices from id 1 & 4", function(){
+                   var result = g.v(1, 4).out().emit();
+                   expect(result.length).to.equal(5);
+                   expect(result).to.have.deep.property('[0].name', 'vadas');
+                   expect(result).to.have.deep.property('[1].name', 'josh');
+               });
+
+               it("should return out vertices from id 1 & 4 passed in as array", function(){
+                   var result = g.v([1, 4]).out().emit();
+                   expect(result.length).to.equal(5);
+                   expect(result).to.have.deep.property('[0].name', 'vadas');
+                   expect(result).to.have.deep.property('[1].name', 'josh');
+               });
+
+               it("should return out vertices from name=marko", function(){
+                   var result = g.v({'name':{$eq:'marko'}}).out().emit();
+                   expect(result.length).to.equal(3);
+                   expect(result).to.have.deep.property('[0].name', 'vadas');
+               });
+         
+
+                 */
+                 
+               // wait on attrs they're weird and you can always map over the results
+               // 
+               // , { fun: function(G, V, E) { return G.v().id().run()                   /* all ids */ } 
+               //   , got: function(G, V, E) { return [ 1,2,3,4,5,6 ] } }
+               // , { fun: function(G, V, E) { return G.v(6).outE().label().run()         /* edge label */ } 
+               //   , got: function(G, V, E) { return [ 'created' ] } }
+               // , { fun: function(G, V, E) { return G.v(3).attr('name').run()          /* vertex label */ } 
+               //   , got: function(G, V, E) { return [ 'lop' ] } }
+
+               ]
+      }
+      
+    ]
+
+    GG = [] // global for console testing
+    
+    // THINK: this should probably live elsewhere
+    Dagoba.G.findEdgeById = function(edge_id) {
+      for(var i = this.edges.length - 1; i >= 0; i--) {
+        var edge = this.edges[i]
+        if(edge._id == edge_id)
+          return edge
+      }
+    }
+
+    cleanclone = function (results) { // remove all _-prefixed properties
+      return results.map(function(item) {return JSON.parse(JSON.stringify(item, function(key, value) {return key[0]=='_' ? undefined : value}))})}
+        
+    var resultlist = triallist.map(function(trial) {
+      var G = Dagoba.graph() ; GG.push(G)
+      trial.vertices.forEach(G.addVertex.bind(G))
+      trial.edges.forEach(G.addEdge.bind(G))
+      var V = trial.vertices.reduce(function(acc, vertex) {acc[vertex._id] = G.findVertexById(vertex._id); return acc}, {})
+      var E = trial.edges   .reduce(function(acc, edge)   {acc[edge._id]   = G.findEdgeById(edge._id);     return acc}, {})
+      return [trial, trial.tests.map(function(test) {
+        var output, expected
+        if(JSON.stringify(output = cleanclone(test.fun(G, V, E))) == JSON.stringify(expected = cleanclone(test.got(G, V, E))))
+          return [1, test.fun, output]
+          return [0, test.fun, output, expected]
+      })]
+    })
+
+    var testdiv = document.getElementById('tests')
+
+    var total = 0, errors = 0;
+    resultlist.forEach(function(resultbox) {
+      var trial = resultbox[0]
+      var header = document.createElement('header')
+      testdiv.appendChild(header)
+      header.innerHTML = '<p>vertices: <code><pre>' 
+                       + JSON.stringify(trial.vertices, Dagoba.cleanvertex, 2) + '</pre></code></p>'
+                       + '<p>edges: <code><pre>'    
+                       + JSON.stringify(trial.edges,    Dagoba.cleanedge,   2) + '</pre></code></p>'
+      
+      resultbox[1].forEach(function(list) {
+        
+        var str  = '<p>test: <code>'     + formatFun(list[1])      + '</code></p>'
+            str += '<p>output: <code>'   + JSON.stringify(list[2]) + '</code></p>'
+        if(!list[0])
+            str += '<p>expected: <code>' + JSON.stringify(list[3]) + '</code></p>'
+
+        var div = document.createElement('div')
+        if(!list[0]) div.classList.add('error')
+        testdiv.appendChild(div).innerHTML = str
+        total++; errors+=!list[0]
+      })
+    })
+    
+    eltotal = document.getElementById('totals')
+    eltotal.innerHTML = '<h4>Total tests: ' + total + ' Errors: ' + errors + '</h4>'
+
+
+    function formatFun(fun) {
+      return fun.toString().slice(20, -2).replace(/^ return/, '')
+    }
+
+
+
+    // for fancy setups:
+    // setup: function() {
+    //          var g = Dagoba.graph()
+    //          g.addVertex({_id: 1, name: 'foo', type: 'banana'})
+    //          return g
+    //        }
+
+
+
+
+    // var g = Dagoba.graph()
+    // 
+    // g.addVertex({_id: 1, name: 'foo', type: 'banana'})
+    // g.addVertex({_id: 2, name: 'bar', type: 'orange'})
+    // g.addEdge({_in: 1, _out: 2, _label: 'fruitier'})
+    // 
+    // q = g.v(1).out().run()
+    // 
+    // if(q.result.length != 2 || q.result[0]._id != 1)
+    //   console.log('fail', q)
+    // 
+    // 
+    // g.addVertices([ {_id:1, name:"Fred"}, {_id:2, name:"Bob"}, {_id:3, name:"Tom"}, {_id:4, name:"Dick"}, {_id:5, name:"Harry"} ])
+    // g.addEdges([ {_inV: 1, _outV: 2, _label: "father"}, {_inV: 2, _outV: 3, _label: "father"}, {_inV: 2, _outV: 4, _label: "father"}, {_inV: 2, _outV: 5, _label: "father"} ])
+
+    // g.v(1).out().out('father').name    // TODO: check proxies for this -- can we use them? otherwise...
+    // g.v(1).out().out('father').attr('name')
+    // g.v(1).out().out('father').attr('name').paths()
+    // 
+    
+    // range = Array.apply(0, Array(10000)).map(function(val, key) {return key})
+    // range.forEach(function(x) {G.addVertex({name: "foo" + x, age: x, lang: "idris"})})
+    // range.forEach(function(x) {G.addEdge({weight: 2*(1+x), _label: "numnum", _out: x, _in: ~~(Math.random()*100)})})
+
+    
+  </script>
+  
+  
+</body>
+</html>

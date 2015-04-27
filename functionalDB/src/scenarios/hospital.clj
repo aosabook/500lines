@@ -1,5 +1,5 @@
 (ns scenarios.hospital
-  (:use [fdb core constructs graph] )
+  (:use [fdb core constructs graph query] )
   [:require [fdb.manage :as M]
                 [clojure.set :as CS :only (union difference )]])
 
@@ -36,7 +36,7 @@
 (defn add-test-results-to-patient [pat-id test-result]
   (let [test-id (:id test-result)
         a (transact hospital-db  (add-entity test-result))]
-   (transact hospital-db  (update-datom pat-id  :patient/tests #{test-id} :db/add))))
+   (transact hospital-db  (update-entity pat-id  :patient/tests #{test-id} :db/add))))
 
 ;; world setup
 (transact hospital-db  (add-entities (map #(make-entity %) basic-kinds )))
@@ -58,29 +58,67 @@
                                                {:test/bp-systolic 140 :test/bp-diastolic 80 :test/machine :2machine2}
                                                {:test/machine :db/ref} ))
 
-(transact hospital-db (update-datom :pat1 :patient/symptoms #{"cold sweat" "sneeze"} :db/reset-to))
-(transact hospital-db (update-datom :pat1 :patient/tests #{:t2-pat1} :db/remove))
+(transact hospital-db  (update-entity :pat1 :patient/symptoms #{"cold sweat" "sneeze"} :db/reset-to))
+(transact hospital-db  (update-entity :pat1 :patient/tests #{:t2-pat1} :db/add))
  ;  (transact hospital-db (remove-entity :t2-pat1))
 
  (defn keep-on-equals [a b](if (= a b) a nil ))
 
-(q @hospital-db {:find [?e ?k]
-                 :where [[ ?e :test/bp-systolic (> 200 ?b)]
-                         [ ?e :test/bp-diastolic ?k]]} )
+(q @hospital-db {:find [?id ?k ?b]
+                 :where [[ ?id :test/bp-systolic (> 200 ?b)]
+                         [ ?id :test/bp-diastolic ?k]]} )
+;; (defn apply-order
+;;   "Order the unified result entry's pairs (each is a pair with symbol and value) to be by the order of symbols"
+;;   [order-symbols unified-res-entry]
+;;   ;(println order-symbols)
+;;  ; (println  unified-res-entry)
+;;   (let [sym-to-entry-item (reduce #(assoc %1 (first %2) %2) {}  (first unified-res-entry))
+;;         ]
+;;     (map #(%1 %2)  (repeat sym-to-entry-item) order-symbols)))
 
 
- (q @hospital-db {:find [?a ?b]
-                  :where [[ _  ?a (> 200 ?b)]]})
+;(def qw
+  (q @hospital-db {:find [?id ?a ?v]
+                 :where [[ (= ?id :pat1) (= ?a :patient/city) ?v]
+                         ]})
+  ;)
+;qw
+;(second qw)
+;(map (partial apply-order ["?id" "?a" "?v"]) qw)
+;;([("?e" :t2-pat1) ("?k" 80) ("?b" 170)] [("?e" :t4-pat2) ("?k" 90) ("?b" 170)] [("?e" :t3-pat2) ("?k" 80) ("?b" 140)])
 
- (q @hospital-db {:find [?e ?k ]
-                  :where [[ ?e :test/bp-systolic (> 180 ?b)]
+;;(def qq
+  (q @hospital-db {:find [?id ?a ?b]
+                  :where [[?id ?a (> 200 ?b)]]})
+ ;; )
+
+;;(defn apply-order [order-symbols unified-res-entry]
+ ;; (let [sym-to-entry-item (reduce #(assoc %1 (first %2) %2) {}  unified-res-entry)
+  ;;      ]  (vec(map #(%1 %2)  (repeat sym-to-entry-item) order-symbols )))
+ ;; )
+
+;(map (partial apply-order ["?a" "?b" "?id"]) qq )
+
+ ;;([("?a" :test/bp-diastolic) ("?b" 80) ("?a" :test/bp-systolic) ("?b" 140)]
+ ;;  [("?a" :test/bp-diastolic) ("?b" 80) ("?a" :test/bp-systolic) ("?b" 170)]
+ ;;  [("?a" :test/bp-diastolic) ("?b" 90) ("?a" :test/bp-systolic) ("?b" 170)])
+
+; (defmacro symbol-col-to-vec [coll] (vec (map str coll)))
+
+ ;(symbol-col-to-vec [?a1 ?f ?c ])
+
+
+ (q @hospital-db {:find [?k ?e ?b]
+                  :where [[ ?e :test/bp-systolic (> 160 ?b)]
                           [ ?e :test/bp-diastolic ?k] ]})
+;;([("?e" :t3-pat2) ("?k" 80) ("?b" 140)])
 
+(evolution-of (M/db-from-conn hospital-db) :pat1 :patient/symptoms)
 
 (evolution-of (M/db-from-conn hospital-db) :pat1 :patient/symptoms)
 (evolution-of (M/db-from-conn hospital-db) :pat1 :patient/tests)
 
+ (take 7
+         (traverse-db  :pat2 @hospital-db :bfs :incoming))
 
 
-   (take 7
-         (traverse-db  :pat2 @hospital-db :bfs :outgoing))

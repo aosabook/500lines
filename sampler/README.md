@@ -1,8 +1,9 @@
 <!-- to convert to HTML, run `pandoc --to html --mathjax -s README.md > README.html` -->
+<!-- NB: US spelling used -->
 
 # Sampling Methods
 
-Note: this chapter assumes some familiarity with statistics and
+Note: This chapter assumes some familiarity with statistics and
 probability theory.
 
 ## Introduction
@@ -33,7 +34,7 @@ as *Monte Carlo sampling* methods. In Monte Carlo methods, the key
 idea is to take many *samples*, which will then allow you to estimate
 the solution.
 
-### What, exactly, is sampling?
+### What is Sampling?
 
 The term *sampling* means generating random values from some
 probability distribution. For example, the value you get from rolling
@@ -63,7 +64,7 @@ under many different weather conditions, multiple times, which would
 allow you to see under which conditions the airplane is most likely to
 fail.
 
-### Programming with samples and probabilities
+### Programming with Samples and Probabilities
 
 As with most applications in computer science, you can make design
 decisions when programming with samples and probabilities that will
@@ -71,12 +72,12 @@ influence the overall cleanliness, coherence, and correctness of your
 code. In this chapter, we will go through a simple example of how to
 sample random items in a computer game. In particular, we will focus
 on the design decisions which are specific to working with
-probabilities: including functions both for sampling and for
-evaluating probabilities, working in "log-space", allowing
+probabilities, including functions both for sampling and for
+evaluating probabilities, working with logarithms, allowing
 reproducibility, and separating the process of generating samples from
 the specific application.
 
-#### A brief aside about notation
+#### A Brief Aside About Notation
 
 Typically when we talk about probability distributions, we will use
 mathematical notation like $p(x)$ to indicate that $p$ is the
@@ -85,10 +86,11 @@ mathematical notation like $p(x)$ to indicate that $p$ is the
 function $p(x)$ such that $\int_{-\infty}^\infty p(x)\ \mathrm{d}x=1$,
 whereas a PMF is a *discrete* function $p(x)$ such that $\sum_{x\in
 \mathbb{Z}} p(x)=1$, where $\mathbb{Z}$ is the set of all integers.
-For example, the probability distribution in the case of the dart
+
+The probability distribution in the case of the dart
 board would be a continuous PDF, while the probability distribution in
 the case of a die would be a discrete PMF. In both cases, $p(x) \geq
-0$ for all $x$ (i.e., the probabilities have to be non-negative).
+0$ for all $x$; i.e., the probabilities have to be non-negative.
  
 There are two things that we might want to do with a probability
 distribution. Given a value (or location) $x$, we might want to
@@ -102,7 +104,7 @@ to get a sample at places where the probability is higher). In
 mathematical notation, we would write this as $x\sim p$, to indicate
 that $x$ is sampled proportional to $p$.
 
-## Sampling magical items
+## Sampling Magical Items
 
 As a simple example to demonstrate the various design decisions
 involved with programming with probabilities, let's imagine we're
@@ -128,18 +130,18 @@ points distributed across different stats (e.g., +2 wisdom and +3
 intelligence) or concentrated within a single stat (e.g., +5
 charisma).
 
-How would we randomly sample these stats? The easiest way is probably
-to first sample the overall item bonus. Then, we sample the way the
+How would we randomly sample from this distribution? The easiest way is probably
+to first sample the overall item bonus, then sample the way the
 bonus is distributed across the stats. Conveniently, the probability
 distributions of the bonus and the way that it is distributed are both
 instances of the *multinomial distribution*.
 
-## The multinomial distribution
+## The Multinomial Distribution
 
 The multinomial distribution is used when you have several possible
 outcomes, and you want to characterize the probability of each of
-those outcomes occurring.  The classic example used to describe the
-multinomial distribution is the *ball and urn* example. The idea is
+those outcomes occurring.  The classic example used to explain the
+multinomial distribution is the *ball and urn*. The idea is
 that you have an urn with different colored balls in it (for example,
 30% red, 20% blue, and 50% green). You pull out a ball, record its
 color, put it back in the urn, and then repeat this multiple times. In
@@ -154,7 +156,7 @@ green and one blue).
 Note: the code in this section is also located in the file
 `multinomial.py`.
 
-### The `MultinomialDistribution` class
+### The `MultinomialDistribution` Class
 
 In general, there are two use cases for a distribution: we might want
 to *sample* from that distribution, and we might want to *evaluate the
@@ -233,17 +235,17 @@ class MultinomialDistribution(object):
 
 The class takes as arguments the event probabilities, $p$, and a
 variable called `rso`. First, the constructor checks that the
-parameters are valid (i.e., that `p` sums to 1). Then, it then stores
+parameters are valid; i.e., that `p` sums to 1. Then it stores
 the arguments that were passed in, and uses the event probabilities to
-compute the event *log* probabilities (we'll go into why this is
+compute the event *log* probabilities. (We'll go into why this is
 necessary in a bit). The `rso` object is what we'll use later to
-produce random numbers (we'll talk more about what it is a bit later
+produce random numbers. (We'll talk more about what it is a bit later
 as well).
 
 Before we get into the rest of the class, I want to briefly go over
 two points related to the constructor.
 
-#### Descriptive vs. mathematic variable names
+#### Descriptive vs. Mathematic Variable Names
 
 Usually, programmers are encouraged to use descriptive variable names:
 for example, it would be considered better practice to use the names
@@ -265,14 +267,14 @@ much information), but having more descriptive variable names can also
 make it harder to go back and forth between the the code and the
 equation.
 
-I am personally of the opinion that when you are writing code that
-directly implements an equation, then the same variable names should
+I think that when you are writing code that
+directly implements an equation, the same variable names should
 be used as those in the equation. This makes it easy to see which
 parts of the code are implementing which pieces of the equation. This,
 of course, can make the code harder to understand in isolation, so it
-is especially important that comments then do a good job of explaining
+is especially important that the comments then do a good job of explaining
 what the goal of the various computations are. If the equation is
-listed in an academic paper, then the comments should reference the
+listed in an academic paper, the comments should reference the
 equation number so it can be easily looked up.
 
 #### Importing NumPy
@@ -281,11 +283,11 @@ You may have noticed that we imported the `numpy` module as `np`. This
 is standard practice in the world of numerical computing, because
 NumPy provides a huge number of useful functions, many of which might
 be used even in a single file. In the simple examples from this
-chapter, we only use 11 NumPy functions, but in other cases, the
-number can be much higher: it is not uncommon for me to use around 40
+chapter, we only use eleven NumPy functions, but the
+number can be much higher: it is not uncommon for me to use around forty
 different NumPy functions throughout a project!
 
-There are a few options for how to import NumPy. We could use `from
+There are a few options for importing NumPy. We could use `from
 numpy import *`, but that is generally poor style, because it makes it
 hard to determine where the functions came from. We could import the
 functions individually with `from numpy import array, log, ...`, but
@@ -299,11 +301,11 @@ than `numpy` is significantly clearer:
 >>> np.sqrt(np.sum(np.dot(np.array(a), np.array(b))))
 ```
 
-### Sampling from a multinomial distribution
+### Sampling from a Multinomial Distribution
 
 Taking a sample from a multinomial distribution is actually fairly
 straightforward, because NumPy provides us with a function that
-already does it: `np.random.multinomial`.
+does it: `np.random.multinomial`.
 
 > *NumPy includes functions to draw samples from many different types
 > of distributions. For a full list, take a look at the
@@ -312,7 +314,7 @@ already does it: `np.random.multinomial`.
 Despite the fact that this function already exists, there are a few
 design decisions surrounding it that we can make.
 
-#### Seeding the random number generator
+#### Seeding the Random Number Generator
 
 Even though we do want to draw a *random* sample, we sometimes want
 our results to be reproducible: even though the numbers seem random,
@@ -373,12 +375,12 @@ sampler from the `RandomState` object itself.
 > is easier to find out whether there is nondeterminism coming from
 > somewhere other than your own code.*
 
-#### What's a parameter?
+#### What's a Parameter?
 
 Once we've decided whether to use `np.random.multinomial` or
 `rso.multinomial`, sampling is just a matter of calling the
 appropriate function. However, there is one other decision that we
-might consider: what counts as a parameter.
+might consider: What counts as a parameter?
 
 Earlier, I said that the outcome probabilities, $p$, were the
 parameters of the multinomial distribution. However, depending on who
@@ -425,7 +427,7 @@ def sample(self, n):
     return x
 ```
 
-### Evaluating the multinomial PMF
+### Evaluating the Multinomial PMF
 
 Although we don't explicitly need to compute the probability of the
 magical items that we generate, it is almost always a good idea to
@@ -437,17 +439,17 @@ with our sampling function, then they should approximate the exact PDF
 or PMF. If after many samples the approximation is poor or obviously
 wrong, then we know there is a bug in our code somewhere.
 
-Another reason to implement the PMF or PDF is because frequently, you
+Another reason to implement the PMF or PDF is that frequently, you
 will actually need it later down the line and simply don't realize it
 initially. For example, we might want to classify our randomly
 generated items as *common*, *uncommon*, and *rare*, depending on how
-likely it is to be generated. To determine this, we need to be able to
+likely they are to be generated. To determine this, we need to be able to
 compute the PMF.
 
 Finally, in many cases, your particular use case will dictate that you
 implement the PMF or PDF from the beginning, anyway.
 
-#### The multinomial PMF equation
+#### The Multinomial PMF Equation
 
 Formally, the multinomial distribution has the following equation:
 
@@ -471,12 +473,12 @@ $$
 p(\mathbf{x}; \mathbf{p}) = \frac{\Gamma((\sum_{i=1}^k x_i)+1)}{\Gamma(x_1+1)\cdots{}\Gamma(x_k+1)}p_1^{x_1}\cdots{}p_k^{x_k},
 $$
 
-#### Working in "log-space"
+#### Working with Log Values
 
 Before getting into the actual code needed to implement the equation
 above, I want to emphasize one of the *the most important design
-decisions* when writing code with probabilities: working in
-"log-space". What this means is that rather than working directly with
+decisions* when writing code with probabilities: working with
+log values. What this means is that rather than working directly with
 probabilities $p(x)$, we should be working with *log*-probabilities,
 $\log{p(x)}$. This is because probabilities can get very small very
 quickly, resulting in underflow errors.
@@ -494,7 +496,7 @@ by `tiny`) is:
 ```
 
 While that may seem very small, it is not unusual to encounter
-probabilities of this magnitude, or even smaller! Moreover, it is a
+probabilities of this magnitude, or even smaller. Moreover, it is a
 common operation to multiply probabilities, yet if we try to do this
 with very small probabilities, we encounter underflow problems:
 
@@ -506,9 +508,9 @@ with very small probabilities, we encounter underflow problems:
 ```
 
 However, taking the log can help alleviate this issue because we can
-represent a much wider range of numbers in log-space than we can
-normally. Officially, log-space ranges from $-\infty$ to zero. In
-practice, log-space ranges from the `min` value returned by `finfo`,
+represent a much wider range of numbers with logarithms than we can
+normally. Officially, log values range from $-\infty$ to zero. In
+practice, they range from the `min` value returned by `finfo`,
 which is the smallest number that can be represented, to zero. The
 `min` value is *much* smaller than the log of the `tiny` value (which
 would be our lower bound if we did not work in log space):
@@ -517,17 +519,17 @@ would be our lower bound if we did not work in log space):
 >>> # this is our lower bound normally
 >>> np.log(tiny)
 -708.39641853226408
->>> # this is our lower bound in log-space
+>>> # this is our lower bound when using logs
 >>> np.finfo(float).min
 -1.7976931348623157e+308
 ```
 
-So, by working in log-space, we can greatly expand our range of
+So, by working with log values, we can greatly expand our range of
 representable numbers.
 
-Moreover, we can perform multiplication in log-space using addition,
- because of the identity that $\log(x\cdot{}y) = \log(x) +
- \log(y)$. Thus, if we do the multiplication above in log-space, we do
+Moreover, we can perform multiplication with logs by using addition,
+ because $\log(x\cdot{}y) = \log(x) +
+ \log(y)$. Thus, if we do the multiplication above with logs, we do
  not have to worry (as much) about loss of precision due to underflow:
 
 ```python
@@ -539,8 +541,8 @@ Moreover, we can perform multiplication in log-space using addition,
 -1416.7928370645282
 ```
 
-Of course, this solution is not a magic bullet. If we need to bring
-the number *out* of log-space (for example, to add probabilities,
+Of course, this solution is not a magic bullet. If we need to derive
+the number from the logarithm (for example, to add probabilities,
 rather than multiply them), then we are back to the issue of
 underflow:
 
@@ -551,15 +553,15 @@ underflow:
 0.0
 ```
 
-Still, doing all our computations in log-space can save a lot of
+Still, doing all our computations with logs can save a lot of
 headache. We might be forced to lose that precision if we need to go
-out of log-space, but we at least maintain *some* information about
+back to the original numbers, but we at least maintain *some* information about
 the probabilities---enough to compare them, for example---that would
 otherwise be lost.
 
-#### Writing the PMF code
+#### Writing the PMF Code
 
-Now that we have seen the importance of working in log-space, we can
+Now that we have seen the importance of working with logs, we can
 actually write our function to compute the log-PMF:
 
 ```python
@@ -577,7 +579,7 @@ def log_pmf(self, x):
     The evaluated log-PMF for draw `x`
 
     """
-    # Get the total number of events.
+    # Get the total number of events
     n = np.sum(x)
 
     # equivalent to log(n!)
@@ -594,7 +596,7 @@ def log_pmf(self, x):
     # equivalent to log(p1^x1 * ... * pk^xk)
     sum_log_pi_xi = np.sum(log_pi_xi)
 
-    # Put it all together.
+    # Put it all together
     log_pmf = log_n_factorial - sum_log_xi_factorial + sum_log_pi_xi
     return log_pmf
 ```
@@ -616,7 +618,7 @@ but it is easier to understand, easier to code, and more
 computationally efficient if we use the gamma function already built
 in to SciPy.
 
-There is one edge case that we need to tackle, which is when one of
+There is one edge case that we need to tackle: when one of
 our probabilities is zero. When $p_i=0$, then $\log{p_i}=-\infty$.
 This would be fine, except for the following behavior when infinity is
 multiplied by zero:
@@ -638,10 +640,10 @@ producing another `nan`, which is just not useful. To handle this, we
 check specifically for the case when $x_i=0$, and set the resulting
 $x_i\cdot{}\log(p_i)$ also to zero.
 
-Let's return for a moment to our discussion of log-space. Even if we
+Let's return for a moment to our discussion of using logs. Even if we
 really only need the PMF, and not the log-PMF, it is generally better
-to *first* compute it in log-space, and then exponentiate it if we
-need to take it out of log-space:
+to *first* compute it with logs, and then exponentiate it if we
+need to:
 
 ```python
 def pmf(self, x):
@@ -662,8 +664,8 @@ def pmf(self, x):
     return pmf
 ```
 
-To further drive home the point of why working in log-space is so
-important, we can look at an example just with the multinomial:
+To further drive home the importance of working with logs,
+we can look at an example with just the multinomial:
 
 ```python
 >>> dist = MultinomialDistribution(np.array([0.25, 0.25, 0.25, 0.25]))
@@ -689,14 +691,14 @@ inf
 
 If we had tried to compute just the PMF using the `gamma` function, we
 would have ended up with `gamma(1000 + 1) / gamma(1000 + 1)`, which
-results in a `nan` value (even though we can analytically see that it
-should be 1). But, because we do the computation in log-space, it's
-not an issue, so we don't need to worry about it!
+results in a `nan` value (even though we can see that it
+should be 1). But, because we do the computation with logarithms, it's
+not an issue and we don't need to worry about it!
 
-## Sampling magical items, revisited
+## Sampling Magical Items, Revisited
 
 Now that we have written our multinomial functions, we can put them to
-work to actually generate our magical items! To do this, we will
+work to generate our magical items. To do this, we will
 create a class called `MagicItemDistribution`, located in the file
 `rpg.py`:
 
@@ -716,14 +718,14 @@ class MagicItemDistribution(object):
         ----------
         bonus_probs: numpy array of length m
             The probabilities of the overall bonuses. Each index in
-            the array corresponds to the bonus of that amount (e.g.
+            the array corresponds to the bonus of that amount (e.g.,
             index 0 is +0, index 1 is +1, etc.)
 
         stats_probs: numpy array of length 6
             The probabilities of how the overall bonus is distributed
             among the different stats. `stats_probs[i]` corresponds to
-            the probability of giving a bonus point to the ith stat,
-            i.e. the value at `MagicItemDistribution.stats_names[i]`.
+            the probability of giving a bonus point to the ith stat;
+            i.e., the value at `MagicItemDistribution.stats_names[i]`.
 
         rso: numpy RandomState object (default: np.random)
             The random number generator
@@ -739,9 +741,9 @@ the bonus probabilities, the stats probabilities, and the random
 number generator. Even though we specified above what we wanted the
 bonus probabilities to be, it is generally a good idea to encode
 parameters as arguments that are passed in. This leaves open the
-possibility of sampling items under different distributions (for
+possibility of sampling items under different distributions. (For
 example, maybe the bonus probabilities would change as the player's
-level increases). We encode the *names* of the stats as a class
+level increases.) We encode the *names* of the stats as a class
 variable, `stats_names`, though this could just as easily be another
 parameter to the constructor.
 
@@ -761,7 +763,7 @@ def _sample_bonus(self):
 
     """
     # The bonus is essentially just a sample from a multinomial
-    # distribution with n=1, i.e., only one event occurs.
+    # distribution with n=1; i.e., only one event occurs.
     sample = self.bonus_dist.sample(1)
 
     # `sample` is an array of zeros and a single one at the
@@ -780,7 +782,7 @@ def _sample_stats(self):
         The number of bonus points for each stat
 
     """
-    # First we need to sample the overall bonus.
+    # First we need to sample the overall bonus
     bonus = self._sample_bonus()
 
     # Then, we use a different multinomial distribution to sample
@@ -790,7 +792,7 @@ def _sample_stats(self):
     return stats
 ```
 
-We *could* have made these be just a single method---especially since
+We *could* have made these a single method---especially since
 `_sample_stats` is the only function that depends on
 `_sample_bonus`---but I have chosen to keep them separate, both
 because it makes the sampling routine easier to understand, and
@@ -818,10 +820,10 @@ def sample(self):
 ```
 
 The `sample` function does essentially the same thing as
-`_sample_stats`, except that it returns a dictionary with the stats
+`_sample_stats`, except that it returns a dictionary with the stats'
 names as keys. This provides a clean and understandable interface for
 sampling items---it is obvious which stats have how many bonus
-points---but it also keeps the option open for using just
+points---but it also keeps open the option of using just
 `_sample_stats` if one needs to take many samples and efficiency is
 required.
 
@@ -831,13 +833,13 @@ take dictionaries of the form produced by `sample`:
 
 ```python
 def log_pmf(self, item):
-    """Compute the log probability the given magical item.
+    """Compute the log probability of the given magical item.
 
     Parameters
     ----------
     item: dictionary
         The keys are the names of the stats, and the values are
-        the bonus conferred to the corresponding stat.
+        the bonuses conferred to the corresponding stat.
 
     Returns
     -------
@@ -900,7 +902,7 @@ def _stats_log_pmf(self, stats):
     logp_stats = self.stats_dist.log_pmf(stats)
 
     # Then multiply them together (using addition, because we are
-    # working in log-space)
+    # working with logs)
     log_pmf = logp_bonus + logp_stats
     return log_pmf
 ```
@@ -924,7 +926,7 @@ def _bonus_log_pmf(self, bonus):
 
     """
     # Make sure the value that is passed in is within the
-    # appropriate bounds.
+    # appropriate bounds
     if bonus < 0 or bonus >= len(self.bonus_dist.p):
         return -np.inf
 
@@ -970,13 +972,13 @@ And, if we want, we can evaluate the probability of a sampled item:
 0.0069444444444444441
 ```
 
-## Estimating attack damage
+## Estimating Attack Damage
 
-We've seen one example application of sampling: simply generating
+We've seen one application of sampling: generating
 random items that monsters drop. I mentioned earlier that sampling can
 also be used when you want to estimate something from the distribution
 as a whole, and there are certainly cases in which we could use our
-`MagicItemDistribution` to do this! For example, let's say that damage in
+`MagicItemDistribution` to do this. For example, let's say that damage in
 our RPG works by rolling some number of D12s (twelve-sided dice). The
 player gets to roll one die by default, and then add dice according to
 their strength bonus. So, for example, if they have a +2 strength
@@ -984,8 +986,8 @@ bonus, they can roll three dice. The damage dealt is then the sum of
 the dice.
 
 We might want to know how much damage a player might deal after
-finding some number of weapons (e.g., as a factor in setting the
-difficulty of monsters). Let's say that after collecting two items, we
+finding some number of weapons; e.g., as a factor in setting the
+difficulty of monsters. Let's say that after collecting two items, we
 want the player to be able to defeat monsters within three hits in
 about 50% of the battles. How many hit points should the monster have?
 
@@ -1000,7 +1002,7 @@ following scheme:
 4. Repeat steps 1-3 many times. This will result in an approximation
    to the distribution over damage.
 
-### Implementing a distribution over damage
+### Implementing a Distribution Over Damage
 
 The class `DamageDistribution` (also in `rpg.py`) shows an
 implementation of this scheme:
@@ -1030,9 +1032,11 @@ class DamageDistribution(object):
             The random number generator
 
         """
+
         # This is an array of integers corresponding to the sides of a
         # single die.
         self.dice_sides = np.arange(1, num_dice_sides + 1)
+
         # Create a multinomial distribution corresponding to one of
         # these dice.  Each side has equal probabilities.
         self.dice_dist = MultinomialDistribution(
@@ -1069,19 +1073,19 @@ The constructor takes as arguments the number of sides the dice have,
 how many hits we want to compute damage over, how many items the
 player has, a distribution over magic items (of type
 `MagicItemDistribution`) and a random state object. By default, we set
-`num_dice_sides` to `12` because, while it is technically a parameter,
-it is unlikely to change. Similarly, we set `num_hits` to `1` as a
+`num_dice_sides` to 12 because, while it is technically a parameter,
+it is unlikely to change. Similarly, we set `num_hits` to 1 as a
 default because a more likely use case is that we just want to take
 one sample of the damage for a single hit.
 
-We then implement the actual sampling logic in `sample` (note the
-structural similarity to `MagicItemDistribution`!).  First, we
+We then implement the actual sampling logic in `sample`. (Note the
+structural similarity to `MagicItemDistribution`.)  First, we
 generate a set of possible magic items that the player has. Then, we
 look at the strength stat of those items, and from that compute the
 number of dice to roll. Finally, we roll the dice (again relying on
 our trusty multinomial functions) and compute the damage from that.
 
-#### What happened to evaluating probabilities?
+#### What Happened to Evaluating Probabilities?
 
 You may have noticed that we didn't include a `log_pmf` or `pmf`
 function in our `DamageDistribution`. This is because we actually do
@@ -1101,9 +1105,9 @@ difficult to compute exactly). So, rather than having a method for the
 PMF, we'll show in the next section how we can approximate the
 distribution with many samples.
 
-### Approximating the distribution
+### Approximating the Distribution
 
-Now we have the machinery to answer our question from earlier: if the
+Now we have the machinery to answer our question from earlier: If the
 player has two items, and we want the player to be able to defeat the
 monster within three hits 50% of the time, how many hit points should
 the monster have?
@@ -1116,8 +1120,8 @@ and `rso` that we created earlier:
 >>> damage_dist = DamageDistribution(2, item_dist, num_hits=3, rso=rso)
 ```
 
-Now we can draw a bunch of samples, and compute the 50th percentile
-(that is, the damage value that is greater than 50% of the samples):
+Now we can draw a bunch of samples, and compute the 50th percentile 
+(the damage value that is greater than 50% of the samples):
 
 ```python
 >>> samples = np.array([damage_dist.sample() for i in xrange(100000)])
@@ -1150,7 +1154,7 @@ the general case:
 
 1. Representing probability distributions using a class, and including
    functions both for sampling and for evaluating the PMF (or PDF).
-2. Computing the PMF (or PDF) in log-space.
+2. Computing the PMF (or PDF) using logarithms.
 3. Generating samples from a random number generator object to enable
    reproducible randomness.
 4. Writing functions whose inputs/outputs are clear and understandable

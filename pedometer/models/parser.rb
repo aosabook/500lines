@@ -18,7 +18,7 @@ class Parser
     # Extract numerical data into the format:
     # [ [ [x1t, y1t, z1t] ], ..., [ [xnt, ynt, znt] ] ]
     # OR
-    # [ [ [x1u, y1u, z1u], [x1g, y1g, z1g] ], ..., 
+    # [ [ [x1u, y1u, z1u], [x1g, y1g, z1g] ], ...,
     #   [ [xnu, ynu, znu], [xng, yng, zng] ] ]
     @parsed_data = @data.to_s.split(';').map { |x| x.split('|') }
                    .map { |x| x.map { |x| x.split(',').map(&:to_f) } }
@@ -39,7 +39,7 @@ class Parser
       end
 
       # Format filtered acceleration into the following format:
-      # [ [ [x1u, y1u, z1u], [x1g, y1g, z1g] ], ..., 
+      # [ [ [x1u, y1u, z1u], [x1g, y1g, z1g] ], ...,
       #   [ [xnu, ynu, znu], [xng, yng, zng] ] ]
       @parsed_data = @parsed_data.length.times.map do |i|
         user = filtered_accl.map(&:first).map { |elem| elem[i] }

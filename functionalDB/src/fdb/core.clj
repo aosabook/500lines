@@ -55,9 +55,9 @@
 
 (defn add-entity [db ent]
   (let [[fixed-ent next-top-id] (fix-new-entity db ent)
-        new-layer (update-in  (last (:layers db)) [:storage] write-entity fixed-ent)
+        layer-with-updated-storage (update-in  (last (:layers db)) [:storage] write-entity fixed-ent)
         add-fn (partial add-entity-to-index fixed-ent)
-        new-layer (reduce add-fn new-layer  (indices))]
+        new-layer (reduce add-fn layer-with-updated-storage  (indices))]
     (assoc db :layers  (conj (:layers db) new-layer) :top-id next-top-id)))
 
 (defn add-entities [db ents-seq] (reduce add-entity db ents-seq))
@@ -100,18 +100,18 @@
                                          (update-attr-in-index cleaned-index ent-id  (:name old-attr) target-val operation))]
       (assoc layer ind-name updated-index))))
 
-(defn- update-entity [storage e-id new-attr]
+(defn- put-entity [storage e-id new-attr]
   (assoc-in (get-entity storage e-id) [:attrs (:name new-attr)] new-attr))
 
 (defn- update-layer
   [layer ent-id old-attr updated-attr new-val operation]
   (let [storage (:storage layer)
         new-layer (reduce (partial update-index  ent-id old-attr new-val operation) layer (indices))]
-    (assoc new-layer :storage (write-entity storage (update-entity storage ent-id updated-attr)))))
+    (assoc new-layer :storage (write-entity storage (put-entity storage ent-id updated-attr)))))
 
-(defn update-datom
+(defn update-entity
   ([db ent-id attr-name new-val]
-   (update-datom db ent-id attr-name new-val :db/reset-to ))
+   (update-entity db ent-id attr-name new-val :db/reset-to ))
   ([db ent-id attr-name new-val operation]
      (let [update-ts (next-ts db)
            layer (last (:layers db))
@@ -128,16 +128,16 @@
         remove-from-index-fn (partial remove-entries-from-index  ent-id  :db/remove)]
     (assoc layer ind-name (reduce remove-from-index-fn index relevant-attrs))))
 
-(defn- reffing-datoms-to [e-id layer]
+(defn- reffing-to [e-id layer]
   (let [vaet (:VAET layer)]
         (for [[attr-name reffing-set] (e-id vaet)
               reffing reffing-set]
-             [reffing attr-name e-id])))
+             [reffing attr-name])))
 
 (defn- remove-back-refs [db e-id layer]
-  (let [refing-datoms (reffing-datoms-to e-id layer)
-        remove-fn (fn[d [e a v]] (update-datom db e a v :db/remove))
-        clean-db (reduce remove-fn db refing-datoms)]
+  (let [reffing-datoms (reffing-to e-id layer)
+        remove-fn (fn[d [e a]] (update-entity db e a e-id :db/remove))
+        clean-db (reduce remove-fn db reffing-datoms)]
     (last (:layers clean-db))))
 
 (defn remove-entity [db ent-id]
@@ -148,37 +148,27 @@
         new-layer (reduce (partial remove-entity-from-index ent) no-ent-layer (indices))]
     (assoc db :layers (conj  (:layers db) new-layer))))
 
-(defn transact-on-db [initial-db txs]
-    (loop [[tx & rst-tx] txs transacted initial-db]
-      (if tx
-          (recur rst-tx (apply (first tx) transacted (rest tx)))
+(defn transact-on-db [initial-db ops]
+    (loop [[op & rst-ops] ops transacted initial-db]
+      (if op
+          (recur rst-ops (apply (first op) transacted (rest op)))
           (let [initial-layer  (:layers initial-db)
                 new-layer (last (:layers transacted))]
             (assoc initial-db :layers (conj  initial-layer new-layer) :curr-time (next-ts initial-db) :top-id (:top-id transacted))))))
 
-(defmacro  _transact [db op & txs]
-  (when txs
-    (loop [[frst-tx# & rst-tx#] txs  res#  [op db `transact-on-db] accum-txs# []]
-      (if frst-tx#
-          (recur rst-tx# res#  (conj accum-txs# (vec frst-tx#)))
-          (list* (conj res#  accum-txs#))))))
+(defmacro  _transact [db exec-fn & ops]
+    (when ops
+      (loop [[frst-op# & rst-ops#] ops  res#  [exec-fn db `transact-on-db]  accum-ops# []]
+        (if frst-op#
+           (recur rst-ops# res#  (conj  accum-ops#  (vec frst-op#)))
+           (list* (conj res#  accum-ops#))))))
 
 (defn- _what-if
   "Operates on the db with the given transactions, but without eventually updating it"
-  [db f txs] (f db txs))
+  [db f ops] (f db ops))
 
-(defmacro what-if [db & txs]  `(_transact ~db _what-if  ~@txs))
-(defmacro transact [db-conn & txs]  `(_transact ~db-conn swap! ~@txs))
-
-(defmacro q
-  "querying the database using datalog queries built in a map structure ({:find [variables*] :where [ [e a v]* ]}). (after the where there are clauses)
-  At the moment support only filtering queries, no joins is also assumed."
-  [db query]
-  `(let [pred-clauses#  (q-clauses-to-pred-clauses ~(:where query)) ; transforming the clauses of the query to an internal representation structure called query-clauses
-           needed-vars# (symbol-col-to-set  ~(:find query))  ; extracting from the query the variables that needs to be reported out as a set
-           query-plan# (build-query-plan pred-clauses#) ; extracting a query plan based on the query-clauses
-           query-internal-res# (query-plan# ~db)] ;executing the plan on the database
-     (unify query-internal-res# needed-vars#)));unifying the query result with the needed variables to report out what the user asked for
+(defmacro what-if [db & ops]  `(_transact ~db _what-if  ~@ops))
+(defmacro transact [db-conn & ops]  `(_transact ~db-conn swap! ~@ops))
 
 (defn evolution-of
   "The sequence of the values of an entity's attribute, as changed through time"

@@ -5,7 +5,7 @@ class UserTest < Test::Unit::TestCase
 
   def test_create
     user = User.new('male', 167.5, 80)
-    
+
     assert_equal 'male', user.gender
     assert_equal 167.5,  user.height
     assert_equal 80,     user.stride
@@ -13,7 +13,7 @@ class UserTest < Test::Unit::TestCase
 
   def test_create_no_params
     user = User.new
-    
+
     assert_nil user.gender
     assert_nil user.height
     assert_equal 74, user.stride
@@ -23,7 +23,7 @@ class UserTest < Test::Unit::TestCase
     assert_nil User.new.gender
     assert_nil User.new(nil).gender
     assert_nil User.new('').gender
-    
+
     ['invalid gender', 1].each do |gender|
       assert_raise_with_message(RuntimeError, 'Invalid gender') do
         User.new(gender)
@@ -69,7 +69,7 @@ class UserTest < Test::Unit::TestCase
         User.new(nil, nil, stride)
       end
     end
-    
+
     assert_raises(ArgumentError) do
       User.new(nil, nil, 'invalid stride')
     end

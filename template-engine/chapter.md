@@ -30,7 +30,7 @@ For purposes of illustration, let's imagine we want to produce this toy HTML:
 <ul>
     <li>Apple: $1.00</li>
     <li>Fig: $1.50</li>
-    <li>Pomegranite: $3.25</li>
+    <li>Pomegranate: $3.25</li>
 </ul>
 ```
 
@@ -42,7 +42,7 @@ One simple way to make this HTML would be to have string constants in our code,
 and join them together to produce the page.  Dynamic data would be inserted
 with string substitution of some sort.  Some of our dynamic data is repetitive,
 like our lists of products.  This means we'll have chunks of HTML that repeat,
-so those would have to be handled separately and combined with the rest of the
+so those will have to be handled separately and combined with the rest of the
 page.
 
 Producing our toy page in this way might look like this:
@@ -74,14 +74,14 @@ see because the static text is broken into separate pieces. The details of
 how data is formatted is lost in the Python code.  In order to modify the HTML
 page, our front-end designer would need to be able to edit Python code to make
 HTML changes.  Imagine what the code would look like if the page were ten (or
-one hundred!) times more complicated; it would quickly become unworkable.
+one hundred) times more complicated; it would quickly become unworkable.
 
 
 ## Templates
 
-The better way to produce HTML pages is with templates.  The HTML page is
+The better way to produce HTML pages is with *templates*.  The HTML page is
 authored as a template, meaning that the file is mostly static HTML, with
-dynamic pieces embedded in it with special notation.  Our toy page above could
+dynamic pieces embedded in it using special notation.  Our toy page above could
 look like this as a template:
 
 ```
@@ -133,13 +133,13 @@ will be substituted into the output.
 String formatting functions such as Python's `"foo = {foo}!".format(foo=17)`
 are examples of mini-languages used to create text from a string literal and the data
 to be inserted.  Templates extend this idea to include logic constructs like
-conditionals and loops, but are really just a difference of degree.
+conditionals and loops, but the difference is only of degree.
 
 These files are called templates because they are used to produce many
-different pages with similar structure but differing details.
+pages with similar structure but differing details.
 
-To use HTML templates in our programs, we need a template engine: a function
-that takes a static *template* describing the structure and static content of
+To use HTML templates in our programs, we need a *template engine*: a function
+that takes a static template describing the structure and static content of
 the page, and a dynamic *context* that provides the dynamic data to plug into
 the template.  The template engine combines the template and the context to
 produce a complete string of HTML.  The job of a template engine is to
@@ -153,8 +153,8 @@ makes it possible to insert values into the HTML without worrying about which
 characters are special in HTML.
 
 Templates are also not always the best choice for producing large chunks of text,
-even if they do follow a common pattern.  Very data-heavy outputs might just be
-easier to do the logic-centric way rather than a document-centric template way.
+even if they do follow a common pattern.  Very data-heavy outputs might be
+easier to do the logic-centric way rather than the document-centric template way.
 
 
 ## Supported Syntax
@@ -250,14 +250,14 @@ In broad strokes, the template engine will have two main phases:
 
 * Parse the template
 * Render the template to assemble the text result, which involves:
-  - Manage the dynamic context, the source of the data
-  - Execute the logic elements
-  - Implement dot access and filter execution
+  - Managing the dynamic context, the source of the data
+  - Executing the logic elements
+  - Implementing dot access and filter execution
 
-A key decision in the implementation is what will be passed from the parsing
-phase to the rendering phase.  What does parsing produce that can be rendered?
-There are two main options here.  We'll call them interpretation and
-compilation, using the terms loosely from other language implementations.
+The question of what to pass from the parsing
+phase to the rendering phase is key.  What does parsing produce that can be rendered?
+There are two main options; we'll call them *interpretation* and
+*compilation*, using the terms loosely from other language implementations.
 
 In an interpretation model, parsing produces a data structure representing the
 structure of the template. The rendering phase walks that data structure,
@@ -357,7 +357,7 @@ to this list, we capture its `append` and `extend` methods in the local names
 `result_append` and `result_extend`.  The last local we create is a `to_str`
 shorthand for the `str` built-in.
 
-These kinds of shortcuts are unusual, let's look at them more closely.  In
+These kinds of shortcuts are unusual. Let's look at them more closely.  In
 Python, a method call on an object like `result.append("hello")` is executed in
 two steps.  First, the append attribute is fetched from the result object:
 `result.append`.  Then the value fetched is invoked as a function, passing it
@@ -377,14 +377,14 @@ append_result("hello")
 
 In the template engine code, we've split it out this way so that we only do the
 first step once, no matter how many times we do the second step.  This saves us
-a small amount of time, because we avoid the time to look up the append attribute.
+a small amount of time, because we avoid taking the time to look up the append attribute.
 
 This is an example of a micro-optimization: an unusual coding technique that
-gains us tiny improvements in speed.  They can be less readable, or more
+gains us tiny improvements in speed.  Micro-optimizations can be less readable, or more
 confusing, so they are only justified for code that is a proven performance
 bottleneck.  Developers disagree on how much micro-optimization is justified,
 and some beginners overdo it.  The optimizations here were added only after
-timing experiments showed that they improved the speed, even if only a little
+timing experiments showed that they improved performance, even if only a little
 bit.  Micro-optimizations can be instructive, as they make use of some exotic
 aspects of Python, but don't over-use them in your own code.
 
@@ -398,10 +398,10 @@ another small slice of time because locals are faster than builtins.
 Once those shortcuts are defined, we're ready for the Python lines created from
 our particular template. Strings will be added to the result list using the
 `append_result` or `extend_result` shorthands, depending on whether we have one
-string to add or more than one.  Literal text in the template becomes a simple
+string to add, or more than one.  Literal text in the template becomes a simple
 string literal.
 
-Having both append and extend is extra complexity, but remember we're aiming
+Having both append and extend adds complexity, but remember we're aiming
 for the fastest execution of the template, and using extend for one item means
 making a new list of one item so that we can pass it to extend.
 
@@ -409,7 +409,7 @@ Expressions in `{{ ... }}` are computed, converted to strings, and added to the
 result.  Dots in the expression are handled by the `do_dots` function passed
 into our function, because the meaning of the dotted expressions depends on the
 data in the context: it could be attribute access or item access, and it could
-be a callable.
+be a callable. 
 
 The logical structures `{% if ... %}` and `{% for ... %}` are converted into
 Python conditionals and loops.  The expression in the `{% if/for ... %}` tag
@@ -432,7 +432,7 @@ implementation.
 The heart of the template engine is the Templite class.  (Get it? It's a
 template, but it's lite!)
 
-The Templite class has a small interface.  You construct one with the
+The Templite class has a small interface.  You construct a Templite object with the
 text of the template, then later you can use the `render` method on it to
 render a particular context, the dictionary of data, through the template:
 
@@ -442,7 +442,7 @@ templite = Templite('''
     <h1>Hello {{name|upper}}!</h1>
     {% for topic in topics %}
         <p>You are interested in {{topic}}.</p>
-    {% endif %}
+    {% endfor %}
     ''',
     {'upper': str.upper},
 )
@@ -603,13 +603,13 @@ easier to understand.
 
 CodeBuilder lets us create a chunk of Python source code, and has no specific
 knowledge about our template engine at all.  We could use it in such a way that
-three different functions were defined in the Python, and then `get_globals`
+three different functions would be defined in the Python, and then `get_globals`
 would return a dict of three values, the three functions.  As it happens, our
 template engine only needs to define one function.  But it's better software
 design to keep that implementation detail in the template engine code, and out
 of our CodeBuilder class.
 
-Even as we're actually using it, to define a single function, having `get_globals`
+Even as we're actually using it --- to define a single function --- having `get_globals`
 return the dictionary keeps the code more modular because it doesn't need to
 know the name of the function we've defined.  Whatever function name we define
 in our Python source, we can retrieve that name from the dict returned by
@@ -751,12 +751,13 @@ points, like if statements, or the beginning or ends of loops.
 The `flush_output` function is a *closure*, which is a fancy word for a function
 that refers to variables outside of itself. Here `flush_output` refers to
 `buffered` and `code`. This simplifies our calls to the function:  we don't
-have to tell `flush_output` what buffer to flush, or where to flush it to, it
+have to tell `flush_output` what buffer to flush, or where to flush it; it
 knows all that implicitly.
 
 If only one string has been buffered, then the `append_result` shortcut is used
-to append it to the result. If more than one is buffered, then all of them are
-used with the `extend_result` shortcut to add them to the result.
+to append it to the result. If more than one is buffered, then the 
+`extend_result` shortcut is used, with all of them,
+to add them to the result.
 Then the buffered list is cleared so more strings can be buffered.
 
 The rest of the compiling code will add lines to the function by appending them
@@ -776,12 +777,9 @@ which will mean that our compiled Python function will have this line:
 append_result('hello')
 ```
 
-which will add the string `hello` to the rendered output of the template.  The
-multiple levels of abstraction here, it's important to keep them straight as we
-read the code.
+which will add the string `hello` to the rendered output of the template. We have multiple levels of abstraction here which can be difficult to keep straight. The compiler uses `buffered.append("'hello'")`, which creates `append_result('hello')` in the compiled Python function, which when run, appends `hello` to the template result.
 
-
-Back to our Templite class: as we parse control structures, we want to check
+Back to our Templite class. As we parse control structures, we want to check
 that they are properly nested.  The `ops_stack` list is a stack of strings:
 
 <!-- [[[cog include("templite.py", first="ops_stack", numblanks=1, dedent=False) ]]] -->
@@ -792,10 +790,10 @@ that they are properly nested.  The `ops_stack` list is a stack of strings:
 
 When we encounter an `{% if .. %}` tag (for example), we'll push `'if'` onto
 the stack.  When we find an `{% endif %}` tag, we can pop the stack and report
-an error if it wasn't `'if'` at the top of the stack.
+an error if there was no `'if'` at the top of the stack.
 
 Now the real parsing begins.  We split the template text into a number of
-tokens using a regular expression, or regex.  Regexes can be
+tokens using a regular expression, or *regex*.  Regexes can be
 daunting: they are a very compact notation for complex pattern matching.  They
 are also very efficient, since the complexity of matching the pattern is
 implemented in C in the regular expression engine, rather than in your own
@@ -807,14 +805,16 @@ Python code.  Here's our regex:
 ```
 <!-- [[[end]]] -->
 
-This looks complicated, let's break it down.  The `re.split` function will
+This looks complicated; let's break it down.  
+
+The `re.split` function will
 split a string using a regex.  Our pattern is parenthesized,
 so the matches will be used to split the string, and will also be returned as
 pieces in the split list.  Our pattern will match our tag syntaxes, but we've
 parenthesized it so that the string will be split at the tags, and the tags
 will also be returned.
 
-The `(?s)` flag in the regex means that a dot should match even a newline. Then
+The `(?s)` flag in the regex means that a dot should match even a newline. Next
 we have our parenthesized group of three alternatives: `{{.*?}}` matches an
 expression, `{%.*?%}` matches a tag, and `{#.*?#}` matches a comment.  In all
 of these, we use `.*?` to match any number of characters, but the shortest
@@ -916,9 +916,9 @@ only two elements in it.  If it doesn't, we use the `_syntax_error` helper
 method to raise a syntax error exception.  We push `'if'` onto `ops_stack` so
 that we can check the `endif` tag.  The expression part of the `if` tag is compiled
 to a Python expression with `_expr_code`, and is used as the conditional
-expression in a Python if statement.
+expression in a Python `if` statement.
 
-The second tag type is `for`, which will be compiled to a Python for statement:
+The second tag type is `for`, which will be compiled to a Python `for` statement:
 
 <!-- [[[cog include("templite.py", first="elif words[0] == 'for'", numlines=13, dedent=False) ]]] -->
 ```
@@ -946,15 +946,15 @@ where we'll unpack all the variable names we get from the context.  To do that
 correctly, we need to know the names of all the variables we encountered,
 `self.all_vars`, and the names of all the variables defined by loops, `self.loop_vars`.
 
-We add one line to our function source, a for statement.  All of our template
-variables are turned into Python variables by prepending `c_` to them so that
+We add one line to our function source, a `for` statement.  All of our template
+variables are turned into Python variables by prepending `c_` to them, so that
 we know they won't collide with other names we're using in our Python function.
 We use `_expr_code` to compile the iteration expression from the template into
 an iteration expression in Python.
 
-The last kind of tag we handle is and end tag, either `{% endif %}` or
+The last kind of tag we handle is an `end` tag; either `{% endif %}` or
 `{% endfor %}`.  The effect on our compiled function source is the same: simply
-unindent to end the if statement or for statement that was started earlier:
+unindent to end the `if` or `for` statement that was started earlier:
 
 <!-- [[[cog include("templite.py", first="elif words[0].startswith('end')", numlines=11, dedent=False) ]]] -->
 ```
@@ -977,7 +977,7 @@ function source.  The rest of this clause is all error checking to make sure
 that the template is properly formed.  This isn't unusual in program
 translation code.
 
-Speaking of error handling, if the tag isn't an `if`, a `for`, or an end, then
+Speaking of error handling, if the tag isn't an `if`, a `for`, or an `end`, then
 we don't know what it is, so raise a syntax error:
 
 <!-- [[[cog include("templite.py", first="else:", numlines=2, dedent=False) ]]] -->
@@ -988,7 +988,7 @@ we don't know what it is, so raise a syntax error:
 <!-- [[[end]]] -->
 
 We're done with the three different special syntaxes (`{{...}}`, `{#...#}`, and
-`{%...%}`), what's left is literal content.  We'll add the literal string to
+`{%...%}`). What's left is literal content.  We'll add the literal string to
 the buffered output, using the `repr` built-in function to produce a Python
 string literal for the token:
 
@@ -1021,7 +1021,7 @@ provides backslashes where needed:
 append_result('"Don\'t you like my hat?" he asked.')
 ```
 
-Notice that we check first if the token is an empty string with `if token:`,
+Notice that we first check if the token is an empty string with `if token:`,
 since there's no point adding an empty string to the output.  Empty tokens
 happen if two template tags are adjacent.  Because our regex is splitting on
 tag syntax, adjacent tags will have an empty string between them.  The check
@@ -1078,8 +1078,8 @@ loops.  So we need to unpack any name in `all_vars` that isn't in `loop_vars`:
 ```
 <!-- [[[end]]] -->
 
-Each name becomes a line in the function's prologue unpacking the context
-variable into a suitably-named local variable.
+Each name becomes a line in the function's prologue, unpacking the context
+variable into a suitably named local variable.
 
 We're almost done compiling the template into a Python function.  Our function
 has been appending strings to `result`, so the last line of the function is
@@ -1092,10 +1092,10 @@ simply to join them all together and return them:
 ```
 <!-- [[[end]]] -->
 
-Now that we've completed writing the source for our compiled Python function,
+Now that we've finished writing the source for our compiled Python function,
 we need to get the function itself from our CodeBuilder object.  The
 `get_globals` method executes the Python code we've been assembling.  Remember
-that our code is a function defintion (starting with `def render_function(..):`),
+that our code is a function definition (starting with `def render_function(..):`),
 so executing the code will define `render_function`, but not execute the body
 of `render_function`.
 
@@ -1109,7 +1109,7 @@ Templite object:
 ```
 <!-- [[[end]]] -->
 
-Now `self._render_function` is a callable Python function. We'll use it later
+Now `self._render_function` is a callable Python function. We'll use it later,
 during the rendering phase.
 
 
@@ -1123,7 +1123,7 @@ expression.  Our template expressions can be as simple as a single name:
 {{user_name}}
 ```
 
-or can be a complex sequence of attribute access and filters:
+or can be a complex sequence of attribute accesses and filters:
 
 ```
 {{user.name.localized|upper|escape}}
@@ -1177,7 +1177,7 @@ expression, then each dot name is handled in turn:
 <!-- [[[end]]] -->
 
 To understand how dots get compiled, remember that `x.y` in the template could
-mean either `x['y']` or `x.y` in Python, depending on which works, and if the
+mean either `x['y']` or `x.y` in Python, depending on which works;  if the
 result is callable, it's called.  This uncertainty means that we have to try
 those possibilities at run time, not compile time.  So we compile `x.y.z` into
 a function call, `do_dots(x, 'y', 'z')`.  The dot function will try the
@@ -1214,7 +1214,7 @@ simply puts together a nice error message and raises the exception:
 ```
 <!-- [[[end]]] -->
 
-The `_variable` method helped us with validating variable names and adding them
+The `_variable` method helps us with validating variable names and adding them
 to the sets of names we collected during compilation.  We use a
 regex to check that the name is a valid Python identifier, then add the name to
 the set:
@@ -1275,9 +1275,9 @@ constants, and the context passed to `render` has specific data for that one
 rendering.
 
 Then we simply call our compiled `render_function`.  The first argument is the
-complete data context, the second argument is the function that will implement
-the dot semantics.  We use the same implementation every time, our own
-`_do_dots` method, which is the last piece of code to look at:
+complete data context, and the second argument is the function that will implement
+the dot semantics.  We use the same implementation every time: our own
+`_do_dots` method, which is the last piece of code to look at.
 
 <!-- [[[cog include("templite.py", first="def _do_dots", numblanks=1, dedent=False) ]]] -->
 ```

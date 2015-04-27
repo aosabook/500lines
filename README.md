@@ -12,6 +12,14 @@ Creative Commons - Attribution license, and all code by the MIT License: please
 see the [license description](LICENSE.md) for details.  In addition, all
 royalties from paid-for versions will all go to Amnesty International.
 
+The production of this book has been made possible by the financial support of
+[PagerDuty](http://www.pagerduty.com/company/work-with-us/). 
+
+<p align="center">
+    <img src="https://github.com/aosabook/500lines/raw/master/resource/pagerduty_logo.png" alt="PagerDuty Logo" />
+</p>
+
+
 Mission
 -------
 
@@ -75,6 +83,15 @@ Contributors
     <td><a href="https://github.com/MichaelDiBernardo">MichaelDiBernardo</a></td>
     <td>mikedebo@gmail.com</td>
   </tr>
+   <tr>
+    <td>Amy Brown</td>
+    <td>indie</td>
+    <td>editorial</td>
+    <td><ul><li><a href="http://www.amyrbrown.ca/">amyrbrown.ca</a></li>
+        <li><a href="http://www.twitter.com/amyrbrown">@amyrbrown</a></li></ul></td>
+    <td><a href="https://github.com/amyrbrown">amyrbrown</a></td>
+    <td>amy@amyrbrown.ca</td>
+  </tr> 
   <tr>
     <td>Dustin Mitchell</td>
     <td>Mozilla</td>
@@ -121,7 +138,7 @@ Contributors
   </tr>
   <tr>
     <td>Taavi Burns</td>
-    <td>Points.com</td>
+    <td>Formerly Points.com, now PagerDuty</td>
     <td>data-store</td>
     <td>
         <ul>
