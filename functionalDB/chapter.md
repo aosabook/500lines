@@ -16,7 +16,7 @@ If you were to instead ask an archaeologist what should be done with the old dat
 
 (Disclaimer: My understanding of a typical archaeologist is based on visiting a few museums, reading several Wikipedia articles, and watching the entire Indiana Jones series).
 
-### From archaeology to databases
+### From Archaeology to Databases
 
 If we were to ask our friendly archaeologist to design a database, we might expect the requirements to reflect what would be found at an excavation site:
 
@@ -51,7 +51,7 @@ Since we are building a functional database, we will be using a functional progr
 
 There are several qualities of Clojure that make it a good implementation language for a functional database, such as out-of-the-box immutability, higher order functions, and metaprogramming facilities. Ultimately, the reason Clojure was chosen is its emphasis on clean, rigorous design which few programming languages possess. 
 
-## Laying the foundation
+## Laying the Foundation
 
 Let’s start by declaring the core constructs that make up our database. 
 
@@ -150,34 +150,32 @@ And here's our in-memory implementation of the protocol, which uses a map as the
    (drop-entity [storage entity] (dissoc storage (:id entity))))
 ````
 
-### Querying our data
+### Querying our Data
 
-Now that we've defined the basic elements of our database, we can start thinking about how we're going to query it. By virtue of how we've structured our data, any query is necessarily going to be interested in at least one of an entity's ID, and the name and value of some of its attributes. This triplet of (entity-id, attribute-name, attribute-value) is important enough to our query process that we give it an explicit name -- a _datom_.
+Now that we've defined the basic elements of our database, we can start thinking about how we're going to query it. By virtue of how we've structured our data, any query is necessarily going to be interested in at least one of an entity's ID, and the name and value of some of its attributes. This triplet of `(entity-id, attribute-name, attribute-value)` is important enough to our query process that we give it an explicit name: a _datom_.
 
 The reason that datoms are so important is that they represent facts, and our database accumulates facts. 
 
-If you've used a database system before, you are probably already familiar with the concept of an _index_, which is a supporting data structure that consumes extra space in order to decrease the average query time.  In our database, an index is a three-leveled structure, which stores the components of a datom in a specific order. Each index derives its name from the order it stores the datom's components.
+If you've used a database system before, you are probably already familiar with the concept of an _index_, which is a supporting data structure that consumes extra space in order to decrease the average query time.  In our database, an index is a three-leveled structure which stores the components of a datom in a specific order. Each index derives its name from the order it stores the datom's components in.
 
 For example, let’s look at at the index sketched in Figure 2:
+
+<!-- FIXME: The book will be printed in b&w/greyscale, so these colours won't work. Need to come up with another way to show this information. -->
 * the first level stores entity-ids (the blue-ish area) 
 * the second level stores the related attribute-names (the green-ish area)
 * the third level stores the related value (the pink-ish area)
 
-This index is named EAVT, as the top level map holds (E) entity IDs, the second level holds (A) attribute names, and the leaves hold (V) values. The (T) comes from the fact that each layer in the database has its own indexes, hence the index itself is relevant for a specific (T) time. 
+This index is named EAVT, as the top level map holds Entity IDs, the second level holds Attribute names, and the leaves hold Values. The "T" comes from the fact that each layer in the database has its own indexes, hence the index itself is relevant for a specific Time. 
 
-![image alt text](image_1.png)
-
-Figure 2
+![EAVT](image_1.png)
 
 Figure 3 shows an index that would be called AVET since:
 
-* First level map holds attribute-name
-* Second level map holds the values (of the attributes)
-* Third level set holds the entity-ids (of the entities whose attribute is at the first level) 
+* the first level map holds attribute-name
+* the second level map holds the values (of the attributes)
+* the third level set holds the entity-ids (of the entities whose attribute is at the first level) 
 
-![image alt text](image_2.png)
-
-Figure 3
+![AVET](image_2.png)
 
 Our indexes are implemented as a map of maps, where the keys of the root map act as the first level, each such key points to a map whose keys act as the index’s second-level and the values are the index’s third level. Each element in the third level is a set, holding the leaves of the index.
 
@@ -194,13 +192,14 @@ In most database systems, indexes are an optional component; for example, in an 
  (defn usage-pred [index] (:usage-pred (meta index)))
 ````
 
-In our database there are four indexes - EAVT (as depicted in Figure 2), AVET (as can be seen in Figure 3), VEAT and VAET. We can access these as a vector of values returned from the `indexes` function.
+In our database there are four indexes: EAVT (see Figure 2), AVET (see Figure 3), VEAT and VAET. We can access these as a vector of values returned from the `indexes` function.
 
 ````clojure
 (defn indexes[] [:VAET :AVET :VEAT :EAVT])
 ````
 
-To see how all of this comes together, the result of indexing the following five entities is visualized in the table below (the color coding follows the color coding of Figure 2 and Figure 3)
+<!-- FIXME: more colours -->
+To demonstrate how all of this comes together, the result of indexing the following five entities is visualized in the table below (the color coding follows the color coding of Figure 2 and Figure 3)
 
 1. <span style="background-color:lightblue">Julius Caesar</span> (also known as JC) <span style="background-color:lightgreen">lives in</span> <span style="background-color:pink">Rome</span> 
 2. <span style="background-color:lightblue">Brutus</span> (also known as B) <span style="background-color:lightgreen">lives in</span> <span style="background-color:pink">Rome</span> 
@@ -275,11 +274,10 @@ To see how all of this comes together, the result of indexing the following five
 </li></ul></td>
   </tr>
 </table>
-Table 2
 
 ### Database
 
-We now have all the components we need to construct our database! Initializing our database means:
+We now have all the components we need to construct our database. Initializing our database means:
 
 * creating an initial empty layer with no data 
 * creating a set of empty indexes
@@ -299,11 +297,11 @@ We now have all the components we need to construct our database! Initializing o
                    (make-index #(vector %1 %2 %3) #(vector %1 %2 %3) always); EAVT
                   )] 0 0)))
 ````
-There is one snag, though -- all collections in Clojure are immutable. Since write operations are pretty critical in a database, we define our structure to be an **Atom**, which is is one of Clojure’s reference types, one that provides the capability of atomic writes. 
+There is one snag, though: all collections in Clojure are immutable. Since write operations are pretty critical in a database, we define our structure to be an *Atom*, which is is one of Clojure’s reference types, one that provides the capability of atomic writes. 
+XXX STOPPED HERE
+You may be wondering why we use the `always` function for the AVET, VEAT and EAVT indexes, and the `ref?` predicate for the VAET index. This is because these indexes are used in different scenarios, which we’ll see later when we explore queries in depth.
 
-You may be wondering why we use the *always` function for the AVET, VEAT and EAVT indexes, and the `ref?` predicate for the VAET index. This is because these indexes are used in different scenarios, which we’ll see later when we explore queries in depth.
-
-### Basic accessors
+### Basic Accessors
 
 Before we can build complex querying facilities for our database, we need to provide a lower-level API that different parts of the system can use to retrieve the components we've built thus far by their associated identifiers from any point in time. Consumers of the database can also use this API; however, it is more likely that they will be using the more fully-featured components built on top of it.
 
@@ -341,7 +339,7 @@ The function `evolution-of` does exactly that, and return a sequence of pairs - 
          (let [attr (attr-at db ent-id attr-name ts)]
            (recur (conj res {(:ts attr) (:value attr)})  (:prev-ts attr))))))
 ````
-## Data behavior and life cycle
+## Data Behavior and Life Cycle
 
 So far, our discussion has focused on the structure of our data -- what the core components are, and how they are aggregated together. It's time now to explore the dynamics of our system; how data is changed over time through the _data lifecycle_ (add => update => remove). 
 
@@ -349,7 +347,7 @@ As we've already discussed, data in an archaeologist's world never actually chan
 
 This means that when talking about data lifecycle, we are really talking about adding layers to our data over time. 
 
-### The bare necessities
+### The Bare Necessities
 
 The data lifecycle consists of three basic operations, which we will discuss here:
 
@@ -359,7 +357,7 @@ The data lifecycle consists of three basic operations, which we will discuss her
 
 Remember that, even though these functions provide the illusion of mutability, all that we are really doing in each case is adding another layer to the data. Also, since we use here Clojure's persistent data structures, we pay for such operations the price of an "in-place" change from the caller's perspective (i.e., negligible performance overhead), while maintaining immutability for all other users of that data structure.
 
-#### Adding an entity
+#### Adding an Entity
 
 Adding an entity requires us to do three things:
 
@@ -435,7 +433,7 @@ We also provide an `add-entities` convenience function that adds multiple entiti
 ````clojure
 (defn add-entities [db ents-seq] (reduce add-entity db ents-seq))
 ````
-#### Removing an entity
+#### Removing an Entity
 
 Removing an entity from our database means adding a layer in which it does not exist. To do this, we need to:
 
@@ -477,7 +475,7 @@ We then apply `update-entity` to each triplet to update the attributes that refe
 
 The last step of `remove-back-refs` is to clear the reference it self from our indexes, and more specifically - from the VAET index, since it is the only index that stores references information. 
 
-#### Updating an entity
+#### Updating an Entity
 
 At its essence, an update is the modification of an entity’s attribute’s value. The modification process itself depends on the cardinality of the attribute: an attribute with cardinality `:db/multiple` holds a set of values, so we must allow addition and removal of items to this set, or replacing the set entirely. An attribute with cardinality `:db/single` holds a single value, and thus only allows replacement.  
 
@@ -629,11 +627,11 @@ Becomes eventually:
 (transact-on-db my-db  [[add-entity e3] [remove-entity e4]])
 ````
 
-## Insight extraction as libraries
+## Insight Extraction as Libraries
 
 At this point, we have the core functionality of the database in place, and it is time to add to it its raison d'être - insights extraction. The architecture approach we used here is to allow adding these capabilities as libraries, as different usages of the database would need different such mechanisms. 
 
-### Graph traversal
+### Graph Traversal
 
 A reference connection between entities is created when an entity’s attribute’s type is `:db/ref`, which means that the value of that attribute is an ID of another entity. When a referring entity is added to the database, the reference is indexed at the VAET index.  
 The information found in the VAET index can be leveraged to extract all the incoming links to an entity and is done in the function `incoming-refs`, which collects for the given entity all the leaves that are reachable from it at that index:
@@ -657,14 +655,14 @@ We can also, for a given entity, go through all of it’s attributes and collect
 These two functions act as the basic building blocks for any graph traversal operation, as they are the ones that raise the level of abstraction from entities and attributes to nodes and links in a graph. Once we have the ability to look at our database as a graph, we can provide various graph traversing and querying APIs. We leave this as a solved exercise to the reader - one solution can be found in the chapter's source code (see graph.clj).   
 
 
-## Querying the database
+## Querying the Database
 
 A second library we present here provides querying capabilities, which is the main issue of this section. 
 A database is not very useful to its users without a powerful query mechanism. This feature is usually exposed to users through a _query language_ that is used to declaratively specify the set of data of interest. 
 
 Our data model is based on accumulation of facts (i.e. datoms) over time. For this model, a natural place to look for the right query language is _logic programming_. A commonly used query language influenced by logic programming is _Datalog_ which, in addition to being well-suited for our data model, has a very elegant adaptation to Clojure’s syntax. Our query engine will implement a subset of the *Datalog* language from the [Datomic database](http://docs.datomic.com/query.html).
 
-### Query language
+### Query Language
 
 Let's look at an example query in our proposed language. This query asks "what are the names and birthday of entities who like pizza, speak English, and who have a birthday this month?"
 ````clojure
@@ -732,7 +730,7 @@ A clause in a query is composed of three predicates. The following table defines
 
 Table 3
 
-#### Limitations of our query language 
+#### Limitations of our Query Language 
 
 Engineering is all about managing tradeoffs, and designing our query engine is no different. In our case, the first tradeoff we must make is feature-richness versus complexity. Resolving this tradeoff requires us to look at common use-cases of the system, and from there deciding on what limitations would be acceptable. 
 
@@ -744,7 +742,7 @@ In our database, the decision was to build a query engine with the following lim
 
 While these design decisions result in a query language that is less rich than Datalog, we are still able to support many types of simple-but-useful queries.
 
-### Query engine design
+### Query Engine Design
 
 While our query language allows the user to specify _what_ they want to access, it hides the details of _how_ this will be accomplished. The `query engine` is the database component responsible for yielding the data for a given query. 
 
@@ -842,7 +840,7 @@ At the end of this phase, our example yields the following set for the `:find` p
 
 This structure acts as the query that is executed in a later phase, once the engine decides on the right plan of execution.
 
-#### Phase 2 - Making a plan
+#### Phase 2 - Making a Plan
 In this phase, we inspect the query to determine a good plan that will produce the result it describes.
 
 In general, this will involve choosing the appropriate index and constructing a plan in the form of a function.
@@ -889,7 +887,7 @@ Once the index is chosen, we construct our plan, which is a function that closes
 
 For our example, the chosen index is the `AVET` index, as the joining variable acts on the entity Ids.
 
-#### Phase 3 - Execution of the plan
+#### Phase 3 - Execution of the Plan
 
 We saw in the previous phase that the query plan we construct ends by calling `single-index-query-plan`. This function will:
 
@@ -1083,7 +1081,7 @@ At the end of phase 3 of our example execution, we have the following structure 
 	}}
 ````
 
-#### Phase 4 - Unify and report
+#### Phase 4 - Unify and Report
 
 At this point, we’ve produced a superset of the results that the user initially asked for. In this phase, we extract the specific values that the user has expressed interest in. This process is called _unification_ -- it is here that we will unify the binding pairs structure with the vector of variable names that the user defined in the `:find` clause of the query. 
 
@@ -1110,7 +1108,7 @@ Each unification step is handled by `locate-vars-in-query-result`, which iterate
 The end of this phase, the results for our example are:
 [("?nm" "USA") ("?bd" "July 4, 1776")]
 
-#### Running the show
+#### Running the Show
 
 We've finally built all of the components we need to to build our user-facing query mechanism, the `q` macro, which receives as arguments a database and a query:
 
