@@ -249,7 +249,7 @@ To make locating the correct instance easier, we assume that lines will be separ
             sys.exit(0)
 ```
 
-Finally, we parse the data directly, converting each of the tasks' processing times to an integer and storing them in a list. Finally, we zip the data to invert the rows and columns so that the format respects what is expected by the solving code above. (That is, every item in `data` should correspond to a particular job.)
+We parse the data directly, converting the processing time of each task to an integer and storing them in a list. Finally, we zip the data to invert the rows and columns so that the format respects what is expected by the solving code above. (That is, every item in `data` should correspond to a particular job.)
 
 <!-- QUERY Is the indentation below correct? -->
 ```python
