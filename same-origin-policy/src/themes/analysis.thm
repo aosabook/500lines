@@ -1,0 +1,172 @@
+<?xml version="1.0"?>
+<alloy>
+
+<view nodetheme="Martha" edgetheme="Martha">
+
+<projection> <type name="flow/http/call/Time"/> </projection>
+
+<defaultnode/>
+
+<defaultedge/>
+
+<node>
+   <type name="Int"/>
+   <type name="String"/>
+   <type name="univ"/>
+   <type name="seq/Int"/>
+   <type name="flow/http/Client"/>
+   <type name="flow/http/HttpRequest"/>
+   <type name="flow/jsonp/Callback"/>
+   <type name="flow/jsonp/ExecCallback"/>
+   <type name="flow/postMessage/PostMessage"/>
+   <type name="flow/postMessage/ReceiveMessage"/>
+   <type name="flow/script/BrowserOp"/>
+   <type name="flow/script/EventHandler"/>
+   <type name="flow/script/ReadDom"/>
+   <type name="flow/script/WriteDom"/>
+   <type name="flow/setDomain/SetDomain"/>
+   <type name="flow/http/call/ord/Ord"/>
+   <set name="$Confidentiality_t" type="flow/http/call/Time"/>
+   <set name="First" type="flow/http/call/ord/Ord"/>
+   <set name="Next" type="flow/http/call/ord/Ord"/>
+   <set name="flow/jsonp/JsonpRequest" type="flow/jsonp/browser/BrowserHttpRequest"/>
+</node>
+
+<node color="Blue">
+   <type name="flow/http/Endpoint"/>
+</node>
+
+<node color="Blue" label="Trusted">
+   <set name="this/TrustedModule" type="flow/http/Endpoint"/>
+</node>
+
+<node color="Red" label="Malicious">
+   <set name="this/MaliciousModule" type="flow/http/Endpoint"/>
+</node>
+
+<node color="Red" label="MaliciousData">
+   <set name="this/MaliciousData" type="flow/http/Resource"/>
+</node>
+
+<node label="Browser">
+   <type name="flow/jsonp/browser/Browser"/>
+</node>
+
+<node label="BrowserHttpRequest">
+   <type name="flow/jsonp/browser/BrowserHttpRequest"/>
+</node>
+
+<node label="Cookie">
+   <type name="flow/http/Cookie"/>
+</node>
+
+<node label="CorsRequest">
+   <set name="flow/postMessage/sop/cors/CorsRequest" type="flow/script/XmlHttpRequest"/>
+</node>
+
+<node label="CriticalData">
+   <set name="this/CriticalData" type="flow/http/Cookie"/>
+   <set name="this/CriticalData" type="flow/http/Resource"/>
+</node>
+
+<node label="Document">
+   <type name="flow/jsonp/browser/Document"/>
+</node>
+
+<node label="Domain">
+   <type name="flow/http/Domain"/>
+</node>
+
+<node label="MaliciousData">
+   <set name="this/MaliciousData" type="flow/http/Cookie"/>
+</node>
+
+<node label="Path">
+   <type name="flow/http/Path"/>
+</node>
+
+<node label="Port">
+   <type name="flow/http/Port"/>
+</node>
+
+<node label="Protocol">
+   <type name="flow/http/Protocol"/>
+</node>
+
+<node label="Resource">
+   <type name="flow/http/Resource"/>
+</node>
+
+<node label="Script">
+   <type name="flow/script/Script"/>
+</node>
+
+<node label="Server">
+   <type name="flow/http/Server"/>
+</node>
+
+<node label="Time">
+   <type name="flow/http/call/Time"/>
+</node>
+
+<node label="XmlHttpRequest">
+   <type name="flow/script/XmlHttpRequest"/>
+</node>
+
+<node shape="Egg" color="Black" label="Url">
+   <type name="flow/http/Url"/>
+</node>
+
+<node shape="Egg" color="White" label="Origin">
+   <type name="flow/jsonp/origin/Origin"/>
+</node>
+
+<node showlabel="no">
+   <set name="$Confidentiality_m" type="flow/http/Endpoint"/>
+   <set name="end" type="flow/http/call/Call"/>
+   <set name="start" type="flow/http/call/Call"/>
+   <set name="flow/Data" type="flow/http/Cookie"/>
+   <set name="flow/Data" type="flow/http/Resource"/>
+   <set name="flow/FlowCall" type="flow/http/call/Call"/>
+   <set name="flow/FlowModule" type="flow/http/Endpoint"/>
+</node>
+
+<node showlabel="no" label="JsonpResponse">
+   <set name="flow/jsonp/JsonpResponse" type="flow/http/Resource"/>
+</node>
+
+<node visible="no">
+   <type name="flow/http/Dns"/>
+</node>
+
+<node visible="no" shape="Parallelogram" color="Green">
+   <type name="flow/http/call/Call"/>
+</node>
+
+<node visible="yes" showlabel="no">
+   <set name="$currentCall" type="flow/http/call/Call"/>
+</node>
+
+<edge visible="no" attribute="yes">
+   <relation name="accesses"> <type name="flow/http/Endpoint"/> <type name="flow/http/Cookie"/> </relation>
+   <relation name="accesses"> <type name="flow/http/Endpoint"/> <type name="flow/http/Resource"/> </relation>
+   <relation name="body"> <type name="flow/http/HttpRequest"/> <type name="flow/http/Resource"/> </relation>
+   <relation name="domains"> <type name="flow/http/Cookie"/> <type name="flow/http/Domain"/> </relation>
+   <relation name="host"> <type name="flow/http/Url"/> <type name="flow/http/Domain"/> </relation>
+   <relation name="host"> <type name="flow/jsonp/origin/Origin"/> <type name="flow/http/Domain"/> </relation>
+   <relation name="path"> <type name="flow/http/Url"/> <type name="flow/http/Path"/> </relation>
+   <relation name="port"> <type name="flow/http/Url"/> <type name="flow/http/Port"/> </relation>
+   <relation name="port"> <type name="flow/jsonp/origin/Origin"/> <type name="flow/http/Port"/> </relation>
+   <relation name="protocol"> <type name="flow/http/Url"/> <type name="flow/http/Protocol"/> </relation>
+   <relation name="protocol"> <type name="flow/jsonp/origin/Origin"/> <type name="flow/http/Protocol"/> </relation>
+   <relation name="receivedCookies"> <type name="flow/http/HttpRequest"/> <type name="flow/http/Cookie"/> </relation>
+   <relation name="response"> <type name="flow/http/HttpRequest"/> <type name="flow/http/Resource"/> </relation>
+   <relation name="returns"> <type name="flow/http/call/Call"/> <type name="flow/http/Cookie"/> </relation>
+   <relation name="returns"> <type name="flow/http/call/Call"/> <type name="flow/http/Resource"/> </relation>
+   <relation name="sentCookies"> <type name="flow/http/HttpRequest"/> <type name="flow/http/Cookie"/> </relation>
+   <relation name="subsumes"> <type name="flow/http/Domain"/> <type name="flow/http/Domain"/> </relation>
+</edge>
+
+</view>
+
+</alloy>
