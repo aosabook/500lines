@@ -106,7 +106,7 @@ class Fetcher:
 
         sock = socket.socket()
         yield from connect(sock, ('xkcd.com', 80))
-        sock.sendall('GET {} HTTP/1.0\r\n\r\n'.format(self.url).encode('ascii'))
+        sock.send('GET {} HTTP/1.0\r\n\r\n'.format(self.url).encode('ascii'))
         self.response = yield from read_all(sock)
 
         self._process_response()

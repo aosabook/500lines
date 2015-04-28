@@ -36,7 +36,7 @@ class Fetcher:
 
     def connected(self, key, mask):
         selector.unregister(key.fd)
-        self.sock.sendall(
+        self.sock.send(
             'GET {} HTTP/1.0\r\n\r\n'.format(self.url).encode('ascii'))
         selector.register(key.fd, EVENT_READ, self.read_response)
 
