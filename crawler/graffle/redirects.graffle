@@ -175,8 +175,8 @@
 			<integer>18</integer>
 			<key>Points</key>
 			<array>
-				<string>{147.5, 155.8798074960105}</string>
-				<string>{247, 117.13221019324834}</string>
+				<string>{147.5, 155.87830973982554}</string>
+				<string>{247, 117.12194615821612}</string>
 			</array>
 			<key>Style</key>
 			<dict>
@@ -212,8 +212,8 @@
 			<integer>17</integer>
 			<key>Points</key>
 			<array>
-				<string>{147.5, 74.719767166607113}</string>
-				<string>{247, 105.27075734763113}</string>
+				<string>{147.5, 74.720948089752952}</string>
+				<string>{247, 105.27885014448344}</string>
 			</array>
 			<key>Style</key>
 			<dict>
@@ -597,7 +597,7 @@
 	<key>MasterSheets</key>
 	<array/>
 	<key>ModificationDate</key>
-	<string>2015-03-02 18:40:13 +0000</string>
+	<string>2015-03-12 19:43:17 +0000</string>
 	<key>Modifier</key>
 	<string>A. Jesse Jiryu Davis</string>
 	<key>NotesVisible</key>
@@ -678,7 +678,7 @@
 			</dict>
 		</array>
 		<key>Frame</key>
-		<string>{{-2560, -0}, {2560, 1440}}</string>
+		<string>{{-1120, 4}, {2560, 874}}</string>
 		<key>ListView</key>
 		<false/>
 		<key>OutlineWidth</key>
@@ -692,7 +692,7 @@
 		<key>SidebarWidth</key>
 		<integer>120</integer>
 		<key>VisibleRegion</key>
-		<string>{{-925, -534}, {2425, 1285}}</string>
+		<string>{{-925, -251}, {2425, 719}}</string>
 		<key>Zoom</key>
 		<real>1</real>
 		<key>ZoomValues</key>
