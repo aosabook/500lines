@@ -14,7 +14,7 @@ This is easy to parallelize: as the crawler finds new links it launches many fet
 
 ## The Traditional Approach
 
-If a crawler is so parallelizable, how do we parallelize it? Traditionally we would start a thread pool: one thread per in-flight I/O operation. But threads are expensive, and operating systems enforce a variety of hard caps on the number of threads a process, user, or machine may have. On Jesse's system, a Python thread costs 22k of memory, and starting tens of thousands of threads causes failures. If we scale up to tens of thousands of simultaneous operations on concurrent connections, we run out of threads before we run out of connections. Per-thread overhead or system limits on threads are the bottleneck.
+If a crawler is so parallelizable, how do we parallelize it? Traditionally we would start a thread pool: one thread per in-flight I/O operation. But threads are expensive, and operating systems enforce a variety of hard caps on the number of threads a process, user, or machine may have. On Jesse's system, a Python thread costs around 50k of memory, and starting tens of thousands of threads causes failures. If we scale up to tens of thousands of simultaneous operations on concurrent connections, we run out of threads before we run out of connections. Per-thread overhead or system limits on threads are the bottleneck.
 
 In his influential article "The C10K problem"[^8], Dan Kegel outlines the limitations of multithreading for I/O concurrency. He begins,
 
@@ -66,15 +66,15 @@ selector.register(sock.fileno(), EVENT_WRITE, connected)
 loop()
 ```
 
-Irritatingly, a non-blocking socket always throws an exception from `connect`. This exception simply replicates the irritating behavior of the underlying C function, which sets `errno` to `EINPROGRESS` to tell you it has begun.
+Irritatingly, a non-blocking socket throws an exception from `connect`, even when it is working normally. This exception replicates the irritating behavior of the underlying C function, which sets `errno` to `EINPROGRESS` to tell you it has begun.
 
 We disregard the spurious error and call `register`, passing in the socket's file descriptor and a Python function to run when the socket becomes writable. This function&mdash;the callback&mdash;is stored as `event_key.data`, which we retrieve and execute in the event loop above.
 
 What have we demonstrated already? We showed how to begin an operation and execute a callback when it is ready. An async *framework* builds on the two features we have shown&mdash;non-blocking sockets and the event loop&mdash;to run concurrent operations on a single thread.
 
-We have achieved "concurrency" here, but not what is traditionally called "parallelism". That is, we built a tiny system that does overlapping I/O. It is capable of beginning new operations while others are in flight. It does not actually utilize multiple cores to execute computation in parallel. But then, this system is designed for I/O-bound problems, not CPU-bound ones. Python's global interpreter lock prohibits parallel computation in Python anyway.
+We have achieved "concurrency" here, but not what is traditionally called "parallelism". That is, we built a tiny system that does overlapping I/O. It is capable of beginning new operations while others are in flight. It does not actually utilize multiple cores to execute computation in parallel. But then, this system is designed for I/O-bound problems, not CPU-bound ones.[^14]
 
-So our event loop is efficient at concurrent I/O because it does not devote thread resources to each connection. But before we proceed, it is important to correct a common misapprehension that async is *faster* than multithreading. Generally it is not&mdash;indeed, in Python, an event loop like ours is moderately slower than multithreading at serving a small number of very active connections. In a runtime without a global interpreter lock, threads would perform even better on such a workload. What asynchronous I/O is right for, is applications with many slow or sleepy connections with infrequent events.[^11]
+So our event loop is efficient at concurrent I/O because it does not devote thread resources to each connection. But before we proceed, it is important to correct a common misapprehension that async is *faster* than multithreading. Often it is not&mdash;indeed, in Python, an event loop like ours is moderately slower than multithreading at serving a small number of very active connections. In a runtime without a global interpreter lock, threads would perform even better on such a workload. What asynchronous I/O is right for, is applications with many slow or sleepy connections with infrequent events.[^11]
 
 ### Async's Problem
 
@@ -121,17 +121,23 @@ We begin by calling `Fetcher.fetch`:
                           self.connected)
 ```
 
-The `fetch` method begins connecting a socket. But notice the method returns before the connection completes. It must yield control to the event loop to wait for the connection. To understand why, imagine our whole application was structured so:
+The `fetch` method begins connecting a socket. But notice the method returns before the connection is established. It must return control to the event loop to wait for the connection. To understand why, imagine our whole application was structured so:
 
 ```python
 # Begin fetching http://xkcd.com/353/
 fetcher = Fetcher('/353/')
 fetcher.fetch()
 
-loop()
+while True:
+    events = selector.select()
+    for event_key, event_mask in events:
+        callback = event_key.data
+        callback(event_key, event_mask)
 ```
 
-All event notifications are processed in the event loop. Therefore `fetch` must return control to the event loop, so that the program knows when the socket has connected. Only then does the loop run the `connected` callback, which was registered at the end of `fetch` above. Here is the implementation of `connected`:
+All event notifications are processed in the event loop. Therefore `fetch` must return control to the event loop, so that the program knows when the socket has connected. Only then does the loop run the `connected` callback, which was registered at the end of `fetch` above.
+
+Here is the implementation of `connected`:
 
 ```python
     # Method on Fetcher class.
@@ -139,7 +145,7 @@ All event notifications are processed in the event loop. Therefore `fetch` must 
         print('connected!')
         selector.unregister(key.fd)
         request = 'GET {} HTTP/1.0\r\n\r\n'.format(self.url)
-        self.sock.sendall(request.encode('ascii'))
+        self.sock.send(request.encode('ascii'))
         
         # Register the next callback.
         selector.register(key.fd,
@@ -147,7 +153,7 @@ All event notifications are processed in the event loop. Therefore `fetch` must 
                           self.read_response)
 ```
 
-The method sends a GET request. A sophisticated application would be careful not to block if the whole request cannot be sent at once. But our request is small and our application unsophisticated. It blithely calls `sendall`, then waits for a response. Of course, it must register yet another callback and return control to the event loop. The final callback processes the server's response:
+The method sends a GET request. A real application would check the return value of `send` in case the whole message cannot be sent at once. But our request is small and our application unsophisticated. It blithely calls `send`, then waits for a response. Of course, it must register yet another callback and return control to the event loop. The final callback processes the server's response:
 
 ```python
     # Method on Fetcher class.
@@ -206,7 +212,7 @@ def blocking_fetch():
     sock = socket.socket()
     sock.connect(('xkcd.com', 80))
     request = 'GET {} HTTP/1.0\r\n\r\n'.format(self.url)
-    sock.sendall(request.encode('ascii'))
+    sock.send(request.encode('ascii'))
     response = b''
     chunk = sock.recv(4096)
     while chunk:
@@ -511,7 +517,7 @@ Once the socket is connected, we send the HTTP GET request and read the server r
 ```python
     def fetch(self):
         # ... connection logic from above, then:
-        sock.sendall(request.encode('ascii'))
+        sock.send(request.encode('ascii'))
 
         while True:
             f = Future()
@@ -659,7 +665,7 @@ At the stack's root, `fetch` calls `read_all`:
 class Fetcher:
     def fetch(self):
 		 # ... connection logic from above, then:
-        sock.sendall(request.encode('ascii'))
+        sock.send(request.encode('ascii'))
         self.response = yield from read_all(sock)
 ```
 
@@ -1051,3 +1057,5 @@ Now that you know how asyncio coroutines work, you can largely forget the detail
 [^12]: This future has many deficiencies. For example, once this future is resolved, a coroutine that yields it should resume immediately instead of pausing, but with our code it does not. See asyncio's Future class for a complete implementation.
 
 [^13]: In fact, this is exactly how "yield from" works in CPython. The outer generator adds 1 to `f_lasti` each time it executes "yield from". So when the inner generator yields to it, it just subtracts 1 from `f_lasti`, returning itself to the "yield from" instruction again. Then it yields to *its* caller. When the inner generator throws `StopIteration`, the outer generator does not subtract 1, allowing itself to advance to the next instruction.
+
+[^14]: Python's global interpreter lock prohibits running Python code in parallel in one process anyway. Parallelizing CPU-bound algorithms in Python requires multiple processes, or writing the parallel portions of the code in C. But that is a topic for another day.
