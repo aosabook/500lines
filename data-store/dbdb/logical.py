@@ -29,7 +29,7 @@ class ValueRef(object):
             self._address = storage.write(self.referent_to_string(self._referent))
 
 
-class Tree(object):
+class LogicalBase(object):
     node_ref_class = None
     value_ref_class = ValueRef
 

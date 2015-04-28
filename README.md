@@ -138,7 +138,7 @@ Contributors
   </tr>
   <tr>
     <td>Taavi Burns</td>
-    <td>PagerDuty</td>
+    <td>Formerly Points.com, now PagerDuty</td>
     <td>data-store</td>
     <td>
         <ul>
@@ -146,7 +146,7 @@ Contributors
         </ul>
     </td>
     <td><a href="https://github.com/taavi">taavi</a></td>
-    <td></td>
+    <td>taavi.burns@gmail.com</td>
   </tr>
   <tr>
     <td>Guido van Rossum</td>
