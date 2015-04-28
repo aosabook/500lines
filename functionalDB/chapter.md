@@ -298,12 +298,12 @@ We now have all the components we need to construct our database. Initializing o
                   )] 0 0)))
 ````
 There is one snag, though: all collections in Clojure are immutable. Since write operations are pretty critical in a database, we define our structure to be an *Atom*, which is is one of Clojure’s reference types, one that provides the capability of atomic writes. 
-XXX STOPPED HERE
+
 You may be wondering why we use the `always` function for the AVET, VEAT and EAVT indexes, and the `ref?` predicate for the VAET index. This is because these indexes are used in different scenarios, which we’ll see later when we explore queries in depth.
 
 ### Basic Accessors
 
-Before we can build complex querying facilities for our database, we need to provide a lower-level API that different parts of the system can use to retrieve the components we've built thus far by their associated identifiers from any point in time. Consumers of the database can also use this API; however, it is more likely that they will be using the more fully-featured components built on top of it.
+Before we can build complex querying facilities for our database, we need to provide a lower-level API that different parts of the system can use to retrieve the components we've built by their associated identifiers from any point in time. Consumers of the database can also use this API; however, it is more likely that they will be using the more fully-featured components built on top of it.
 
 This lower-level API is composed of the following four accessor functions:
 
@@ -325,13 +325,13 @@ This lower-level API is composed of the following four accessor functions:
    ([db kind ts] (kind ((:layers db) ts))))
 ````
 
-Since we treat our database just like any other value, each of these functions take a database as an argument. Each element is retrieved by its associated identifier, and optionally the timestamp of interest. This timestamp is used in each case to find the corresponding layer that our lookup should be applied to.
+Since we treat our database just like any other value, each of these functions take a database as an argument. Each element is retrieved by its associated identifier, and optionally the timestamp of interest. This timestamp is used to find the corresponding layer that our lookup should be applied to.
 
 #### Evolution
 
-A first usage of the basic accessors is to provide a "read-into-the-past" API. This is possible as in our database, an update operation is done by appending a new layer (as oppose to overwriting). Therefore we can use the `prev-ts` property of an attribute look at the attribute at that layer, and continue going back in time looking deeper into history, thus observing how the attribute’s value evolved throughout time.  
+A first usage of the basic accessors is to provide a "read-into-the-past" API. This is possible as, in our database, an update operation is done by appending a new layer (as opposed to overwriting). Therefore we can use the `prev-ts` property to look at the attribute at that layer, and continue looking deeper into history to observe how the attribute’s value evolved throughout time.  
 
-The function `evolution-of` does exactly that, and return a sequence of pairs - each consist of the timestamp and value of an attribute’s update.
+The function `evolution-of` does exactly that. It returns a sequence of pairs, each consist of the timestamp and value of an attribute’s update.
 ````clojure
 (defn evolution-of [db ent-id attr-name]
    (loop [res [] ts (:curr-time db)]
@@ -341,21 +341,21 @@ The function `evolution-of` does exactly that, and return a sequence of pairs - 
 ````
 ## Data Behavior and Life Cycle
 
-So far, our discussion has focused on the structure of our data -- what the core components are, and how they are aggregated together. It's time now to explore the dynamics of our system; how data is changed over time through the _data lifecycle_ (add => update => remove). 
+So far, our discussion has focused on the structure of our data: what the core components are and how they are aggregated together. It's time now to explore the dynamics of our system: how data is changed over time through the add--update--remove _data lifecycle_. 
 
-As we've already discussed, data in an archaeologist's world never actually changes. Once it is created, it exists forever and can only be hidden from the world by data in a newer layer. Note the term ‘hidden’, as it is crucial here. Older data does not 'disappear' -- it is buried, and can be revealed again by exposing an older layer. Conversely, updating data means obscuring the old by adding a new layer on top of it with something else. We can thus 'delete' data by adding a layer of 'nothing' on top of it. 
+As we've already discussed, data in an archaeologist's world never actually changes. Once it is created, it exists forever and can only be hidden from the world by data in a newer layer. The term "hidden" is crucial here. Older data does not "disappear" --- it is buried, and can be revealed again by exposing an older layer. Conversely, updating data means obscuring the old by adding a new layer on top of it with something else. We can thus "delete" data by adding a layer of "nothing" on top of it. 
 
-This means that when talking about data lifecycle, we are really talking about adding layers to our data over time. 
+This means that when we talk about data lifecycle, we are really talking about adding layers to our data over time. 
 
 ### The Bare Necessities
 
-The data lifecycle consists of three basic operations, which we will discuss here:
+The data lifecycle consists of three basic operations:
 
 * adding an entity with the `add-entity` function
 * removing an entity with the `remove-entity` function
 * updating an entity with the `update-entity` function. 
 
-Remember that, even though these functions provide the illusion of mutability, all that we are really doing in each case is adding another layer to the data. Also, since we use here Clojure's persistent data structures, we pay for such operations the price of an "in-place" change from the caller's perspective (i.e., negligible performance overhead), while maintaining immutability for all other users of that data structure.
+Remember that, even though these functions provide the illusion of mutability, all that we are really doing in each case is adding another layer to the data. Also, since we are using Clojure's persistent data structures, from the caller's perspective we pay the same price for these operations as for an "in-place" change (i.e., negligible performance overhead), while maintaining immutability for all other users of the data structure.
 
 #### Adding an Entity
 
@@ -365,7 +365,8 @@ Adding an entity requires us to do three things:
 * place the entity in storage 
 * update indexes as necessary
 
-These steps are performed in the `add-entity` function
+These steps are performed in the `add-entity` function.
+
 ````clojure
 (defn add-entity [db ent]
    (let [[fixed-ent next-top-id] (fix-new-entity db ent)
@@ -375,8 +376,9 @@ These steps are performed in the `add-entity` function
          new-layer (reduce add-fn layer-with-updated-storage (indexes))]
     (assoc db :layers (conj (:layers db) new-layer) :top-id next-top-id)))
 ````
-Preparing an entity is done calling the `fix-new-entity` function and its auxiliary functions `next-id`, `next-ts` and `update-creation-ts`. 
-These latter two helper functions are responsible for finding the next timestamp of the database(done by `next-ts` function), and updating the creation timestamp of the given entity. Updating the creation timestamp of an entity means going over the attributes of the entity and update their `:ts` field (done by the `update-creation-ts` function).
+Preparing an entity is done by calling the `fix-new-entity` function and its auxiliary functions `next-id`, `next-ts` and `update-creation-ts`. 
+These latter two helper functions are responsible for finding the next timestamp of the database (done by `next-ts`), and updating the creation timestamp of the given entity (done by `update-creation-ts`). Updating the creation timestamp of an entity means going over the attributes of the entity and updating their `:ts` fields.
+
 ````clojure
 (defn- next-ts [db] (inc (:curr-time db)))
 
@@ -400,10 +402,11 @@ To add the entity to storage, we locate the most recent layer in the database an
 
 Finally, we must update the indexes. This means:
 
-1. For each of the indexes (done by the combination of `reduce` and the `partial`-ed `add-entity-to-index` at the `add-entity` function)
-2. Find the attributes that should be indexed (see the combination of `filter` with the index’s `usage-pred` that operates on the attributes in `add-entity-to-index`) 
-3. build an index-path from the the entity’s ID (see the combination of the `partial`-ed `update-entry-in-index` with `from-eav` at the `update-attr-in-index` function)
-4. Add that path to the index (see the `update-entry-in-index` function)
+* For each of the indexes (done by the combination of `reduce` and the `partial`-ed `add-entity-to-index` at the `add-entity` function)
+    * Find the attributes that should be indexed (see the combination of `filter` with the index’s `usage-pred` that operates on the attributes in `add-entity-to-index`) 
+    * Build an index-path from the the entity’s ID (see the combination of the `partial`-ed `update-entry-in-index` with `from-eav` at the `update-attr-in-index` function)
+    * Add that path to the index (see the `update-entry-in-index` function)
+
 ````clojure
 (defn- add-entity-to-index [ent layer ind-name]
    (let [ent-id (:id ent)
@@ -426,7 +429,7 @@ Finally, we must update the indexes. This means:
          to-be-updated-set (get-in index update-path #{})]
      (assoc-in index update-path (conj to-be-updated-set update-value))))
 ````
-All of these components are added as a new layer to the given database; all that’s left is to update the database’s timestamp and top-id fields. That last step occurs on the last line of `add-entity`, which also returns the updated database.
+All of these components are added as a new layer to the given database. All that’s left is to update the database’s timestamp and top-id fields. That last step occurs on the last line of `add-entity`, which also returns the updated database.
 
 We also provide an `add-entities` convenience function that adds multiple entities to the database in one call by iteratively applying `add-entity`.
 
@@ -437,9 +440,9 @@ We also provide an `add-entities` convenience function that adds multiple entiti
 
 Removing an entity from our database means adding a layer in which it does not exist. To do this, we need to:
 
-* remove the entity itself
-* update any attributes of other entities that reference it 
-* clear the entity from our indexes
+* Remove the entity itself
+* Update any attributes of other entities that reference it 
+* Clear the entity from our indexes
 
 This "construct-without" process is executed by the `remove-entity` function, which looks very similar to `add-entity`:
 ````clojure
@@ -473,15 +476,15 @@ We begin by using `reffing-datoms-to` to find all entities that reference ours i
 ````
 We then apply `update-entity` to each triplet to update the attributes that reference our removed entity. (We'll explore how `update-entity` works in the next section.)
 
-The last step of `remove-back-refs` is to clear the reference it self from our indexes, and more specifically - from the VAET index, since it is the only index that stores references information. 
+The last step of `remove-back-refs` is to clear the reference itself from our indexes, and more specifically from the VAET index, since it is the only index that stores references information. 
 
 #### Updating an Entity
 
-At its essence, an update is the modification of an entity’s attribute’s value. The modification process itself depends on the cardinality of the attribute: an attribute with cardinality `:db/multiple` holds a set of values, so we must allow addition and removal of items to this set, or replacing the set entirely. An attribute with cardinality `:db/single` holds a single value, and thus only allows replacement.  
+At its essence, an update is the modification of an entity’s attribute’s value. The modification process itself depends on the cardinality of the attribute: an attribute with cardinality `:db/multiple` holds a set of values, so we must allow items to be added to or removed from this set, or the set to be replaced entirely. An attribute with cardinality `:db/single` holds a single value, and thus only allows replacement.  
 
 Since we also have indexes that provide lookups directly on attributes and their values, these will also have to be updated. 
 
-As with `add-entity` and `remove-entity`, we won't actually be modifying our entity in-place, but will instead add a new layer which contains the updated entity.
+As with `add-entity` and `remove-entity`, we won't actually be modifying our entity in place, but will instead add a new layer which contains the updated entity.
 
 ````clojure
 (defn update-entity
@@ -522,20 +525,21 @@ We use two helper functions to perform the update. `update-attr-modification-tim
       (= :db/add operation) (assoc attr :value (CS/union (:value attr) value))
       (= :db/remove operation) (assoc attr :value (CS/difference (:value attr) value))))
 ````
-All that remains is to remove the old value from the indexes and to add the new one to them, and then construct to the new layer with all of our updated components. Luckily, we can leverage the code we wrote for adding and removing entities to do this!
+All that remains is to remove the old value from the indexes and add the new one to them, and then construct the new layer with all of our updated components. Luckily, we can leverage the code we wrote for adding and removing entities to do this!
 
 ### Transactions
 
-Each of the operations in our low-level API act on a single entity. However, nearly all databases have a mechanism for allowing users to perform multiple operations as a single _transaction_. (TODO: Reference other chapters on transactional semantics here.) This means: 
+Each of the operations in our low-level API act on a single entity. However, nearly all databases have a mechanism for allowing users to perform multiple operations as a single _transaction_. <!--TODO/FIXME: Reference other chapters on transactional semantics here.--> This means: 
 
-* The batch of operations is viewed as a single atomic operation, meaning that either all of the operations succeed together or fail together
-* The database is in a valid state before, and after the transaction
-* The batch update appears to be _isolated_; other queries should never see a database state in which only some of the operations have been applied
+* The batch of operations is viewed as a single atomic operation, so all of the operations either succeed together or fail together.
+* The database is in a valid state before and after the transaction.
+* The batch update appears to be _isolated_; other queries should never see a database state in which only some of the operations have been applied.
 
-We can fulfill these requirements through an interface that consumes a database and a set of operations to be performed, and which produces a database whose state reflects the given changes. All of the changes submitted in the batch should be applied through the addition of a _single_ layer. However, we have one small problem: All of the functions we wrote in our low-level API add a new layer to the database. If we were to perform a batch with _n_ operations, we would thus see _n_ new layers added, when what we would really like is to have exactly 1 new layer.   
+We can fulfill these requirements through an interface that consumes a database and a set of operations to be performed, and which produces a database whose state reflects the given changes. All of the changes submitted in the batch should be applied through the addition of a _single_ layer. However, we have a problem: All of the functions we wrote in our low-level API add a new layer to the database. If we were to perform a batch with _n_ operations, we would thus see _n_ new layers added, when what we would really like is to have exactly one new layer.   
 
-The key insight here is that the layer we want is the _top_ layer that would be produced by performing those updates in sequence. Therefore, the solution is to execute each of the user’s operations one after another, each of which will create a new layer. When the last layer is created, we take only that top layer and place it on the initial database (leaving all the intermediate layers to pine for the fjords). Only after we've done all this will we update the database's timestamp.
-All this is done in the `transact-on-db` function, that receives the initial value of the database and the batch of operations to perform, and returns its updated value. 
+The key insight here is that the layer we want is the _top_ layer that would be produced by performing those updates in sequence. Therefore, the solution is to execute the user’s operations one after another, each creating a new layer. When the last layer is created, we take only that top layer and place it on the initial database (leaving all the intermediate layers to pine for the fjords). Only after we've done all this will we update the database's timestamp.
+
+All this is done in the `transact-on-db` function, which receives the initial value of the database and the batch of operations to perform, and returns its updated value. 
 
 ````clojure
 (defn transact-on-db [initial-db ops]
@@ -546,20 +550,22 @@ All this is done in the `transact-on-db` function, that receives the initial val
                 new-layer (last (:layers transacted))]
             (assoc initial-db :layers (conj  initial-layer new-layer) :curr-time (next-ts initial-db) :top-id (:top-id transacted))))))
 ```` 
-Note here that we used the term _value_, this means that only the caller to this function is exposed to the updated state, and all other users of the database are unaware of this change (as a database is a value, and therefore cannot change). 
-In order to have a system where users can be exposed to state changes performed by others, users do not interact directly with the database, but rather refer to it using another level of indirection [REF HERE]. This additional level is implemented using Clojure's `Atom`, which is a one of Clojure's reference types. Here we leverage the main three key features of an `Atom`, which are:
-1. It references a value
-2. It is possible to update the referencing of the `Atom` to another value by executing a transaction (using Clojure's Software Transaction Memory capabilities). The transaction accepts an `Atom` and a function. That function operates on the value of the `atom` and returns a new value. After the execution of the transaction, the `Atom` references the value that was returned from the function.
-3. Getting to the value that is referenced by the `Atom` is done by dereferencing the `Atom`, which returns the state of that `Atom` at that time.
+Note here that we used the term _value_, meaning that only the caller to this function is exposed to the updated state; all other users of the database are unaware of this change (as a database is a value, and therefore cannot change). 
+In order to have a system where users can be exposed to state changes performed by others, users do not interact directly with the database, but rather refer to it using another level of indirection. This additional level is implemented using Clojure's `Atom`, a reference type. Here we leverage the main three key features of an `Atom`, which are:
 
-In between Clojure's `Atom` and the work done in `transact-on-db`, there's still gap to be bridged, namely, to invoke the transaction with the right inputs. 
-To have the simplest and clearest APIs, we  would like users to just provide the `Atom` and the list of operations, and have database transform the user input into a proper transaction.
+1. It references a value
+2. It is possible to update the referencing of the `Atom` to another value by executing a transaction (using Clojure's Software Transaction Memory capabilities). The transaction accepts an `Atom` and a function. That function operates on the value of the `Atom` and returns a new value. After the execution of the transaction, the `Atom` references the value that was returned from the function.
+3. Getting to the value that is referenced by the `Atom` is done by dereferencing it, which returns the state of that `Atom` at that time.
+
+In between Clojure's `Atom` and the work done in `transact-on-db`, there's still a gap to be bridged; namely, to invoke the transaction with the right inputs.
+
+To have the simplest and clearest APIs, we  would like users to just provide the `Atom` and the list of operations, and have the database transform the user input into a proper transaction.
 
 That transformation occurs in the following transaction call chain:
 
  transact →  _transact → swap! → transact-on-db
 
-* Users call `transact` with the `Atom` (i.e., the database connection) and the operations to perform, relays its input to `_transact`, adding to it the name of the function that updates the `Atom` (*swap!*)
+* Users call `transact` with the `Atom` (i.e., the database connection) and the operations to perform, which relays its input to `_transact`, adding to it the name of the function that updates the `Atom` (`swap!`).
 ````clojure
 (defmacro transact [db-conn & txs]  `(_transact ~db-conn swap! ~@txs))
 ````
@@ -572,10 +578,10 @@ That transformation occurs in the following transaction call chain:
            (recur rst-tx# res#  (conj  accum-txs#  (vec frst-tx#)))
            (list* (conj res#  accum-txs#))))))
 ````
-* `swap!` invokes `transact-on-db` within a transaction (with the previously prepared arguments)
-* `transact-on-db` creates the new state of the database and returns it
+* `swap!` invokes `transact-on-db` within a transaction (with the previously prepared arguments).
+* `transact-on-db` creates the new state of the database and returns it.
 
-At this point we can see that with few minor tweaks, we can also provide a way to ask "what-if" questions. It can be done by replacing `swap!` with a function that would not impose any change to the system. This scenario is implemented with the "what-if" call chain:
+At this point we can see that with few minor tweaks, we can also provide a way to ask "what if" questions. This can be done by replacing `swap!` with a function that would not make any change to the system. This scenario is implemented with the `what-if` call chain:
 
 what-if → _transact →   _what-if → transact-on-db
 
@@ -590,46 +596,46 @@ what-if → _transact →   _what-if → transact-on-db
 (defn- _what-if [db f txs]  (f db txs))
 ````
  
-Note that we are not using functions, but macros. The reason for using macros here is that arguments to macros do not get evaluated as the call happens, this allows us to offer a cleaner API design where the user provides the operations structured in the same way that any function call is structured in Clojure. 
+Note that we are not using functions, but macros. The reason for using macros here is that arguments to macros do not get evaluated as the call happens; this allows us to offer a cleaner API design where the user provides the operations structured in the same way that any function call is structured in Clojure. 
 
-The above described process can be seen in the following examples:
+The above process can be seen in the following examples:
 
-Transaction: 
-
-User call: 
+For Transaction, the user call: 
 ````clojure
 (transact db-conn  (add-entity e1) (update-entity e2 atr2 val2 :db/add))  
 ````
-Changes into: 
+changes into: 
 ````clojure
 (_transact db-conn swap! (add-entity e1) (update-entity e2 atr2 val2 :db/add))
 ````
-Becomes: 
+which becomes: 
 ````clojure
 (swap! db-conn transact-on-db [[add-entity e1][update-entity e2 atr2 val2 :db/add]])
 ````
-What-if: 
 
-User call: 
+The What-if user call:
+
 ````clojure
 (what-if my-db (add-entity e3) (remove-entity e4))
 ````
-Changes into: 
+changes into: 
 ````clojure
 (_transact my-db _what-if (add-entity e3) (remove-entity e4))
 ````
-Changes into: 
+then:
 ````clojure
 (_what-if my-db transact-on-db [[add-entity e3] [remove-entity e4]])
 ````
-Becomes eventually: 
+and eventually: 
 ````clojure
 (transact-on-db my-db  [[add-entity e3] [remove-entity e4]])
 ````
 
+XXX STOPPED HERE
+
 ## Insight Extraction as Libraries
 
-At this point, we have the core functionality of the database in place, and it is time to add to it its raison d'être - insights extraction. The architecture approach we used here is to allow adding these capabilities as libraries, as different usages of the database would need different such mechanisms. 
+At this point we have the core functionality of the database in place, and it is time to add its raison d'être: insights extraction. The architecture approach we used here is to allow adding these capabilities as libraries, as different usages of the database would need different such mechanisms. 
 
 ### Graph Traversal
 
