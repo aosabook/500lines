@@ -1,8 +1,9 @@
 from dbdb.binary_tree import BinaryTree
-from dbdb.storage import Storage
+from dbdb.physical import Storage
 
 
 class DBDB(object):
+
     def __init__(self, f):
         self._storage = Storage(f)
         self._tree = BinaryTree(self._storage)

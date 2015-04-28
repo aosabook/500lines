@@ -17,12 +17,20 @@ Concurrent (dirty) readers are supported. Serialized fully transactional
 updates are supported.
 
 
+
 Installing
 ----------
 
-::
+The code is written in the common subset of Python 2.7 and 3.4
+(tested via `tox <https://testrun.org/tox/latest/>`_).
 
-    pip install -e requirements.txt
+I recommend using `virtualenv <https://virtualenv.pypa.io/en/latest/>`_
+when installing dependencies:
+
+::
+    500lines/data-store$ virtualenv env
+    500lines/data-store$ source env/bin/activate
+    (env)500lines/data-store$ pip install -r requirements.txt
 
 
 Testing
@@ -32,8 +40,8 @@ Testing
 
     nosetests -v
 
-    dbdb.tests.test_binary_tree.TestBinaryNode.test_to_string_leaf ... ok
-    dbdb.tests.test_binary_tree.TestBinaryNode.test_to_string_nonleaf ... ok
+    dbdb.tests.test_binary_tree.TestBinaryNodeRef.test_to_string_leaf ... ok
+    dbdb.tests.test_binary_tree.TestBinaryNodeRef.test_to_string_nonleaf ... ok
     dbdb.tests.test_binary_tree.TestBinaryTree.test_del_full_node_key ... ok
     ... (etc)
 
@@ -58,7 +66,7 @@ B-Tree.
     can accidentally upgrade to a write lock and clobber other updates.  Now
     I'm not sure if it's worth adding multi-writer safety for 500lines.
 
-.. todo:: Compaction. Requires atomic replace (not trivially available on
+.. todo:: Compaction. Requires atomic file replace (not trivially available on
     Windows) along with write serialization (but only if we care about that,
     see above).
 

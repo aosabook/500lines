@@ -1,0 +1,84 @@
+<?xml version="1.0"?>
+<alloy>
+
+<view nodetheme="Martha" edgetheme="Martha">
+
+<projection> <type name="http/call/Time"/> </projection>
+
+<defaultnode/>
+
+<defaultedge/>
+
+<node>
+   <type name="Browser"/>
+   <type name="BrowserHttpRequest"/>
+   <type name="Document"/>
+   <type name="Int"/>
+   <type name="String"/>
+   <type name="univ"/>
+   <type name="http/Cookie"/>
+   <type name="http/Domain"/>
+   <type name="http/Endpoint"/>
+   <type name="http/HttpRequest"/>
+   <type name="http/Path"/>
+   <type name="http/Port"/>
+   <type name="http/Protocol"/>
+   <type name="http/Resource"/>
+   <type name="seq/Int"/>
+   <type name="http/call/Time"/>
+   <type name="http/call/ord/Ord"/>
+   <set name="$d1" type="Document"/>
+   <set name="$d2" type="Document"/>
+   <set name="$t" type="http/call/Time"/>
+   <set name="after" type="http/call/Call"/>
+   <set name="First" type="http/call/ord/Ord"/>
+   <set name="Next" type="http/call/ord/Ord"/>
+</node>
+
+<node color="Gray">
+   <type name="http/Server"/>
+</node>
+
+<node color="White">
+   <type name="http/Dns"/>
+</node>
+
+<node shape="Circle" color="Blue">
+   <type name="http/Client"/>
+</node>
+
+<node shape="Egg" color="Black">
+   <type name="http/Url"/>
+</node>
+
+<node showlabel="no">
+   <set name="$c" type="http/call/Call"/>
+</node>
+
+<node visible="no" shape="Parallelogram" color="Green">
+   <type name="http/call/Call"/>
+</node>
+
+<node visible="yes" showlabel="no">
+   <set name="before" type="http/call/Call"/>
+</node>
+
+<edge color="Blue">
+   <relation name="from"> <type name="http/call/Call"/> <type name="http/Endpoint"/> </relation>
+</edge>
+
+<edge color="Gray">
+   <relation name="to"> <type name="http/call/Call"/> <type name="http/Endpoint"/> </relation>
+</edge>
+
+<edge visible="no" attribute="yes">
+   <relation name="host"> <type name="http/Url"/> <type name="http/Domain"/> </relation>
+   <relation name="map"> <type name="http/Dns"/> <type name="http/Domain"/> <type name="http/Server"/> </relation>
+   <relation name="path"> <type name="http/Url"/> <type name="http/Path"/> </relation>
+   <relation name="port"> <type name="http/Url"/> <type name="http/Port"/> </relation>
+   <relation name="protocol"> <type name="http/Url"/> <type name="http/Protocol"/> </relation>
+</edge>
+
+</view>
+
+</alloy>
