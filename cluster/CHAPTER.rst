@@ -1,20 +1,20 @@
-Clustering by Consensus
-***********************
+<!-- American spelling -->
+# Clustering by Consensus
+
 
 In this chapter, we'll explore implementation of a network protocol designed to support reliable distributed computation.
 Network protocols can be difficult to implement correctly, so we'll look at some techniques for minimizing bugs and for catching and fixing the remaining few.
 Building reliable software, too, requires some special development and debugging techniques.
 
-Motivating Example
-==================
+## Motivating Example
 
 The focus of this chapter is on the protocol implementation, but as a motivating example let's consider a simple bank account management service.
 In this service, each account has a current balance and is identified with an account number.
 Users access the accounts by requesting operations like "deposit", "transfer", or "get-balance".
 The "transfer" operation operates on two accounts at once -- the source and destination accounts -- and must be rejected if the source account's balance is too low.
 
-If the service is hosted on a single server, this is easy to implement: use a lock to make sure that transfer operations don't run in parallel, and verify the souce account's balance in that method.
-However, a bank cannot rely on a single server for its critical account balances!
+If the service is hosted on a single server, this is easy to implement: use a lock to make sure that transfer operations don't run in parallel, and verify the source account's balance in that method.
+However, a bank cannot rely on a single server for its critical account balances.
 Instead, the service is *distributed* over multiple servers, with each running a separate instance of exactly the same code.
 Users can then contact any server to perform an operation.
 
@@ -24,11 +24,10 @@ But this approach introduces a serious failure mode: if two servers process oper
 Even if the servers share operations with one another instead of balances, two simultaneous transfers out of an account might overdraw the account.
 
 Fundamentally, these failures occur when servers use their local state to perform operations, without first ensuring that the local state matches the state on other servers.
-For example, imagine that server A receives a transfer operation from account 101 to account 202, when server B has already processed another transfer account 101's full balance to account 202, but not yet informed server A.
-The local state on server A is different from that on server B, so server A incorrectly allows the transfer to complete, even though the result is an overdraft on account 101.
+For example, imagine that server A receives a transfer operation from Account 101 to Account 202, when server B has already processed another transfer of Account 101's full balance to Account 202, but not yet informed server A.
+The local state on server A is different from that on server B, so server A incorrectly allows the transfer to complete, even though the result is an overdraft on Account 101.
 
-Distributed State Machines
-==========================
+## Distributed State Machines
 
 The technique for avoiding such problems is called a "distributed state machine".
 The idea is that each server executes exactly the same deterministic state machine on exactly the same inputs.
@@ -37,7 +36,7 @@ Operations such as "transfer" or "get-balance", together with their parameters (
 
 The state machine for this application is simple:
 
-.. code-block:: python
+```python
 
     def execute_operation(state, operation):
         if operation.name == 'deposit':
@@ -53,9 +52,10 @@ The state machine for this application is simple:
             return state, True
         elif operation.name == 'get-balance':
             return state, state.accounts[operation.account]
+```
 
 Note that executing the "get-balance" operation does not modify the state, but is still implemented as a state transition.
-This guarantees that the returned balance is the latest information in the cluster of servers, not based on the (possibly stale) local state on a single server.
+This guarantees that the returned balance is the latest information in the cluster of servers, and is not based on the (possibly stale) local state on a single server.
 
 This may look different than the typical state machine you'd learn about in a computer science course.
 Rather than a finite set of named states with labeled transitions, this machine's state is the collection of account balances, so there are infinite possible states.
@@ -63,24 +63,22 @@ Still, the usual rules of deterministic state machines apply: starting with the 
 
 So, the distributed state machine technique ensures that the same operations occur on each host.
 But the problem remains of ensuring that every server agrees on the inputs to the state machine.
-This is a problem of *consensus*, and we'll address it with derivative of the Paxos algorithm.
+This is a problem of *consensus*, and we'll address it with a derivative of the Paxos algorithm.
 
-Consensus by Paxos
-==================
+## Consensus by Paxos
 
 Paxos was described by Leslie Lamport in a fanciful paper, first submitted in 1990 and eventually published in 1998, entitled "The Part-Time Parliament".
 Lamport's paper has a great deal more detail than we will get into here, and is a fun read.
 The references at the end of the chapter describe some extensions of the algorithm that we have adapted in this implementation.
 
 The simplest form of Paxos provides a way for a set of servers to agree on one value, for all time.
-MultiPaxos builds on this foundation by agreeing on a numbered sequence of facts, one at a time.
-To implement a distributed state machine, we use MultiPaxos to agree on each state-machine input, and execute them in sequence.
+Multi-Paxos builds on this foundation by agreeing on a numbered sequence of facts, one at a time.
+To implement a distributed state machine, we use Multi-Paxos to agree on each state-machine input, and execute them in sequence.
 
-Simple Paxos
-------------
+### Simple Paxos
 
 So let's start with "Simple Paxos", also known as the Synod protocol, which provides a way to agree on a single value that can never change.
-The name Paxos comes from the mythical island in "The Part-Time Parliament", where lawmakers vote on legislation through a process Lamport dubbed a Synod.
+The name Paxos comes from the mythical island in "The Part-Time Parliament", where lawmakers vote on legislation through a process Lamport dubbed the Synod protocol.
 
 The algorithm is a building block for more complex algorithms, as we'll see below.
 The single value we'll agree on in this example is the first transaction processed by our hypothetical bank.
@@ -92,7 +90,7 @@ The proposer's goal is to get a majority of cluster members, acting as acceptors
 
 A single ballot looks like this:
 
-.. code-block:: none
+```
 
     Proposer      -------------------------     Acceptor        Acceptor        Acceptor
        *--->>----/ Prepare(ballot_num=..) /--------+---------------+---------------+
@@ -120,6 +118,8 @@ A single ballot looks like this:
        +-----------------------/ Accepted(ballot_num=..) /-----------<<------------*
                                --------------------------      
 
+```
+
 The ballot begins with the proposer sending a ``Prepare`` message with the ballot number *N* to the acceptors and waiting to hear from a majority.
 
 The ``Prepare`` message is a request for the accepted value (if any) with the highest ballot number less than *N*.
@@ -127,7 +127,7 @@ Acceptors respond with a ``Promise`` containing any value they have already acce
 If the acceptor has already made a promise for a larger ballot number, it includes that number in the ``Promise``, indicating that the proposer has been pre-empted.
 In this case, the ballot is over, but the proposer is free to try again in another ballot (and with a larger ballot number).
 
-When the proposer has heard back from a majority of the acceptors, it sends an ``Accept`` message, including the ballot number and value to all acceptors.
+When the proposer has heard back from a majority of the acceptors, it sends an ``Accept`` message, including the ballot number and value, to all acceptors.
 If the proposer did not receive any existing value from any acceptor, then it sends its own desired value.
 Otherwise, it sends the value from the highest-numbered promise.
 
@@ -148,18 +148,18 @@ Both proposers then re-propose, and hopefully one wins, but the deadlock can con
 Consider the following sequence of events:
 
 * Proposer A performs the ``Prepare``/``Promise`` phase for ballot number 1.
-* Before proposer A manages to get its proposal accepted, proposer B performs a ``Prepare``/``Promise`` phase for ballot number 2.
-* When proposer A finally sends its ``Accept`` with ballot number 1, the acceptors reject it because they have already promised ballot number 2.
-* Proposer A reacts by immediately sending a ``Prepare`` with a higher ballot number (3), before proposer B can send its ``Accept`` message.
+* Before Proposer A manages to get its proposal accepted, Proposer B performs a ``Prepare``/``Promise`` phase for ballot number 2.
+* When Proposer A finally sends its ``Accept`` with ballot number 1, the acceptors reject it because they have already promised ballot number 2.
+* Proposer A reacts by immediately sending a ``Prepare`` with a higher ballot number (3), before Proposer B can send its ``Accept`` message.
 * Proposer B's subsequent ``Accept`` is rejected, and the process repeats.
 
 With unlucky timing -- more common over long-distance connections where the time between sending a message and getting a response is long -- this deadlock can continue for many rounds.
 
-Multi-Paxos
------------
+### Multi-Paxos
 
-Reaching consensus on a single, static value is not particularly useful on its own.
-Clustered systems such as the bank account service want to agree on a particular state (account balances) that evolves over time.
+
+Reaching consensus on a single static value is not particularly useful on its own.
+Clustered systems such as the bank account service want to agree on a particular state (account balances) that changes over time.
 We use Paxos to agree on each operation, treated as a state machine transition.
 
 Multi-Paxos is, in effect, a sequence of simple Paxos instances (slots), each numbered sequentially.
@@ -170,8 +170,7 @@ In concrete terms, this means adding a slot number to each message, with all of 
 Running Paxos for every slot, with its minimum of two round trips, would be too slow.
 Multi-Paxos optimizes by using the same set of ballot numbers for all slots, and performing the ``Prepare``/``Promise`` phase for all slots at once.
 
-Paxos Made .. Pretty Hard, Actually
------------------------------------
+### Paxos Made Pretty Hard
 
 Implementing Multi-Paxos in practical software is notoriously difficult, spawning a number of papers mocking Lamport's "Paxos Made Simple" with titles like "Paxos Made Practical".
 
@@ -185,7 +184,7 @@ The leader is then free to execute the ``Accept``/``Accepted`` phase directly wi
 As we'll see below, leader elections are actually quite complex.
 
 Although simple Paxos guarantees that the cluster will not reach conflicting decisions, it cannot guarantee that any decision will be made.
-For example, if the initial ``Prepare`` message is lost and doesn't reach the acceptors, then the proposer will wait for ``Promise`` message that will never arive.
+For example, if the initial ``Prepare`` message is lost and doesn't reach the acceptors, then the proposer will wait for a ``Promise`` message that will never arrive.
 Fixing this requires carefully orchestrated re-transmissions: enough to eventually make progress, but not so many that the cluster buries itself in a packet storm.
 
 Another problem is the dissemination of decisions.
@@ -200,27 +199,24 @@ Furthermore, we need some way to initialize a new cluster.
 
 But enough talk of theory and algorithms -- let's have a look at the code.
 
-Introducing Cluster
-===================
+## Introducing Cluster
 
-The "Cluster" library in this chapter implements a simple form of Multi-Paxos.
+The *Cluster* library in this chapter implements a simple form of Multi-Paxos.
 It is designed as a library to provide a consensus service to a larger application.
 
-Users of this library will depend on its correctness, so it's important to structure the code so that we can see -- and test -- its correspondance to the specification.
-Complex protocols can exhibit complex failures, too, so we will build support for reproducing and debugging rare failures.
+Users of this library will depend on its correctness, so it's important to structure the code so that we can see -- and test -- its correspondence to the specification.
+Complex protocols can exhibit complex failures, so we will build support for reproducing and debugging rare failures.
 
 The implementation in this chapter is proof-of-concept code: enough to demonstrate that the core concept is practical, but without all of the mundane equipment required for use in production.
-However, the code is structured so that such equipment can be added later with minimal changes to the core implementation.
+The code is structured so that such equipment can be added later with minimal changes to the core implementation.
 
 Let's get started.
 
-Types and Constants
--------------------
+### Types and Constants
 
-Cluster's protocol uses 15 different message types, each defined as a Python ``namedtuple``.
+Cluster's protocol uses fifteen different message types, each defined as a Python ``namedtuple``.
 
-{{{ from_to cluster.py '# message types' '^$'
-.. code-block:: python
+```python
 
     Accepted = namedtuple('Accepted', ['slot', 'ballot_num'])
     Accept = namedtuple('Accept', ['slot', 'ballot_num', 'proposal'])
@@ -237,27 +233,29 @@ Cluster's protocol uses 15 different message types, each defined as a Python ``n
     Preempted = namedtuple('Preempted', ['slot', 'preempted_by'])
     Adopted = namedtuple('Adopted', ['ballot_num', 'accepted_proposals'])
     Accepting = namedtuple('Accepting', ['leader'])
-    
-}}}
+```    
+
 
 Using named tuples to describe each message type keeps the code clean and helps avoid some simple errors.
 The named tuple constructor will raise an exception if it is not given exactly the right attributes, making typos obvious.
 The tuples format themselves nicely in log messages, and as an added bonus don't use as much memory as a dictionary.
 
-Creating a message reads naturally::
+Creating a message reads naturally:
 
+```python
     msg = Accepted(slot=10, ballot_num=30)
+```
 
-And the fields of that message are accessible with a minimum of extra typing::
+And the fields of that message are accessible with a minimum of extra typing:
 
+```python
     got_ballot_num = msg.ballot_num
+```
 
 We'll see what these messages mean in the sections that follow.
 The code also introduces a few constants, most of which define timeouts for various messages:
 
-{{{ from_to cluster.py '# constants' '^$'
-.. code-block:: python
-
+```python
     JOIN_RETRANSMIT = 0.7
     CATCHUP_INTERVAL = 0.6
     ACCEPT_RETRANSMIT = 1.0
@@ -267,31 +265,27 @@ The code also introduces a few constants, most of which define timeouts for vari
     NULL_BALLOT = Ballot(-1, -1)  # sorts before all real ballots
     NOOP_PROPOSAL = Proposal(None, None, None)  # no-op to fill otherwise empty slots
     
-}}}
+```
 
-Finally, Cluster uses two named data types, named to correspond to the protocol description:
+Finally, Cluster uses two data types named to correspond to the protocol description:
 
-{{{ from_to cluster.py '# data types' '^$'
-.. code-block:: python
+```python
 
     Proposal = namedtuple('Proposal', ['caller', 'client_id', 'input'])
     Ballot = namedtuple('Ballot', ['n', 'leader'])
     
-}}}
+```
 
-Component Model
----------------
+### Component Model
 
 Humans are limited by what we can hold in our active memory.
-We can't reason about the entire Cluster implementation at once -- it's just too much, and too easy to miss details.
-For similar reasons, large monolithic codebases are harder to test: test cases must manipulate many moving pieces and are brittle, failing on almost any change to the code.
+We can't reason about the entire Cluster implementation at once -- it's just too much, so it's easy to miss details.
+For similar reasons, large monolithic codebases are hard to test: test cases must manipulate many moving pieces and are brittle, failing on almost any change to the code.
 
 To encourage testability and keep the code readable, we break Cluster down into a handful of classes corresponding to the roles described in the protocol.
 Each is a subclass of ``Role``.
 
-{{{ code_block cluster.py 'class Role'
-.. code-block:: python
-
+```python
     class Role(object):
     
         def __init__(self, node):
@@ -307,8 +301,7 @@ Each is a subclass of ``Role``.
         def stop(self):
             self.running = False
             self.node.unregister(self)
-    
-}}}
+```
 
 The roles that a cluster node has are glued together by the ``Node`` class, which represents a single node on the network.
 Roles are added to and removed from the node as execution proceeds.
@@ -316,8 +309,7 @@ Messages that arrive on the node are relayed to all active roles, calling a meth
 These ``do_`` methods receive the message's attributes as keyword arguments for easy access.
 The ``Node`` class also provides a ``send`` method as a convenience, using ``functools.partial`` to supply some arguments to the same methods of the ``Network`` class.
 
-{{{ code_block cluster.py 'class Node'
-.. code-block:: python
+```python
 
     class Node(object):
         unique_ids = itertools.count()
@@ -346,13 +338,9 @@ The ``Node`` class also provides a ``send`` method as a convenience, using ``fun
                 fn = getattr(comp, handler_name)
                 fn(sender=sender, **message._asdict())
     
-}}}
+```
 
-..
-    this comment helps vim highlight correctly**
-
-Application Interface
----------------------
+### Application Interface
 
 The application creates and starts a ``Member`` object on each cluster member, providing an application-specific state machine and a list of peers.
 The member object adds a bootstrap role to the node if it is joining an existing cluster, or seed if it is creating a new cluster.
@@ -360,10 +348,10 @@ It then runs the protocol (via ``Network.run``) in a separate thread.
 
 The application interacts with the cluster through the ``invoke`` method, which kicks off a proposal for a state transition.
 Once that proposal is decided and the state machine runs, ``invoke`` returns the machine's output.
-The method uses a simple synchronized Queue to wait for the result from the protocol thread.
+The method uses a simple synchronized `Queue` to wait for the result from the protocol thread.
 
-{{{ code_block cluster.py 'class Member'
-.. code-block:: python
+
+```python
 
     class Member(object):
     
@@ -392,24 +380,21 @@ The method uses a simple synchronized Queue to wait for the result from the prot
             self.requester = None
             return output
     
-}}}
+```
 
-Role Classes
-------------
+### Role Classes
 
-Let's look at each of the role classes in the library, one by one.
+Let's look at each of the role classes in the library one by one.
 
-Acceptor
-........
+#### Acceptor
 
 The ``Acceptor`` implements the acceptor role in the protocol, so it must store the ballot number representing its most recent promise, along with the set of accepted proposals for each slot.
 It then responds to ``Prepare`` and ``Accept`` messages according to the protocol.
 The result is a short class that is easy to compare to the protocol.
 
-For acceptors, Multi Paxos looks a lot like simple paxos, with the addition of slot numbers to the messages.
+For acceptors, Multi-Paxos looks a lot like Simple Paxos, with the addition of slot numbers to the messages.
 
-{{{ code_block cluster.py 'class Acceptor'
-.. code-block:: python
+```python
 
     class Acceptor(Role):
     
@@ -436,10 +421,9 @@ For acceptors, Multi Paxos looks a lot like simple paxos, with the addition of s
             self.node.send([sender], Accepted(
                 slot=slot, ballot_num=self.ballot_num))
     
-}}}
+```
 
-Replica
-.......
+#### Replica
 
 The ``Replica`` class is the most complicated role class, as it has a few closely related responsibilities:
 
@@ -451,7 +435,7 @@ The ``Replica`` class is the most complicated role class, as it has a few closel
 The replica creates new proposals in response to ``Invoke`` messages from clients, selecting what it believes to be an unused slot and sending a ``Propose`` message to the current leader.
 Furthermore, if the consensus for the selected slot is for a different proposal, the replica must re-propose with a new slot.
 
-.. code-block:: none
+```none
 
                                 Local
     Requester    ---------     Replica                  Current
@@ -465,6 +449,8 @@ Furthermore, if the consensus for the selected slot is for a different proposal,
                   ----------       :       -----------
         *--------/ Invoked /---<<--*
         :        ----------
+
+```
 
 ``Decision`` messages represent slots on which the cluster has come to consensus.
 Here, replicas store the new decision, then run the state machine until it reaches an undecided slot.
@@ -486,37 +472,40 @@ Each replica tracks the active leader using three sources of information:
 
 * When the leader role becomes active, it sends an ``Adopted`` message to the replica on the same node.
 
-  .. code-block:: None
+  ```
 
                                   Local 
       Leader      ----------     Replica
         *--->>---/ Adopted /--------+
                  ----------
+  ```
 
 * When the acceptor role sends a ``Promise`` to a new leader, it sends an ``Accepting`` message to its local replica.
 
-  .. code-block:: None
+  ```
 
                                     Local 
       Acceptor     ------------    Replica
           *--->>--/ Accepting /-------+
                   ------------
+  ```
 
 * The active leader sends ``Active`` messages as a heartbeat.
   If no such message arrives before the ``LEADER_TIMEOUT`` expires, the replica assumes the leader is dead and moves on to the next leader.
   In this case, it's important that all replicas choose the *same* new leader, which we accomplish by sorting the members and selecting the next one in the list.
 
-  .. code-block:: None
+  ```
 
       Leader      ---------    Replica   Replica   Replica
          *--->>--/ Active /-------+---------+---------+
                  ---------
 
+  ```
 
 Finally, when a node joins the network, the bootstrap role sends a ``Join`` message.
 The replica responds with a ``Welcome`` message containing its most recent state, allowing the new node to come up to speed quickly.
 
-.. code-block:: None
+```
 
     Bootstrap   -------    Replica   Replica   Replica
         *-->>--/ Join /-------+---------+---------+
@@ -531,9 +520,9 @@ The replica responds with a ``Welcome`` message containing its most recent state
         +--------------/ Welcome /------<<--------*
                        ----------
 
+```
 
-{{{ code_block cluster.py 'class Replica'
-.. code-block:: python
+```python
 
     class Replica(Role):
     
@@ -640,10 +629,9 @@ The replica responds with a ``Welcome`` message containing its most recent state
                 self.node.send([sender], Welcome(
                     state=self.state, slot=self.slot, decisions=self.decisions))
     
-}}}
+```
 
-Leader, Scout, and Commander
-............................
+#### Leader, Scout, and Commander
 
 The leader's primary task is to take ``Propose`` messages requesting new ballots and produce decisions.
 A leader is "active" when it has successfully carried out the ``Prepare``/``Promise`` portion of the protocol.
@@ -651,8 +639,7 @@ An active leader can immediately send an ``Accept`` message in response to a ``P
 
 In keeping with the class-per-role model, the leader delegates to the scout and commander roles to carry out each portion of the protocol.
 
-{{{ code_block cluster.py 'class Leader'
-.. code-block:: python
+```python
 
     class Leader(Role):
     
@@ -713,13 +700,13 @@ In keeping with the class-per-role model, the leader delegates to the scout and 
             else:
                 self.logger.info("got PROPOSE for a slot already being proposed")
     
-}}}
+```
 
 The leader creates a scout role when it wants to become active, in response to receiving a ``Propose`` when it is inactive.
 The scout sends (and re-sends, if necessary) a ``Prepare`` message, and collects ``Promise`` responses until it has heard from a majority of its peers or until it has been preempted.
 It communicates the result back to the leader with an ``Adopted`` or ``Preempted`` message, respectively.
 
-.. code-block:: None
+```
 
                              Scout        ----------     Acceptor        Acceptor        Acceptor
                                *--->>----/ Prepare /--------+---------------+---------------+
@@ -736,8 +723,9 @@ It communicates the result back to the leader with an ``Adopted`` or ``Preempted
       +------/ Adopted /---<<--*
              ----------   
 
-{{{ code_block cluster.py 'class Scout'
-.. code-block:: python
+```             
+
+```python
 
     class Scout(Role):
     
@@ -783,14 +771,14 @@ It communicates the result back to the leader with an ``Adopted`` or ``Preempted
                 self.node.send([self.node.address], Preempted(slot=None, preempted_by=ballot_num))
                 self.stop()
     
-}}}
+```
 
 The leader creates a commander role for each slot where it has an active proposal.
 Like a scout, a commander sends and re-sends ``Accept`` messages and waits for a majority of acceptors to reply with ``Accepted``, or for news of its preemption.
 When a proposal is accepted, the commander broadcasts a ``Decision`` message to all nodes.
 It responds to the leader with either ``Decided`` or ``Preempted``.
 
-.. code-block:: None
+````
                            Commander      ---------      Acceptor        Acceptor        Acceptor
                                *--->>----/ Accept /---------+---------------+---------------+
                                :         ---------          :               :               :
@@ -805,9 +793,9 @@ It responds to the leader with either ``Decided`` or ``Preempted``.
     Leader    ----------       :                             -----------
       +------/ Decided /---<<--*
              ----------   
+````
 
-{{{ code_block cluster.py 'class Commander'
-.. code-block:: python
+```python
 
     class Commander(Role):
     
@@ -844,20 +832,18 @@ It responds to the leader with either ``Decided`` or ``Preempted``.
             else:
                 self.finished(ballot_num, True)
     
-}}}
-
-.. note::
-
-    A surprisingly subtle bug appeared here during development.
-    At the time, the network simulator introduced packet loss even on messages within a node.
-    When *all* ``Decision`` messages were lost, the protocol could not proceed.
-    The replica continued to re-transmit ``Propose`` messages, but the leader ignored them as it already had a proposal for that slot.
-    The replica's catch-up process could not find the result, as no replica had heard of the decision.
-    The solution was to ensure that local messages are always delivered, as is the case for real network stacks.
+```
 
 
-Bootstrap
-.........
+As an aside, a surprisingly subtle bug appeared here during development.
+At the time, the network simulator introduced packet loss even on messages within a node.
+When *all* ``Decision`` messages were lost, the protocol could not proceed.
+The replica continued to re-transmit ``Propose`` messages, but the leader ignored them as it already had a proposal for that slot.
+The replica's catch-up process could not find the result, as no replica had heard of the decision.
+The solution was to ensure that local messages are always delivered, as is the case for real network stacks.
+
+
+#### Bootstrap
 
 When a node joins the cluster, it must determine the current cluster state before it can participate.
 The bootstrap role handles this by sending ``Join`` messages to each peer in turn until it receives a ``Welcome``.
@@ -867,8 +853,7 @@ An early version of the implementation started each node with a full set of role
 This spread the initialization logic around every role, requiring separate testing of each one.
 The final design has the bootstrap role adding each of the other roles to the node once startup is complete, passing the initial state to their constructors.
 
-{{{ code_block cluster.py 'class Bootstrap'
-.. code-block:: python
+```python
 
     class Bootstrap(Role):
     
@@ -900,10 +885,9 @@ The final design has the bootstrap role adding each of the other roles to the no
                             scout_cls=self.scout_cls).start()
             self.stop()
     
-}}}
+```
 
-Seed
-....
+#### Seed
 
 In normal operation, when a node joins the cluster, it expects to find the cluster already running, with at least one node willing to respond to a ``Join`` message.
 But how does the cluster get started?
@@ -916,17 +900,16 @@ Network partitions are the most challenging failure case for clustered applicati
 In a network partition, all cluster members remain alive, but communication fails between some members.
 For example, if the network link joining a cluster with nodes in Berlin and Taipei fails, the network is partitioned.
 If both parts of a cluster continue to operate during a partition, then re-joining the parts after the network link is restored can be challenging.
-In the multi-paxos case, the healed network would be hosting two clusters with different decisions for the same slot numbers.
+In the Multi-Paxos case, the healed network would be hosting two clusters with different decisions for the same slot numbers.
 
 To avoid this outcome, creating a new cluster is a user-specified operation.
 Exactly one node in the cluster runs the seed role, with the others running bootstrap as usual.
 The seed waits until it has received ``Join`` messages from a majority of its peers, then sends a ``Welcome`` with an initial state for the state machine and an empty set of decisions.
 The seed role then stops itself and starts a bootstrap role to join the newly-seeded cluster.
 
-Seed emulates the ``Join``/``Welcome`` part of the bootstrap - replica interaction, so its communication diagram is the same as for the replica role.
+Seed emulates the ``Join``/``Welcome`` part of the bootstrap/replica interaction, so its communication diagram is the same as for the replica role.
 
-{{{ code_block cluster.py 'class Seed'
-.. code-block:: python
+```python
 
     class Seed(Role):
     
@@ -960,17 +943,15 @@ Seed emulates the ``Join``/``Welcome`` part of the bootstrap - replica interacti
             bs.start()
             self.stop()
     
-}}}
+```
 
-Requester
-.........
+#### Requester
 
 The requester role manages a request to the distributed state machine.
 The role class simply sends ``Invoke`` messages to the local replica until it receives a corresponding ``Invoked``.
 See the "Replica" section, above, for this role's communication diagram.
 
-{{{ code_block cluster.py 'class Requester'
-.. code-block:: python
+```python
 
     class Requester(Role):
     
@@ -996,18 +977,17 @@ See the "Replica" section, above, for this role's communication diagram.
             self.callback(output)
             self.stop()
     
-}}}
+```
 
-Summary
-.......
+### Summary
 
 To recap, cluster's roles are:
 
  * Acceptor -- make promises and accept proposals
- * Replica -- manage the distributed state machine, submitting proposals, committing decisions, and responding to requesters
- * Leader -- lead rounds of the multi-paxos algorithm
- * Scout -- perform the ``Prepare``/``Promise`` portion of the mult-paxos algorithm for a leader
- * Commander -- perform the ``Accept``/``Accepted`` portion of the mult-paxos algorithm for a leader
+ * Replica -- manage the distributed state machine: submitting proposals, committing decisions, and responding to requesters
+ * Leader -- lead rounds of the Multi-Paxos algorithm
+ * Scout -- perform the ``Prepare``/``Promise`` portion of the Multi-Paxos algorithm for a leader
+ * Commander -- perform the ``Accept``/``Accepted`` portion of the Multi-Paxos algorithm for a leader
  * Bootstrap -- introduce a new node to an existing cluster
  * Seed -- create a new cluster
  * Requester -- request a distributed state machine operation
@@ -1019,7 +999,7 @@ Network
 
 Any network protocol needs the ability to send and receive messages and a means of calling functions at a time in the future.
 
-The ``Network`` class provides simple simulated network with these capabilities and also simulates packet loss and message propagation delays.
+The ``Network`` class provides a simple simulated network with these capabilities and also simulates packet loss and message propagation delays.
 
 Timers are handled using Python's `heapq` module, allowing efficient selection of the next event.
 Setting a timer involves pushing a ``Timer`` object onto the heap.
@@ -1030,8 +1010,7 @@ We again use ``functools.partial`` to set up a future call to the destination no
 
 Running the simulation just involves popping timers from the heap and executing them if they have not been cancelled and if the destination node is still active.
 
-{{{ code_block cluster.py 'class Timer'
-.. code-block:: python
+```python
 
     class Timer(object):
     
@@ -1047,10 +1026,9 @@ Running the simulation just involves popping timers from the heap and executing 
         def cancel(self):
             self.cancelled = True
     
-}}}
+```
 
-{{{ code_block cluster.py 'class Network'
-.. code-block:: python
+```python
 
     class Network(object):
         PROP_DELAY = 0.03
@@ -1098,7 +1076,7 @@ Running the simulation just involves popping timers from the heap and executing 
                     self.set_timer(dest, delay, functools.partial(self.nodes[dest].receive,
                                                                   sender.address, message))
     
-}}}
+```
 
 While it's not included in this implementation, the component model allows us to swap in a real-world network implementation, communicating between actual servers on a real network, with no changes to the other components.
 Testing and debugging can take place using the simulated network, with production use of the library operating over real network hardware.
@@ -1106,7 +1084,7 @@ Testing and debugging can take place using the simulated network, with productio
 Debugging Support
 -----------------
 
-When developing a complex system such as this, the bugs quickly transition from trivial ``NameError``\s to obscure failures that only manifest after several minutes of (simulated) proocol operation.
+When developing a complex system such as this, the bugs quickly transition from trivial, like a simple ``NameError``, to obscure failures that only manifest after several minutes of (simulated) proocol operation.
 Chasing down bugs like this involves working backward from the point where the error became obvious.
 Interactive debuggers are useless here, as they can only step forward in time.
 
@@ -1115,10 +1093,9 @@ Unlike a real network, it will behave exactly the same way on every run, given t
 This means that we can add additional debugging checks or output to the code and re-run the simulation to see the same failure in more detail.
 
 Of course, much of that detail is in the messages sent and received by the different nodes in the cluster, so those are automatically logged in their entirety.
-That logging includes the role class sending or receiving the message, as well as the simulated timestamp, injected via the ``SimTimeLogger`` class.
+That logging includes the role class sending or receiving the message, as well as the simulated timestamp injected via the ``SimTimeLogger`` class.
 
-{{{ code_block cluster.py 'class SimTimeLogger'
-.. code-block:: python
+```python
 
     class SimTimeLogger(logging.LoggerAdapter):
     
@@ -1129,9 +1106,9 @@ That logging includes the role class sending or receiving the message, as well a
             return self.__class__(self.logger.getChild(name),
                                   {'network': self.extra['network']})
     
-}}}
+```
 
-A resilient protocol such as this one can often run for a long time after some bug has been triggered.
+A resilient protocol such as this one can often run for a long time after a bug has been triggered.
 For example, during development, a data aliasing error caused all replicas to share the same ``decisions`` dictionary.
 This meant that once a decision was handled on one node, all other nodes saw it as already decided.
 Even with this serious bug, the cluster produced correct results for several transactions before deadlocking.
@@ -1139,8 +1116,7 @@ Even with this serious bug, the cluster produced correct results for several tra
 Assertions are an important tool to catch this sort of error early.
 Assertions should include any invariants from the algorithm design, but when the code doesn't behave as we expect, asserting our expectations is a great way to see where things go astray.
 
-{{{ from_to cluster.py ' +def do_Decision' ' +return'
-.. code-block:: python
+```python
 
     assert not self.decisions.get(self.slot, None), \
             "next slot to commit is already decided"
@@ -1148,7 +1124,7 @@ Assertions should include any invariants from the algorithm design, but when the
         assert self.decisions[slot] == proposal, \
             "slot %d already decided with %r!" % (slot, self.decisions[slot])
     
-}}}
+```
 
 Identifying the right assumptions we make while reading code is a part of the art of debugging.
 In this code from ``Replica.do_Decision``, the problem was that the ``Decision`` for the next slot to commit was being ignored because it was already in ``self.decisions``.
@@ -1161,8 +1137,8 @@ Many other assertions were added during development of the protocol, but in the 
 Testing
 -------
 
-Sometime in the last 10 years, code without tests finally became as crazy as driving without a seatbelt.
-Code without tests is probably incorrect, and modifying the code is risky without a way to see if its behavior has changed.
+Some time in the last ten years, coding without tests finally became as crazy as driving without a seatbelt.
+Code without tests is probably incorrect, and modifying code is risky without a way to see if its behavior has changed.
 
 Testing is most effective when the code is organized for testability.
 There are a few active schools of thought in this area, but the approach we've taken is to divide the code into small, minimally connected units that can be tested in isolation.
@@ -1171,13 +1147,11 @@ This agrees nicely with the role model, where each role has a specific purpose a
 Cluster is written to maximize that isolation: all communication between roles takes place via messages, with the exception of creating new roles.
 For the most part, then, roles can be tested by sending messages to them and observing their responses.
 
-Unit Testing
-............
+#### Unit Testing
 
 The unit tests for Cluster (all of which are availble in the book's Github repository) are simple and short:
 
-{{{ code_block test/test_leader.py 'class Tests' 'def test_propose_active'
-.. code-block:: python
+```python
 
     class Tests(utils.ComponentTestCase):
         def test_propose_active(self):
@@ -1186,20 +1160,18 @@ The unit tests for Cluster (all of which are availble in the book's Github repos
             self.node.fake_message(Propose(slot=10, proposal=PROPOSAL1))
             self.assertCommanderStarted(Ballot(0, 'F999'), 10, PROPOSAL1)
     
-}}}
+```
 
 This method tests a single behavior (commander spawning) of a single unit (the ``Leader`` class).
 It follows the well-known "arrange, act, assert" pattern: set up an active leader, send it a message, and check the result.
 
-Dependency Injection
-....................
+#### Dependency Injection
 
 We use a technique called "dependency injection" to handle creation of new roles.
 Each role class which adds other roles to the network takes a list of class objects as constructor arguments, defaulting to the actual classes.
-For example, ``Leader``'s constructor looks like
+For example, the constructor for ``Leader`` looks like this:
 
-{{{ code_block cluster.py 'class Leader' 'def __init__'
-.. code-block:: python
+```python
 
     class Leader(Role):
         def __init__(self, node, peers, commander_cls=Commander, scout_cls=Scout):
@@ -1212,12 +1184,11 @@ For example, ``Leader``'s constructor looks like
             self.scouting = False
             self.peers = peers
     
-}}}
+```
 
-The ``spawn_scout`` method (and, similarly, ``spawn_commander``) create the new role object with ``self.scout_cls``:
+The ``spawn_scout`` method (and similarly, ``spawn_commander``) creates the new role object with ``self.scout_cls``:
 
-{{{ code_block cluster.py 'class Leader' 'def spawn_scout'
-.. code-block:: python
+```python
 
     class Leader(Role):
         def spawn_scout(self):
@@ -1225,12 +1196,11 @@ The ``spawn_scout`` method (and, similarly, ``spawn_commander``) create the new 
             self.scouting = True
             self.scout_cls(self.node, self.ballot_num, self.peers).start()
     
-}}}
+```
 
 The magic of this technique is that, in testing, ``Leader`` can be given fake classes and thus tested separately from ``Scout`` and ``Commander``.
 
-Interface Correctness
-.....................
+#### Interface Correctness
 
 One pitfall of a focus on small units is that it does not test the interfaces between units.
 For example, unit tests for the acceptor role verify the format of the ``accepted`` attribute of the ``Promise`` message, and the unit tests for the scout role supply well-formatted values for the attribute.
@@ -1238,13 +1208,12 @@ Neither test checks that those formats match.
 
 One approach to fixing this issue is to make the interfaces self-enforcing.
 In Cluster, the use of named tuples and keyword arguments avoids any disagreement over messages' attributes.
-Because the only interaction between role classes is via messages, this covers a substantial part of the interface.
+Because the only interaction between role classes is via messages, this covers a substantial proportion of the interface.
 
 For specific issues such as the format of ``accepted_proposals``, both the real and test data can be verified using the same function, in this case ``verifyPromiseAccepted``.
 The tests for the acceptor use this method to verify each returned ``Promise``, and the tests for the scout use it to verify every fake ``Promise``.
 
-Integration Testing
-...................
+#### Integration Testing
 
 The final bulwark against interface problems and design errors is integration testing.
 An integration test assembles multiple units together and tests their combined effect.
@@ -1253,13 +1222,12 @@ If there are any interface issues not discovered in unit testing, they should ca
 
 Because the protocol is intended to handle node failure gracefully, we test a few failure scenarios as well, including the untimely failure of the active leader.
 
-Integration tests are harder to write than unit tests, because they are less well isolated.
+Integration tests are harder to write than unit tests, because they are less well-isolated.
 For Cluster, this is clearest in testing the failed leader, as any node could be the active leader.
 Even with a deterministic network, a change in one message alters the random number generator's state and thus unpredictably changes later events.
 Rather than hard-coding the expected leader, the test code must dig into the internal state of each leader to find one that believes itself to be active.
 
-Fuzz Testing
-............
+#### Fuzz Testing
 
 It's very difficult to test resilient code: it is likely to be resilient to its own bugs, so integration tests may not detect even very serious bugs.
 It is also hard to imagine and construct tests for every possible failure mode.
@@ -1269,11 +1237,8 @@ When something *does* break, all of the debugging support becomes critical: if t
 
 I performed some manual fuzz testing of cluster during development, but a full fuzz-testing infrastructure is beyond the scope of this project.
 
-Implementation Challenges
-=========================
+## Power Struggles
 
-Follow the Leader
------------------
 
 A cluster with many active leaders is a very noisy place, with scouts sending ever-increasing ballot numbers to acceptors, and no ballots being decided.
 A cluster with no active leader is quiet, but equally nonfunctional.
@@ -1288,13 +1253,13 @@ So it's important that leader elections be decided quickly, and that all cluster
 Cluster handles this by detecting a leader change as quickly as possible: when an acceptor sends a ``Promise``, chances are good that the promised member will be the next leader.
 Failures are detected with a heartbeat protocol.
 
-Further Extensions
-==================
+## Further Extensions
 
-Catching Up
------------
+Of course, there are plenty of ways we could extend and improve this implementation.
 
-In "pure" MultiPaxos, nodes which fail to receive messages can be many slots behind the rest of the cluster.
+### Catching Up
+
+In "pure" Multi-Paxos, nodes which fail to receive messages can be many slots behind the rest of the cluster.
 As long as the state of the distributed state machine is never accessed except via state machine transitions, this design is functional.
 To read from the state, the client requests a state-machine transition that does not actually alter the state, but which returns the desired value.
 This transition is executed cluster-wide, ensuring that it returns the same value everywhere, based on the state at the slot in which it is proposed.
@@ -1306,8 +1271,7 @@ But when the node receiving the request is lagging behind, the request delay is 
 A simple solution is to implement a gossip-style protocol, where each replica periodically contacts other replicas to share the highest slot it knows about and to request information on unknown slots.
 Then even when a ``Decision`` message was lost, the replica would quickly find out about the decision from one of its peers.
 
-Consistent memory usage
------------------------
+### Consistent Memory Usage
 
 A cluster-management library provides reliability in the presence of unreliable components.
 It shouldn't add unreliability of its own.
@@ -1318,55 +1282,53 @@ These classes never know when they will receive a request for an old slot, perha
 To maintain correctness, then, they keep a list of every decision, ever, since the cluster was started.
 Worse, these decisions are transmitted between replicas in ``Welcome`` messages, making these messages enormous in a long-lived cluster.
 
-One technique to address this issue is to periodically "checkpoint" each node's state, keeping information some limited number of decisions on-hand.
+One technique to address this issue is to periodically "checkpoint" each node's state, keeping information about some limited number of decisions on hand.
 Nodes which are so out of date that they have not committed all slots up to the checkpoint must "reset" themselves by leaving and re-joining the cluster.
 
-Persistent Storage
-------------------
+#### Persistent Storage
 
 While it's OK for a minority of cluster members to fail, it's not OK for an acceptor to "forget" any of the values it has accepted or promises it has made.
 
 Unfortunately, this is exactly what happens when a cluster member fails and restarts: the newly initialized Acceptor instance has no record of the promises its predecessor made.
 The problem is that the newly-started instance takes the place of the old.
 
-There are two alternatives to solve this issue.
+There are two ways to solve this issue.
 The simpler solution involves writing acceptor state to disk and re-reading that state on startup.
 The more complex solution is to remove failed cluster members from the cluster, and require that new members be added to the cluster.
 This kind of dynamic adjustment of the cluster membership is called a "view change".
 
-View Changes
-------------
+#### View Changes
 
 Operations engineers need to be able to resize clusters to meet load and availability requirements.
 A simple test project might begin with a minimal cluster of three nodes, where any one can fail without impact.
-When that project goes "live", though, the additional load would require a larger cluster.
+When that project goes "live", though, the additional load will require a larger cluster.
 
 Cluster, as written, cannot change the set of peers in a cluster without restarting the entire cluster.
 Ideally, the cluster would be able to maintain a consensus about its membership, just as it does about state machine transitions.
 This means that the set of cluster members (the *view*) can be changed by special view-change proposals.
 But the Paxos algorithm depends on universal agreement about the members in the cluster, so we must define the view for each slot.
 
-Lamport addresses this challeng in the final paragraph of "Paxos Made Simple":
+Lamport addresses this challenge in the final paragraph of "Paxos Made Simple":
 
-    We can allow a leader to get *α* commands ahead by letting the set of servers that execute instance *i+α* of the consensus algorithm be specified by the state after execution of the *i*\th state machine command.  (Lamport, 2001)
+> We can allow a leader to get *α* commands ahead by letting the set of servers that execute instance *i+α* of the consensus algorithm be specified by the state after execution of the *i*\th state machine command.  (Lamport, 2001)
 
 The idea is that each instance of Paxos (slot) uses the view from α slots earlier.
-This allows the cluster to work on, at most, α slots at any one time, so a very small value of α limits concurrency, while a very large value of α makes view changes slow to take effect.
+This allows the cluster to work on, at most, *α* slots at any one time, so a very small value of *α* limits concurrency, while a very large value of *α* makes view changes slow to take effect.
 
-In early drafts of this implementation (dutifully preserved in the git history!), I implemented support for view changes (using α in place of 3).
+In early drafts of this implementation (dutifully preserved in the git history!), I implemented support for view changes (using *α* in place of 3).
 This seemingly simple change introduced a great deal of complexity:
-* tracking the view for each of the last α committed slots and correctly sharing this with new nodes
-* ignoring proposals for which no slot is available
+
+* tracking the view for each of the last *α* committed slots and correctly sharing this with new nodes,
+* ignoring proposals for which no slot is available,
 * detecting failed nodes,
 * properly serializing multiple competing view changes, and
-* communciating view information between the leader and replica.
+* communicating view information between the leader and replica.
 
 The result was far too large for this book!
 
-References
-==========
+## References
 
-(I'm not sure what the book's citation style is, but these are unambiguous enough for the review)
+<!-- (I'm not sure what the book's citation style is, but these are unambiguous enough for the review) -->
 
 * Lamport - "The Part-Time Parliament"
 * Lamport - "Paxos Made Simple"
