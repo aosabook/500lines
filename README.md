@@ -13,7 +13,7 @@ see the [license description](LICENSE.md) for details.  In addition, all
 royalties from paid-for versions will all go to Amnesty International.
 
 The production of this book has been made possible by the financial support of
-[PagerDuty](http://www.pagerduty.com/company/work-with-us/). 
+[PagerDuty](http://www.pagerduty.com/company/work-with-us/).
 
 <p align="center">
     <img src="https://github.com/aosabook/500lines/raw/master/resource/pagerduty_logo.png" alt="PagerDuty Logo" />
@@ -91,7 +91,7 @@ Contributors
         <li><a href="http://www.twitter.com/amyrbrown">@amyrbrown</a></li></ul></td>
     <td><a href="https://github.com/amyrbrown">amyrbrown</a></td>
     <td>amy@amyrbrown.ca</td>
-  </tr> 
+  </tr>
   <tr>
     <td>Dustin Mitchell</td>
     <td>Mozilla</td>
@@ -277,6 +277,7 @@ Contributors
     <td>Pedometer</td>
     <td>
         <ul>
+            <li><a href="http://www.dessydaskalov.com/">www.dessydaskalov.com</a></li>
             <li><a href="https://twitter.com/dess_e">@dess_e</a></li>
         </ul>
     </td>
