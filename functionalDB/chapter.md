@@ -631,8 +631,6 @@ and eventually:
 (transact-on-db my-db  [[add-entity e3] [remove-entity e4]])
 ````
 
-XXX STOPPED HERE
-
 ## Insight Extraction as Libraries
 
 At this point we have the core functionality of the database in place, and it is time to add its raison d'être: insights extraction. The architecture approach we used here is to allow adding these capabilities as libraries, as different usages of the database would need different such mechanisms. 
@@ -640,7 +638,7 @@ At this point we have the core functionality of the database in place, and it is
 ### Graph Traversal
 
 A reference connection between entities is created when an entity’s attribute’s type is `:db/ref`, which means that the value of that attribute is an ID of another entity. When a referring entity is added to the database, the reference is indexed at the VAET index.  
-The information found in the VAET index can be leveraged to extract all the incoming links to an entity and is done in the function `incoming-refs`, which collects for the given entity all the leaves that are reachable from it at that index:
+The information found in the VAET index can be leveraged to extract all the incoming links to an entity. This is done in the `incoming-refs` function, which collects all the leaves that are reachable from the entity at that index:
 
 ````clojure
 (defn incoming-refs [db ts ent-id & ref-names]
@@ -649,7 +647,7 @@ The information found in the VAET index can be leveraged to extract all the inco
          filtered-map (if ref-names (select-keys ref-names all-attr-map) all-attr-map)]
       (reduce into #{} (vals filtered-map))))
 ````
-We can also, for a given entity, go through all of it’s attributes and collect all the values of attribute of type :db/ref, and by that extract all the outgoing references from that entity. This is done at the `outgoing-refs` function 
+We can also go through all of a given entity’s attributes and collect all the values of attributes of type `:db/ref`, and by that extract all the outgoing references from that entity. This is done by the `outgoing-refs` function.
 
 ````clojure
 (defn outgoing-refs [db ts ent-id & needed-keys]
@@ -658,19 +656,19 @@ We can also, for a given entity, go through all of it’s attributes and collect
      (->> (entity-at db ts ent-id)
           (:attrs) (val-filter-fn) (filter ref?) (mapcat :value)))))
 ````
-These two functions act as the basic building blocks for any graph traversal operation, as they are the ones that raise the level of abstraction from entities and attributes to nodes and links in a graph. Once we have the ability to look at our database as a graph, we can provide various graph traversing and querying APIs. We leave this as a solved exercise to the reader - one solution can be found in the chapter's source code (see graph.clj).   
+These two functions act as the basic building blocks for any graph traversal operation, as they are the ones that raise the level of abstraction from entities and attributes to nodes and links in a graph. Once we have the ability to look at our database as a graph, we can provide various graph traversing and querying APIs. We leave this as a solved exercise to the reader; one solution can be found in the chapter's source code (see `graph.clj`).   
 
 
 ## Querying the Database
 
-A second library we present here provides querying capabilities, which is the main issue of this section. 
+The second library we present provides querying capabilities, which is the main issue of this section. 
 A database is not very useful to its users without a powerful query mechanism. This feature is usually exposed to users through a _query language_ that is used to declaratively specify the set of data of interest. 
 
-Our data model is based on accumulation of facts (i.e. datoms) over time. For this model, a natural place to look for the right query language is _logic programming_. A commonly used query language influenced by logic programming is _Datalog_ which, in addition to being well-suited for our data model, has a very elegant adaptation to Clojure’s syntax. Our query engine will implement a subset of the *Datalog* language from the [Datomic database](http://docs.datomic.com/query.html).
+Our data model is based on accumulation of facts (i.e., datoms) over time. For this model, a natural place to look for the right query language is _logic programming_. A commonly used query language influenced by logic programming is _Datalog_ which, in addition to being well-suited for our data model, has a very elegant adaptation to Clojure’s syntax. Our query engine will implement a subset of the Datalog language from the [Datomic database](http://docs.datomic.com/query.html).
 
 ### Query Language
 
-Let's look at an example query in our proposed language. This query asks "what are the names and birthday of entities who like pizza, speak English, and who have a birthday this month?"
+Let's look at an example query in our proposed language. This query asks: "What are the names and birthday of entities who like pizza, speak English, and who have a birthday this month?"
 ````clojure
 {  :find [?nm ?bd ]
    :where [
@@ -681,18 +679,18 @@ Let's look at an example query in our proposed language. This query asks "what a
 ````
 #### Syntax
 
-We directly use the syntax of Clojure’s data literals to provide the basic syntax for our queries. This allows us to avoid having to write a specialized parser, while still providing a form that is familiar and easily readable to programmers familiar with Clojure.
+We use the syntax of Clojure’s data literals directly to provide the basic syntax for our queries. This allows us to avoid having to write a specialized parser, while still providing a form that is familiar and easily readable to programmers familiar with Clojure.
 
 A query is a map with two items:
 
-* An item with `:where` as a key, and with a _rule_ as a value. A rule is a vector of _clauses_, and a clause is a vector composed of three _predicates_, each of which operates on a different component of a datom.  In the example above, `[?e  :likes "pizza"]` is a clause.  This `:where` item defines a rule that acts as a filter on datoms in our database (like the 'WHERE' clause in a SQL query.)
+* An item with `:where` as a key, and with a _rule_ as a value. A rule is a vector of _clauses_, and a clause is a vector composed of three _predicates_, each of which operates on a different component of a datom.  In the example above, `[?e  :likes "pizza"]` is a clause.  This `:where` item defines a rule that acts as a filter on datoms in our database (like the 'WHERE' clause in a SQL query).
+* An item with `:find` as a key, and with a vector as a value. The vector defines which components of the selected datom should be projected into the results (like the 'SELECT' clause in a SQL query).
 
-* An item with `:find` as a key, and with a vector as a value. The vector defines which components of the selected datom should be projected into the results (like the 'SELECT' clause in a SQL query.)
+The description above omits a crucial requirement: how to make different clauses sync on a value (i.e., make a join operation between them), and how to structure the found values in the output (specified by the `:find` part). 
 
-The description above omits a crucial requirement, which is how to make different clauses sync on a value (i.e., make a join operation between them), and how to structure the found values in the output (specified by the `:find` part.) 
+We fulfill both of these requirements using _variables_, which are denoted with a leading `?`. The only exception to this definition is the "don't-care" variable "`_`"  (underscore).  
 
-We fulfill both of these requirements using _variables_, which are denoted with a leading `?` in their names. The only exception to this definition is the "don't-care" variable `‘_’`  (underscore).  
-
+<!-- FIXME make sure this table reference makes sense in the final layout (tablemight not immediately follow text -->
 A clause in a query is composed of three predicates. The following table defines what can act as a predicate in our query language:
 
 <table>
@@ -734,11 +732,11 @@ A clause in a query is composed of three predicates. The following table defines
   </tr>
 </table>
 
-Table 3
-
 #### Limitations of our Query Language 
 
-Engineering is all about managing tradeoffs, and designing our query engine is no different. In our case, the first tradeoff we must make is feature-richness versus complexity. Resolving this tradeoff requires us to look at common use-cases of the system, and from there deciding on what limitations would be acceptable. 
+Engineering is all about managing tradeoffs, and designing our query engine is no different. In our case, the first tradeoff we must make is feature-richness versus complexity. Resolving this tradeoff requires us to look at common use-cases of the system, and from there deciding what limitations would be acceptable. 
+
+XXX STOPPED HERE
 
 In our database, the decision was to build a query engine with the following limitations:
 
