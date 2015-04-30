@@ -1,5 +1,6 @@
 # Blockcode - a simple visual programming toolkit
 
+![Blockcode IDE in use](blockcode_ide.png "Blockcode IDE in use")
 
 In block-based programming languages you write programs by dragging and connecting blocks that represent parts of the program. Block-based languages differ from more conventional programming languages where you type words and symbols.
 
@@ -33,13 +34,11 @@ In order to make the resulting tool available to the widest possible audience, i
 
 An important distinction between web applications and traditional desktop or server applications is the lack of a `main()` or other entry point. There is not explicit run loop because that is already built into the browser and implicit on every web page. All our code will be parsed and executed on load, at which point we can register for events we are interested in for interacting with the user. After the first run, all further interaction with our code will be through callbacks we set up and register, whether we register those for events (like mouse movement), timeouts (fired with the periodicity we specify) or frame handlers (called for each screen redraw, generally 60 frames per second). The browser does not expose full-featured threads (only shared-nothing Web Workers) either.
 
-### Why not use MVC?
-
-Mode-View-Controller (MVC) was a good design choice for Smalltalk programs in the 80s and it can work in some variation or other for web apps, but it isn't the right tool for every problem. All the state (the model in MVC) is captured by the block elements in a block language anyway, so replicating it into Javascript has little benefit unless there is some other need for the model (if we were editing shared, distributed code, for instance). An early version of Waterbear went to great lengths to keep the model in JavaScript and sync it with the DOM until I noticed that more than half the code and 90% of the bugs were due to keeping the model matching the DOM. Eliminating the duplication allowed the code to be simpler and more robust, and with all the state on the DOM elements, many bugs could be found simply by looking at the DOM in the developer tools. So in this case there is little benefit to building further separation of MVC than we already have in HTML/CSS/JavaScript.
-
 ## Stepping through the code
 
 I've tried to follow some conventions and best practices throughout this project. Each JavaScript file is wrapped in a function to avoid leaking variables into the global environment. If it needs to expose variables to other files it will define a single global per file, based on the filename, with the exposed functions in it. This will be near the end of the file, followed by any event handlers set by that file, so you can always glance a the end of a file to see what events it handles and what functions it exposes.
+
+The code style is procedural, not object-oriented or functional. We could do the same things in any of these paradigms, but it would require more setup code and wrappers to impose on what exists already for the DOM. Recent work on [Custom Elements] make it easier to work with the DOM in an OO way, and there has been a lot of great writing on [Functional JavaScript], but either would require a bit of shoe-horning, so it felt simpler to keep it procedural.
 
 There are eight source files in this project, but `index.html` and `blocks.css` are basic structure and style for the app and won't be discussed. Two of the JavaScript files won't be discussed in any detail either, `util.js` contains some helpers and serves to bridge between different browser implementations in a way similar to a library like *jQuery* but in less than 50 lines of code and `file.js` is a similar utility used for loading and saving files and serializing scripts. For the remaining files:
 
@@ -50,7 +49,20 @@ There are eight source files in this project, but `index.html` and `blocks.css` 
 
 ### blocks.js
 
+![Example of a block](block.png "Example of a block")
+
 Each block consists of a few HTML elements, styled with CSS, with some JavaScript event handlers for drag-and-drop and modifying the input argument. This file helps to create and manage these grouping of elements as single objects. When a type of block is added to the block menu, it is also associated with a JavaScript function to run to implement the language, and so each block in the script has to be able to find its associated function and to call it when the script runs.
+
+Blocks have two optional bits of structure. They can have a single numeric parameter (with a default value) and they can be a container for other blocks. These are hard limits to work with, but would be relaxed in larger system. In Waterbear there are also expression blocks which can be passed in as parameters, and multiple parameters of a variety of types are supported. Here in the land of tight constraints we'll see what we can do with just one type of parameter.
+
+```
+<div class="block" draggable="true" data-name="Right">
+    Right
+    <input type="number" value="5">
+    degrees
+</div>
+```
+*HTML Structure of a block*
 
 It's important to note that there is no real distinction between blocks placed in the menu and blocks in the script. The dragging treats them slightly differently based on where they are being dragged from, and when we run a script it only looks at the blocks in the script area, but they are fundamentally the same structures, which means we can simply clone the blocks when creating dragging from the menu into the script.
 
@@ -71,7 +83,7 @@ The `createBlock(name, value, contents)` function returns a block as a DOM eleme
         return item;
     }
 
-We have some utilities for handling blocks as DOM elements, `blockContents(block)` retrieves the child blocks of a container block. It always returns a list if called on a container block, always returns null on a simple block. The `blockValue(block)` function returns the numerical value of the input on a block, if the block has an input field of type number, or string for other input type, null if there is no input element for the block. The `blockScript(block)` will return a structure suitable for serializing with JSON, to save blocks in a form they can easily be restored from. Finally, `runBlocks(blocks)` is a handler to run an array of blocks by sending each block the "run" event.
+We have some utilities for handling blocks as DOM elements, `blockContents(block)` retrieves the child blocks of a container block. It always returns a list if called on a container block, always returns null on a simple block. The `blockValue(block)` function returns the numerical value of the input on a block, if the block has an input field of type number, or null if there is no input element for the block. The `blockScript(block)` will return a structure suitable for serializing with JSON, to save blocks in a form they can easily be restored from. Finally, `runBlocks(blocks)` is a handler to run an array of blocks by sending each block the "run" event.
 
     function blockContents(block){
         var container = block.querySelector('.container');
@@ -223,6 +235,8 @@ We use `scriptDirty` to keep track of whether the script has been modified since
 
 When we want to notify the system to run the assembled script during the next frame handler, we call `runSoon()` which just sets the `scriptDirty` flag to `true`. The system calls `run()` on every frame, but returns immediately unless `scriptDirty` is set, when it actually runs all the script blocks, and also triggers events to let the specific language handle any tasks it needs before and after the script is run. This decouples the blocks-as-toolkit from the turtle language to make the blocks re-usable (or the language pluggable, depending how you look at it). As part of running the script, we iterate over each block, calling `runEach(evt)` on it, which sets a class on the block, then finds and executes its associated function. If we slow things down, you should be able to watch the code execute as each block highlights to show when it is running.
 
+The `requestAnimationFrame` method below is provided by the browser for animation, it takes a function which will be called for the next frame to be rendered by the browser (at 60 frames per second) after the call is made. How many frames we actually get depends on how fast we can get work done in that call.
+
     function runSoon(){ scriptDirty = true; }
 
     function run(){
@@ -271,7 +285,13 @@ We define one block here, outside of the turtle language, because `repeat(block)
 
 ### `turtle.js`
 
+![Example of Turtle Code Running](turtle_example.png "Example of Turtle Code Running")
+
 This is the implmentation of the turtle block language. It exposes no functions to the rest of the code, so nothing else can depend on it. This way we can swap out the one file to create a new block language and know nothing in the core will break.
+
+If you aren't familiar with turtles, it is a style of graphics programming, first popularized with the Logo language, where you have an imaginary turtle carrying a pen walking on the screen. You can tell the turtle to pick up the pen (stop drawing, but can still move), put the pen down (now leaving a line everywhere it goes), move forward a number of steps, or turn a number of degrees. Just that, combined with looping, can create amazingly intricate images. In this version of turtle graphics we have a few extra blocks. Technically we don't need both `turn right` and `turn left` because you can have one and get the other with negative numbers. Likewise `move back` can be done with `move forward` and negative numbers. In this case it just felt more balanced to have both.
+
+The image above was formed by putting two loops inside another loop and adding a `move forward` and `turn right` to each loop, then playing with the parameters interactively until I liked the image that resulted.
 
     var PIXEL_RATIO = window.devicePixelRatio || 1;
     var canvasPlaceholder = document.querySelector('.canvas-placeholder');
@@ -398,12 +418,23 @@ Now we can use the functions above, with the `Menu.item` function from `menu.js`
 
 ## Lessons Learned
 
+### Why not use MVC?
+
+Mode-View-Controller (MVC) was a good design choice for Smalltalk programs in the 80s and it can work in some variation or other for web apps, but it isn't the right tool for every problem. All the state (the model in MVC) is captured by the block elements in a block language anyway, so replicating it into Javascript has little benefit unless there is some other need for the model (if we were editing shared, distributed code, for instance). An early version of Waterbear went to great lengths to keep the model in JavaScript and sync it with the DOM until I noticed that more than half the code and 90% of the bugs were due to keeping the model matching the DOM. Eliminating the duplication allowed the code to be simpler and more robust, and with all the state on the DOM elements, many bugs could be found simply by looking at the DOM in the developer tools. So in this case there is little benefit to building further separation of MVC than we already have in HTML/CSS/JavaScript.
+
+### Tight constraints are a creativity boost
+
 Building a small, tightly scoped version of the larger system I work on has been an interesting exercise. Sometimes in a large system there are things you want to change, even experimentally, but the changes would effect too many different parts, so you don't get around to it. In a tiny, toy version you can experiment freely and learn things which you can then take back to the larger system. For me, the larger system is Waterbear and this project has had a huge impact on the way Waterbear is structured.
+
+### Small experiments make failure OK
 
 Some of the experiments I was able to do for this stripped-down block language were: using HTML5 drag and drop, running blocks directly by iterating through the dom calling associated functions, separating the code that runs cleanly from the HTML DOM, simplified hit testing while dragging, building our own tiny vector and sprite libraries (for the game blocks), and "live coding" where the results are shown whenever you change the block script. The important thing about experiments is that they do not have to succeed. We tend to gloss over failures and dead ends in our work (and school, where failures are punished instead of treated as important vehicles for learning), but failures are essential if you are going to push forward. While I did get the HTML5 drag-and-drop working, the fact that it isn't supported at all on any mobile browser means it is a non-starter for Waterbear. Separating the code out and running code by iterating through the blocks worked so well that I've already begun bringing those ideas to Waterbear, with excellent improvements for testing and debugging. The simplified hit testing, with some modifications, is also coming back to Waterbear, as are the tiny vector and sprite libraries. Live coding hasn't made it to Waterbear yet, but once the current round of changes stabilizes I may introduce it there as well.
 
+### What are we trying to build, really?
 
 Building a small version of a bigger system also gives a really sharp focus to see what the important parts really are. Are there bits left over for historical reasons that serve no purpose (or worse, distract from the purpose)? Are there features no-one uses but you have to pay the cost of maintaining? Could the user interface be streamlined? All these are great questions to ask while making a tiny version. Making drastic changes, like re-organizing the layout, can be made without worrying about the ramifications cascading through a more complex system, and can even guide refactoring the complex system so you have fewer places to worry about things cascading like that.
+
+### A program is a process, not a thing
 
 There are things I wasn't able to experiment in the scope of this project that I may use the blocklib codebase to test out in the future. It would be interesting to be able to create "function" blocks which create new blocks out of existing blocks. Implementing undo/redo would be simpler in a constrained environment. Making blocks accept multiple arguments without radically expanding the complexity would be useful. And finding various ways to share block scripts online would bring the webbiness of the tool full circle.
 
@@ -427,11 +458,6 @@ There are things I wasn't able to experiment in the scope of this project that I
 
 [Waterbear] http://waterbearlang.com/
 
+[Custom Elements] http://webcomponents.org/
 
-
-
-
-
-
-
-
+[Functional JavaScript] https://leanpub.com/javascript-allonge/read
