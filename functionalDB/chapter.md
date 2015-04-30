@@ -1,6 +1,5 @@
 <!-- American spelling --> 
-<!-- FIXME: We need a better title -- titles are usually just the name of the software, and this is too long. But I like this title -- keep it for a subtitle? -->
-# Designing a database like an archaeologist
+# CircleDB: An Archaeology-Inspired Database
 
 Software development is often viewed as a rigorous process, where the inputs are requirements and the output is the working product. However, software developers are people, with their own perspectives and biases which color the outcome of their work. 
 
@@ -8,13 +7,13 @@ In this chapter, we will explore how a change in a common perspective affects th
 
 ## Introduction 
 
-Database systems are designed to store and query data. This is something that all information workers do; however, the systems themselves were designed by computer scientists. As a result, modern database systems are highly influenced by what a computer scientist’s definition of data is, and what can be done with it. 
+Database systems are designed to store and query data. This is something that all information workers do; however, the systems themselves were designed by computer scientists. As a result, modern database systems are highly influenced by computer scientists’ definition of what data is, and what can be done with it. 
 
-For example, most modern databases implement updates by overwriting old data in-place instead of appending the new data and keeping the old. This mechanism, nicknamed "place-oriented programming" by Rich Hickey [REF], saves storage space but makes it impossible to retrieve the entire history of a particular record. This design decision reflects the computer scientist’s perspective that ‘history’ is less important than the price of its storage. 
+For example, most modern databases implement updates by overwriting old data in-place instead of appending the new data and keeping the old. This mechanism, nicknamed "place-oriented programming" by Rich Hickey [REF], saves storage space but makes it impossible to retrieve the entire history of a particular record. This design decision reflects the computer scientist’s perspective that "history" is less important than the price of its storage. 
 
 If you were to instead ask an archaeologist what should be done with the old data, the answer would be "hopefully, just bury it underneath".
 
-(Disclaimer: My understanding of a typical archaeologist is based on visiting a few museums, reading several Wikipedia articles, and watching the entire Indiana Jones series).
+(Disclaimer: My understanding of the views of a typical archaeologist is based on visiting a few museums, reading several Wikipedia articles, and watching the entire Indiana Jones series.)
 
 ### From Archaeology to Databases
 
@@ -25,7 +24,7 @@ If we were to ask our friendly archaeologist to design a database, we might expe
 * Artifacts found at the same layer are from the same period.
 * Each artifact will consist of state that it accumulated in different periods.
 
-For example, a wall may have Roman symbols drawn on it on one layer, and in a lower layer there may be Greek symbols. Both these observations are recorded as part of the wall's state.
+For example, a wall may have Roman symbols on it on one layer, and in a lower layer there may be Greek symbols. Both these observations are recorded as part of the wall's state.
 
 This analogy is visualized in Figure 1:
 
@@ -49,7 +48,7 @@ This may look very different from the kinds of databases you are used to working
 
 Since we are building a functional database, we will be using a functional programming language called Clojure.
 
-There are several qualities of Clojure that make it a good implementation language for a functional database, such as out-of-the-box immutability, higher order functions, and metaprogramming facilities. Ultimately, the reason Clojure was chosen is its emphasis on clean, rigorous design which few programming languages possess. 
+Clojure has several qualities that make it a good implementation language for a functional database, such as out-of-the-box immutability, higher order functions, and metaprogramming facilities. But ultimately, the reason Clojure was chosen was its emphasis on clean, rigorous design, which few programming languages possess. 
 
 ## Laying the Foundation
 
@@ -63,7 +62,7 @@ A database consists of:
 
 1. Layers of entities, each with its own unique timestamp (the rings in Figure 1).
 2. A top-ID value which is the next available unique ID.
-3. The time at which this database was last updated.
+3. The time at which the database was last updated.
 
 
 ```clojure
@@ -73,7 +72,6 @@ A database consists of:
 Each layer consists of: 
 
 1. A data store for entities.
-
 2. Indexes that are used to speed up queries to the database. (These indexes and the meaning of their names will be explained later.) 
 
 In our design, a single conceptual ‘database’ may consist of many `Database` instances, each of which represents a snapshot of the database at `curr-time`. A `Layer` may share the exact same entity with another `Layer` if the entity’s state hasn’t changed between the times that they represent.
@@ -90,17 +88,17 @@ Our database wouldn't be of any use without entities to store, so we define thos
    ([id] (Entity.  id {})))
 ```
 
-Note that if no ID is given, the entity’s ID is set to be *:db/no-id-yet`, which means that something else is responsible for giving it an ID. We’ll see how that works later.
+Note that if no ID is given, the entity’s ID is set to be `:db/no-id-yet`, which means that something else is responsible for giving it an ID. We’ll see how that works later.
 
-**Attributes**
+#### Attributes
 
-Each attribute consists of its name, value, and the timestamps of its recent update as well as the one before that. In addition to these fields, each attribute has two fields that describe its `type` and `cardinality`.
+Each attribute consists of its name, value, and the timestamps of its most recent update as well as the one before that. Each attribute also has two fields that describe its `type` and `cardinality`.
 
 In the case that an attribute is used to represent a relationship to another entity, its `type` will be `:db/ref` and its value will be the ID of the related entity. This simple type system also acts as an extension point. Users are free to define their own types and leverage them to provide additional semantics for their data.
 
 An attribute's `cardinality` specifies whether the attribute represents a single value or a set of values. We use this field to determine the set of operations that are permitted on this attribute.
 
-Similar to entities, creating an attribute is done using the `make-attr` function. 
+Creating an attribute is done using the `make-attr` function. 
 
 ````clojure
 (defrecord Attr [name value ts prev-ts])
@@ -116,7 +114,7 @@ There are a couple of interesting patterns used in this constructor function:
 
 * We use Clojure’s _Design by Contract_ [ADD REF HERE] pattern to validate that the cardinality parameter is a permissible value.
 * We use Clojure’s destructuring mechanism to provide a default value of `:db/single` if one is not given.
-* We use Clojure’s metadata capabilities to distinguish between an attribute's data (name, value and timestamps) and its metadata (type and cardinality). In Clojure, metadata handling is done using the `with-meta` (setting metadata) and `meta` (reading metadata) functions.
+* We use Clojure’s metadata capabilities to distinguish between an attribute's data (name, value and timestamps) and its metadata (type and cardinality). In Clojure, metadata handling is done using the functions `with-meta` (to set) and `meta` (to rea).
 
 Attributes only have meaning if they are part of an entity. We make this connection with the `add-attr` function, which adds a given attribute to an entity's attribute map (called `:attrs`). 
 
@@ -130,7 +128,7 @@ Note that instead of using the attribute’s name directly, we first convert it 
 
 ### Storage
 
-So far, we have talked a lot about _what_ we are going to store, without thinking about _where_ we are going to store it. In this chapter, we resort to the simplest storage mechanism: storing the data in memory. This is certainly not reliable, but it simplifies development and debugging and allows us to focus on more interesting parts of the program. 
+So far we have talked a lot about _what_ we are going to store, without thinking about _where_ we are going to store it. In this chapter, we resort to the simplest storage mechanism: storing the data in memory. This is certainly not reliable, but it simplifies development and debugging and allows us to focus on more interesting parts of the program. 
 
 We will access the storage via a simple protocol that will make it possible to define additional storage providers for a database owner to select from.
 
@@ -160,22 +158,21 @@ If you've used a database system before, you are probably already familiar with 
 
 For example, let’s look at at the index sketched in Figure 2:
 
-<!-- FIXME: The book will be printed in b&w/greyscale, so these colours won't work. Need to come up with another way to show this information. -->
-* the first level stores entity-ids (the blue-ish area) 
-* the second level stores the related attribute-names (the green-ish area)
-* the third level stores the related value (the pink-ish area)
+* The first level stores entity-IDs (the blueish area).
+* The second level stores the related attribute-names (the greenish area).
+* The third level stores the related value (the pinkish area).
 
 This index is named EAVT, as the top level map holds Entity IDs, the second level holds Attribute names, and the leaves hold Values. The "T" comes from the fact that each layer in the database has its own indexes, hence the index itself is relevant for a specific Time. 
 
-![EAVT](image_1.png)
+![Figure 2: EAVT](image_1.png)
 
 Figure 3 shows an index that would be called AVET since:
 
-* the first level map holds attribute-name
-* the second level map holds the values (of the attributes)
-* the third level set holds the entity-ids (of the entities whose attribute is at the first level) 
+* The first level map holds attribute-name.
+* The second level map holds the values (of the attributes).
+* The third level set holds the entity-IDs (of the entities whose attribute is at the first level).
 
-![AVET](image_2.png)
+![Figure 3: AVET](image_2.png)
 
 Our indexes are implemented as a map of maps, where the keys of the root map act as the first level, each such key points to a map whose keys act as the index’s second-level and the values are the index’s third level. Each element in the third level is a set, holding the leaves of the index.
 
@@ -199,7 +196,7 @@ In our database there are four indexes: EAVT (see Figure 2), AVET (see Figure 3)
 ````
 
 <!-- FIXME: more colours -->
-To demonstrate how all of this comes together, the result of indexing the following five entities is visualized in the table below (the color coding follows the color coding of Figure 2 and Figure 3)
+To demonstrate how all of this comes together, the result of indexing the following five entities is visualized in the table below (the color coding follows the color coding of Figure 2 and Figure 3).
 
 1. <span style="background-color:lightblue">Julius Caesar</span> (also known as JC) <span style="background-color:lightgreen">lives in</span> <span style="background-color:pink">Rome</span> 
 2. <span style="background-color:lightblue">Brutus</span> (also known as B) <span style="background-color:lightgreen">lives in</span> <span style="background-color:pink">Rome</span> 
@@ -281,7 +278,7 @@ We now have all the components we need to construct our database. Initializing o
 
 * creating an initial empty layer with no data 
 * creating a set of empty indexes
-* settings its top-id and curr-time to be 0
+* setting its `top-id` and `curr-time` to be 0
 ````clojure
 (defn ref? [attr] (= :db/ref (:type (meta attr))))
 
@@ -297,7 +294,7 @@ We now have all the components we need to construct our database. Initializing o
                    (make-index #(vector %1 %2 %3) #(vector %1 %2 %3) always); EAVT
                   )] 0 0)))
 ````
-There is one snag, though: all collections in Clojure are immutable. Since write operations are pretty critical in a database, we define our structure to be an *Atom*, which is is one of Clojure’s reference types, one that provides the capability of atomic writes. 
+There is one snag, though: all collections in Clojure are immutable. Since write operations are pretty critical in a database, we define our structure to be an *Atom*, which is a Clojure reference type that provides the capability of atomic writes. 
 
 You may be wondering why we use the `always` function for the AVET, VEAT and EAVT indexes, and the `ref?` predicate for the VAET index. This is because these indexes are used in different scenarios, which we’ll see later when we explore queries in depth.
 
@@ -331,7 +328,7 @@ Since we treat our database just like any other value, each of these functions t
 
 A first usage of the basic accessors is to provide a "read-into-the-past" API. This is possible as, in our database, an update operation is done by appending a new layer (as opposed to overwriting). Therefore we can use the `prev-ts` property to look at the attribute at that layer, and continue looking deeper into history to observe how the attribute’s value evolved throughout time.  
 
-The function `evolution-of` does exactly that. It returns a sequence of pairs, each consist of the timestamp and value of an attribute’s update.
+The function `evolution-of` does exactly that. It returns a sequence of pairs, each consisting of the timestamp and value of an attribute’s update.
 ````clojure
 (defn evolution-of [db ent-id attr-name]
    (loop [res [] ts (:curr-time db)]
@@ -341,7 +338,7 @@ The function `evolution-of` does exactly that. It returns a sequence of pairs, e
 ````
 ## Data Behavior and Life Cycle
 
-So far, our discussion has focused on the structure of our data: what the core components are and how they are aggregated together. It's time now to explore the dynamics of our system: how data is changed over time through the add--update--remove _data lifecycle_. 
+So far, our discussion has focused on the structure of our data: what the core components are and how they are aggregated together. It's time to explore the dynamics of our system: how data is changed over time through the add--update--remove _data lifecycle_. 
 
 As we've already discussed, data in an archaeologist's world never actually changes. Once it is created, it exists forever and can only be hidden from the world by data in a newer layer. The term "hidden" is crucial here. Older data does not "disappear" --- it is buried, and can be revealed again by exposing an older layer. Conversely, updating data means obscuring the old by adding a new layer on top of it with something else. We can thus "delete" data by adding a layer of "nothing" on top of it. 
 
@@ -353,7 +350,7 @@ The data lifecycle consists of three basic operations:
 
 * adding an entity with the `add-entity` function
 * removing an entity with the `remove-entity` function
-* updating an entity with the `update-entity` function. 
+* updating an entity with the `update-entity` function
 
 Remember that, even though these functions provide the illusion of mutability, all that we are really doing in each case is adding another layer to the data. Also, since we are using Clojure's persistent data structures, from the caller's perspective we pay the same price for these operations as for an "in-place" change (i.e., negligible performance overhead), while maintaining immutability for all other users of the data structure.
 
@@ -429,7 +426,7 @@ Finally, we must update the indexes. This means:
          to-be-updated-set (get-in index update-path #{})]
      (assoc-in index update-path (conj to-be-updated-set update-value))))
 ````
-All of these components are added as a new layer to the given database. All that’s left is to update the database’s timestamp and top-id fields. That last step occurs on the last line of `add-entity`, which also returns the updated database.
+All of these components are added as a new layer to the given database. All that’s left is to update the database’s timestamp and `top-id` fields. That last step occurs on the last line of `add-entity`, which also returns the updated database.
 
 We also provide an `add-entities` convenience function that adds multiple entities to the database in one call by iteratively applying `add-entity`.
 
@@ -476,7 +473,7 @@ We begin by using `reffing-datoms-to` to find all entities that reference ours i
 ````
 We then apply `update-entity` to each triplet to update the attributes that reference our removed entity. (We'll explore how `update-entity` works in the next section.)
 
-The last step of `remove-back-refs` is to clear the reference itself from our indexes, and more specifically from the VAET index, since it is the only index that stores references information. 
+The last step of `remove-back-refs` is to clear the reference itself from our indexes, and more specifically from the VAET index, since it is the only index that stores reference information. 
 
 #### Updating an Entity
 
@@ -525,19 +522,19 @@ We use two helper functions to perform the update. `update-attr-modification-tim
       (= :db/add operation) (assoc attr :value (CS/union (:value attr) value))
       (= :db/remove operation) (assoc attr :value (CS/difference (:value attr) value))))
 ````
-All that remains is to remove the old value from the indexes and add the new one to them, and then construct the new layer with all of our updated components. Luckily, we can leverage the code we wrote for adding and removing entities to do this!
+All that remains is to remove the old value from the indexes and add the new one to them, and then construct the new layer with all of our updated components. Luckily, we can leverage the code we wrote for adding and removing entities to do this.
 
 ### Transactions
 
-Each of the operations in our low-level API act on a single entity. However, nearly all databases have a mechanism for allowing users to perform multiple operations as a single _transaction_. <!--TODO/FIXME: Reference other chapters on transactional semantics here.--> This means: 
+Each of the operations in our low-level API acts on a single entity. However, nearly all databases have a mechanism for allowing users to perform multiple operations as a single _transaction_. <!--TODO/FIXME: Reference other chapters on transactional semantics here.--> This means: 
 
 * The batch of operations is viewed as a single atomic operation, so all of the operations either succeed together or fail together.
 * The database is in a valid state before and after the transaction.
 * The batch update appears to be _isolated_; other queries should never see a database state in which only some of the operations have been applied.
 
-We can fulfill these requirements through an interface that consumes a database and a set of operations to be performed, and which produces a database whose state reflects the given changes. All of the changes submitted in the batch should be applied through the addition of a _single_ layer. However, we have a problem: All of the functions we wrote in our low-level API add a new layer to the database. If we were to perform a batch with _n_ operations, we would thus see _n_ new layers added, when what we would really like is to have exactly one new layer.   
+We can fulfill these requirements through an interface that consumes a database and a set of operations to be performed, and produces a database whose state reflects the given changes. All of the changes submitted in the batch should be applied through the addition of a _single_ layer. However, we have a problem: All of the functions we wrote in our low-level API add a new layer to the database. If we were to perform a batch with _n_ operations, we would thus see _n_ new layers added, when what we would really like is to have exactly one new layer.   
 
-The key insight here is that the layer we want is the _top_ layer that would be produced by performing those updates in sequence. Therefore, the solution is to execute the user’s operations one after another, each creating a new layer. When the last layer is created, we take only that top layer and place it on the initial database (leaving all the intermediate layers to pine for the fjords). Only after we've done all this will we update the database's timestamp.
+The key here is that the layer we want is the _top_ layer that would be produced by performing those updates in sequence. Therefore, the solution is to execute the user’s operations one after another, each creating a new layer. When the last layer is created, we take only that top layer and place it on the initial database (leaving all the intermediate layers to pine for the fjords). Only after we've done all this will we update the database's timestamp.
 
 All this is done in the `transact-on-db` function, which receives the initial value of the database and the batch of operations to perform, and returns its updated value. 
 
@@ -736,15 +733,13 @@ A clause in a query is composed of three predicates. The following table defines
 
 Engineering is all about managing tradeoffs, and designing our query engine is no different. In our case, the first tradeoff we must make is feature-richness versus complexity. Resolving this tradeoff requires us to look at common use-cases of the system, and from there deciding what limitations would be acceptable. 
 
-XXX STOPPED HERE
-
-In our database, the decision was to build a query engine with the following limitations:
+In our database, we decided to build a query engine with the following limitations:
 
 * Users cannot define logical operations between the clauses; they are always ‘ANDed’ together. (This can be worked around by using unary or binary predicates.)
 * If there is more than one clause in a query, there must be one variable that is found in all of the clauses of that query. This variable acts as a joining variable. This limitation simplifies the query optimizer.
 * A query is only executed on a single database. 
 
-While these design decisions result in a query language that is less rich than Datalog, we are still able to support many types of simple-but-useful queries.
+While these design decisions result in a query language that is less rich than Datalog, we are still able to support many types of simple but useful queries.
 
 ### Query Engine Design
 
@@ -752,12 +747,12 @@ While our query language allows the user to specify _what_ they want to access, 
 
 This involves four steps:
 
-1. Transformation to internal representation: transform the query from its textual form into a data structure that is consumed by the query planner.
+1. Transformation to internal representation: Transform the query from its textual form into a data structure that is consumed by the query planner.
 2. Building a query plan: Determine an efficient _plan_ for yielding the results of the given query. In our case, a query plan is a function to be invoked.
 3. Executing the plan: Execute the plan and send its results to the next phase.
 4. Unification and reporting: Extract only the results that need to be reported and format them as specified.
 
-#### Phase 1 - Transformation
+#### Phase 1: Transformation
 
 In this phase, we transform the given query from a representation that is easy for the user to understand into a representation that can be consumed efficiently by the query planner. 
 
@@ -808,10 +803,13 @@ Iterating over the clauses themselves happens in `q-clauses-to-pred-clauses`:
        (if-not frst#  preds-vecs#
          (recur rst# `(conj ~preds-vecs# (pred-clause ~frst#))))))
 ````
-We are once again relying on the fact that macros do not eagerly evaluate their arguments. This allows us to define a simpler API where users provide variable names as symbols (e.g., ````?name````) instead of asking the user to understand the internals of the engine by providing variable names as strings ( e.g., ````"?name"````), or even worse - quoting the variable name (e.g., ````'?name````) and by that ask users to understand mechanisms that are taught in Clojure's class of defense against  the dark arts.
+We are once again relying on the fact that macros do not eagerly evaluate their arguments. This allows us to define a simpler API where users provide variable names as symbols (e.g., ````?name````) instead of asking the user to understand the internals of the engine by providing variable names as strings ( e.g., ````"?name"````), or even worse - quoting the variable name (e.g., ````'?name````) and by that ask users to understand mechanisms that are taught in Clojure's class of defense against the dark arts.
 
 At the end of this phase, our example yields the following set for the `:find` part: 
-````clojure #{"?nm" "?bd"} ```` and this structure for the `:where` part (each cell in the _Predicate Clause_ column holds the metadata found in its neighbor at the _Meta Clause_ column):
+
+````clojure #{"?nm" "?bd"} ```` 
+
+and the following structure for the `:where` part. (Each cell in the _Predicate Clause_ column holds the metadata found in its neighbor at the _Meta Clause_ column.)
 
 <table>
 <tr>
@@ -844,12 +842,13 @@ At the end of this phase, our example yields the following set for the `:find` p
 
 This structure acts as the query that is executed in a later phase, once the engine decides on the right plan of execution.
 
-#### Phase 2 - Making a Plan
-In this phase, we inspect the query to determine a good plan that will produce the result it describes.
+#### Phase 2: Making a Plan
+
+In this phase, we inspect the query in order to construct a good plan to produce the result it describes.
 
 In general, this will involve choosing the appropriate index and constructing a plan in the form of a function.
 
-We choose the index based on the _single_ joining variable (that can operate on only single kind of elements) 
+We choose the index based on the _single_ joining variable (that can operate on only a single kind of element).
 
 <table>
 	<tr>
@@ -866,7 +865,7 @@ We choose the index based on the _single_ joining variable (that can operate on 
 	</tr>
 </table>
 
-The reasoning behind this mapping will become clearer in the next section, where we actually execute the plan produced here, just for now note that the key insight here is to select an index whose leaves hold the elements that the joining variable operates on.
+The reasoning behind this mapping will become clearer in the next section, when we actually execute the plan produced. For now, just note that the key here is to select an index whose leaves hold the elements that the joining variable operates on.
 
 Locating the index of the joining variable is done by `index-of-joining-variable`:
 
@@ -877,7 +876,7 @@ Locating the index of the joining variable is done by `index-of-joining-variable
          collapsed (reduce collapsing-fn metas-seq)] 
      (first (keep-indexed #(when (variable? %2 false) %1)  collapsed)))) 
 ````
-We begin by extracting the metadata of each clause in the query. This metadata is a 3-element vector, each of which is a variable name or `nil`, and reduces them to produce a single variable name or `nil`. If a variable name is produced, this means it appears in all of the metadata vectors at the same index -- i.e. this is the joining variable. We can thus choose the appropriate index by using the mapping described above. 
+We begin by extracting the metadata of each clause in the query. This metadata is a 3-element vector, each element of which is a variable name or `nil`, and reduces them to produce a single variable name or `nil`. If a variable name is produced, this means it appears in all of the metadata vectors at the same index; i.e., this is the joining variable. We can thus choose the appropriate index by using the mapping described above. 
 
 Once the index is chosen, we construct our plan, which is a function that closes over the query and the index name and executes the operations necessary to return the query results.
  
@@ -889,22 +888,22 @@ Once the index is chosen, we construct our plan, which is a function that closes
       (partial single-index-query-plan query ind-to-use)))
 ````
 
-For our example, the chosen index is the `AVET` index, as the joining variable acts on the entity Ids.
+In our example the chosen index is the `AVET` index, as the joining variable acts on the entity IDs.
 
-#### Phase 3 - Execution of the Plan
+#### Phase 3: Execution of the Plan
 
 We saw in the previous phase that the query plan we construct ends by calling `single-index-query-plan`. This function will:
 
-1. Apply each predicate clause on an index (each predicate on its appropriate index level)
-2. Perform an AND operation across the results 
-3. Merge the results into a simpler data structure
+1. Apply each predicate clause on an index (each predicate on its appropriate index level).
+2. Perform an AND operation across the results.
+3. Merge the results into a simpler data structure.
 
 ````clojure
 (defn single-index-query-plan [query indx db]
    (let [q-res (query-index (indx-at db indx) query)]
      (bind-variables-to-query q-res (indx-at db indx))))
 ````
-To have a better understanding of this process, alongside explaining it, we also demonstrate it using our exemplary query and assume that our database holds these entities:
+To better explain this process we'll demonstrate it using our exemplary query, assuming that our database holds these entities:
 
 <table>
 <tr>
@@ -953,7 +952,7 @@ To have a better understanding of this process, alongside explaining it, we also
 </tr>
 </table>
 
-Now it is time to go deeper into the rabbit's hole and take a look at the `query-index` function, where our query finally begins to yield some results:
+Now it is time to go deeper into the rabbit hole and take a look at the `query-index` function, where our query finally begins to yield some results:
 
 ````clojure
 (defn query-index [index pred-clauses]
@@ -969,10 +968,10 @@ This function starts by applying the predicate clauses on the previously-chosen 
 The main characteristics of a result are:
 
 1. It is built of three items, each from a different level of the index, and each passed its respective predicate. 
-2. The order of items matches the index's levels structure (predicate clause are always in EAV order). The re-ordering is done when applying the index's `from-eav` on the predicate clause. 
+2. The order of items matches the index's levels structure. (Predicate clauses are always in EAV order.) The re-ordering is done when applying the index's `from-eav` on the predicate clause. 
 3. The metadata of the predicate clause is attached to it. 
 
-All of this is done in the function `filter-index`
+All of this is done in the function `filter-index`.
 
 ````clojure
 (defn filter-index [index predicate-clauses]
@@ -1037,7 +1036,7 @@ We now have to remove the items that didn’t pass all of the conditions:
      (update-in path [2] CS/intersection relevant-items))
 ````
 
-Finally, we remove all of the result clauses that are 'empty' (i.e. their last item is empty.) We do this in the last line of the `query-index` function. Our example leaves us with the following items:
+Finally, we remove all of the result clauses that are 'empty' (i.e., their last item is empty). We do this in the last line of the `query-index` function. Our example leaves us with the following items:
 
 <table>
 <tr>
@@ -1056,7 +1055,7 @@ Finally, we remove all of the result clauses that are 'empty' (i.e. their last i
 <td>[:speak "English" #{1}]</td><td>["?e" nil nil]</td>
 </tr>
 </table>
-We are now ready to report the results. The result clause structure is unwieldy for this purpose, so we will convert it into an an index-like structure (map of maps) -- with a significant twist. 
+We are now ready to report the results. The result clause structure is unwieldy for this purpose, so we will convert it into an an index-like structure (map of maps) --- with a significant twist. 
 
 To understand the twist, we must first introduce the idea of a _binding pair_, which is a pair that matches a variable name to its value. The variable name is the one used at the predicate clauses, and the value is the value found in the result clauses.
 
@@ -1085,9 +1084,9 @@ At the end of phase 3 of our example execution, we have the following structure 
 	}}
 ````
 
-#### Phase 4 - Unify and Report
+#### Phase 4: Unify and Report
 
-At this point, we’ve produced a superset of the results that the user initially asked for. In this phase, we extract the specific values that the user has expressed interest in. This process is called _unification_ -- it is here that we will unify the binding pairs structure with the vector of variable names that the user defined in the `:find` clause of the query. 
+At this point, we’ve produced a superset of the results that the user initially asked for. In this phase, we'll extract the values that the user wants. This process is called _unification_: it is here that we will unify the binding pairs structure with the vector of variable names that the user defined in the `:find` clause of the query. 
 
 ````clojure
 (defn unify [binded-res-col needed-vars]
@@ -1109,12 +1108,14 @@ Each unification step is handled by `locate-vars-in-query-result`, which iterate
 (defn resultify-av-pair [vars-set accum-res av-pair]
    (reduce (partial resultify-bind-pair vars-set) accum-res av-pair))
 ````
-The end of this phase, the results for our example are:
+At the end of this phase, the results for our example are:
+````
 [("?nm" "USA") ("?bd" "July 4, 1776")]
+````
 
 #### Running the Show
 
-We've finally built all of the components we need to to build our user-facing query mechanism, the `q` macro, which receives as arguments a database and a query:
+We've finally built all of the components we need for our user-facing query mechanism, the `q` macro, which receives as arguments a database and a query.
 
 ````clojure
 (defmacro q
@@ -1129,16 +1130,16 @@ We've finally built all of the components we need to to build our user-facing qu
 
 Our journey started with a conception of a different kind of database, and ended with one that:
 
-* Supports ACI transactions (durability was lost when we decided to have the data stored in-memory) 
-* Supports "what-if" interactions
-* Answers time-related questions 
-* Handle simple datalog queries that are optimized by using indexes
-* provides APIs for graph queries
-* Introduces and implemented the notion of evolutionary queries
+* Supports ACI transactions (durability was lost when we decided to have the data stored in-memory).
+* Supports "what-if" interactions.
+* Answers time-related questions.
+* Handle simple datalog queries that are optimized with indexes.
+* provides APIs for graph queries.
+* Introduces and implemented the notion of evolutionary queries.
 
 There are still many things that we could improve: We could add caching to several components to improve performance; support richer queries; and add real storage support to provide data durability, to name a few.
 
 However, our final product can do a great many things, and was implemented in 488 lines of Clojure source code, 73 of which are blank lines and 55 of which are docstrings. 
 
-Finally, there's one thing that is still missing - a Name. 
-The only sensible option for an in-memory, index optimized, query supporting, library developer friendly, time aware functional database implemented in 360 lines of Clojure code is CircleDB.
+Finally, there's one thing that is still missing: a Name. 
+The only sensible option for an in-memory, index-optimized, query-supporting, library developer-friendly, time-aware functional database implemented in 360 lines of Clojure code is CircleDB.
