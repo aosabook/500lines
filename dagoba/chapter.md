@@ -8,6 +8,7 @@
 > "What went forth to the ends of the world to traverse not itself, God, the sun, Shakespeare, a commercial traveller, having itself traversed in reality itself becomes that self." 
 > -- James Joyce 
 
+## Prologue
 
 A long time ago, when the world was still young, all data walked happily in single file. If you wanted your data to jump over a fence, you just set the fence down in its path and each datum jumped it in turn. Punch cards in, punch cards out. Life was easy and programming was a breeze.
 
@@ -24,13 +25,13 @@ The distributed revolution changed everything, again. Data broke free of spacial
 [footnoteB: Codd developed relational database theory while working at IBM, but Big Blue feared that a relational database would cannibalize the sales of IMS. While IBM eventually built a research prototype called System R, it was based around a new non-relational language called SEQUEL, instead of Codd's original Alpha language. The SEQUEL language was copied by Larry Ellison in his Oracle Database based on pre-launch conference papers, and the name changed to SQL to avoid trademark disputes.]
 
 
-## Definitions and introductions
+## Take one
 
 Within this chapter we're going to build a graph database. As we build it we're also going to explore the problem space, generate multiple solutions for our design decisions, compare those solutions to understand the tradeoffs between them, and finally choose the right solution for our system. A higher-than-usual precedence will be put on code compactness, but the process will otherwise mirror that used by software professionals since time immemorial. The purpose of this chapter is to teach this process. And to build a graph database. [Footnote: The two purposes of this chapter are to teach this process, to build a graph database, and to have fun.]
 
 Using a graph database will allow us to solve some interesting problems in an elegant fashion. Graphs are a very natural data structure for exploring connections between things. A graph in this sense is a set of vertices and a set of edges -- in other words it's a bunch of dots connected by lines. And a database? A "data base" is like a fort for data. You can put data in it and get data back out of it.
 
-So what kinds of problems can we solve with it? Well, suppose that you are one of those who have discovered the unbridled joy of tracking ancestral trees: parents, children, all that kind of thing. You'd like to develop a system that allows you to make natural and elegant queries like "Who are Thor's second cousins once removed?" or "What is Freyja's connection to the Valkyries?".
+So what kinds of problems can we solve with a graph database? Well, suppose that you are one of those who have discovered the unbridled joy of tracking ancestral trees: parents, children, all that kind of thing. You'd like to develop a system that allows you to make natural and elegant queries like "Who are Thor's second cousins once removed?" or "What is Freyja's connection to the Valkyries?".
 
 A reasonable schema for this data structure would be to have a table of entities and a table of relationships. A query for Thor's parents might look like:
 
@@ -679,9 +680,9 @@ Dagoba.addPipetype('back', function(graph, args, gremlin, state) {
 We're using the `Dagoba.gotoVertex` helper function to do all real work here. Let's take a look at that and some other helpers now.
 
 
-## Helper functions
+## Helpers
 
-The pipetypes above rely on a few helper functions. Let's take a quick look at those before diving in to the interpreter. This is ostensibly because understanding these helpers will aid in understanding the interpreter, but it's mostly just to build up the anticipation.
+The pipetypes above rely on a few helpers to do their jobs. Let's take a quick look at those before diving in to the interpreter. This is ostensibly because understanding these helpers will aid in understanding the interpreter, but it's mostly just to build up the anticipation.
 
 #### Gremlins
 
