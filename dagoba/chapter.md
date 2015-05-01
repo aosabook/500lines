@@ -1,6 +1,13 @@
 # Dagoba: an in-memory graph database
 
-_An exploration of connectedness through the lens of familial lineage_
+> "When we try to pick out anything by itself we find that it is bound fast by a thousand invisible cords that cannot be broken, to everything in the universe." 
+> -- John Muir 
+
+&nbsp;
+
+> "What went forth to the ends of the world to traverse not itself, God, the sun, Shakespeare, a commercial traveller, having itself traversed in reality itself becomes that self." 
+> -- James Joyce 
+
 
 A long time ago, when the world was still young, all data walked happily in single file. If you wanted your data to jump over a fence, you just set the fence down in its path and each datum jumped it in turn. Punch cards in, punch cards out. Life was easy and programming was a breeze.
 
