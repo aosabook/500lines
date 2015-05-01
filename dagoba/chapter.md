@@ -26,15 +26,11 @@ The distributed revolution changed everything, again. Data broke free of spacial
 
 ## Definitions and introductions
 
-This graph database we build will allow us to elegantly solve all kinds of interesting problems. So what's a graph database?
+Within this chapter we're going to build a graph database. As we build it we're also going to explore the problem space, generate multiple solutions for our design decisions, compare those solutions to understand the tradeoffs between them, and finally choose the right solution for our system. A higher-than-usual precedence will be put on code compactness, but the process will otherwise mirror that used by software professionals since time immemorial. The purpose of this chapter is to teach this process. And to build a graph database. [Footnote: The two purposes of this chapter are to teach this process, to build a graph database, and to have fun.]
 
-Well, the dictionary defines "graph database" as a database for graphs. Thanks, dictionary! Let's break that down a little.
+Using a graph database will allow us to solve some interesting problems in an elegant fashion. Graphs are a very natural data structure for exploring connections between things. A graph in this sense is a set of vertices and a set of edges -- in other words it's a bunch of dots connected by lines. And a database? A "data base" is like a fort for data. You can put data in it and get data back out of it.
 
-A "data base" is like a fort for data. You can put data in it and get data back out of it.
-
-A graph in this sense is a set of vertices and a set of edges. It's basically a bunch of dots connected by lines. 
-
-What kinds of problems can it solve? Suppose that you are one of those who have discovered the unbridled joy of tracking ancestral trees: parents, children, all that kind of thing. You'd like to develop a system that allows you to make natural and elegant queries like "Who are Thor's second cousins once removed?" or "What is Freyja's connection to the Valkyries?".
+So what kinds of problems can we solve with it? Well, suppose that you are one of those who have discovered the unbridled joy of tracking ancestral trees: parents, children, all that kind of thing. You'd like to develop a system that allows you to make natural and elegant queries like "Who are Thor's second cousins once removed?" or "What is Freyja's connection to the Valkyries?".
 
 A reasonable schema for this data structure would be to have a table of entities and a table of relationships. A query for Thor's parents might look like:
 
