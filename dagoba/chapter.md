@@ -286,9 +286,10 @@ All graph databases have to support a mechanism for doing as little work as poss
 
 ## Ramifications of evaluation strategy on our mental model
 
-Up until now our mental model for evaluation has looked like this:
-
-[[diagram]]
+Up until now our mental model for evaluation has been very simple:
+- request a set of vertices
+- pass the returned set as input to a pipe
+- repeat as necessary
 
 We would like to retain that model for our users, because it's easier to reason about, but as we've seen we can no longer use that model for the implementation. Having users think in a model that differs from the actual implementation is the source of much pain. A leaky abstraction is a small scale version of this; in the large it can lead to frustration, cognitive dissonance and ragequits. 
 
@@ -298,15 +299,12 @@ Some factors to consider when wrestling with this decision are: the relative cog
 
 In our case this tradeoff makes sense. For most uses queries will return results fast enough that users needn't be concerned with optimizing their query structure or learning the deeper model. Those who will are the users writing advanced queries over large datasets, and they are also likely the users most well equipped to transition to a new model. Additionally, our hope is that there is only a small increase in difficulty imposed by using the simple model before learning the more complex one.
 
-Here is the exposed surface of the more complex model:
-
-[[diagram]]
-
-[[Referencing diagram, spell out that we're achieving lazy evaluation with a turing machine like model]]
-We'll dig deeper when we look at the implementation of the interpreter, but there are a few important points to keep in mind while we examine the pipetypes:
-- Remember those gremlins we mentioned before? In our simplistic model each pipe spits out the entire set of matching vertices, once per query. In the actual implementation each pipe returns at most one gremlin, but does this potentially many times during the query. Each gremlin represents a potential query result, and they carry state with them through the pipes.
-- We process the query from back to front, so if a pipe needs some input before it can produce gremlins, it returns a 'pull' signal, causing the head to move back one pipe. [[explain 'head' better here once diagram is in place]]
-- If a pipe has finished and will never produce another gremlin, it returns a 'done' signal, causing the head to move forward and the done blocker to move to its position.
+We'll go in to more detail on this new model soon, but in the meantime here are some highlights to keep in mind during the next section:
+- Each pipe returns one result at a time, not a set of results. Each pipe may be activated many times while evaluating a query.
+- A read/write head controls which pipe is activated next. The head starts at the end of the pipeline, and its movement is directed by the result of the currently active pipe.
+- That result might be one of the aforementioned gremlins. Each gremlin represents a potential query result, and they carry state with them through the pipes. Gremlins cause the head to move to the right.
+- A pipe can return a result of 'pull', which signals the head that it needs input and moves it to the right.
+- A result of 'done' tells the head that nothing prior needs to be activated again, and moves the head left.
 
 
 ## Pipetypes
