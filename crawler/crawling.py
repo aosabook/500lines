@@ -1,7 +1,6 @@
 """A simple web crawler -- class implementing crawling logic."""
 
 import asyncio
-from asyncio import Future
 import cgi
 from collections import namedtuple
 import logging
