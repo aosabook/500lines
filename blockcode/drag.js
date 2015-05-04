@@ -4,7 +4,6 @@
     var dragTarget = null; // Block we're dragging
     var dragType = null; // Are we dragging from the menu or from the script?
     var scriptBlocks = []; // Blocks in the script, sorted by position
-    var nextBlock = null; // Block we'll be inserting before
 
     function dragStart(evt){
         if (!matches(evt.target, '.block')) return;
@@ -25,25 +24,6 @@
         }
     }
 
-    function findPosition(evt){
-        var prevBlock = nextBlock;
-        nextBlock = null;
-        var x = evt.clientX;
-        var y = evt.clientY;
-        var offset = 15; // pixels cursor can overlap a block by
-        for (var i = 0; i < scriptBlocks.length; i++){
-            var block = scriptBlocks[i];
-            var rect = block.getBoundingClientRect();
-            if (y < (rect.top + offset)){
-                nextBlock = block;
-                break;
-            }
-        }
-        if (prevBlock !== nextBlock){
-            if (prevBlock){ prevBlock.classList.remove('next'); }
-            if (nextBlock){ nextBlock.classList.add('next'); }
-        }
-    }
 
     function dragEnter(evt){
         if (matches(evt.target, '.menu, .script, .content')){
@@ -71,8 +51,7 @@
 
     function drop(evt){
         if (!matches(evt.target, '.menu, .menu *, .script, .script *')) return;
-        var dropTarget = closest(evt.target, '.script .container, .menu, .script');
-        findPosition(evt);
+        var dropTarget = closest(evt.target, '.script .container, .script .block, .menu, .script');
         var dropType = 'script';
         if (matches(dropTarget, '.menu')){ dropType = 'menu'; }
         if (evt.stopPropagation) { evt.stopPropagation(); } // stops the browser from redirecting.
@@ -80,14 +59,20 @@
             trigger('blockRemoved', dragTarget.parentElement, dragTarget);
             dragTarget.parentElement.removeChild(dragTarget);
         }else if (dragType ==='script' && dropType === 'script'){
-            if (nextBlock){ dropTarget = nextBlock.parentElement; }
-            dropTarget.insertBefore(dragTarget, nextBlock);
+            if (matches(dropTarget, '.block')){
+                dropTarget.parentElement.insertBefore(dragTarget, dropTarget.nextSibling);
+            }else{
+                dropTarget.insertBefore(dragTarget, dropTarget.firstChildElement);
+            }
             trigger('blockMoved', dropTarget, dragTarget);
         }else if (dragType === 'menu' && dropType === 'script'){
             var newNode = dragTarget.cloneNode(true);
             newNode.classList.remove('dragging');
-            if (nextBlock){ dropTarget = nextBlock.parentElement; }
-            dropTarget.insertBefore(newNode, nextBlock);
+            if (matches(dropTarget, '.block')){
+                dropTarget.parentElement.insertBefore(newNode, dropTarget.nextSibling);
+            }else{
+                dropTarget.insertBefore(newNode, dropTarget.firstChildElement);
+            }
             trigger('blockAdded', dropTarget, newNode);
         }
     }
@@ -107,6 +92,6 @@
     document.addEventListener('dragenter', dragEnter, false);
     document.addEventListener('dragover', dragOver, false);
     document.addEventListener('drag', function(){}, false);
-    document.addEventListener('drop', drop, false); 
+    document.addEventListener('drop', drop, false);
     document.addEventListener('dragend', dragEnd, false);
 })(window);

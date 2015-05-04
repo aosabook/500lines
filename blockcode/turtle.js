@@ -49,6 +49,30 @@
 		}
 	}
 
+	function drawCircle(radius){
+		// Math for this is from http://www.mathopenref.com/polygonradius.html
+		var userPen = pen; // save pen state
+		if (visible){
+			penUp(); _moveForward(-radius); penDown();
+			_turn(-90);
+			var steps = Math.min(Math.max(6, Math.floor(radius / 2)), 360);
+			var theta = 360 / steps;
+			var side = radius * 2 * Math.sin(Math.PI / steps);
+			_moveForward(side / 2);
+			for (var i = 1; i < steps; i++){
+				_turn(theta); _moveForward(side);
+			}
+			_turn(theta); _moveForward(side / 2);
+			_turn(90);
+			penUp(); _moveForward(radius); penDown();
+			if (userPen){
+				penDown(); // restore pen state
+			}
+		}
+
+	}
+
+
 	function _moveForward(distance){
 		var start = position;
 		position = {
@@ -70,6 +94,7 @@
 	function showTurtle(){ visible = true; }
 	function forward(block){ _moveForward(Block.value(block)); }
 	function back(block){ _moveForward(-Block.value(block)); }
+	function circle(block){ drawCircle(Block.value(block)); }
 	function _turn(degrees){ direction += deg2rad(degrees); }
 	function left(block){ _turn(Block.value(block)); }
 	function right(block){ _turn(-Block.value(block)); }
@@ -92,6 +117,7 @@
 	Menu.item('Right', right, 5, 'degrees');
 	Menu.item('Forward', forward, 10, 'steps');
 	Menu.item('Back', back, 10, 'steps');
+	Menu.item('Circle', circle, 20, 'radius');
 	Menu.item('Pen up', penUp);
 	Menu.item('Pen down', penDown);
 	Menu.item('Back to center', recenter);

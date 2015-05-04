@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Game Blocks</title>
+    <link rel="stylesheet" type="text/css" href="../blocks.css" />
+</head>
+<body>
+    <h1>Game Blocks</h1>
+    <div class="menu-column">
+        <h2>Menu</h2>
+        <div class="menu"></div>
+    </div>
+    <div class="script-column">
+        <h2>
+            Script:
+            <button class="clear-action">Clear</button>
+            <button class="save-action">Save</button>
+            <button class="load-action">Load</button>
+        </h2>
+        <div class="script"></div>
+    </div>
+    <div class="canvas-column">
+        <h2>Examples:
+            <select class="choose-example">
+                <option value="">Choose Example</option>
+                <option value="spacewar">Spacewar</option>
+                <option value="asteroids">Asteroids</option>
+                <option value="invaders">Invaders</option>
+            </select>
+        </h2>
+        <div class="canvas-placeholder"></div>
+        <canvas class="canvas"></canvas>
+    </div>
+    <script src="../util.js"></script>
+    <script src="../drag.js"></script>
+    <script src="../file.js"></script>
+    <script src="../blocks.js"></script>
+    <script src="../menu.js"></script>
+    <script src="game.js"></script>
+    <script src="examples/spacewar.js"></script>
+    <script src="examples/asteroids.js"></script>
+    <script src="examples/invaders.js"></script>
+</body>
+</html>

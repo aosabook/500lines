@@ -22,7 +22,9 @@
 			var blocks = [].slice.call(document.querySelectorAll('.script > .block'));
 			Block.run(blocks);
 			Block.trigger('afterRun', script);
-		}
+		}else{
+            Block.trigger('everyFrame', script);
+        }
 		requestAnimationFrame(run);
 	}
 	requestAnimationFrame(run);

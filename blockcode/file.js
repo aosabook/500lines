@@ -2,13 +2,14 @@
     'use strict';
 
     var scriptElem = document.querySelector('.script');
+    var title = '__' + document.querySelector('title').textContent.toLowerCase().replace(' ', '_');
 
-    function saveLocal(){ 
-        var script = scriptToJson(); 
+    function saveLocal(){
+        var script = scriptToJson();
         if (script){
-            localStorage._blockCode = script;
+            localStorage[title] = script;
         }else{
-            delete localStorage._blockCode;
+            delete localStorage[title];
         }
     }
 
@@ -25,7 +26,7 @@
         Menu.runSoon();
     }
 
-    function restoreLocal(){ jsonToScript(localStorage._blockCode || JSON.stringify(file.examples.triangle)); }
+    function restoreLocal(){ jsonToScript(localStorage[title] || '[]' ); }
 
     function clearScript(){
         [].slice.call(document.querySelectorAll('.script > .block')).forEach(function(block){
