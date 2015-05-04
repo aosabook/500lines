@@ -45,3 +45,5 @@ Example command line (the -q reduces log output):
     python3.4 crawl.py -q xkcd.com
 
 Use --help to see all options.
+
+See also the files in "supplemental".

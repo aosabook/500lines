@@ -54,9 +54,14 @@ class TestCrawler(unittest.TestCase):
 
     @asyncio.coroutine
     def _create_server(self):
-        app = web.Application(loop=self.loop, debug=True)
+        app = web.Application(loop=self.loop)
+        handler_factory = app.make_handler(debug=True)
         srv = yield from self.loop.create_server(
-            app.make_handler(), '127.0.0.1', self.port)
+            handler_factory, '127.0.0.1', self.port)
+
+        # Prevent "Task destroyed but it is pending" warnings.
+        self.addCleanup(lambda: self.loop.run_until_complete(
+            handler_factory.finish_connections()))
 
         self.addCleanup(srv.close)
         return app
@@ -190,6 +195,45 @@ class TestCrawler(unittest.TestCase):
             self.assertStat(status=302, next_url=foo)
 
         self.assertIn('redirect limit reached', messages)
+
+    def test_redirect_cycle(self):
+        foo = self.app_url + '/foo'
+        bar = self.app_url + '/bar'
+
+        url = self.add_redirect('/bar', foo)
+        self.add_redirect('/foo', bar)
+        self.crawl([url])
+        self.assertStat(0, status=302, next_url=foo)
+        self.assertStat(1, status=302, next_url=bar)
+        self.assertDoneCount(2)
+
+    def test_redirect_join(self):
+        # Set up redirects:
+        #   foo -> baz
+        #   bar -> baz -> quux
+        foo = self.app_url + '/foo'
+        bar = self.app_url + '/bar'
+        baz = self.app_url + '/baz'
+        quux = self.app_url + '/quux'
+
+        self.add_redirect('/foo', baz)
+        self.add_redirect('/bar', baz)
+        self.add_redirect('/baz', quux)
+
+        # Start crawling foo and bar. We follow the foo -> baz redirect but
+        # not bar -> baz, since by then baz is already seen.
+        self.crawl([foo, bar])
+        import pprint
+        pprint.pprint(self.crawler.done)
+        self.assertStat(0, url=foo, status=302, next_url=baz)
+
+        # We fetched bar and saw it redirected to baz.
+        self.assertStat(1, url=bar, status=302, next_url=baz)
+
+        # But we only fetched baz once.
+        self.assertStat(2, url=baz, status=302, next_url=quux)
+        self.assertStat(3, url=quux, status=404)
+        self.assertDoneCount(4)
 
     def test_max_tasks(self):
         n_tasks = 0
