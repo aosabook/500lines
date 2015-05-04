@@ -550,7 +550,7 @@ All this is done in the `transact-on-db` function, which receives the initial va
 Note here that we used the term _value_, meaning that only the caller to this function is exposed to the updated state; all other users of the database are unaware of this change (as a database is a value, and therefore cannot change). 
 In order to have a system where users can be exposed to state changes performed by others, users do not interact directly with the database, but rather refer to it using another level of indirection. This additional level is implemented using Clojure's `Atom`, a reference type. Here we leverage the main three key features of an `Atom`, which are:
 
-1. It references a value
+1. It references a value.
 2. It is possible to update the referencing of the `Atom` to another value by executing a transaction (using Clojure's Software Transaction Memory capabilities). The transaction accepts an `Atom` and a function. That function operates on the value of the `Atom` and returns a new value. After the execution of the transaction, the `Atom` references the value that was returned from the function.
 3. Getting to the value that is referenced by the `Atom` is done by dereferencing it, which returns the state of that `Atom` at that time.
 
@@ -560,7 +560,9 @@ To have the simplest and clearest APIs, we  would like users to just provide the
 
 That transformation occurs in the following transaction call chain:
 
+ ```
  transact →  _transact → swap! → transact-on-db
+ ```
 
 * Users call `transact` with the `Atom` (i.e., the database connection) and the operations to perform, which relays its input to `_transact`, adding to it the name of the function that updates the `Atom` (`swap!`).
 ````clojure
@@ -595,7 +597,7 @@ what-if → _transact →   _what-if → transact-on-db
  
 Note that we are not using functions, but macros. The reason for using macros here is that arguments to macros do not get evaluated as the call happens; this allows us to offer a cleaner API design where the user provides the operations structured in the same way that any function call is structured in Clojure. 
 
-The above process can be seen in the following examples:
+The above process can be seen in the following examples.
 
 For Transaction, the user call: 
 ````clojure
@@ -610,7 +612,7 @@ which becomes:
 (swap! db-conn transact-on-db [[add-entity e1][update-entity e2 atr2 val2 :db/add]])
 ````
 
-The What-if user call:
+The what-if user call:
 
 ````clojure
 (what-if my-db (add-entity e3) (remove-entity e4))
@@ -630,7 +632,7 @@ and eventually:
 
 ## Insight Extraction as Libraries
 
-At this point we have the core functionality of the database in place, and it is time to add its raison d'être: insights extraction. The architecture approach we used here is to allow adding these capabilities as libraries, as different usages of the database would need different such mechanisms. 
+At this point we have the core functionality of the database in place, and it is time to add its *raison d'être*: insights extraction. The architecture approach we used here is to allow adding these capabilities as libraries, as different usages of the database would need different such mechanisms. 
 
 ### Graph Traversal
 
@@ -658,7 +660,7 @@ These two functions act as the basic building blocks for any graph traversal ope
 
 ## Querying the Database
 
-The second library we present provides querying capabilities, which is the main issue of this section. 
+The second library we present provides querying capabilities, which is the main concern of this section. 
 A database is not very useful to its users without a powerful query mechanism. This feature is usually exposed to users through a _query language_ that is used to declaratively specify the set of data of interest. 
 
 Our data model is based on accumulation of facts (i.e., datoms) over time. For this model, a natural place to look for the right query language is _logic programming_. A commonly used query language influenced by logic programming is _Datalog_ which, in addition to being well-suited for our data model, has a very elegant adaptation to Clojure’s syntax. Our query engine will implement a subset of the Datalog language from the [Datomic database](http://docs.datomic.com/query.html).
@@ -685,7 +687,7 @@ A query is a map with two items:
 
 The description above omits a crucial requirement: how to make different clauses sync on a value (i.e., make a join operation between them), and how to structure the found values in the output (specified by the `:find` part). 
 
-We fulfill both of these requirements using _variables_, which are denoted with a leading `?`. The only exception to this definition is the "don't-care" variable "`_`"  (underscore).  
+We fulfill both of these requirements using _variables_, which are denoted with a leading `?`. The only exception to this definition is the "don't care" variable "`_`"  (underscore).  
 
 <!-- FIXME make sure this table reference makes sense in the final layout (tablemight not immediately follow text -->
 A clause in a query is composed of three predicates. The following table defines what can act as a predicate in our query language:
@@ -803,7 +805,7 @@ Iterating over the clauses themselves happens in `q-clauses-to-pred-clauses`:
        (if-not frst#  preds-vecs#
          (recur rst# `(conj ~preds-vecs# (pred-clause ~frst#))))))
 ````
-We are once again relying on the fact that macros do not eagerly evaluate their arguments. This allows us to define a simpler API where users provide variable names as symbols (e.g., ````?name````) instead of asking the user to understand the internals of the engine by providing variable names as strings ( e.g., ````"?name"````), or even worse - quoting the variable name (e.g., ````'?name````) and by that ask users to understand mechanisms that are taught in Clojure's class of defense against the dark arts.
+We are once again relying on the fact that macros do not eagerly evaluate their arguments. This allows us to define a simpler API where users provide variable names as symbols (e.g., ````?name````) instead of asking the user to understand the internals of the engine by providing variable names as strings ( e.g., ````"?name"````), or even worse, quoting the variable name (e.g., ````'?name````).
 
 At the end of this phase, our example yields the following set for the `:find` part: 
 
@@ -846,9 +848,7 @@ This structure acts as the query that is executed in a later phase, once the eng
 
 In this phase, we inspect the query in order to construct a good plan to produce the result it describes.
 
-In general, this will involve choosing the appropriate index and constructing a plan in the form of a function.
-
-We choose the index based on the _single_ joining variable (that can operate on only a single kind of element).
+In general, this will involve choosing the appropriate index and constructing a plan in the form of a function.  We choose the index based on the _single_ joining variable (that can operate on only a single kind of element).
 
 <table>
 	<tr>
@@ -963,7 +963,7 @@ Now it is time to go deeper into the rabbit hole and take a look at the `query-i
                                      result-clauses)] 
      (filter #(not-empty (last %)) cleaned-result-clauses)))
 ````
-This function starts by applying the predicate clauses on the previously-chosen index. Each application of a predicate clause on an index returns a _result clause_. 
+This function starts by applying the predicate clauses on the previously chosen index. Each application of a predicate clause on an index returns a _result clause_. 
 
 The main characteristics of a result are:
 
@@ -1027,7 +1027,7 @@ Once we have produced all of the result clauses, we need to perform an `AND` ope
          (set))) ; return it as set
 ````
 
-In our example, the result of this step is a set that holds the value *1* (which is the entity Id of USA). 
+In our example, the result of this step is a set that holds the value *1* (which is the entity ID of USA). 
 
 We now have to remove the items that didn’t pass all of the conditions:
 
@@ -1036,7 +1036,7 @@ We now have to remove the items that didn’t pass all of the conditions:
      (update-in path [2] CS/intersection relevant-items))
 ````
 
-Finally, we remove all of the result clauses that are 'empty' (i.e., their last item is empty). We do this in the last line of the `query-index` function. Our example leaves us with the following items:
+Finally, we remove all of the result clauses that are "empty" (i.e., their last item is empty). We do this in the last line of the `query-index` function. Our example leaves us with the following items:
 
 <table>
 <tr>
@@ -1131,15 +1131,15 @@ We've finally built all of the components we need for our user-facing query mech
 Our journey started with a conception of a different kind of database, and ended with one that:
 
 * Supports ACI transactions (durability was lost when we decided to have the data stored in-memory).
-* Supports "what-if" interactions.
+* Supports "what if" interactions.
 * Answers time-related questions.
-* Handle simple datalog queries that are optimized with indexes.
-* provides APIs for graph queries.
-* Introduces and implemented the notion of evolutionary queries.
+* Handles simple datalog queries that are optimized with indexes.
+* Provides APIs for graph queries.
+* Introduces and implements the notion of evolutionary queries.
 
 There are still many things that we could improve: We could add caching to several components to improve performance; support richer queries; and add real storage support to provide data durability, to name a few.
 
 However, our final product can do a great many things, and was implemented in 488 lines of Clojure source code, 73 of which are blank lines and 55 of which are docstrings. 
 
-Finally, there's one thing that is still missing: a Name. 
+Finally, there's one thing that is still missing: a name. 
 The only sensible option for an in-memory, index-optimized, query-supporting, library developer-friendly, time-aware functional database implemented in 360 lines of Clojure code is CircleDB.
