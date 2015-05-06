@@ -270,12 +270,10 @@ julia> e.args
     end::Int64)
 ~~~
 
-XXX STOPPED HERE
-
 We just saw some values printed out, but that doesn't tell us much about what they mean or how they're used.
 
 * `head` tells us what kind of expression this is; normally, you'd use separate types for this in Julia, but `Expr` is a type that models the structure used in the parser. The parser is written in a dialect of Scheme, which structures everything as nested lists. `head` tells us how the rest of the `Expr` is organized and what kind of expression it represents.
-* `typ` is the inferred return type of the expression; when you evaluate any expression, it results in some value. `typ` is the type of the value that the expression will evaluate to. For nearly all `Expr`s, this value will be `Any` (which is always correct, since every possible type is a subtype of `Any`). Only the `body` of type-inferred methods and most expressions inside them will have their `typ`s set to something more specific. (Because `type` is a keyword, this field can't use that word as its name.)
+* `typ` is the inferred return type of the expression; when you evaluate any expression, it results in some value. `typ` is the type of the value that the expression will evaluate to. For nearly all `Expr`s, this value will be `Any` (which is always correct, since every possible type is a subtype of `Any`). Only the `body` of type-inferred methods and most expressions inside them will have their `typ` set to something more specific. (Because `type` is a keyword, this field can't use that word as its name.)
 * `args` is the most complicated part of `Expr`; its structure varies based on the value of `head`. It's always an `Array{Any}` (an untyped array), but beyond that the structure changes.
 
 In an `Expr` representing a method, there will be three elements in `e.args`:
@@ -287,7 +285,7 @@ julia> e.args[1] # names of arguments as symbols
  :y
 ~~~
 
-Symbols are a special type for representing the names of variables, constants, functions, and modules. They are a different type from strings because the specifically represent the name of a program construct.
+Symbols are a special type for representing the names of variables, constants, functions, and modules. They are a different type from strings because they specifically represent the name of a program construct.
 
 ~~~
 julia> e.args[2] # three lists of variable metadata
@@ -297,7 +295,7 @@ julia> e.args[2] # three lists of variable metadata
  {}                                       
 ~~~
 
-The first list above contains the names of all local variables; we only have one (`z`) here. The second list contains a tuple for each variable in and argument to the method; each tuple has the variable name, the variable's inferred type, and a number. The number conveys information about how the variable is used, in a machine (rather than human) friendly way. The last list is of captured variable names; it's empty in this example.
+The first list above contains the names of all local variables; we only have one (`z`) here. The second list contains a tuple for each variable in and argument to the method; each tuple has the variable name, the variable's inferred type, and a number. The number conveys information about how the variable is used, in a machine- (rather than human-) friendly way. The last list is of captured variable names; it's empty in this example.
 
 ~~~
 julia> e.args[3] # the body of the method
@@ -338,7 +336,7 @@ julia> body.args
  :(return (top(box))(Int64,(top(mul_int))(2,z::Int64))::Int64)    ~~
 ~~~
 
-The `args` holds a list of expressions; the list of expressions in the method's body. There are a couple of annotations of line numbers (i.e. `:( # line 3:)`), but most of the body is setting the value of `z` (`z = x + y`) and returning `2 * z`. Notice that these operations have been replaced by `Int64`-specific intrinsic functions. The `top(function-name)` indicates an intrinsic function; something that is implemented in Julia's code generation, rather than in Julia.
+`args` holds a list of expressions: the list of expressions in the method's body. There are a couple of annotations of line numbers (i.e., `:( # line 3:)`), but most of the body is setting the value of `z` (`z = x + y`) and returning `2 * z`. Notice that these operations have been replaced by `Int64`-specific intrinsic functions. The `top(function-name)` indicates an intrinsic function; something that is implemented in Julia's code generation, rather than in Julia.
 
 We haven't seen what a loop looks like yet, so let's try that.
 
@@ -367,13 +365,13 @@ julia> code_typed(lloop, (Int,))[1].args[3]
     end::Nothing)
 ~~~
 
-You'll notice there's no `for` or `while` loop in the body. As the compiler transforms the code from what we wrote to the binary instructions the CPU understands, features that useful to humans but that are not understood by the CPU (like loops) are removed. The loop has been rewritten as `label`s and `goto`s. The `goto` has a number in it; each `label` also has a number. The `goto` jumps to the the `label` with the same number.
+You'll notice there's no `for` or `while` loop in the body. As the compiler transforms the code from what we wrote to the binary instructions the CPU understands, features that are useful to humans but that are not understood by the CPU (like loops) are removed. The loop has been rewritten as `label` and `goto` commands. The `goto` has a number in it; each `label` also has a number. The `goto` jumps to the the `label` with the same number.
 
 #### Detecting and Extracting Loops
 
-We're going to find loops by looking for `goto`s that jump backwards.
+We're going to find loops by looking for `goto` commands that jump backwards.
 
-We'll need to find the labels and gotos, and figure out which ones match. I'm going to give you the full implementation first. After the wall of code, we'll take this apart in smaller pieces.
+We'll need to find the labels and gotos, and figure out which ones match. I'm going to give you the full implementation first. After the wall of code, we'll take it apart and examine the smaller pieces.
 
 ~~~~.jl
 # This is a function for trying to detect loops in the body of a Method
@@ -405,16 +403,15 @@ function loopcontents(e::Expr)
   end
   lines
 end
-~~~
+~~~~
 
 And now to explain in pieces:
 
-1. 
 ~~~.jl
 b = body(e)
 ~~~
 
-    We start by getting all the expressions in the body of method, as an `Array`. `body` is a function that I've already implemented:
+We start by getting all the expressions in the body of method, as an `Array`. `body` is a function that I've already implemented:
 
     ~~~.jl
     # Return the body of a Method.
@@ -425,16 +422,18 @@ b = body(e)
     end
     ~~~
 
-2. ~~~.jl
+And then:
+
+~~~.jl
   loops = Int[]
   nesting = 0
   lines = {}
 ~~~
 
-    `loops` is an `Array` of label line numbers where `GoTo`s that are loops occur. `nesting` indicates the number of loops we are currently inside. `lines` is an `Array` of (index, `Expr`) tuples. 
+`loops` is an `Array` of label line numbers where `goto`s that are loops occur. `nesting` indicates the number of loops we are currently inside. `lines` is an `Array` of (index, `Expr`) tuples. 
 
 
-3. ~~~.jl
+~~~.jl
   for i in 1:length(b)
     if typeof(b[i]) == LabelNode
       l = b[i].label
@@ -448,17 +447,17 @@ b = body(e)
     end
 ~~~
 
-    We look at each expression in the body of `e`. If it is a label, we check to see if there is a `goto` that jumps to this label (and occurs after the current index). If the result of `findnext` is greater than zero, then such a goto node exists, so we'll add that to `loops` (the `Array` of loops we are currently in) and increment our `nesting` level.
+We look at each expression in the body of `e`. If it is a label, we check to see if there is a `goto` that jumps to this label (and occurs after the current index). If the result of `findnext` is greater than zero, then such a goto node exists, so we'll add that to `loops` (the `Array` of loops we are currently in) and increment our `nesting` level.
 
-4. ~~~.jl
+~~~.jl
     if nesting > 0
       push!(lines,(i,b[i]))
     end
 ~~~
 
-    If we're currently inside a loop, we push the current line to our array of lines to return.
+If we're currently inside a loop, we push the current line to our array of lines to return.
 
-5. ~~~.jl
+~~~.jl
     if typeof(b[i]) == GotoNode && in(i,loops)
       splice!(loops,findfirst(loops,i))
       nesting -= 1
@@ -468,13 +467,13 @@ b = body(e)
 end
 ~~~
 
-    If we're at a GotoNode, then we check to see if it's the end of a loop. If so, we remove the entry from loops and reduce our nesting level.
+If we're at a `GotoNode`, then we check to see if it's the end of a loop. If so, we remove the entry from `loops` and reduce our nesting level.
 
-The result of this function is the `lines` array; that's an array of (index, value) tuples. This means that each value in the array has an index into the method-body-`Expr`'s body and the value at that index. Each element of `lines` is an expression that occurred inside a loop.
+The result of this function is the `lines` array, an array of (index, value) tuples. This means that each value in the array has an index into the method-body-`Expr`'s body and the value at that index. Each element of `lines` is an expression that occurred inside a loop.
 
 #### Finding and Typing Variables
 
-We just finished the function `loopcontents`, which returns the `Expr`s that are inside loops. Our next function will be `loosetypes`, which takes a list of `Expr`s and returns a list of variables that are loosely typed. Later, we'll pass the output of `loopcontents` into `loosetypes`.
+We just finished the function `loopcontents` which returns the `Expr`s that are inside loops. Our next function will be `loosetypes`, which takes a list of `Expr`s and returns a list of variables that are loosely typed. Later, we'll pass the output of `loopcontents` into `loosetypes`.
 
 In each expression that occurred inside a loop, `loosetypes` searches for occurrences of symbols and their associated types. Variable usages show up as `SymbolNode`s in the AST; `SymbolNode`s hold the name and inferred type of the variable.
 
@@ -507,10 +506,10 @@ function loosetypes(lr::Vector)
   end
   return loose_types
 end
-~~~~
+~~~
 
 
-1. ~~~.jl
+~~~.jl
   symbols = SymbolNode[]
   for (i,e) in lr
     if typeof(e) == Expr
@@ -526,9 +525,10 @@ end
     end
   end
 ~~~
-    The while loop goes through the guts of all the `Expr`s, recursively, until it's seen all the `Expr`s (and hopefully all the `SymbolNode`s). Every time the loop finds a `SymbolNode`, it adds it to the vector `symbols`.
 
-2. ~~~.jl
+The while loop goes through the guts of all the `Expr`s, recursively, until it's seen all the `Expr`s (and hopefully all the `SymbolNode`s). Every time the loop finds a `SymbolNode`, it adds it to the vector `symbols`.
+
+~~~.jl
   loose_types = SymbolNode[]
   for symnode in symbols
     if !isleaftype(symnode.typ) && typeof(symnode.typ) == UnionType
@@ -538,7 +538,7 @@ end
   return loose_types
 end
 ~~~
-    Now we have a list of variables and their types, so it's easy to check if a type is loose. `loosetypes` does that by looking for a specific kind of non-concrete type, a `UnionType`. We get a lot more "failing" results when we consider all non-concrete types to be "failing". This is because we're evaluating each method with it's annotated argument types --- which are likely to be abstract.
+Now we have a list of variables and their types, so it's easy to check if a type is loose. `loosetypes` does that by looking for a specific kind of non-concrete type, a `UnionType`. We get a lot more "failing" results when we consider all non-concrete types to be "failing". This is because we're evaluating each method with its annotated argument types, which are likely to be abstract.
 
 ### Making This Usable
 
@@ -583,7 +583,6 @@ julia> checklooptypes(foo)
 foo(Int64)::Union(Int64,Float64)
 	s::Union(Int64,Float64)
 	s::Union(Int64,Float64)
-
 
 
 julia> checklooptypes(code_typed(foo,(Int,))[1])
@@ -631,7 +630,7 @@ end
 
 ## Looking For Unused Variables
 
-Sometimes, as you're typing in your program, you type a variable --- and sometimes, you mistype the name. When you mistype it, the program can't tell that you meant the same variable as the other times. It sees a variable used only one time, where you might see a variable name misspelled. Languages that require variable declarations naturally catch these misspellings, but many dynamic languages don’t require declarations and thus need an extra layer of analysis to catch them.
+Sometimes, as you're typing in your program, you mistype a variable name. The program can't tell that you meant the same variable as the other times; it sees a variable used only one time, where you might see a variable name misspelled. Languages that require variable declarations naturally catch these misspellings, but many dynamic languages don’t require declarations and thus need an extra layer of analysis to catch them.
 
 We can find misspelled variable names (and other unused variables) by looking for variables that are only used once --- or only used one way.
 
@@ -648,30 +647,31 @@ function foo(variable_name::Int)
 end
 ~~~
 
-This kind of mistake can cause problems in your code that are only discovered when it's run. Let's assume you miss-spell each variable name only once. We can separate variable usages into writes and reads. If the misspelling is a write (i.e. `worng = 5`), then no error will be thrown; you'll just be silently putting the value in the wrong variable --- and it could be frustrating to find the bug. If the misspelling is a read (i.e. `right = worng + 2`), then you'll get a runtime error when the code is run; we'd like to have a static warning for this, so that you can find this error sooner, but you will still have to wait until you run the code to see the problem.
+This kind of mistake can cause problems in your code that are only discovered when it's run. Let's assume you misspell each variable name only once. We can separate variable usages into writes and reads. If the misspelling is a write (i.e., `worng = 5`), then no error will be thrown; you'll just be silently putting the value in the wrong variable --- and it could be frustrating to find the bug. If the misspelling is a read (i.e., `right = worng + 2`), then you'll get a runtime error when the code is run; we'd like to have a static warning for this, so that you can find this error sooner, but you will still have to wait until you run the code to see the problem.
 
 As code becomes longer and more complicated, it becomes harder to spot the mistake --- unless you have the help of static analysis.
 
-### Left-hand side and Right-hand side
+### Left-Hand Side and Right-Hand Side
 
 Another way to talk about "read" and "write" usages is to call them "right-hand side" (RHS) and "left-hand side" (LHS) usages. This refers to where the variable is relative to the `=` sign.
 
 Here are some usages of `x`:
+
 * Left-hand side:
-  + `x = 2`
-  + `x = y + 22`
-  + `x = x + y + 2`
-  + `x += 2` (which de-sugars to `x = x + 2`)
+    * `x = 2`
+    * `x = y + 22`
+    * `x = x + y + 2`
+    * `x += 2` (which de-sugars to `x = x + 2`)
 * Right-hand side:
-  + `y = x + 22`
-  + `x = x + y + 2`
-  + `x += 2` (which de-sugars to `x = x + 2`)
-  + `2 * x`
-  + `x`
+    * `y = x + 22`
+    * `x = x + y + 2`
+    * `x += 2` (which de-sugars to `x = x + 2`)
+    * `2 * x`
+    * `x`
 
 Notice that expressions like `x = x + y + 2` and `x += 2` appear in both sections, since `x` appears on both sides of the `=` sign.
 
-### Looking for single-use variables
+### Looking for Single-Use Variables
 
 There are two cases we need to look for:
 
@@ -680,7 +680,7 @@ There are two cases we need to look for:
 
 We'll look for all variable usages, but we'll look for LHS and RHS usages separately, to cover both cases.
 
-#### Finding LHS usages
+#### Finding LHS Usages
 
 To be on the LHS, a variable needs to have an `=` sign to be to the left of. This means we can look for `=` signs in the AST, and then look to the left of them to find the relevant variable.
 
@@ -725,24 +725,25 @@ function find_lhs_variables(e::Expr)
 end
 ~~~
 
-1. ~~~.jl
+~~~.jl
   output = Set{Symbol}()
 ~~~
-    We have a set of Symbols; those are variables names we've found on the LHS.
+    
+We have a set of Symbols; those are variables names we've found on the LHS.
 
-2. ~~~.jl
+~~~.jl
   for ex in body(e)
     if Base.is_expr(ex,:(=))
       push!(output,ex.args[1])
     end
   end
 ~~~
-    We aren't digging deeper into the expressions, because the code_typed AST is pretty flat; loops and ifs have been converted to flat statements with gotos for control flow. There won't be any assignments hiding inside function calls' arguments. This code while fail if anything more than a symbol is on the left of the equal sign; this misses two specific edge cases --- array accesses (like `a[5]`, which will be represented as a `:ref` expression) and properties (like `a.head`, which will be represented as a `:.` expression). These will still always have the relevant symbol as the first value in their `args`, it might just be buried a bit (as in `a.property.name.head.other_property`). This code doesn’t handle those cases, but a couple lines of code inside the `if` statement could fix that.
+We aren't digging deeper into the expressions, because the code_typed AST is pretty flat; loops and ifs have been converted to flat statements with gotos for control flow. There won't be any assignments hiding inside function calls' arguments. This code will fail if anything more than a symbol is on the left of the equal sign. This misses two specific edge cases: array accesses (like `a[5]`, which will be represented as a `:ref` expression) and properties (like `a.head`, which will be represented as a `:.` expression). These will still always have the relevant symbol as the first value in their `args`, it might just be buried a bit (as in `a.property.name.head.other_property`). This code doesn’t handle those cases, but a couple lines of code inside the `if` statement could fix that.
 
-3. ~~~.jl
+~~~.jl
       push!(output,ex.args[1])
 ~~~
-    When we find a LHS variable usage, we `push!` the variable name into the `Set`. The `Set` will make sure that we only have one copy of each name.
+When we find a LHS variable usage, we `push!` the variable name into the `Set`. The `Set` will make sure that we only have one copy of each name.
 
 #### Finding RHS usages
 
@@ -789,38 +790,38 @@ end
 
 The main structure of this function is a large if-else statement, where each case handles a different head-symbol.
 
-* ~~~.jl
+~~~.jl
   output = Set{Symbol}()
 ~~~
 
-    `output` is the set of variable names, which we will return at the end of the function. Since we only care about the fact that each of these variables has be read at least once, using a `Set` frees us from worrying about the uniqueness of each name.
+`output` is the set of variable names, which we will return at the end of the function. Since we only care about the fact that each of these variables has be read at least once, using a `Set` frees us from worrying about the uniqueness of each name.
 
-* ~~~.jl
+~~~.jl
   if e.head == :lambda
     for ex in body(e)
       union!(output,find_rhs_variables(ex))
     end
 ~~~
 
-    This is the first condition in the if-else statement. A `:lambda` represents the body of a function. We recurse on the body of the definition, which should get all the RHS variable usages in the definition.
+This is the first condition in the if-else statement. A `:lambda` represents the body of a function. We recurse on the body of the definition, which should get all the RHS variable usages in the definition.
 
-* ~~~.jl
+~~~.jl
   elseif e.head == :(=)
     for ex in e.args[2:end]  # skip lhs
       union!(output,find_rhs_variables(ex))
     end
 ~~~
 
-    If the head is `:(=)`, then the expression is an assignment. We skip the first element of `args` because that's the variable being assigned to. For each of the remaining expressions, we recursively find the RHS variables and add them to our set.
+If the head is `:(=)`, then the expression is an assignment. We skip the first element of `args` because that's the variable being assigned to. For each of the remaining expressions, we recursively find the RHS variables and add them to our set.
 
-* ~~~.jl
+~~~.jl
   elseif e.head == :return
     output = find_rhs_variables(e.args[1])
 ~~~
 
-    If this is a return statement, then the first element of `args` is the expression whose value is returned; we'll add any variables in their into our set.
+If this is a return statement, then the first element of `args` is the expression whose value is returned; we'll add any variables in there into our set.
 
-* ~~~.jl
+~~~.jl
   elseif e.head == :call
     # skip function name
     for ex in e.args[2:end]
@@ -828,17 +829,17 @@ The main structure of this function is a large if-else statement, where each cas
     end
 ~~~
 
-    For function calls, we want to get all variables used in all the arguments to the call. We skip the function name, which is the first element of `args`.
+For function calls, we want to get all variables used in all the arguments to the call. We skip the function name, which is the first element of `args`.
 
-* ~~~.jl
+~~~.jl
   elseif e.head == :if
    for ex in e.args # want to check condition, too
      union!(output,find_rhs_variables(ex))
    end
 ~~~
-    An `Expr` representing an if-statement has the `head` value `:if`. We want to get variable usages from all the expressions in the body of the if-statement, so we recurse on each element of `args`.
+An `Expr` representing an if statement has the `head` value `:if`. We want to get variable usages from all the expressions in the body of the if statement, so we recurse on each element of `args`.
 
-* ~~~.jl
+~~~.jl
   elseif e.head == :(::)
     output = find_rhs_variables(e.args[1])
   end
@@ -846,11 +847,11 @@ The main structure of this function is a large if-else statement, where each cas
 
 The `:(::)` operator is used to add type annotations. The first argument is the expression or variable being annotated; we check for variable usages in the annotated expression.
 
-* ~~~.jl
+~~~.jl
   return output
 ~~~
 
-   At the end of the function, we return the set of RHS variable usages.
+At the end of the function, we return the set of RHS variable usages.
 
 
 There's a little more code that simplifies the method above. Because the version above only handles `Expr`s, but some of the values that get passed recursively may not be `Expr`s, we need a few more methods to handle the other possible types appropriately.
@@ -886,9 +887,9 @@ We’ve done two static analyses of Julia code --- one based on types and one ba
 
 Statically-typed languages already do the kind of work our type-based analysis did; additional type-based static analysis is mostly useful in dynamically typed languages. There have been (mostly research) projects to build static type inference systems for languages including Python, Ruby, and Lisp. These systems are usually built around optional type annotations; you can have static types when you want them, and fall back to dynamic typing when you don’t. This is especially helpful for integrating some static typing into existing code bases.
 
-Non-typed-based checks, like our variable-usage one, are applicable to both dynamically- and statically-typed languages. However, many statically-typed languages, like C++ and Java, require you to declare variables and already give basic warnings like the ones we created. There are still custom checks that can be written. For example, checks that are specific to your project’s style guide or extra safety precautions based on security policies.
+Non-typed-based checks, like our variable-usage one, are applicable to both dynamically and statically typed languages. However, many statically typed languages, like C++ and Java, require you to declare variables and already give basic warnings like the ones we created. There are still custom checks that can be written, for example, checks that are specific to your project’s style guide or extra safety precautions based on security policies.
 
-While Julia does have great tools for enabling static analysis, it’s not alone. Lisp, of course, is famous for having the code be a data structure of nested lists, so it tends to be easy to get at the AST. Java also exposes it’s AST, although the AST is much more complicated than Lisp’s. Some languages or language tool-chains are not designed to allow mere users to poke around at internal representations. For open-source tool chains (especially well-commented ones), one option is to add the hooks you want to pull out the AST.
+While Julia does have great tools for enabling static analysis, it’s not alone. Lisp, of course, is famous for having the code be a data structure of nested lists, so it tends to be easy to get at the AST. Java also exposes its AST, although the AST is much more complicated than Lisp’s. Some languages or language tool-chains are not designed to allow mere users to poke around at internal representations. For open-source tool chains (especially well-commented ones), one option is to add the hooks you want to pull out the AST.
 
 In cases where that won’t work, the final fall-back is writing a parser yourself; this is to be avoided when possible. It’s a lot of work to cover the full grammar of most programming languages, and you’ll have to update it yourself as new features are added to the language (rather than getting the updates automatically from upstream). Depending on the checks you want to do, you may be able to get away with parsing only some lines or a subset of language features, which would greatly decrease the cost of writing your own parser.
 
