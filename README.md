@@ -138,7 +138,7 @@ Contributors
   </tr>
   <tr>
     <td>Taavi Burns</td>
-    <td>Formerly Points.com, now PagerDuty</td>
+    <td>Previously at Points, now at PagerDuty</td>
     <td>data-store</td>
     <td>
         <ul>
