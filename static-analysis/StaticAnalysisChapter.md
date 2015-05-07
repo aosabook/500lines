@@ -29,7 +29,7 @@ We're going to work through these steps for each of the individual checks implem
 
 ## A Very Brief Introduction to Julia
 
-Julia is a young language aimed at technical computing. It was released at version 0.1 in the Spring of 2012; as of the start of 2015, it has reached version 0.3. In general, Julia looks a lot like Python, but with some optional type annotations and without any object-oriented stuff. The feature that most programmers will find novel in Julia is multiple dispatch, which has a pervasive impact on both API design and on other design choices in the language.
+Julia is a young language aimed at technical computing. It was released at version 0.1 in the spring of 2012; as of the start of 2015, it has reached version 0.3. In general, Julia looks a lot like Python, but with some optional type annotations and without any object-oriented stuff. The feature that most programmers will find novel in Julia is multiple dispatch, which has a pervasive impact on both API design and on other design choices in the language.
 
 Here is a snippet of Julia code:
 
@@ -60,13 +60,13 @@ increment(5) # => 6
 increment(5,4) # => 9
 ~~~
 
-Now the function `increment` has two methods. Julia decides which method to run for a given call based on the number and types of the arguments; this is called dynamic multiple dispatch.
+Now the function `increment` has two methods. Julia decides which method to run for a given call based on the number and types of the arguments; this is called *dynamic multiple dispatch*:
 
-* *dynamic* because it's based on the types of the values used at run-time
-* *multiple* because it looks at the types and order of all the arguments.
-* *dispatch* because this is a way of matching function calls to method definitions.
+* **Dynamic** because it's based on the types of the values used at runtime.
+* **Multiple** because it looks at the types and order of all the arguments.
+* **Dispatch** because this is a way of matching function calls to method definitions.
 
-To put this in context with languages you may already know, object-oriented languages use single dispatch because they only consider the first argument (In `x.foo(y)`, the first argument is `x`).
+To put this in the context of languages you may already know, object-oriented languages use single dispatch because they only consider the first argument. (In `x.foo(y)`, the first argument is `x`.)
 
 Both single and multiple dispatch are based on the types of the arguments. The `x::Int64` above is a type annotation purely for dispatch. In Julia's dynamic type system, you could assign a value of any type to `x` during the function without an error.
 
@@ -74,9 +74,9 @@ We haven't really seen the "multiple" part yet, but if you're curious about Juli
 
 ## Checking the Types of Variables in Loops
 
-As in most programming languages, writing very fast code in Julia involves an understanding of how the computer works and how Julia works. An important part of helping the compiler create fast code for you is writing type-stable code; this is important in Julia and Javascript, and is also helpful in other JIT’d languages. When the compiler can see that a variable in a section of code will always contain the same specific type, the compiler can do more optimizations than if it believes (correctly or not) that there are multiple possible types for that variable. You can read more about why type stability (also called “monomorphism”) is important for Javascript [online](http://mrale.ph/blog/2015/01/11/whats-up-with-monomorphism.html).
+As in most programming languages, writing very fast code in Julia involves an understanding of how the computer works and how Julia works. An important part of helping the compiler create fast code for you is writing type-stable code; this is important in Julia and JavaScript, and is also helpful in other JIT’d languages. When the compiler can see that a variable in a section of code will always contain the same specific type, the compiler can do more optimizations than if it believes (correctly or not) that there are multiple possible types for that variable. You can read more about why type stability (also called “monomorphism”) is important for JavaScript [online](http://mrale.ph/blog/2015/01/11/whats-up-with-monomorphism.html).
 
-### Why This is Important
+### Why This Is Important
 
 Let's write a function that takes an `Int64` and increases it by some amount. If the number is small (less than 10), let's increase it by a big number (50), but if it's big, let's only increase it by a little (0.5).
 
@@ -91,13 +91,13 @@ function increment(x::Int64)
 end
 ~~~
 
-This function looks pretty straight-forward, but the type of `x` is unstable. I selected two numbers: 50, an `Int64`, and 0.5, a `Float64`. Depending on the value of `x`, it might be added to either one of them. If you add an `Int64`, like `22`, to `0.5`, which is a `Float64`, then you'll get a `Float64` (`22.5`). Because the type of a variable in the function (`x`) could change depending on the value of the arguments to the function (`x`), this method of `increment` and specifically the variable `x` are type unstable.
+This function looks pretty straightforward, but the type of `x` is unstable. I selected two numbers: 50, an `Int64`, and 0.5, a `Float64`. Depending on the value of `x`, it might be added to either one of them. If you add an `Int64` like 22, to a `Float64` like 0.5, you'll get a `Float64` (22.5). Because the type of variable in the function (`x`) could change depending on the value of the arguments to the function (`x`), this method of `increment` and specifically the variable `x` are type-unstable.
 
 `Float64` is a type that represents floating-point values stored in 64 bits; in C, it is called a `double`. This is one of the floating-point types that 64-bit processors understand.
 
 As with most efficiency problems, this issue is more pronounced when it happens during loops. Code inside for loops and while loops is run many, many times, so making it fast is more important than speeding up code that is only run once or twice. Therefore, our first check is to look for variables that have unstable types inside loops.
 
-First, let's look at an example of what we want to catch. We'll be looking at two functions. Each of them sums the numbers 1 to 100, but instead of summing the whole numbers, they divide each one by 2 before summing it. Both functions will get the same answer (`2525.0`); both will return the same type (`Float64`). However, the first function, `unstable`, suffers from type-instability, while the second one, `stable`, does not.
+First, let's look at an example of what we want to catch. We'll be looking at two functions. Each of them sums the numbers 1 to 100, but instead of summing the whole numbers, they divide each one by 2 before summing it. Both functions will get the same answer (2525.0); both will return the same type (`Float64`). However, the first function, `unstable`, suffers from type-instability, while the second one, `stable`, does not.
 
 ~~~jl
 function unstable()
@@ -119,7 +119,7 @@ function stable()
 end
 ~~~
 
-The only textual difference between the two functions is in the initialization of `sum`: `sum = 0` versus `sum = 0.0`. In Julia, `0` is an `Int64` literal and `0.0` is a `Float64` literal. How big of a difference could this tiny change even make?
+The only textual difference between the two functions is in the initialization of `sum`: `sum = 0` versus `sum = 0.0`. In Julia, `0` is an `Int64` literal and `0.0` is a `Float64` literal. How big of a difference could this tiny change make?
 
 Because Julia is Just-In-Time (JIT) compiled, the first run of a function will take longer than subsequent runs. (The first run includes the time it takes to compile the function for these argument types.) When we benchmark functions, we have to be sure to run them once (or precompile them) before timing them.
 
@@ -184,7 +184,7 @@ Using `0` versus `0.0` is an easy mistake to make, especially when you're new to
 
 ### Implementation Details
 
-We'll need to find out which variables are used inside of loops and we'll need to find the types of those variables. After we have those results, we'll need to decide how to print them in a human-readable format.
+We'll need to find out which variables are used inside loops and we'll need to find the types of those variables. After we have those results, we'll need to decide how to print them in a human-readable format.
 
 * How do we find loops?
 * How do we find variables in loops?
@@ -192,9 +192,9 @@ We'll need to find out which variables are used inside of loops and we'll need t
 * How do we print the results?
 * How do we tell if the type is unstable?
 
-I'm going to tackle the last question first, since this whole endeavour hinges on it. We've looked at an unstable function and seen as programmers how to identify an unstable variable, but we need our program to find them. This sounds like it would require simulating the function to look for variables whose values might change; this sounds like it would take some work. Luckily for us, Julia's type inference already traces through the function's execution to determine the types.
+I'm going to tackle the last question first, since this whole endeavour hinges on it. We've looked at an unstable function and seen, as programmers, how to identify an unstable variable, but we need our program to find them. This sounds like it would require simulating the function to look for variables whose values might change --- which sounds like it would take some work. Luckily for us, Julia's type inference already traces through the function's execution to determine the types.
 
-The type of `sum` in `unstable` is `Union(Float64,Int64)`. This is a `UnionType`, a special kind of type that indicates the variable may hold any of a set of types of values. A variable of type `Union(Float64,Int64)` can hold values of type `Int64` or `Float64`; a value can only have one of those types. A `UnionType` joins any number of types (e.g., `UnionType(Float64, Int64, Int32)` joins three types). The specific thing that we're going to look for is `UnionType`d variables inside loops.
+The type of `sum` in `unstable` is `Union(Float64,Int64)`. This is a `UnionType`, a special kind of type that indicates that the variable may hold any of a set of types of values. A variable of type `Union(Float64,Int64)` can hold values of type `Int64` or `Float64`; a value can only have one of those types. A `UnionType` joins any number of types (e.g., `UnionType(Float64, Int64, Int32)` joins three types). The specific thing that we're going to look for is `UnionType`d variables inside loops.
 
 Parsing code into a representative structure is a complicated business, and gets more complicated as the language grows. In this chapter, we'll be depending on internal data structures used by the compiler. This means that we don't have to worry about reading files or parsing them, but it does mean we have to work with data structures that are not in our control and that sometimes feel clumsy or ugly.
 
@@ -217,7 +217,7 @@ end
 code_typed(foo,(Int64,Int64))
 ~~~
 
-This is the structure that code_typed_ would return:
+This is the structure that `code_typed_` would return:
 ~~~
 1-element Array{Any,1}:
  :($(Expr(:lambda, {:x,:y}, {{:z},{{:x,Int64,0},{:y,Int64,0},{:z,Int64,18}},{}}, :(begin  # none, line 2:
@@ -269,6 +269,8 @@ julia> e.args
         return (top(box))(Int64,(top(mul_int))(2,z::Int64))::Int64
     end::Int64)
 ~~~
+
+XXX STOPPED HERE
 
 We just saw some values printed out, but that doesn't tell us much about what they mean or how they're used.
 
