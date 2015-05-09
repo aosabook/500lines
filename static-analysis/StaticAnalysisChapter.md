@@ -270,8 +270,6 @@ julia> e.args
     end::Int64)
 ~~~
 
-XXX STOPPED HERE
-
 We just saw some values printed out, but that doesn't tell us much about what they mean or how they're used.
 
 * `head` tells us what kind of expression this is; normally, you'd use separate types for this in Julia, but `Expr` is a type that models the structure used in the parser. The parser is written in a dialect of Scheme, which structures everything as nested lists. `head` tells us how the rest of the `Expr` is organized and what kind of expression it represents.
@@ -367,7 +365,7 @@ julia> code_typed(lloop, (Int,))[1].args[3]
     end::Nothing)
 ~~~
 
-You'll notice there's no `for` or `while` loop in the body. As the compiler transforms the code from what we wrote to the binary instructions the CPU understands, features that are useful to humans but that are not understood by the CPU (like loops) are removed. The loop has been rewritten as `label` and `goto` commands. The `goto` has a number in it; each `label` also has a number. The `goto` jumps to the the `label` with the same number.
+You'll notice there's no for or while loop in the body. As the compiler transforms the code from what we wrote to the binary instructions the CPU understands, features that are useful to humans but that are not understood by the CPU (like loops) are removed. The loop has been rewritten as `label` and `goto` commands. The `goto` has a number in it; each `label` also has a number. The `goto` jumps to the the `label` with the same number.
 
 #### Detecting and Extracting Loops
 
@@ -432,7 +430,7 @@ And then:
   lines = {}
 ~~~
 
-`loops` is an `Array` of label line numbers where `goto`s that are loops occur. `nesting` indicates the number of loops we are currently inside. `lines` is an `Array` of (index, `Expr`) tuples. 
+`loops` is an `Array` of label line numbers where gotos that are loops occur. `nesting` indicates the number of loops we are currently inside. `lines` is an `Array` of (index, `Expr`) tuples. 
 
 
 ~~~.jl
@@ -449,7 +447,7 @@ And then:
     end
 ~~~
 
-We look at each expression in the body of `e`. If it is a label, we check to see if there is a `goto` that jumps to this label (and occurs after the current index). If the result of `findnext` is greater than zero, then such a goto node exists, so we'll add that to `loops` (the `Array` of loops we are currently in) and increment our `nesting` level.
+We look at each expression in the body of `e`. If it is a label, we check to see if there is a goto that jumps to this label (and occurs after the current index). If the result of `findnext` is greater than zero, then such a goto node exists, so we'll add that to `loops` (the `Array` of loops we are currently in) and increment our `nesting` level.
 
 ~~~.jl
     if nesting > 0
@@ -600,7 +598,7 @@ First, I made some new types. `LoopResults` is the result of checking a whole fu
 
 The `checklooptypes` function returns a `LoopResults`. This type has a function called `show` defined for it. The REPL calls `display` on values it wants to display; `display` will then call our `show` implementation.
 
-This code is important for making this static analysis usable, but it is not doing static analysis. You should use the preferred method for pretty-printing types/output in your implementation language; this is just how it's done in Julia.
+This code is important for making this static analysis usable, but it is not doing static analysis. You should use the preferred method for pretty-printing types and output in your implementation language; this is just how it's done in Julia.
 
 ~~~.jl
 type LoopResult
@@ -740,7 +738,7 @@ We have a set of Symbols; those are variables names we've found on the LHS.
     end
   end
 ~~~
-We aren't digging deeper into the expressions, because the code_typed AST is pretty flat; loops and ifs have been converted to flat statements with gotos for control flow. There won't be any assignments hiding inside function calls' arguments. This code will fail if anything more than a symbol is on the left of the equal sign. This misses two specific edge cases: array accesses (like `a[5]`, which will be represented as a `:ref` expression) and properties (like `a.head`, which will be represented as a `:.` expression). These will still always have the relevant symbol as the first value in their `args`, it might just be buried a bit (as in `a.property.name.head.other_property`). This code doesn’t handle those cases, but a couple lines of code inside the `if` statement could fix that.
+We aren't digging deeper into the expressions, because the `code_typed` AST is pretty flat; loops and ifs have been converted to flat statements with gotos for control flow. There won't be any assignments hiding inside function calls' arguments. This code will fail if anything more than a symbol is on the left of the equal sign. This misses two specific edge cases: array accesses (like `a[5]`, which will be represented as a `:ref` expression) and properties (like `a.head`, which will be represented as a `:.` expression). These will still always have the relevant symbol as the first value in their `args`, it might just be buried a bit (as in `a.property.name.head.other_property`). This code doesn’t handle those cases, but a couple lines of code inside the `if` statement could fix that.
 
 ~~~.jl
       push!(output,ex.args[1])
@@ -889,10 +887,10 @@ We’ve done two static analyses of Julia code --- one based on types and one ba
 
 Statically-typed languages already do the kind of work our type-based analysis did; additional type-based static analysis is mostly useful in dynamically typed languages. There have been (mostly research) projects to build static type inference systems for languages including Python, Ruby, and Lisp. These systems are usually built around optional type annotations; you can have static types when you want them, and fall back to dynamic typing when you don’t. This is especially helpful for integrating some static typing into existing code bases.
 
-Non-typed-based checks, like our variable-usage one, are applicable to both dynamically and statically typed languages. However, many statically typed languages, like C++ and Java, require you to declare variables and already give basic warnings like the ones we created. There are still custom checks that can be written, for example, checks that are specific to your project’s style guide or extra safety precautions based on security policies.
+Non-typed-based checks, like our variable-usage one, are applicable to both dynamically and statically typed languages. However, many statically typed languages, like C++ and Java, require you to declare variables, and already give basic warnings like the ones we created. There are still custom checks that can be written; for example, checks that are specific to your project’s style guide or extra safety precautions based on security policies.
 
-While Julia does have great tools for enabling static analysis, it’s not alone. Lisp, of course, is famous for having the code be a data structure of nested lists, so it tends to be easy to get at the AST. Java also exposes its AST, although the AST is much more complicated than Lisp’s. Some languages or language tool-chains are not designed to allow mere users to poke around at internal representations. For open-source tool chains (especially well-commented ones), one option is to add the hooks you want to pull out the AST.
+While Julia does have great tools for enabling static analysis, it’s not alone. Lisp, of course, is famous for having the code be a data structure of nested lists, so it tends to be easy to get at the AST. Java also exposes its AST, although the AST is much more complicated than Lisp’s. Some languages or language tool-chains are not designed to allow mere users to poke around at internal representations. For open-source tool chains (especially well-commented ones), one option is to add the hooks you want to pull out to the AST.
 
-In cases where that won’t work, the final fall-back is writing a parser yourself; this is to be avoided when possible. It’s a lot of work to cover the full grammar of most programming languages, and you’ll have to update it yourself as new features are added to the language (rather than getting the updates automatically from upstream). Depending on the checks you want to do, you may be able to get away with parsing only some lines or a subset of language features, which would greatly decrease the cost of writing your own parser.
+In cases where that won’t work, the final fallback is writing a parser yourself; this is to be avoided when possible. It’s a lot of work to cover the full grammar of most programming languages, and you’ll have to update it yourself as new features are added to the language (rather than getting the updates automatically from upstream). Depending on the checks you want to do, you may be able to get away with parsing only some lines or a subset of language features, which would greatly decrease the cost of writing your own parser.
 
 Hopefully, your new understanding of how static analysis tools are written will help you understand the tools you use on your code, and maybe inspire you to write one of your own.
