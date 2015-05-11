@@ -188,7 +188,6 @@ class Task(namedtuple('Task', ('task_function', 'args'))):
     Raises `ValueError` if `args` is not hashable.
 
     """
-
     __slots__ = ()
 
     def __new__(cls, task_function, args):

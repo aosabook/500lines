@@ -1,6 +1,5 @@
 import doctest
 from glob import glob
-import os
 import subprocess
 
 from docutils.core import publish_doctree
@@ -74,9 +73,11 @@ def check_rst_includes(path):
 @task
 def chapter_doctests(path):
     read_text_file(path)
-    results = doctest.testfile(path,
-                               module_relative=False,
-                               optionflags=doctest.ELLIPSIS)
+    doctest.testfile(
+        path,
+        module_relative=False,
+        optionflags=doctest.ELLIPSIS,
+        )
 
     for dot in glob('*.dot'):
         read_text_file.check_invalid(dot)
