@@ -29,8 +29,8 @@ which itself depends upon the corresponding source code::
             cc -C -o main.o main.c
 
 Should ``make`` discover, upon its next invocation,
-that the ``prog.c`` source code file
-now has a more recent modify time than ``prog.o``,
+that the ``main.c`` source code file
+now has a more recent modify time than ``main.o``,
 then it will not only rebuild the ``main.o`` object file
 but will also rebuild ``prog`` itself.
 
@@ -38,9 +38,9 @@ Build systems are a common semester project
 posed for undergraduate computer science students —
 not only because build systems are used in nearly all software projects,
 but because their construction involves fundamental data structures
-and algorithms involving directed graphs,
-which this chapter will later discuss in more detail.
-With decades of use and practice behind them,
+and algorithms involving directed graphs
+(which this chapter will later discuss in more detail).
+With decades of use and practice behind build systems,
 one might expect them to have become completely general-purpose
 and ready for even the most extravagant demands.
 
@@ -52,9 +52,9 @@ to not only rehearse the standard solution
 and data structures used classically to solve the ``make`` problem,
 but to extend that solution dramatically to a far more demanding domain.
 
-The problem, again, is cross references.
-Where do they tend to emerge?
-In the free-form and helter-skelter world of natural language documents!
+The problem, again, is cross-referencing.
+Where do cross-references tend to emerge?
+In text documents, documentation, and printed books!
 
 The Problem: Building Document Systems
 ======================================
@@ -73,7 +73,8 @@ Consider Sphinx 1.2.3, the current version
 of the document builder
 that is used for both the official Python language documentation
 and many other projects in the Python community.
-Your project’s ``index.rst`` will usually include a table of contents::
+A Sphinx project’s ``index.rst``
+will usually include a table of contents::
 
    Table of Contents
    =================
@@ -85,11 +86,12 @@ Your project’s ``index.rst`` will usually include a table of contents::
       api.rst
 
 This list of chapter filenames
-tells Sphinx to include a link to each chapter
+tells Sphinx to include a link to each of the three named chapters
 when it builds the ``index.html`` output file.
 It will also include links to any sections within each chapter.
 Stripped of its markup,
-the text that results from the above ``toctree`` command might be::
+the text that results from the above title
+and ``toctree`` command might be::
 
   Table of Contents
 
@@ -103,7 +105,7 @@ the text that results from the above ``toctree`` command might be::
       • Handy Functions
       • Obscure Classes
 
-This table of contents is a mash-up
+This table of contents, as you can see, is a mash-up
 of information from four different files.
 While its basic order and structure come from ``index.rst``,
 the actual title of each chapter and section
@@ -137,8 +139,8 @@ to repeatedly overwrite a single line with these progress updates.)
    writing output... [ 50%] index
    writing output... [100%] tutorial
 
-Sphinx chose to rebuild both documents.
-Not only will ``tutorial.html`` now feature its new title up at the top,
+Because Sphinx chose to rebuild both documents,
+not only will ``tutorial.html`` now feature its new title up at the top,
 but the output ``index.html`` will display the updated chapter title
 in the table of contents.
 Sphinx has rebuilt everything so that the output is consistent.
@@ -157,7 +159,7 @@ because this minor edit to the interior of a paragraph
 does not change any of the information in the table of contents.
 But it turns out that Sphinx is not quite as clever
 as it might have at first appeared!
-It goes ahead and does the redundant work of rebuilding
+It will go ahead and perform the redundant work of rebuilding
 ``index.html`` even though the resulting contents
 will be exactly the same. ::
 
@@ -177,13 +179,14 @@ when you are making frequent tweaks and edits
 to documents that are long, complex, or that involve the generation
 of multimedia like plots or animations.
 While Sphinx is at least making an effort
-to not rebuild every chapter when you make a single change —
+not to rebuild every chapter when you make a single change —
 it has not, for example, rebuilt ``install.html`` or ``api.html``
 in response to your ``tutorial.rst`` edit —
 it is doing more than is necessary.
 
 But it turns out that Sphinx does something even worse:
-it sometimes does too little.
+it sometimes does too little,
+leaving you with inconsistent output that could be noticed by users.
 
 To see one of Sphinx’s simplest failure modes,
 first add a cross reference to the top of your API documentation::
@@ -261,14 +264,15 @@ its solution is of equally long lineage::
    $ rm -r _build/
    $ make html
 
-You remove all of the output.
+If you remove all of the output,
+you are guaranteed a complete rebuild!
+Some projects even alias ``rm`` ``-r`` a target named ``clean``
+so that only a quick ``make`` ``clean`` is necessary to wipe the slate.
 
 By eliminating every copy of every intermediate or output asset,
-the build is forced to start over again completely
-with nothing cached — with no memory of its earlier states
-that could possibly lead to a stale product.
-A hefty ``rm`` ``-r`` solves the problem
-of guaranteeing consistency before publishing your Sphinx documentation!
+a hefty ``rm`` ``-r`` is able to force the build to start over again
+with nothing cached — with no memory of its earlier state
+that could possibly lead to a stale product!
 
 But could we develop a better approach?
 
@@ -311,10 +315,6 @@ to form a *graph*:
 
    **Figure 1.** Three files generated by parsing three input texts.
 
-.. * Finally, step back: our API only asks that nodes be represented
-..   with hashable types. Discuss that tuples are fine too, not just
-..   strings like we are using in this section.
-
 Each language in which a programmer
 might tackle writing a build system
 will offer various data structures
@@ -322,10 +322,12 @@ with which such a graph of nodes and edges might be represented.
 
 How could we represent such a graph in Python?
 
-The language gives priority to four generic data structures
+The Python language gives priority to four generic data structures
 by giving them direct support in the language syntax.
 You can create new instances of these big-four data structures
-by simply typing their literal representation into your source code.
+by simply typing their literal representation into your source code,
+and their four type objects are available as built-in symbols
+that can be used without being imported.
 
 * The **tuple** is a read-only sequence
   used to hold heterogeneous data —
@@ -342,7 +344,7 @@ by simply typing their literal representation into your source code.
   or can be rearranged or sorted
   to establish a new and more useful order. ::
 
-    ['JavaScript', 'Java', 'PHP', 'Python', 'C#']
+    ['C', 'Awk', 'TCL', 'Python', 'JavaScript']
 
 * The **set** does not preserve order.
   Sets remember only whether a given value has been added,
@@ -385,7 +387,8 @@ While our initial impulse might be
 to simply throw all of our edge tuples into a list,
 that would have disadvantages.
 A list is careful to maintain order,
-but it is not meaningful to talk about the order of separate edges.
+but it is not meaningful to talk about an absolute order
+for the edges in a graph.
 And a list would be perfectly happy to hold several copies
 of exactly the same edge,
 even though we only want it to be possible
@@ -414,19 +417,19 @@ are affected by that change, if any,
 in order to minimize the work performed
 while also ensuring a complete build.
 To answer this question —
-what nodes are downstream from ``api.rst``? —
+“what nodes are downstream from ``api.rst``?” —
 we need to examine the *outgoing* edges from ``api.rst``.
 But building the dependency graph requires that
-Contingent be concerned with a node's *inputs* as well:
-what inputs were used, for example,
+Contingent be concerned with a node's *inputs* as well.
+What inputs were used, for example,
 when the build system assembled the output document ``tutorial.html``?
 It is by watching the input to each node that
 Contingent can know that ``api.html`` depends on ``api.rst`` but
 that ``tutorial.html`` does not.
 As sources change and rebuilds occur,
-Contingent uses the incoming edges of each changed node
-to remove potentially stale edges and relearn which resources
-the build routine uses this time around.
+Contingent rebuilds the incoming edges of each changed node
+to remove potentially stale edges
+and re-learn which resources a task uses this time around.
 
 Our set-of-tuples does not make answering
 either of these questions easy.
@@ -474,7 +477,7 @@ for every one of the edges in which it is involved. ::
         'api.rst': {'api.html'},
         }
 
-Notice that ``outgoing`` represents directly in Python syntax
+Notice that ``outgoing`` represents, directly in Python syntax,
 exactly what we drew in Figure 1 earlier:
 the source documents on the left
 will be transformed by the build system into the
@@ -545,7 +548,7 @@ is not that they change the science of data design.
 The value of classes
 is that they let you *hide* your data design from the rest of a program!
 
-Successful application design, then,
+Successful application design
 hinges upon our ability to exploit
 the powerful built-in data structures Python offers us
 while minimizing the volume of details we are required to
@@ -561,7 +564,7 @@ among several levels of abstraction
 in the course of writing a system,
 now working with the specific data model and implementation details
 for a particular subsystem,
-now connecting higher level concepts through their interfaces.
+now connecting higher-level concepts through their interfaces.
 
 For example, from the outside,
 code can simply ask for a new ``Graph`` instance:
@@ -573,7 +576,7 @@ without needing to understand the details of how ``Graph`` works.
 Code that is simply using the graph
 sees only interface verbs — the method calls —
 when manipulating a graph,
-i.e. each time an edge is added or some other operation performed:
+as when an edge is added or some other operation performed:
 
 >>> g.add_edge('index.rst', 'index.html')
 >>> g.add_edge('tutorial.rst', 'tutorial.html')
@@ -598,20 +601,14 @@ using simple, generic data structures to solve problems,
 instead of creating custom classes for every minute detail
 of the problem we want to tackle.
 This is one facet of the notion of “Pythonic” solutions that you may
-have read about: Pythonic solutions try to
+have read about.
+Pythonic solutions try to
 minimize syntactic overhead
 and leverage Python's powerful built-in tools
 and extensive standard library.
 
-Over the course of the rest of this chapter,
-we will navigate between two viewpoints,
-both examining the exterior facades
-of various classes Contingent defines
-and peeking at the behind-the-scenes view
-of how these classes are built.
-
 With these considerations in mind,
-lets return to the ``Graph`` class,
+let’s return to the ``Graph`` class,
 examining its design and implmentation to see
 the interplay between data structures and class interfaces.
 When a new ``Graph`` instance is constructed,
@@ -634,7 +631,7 @@ is a common convention in the Python community
 to signal that an attribute is private.
 This convention is one way the community suggests
 that programmers pass messages and warnings
-through spacetime to each other.
+through space and time to each other.
 Recognizing the need to signal differences among
 public versus internal object attributes,
 the community adopted the single leading underscore
@@ -656,9 +653,6 @@ Traceback (most recent call last):
      ...
 KeyError: 'index.rst'
 
-But for our dict-of-sets data structures,
-we actually want missing keys to be represented
-with an empty set.
 Using a normal dict requires special checks throughout the code
 to handle this specific case, for example when adding a new edge:
 
@@ -706,14 +700,14 @@ And notice how ``add_edge()`` does not know or care
 whether either node has been seen before.
 Because the inputs and consequences data structures
 are each a ``defaultdict(set)``,
-``add_edge()`` remains blissfully ignorant
-as to the novelty of a node,
-while ``defaultdict`` takes care of the difference
-by creating new ``set`` objects on the fly as needed.
+the ``add_edge()`` method remains blissfully ignorant
+as to the novelty of a node —
+the ``defaultdict`` takes care of the difference
+by creating a new ``set`` object on the fly.
 As we saw above, ``add_edge()`` would be
 three times longer had we not used ``defaultdict``.
-More importantly, it would be much more difficult
-to read its purpose and behavior from the resulting code.
+More importantly, it would be more difficult
+to understand and reason about the resulting code.
 This implementation demonstrates a Pythonic
 approach to problems: simple, direct, and concise.
 
@@ -728,7 +722,7 @@ without having to learn how to traverse our data structure:
 The ``Graph.sorted()`` method, if you want to examine it later,
 makes an attempt to sort the nodes
 in case they have a natural sort order
-(alphabetical, in this case)
+(such as alphabetical)
 that can provide a stable output order for the user.
 
 By using this traversal method we can see that,
@@ -822,12 +816,13 @@ Our intuitive notion of these ideas
 served when we were constructing consequences graphs by hand,
 but unfortunately computers are not terribly intuitive,
 so we will need to be more precise about what we want.
+
 What are the steps required to produce output from sources?
 How are these steps defined and executed?
 And how can Contingent know the connections between them?
 
 In Contingent, build tasks are modeled as functions plus arguments.
-The functions define actions that the particular project
+The functions define actions that a particular project
 understands how to perform.
 The arguments provide
 the specifics: *which* source document should be read,
@@ -836,7 +831,7 @@ As they are running,
 these functions may in turn invoke *other* task functions,
 passing whatever arguments they need answers for.
 
-To see how this works we will actually now implement
+To see how this works, we will actually now implement
 the documentation builder described at the beginning of the chapter.
 In order to prevent ourselves from wallowing around in a bog of details,
 for this illustration we will work with
@@ -910,7 +905,8 @@ might involve a few basic tasks.
   all it needs to do is convert from a filename
   to the corresponding text.
 
-    >>> filesystem = {'index.txt': index, 'tutorial.txt': tutorial,
+    >>> filesystem = {'index.txt': index,
+    ...               'tutorial.txt': tutorial,
     ...               'api.txt': api}
     ...
     >>> @task
@@ -944,7 +940,7 @@ might involve a few basic tasks.
   the rest of the system can work with.
 
   Notice the connection point between
-  ``parse()`` and ``read()``:
+  ``parse()`` and ``read()`` —
   the first task in parsing is to pass the filename it has been given
   to ``read()``, which finds and returns the contents of that file.
 
@@ -1049,11 +1045,11 @@ Contingent can assume that it has been called —
 and that its output will be used —
 by the task currently at the top of the stack.
 Maintaining the stack will require that several extra steps
-surround the invocation of a task T:
+surround the invocation of a task \ *T*:
 
-1. Push T onto the stack.
-2. Execute T, letting it call any other tasks it needs.
-3. Pop T off the stack.
+1. Push *T* onto the stack.
+2. Execute *T*, letting it call any other tasks it needs.
+3. Pop *T* off the stack.
 4. Return its result.
 
 To intercept task calls,
@@ -1062,11 +1058,11 @@ A decorator is allowed to process or transform a function
 at the moment that it is being defined.
 The ``Project.task`` decorator uses this opportunity
 to package every task inside another function, a *wrapper*,
-allowing a clean separation of responsibilities.
-The wrapper worries about graph and stack management —
-the details of which are entirely hidden from the task function  —
-while each task function can focus on
-the work needed to be done to perform the task.
+which allows a clean separation of responsibilities
+between the wrapper —
+which will worry about graph and stack management
+on behalf of the Project —
+and our task functions that focus on document processing.
 Here is what the ``task`` decorator boilerplate looks like:
 
 .. code-block:: python
@@ -1139,13 +1135,13 @@ This wrapper performs several crucial maintenance steps:
    for the ``title_of()`` the Tutorial document.
 
 4. Push this task onto the top of the task stack
-   in case it should, in its turn, invoke further tasks
+   in case it decides, in its turn, to invoke further tasks
    in the course of doing its work.
 
 5. Invoke the task
    inside of a ``try...finally`` block
    that ensures we correctly remove the finished task from the stack
-   even if a task dies by raising an exception.
+   even if it dies by raising an exception.
 
 6. Return the task’s return value,
    so that callers of this wrapper
@@ -1269,7 +1265,10 @@ and we need to figure out what consequences lie downstream.
 The process of compiling consequences is a recursive one,
 as each consequence can itself have further tasks that depended on it.
 We could perform this recursion manually
-through repeated calls to the graph:
+through repeated calls to the graph
+(note that we are here taking advantage
+of the fact that the Python prompt saves the last value displayed
+under the name ``_`` for use in the subsequent expression):
 
 >>> task = Task(read, ('api.txt',))
 >>> project._graph.immediate_consequences_of(task)
@@ -1286,36 +1285,40 @@ through repeated calls to the graph:
 >>> project._graph.immediate_consequences_of(t4)
 []
 
-Note that we are here taking advantage
-of the fact that the Python prompt saves the last value displayed
-under the name ``_`` for use in the subsequent expression.
-
 This recursive task of looking repeatedly for immediate consequences
 and only stopping when we arrive at tasks with no further consequences
 is a basic enough graph operation that it is supported directly
 by a method on the ``Graph`` class:
 
->>> project._graph.recursive_consequences_of([task])
-[parse('api.txt'), render('api.txt'), title_of('api.txt'), render('index.txt')]
+.. Secretly adjust pprint to a narrower-than-usual width:
+
+    >>> _pprint = pprint
+    >>> pprint = lambda x: _pprint(x, width=40)
+
+>>> pprint(project._graph.recursive_consequences_of([task]))
+[parse('api.txt'),
+ render('api.txt'),
+ title_of('api.txt'),
+ render('index.txt')]
 
 In fact, ``recursive_consequences_of()`` tries to be a bit clever.
 If a particular task appears repeatedly as a downstream consequence
 of several other tasks,
-then it is careful to only mention it only once in the output list
-while moving it close to the end
+then it is careful to only mention it once in the output list,
+and to move it close to the end
 so that it appears only after the tasks that are its inputs.
 This intelligence is powered by the classic depth-first implementation
 of a topological sort,
 an algorithm which winds up being fairly easy to write in Python
 through a hidden a recursive helper function.
-Check out the ``graphlib.py`` source code for the details
-if graph algorithms interest you!
+Check out the ``graphlib.py`` source code for the details.
 
 If upon detecting a change
 we are careful to re-run every task in the recursive consequences,
 then Contingent will be able to avoid rebuilding too little.
 Our second challenge, however,
 was to avoid rebuilding too much.
+Refer again to Figure 4.
 We want to avoid rebuilding all three documents
 every time that ``tutorial.txt`` is changed,
 since most edits will probably not affect its title but only its body.
@@ -1353,14 +1356,18 @@ During each loop, it should:
   of not only the ``_todo`` tasks themselves,
   but also every task downstream of them —
   every task, in other words, that could possibly need re-execution
-  even if every single task that we re-execute
-  turns out to have changed its output value to something new.
+  if the outputs come out different this time.
 
-* Loop over the tasks in the resulting list.
+* For each task in the list,
+  check whether it is listed in ``_todo``.
+  If not, then we can skip running it,
+  because none of the tasks that we have re-invoked upstream of it
+  has produced a new return value
+  that would require the task’s recomputation.
 
-* Call each task in the recursive consequences
-  that is also listed in ``_todo``,
-  to force it to re-compute its return value.
+* But for any task that is indeed listed in ``_todo``
+  by the time we reach it,
+  we need to ask it to re-run and re-compute its return value.
   If the task wrapper function detects that this return value
   does not match the old cached value,
   then its downstream tasks will be automatically added to ``_todo``
@@ -1374,11 +1381,10 @@ and try again if it is not yet empty.
 Even for very rapidly changing dependency trees,
 this should quickly settle out.
 Only a cycle —
-where, for example, task A needs the output of task B
-which itself needs the output of task A,
-and the outputs of A and B never stabilize
-and remove them from ``_todo`` —
-could keep the builder in an infinite loop.
+where, for example, task *A* needs the output of task *B*
+which itself needs the output of task *A* —
+could keep the builder in an infinite loop,
+and only if their return values never stabilize.
 Fortunately, real-world build tasks are typically without cycles.
 
 Let us trace the behavior of this system through an example.
@@ -1395,13 +1401,20 @@ in our ``filesystem`` dict:
 ... introductory paragraph.
 ... """
 
-Since the contents have changed,
-we need to tell the Project that the task needs to be re-run:
+Now that the contents have changed,
+we can ask the Project to re-run the ``read()`` task
+by using its ``cache_off()`` context manager
+that temporarily disables its willingness
+to return its old cached result for a given task and argument:
 
->>> task = Task(read, ('tutorial.txt',))
->>> project.invalidate(task)
+>>> with project.cache_off():
+...     read('tutorial.txt')
 
-The ``Project`` class supports a simple tracing facility
+The new tutorial text has now been read into the cache.
+How many downstream tasks will need to be re-executed?
+
+To help us answer this question,
+the ``Project`` class supports a simple tracing facility
 that will tell us which tasks are executed in the course
 of a rebuild.
 Since the above change to ``tutorial.txt``
@@ -1411,7 +1424,6 @@ everything downstream will need to be re-computed:
 >>> project.start_tracing()
 >>> project.rebuild()
 >>> print(project.stop_tracing())
-calling read('tutorial.txt')
 calling parse('tutorial.txt')
 calling render('tutorial.txt')
 calling title_of('tutorial.txt')
@@ -1432,7 +1444,8 @@ but this time leave the title the same?
 ... Welcome to the coder tutorial!
 ... It should be read top to bottom.
 ... """
->>> project.invalidate(task)
+>>> with project.cache_off():
+...     read('tutorial.txt')
 
 This small, limited change
 should have no effect on the other documents.
