@@ -18,7 +18,7 @@ def as_graphviz(graph):
     def node(task):
         return '"{}"'.format(task)
 
-    append('node [shape=rect penwidth=2 color="#DAB21D"')
+    append('node [fontname=Arial shape=rect penwidth=2 color="#DAB21D"')
     append('      style=filled fillcolor="#F4E5AD"]')
 
     append('{rank=same')

@@ -1,6 +1,6 @@
 digraph {
 graph [rankdir=LR];
-node [shape=rect penwidth=2 color="#DAB21D"
+node [fontname=Arial shape=rect penwidth=2 color="#DAB21D"
       style=filled fillcolor="#F4E5AD"]
 {rank=same
 "api.rst"
