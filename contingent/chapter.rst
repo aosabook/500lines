@@ -10,6 +10,55 @@
  Contingent: A Fully Dynamic Build System
 ==========================================
 
+Build systems have long been a standard tool
+within computer programming.
+
+The standard ``make`` build system,
+for which its author won the ACM Software System Award,
+was first developed in 1976.
+It not only lets you declare
+that an output file depends upon one (or more) inputs,
+but lets you do this recursively.
+A program, for example, might depend upon an object file
+which itself depends upon the corresponding source code::
+
+    prog: main.o
+            cc -o prog main.o
+
+    main.o: main.c
+            cc -C -o main.o main.c
+
+Should ``make`` discover, upon its next invocation,
+that the ``prog.c`` source code file
+now has a more recent modify time than ``prog.o``,
+then it will not only rebuild the ``main.o`` object file
+but will also rebuild ``prog`` itself.
+
+Build systems are a common semester project
+posed for undergraduate computer science students —
+not only because build systems are used in nearly all software projects,
+but because their construction involves fundamental data structures
+and algorithms involving directed graphs,
+which this chapter will later discuss in more detail.
+With decades of use and practice behind them,
+one might expect them to have become completely general-purpose
+and ready for even the most extravagant demands.
+
+But, in fact, one kind of common interaction between build artifacts —
+the problem of dynamic cross-referencing —
+is handled so poorly by most build systems
+that in this chapter we are inspired
+to not only rehearse the standard solution
+and data structures used classically to solve the ``make`` problem,
+but to extend that solution dramatically to a far more demanding domain.
+
+The problem, again, is cross references.
+Where do they tend to emerge?
+In the free-form and helter-skelter world of natural language documents!
+
+The Problem: Building Document Systems
+======================================
+
 Systems to rebuild formatted documents from source texts
 always seem to do too much work, or too little.
 
