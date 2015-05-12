@@ -1,6 +1,7 @@
 """Provide a Project of related tasks that can be rebuilt when inputs change.
 
 """
+from contextlib import contextmanager
 from collections import namedtuple
 from functools import wraps
 from .graphlib import Graph
@@ -14,6 +15,7 @@ class Project:
         self._graph = Graph()
         self._graph.sort_key = task_key
         self._cache = {}
+        self._cache_on = True
         self._task_stack = []
         self._todo = set()
         self._trace = None
@@ -47,9 +49,6 @@ class Project:
         """Add a task to the currently running task trace."""
         tup = (len(self._task_stack), return_value is _unavailable, task)
         self._trace.append(tup)
-        if len(self._trace) > 30:
-            print(self.stop_output())
-            raise RuntimeError()
 
     def task(self, task_function):
         """Decorate a function that defines one of the tasks for this project.
@@ -72,14 +71,7 @@ class Project:
         sure that if `task_function` invokes any further tasks, we can
         remember that it used their return values and that it will need
         to be re-invoked again in the future if any of those other tasks
-        change their return value.
-
-        The wrapper also includes a convenience function,
-        `check_invalid`, that invokes the `task_function` and updates
-        the value in the cache if the cache and the current value do not
-        match. If the cached value is determined to be invalid, the
-        consequences of the task are added to the to-do list for
-        reevaluation.
+        changes its return value.
 
         """
         @wraps(task_function)
@@ -104,13 +96,6 @@ class Project:
 
             return return_value
 
-        def check_invalid(*args):
-            task = Task(wrapper, args)
-            current_value = task_function(*args)
-            self.set(task, current_value)
-
-        wrapper.check_invalid = check_invalid
-
         return wrapper
 
     def _get_from_cache(self, task):
@@ -120,9 +105,30 @@ class Project:
         returns the singleton `_unavailable` instead.
 
         """
+        if not self._cache_on:
+            return _unavailable
         if task in self._todo:
             return _unavailable
         return self._cache.get(task, _unavailable)
+
+    @contextmanager
+    def cache_off(self):
+        """Context manager that forces tasks to really be invoked.
+
+        Even if the project has already cached the output of a
+        particular task, re-running the task inside of this context
+        manager will make the project re-invoke the task::
+
+            with project.cache_off():
+                my_task()
+
+        """
+        original_value = self._cache_on
+        self._cache_on = False
+        try:
+            yield
+        finally:
+            self._cache_on = original_value
 
     def set(self, task, return_value):
         """Add the `return_value` of `task` to our cache of return values.

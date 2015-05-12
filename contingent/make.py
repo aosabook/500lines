@@ -79,8 +79,9 @@ def chapter_doctests(path):
         optionflags=doctest.ELLIPSIS,
         )
 
-    for dot in glob('*.dot'):
-        read_text_file.check_invalid(dot)
+    with project.cache_off():
+        for dot in glob('*.dot'):
+            read_text_file(dot)
 
 
 @task
@@ -90,6 +91,7 @@ def render(path):
         png = path[:-3] + 'png'
         subprocess.call(['dot', '-Tpng', '-o', png, path])
     elif path.endswith('.rst'):
+        read_text_file(path)
         chapter_doctests(path)
         check_rst_includes(path)
         subprocess.call(['rst2html.py', 'chapter.rst', 'chapter.html'])
@@ -115,8 +117,9 @@ def main():
         changed_paths = looping_wait_on(get_paths())
         print('=' * 72)
         print('Reloading:', ' '.join(changed_paths))
-        for path in changed_paths:
-            read_text_file.check_invalid(path)
+        with project.cache_off():
+            for path in changed_paths:
+                read_text_file(path)
         project.start_tracing()
         project.rebuild()
         print(project.stop_tracing(True))

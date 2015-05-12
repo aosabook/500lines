@@ -1,4 +1,4 @@
-"""Render a directory of blog posts as HTML."""
+"""Render a directory of cross-referenced blog posts as HTML."""
 
 import os
 import re
@@ -113,8 +113,9 @@ def main():
         changed_paths = looping_wait_on(paths)
         print('=' * 72)
         print('Reloading:', ' '.join(changed_paths))
-        for path in changed_paths:
-            read_text_file.check_invalid(path)
+        with project.cache_off():
+            for path in changed_paths:
+                read_text_file(path)
         project.rebuild()
 
 if __name__ == '__main__':
