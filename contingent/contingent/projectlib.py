@@ -15,7 +15,7 @@ class Project:
         self._graph.sort_key = task_key
         self._cache = {}
         self._task_stack = []
-        self._todo_list = set()
+        self._todo = set()
         self._trace = None
 
     def start_tracing(self):
@@ -120,7 +120,7 @@ class Project:
         returns the singleton `_unavailable` instead.
 
         """
-        if task in self._todo_list:
+        if task in self._todo:
             return _unavailable
         return self._cache.get(task, _unavailable)
 
@@ -133,10 +133,10 @@ class Project:
         must be added to the to-do list for re-computation.
 
         """
-        self._todo_list.discard(task)
+        self._todo.discard(task)
         if (task not in self._cache) or (self._cache[task] != return_value):
             self._cache[task] = return_value
-            self._todo_list.update(self._graph.immediate_consequences_of(task))
+            self._todo.update(self._graph.immediate_consequences_of(task))
 
     def invalidate(self, task):
         """Mark `task` as requiring recomputation on the next `rebuild()`.
@@ -149,7 +149,7 @@ class Project:
         and let `rebuild()` itself call it when it next runs.
 
         """
-        self._todo_list.add(task)
+        self._todo.add(task)
 
     def rebuild(self):
         """Repeatedly rebuild every out-of-date task until all are current.
@@ -166,8 +166,8 @@ class Project:
         return.
 
         """
-        while self._todo_list:
-            tasks = self._graph.recursive_consequences_of(self._todo_list, True)
+        while self._todo:
+            tasks = self._graph.recursive_consequences_of(self._todo, True)
             for function, args in tasks:
                 function(*args)
 

@@ -266,12 +266,17 @@ to form a *graph*:
 ..   with hashable types. Discuss that tuples are fine too, not just
 ..   strings like we are using in this section.
 
+Each language in which a programmer
+might tackle writing a build system
+will offer various data structures
+with which such a graph of nodes and edges might be represented.
+
 How could we represent such a graph in Python?
 
 The language gives priority to four generic data structures
 by giving them direct support in the language syntax.
-You can create new instances of the big-four data structures
-by simply typing them into your source code.
+You can create new instances of these big-four data structures
+by simply typing their literal representation into your source code.
 
 * The **tuple** is a read-only sequence
   used to hold heterogeneous data —
@@ -907,16 +912,16 @@ might involve a few basic tasks.
 
   This task nicely illustrates the
   separation of responsibilities between
-  the parts of a document processing system:
-  ``title_of()`` works from an in-memory representation of a document,
-  in this case a tuple,
-  rather than *itself* having to sift the chaos of bits
-  in the input file looking for a document title.
-  Its job is to produce the in-memory representation,
+  the parts of a document processing system.
+  The ``title_of()`` function works directly
+  from an in-memory representation of a document —
+  in this case, a tuple —
+  instead of taking it upon itself to re-parse
+  the entire document again just to find the title.
+  The ``parse()`` function alone produces the in-memory representation,
   in accordance with the contract of the system specification,
-  that the rest of the blog builder processing functions
-  like ``title_of()``
-  will expect to be able to use.
+  and the rest of the blog builder processing functions
+  like ``title_of()`` simply use its output as their authority.
 
   If you are coming from an orthodox object-oriented tradition,
   this function-oriented design may look a little weird.
@@ -1048,19 +1053,23 @@ runs something like this:
 
 .. code-block:: python
 
-    task = Task(wrapper, args)
+    def task(function):
+        @wraps(function)
+        def wrapper(*args):
+            task = Task(wrapper, args)
 
-    if self.task_stack:
-        self._graph.add_edge(task, self.task_stack[-1])
+            if self.task_stack:
+                self._graph.add_edge(task, self.task_stack[-1])
 
-    self._graph.clear_inputs_of(task)
-    self._task_stack.append(task)
-    try:
-        value = function(*args)
-    finally:
-        self._task_stack.pop()
+            self._graph.clear_inputs_of(task)
+            self._task_stack.append(task)
+            try:
+                value = function(*args)
+            finally:
+                self._task_stack.pop()
 
-    return value
+            return value
+        return wrapper
 
 This wrapper performs several crucial maintenance steps:
 
@@ -1267,32 +1276,63 @@ The solution is to make graph recomputation dependent on caching.
 When stepping forward through the recursive consequences of a change,
 we will only invoke tasks whose inputs are different than last time.
 
-This optimization will involve a final data structure:
-
-* We will give the ``Project`` a ``_todo_list`` of tasks
-  that have had at least one input change
-  and that therefore require re-execution.
-
-* If we reach a task in the recursive consequences
-  but do not find it listed in the ``_todo_list``
-  then we will run the task to generate a new value.
-
-* After running the task we will compare its new output value
-  to the one that it returned last time.
-  If they are different, then every immediate consequence
-  of the task gets added to the ``_todo_list``.
-
-* Once the ``_todo_list`` is empty,
-  Contingent knows that all task outputs are now up to date.
+This optimization will involve a final data structure.
+We will give the ``Project`` a ``_todo`` set
+with which to remember every task
+for which at least one input value has changed,
+and that therefore requires re-execution.
+Because only tasks in ``_todo`` are out-of-date,
+the build process can skip running any other tasks
+unless they appear there.
 
 Again, Python’s convenient and unified design
 makes these features very easy to code.
 Because task objects are hashable,
-the ``_todo_list`` can simply be a set
+``_todo`` can simply be a set
 that remembers task items by identity —
 guaranteeing that a task never appears twice —
 and the ``_cache`` of return values from previous runs
 can be a dict with tasks as keys.
+
+More precisely, the rebuild step must keep looping
+as long as ``_todo`` is non-empty.
+During each loop, it should:
+
+* Call ``recursive_consequences_of()``
+  and pass in every task listed in ``_todo``.
+  The return value will be a list
+  of not only the ``_todo`` tasks themselves,
+  but also every task downstream of them —
+  every task, in other words, that could possibly need re-execution
+  even if every single task that we re-execute
+  turns out to have changed its output value to something new.
+
+* Loop over the tasks in the resulting list.
+
+* Call each task in the recursive consequences
+  that is also listed in ``_todo``,
+  to force it to re-compute its return value.
+  If the task wrapper function detects that this return value
+  does not match the old cached value,
+  then its downstream tasks will be automatically added to ``_todo``
+  before we reach them in the list of recursive consequences.
+
+By the time we reach the end of the list,
+every task that could possibly need to be re-run
+should in fact have been re-run.
+But just in case, we will check ``_todo``
+and try again if it is not yet empty.
+Even for very rapidly changing dependency trees,
+this should quickly settle out.
+Only a cycle —
+where, for example, task A needs the output of task B
+which itself needs the output of task A,
+and the outputs of A and B never stabilize
+and remove them from ``_todo`` —
+could keep the builder in an infinite loop.
+Fortunately, real-world build tasks are typically without cycles.
+
+Let us trace the behavior of this system through an example.
 
 Suppose you edit ``tutorial.txt``
 and change both the title and the body content.
