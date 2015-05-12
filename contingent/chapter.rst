@@ -1408,7 +1408,7 @@ that temporarily disables its willingness
 to return its old cached result for a given task and argument:
 
 >>> with project.cache_off():
-...     read('tutorial.txt')
+...     text = read('tutorial.txt')
 
 The new tutorial text has now been read into the cache.
 How many downstream tasks will need to be re-executed?
@@ -1445,7 +1445,7 @@ but this time leave the title the same?
 ... It should be read top to bottom.
 ... """
 >>> with project.cache_off():
-...     read('tutorial.txt')
+...     text = read('tutorial.txt')
 
 This small, limited change
 should have no effect on the other documents.
@@ -1453,7 +1453,6 @@ should have no effect on the other documents.
 >>> project.start_tracing()
 >>> project.rebuild()
 >>> print(project.stop_tracing())
-calling read('tutorial.txt')
 calling parse('tutorial.txt')
 calling render('tutorial.txt')
 calling title_of('tutorial.txt')
