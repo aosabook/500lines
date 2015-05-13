@@ -9,9 +9,9 @@ In this chapter, we will explore how a change in a common perspective affects th
 
 Database systems are designed to store and query data. This is something that all information workers do; however, the systems themselves were designed by computer scientists. As a result, modern database systems are highly influenced by computer scientists’ definition of what data is, and what can be done with it. 
 
-For example, most modern databases implement updates by overwriting old data in-place instead of appending the new data and keeping the old. This mechanism, nicknamed "place-oriented programming" by Rich Hickey [REF], saves storage space but makes it impossible to retrieve the entire history of a particular record. This design decision reflects the computer scientist’s perspective that "history" is less important than the price of its storage. 
+For example, most modern databases implement updates by overwriting old data in-place instead of appending the new data and keeping the old. This mechanism, nicknamed "place-oriented programming" by [Rich Hickey](http://www.infoq.com/presentations/Value-Values), saves storage space but makes it impossible to retrieve the entire history of a particular record. This design decision reflects the computer scientist’s perspective that "history" is less important than the price of its storage. 
 
-If you were to instead ask an archaeologist what should be done with the old data, the answer would be "hopefully, just bury it underneath".
+If you were to instead ask an archaeologist where the old data can be found, the answer would be "hopefully, it's just buried underneath".
 
 (Disclaimer: My understanding of the views of a typical archaeologist is based on visiting a few museums, reading several Wikipedia articles, and watching the entire Indiana Jones series.)
 
@@ -61,7 +61,7 @@ Let’s start by declaring the core constructs that make up our database.
 A database consists of:
 
 1. Layers of entities, each with its own unique timestamp (the rings in Figure 1).
-2. A top-ID value which is the next available unique ID.
+2. A top-id value which is the next available unique ID.
 3. The time at which the database was last updated.
 
 
@@ -112,9 +112,9 @@ Creating an attribute is done using the `make-attr` function.
 
 There are a couple of interesting patterns used in this constructor function: 
 
-* We use Clojure’s _Design by Contract_ [ADD REF HERE] pattern to validate that the cardinality parameter is a permissible value.
+* We use Clojure’s _Design by Contract_ pattern to validate that the cardinality parameter is a permissible value.
 * We use Clojure’s destructuring mechanism to provide a default value of `:db/single` if one is not given.
-* We use Clojure’s metadata capabilities to distinguish between an attribute's data (name, value and timestamps) and its metadata (type and cardinality). In Clojure, metadata handling is done using the functions `with-meta` (to set) and `meta` (to rea).
+* We use Clojure’s metadata capabilities to distinguish between an attribute's data (name, value and timestamps) and its metadata (type and cardinality). In Clojure, metadata handling is done using the functions `with-meta` (to set) and `meta` (to read).
 
 Attributes only have meaning if they are part of an entity. We make this connection with the `add-attr` function, which adds a given attribute to an entity's attribute map (called `:attrs`). 
 
@@ -130,7 +130,7 @@ Note that instead of using the attribute’s name directly, we first convert it 
 
 So far we have talked a lot about _what_ we are going to store, without thinking about _where_ we are going to store it. In this chapter, we resort to the simplest storage mechanism: storing the data in memory. This is certainly not reliable, but it simplifies development and debugging and allows us to focus on more interesting parts of the program. 
 
-We will access the storage via a simple protocol that will make it possible to define additional storage providers for a database owner to select from.
+We will access the storage via Clojure's simple _protocol_, which will make it possible to define additional storage providers for a database owner to select from.
 
 ````clojure
 (defprotocol Storage
@@ -876,7 +876,7 @@ Locating the index of the joining variable is done by `index-of-joining-variable
          collapsed (reduce collapsing-fn metas-seq)] 
      (first (keep-indexed #(when (variable? %2 false) %1)  collapsed)))) 
 ````
-We begin by extracting the metadata of each clause in the query. This metadata is a 3-element vector, each element of which is a variable name or `nil`, and reduces them to produce a single variable name or `nil`. If a variable name is produced, this means it appears in all of the metadata vectors at the same index; i.e., this is the joining variable. We can thus choose the appropriate index by using the mapping described above. 
+We begin by extracting the metadata of each clause in the query. This extracted metadata is a 3-element vector; each element in the vector is either a variable name or nil. (Note that there is no more than one variable name in that vector.) Once the vector is extracted, we produce from it (by reducing it) a single value, which is either a variable name or nil. If a variable name is produced, this means it appears in all of the metadata vectors at the same index; i.e., this is the joining variable. We can thus choose the appropriate index by using the mapping described above. 
 
 Once the index is chosen, we construct our plan, which is a function that closes over the query and the index name and executes the operations necessary to return the query results.
  
