@@ -322,4 +322,12 @@ Contributors
     <td><a href="https://github.com/jhamrick">jhamrick</a></td>
     <td>jhamrick@berkeley.edu</td>
   </tr>
+  <tr>
+    <td>Allison Kaptur</td>
+    <td>Hacker School</td>
+    <td>byterun</td>
+    <td>@akaptur</td>
+    <td>@akaptur</td>
+    <td>allison.kaptur@gmail.com</td>
+  </tr>
 </table>

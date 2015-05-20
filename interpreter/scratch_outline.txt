@@ -1,0 +1,5 @@
+# simplest
+# conditionals
+# loops / jumps
+# functions (frames)
+# exception handling
