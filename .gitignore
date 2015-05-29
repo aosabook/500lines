@@ -11,9 +11,9 @@ _site
 htmlcov
 output
 tex/*.tex.1
-tex/posa.bbl
-tex/posa.blg
-tex/posa.log
-tex/posa.out
-tex/posa.toc
+tex/500L.bbl
+tex/500L.blg
+tex/500L.log
+tex/500L.out
+tex/500L.toc
 tex/template-engine.markdown

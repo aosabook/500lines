@@ -47,8 +47,8 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
     image_paths = [
         ]
 
-    with open('tex/posa.tex', 'w') as out:
-        with open('tex/posa.template.tex') as template:
+    with open('tex/500L.tex', 'w') as out:
+        with open('tex/500L.template.tex') as template:
             lines = template.readlines()
             for line in lines:
                 if 'chapterchapterchapter' in line:
@@ -95,13 +95,13 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
 
 def build_pdf():
     os.chdir('tex')
-    run('pdflatex -interaction nonstopmode posa')
-    run('bibtex posa')
-    run('pdflatex -interaction nonstopmode posa')
-    run('pdflatex -interaction nonstopmode posa')
-    run('pdflatex -interaction nonstopmode posa')
+    run('pdflatex -interaction nonstopmode 500L')
+    run('bibtex 500L')
+    run('pdflatex -interaction nonstopmode 500L')
+    run('pdflatex -interaction nonstopmode 500L')
+    run('pdflatex -interaction nonstopmode 500L')
     os.chdir('..')
-    run('mv tex/posa.pdf output/')
+    run('mv tex/500L.pdf output/')
 
 def build_epub(chapter_markdowns, pandoc_epub):
     basenames = [
@@ -119,21 +119,21 @@ def build_epub(chapter_markdowns, pandoc_epub):
         basename = os.path.splitext(os.path.split(markdown)[1])[0]
         run(temp.format(md=markdown, basename=basename, chapnum=i+1))
     pandoc_path = 'pandoc'
-    cmd = "{pandoc} --chapters -S -f markdown+mmd_title_block --highlight-style=kate -o posa.epub epubtitle.txt introduction.markdown {markdowns}"
+    cmd = "{pandoc} --chapters -S -f markdown+mmd_title_block --highlight-style=kate -o 500L.epub epubtitle.txt introduction.markdown {markdowns}"
     if pandoc_epub:
         run(cmd.format(pandoc=pandoc_path, markdowns=" ".join(basenames)))
         print cmd.format(pandoc=pandoc_path, markdowns=" ".join(basenames))
     import subprocess as sp
     output = " ".join(open('image-list.txt').read().splitlines())
-    print 'zip posa.epub META-INF mimetype nav.xhtml toc.ncx stylesheet.css content.opf ' + output
+    print 'zip 500L.epub META-INF mimetype nav.xhtml toc.ncx stylesheet.css content.opf ' + output
     sp.check_output(
-        'zip posa.epub META-INF mimetype nav.xhtml toc.ncx stylesheet.css content.opf ' + output,
+        'zip 500L.epub META-INF mimetype nav.xhtml toc.ncx stylesheet.css content.opf ' + output,
         shell=True)
     if os.path.isdir('tmp-epub-contents'):
         run('rm -r tmp-epub-contents')
     os.mkdir('tmp-epub-contents')
     sp.check_output(
-        'unzip posa.epub -d tmp-epub-contents/',
+        'unzip 500L.epub -d tmp-epub-contents/',
         shell=True,
     )
     sp.check_output(
@@ -141,16 +141,16 @@ def build_epub(chapter_markdowns, pandoc_epub):
         shell=True
     )
     run('rm -r tmp-epub-contents')
-    run('cp posa.epub ../output/posa.epub')
+    run('cp 500L.epub ../output/500L.epub')
     os.chdir('..')
 
 def build_mobi():
-    run('ebook-convert output/posa.epub output/posa.mobi')
+    run('ebook-convert output/500L.epub output/500L.mobi')
 
 def build_html(chapter_markdowns):
     run('mkdir -p html/content/pages')
     temp = 'python preprocessor.py --chapter {chap} --html-refs --html-paths --output={md}.1 --latex {md}'
-    temp2 = 'pandoc --csl=ieee.csl --bibliography=tex/posa.bib -t html -f markdown+citations -o html/content/pages/{basename}.md {md}.1'
+    temp2 = 'pandoc --csl=ieee.csl --bibliography=tex/500L.bib -t html -f markdown+citations -o html/content/pages/{basename}.md {md}.1'
     temp3 = './fix_html_title.sh html/content/pages/{basename}.md'
     for i, markdown in enumerate(chapter_markdowns):
         basename = os.path.splitext(os.path.split(markdown)[1])[0]

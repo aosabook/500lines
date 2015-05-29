@@ -1,0 +1,14 @@
+\contentsline {chapter}{\numberline {1}}{1}
+\hspace {1cm}\textit {\textsf {\relax \fontsize {9}{11}\selectfont \abovedisplayskip 8.5\p@ plus3\p@ minus4\p@ \abovedisplayshortskip \z@ plus2\p@ \belowdisplayshortskip 4\p@ plus2\p@ minus2\p@ \def \leftmargin \leftmargini \parsep 4\p@ plus2\p@ minus\p@ \topsep 8\p@ plus2\p@ minus4\p@ \itemsep 4\p@ plus2\p@ minus\p@ {\leftmargin \leftmargini \topsep 4\p@ plus2\p@ minus2\p@ \parsep 2\p@ plus\p@ minus\p@ \itemsep \parsep }\belowdisplayskip \abovedisplayskip by }}\par 
+\contentsline {chapter}{\numberline {2}A Template Engine}{3}
+\contentsline {section}{\numberline {2.1}Templates}{4}
+\contentsline {section}{\numberline {2.2}Supported Syntax}{5}
+\contentsline {section}{\numberline {2.3}Implementation Approaches}{7}
+\contentsline {section}{\numberline {2.4}Compiling to Python}{7}
+\contentsline {section}{\numberline {2.5}Writing the Engine}{9}
+\contentsline {subsection}{The Templite class}{9}
+\contentsline {subsection}{CodeBuilder}{10}
+\contentsline {subsection}{The Templite class implementation}{12}
+\contentsline {section}{\numberline {2.6}Testing}{22}
+\contentsline {section}{\numberline {2.7}What's Left Out}{22}
+\contentsline {section}{\numberline {2.8}Summing up}{22}
