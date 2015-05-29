@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 
 import envoy
+import glob
 import os
 
 def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub=False):
     if not os.path.isdir('output'):
         os.mkdir('output')
     else:
-        run('rm output/*')
+        output_files = glob.glob('output/*')
+        for f in output_files:
+            run('rm {}'.format(f))
+
     chapter_dirs = [
             'template-engine',
             ]
@@ -47,14 +51,18 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
     image_paths = [
         ]
 
+    supporting_files = glob.glob('minutiae/*.tex')
+    for f in supporting_files:
+        run('cp -a {} tex/.'.format(f))
+
     with open('tex/500L.tex', 'w') as out:
         with open('tex/500L.template.tex') as template:
             lines = template.readlines()
             for line in lines:
                 if 'chapterchapterchapter' in line:
                     out.write(
-                        "\n".join(
-                            "\include{%s}\n" % (chapter_name)
+                        '\n'.join(
+                            '\include{%s}\n' % (chapter_name)
                             for chapter_name in chapter_names
                             )
                         )
@@ -64,7 +72,7 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
     if pdf:
         for imgpath in image_paths:
             # This is silly but oh well
-            run("cp -a {imgpath} tex/".format(imgpath=imgpath))
+            run('cp -a {imgpath} tex/'.format(imgpath=imgpath))
         texify_chapters = [
             pandoc_cmd(chapter_markdown)
             for chapter_markdown in
@@ -75,23 +83,23 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
     if epub:
         for imgpath in image_paths:
             # This is silly but oh well
-            run("cp -a {imgpath} epub/".format(imgpath=imgpath))
+            run('cp -a {imgpath} epub/'.format(imgpath=imgpath))
         build_epub(process_chapters, pandoc_epub)
 
     if mobi and not epub:
-        print "Can't build .mobi; depends on .epub."
-        print "Use --epub --mobi to build .mobi file."
+        print 'Cannot build .mobi; depends on .epub.'
+        print 'Use --epub --mobi to build .mobi file.'
     elif mobi:
         build_mobi()
 
     if html:
         for imgpath in image_paths:
             # This is silly but oh well
-            run("cp -a {imgpath} html/content/pages/".format(imgpath=imgpath))
+            run('cp -a {imgpath} html/content/pages/'.format(imgpath=imgpath))
         build_html(process_chapters)
         for imgpath in image_paths:
             # So you thought that was silly? Lemme show ya
-            run("cp -a {imgpath} html/output/pages/".format(imgpath=imgpath))
+            run('cp -a {imgpath} html/output/pages/'.format(imgpath=imgpath))
 
 def build_pdf():
     os.chdir('tex')
@@ -107,7 +115,7 @@ def build_epub(chapter_markdowns, pandoc_epub):
     basenames = [
             os.path.splitext(
                 os.path.split(chapter_markdown)[1]
-            )[0] + ".markdown"
+            )[0] + '.markdown'
             for chapter_markdown in chapter_markdowns ]
     temp = 'python preprocessor.py --chapter {chapnum} --output=epub/{basename}.markdown.1 --latex {md}'
     for i, markdown in enumerate(chapter_markdowns):
@@ -119,12 +127,12 @@ def build_epub(chapter_markdowns, pandoc_epub):
         basename = os.path.splitext(os.path.split(markdown)[1])[0]
         run(temp.format(md=markdown, basename=basename, chapnum=i+1))
     pandoc_path = 'pandoc'
-    cmd = "{pandoc} --chapters -S -f markdown+mmd_title_block --highlight-style=kate -o 500L.epub epubtitle.txt introduction.markdown {markdowns}"
+    cmd = '{pandoc} --chapters -S -f markdown+mmd_title_block --highlight-style=kate -o 500L.epub epubtitle.txt introduction.markdown {markdowns}'
     if pandoc_epub:
-        run(cmd.format(pandoc=pandoc_path, markdowns=" ".join(basenames)))
-        print cmd.format(pandoc=pandoc_path, markdowns=" ".join(basenames))
+        run(cmd.format(pandoc=pandoc_path, markdowns=' '.join(basenames)))
+        print cmd.format(pandoc=pandoc_path, markdowns=' '.join(basenames))
     import subprocess as sp
-    output = " ".join(open('image-list.txt').read().splitlines())
+    output = ' '.join(open('image-list.txt').read().splitlines())
     print 'zip 500L.epub META-INF mimetype nav.xhtml toc.ncx stylesheet.css content.opf ' + output
     sp.check_output(
         'zip 500L.epub META-INF mimetype nav.xhtml toc.ncx stylesheet.css content.opf ' + output,

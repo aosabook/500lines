@@ -16,4 +16,7 @@ tex/500L.blg
 tex/500L.log
 tex/500L.out
 tex/500L.toc
+tex/frontmatter.tex
+tex/colophon.tex
+tex/intro.tex
 tex/template-engine.markdown
