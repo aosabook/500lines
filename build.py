@@ -115,12 +115,12 @@ def build_epub(chapter_markdowns, pandoc_epub):
                 os.path.split(chapter_markdown)[1]
             )[0] + '.markdown'
             for chapter_markdown in chapter_markdowns ]
-    temp = 'python preprocessor.py --chapter {chapnum} --output=epub/{basename}.markdown.1 --latex {md}'
+    temp = 'python _build/preprocessor.py --chapter {chapnum} --output=epub/{basename}.markdown.1 --latex {md}'
     for i, markdown in enumerate(chapter_markdowns):
         basename = os.path.splitext(os.path.split(markdown)[1])[0]
         run(temp.format(md=markdown, basename=basename, chapnum=i+1))
     os.chdir('epub')
-    temp = '../increaseheaders.sh {basename}.markdown.1 {basename}.markdown {chapnum}'
+    temp = '../_build/increaseheaders.sh {basename}.markdown.1 {basename}.markdown {chapnum}'
     for i, markdown in enumerate(chapter_markdowns):
         basename = os.path.splitext(os.path.split(markdown)[1])[0]
         run(temp.format(md=markdown, basename=basename, chapnum=i+1))
@@ -155,9 +155,9 @@ def build_mobi():
 
 def build_html(chapter_markdowns):
     run('mkdir -p html/content/pages')
-    temp = 'python preprocessor.py --chapter {chap} --html-refs --html-paths --output={md}.1 --latex {md}'
+    temp = 'python _build/preprocessor.py --chapter {chap} --html-refs --html-paths --output={md}.1 --latex {md}'
     temp2 = 'pandoc --csl=ieee.csl --bibliography=tex/500L.bib -t html -f markdown+citations -o html/content/pages/{basename}.md {md}.1'
-    temp3 = './fix_html_title.sh html/content/pages/{basename}.md'
+    temp3 = './_build/fix_html_title.sh html/content/pages/{basename}.md'
     for i, markdown in enumerate(chapter_markdowns):
         basename = os.path.splitext(os.path.split(markdown)[1])[0]
         run(temp.format(chap=i+1, md=markdown, basename=basename))
@@ -182,14 +182,14 @@ def _pandoc_cmd(chapter_markdown):
     return result
 
 def preprocessor_command(chapter_markdown):
-    temp = 'python preprocessor.py --output=tex/{basename}.markdown --markdown {md}'
+    temp = 'python _build/preprocessor.py --output=tex/{basename}.markdown --markdown {md}'
     basename = getbasename(chapter_markdown)
     result = temp.format(basename=basename, md=chapter_markdown)
     print result
     return (result, basename)
 
 def postprocessor_command(basename):
-    temp = 'python postprocessor.py --output=tex/{basename}.tex tex/{basename}.tex.1'
+    temp = 'python _build/postprocessor.py --output=tex/{basename}.tex tex/{basename}.tex.1'
     return temp.format(basename=basename)
 
 def pandoc_cmd(chapter_markdown):
