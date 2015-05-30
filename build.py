@@ -51,9 +51,7 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
     image_paths = [
         ]
 
-    supporting_files = glob.glob('minutiae/*.tex')
-    for f in supporting_files:
-        run('cp -a {} tex/.'.format(f))
+    run('cp -r minutiae/ tex')
 
     with open('tex/500L.tex', 'w') as out:
         with open('tex/500L.template.tex') as template:

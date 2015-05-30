@@ -1,4 +1,5 @@
-# A Template Engine
+title: A Template Engine
+author: Ned Batchelder
 
 Most programs contain a lot of logic, and a little bit of literal textual data.
 Programming languages are designed to be good for this sort of programming.
