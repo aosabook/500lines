@@ -11,6 +11,7 @@ _site
 htmlcov
 output
 tex/*.tex.1
+tex/500L.bib
 tex/500L.bbl
 tex/500L.blg
 tex/500L.log
@@ -21,3 +22,5 @@ tex/frontmatter-images
 tex/colophon.tex
 tex/intro.tex
 tex/template-engine.markdown
+html/content
+html/cache

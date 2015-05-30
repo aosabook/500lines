@@ -1,0 +1,20 @@
+{% extends "posa.html" %}
+{% block header %}
+        <div class="hero-unit">
+	  <a class='pull-right' href='/en/index.html'><img src="/images/posa-titlebar.png" /></a>
+          <h1>{{ page.title }}</h1>
+          <h2 class="author">{{ page.author }}</h2>
+          <blockquote class="pull-right">
+            </blockquote>
+
+        </div>
+{% endblock %}
+{% block intro %}{% endblock %}
+{% block content %}
+      <div class="row">
+        <div class='span10 offset1' id='content'>
+          {{ page.content }}
+        </div>
+      </div>
+{% endblock content %}
+{% block footer %}{% endblock %}

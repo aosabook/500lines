@@ -1,0 +1,179 @@
+/* POSA specific CSS */
+
+/*
+ * $Id: aosa.css 1331 2012-04-23 01:30:18Z amy $
+ */
+
+img.cover {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    padding-bottom: 2em;
+}
+
+body.help {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+div.box {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    outline-color: gray;
+    outline-style: solid;
+    outline-width: 1px;
+    padding-bottom: 1px;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 1px;
+}
+
+div.figure {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    padding-bottom: 1px;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 1px;
+    text-align: center;
+}
+
+div.footnotes {
+    border-top: solid gray 1px;
+}
+
+div.footnotes h2 {
+    font-style: italic;
+}
+
+div.sect h2 {
+    font-style: italic;
+}
+
+div.subsect h3 {
+    font-style: italic;
+}
+
+div.table {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    padding-bottom: 1px;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 1px;
+    text-align: center;
+}
+
+div.table table {
+    font-size: small;
+    margin-left: auto;
+    margin-right: auto;
+    outline-color: gray;
+    outline-style: solid;
+    outline-width: 1px;
+}
+
+dl.faq dt {
+    font-style: italic;
+}
+
+dl.faq dd {
+    margin-bottom: 10px;
+}
+
+h1.chaptertitle {
+    font-style: italic;
+    font-size: xx-large;
+}
+
+h1.chapterauthor {
+    font-style: italic;
+    font-size: x-large;
+}
+
+p.boxtitle {
+    text-align: center;
+    font-style: italic;
+    font-weight: bold;
+}
+
+p.pullquote {
+    font-style: italic;
+}
+
+table.bibtable td {
+    text-align: center;
+}
+
+table.tasks th {
+    vertical-align: top;
+}
+
+td {
+    vertical-align: top;
+}
+
+td.center {
+    vertical-align: top;
+    text-align: center;
+}
+
+th {
+    text-align: left;
+}
+
+th.center {
+    text-align: center;
+}
+
+/* change colour of stripes in tables to match our branding 
+   Doesn't actually work and I don't know why.  --ARB */
+.table-striped tbody tr:nth-child(odd) td,   
+table.table-striped tbody tr:nth-child(odd) th {
+  background-color: #D3E5F0;
+}
+
+/* Change colour of hero element background to our nice blue. */
+.hero-unit {
+  background-color: #C8D9E3;
+}
+
+.center {
+  text-align: center;
+}
+
+/* change table elements */
+* + table {
+  border-style:solid;
+  border-width:1px;
+  border-color:#e7e3e7;
+}
+ 
+* + table th, * + table td {
+  border-style:dashed;
+  border-width:1px;
+  border-color:#e7e3e7;
+  padding-left: 3px;
+  padding-right: 3px;
+}
+ 
+* + table th {
+  border-style:solid;
+  font-weight:bold;
+  background: url("/images/noise.png?1330434582") repeat scroll left top #F7F3F7;
+}
+ 
+* + table th[align="left"], * + table td[align="left"] {
+  text-align:left;
+}
+ 
+* + table th[align="right"], * + table td[align="right"] {
+  text-align:right;
+}
+ 
+* + table th[align="center"], * + table td[align="center"] {
+  text-align:center;
+}
