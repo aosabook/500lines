@@ -22,5 +22,8 @@ tex/frontmatter-images
 tex/colophon.tex
 tex/intro.tex
 tex/template-engine.markdown
+tex/crawler.markdown
+tex/crawler-images
 html/content
 html/cache
+*.pid

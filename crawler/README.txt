@@ -1,4 +1,4 @@
-Authors: Guido van Rossum and A. Jesse Jiryu Davis
+Authors: A. Jesse Jiryu Davis and Guido van Rossum
 Project: Web crawler
 Requirements:
   * Python 3.4, or 3.3 + asyncio
