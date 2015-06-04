@@ -130,7 +130,7 @@ Note that instead of using the attribute’s name directly, we first convert it 
 
 So far we have talked a lot about _what_ we are going to store, without thinking about _where_ we are going to store it. In this chapter, we resort to the simplest storage mechanism: storing the data in memory. This is certainly not reliable, but it simplifies development and debugging and allows us to focus on more interesting parts of the program. 
 
-We will access the storage via Clojure's simple _protocol_, which will make it possible to define additional storage providers for a database owner to select from.
+We will access the storage via a simple _protocol_, which will make it possible to define additional storage providers for a database owner to select from.
 
 ````clojure
 (defprotocol Storage
@@ -876,7 +876,7 @@ Locating the index of the joining variable is done by `index-of-joining-variable
          collapsed (reduce collapsing-fn metas-seq)] 
      (first (keep-indexed #(when (variable? %2 false) %1)  collapsed)))) 
 ````
-We begin by extracting the metadata of each clause in the query. This extracted metadata is a 3-element vector; each element in the vector is either a variable name or nil. (Note that there is no more than one variable name in that vector.) Once the vector is extracted, we produce from it (by reducing it) a single value, which is either a variable name or nil. If a variable name is produced, this means it appears in all of the metadata vectors at the same index; i.e., this is the joining variable. We can thus choose the appropriate index by using the mapping described above. 
+We begin by extracting the metadata of each clause in the query. This extracted metadata is a 3-element vector; each element in the vector is either a variable name or nil. (Note that there is no more than one variable name in that vector.) Once the vector is extracted, we produce from it (by reducing it) a single value, which is either a variable name or nil. If a variable name is produced, then it appeared in all of the metadata vectors at the same index; i.e., this is the joining variable. We can thus choose to use the index relevant for this joining variable based on the mapping described above.
 
 Once the index is chosen, we construct our plan, which is a function that closes over the query and the index name and executes the operations necessary to return the query results.
  
