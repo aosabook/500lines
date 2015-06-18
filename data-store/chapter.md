@@ -1,3 +1,7 @@
+<!-- British spelling -->
+
+# DBDB: Dog Bed Database
+
 DBDB (Dog Bed Database) is a Python library that implements a simple key/value database.
 It lets you associate a key with a value,
 and store that association on disk for later retrieval.
@@ -8,21 +12,20 @@ It also avoids holding all data in RAM at once
 so you can store more data than you have RAM.
 
 
-Memory
-------
+## Memory
 
-I remember the first time I had a bug I was really stuck on. When I finished
+I remember the first time I was really stuck on a bug. When I finished
 typing in my BASIC program and ran it, weird sparkly pixels showed up on the
 screen, and the program aborted early. When I went back to look at the code,
-the last few lines of the program were gone! 
+the last few lines of the program were gone. 
 
 One of my mom's friends knew how to program, so we set up a call. Within a few
 minutes of speaking with her, I found the problem: the program was too big, and
-had encroached into video memory. Clearing the screen truncated the program,
+had encroached onto video memory. Clearing the screen truncated the program,
 and the sparkles were artifacts of Applesoft BASIC's behaviour of storing
 program state in RAM just beyond the end of the program.
 
-From that moment onwards, I learned to care about memory allocation.  I
+From that moment onwards, I cared about memory allocation.  I
 learned about pointers and how to allocate memory with malloc. I learned how my
 data structures were laid out in memory. And I learned to be very, very careful
 about how I changed them.
@@ -32,7 +35,7 @@ Erlang, I learned that it didn't actually have to copy data to send messages
 between processes, because everything was immutable. I then discovered
 immutable data structures in Clojure, and it really began to sink in. 
 
-When I read about CouchDB for a new job in 2013, I just smiled and nodded,
+When I read about CouchDB in 2013, I just smiled and nodded,
 recognising the structures and mechanisms for managing complex data as it
 changes.
 
@@ -59,19 +62,18 @@ I learned, once again, that it's easier to reason about things that don't change
 So starts the story.
 
 
-Why is it interesting?
-----------------------
+## Why Is it Interesting?
 
 Most projects require a database of some kind.
 You really shouldn't write your own;
-there are many edge-cases that will bite you in the end,
+there are many edge cases that will bite you,
 even if you're just writing JSON to disk:
 
 * What happens if your filesystem runs out of space?
 * What happens if your laptop battery dies while saving?
 * What if your data size exceeds available memory?
-  (unlikely for most applications on modern desktop computers&hellip;but
-  not unlikely for a mobile device or server-side web application)
+  (Unlikely for most applications on modern desktop computers&hellip; but
+  not unlikely for a mobile device or server-side web application.)
 
 However, if you want to _understand_ how a database handles all of these
 problems, writing one for yourself can be a good idea. 
@@ -88,21 +90,21 @@ Characterizing Failure
 ---------------
 
 Databases are often characterized by how closely they adhere to
-[ACID](http://en.wikipedia.org/wiki/ACID) semantics:
+the ACID properties:
 atomicity, consistency, isolation, and durability.
 
 Updates in DBDB are atomic and durable,
 two attributes which are described later in the chapter.
-There are no consistency guarantees provided by DBDB
+DBDB provides no consistency guarantees
 as there are no constraints on the data stored.
 Isolation is likewise not implemented.
 
 Application code can, of course, impose its own consistency guarantees, but
 proper isolation requires a transaction manager. We won't attempt that here;
-however, you can learn more about transaction management in the [Datamic
-chapter.]
+however, you can learn more about transaction management in the Datamic
+chapter. <!-- FIXME: Not sure what chapter this refers to. --ARB -->
 
-There are other system-maintenance problems we also have to think about. 
+We also have other system-maintenance problems to think about. 
 Stale data is not reclaimed in this implementation,
 so repeated updates
 (even to the same key)
@@ -120,24 +122,22 @@ Can you guarantee that the compacted tree structure is balanced?
 This helps maintain performance over time.
 
 
-The Architecture of DBDB
-------------------
+## The Architecture of DBDB
 
 DBDB separates the concerns of "put this on disk somewhere"
 (how data are laid out in a file; the physical layer)
 from the logical structure of the data
 (a binary tree in this example; the logical layer)
 from the contents of the key/value store
-(the association of key "a" to value "foo"; the public API).
+(the association of key `a` to value `foo`; the public API).
 
 Many databases separate the logical and physical aspects
 as it is is often useful to provide alternative implementations of each
 to get different performance characteristics,
-e.g. DB2's SMS (files in a filesystem) vs DMS (raw block device) tablespaces,
+e.g. DB2's SMS (files in a filesystem) versus DMS (raw block device) tablespaces,
 or MySQL's [alternative engine implementations](http://dev.mysql.com/doc/refman/5.7/en/storage-engines.html).
 
-Discovering the design
-----------------------
+## Discovering the Design
 
 Most of the chapters in this book describe how a program was built from
 inception to completion. However, that is not how most of us interact with the
@@ -149,12 +149,12 @@ In this chapter, we'll assume that DBDB is a completed project, and walk
 through it to learn how it works. Let's explore the structure of the entire
 project first.
 
-### Organisational units
+### Organisational Units
 
-Units are ordered here by distance from the end-user; that is, the first module
+Units are ordered here by distance from the end user; that is, the first module
 is the one that a user of this program would likely need to know the most
 about, while the last is something they should have very little interaction
-with at all.
+with.
 
 * ``tool.py`` defines
     a command-line tool
@@ -173,7 +173,7 @@ with at all.
 
     - ``LogicalBase`` provides the API for logical updates
         (like get, set, and commit)
-        and defers to a concrete sub-class
+        and defers to a concrete subclass
         to implement the updates themselves.
         It also manages storage locking
         and dereferencing internal nodes.
@@ -201,7 +201,7 @@ with at all.
         a ``BinaryNode``.
 
 * ``physical.py`` defines
-    physical layer.
+    the physical layer.
     The ``Storage`` class
     provides persistent, (mostly) append-only record storage.
 
@@ -211,7 +211,7 @@ In other words,
 each class should have only one reason to change.
 
 
-### Reading a value
+### Reading a Value
 
 We'll start with the simplest case:
 reading a value from the database.
@@ -278,7 +278,7 @@ We see right away that `DBDB` has a reference to an instance of `Storage`, but
 it also shares that reference with `self._tree`. Why? Can't `self._tree`
 completely manage access to the storage by itself? 
 
-The question of which objects 'own' a resource is often an important one in a
+The question of which objects "own" a resource is often an important one in a
 design, because it gives us hints about what changes might be unsafe. Let's
 keep that question in mind as we move on.
 
@@ -300,7 +300,7 @@ class DBDB(object):
 
 ``__getitem__()`` ensures that the database is still open by calling
 `_assert_not_closed`. Aha! Here we see at least one reason why `DBDB` needs
-direct access to our `Storage` instance -- so it can enforce preconditions.
+direct access to our `Storage` instance: so it can enforce preconditions.
 (Do you agree with this design? Can you think of a different way that we could
 do this?)
 
@@ -331,11 +331,11 @@ def _refresh_tree_ref(self):
             address=self._storage.get_root_address())
 ```
 
-`_refresh_tree_ref` resets the tree's 'view' of the data with what is currently
+`_refresh_tree_ref` resets the tree's "view" of the data with what is currently
 on disk, allowing us to perform a completely up-to-date read.
 
 What if storage _is_ locked when we attempt a read? This means that some other
-process is probably changing the data we want to read right now -- our read is
+process is probably changing the data we want to read right now; our read is
 not likely to be up-to-date with the current state of the data. This is
 generally known as a "dirty read". This pattern allows many readers to access
 data without ever worrying about blocking, at the expense of being slightly
@@ -365,17 +365,17 @@ with an associated key and value,
 and left and right children.
 Those associations also never change.
 The content of the whole ``BinaryTree`` only visibly changes
-when then root node is replaced.
+when the root node is replaced.
 This means that we don't need to worry about the contents of our tree being
 changed while we are performing the search. 
 
 Once the associated value is found, 
-it is then written to ``stdout`` by ``main()``,
+it is written to ``stdout`` by ``main()``
 without adding any extra newlines,
 to preserve the user's data exactly.
 
 
-#### Inserting/updating
+#### Inserting and Updating
 
 Now we'll set key ``foo`` to value ``bar`` in ``example.db``:
 ```bash
@@ -442,15 +442,16 @@ class Storage(object):
 ```
 
 There are two important things to note here: 
- - our lock is provided by a 3rd-party file-locking library called
-   [portalocker](https://pypi.python.org/pypi/portalocker)
+
+ - Our lock is provided by a 3rd-party file-locking library called
+   [portalocker](https://pypi.python.org/pypi/portalocker).
  - `lock()` returns `False` if the database was already locked, and `True`
    otherwise.
 
-Returning to `_tree.set()`, we can now understand why it was checking the
-return value of `lock()` in the first place; it lets us call
+Returning to `_tree.set()`, we can now understand why it checked the
+return value of `lock()` in the first place: it lets us call
 `_refresh_tree_ref` for the most recent root node reference
-so we don't lose any updates that another process has made
+so we don't lose updates that another process may have made
 since we last refreshed the tree from disk.
 Then it replaces the root tree node
 with a new tree containing the inserted (or updated) key/value.
@@ -489,8 +490,8 @@ Instead of updating a node to point to a new subtree,
 we make a new node which shares the unchanged subtree.
 This is what makes this binary tree an immutable data structure.
 
-This is where we notice something strange -- we haven't made any changes to
-anything on disk yet! All we've done is manipulate our view of the on-disk data
+This is where we notice something strange: we haven't made any changes to
+anything on disk yet. All we've done is manipulate our view of the on-disk data
 by moving tree nodes around.
 
 This requires an
@@ -556,7 +557,7 @@ class BinaryNode(object):
 ```
 
 This recurses all the way down for any ``NodeRef``
-which has unwritten changes (i.e. no ``_address``).
+which has unwritten changes (i.e., no ``_address``).
 
 Now we're back up the stack in `ValueRef`'s `store` method again. 
 The last step of ``store()`` is to serialise this node
@@ -591,7 +592,7 @@ class BinaryNodeRef(ValueRef):
 
 Updating the address in the ``store()`` method
 is technically a mutation of the ``ValueRef``.
-Because it has no effect on the user-visible value though,
+Because it has no effect on the user-visible value,
 we can consider it to be immutable.
 
 Once ``store()`` on the root ``_tree_ref`` is complete
@@ -630,7 +631,7 @@ Because we write the new data to disk and call the ``fsync`` syscall[^fsync]
 before we write the root node address,
 uncommitted data are unreachable.
 Conversely, once the root node address has been updated,
-we know that all the data it references is also on disk.
+we know that all the data it references are also on disk.
 In this way, commits are also durable.
 
 [^fsync]: Calling ``fsync`` on a file descriptor
@@ -642,10 +643,10 @@ In this way, commits are also durable.
 We're done!
 
 
-### How NodeRefs save memory
+### How NodeRefs Save Memory
 
 To avoid keeping the entire tree structure in memory at the same time,
-when a logical node is read in from disk,
+when a logical node is read in from disk
 the disk address of its left and right children
 (as well as its value)
 are loaded into memory.
@@ -692,14 +693,14 @@ All the updates will appear atomically to other readers
 because changes aren't visible
 until the new root node address is written to disk.
 Concurrent updates are blocked by a lockfile on disk.
-The lock is acquired on first-update, and released after commit.
+The lock is acquired on first update, and released after commit.
 
 
-### Exercises for the reader
+### Exercises for the Reader
 
 DBDB allows many processes to read the same database at once without blocking;
 the tradeoff is that readers can sometimes retrieve stale data.  What if we
-needed to be able to read some data consistently?  For example, a common use
+needed to be able to read some data consistently?  A common use
 case is reading a value and then updating it based on that value. How would you
 write a method on `DBDB` to do this? What tradeoffs would you have to incur to
 provide this functionality?
@@ -714,12 +715,12 @@ such as [B-trees](http://en.wikipedia.org/wiki/B-tree),
 to improve the performance.
 While a balanced binary tree
 (and this one isn't)
-needs to do $O(log_2(n))$ random node reads to find a value,
-a B+tree needs many fewer, e.g. $O(log_32(n))$
+needs to do \\(O(log_2(n))\\) random node reads to find a value,
+a B+ tree needs many fewer, for example \\(O(log_{32}(n))\\)
 because each node splits 32 ways instead of just 2.
 This makes a huge different in practice,
 since looking through 4 billion entries would go from
-$log_2(2^32) = 32$ to $log_32(2^32) \approx 6.4$ lookups.
+$$log_2(2^{32}) = 32$$ to $$log_{32}(2^{32}) \approx 6.4$$ lookups.
 Each lookup is a random access,
 which is incredibly expensive for hard disks with spinning platters.
 SSDs help with the latency, but the savings in I/O still stand.
@@ -738,7 +739,7 @@ and setting it as the ``value_ref_class``.
 [``pickle``](https://docs.python.org/3.4/library/pickle.html)
 to serialise data.
 
-Database compaction:
+Database compaction is another interesting exercise.
 Compacting can be done via an infix-of-median traversal of the tree writing
 things out as you go.
 It's probably best if the tree nodes all go together,
@@ -755,7 +756,7 @@ And remember:
 always benchmark performance enhancements before and after!
 You'll often be surprised by the results.
 
-### Patterns and principles 
+### Patterns and Principles 
 
 Test interfaces, not implementation.
 As part of developing DBDB,
@@ -767,7 +768,7 @@ and even later added the concept of NodeRefs.
 Most of the tests didn't have to change,
 which gave me confidence that things were still working as expected.
 
-Single Responsibility Principle.
+Respect the Single Responsibility Principle.
 Classes should have at most one reason to change.
 That's not strictly the case with DBDB,
 but there are multiple avenues of extension
@@ -778,8 +779,8 @@ Refactoring as I added features was a pleasure!
 ### Summary
 
 DBDB is a simple database that makes simple guarantees, and yet
-things still became complicated in a hurry. The foremost technique I used to
-manage this complexity was implementing a ostensibly mutable object with an
+things still became complicated in a hurry. The most important thing I did to
+manage this complexity was to implement an ostensibly mutable object with an
 immutable data structure. I encourage you to consider this technique the next
-time you find yourself in the middle of a tricky problem that seemingly has
-more edge-cases than you can keep track of. 
+time you find yourself in the middle of a tricky problem that seems to have
+more edge cases than you can keep track of. 
