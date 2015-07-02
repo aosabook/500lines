@@ -24,6 +24,8 @@ tex/intro.tex
 tex/template-engine.markdown
 tex/crawler.markdown
 tex/crawler-images
+tex/sample.markdown
+tex/sample-images
 html/content
 html/cache
 *.pid
