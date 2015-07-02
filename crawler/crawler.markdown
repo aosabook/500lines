@@ -21,7 +21,7 @@ How do we make the crawler concurrent? Traditionally we would create a thread po
 def fetch(url):
     sock = socket.socket()
     sock.connect(('xkcd.com', 80))
-    request = 'GET {} HTTP/1.0\r\n\r\n'.format(url)
+    request = 'GET {} HTTP/1.0\r\nHost: xkcd.com\r\n\r\n'.format(url)
     sock.send(request.encode('ascii'))
     response = b''
     chunk = sock.recv(4096)
@@ -64,7 +64,7 @@ Irritatingly, a non-blocking socket throws an exception from `connect`, even whe
 Now our crawler needs a way to know when the connection is established, so it can send the HTTP request. We could simply keep trying in a tight loop:
 
 ```python
-request = 'GET {} HTTP/1.0\r\n\r\n'.format(url)
+request = 'GET {} HTTP/1.0\r\nHost: xkcd.com\r\n\r\n'.format(url)
 encoded = request.encode('ascii')
 
 while True:
@@ -189,7 +189,7 @@ Here is the implementation of `connected`:
     def connected(self, key, mask):
         print('connected!')
         selector.unregister(key.fd)
-        request = 'GET {} HTTP/1.0\r\n\r\n'.format(self.url)
+        request = 'GET {} HTTP/1.0\r\nHost: xkcd.com\r\n\r\n'.format(url)
         self.sock.send(request.encode('ascii'))
         
         # Register the next callback.
@@ -255,7 +255,7 @@ Let us explain what we mean by that. Consider how simply we fetched a URL on a t
 def fetch(url):
     sock = socket.socket()
     sock.connect(('xkcd.com', 80))
-    request = 'GET {} HTTP/1.0\r\n\r\n'.format(url)
+    request = 'GET {} HTTP/1.0\r\nHost: xkcd.com\r\n\r\n'.format(url)
     sock.send(request.encode('ascii'))
     response = b''
     chunk = sock.recv(4096)

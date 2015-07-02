@@ -1,0 +1,26 @@
+digraph {
+graph [rankdir=LR];
+node [fontname=Arial shape=rect penwidth=2 color="#DAB21D"
+      style=filled fillcolor="#F4E5AD"]
+{rank=same
+"api.rst"
+"index.rst"
+"tutorial.rst"
+}
+node [shape=rect penwidth=2 color="#708BA6"
+      style=filled fillcolor="#DCE9ED"]
+{rank=same
+"api.html"
+"index.html"
+"tutorial.html"
+}
+node [shape=oval penwidth=0 style=filled fillcolor="#E8EED2"
+      margin="0.05,0"]
+"api-title" -> "index.html"
+"api.rst" -> "api-title"
+"api.rst" -> "api.html"
+"index.rst" -> "index.html"
+"tutorial-title" -> "index.html"
+"tutorial.rst" -> "tutorial-title"
+"tutorial.rst" -> "tutorial.html"
+}

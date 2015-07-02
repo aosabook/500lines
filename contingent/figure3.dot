@@ -1,0 +1,17 @@
+digraph {
+graph [rankdir=LR];
+node [fontname=Arial shape=rect penwidth=2 color="#DAB21D"
+      style=filled fillcolor="#F4E5AD"]
+{rank=same
+"read('tutorial.txt')"
+}
+node [shape=rect penwidth=2 color="#708BA6"
+      style=filled fillcolor="#DCE9ED"]
+{rank=same
+"render('tutorial.txt')"
+}
+node [shape=oval penwidth=0 style=filled fillcolor="#E8EED2"
+      margin="0.05,0"]
+"parse('tutorial.txt')" -> "render('tutorial.txt')"
+"read('tutorial.txt')" -> "parse('tutorial.txt')"
+}

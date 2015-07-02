@@ -8,7 +8,7 @@ try:
 except BlockingIOError:
     pass
 
-request = 'GET {} HTTP/1.0\r\n\r\n'.format('/353/')
+request = 'GET /353/ HTTP/1.0\r\nHost: xkcd.com\r\n\r\n'
 encoded = request.encode('ascii')
 
 while True:

@@ -1,0 +1,30 @@
+digraph {
+graph [rankdir=LR];
+node [fontname=Arial shape=rect penwidth=2 color="#DAB21D"
+      style=filled fillcolor="#F4E5AD"]
+{rank=same
+"read('api.txt')"
+"read('index.txt')"
+"read('tutorial.txt')"
+}
+node [shape=rect penwidth=2 color="#708BA6"
+      style=filled fillcolor="#DCE9ED"]
+{rank=same
+"render('api.txt')"
+"render('index.txt')"
+"render('tutorial.txt')"
+}
+node [shape=oval penwidth=0 style=filled fillcolor="#E8EED2"
+      margin="0.05,0"]
+"parse('api.txt')" -> "render('api.txt')"
+"parse('api.txt')" -> "title_of('api.txt')"
+"parse('index.txt')" -> "render('index.txt')"
+"parse('tutorial.txt')" -> "render('tutorial.txt')"
+"parse('tutorial.txt')" -> "title_of('tutorial.txt')"
+"read('api.txt')" -> "parse('api.txt')"
+"read('index.txt')" -> "parse('index.txt')"
+"read('tutorial.txt')" -> "parse('tutorial.txt')"
+"title_of('api.txt')" -> "render('index.txt')"
+"title_of('tutorial.txt')" -> "render('api.txt')"
+"title_of('tutorial.txt')" -> "render('index.txt')"
+}
