@@ -8,7 +8,13 @@
     <link rel="stylesheet" href="/theme/css/bootstrap-responsive.css" type="text/css" />
     <link rel="stylesheet" href="/theme/posa.css" type="text/css" />
     <title>{{ SITENAME }}{% if page is defined and page.title is defined %} | {{ page.title }}{% endif %}</title>
-
+    <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({
+          tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+        });
+    </script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    </script>
 </head>
   <body>
     <div class="container">
