@@ -128,7 +128,7 @@ literal text, with special notation to indicate the executable dynamic parts.
 ```
 
 Here the text is meant to appear literally in the resulting HTML page, until the
-`{{` notation indicates a switch into dynamic mode, where the `user_name` variable
+'`{{`' notation indicates a switch into dynamic mode, where the `user_name` variable
 will be substituted into the output.
 
 String formatting functions such as Python's `"foo = {foo}!".format(foo=17)`
@@ -251,9 +251,9 @@ In broad strokes, the template engine will have two main phases:
 
 * Parse the template
 * Render the template to assemble the text result, which involves:
-  - Managing the dynamic context, the source of the data
-  - Executing the logic elements
-  - Implementing dot access and filter execution
+    * Managing the dynamic context, the source of the data
+    * Executing the logic elements
+    * Implementing dot access and filter execution
 
 The question of what to pass from the parsing
 phase to the rendering phase is key.  What does parsing produce that can be rendered?
@@ -472,7 +472,7 @@ first: CodeBuilder.
 
 The bulk of the work in our engine is parsing the template and producing the
 necessary Python code.  To help with producing the Python, we have the
-`CodeBuilder` class, which handles the bookkeeping for us as we construct the
+CodeBuilder class, which handles the bookkeeping for us as we construct the
 the Python code.  It adds lines of code, manages indentation, and
 finally gives us values from the compiled Python.
 
@@ -500,9 +500,9 @@ class CodeBuilder(object):
 ```
 <!-- [[[end]]] -->
 
-CodeBuilder doesn't do much, it has:
+CodeBuilder doesn't do much. Let's take a method-by-method look at the interface and implementation.
 
-* a method to add a new line of code, which automatically indents the text to
+`add_line` adds a new line of code, which automatically indents the text to
   the current indentation level, and supplies a newline:
 
 <!-- [[[cog include("templite.py", first="def add_line", numblanks=3, dedent=False) ]]] -->
@@ -517,7 +517,7 @@ CodeBuilder doesn't do much, it has:
 ```
 <!-- [[[end]]] -->
 
-* two methods to increase or decrease the indentation level:
+`indent` and `dedent` increase or decrease the indentation level:
 
 <!-- [[[cog include("templite.py", first="INDENT_STEP = 4", numblanks=3, dedent=False) ]]] -->
 ```
@@ -533,10 +533,10 @@ CodeBuilder doesn't do much, it has:
 ```
 <!-- [[[end]]] -->
 
-* a method to add a section, which is a piece of code managed by another
-  CodeBuilder object.  This lets us keep a reference to a place in the code,
-  and add text to it later.  The self.code list is mostly a list of strings,
-  but will also hold references to these sections:
+`add_section` is managed by another CodeBuilder object.  This lets us
+keep a reference to a place in the code, and add text to it later. The
+`self.code` list is mostly a list of strings, but will also hold references to
+these sections:
 
 <!-- [[[cog include("templite.py", first="def add_section", numblanks=1, dedent=False) ]]] -->
 ```
@@ -548,10 +548,10 @@ CodeBuilder doesn't do much, it has:
 ```
 <!-- [[[end]]] -->
 
-* a `__str__` method for producing a single string with all the code. This
-  simply joins together all the strings in `self.code`.  Note that because
-  `self.code` can contain sections, this might call other `CodeBuilder`
-  objects recursively:
+`__str__` produces a single string with all the code. This
+simply joins together all the strings in `self.code`.  Note that because
+`self.code` can contain sections, this might call other `CodeBuilder`
+objects recursively:
 
 <!-- [[[cog include("templite.py", first="def __str__", numblanks=1, dedent=False) ]]] -->
 ```
@@ -560,9 +560,9 @@ CodeBuilder doesn't do much, it has:
 ```
 <!-- [[[end]]] -->
 
-* a method to produce the final values by executing the code.  This stringifies
-  the object, executes it to get its definitions, and returns the resulting
-  values:
+`get_globals` yields the final values by executing the code.  This stringifies
+the object, executes it to get its definitions, and returns the resulting
+values:
 
 <!-- [[[cog include("templite.py", first="def get_globals", numblanks=1, dedent=False) ]]] -->
 ```
@@ -596,7 +596,7 @@ exec(python_source, global_namespace)
 ```
 
 then `global_namespace['SEVENTEEN']` is 17, and `global_namespace['three']` is
-an actual function named three.
+an actual function named `three`.
 
 Although we only use CodeBuilder to produce one function, there's nothing here
 that limits it to that use.  This makes the class simpler to implement, and
@@ -617,7 +617,7 @@ in our Python source, we can retrieve that name from the dict returned by
 `get_globals`.
 
 Now we can get into the implementation of the Templite class itself, and see
-how CodeBuilder gets used.
+how CodeBuilder is used.
 
 
 ### The Templite class implementation
@@ -677,10 +677,8 @@ template, the loop variables:
 <!-- [[[end]]] -->
 
 Later we'll see how these get used to help contruct the prologue of our
-function.
-
-Now we use the CodeBuilder class we wrote earlier to start to build our
-compiled function:
+function. First, we'll use the CodeBuilder class we wrote earlier to start to
+build our compiled function:
 
 <!-- [[[cog include("templite.py", first="code = CodeBuilder", numblanks=2, dedent=False) ]]] -->
 ```

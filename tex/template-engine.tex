@@ -131,7 +131,7 @@ dynamic parts.
 \end{verbatim}
 
 Here the text is meant to appear literally in the resulting HTML page,
-until the \texttt{\{\{} notation indicates a switch into dynamic mode,
+until the `\texttt{\{\{}' notation indicates a switch into dynamic mode,
 where the \texttt{user\_name} variable will be substituted into the
 output.
 
@@ -262,12 +262,16 @@ In broad strokes, the template engine will have two main phases:
   Parse the template
 \item
   Render the template to assemble the text result, which involves:
-\item
-  Managing the dynamic context, the source of the data
-\item
-  Executing the logic elements
-\item
-  Implementing dot access and filter execution
+
+  \begin{aosaitemize}
+  
+  \item
+    Managing the dynamic context, the source of the data
+  \item
+    Executing the logic elements
+  \item
+    Implementing dot access and filter execution
+  \end{aosaitemize}
 \end{aosaitemize}
 
 The question of what to pass from the parsing phase to the rendering
@@ -495,8 +499,8 @@ define first: CodeBuilder.
 
 The bulk of the work in our engine is parsing the template and producing
 the necessary Python code. To help with producing the Python, we have
-the \texttt{CodeBuilder} class, which handles the bookkeeping for us as
-we construct the the Python code. It adds lines of code, manages
+the CodeBuilder class, which handles the bookkeeping for us as we
+construct the the Python code. It adds lines of code, manages
 indentation, and finally gives us values from the compiled Python.
 
 One CodeBuilder object is responsible for a complete chunk of Python
@@ -523,14 +527,11 @@ class CodeBuilder(object):
         self.indent_level = indent
 \end{verbatim}
 
-CodeBuilder doesn't do much, it has:
+CodeBuilder doesn't do much. Let's take a method-by-method look at the
+interface and implementation.
 
-\begin{aosaitemize}
-
-\item
-  a method to add a new line of code, which automatically indents the
-  text to the current indentation level, and supplies a newline:
-\end{aosaitemize}
+\texttt{add\_line} adds a new line of code, which automatically indents
+the text to the current indentation level, and supplies a newline:
 
 \begin{verbatim}
     def add_line(self, line):
@@ -542,11 +543,8 @@ CodeBuilder doesn't do much, it has:
         self.code.extend([" " * self.indent_level, line, "\n"])
 \end{verbatim}
 
-\begin{aosaitemize}
-
-\item
-  two methods to increase or decrease the indentation level:
-\end{aosaitemize}
+\texttt{indent} and \texttt{dedent} increase or decrease the indentation
+level:
 
 \begin{verbatim}
     INDENT_STEP = 4      # PEP8 says so!
@@ -560,14 +558,10 @@ CodeBuilder doesn't do much, it has:
         self.indent_level -= self.INDENT_STEP
 \end{verbatim}
 
-\begin{aosaitemize}
-
-\item
-  a method to add a section, which is a piece of code managed by another
-  CodeBuilder object. This lets us keep a reference to a place in the
-  code, and add text to it later. The self.code list is mostly a list of
-  strings, but will also hold references to these sections:
-\end{aosaitemize}
+\texttt{add\_section} is managed by another CodeBuilder object. This
+lets us keep a reference to a place in the code, and add text to it
+later. The \texttt{self.code} list is mostly a list of strings, but will
+also hold references to these sections:
 
 \begin{verbatim}
     def add_section(self):
@@ -577,28 +571,19 @@ CodeBuilder doesn't do much, it has:
         return section
 \end{verbatim}
 
-\begin{aosaitemize}
-
-\item
-  a \texttt{\_\_str\_\_} method for producing a single string with all
-  the code. This simply joins together all the strings in
-  \texttt{self.code}. Note that because \texttt{self.code} can contain
-  sections, this might call other \texttt{CodeBuilder} objects
-  recursively:
-\end{aosaitemize}
+\texttt{\_\_str\_\_} produces a single string with all the code. This
+simply joins together all the strings in \texttt{self.code}. Note that
+because \texttt{self.code} can contain sections, this might call other
+\texttt{CodeBuilder} objects recursively:
 
 \begin{verbatim}
     def __str__(self):
         return "".join(str(c) for c in self.code)
 \end{verbatim}
 
-\begin{aosaitemize}
-
-\item
-  a method to produce the final values by executing the code. This
-  stringifies the object, executes it to get its definitions, and
-  returns the resulting values:
-\end{aosaitemize}
+\texttt{get\_globals} yields the final values by executing the code.
+This stringifies the object, executes it to get its definitions, and
+returns the resulting values:
 
 \begin{verbatim}
     def get_globals(self):
@@ -631,7 +616,7 @@ exec(python_source, global_namespace)
 
 then \texttt{global\_namespace{[}'SEVENTEEN'{]}} is 17, and
 \texttt{global\_namespace{[}'three'{]}} is an actual function named
-three.
+\texttt{three}.
 
 Although we only use CodeBuilder to produce one function, there's
 nothing here that limits it to that use. This makes the class simpler to
@@ -653,7 +638,7 @@ defined. Whatever function name we define in our Python source, we can
 retrieve that name from the dict returned by \texttt{get\_globals}.
 
 Now we can get into the implementation of the Templite class itself, and
-see how CodeBuilder gets used.
+see how CodeBuilder is used.
 
 \aosasectii{The Templite class
 implementation}\label{the-templite-class-implementation}
@@ -709,10 +694,8 @@ variables defined in the template, the loop variables:
 \end{verbatim}
 
 Later we'll see how these get used to help contruct the prologue of our
-function.
-
-Now we use the CodeBuilder class we wrote earlier to start to build our
-compiled function:
+function. First, we'll use the CodeBuilder class we wrote earlier to
+start to build our compiled function:
 
 \begin{verbatim}
         code = CodeBuilder()

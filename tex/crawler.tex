@@ -53,7 +53,7 @@ time over a socket. For example, to download a page from xkcd.com:
 \KeywordTok{def} \NormalTok{fetch(url):}
     \NormalTok{sock = socket.socket()}
     \NormalTok{sock.}\OtherTok{connect}\NormalTok{((}\StringTok{'xkcd.com'}\NormalTok{, }\DecValTok{80}\NormalTok{))}
-    \NormalTok{request = }\StringTok{'GET \{\} HTTP/1.0}\CharTok{\textbackslash{}r\textbackslash{}n\textbackslash{}r\textbackslash{}n}\StringTok{'}\NormalTok{.}\DataTypeTok{format}\NormalTok{(url)}
+    \NormalTok{request = }\StringTok{'GET \{\} HTTP/1.0}\CharTok{\textbackslash{}r\textbackslash{}n}\StringTok{Host: xkcd.com}\CharTok{\textbackslash{}r\textbackslash{}n\textbackslash{}r\textbackslash{}n}\StringTok{'}\NormalTok{.}\DataTypeTok{format}\NormalTok{(url)}
     \NormalTok{sock.send(request.encode(}\StringTok{'ascii'}\NormalTok{))}
     \NormalTok{response = b}\StringTok{''}
     \NormalTok{chunk = sock.recv(}\DecValTok{4096}\NormalTok{)}
@@ -133,7 +133,7 @@ loop:
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{request = }\StringTok{'GET \{\} HTTP/1.0}\CharTok{\textbackslash{}r\textbackslash{}n\textbackslash{}r\textbackslash{}n}\StringTok{'}\NormalTok{.}\DataTypeTok{format}\NormalTok{(url)}
+\NormalTok{request = }\StringTok{'GET \{\} HTTP/1.0}\CharTok{\textbackslash{}r\textbackslash{}n}\StringTok{Host: xkcd.com}\CharTok{\textbackslash{}r\textbackslash{}n\textbackslash{}r\textbackslash{}n}\StringTok{'}\NormalTok{.}\DataTypeTok{format}\NormalTok{(url)}
 \NormalTok{encoded = request.encode(}\StringTok{'ascii'}\NormalTok{)}
 
 \KeywordTok{while} \OtherTok{True}\NormalTok{:}
@@ -335,7 +335,7 @@ Here is the implementation of \texttt{connected}:
     \KeywordTok{def} \NormalTok{connected(}\OtherTok{self}\NormalTok{, key, mask):}
         \DataTypeTok{print}\NormalTok{(}\StringTok{'connected!'}\NormalTok{)}
         \NormalTok{selector.unregister(key.fd)}
-        \NormalTok{request = }\StringTok{'GET \{\} HTTP/1.0}\CharTok{\textbackslash{}r\textbackslash{}n\textbackslash{}r\textbackslash{}n}\StringTok{'}\NormalTok{.}\DataTypeTok{format}\NormalTok{(}\OtherTok{self}\NormalTok{.url)}
+        \NormalTok{request = }\StringTok{'GET \{\} HTTP/1.0}\CharTok{\textbackslash{}r\textbackslash{}n}\StringTok{Host: xkcd.com}\CharTok{\textbackslash{}r\textbackslash{}n\textbackslash{}r\textbackslash{}n}\StringTok{'}\NormalTok{.}\DataTypeTok{format}\NormalTok{(url)}
         \OtherTok{self}\NormalTok{.sock.send(request.encode(}\StringTok{'ascii'}\NormalTok{))}
         
         \CommentTok{# Register the next callback.}
@@ -434,7 +434,7 @@ URL on a thread with a conventional blocking socket:
 \KeywordTok{def} \NormalTok{fetch(url):}
     \NormalTok{sock = socket.socket()}
     \NormalTok{sock.}\OtherTok{connect}\NormalTok{((}\StringTok{'xkcd.com'}\NormalTok{, }\DecValTok{80}\NormalTok{))}
-    \NormalTok{request = }\StringTok{'GET \{\} HTTP/1.0}\CharTok{\textbackslash{}r\textbackslash{}n\textbackslash{}r\textbackslash{}n}\StringTok{'}\NormalTok{.}\DataTypeTok{format}\NormalTok{(url)}
+    \NormalTok{request = }\StringTok{'GET \{\} HTTP/1.0}\CharTok{\textbackslash{}r\textbackslash{}n}\StringTok{Host: xkcd.com}\CharTok{\textbackslash{}r\textbackslash{}n\textbackslash{}r\textbackslash{}n}\StringTok{'}\NormalTok{.}\DataTypeTok{format}\NormalTok{(url)}
     \NormalTok{sock.send(request.encode(}\StringTok{'ascii'}\NormalTok{))}
     \NormalTok{response = b}\StringTok{''}
     \NormalTok{chunk = sock.recv(}\DecValTok{4096}\NormalTok{)}
