@@ -23,8 +23,8 @@ coroutines are both efficient and extensible. We implement simple
 coroutines in Python using generator functions. In the third stage, we
 use the full-featured coroutines from Python's standard ``asyncio''
 library\footnote{Guido introduced the standard asyncio library, called
-  ``Tulip'' then, at PyCon 2013: http://pyvideo.org/video/1667/keynote},
-and coordinate them using an async queue.
+  ``Tulip'' then, at PyCon 2013.}, and coordinate them using an async
+queue.
 
 \aosasecti{The Task}\label{the-task}
 
@@ -239,10 +239,10 @@ a global interpreter lock, threads would perform even better on such a
 workload. What asynchronous I/O is right for, is applications with many
 slow or sleepy connections with infrequent events.\footnote{Jesse listed
   indications and contraindications for using async in ``What Is Async,
-  How Does It Work, And When Should I Use It?'':
-  http://pyvideo.org/video/2565/what-is-async-how-does-it-work-and-when-should.
-  Mike Bayer compared the throughput of asyncio and multithreading for
-  different workloads in ``Asynchronous Python and Databases'':
+  How Does It Work, And When Should I Use It?'', available at
+  pyvideo.org.}\footnote{Mike Bayer compared the throughput of asyncio
+  and multithreading for different workloads in his ``Asynchronous
+  Python and Databases'':
   http://techspot.zzzeek.org/2015/02/15/asynchronous-python-and-databases/}
 
 \aosasecti{Programming With Callbacks}\label{programming-with-callbacks}
