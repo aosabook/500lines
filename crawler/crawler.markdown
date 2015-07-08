@@ -1074,21 +1074,15 @@ But when we open our eyes and focus on the `yield from` statements, we see they 
 
 Now that you know how asyncio coroutines work, you can largely forget the details. The machinery is tucked behind a dapper interface. But understanding the fundamentals empowers you to code correctly and efficiently in modern async environments.
 
-[^1]: https://mail.python.org/pipermail/python-ideas/2012-September/016192.html
+[^4]: [https://glyph.twistedmatrix.com/2014/02/unyielding.html](https://glyph.twistedmatrix.com/2014/02/unyielding.html)
 
-[^2]: http://pyvideo.org/video/1667/keynote
+[^5]: [https://docs.python.org/3/library/queue.html](https://docs.python.org/3/library/queue.html)
 
-[^3]: https://groups.google.com/d/msg/python-tulip/bmphRrryuFk/aB45sEJUomYJ
+[^6]: [https://docs.python.org/3/library/asyncio-sync.html](https://docs.python.org/3/library/asyncio-sync.html)
 
-[^4]: https://glyph.twistedmatrix.com/2014/02/unyielding.html
+[^7]: For a complex solution to this problem, see [http://www.tornadoweb.org/en/stable/stack_context.html](http://www.tornadoweb.org/en/stable/stack_context.html)
 
-[^5]: https://docs.python.org/3/library/queue.html
-
-[^6]: https://docs.python.org/3/library/asyncio-sync.html
-
-[^7]: For a complex solution to this problem, see http://www.tornadoweb.org/en/stable/stack_context.html
-
-[^8]: http://www.kegel.com/c10k.html
+[^8]: [http://www.kegel.com/c10k.html](http://www.kegel.com/c10k.html)
 
 [^9]: The actual `asyncio.Queue` implementation uses an `asyncio.Event` in place of the Future shown here. The difference is an Event can be reset, whereas a Future cannot transition from resolved back to pending.
 

@@ -85,7 +85,7 @@ tens of thousands of simultaneous operations on concurrent sockets, we
 run out of threads before we run out of sockets. Per-thread overhead or
 system limits on threads are the bottleneck.
 
-In his influential article ``The C10K problem''\footnote{http://www.kegel.com/c10k.html},
+In his influential article ``The C10K problem''\footnote{\url{http://www.kegel.com/c10k.html}},
 Dan Kegel outlines the limitations of multithreading for I/O
 concurrency. He begins,
 
@@ -496,7 +496,7 @@ investigator. Stack ripping also prevents us from installing an
 exception handler for a chain of callbacks, the way a ``try / except''
 block wraps a function call and its tree of descendents.\footnote{For a
   complex solution to this problem, see
-  http://www.tornadoweb.org/en/stable/stack\_context.html}
+  \url{http://www.tornadoweb.org/en/stable/stack_context.html}}
 
 So, even apart from the long debate about the relative efficiencies of
 multithreading and async, there is this other debate regarding which is
@@ -1230,7 +1230,7 @@ workers should wake and get cracking. Finally, our program must quit
 once its work is done.
 
 Imagine if the workers were threads. How would we express the crawler's
-algorithm? We could use a synchronized queue\footnote{https://docs.python.org/3/library/queue.html}
+algorithm? We could use a synchronized queue\footnote{\url{https://docs.python.org/3/library/queue.html}}
 from the Python standard library. Each time an item is put in the queue,
 the queue increments its count of ``tasks''. Worker threads call
 \texttt{task\_done} after completing work on an item. The main thread
@@ -1238,7 +1238,7 @@ blocks on \texttt{Queue.join} until each item put in the queue is
 matched by a \texttt{task\_done} call, then it exits.
 
 Coroutines use the exact same pattern with a queue from asyncio! First
-we import asyncio's queue\footnote{https://docs.python.org/3/library/asyncio-sync.html}:
+we import asyncio's queue\footnote{\url{https://docs.python.org/3/library/asyncio-sync.html}}:
 
 \begin{Shaded}
 \begin{Highlighting}[]
@@ -1545,10 +1545,10 @@ was the last URL in the queue, then when \texttt{work} calls
 event unpauses \texttt{join} and the main coroutine completes.
 
 The queue code that coordinates the workers and the main coroutine is
-like this\footnote{The actual asyncio.Queue implementation uses an
-  asyncio.Event in place of the Future shown here. The difference is an
-  Event can be reset, whereas a Future cannot transition from resolved
-  back to pending.}:
+like this\footnote{The actual \texttt{asyncio.Queue} implementation uses
+  an \texttt{asyncio.Event} in place of the Future shown here. The
+  difference is an Event can be reset, whereas a Future cannot
+  transition from resolved back to pending.}:
 
 \begin{Shaded}
 \begin{Highlighting}[]
@@ -1696,7 +1696,7 @@ But when we open our eyes and focus on the \texttt{yield from}
 statements, we see they mark points when the coroutine cedes control and
 allows others to run. Unlike threads, coroutines display where our code
 can be interrupted and where it cannot. In his illuminating essay
-``Unyielding''\footnote{https://glyph.twistedmatrix.com/2014/02/unyielding.html},
+``Unyielding''\footnote{\url{https://glyph.twistedmatrix.com/2014/02/unyielding.html}},
 Glyph Lefkowitz writes, ``Threads make local reasoning difficult, and
 local reasoning is perhaps the most important thing in software
 development.'' Explicitly yielding, however, makes it possible to
