@@ -10,7 +10,10 @@
     <title>{{ SITENAME }}{% if page is defined and page.title is defined %} | {{ page.title }}{% endif %}</title>
     <script type="text/x-mathjax-config">
         MathJax.Hub.Config({
-          tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+          tex2jax: {
+            inlineMath: [['$','$'], ['\\(','\\)']],
+            displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+          },
         });
     </script>
     <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">

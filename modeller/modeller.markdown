@@ -367,7 +367,8 @@ The `render_self` function for hierarchical nodes simply calls `render_self` on 
 With the `HierarchicalNode` class, it is very easy to add figures to the scene.
 Now, defining the snow figure is as simple as specifying the shapes that comprise it, and their relative positions and sizes.
 
-![The hierarchy of `Node` subclasses.](nodes.jpg?raw=true)
+\aosafigure[240pt]{modeller-images/nodes.jpg}{Hierarchy of `Node` subclasses}{500l.modeller.hierarchy}
+
 
 `````````````````````````````````````````` {.python}
 class HierarchicalNode(Node):
@@ -546,13 +547,14 @@ with a class that converts the input from the new toolkit into the same set of m
 We use the following callbacks and arguments:
 
 <markdown>
-Callback | Arguments | Purpose
---------|--------------------|----------
-`pick`    | x:number, y:number | Selects the node at the mouse pointer location.
-`move`    | x:number, y:number | Moves the currently selected node to the mouse pointer location.
-`place`   | shape:string, x:number, y:number | Places a shape of the specified type at the mouse pointer location.
-`rotate_color`   | forward:boolean | Rotates the color of the currently selected node through the list of colors, forwards or backwards.
-`scale`   | up:boolean | Scales the currently selected node up or down, according to parameter.
+|Callback       | Arguments          | Purpose  |
+|:--------------|:-------------------|:---------|
+|`pick`         | x:number, y:number | Selects the node at the mouse pointer location. |
+|`move`         | x:number, y:number | Moves the currently selected node to the mouse pointer location. |
+|`place`        | shape:string, x:number, y:number | Places a shape of the specified type at the mouse pointer location. |
+|`rotate_color` | forward:boolean | Rotates the color of the currently selected node through the list of colors, forwards or backwards. |
+|`scale`        | up:boolean | Scales the currently selected node up or down, according to parameter. |
+
 : \label{500l.tbl.callbacks} Interaction callbacks and arguments
 </markdown>
 <latex>
@@ -826,12 +828,12 @@ $$
 </latex>
 <markdown>
 $$
-   \begin{bmatrix}
-   x & 0 & 0 & 0 \\
-   0 & y & 0 & 0 \\
-   0 & 0 & z & 0 \\
-   0 & 0 & 0 & 1 \\
-   \end{bmatrix}
+    \begin{bmatrix}
+    x & 0 & 0 & 0 \\
+    0 & y & 0 & 0 \\
+    0 & 0 & z & 0 \\
+    0 & 0 & 0 & 1 \\ 
+    \end{bmatrix}
 $$
 </markdown>
 
