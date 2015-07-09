@@ -26,6 +26,8 @@ tex/crawler.markdown
 tex/crawler-images
 tex/sample.markdown
 tex/sample-images
+tex/modeller.markdown
+tex/modeller-images
 html/content
 html/cache
 *.pid
