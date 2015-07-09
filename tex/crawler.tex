@@ -48,24 +48,22 @@ How do we make the crawler concurrent? Traditionally we would create a
 thread pool. Each thread would be in charge of downloading one page at a
 time over a socket. For example, to download a page from xkcd.com:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\KeywordTok{def} \NormalTok{fetch(url):}
-    \NormalTok{sock = socket.socket()}
-    \NormalTok{sock.}\OtherTok{connect}\NormalTok{((}\StringTok{'xkcd.com'}\NormalTok{, }\DecValTok{80}\NormalTok{))}
-    \NormalTok{request = }\StringTok{'GET \{\} HTTP/1.0}\CharTok{\textbackslash{}r\textbackslash{}n}\StringTok{Host: xkcd.com}\CharTok{\textbackslash{}r\textbackslash{}n\textbackslash{}r\textbackslash{}n}\StringTok{'}\NormalTok{.}\DataTypeTok{format}\NormalTok{(url)}
-    \NormalTok{sock.send(request.encode(}\StringTok{'ascii'}\NormalTok{))}
-    \NormalTok{response = b}\StringTok{''}
-    \NormalTok{chunk = sock.recv(}\DecValTok{4096}\NormalTok{)}
-    \KeywordTok{while} \NormalTok{chunk:}
-        \NormalTok{response += chunk}
-        \NormalTok{chunk = sock.recv(}\DecValTok{4096}\NormalTok{)}
+\begin{verbatim}
+def fetch(url):
+    sock = socket.socket()
+    sock.connect(('xkcd.com', 80))
+    request = 'GET {} HTTP/1.0\r\nHost: xkcd.com\r\n\r\n'.format(url)
+    sock.send(request.encode('ascii'))
+    response = b''
+    chunk = sock.recv(4096)
+    while chunk:
+        response += chunk
+        chunk = sock.recv(4096)
     
-    \CommentTok{# Page is now downloaded.}
-    \NormalTok{links = parse_links(response)}
-    \NormalTok{q.add(links)}
-\end{Highlighting}
-\end{Shaded}
+    # Page is now downloaded.
+    links = parse_links(response)
+    q.add(links)
+\end{verbatim}
 
 By default, socket operations are \emph{blocking}: when the thread calls
 a method like \texttt{connect} or \texttt{recv}, it pauses until the
@@ -111,16 +109,14 @@ Let us find out how.
 Async frameworks use \emph{non-blocking} sockets. In our async crawler,
 we set the socket non-blocking before we begin to connect to the server:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{sock = socket.socket()}
-\NormalTok{sock.setblocking(}\OtherTok{False}\NormalTok{)}
-\KeywordTok{try}\NormalTok{:}
-    \NormalTok{sock.}\OtherTok{connect}\NormalTok{((}\StringTok{'xkcd.com'}\NormalTok{, }\DecValTok{80}\NormalTok{))}
-\KeywordTok{except} \OtherTok{BlockingIOError}\NormalTok{:}
-    \KeywordTok{pass}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+sock = socket.socket()
+sock.setblocking(False)
+try:
+    sock.connect(('xkcd.com', 80))
+except BlockingIOError:
+    pass
+\end{verbatim}
 
 Irritatingly, a non-blocking socket throws an exception from
 \texttt{connect}, even when it is working normally. This exception
@@ -131,21 +127,19 @@ Now our crawler needs a way to know when the connection is established,
 so it can send the HTTP request. We could simply keep trying in a tight
 loop:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{request = }\StringTok{'GET \{\} HTTP/1.0}\CharTok{\textbackslash{}r\textbackslash{}n}\StringTok{Host: xkcd.com}\CharTok{\textbackslash{}r\textbackslash{}n\textbackslash{}r\textbackslash{}n}\StringTok{'}\NormalTok{.}\DataTypeTok{format}\NormalTok{(url)}
-\NormalTok{encoded = request.encode(}\StringTok{'ascii'}\NormalTok{)}
+\begin{verbatim}
+request = 'GET {} HTTP/1.0\r\nHost: xkcd.com\r\n\r\n'.format(url)
+encoded = request.encode('ascii')
 
-\KeywordTok{while} \OtherTok{True}\NormalTok{:}
-    \KeywordTok{try}\NormalTok{:}
-        \NormalTok{sock.send(encoded)}
-        \KeywordTok{break}  \CommentTok{# Done.}
-    \KeywordTok{except} \OtherTok{OSError} \CharTok{as} \NormalTok{e:}
-        \KeywordTok{pass}
+while True:
+    try:
+        sock.send(encoded)
+        break  # Done.
+    except OSError as e:
+        pass
 
-\DataTypeTok{print}\NormalTok{(}\StringTok{'sent'}\NormalTok{)}
-\end{Highlighting}
-\end{Shaded}
+print('sent')
+\end{verbatim}
 
 This method not only wastes electricity, but it cannot efficiently await
 events on \emph{multiple} sockets. In ancient times, BSD Unix's solution
@@ -162,26 +156,24 @@ function available on your system. To register for notifications about
 network I/O, we create a non-blocking socket and register it with the
 default selector:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\CharTok{from} \NormalTok{selectors }\CharTok{import} \NormalTok{DefaultSelector}
+\begin{verbatim}
+from selectors import DefaultSelector
 
-\NormalTok{selector = DefaultSelector()}
+selector = DefaultSelector()
 
-\NormalTok{sock = socket.socket()}
-\NormalTok{sock.setblocking(}\OtherTok{False}\NormalTok{)}
-\KeywordTok{try}\NormalTok{:}
-    \NormalTok{sock.}\OtherTok{connect}\NormalTok{((}\StringTok{'xkcd.com'}\NormalTok{, }\DecValTok{80}\NormalTok{))}
-\KeywordTok{except} \OtherTok{BlockingIOError}\NormalTok{:}
-    \KeywordTok{pass}
+sock = socket.socket()
+sock.setblocking(False)
+try:
+    sock.connect(('xkcd.com', 80))
+except BlockingIOError:
+    pass
 
-\KeywordTok{def} \NormalTok{connected():}
-    \NormalTok{selector.unregister(sock.fileno())}
-    \DataTypeTok{print}\NormalTok{(}\StringTok{'connected!'}\NormalTok{)}
+def connected():
+    selector.unregister(sock.fileno())
+    print('connected!')
 
-\NormalTok{selector.register(sock.fileno(), EVENT_WRITE, connected)}
-\end{Highlighting}
-\end{Shaded}
+selector.register(sock.fileno(), EVENT_WRITE, connected)
+\end{verbatim}
 
 We disregard the spurious error and call \texttt{selector.register},
 passing in the socket's file descriptor and a constant that expresses
@@ -193,16 +185,14 @@ known as a \emph{callback}.
 
 We process I/O notifications as the selector receives them, in a loop:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\KeywordTok{def} \NormalTok{loop():}
-    \KeywordTok{while} \OtherTok{True}\NormalTok{:}
-        \NormalTok{events = selector.select()}
-        \KeywordTok{for} \NormalTok{event_key, event_mask in events:}
-            \NormalTok{callback = event_key.data}
-            \NormalTok{callback()}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+def loop():
+    while True:
+        events = selector.select()
+        for event_key, event_mask in events:
+            callback = event_key.data
+            callback()
+\end{verbatim}
 
 The \texttt{connected} callback is stored as \texttt{event\_key.data},
 which we retrieve and execute once the non-blocking socket is connected.
@@ -253,12 +243,10 @@ web crawler? Even a simple URL-fetcher is painful to write.
 We begin with global sets of the URLs we have yet to fetch, and the URLs
 we have seen:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{urls_todo = }\DataTypeTok{set}\NormalTok{([}\StringTok{'/'}\NormalTok{])}
-\NormalTok{seen_urls = }\DataTypeTok{set}\NormalTok{([}\StringTok{'/'}\NormalTok{])}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+urls_todo = set(['/'])
+seen_urls = set(['/'])
+\end{verbatim}
 
 The \texttt{seen\_urls} set includes \texttt{urls\_todo} plus completed
 URLs. The two sets are initialized with the root URL ``/''.
@@ -272,54 +260,48 @@ the full response yet, it registers again, and so on.
 Let us collect these callbacks into a \texttt{Fetcher} object. It needs
 a URL, a socket object, and a place to accumulate the response bytes:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\KeywordTok{class} \NormalTok{Fetcher:}
-    \KeywordTok{def} \OtherTok{__init__}\NormalTok{(}\OtherTok{self}\NormalTok{, url):}
-        \OtherTok{self}\NormalTok{.response = b}\StringTok{''}  \CommentTok{# Empty array of bytes.}
-        \OtherTok{self}\NormalTok{.url = url}
-        \OtherTok{self}\NormalTok{.sock = }\OtherTok{None}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+class Fetcher:
+    def __init__(self, url):
+        self.response = b''  # Empty array of bytes.
+        self.url = url
+        self.sock = None
+\end{verbatim}
 
 We begin by calling \texttt{Fetcher.fetch}:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-    \CommentTok{# Method on Fetcher class.}
-    \KeywordTok{def} \NormalTok{fetch(}\OtherTok{self}\NormalTok{):}
-        \OtherTok{self}\NormalTok{.sock = socket.socket()}
-        \OtherTok{self}\NormalTok{.sock.setblocking(}\OtherTok{False}\NormalTok{)}
-        \KeywordTok{try}\NormalTok{:}
-            \OtherTok{self}\NormalTok{.sock.}\OtherTok{connect}\NormalTok{((}\StringTok{'xkcd.com'}\NormalTok{, }\DecValTok{80}\NormalTok{))}
-        \KeywordTok{except} \OtherTok{BlockingIOError}\NormalTok{:}
-            \KeywordTok{pass}
+\begin{verbatim}
+    # Method on Fetcher class.
+    def fetch(self):
+        self.sock = socket.socket()
+        self.sock.setblocking(False)
+        try:
+            self.sock.connect(('xkcd.com', 80))
+        except BlockingIOError:
+            pass
             
-        \CommentTok{# Register next callback.}
-        \NormalTok{selector.register(}\OtherTok{self}\NormalTok{.sock.fileno(),}
-                          \NormalTok{EVENT_WRITE,}
-                          \OtherTok{self}\NormalTok{.connected)}
-\end{Highlighting}
-\end{Shaded}
+        # Register next callback.
+        selector.register(self.sock.fileno(),
+                          EVENT_WRITE,
+                          self.connected)
+\end{verbatim}
 
 The \texttt{fetch} method begins connecting a socket. But notice the
 method returns before the connection is established. It must return
 control to the event loop to wait for the connection. To understand why,
 imagine our whole application was structured so:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\CommentTok{# Begin fetching http://xkcd.com/353/}
-\NormalTok{fetcher = Fetcher(}\StringTok{'/353/'}\NormalTok{)}
-\NormalTok{fetcher.fetch()}
+\begin{verbatim}
+# Begin fetching http://xkcd.com/353/
+fetcher = Fetcher('/353/')
+fetcher.fetch()
 
-\KeywordTok{while} \OtherTok{True}\NormalTok{:}
-    \NormalTok{events = selector.select()}
-    \KeywordTok{for} \NormalTok{event_key, event_mask in events:}
-        \NormalTok{callback = event_key.data}
-        \NormalTok{callback(event_key, event_mask)}
-\end{Highlighting}
-\end{Shaded}
+while True:
+    events = selector.select()
+    for event_key, event_mask in events:
+        callback = event_key.data
+        callback(event_key, event_mask)
+\end{verbatim}
 
 All event notifications are processed in the event loop when it calls
 \texttt{select}. Hence \texttt{fetch} must hand control to the event
@@ -329,21 +311,19 @@ at the end of \texttt{fetch} above.
 
 Here is the implementation of \texttt{connected}:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-    \CommentTok{# Method on Fetcher class.}
-    \KeywordTok{def} \NormalTok{connected(}\OtherTok{self}\NormalTok{, key, mask):}
-        \DataTypeTok{print}\NormalTok{(}\StringTok{'connected!'}\NormalTok{)}
-        \NormalTok{selector.unregister(key.fd)}
-        \NormalTok{request = }\StringTok{'GET \{\} HTTP/1.0}\CharTok{\textbackslash{}r\textbackslash{}n}\StringTok{Host: xkcd.com}\CharTok{\textbackslash{}r\textbackslash{}n\textbackslash{}r\textbackslash{}n}\StringTok{'}\NormalTok{.}\DataTypeTok{format}\NormalTok{(url)}
-        \OtherTok{self}\NormalTok{.sock.send(request.encode(}\StringTok{'ascii'}\NormalTok{))}
+\begin{verbatim}
+    # Method on Fetcher class.
+    def connected(self, key, mask):
+        print('connected!')
+        selector.unregister(key.fd)
+        request = 'GET {} HTTP/1.0\r\nHost: xkcd.com\r\n\r\n'.format(url)
+        self.sock.send(request.encode('ascii'))
         
-        \CommentTok{# Register the next callback.}
-        \NormalTok{selector.register(key.fd,}
-                          \NormalTok{EVENT_READ,}
-                          \OtherTok{self}\NormalTok{.read_response)}
-\end{Highlighting}
-\end{Shaded}
+        # Register the next callback.
+        selector.register(key.fd,
+                          EVENT_READ,
+                          self.read_response)
+\end{verbatim}
 
 The method sends a GET request. A real application would check the
 return value of \texttt{send} in case the whole message cannot be sent
@@ -353,30 +333,28 @@ it must register yet another callback and relinquish control to the
 event loop. The next and final callback, \texttt{read\_response},
 processes the server's reply:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-    \CommentTok{# Method on Fetcher class.}
-    \KeywordTok{def} \NormalTok{read_response(}\OtherTok{self}\NormalTok{, key, mask):}
-        \KeywordTok{global} \NormalTok{stopped}
+\begin{verbatim}
+    # Method on Fetcher class.
+    def read_response(self, key, mask):
+        global stopped
 
-        \NormalTok{chunk = }\OtherTok{self}\NormalTok{.sock.recv(}\DecValTok{4096}\NormalTok{)  }\CommentTok{# 4k chunk size.}
-        \KeywordTok{if} \NormalTok{chunk:}
-            \OtherTok{self}\NormalTok{.response += chunk}
-        \KeywordTok{else}\NormalTok{:}
-            \NormalTok{selector.unregister(key.fd)  }\CommentTok{# Done reading.}
-            \NormalTok{links = }\OtherTok{self}\NormalTok{.parse_links()}
+        chunk = self.sock.recv(4096)  # 4k chunk size.
+        if chunk:
+            self.response += chunk
+        else:
+            selector.unregister(key.fd)  # Done reading.
+            links = self.parse_links()
             
-            \CommentTok{# Python set-logic:}
-            \KeywordTok{for} \NormalTok{link in links.difference(seen_urls):}
-                \NormalTok{urls_todo.add(link)}
-                \NormalTok{Fetcher(link).fetch()  }\CommentTok{# <- New Fetcher.}
+            # Python set-logic:
+            for link in links.difference(seen_urls):
+                urls_todo.add(link)
+                Fetcher(link).fetch()  # <- New Fetcher.
 
-            \NormalTok{seen_urls.update(links)}
-            \NormalTok{urls_todo.remove(}\OtherTok{self}\NormalTok{.url)}
-            \KeywordTok{if} \NormalTok{not urls_todo:}
-                \NormalTok{stopped = }\OtherTok{True}
-\end{Highlighting}
-\end{Shaded}
+            seen_urls.update(links)
+            urls_todo.remove(self.url)
+            if not urls_todo:
+                stopped = True
+\end{verbatim}
 
 The callback is executed each time the selector sees that the socket is
 ``readable'', which could mean two things: the socket has data or it is
@@ -399,18 +377,16 @@ be interrupted at arbitrary points in our code.
 We add a global \texttt{stopped} variable and use it to control the
 loop:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{stopped = }\OtherTok{False}
+\begin{verbatim}
+stopped = False
 
-\KeywordTok{def} \NormalTok{loop():}
-    \KeywordTok{while} \NormalTok{not stopped:}
-        \NormalTok{events = selector.select()}
-        \KeywordTok{for} \NormalTok{event_key, event_mask in events:}
-            \NormalTok{callback = event_key.data}
-            \NormalTok{callback()}
-\end{Highlighting}
-\end{Shaded}
+def loop():
+    while not stopped:
+        events = selector.select()
+        for event_key, event_mask in events:
+            callback = event_key.data
+            callback()
+\end{verbatim}
 
 Once all pages are downloaded the fetcher stops the global event loop
 and the program exits.
@@ -428,25 +404,23 @@ state-saving code.
 Let us explain what we mean by that. Consider how simply we fetched a
 URL on a thread with a conventional blocking socket:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\CommentTok{# Blocking version.}
-\KeywordTok{def} \NormalTok{fetch(url):}
-    \NormalTok{sock = socket.socket()}
-    \NormalTok{sock.}\OtherTok{connect}\NormalTok{((}\StringTok{'xkcd.com'}\NormalTok{, }\DecValTok{80}\NormalTok{))}
-    \NormalTok{request = }\StringTok{'GET \{\} HTTP/1.0}\CharTok{\textbackslash{}r\textbackslash{}n}\StringTok{Host: xkcd.com}\CharTok{\textbackslash{}r\textbackslash{}n\textbackslash{}r\textbackslash{}n}\StringTok{'}\NormalTok{.}\DataTypeTok{format}\NormalTok{(url)}
-    \NormalTok{sock.send(request.encode(}\StringTok{'ascii'}\NormalTok{))}
-    \NormalTok{response = b}\StringTok{''}
-    \NormalTok{chunk = sock.recv(}\DecValTok{4096}\NormalTok{)}
-    \KeywordTok{while} \NormalTok{chunk:}
-        \NormalTok{response += chunk}
-        \NormalTok{chunk = sock.recv(}\DecValTok{4096}\NormalTok{)}
+\begin{verbatim}
+# Blocking version.
+def fetch(url):
+    sock = socket.socket()
+    sock.connect(('xkcd.com', 80))
+    request = 'GET {} HTTP/1.0\r\nHost: xkcd.com\r\n\r\n'.format(url)
+    sock.send(request.encode('ascii'))
+    response = b''
+    chunk = sock.recv(4096)
+    while chunk:
+        response += chunk
+        chunk = sock.recv(4096)
     
-    \CommentTok{# Page is now downloaded.}
-    \NormalTok{links = parse_links(response)}
-    \NormalTok{q.add(links)}
-\end{Highlighting}
-\end{Shaded}
+    # Page is now downloaded.
+    links = parse_links(response)
+    q.add(links)
+\end{verbatim}
 
 What state does this function remember between one socket operation and
 the next? It has the socket, a URL, and the accumulating
@@ -519,14 +493,12 @@ direct\footnote{The \texttt{@asyncio.coroutine} decorator is not
   framework. It is possible to use asyncio with bare generators not
   decorated with \texttt{@asyncio.coroutine} at all.}:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-    \OtherTok{@asyncio.coroutine}
-    \KeywordTok{def} \NormalTok{fetch(}\OtherTok{self}\NormalTok{, url):}
-        \NormalTok{response = }\KeywordTok{yield} \CharTok{from} \NormalTok{aiohttp.request(}\StringTok{'get'}\NormalTok{, url)}
-        \NormalTok{body = }\KeywordTok{yield} \CharTok{from} \NormalTok{response.read()}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+    @asyncio.coroutine
+    def fetch(self, url):
+        response = yield from aiohttp.request('get', url)
+        body = yield from response.read()
+\end{verbatim}
 
 It is also scalable. Compared to the 50k of memory per thread and the
 operating system's hard limits on threads, a Python coroutine takes
@@ -554,15 +526,13 @@ Python functions work. Normally, when a Python function calls a
 subroutine, the subroutine retains control until it returns, or throws
 an exception. Then control returns to the caller:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{>>> }\KeywordTok{def} \NormalTok{foo():}
-\NormalTok{...     bar()}
-\NormalTok{...}
-\NormalTok{>>> }\KeywordTok{def} \NormalTok{bar():}
-\NormalTok{...     }\KeywordTok{pass}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+>>> def foo():
+...     bar()
+...
+>>> def bar():
+...     pass
+\end{verbatim}
 
 The standard Python interpreter is written in C. The C function that
 executes a Python function is called, mellifluously,
@@ -570,17 +540,15 @@ executes a Python function is called, mellifluously,
 evaluates Python bytecode in the context of the frame. Here is the
 bytecode for \texttt{foo}:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{>>> }\CharTok{import} \NormalTok{dis}
-\NormalTok{>>> dis.dis(foo)}
-  \DecValTok{2}           \DecValTok{0} \NormalTok{LOAD_GLOBAL              }\DecValTok{0} \NormalTok{(bar)}
-              \DecValTok{3} \NormalTok{CALL_FUNCTION            }\DecValTok{0} \NormalTok{(}\DecValTok{0} \NormalTok{positional, }\DecValTok{0} \NormalTok{keyword pair)}
-              \DecValTok{6} \NormalTok{POP_TOP}
-              \DecValTok{7} \NormalTok{LOAD_CONST               }\DecValTok{0} \NormalTok{(}\OtherTok{None}\NormalTok{)}
-             \DecValTok{10} \NormalTok{RETURN_VALUE}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+>>> import dis
+>>> dis.dis(foo)
+  2           0 LOAD_GLOBAL              0 (bar)
+              3 CALL_FUNCTION            0 (0 positional, 0 keyword pair)
+              6 POP_TOP
+              7 LOAD_CONST               0 (None)
+             10 RETURN_VALUE
+\end{verbatim}
 
 The \texttt{foo} function loads \texttt{bar} onto its stack and calls
 it, then pops its return value from the stack, loads \texttt{None} onto
@@ -600,78 +568,68 @@ manipulates are on the heap. Among other surprises, this means a Python
 stack frame can outlive its function call. To see this interactively,
 save the current frame from within \texttt{bar}:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{>>> }\CharTok{import} \NormalTok{inspect}
-\NormalTok{>>> frame = }\OtherTok{None}
-\NormalTok{>>> }\KeywordTok{def} \NormalTok{foo():}
-\NormalTok{...     bar()}
-\NormalTok{...}
-\NormalTok{>>> }\KeywordTok{def} \NormalTok{bar():}
-\NormalTok{...     }\KeywordTok{global} \NormalTok{frame}
-\NormalTok{...     frame = inspect.currentframe()}
-\NormalTok{...}
-\NormalTok{>>> foo()}
-\NormalTok{>>> }\CommentTok{# The frame was executing the code for 'bar'.}
-\NormalTok{>>> frame.f_code.co_name}
-\CommentTok{'bar'}
-\NormalTok{>>> }\CommentTok{# Its back pointer refers to the frame for 'foo'.}
-\NormalTok{>>> caller_frame = frame.f_back}
-\NormalTok{>>> caller_frame.f_code.co_name}
-\CommentTok{'foo'}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+>>> import inspect
+>>> frame = None
+>>> def foo():
+...     bar()
+...
+>>> def bar():
+...     global frame
+...     frame = inspect.currentframe()
+...
+>>> foo()
+>>> # The frame was executing the code for 'bar'.
+>>> frame.f_code.co_name
+'bar'
+>>> # Its back pointer refers to the frame for 'foo'.
+>>> caller_frame = frame.f_back
+>>> caller_frame.f_code.co_name
+'foo'
+\end{verbatim}
 
 The stage is now set for Python generators, which use the same building
 blocks---code objects and stack frames---to marvelous effect.
 
 This is a generator function:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{>>> }\KeywordTok{def} \NormalTok{gen_fn():}
-\NormalTok{...     result = }\KeywordTok{yield} \DecValTok{1}
-\NormalTok{...     }\DataTypeTok{print}\NormalTok{(}\StringTok{'result of yield: \{\}'}\NormalTok{.}\DataTypeTok{format}\NormalTok{(result))}
-\NormalTok{...     result2 = }\KeywordTok{yield} \DecValTok{2}
-\NormalTok{...     }\DataTypeTok{print}\NormalTok{(}\StringTok{'result of 2nd yield: \{\}'}\NormalTok{.}\DataTypeTok{format}\NormalTok{(result2))}
-\NormalTok{...     }\KeywordTok{return} \StringTok{'done'}
-\NormalTok{...     }
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+>>> def gen_fn():
+...     result = yield 1
+...     print('result of yield: {}'.format(result))
+...     result2 = yield 2
+...     print('result of 2nd yield: {}'.format(result2))
+...     return 'done'
+...     
+\end{verbatim}
 
 When Python compiles \texttt{gen\_fn} to bytecode, it sees the
 \texttt{yield} statement and knows that \texttt{gen\_fn} is a generator
 function, not a regular one. It sets a flag to remember this fact:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{>>> }\CommentTok{# The generator flag is bit position 5.}
-\NormalTok{>>> generator_bit = }\DecValTok{1} \NormalTok{<< }\DecValTok{5}
-\NormalTok{>>> }\DataTypeTok{bool}\NormalTok{(gen_fn.__code__.co_flags & generator_bit)}
-\OtherTok{True}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+>>> # The generator flag is bit position 5.
+>>> generator_bit = 1 << 5
+>>> bool(gen_fn.__code__.co_flags & generator_bit)
+True
+\end{verbatim}
 
 When you call a generator function, Python sees the generator flag, and
 it does not actually run the function. Instead, it creates a generator:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{>>> gen = gen_fn()}
-\NormalTok{>>> }\DataTypeTok{type}\NormalTok{(gen)}
-\NormalTok{<}\KeywordTok{class} \StringTok{'generator'}\NormalTok{>}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+>>> gen = gen_fn()
+>>> type(gen)
+<class 'generator'>
+\end{verbatim}
 
 A Python generator encapsulates a stack frame plus a reference to some
 code, the body of \texttt{gen\_fn}:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{>>> gen.gi_code.co_name}
-\CommentTok{'gen_fn'}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+>>> gen.gi_code.co_name
+'gen_fn'
+\end{verbatim}
 
 All generators from calls to \texttt{gen\_fn} point to this same code.
 But each has its own stack frame. This stack frame is not on any actual
@@ -683,35 +641,29 @@ The frame has a ``last instruction'' pointer, the instruction it
 executed most recently. In the beginning, the last instruction pointer
 is -1, meaning the generator has not begun:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{>>> gen.gi_frame.f_lasti}
-\NormalTok{-}\DecValTok{1}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+>>> gen.gi_frame.f_lasti
+-1
+\end{verbatim}
 
 When we call \texttt{send}, the generator reaches its first
 \texttt{yield}, and pauses. The return value of \texttt{send} is 1,
 since that is what \texttt{gen} passes to the \texttt{yield} expression:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{>>> gen.send(}\OtherTok{None}\NormalTok{)}
-\DecValTok{1}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+>>> gen.send(None)
+1
+\end{verbatim}
 
 The generator's instruction pointer is now 3 bytecodes from the start,
 part way through the 56 bytes of compiled Python:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{>>> gen.gi_frame.f_lasti}
-\DecValTok{3}
-\NormalTok{>>> }\DataTypeTok{len}\NormalTok{(gen.gi_code.co_code)}
-\DecValTok{56}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+>>> gen.gi_frame.f_lasti
+3
+>>> len(gen.gi_code.co_code)
+56
+\end{verbatim}
 
 The generator can be resumed at any time, from any function, because its
 stack frame is not actually on the stack: it is on the heap. Its
@@ -723,22 +675,18 @@ We can send the value ``hello'' into the generator and it becomes the
 result of the \texttt{yield} expression, and the generator continues
 until it yields 2:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{>>> gen.send(}\StringTok{'hello'}\NormalTok{)}
-\NormalTok{result of }\KeywordTok{yield}\NormalTok{: hello}
-\DecValTok{2}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+>>> gen.send('hello')
+result of yield: hello
+2
+\end{verbatim}
 
 Its stack frame now contains the local variable \texttt{result}:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{>>> gen.gi_frame.f_locals}
-\NormalTok{\{}\StringTok{'result'}\NormalTok{: }\StringTok{'hello'}\NormalTok{\}}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+>>> gen.gi_frame.f_locals
+{'result': 'hello'}
+\end{verbatim}
 
 Other generators created from \texttt{gen\_fn} will have their own stack
 frames and their own local variables.
@@ -747,15 +695,13 @@ When we call \texttt{send} again, the generator continues from its
 second \texttt{yield}, and finishes by raising the special
 \texttt{StopIteration} exception:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{>>> gen.send(}\StringTok{'goodbye'}\NormalTok{)}
-\NormalTok{result of 2nd }\KeywordTok{yield}\NormalTok{: goodbye}
-\NormalTok{Traceback (most recent call last):}
-  \NormalTok{File }\StringTok{"<input>"}\NormalTok{, line }\DecValTok{1}\NormalTok{, in <module>}
-\OtherTok{StopIteration}\NormalTok{: done}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+>>> gen.send('goodbye')
+result of 2nd yield: goodbye
+Traceback (most recent call last):
+  File "<input>", line 1, in <module>
+StopIteration: done
+\end{verbatim}
 
 The exception has a value, which is the return value of the generator:
 the string ``done''.
@@ -774,22 +720,20 @@ use generators, futures, and the ``yield from'' statement.
 First we need a way to represent some future result that a coroutine is
 waiting for. A stripped-down version:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\KeywordTok{class} \NormalTok{Future:}
-    \KeywordTok{def} \OtherTok{__init__}\NormalTok{(}\OtherTok{self}\NormalTok{):}
-        \OtherTok{self}\NormalTok{.result = }\OtherTok{None}
-        \OtherTok{self}\NormalTok{._callbacks = []}
+\begin{verbatim}
+class Future:
+    def __init__(self):
+        self.result = None
+        self._callbacks = []
 
-    \KeywordTok{def} \NormalTok{add_done_callback(}\OtherTok{self}\NormalTok{, fn):}
-        \OtherTok{self}\NormalTok{._callbacks.append(fn)}
+    def add_done_callback(self, fn):
+        self._callbacks.append(fn)
 
-    \KeywordTok{def} \NormalTok{set_result(}\OtherTok{self}\NormalTok{, result):}
-        \OtherTok{self}\NormalTok{.result = result}
-        \KeywordTok{for} \NormalTok{fn in }\OtherTok{self}\NormalTok{._callbacks:}
-            \NormalTok{fn(}\OtherTok{self}\NormalTok{)}
-\end{Highlighting}
-\end{Shaded}
+    def set_result(self, result):
+        self.result = result
+        for fn in self._callbacks:
+            fn(self)
+\end{verbatim}
 
 A future is initially ``pending''. It is ``resolved'' by a call to
 \texttt{set\_result}.\footnote{This future has many deficiencies. For
@@ -800,53 +744,49 @@ A future is initially ``pending''. It is ``resolved'' by a call to
 Let us adapt our fetcher to use futures and coroutines. Review how we
 wrote \texttt{fetch} with a callback:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\KeywordTok{class} \NormalTok{Fetcher:}
-    \KeywordTok{def} \NormalTok{fetch(}\OtherTok{self}\NormalTok{):}
-        \OtherTok{self}\NormalTok{.sock = socket.socket()}
-        \OtherTok{self}\NormalTok{.sock.setblocking(}\OtherTok{False}\NormalTok{)}
-        \KeywordTok{try}\NormalTok{:}
-            \OtherTok{self}\NormalTok{.sock.}\OtherTok{connect}\NormalTok{((}\StringTok{'xkcd.com'}\NormalTok{, }\DecValTok{80}\NormalTok{))}
-        \KeywordTok{except} \OtherTok{BlockingIOError}\NormalTok{:}
-            \KeywordTok{pass}
-        \NormalTok{selector.register(}\OtherTok{self}\NormalTok{.sock.fileno(),}
-                          \NormalTok{EVENT_WRITE,}
-                          \OtherTok{self}\NormalTok{.connected)}
+\begin{verbatim}
+class Fetcher:
+    def fetch(self):
+        self.sock = socket.socket()
+        self.sock.setblocking(False)
+        try:
+            self.sock.connect(('xkcd.com', 80))
+        except BlockingIOError:
+            pass
+        selector.register(self.sock.fileno(),
+                          EVENT_WRITE,
+                          self.connected)
 
-    \KeywordTok{def} \NormalTok{connected(}\OtherTok{self}\NormalTok{, key, mask):}
-        \DataTypeTok{print}\NormalTok{(}\StringTok{'connected!'}\NormalTok{)}
-        \CommentTok{# And so on....}
-\end{Highlighting}
-\end{Shaded}
+    def connected(self, key, mask):
+        print('connected!')
+        # And so on....
+\end{verbatim}
 
 The \texttt{fetch} method begins connecting a socket, then registers the
 callback, \texttt{connected}, to be executed when the socket is ready.
 Now we can combine these two steps into one coroutine:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-    \KeywordTok{def} \NormalTok{fetch(}\OtherTok{self}\NormalTok{):}
-        \NormalTok{sock = socket.socket()}
-        \NormalTok{sock.setblocking(}\OtherTok{False}\NormalTok{)}
-        \KeywordTok{try}\NormalTok{:}
-            \NormalTok{sock.}\OtherTok{connect}\NormalTok{((}\StringTok{'xkcd.com'}\NormalTok{, }\DecValTok{80}\NormalTok{))}
-        \KeywordTok{except} \OtherTok{BlockingIOError}\NormalTok{:}
-            \KeywordTok{pass}
+\begin{verbatim}
+    def fetch(self):
+        sock = socket.socket()
+        sock.setblocking(False)
+        try:
+            sock.connect(('xkcd.com', 80))
+        except BlockingIOError:
+            pass
 
-        \NormalTok{f = Future()}
+        f = Future()
 
-        \KeywordTok{def} \NormalTok{on_connected():}
-            \NormalTok{f.set_result(}\OtherTok{None}\NormalTok{)}
+        def on_connected():
+            f.set_result(None)
 
-        \NormalTok{selector.register(sock.fileno(),}
-                          \NormalTok{EVENT_WRITE,}
-                          \NormalTok{on_connected)}
-        \KeywordTok{yield} \NormalTok{f}
-        \NormalTok{selector.unregister(sock.fileno())}
-        \DataTypeTok{print}\NormalTok{(}\StringTok{'connected!'}\NormalTok{)}
-\end{Highlighting}
-\end{Shaded}
+        selector.register(sock.fileno(),
+                          EVENT_WRITE,
+                          on_connected)
+        yield f
+        selector.unregister(sock.fileno())
+        print('connected!')
+\end{verbatim}
 
 Now \texttt{fetch} is a generator function, rather than a regular one,
 because it contains a \texttt{yield} statement. We create a pending
@@ -856,30 +796,28 @@ The inner function \texttt{on\_connected} resolves the future.
 But when the future resolves, what resumes the generator? We need a
 coroutine \emph{driver}. Let us call it ``task'':
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\KeywordTok{class} \NormalTok{Task:}
-    \KeywordTok{def} \OtherTok{__init__}\NormalTok{(}\OtherTok{self}\NormalTok{, coro):}
-        \OtherTok{self}\NormalTok{.coro = coro}
-        \NormalTok{f = Future()}
-        \NormalTok{f.set_result(}\OtherTok{None}\NormalTok{)}
-        \OtherTok{self}\NormalTok{.step(f)}
+\begin{verbatim}
+class Task:
+    def __init__(self, coro):
+        self.coro = coro
+        f = Future()
+        f.set_result(None)
+        self.step(f)
 
-    \KeywordTok{def} \NormalTok{step(}\OtherTok{self}\NormalTok{, future):}
-        \KeywordTok{try}\NormalTok{:}
-            \NormalTok{next_future = }\OtherTok{self}\NormalTok{.coro.send(future.result)}
-        \KeywordTok{except} \OtherTok{StopIteration}\NormalTok{:}
-            \KeywordTok{return}
+    def step(self, future):
+        try:
+            next_future = self.coro.send(future.result)
+        except StopIteration:
+            return
 
-        \NormalTok{next_future.add_done_callback(}\OtherTok{self}\NormalTok{.step)}
+        next_future.add_done_callback(self.step)
 
-\CommentTok{# Begin fetching http://xkcd.com/353/}
-\NormalTok{fetcher = Fetcher(}\StringTok{'/353/'}\NormalTok{)}
-\NormalTok{Task(fetcher.fetch())}
+# Begin fetching http://xkcd.com/353/
+fetcher = Fetcher('/353/')
+Task(fetcher.fetch())
 
-\NormalTok{loop()}
-\end{Highlighting}
-\end{Shaded}
+loop()
+\end{verbatim}
 
 The task starts the \texttt{fetch} generator by sending \texttt{None}
 into it. Then \texttt{fetch} runs until it yields a future, which the
@@ -894,30 +832,28 @@ Once the socket is connected, we send the HTTP GET request and read the
 server response. These steps need no longer be scattered among
 callbacks; we gather them into the same generator function:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-    \KeywordTok{def} \NormalTok{fetch(}\OtherTok{self}\NormalTok{):}
-        \CommentTok{# ... connection logic from above, then:}
-        \NormalTok{sock.send(request.encode(}\StringTok{'ascii'}\NormalTok{))}
+\begin{verbatim}
+    def fetch(self):
+        # ... connection logic from above, then:
+        sock.send(request.encode('ascii'))
 
-        \KeywordTok{while} \OtherTok{True}\NormalTok{:}
-            \NormalTok{f = Future()}
+        while True:
+            f = Future()
 
-            \KeywordTok{def} \NormalTok{on_readable():}
-                \NormalTok{f.set_result(sock.recv(}\DecValTok{4096}\NormalTok{))}
+            def on_readable():
+                f.set_result(sock.recv(4096))
 
-            \NormalTok{selector.register(sock.fileno(),}
-                              \NormalTok{EVENT_READ,}
-                              \NormalTok{on_readable)}
-            \NormalTok{chunk = }\KeywordTok{yield} \NormalTok{f}
-            \NormalTok{selector.unregister(sock.fileno())}
-            \KeywordTok{if} \NormalTok{chunk:}
-                \OtherTok{self}\NormalTok{.response += chunk}
-            \KeywordTok{else}\NormalTok{:}
-                \CommentTok{# Done reading.}
-                \KeywordTok{break}
-\end{Highlighting}
-\end{Shaded}
+            selector.register(sock.fileno(),
+                              EVENT_READ,
+                              on_readable)
+            chunk = yield f
+            selector.unregister(sock.fileno())
+            if chunk:
+                self.response += chunk
+            else:
+                # Done reading.
+                break
+\end{verbatim}
 
 This code, which reads a whole message from a socket, seems generally
 useful. How can we factor it from \texttt{fetch} into a subroutine? Now
@@ -926,58 +862,52 @@ generator \emph{delegate} to another.
 
 To see how, let us return to our simple generator example:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{>>> }\KeywordTok{def} \NormalTok{gen_fn():}
-\NormalTok{...     result = }\KeywordTok{yield} \DecValTok{1}
-\NormalTok{...     }\DataTypeTok{print}\NormalTok{(}\StringTok{'result of yield: \{\}'}\NormalTok{.}\DataTypeTok{format}\NormalTok{(result))}
-\NormalTok{...     result2 = }\KeywordTok{yield} \DecValTok{2}
-\NormalTok{...     }\DataTypeTok{print}\NormalTok{(}\StringTok{'result of 2nd yield: \{\}'}\NormalTok{.}\DataTypeTok{format}\NormalTok{(result2))}
-\NormalTok{...     }\KeywordTok{return} \StringTok{'done'}
-\NormalTok{...     }
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+>>> def gen_fn():
+...     result = yield 1
+...     print('result of yield: {}'.format(result))
+...     result2 = yield 2
+...     print('result of 2nd yield: {}'.format(result2))
+...     return 'done'
+...     
+\end{verbatim}
 
 To call this generator from another generator, delegate to it with
 \texttt{yield from}:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{>>> }\CommentTok{# Generator function:}
-\NormalTok{>>> }\KeywordTok{def} \NormalTok{caller_fn():}
-\NormalTok{...     gen = gen_fn()}
-\NormalTok{...     rv = }\KeywordTok{yield} \CharTok{from} \NormalTok{gen}
-\NormalTok{...     }\DataTypeTok{print}\NormalTok{(}\StringTok{'return value of yield-from: \{\}'}
-\NormalTok{...           .}\DataTypeTok{format}\NormalTok{(rv))}
-\NormalTok{...}
-\NormalTok{>>> }\CommentTok{# Make a generator from the}
-\NormalTok{>>> }\CommentTok{# generator function.}
-\NormalTok{>>> caller = caller_fn()}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+>>> # Generator function:
+>>> def caller_fn():
+...     gen = gen_fn()
+...     rv = yield from gen
+...     print('return value of yield-from: {}'
+...           .format(rv))
+...
+>>> # Make a generator from the
+>>> # generator function.
+>>> caller = caller_fn()
+\end{verbatim}
 
 The \texttt{caller} generator acts as if it were \texttt{gen}, the
 generator it is delegating to:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{>>> caller.send(}\OtherTok{None}\NormalTok{)}
-\DecValTok{1}
-\NormalTok{>>> caller.gi_frame.f_lasti}
-\DecValTok{15}
-\NormalTok{>>> caller.send(}\StringTok{'hello'}\NormalTok{)}
-\NormalTok{result of }\KeywordTok{yield}\NormalTok{: hello}
-\DecValTok{2}
-\NormalTok{>>> caller.gi_frame.f_lasti  }\CommentTok{# Hasn't advanced.}
-\DecValTok{15}
-\NormalTok{>>> caller.send(}\StringTok{'goodbye'}\NormalTok{)}
-\NormalTok{result of 2nd }\KeywordTok{yield}\NormalTok{: goodbye}
-\KeywordTok{return} \NormalTok{value of }\KeywordTok{yield}\NormalTok{-}\CharTok{from}\NormalTok{: done}
-\NormalTok{Traceback (most recent call last):}
-  \NormalTok{File }\StringTok{"<input>"}\NormalTok{, line }\DecValTok{1}\NormalTok{, in <module>}
-\OtherTok{StopIteration}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+>>> caller.send(None)
+1
+>>> caller.gi_frame.f_lasti
+15
+>>> caller.send('hello')
+result of yield: hello
+2
+>>> caller.gi_frame.f_lasti  # Hasn't advanced.
+15
+>>> caller.send('goodbye')
+result of 2nd yield: goodbye
+return value of yield-from: done
+Traceback (most recent call last):
+  File "<input>", line 1, in <module>
+StopIteration
+\end{verbatim}
 
 While \texttt{caller} yields from \texttt{gen}, \texttt{caller} does not
 advance. Notice that its instruction pointer remains at 15, the site of
@@ -1004,11 +934,9 @@ that \texttt{caller} printed ``return value of yield-from: done''. When
 \texttt{gen} completed, its return value became the value of the
 \texttt{yield from} statement in \texttt{caller}:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-    \NormalTok{rv = }\KeywordTok{yield} \CharTok{from} \NormalTok{gen}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+    rv = yield from gen
+\end{verbatim}
 
 Earlier, when we criticized callback-based async programming, our most
 strident complaint was about ``stack ripping'': when a callback throws
@@ -1016,80 +944,72 @@ an exception, the stack trace is typically useless. It only shows that
 the event loop was running the callback, not \emph{why}. How do
 coroutines fare?
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{>>> }\KeywordTok{def} \NormalTok{gen_fn():}
-\NormalTok{...     }\KeywordTok{raise} \OtherTok{Exception}\NormalTok{(}\StringTok{'my error'}\NormalTok{)}
-\NormalTok{>>> caller = caller_fn()}
-\NormalTok{>>> caller.send(}\OtherTok{None}\NormalTok{)}
-\NormalTok{Traceback (most recent call last):}
-  \NormalTok{File }\StringTok{"<input>"}\NormalTok{, line }\DecValTok{1}\NormalTok{, in <module>}
-  \NormalTok{File }\StringTok{"<input>"}\NormalTok{, line }\DecValTok{3}\NormalTok{, in caller_fn}
-  \NormalTok{File }\StringTok{"<input>"}\NormalTok{, line }\DecValTok{2}\NormalTok{, in gen_fn}
-\OtherTok{Exception}\NormalTok{: my error}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+>>> def gen_fn():
+...     raise Exception('my error')
+>>> caller = caller_fn()
+>>> caller.send(None)
+Traceback (most recent call last):
+  File "<input>", line 1, in <module>
+  File "<input>", line 3, in caller_fn
+  File "<input>", line 2, in gen_fn
+Exception: my error
+\end{verbatim}
 
 This is much more useful! The stack trace shows \texttt{caller\_fn} was
 delegating to \texttt{gen\_fn} when it threw the error. Even more
 comforting, we can wrap the call to a sub-coroutine in an exception
 handler, the same is with normal subroutines:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{>>> }\KeywordTok{def} \NormalTok{gen_fn():}
-\NormalTok{...     }\KeywordTok{yield} \DecValTok{1}
-\NormalTok{...     }\KeywordTok{raise} \OtherTok{Exception}\NormalTok{(}\StringTok{'uh oh'}\NormalTok{)}
-\NormalTok{...}
-\NormalTok{>>> }\KeywordTok{def} \NormalTok{caller_fn():}
-\NormalTok{...     }\KeywordTok{try}\NormalTok{:}
-\NormalTok{...         }\KeywordTok{yield} \CharTok{from} \NormalTok{gen_fn()}
-\NormalTok{...     }\KeywordTok{except} \OtherTok{Exception} \CharTok{as} \NormalTok{exc:}
-\NormalTok{...         }\DataTypeTok{print}\NormalTok{(}\StringTok{'caught \{\}'}\NormalTok{.}\DataTypeTok{format}\NormalTok{(exc))}
-\NormalTok{...}
-\NormalTok{>>> caller = caller_fn()}
-\NormalTok{>>> caller.send(}\OtherTok{None}\NormalTok{)}
-\DecValTok{1}
-\NormalTok{>>> caller.send(}\StringTok{'hello'}\NormalTok{)}
-\NormalTok{caught uh oh}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+>>> def gen_fn():
+...     yield 1
+...     raise Exception('uh oh')
+...
+>>> def caller_fn():
+...     try:
+...         yield from gen_fn()
+...     except Exception as exc:
+...         print('caught {}'.format(exc))
+...
+>>> caller = caller_fn()
+>>> caller.send(None)
+1
+>>> caller.send('hello')
+caught uh oh
+\end{verbatim}
 
 So we factor logic with sub-coroutines just like with regular
 subroutines. Let us factor some useful sub-coroutines from our fetcher.
 We write a \texttt{read} coroutine to receive one chunk:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\KeywordTok{def} \NormalTok{read(sock):}
-    \NormalTok{f = Future()}
+\begin{verbatim}
+def read(sock):
+    f = Future()
 
-    \KeywordTok{def} \NormalTok{on_readable():}
-        \NormalTok{f.set_result(sock.recv(}\DecValTok{4096}\NormalTok{))}
+    def on_readable():
+        f.set_result(sock.recv(4096))
 
-    \NormalTok{selector.register(sock.fileno(), EVENT_READ, on_readable)}
-    \NormalTok{chunk = }\KeywordTok{yield} \NormalTok{f  }\CommentTok{# Read one chunk.}
-    \NormalTok{selector.unregister(sock.fileno())}
-    \KeywordTok{return} \NormalTok{chunk}
-\end{Highlighting}
-\end{Shaded}
+    selector.register(sock.fileno(), EVENT_READ, on_readable)
+    chunk = yield f  # Read one chunk.
+    selector.unregister(sock.fileno())
+    return chunk
+\end{verbatim}
 
 We build on \texttt{read} with a \texttt{read\_all} coroutine that
 receives a whole message:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\KeywordTok{def} \NormalTok{read_all(sock):}
-    \NormalTok{response = []}
-    \CommentTok{# Read whole response.}
-    \NormalTok{chunk = }\KeywordTok{yield} \CharTok{from} \NormalTok{read(sock)}
-    \KeywordTok{while} \NormalTok{chunk:}
-        \NormalTok{response.append(chunk)}
-        \NormalTok{chunk = }\KeywordTok{yield} \CharTok{from} \NormalTok{read(sock)}
+\begin{verbatim}
+def read_all(sock):
+    response = []
+    # Read whole response.
+    chunk = yield from read(sock)
+    while chunk:
+        response.append(chunk)
+        chunk = yield from read(sock)
 
-    \KeywordTok{return} \NormalTok{b}\StringTok{''}\NormalTok{.join(response)}
-\end{Highlighting}
-\end{Shaded}
+    return b''.join(response)
+\end{verbatim}
 
 If you squint the right way, the \texttt{yield from} statements
 disappear and these look like conventional functions doing blocking I/O.
@@ -1102,25 +1022,21 @@ ready.
 
 At the stack's root, \texttt{fetch} calls \texttt{read\_all}:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\KeywordTok{class} \NormalTok{Fetcher:}
-    \KeywordTok{def} \NormalTok{fetch(}\OtherTok{self}\NormalTok{):}
-         \CommentTok{# ... connection logic from above, then:}
-        \NormalTok{sock.send(request.encode(}\StringTok{'ascii'}\NormalTok{))}
-        \OtherTok{self}\NormalTok{.response = }\KeywordTok{yield} \CharTok{from} \NormalTok{read_all(sock)}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+class Fetcher:
+    def fetch(self):
+         # ... connection logic from above, then:
+        sock.send(request.encode('ascii'))
+        self.response = yield from read_all(sock)
+\end{verbatim}
 
 Miraculously, the Task class needs no modification. It drives the outer
 \texttt{fetch} coroutine just the same as before:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{Task(fetcher.fetch())}
-\NormalTok{loop()}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+Task(fetcher.fetch())
+loop()
+\end{verbatim}
 
 When \texttt{read} yields a future, the task receives it through the
 channel of \texttt{yield from} statements, precisely as if the future
@@ -1142,34 +1058,28 @@ generators and iterators. Advancing a generator is, to the caller, the
 same as advancing an iterator. So we make our Future class iterable by
 implementing a special method:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-    \CommentTok{# Method on Future class.}
-    \KeywordTok{def} \OtherTok{__iter__}\NormalTok{(}\OtherTok{self}\NormalTok{):}
-        \CommentTok{# Tell Task to resume me here.}
-        \KeywordTok{yield} \OtherTok{self}
-        \KeywordTok{return} \OtherTok{self}\NormalTok{.result}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+    # Method on Future class.
+    def __iter__(self):
+        # Tell Task to resume me here.
+        yield self
+        return self.result
+\end{verbatim}
 
 The future's \texttt{\_\_iter\_\_} method is a coroutine that yields the
 future itself. Now when we replace code like this:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\CommentTok{# f is a Future.}
-\KeywordTok{yield} \NormalTok{f}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+# f is a Future.
+yield f
+\end{verbatim}
 
 \ldots{}with this:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\CommentTok{# f is a Future.}
-\KeywordTok{yield} \CharTok{from} \NormalTok{f}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+# f is a Future.
+yield from f
+\end{verbatim}
 
 \ldots{}the outcome is precisely the same! The driving Task receives the
 future from its call to \texttt{self.coro.send(result)}, and when the
@@ -1201,14 +1111,12 @@ sockets and the call to \texttt{select}. But when it comes time to build
 an application with asyncio, none of this appears in your code. As we
 promised, you can fetch a URL as sleekly as this:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-    \OtherTok{@asyncio.coroutine}
-    \KeywordTok{def} \NormalTok{fetch(}\OtherTok{self}\NormalTok{, url):}
-        \NormalTok{response = }\KeywordTok{yield} \CharTok{from} \NormalTok{aiohttp.request(}\StringTok{'get'}\NormalTok{, url)}
-        \NormalTok{body = }\KeywordTok{yield} \CharTok{from} \NormalTok{response.read()}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+    @asyncio.coroutine
+    def fetch(self, url):
+        response = yield from aiohttp.request('get', url)
+        body = yield from response.read()
+\end{verbatim}
 
 Satisfied with this exposition, we return to our original assignment: to
 write an async web crawler, using asyncio.
@@ -1240,77 +1148,67 @@ matched by a \texttt{task\_done} call, then it exits.
 Coroutines use the exact same pattern with a queue from asyncio! First
 we import asyncio's queue\footnote{\url{https://docs.python.org/3/library/asyncio-sync.html}}:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\KeywordTok{try}\NormalTok{:}
-    \CharTok{from} \NormalTok{asyncio }\CharTok{import} \NormalTok{JoinableQueue }\CharTok{as} \NormalTok{Queue}
-\KeywordTok{except} \OtherTok{ImportError}\NormalTok{:}
-    \CommentTok{# In Python 3.5, asyncio.JoinableQueue is}
-    \CommentTok{# merged into Queue.}
-    \CharTok{from} \NormalTok{asyncio }\CharTok{import} \NormalTok{Queue}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+try:
+    from asyncio import JoinableQueue as Queue
+except ImportError:
+    # In Python 3.5, asyncio.JoinableQueue is
+    # merged into Queue.
+    from asyncio import Queue
+\end{verbatim}
 
 We collect the workers' shared state in a crawler class, and write the
 main logic in its \texttt{crawl} method. We start \texttt{crawl} on a
 coroutine and run asyncio's event loop until \texttt{crawl} finishes:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{crawler = crawling.Crawler(}\StringTok{'http://xkcd.com'}\NormalTok{,}
-                           \NormalTok{max_redirect=}\DecValTok{10}\NormalTok{)}
+\begin{verbatim}
+crawler = crawling.Crawler('http://xkcd.com',
+                           max_redirect=10)
 
-\NormalTok{loop = asyncio.get_event_loop()}
-\NormalTok{loop.run_until_complete(crawler.crawl())}
-\end{Highlighting}
-\end{Shaded}
+loop = asyncio.get_event_loop()
+loop.run_until_complete(crawler.crawl())
+\end{verbatim}
 
 The crawler begins with a root URL and \texttt{max\_redirect}, the
 number of redirects it is willing to follow to fetch any one URL. It
 puts the pair \texttt{(URL, max\_redirect)} in the queue. (For the
 reason why, stay tuned.)
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\KeywordTok{class} \NormalTok{Crawler:}
-    \KeywordTok{def} \OtherTok{__init__}\NormalTok{(}\OtherTok{self}\NormalTok{, root_url, max_redirect):}
-        \OtherTok{self}\NormalTok{.max_tasks = }\DecValTok{10}
-        \OtherTok{self}\NormalTok{.max_redirect = max_redirect}
-        \OtherTok{self}\NormalTok{.q = Queue()}
-        \OtherTok{self}\NormalTok{.seen_urls = }\DataTypeTok{set}\NormalTok{()}
+\begin{verbatim}
+class Crawler:
+    def __init__(self, root_url, max_redirect):
+        self.max_tasks = 10
+        self.max_redirect = max_redirect
+        self.q = Queue()
+        self.seen_urls = set()
         
-        \CommentTok{# Put (URL, max_redirect) in the queue.}
-        \OtherTok{self}\NormalTok{.q.put((root_url, }\OtherTok{self}\NormalTok{.max_redirect))}
-\end{Highlighting}
-\end{Shaded}
+        # Put (URL, max_redirect) in the queue.
+        self.q.put((root_url, self.max_redirect))
+\end{verbatim}
 
 The number of unfinished tasks in the queue is now one. Back in our main
 script, we launch the event loop and the \texttt{crawl} method:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{loop.run_until_complete(crawler.crawl())}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+loop.run_until_complete(crawler.crawl())
+\end{verbatim}
 
 The \texttt{crawl} coroutine kicks off the workers. It is like a main
 thread: it blocks on \texttt{join} until all tasks are finished, while
 the workers run in the background.
 
-\begin{Shaded}
-\begin{Highlighting}[]
-    \OtherTok{@asyncio.coroutine}
-    \KeywordTok{def} \NormalTok{crawl(}\OtherTok{self}\NormalTok{):}
-        \CommentTok{"""Run the crawler until all work is done."""}
-        \NormalTok{workers = [asyncio.Task(}\OtherTok{self}\NormalTok{.work())}
-                   \KeywordTok{for} \NormalTok{_ in }\DataTypeTok{range}\NormalTok{(}\OtherTok{self}\NormalTok{.max_tasks)]}
+\begin{verbatim}
+    @asyncio.coroutine
+    def crawl(self):
+        """Run the crawler until all work is done."""
+        workers = [asyncio.Task(self.work())
+                   for _ in range(self.max_tasks)]
 
-        \CommentTok{# When all work is done, exit.}
-        \KeywordTok{yield} \CharTok{from} \OtherTok{self}\NormalTok{.q.join()}
-        \KeywordTok{for} \NormalTok{w in workers:}
-            \NormalTok{w.cancel()}
-\end{Highlighting}
-\end{Shaded}
+        # When all work is done, exit.
+        yield from self.q.join()
+        for w in workers:
+            w.cancel()
+\end{verbatim}
 
 If the workers were threads we might not wish to start them all at once.
 To avoid creating expensive threads until it is certain they are
@@ -1330,50 +1228,44 @@ ERROR:asyncio:Task was destroyed but it is pending!
 And how does \texttt{cancel} work? Generators have a feature we have not
 yet shown you. You can throw an exception into a generator from outside:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{>>> gen = gen_fn()}
-\NormalTok{>>> gen.send(}\OtherTok{None}\NormalTok{)  }\CommentTok{# Start the generator as usual.}
-\DecValTok{1}
-\NormalTok{>>> gen.throw(}\OtherTok{Exception}\NormalTok{(}\StringTok{'error'}\NormalTok{))}
-\NormalTok{Traceback (most recent call last):}
-  \NormalTok{File }\StringTok{"<input>"}\NormalTok{, line }\DecValTok{3}\NormalTok{, in <module>}
-  \NormalTok{File }\StringTok{"<input>"}\NormalTok{, line }\DecValTok{2}\NormalTok{, in gen_fn}
-\OtherTok{Exception}\NormalTok{: error}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+>>> gen = gen_fn()
+>>> gen.send(None)  # Start the generator as usual.
+1
+>>> gen.throw(Exception('error'))
+Traceback (most recent call last):
+  File "<input>", line 3, in <module>
+  File "<input>", line 2, in gen_fn
+Exception: error
+\end{verbatim}
 
 The generator is resumed by \texttt{throw}, but it is now raising an
 exception. If no code in the generator's call stack catches it, the
 exception bubbles back up to the top. So to cancel a task's coroutine:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-    \CommentTok{# Method of Task class.}
-    \KeywordTok{def} \NormalTok{cancel(}\OtherTok{self}\NormalTok{):}
-        \OtherTok{self}\NormalTok{.coro.throw(CancelledError)}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+    # Method of Task class.
+    def cancel(self):
+        self.coro.throw(CancelledError)
+\end{verbatim}
 
 Wherever the generator is paused, at some \texttt{yield from} statement,
 it resumes and throws an exception. We handle cancellation in the task's
 \texttt{step} method:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-    \CommentTok{# Method of Task class.}
-    \KeywordTok{def} \NormalTok{step(}\OtherTok{self}\NormalTok{, future):}
-        \KeywordTok{try}\NormalTok{:}
-            \NormalTok{next_future = }\OtherTok{self}\NormalTok{.coro.send(future.result)}
-        \KeywordTok{except} \NormalTok{CancelledError:}
-            \OtherTok{self}\NormalTok{.cancelled = }\OtherTok{True}
-            \KeywordTok{return}
-        \KeywordTok{except} \OtherTok{StopIteration}\NormalTok{:}
-            \KeywordTok{return}
+\begin{verbatim}
+    # Method of Task class.
+    def step(self, future):
+        try:
+            next_future = self.coro.send(future.result)
+        except CancelledError:
+            self.cancelled = True
+            return
+        except StopIteration:
+            return
 
-        \NormalTok{next_future.add_done_callback(}\OtherTok{self}\NormalTok{.step)}
-\end{Highlighting}
-\end{Shaded}
+        next_future.add_done_callback(self.step)
+\end{verbatim}
 
 Now the task knows it is cancelled, so when it is destroyed it does not
 rage against the dying of the light.
@@ -1382,29 +1274,25 @@ Once \texttt{crawl} has canceled the workers, it exits. The event loop
 sees that the coroutine is complete (we shall see how later), and it too
 exits:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{loop.run_until_complete(crawler.crawl())}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+loop.run_until_complete(crawler.crawl())
+\end{verbatim}
 
 The \texttt{crawl} method comprises all that our main coroutine must do.
 It is the worker coroutines that get URLs from the queue, fetch them,
 and parse them for new links. Each worker runs the \texttt{work}
 coroutine independently:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-    \OtherTok{@asyncio.coroutine}
-    \KeywordTok{def} \NormalTok{work(}\OtherTok{self}\NormalTok{):}
-        \KeywordTok{while} \OtherTok{True}\NormalTok{:}
-            \NormalTok{url, max_redirect = }\KeywordTok{yield} \CharTok{from} \OtherTok{self}\NormalTok{.q.get()}
+\begin{verbatim}
+    @asyncio.coroutine
+    def work(self):
+        while True:
+            url, max_redirect = yield from self.q.get()
 
-            \CommentTok{# Download page and add new links to self.q.}
-            \KeywordTok{yield} \CharTok{from} \OtherTok{self}\NormalTok{.fetch(url, max_redirect)}
-            \OtherTok{self}\NormalTok{.q.task_done()}
-\end{Highlighting}
-\end{Shaded}
+            # Download page and add new links to self.q.
+            yield from self.fetch(url, max_redirect)
+            self.q.task_done()
+\end{verbatim}
 
 Python sees that this code contains \texttt{yield from} statements, and
 compiles it into a generator function. So in \texttt{crawl}, when the
@@ -1419,11 +1307,9 @@ independently, with separate local variables and instruction pointers.
 The worker coordinates with its fellows via the queue. It waits for new
 URLs with:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-    \NormalTok{url, max_redirect = }\KeywordTok{yield} \CharTok{from} \OtherTok{self}\NormalTok{.q.get()}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+    url, max_redirect = yield from self.q.get()
+\end{verbatim}
 
 The queue's \texttt{get} method is itself a coroutine: it pauses until
 someone puts an item in the queue, then resumes and returns the item.
@@ -1443,24 +1329,20 @@ is unpaused and finishes.
 
 We promised to explain why the items in the queue are pairs, like:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\CommentTok{# URL to fetch, and the number of redirects left.}
-\NormalTok{(}\StringTok{'http://xkcd.com/353'}\NormalTok{, }\DecValTok{10}\NormalTok{)}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+# URL to fetch, and the number of redirects left.
+('http://xkcd.com/353', 10)
+\end{verbatim}
 
 New URLs have ten redirects remaining. Fetching this particular URL
 results in a redirect to a new location with a trailing slash. We
 decrement the number of redirects remaining, and put the next location
 in the queue:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\CommentTok{# URL with a trailing slash. Nine redirects left.}
-\NormalTok{(}\StringTok{'http://xkcd.com/353/'}\NormalTok{, }\DecValTok{9}\NormalTok{)}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+# URL with a trailing slash. Nine redirects left.
+('http://xkcd.com/353/', 9)
+\end{verbatim}
 
 The \texttt{aiohttp} package we use would follow redirects by default
 and give us the final response. We tell it not to, however, and handle
@@ -1476,34 +1358,32 @@ The crawler fetches ``foo'' and sees it redirects to ``baz'', so it adds
 fetches is ``bar'', which also redirects to ``baz'', the fetcher does
 not enqueue ``baz'' again.
 
-\begin{Shaded}
-\begin{Highlighting}[]
-    \OtherTok{@asyncio.coroutine}
-    \KeywordTok{def} \NormalTok{fetch(}\OtherTok{self}\NormalTok{, url, max_redirect):}
-        \CommentTok{# Handle redirects ourselves.}
-        \NormalTok{response = }\KeywordTok{yield} \CharTok{from} \NormalTok{aiohttp.request(}
-            \StringTok{'get'}\NormalTok{, url, allow_redirects=}\OtherTok{False}\NormalTok{)}
+\begin{verbatim}
+    @asyncio.coroutine
+    def fetch(self, url, max_redirect):
+        # Handle redirects ourselves.
+        response = yield from aiohttp.request(
+            'get', url, allow_redirects=False)
 
-        \KeywordTok{if} \NormalTok{is_redirect(response):}
-            \KeywordTok{if} \NormalTok{max_redirect > }\DecValTok{0}\NormalTok{:}
-                \NormalTok{next_url = response.headers[}\StringTok{'location'}\NormalTok{]}
-                \KeywordTok{if} \NormalTok{next_url in }\OtherTok{self}\NormalTok{.seen_urls:}
-                    \CommentTok{# We have been down this path before.}
-                    \KeywordTok{return}
+        if is_redirect(response):
+            if max_redirect > 0:
+                next_url = response.headers['location']
+                if next_url in self.seen_urls:
+                    # We have been down this path before.
+                    return
 
-                \CommentTok{# Remember we have seen this URL.}
-                \OtherTok{self}\NormalTok{.seen_urls.add(next_url)}
+                # Remember we have seen this URL.
+                self.seen_urls.add(next_url)
                 
-                \CommentTok{# Follow the redirect. One less redirect remains.}
-                \OtherTok{self}\NormalTok{.q.put_nowait((next_url, max_redirect - }\DecValTok{1}\NormalTok{))}
-         \KeywordTok{else}\NormalTok{:}
-             \NormalTok{links = }\KeywordTok{yield} \CharTok{from} \OtherTok{self}\NormalTok{.parse_links(response)}
-             \CommentTok{# Python set-logic:}
-             \KeywordTok{for} \NormalTok{link in links.difference(}\OtherTok{self}\NormalTok{.seen_urls):}
-                \OtherTok{self}\NormalTok{.q.put_nowait((link, }\OtherTok{self}\NormalTok{.max_redirect))}
-            \OtherTok{self}\NormalTok{.seen_urls.update(links)}
-\end{Highlighting}
-\end{Shaded}
+                # Follow the redirect. One less redirect remains.
+                self.q.put_nowait((next_url, max_redirect - 1))
+         else:
+             links = yield from self.parse_links(response)
+             # Python set-logic:
+             for link in links.difference(self.seen_urls):
+                self.q.put_nowait((link, self.max_redirect))
+            self.seen_urls.update(links)
+\end{verbatim}
 
 If the response is a page, rather than a redirect, \texttt{fetch} parses
 it for links and puts new ones in the queue.
@@ -1550,29 +1430,27 @@ like this\footnote{The actual \texttt{asyncio.Queue} implementation uses
   difference is an Event can be reset, whereas a Future cannot
   transition from resolved back to pending.}:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\KeywordTok{class} \NormalTok{Queue:}
-    \KeywordTok{def} \OtherTok{__init__}\NormalTok{(}\OtherTok{self}\NormalTok{):}
-        \OtherTok{self}\NormalTok{._join_future = Future()}
-        \OtherTok{self}\NormalTok{._unfinished_tasks = }\DecValTok{0}
-        \CommentTok{# ... other initialization ...}
+\begin{verbatim}
+class Queue:
+    def __init__(self):
+        self._join_future = Future()
+        self._unfinished_tasks = 0
+        # ... other initialization ...
     
-    \KeywordTok{def} \NormalTok{put_nowait(}\OtherTok{self}\NormalTok{, item):}
-        \OtherTok{self}\NormalTok{._unfinished_tasks += }\DecValTok{1}
-        \CommentTok{# ... store the item ...}
+    def put_nowait(self, item):
+        self._unfinished_tasks += 1
+        # ... store the item ...
 
-    \KeywordTok{def} \NormalTok{task_done(}\OtherTok{self}\NormalTok{):}
-        \OtherTok{self}\NormalTok{._unfinished_tasks -= }\DecValTok{1}
-        \KeywordTok{if} \OtherTok{self}\NormalTok{._unfinished_tasks == }\DecValTok{0}\NormalTok{:}
-            \OtherTok{self}\NormalTok{._join_future.set_result(}\OtherTok{None}\NormalTok{)}
+    def task_done(self):
+        self._unfinished_tasks -= 1
+        if self._unfinished_tasks == 0:
+            self._join_future.set_result(None)
 
-    \OtherTok{@asyncio.coroutine}
-    \KeywordTok{def} \NormalTok{join(}\OtherTok{self}\NormalTok{):}
-        \KeywordTok{if} \OtherTok{self}\NormalTok{._unfinished_tasks > }\DecValTok{0}\NormalTok{:}
-            \KeywordTok{yield} \CharTok{from} \OtherTok{self}\NormalTok{._join_future}
-\end{Highlighting}
-\end{Shaded}
+    @asyncio.coroutine
+    def join(self):
+        if self._unfinished_tasks > 0:
+            yield from self._join_future
+\end{verbatim}
 
 The main coroutine, \texttt{crawl}, yields from \texttt{join}. So when
 the last worker decrements the count of unfinished tasks to zero, it
@@ -1581,35 +1459,31 @@ signals \texttt{crawl} to resume, and finish.
 The ride is almost over. Our program began with the call to
 \texttt{crawl}:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{loop.run_until_complete(}\OtherTok{self}\NormalTok{.crawler.crawl())}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+loop.run_until_complete(self.crawler.crawl())
+\end{verbatim}
 
 How does the program end? Since \texttt{crawl} is a generator function,
 calling it returns a generator. To drive the generator, asyncio wraps it
 in a task:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\KeywordTok{class} \NormalTok{EventLoop:}
-    \KeywordTok{def} \NormalTok{run_until_complete(}\OtherTok{self}\NormalTok{, coro):}
-        \CommentTok{"""Run until the coroutine is done."""}
-        \NormalTok{task = Task(coro)}
-        \NormalTok{task.add_done_callback(stop_callback)}
-        \KeywordTok{try}\NormalTok{:}
-            \OtherTok{self}\NormalTok{.run_forever()}
-        \KeywordTok{except} \NormalTok{StopError:}
-            \KeywordTok{pass}
+\begin{verbatim}
+class EventLoop:
+    def run_until_complete(self, coro):
+        """Run until the coroutine is done."""
+        task = Task(coro)
+        task.add_done_callback(stop_callback)
+        try:
+            self.run_forever()
+        except StopError:
+            pass
 
-\KeywordTok{class} \NormalTok{StopError(}\OtherTok{BaseException}\NormalTok{):}
-    \CommentTok{"""Raised to stop the event loop."""}
+class StopError(BaseException):
+    """Raised to stop the event loop."""
 
-\KeywordTok{def} \NormalTok{stop_callback(future):}
-    \KeywordTok{raise} \NormalTok{StopError}
-\end{Highlighting}
-\end{Shaded}
+def stop_callback(future):
+    raise StopError
+\end{verbatim}
 
 When the task completes, it raises \texttt{StopError}, which the loop
 uses as a signal that it has arrived at normal completion.
@@ -1619,12 +1493,10 @@ But what's this? The task has methods called
 task resembles a future. Your instinct is correct. We must admit a
 detail about the Task class we hid from you: a task is a future.
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\KeywordTok{class} \NormalTok{Task(Future):}
-    \CommentTok{"""A coroutine wrapped in a Future."""}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+class Task(Future):
+    """A coroutine wrapped in a Future."""
+\end{verbatim}
 
 Normally a future is resolved by someone else calling
 \texttt{set\_result} on it. But a task resolves \emph{itself} when its
@@ -1632,42 +1504,38 @@ coroutine stops. Remember from our earlier exploration of Python
 generators that when a generator returns, it throws the special
 \texttt{StopIteration} exception:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-    \CommentTok{# Method of class Task.}
-    \KeywordTok{def} \NormalTok{step(}\OtherTok{self}\NormalTok{, future):}
-        \KeywordTok{try}\NormalTok{:}
-            \NormalTok{next_future = }\OtherTok{self}\NormalTok{.coro.send(future.result)}
-        \KeywordTok{except} \NormalTok{CancelledError:}
-            \OtherTok{self}\NormalTok{.cancelled = }\OtherTok{True}
-            \KeywordTok{return}
-        \KeywordTok{except} \OtherTok{StopIteration} \CharTok{as} \NormalTok{exc:}
+\begin{verbatim}
+    # Method of class Task.
+    def step(self, future):
+        try:
+            next_future = self.coro.send(future.result)
+        except CancelledError:
+            self.cancelled = True
+            return
+        except StopIteration as exc:
 
-            \CommentTok{# Task resolves itself with coro's return}
-            \CommentTok{# value.}
-            \OtherTok{self}\NormalTok{.set_result(exc.value)}
-            \KeywordTok{return}
+            # Task resolves itself with coro's return
+            # value.
+            self.set_result(exc.value)
+            return
 
-        \NormalTok{next_future.add_done_callback(}\OtherTok{self}\NormalTok{.step)}
-\end{Highlighting}
-\end{Shaded}
+        next_future.add_done_callback(self.step)
+\end{verbatim}
 
 So when the event loop calls
 \texttt{task.add\_done\_callback(stop\_callback)}, it prepares to be
 stopped by the task. Here is \texttt{run\_until\_complete} again:
 
-\begin{Shaded}
-\begin{Highlighting}[]
-    \CommentTok{# Method of event loop.}
-    \KeywordTok{def} \NormalTok{run_until_complete(}\OtherTok{self}\NormalTok{, coro):}
-        \NormalTok{task = Task(coro)}
-        \NormalTok{task.add_done_callback(stop_callback)}
-        \KeywordTok{try}\NormalTok{:}
-            \OtherTok{self}\NormalTok{.run_forever()}
-        \KeywordTok{except} \NormalTok{StopError:}
-            \KeywordTok{pass}
-\end{Highlighting}
-\end{Shaded}
+\begin{verbatim}
+    # Method of event loop.
+    def run_until_complete(self, coro):
+        task = Task(coro)
+        task.add_done_callback(stop_callback)
+        try:
+            self.run_forever()
+        except StopError:
+            pass
+\end{verbatim}
 
 When the task catches \texttt{StopIteration} and resolves itself, the
 callback raises \texttt{StopError} from within the loop. The loop stops

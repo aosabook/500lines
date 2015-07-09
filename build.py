@@ -17,6 +17,7 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
         'sample',
         'crawler',
         'template-engine',
+        'modeller',
     ]
     if len(chapters) > 0:
         chapter_dirs = [
@@ -54,6 +55,7 @@ def main(chapters=[], epub=False, pdf=False, html=False, mobi=False, pandoc_epub
     image_paths = [
         './sample/sample-images',
         './crawler/crawler-images',
+        './modeller/modeller-images',
         ]
 
     run('cp -r minutiae/ tex')
@@ -186,7 +188,7 @@ def getbasename(chapter_markdown):
 def _pandoc_cmd(chapter_markdown):
     pandoc_path = 'pandoc'
     # tex/md because that's where the preprocessed markdowns end up
-    temp = '{pandoc} -V chaptertoken={chaptertoken} -t latex --chapters -S -f markdown+mmd_title_block+tex_math_dollars --template=tex/chaptertemplate.tex -o tex/{basename}.tex.1 tex/{md}'
+    temp = '{pandoc} -V chaptertoken={chaptertoken} -t latex --chapters -S -f markdown+mmd_title_block+tex_math_dollars --template=tex/chaptertemplate.tex --no-highlight -o tex/{basename}.tex.1 tex/{md}'
     basename = getbasename(chapter_markdown)
     result = temp.format(pandoc=pandoc_path, basename=basename, md=chapter_markdown, chaptertoken='s:' + basename)
     return result

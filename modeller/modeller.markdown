@@ -1,5 +1,6 @@
-<!-- to convert to HTML to view math notation, run `pandoc --to html --mathjax="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" -s chapter.md > chapter.html` -->
-<!-- American English (color, ) -->
+title: A 3D Modeller
+author: Erick Dransch
+
 ## Introduction
 Humans are innately creative. We continuously design and build novel, useful, and interesting things. In modern times, we write software to assist in the design and creation process. 
 Computer-aided design (CAD) software allows creators to design buildings, bridges, video game art, 
@@ -156,12 +157,14 @@ To convert a vector $v$ from one coordinate space to another, we multiply by a t
 Some common transformation matrices are translations (moves), scaling, and rotations.
 
 ### Model, World, View, and Projection Coordinate Spaces
+\aosafigure[240pt]{modeller-images/newtranspipe.png}{Transformation Pipeline }{500l.modeller.newtranspipe}
+
 To draw an item to the screen, we need to convert between a few different coordinate spaces.
 
-![Transformation Pipeline](newtranspipe.png?raw=true)
-Thank you to Dr. Anton Gerdelan for the image. His OpenGL tutorial book is available at [http://antongerdelan.net/opengl/](http://antongerdelan.net/opengl/).
+The right hand side of \aosafigref{500l.modeller.newtranspipe}[^transimage], including all of the transformations from Eye Space to Viewport Space will all be handled for us by OpenGL.
 
-The right hand side of the diagram, including all of the transformations from Eye Space to Viewport Space will all be handled for us by OpenGL.
+[^transimage]: Thanks to Dr. Anton Gerdelan for the image. His OpenGL tutorial book is available at [http://antongerdelan.net/opengl/](http://antongerdelan.net/opengl/).
+
 Conversion from eye space to homogeneous clip space is handled by `gluPerspective`, and conversion to normalized device space and viewport space is handled by `glViewport`.
 These two matrices are multiplied together and stored as the GL_PROJECTION matrix.
 We don't need to know the terminology or the details of how these matrices work for this project.
@@ -169,7 +172,7 @@ We don't need to know the terminology or the details of how these matrices work 
 We do, however, need to manage the left hand side of the diagram ourselves. We define a matrix which converts points in the model (also called a mesh) from the model spaces into the world space, called the model matrix. We alse define the view matrix, which converts from the world space into the eye space.
 In this project, we combine these two matrices to obtain the ModelView matrix.
 
-To learn more about the full graphics rendering pipeline, and the coordinate spaces involved, refer to chapter 2 of ["Real Time Rendering"](http://www.realtimerendering.com/), or another introductory computer graphics book.
+To learn more about the full graphics rendering pipeline, and the coordinate spaces involved, refer to chapter 2 of [*Real Time Rendering*](http://www.realtimerendering.com/), or another introductory computer graphics book.
 
 ### Rendering with the Viewer
 The `render` function begins by setting up any of the OpenGL state that needs to be done at render time. It initializes the projection matrix via `init_view` and uses data from the interaction member to initialize the ModelView matrix with the transformation matrix that converts from the scene space to world space. We will see more about the Interaction class below. It clears the screen with `glClear` and it tells the scene to render itself, and then renders the unit grid. 
@@ -383,9 +386,11 @@ class SnowFigure(HierarchicalNode):
         self.child_nodes = [Sphere(), Sphere(), Sphere()]
         self.child_nodes[0].translate(0, -0.6, 0) # scale 1.0
         self.child_nodes[1].translate(0, 0.1, 0)
-        self.child_nodes[1].scaling_matrix = numpy.dot(self.scaling_matrix, scaling([0.8, 0.8, 0.8]))
+        self.child_nodes[1].scaling_matrix = numpy.dot(
+            self.scaling_matrix, scaling([0.8, 0.8, 0.8]))
         self.child_nodes[2].translate(0, 0.75, 0)
-        self.child_nodes[2].scaling_matrix = numpy.dot(self.scaling_matrix, scaling([0.7, 0.7, 0.7]))
+        self.child_nodes[2].scaling_matrix = numpy.dot(
+            self.scaling_matrix, scaling([0.7, 0.7, 0.7]))
         for child_node in self.child_nodes:
             child_node.color_index = color.MIN_COLOR
         self.aabb = AABB([0.0, 0.0, 0.0], [0.5, 1.1, 0.5])
@@ -482,7 +487,8 @@ The `Interaction` class hides unrelated complexity from the rest of the codebase
             dx = x - self.mouse_loc[0]
             dy = y - self.mouse_loc[1]
             if self.pressed == GLUT_RIGHT_BUTTON and self.trackball is not None:
-                # ignore the updated camera loc because we want to always rotate around the origin
+                # ignore the updated camera loc because we want to always
+                # rotate around the origin
                 self.trackball.drag_to(self.mouse_loc[0], self.mouse_loc[1], dx, dy)
             elif self.pressed == GLUT_LEFT_BUTTON:
                 self.trigger('move', x, y)
@@ -539,13 +545,51 @@ with a class that converts the input from the new toolkit into the same set of m
 
 We use the following callbacks and arguments:
 
+<markdown>
 Callback | Arguments | Purpose
 --------|--------------------|----------
-pick    | x:number, y:number | Selects the node at the mouse pointer location.
-move    | x:number, y:number | Moves the currently selected node to the mouse pointer location.
-place   | shape:string, x:number, y:number | Places a shape of the specified type at the mouse pointer location.
-rotate_color   | forward:boolean | Rotates the color of the currently selected node through the list of colors, forwards or backwards.
-scale   | up:boolean | Scales the currently selected node up or down, according to parameter.
+`pick`    | x:number, y:number | Selects the node at the mouse pointer location.
+`move`    | x:number, y:number | Moves the currently selected node to the mouse pointer location.
+`place`   | shape:string, x:number, y:number | Places a shape of the specified type at the mouse pointer location.
+`rotate_color`   | forward:boolean | Rotates the color of the currently selected node through the list of colors, forwards or backwards.
+`scale`   | up:boolean | Scales the currently selected node up or down, according to parameter.
+: \label{500l.tbl.callbacks} Interaction callbacks and arguments
+</markdown>
+<latex>
+\begin{table}
+\centering
+{\footnotesize
+\rowcolors{2}{TableOdd}{TableEven}
+\begin{tabular}{lll}
+\hline
+\textbf{Callback}
+& \textbf{Arguments}
+& \textbf{Purpose}
+\\
+\hline
+pick    
+& x:number, y:number 
+& Selects the node at the mouse pointer location
+\\
+place & 
+shape:string, x:number, y:number & 
+Places a shape of the specified type at the mouse pointer location.
+\\
+rotate\_color & 
+forward:boolean & 
+Rotates the color of the currently selected node.
+\\
+scale & 
+up:boolean & 
+Scales the currently selected node up or down.
+\\
+\hline
+\end{tabular}
+}
+\caption{Interaction callbacks and arguments}
+\label{500l.tbl.callbacks}
+\end{table}
+</latex>
 
 This simple callback system provides all of the functionality we need for this project. In a production 3D modeller, however, user interface objects are often created and destroyed dynamically.
 In that case, we would need a more sophisticated event listening system, where objects can both register and un-register callbacks for events.
@@ -561,7 +605,7 @@ This design decision has very little impact on the rest of the project.)
 Revisiting the `render` function in the `Viewer`, we see that the `Interaction` state is used to transform the OpenGL matrix state before rendering the `Scene`.
 There are two types of interaction with the scene: rotation and translation.
 
-##### Rotating the Scene with a Trackball
+#### Rotating the Scene with a Trackball
 We accomplish rotation of the scene by using a *trackball* algorithm. The trackball is an intuitive interface for manipulating the scene in three dimensions.
 Conceptually, a trackball interface functions as if the scene was inside a transparent globe. Placing a hand on the surface of the globe and pushing it rotates the globe. Similarly, clicking the right mouse button and moving it on the screen rotates the scene.
 You can find out more about the theory of the trackball at the [OpenGL Wiki](http://www.opengl.org/wiki/Object_Mouse_Trackball).
@@ -574,7 +618,7 @@ self.trackball.drag_to(self.mouse_loc[0], self.mouse_loc[1], dx, dy)
 ``````````````````````````````````````````
 The resulting rotation matrix is retrieved as `trackball.matrix` in the viewer when the scene is rendered.
 
-##### Aside: Quaternions
+#### Aside: Quaternions
 Rotations are traditionally represented in one of two ways. The first is a rotation value around each axis; you could store this as a 3-tuple of floating point numbers.
 The other common representation for rotations is a quaternion, an element composed of a vector with $x$, $y$, and $z$ coordinates, and a $w$ rotation. Using quaternions has numerous benefits over per-axis rotation; in particular, they are more numerically stable. Using quaternions avoids problems like gimbal lock.
 The downside of quaternions is that they are less intuitive to work with and harder to understand. If you are brave and would like to learn more about quaternions, you can refer to [this explanation](http://3dgep.com/?p=1815).
@@ -582,7 +626,7 @@ The downside of quaternions is that they are less intuitive to work with and har
 The trackball implementation avoids gimbal lock by using quaternions internally to store the rotation of the scene. Luckily, we do not need to work with quaternions directly, because the matrix member on the trackball
 converts the rotation to a matrix.
 
-##### Translating the Scene
+#### Translating the Scene
 Translating the scene (i.e., sliding it) is much simpler than rotating it. Scene translations are provided with the mouse wheel and the left mouse button. The left mouse
 button translates the scene in the $x$ and $y$ coordinates. Scrolling the mouse wheel translates the scene in the z coordinate
 (towards or away from the camera). The `Interaction` class stores the current scene translation and modifies it with the `translate` function.
@@ -609,9 +653,13 @@ the same code for intersection tests, and it means that the performance cost is 
 `````````````````````````````````````````` {.python}
     # class Viewer
     def get_ray(self, x, y):
-        """ Generate a ray beginning at the near plane, in the direction that the x, y coordinates are facing
-            Consumes: x, y coordinates of mouse on screen
-            Return: start, direction of the ray """
+        """ 
+        Generate a ray beginning at the near plane, in the direction that
+        the x, y coordinates are facing 
+
+        Consumes: x, y coordinates of mouse on screen 
+        Return: start, direction of the ray 
+        """
         self.init_view()
     
         glMatrixMode(GL_MODELVIEW)
@@ -638,9 +686,12 @@ To determine which node was clicked on, we traverse the scene to test whether th
 `````````````````````````````````````````` {.python}
     # class Scene
     def pick(self, start, direction, mat):
-        """ Execute selection.
-            Consume: start, direction describing a Ray
-                     mat              is the inverse of the current modelview matrix for the scene """
+        """ 
+        Execute selection.
+            
+        start, direction describe a Ray. 
+        mat is the inverse of the current modelview matrix for the scene.
+        """
         if self.selected_node is not None:
             self.selected_node.select(False)
             self.selected_node = None
@@ -668,12 +719,19 @@ ray's coordinate space as the third parameter. Each node applies its own transfo
 `````````````````````````````````````````` {.python}
     # class Node
     def pick(self, start, direction, mat):
-        """ Return whether or not the ray hits the object
-           Consume:  start, direction    the ray to check
-                     mat                 the modelview matrix to transform the ray by """
+        """ 
+        Return whether or not the ray hits the object
+
+        Consume:  
+        start, direction form the ray to check
+        mat is the modelview matrix to transform the ray by 
+        """
 
         # transform the modelview matrix by the current translation
-        newmat = numpy.dot(numpy.dot(mat, self.translation_matrix), numpy.linalg.inv(self.scaling_matrix))
+        newmat = numpy.dot(
+            numpy.dot(mat, self.translation_matrix), 
+            numpy.linalg.inv(self.scaling_matrix)
+        )
         results = self.aabb.ray_hit(start, direction, newmat)
         return results
 
@@ -688,10 +746,11 @@ ray's coordinate space as the third parameter. Each node applies its own transfo
 
 The ray-AABB selection approach is very simple to understand and implement. However, the results are wrong in certain situations.
 
+\aosafigure[240pt]{modeller-images/AABBError.png}{AABB Error}{500l.modeller.aabberror}
+
 For example, in the case of the `Sphere` primitive, the sphere itself only touches the AABB in the centre of each of the AABB's faces.
 However if the user clicks on the corner of the Sphere's AABB, the collision will be detected with the Sphere, even if the user intended to click
-past the Sphere onto something behind it.
-![AABB Error](AABBError.png?raw=true)
+past the Sphere onto something behind it (\aosafigref{500l.modeller.aabberror}).
 
 This trade-off between complexity, performance, and accuracy is common in computer graphics and in many areas of software engineering.
 
@@ -709,7 +768,10 @@ When the `Viewer` receives a callback for one of these events, it calls the appr
         self.scene.move_selected(start, direction, self.inverseModelView)
     
     def rotate_color(self, forward):
-        """ Rotate the color of the selected Node. Boolean 'forward' indicates direction of rotation. """
+        """ 
+        Rotate the color of the selected Node. 
+        Boolean 'forward' indicates direction of rotation. 
+        """
         self.scene.rotate_selected_color(forward)
     
     def scale(self, up):
@@ -717,7 +779,7 @@ When the `Viewer` receives a callback for one of these events, it calls the appr
         self.scene.scale_selected(up)
 ``````````````````````````````````````````
 
-##### Changing Color
+#### Changing Color
 Manipulating color is accomplished with a list of possible colors. The user can cycle through the list with the arrow keys. The scene dispatches the color change command to
 the currently selected node.
 
@@ -740,7 +802,7 @@ Each node stores its current color. The `rotate_color` function simply modifies 
             self.color_index = color.MAX_COLOR
 ``````````````````````````````````````````
 
-##### Scaling Nodes
+#### Scaling Nodes
 As with color, the scene dispatches any scaling modifications to the selected node, if there is one.
 `````````````````````````````````````````` {.python}
     # class Scene
@@ -752,6 +814,7 @@ As with color, the scene dispatches any scaling modifications to the selected no
 ``````````````````````````````````````````
 Each node stores a current matrix that stores its scale. A matrix that scales by parameters $x$, $y$ and $z$ in those respective directions is:
 
+<latex>
 $$
    \begin{bmatrix}
    x & 0 & 0 & 0 \\
@@ -760,6 +823,17 @@ $$
    0 & 0 & 0 & 1 \\
    \end{bmatrix}
 $$
+</latex>
+<markdown>
+$$
+   \begin{bmatrix}
+   x & 0 & 0 & 0 \\
+   0 & y & 0 & 0 \\
+   0 & 0 & z & 0 \\
+   0 & 0 & 0 & 1 \\
+   \end{bmatrix}
+$$
+</markdown>
 
 When the user modifies the scale of a node, the resulting scaling matrix is multiplied into the current scaling matrix for the node.
 `````````````````````````````````````````` {.python}
@@ -780,7 +854,7 @@ def scaling(scale):
     return s
 ``````````````````````````````````````````
 
-##### Moving Nodes
+#### Moving Nodes
 In order to translate a node, we use the same ray calculation we used for picking. We pass the ray that represents the current mouse location in to the scene's
 `move` function. The new location of the node should be on the ray.
 In order to determine where on the ray to place the node, we need to know the node's distance from the camera. Since we stored the node's location and distance
@@ -791,9 +865,13 @@ We then translate the node by the resulting vector.
 `````````````````````````````````````````` {.python}
     # class Scene
     def move_selected(self, start, direction, inv_modelview):
-        """ Move the selected node, if there is one.
-            Consume:  start, direction  describes the Ray to move to
-                      mat               is the modelview matrix for the scene """
+        """ 
+        Move the selected node, if there is one.
+            
+        Consume: 
+        start, direction describes the Ray to move to
+        mat is the modelview matrix for the scene 
+        """
         if self.selected_node is None: return
     
         # Find the current depth and location of the selected node
@@ -862,10 +940,14 @@ Finally, we translate the new node by the calculated vector.
 `````````````````````````````````````````` {.python}
     # class Scene
     def place(self, shape, start, direction, inv_modelview):
-        """ Place a new node.
-            Consume:  shape             the shape to add
-                      start, direction  describes the Ray to move to
-                      inv_modelview     is the inverse modelview matrix for the scene """
+        """ 
+        Place a new node.
+            
+        Consume:  
+        shape the shape to add
+        start, direction describes the Ray to move to
+        inv_modelview is the inverse modelview matrix for the scene 
+        """
         new_node = None
         if shape == 'sphere': new_node = Sphere()
         elif shape == 'cube': new_node = Cube()
@@ -886,13 +968,17 @@ Finally, we translate the new node by the calculated vector.
 ## Summary
 Congratulations! We've successfully implemented a tiny 3D modeller!
 
-![Sample Scene](StartScene.png?raw=true)
+\aosafigure[240pt]{modeller-images/StartScene.png}{Sample Scene}{500l.modeller.samplescene}
 
-We saw how to develop an extensible data structure to represent the objects in the scene. We noticed that using the Composite design pattern and a tree-based 
-data structure makes it easy to traverse the scene for rendering  and allows us to add new types of nodes with no added complexity.
-We leveraged this data structure to render the design to the screen, and manipulated OpenGL matrices in the traversal of the scene graph.
-We built a very simple callback system for application-level events, and used it to encapsulate handling of operating system events.
-We discussed possible implementations for ray-object collision detection, and the trade-offs between correctness, complexity, and performance.
+We saw how to develop an extensible data structure to represent the objects in
+the scene. We noticed that using the Composite design pattern and a tree-based
+data structure makes it easy to traverse the scene for rendering  and allows us
+to add new types of nodes with no added complexity.  We leveraged this data
+structure to render the design to the screen, and manipulated OpenGL matrices
+in the traversal of the scene graph.  We built a very simple callback system
+for application-level events, and used it to encapsulate handling of operating
+system events.  We discussed possible implementations for ray-object collision
+detection, and the trade-offs between correctness, complexity, and performance.
 Finally, we implemented methods for manipulating the contents of the scene.
 
 You can expect to find these same basic building blocks in production 3D software. The scene graph structure and relative coordinate spaces are found in 
