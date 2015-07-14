@@ -28,6 +28,8 @@ tex/sample.markdown
 tex/sample-images
 tex/modeller.markdown
 tex/modeller-images
+tex/ci.markdown
+tex/ci-images
 html/content
 html/cache
 *.pid
